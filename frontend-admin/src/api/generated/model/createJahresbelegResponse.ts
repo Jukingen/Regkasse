@@ -7,11 +7,17 @@
  */
 
 export interface CreateJahresbelegResponse {
+  createdAtUtc?: string;
+  daysLate?: number;
+  /** @nullable */
+  intendedPeriodDate?: string | null;
   invoiceId?: string;
+  isLateCreated?: boolean;
   paymentId?: string;
   /** @nullable */
   qrData?: string | null;
   receiptId?: string;
   /** @nullable */
   receiptNumber?: string | null;
+  year?: number;
 }

@@ -14,7 +14,12 @@ export interface ReceiptListItemDto {
   cashRegisterId?: string | null;
   createdAt?: string;
   grandTotal?: number;
+  /** @nullable */
+  intendedPeriodDate?: string | null;
+  isLateCreated?: boolean;
   issuedAt?: string;
+  /** @nullable */
+  lateCreationReason?: string | null;
   paymentId?: string;
   receiptId?: string;
   /** @nullable */

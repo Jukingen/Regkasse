@@ -36,9 +36,13 @@
   "check": {
     "failedTitle": "Kontrol basarisiz",
     "canCloseLabel": "Gun sonu yapilabilir",
+    "canCloseMonthlyLabel": "Aylik kapanis yapilabilir",
+    "canCloseYearlyLabel": "Yillik kapanis yapilabilir",
     "yes": "Evet",
     "no": "Hayir",
-    "lastClosing": "Son gun sonu",
+    "lastClosing": "Son gunluk kapanis",
+    "lastMonthlyClosing": "Son aylik kapanis",
+    "lastYearlyClosing": "Son yillik kapanis",
     "paymentsWithoutInvoice": "Faturasiz odemeler (bugun)",
     "hint": "Not",
     "backendHint": "Sunucu notu (dil garanti degil)"
@@ -75,6 +79,7 @@
     "colTransactions": "Islemler",
     "colStatus": "Durum",
     "colFinanzOnline": "FinanzOnline",
+    "colPdf": "PDF",
     "closingTypes": {
       "Daily": "Gunluk",
       "Monthly": "Aylik",
@@ -96,11 +101,17 @@
     "successDaily": "Gunluk gun sonu uygulandi.",
     "successMonthly": "Aylik kapanis uygulandi.",
     "successYearly": "Yillik kapanis uygulandi.",
-    "warningNoRegister": "Lutfen once bir kasa secin."
+    "warningNoRegister": "Lutfen once bir kasa secin.",
+    "warningDailyNotAllowed": "Bugun icin gunluk kapanis yapilamaz (zaten yapildi veya onkosullar eksik).",
+    "warningMonthlyNotAllowed": "Bu ay icin aylik kapanis yapilamaz (zaten yapildi veya onkosullar eksik).",
+    "warningYearlyNotAllowed": "Bu yil icin yillik kapanis yapilamaz (zaten yapildi veya onkosullar eksik).",
+    "pdfUnavailable": "Bu kayit icin PDF yok.",
+    "pdfAutoDownloadFailed": "Kapanis basarili, ancak PDF indirilemedi."
   },
   "errors": {
     "unknown": "Bilinmeyen hata",
     "loadStatsTitle": "Istatistik yuklenemedi",
-    "loadHistoryTitle": "Gecmis yuklenemedi"
+    "loadHistoryTitle": "Gecmis yuklenemedi",
+    "pdfDownload": "PDF raporu indirilemedi."
   }
 }

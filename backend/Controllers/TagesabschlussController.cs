@@ -16,15 +16,18 @@ namespace KasseAPI_Final.Controllers
     public class TagesabschlussController : ControllerBase
     {
         private readonly ITagesabschlussService _tagesabschlussService;
+        private readonly IDailyClosingReportService _dailyClosingReportService;
         private readonly ISettingsTenantResolver _settingsTenantResolver;
         private readonly ILogger<TagesabschlussController> _logger;
 
         public TagesabschlussController(
             ITagesabschlussService tagesabschlussService,
+            IDailyClosingReportService dailyClosingReportService,
             ISettingsTenantResolver settingsTenantResolver,
             ILogger<TagesabschlussController> logger)
         {
             _tagesabschlussService = tagesabschlussService;
+            _dailyClosingReportService = dailyClosingReportService;
             _settingsTenantResolver = settingsTenantResolver;
             _logger = logger;
         }
@@ -149,6 +152,30 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        /// <summary>Localized PDF report for a completed RKSV closing (Daily/Monthly/Yearly).</summary>
+        [HttpGet("closing/{closingId:guid}/report.pdf")]
+        [HasPermission(AppPermissions.DailyClosingView)]
+        [Produces("application/pdf")]
+        [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetClosingReportPdf(
+            Guid closingId,
+            [FromQuery] string? language,
+            CancellationToken cancellationToken)
+        {
+            var pdf = await _dailyClosingReportService.TryGenerateClosingReportPdfAsync(
+                closingId,
+                actorUserId: null,
+                language ?? "de",
+                cancellationToken);
+
+            if (pdf == null || pdf.Length == 0)
+                return NotFound(new { error = "Closing report not found" });
+
+            var fileName = $"RKSV-Abschluss_{closingId:N}.pdf";
+            return File(pdf, "application/pdf", fileName);
+        }
+
         /// <summary>
         /// Get closing history for the authenticated user
         /// </summary>
@@ -193,7 +220,13 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var canClose = await _tagesabschlussService.CanPerformClosingAsync(cashRegisterId);
+                var canCloseMonthly = await _tagesabschlussService.CanPerformMonthlyClosingAsync(cashRegisterId);
+                var canCloseYearly = await _tagesabschlussService.CanPerformYearlyClosingAsync(cashRegisterId);
                 var lastClosingDate = await _tagesabschlussService.GetLastClosingDateAsync(cashRegisterId);
+                var lastMonthlyClosingDate =
+                    await _tagesabschlussService.GetLastClosingDateForTypeAsync(cashRegisterId, "Monthly");
+                var lastYearlyClosingDate =
+                    await _tagesabschlussService.GetLastClosingDateForTypeAsync(cashRegisterId, "Yearly");
                 var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
                 var (dayStartUtc, dayEndExclusiveUtc) =
                     PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(viennaToday);
@@ -210,7 +243,11 @@ namespace KasseAPI_Final.Controllers
                 return Ok(new TagesabschlussCanCloseResponse
                 {
                     canClose = canClose,
+                    canCloseMonthly = canCloseMonthly,
+                    canCloseYearly = canCloseYearly,
                     lastClosingDate = lastClosingDate,
+                    lastMonthlyClosingDate = lastMonthlyClosingDate,
+                    lastYearlyClosingDate = lastYearlyClosingDate,
                     paymentsWithoutInvoiceCount = paymentsWithoutInvoiceCount,
                     message = message
                 });
@@ -307,7 +344,13 @@ namespace KasseAPI_Final.Controllers
     {
         [Required]
         public bool canClose { get; set; }
+        [Required]
+        public bool canCloseMonthly { get; set; }
+        [Required]
+        public bool canCloseYearly { get; set; }
         public DateTime? lastClosingDate { get; set; }
+        public DateTime? lastMonthlyClosingDate { get; set; }
+        public DateTime? lastYearlyClosingDate { get; set; }
         [Required]
         public int paymentsWithoutInvoiceCount { get; set; }
         public string? message { get; set; }

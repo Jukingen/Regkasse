@@ -45,6 +45,7 @@ export function PosRegisterReadinessProvider({ children }: { children: React.Rea
   const ensureReadyInFlightRef = useRef(false);
 
   const refresh = useCallback(() => {
+    if (ensureReadyInFlightRef.current) return;
     setToken((n) => n + 1);
   }, []);
 
@@ -52,6 +53,7 @@ export function PosRegisterReadinessProvider({ children }: { children: React.Rea
     () =>
       new Promise<void>((resolve) => {
         refreshWaitersRef.current.push(resolve);
+        if (ensureReadyInFlightRef.current) return;
         setToken((n) => n + 1);
       }),
     []
@@ -78,7 +80,6 @@ export function PosRegisterReadinessProvider({ children }: { children: React.Rea
     ensureReadyInFlightRef.current = true;
     setLoading(true);
     setError(null);
-    setData(null);
 
     void (async () => {
       try {

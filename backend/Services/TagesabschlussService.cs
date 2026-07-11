@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Npgsql;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Time;
@@ -34,7 +35,10 @@ namespace KasseAPI_Final.Services
             Guid? cashRegisterId,
             CancellationToken cancellationToken = default);
         Task<bool> CanPerformClosingAsync(Guid cashRegisterId);
+        Task<bool> CanPerformMonthlyClosingAsync(Guid cashRegisterId);
+        Task<bool> CanPerformYearlyClosingAsync(Guid cashRegisterId);
         Task<DateTime?> GetLastClosingDateAsync(Guid cashRegisterId);
+        Task<DateTime?> GetLastClosingDateForTypeAsync(Guid cashRegisterId, string closingType);
         /// <summary>Sprint 4: Count active payments in scope with no Invoice (SourcePaymentId). Used for blocking and readiness.</summary>
         Task<int> GetPaymentsWithoutInvoiceCountAsync(Guid cashRegisterId, DateTime fromInclusive, DateTime toExclusive);
     }
@@ -114,6 +118,45 @@ namespace KasseAPI_Final.Services
         {
             try
             {
+                if (!await CanPerformClosingAsync(cashRegisterId))
+                {
+                    var viennaTodayBlocked = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+                    var (dayStartUtcBlocked, dayEndExclusiveUtcBlocked) =
+                        PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(viennaTodayBlocked);
+                    var blockedPaymentsWithoutInvoiceCount =
+                        await GetPaymentsWithoutInvoiceCountAsync(
+                            cashRegisterId,
+                            dayStartUtcBlocked,
+                            dayEndExclusiveUtcBlocked);
+                    if (blockedPaymentsWithoutInvoiceCount > 0)
+                    {
+                        return new TagesabschlussResult
+                        {
+                            Success = false,
+                            ErrorMessage =
+                                $"Closing blocked: {blockedPaymentsWithoutInvoiceCount} payment(s) without a matching invoice. Resolve gaps (e.g. run backfill) and try again.",
+                            PaymentsWithoutInvoiceCount = blockedPaymentsWithoutInvoiceCount,
+                        };
+                    }
+
+                    var blockedRegister = await _context.CashRegisters.AsNoTracking()
+                        .FirstOrDefaultAsync(r => r.Id == cashRegisterId);
+                    if (blockedRegister == null || blockedRegister.Status == RegisterStatus.Decommissioned)
+                    {
+                        return new TagesabschlussResult
+                        {
+                            Success = false,
+                            ErrorMessage = "Cash register is not available for daily closing",
+                        };
+                    }
+
+                    return new TagesabschlussResult
+                    {
+                        Success = false,
+                        ErrorMessage = "Daily closing already performed for today",
+                    };
+                }
+
                 // Check if TSE is connected (dev/demo may bypass — see AllowDailyClosingWithoutConnectedTse).
                 var tseStatus = await _tseService.GetTseStatusAsync();
                 if (!tseStatus.IsConnected)
@@ -216,7 +259,9 @@ namespace KasseAPI_Final.Services
                     }
                 }
 
-                await _context.SaveChangesAsync();
+                var duplicateResult = await TrySaveClosingOrReturnDuplicateAsync(dailyClosing.ClosingType);
+                if (duplicateResult != null)
+                    return duplicateResult;
 
                 return new TagesabschlussResult
                 {
@@ -246,6 +291,55 @@ namespace KasseAPI_Final.Services
         {
             try
             {
+                if (!await CanPerformMonthlyClosingAsync(cashRegisterId))
+                {
+                    var viennaTodayBlocked = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+                    var currentMonthLocalBlocked = new DateTime(
+                        viennaTodayBlocked.Year,
+                        viennaTodayBlocked.Month,
+                        1,
+                        0,
+                        0,
+                        0,
+                        DateTimeKind.Unspecified);
+                    var (monthStartUtcBlocked, _) =
+                        PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(currentMonthLocalBlocked);
+                    var (_, periodEndUtcBlocked) =
+                        PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(viennaTodayBlocked);
+                    var blockedPaymentsWithoutInvoiceCount =
+                        await GetPaymentsWithoutInvoiceCountAsync(
+                            cashRegisterId,
+                            monthStartUtcBlocked,
+                            periodEndUtcBlocked);
+                    if (blockedPaymentsWithoutInvoiceCount > 0)
+                    {
+                        return new TagesabschlussResult
+                        {
+                            Success = false,
+                            ErrorMessage =
+                                $"Closing blocked: {blockedPaymentsWithoutInvoiceCount} payment(s) without a matching invoice in the period. Resolve gaps (e.g. run backfill) and try again.",
+                            PaymentsWithoutInvoiceCount = blockedPaymentsWithoutInvoiceCount,
+                        };
+                    }
+
+                    var blockedRegister = await _context.CashRegisters.AsNoTracking()
+                        .FirstOrDefaultAsync(r => r.Id == cashRegisterId);
+                    if (blockedRegister == null || blockedRegister.Status == RegisterStatus.Decommissioned)
+                    {
+                        return new TagesabschlussResult
+                        {
+                            Success = false,
+                            ErrorMessage = "Cash register is not available for monthly closing",
+                        };
+                    }
+
+                    return new TagesabschlussResult
+                    {
+                        Success = false,
+                        ErrorMessage = "Monthly closing already performed for the current month",
+                    };
+                }
+
                 var viennaTodayM = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
                 var currentMonthLocal = new DateTime(viennaTodayM.Year, viennaTodayM.Month, 1, 0, 0, 0, DateTimeKind.Unspecified);
                 var (monthStartUtc, _) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(currentMonthLocal);
@@ -311,7 +405,9 @@ namespace KasseAPI_Final.Services
                 };
 
                 _context.DailyClosings.Add(monthlyClosing);
-                await _context.SaveChangesAsync();
+                var duplicateResult = await TrySaveClosingOrReturnDuplicateAsync(monthlyClosing.ClosingType);
+                if (duplicateResult != null)
+                    return duplicateResult;
 
                 return new TagesabschlussResult
                 {
@@ -338,6 +434,55 @@ namespace KasseAPI_Final.Services
         {
             try
             {
+                if (!await CanPerformYearlyClosingAsync(cashRegisterId))
+                {
+                    var viennaTodayBlocked = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+                    var currentYearLocalBlocked = new DateTime(
+                        viennaTodayBlocked.Year,
+                        1,
+                        1,
+                        0,
+                        0,
+                        0,
+                        DateTimeKind.Unspecified);
+                    var (yearStartUtcBlocked, _) =
+                        PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(currentYearLocalBlocked);
+                    var (_, yearPeriodEndUtcBlocked) =
+                        PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(viennaTodayBlocked);
+                    var blockedPaymentsWithoutInvoiceCount =
+                        await GetPaymentsWithoutInvoiceCountAsync(
+                            cashRegisterId,
+                            yearStartUtcBlocked,
+                            yearPeriodEndUtcBlocked);
+                    if (blockedPaymentsWithoutInvoiceCount > 0)
+                    {
+                        return new TagesabschlussResult
+                        {
+                            Success = false,
+                            ErrorMessage =
+                                $"Closing blocked: {blockedPaymentsWithoutInvoiceCount} payment(s) without a matching invoice in the period. Resolve gaps (e.g. run backfill) and try again.",
+                            PaymentsWithoutInvoiceCount = blockedPaymentsWithoutInvoiceCount,
+                        };
+                    }
+
+                    var blockedRegister = await _context.CashRegisters.AsNoTracking()
+                        .FirstOrDefaultAsync(r => r.Id == cashRegisterId);
+                    if (blockedRegister == null || blockedRegister.Status == RegisterStatus.Decommissioned)
+                    {
+                        return new TagesabschlussResult
+                        {
+                            Success = false,
+                            ErrorMessage = "Cash register is not available for yearly closing",
+                        };
+                    }
+
+                    return new TagesabschlussResult
+                    {
+                        Success = false,
+                        ErrorMessage = "Yearly closing already performed for the current year",
+                    };
+                }
+
                 var viennaTodayY = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
                 var currentYearLocal = new DateTime(viennaTodayY.Year, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
                 var (yearStartUtc, _) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(currentYearLocal);
@@ -403,7 +548,9 @@ namespace KasseAPI_Final.Services
                 };
 
                 _context.DailyClosings.Add(yearlyClosing);
-                await _context.SaveChangesAsync();
+                var duplicateResult = await TrySaveClosingOrReturnDuplicateAsync(yearlyClosing.ClosingType);
+                if (duplicateResult != null)
+                    return duplicateResult;
 
                 return new TagesabschlussResult
                 {
@@ -526,14 +673,115 @@ namespace KasseAPI_Final.Services
             return paymentsWithoutInvoiceCount == 0;
         }
 
-        public async Task<DateTime?> GetLastClosingDateAsync(Guid cashRegisterId)
+        public async Task<bool> CanPerformMonthlyClosingAsync(Guid cashRegisterId)
+        {
+            var reg = await _context.CashRegisters.AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == cashRegisterId)
+                .ConfigureAwait(false);
+            if (reg == null || reg.Status == RegisterStatus.Decommissioned)
+                return false;
+
+            var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+            var currentMonthLocal = new DateTime(
+                viennaToday.Year,
+                viennaToday.Month,
+                1,
+                0,
+                0,
+                0,
+                DateTimeKind.Unspecified);
+            var lastMonthly = await GetLastClosingDateForTypeAsync(cashRegisterId, "Monthly");
+            if (lastMonthly.HasValue)
+            {
+                var lastMonthAnchor =
+                    PostgreSqlUtcDateTime.ViennaCalendarMidnightContainingInstant(lastMonthly.Value);
+                if (lastMonthAnchor.Year == currentMonthLocal.Year &&
+                    lastMonthAnchor.Month == currentMonthLocal.Month)
+                    return false;
+            }
+
+            var (monthStartUtc, _) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(currentMonthLocal);
+            var (_, periodEndUtc) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(viennaToday);
+            var paymentsWithoutInvoiceCount =
+                await GetPaymentsWithoutInvoiceCountAsync(cashRegisterId, monthStartUtc, periodEndUtc);
+            return paymentsWithoutInvoiceCount == 0;
+        }
+
+        public async Task<bool> CanPerformYearlyClosingAsync(Guid cashRegisterId)
+        {
+            var reg = await _context.CashRegisters.AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == cashRegisterId)
+                .ConfigureAwait(false);
+            if (reg == null || reg.Status == RegisterStatus.Decommissioned)
+                return false;
+
+            var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+            var currentYearLocal = new DateTime(viennaToday.Year, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
+            var lastYearly = await GetLastClosingDateForTypeAsync(cashRegisterId, "Yearly");
+            if (lastYearly.HasValue)
+            {
+                var lastYearAnchor =
+                    PostgreSqlUtcDateTime.ViennaCalendarMidnightContainingInstant(lastYearly.Value);
+                if (lastYearAnchor.Year == currentYearLocal.Year)
+                    return false;
+            }
+
+            var (yearStartUtc, _) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(currentYearLocal);
+            var (_, yearPeriodEndUtc) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(viennaToday);
+            var paymentsWithoutInvoiceCount =
+                await GetPaymentsWithoutInvoiceCountAsync(cashRegisterId, yearStartUtc, yearPeriodEndUtc);
+            return paymentsWithoutInvoiceCount == 0;
+        }
+
+        public async Task<DateTime?> GetLastClosingDateAsync(Guid cashRegisterId) =>
+            await GetLastClosingDateForTypeAsync(cashRegisterId, "Daily");
+
+        public async Task<DateTime?> GetLastClosingDateForTypeAsync(Guid cashRegisterId, string closingType)
         {
             var lastClosing = await _context.DailyClosings
-                .Where(d => d.CashRegisterId == cashRegisterId && d.ClosingType == "Daily")
+                .Where(d => d.CashRegisterId == cashRegisterId && d.ClosingType == closingType)
                 .OrderByDescending(d => d.ClosingDate)
                 .FirstOrDefaultAsync();
 
             return lastClosing?.ClosingDate;
+        }
+
+        private async Task<TagesabschlussResult?> TrySaveClosingOrReturnDuplicateAsync(string closingType)
+        {
+            try
+            {
+                await _context.SaveChangesAsync();
+                return null;
+            }
+            catch (DbUpdateException ex) when (IsClosingPeriodDuplicate(ex))
+            {
+                _logger.LogWarning(
+                    "Duplicate RKSV closing blocked by unique index (type={ClosingType})",
+                    closingType);
+                return new TagesabschlussResult
+                {
+                    Success = false,
+                    ErrorMessage = closingType switch
+                    {
+                        "Monthly" => "Monthly closing already performed for the current month",
+                        "Yearly" => "Yearly closing already performed for the current year",
+                        _ => "Daily closing already performed for today",
+                    },
+                };
+            }
+        }
+
+        private static bool IsClosingPeriodDuplicate(DbUpdateException ex)
+        {
+            for (var inner = ex.InnerException; inner != null; inner = inner.InnerException)
+            {
+                if (inner is PostgresException pg &&
+                    pg.SqlState == PostgresErrorCodes.UniqueViolation &&
+                    pg.ConstraintName?.Contains("DailyClosings", StringComparison.OrdinalIgnoreCase) == true)
+                    return true;
+            }
+
+            return false;
         }
     }
 

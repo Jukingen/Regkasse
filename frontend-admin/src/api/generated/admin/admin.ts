@@ -29,6 +29,8 @@ import type {
   AdminCategoryProductDto,
   AdminCreateUserRequest,
   AdminDeactivateRequest,
+  AdminForceCloseShiftRequest,
+  AdminForceCloseShiftResponse,
   AdminForcePasswordResetRequest,
   AdminOfflineOrdersListResponse,
   AdminOfflineTransactionRetryResponseDto,
@@ -10921,7 +10923,59 @@ export const useGetApiAdminShiftsOverview = <TData = Awaited<ReturnType<typeof g
 
 
 
-export const getApiAdminSystemTimeSyncConfiguration = (
+export const postApiAdminShiftsRegistersCashRegisterIdForceClose = (
+    cashRegisterId: string,
+    adminForceCloseShiftRequest: AdminForceCloseShiftRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<AdminForceCloseShiftResponse>(
+      {url: `/api/admin/shifts/registers/${cashRegisterId}/force-close`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: adminForceCloseShiftRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminShiftsRegistersCashRegisterIdForceCloseMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminShiftsRegistersCashRegisterIdForceClose>>, TError,{cashRegisterId: string;data: AdminForceCloseShiftRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminShiftsRegistersCashRegisterIdForceClose>>, TError,{cashRegisterId: string;data: AdminForceCloseShiftRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminShiftsRegistersCashRegisterIdForceClose>>, {cashRegisterId: string;data: AdminForceCloseShiftRequest}> = (props) => {
+          const {cashRegisterId,data} = props ?? {};
+
+          return  postApiAdminShiftsRegistersCashRegisterIdForceClose(cashRegisterId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminShiftsRegistersCashRegisterIdForceCloseMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminShiftsRegistersCashRegisterIdForceClose>>>
+    export type PostApiAdminShiftsRegistersCashRegisterIdForceCloseMutationBody = AdminForceCloseShiftRequest
+    export type PostApiAdminShiftsRegistersCashRegisterIdForceCloseMutationError = ProblemDetails
+
+    export const usePostApiAdminShiftsRegistersCashRegisterIdForceClose = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminShiftsRegistersCashRegisterIdForceClose>>, TError,{cashRegisterId: string;data: AdminForceCloseShiftRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminShiftsRegistersCashRegisterIdForceClose>>,
+        TError,
+        {cashRegisterId: string;data: AdminForceCloseShiftRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminShiftsRegistersCashRegisterIdForceCloseMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminSystemTimeSyncConfiguration = (
     
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {

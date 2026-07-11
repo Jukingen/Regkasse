@@ -1,4 +1,5 @@
-import { apiClient } from './config';
+import { apiClient, API_BASE_URL, resolveTenantFetchHeaders } from './config';
+import { sessionManager } from '../session/sessionManager';
 import { unwrapApiResponseLayer } from './normalizePosPaymentMethods';
 import { formatUserDate, formatUserTime } from '../../utils/dateFormatter';
 
@@ -37,7 +38,11 @@ export interface ClosingHistoryItem {
 
 export interface CanCloseResponse {
     canClose: boolean;
+    canCloseMonthly?: boolean;
+    canCloseYearly?: boolean;
     lastClosingDate?: string;
+    lastMonthlyClosingDate?: string;
+    lastYearlyClosingDate?: string;
     message: string;
     paymentsWithoutInvoiceCount?: number;
 }
@@ -215,6 +220,40 @@ export const getClosingStatistics = async (
         };
     }
 };
+
+export class ClosingReportPdfError extends Error {
+    readonly status: number;
+
+    constructor(status: number, message?: string) {
+        super(message ?? `Closing report PDF HTTP ${status}`);
+        this.name = 'ClosingReportPdfError';
+        this.status = status;
+    }
+}
+
+export async function downloadClosingReportPdf(
+    closingId: string,
+    language = 'de'
+): Promise<Blob> {
+    const token = await sessionManager.getAccessToken();
+    const lang = encodeURIComponent(language.split('-')[0] || 'de');
+    const response = await fetch(
+        `${API_BASE_URL}/tagesabschluss/closing/${encodeURIComponent(closingId)}/report.pdf?language=${lang}`,
+        {
+            method: 'GET',
+            headers: await resolveTenantFetchHeaders(
+                token ? { Authorization: `Bearer ${token}` } : {}
+            ),
+        }
+    );
+    if (!response.ok) {
+        throw new ClosingReportPdfError(
+            response.status,
+            `Closing report PDF download failed: ${response.status}`
+        );
+    }
+    return await response.blob();
+}
 
 /** Format closing date for display (DD.MM.YYYY). */
 export const formatClosingDate = (dateString: string): string => formatUserDate(dateString);

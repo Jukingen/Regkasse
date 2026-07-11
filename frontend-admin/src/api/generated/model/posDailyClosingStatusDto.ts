@@ -7,6 +7,8 @@
  */
 
 export interface PosDailyClosingStatusDto {
+  /** @nullable */
+  blockReason?: string | null;
   canClose?: boolean;
   hasActiveShift?: boolean;
   /** @nullable */

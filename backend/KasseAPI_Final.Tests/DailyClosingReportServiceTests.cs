@@ -79,6 +79,36 @@ public sealed class DailyClosingReportServiceTests
         Assert.Equal(expected, DailyClosingReportTemplates.NormalizeLanguage(input));
     }
 
+    [Theory]
+    [InlineData("Monthly", "Monatsabschluss-Bericht")]
+    [InlineData("Yearly", "Jahresabschluss-Bericht")]
+    public void GenerateDailyReportPdf_UsesClosingTypeTitle(string closingType, string expectedTitle)
+    {
+        var svc = new DailyClosingReportService(CreateContext());
+        var baseReport = SampleReport();
+        var dto = new PosDailyClosingReportDto
+        {
+            ClosingType = closingType,
+            BusinessDate = baseReport.BusinessDate,
+            RegisterNumber = baseReport.RegisterNumber,
+            TotalSales = baseReport.TotalSales,
+            TotalCash = baseReport.TotalCash,
+            TotalCard = baseReport.TotalCard,
+            CashCount = baseReport.CashCount,
+            Difference = baseReport.Difference,
+            FiscalTotalAmount = baseReport.FiscalTotalAmount,
+            FiscalTotalTaxAmount = baseReport.FiscalTotalTaxAmount,
+            FiscalTransactionCount = baseReport.FiscalTransactionCount,
+            TseSignature = baseReport.TseSignature,
+        };
+
+        var labels = DailyClosingReportTemplates.Resolve("de", closingType);
+        Assert.Equal(expectedTitle, labels.Title);
+
+        var pdf = svc.GenerateDailyReportPdf(dto, "de");
+        Assert.StartsWith("%PDF", Encoding.ASCII.GetString(pdf[..4]));
+    }
+
     private static PosDailyClosingReportDto SampleReport() => new()
     {
         BusinessDate = new DateTime(2026, 6, 11),

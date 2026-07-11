@@ -17,6 +17,7 @@ import {
     useActivityLog,
 } from '@/features/audit/hooks/useActivityLog';
 import { getAuditActionLabelKey } from '@/features/audit-logs/utils/auditActionLabels';
+import { resolveActivityActionLabel } from '@/features/audit/utils/resolveActivityActionLabel';
 import { buildAuditLogExportQuery } from '@/features/audit-logs/utils/buildAuditLogExportQuery';
 import { downloadAuditLogExport } from '@/features/audit-logs/utils/exportAuditLogs';
 import { useTenantStaff } from '@/features/staff/hooks/useTenantStaff';
@@ -70,13 +71,7 @@ export function ActivityLog() {
     );
 
     const formatActionLabel = useCallback(
-        (action: string) => {
-            const labelKey = getAuditActionLabelKey(action);
-            if (labelKey) return t(labelKey as 'common.auditLogs.actionLabels.login');
-            const activityKey = `activity.actions.${action}` as const;
-            const translated = t(activityKey);
-            return translated === activityKey ? action : translated;
-        },
+        (action: string) => resolveActivityActionLabel(action, t),
         [t],
     );
 

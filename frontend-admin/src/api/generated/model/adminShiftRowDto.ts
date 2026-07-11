@@ -21,8 +21,11 @@ export interface AdminShiftRowDto {
   /** @nullable */
   endedAt?: string | null;
   id?: string;
+  isOrphanedRegisterSession?: boolean;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  openDurationHours?: number | null;
   /** @nullable */
   registerNumber?: string | null;
   startBalance?: number;

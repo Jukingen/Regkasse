@@ -7494,6 +7494,65 @@
         }
       }
     },
+    "/api/admin/shifts/registers/{cashRegisterId}/force-close": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "cashRegisterId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminForceCloseShiftRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminForceCloseShiftResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/system/time-sync/configuration": {
       "get": {
         "tags": [
@@ -10952,6 +11011,13 @@
             }
           },
           {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "page",
             "in": "query",
             "schema": {
@@ -11416,6 +11482,13 @@
             "in": "query",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -21950,6 +22023,54 @@
         }
       }
     },
+    "/api/Tagesabschluss/closing/{closingId}/report.pdf": {
+      "get": {
+        "tags": [
+          "Tagesabschluss"
+        ],
+        "parameters": [
+          {
+            "name": "closingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/Tagesabschluss/history": {
       "get": {
         "tags": [
@@ -24142,6 +24263,35 @@
         },
         "additionalProperties": false
       },
+      "AdminForceCloseShiftRequest": {
+        "type": "object",
+        "properties": {
+          "closingBalance": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminForceCloseShiftResponse": {
+        "type": "object",
+        "properties": {
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "closedShiftCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "AdminForcePasswordResetRequest": {
         "required": [
           "newPassword"
@@ -24858,6 +25008,14 @@
           },
           "notes": {
             "type": "string",
+            "nullable": true
+          },
+          "isOrphanedRegisterSession": {
+            "type": "boolean"
+          },
+          "openDurationHours": {
+            "type": "number",
+            "format": "double",
             "nullable": true
           }
         },
@@ -26447,6 +26605,13 @@
           },
           "hasChanges": {
             "type": "boolean",
+            "nullable": true
+          },
+          "excludePlatformOperatorActors": {
+            "type": "boolean"
+          },
+          "search": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -30800,6 +30965,26 @@
           "qrData": {
             "type": "string",
             "nullable": true
+          },
+          "isLateCreated": {
+            "type": "boolean"
+          },
+          "daysLate": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "intendedPeriodDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "additionalProperties": false
@@ -30970,6 +31155,30 @@
           "qrData": {
             "type": "string",
             "nullable": true
+          },
+          "isLateCreated": {
+            "type": "boolean"
+          },
+          "daysLate": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "intendedPeriodDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "additionalProperties": false
@@ -40812,6 +41021,10 @@
             "type": "string",
             "nullable": true
           },
+          "closingType": {
+            "type": "string",
+            "nullable": true
+          },
           "snapshotDisclaimerDe": {
             "type": "string",
             "nullable": true
@@ -40874,6 +41087,10 @@
             "type": "boolean"
           },
           "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "blockReason": {
             "type": "string",
             "nullable": true
           },
@@ -41241,18 +41458,22 @@
             "format": "int32"
           },
           "description": {
+            "maxLength": 2000,
             "type": "string",
             "nullable": true
           },
           "descriptionDe": {
+            "maxLength": 2000,
             "type": "string",
             "nullable": true
           },
           "descriptionEn": {
+            "maxLength": 2000,
             "type": "string",
             "nullable": true
           },
           "descriptionTr": {
+            "maxLength": 2000,
             "type": "string",
             "nullable": true
           },
@@ -41262,6 +41483,7 @@
             "type": "string"
           },
           "imageUrl": {
+            "maxLength": 500,
             "type": "string",
             "nullable": true
           },
@@ -41419,6 +41641,34 @@
             "type": "string",
             "nullable": true
           },
+          "nameDe": {
+            "type": "string",
+            "nullable": true
+          },
+          "nameEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "nameTr": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "descriptionDe": {
+            "type": "string",
+            "nullable": true
+          },
+          "descriptionEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "descriptionTr": {
+            "type": "string",
+            "nullable": true
+          },
           "price": {
             "type": "number",
             "format": "double"
@@ -41463,6 +41713,18 @@
             "format": "date-time"
           },
           "barcode": {
+            "type": "string",
+            "nullable": true
+          },
+          "unit": {
+            "type": "string",
+            "nullable": true
+          },
+          "cost": {
+            "type": "number",
+            "format": "double"
+          },
+          "imageUrl": {
             "type": "string",
             "nullable": true
           }
@@ -42166,6 +42428,18 @@
           },
           "rksvFinanzOnlineSubmissionStatus": {
             "type": "string",
+            "nullable": true
+          },
+          "isLateCreated": {
+            "type": "boolean"
+          },
+          "lateCreationReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "intendedPeriodDate": {
+            "type": "string",
+            "format": "date-time",
             "nullable": true
           }
         },
@@ -45823,6 +46097,8 @@
       "TagesabschlussCanCloseResponse": {
         "required": [
           "canClose",
+          "canCloseMonthly",
+          "canCloseYearly",
           "paymentsWithoutInvoiceCount"
         ],
         "type": "object",
@@ -45830,7 +46106,23 @@
           "canClose": {
             "type": "boolean"
           },
+          "canCloseMonthly": {
+            "type": "boolean"
+          },
+          "canCloseYearly": {
+            "type": "boolean"
+          },
           "lastClosingDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastMonthlyClosingDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastYearlyClosingDate": {
             "type": "string",
             "format": "date-time",
             "nullable": true

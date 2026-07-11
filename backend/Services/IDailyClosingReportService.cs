@@ -4,7 +4,7 @@ namespace KasseAPI_Final.Services;
 
 public interface IDailyClosingReportService
 {
-    /// <summary>Builds a localized PDF for an in-memory daily closing report snapshot.</summary>
+    /// <summary>Builds a localized PDF for an in-memory closing report snapshot.</summary>
     byte[] GenerateDailyReportPdf(PosDailyClosingReportDto report, string language = "de");
 
     /// <summary>
@@ -13,6 +13,15 @@ public interface IDailyClosingReportService
     Task<byte[]?> TryGenerateStoredDailyReportPdfAsync(
         Guid dailyClosingId,
         string cashierUserId,
+        string language = "de",
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Tenant-scoped closing PDF. When <paramref name="actorUserId"/> is set, limits access to owner/shift cashier.
+    /// </summary>
+    Task<byte[]?> TryGenerateClosingReportPdfAsync(
+        Guid closingId,
+        string? actorUserId,
         string language = "de",
         CancellationToken cancellationToken = default);
 }

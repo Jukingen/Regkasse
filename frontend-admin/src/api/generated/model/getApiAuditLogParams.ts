@@ -20,6 +20,7 @@ ipAddress?: string;
 status?: AuditLogStatus;
 statusOutcome?: string;
 hasChanges?: boolean;
+search?: string;
 page?: number;
 pageSize?: number;
 afterCursor?: string;

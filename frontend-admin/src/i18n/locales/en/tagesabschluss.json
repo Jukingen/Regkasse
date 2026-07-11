@@ -36,9 +36,13 @@
   "check": {
     "failedTitle": "Check failed",
     "canCloseLabel": "Closing allowed",
+    "canCloseMonthlyLabel": "Monthly closing allowed",
+    "canCloseYearlyLabel": "Yearly closing allowed",
     "yes": "Yes",
     "no": "No",
-    "lastClosing": "Last closing",
+    "lastClosing": "Last daily closing",
+    "lastMonthlyClosing": "Last monthly closing",
+    "lastYearlyClosing": "Last yearly closing",
     "paymentsWithoutInvoice": "Payments without invoice (today)",
     "hint": "Note",
     "backendHint": "Server note (language not guaranteed)"
@@ -75,6 +79,7 @@
     "colTransactions": "Transactions",
     "colStatus": "Status",
     "colFinanzOnline": "FinanzOnline",
+    "colPdf": "PDF",
     "closingTypes": {
       "Daily": "Daily",
       "Monthly": "Monthly",
@@ -96,11 +101,17 @@
     "successDaily": "Daily closing executed.",
     "successMonthly": "Monthly closing executed.",
     "successYearly": "Yearly closing executed.",
-    "warningNoRegister": "Please select a register first."
+    "warningNoRegister": "Please select a register first.",
+    "warningDailyNotAllowed": "Daily closing is not available for today (already performed or prerequisites missing).",
+    "warningMonthlyNotAllowed": "Monthly closing is not available for this month (already performed or prerequisites missing).",
+    "warningYearlyNotAllowed": "Yearly closing is not available for this year (already performed or prerequisites missing).",
+    "pdfUnavailable": "No PDF is available for this entry.",
+    "pdfAutoDownloadFailed": "Closing succeeded, but the PDF could not be downloaded."
   },
   "errors": {
     "unknown": "Unknown error",
     "loadStatsTitle": "Could not load statistics",
-    "loadHistoryTitle": "Could not load history"
+    "loadHistoryTitle": "Could not load history",
+    "pdfDownload": "Could not download the PDF report."
   }
 }

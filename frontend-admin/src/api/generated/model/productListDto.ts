@@ -12,8 +12,19 @@ export interface ProductListDto {
   categoryId?: string;
   /** @nullable */
   categoryName?: string | null;
+  cost?: number;
   createdAt?: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  descriptionDe?: string | null;
+  /** @nullable */
+  descriptionEn?: string | null;
+  /** @nullable */
+  descriptionTr?: string | null;
   id?: string;
+  /** @nullable */
+  imageUrl?: string | null;
   isActive?: boolean;
   isTaxable?: boolean;
   /** @nullable */
@@ -21,8 +32,16 @@ export interface ProductListDto {
   minStockLevel?: number;
   /** @nullable */
   name?: string | null;
+  /** @nullable */
+  nameDe?: string | null;
+  /** @nullable */
+  nameEn?: string | null;
+  /** @nullable */
+  nameTr?: string | null;
   price?: number;
   stockQuantity?: number;
   taxRate?: number;
   taxType?: number;
+  /** @nullable */
+  unit?: string | null;
 }

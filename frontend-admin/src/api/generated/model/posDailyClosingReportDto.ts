@@ -9,6 +9,8 @@
 export interface PosDailyClosingReportDto {
   businessDate?: string;
   cashCount?: number;
+  /** @nullable */
+  closingType?: string | null;
   difference?: number;
   fiscalTotalAmount?: number;
   fiscalTotalTaxAmount?: number;

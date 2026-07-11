@@ -7,11 +7,18 @@
  */
 
 export interface CreateMonatsbelegResponse {
+  createdAtUtc?: string;
+  daysLate?: number;
+  /** @nullable */
+  intendedPeriodDate?: string | null;
   invoiceId?: string;
+  isLateCreated?: boolean;
+  month?: number;
   paymentId?: string;
   /** @nullable */
   qrData?: string | null;
   receiptId?: string;
   /** @nullable */
   receiptNumber?: string | null;
+  year?: number;
 }

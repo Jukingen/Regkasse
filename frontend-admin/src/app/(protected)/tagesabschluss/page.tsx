@@ -7,7 +7,7 @@ import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Alert, Button, Card, Col, DatePicker, Descriptions, Empty, Form, Row, Select, Skeleton, Space, Spin, Table, Tag, Typography } from 'antd';
-import { CalendarOutlined, ReloadOutlined } from '@ant-design/icons';
+import { CalendarOutlined, FilePdfOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useQueryClient } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
 
@@ -34,7 +34,7 @@ import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
 import { FORMAT_EMPTY_DISPLAY, formatCurrency, formatDateTime, formatNumber } from '@/i18n/formatting';
-import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
+import { downloadClosingReportPdf } from '@/features/tagesabschluss/downloadClosingReportPdf';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 import { FA_QUICK_CASH_REGISTER_QUERY_PARAM } from '@/features/cash-registers/constants/quickSwitch';
@@ -43,6 +43,13 @@ const { Title, Paragraph, Text } = Typography;
 const { RangePicker } = DatePicker;
 
 const EMPTY_REGISTER_ID = '00000000-0000-0000-0000-000000000000';
+
+type ExtendedCanCloseResponse = TagesabschlussCanCloseResponse & {
+  canCloseMonthly?: boolean;
+  canCloseYearly?: boolean;
+  lastMonthlyClosingDate?: string | null;
+  lastYearlyClosingDate?: string | null;
+};
 
 function isOperationalRegisterId(v: string | null | undefined): boolean {
   const s = v?.trim();
@@ -205,7 +212,33 @@ export default function TagesabschlussPage() {
   const canCloseQuery = useGetApiTagesabschlussCanCloseCashRegisterId(effectiveRegisterId, {
     query: { enabled: registerIdValid },
   });
-  const canClose: TagesabschlussCanCloseResponse | undefined = canCloseQuery.data;
+  const canClose: ExtendedCanCloseResponse | undefined = canCloseQuery.data;
+  const canCloseMonthly = canClose?.canCloseMonthly === true;
+  const canCloseYearly = canClose?.canCloseYearly === true;
+
+  const downloadHistoryPdf = useCallback(
+    async (row: TagesabschlussResult) => {
+      const closingId = row.closingId?.trim();
+      if (!closingId) {
+        message.warning(t('tagesabschluss.messages.pdfUnavailable'));
+        return;
+      }
+      try {
+        await downloadClosingReportPdf(closingId, {
+          language: formatLocale,
+          closingType: row.closingType,
+        });
+      } catch (e) {
+        message.error(
+          getUserFacingApiErrorMessage(t, e, {
+            logContext: 'TagesabschlussClosingPdf',
+            fallbackKey: 'tagesabschluss.errors.pdfDownload',
+          }),
+        );
+      }
+    },
+    [formatLocale, message, t],
+  );
 
   const invalidateTagesabschluss = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['/api/Tagesabschluss/history'] });
@@ -219,9 +252,20 @@ export default function TagesabschlussPage() {
 
   const dailyMu = usePostApiTagesabschlussDaily({
     mutation: {
-      onSuccess: async () => {
+      onSuccess: async (result) => {
         message.success(t('tagesabschluss.messages.successDaily'));
         await invalidateTagesabschluss();
+        const closingId = result?.closingId?.trim();
+        if (closingId) {
+          try {
+            await downloadClosingReportPdf(closingId, {
+              language: formatLocale,
+              closingType: 'Daily',
+            });
+          } catch {
+            message.warning(t('tagesabschluss.messages.pdfAutoDownloadFailed'));
+          }
+        }
       },
       onError: (e) =>
         message.error(
@@ -234,9 +278,20 @@ export default function TagesabschlussPage() {
   });
   const monthlyMu = usePostApiTagesabschlussMonthly({
     mutation: {
-      onSuccess: async () => {
+      onSuccess: async (result) => {
         message.success(t('tagesabschluss.messages.successMonthly'));
         await invalidateTagesabschluss();
+        const closingId = result?.closingId?.trim();
+        if (closingId) {
+          try {
+            await downloadClosingReportPdf(closingId, {
+              language: formatLocale,
+              closingType: 'Monthly',
+            });
+          } catch {
+            message.warning(t('tagesabschluss.messages.pdfAutoDownloadFailed'));
+          }
+        }
       },
       onError: (e) =>
         message.error(
@@ -249,9 +304,20 @@ export default function TagesabschlussPage() {
   });
   const yearlyMu = usePostApiTagesabschlussYearly({
     mutation: {
-      onSuccess: async () => {
+      onSuccess: async (result) => {
         message.success(t('tagesabschluss.messages.successYearly'));
         await invalidateTagesabschluss();
+        const closingId = result?.closingId?.trim();
+        if (closingId) {
+          try {
+            await downloadClosingReportPdf(closingId, {
+              language: formatLocale,
+              closingType: 'Yearly',
+            });
+          } catch {
+            message.warning(t('tagesabschluss.messages.pdfAutoDownloadFailed'));
+          }
+        }
       },
       onError: (e) =>
         message.error(
@@ -269,6 +335,18 @@ export default function TagesabschlussPage() {
     }
     if (!registerIdValid) {
       message.warning(t('tagesabschluss.messages.warningNoRegister'));
+      return;
+    }
+    if (kind === 'daily' && canClose && !canClose.canClose) {
+      message.warning(t('tagesabschluss.messages.warningDailyNotAllowed'));
+      return;
+    }
+    if (kind === 'monthly' && !canCloseMonthly) {
+      message.warning(t('tagesabschluss.messages.warningMonthlyNotAllowed'));
+      return;
+    }
+    if (kind === 'yearly' && !canCloseYearly) {
+      message.warning(t('tagesabschluss.messages.warningYearlyNotAllowed'));
       return;
     }
     const modalTitle =
@@ -341,8 +419,26 @@ export default function TagesabschlussPage() {
         width: 140,
         render: (v: string | null | undefined) => historyFinanzOnlineStatusLabel(v),
       },
+      {
+        title: t('tagesabschluss.history.colPdf'),
+        key: 'pdf',
+        width: 90,
+        render: (_: unknown, row: TagesabschlussResult) =>
+          row.closingId ? (
+            <Button
+              type="link"
+              size="small"
+              icon={<FilePdfOutlined />}
+              onClick={() => void downloadHistoryPdf(row)}
+            >
+              PDF
+            </Button>
+          ) : (
+            FORMAT_EMPTY_DISPLAY
+          ),
+      },
     ],
-    [t, formatLocale, closingTypeLabel, closingRowStatusLabel, historyFinanzOnlineStatusLabel]
+    [t, formatLocale, closingTypeLabel, closingRowStatusLabel, historyFinanzOnlineStatusLabel, downloadHistoryPdf]
   );
 
   const closingBusy = dailyMu.isPending || monthlyMu.isPending || yearlyMu.isPending;
@@ -455,9 +551,33 @@ export default function TagesabschlussPage() {
                   <Text type="danger">{t('tagesabschluss.check.no')}</Text>
                 )}
               </Descriptions.Item>
+              <Descriptions.Item label={t('tagesabschluss.check.canCloseMonthlyLabel')}>
+                {canCloseMonthly ? (
+                  <Text type="success">{t('tagesabschluss.check.yes')}</Text>
+                ) : (
+                  <Text type="danger">{t('tagesabschluss.check.no')}</Text>
+                )}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('tagesabschluss.check.canCloseYearlyLabel')}>
+                {canCloseYearly ? (
+                  <Text type="success">{t('tagesabschluss.check.yes')}</Text>
+                ) : (
+                  <Text type="danger">{t('tagesabschluss.check.no')}</Text>
+                )}
+              </Descriptions.Item>
               <Descriptions.Item label={t('tagesabschluss.check.lastClosing')}>
                 {canClose?.lastClosingDate
                   ? formatDateTime(canClose.lastClosingDate, formatLocale)
+                  : FORMAT_EMPTY_DISPLAY}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('tagesabschluss.check.lastMonthlyClosing')}>
+                {canClose?.lastMonthlyClosingDate
+                  ? formatDateTime(canClose.lastMonthlyClosingDate, formatLocale)
+                  : FORMAT_EMPTY_DISPLAY}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('tagesabschluss.check.lastYearlyClosing')}>
+                {canClose?.lastYearlyClosingDate
+                  ? formatDateTime(canClose.lastYearlyClosingDate, formatLocale)
                   : FORMAT_EMPTY_DISPLAY}
               </Descriptions.Item>
               <Descriptions.Item label={t('tagesabschluss.check.paymentsWithoutInvoice')}>
@@ -478,14 +598,14 @@ export default function TagesabschlussPage() {
               <Button
                 type="primary"
                 loading={closingBusy}
-                disabled={!registerIdValid || !canExecute}
+                disabled={!registerIdValid || !canExecute || !canClose?.canClose}
                 onClick={() => runClosing('daily')}
               >
                 {t('tagesabschluss.actions.daily')}
               </Button>
               <Button
                 loading={closingBusy}
-                disabled={!registerIdValid || !canExecute}
+                disabled={!registerIdValid || !canExecute || !canCloseMonthly}
                 onClick={() => runClosing('monthly')}
               >
                 {t('tagesabschluss.actions.monthly')}
@@ -493,7 +613,7 @@ export default function TagesabschlussPage() {
               <Button
                 danger
                 loading={closingBusy}
-                disabled={!registerIdValid || !canExecute}
+                disabled={!registerIdValid || !canExecute || !canCloseYearly}
                 onClick={() => runClosing('yearly')}
               >
                 {t('tagesabschluss.actions.yearly')}

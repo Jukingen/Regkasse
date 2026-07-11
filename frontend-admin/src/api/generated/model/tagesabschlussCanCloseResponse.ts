@@ -8,8 +8,14 @@
 
 export interface TagesabschlussCanCloseResponse {
   canClose: boolean;
+  canCloseMonthly: boolean;
+  canCloseYearly: boolean;
   /** @nullable */
   lastClosingDate?: string | null;
+  /** @nullable */
+  lastMonthlyClosingDate?: string | null;
+  /** @nullable */
+  lastYearlyClosingDate?: string | null;
   /** @nullable */
   message?: string | null;
   paymentsWithoutInvoiceCount: number;

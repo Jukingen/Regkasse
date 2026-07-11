@@ -179,12 +179,22 @@ public sealed class TagesabschlussServiceOperationalTests
             Id = Guid.NewGuid(),
             TenantId = tenantId,
             CashRegisterId = registerId,
-            CustomerId = custId,
             InvoiceNumber = "INV-1",
-            TotalAmount = 10m,
+            InvoiceDate = noonUtc,
+            DueDate = noonUtc,
+            Subtotal = 8m,
             TaxAmount = 2m,
+            TotalAmount = 10m,
+            PaidAmount = 10m,
+            RemainingAmount = 0m,
+            CompanyName = "Test Co",
+            CompanyTaxNumber = "ATU12345678",
+            CompanyAddress = "Addr",
+            TaxDetails = System.Text.Json.JsonDocument.Parse("{}"),
+            InvoiceItems = System.Text.Json.JsonDocument.Parse("[]"),
             Status = InvoiceStatus.Paid,
             CreatedAt = noonUtc,
+            IsActive = true,
         });
         await ctx.SaveChangesAsync();
 
@@ -221,5 +231,162 @@ public sealed class TagesabschlussServiceOperationalTests
 
         Assert.True(result.Success);
         Assert.Equal(1, result.TransactionCount);
+    }
+
+    [Fact]
+    public async Task PerformDailyClosingAsync_WhenAlreadyClosedToday_ReturnsBlocked()
+    {
+        var tenantId = Guid.NewGuid();
+        var registerId = Guid.NewGuid();
+        var userId = "dev-user";
+        var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+        var closingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(viennaToday);
+
+        await using var ctx = CreateContext(tenantId);
+        ctx.Tenants.Add(new Tenant { Id = tenantId, Name = "T", Slug = "t-dup", IsActive = true });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = registerId,
+            TenantId = tenantId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+        });
+        ctx.DailyClosings.Add(new DailyClosing
+        {
+            TenantId = tenantId,
+            CashRegisterId = registerId,
+            UserId = userId,
+            ClosingDate = closingDate,
+            ClosingType = "Daily",
+            TotalAmount = 10m,
+            TotalTaxAmount = 2m,
+            TransactionCount = 1,
+            TseSignature = "sig",
+            Status = "Completed",
+            CreatedAt = DateTime.UtcNow,
+        });
+        await ctx.SaveChangesAsync();
+
+        var sut = CreateService(ctx);
+        var result = await sut.PerformDailyClosingAsync(userId, registerId);
+
+        Assert.False(result.Success);
+        Assert.Contains("already performed for today", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(1, await ctx.DailyClosings.CountAsync());
+    }
+
+    [Fact]
+    public async Task PerformMonthlyClosingAsync_WhenAlreadyClosedThisMonth_ReturnsBlocked()
+    {
+        var tenantId = Guid.NewGuid();
+        var registerId = Guid.NewGuid();
+        var userId = "dev-user";
+        var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+        var monthAnchor = new DateTime(viennaToday.Year, viennaToday.Month, 1, 0, 0, 0, DateTimeKind.Unspecified);
+
+        await using var ctx = CreateContext(tenantId);
+        ctx.Tenants.Add(new Tenant { Id = tenantId, Name = "T", Slug = "t-mon", IsActive = true });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = registerId,
+            TenantId = tenantId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+        });
+        ctx.DailyClosings.Add(new DailyClosing
+        {
+            TenantId = tenantId,
+            CashRegisterId = registerId,
+            UserId = userId,
+            ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(monthAnchor),
+            ClosingType = "Monthly",
+            TotalAmount = 10m,
+            TotalTaxAmount = 2m,
+            TransactionCount = 1,
+            TseSignature = "sig",
+            Status = "Completed",
+            CreatedAt = DateTime.UtcNow,
+        });
+        await ctx.SaveChangesAsync();
+
+        var sut = CreateService(ctx);
+        var result = await sut.PerformMonthlyClosingAsync(userId, registerId);
+
+        Assert.False(result.Success);
+        Assert.Contains("current month", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task PerformYearlyClosingAsync_WhenAlreadyClosedThisYear_ReturnsBlocked()
+    {
+        var tenantId = Guid.NewGuid();
+        var registerId = Guid.NewGuid();
+        var userId = "dev-user";
+        var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+        var yearAnchor = new DateTime(viennaToday.Year, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
+
+        await using var ctx = CreateContext(tenantId);
+        ctx.Tenants.Add(new Tenant { Id = tenantId, Name = "T", Slug = "t-year", IsActive = true });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = registerId,
+            TenantId = tenantId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+        });
+        ctx.DailyClosings.Add(new DailyClosing
+        {
+            TenantId = tenantId,
+            CashRegisterId = registerId,
+            UserId = userId,
+            ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(yearAnchor),
+            ClosingType = "Yearly",
+            TotalAmount = 10m,
+            TotalTaxAmount = 2m,
+            TransactionCount = 1,
+            TseSignature = "sig",
+            Status = "Completed",
+            CreatedAt = DateTime.UtcNow,
+        });
+        await ctx.SaveChangesAsync();
+
+        var sut = CreateService(ctx);
+        var result = await sut.PerformYearlyClosingAsync(userId, registerId);
+
+        Assert.False(result.Success);
+        Assert.Contains("current year", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Model_DefinesUniqueCompletedClosingPeriodIndex()
+    {
+        using var ctx = CreateContext(Guid.NewGuid());
+        var entity = ctx.Model.FindEntityType(typeof(DailyClosing))!;
+        var periodIndex = entity.GetIndexes()
+            .Single(ix =>
+                ix.IsUnique &&
+                ix.Properties.Select(p => p.Name).SequenceEqual(new[]
+                {
+                    nameof(DailyClosing.CashRegisterId),
+                    nameof(DailyClosing.ClosingDate),
+                    nameof(DailyClosing.ClosingType),
+                }));
+
+        Assert.Equal("\"Status\" = 'Completed'", periodIndex.GetFilter());
     }
 }

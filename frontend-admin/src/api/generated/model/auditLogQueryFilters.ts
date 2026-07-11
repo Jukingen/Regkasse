@@ -16,10 +16,13 @@ export interface AuditLogQueryFilters {
   entityId?: string | null;
   /** @nullable */
   entityType?: string | null;
+  excludePlatformOperatorActors?: boolean;
   /** @nullable */
   hasChanges?: boolean | null;
   /** @nullable */
   ipAddress?: string | null;
+  /** @nullable */
+  search?: string | null;
   /** @nullable */
   startDate?: string | null;
   status?: AuditLogStatus;

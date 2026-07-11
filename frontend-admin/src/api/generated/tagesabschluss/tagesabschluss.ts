@@ -20,8 +20,10 @@ import type {
 } from '@tanstack/react-query'
 import type {
   DailyClosingRequest,
+  GetApiTagesabschlussClosingClosingIdReportPdfParams,
   GetApiTagesabschlussHistoryParams,
   GetApiTagesabschlussStatisticsParams,
+  ProblemDetails,
   TagesabschlussCanCloseResponse,
   TagesabschlussErrorResponse,
   TagesabschlussResult,
@@ -186,7 +188,68 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiTagesabschlussHistory = (
+    export const getApiTagesabschlussClosingClosingIdReportPdf = (
+    closingId: string,
+    params?: GetApiTagesabschlussClosingClosingIdReportPdfParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<Blob>(
+      {url: `/api/Tagesabschluss/closing/${closingId}/report.pdf`, method: 'GET',
+        params,
+        responseType: 'blob', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiTagesabschlussClosingClosingIdReportPdfQueryKey = (closingId: string,
+    params?: GetApiTagesabschlussClosingClosingIdReportPdfParams,) => {
+    return [`/api/Tagesabschluss/closing/${closingId}/report.pdf`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiTagesabschlussClosingClosingIdReportPdfQueryOptions = <TData = Awaited<ReturnType<typeof getApiTagesabschlussClosingClosingIdReportPdf>>, TError = ProblemDetails>(closingId: string,
+    params?: GetApiTagesabschlussClosingClosingIdReportPdfParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussClosingClosingIdReportPdf>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiTagesabschlussClosingClosingIdReportPdfQueryKey(closingId,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiTagesabschlussClosingClosingIdReportPdf>>> = ({ signal }) => getApiTagesabschlussClosingClosingIdReportPdf(closingId,params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(closingId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussClosingClosingIdReportPdf>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiTagesabschlussClosingClosingIdReportPdfQueryResult = NonNullable<Awaited<ReturnType<typeof getApiTagesabschlussClosingClosingIdReportPdf>>>
+export type GetApiTagesabschlussClosingClosingIdReportPdfQueryError = ProblemDetails
+
+export const useGetApiTagesabschlussClosingClosingIdReportPdf = <TData = Awaited<ReturnType<typeof getApiTagesabschlussClosingClosingIdReportPdf>>, TError = ProblemDetails>(
+ closingId: string,
+    params?: GetApiTagesabschlussClosingClosingIdReportPdfParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussClosingClosingIdReportPdf>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiTagesabschlussClosingClosingIdReportPdfQueryOptions(closingId,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiTagesabschlussHistory = (
     params?: GetApiTagesabschlussHistoryParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {

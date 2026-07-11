@@ -245,7 +245,7 @@ public sealed class PosShiftController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized(new { message = "User not authenticated" });
 
-        var pdf = await _dailyClosingReport.TryGenerateStoredDailyReportPdfAsync(
+        var pdf = await _dailyClosingReport.TryGenerateClosingReportPdfAsync(
             dailyClosingId,
             userId,
             language ?? "de",

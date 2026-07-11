@@ -100,6 +100,8 @@ public sealed class PosDailyClosingReportDto
     public decimal FiscalTotalTaxAmount { get; init; }
     public int FiscalTransactionCount { get; init; }
     public string? TseSignature { get; init; }
+    /// <summary>Daily, Monthly, or Yearly — drives localized PDF title.</summary>
+    public string ClosingType { get; init; } = "Daily";
     public string SnapshotDisclaimerDe { get; init; } =
         "Übersicht aus Zahlungszeilen — kein Ersatz für den operativen Tagesabschluss oder formale RKSV-Berichte.";
 }

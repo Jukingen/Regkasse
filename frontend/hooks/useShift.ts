@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 
 import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
@@ -41,21 +41,31 @@ export function useShift(explicitRegisterId?: string | null) {
   const [dailyClosingStatus, setDailyClosingStatus] = useState<PosDailyClosingStatusDto | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dailyClosingRefreshInFlightRef = useRef(false);
+  const currentShiftRefreshInFlightRef = useRef(false);
+  const lastShiftRefreshRegisterIdRef = useRef<string | undefined>(undefined);
+  const activeShiftId = activeShift?.id ?? null;
 
   const refresh = useCallback(async () => {
+    if (currentShiftRefreshInFlightRef.current) return;
+    currentShiftRefreshInFlightRef.current = true;
     setIsLoading(true);
     try {
       const res = await fetchCurrentShift();
       setActiveShift(res.hasActiveShift && res.shift ? res.shift : null);
       setError(null);
+      lastShiftRefreshRegisterIdRef.current = cashRegisterId ?? '__none__';
     } catch (e) {
       setError(readApiErrorMessage(e));
     } finally {
       setIsLoading(false);
+      currentShiftRefreshInFlightRef.current = false;
     }
-  }, []);
+  }, [cashRegisterId]);
 
   const refreshDailyClosingStatus = useCallback(async () => {
+    if (dailyClosingRefreshInFlightRef.current) return;
+    dailyClosingRefreshInFlightRef.current = true;
     try {
       const [status, shiftRes] = await Promise.all([
         fetchDailyClosingStatus(),
@@ -67,6 +77,8 @@ export function useShift(explicitRegisterId?: string | null) {
       }
     } catch {
       setDailyClosingStatus(null);
+    } finally {
+      dailyClosingRefreshInFlightRef.current = false;
     }
   }, []);
 
@@ -75,22 +87,24 @@ export function useShift(explicitRegisterId?: string | null) {
   }, [refresh, refreshDailyClosingStatus]);
 
   useEffect(() => {
+    const registerKey = cashRegisterId ?? '__none__';
+    if (registerKey === lastShiftRefreshRegisterIdRef.current) return;
     void refresh();
   }, [refresh, cashRegisterId]);
 
   useEffect(() => {
-    if (!activeShift) {
+    if (!activeShiftId) {
       setDailyClosingStatus(null);
       return;
     }
     void refreshDailyClosingStatus();
-  }, [activeShift?.id, refreshDailyClosingStatus]);
+  }, [activeShiftId, cashRegisterId, refreshDailyClosingStatus]);
 
   useFocusEffect(
     useCallback(() => {
-      if (!activeShift) return;
+      if (!activeShiftId) return;
       void refreshDailyClosingStatus();
-    }, [activeShift, refreshDailyClosingStatus])
+    }, [activeShiftId, refreshDailyClosingStatus])
   );
 
   const startShift = useCallback(
@@ -103,6 +117,7 @@ export function useShift(explicitRegisterId?: string | null) {
       try {
         const shift = await startShiftApi(cashRegisterId, startBalance);
         setActiveShift(shift);
+        await refreshDailyClosingStatus();
         await posReadiness.refreshAsync();
         await refreshOverview(true);
         return shift;

@@ -33,13 +33,25 @@ export interface Product {
    * @nullable
    */
   createdBy?: string | null;
-  /** @nullable */
+  /**
+   * @maxLength 2000
+   * @nullable
+   */
   description?: string | null;
-  /** @nullable */
+  /**
+   * @maxLength 2000
+   * @nullable
+   */
   descriptionDe?: string | null;
-  /** @nullable */
+  /**
+   * @maxLength 2000
+   * @nullable
+   */
   descriptionEn?: string | null;
-  /** @nullable */
+  /**
+   * @maxLength 2000
+   * @nullable
+   */
   descriptionTr?: string | null;
   /**
    * @maxLength 10
@@ -47,7 +59,10 @@ export interface Product {
    */
   fiscalCategoryCode?: string | null;
   id?: string;
-  /** @nullable */
+  /**
+   * @maxLength 500
+   * @nullable
+   */
   imageUrl?: string | null;
   isActive?: boolean;
   isFiscalCompliant?: boolean;

@@ -23,15 +23,81 @@ public static class DailyClosingReportTemplates
             _ => CultureInfo.GetCultureInfo("de-AT"),
         };
 
-    public static DailyClosingReportLabels Resolve(string? language)
+    public static DailyClosingReportLabels Resolve(string? language, string? closingType = "Daily")
     {
-        return NormalizeLanguage(language) switch
+        var baseLabels = NormalizeLanguage(language) switch
         {
             "en" => EnglishDailyReport,
             "tr" => TurkishDailyReport,
             _ => GermanDailyReport,
         };
+
+        var title = ResolveTitle(NormalizeLanguage(language), closingType);
+        return new DailyClosingReportLabels
+        {
+            Title = title,
+            Date = baseLabels.Date,
+            Register = baseLabels.Register,
+            TotalSales = baseLabels.TotalSales,
+            TotalCash = baseLabels.TotalCash,
+            TotalCard = baseLabels.TotalCard,
+            CashCount = baseLabels.CashCount,
+            Difference = baseLabels.Difference,
+            FiscalTotal = baseLabels.FiscalTotal,
+            FiscalTax = baseLabels.FiscalTax,
+            Transactions = baseLabels.Transactions,
+            TseSignature = baseLabels.TseSignature,
+            Disclaimer = ResolveDisclaimer(NormalizeLanguage(language), closingType) ?? baseLabels.Disclaimer,
+        };
     }
+
+    private static string ResolveTitle(string language, string? closingType)
+    {
+        var kind = closingType?.Trim();
+        if (string.Equals(kind, "Monthly", StringComparison.OrdinalIgnoreCase))
+        {
+            return language switch
+            {
+                "en" => "Monthly Closing Report",
+                "tr" => "Aylık Kapanış Raporu",
+                _ => "Monatsabschluss-Bericht",
+            };
+        }
+
+        if (string.Equals(kind, "Yearly", StringComparison.OrdinalIgnoreCase))
+        {
+            return language switch
+            {
+                "en" => "Yearly Closing Report",
+                "tr" => "Yıllık Kapanış Raporu",
+                _ => "Jahresabschluss-Bericht",
+            };
+        }
+
+        return language switch
+        {
+            "en" => "Daily Closing Report",
+            "tr" => "Günlük Kapanış Raporu",
+            _ => "Tagesabschluss-Bericht",
+        };
+    }
+
+    private static string? ResolveDisclaimer(string language, string? closingType)
+    {
+        var kind = closingType?.Trim();
+        if (!string.Equals(kind, "Monthly", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(kind, "Yearly", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        return language switch
+        {
+            "en" => "RKSV period closing with TSE signature — retain for audit.",
+            "tr" => "TSE imzalı RKSV dönem kapanışı — denetim için saklayın.",
+            _ => "RKSV-Periodenabschluss mit TSE-Signatur — für die Betriebsprüfung aufbewahren.",
+        };
+    }
+
+    public static DailyClosingReportLabels Resolve(string? language) => Resolve(language, "Daily");
 
     public static DailyClosingReportLabels GermanDailyReport { get; } = new()
     {

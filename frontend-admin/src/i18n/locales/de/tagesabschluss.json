@@ -36,9 +36,13 @@
   "check": {
     "failedTitle": "Prüfung fehlgeschlagen",
     "canCloseLabel": "Schließung möglich",
+    "canCloseMonthlyLabel": "Monatsabschluss möglich",
+    "canCloseYearlyLabel": "Jahresabschluss möglich",
     "yes": "Ja",
     "no": "Nein",
-    "lastClosing": "Letzter Abschluss",
+    "lastClosing": "Letzter Tagesabschluss",
+    "lastMonthlyClosing": "Letzter Monatsabschluss",
+    "lastYearlyClosing": "Letzter Jahresabschluss",
     "paymentsWithoutInvoice": "Zahlungen ohne Rechnung (heute)",
     "hint": "Hinweis",
     "backendHint": "Hinweis vom Server (Sprache nicht garantiert)"
@@ -75,6 +79,7 @@
     "colTransactions": "Vorgänge",
     "colStatus": "Status",
     "colFinanzOnline": "FinanzOnline",
+    "colPdf": "PDF",
     "closingTypes": {
       "Daily": "Täglich",
       "Monthly": "Monatlich",
@@ -96,11 +101,17 @@
     "successDaily": "Tagesabschluss (täglich) ausgeführt.",
     "successMonthly": "Monatsabschluss ausgeführt.",
     "successYearly": "Jahresabschluss ausgeführt.",
-    "warningNoRegister": "Bitte wählen Sie zuerst eine Kasse."
+    "warningNoRegister": "Bitte wählen Sie zuerst eine Kasse.",
+    "warningDailyNotAllowed": "Tagesabschluss für heute ist nicht möglich (bereits durchgeführt oder Voraussetzungen fehlen).",
+    "warningMonthlyNotAllowed": "Monatsabschluss für diesen Monat ist nicht möglich (bereits durchgeführt oder Voraussetzungen fehlen).",
+    "warningYearlyNotAllowed": "Jahresabschluss für dieses Jahr ist nicht möglich (bereits durchgeführt oder Voraussetzungen fehlen).",
+    "pdfUnavailable": "Für diesen Eintrag ist kein PDF verfügbar.",
+    "pdfAutoDownloadFailed": "Abschluss erfolgreich, aber PDF konnte nicht heruntergeladen werden."
   },
   "errors": {
     "unknown": "Unbekannter Fehler",
     "loadStatsTitle": "Statistik konnte nicht geladen werden",
-    "loadHistoryTitle": "Historie konnte nicht geladen werden"
+    "loadHistoryTitle": "Historie konnte nicht geladen werden",
+    "pdfDownload": "PDF-Bericht konnte nicht heruntergeladen werden."
   }
 }

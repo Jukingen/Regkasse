@@ -30,6 +30,7 @@ import {
   performMonthlyClosing,
   performYearlyClosing,
   canPerformClosing,
+  downloadClosingReportPdf,
   getClosingHistory,
   getClosingStatistics,
   formatClosingDate,
@@ -40,6 +41,7 @@ import {
   type ClosingHistoryItem,
   type ClosingStatistics
 } from '../services/api/tagesabschlussService';
+import { printDailyClosingReportPdf } from '../utils/dailyClosingReportPrint';
 
 interface TagesabschlussModalProps {
   visible: boolean;
@@ -52,13 +54,15 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
   onClose,
   cashRegisterId
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const posReadiness = usePosRegisterReadiness();
   const [closingWarnClock, setClosingWarnClock] = useState(() => new Date());
 
   const [loading, setLoading] = useState(false);
   const [canClose, setCanClose] = useState(false);
+  const [canCloseMonthly, setCanCloseMonthly] = useState(false);
+  const [canCloseYearly, setCanCloseYearly] = useState(false);
   const [lastClosingDate, setLastClosingDate] = useState<string | null>(null);
   /** Backend message (why closing is blocked or already performed). */
   const [canCloseMessage, setCanCloseMessage] = useState<string>('');
@@ -87,6 +91,8 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
     try {
       const response = await canPerformClosing(cashRegisterId);
       setCanClose(response.canClose);
+      setCanCloseMonthly(response.canCloseMonthly === true);
+      setCanCloseYearly(response.canCloseYearly === true);
       setLastClosingDate(response.lastClosingDate || null);
       setCanCloseMessage(response.message || '');
       setPaymentsWithoutInvoiceCount(
@@ -117,6 +123,19 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
     }
   };
 
+  const printClosingPdf = async (closingId: string | undefined) => {
+    if (!closingId) return;
+    try {
+      const pdf = await downloadClosingReportPdf(closingId, i18n.language);
+      await printDailyClosingReportPdf(pdf, closingId);
+    } catch {
+      Alert.alert(
+        t('tagesabschluss.error', 'Error'),
+        t('tagesabschluss.printFailed', 'Bericht konnte nicht gedruckt werden.')
+      );
+    }
+  };
+
   const handleDailyClosing = async () => {
     if (!canClose) {
       Alert.alert(
@@ -132,6 +151,9 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
       const result = await performDailyClosing(request);
 
       if (result.success) {
+        if (result.closingId) {
+          await printClosingPdf(result.closingId);
+        }
         Alert.alert(
           t('tagesabschluss.success', 'Success'),
           t('tagesabschluss.dailyClosingSuccess', 'Daily closing completed successfully!'),
@@ -165,12 +187,23 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
   };
 
   const handleMonthlyClosing = async () => {
+    if (!canCloseMonthly) {
+      Alert.alert(
+        t('tagesabschluss.alreadyClosed', 'Already Closed'),
+        t('tagesabschluss.monthlyAlreadyClosed', 'Monatsabschluss für diesen Monat bereits durchgeführt.')
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       const request: DailyClosingRequest = { cashRegisterId };
       const result = await performMonthlyClosing(request);
 
       if (result.success) {
+        if (result.closingId) {
+          await printClosingPdf(result.closingId);
+        }
         Alert.alert(
           t('tagesabschluss.success', 'Success'),
           t('tagesabschluss.monthlyClosingSuccess', 'Monthly closing completed successfully!'),
@@ -204,12 +237,23 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
   };
 
   const handleYearlyClosing = async () => {
+    if (!canCloseYearly) {
+      Alert.alert(
+        t('tagesabschluss.alreadyClosed', 'Already Closed'),
+        t('tagesabschluss.yearlyAlreadyClosed', 'Jahresabschluss für dieses Jahr bereits durchgeführt.')
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       const request: DailyClosingRequest = { cashRegisterId };
       const result = await performYearlyClosing(request);
 
       if (result.success) {
+        if (result.closingId) {
+          await printClosingPdf(result.closingId);
+        }
         Alert.alert(
           t('tagesabschluss.success', 'Success'),
           t('tagesabschluss.yearlyClosingSuccess', 'Yearly closing completed successfully!'),
@@ -278,6 +322,22 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
             {canClose ? t('common.yes', 'Yes') : t('common.no', 'No')}
           </Text>
         </View>
+        <View style={styles.statusRow}>
+          <Text style={styles.statusLabel}>
+            {t('tagesabschluss.canCloseMonthly', 'Monatsabschluss:')}
+          </Text>
+          <Text style={[styles.statusValue, { color: canCloseMonthly ? '#4CAF50' : '#F44336' }]}>
+            {canCloseMonthly ? t('common.yes', 'Yes') : t('common.no', 'No')}
+          </Text>
+        </View>
+        <View style={styles.statusRow}>
+          <Text style={styles.statusLabel}>
+            {t('tagesabschluss.canCloseYearly', 'Jahresabschluss:')}
+          </Text>
+          <Text style={[styles.statusValue, { color: canCloseYearly ? '#4CAF50' : '#F44336' }]}>
+            {canCloseYearly ? t('common.yes', 'Yes') : t('common.no', 'No')}
+          </Text>
+        </View>
         {lastClosingDate && (
           <View style={styles.statusRow}>
             <Text style={styles.statusLabel}>
@@ -326,9 +386,9 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.actionButton, styles.actionButtonSecondary]}
+          style={[styles.actionButton, styles.actionButtonSecondary, (!canCloseMonthly || loading) && styles.actionButtonDisabled]}
           onPress={handleMonthlyClosing}
-          disabled={loading}
+          disabled={!canCloseMonthly || loading}
         >
           <Text style={styles.actionButtonText}>
             {t('tagesabschluss.performMonthly', 'Perform Monthly Closing')}
@@ -336,9 +396,9 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.actionButton, styles.actionButtonSecondary]}
+          style={[styles.actionButton, styles.actionButtonSecondary, (!canCloseYearly || loading) && styles.actionButtonDisabled]}
           onPress={handleYearlyClosing}
-          disabled={loading}
+          disabled={!canCloseYearly || loading}
         >
           <Text style={styles.actionButtonText}>
             {t('tagesabschluss.performYearly', 'Perform Yearly Closing')}

@@ -1929,7 +1929,9 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.FinanzOnlineStatus).HasMaxLength(20);
                 entity.Property(e => e.FinanzOnlineError).HasMaxLength(500);
                 entity.Property(e => e.FinanzOnlineReferenceId).HasMaxLength(100);
-                entity.HasIndex(e => new { e.CashRegisterId, e.ClosingDate, e.ClosingType });
+                entity.HasIndex(e => new { e.CashRegisterId, e.ClosingDate, e.ClosingType })
+                    .IsUnique()
+                    .HasFilter("\"Status\" = 'Completed'");
                 entity.HasOne(e => e.User).WithMany().HasForeignKey(e => e.UserId);
                 entity.HasOne(e => e.CashRegister).WithMany().HasForeignKey(e => e.CashRegisterId);
             });

@@ -21,4 +21,5 @@ ipAddress?: string;
 status?: AuditLogStatus;
 statusOutcome?: string;
 hasChanges?: boolean;
+search?: string;
 };
