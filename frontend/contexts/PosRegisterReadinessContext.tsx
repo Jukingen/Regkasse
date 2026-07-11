@@ -58,9 +58,10 @@ export function PosRegisterReadinessProvider({ children }: { children: React.Rea
   );
 
   useEffect(() => {
-    if (!overviewRegister || ensureReadyInFlightRef.current || loading) return;
+    if (POS_ENSURE_READY_ON_ENTRY) return;
+    if (!overviewRegister) return;
     setData(overviewRegister);
-  }, [overviewRegister, loading]);
+  }, [overviewRegister]);
 
   useEffect(() => {
     if (!POS_ENSURE_READY_ON_ENTRY || !isAuthenticated || !user?.id) {

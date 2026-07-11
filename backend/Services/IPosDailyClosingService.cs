@@ -19,6 +19,8 @@ public enum PosDailyClosingFailureKind
     AlreadyClosed,
     FiscalBlocked,
     FiscalFailed,
+    RegisterCloseForbidden,
+    RegisterCloseFailed,
 }
 
 public sealed class PosDailyClosingException : Exception

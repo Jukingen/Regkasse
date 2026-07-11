@@ -265,9 +265,12 @@ export function usePosCashRegisterAssignment(enabled: boolean) {
   }, [cashRegisterId, posReadiness.refreshAsync]);
 
   const effectiveCashRegisterIdForPayment = useMemo(() => {
+    const nextAction = posReadiness.data?.nextAction;
+    if (POS_ENSURE_READY_ON_ENTRY && nextAction !== 'ready') return null;
+
     if (isValidPosCashRegisterId(cashRegisterId)) return cashRegisterId!.trim();
     const rid = posReadiness.data?.effectiveRegisterId?.trim() ?? null;
-    if (posReadiness.data?.nextAction === 'ready' && isValidPosCashRegisterId(rid)) return rid;
+    if (isValidPosCashRegisterId(rid)) return rid;
     return null;
   }, [cashRegisterId, posReadiness.data]);
 

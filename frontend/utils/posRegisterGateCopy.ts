@@ -44,6 +44,18 @@ export function isReadinessMonatsbelegGateActive(
   );
 }
 
+/** Register closed — operator must start Schicht before payment. */
+export function isReadinessOpenRegisterGateActive(
+  d: PosCashRegisterContextDto | null | undefined,
+  opts: { ensureReadyEnabled: boolean }
+): boolean {
+  return (
+    !!opts.ensureReadyEnabled &&
+    !!d &&
+    (d.nextAction === 'open_register' || d.messageCode === POS_READINESS_MESSAGE_CODES.CLOSED)
+  );
+}
+
 /** Backend diagnostic codes from POST /api/pos/payment or PUT settings. */
 export const POS_CASH_REGISTER_CODES = {
   REQUIRED: 'CASH_REGISTER_REQUIRED',

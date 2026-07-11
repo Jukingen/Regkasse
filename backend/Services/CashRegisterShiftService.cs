@@ -212,9 +212,14 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
         Guid registerId,
         string shiftOperatorUserId,
         decimal closingBalance,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool completeActiveShifts = true)
     {
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        var ownsTransaction = _context.Database.CurrentTransaction == null;
+        await using var transaction = ownsTransaction
+            ? await _context.Database.BeginTransactionAsync(cancellationToken)
+            : null;
+
         try
         {
             var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
@@ -226,26 +231,30 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
 
             if (register == null)
             {
-                await transaction.RollbackAsync(cancellationToken);
+                if (ownsTransaction)
+                    await transaction!.RollbackAsync(cancellationToken);
                 return CashRegisterCloseResult.NotFound();
             }
 
             if (register.Status == RegisterStatus.Closed)
             {
-                await transaction.RollbackAsync(cancellationToken);
+                if (ownsTransaction)
+                    await transaction!.RollbackAsync(cancellationToken);
                 return CashRegisterCloseResult.AlreadyClosed();
             }
 
             if (register.Status == RegisterStatus.Decommissioned)
             {
-                await transaction.RollbackAsync(cancellationToken);
+                if (ownsTransaction)
+                    await transaction!.RollbackAsync(cancellationToken);
                 return CashRegisterCloseResult.AlreadyClosed();
             }
 
             if (string.IsNullOrEmpty(shiftOperatorUserId) ||
                 !string.Equals(register.CurrentUserId, shiftOperatorUserId, StringComparison.Ordinal))
             {
-                await transaction.RollbackAsync(cancellationToken);
+                if (ownsTransaction)
+                    await transaction!.RollbackAsync(cancellationToken);
                 return CashRegisterCloseResult.Forbidden();
             }
 
@@ -269,8 +278,22 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
             };
 
             _context.CashRegisterTransactions.Add(closeTx);
+
+            if (completeActiveShifts)
+            {
+                await CashierShiftCompletionHelper.CompleteActiveShiftsForRegisterAsync(
+                    _context,
+                    tenantId,
+                    registerId,
+                    shiftOperatorUserId,
+                    "Register closed",
+                    cancellationToken);
+            }
+
             await _context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+
+            if (ownsTransaction)
+                await transaction!.CommitAsync(cancellationToken);
 
             _logger.LogInformation("Cash register {RegisterId} closed by user {UserId}", registerId, shiftOperatorUserId);
 
@@ -292,7 +315,8 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync(cancellationToken);
+            if (ownsTransaction)
+                await transaction!.RollbackAsync(cancellationToken);
             _logger.LogError(ex, "TryCloseCashRegisterAsync failed for register {RegisterId}", registerId);
             throw;
         }

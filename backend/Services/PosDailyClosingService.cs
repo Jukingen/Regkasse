@@ -14,6 +14,7 @@ public sealed class PosDailyClosingService : IPosDailyClosingService
     private readonly AppDbContext _context;
     private readonly ITagesabschlussService _tagesabschluss;
     private readonly IPosShiftService _shiftService;
+    private readonly ICashRegisterShiftService _cashRegisterShift;
     private readonly IDailyClosingService _dailyClosingSummary;
     private readonly ISettingsTenantResolver _tenantResolver;
     private readonly IAuditLogService _auditLog;
@@ -23,6 +24,7 @@ public sealed class PosDailyClosingService : IPosDailyClosingService
         AppDbContext context,
         ITagesabschlussService tagesabschluss,
         IPosShiftService shiftService,
+        ICashRegisterShiftService cashRegisterShift,
         IDailyClosingService dailyClosingSummary,
         ISettingsTenantResolver tenantResolver,
         IAuditLogService auditLog,
@@ -31,6 +33,7 @@ public sealed class PosDailyClosingService : IPosDailyClosingService
         _context = context;
         _tagesabschluss = tagesabschluss;
         _shiftService = shiftService;
+        _cashRegisterShift = cashRegisterShift;
         _dailyClosingSummary = dailyClosingSummary;
         _tenantResolver = tenantResolver;
         _auditLog = auditLog;
@@ -147,11 +150,34 @@ public sealed class PosDailyClosingService : IPosDailyClosingService
 
         shift.DailyClosingId = fiscal.ClosingId;
         shift.EndedAt = endedAt;
+        shift.EndBalance = request.CashCount;
         shift.UpdatedAt = endedAt;
         shift.UpdatedBy = cashierUserId;
         shift.Status = Math.Abs(shift.Difference) > DiscrepancyThresholdEur
             ? CashierShiftStatuses.Discrepancy
             : CashierShiftStatuses.Completed;
+
+        var closeResult = await _cashRegisterShift.TryCloseCashRegisterAsync(
+            shift.CashRegisterId,
+            cashierUserId,
+            request.CashCount,
+            cancellationToken,
+            completeActiveShifts: false);
+
+        switch (closeResult.Kind)
+        {
+            case CashRegisterCloseKind.Success:
+            case CashRegisterCloseKind.FailedAlreadyClosed:
+                break;
+            case CashRegisterCloseKind.FailedForbidden:
+                throw new PosDailyClosingException(
+                    PosDailyClosingFailureKind.RegisterCloseForbidden,
+                    "You are not allowed to close this cash register");
+            default:
+                throw new PosDailyClosingException(
+                    PosDailyClosingFailureKind.RegisterCloseFailed,
+                    "Cash register could not be closed after daily closing");
+        }
 
         await _context.SaveChangesAsync(cancellationToken);
 

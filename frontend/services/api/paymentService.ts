@@ -135,6 +135,8 @@ export interface PaymentResponse {
   offlineTransactionId?: string;
   error?: string;
   message?: string;
+  /** From POST /api/pos/payment failure envelope (`details.diagnosticCode`). */
+  diagnosticCode?: string;
   tseSignature?: string;
   /** TSE / QR info from POST /api/pos/payment response */
   tse?: PaymentTseInfo;
@@ -410,6 +412,14 @@ class PaymentService {
       raw?.data?.Message ||
       (success ? 'Payment successful' : 'Payment failed');
 
+    const details = (raw?.details ?? raw?.Details ?? raw?.data?.details ?? raw?.data?.Details) as
+      | Record<string, unknown>
+      | undefined;
+    const diagnosticCode =
+      (typeof details?.diagnosticCode === 'string' ? details.diagnosticCode : undefined) ??
+      (typeof details?.code === 'string' ? details.code : undefined) ??
+      (typeof raw?.code === 'string' ? raw.code : undefined);
+
     // 5. Normalize TseSignature
     const tseSignature =
       raw?.tseSignature ||
@@ -467,6 +477,7 @@ class PaymentService {
       fiscalStatus: success ? 'FISCAL_COMPLETE' : 'FAILED',
       paymentId,
       message,
+      diagnosticCode,
       tseSignature,
       tse,
       invoicePersisted,

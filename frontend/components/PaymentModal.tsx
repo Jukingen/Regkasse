@@ -36,7 +36,7 @@ import {
   PaymentItem,
   type VoucherValidateSuccess,
 } from '../services/api/paymentService';
-import { isPaymentError, getPaymentErrorMessage } from '../features/payment/paymentErrors';
+import { isPaymentError, getPaymentErrorDisplayMessage, getPaymentResponseFailureMessage } from '../features/payment/paymentErrors';
 import { cartService } from '../services/api/cartService';
 import { customerService, isWalkInCustomerId, type BenefitEligibilityPreviewResponse } from '../services/api/customerService';
 import { WALK_IN_CUSTOMER_ID_FALLBACK } from '../constants/walkInCustomer';
@@ -1317,10 +1317,7 @@ export default function PaymentModal({
           paymentId: response.paymentId || null,
         });
         console.error('[PAYMENT] Failed or not fiscally confirmed:', response);
-        const errorMsg =
-          response.fiscalStatus === 'FAILED'
-            ? (response.message || response.error || t('checkout:posFlow.payment.errors.fiscalNotConfirmed'))
-            : response.message || response.error || t('checkout:posFlow.payment.errors.failed');
+        const errorMsg = getPaymentResponseFailureMessage(response);
         if (response.fiscalStatus === 'FAILED') {
           const hint = `${response.message || ''} ${response.error || ''}`.toLowerCase();
           if (hint.includes('tse') || hint.includes('signatur') || hint.includes('signature')) {
@@ -1382,9 +1379,7 @@ export default function PaymentModal({
       console.error('Handle Payment Error:', err);
       console.log('[PaymentModal] Step: processPayment or post-submit flow threw', err);
       setPurchaseState('input');
-      const message = isPaymentError(err)
-        ? getPaymentErrorMessage(err.code)
-        : (err instanceof Error ? err.message : t('checkout:posFlow.payment.errors.genericFailed'));
+      const message = getPaymentErrorDisplayMessage(err);
       const title =
         isPaymentError(err) && err.code === 'BENEFIT_DAILY_ALLOWANCE_CONFLICT'
           ? t('checkout:posFlow.payment.alerts.hintTitle')

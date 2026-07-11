@@ -133,83 +133,94 @@ public sealed class PosShiftService : IPosShiftService
       EndShiftRequest request,
       CancellationToken cancellationToken = default)
   {
-    var shift = await _context.CashierShifts
-        .FirstOrDefaultAsync(
-            s => s.CashierId == cashierUserId && s.Status == CashierShiftStatuses.Active && s.IsActive,
-            cancellationToken);
-
-    if (shift == null)
-      throw new PosShiftEndException(PosShiftEndResultKind.NoActiveShift, "No active shift found");
-
-    var endedAt = DateTime.UtcNow;
-    var totals = await GetShiftTotalsAsync(shift.CashRegisterId, shift.StartedAt, endedAt, cancellationToken);
-
-    shift.EndBalance = request.EndBalance;
-    shift.TotalSales = totals.Sales;
-    shift.TotalCash = totals.Cash;
-    shift.TotalCard = totals.Card;
-    shift.Difference = request.EndBalance - shift.StartBalance - totals.Cash;
-    shift.EndedAt = endedAt;
-    shift.Status = Math.Abs(shift.Difference) > DiscrepancyThresholdEur
-        ? CashierShiftStatuses.Discrepancy
-        : CashierShiftStatuses.Completed;
-    shift.Notes = request.Notes;
-    shift.UpdatedAt = endedAt;
-    shift.UpdatedBy = cashierUserId;
-
-    var closeResult = await _cashRegisterShift.TryCloseCashRegisterAsync(
-        shift.CashRegisterId,
-        cashierUserId,
-        request.EndBalance,
-        cancellationToken);
-
-    switch (closeResult.Kind)
+    await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+    try
     {
-      case CashRegisterCloseKind.Success:
-      case CashRegisterCloseKind.FailedAlreadyClosed:
-        break;
-      case CashRegisterCloseKind.FailedForbidden:
-        throw new PosShiftEndException(
-            PosShiftEndResultKind.RegisterCloseForbidden,
-            "You are not allowed to close this cash register");
-      default:
-        throw new PosShiftEndException(
-            PosShiftEndResultKind.RegisterCloseFailed,
-            "Cash register could not be closed");
+      var shift = await _context.CashierShifts
+          .FirstOrDefaultAsync(
+              s => s.CashierId == cashierUserId && s.Status == CashierShiftStatuses.Active && s.IsActive,
+              cancellationToken);
+
+      if (shift == null)
+        throw new PosShiftEndException(PosShiftEndResultKind.NoActiveShift, "No active shift found");
+
+      var endedAt = DateTime.UtcNow;
+      var totals = await GetShiftTotalsAsync(shift.CashRegisterId, shift.StartedAt, endedAt, cancellationToken);
+
+      shift.EndBalance = request.EndBalance;
+      shift.TotalSales = totals.Sales;
+      shift.TotalCash = totals.Cash;
+      shift.TotalCard = totals.Card;
+      shift.Difference = request.EndBalance - shift.StartBalance - totals.Cash;
+      shift.EndedAt = endedAt;
+      shift.Status = Math.Abs(shift.Difference) > DiscrepancyThresholdEur
+          ? CashierShiftStatuses.Discrepancy
+          : CashierShiftStatuses.Completed;
+      shift.Notes = request.Notes;
+      shift.UpdatedAt = endedAt;
+      shift.UpdatedBy = cashierUserId;
+
+      var closeResult = await _cashRegisterShift.TryCloseCashRegisterAsync(
+          shift.CashRegisterId,
+          cashierUserId,
+          request.EndBalance,
+          cancellationToken,
+          completeActiveShifts: false);
+
+      switch (closeResult.Kind)
+      {
+        case CashRegisterCloseKind.Success:
+        case CashRegisterCloseKind.FailedAlreadyClosed:
+          break;
+        case CashRegisterCloseKind.FailedForbidden:
+          throw new PosShiftEndException(
+              PosShiftEndResultKind.RegisterCloseForbidden,
+              "You are not allowed to close this cash register");
+        default:
+          throw new PosShiftEndException(
+              PosShiftEndResultKind.RegisterCloseFailed,
+              "Cash register could not be closed");
+      }
+
+      await _context.SaveChangesAsync(cancellationToken);
+      await transaction.CommitAsync(cancellationToken);
+
+      var registerNumber = await _context.CashRegisters.AsNoTracking()
+          .Where(r => r.Id == shift.CashRegisterId)
+          .Select(r => r.RegisterNumber)
+          .FirstOrDefaultAsync(cancellationToken);
+
+      var receipt = BuildClosingReceipt(shift, registerNumber);
+
+      await _auditLog.LogSystemOperationAsync(
+          "ShiftEnded",
+          "cashier_shift",
+          cashierUserId,
+          actorRole,
+          description: $"Shift ended. Sales: {totals.Sales:F2}, Difference: {shift.Difference:F2}",
+          notes: request.Notes,
+          actionType: AuditEventType.Other,
+          entityId: shift.Id,
+          tenantId: shift.TenantId);
+
+      _logger.LogInformation(
+          "Cashier shift {ShiftId} ended by {UserId}. Status={Status}, Difference={Difference}",
+          shift.Id,
+          cashierUserId,
+          shift.Status,
+          shift.Difference);
+
+      return new EndShiftResponse
+      {
+        Shift = MapToDto(shift),
+        Receipt = receipt,
+      };
     }
-
-    await _context.SaveChangesAsync(cancellationToken);
-
-    var registerNumber = await _context.CashRegisters.AsNoTracking()
-        .Where(r => r.Id == shift.CashRegisterId)
-        .Select(r => r.RegisterNumber)
-        .FirstOrDefaultAsync(cancellationToken);
-
-    var receipt = BuildClosingReceipt(shift, registerNumber);
-
-    await _auditLog.LogSystemOperationAsync(
-        "ShiftEnded",
-        "cashier_shift",
-        cashierUserId,
-        actorRole,
-        description: $"Shift ended. Sales: {totals.Sales:F2}, Difference: {shift.Difference:F2}",
-        notes: request.Notes,
-        actionType: AuditEventType.Other,
-        entityId: shift.Id,
-        tenantId: shift.TenantId);
-
-    _logger.LogInformation(
-        "Cashier shift {ShiftId} ended by {UserId}. Status={Status}, Difference={Difference}",
-        shift.Id,
-        cashierUserId,
-        shift.Status,
-        shift.Difference);
-
-    return new EndShiftResponse
+    catch
     {
-      Shift = MapToDto(shift),
-      Receipt = receipt,
-    };
+      await transaction.RollbackAsync(cancellationToken);
+      throw;
+    }
   }
 
   public async Task<ShiftTotalsDto> GetShiftTotalsAsync(

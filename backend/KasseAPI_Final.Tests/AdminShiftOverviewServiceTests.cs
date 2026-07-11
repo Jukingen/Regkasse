@@ -103,4 +103,50 @@ public sealed class AdminShiftOverviewServiceTests
         Assert.Equal("K1", overview.DailyClosings[0].RegisterNumber);
         Assert.True(overview.DailyClosings[0].HasTseSignature);
     }
+
+    [Fact]
+    public async Task GetOverview_CompletedShiftAndClosedRegister_ShowsNoActiveRows()
+    {
+        await using var ctx = CreateContext();
+        var tenantId = LegacyDefaultTenantIds.Primary;
+        var regId = Guid.NewGuid();
+
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = regId,
+            TenantId = tenantId,
+            RegisterNumber = "K1",
+            Location = "Front",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+
+        ctx.CashierShifts.Add(new CashierShift
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            CashRegisterId = regId,
+            CashierId = "c1",
+            CashierName = "Done Cashier",
+            StartBalance = 40m,
+            StartedAt = DateTime.UtcNow.AddHours(-4),
+            EndedAt = DateTime.UtcNow.AddHours(-1),
+            TotalSales = 100m,
+            Status = CashierShiftStatuses.Completed,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+
+        await ctx.SaveChangesAsync();
+
+        var svc = new AdminShiftOverviewService(ctx);
+        var overview = await svc.GetOverviewAsync(tenantId, null, null, null);
+
+        Assert.Empty(overview.ActiveShifts);
+        Assert.Single(overview.ShiftHistory);
+    }
 }

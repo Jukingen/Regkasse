@@ -69,12 +69,16 @@ public sealed class AdminShiftManagementService : IAdminShiftManagementService
                 throw new InvalidOperationException($"Unexpected force-close result: {closeResult.Kind}");
         }
 
-        var closedShiftCount = await CloseActiveShiftsForRegisterAsync(
-            cashRegisterId,
+        var closedShiftCount = await CashierShiftCompletionHelper.CompleteActiveShiftsForRegisterAsync(
+            _context,
             tenantId,
+            cashRegisterId,
             actorUserId,
             description,
             cancellationToken);
+
+        if (closedShiftCount > 0)
+            await _context.SaveChangesAsync(cancellationToken);
 
         await _auditLog.LogSystemOperationAsync(
             "ShiftForceClosed",
@@ -94,38 +98,5 @@ public sealed class AdminShiftManagementService : IAdminShiftManagementService
             closedShiftCount);
 
         return AdminShiftForceCloseResult.Succeeded(cashRegisterId, closedShiftCount);
-    }
-
-    private async Task<int> CloseActiveShiftsForRegisterAsync(
-        Guid cashRegisterId,
-        Guid tenantId,
-        string actorUserId,
-        string note,
-        CancellationToken cancellationToken)
-    {
-        var activeShifts = await _context.CashierShifts
-            .Where(s => s.TenantId == tenantId
-                        && s.CashRegisterId == cashRegisterId
-                        && s.Status == CashierShiftStatuses.Active
-                        && s.IsActive)
-            .ToListAsync(cancellationToken);
-
-        if (activeShifts.Count == 0)
-            return 0;
-
-        var endedAt = DateTime.UtcNow;
-        foreach (var shift in activeShifts)
-        {
-            shift.EndedAt = endedAt;
-            shift.Status = CashierShiftStatuses.Completed;
-            shift.Notes = string.IsNullOrWhiteSpace(shift.Notes)
-                ? note
-                : $"{shift.Notes}; {note}";
-            shift.UpdatedAt = endedAt;
-            shift.UpdatedBy = actorUserId;
-        }
-
-        await _context.SaveChangesAsync(cancellationToken);
-        return activeShifts.Count;
     }
 }

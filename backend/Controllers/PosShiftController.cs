@@ -215,6 +215,14 @@ public sealed class PosShiftController : ControllerBase
                 paymentsWithoutInvoiceCount = ex.PaymentsWithoutInvoiceCount,
             });
         }
+        catch (PosDailyClosingException ex) when (ex.Kind == PosDailyClosingFailureKind.RegisterCloseForbidden)
+        {
+            return Forbid();
+        }
+        catch (PosDailyClosingException ex) when (ex.Kind == PosDailyClosingFailureKind.RegisterCloseFailed)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
         catch (PosDailyClosingException ex)
         {
             _logger.LogWarning(ex, "DailyClosing failed for user {UserId}", userId);

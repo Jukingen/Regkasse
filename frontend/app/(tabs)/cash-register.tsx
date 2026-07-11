@@ -51,7 +51,10 @@ import type { ProductTextLocale } from '../../utils/productLocalization';
 import { isValidPosCashRegisterId } from '../../utils/posCashRegister';
 import {
   isReadinessRegisterDecommissioned,
+  isReadinessOpenRegisterGateActive,
   isReadinessStartbelegGateActive,
+  registerGateAlertMessage,
+  buildPosRegisterGateContext,
   POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE,
 } from '../../utils/posRegisterGateCopy';
 
@@ -426,6 +429,13 @@ export default function CashRegisterScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      if (!POS_ENSURE_READY_ON_ENTRY) return;
+      void posReadiness.refreshAsync();
+    }, [posReadiness.refreshAsync])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
       if (consumeMergeSheetRequest()) {
         setSplitMergeMode('merge');
         setSplitMergeVisible(true);
@@ -700,6 +710,23 @@ export default function CashRegisterScreen() {
         'Startbeleg erforderlich',
         'Bitte zuerst den fiskalischen Startbeleg erstellen, bevor Sie zur Zahlung wechseln.'
       );
+      return;
+    }
+    if (isReadinessOpenRegisterGateActive(posReadiness.data, { ensureReadyEnabled: POS_ENSURE_READY_ON_ENTRY })) {
+      const gateCtx = buildPosRegisterGateContext({
+        settingsLoadFailed: false,
+        registerListFailureKind: null,
+        registerListLoading: false,
+        registerPicklistCount: 0,
+        readiness: {
+          loading: false,
+          error: false,
+          nextAction: posReadiness.data?.nextAction ?? null,
+          messageCode: posReadiness.data?.messageCode ?? null,
+          registerStatus: posReadiness.data?.registerStatus ?? null,
+        },
+      });
+      Alert.alert('Kasse geschlossen', registerGateAlertMessage(gateCtx));
       return;
     }
 

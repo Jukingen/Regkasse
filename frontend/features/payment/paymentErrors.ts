@@ -94,3 +94,18 @@ export function getPaymentErrorDisplayMessage(err: unknown): string {
   }
   return err instanceof Error ? err.message : 'Zahlung fehlgeschlagen';
 }
+
+/** Maps a failed payment API body (success:false) to German operator copy when possible. */
+export function getPaymentResponseFailureMessage(response: {
+  message?: string;
+  error?: string;
+  diagnosticCode?: string;
+  fiscalStatus?: string;
+}): string {
+  const reg = mapBackendCashRegisterCodeToGerman(response.diagnosticCode);
+  if (reg) return reg;
+  if (response.fiscalStatus === 'FAILED') {
+    return response.message || response.error || getPaymentErrorMessage('UNKNOWN_PAYMENT_ERROR');
+  }
+  return response.message || response.error || getPaymentErrorMessage('UNKNOWN_PAYMENT_ERROR');
+}

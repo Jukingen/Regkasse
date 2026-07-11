@@ -5,6 +5,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Reports;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
@@ -172,10 +173,19 @@ public class PosDailyClosingServiceTests
         shiftSvc.Setup(s => s.GetShiftTotalsAsync(regId, startedAt, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ShiftTotalsDto { Sales = 25m, Cash = 25m, Card = 0m });
 
+        var cashRegisterShift = new CashRegisterShiftService(
+            ctx,
+            Mock.Of<UserManager<ApplicationUser>>(),
+            Mock.Of<ILogger<CashRegisterShiftService>>(),
+            TenantTestDoubles.PrimaryTenantResolver,
+            RksvStartbelegTestDoubles.GateOff(),
+            RksvMonatsbelegTestDoubles.GateOff());
+
         var svc = new PosDailyClosingService(
             ctx,
             tagesabschluss.Object,
             shiftSvc.Object,
+            cashRegisterShift,
             dailySummary.Object,
             TenantTestDoubles.PrimaryTenantResolver,
             Mock.Of<IAuditLogService>(),
@@ -195,16 +205,28 @@ public class PosDailyClosingServiceTests
         var persisted = await ctx.CashierShifts.FindAsync(shiftId);
         Assert.NotNull(persisted!.EndedAt);
         Assert.Equal(25m, persisted.CashCount);
+
+        var register = await ctx.CashRegisters.FindAsync(regId);
+        Assert.Equal(RegisterStatus.Closed, register!.Status);
+        Assert.Null(register.CurrentUserId);
     }
 
     private static PosDailyClosingService CreateService(AppDbContext ctx, ITagesabschlussService? tagesabschluss = null)
     {
         var tages = tagesabschluss ?? Mock.Of<ITagesabschlussService>();
+        var cashRegisterShift = new CashRegisterShiftService(
+            ctx,
+            Mock.Of<UserManager<ApplicationUser>>(),
+            Mock.Of<ILogger<CashRegisterShiftService>>(),
+            TenantTestDoubles.PrimaryTenantResolver,
+            RksvStartbelegTestDoubles.GateOff(),
+            RksvMonatsbelegTestDoubles.GateOff());
 
         return new PosDailyClosingService(
             ctx,
             tages,
             Mock.Of<IPosShiftService>(),
+            cashRegisterShift,
             Mock.Of<IDailyClosingService>(),
             TenantTestDoubles.PrimaryTenantResolver,
             Mock.Of<IAuditLogService>(),

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
+import { usePosStatusOverview } from '../contexts/PosStatusOverviewContext';
 import {
   DailyClosingApiError,
   endShiftApi,
@@ -26,6 +27,7 @@ function readApiErrorMessage(error: unknown): string {
 
 export function useShift(explicitRegisterId?: string | null) {
   const posReadiness = usePosRegisterReadiness();
+  const { refreshOverview } = usePosStatusOverview();
   const cashRegisterId =
     (explicitRegisterId?.trim() && isValidPosCashRegisterId(explicitRegisterId.trim())
       ? explicitRegisterId.trim()
@@ -84,6 +86,7 @@ export function useShift(explicitRegisterId?: string | null) {
         const shift = await startShiftApi(cashRegisterId, startBalance);
         setActiveShift(shift);
         await posReadiness.refreshAsync();
+        await refreshOverview(true);
         return shift;
       } catch (e) {
         const msg = readApiErrorMessage(e);
@@ -93,7 +96,7 @@ export function useShift(explicitRegisterId?: string | null) {
         setIsLoading(false);
       }
     },
-    [cashRegisterId, posReadiness]
+    [cashRegisterId, posReadiness, refreshOverview]
   );
 
   const endShift = useCallback(
@@ -104,6 +107,7 @@ export function useShift(explicitRegisterId?: string | null) {
         const result = await endShiftApi(endBalance, notes);
         setActiveShift(null);
         await posReadiness.refreshAsync();
+        await refreshOverview(true);
         return result;
       } catch (e) {
         const msg = readApiErrorMessage(e);
@@ -113,7 +117,7 @@ export function useShift(explicitRegisterId?: string | null) {
         setIsLoading(false);
       }
     },
-    [posReadiness]
+    [posReadiness, refreshOverview]
   );
 
   const performDailyClosing = useCallback(
@@ -125,6 +129,7 @@ export function useShift(explicitRegisterId?: string | null) {
         setActiveShift(null);
         setDailyClosingStatus(null);
         await posReadiness.refreshAsync();
+        await refreshOverview(true);
         await refresh();
         return result;
       } catch (e) {
@@ -139,7 +144,7 @@ export function useShift(explicitRegisterId?: string | null) {
         setIsLoading(false);
       }
     },
-    [posReadiness, refresh]
+    [posReadiness, refreshOverview, refresh]
   );
 
   return {

@@ -247,6 +247,52 @@ public class CashRegisterShiftServiceTests
     }
 
     [Fact]
+    public async Task Close_CompletesActiveCashierShiftRows()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        const string ownerId = "u1";
+        var startedAt = DateTime.UtcNow.AddHours(-2);
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 50,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CurrentUserId = ownerId,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        ctx.CashierShifts.Add(new CashierShift
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            CashRegisterId = regId,
+            CashierId = ownerId,
+            CashierName = "Cashier One",
+            StartBalance = 50m,
+            StartedAt = startedAt,
+            Status = CashierShiftStatuses.Active,
+            CreatedAt = startedAt,
+            IsActive = true,
+        });
+        await ctx.SaveChangesAsync();
+
+        var mgr = CreateUserManager(new ApplicationUser { Id = ownerId, UserName = ownerId, Email = "u@test" });
+        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
+
+        var result = await svc.TryCloseCashRegisterAsync(regId, ownerId, 42m, CancellationToken.None);
+        Assert.Equal(CashRegisterCloseKind.Success, result.Kind);
+
+        var shift = await ctx.CashierShifts.SingleAsync(s => s.CashRegisterId == regId);
+        Assert.Equal(CashierShiftStatuses.Completed, shift.Status);
+        Assert.NotNull(shift.EndedAt);
+    }
+
+    [Fact]
     public async Task Close_Owner_Succeeds_ClearsShift_AndWritesCloseTransaction()
     {
         await using var ctx = CreateContext();
