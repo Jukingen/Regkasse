@@ -328,7 +328,7 @@ public sealed class TenantUserServiceTests
         {
             Id = tenantId,
             Name = "Test Cafe",
-            Slug = "cafe",
+            Slug = "dev",
             Status = TenantStatuses.Active,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
@@ -451,7 +451,7 @@ public sealed class TenantUserServiceTests
     [Fact]
     public void QuickUserEmailGenerator_BuildEmail_Uses_Role_Prefix_And_Six_Char_Suffix()
     {
-        var email = QuickUserEmailGenerator.BuildEmail("Manager", "cafe");
+        var email = QuickUserEmailGenerator.BuildEmail("Manager", "dev");
         Assert.Matches(@"^manager_[a-z0-9]{6}@cafe\.regkasse\.at$", email);
     }
 
@@ -498,7 +498,7 @@ public sealed class TenantUserServiceTests
         {
             Id = tenantId,
             Name = "Test Bar",
-            Slug = "bar",
+            Slug = "prod",
             Status = TenantStatuses.Active,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,

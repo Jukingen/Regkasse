@@ -222,7 +222,7 @@ public sealed class DemoProductImportServiceTests
 
         var options = new DbContextOptionsBuilder<AppDbContext>().UseAppNpgsql(cs).Options;
         await using var db = new AppDbContext(options);
-        var tenantId = DemoTenantIds.Cafe;
+        var tenantId = DemoTenantIds.Prod;
         Skip.If(!await db.Tenants.IgnoreQueryFilters().AnyAsync(t => t.Id == tenantId), "Cafe tenant missing; run migrations first.");
 
         // Clean prior partial runs for idempotent local verification.

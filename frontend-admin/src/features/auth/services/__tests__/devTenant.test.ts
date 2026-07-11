@@ -26,10 +26,10 @@ describe('devTenant', () => {
 
   it('uses localStorage override in development', () => {
     process.env.NODE_ENV = 'development';
-    window.localStorage.setItem('dev_tenant_id', 'cafe');
-    expect(getDevTenant()).toBe('cafe');
-    expect(getEffectiveTenantSlug()).toBe('cafe');
-    expect(resolveTenantSlugForApiRequest()).toBe('cafe');
+    window.localStorage.setItem('dev_tenant_id', 'dev');
+    expect(getDevTenant()).toBe('dev');
+    expect(getEffectiveTenantSlug()).toBe('dev');
+    expect(resolveTenantSlugForApiRequest()).toBe('dev');
     process.env.NODE_ENV = 'production';
     expect(getTenantSlugFromSubdomain('acme.regkasse.at')).toBe('acme');
   });
@@ -37,11 +37,11 @@ describe('devTenant', () => {
   it('uses regkasse.local subdomain when localStorage is empty', () => {
     process.env.NODE_ENV = 'development';
     Object.defineProperty(window, 'location', {
-      value: { hostname: 'bar.regkasse.local' },
+      value: { hostname: 'prod.regkasse.local' },
       configurable: true,
     });
-    expect(isLocalDevHostname('bar.regkasse.local')).toBe(true);
-    expect(getDevTenant()).toBe('bar');
+    expect(isLocalDevHostname('prod.regkasse.local')).toBe(true);
+    expect(getDevTenant()).toBe('prod');
   });
 
   it('maps admin.regkasse.local to admin without implicit dev mandant', () => {
@@ -59,10 +59,10 @@ describe('devTenant', () => {
     process.env.NODE_ENV = 'development';
     const handler = vi.fn();
     window.addEventListener(DEV_TENANT_CHANGED_EVENT, handler);
-    expect(writeDevTenantSlug('cafe')).toBe(true);
+    expect(writeDevTenantSlug('dev')).toBe(true);
     expect(handler).toHaveBeenCalledTimes(1);
-    expect(handler.mock.calls[0][0].detail).toEqual({ slug: 'cafe', previousSlug: null });
-    expect(writeDevTenantSlug('cafe')).toBe(false);
+    expect(handler.mock.calls[0][0].detail).toEqual({ slug: 'dev', previousSlug: null });
+    expect(writeDevTenantSlug('dev')).toBe(false);
     expect(handler).toHaveBeenCalledTimes(1);
     window.removeEventListener(DEV_TENANT_CHANGED_EVENT, handler);
   });

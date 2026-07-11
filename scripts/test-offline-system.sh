@@ -320,11 +320,11 @@ if [[ "$WITH_API" -eq 1 ]]; then
   echo "Test 10: Live API smoke (optional --with-api)"
   echo ""
 
-  HEALTH_CODE=$(curl -s -o /dev/null -w "%{http_code}" -H "X-Tenant-Id: test_cafe" http://localhost:5184/api/health 2>/dev/null || echo "000")
+  HEALTH_CODE=$(curl -s -o /dev/null -w "%{http_code}" -H "X-Tenant-Id: dev" http://localhost:5184/api/health 2>/dev/null || echo "000")
   if [[ "$HEALTH_CODE" == "200" ]]; then
     pass "backend health (localhost:5184)"
     PENDING_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-      -H "X-Tenant-Id: test_cafe" \
+      -H "X-Tenant-Id: dev" \
       "http://localhost:5184/api/pos/offline-orders/pending?cashRegisterId=00000000-0000-0000-0000-000000000000" 2>/dev/null || echo "000")
     if [[ "$PENDING_CODE" == "401" || "$PENDING_CODE" == "403" ]]; then
       pass "POS offline-orders/pending requires auth ($PENDING_CODE)"

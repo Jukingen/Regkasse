@@ -36,8 +36,8 @@ Bu klasör, AI destekli geliştirme için repo-gerçeklerine dayalı kısa opera
 ## Multi-tenant local test (özet)
 
 ```bash
-curl -H "X-Tenant-Id: test_cafe" http://localhost:5184/api/health
-# or: curl "http://localhost:5184/api/health?tenant=test_cafe"
+curl -H "X-Tenant-Id: dev" http://localhost:5184/api/health
+# or: curl "http://localhost:5184/api/health?tenant=dev"
 ```
 
 `Development` ortamı + slug; bkz. `REGKASSE_AI_ONBOARDING.md` (Development Setup for Multi-Tenant Testing).

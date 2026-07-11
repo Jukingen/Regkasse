@@ -68,8 +68,7 @@ public sealed class DemoTenantAdminSeedTests
         var now = DateTime.UtcNow;
         foreach (var (id, slug, name) in new[]
                  {
-                     (DemoTenantIds.Cafe, "cafe", "Test Cafe"),
-                     (DemoTenantIds.Bar, "bar", "Test Bar"),
+                     (DemoTenantIds.Prod, "prod", "Production"),
                  })
         {
             db.Tenants.Add(new Tenant
@@ -97,7 +96,7 @@ public sealed class DemoTenantAdminSeedTests
 
         await DemoTenantAdminSeed.SeedAsync(db, userManager, provisioner, CreateDevelopmentHostEnvironment());
 
-        foreach (var slug in new[] { "dev", "cafe", "bar" })
+        foreach (var slug in new[] { "dev", "prod" })
         {
             var tenant = await db.Tenants.SingleAsync(t => t.Slug == slug);
             var email = $"admin@{slug}.regkasse.at";
@@ -124,8 +123,8 @@ public sealed class DemoTenantAdminSeedTests
         await DemoTenantAdminSeed.SeedAsync(db, userManager, provisioner, hostEnv);
         await DemoTenantAdminSeed.SeedAsync(db, userManager, provisioner, hostEnv);
 
-        Assert.Equal(3, await db.Tenants.CountAsync(t => t.Slug == "dev" || t.Slug == "cafe" || t.Slug == "bar"));
-        Assert.Equal(3, await db.UserTenantMemberships.CountAsync(m => m.IsActive && m.IsOwner));
+        Assert.Equal(2, await db.Tenants.CountAsync(t => t.Slug == "dev" || t.Slug == "prod"));
+        Assert.Equal(2, await db.UserTenantMemberships.CountAsync(m => m.IsActive && m.IsOwner));
     }
 
     [Fact]
@@ -139,9 +138,9 @@ public sealed class DemoTenantAdminSeedTests
 
         db.Tenants.Add(new Tenant
         {
-            Id = DemoTenantIds.Bar,
-            Name = "Test Bar",
-            Slug = "bar",
+            Id = DemoTenantIds.Prod,
+            Name = "Production",
+            Slug = "prod",
             Status = TenantStatuses.Deleted,
             IsActive = false,
             CreatedAt = now,
@@ -151,8 +150,8 @@ public sealed class DemoTenantAdminSeedTests
 
         await DemoTenantAdminSeed.SeedAsync(db, userManager, provisioner, CreateDevelopmentHostEnvironment());
 
-        Assert.Null(await userManager.FindByEmailAsync("admin@bar.regkasse.at"));
-        Assert.Single(await db.Tenants.IgnoreQueryFilters().Where(t => t.Slug == "bar").ToListAsync());
+        Assert.Null(await userManager.FindByEmailAsync("admin@prod.regkasse.at"));
+        Assert.Single(await db.Tenants.IgnoreQueryFilters().Where(t => t.Slug == "prod").ToListAsync());
     }
 
     [Fact]
@@ -163,10 +162,10 @@ public sealed class DemoTenantAdminSeedTests
         Assert.True(File.Exists(path), $"Expected {path}");
 
         var text = File.ReadAllText(path);
-        Assert.Contains("admin@cafe.regkasse.at", text, StringComparison.Ordinal);
+        Assert.Contains("admin@prod.regkasse.at", text, StringComparison.Ordinal);
         Assert.Contains("user_tenant_memberships", text, StringComparison.Ordinal);
         Assert.Contains("NOT EXISTS", text, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains(DemoTenantIds.Cafe.ToString("D"), text, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(DemoTenantIds.Prod.ToString("D"), text, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -178,10 +177,7 @@ public sealed class DemoTenantAdminSeedTests
 
         var text = File.ReadAllText(path);
         Assert.Contains("cash_registers", text, StringComparison.Ordinal);
-        Assert.Contains("'default'", text, StringComparison.Ordinal);
-        Assert.Contains("'cafe'", text, StringComparison.Ordinal);
-        Assert.Contains("'bar'", text, StringComparison.Ordinal);
-        Assert.Contains("'test'", text, StringComparison.Ordinal);
+        Assert.Contains("'prod'", text, StringComparison.Ordinal);
         Assert.Contains("'dev'", text, StringComparison.Ordinal);
         Assert.Contains("'KASSE-001'", text, StringComparison.Ordinal);
         Assert.Contains("'Hauptkasse'", text, StringComparison.Ordinal);

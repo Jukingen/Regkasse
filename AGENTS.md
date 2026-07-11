@@ -139,14 +139,14 @@ await using var db = await factory.CreateDbContextAsync(ct);
 
 ```bash
 # Header (Development only)
-curl -H "X-Tenant-Id: test_cafe" http://localhost:5184/api/health
+curl -H "X-Tenant-Id: dev" http://localhost:5184/api/health
 
 # Query parameter
-curl http://localhost:5184/api/health?tenant=test_cafe
+curl http://localhost:5184/api/health?tenant=dev
 
 # Hosts file simulation
-127.0.0.1 cafe.regkasse.local
-# Then: http://cafe.regkasse.local:5184
+127.0.0.1 dev.regkasse.local
+# Then: http://dev.regkasse.local:5184
 ```
 
 ## API Boundaries (DO NOT CROSS)
@@ -629,7 +629,7 @@ cd frontend && npm run test
 ### Useful API Endpoints (dev)
 ```bash
 curl http://localhost:5184/api/health
-curl -H "X-Tenant-Id: test_cafe" http://localhost:5184/api/tenants/switcher
+curl -H "X-Tenant-Id: dev" http://localhost:5184/api/tenants/switcher
 curl -X POST http://localhost:5184/api/Auth/login \
   -H "Content-Type: application/json" \
   -d '{"loginIdentifier":"admin","password":"***"}'
@@ -685,5 +685,5 @@ NEXT_PUBLIC_RKSV_ENVIRONMENT=TEST
 Frontend POS:
 ```env
 EXPO_PUBLIC_API_BASE_URL=http://192.168.1.100:5184/api
-EXPO_PUBLIC_DEV_TENANT_ID=test_cafe
+EXPO_PUBLIC_DEV_TENANT_ID=dev
 ```

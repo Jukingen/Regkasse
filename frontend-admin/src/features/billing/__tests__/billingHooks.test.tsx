@@ -99,7 +99,7 @@ describe('Billing Hooks', () => {
                 page: 2,
                 pageSize: 10,
                 tenantId: undefined,
-                search: 'cafe',
+                search: 'dev',
                 status: undefined,
                 fromDate: undefined,
                 toDate: undefined,

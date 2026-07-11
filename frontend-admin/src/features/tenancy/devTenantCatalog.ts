@@ -5,11 +5,8 @@ import type { AdminTenantListItem } from '@/features/super-admin/api/adminTenant
  * `presetSlug` is shown in switchers; `canonicalSlug` is the DB seed slug (API resolution).
  */
 export const DEV_TENANT_CATALOG = [
-  { canonicalSlug: 'default', displayName: 'Default', presetSlug: 'default' },
   { canonicalSlug: 'dev', displayName: 'Development', presetSlug: 'dev' },
-  { canonicalSlug: 'cafe', displayName: 'Test Cafe', presetSlug: 'test-cafe' },
-  { canonicalSlug: 'bar', displayName: 'Test Bar', presetSlug: 'test-bar' },
-  { canonicalSlug: 'test', displayName: 'Test Tenant', presetSlug: 'test' },
+  { canonicalSlug: 'prod', displayName: 'Production', presetSlug: 'prod' },
 ] as const;
 
 const SLUG_ORDER = new Map(
@@ -22,10 +19,12 @@ const PRESET_SLUG_BY_CANONICAL = new Map(
 
 /** Legacy / UI slugs → DB seed slugs (see backend DevTenantSlugAliases). */
 const SLUG_ALIASES: Record<string, string> = {
-  test_cafe: 'cafe',
-  'test-cafe': 'cafe',
-  test_bar: 'bar',
-  'test-bar': 'bar',
+  test_cafe: 'dev',
+  'test-cafe': 'dev',
+  cafe: 'dev',
+  test_bar: 'prod',
+  'test-bar': 'prod',
+  bar: 'prod',
 };
 
 export function canonicalDevTenantSlug(slug: string): string {
@@ -43,7 +42,7 @@ export function getDevTenantCatalogDisplayName(slug: string): string | null {
   return entry?.displayName ?? null;
 }
 
-/** Hyphen slug for switcher subtitle (e.g. cafe → test-cafe). */
+/** Hyphen slug for switcher subtitle (e.g. prod → prod). */
 export function formatDisplaySlug(slug: string): string {
   const canonical = canonicalDevTenantSlug(slug).toLowerCase();
   const preset = PRESET_SLUG_BY_CANONICAL.get(canonical);
@@ -83,5 +82,5 @@ export function isDevelopmentOrTestTenantSlug(slug: string): boolean {
     return true;
   }
   const canonical = canonicalDevTenantSlug(slug).toLowerCase();
-  return canonical === 'dev' || canonical === 'cafe' || canonical === 'bar' || canonical === 'test';
+  return canonical === 'dev' || canonical === 'prod';
 }

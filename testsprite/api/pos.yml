@@ -6,7 +6,7 @@ tests:
     endpoint: "GET /api/pos/list"
     headers:
       Authorization: "Bearer {{cashierToken}}"
-      X-Tenant-Id: "test_cafe"
+      X-Tenant-Id: "dev"
     expected:
       status: 200
       body: "array"

@@ -593,7 +593,7 @@ public sealed class AdminTenantLicenseServiceTests
         {
             Id = tenantId,
             Name = "Cafe",
-            Slug = "cafe",
+            Slug = "dev",
             Status = TenantStatuses.Active,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,

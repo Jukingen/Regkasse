@@ -475,7 +475,7 @@ public class AuthControllerTests
     {
         var user = ActiveUser();
         user.UserName = "cashier1";
-        user.Email = "cashier_a3f9k2@cafe.regkasse.at";
+        user.Email = "cashier_a3f9k2@dev.regkasse.at";
         var controller = await CreateControllerWithIdentityUserAsync(user, allowLegacy: true);
 
         var result = await controller.Login(new LoginModel
@@ -492,7 +492,7 @@ public class AuthControllerTests
     {
         var user = ActiveUser();
         user.UserName = "cashier1";
-        user.Email = "cashier_a3f9k2@cafe.regkasse.at";
+        user.Email = "cashier_a3f9k2@dev.regkasse.at";
         var controller = await CreateControllerWithIdentityUserAsync(
             user,
             allowLegacy: false,
@@ -513,7 +513,7 @@ public class AuthControllerTests
     {
         var user = ActiveUser();
         user.UserName = "Mustafa";
-        user.Email = "mustafa_a3f9k2@cafe.regkasse.at";
+        user.Email = "mustafa_a3f9k2@dev.regkasse.at";
         user.NormalizedUserName = "MUSTAFA";
         var controller = await CreateControllerWithIdentityUserAsync(
             user,

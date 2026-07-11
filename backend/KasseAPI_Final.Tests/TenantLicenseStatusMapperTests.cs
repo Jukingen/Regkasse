@@ -25,8 +25,8 @@ public sealed class TenantLicenseStatusMapperTests
         var now = new DateTime(2026, 5, 22, 12, 0, 0, DateTimeKind.Utc);
         var tenant = new Tenant
         {
-            Id = DemoTenantIds.Bar,
-            Slug = "bar",
+            Id = DemoTenantIds.Prod,
+            Slug = "prod",
             Name = "Test Bar",
             LicenseValidUntilUtc = now.AddDays(-10),
             LicenseKey = "TENANT-KEY",
@@ -48,8 +48,8 @@ public sealed class TenantLicenseStatusMapperTests
         var now = new DateTime(2026, 5, 22, 12, 0, 0, DateTimeKind.Utc);
         var tenant = new Tenant
         {
-            Id = DemoTenantIds.Bar,
-            Slug = "bar",
+            Id = DemoTenantIds.Prod,
+            Slug = "prod",
             Name = "Test Bar",
             LicenseValidUntilUtc = now.AddDays(-22),
         };

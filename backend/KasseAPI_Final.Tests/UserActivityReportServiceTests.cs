@@ -29,7 +29,7 @@ public sealed class UserActivityReportServiceTests
     {
         await using var db = CreateContext();
         var tenantId = Guid.NewGuid();
-        db.Tenants.Add(new Tenant { Id = tenantId, Name = "Cafe Demo", Slug = "cafe", Status = TenantStatuses.Active });
+        db.Tenants.Add(new Tenant { Id = tenantId, Name = "Cafe Demo", Slug = "dev", Status = TenantStatuses.Active });
         var user = new ApplicationUser
         {
             Id = "u-report",

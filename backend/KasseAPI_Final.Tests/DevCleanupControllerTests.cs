@@ -57,7 +57,7 @@ public sealed class DevCleanupControllerTests
         {
             Id = tenantId,
             Name = "Test Bar",
-            Slug = "bar",
+            Slug = "prod",
             IsActive = false,
             Status = "deleted",
         });
@@ -65,8 +65,8 @@ public sealed class DevCleanupControllerTests
         var user = new ApplicationUser
         {
             Id = Guid.NewGuid().ToString(),
-            UserName = "admin@bar.regkasse.at",
-            Email = "admin@bar.regkasse.at",
+            UserName = "admin@prod.regkasse.at",
+            Email = "admin@prod.regkasse.at",
             NormalizedEmail = "ADMIN@BAR.REGKASSE.AT",
             NormalizedUserName = "ADMIN@BAR.REGKASSE.AT",
             FirstName = "Admin",

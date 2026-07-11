@@ -24,13 +24,13 @@ public sealed class LicenseSyncServiceTests
     public async Task SyncTenantLicenseExpiryAsync_CopiesActiveIssuedExpiryToTenant()
     {
         await using var db = CreateDb();
-        var tenantId = DemoTenantIds.Bar;
+        var tenantId = DemoTenantIds.Prod;
         var expiry = DateTime.UtcNow.AddDays(30);
         db.Tenants.Add(new Tenant
         {
             Id = tenantId,
             Name = "Test Bar",
-            Slug = "bar",
+            Slug = "prod",
             Status = TenantStatuses.Active,
             IsActive = true,
             LicenseKey = "REGK-AAAAA-BBBBB-CCCCC",
@@ -59,13 +59,13 @@ public sealed class LicenseSyncServiceTests
     public async Task SyncTenantLicenseExpiryAsync_TrialWithoutKey_DoesNotOverwrite()
     {
         await using var db = CreateDb();
-        var tenantId = DemoTenantIds.Bar;
+        var tenantId = DemoTenantIds.Prod;
         var trialUntil = DateTime.UtcNow.AddDays(30);
         db.Tenants.Add(new Tenant
         {
             Id = tenantId,
             Name = "Test Bar",
-            Slug = "bar",
+            Slug = "prod",
             Status = TenantStatuses.Active,
             IsActive = true,
             LicenseKey = null,

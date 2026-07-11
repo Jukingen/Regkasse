@@ -226,7 +226,7 @@ public sealed class AdminBillingControllerTests
             return _actorUserId.Value;
         }
 
-        public async Task<Tenant> CreateTestTenantAsync(string slug = "cafe")
+        public async Task<Tenant> CreateTestTenantAsync(string slug = "dev")
         {
             var tenant = new Tenant
             {

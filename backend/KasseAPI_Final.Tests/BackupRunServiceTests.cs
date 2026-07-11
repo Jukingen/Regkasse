@@ -101,7 +101,7 @@ public sealed class BackupRunServiceTests
         {
             Id = tenantId,
             Name = "Cafe",
-            Slug = "cafe",
+            Slug = "dev",
             Status = Models.TenantStatuses.Active
         });
         db.BackupRuns.Add(new BackupRun
@@ -119,7 +119,7 @@ public sealed class BackupRunServiceTests
             Id = artifactId,
             BackupRunId = runId,
             ArtifactType = BackupArtifactType.LogicalDump,
-            StorageDescriptor = "backup_cafe_20260703_150100.dump",
+            StorageDescriptor = "backup_dev_20260703_150100.dump",
             ByteSize = 4096,
             CreatedAt = createdAt
         });
@@ -129,10 +129,10 @@ public sealed class BackupRunServiceTests
         var items = await svc.GetBackupListAsync(tenantId);
 
         var row = Assert.Single(items);
-        Assert.Equal("backup_cafe_20260703_150100.dump", row.FileName);
+        Assert.Equal("backup_dev_20260703_150100.dump", row.FileName);
         Assert.Equal(4096, row.FileSize);
         Assert.Equal(createdAt, row.CreatedAt);
-        Assert.Equal("cafe", row.TenantSlug);
+        Assert.Equal("dev", row.TenantSlug);
         Assert.True(row.IsFake);
         Assert.Equal(runId, row.BackupRunId);
         Assert.Equal(artifactId, row.ArtifactId);
@@ -147,8 +147,8 @@ public sealed class BackupRunServiceTests
 
         await using var db = CreateDb();
         db.Tenants.AddRange(
-            new Models.Tenant { Id = tenantA, Name = "A", Slug = "cafe", Status = Models.TenantStatuses.Active },
-            new Models.Tenant { Id = tenantB, Name = "B", Slug = "bar", Status = Models.TenantStatuses.Active });
+            new Models.Tenant { Id = tenantA, Name = "A", Slug = "dev", Status = Models.TenantStatuses.Active },
+            new Models.Tenant { Id = tenantB, Name = "B", Slug = "prod", Status = Models.TenantStatuses.Active });
 
         var runA = Guid.NewGuid();
         var runB = Guid.NewGuid();
@@ -176,14 +176,14 @@ public sealed class BackupRunServiceTests
             {
                 BackupRunId = runA,
                 ArtifactType = BackupArtifactType.LogicalDump,
-                StorageDescriptor = "backup_cafe_20260703_150100.dump",
+                StorageDescriptor = "backup_dev_20260703_150100.dump",
                 CreatedAt = DateTime.UtcNow
             },
             new BackupArtifact
             {
                 BackupRunId = runB,
                 ArtifactType = BackupArtifactType.LogicalDump,
-                StorageDescriptor = "backup_bar_20260702_230000.dump",
+                StorageDescriptor = "backup_prod_20260702_230000.dump",
                 CreatedAt = DateTime.UtcNow
             });
         await db.SaveChangesAsync();
@@ -192,7 +192,7 @@ public sealed class BackupRunServiceTests
         var items = await svc.GetBackupListAsync(tenantA);
 
         Assert.Single(items);
-        Assert.Equal("cafe", items[0].TenantSlug);
+        Assert.Equal("dev", items[0].TenantSlug);
         Assert.False(items[0].IsFake);
     }
 

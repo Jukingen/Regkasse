@@ -17,7 +17,7 @@
 - [ ] Frontend Admin running for FA tests (`cd frontend-admin && npm run dev`)
 - [ ] Test user available: **cashier1** (POS — `payment.take`)
 - [ ] Manager user available: **manager1** (FA — `settings.manage`, `payment.view`)
-- [ ] Test tenant active: **test_cafe** (`X-Tenant-Id: test_cafe` in dev)
+- [ ] Test tenant active: **dev** (`X-Tenant-Id: dev` in dev)
 - [ ] Cash register **open** and assigned to POS session
 - [ ] Network tools ready:
   - **Web:** Chrome DevTools → Network → **Offline**
@@ -192,7 +192,7 @@ See [`docs/release/OFFLINE_SYSTEMS_SEPARATION.md`](release/OFFLINE_SYSTEMS_SEPAR
 
 ```bash
 # Health + tenant
-curl -H "X-Tenant-Id: test_cafe" http://localhost:5184/api/health
+curl -H "X-Tenant-Id: dev" http://localhost:5184/api/health
 
 # Automated structure checks
 node scripts/test-offline-system.mjs

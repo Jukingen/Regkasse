@@ -66,14 +66,14 @@ public sealed class CurrentTenantServiceTests
     }
 
     [Fact]
-    public async Task ApplyCurrentTenantAsync_LegacyTestCafeAlias_ResolvesCafeTenant()
+    public async Task ApplyCurrentTenantAsync_LegacyTestCafeAlias_ResolvesDevTenant()
     {
         await using var db = CreateContext();
         db.Tenants.Add(new Tenant
         {
-            Id = DemoTenantIds.Cafe,
-            Name = "Test Cafe",
-            Slug = "cafe",
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
             Status = TenantStatuses.Active,
             IsActive = true,
         });
@@ -91,7 +91,7 @@ public sealed class CurrentTenantServiceTests
 
         await service.ApplyCurrentTenantAsync();
 
-        Assert.Equal(DemoTenantIds.Cafe, accessor.TenantId);
+        Assert.Equal(DemoTenantIds.Dev, accessor.TenantId);
     }
 
     [Fact]

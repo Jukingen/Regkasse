@@ -24,7 +24,7 @@ public static class TenantHostNames
     }
 
     /// <summary>
-    /// Hosts-file development domains (e.g. <c>cafe.regkasse.local</c>, <c>tenant.example.local</c>).
+    /// Hosts-file development domains (e.g. <c>dev.regkasse.local</c>, <c>tenant.example.local</c>).
     /// </summary>
     public static bool IsLocalDevelopmentDomain(string? host)
     {

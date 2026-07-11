@@ -83,7 +83,7 @@ public sealed class AdminTenantLicenseOverviewServiceTests
             {
                 Id = tenantAId,
                 Name = "Cafe Example",
-                Slug = "cafe",
+                Slug = "dev",
                 Status = TenantStatuses.Active,
                 IsActive = true,
                 LicenseKey = "REGK-AAAA-BBBB-CCCC",
@@ -94,7 +94,7 @@ public sealed class AdminTenantLicenseOverviewServiceTests
             {
                 Id = tenantBId,
                 Name = "No Owner Bar",
-                Slug = "bar",
+                Slug = "prod",
                 Status = TenantStatuses.Active,
                 IsActive = true,
                 LicenseValidUntilUtc = now.AddDays(10),
@@ -134,13 +134,13 @@ public sealed class AdminTenantLicenseOverviewServiceTests
         var rows = await CreateService(db).ListOverviewAsync(CancellationToken.None);
 
         Assert.Equal(2, rows.Count);
-        var cafe = Assert.Single(rows, r => r.TenantSlug == "cafe");
+        var cafe = Assert.Single(rows, r => r.TenantSlug == "dev");
         Assert.Equal("Cafe Example", cafe.TenantName);
         Assert.Equal("REGK-AAAA-BBBB-CCCC", cafe.LicenseKey);
         Assert.True(cafe.HasOwnerAdmin);
         Assert.Equal("active", cafe.Status);
 
-        var bar = Assert.Single(rows, r => r.TenantSlug == "bar");
+        var bar = Assert.Single(rows, r => r.TenantSlug == "prod");
         Assert.False(bar.HasOwnerAdmin);
         Assert.Equal("trial", bar.Status);
     }
@@ -156,7 +156,7 @@ public sealed class AdminTenantsLicenseOverviewControllerTests
             new(
                 Guid.NewGuid(),
                 "Cafe Example",
-                "cafe",
+                "dev",
                 "REGK-AAAA-BBBB-CCCC",
                 DateTime.UtcNow.AddMonths(6),
                 "active",
@@ -197,6 +197,6 @@ public sealed class AdminTenantsLicenseOverviewControllerTests
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var rows = Assert.IsAssignableFrom<IReadOnlyList<TenantLicenseOverviewListItemDto>>(ok.Value);
         Assert.Single(rows);
-        Assert.Equal("cafe", rows[0].TenantSlug);
+        Assert.Equal("dev", rows[0].TenantSlug);
     }
 }

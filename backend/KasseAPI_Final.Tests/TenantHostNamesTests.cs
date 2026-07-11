@@ -6,7 +6,7 @@ namespace KasseAPI_Final.Tests;
 public sealed class TenantHostNamesTests
 {
     [Theory]
-    [InlineData("http://cafe.regkasse.local:3000", true)]
+    [InlineData("http://dev.regkasse.local:3000", true)]
     [InlineData("http://dev.regkasse.local", true)]
     [InlineData("http://tenant.example.local:5184", true)]
     [InlineData("http://localhost:3000", true)]

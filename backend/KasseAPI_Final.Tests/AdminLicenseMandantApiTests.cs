@@ -164,7 +164,7 @@ public sealed class AdminLicenseMandantApiTests
         {
             Id = tenantId,
             Name = "Cafe",
-            Slug = "cafe",
+            Slug = "dev",
             IsActive = true,
             Status = TenantStatuses.Active,
             CreatedAt = DateTime.UtcNow,
@@ -198,7 +198,7 @@ public sealed class AdminLicenseMandantApiTests
         {
             Id = tenantId,
             Name = "Cafe",
-            Slug = "cafe",
+            Slug = "dev",
             IsActive = true,
             Status = TenantStatuses.Active,
             CreatedAt = DateTime.UtcNow,

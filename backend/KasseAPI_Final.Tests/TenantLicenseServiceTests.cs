@@ -133,7 +133,7 @@ public sealed class TenantLicenseServiceTests
     private AppDbContext _db = null!;
     private IDbContextFactory<AppDbContext> _factory = null!;
 
-    private async Task<Tenant> CreateTestTenant(string slug = "cafe")
+    private async Task<Tenant> CreateTestTenant(string slug = "dev")
     {
         var tenant = new Tenant
         {

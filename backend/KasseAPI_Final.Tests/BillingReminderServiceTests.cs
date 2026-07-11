@@ -116,7 +116,7 @@ public sealed class ReminderServiceTests
         return (db, factory);
     }
 
-    private static Tenant SeedTenant(AppDbContext db, string slug = "cafe", string? email = null)
+    private static Tenant SeedTenant(AppDbContext db, string slug = "dev", string? email = null)
     {
         var tenant = new Tenant
         {

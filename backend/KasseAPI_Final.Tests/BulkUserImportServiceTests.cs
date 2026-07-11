@@ -36,7 +36,7 @@ public sealed class BulkUserImportServiceTests
         {
             Id = CafeTenantId,
             Name = "Cafe",
-            Slug = "cafe",
+            Slug = "dev",
             Status = TenantStatuses.Active,
             IsActive = true,
         });

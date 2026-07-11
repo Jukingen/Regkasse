@@ -134,7 +134,7 @@
       "title": "Firma değiştir",
       "subtitle": "Kiracı (teknik · dev)",
       "ariaLabel": "Geliştirme: firma değiştir (kiracı slug)",
-      "tooltip": "X-Tenant-Id için kiracı slug (yalnızca geliştirme). Alternatif: hosts ile dev/cafe/bar.regkasse.local.",
+      "tooltip": "X-Tenant-Id için kiracı slug (yalnızca geliştirme). Alternatif: hosts ile dev/prod.regkasse.local.",
       "tooltipSuperAdmin": "Veritabanındaki tüm kiracılar (Super Admin). Seçim X-Tenant-Id ayarlar ve arayüzü yeniler.",
       "tooltipHost": "Host kiracısı: {host}. Açılır menü localStorage'ı geçersiz kılar (tarayıcı profili başına).",
       "searchPlaceholder": "Ad veya slug ara…",

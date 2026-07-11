@@ -173,8 +173,8 @@ public class LoginTenantResolverTests
         await using var db = CreateDb();
         var cafeId = Guid.Parse("11111111-1111-1111-1111-111111111111");
         var barId = Guid.Parse("22222222-2222-2222-2222-222222222222");
-        db.Tenants.Add(new Tenant { Id = cafeId, Name = "Cafe", Slug = "cafe" });
-        db.Tenants.Add(new Tenant { Id = barId, Name = "Bar", Slug = "bar" });
+        db.Tenants.Add(new Tenant { Id = cafeId, Name = "Cafe", Slug = "dev" });
+        db.Tenants.Add(new Tenant { Id = barId, Name = "Bar", Slug = "prod" });
         db.UserTenantMemberships.Add(new UserTenantMembership
         {
             UserId = "u1",
@@ -198,11 +198,11 @@ public class LoginTenantResolverTests
             return;
         }
 
-        var resolver = CreateResolver(db, requestTenantSlug: "bar", isDevelopment: true);
+        var resolver = CreateResolver(db, requestTenantSlug: "prod", isDevelopment: true);
         var snap = await resolver.ResolveSnapshotForLoginAsync("u1");
 
         Assert.Equal(barId.ToString("D"), snap.TenantId);
-        Assert.Equal("bar", snap.TenantSlug);
+        Assert.Equal("prod", snap.TenantSlug);
     }
 
     [Fact]

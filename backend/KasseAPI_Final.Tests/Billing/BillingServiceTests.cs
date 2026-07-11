@@ -163,7 +163,7 @@ public sealed class BillingServiceTests
     {
         var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
-        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "cafe");
+        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         var service = BillingServiceTestInfrastructure.CreateService(db);
 
         var preview = await service.PreviewLicenseSaleAsync(new LicenseSalePreviewRequest
@@ -174,7 +174,7 @@ public sealed class BillingServiceTests
             VatRate = 20m,
         });
 
-        Assert.Equal("cafe", preview.TenantSlug);
+        Assert.Equal("dev", preview.TenantSlug);
         Assert.Equal(20m, preview.VatAmount);
         Assert.Equal(120m, preview.PriceGross);
         Assert.Equal("1 Jahr", preview.DurationDisplay);
@@ -189,7 +189,7 @@ public sealed class BillingServiceTests
     {
         var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
-        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "cafe");
+        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         var service = BillingServiceTestInfrastructure.CreateService(db);
         var customUntil = DateTime.UtcNow.AddDays(45);
 
@@ -230,7 +230,7 @@ public sealed class BillingServiceTests
     {
         var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
-        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "cafe");
+        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         var service = BillingServiceTestInfrastructure.CreateService(db);
 
         var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
@@ -249,7 +249,7 @@ public sealed class BillingServiceTests
     {
         var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
-        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "cafe");
+        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         var service = BillingServiceTestInfrastructure.CreateService(db);
 
         var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
@@ -268,7 +268,7 @@ public sealed class BillingServiceTests
     {
         var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
-        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "cafe");
+        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         var service = BillingServiceTestInfrastructure.CreateService(db);
 
         var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
@@ -287,7 +287,7 @@ public sealed class BillingServiceTests
     {
         var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
-        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "cafe");
+        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         var userId = BillingServiceTestInfrastructure.SeedUser(db);
         var service = BillingServiceTestInfrastructure.CreateService(db);
 
@@ -325,7 +325,7 @@ public sealed class BillingServiceTests
     {
         var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
-        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "cafe", TenantStatuses.Deleted);
+        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev", TenantStatuses.Deleted);
         var userId = BillingServiceTestInfrastructure.SeedUser(db);
         var service = BillingServiceTestInfrastructure.CreateService(db);
 
@@ -345,7 +345,7 @@ public sealed class BillingServiceTests
     {
         var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
-        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "cafe");
+        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         var service = BillingServiceTestInfrastructure.CreateService(db);
 
         var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
@@ -366,7 +366,7 @@ public sealed class BillingServiceTests
     {
         var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
-        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "cafe");
+        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         var userId = BillingServiceTestInfrastructure.SeedUser(db);
         var service = BillingServiceTestInfrastructure.CreateService(db);
 
@@ -389,7 +389,7 @@ public sealed class BillingServiceTests
     {
         var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
-        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "cafe");
+        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         var userId = BillingServiceTestInfrastructure.SeedUser(db);
         var service = BillingServiceTestInfrastructure.CreateService(db);
 
@@ -412,52 +412,52 @@ public sealed class BillingServiceTests
     {
         var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
-        var cafe = BillingServiceTestInfrastructure.SeedTenant(db, "cafe");
-        var bar = BillingServiceTestInfrastructure.SeedTenant(db, "bar");
+        var devTenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
+        var prodTenant = BillingServiceTestInfrastructure.SeedTenant(db, "prod");
         var userId = BillingServiceTestInfrastructure.SeedUser(db);
         var service = BillingServiceTestInfrastructure.CreateService(db);
 
-        var cafeSale = await service.CreateLicenseSaleAsync(
+        var devSale = await service.CreateLicenseSaleAsync(
             new CreateLicenseSaleRequest
             {
-                TenantId = cafe.Id,
+                TenantId = devTenant.Id,
                 LicensePlan = LicenseSalePlans.SixMonths,
                 PriceNet = 50m,
                 VatRate = 20m,
-                Notes = "Cafe note",
+                Notes = "Dev note",
             },
             Guid.Parse(userId));
-        var barSale = await service.CreateLicenseSaleAsync(
+        var prodSale = await service.CreateLicenseSaleAsync(
             new CreateLicenseSaleRequest
             {
-                TenantId = bar.Id,
+                TenantId = prodTenant.Id,
                 LicensePlan = LicenseSalePlans.TwelveMonths,
                 PriceNet = 100m,
             },
             Guid.Parse(userId));
 
         await service.CancelLicenseSaleAsync(
-            barSale.Id,
+            prodSale.Id,
             new CancelLicenseSaleRequest { CancellationReason = "Test cancel reason" },
             Guid.Parse(userId));
 
         var tenantFilter = await service.ListLicenseSalesAsync(
-            new LicenseSaleListQuery { TenantId = cafe.Id });
+            new LicenseSaleListQuery { TenantId = devTenant.Id });
         Assert.Single(tenantFilter.Items);
-        Assert.Equal(cafeSale.Id, tenantFilter.Items[0].Id);
+        Assert.Equal(devSale.Id, tenantFilter.Items[0].Id);
 
         var activeOnly = await service.ListLicenseSalesAsync(
             new LicenseSaleListQuery { Status = LicenseSaleStatuses.Active });
         Assert.Single(activeOnly.Items);
-        Assert.Equal(cafeSale.Id, activeOnly.Items[0].Id);
+        Assert.Equal(devSale.Id, activeOnly.Items[0].Id);
 
         var searchBySlug = await service.ListLicenseSalesAsync(
-            new LicenseSaleListQuery { Search = "cafe" });
+            new LicenseSaleListQuery { Search = "dev" });
         Assert.Single(searchBySlug.Items);
-        Assert.Equal(cafeSale.LicenseKey, searchBySlug.Items[0].LicenseKey);
+        Assert.Equal(devSale.LicenseKey, searchBySlug.Items[0].LicenseKey);
 
         var searchByInvoice = await service.ListLicenseSalesAsync(
-            new LicenseSaleListQuery { Search = cafeSale.InvoiceNumber });
+            new LicenseSaleListQuery { Search = devSale.InvoiceNumber });
         Assert.Single(searchByInvoice.Items);
     }
 
@@ -466,7 +466,7 @@ public sealed class BillingServiceTests
     {
         var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
-        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "cafe");
+        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         var userId = BillingServiceTestInfrastructure.SeedUser(db);
         var service = BillingServiceTestInfrastructure.CreateService(db);
 
@@ -502,7 +502,7 @@ public sealed class BillingServiceTests
     {
         var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
-        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "cafe");
+        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         var userId = BillingServiceTestInfrastructure.SeedUser(db);
         var service = BillingServiceTestInfrastructure.CreateService(db);
 
@@ -545,7 +545,7 @@ public sealed class BillingServiceTests
     {
         var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
-        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "cafe");
+        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         var userId = BillingServiceTestInfrastructure.SeedUser(db);
         var service = BillingServiceTestInfrastructure.CreateService(db);
 
@@ -578,7 +578,7 @@ public sealed class BillingServiceTests
     {
         var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
-        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "cafe");
+        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         var userId = BillingServiceTestInfrastructure.SeedUser(db);
         var service = BillingServiceTestInfrastructure.CreateService(db);
 
@@ -605,7 +605,7 @@ public sealed class BillingServiceTests
     {
         var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
-        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "cafe");
+        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         var userId = BillingServiceTestInfrastructure.SeedUser(db);
         var service = BillingServiceTestInfrastructure.CreateService(db);
 
@@ -655,7 +655,7 @@ public sealed class BillingServiceTests
         {
             var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
             await using var _db = db;
-            var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "cafe");
+            var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
             var userId = BillingServiceTestInfrastructure.SeedUser(db);
             var service = BillingServiceTestInfrastructure.CreateService(db, contentRoot);
 
@@ -708,7 +708,7 @@ public sealed class BillingServiceTests
         await using var _db = db;
         var service = BillingServiceTestInfrastructure.CreateService(db);
 
-        Assert.True(await service.IsLicenseKeyValidAsync("REGK-20261231-cafe-A7F3K2D9"));
+        Assert.True(await service.IsLicenseKeyValidAsync("REGK-20261231-dev-A7F3K2D9"));
     }
 
     [Theory]
@@ -729,8 +729,8 @@ public sealed class BillingServiceTests
     {
         var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
-        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "cafe");
-        tenant.LicenseKey = "REGK-20261231-cafe-A7F3K2D9";
+        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
+        tenant.LicenseKey = "REGK-20261231-dev-A7F3K2D9";
         tenant.LicenseValidUntilUtc = DateTime.UtcNow.AddMonths(3);
         await db.SaveChangesAsync();
 
@@ -744,7 +744,7 @@ public sealed class BillingServiceTests
     {
         var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
-        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "cafe");
+        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         var userId = BillingServiceTestInfrastructure.SeedUser(db);
         var service = BillingServiceTestInfrastructure.CreateService(db);
 
@@ -765,7 +765,7 @@ public sealed class BillingServiceTests
     {
         var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
-        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "cafe");
+        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         var userId = BillingServiceTestInfrastructure.SeedUser(db);
         var service = BillingServiceTestInfrastructure.CreateService(db);
 
@@ -791,7 +791,7 @@ public sealed class BillingServiceTests
         await using var _db = db;
         var service = BillingServiceTestInfrastructure.CreateService(db);
 
-        Assert.Null(await service.GetSaleByLicenseKeyAsync("REGK-20261231-cafe-A7F3K2D9"));
+        Assert.Null(await service.GetSaleByLicenseKeyAsync("REGK-20261231-dev-A7F3K2D9"));
     }
 
     [Fact]
@@ -811,7 +811,7 @@ public sealed class BillingServiceTests
     {
         var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
-        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "cafe");
+        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         var userId = BillingServiceTestInfrastructure.SeedUser(db);
         var service = BillingServiceTestInfrastructure.CreateService(db);
 

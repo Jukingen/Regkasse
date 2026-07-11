@@ -283,7 +283,7 @@ public sealed class AdminTenantsControllerTests
         db.Tenants.Add(new Tenant
         {
             Id = Guid.NewGuid(),
-            Name = "Cafe",
+            Name = "dev",
             Slug = "cafe-beispiel",
             Status = TenantStatuses.Active,
             IsActive = true,
@@ -343,12 +343,12 @@ public sealed class AdminTenantsControllerTests
         var service = CreateService(db);
 
         var (result, error) = await service.CreateAsync(
-            new CreateAdminTenantRequest { Name = "Test Cafe", Slug = "test-cafe" },
+            new CreateAdminTenantRequest { Name = "Acme Demo", Slug = "acme-demo" },
             "actor-1");
 
         Assert.Null(error);
         Assert.NotNull(result);
-        Assert.Equal("test-cafe", result!.Slug);
+        Assert.Equal("acme-demo", result!.Slug);
         Assert.Equal(TenantStatuses.Active, result.Status);
         Assert.NotNull(result.Provisioning);
         Assert.Equal("KASSE-001", result.Provisioning!.CashRegisterNumber);
@@ -605,22 +605,22 @@ public sealed class AdminTenantsControllerTests
     public async Task ListAsync_Includes_Owner_Admin_And_Demo_Preset_Flags()
     {
         await using var db = CreateDb();
-        var barId = DemoTenantIds.Bar;
-        var cafeId = DemoTenantIds.Cafe;
+        var prodId = DemoTenantIds.Prod;
+        var devExampleId = Guid.NewGuid();
         db.Tenants.Add(new Tenant
         {
-            Id = barId,
-            Name = "Test Bar",
-            Slug = "bar",
+            Id = prodId,
+            Name = "Production",
+            Slug = "prod",
             Status = TenantStatuses.Active,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
         });
         db.Tenants.Add(new Tenant
         {
-            Id = cafeId,
-            Name = "Café Beispiel",
-            Slug = "cafe",
+            Id = devExampleId,
+            Name = "Development Example",
+            Slug = "dev-example",
             Status = TenantStatuses.Active,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
@@ -636,17 +636,17 @@ public sealed class AdminTenantsControllerTests
         });
         db.UserTenantMemberships.Add(new UserTenantMembership
         {
-            UserId = "owner-bar",
-            TenantId = barId,
+            UserId = "owner-prod",
+            TenantId = prodId,
             IsActive = true,
             IsOwner = true,
             CreatedAtUtc = DateTime.UtcNow,
         });
         db.Users.Add(new ApplicationUser
         {
-            Id = "owner-bar",
-            UserName = "admin@bar.regkasse.at",
-            Email = "admin@bar.regkasse.at",
+            Id = "owner-prod",
+            UserName = "admin@prod.regkasse.at",
+            Email = "admin@prod.regkasse.at",
             FirstName = "A",
             LastName = "B",
             Role = Roles.Manager,
@@ -658,13 +658,13 @@ public sealed class AdminTenantsControllerTests
         var service = CreateService(db);
         var list = await service.ListAsync(false);
 
-        var bar = list.Single(x => x.Slug == "bar");
-        Assert.Equal("admin@bar.regkasse.at", bar.OwnerAdminEmail);
-        Assert.False(bar.IsDemoPreset);
+        var prod = list.Single(x => x.Slug == "prod");
+        Assert.Equal("admin@prod.regkasse.at", prod.OwnerAdminEmail);
+        Assert.False(prod.IsDemoPreset);
 
-        var cafe = list.Single(x => x.Slug == "cafe");
-        Assert.Null(cafe.OwnerAdminEmail);
-        Assert.False(cafe.IsDemoPreset);
+        var devExample = list.Single(x => x.Slug == "dev-example");
+        Assert.Null(devExample.OwnerAdminEmail);
+        Assert.False(devExample.IsDemoPreset);
 
         var dev = list.Single(x => x.Slug == "dev");
         Assert.True(dev.IsDemoPreset);
@@ -681,7 +681,7 @@ public sealed class AdminTenantsControllerTests
         {
             Id = barId,
             Name = "Test Bar",
-            Slug = "bar",
+            Slug = "prod",
             Status = TenantStatuses.Active,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
@@ -690,7 +690,7 @@ public sealed class AdminTenantsControllerTests
         {
             Id = cafeId,
             Name = "Test Cafe",
-            Slug = "cafe",
+            Slug = "dev",
             Status = TenantStatuses.Active,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
@@ -708,9 +708,9 @@ public sealed class AdminTenantsControllerTests
             new ApplicationUser
             {
                 Id = "owner-bar",
-                UserName = "admin@bar.regkasse.at",
-                Email = "admin@bar.regkasse.at",
-                FirstName = "Bar",
+                UserName = "admin@prod.regkasse.at",
+                Email = "admin@prod.regkasse.at",
+                FirstName = "prod",
                 LastName = "Owner",
                 Role = Roles.Manager,
                 IsActive = true,
@@ -719,9 +719,9 @@ public sealed class AdminTenantsControllerTests
             new ApplicationUser
             {
                 Id = "owner-cafe",
-                UserName = "admin@cafe.regkasse.at",
-                Email = "admin@cafe.regkasse.at",
-                FirstName = "Cafe",
+                UserName = "admin@dev.regkasse.at",
+                Email = "admin@dev.regkasse.at",
+                FirstName = "dev",
                 LastName = "Owner",
                 Role = Roles.Manager,
                 IsActive = true,
@@ -749,8 +749,8 @@ public sealed class AdminTenantsControllerTests
         var service = CreateService(db);
         var list = await service.ListAsync(false);
 
-        Assert.Equal("admin@bar.regkasse.at", list.Single(x => x.Slug == "bar").OwnerAdminEmail);
-        Assert.Equal("admin@cafe.regkasse.at", list.Single(x => x.Slug == "cafe").OwnerAdminEmail);
+        Assert.Equal("admin@prod.regkasse.at", list.Single(x => x.Slug == "prod").OwnerAdminEmail);
+        Assert.Equal("admin@dev.regkasse.at", list.Single(x => x.Slug == "dev").OwnerAdminEmail);
     }
 
     [Fact]
@@ -867,7 +867,7 @@ public sealed class AdminTenantsControllerTests
         db.Tenants.Add(new Tenant
         {
             Id = tenantId,
-            Name = "Cafe",
+            Name = "dev",
             Slug = "cafe-x",
             Status = TenantStatuses.Active,
             IsActive = true,
@@ -953,8 +953,8 @@ public sealed class AdminTenantsControllerTests
         db.Tenants.Add(new Tenant
         {
             Id = tenantId,
-            Name = "Cafe",
-            Slug = "cafe",
+            Name = "dev",
+            Slug = "dev",
             Status = TenantStatuses.Active,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
@@ -962,9 +962,9 @@ public sealed class AdminTenantsControllerTests
         db.Users.Add(new ApplicationUser
         {
             Id = "owner-1",
-            UserName = "admin@cafe.regkasse.at",
-            Email = "admin@cafe.regkasse.at",
-            FirstName = "Cafe",
+            UserName = "admin@dev.regkasse.at",
+            Email = "admin@dev.regkasse.at",
+            FirstName = "dev",
             LastName = "Owner",
             Role = Roles.Manager,
             IsActive = true,
@@ -984,7 +984,7 @@ public sealed class AdminTenantsControllerTests
         var detail = await service.GetByIdAsync(tenantId);
 
         Assert.NotNull(detail);
-        Assert.Equal("admin@cafe.regkasse.at", detail!.OwnerAdminEmail);
+        Assert.Equal("admin@dev.regkasse.at", detail!.OwnerAdminEmail);
     }
 
     [Fact]
@@ -1075,7 +1075,7 @@ public sealed class AdminTenantsControllerTests
             Id = "u1",
             UserName = "admin@cafe-off.test",
             Email = "admin@cafe-off.test",
-            FirstName = "Cafe",
+            FirstName = "dev",
             LastName = "Admin",
             Role = Roles.Manager,
             IsActive = true,

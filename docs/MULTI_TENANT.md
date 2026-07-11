@@ -32,7 +32,7 @@
 Regkasse runs as a **single backend instance** serving many **tenants** (companies/customers). Each tenant has:
 
 - A unique **`tenants.id`** (UUID, primary key for `tenant_id` columns)
-- A unique **`tenants.slug`** (string, e.g. `cafe`, `test_cafe`) used for subdomain and dev header resolution
+- A unique **`tenants.slug`** (string, e.g. `dev`, `prod`) used for subdomain and dev header resolution
 
 Production entry points:
 
@@ -84,8 +84,8 @@ flowchart TB
 **Data flow (typical tenant request):**
 
 ```text
-Host: cafe.regkasse.at
-  → SubdomainTenantProvider → slug "cafe"
+Host: dev.regkasse.at
+  → SubdomainTenantProvider → slug "dev"
   → CurrentTenantService → tenants row → ICurrentTenantAccessor.TenantId = {uuid}
   → [optional] JWT tenant_id claim overrides accessor after login
   → EF queries: WHERE tenant_id = {uuid}  (ITenantEntity types)
@@ -97,7 +97,7 @@ Host: cafe.regkasse.at
 
 | Environment | Resolution |
 |-------------|------------|
-| **Production** | First label of `Host` (`cafe.regkasse.at` → `cafe`), except `admin` / `www` → admin context |
+| **Production** | First label of `Host` (`dev.regkasse.at` → `cafe`), except `admin` / `www` → admin context |
 | **Development** | Same as production **or** `X-Tenant-Id: {slug}` **or** `?tenant={slug}` |
 | **After login** | JWT `tenant_id` claim may **override** host-resolved accessor (`TenantContextMiddleware`) |
 | **Stored value** | Always **UUID** on rows; slug is only for routing |
@@ -269,7 +269,7 @@ curl -X POST "https://admin.regkasse.at/api/admin/tenants" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Cafe Example",
-    "slug": "cafe",
+    "slug": "dev",
     "email": "ops@example.com"
   }'
 ```
@@ -282,7 +282,7 @@ Slug rules: lowercase alphanumeric, hyphens/underscores; must be unique.
 
 - Wildcard `*.regkasse.at` already points to API
 - No per-tenant DNS record required if wildcard is in place
-- Verify: `https://cafe.regkasse.at/api/health` (or your health route)
+- Verify: `https://dev.regkasse.at/api/health` (or your health route)
 
 ### 3. User membership
 
@@ -440,7 +440,7 @@ dotnet ef migrations add <DescriptiveName> \
 
 | Mode | Tenant source | API calls |
 |------|----------------|-------------|
-| **Production** | Subdomain of FA URL (`cafe.regkasse.at`) | JWT `tenant_id` after login; Super Admin on `admin.*` uses impersonation for mandant data |
+| **Production** | Subdomain of FA URL (`dev.regkasse.at`) | JWT `tenant_id` after login; Super Admin on `admin.*` uses impersonation for mandant data |
 | **Development** | `HeaderDevTenantSwitch` → `GET /api/tenants/switcher` | `localStorage.dev_tenant_id` + `X-Tenant-Id: {slug}` on reload; JWT overrides after login |
 
 **Production Super Admin:** no header switcher; use **Als Mandant anmelden** or platform routes (`/admin/tenants`, `/admin/license`).
@@ -545,8 +545,8 @@ Tenant may be `suspended`, `deleted`, or `isActive=false`. Check `GET /api/admin
 
 | Check | Action |
 |-------|--------|
-| `tenants.slug` matches host first label | `test-cafe.localhost` → slug `test-cafe`, not `test_cafe` |
-| Hosts file for `*.regkasse.local` | Use `cafe.regkasse.local` or dev header |
+| `tenants.slug` matches host first label | `dev.localhost` → slug `dev`, not `dev` |
+| Hosts file for `*.regkasse.local` | Use `dev.regkasse.local` or dev header |
 | `admin` host | Maps to legacy default tenant, not “all tenants” |
 
 ### CORS errors with `*.localhost` API host

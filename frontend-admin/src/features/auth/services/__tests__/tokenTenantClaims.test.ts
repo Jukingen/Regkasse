@@ -12,12 +12,12 @@ describe('readTokenTenantClaims', () => {
     it('reads impersonation and tenant slug from JWT', () => {
         const token = fakeJwt({
             tenant_impersonation: 'true',
-            tenant_slug: 'cafe',
+            tenant_slug: 'dev',
             tenant_id: '11111111-1111-1111-1111-111111111111',
         });
         const claims = readTokenTenantClaims(token);
         expect(claims.isImpersonating).toBe(true);
-        expect(claims.tenantSlug).toBe('cafe');
+        expect(claims.tenantSlug).toBe('dev');
         expect(claims.tenantId).toBe('11111111-1111-1111-1111-111111111111');
     });
 

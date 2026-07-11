@@ -10,7 +10,7 @@ vi.mock('@/features/auth/hooks/useAuth', () => ({
     useAuth: () => ({
         user: {
             tenantId: '11111111-1111-1111-1111-111111111111',
-            tenantSlug: 'cafe',
+            tenantSlug: 'dev',
             tenantDisplayName: 'Test Cafe',
         },
     }),
@@ -19,7 +19,7 @@ vi.mock('@/features/auth/hooks/useAuth', () => ({
 const cafeJwtPayload = btoa(
     JSON.stringify({
         tenant_id: '11111111-1111-1111-1111-111111111111',
-        tenant_slug: 'cafe',
+        tenant_slug: 'dev',
     }),
 );
 

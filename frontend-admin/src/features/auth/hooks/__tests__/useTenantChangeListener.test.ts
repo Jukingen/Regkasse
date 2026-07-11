@@ -109,27 +109,27 @@ describe('useTenantChangeListener', () => {
     });
 
     it('tenant change via DEV_TENANT_CHANGED_EVENT triggers clear, toast, persist, and reload', () => {
-        window.localStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, 'cafe');
+        window.localStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, 'dev');
         renderHook(() => useTenantChangeListener(), { wrapper: Wrapper });
 
         act(() => {
-            dispatchDevTenantChanged('bar', 'cafe');
+            dispatchDevTenantChanged('prod', 'dev');
         });
 
         expect(mockQueryClientClear).toHaveBeenCalledTimes(1);
         expect(mockMessageInfo).toHaveBeenCalledWith('adminShell.tenant.switch.toast:bar');
-        expect(mockPersistBootstrap).toHaveBeenCalledWith({ tenantSlug: 'bar' });
+        expect(mockPersistBootstrap).toHaveBeenCalledWith({ tenantSlug: 'prod' });
         expect(mockRemoveToken).toHaveBeenCalledTimes(1);
         expect(mockBeginTenantSwitch).toHaveBeenCalledTimes(1);
         expect(mockReload).toHaveBeenCalledTimes(1);
     });
 
     it('same slug via DEV_TENANT_CHANGED_EVENT does not trigger clear or reload', () => {
-        window.localStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, 'cafe');
+        window.localStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, 'dev');
         renderHook(() => useTenantChangeListener(), { wrapper: Wrapper });
 
         act(() => {
-            dispatchDevTenantChanged('cafe', 'bar');
+            dispatchDevTenantChanged('dev', 'prod');
         });
 
         expect(mockQueryClientClear).not.toHaveBeenCalled();
@@ -139,45 +139,45 @@ describe('useTenantChangeListener', () => {
     });
 
     it('cross-tab storage event with dev tenant key triggers clear and reload', () => {
-        window.localStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, 'cafe');
+        window.localStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, 'dev');
         renderHook(() => useTenantChangeListener(), { wrapper: Wrapper });
 
         act(() => {
-            dispatchStorageChange('bar', 'cafe');
+            dispatchStorageChange('prod', 'dev');
         });
 
         expect(mockQueryClientClear).toHaveBeenCalledTimes(1);
         expect(mockMessageInfo).toHaveBeenCalledWith('adminShell.tenant.switch.toast:bar');
-        expect(mockPersistBootstrap).toHaveBeenCalledWith({ tenantSlug: 'bar' });
+        expect(mockPersistBootstrap).toHaveBeenCalledWith({ tenantSlug: 'prod' });
         expect(mockReload).toHaveBeenCalledTimes(1);
     });
 
     it('ignores a second switch while the first is still in progress (handlingRef guard)', () => {
-        window.localStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, 'cafe');
+        window.localStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, 'dev');
         renderHook(() => useTenantChangeListener(), { wrapper: Wrapper });
 
         act(() => {
-            dispatchDevTenantChanged('bar', 'cafe');
-            dispatchDevTenantChanged('baz', 'bar');
+            dispatchDevTenantChanged('prod', 'dev');
+            dispatchDevTenantChanged('baz', 'prod');
         });
 
         expect(mockQueryClientClear).toHaveBeenCalledTimes(1);
         expect(mockBeginTenantSwitch).toHaveBeenCalledTimes(1);
         expect(mockReload).toHaveBeenCalledTimes(1);
-        expect(mockPersistBootstrap).toHaveBeenCalledWith({ tenantSlug: 'bar' });
+        expect(mockPersistBootstrap).toHaveBeenCalledWith({ tenantSlug: 'prod' });
     });
 
     it('safety timeout resets guard when reload does not navigate away', () => {
         vi.useFakeTimers();
-        window.localStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, 'cafe');
+        window.localStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, 'dev');
         renderHook(() => useTenantChangeListener(), { wrapper: Wrapper });
 
         act(() => {
-            dispatchStorageChange('bar', 'cafe');
+            dispatchStorageChange('prod', 'dev');
         });
 
         act(() => {
-            dispatchStorageChange('baz', 'bar');
+            dispatchStorageChange('baz', 'prod');
         });
         expect(mockReload).toHaveBeenCalledTimes(1);
         expect(mockEndTenantSwitch).not.toHaveBeenCalled();
@@ -190,7 +190,7 @@ describe('useTenantChangeListener', () => {
         expect(consoleWarnSpy).toHaveBeenCalledWith('Tenant switch timeout - resetting state');
 
         act(() => {
-            dispatchStorageChange('baz', 'bar');
+            dispatchStorageChange('baz', 'prod');
         });
 
         expect(mockReload).toHaveBeenCalledTimes(2);
@@ -201,33 +201,33 @@ describe('useTenantChangeListener', () => {
         mockReload.mockImplementation(() => {
             throw new Error('reload blocked');
         });
-        window.localStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, 'cafe');
+        window.localStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, 'dev');
         renderHook(() => useTenantChangeListener(), { wrapper: Wrapper });
 
         act(() => {
-            dispatchStorageChange('bar', 'cafe');
+            dispatchStorageChange('prod', 'dev');
         });
 
         expect(mockEndTenantSwitch).toHaveBeenCalledTimes(1);
 
         mockReload.mockImplementation(() => undefined);
         act(() => {
-            dispatchStorageChange('baz', 'bar');
+            dispatchStorageChange('baz', 'prod');
         });
 
         expect(mockReload).toHaveBeenCalledTimes(2);
     });
 
     it('ignores storage events for unrelated keys', () => {
-        window.localStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, 'cafe');
+        window.localStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, 'dev');
         renderHook(() => useTenantChangeListener(), { wrapper: Wrapper });
 
         act(() => {
             window.dispatchEvent(
                 new StorageEvent('storage', {
                     key: 'unrelated_key',
-                    newValue: 'bar',
-                    oldValue: 'cafe',
+                    newValue: 'prod',
+                    oldValue: 'dev',
                 }),
             );
         });

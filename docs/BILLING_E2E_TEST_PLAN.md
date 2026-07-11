@@ -29,7 +29,7 @@ cd frontend-admin && npm run dev
 
 ### Preconditions
 
-- At least one **active** tenant exists (e.g. `test_cafe`) without a blocking license state for new-sale tests.
+- At least one **active** tenant exists (e.g. `dev`) without a blocking license state for new-sale tests.
 - Super Admin can access all `/admin/billing/*` routes (guarded by `SYSTEM_CRITICAL`).
 - PostgreSQL migrated with billing tables (`license_sales`, `invoice_sequences`, `billing_audit_log`, …).
 

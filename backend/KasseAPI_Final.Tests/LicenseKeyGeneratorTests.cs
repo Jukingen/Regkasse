@@ -12,7 +12,7 @@ public sealed class LicenseKeyGeneratorTests
     {
         var key = _generator.GenerateLicenseKey("Cafe", new DateTime(2026, 12, 31, 23, 59, 59, DateTimeKind.Utc));
 
-        Assert.StartsWith("REGK-20261231-cafe-", key, StringComparison.Ordinal);
+        Assert.StartsWith("REGK-20261231-dev-", key, StringComparison.Ordinal);
         Assert.True(_generator.ValidateLicenseKeyFormat(key));
     }
 
@@ -25,7 +25,7 @@ public sealed class LicenseKeyGeneratorTests
     }
 
     [Theory]
-    [InlineData("REGK-20261231-cafe-A7F3K2D9", true)]
+    [InlineData("REGK-20261231-dev-A7F3K2D9", true)]
     [InlineData("REGK-20261231-my-cafe-shop-A7F3K2D9", true)]
     [InlineData("regk-20261231-cafe-a7f3k2d9", false)]
     [InlineData("REGK-20261331-cafe-A7F3K2D9", false)]
@@ -48,9 +48,9 @@ public sealed class LicenseKeyGeneratorTests
     [Fact]
     public void ParseLicenseKey_ReturnsComponentsForValidKey()
     {
-        var (slug, validUntil, randomPart) = _generator.ParseLicenseKey("REGK-20261231-cafe-A7F3K2D9");
+        var (slug, validUntil, randomPart) = _generator.ParseLicenseKey("REGK-20261231-dev-A7F3K2D9");
 
-        Assert.Equal("cafe", slug);
+        Assert.Equal("dev", slug);
         Assert.Equal(new DateTime(2026, 12, 31), validUntil);
         Assert.Equal("A7F3K2D9", randomPart);
     }

@@ -26,7 +26,7 @@ jest.mock('react-native', () => ({
 describe('openAdmin', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (getCurrentTenantSlug as jest.Mock).mockResolvedValue('cafe');
+    (getCurrentTenantSlug as jest.Mock).mockResolvedValue('dev');
     (openLink.openHttpOrHttpsUrl as jest.Mock).mockResolvedValue(true);
     openUrlMock.mockResolvedValue(undefined);
   });

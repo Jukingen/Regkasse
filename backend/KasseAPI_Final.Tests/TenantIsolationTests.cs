@@ -350,8 +350,8 @@ public sealed class TenantIsolationTests : IClassFixture<TenantIsolationWebAppli
         db.Tenants.Add(new Tenant
         {
             Id = TenantAId,
-            Name = "Cafe",
-            Slug = "cafe",
+            Name = "Development",
+            Slug = "dev",
             Status = TenantStatuses.Active,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,

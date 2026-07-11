@@ -26,7 +26,8 @@ function normalizeSlug(value: string | null | undefined): string | null {
 /** Slug from Expo env in development; defaults to <c>dev</c> when unset. */
 export function getEnvDevTenantSlug(): string | null {
   if (!isDev) return null;
-  return normalizeSlug(process.env[DEV_TENANT_ENV_KEY]) ?? 'dev';
+  // Static property access so Expo/Metro can inline EXPO_PUBLIC_* at bundle time.
+  return normalizeSlug(process.env.EXPO_PUBLIC_DEV_TENANT_ID) ?? 'dev';
 }
 
 export async function getDevTenantSlugOverride(): Promise<string | null> {

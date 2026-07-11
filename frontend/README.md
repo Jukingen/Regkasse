@@ -31,7 +31,7 @@ The login field accepts both formats. Usernames are generated automatically when
 **Examples:**
 
 - Username: `cashier1` + password
-- Email: `cashier@cafe.regkasse.at` + password
+- Email: `cashier@dev.regkasse.at` + password
 
 **Username generation (Admin only):**
 
@@ -75,7 +75,7 @@ Regkasse uses a multi-tenant architecture where a single backend instance serves
 ### Tenant Identification
 
 - Tenants are identified by subdomain: `{tenant}.regkasse.at`
-- Examples: `cafe.regkasse.at`, `bar.regkasse.at`, `market.regkasse.at`
+- Examples: `dev.regkasse.at`, `prod.regkasse.at`, `market.regkasse.at`
 - Super Admin is an admin-panel concern (`admin.regkasse.at`), not the POS app
 
 ### Data Isolation
@@ -93,24 +93,24 @@ Regkasse uses a multi-tenant architecture where a single backend instance serves
 ### Option 1: Header-based (simplest)
 
 ```bash
-curl -H "X-Tenant-Id: test_cafe" http://localhost:5184/api/health
+curl -H "X-Tenant-Id: dev" http://localhost:5184/api/health
 ```
 
 ### Option 2: Query string
 
 ```bash
-curl "http://localhost:5184/api/health?tenant=test_cafe"
+curl "http://localhost:5184/api/health?tenant=dev"
 ```
 
 ### Option 3: Hosts file (subdomain simulation)
 
 ```text
-127.0.0.1 cafe.regkasse.local
-127.0.0.1 bar.regkasse.local
-127.0.0.1 test-cafe.localhost
+127.0.0.1 dev.regkasse.local
+127.0.0.1 prod.regkasse.local
+127.0.0.1 dev.localhost
 ```
 
-Then open `http://cafe.regkasse.local:5184` or use header/query on `localhost:5184`.
+Then open `http://dev.regkasse.local:5184` or use header/query on `localhost:5184`.
 
 ### Dev tenant override (POS)
 
@@ -118,7 +118,7 @@ Then open `http://cafe.regkasse.local:5184` or use header/query on `localhost:51
 - `services/tenant/tenantStorage.ts` — sends `X-Tenant-Id` on loopback API calls in Development
 - Effective slug order: dev switcher storage → env var → login/license bootstrap
 
-Then: `http://test-cafe.localhost:5184` — host first label must match `tenants.slug` (see onboarding doc).
+Then: `http://dev.localhost:5184` — host first label must match `tenants.slug` (see onboarding doc).
 
 ### Option 4: POS UI
 
@@ -134,14 +134,14 @@ Then: `http://test-cafe.localhost:5184` — host first label must match `tenants
 ### Development
 
 ```env
-EXPO_PUBLIC_DEV_TENANT_ID=test_cafe
+EXPO_PUBLIC_DEV_TENANT_ID=dev
 ```
 
 POS adds `X-Tenant-Id` and optional `?tenant=` on the API base URL automatically (`services/api/config.ts`, `services/tenant/devTenant.ts`).
 
 Full guide: `REGKASSE_AI_ONBOARDING.md`.
 - Login/license bootstrap persists `tenant_id` and `tenant_slug` for subsequent calls
-- Optional hosts file: `cafe.regkasse.local` pointing at the API machine (same slug rules as production)
+- Optional hosts file: `dev.regkasse.local` pointing at the API machine (same slug rules as production)
 
 ### POS responsibilities
 
@@ -172,7 +172,7 @@ Native folders are listed in `frontend/.gitignore`.
 
 ## Deployment Requirements
 
-- Production API base URL should use the tenant subdomain (e.g. `https://cafe.regkasse.at/api`).
+- Production API base URL should use the tenant subdomain (e.g. `https://dev.regkasse.at/api`).
 - Wildcard DNS `*.regkasse.at` and TLS are required at infrastructure level — see `REGKASSE_AI_ONBOARDING.md` §16.
 
 Repo-wide detail: `REGKASSE_AI_ONBOARDING.md` (Multi-Tenant Architecture, API Headers, Deployment).

@@ -15,7 +15,7 @@ describe('tenantStorage switcher cache', () => {
   });
 
   it('round-trips switcher list JSON', async () => {
-    const rows = [{ id: '1', name: 'Cafe', slug: 'cafe', status: 'active', isActive: true }];
+    const rows = [{ id: '1', name: 'Cafe', slug: 'dev', status: 'active', isActive: true }];
     (storage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(rows));
 
     await expect(tenantStorage.getCachedSwitcherList()).resolves.toEqual(rows);
@@ -29,7 +29,7 @@ describe('tenantStorage switcher cache', () => {
   });
 
   it('writes switcher list to storage', async () => {
-    const rows = [{ id: '1', name: 'Cafe', slug: 'cafe', status: 'active', isActive: true }];
+    const rows = [{ id: '1', name: 'Cafe', slug: 'dev', status: 'active', isActive: true }];
     await tenantStorage.setCachedSwitcherList(rows);
 
     expect(storage.setItem).toHaveBeenCalledWith(

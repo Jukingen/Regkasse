@@ -55,8 +55,8 @@ beforeAll(() => {
 beforeEach(() => {
     mockUseTenantList.mockReturnValue({
         tenants: [
-            { id: 'tenant-a', name: 'Cafe', slug: 'cafe' },
-            { id: 'tenant-b', name: 'Bar', slug: 'bar' },
+            { id: 'tenant-a', name: 'Cafe', slug: 'dev' },
+            { id: 'tenant-b', name: 'Bar', slug: 'prod' },
         ],
         isLoading: false,
     });

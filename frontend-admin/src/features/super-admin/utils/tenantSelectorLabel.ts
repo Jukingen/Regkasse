@@ -35,7 +35,7 @@ export function getTenantSelectorStatus(
     };
 }
 
-/** e.g. "Test Bar (bar) - ✅ Admin: admin@bar.regkasse.at" */
+/** e.g. "Test Bar (bar) - ✅ Admin: admin@prod.regkasse.at" */
 export function buildTenantSelectorLabel(
     tenant: Pick<AdminTenantListItem, 'name' | 'slug' | 'ownerAdminEmail' | 'isDemoPreset'>,
     t: (key: string, params?: Record<string, string>) => string,

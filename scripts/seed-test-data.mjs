@@ -5,7 +5,7 @@
  *
  * Env:
  *   SEED_API_URL          default http://localhost:5184
- *   SEED_TENANT_SLUG      optional X-Tenant-Id (Development only), e.g. test_cafe
+ *   SEED_TENANT_SLUG      optional X-Tenant-Id (Development only), e.g. dev
  *   SEED_ADMIN_EMAIL      default admin@admin.com
  *   SEED_ADMIN_PASSWORD   default Admin123!
  *   SEED_PREFIX           default seed (resource name prefix)

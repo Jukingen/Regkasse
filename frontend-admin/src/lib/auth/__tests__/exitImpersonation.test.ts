@@ -10,13 +10,13 @@ describe('exitImpersonation', () => {
     beforeEach(() => {
         assign.mockReset();
         vi.stubGlobal('location', {
-            hostname: 'cafe.regkasse.at',
+            hostname: 'dev.regkasse.at',
             protocol: 'https:',
             assign,
         } as Location);
         localStorage.clear();
         authStorage.setToken('test.jwt.token');
-        localStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, 'cafe');
+        localStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, 'dev');
     });
 
     afterEach(() => {

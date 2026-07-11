@@ -39,18 +39,18 @@ Regkasse has **two separate offline systems**. Tests must name which system is u
 
 ```bash
 # Dev tenant resolution
-curl -H "X-Tenant-Id: test_cafe" http://localhost:5184/api/health
+curl -H "X-Tenant-Id: dev" http://localhost:5184/api/health
 
 # Login (Cashier — payment.take)
 curl -X POST http://localhost:5184/api/Auth/login \
   -H "Content-Type: application/json" \
-  -H "X-Tenant-Id: test_cafe" \
+  -H "X-Tenant-Id: dev" \
   -d '{"loginIdentifier":"cashier1","password":"<password>"}'
 ```
 
 | Item | Value |
 |------|-------|
-| Test tenant | `test_cafe` (`X-Tenant-Id: test_cafe` or `?tenant=test_cafe`) |
+| Test tenant | `dev` (`X-Tenant-Id: dev` or `?tenant=dev`) |
 | Cashier (POS) | `cashier1` — requires `payment.take` |
 | Manager (Admin) | `manager1` — requires `payment.view` for RKSV panel |
 | Cash register | Open register assigned to test device/session |
@@ -301,7 +301,7 @@ SELECT * FROM offline_orders WHERE offline_order_id = '<test_id>';
 
 ## 4. Backend API scenarios — `/api/pos/offline-orders`
 
-Execute with Cashier JWT + `X-Tenant-Id: test_cafe`.
+Execute with Cashier JWT + `X-Tenant-Id: dev`.
 
 | ID | Test | Steps | Expected |
 |----|------|-------|----------|

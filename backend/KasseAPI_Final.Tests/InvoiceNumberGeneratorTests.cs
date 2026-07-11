@@ -130,7 +130,7 @@ public sealed class InvoiceNumberGeneratorTests
         new()
         {
             TenantId = Guid.NewGuid(),
-            LicenseKey = "REGK-20261231-cafe-A7F3K2D9",
+            LicenseKey = "REGK-20261231-dev-A7F3K2D9",
             LicensePlan = LicenseSalePlans.TwelveMonths,
             ValidFromUtc = DateTime.UtcNow,
             ValidUntilUtc = DateTime.UtcNow.AddYears(1),

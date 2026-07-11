@@ -13,7 +13,7 @@ describe('fetchTenantSwitcherList', () => {
   });
 
   it('calls GET /api/tenants/switcher without deleted tenants by default', async () => {
-    const rows = [{ id: '1', name: 'Cafe', slug: 'cafe', status: 'active', isActive: true }];
+    const rows = [{ id: '1', name: 'Cafe', slug: 'dev', status: 'active', isActive: true }];
     (apiClient.get as jest.Mock).mockResolvedValue(rows);
 
     await expect(fetchTenantSwitcherList()).resolves.toEqual(rows);

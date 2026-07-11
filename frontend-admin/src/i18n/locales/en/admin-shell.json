@@ -134,7 +134,7 @@
       "title": "Switch company",
       "subtitle": "Tenant (technical · dev)",
       "ariaLabel": "Development: switch company (tenant slug)",
-      "tooltip": "Tenant slug for X-Tenant-Id (development only). Or use dev/cafe/bar.regkasse.local via hosts file.",
+      "tooltip": "Tenant slug for X-Tenant-Id (development only). Or use dev/prod.regkasse.local via hosts file.",
       "tooltipSuperAdmin": "All tenants from the database (Super Admin). Selection sets X-Tenant-Id and reloads the UI.",
       "tooltipHost": "Tenant from host: {host}. Dropdown overrides localStorage (per browser profile).",
       "searchPlaceholder": "Search name or slug…",

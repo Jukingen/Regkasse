@@ -30,8 +30,8 @@ const item = (overrides: Partial<AdminTenantListItem>): TenantListItemForSwitche
 
 describe('filterTenantSwitcherItems', () => {
     const tenants = [
-        item({ id: 'a', name: 'Café Adler', slug: 'cafe' }),
-        item({ id: 'b', name: 'Bar Central', slug: 'bar' }),
+        item({ id: 'a', name: 'Café Adler', slug: 'dev' }),
+        item({ id: 'b', name: 'Bar Central', slug: 'prod' }),
         item({ id: 'c', name: 'Market', slug: 'market', status: 'suspended', isActive: false }),
     ];
 
@@ -40,8 +40,8 @@ describe('filterTenantSwitcherItems', () => {
     });
 
     it('filters by slug', () => {
-        expect(filterTenantSwitcherItems(tenants, 'cafe')).toHaveLength(1);
-        expect(filterTenantSwitcherItems(tenants, 'cafe')[0]?.slug).toBe('cafe');
+        expect(filterTenantSwitcherItems(tenants, 'dev')).toHaveLength(1);
+        expect(filterTenantSwitcherItems(tenants, 'dev')[0]?.slug).toBe('dev');
     });
 
     it('filters by name substring', () => {

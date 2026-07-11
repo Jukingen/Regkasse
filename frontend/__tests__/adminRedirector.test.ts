@@ -13,7 +13,7 @@ jest.mock('../utils/openLink', () => ({
 }));
 
 jest.mock('@/services/tenant/tenantStorage', () => ({
-  getCurrentTenantSlug: jest.fn().mockResolvedValue('cafe'),
+  getCurrentTenantSlug: jest.fn().mockResolvedValue('dev'),
 }));
 
 jest.mock('react-native', () => ({

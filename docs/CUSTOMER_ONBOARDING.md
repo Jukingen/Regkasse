@@ -103,7 +103,7 @@ While `POST /api/admin/tenants` runs, `CreateTenantProcessingView` shows steps f
 ```bash
 # Example (Super Admin JWT)
 curl -H "Authorization: Bearer $TOKEN" \
-  "https://admin.regkasse.at/api/admin/tenants/slug-suggestions?name=Cafe%20Beispiel&slug=cafe&max=5"
+  "https://admin.regkasse.at/api/admin/tenants/slug-suggestions?name=Cafe%20Beispiel&slug=dev&max=5"
 ```
 
 ---

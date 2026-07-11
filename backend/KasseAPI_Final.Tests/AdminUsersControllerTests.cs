@@ -930,7 +930,7 @@ public class AdminUsersControllerTests
         {
             Id = deletedTenantId,
             Name = "Bar Test",
-            Slug = "bar",
+            Slug = "prod",
             Status = TenantStatuses.Deleted,
             IsActive = false,
             CreatedAt = DateTime.UtcNow,
@@ -938,8 +938,8 @@ public class AdminUsersControllerTests
         db.Users.Add(new ApplicationUser
         {
             Id = "bar-admin",
-            UserName = "admin@bar.regkasse.at",
-            Email = "admin@bar.regkasse.at",
+            UserName = "admin@prod.regkasse.at",
+            Email = "admin@prod.regkasse.at",
             FirstName = "Admin",
             LastName = "Test Bar",
             Role = Roles.Manager,
@@ -982,7 +982,7 @@ public class AdminUsersControllerTests
         {
             Id = deletedTenantId,
             Name = "Cafe Test",
-            Slug = "cafe",
+            Slug = "dev",
             Status = TenantStatuses.Deleted,
             IsActive = false,
             CreatedAt = DateTime.UtcNow,
@@ -990,8 +990,8 @@ public class AdminUsersControllerTests
         db.Users.Add(new ApplicationUser
         {
             Id = "cafe-admin",
-            UserName = "admin@cafe.regkasse.at",
-            Email = "admin@cafe.regkasse.at",
+            UserName = "admin@dev.regkasse.at",
+            Email = "admin@dev.regkasse.at",
             FirstName = "Admin",
             LastName = "Test Cafe",
             Role = Roles.Manager,

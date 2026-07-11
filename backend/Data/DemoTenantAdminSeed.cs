@@ -9,8 +9,8 @@ using Microsoft.Extensions.Hosting;
 namespace KasseAPI_Final.Data;
 
 /// <summary>
-/// Idempotent seed for dev/cafe/bar demo tenants and Manager admin users (admin@{slug}.regkasse.at).
-/// Complements migration <c>SeedDemoTenantAdmins</c> and scripts/seed-demo-tenant-admins.sql.
+/// Idempotent seed for dev/prod demo tenants and Manager admin users (admin@{slug}.regkasse.at).
+/// Complements migration <c>SeedDemoTenantAdmins</c> and <c>ReplaceDemoCafeBarWithProd</c>.
 /// </summary>
 public static class DemoTenantAdminSeed
 {
@@ -37,21 +37,13 @@ public static class DemoTenantAdminSeed
             "DEMO-DEV-001",
             "ATU10000001"),
         new(
-            DemoTenantIds.Cafe,
-            "cafe",
-            "Test Cafe",
-            DemoTenantAdminUserIds.Cafe,
-            "admin@cafe.regkasse.at",
-            "DEMO-CAFE-001",
+            DemoTenantIds.Prod,
+            "prod",
+            "Production",
+            DemoTenantAdminUserIds.Prod,
+            "admin@prod.regkasse.at",
+            "DEMO-PROD-001",
             "ATU10000002"),
-        new(
-            DemoTenantIds.Bar,
-            "bar",
-            "Test Bar",
-            DemoTenantAdminUserIds.Bar,
-            "admin@bar.regkasse.at",
-            "DEMO-BAR-001",
-            "ATU10000003"),
     };
 
     public static async Task SeedAsync(
@@ -138,7 +130,7 @@ public static class DemoTenantAdminSeed
                     Console.WriteLine(
                         "Demo tenant admin role failed for {0}: {1}",
                         spec.Email,
-                        string.Join("; ", roleAdd.Errors.Select(e => e.Description)));
+                        string.Join("; ", create.Errors.Select(e => e.Description)));
                     continue;
                 }
 
@@ -181,7 +173,7 @@ public static class DemoTenantAdminSeed
     }
 
     /// <summary>
-    /// Seeds only operational tenants. Missing bar/cafe/test rows are not recreated after soft-delete.
+    /// Seeds only operational tenants. Missing prod rows are not recreated after soft-delete.
     /// </summary>
     private static bool ShouldProvisionDemoTenant(Tenant? tenant, string slug)
     {

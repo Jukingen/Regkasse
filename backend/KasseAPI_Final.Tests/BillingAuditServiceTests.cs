@@ -153,7 +153,7 @@ public sealed class BillingAuditServiceTests
         return (db, factory);
     }
 
-    private static Tenant SeedTenant(AppDbContext db, string slug = "cafe")
+    private static Tenant SeedTenant(AppDbContext db, string slug = "dev")
     {
         var tenant = new Tenant
         {

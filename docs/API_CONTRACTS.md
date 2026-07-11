@@ -18,7 +18,7 @@ Resolves the user by **email first**, then **username** (case-insensitive via `N
 
 ```json
 {
-  "email": "manager@cafe.regkasse.at",
+  "email": "manager@dev.regkasse.at",
   "password": "string",
   "clientApp": "pos"
 }
@@ -34,7 +34,7 @@ Resolves the user by **email first**, then **username** (case-insensitive via `N
 }
 ```
 
-`loginIdentifier` may be a full **email** or a **username** (e.g. `cashier2`, `manager@cafe.regkasse.at`). **Username lookup is case-insensitive** (`Mustafa`, `mustafa`, `MUSTAFA` resolve to the same account via `NormalizedUserName`).
+`loginIdentifier` may be a full **email** or a **username** (e.g. `cashier2`, `manager@dev.regkasse.at`). **Username lookup is case-insensitive** (`Mustafa`, `mustafa`, `MUSTAFA` resolve to the same account via `NormalizedUserName`).
 
 | Field | Required | Notes |
 |-------|----------|--------|
@@ -78,7 +78,7 @@ Unified/platform/tenant list (`type=platform` | `type=tenant`). **`search`** mat
 - Display name (`FirstName` + `LastName`)
 - `EmployeeNumber`
 
-Example: `?search=mustafa` finds `mustafa` and `mustafa@cafe.regkasse.at`.
+Example: `?search=mustafa` finds `mustafa` and `mustafa@dev.regkasse.at`.
 
 ---
 
@@ -91,7 +91,7 @@ Creates a **platform** user when `tenantId` is omitted, or a **tenant** user whe
 ```json
 {
   "userName": "manager1",
-  "email": "manager@cafe.regkasse.at",
+  "email": "manager@dev.regkasse.at",
   "role": "Manager",
   "tenantId": "00000000-0000-0000-0000-000000000000",
   "firstName": "Anna",
@@ -119,14 +119,14 @@ Creates a **platform** user when `tenantId` is omitted, or a **tenant** user whe
 {
   "id": "string",
   "userName": "manager1",
-  "email": "manager@cafe.regkasse.at",
+  "email": "manager@dev.regkasse.at",
   "firstName": "Anna",
   "lastName": "Muster",
   "role": "Manager",
   "generatedPassword": "string",
   "forcePasswordChangeOnNextLogin": true,
   "tenantId": "uuid",
-  "tenantSlug": "cafe"
+  "tenantSlug": "dev"
 }
 ```
 
@@ -187,7 +187,7 @@ Recover login usernames for an email address.
 
 ```json
 {
-  "email": "cashier@cafe.regkasse.at",
+  "email": "cashier@dev.regkasse.at",
   "clientApp": "admin"
 }
 ```
@@ -230,7 +230,7 @@ Manual tenant user create (non-quick). Same username rules as platform create.
 
 ```json
 {
-  "email": "new.user@cafe.regkasse.at",
+  "email": "new.user@dev.regkasse.at",
   "userName": "custom_user",
   "role": "Cashier",
   "firstName": "Max",
@@ -244,12 +244,12 @@ Manual tenant user create (non-quick). Same username rules as platform create.
 ```json
 {
   "userId": "string",
-  "email": "new.user@cafe.regkasse.at",
+  "email": "new.user@dev.regkasse.at",
   "userName": "cashier3",
   "generatedPassword": "string",
   "forcePasswordChangeOnNextLogin": true,
   "success": true,
-  "tenantPortalUrl": "https://cafe.regkasse.at",
+  "tenantPortalUrl": "https://dev.regkasse.at",
   "role": "Cashier"
 }
 ```
@@ -301,12 +301,12 @@ Same shape as manual tenant create — `CreateTenantUserResultDto` (201 Created)
 ```json
 {
   "userId": "...",
-  "email": "manager_a3f9k2@cafe.regkasse.at",
+  "email": "manager_a3f9k2@dev.regkasse.at",
   "userName": "manager1",
   "generatedPassword": "...",
   "forcePasswordChangeOnNextLogin": true,
   "success": true,
-  "tenantPortalUrl": "https://cafe.regkasse.at",
+  "tenantPortalUrl": "https://dev.regkasse.at",
   "role": "Manager"
 }
 ```

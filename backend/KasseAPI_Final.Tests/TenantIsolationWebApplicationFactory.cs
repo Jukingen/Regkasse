@@ -26,7 +26,7 @@ public sealed class TenantIsolationWebApplicationFactory : WebApplicationFactory
 {
     internal const string SuspendedTenantSlug = "suspended";
     internal const string ActiveTenantSlug = "activeco";
-    internal const string DevTenantHeaderSlug = "cafe";
+    internal const string DevTenantHeaderSlug = "dev";
     internal const string SecretProductName = "SECRET-LEAK-PRODUCT";
     internal const string SuperAdminEmail = "super@test.com";
     internal const string SuperAdminPassword = "TestPass123!";

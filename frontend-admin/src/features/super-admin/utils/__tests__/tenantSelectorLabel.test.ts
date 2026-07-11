@@ -25,13 +25,13 @@ describe('tenantSelectorLabel', () => {
         const label = buildTenantSelectorLabel(
             {
                 name: 'Test Bar',
-                slug: 'bar',
-                ownerAdminEmail: 'admin@bar.regkasse.at',
+                slug: 'prod',
+                ownerAdminEmail: 'admin@prod.regkasse.at',
                 isDemoPreset: false,
             },
             t,
         );
-        expect(label).toBe('Test Bar (bar) - ✅ Admin: admin@bar.regkasse.at');
+        expect(label).toBe('Test Bar (bar) - ✅ Admin: admin@prod.regkasse.at');
     });
 
     it('prefers demo preset over owner for dev slug', () => {

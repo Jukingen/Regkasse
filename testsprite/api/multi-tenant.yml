@@ -5,7 +5,7 @@ tests:
   - name: "Tenant switcher returns tenants"
     endpoint: "GET /api/tenants/switcher"
     headers:
-      X-Tenant-Id: "test_cafe"
+      X-Tenant-Id: "dev"
     expected:
       status: 200
       body: "array"

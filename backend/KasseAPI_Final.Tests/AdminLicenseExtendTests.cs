@@ -128,7 +128,7 @@ public sealed class AdminLicenseExtendTests
             {
                 Id = tenantId.Value,
                 Name = "Cafe",
-                Slug = "cafe",
+                Slug = "dev",
                 Status = TenantStatuses.Active,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,

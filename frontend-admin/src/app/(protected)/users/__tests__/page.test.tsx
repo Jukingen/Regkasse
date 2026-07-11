@@ -175,7 +175,7 @@ vi.mock('@/features/tenancy/hooks/useCurrentTenant', () => ({
     isSuperAdminPlatformMode: testPageContext.authRole === 'SuperAdmin',
     isRealTenantSlug: testPageContext.authRole !== 'SuperAdmin',
     tenantName: 'Test Cafe',
-    tenantSlug: 'test_cafe',
+    tenantSlug: 'dev',
     tenantId: 'tenant-1',
     isTenantSuspended: false,
     licenseValidUntilUtc: null,

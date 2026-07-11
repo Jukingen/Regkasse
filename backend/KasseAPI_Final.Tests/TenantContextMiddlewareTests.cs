@@ -11,7 +11,7 @@ public sealed class TenantContextMiddlewareTests
     public void HasDevTenantOverride_True_When_Header_Present()
     {
         var context = new DefaultHttpContext();
-        context.Request.Headers[SubdomainTenantProvider.DevTenantHeaderName] = "cafe";
+        context.Request.Headers[SubdomainTenantProvider.DevTenantHeaderName] = "dev";
 
         Assert.True(TenantContextMiddleware.HasDevTenantOverride(context));
     }

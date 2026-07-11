@@ -88,7 +88,7 @@ public sealed class QuickUserGeneratorServiceTests
         {
             Id = tenantId,
             Name = "Cafe",
-            Slug = "cafe",
+            Slug = "dev",
             Status = TenantStatuses.Active,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
@@ -155,7 +155,7 @@ public sealed class QuickUserGeneratorServiceTests
         {
             Id = tenantId,
             Name = "Test Cafe",
-            Slug = "cafe",
+            Slug = "dev",
             Status = TenantStatuses.Active,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,

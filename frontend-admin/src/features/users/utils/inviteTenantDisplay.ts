@@ -9,7 +9,7 @@ export type InviteTenantContextFields = Pick<
     'name' | 'slug' | 'licenseValidUntilUtc' | 'licenseKey' | 'ownerAdminEmail' | 'isDemoPreset'
 >;
 
-/** Host only for dropdown labels (e.g. cafe.regkasse.at). */
+/** Host only for dropdown labels (e.g. dev.regkasse.at). */
 export function buildTenantPortalHost(slug: string): string {
     return buildTenantPortalUrl(slug).replace(/^https?:\/\//, '');
 }

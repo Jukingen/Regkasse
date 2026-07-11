@@ -13,8 +13,8 @@ public sealed class BackupArtifactFileNameBuilderTests
     private static readonly DateTime FixedUtc = new(2026, 7, 3, 15, 1, 0, DateTimeKind.Utc);
 
     [Theory]
-    [InlineData("cafe", "backup_cafe_20260703_150100.dump")]
-    [InlineData("bar", "backup_bar_20260703_150100.dump")]
+    [InlineData("dev", "backup_dev_20260703_150100.dump")]
+    [InlineData("prod", "backup_prod_20260703_150100.dump")]
     [InlineData("testcafe", "backup_testcafe_20260703_150100.dump")]
     public void BuildLogicalDumpFileName_uses_slug_and_timestamp(string slug, string expected)
     {
@@ -25,15 +25,15 @@ public sealed class BackupArtifactFileNameBuilderTests
     public void BuildManifestFileName_appends_manifest_suffix()
     {
         Assert.Equal(
-            "backup_cafe_20260703_150100_manifest.json",
-            BackupArtifactFileNameBuilder.BuildManifestFileName("cafe", FixedUtc));
+            "backup_dev_20260703_150100_manifest.json",
+            BackupArtifactFileNameBuilder.BuildManifestFileName("dev", FixedUtc));
     }
 
     [Fact]
     public void BuildLogicalDumpFileName_sanitizes_slug()
     {
         Assert.Equal(
-            "backup_cafe_alpha_20260703_150100.dump",
+            "backup_dev_alpha_20260703_150100.dump",
             BackupArtifactFileNameBuilder.BuildLogicalDumpFileName("Cafe Alpha", FixedUtc));
     }
 }
@@ -74,7 +74,7 @@ public sealed class BackupRunTenantSlugResolverTests
         {
             Id = tenantId,
             Name = "Cafe",
-            Slug = "cafe",
+            Slug = "dev",
             Status = TenantStatuses.Active
         });
         await db.SaveChangesAsync();
@@ -88,7 +88,7 @@ public sealed class BackupRunTenantSlugResolverTests
 
         var slug = await BackupRunTenantSlugResolver.ResolveSlugAsync(run, db);
 
-        Assert.Equal("cafe", slug);
+        Assert.Equal("dev", slug);
     }
 
     [Fact]

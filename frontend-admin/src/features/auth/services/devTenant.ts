@@ -26,7 +26,7 @@ function normalizeSlug(value: string | null | undefined): string | null {
   return canonicalDevTenantSlug(trimmed);
 }
 
-/** Hosts-file dev domains (e.g. cafe.regkasse.local). */
+/** Hosts-file dev domains (e.g. dev.regkasse.local). */
 export function isLocalDevHostname(host: string): boolean {
   const h = host.trim().toLowerCase();
   return h.endsWith('.regkasse.local') || h.endsWith('.local');

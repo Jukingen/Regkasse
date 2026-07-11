@@ -134,7 +134,7 @@
       "title": "Firma wechseln",
       "subtitle": "Mandant (technisch · Dev)",
       "ariaLabel": "Entwicklung: Firma wechseln (Mandant-Slug)",
-      "tooltip": "Mandant-Slug für X-Tenant-Id (nur Entwicklung). Alternativ: dev/cafe/bar.regkasse.local per hosts-Datei.",
+      "tooltip": "Mandant-Slug für X-Tenant-Id (nur Entwicklung). Alternativ: dev/prod.regkasse.local per hosts-Datei.",
       "tooltipSuperAdmin": "Alle Mandanten aus der Datenbank (Super Admin). Auswahl setzt X-Tenant-Id und lädt die Oberfläche neu.",
       "tooltipHost": "Mandant aus Host: {host}. Dropdown überschreibt localStorage (pro Browser-Profil).",
       "searchPlaceholder": "Name oder Slug suchen…",

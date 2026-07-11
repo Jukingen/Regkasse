@@ -133,7 +133,7 @@ All **tenant-scoped** tables (entities implementing `ITenantEntity`) include a n
 
 **Not tenant-scoped (examples):** `tenants` (root), ASP.NET Identity user tables, `auth_sessions` / `refresh_tokens` (see `AppDbContext` mappings).
 
-**External tenant key (string):** `tenants.slug` (e.g. `cafe`) — used for subdomain/header resolution only; stored on the tenant row, not duplicated as `VARCHAR` on every child table.
+**External tenant key (string):** `tenants.slug` (e.g. `dev`, `prod`) — used for subdomain/header resolution only; stored on the tenant row, not duplicated as `VARCHAR` on every child table.
 
 ### Global Query Filters
 
@@ -191,7 +191,7 @@ Regkasse uses a multi-tenant architecture where a single backend instance serves
 ### Tenant Identification
 
 - Tenants are identified by subdomain: `{tenant}.regkasse.at`
-- Examples: `cafe.regkasse.at`, `bar.regkasse.at`, `market.regkasse.at`
+- Examples: `dev.regkasse.at`, `prod.regkasse.at`, `market.regkasse.at`
 - Super Admin accesses `admin.regkasse.at` (host slug `admin`; requires `SuperAdmin` role for cross-tenant APIs)
 
 ### Request pipeline (backend)
@@ -211,7 +211,7 @@ Regkasse uses a multi-tenant architecture where a single backend instance serves
 
 - **Localhost:** `X-Tenant-Id` header (tenant **slug**) or `?tenant=` query parameter — see **§10 API Headers** and **Development Setup for Multi-Tenant Testing** below (`SubdomainTenantProvider`, Development only).
 - **Frontend Admin:** dev tenant selector (development only); presets in `frontend-admin/src/features/auth/constants/devTenantPresets.ts`.
-- **Hosts file:** `*.regkasse.local` or other `*.local` dev domains (e.g. `cafe.regkasse.local`) — see `TenantHostNames.IsLocalDevelopmentDomain`.
+- **Hosts file:** `*.regkasse.local` or other `*.local` dev domains (e.g. `dev.regkasse.local`) — see `TenantHostNames.IsLocalDevelopmentDomain`.
 
 ### Development Setup for Multi-Tenant Testing
 
@@ -219,7 +219,7 @@ Regkasse uses a multi-tenant architecture where a single backend instance serves
 
 - Backend running with `ASPNETCORE_ENVIRONMENT=Development` (default for local `dotnet run` with `appsettings.Development.json`).
 - API base URL typically `http://localhost:5184` (see `backend/appsettings.Development.json` / `.example`).
-- A `tenants` row whose `slug` matches the value you send (e.g. `test_cafe`, `test_bar`, `dev` for POS presets; `cafe`, `bar`, `dev` for admin presets — see preset files below).
+- A `tenants` row whose `slug` matches the value you send (e.g. `dev`, `prod` — see preset files below).
 
 #### Option 1: Header-based (simplest)
 
@@ -227,10 +227,10 @@ Backend reads `X-Tenant-Id` in Development only (`SubdomainTenantProvider.DevTen
 
 ```bash
 # Liveness (no auth); header still parsed in Development
-curl -H "X-Tenant-Id: test_cafe" http://localhost:5184/api/health
+curl -H "X-Tenant-Id: dev" http://localhost:5184/api/health
 
 # Tenant-scoped payments (requires JWT); canonical routes:
-curl -H "X-Tenant-Id: test_cafe" -H "Authorization: Bearer <token>" \
+curl -H "X-Tenant-Id: dev" -H "Authorization: Bearer <token>" \
   "http://localhost:5184/api/admin/payments?page=1&pageSize=5"
 # POS: /api/pos/payment*  (legacy alias families may still answer on /api/Payment*)
 ```
@@ -238,10 +238,10 @@ curl -H "X-Tenant-Id: test_cafe" -H "Authorization: Bearer <token>" \
 #### Option 2: Query string
 
 ```bash
-curl "http://localhost:5184/api/health?tenant=test_cafe"
+curl "http://localhost:5184/api/health?tenant=dev"
 
 curl -H "Authorization: Bearer <token>" \
-  "http://localhost:5184/api/admin/payments?tenant=test_cafe&page=1&pageSize=5"
+  "http://localhost:5184/api/admin/payments?tenant=dev&page=1&pageSize=5"
 ```
 
 The POS axios client also appends `?tenant=<slug>` to the dev API base URL (`hydrateDevTenantApiBaseUrl` in `frontend/services/api/config.ts`).
@@ -251,31 +251,31 @@ The POS axios client also appends `?tenant=<slug>` to the dev API base URL (`hyd
 Add to `C:\Windows\System32\drivers\etc\hosts` (or `/etc/hosts`):
 
 ```text
-127.0.0.1 test-cafe.localhost
-127.0.0.1 test-bar.localhost
+127.0.0.1 dev.localhost
+127.0.0.1 prod.localhost
 ```
 
-Then call: `http://test-cafe.localhost:5184/api/health`
+Then call: `http://dev.localhost:5184/api/health`
 
-**Slug from host:** `TenantHostNames.GetTenantSlugFromHost` uses the **first label** of the hostname (`test-cafe` from `test-cafe.localhost`). That must match `tenants.slug` in the database (use slug `test-cafe` in DB, or prefer header/query with `test_cafe` to match POS presets).
+**Slug from host:** `TenantHostNames.GetTenantSlugFromHost` uses the **first label** of the hostname (`dev` from `dev.localhost`). That must match `tenants.slug` in the database (use slug `dev` in DB, or prefer header/query with `dev` to match POS presets).
 
-**CORS note:** `*.localhost` is not listed in `IsLocalDevelopmentDomain` (only `*.local` / `*.regkasse.local`). Browser clients on `localhost:3000` calling `test-cafe.localhost:5184` may need extra CORS configuration; header/query on `localhost:5184` is simpler for API smoke tests.
+**CORS note:** `*.localhost` is not listed in `IsLocalDevelopmentDomain` (only `*.local` / `*.regkasse.local`). Browser clients on `localhost:3000` calling `dev.localhost:5184` may need extra CORS configuration; header/query on `localhost:5184` is simpler for API smoke tests.
 
-**Production-like alternative:** `127.0.0.1 cafe.regkasse.local` → slug `cafe` (matches admin presets).
+**Production-like alternative:** `127.0.0.1 dev.regkasse.local` → slug `dev` (matches admin presets).
 
 #### Option 4: FA tenant switcher
 
 In **development** mode (`NODE_ENV=development`), the admin shell shows a **tenant selector dropdown in the header** (`HeaderDevTenantSwitch` in `frontend-admin/src/app/(protected)/layout.tsx`).
 
-- Presets: `dev`, `cafe`, `bar` (`frontend-admin/src/features/auth/constants/devTenantPresets.ts`)
+- Presets: `dev`, `prod` (`frontend-admin/src/features/tenancy/devTenantCatalog.ts`)
 - Persists `dev_tenant_id` in `localStorage`, sets `X-Tenant-Id` via axios (`frontend-admin/src/lib/axios.ts`), reloads the page on change
-- Tooltip documents hosts-file alternative (`dev` / `cafe` / `bar.regkasse.local`)
+- Tooltip documents hosts-file alternative (`dev` / `prod.regkasse.local`)
 
 #### Option 5: POS dev tenant switcher
 
 In **`__DEV__`**, POS shows `DevTenantSwitcher` in the tab layout (`frontend/src/components/dev/DevTenantSwitcher.tsx`).
 
-- Presets: `dev`, `test_cafe`, `test_bar` (`frontend/constants/devTenantPresets.ts`)
+- Presets: `dev`, `prod` (`frontend/constants/devTenantCatalog.ts`)
 - Persists slug and refreshes API base URL + headers
 
 **Verify isolation:** `dotnet test backend/KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj --filter "FullyQualifiedName~TenantIsolation"`
@@ -319,7 +319,7 @@ When creating a user via Admin API or FA:
 
 - If **`userName`** is provided, it must be unique across all users **case-insensitively** (`IUserUniquenessValidationService.IsUserNameTakenByOtherUserAsync` → `IdentityLoginLookup` / `NormalizedUserName`).
 - If **`userName`** is omitted, the system generates one automatically (`{rolePrefix}{n}`, e.g. `manager1`, `cashier2`).
-- **`email`** remains the contact/login email field and may differ from `userName` (especially Quick Create: auto email like `cashier_a3f9k2@cafe.regkasse.at`).
+- **`email`** remains the contact/login email field and may differ from `userName` (especially Quick Create: auto email like `cashier_a3f9k2@dev.regkasse.at`).
 - API responses include **`userName`** and **`email`** for operator handoff (`CreateTenantUserResultDto`, `AdminCreateUserResponseDto`).
 - FA success modals show username, email, and one-time password with copy actions (`QuickUserSuccessModal`, Schnell anlegen tab).
 
@@ -422,7 +422,7 @@ Full guide: **`docs/MULTI_TENANT.md`**.
 
 ```env
 EXPO_PUBLIC_API_BASE_URL=http://localhost:5184/api
-EXPO_PUBLIC_DEV_TENANT_ID=test_cafe
+EXPO_PUBLIC_DEV_TENANT_ID=dev
 ```
 
 - In `__DEV__`, effective slug order: **DevTenantSwitcher / `dev_tenant_id` storage override** → **`EXPO_PUBLIC_DEV_TENANT_ID`** (defaults to `dev` if unset) → login/license persisted slug.
@@ -850,7 +850,7 @@ Rules:
 
 Users can sign in with either:
 
-- **Email address** (e.g. `manager@cafe.regkasse.at`)
+- **Email address** (e.g. `manager@dev.regkasse.at`)
 - **Username** (e.g. `manager1`, `cashier2`, `user3`)
 
 **Username generation (Quick Create / admin user create):**
@@ -917,7 +917,7 @@ The authoritative API contract is `backend/swagger.json`.
 #### Tenant Identification
 
 - **Production:** Tenant derived from request `Host` subdomain automatically (`{slug}.regkasse.at` → `tenants.slug`).
-- **Development:** `X-Tenant-Id: {slug}` header — tenant **slug** (e.g. `cafe`), not the UUID; see `SubdomainTenantProvider.DevTenantHeaderName`.
+- **Development:** `X-Tenant-Id: {slug}` header — tenant **slug** (e.g. `dev`), not the UUID; see `SubdomainTenantProvider.DevTenantHeaderName`.
 - **Development:** `?tenant={slug}` query parameter (same slug semantics as the header).
 
 After resolution, the backend sets `ICurrentTenantAccessor.TenantId` (Guid). Authenticated requests may also carry JWT claim `tenant_id` (Guid), applied by `TenantContextMiddleware`.
@@ -1176,11 +1176,11 @@ For large changes:
 ### DNS Configuration
 
 - **Wildcard A record:** `*.regkasse.at` → backend (and admin/POS frontends if served on tenant subdomains) server IP address.
-- Required so each tenant host (`cafe.regkasse.at`, `bar.regkasse.at`, …) and `admin.regkasse.at` resolve to the application stack.
+- Required so each tenant host (`dev.regkasse.at`, `prod.regkasse.at`, …) and `admin.regkasse.at` resolve to the application stack.
 - Reverse proxy / load balancer must **preserve the original `Host` header** for tenant slug extraction (`TenantHostNames.GetTenantSlugFromHost`).
 - **SSL/TLS:** Certificate must cover the wildcard (`*.regkasse.at`) and typically the apex (`regkasse.at`) if used.
 
-Local development alternative: hosts-file entries such as `cafe.regkasse.local` (see `TenantHostNames.IsLocalDevelopmentDomain`).
+Local development alternative: hosts-file entries such as `dev.regkasse.local` (see `TenantHostNames.IsLocalDevelopmentDomain`).
 
 ### Environment Variables
 

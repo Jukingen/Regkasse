@@ -63,7 +63,7 @@ describe('tenantHeaderSwitcher', () => {
             getTenantStatusIcon({
                 status: 'active',
                 isActive: true,
-                ownerAdminEmail: 'admin@cafe.regkasse.at',
+                ownerAdminEmail: 'admin@dev.regkasse.at',
             }),
         ).toBe('🟢');
     });
@@ -88,14 +88,14 @@ describe('tenantHeaderSwitcher', () => {
         ).toBe('🔴');
     });
 
-    it('formatTenantDisplay maps seed slugs to hyphen preset slugs', () => {
-        expect(formatTenantDisplay(baseRow({ name: 'Test Cafe', slug: 'cafe' }))).toEqual({
-            displayName: 'Test Cafe',
-            displaySlug: 'test-cafe',
+    it('formatTenantDisplay maps seed slugs to preset slugs', () => {
+        expect(formatTenantDisplay(baseRow({ name: 'Development', slug: 'dev' }))).toEqual({
+            displayName: 'Development',
+            displaySlug: 'dev',
         });
         expect(formatTenantDisplay(baseRow({ name: 'Legacy', slug: 'test_cafe' }))).toEqual({
-            displayName: 'Test Cafe',
-            displaySlug: 'test-cafe',
+            displayName: 'Development',
+            displaySlug: 'dev',
         });
     });
 
@@ -119,31 +119,31 @@ describe('tenantHeaderSwitcher', () => {
 
     it('filters by slug and admin email', () => {
         const rows = [
-            baseRow({ name: 'Cafe', slug: 'cafe', ownerAdminEmail: 'admin@cafe.regkasse.at' }),
-            baseRow({ name: 'Bar', slug: 'bar', ownerAdminEmail: null }),
+            baseRow({ name: 'Development', slug: 'dev', ownerAdminEmail: 'admin@dev.regkasse.at' }),
+            baseRow({ name: 'Production', slug: 'prod', ownerAdminEmail: null }),
         ];
-        expect(filterTenantsForHeaderSearch(rows, 'cafe')).toHaveLength(1);
-        expect(filterTenantsForHeaderSearch(rows, 'test-cafe')).toHaveLength(1);
-        expect(filterTenantsForHeaderSearch(rows, 'admin@bar')).toHaveLength(0);
+        expect(filterTenantsForHeaderSearch(rows, 'dev')).toHaveLength(1);
+        expect(filterTenantsForHeaderSearch(rows, 'prod')).toHaveLength(1);
+        expect(filterTenantsForHeaderSearch(rows, 'admin@prod')).toHaveLength(0);
     });
 
     it('filters by display name case-insensitively', () => {
         const rows = [
-            baseRow({ name: 'Café Adler', slug: 'cafe' }),
-            baseRow({ name: 'Bar Central', slug: 'bar' }),
+            baseRow({ name: 'Café Adler', slug: 'dev' }),
+            baseRow({ name: 'Bar Central', slug: 'prod' }),
         ];
         expect(filterTenantsForHeaderSearch(rows, 'adler')).toHaveLength(1);
-        expect(filterTenantsForHeaderSearch(rows, 'BAR')).toHaveLength(1);
+        expect(filterTenantsForHeaderSearch(rows, 'prod')).toHaveLength(1);
     });
 
     it('partitions development and production tenants by slug', () => {
         const rows = [
             baseRow({ slug: 'dev', name: 'Development' }),
-            baseRow({ slug: 'cafe', name: 'Test Cafe' }),
+            baseRow({ slug: 'prod', name: 'Production' }),
             baseRow({ slug: 'acme', name: 'Acme' }),
         ];
         const { development, production } = partitionTenantsForSwitcher(rows);
-        expect(development.map((r) => r.slug)).toEqual(['dev', 'cafe']);
+        expect(development.map((r) => r.slug)).toEqual(['dev', 'prod']);
         expect(production.map((r) => r.slug)).toEqual(['acme']);
     });
 
@@ -169,14 +169,14 @@ describe('tenantHeaderSwitcher', () => {
         until.setDate(until.getDate() + 21);
         const lines = getTenantHeaderDetailLines(
             baseRow({
-                slug: 'cafe',
-                ownerAdminEmail: 'admin@cafe.regkasse.at',
+                slug: 'dev',
+                ownerAdminEmail: 'admin@dev.regkasse.at',
                 licenseValidUntilUtc: until.toISOString(),
                 licenseKey: 'KEY',
             }),
             t,
         );
-        expect(lines.adminLine).toBe('Admin: admin@cafe.regkasse.at');
+        expect(lines.adminLine).toBe('Admin: admin@dev.regkasse.at');
         expect(lines.licenseLine).toBe('Lizenziert');
     });
 
@@ -196,7 +196,7 @@ describe('tenantHeaderSwitcher', () => {
 
     it('omits admin line when no owner admin (pill shown in UI instead)', () => {
         const lines = getTenantHeaderDetailLines(
-            baseRow({ slug: 'bar', ownerAdminEmail: null }),
+            baseRow({ slug: 'prod', ownerAdminEmail: null }),
             t,
         );
         expect(lines.adminLine).toBeNull();

@@ -54,8 +54,8 @@ beforeEach(() => {
     sessionStorage.clear();
     mockUseTenantList.mockReturnValue({
         tenants: [
-            { id: 'tenant-a', name: 'Cafe', slug: 'cafe' },
-            { id: 'tenant-b', name: 'Bar', slug: 'bar' },
+            { id: 'tenant-a', name: 'Cafe', slug: 'dev' },
+            { id: 'tenant-b', name: 'Bar', slug: 'prod' },
         ],
         isLoading: false,
     });
@@ -90,7 +90,7 @@ describe('CashRegisterSelector', () => {
             tenantId: 'tenant-a',
             isSuperAdminUser: false,
             tenantName: 'Cafe',
-            tenantSlug: 'cafe',
+            tenantSlug: 'dev',
         });
 
         renderSelector();
@@ -128,7 +128,7 @@ describe('CashRegisterSelector', () => {
             tenantId: 'tenant-a',
             isSuperAdminUser: true,
             tenantName: 'Cafe',
-            tenantSlug: 'cafe',
+            tenantSlug: 'dev',
         });
 
         renderSelector();
@@ -144,7 +144,7 @@ describe('CashRegisterSelector', () => {
             tenantId: 'tenant-a',
             isSuperAdminUser: false,
             tenantName: 'Cafe',
-            tenantSlug: 'cafe',
+            tenantSlug: 'dev',
         });
         mockUseAdminCashRegisterList.mockReturnValue({
             registers: [
@@ -181,7 +181,7 @@ describe('CashRegisterSelector', () => {
             tenantId: 'tenant-a',
             isSuperAdminUser: false,
             tenantName: 'Cafe',
-            tenantSlug: 'cafe',
+            tenantSlug: 'dev',
         });
         mockUseAdminCashRegisterList.mockReturnValue({
             registers: [
@@ -210,7 +210,7 @@ describe('CashRegisterSelector', () => {
             tenantId: 'tenant-a',
             isSuperAdminUser: false,
             tenantName: 'Cafe',
-            tenantSlug: 'cafe',
+            tenantSlug: 'dev',
         });
         mockUseAdminCashRegisterList.mockReturnValue({
             registers: [
@@ -249,7 +249,7 @@ describe('CashRegisterSelector', () => {
             tenantId: 'tenant-a',
             isSuperAdminUser: false,
             tenantName: 'Cafe',
-            tenantSlug: 'cafe',
+            tenantSlug: 'dev',
         });
         mockUseAdminCashRegisterList.mockReturnValue({
             registers: [

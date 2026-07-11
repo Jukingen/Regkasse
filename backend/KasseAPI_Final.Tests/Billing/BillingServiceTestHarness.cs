@@ -34,7 +34,7 @@ internal sealed class BillingServiceTestHarness : IAsyncDisposable
     public BillingService CreateBillingService(string? contentRootPath = null) =>
         BillingServiceTestInfrastructure.CreateService(_db, contentRootPath);
 
-    public async Task<Tenant> CreateTestTenantAsync(string slug = "cafe")
+    public async Task<Tenant> CreateTestTenantAsync(string slug = "dev")
     {
         var tenant = new Tenant
         {

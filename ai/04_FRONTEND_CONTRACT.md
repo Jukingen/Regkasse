@@ -4,7 +4,7 @@
 
 - **Üretim:** API ve admin/POS istemcileri kiracı alt alanına hizalanır (`{slug}.regkasse.at`).
 - **POS:** `tenantStorage` + lisans aktivasyonu; üretimde `apiBaseUrl` bootstrap.
-- **POS dev:** `EXPO_PUBLIC_DEV_TENANT_ID=test_cafe`, `DevTenantSwitcher`, otomatik `X-Tenant-Id` + `?tenant=` (`services/api/config.ts`).
+- **POS dev:** `EXPO_PUBLIC_DEV_TENANT_ID=dev`, `DevTenantSwitcher`, otomatik `X-Tenant-Id` + `?tenant=` (`services/api/config.ts`).
 - **Admin dev:** header’da `HeaderDevTenantSwitch` (dropdown); `dev` / `cafe` / `bar`.
 - Sunucu izolasyonu nihai otoritedir; istemci yanlış slug ile başka kiracının verisini alamaz.
 
@@ -12,10 +12,10 @@
 
 | Method | Example |
 |--------|---------|
-| Header | `curl -H "X-Tenant-Id: test_cafe" http://localhost:5184/api/health` |
-| Query | `?tenant=test_cafe` (Development only) |
+| Header | `curl -H "X-Tenant-Id: dev" http://localhost:5184/api/health` |
+| Query | `?tenant=dev` (Development only) |
 | FA dev | Header dropdown → `localStorage` `dev_tenant_id` |
-| Hosts | `127.0.0.1 cafe.regkasse.local` → `http://cafe.regkasse.local:5184` |
+| Hosts | `127.0.0.1 dev.regkasse.local` → `http://dev.regkasse.local:5184` |
 
 ## POS (`frontend/`)
 - Stack: React Native + Expo Router.

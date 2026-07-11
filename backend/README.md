@@ -17,23 +17,23 @@ Requires `ASPNETCORE_ENVIRONMENT=Development` and a matching `tenants.slug` row 
 ### Option 1: Header-based (simplest)
 
 ```bash
-curl -H "X-Tenant-Id: test_cafe" http://localhost:5184/api/health
+curl -H "X-Tenant-Id: dev" http://localhost:5184/api/health
 ```
 
 ### Option 2: Query string
 
 ```bash
-curl "http://localhost:5184/api/admin/payments?tenant=test_cafe"
+curl "http://localhost:5184/api/admin/payments?tenant=dev"
 ```
 
 ### Option 3: Localhost subdomains (hosts file)
 
 ```text
-127.0.0.1 test-cafe.localhost
-127.0.0.1 test-bar.localhost
+127.0.0.1 dev.localhost
+127.0.0.1 prod.localhost
 ```
 
-Then: `http://test-cafe.localhost:5184` (slug = first host label: `test-cafe`).
+Then: `http://dev.localhost:5184` (slug = first host label: `dev`).
 
 FA/POS UI switchers and POS `.env`: `REGKASSE_AI_ONBOARDING.md`.
 
@@ -44,7 +44,7 @@ Regkasse uses a multi-tenant architecture where a single backend instance serves
 ### Tenant Identification
 
 - Tenants are identified by subdomain: `{tenant}.regkasse.at`
-- Examples: `cafe.regkasse.at`, `bar.regkasse.at`, `market.regkasse.at`
+- Examples: `dev.regkasse.at`, `prod.regkasse.at`, `market.regkasse.at`
 - Super Admin accesses `admin.regkasse.at`
 
 ### Data Isolation

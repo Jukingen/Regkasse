@@ -49,7 +49,7 @@ public sealed class BillingTenantLicenseServiceTests
     public async Task ActivateLicenseAsync_ValidBillingKey_UpdatesTenantAndSale()
     {
         await using var ctx = await CreateContextAsync();
-        var tenant = await SeedTenantAsync(ctx.Db, slug: "cafe");
+        var tenant = await SeedTenantAsync(ctx.Db, slug: "dev");
         var actorUserId = await SeedUserAsync(ctx.Db);
         var sale = await CreateDetachedSaleAsync(ctx, tenant, actorUserId);
 
@@ -96,7 +96,7 @@ public sealed class BillingTenantLicenseServiceTests
         await using var ctx = await CreateContextAsync();
         var tenant = await SeedTenantAsync(
             ctx.Db,
-            slug: "cafe",
+            slug: "dev",
             validUntil: DateTime.UtcNow.AddDays(5),
             licenseKey: "REGK-OLD");
         var actorUserId = await SeedUserAsync(ctx.Db);
@@ -204,7 +204,7 @@ public sealed class BillingTenantLicenseServiceTests
 
     private static async Task<Tenant> SeedTenantAsync(
         AppDbContext db,
-        string slug = "cafe",
+        string slug = "dev",
         DateTime? validUntil = null,
         string? licenseKey = null,
         Guid? currentLicenseSaleId = null)

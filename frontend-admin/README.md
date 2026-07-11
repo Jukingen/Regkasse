@@ -113,7 +113,7 @@ The Quick Create tab in `CreateUserModal` lets administrators create tenant user
 3. Select **Mandant** when creating from the global users page (fixed when opened from tenant detail).
 4. The system generates:
    - **Username:** `{rolePrefix}{nextAvailableNumber}` (e.g. `manager1`, `cashier2`, `user3` for Accountant)
-   - **Email:** `{role}_{random6}@{tenantSlug}.regkasse.at` (e.g. `cashier_a3f9k2@cafe.regkasse.at`)
+   - **Email:** `{role}_{random6}@{tenantSlug}.regkasse.at` (e.g. `cashier_a3f9k2@dev.regkasse.at`)
    - **Password:** secure 12-character random password
 5. `QuickUserSuccessModal` shows username, email, and password once (per-field copy + **copy all**).
 6. User must change password on first login (`forcePasswordChangeOnNextLogin`).
@@ -165,12 +165,12 @@ Authorization: Bearer <token>
 ```json
 {
   "userId": "...",
-  "email": "manager_a3f9k2@cafe.regkasse.at",
+  "email": "manager_a3f9k2@dev.regkasse.at",
   "userName": "manager1",
   "generatedPassword": "...",
   "forcePasswordChangeOnNextLogin": true,
   "success": true,
-  "tenantPortalUrl": "https://cafe.regkasse.at",
+  "tenantPortalUrl": "https://dev.regkasse.at",
   "role": "Manager"
 }
 ```
@@ -192,7 +192,7 @@ Regkasse uses a multi-tenant architecture where a single backend instance serves
 ### Tenant Identification
 
 - Tenants are identified by subdomain: `{tenant}.regkasse.at`
-- Examples: `cafe.regkasse.at`, `bar.regkasse.at`, `market.regkasse.at`
+- Examples: `dev.regkasse.at`, `prod.regkasse.at`, `market.regkasse.at`
 - Super Admin accesses `admin.regkasse.at`
 
 ### Data Isolation
@@ -219,19 +219,19 @@ curl -H "X-Tenant-Id: cafe" http://localhost:5184/api/health
 **Option 2 — Query string:**
 
 ```bash
-curl "http://localhost:5184/api/admin/payments?tenant=test_cafe"
+curl "http://localhost:5184/api/admin/payments?tenant=dev"
 ```
 
-(Requires auth for payments; use `cafe` / `test_cafe` only if matching `tenants.slug` in DB.)
+(Requires auth for payments; use `cafe` / `dev` only if matching `tenants.slug` in DB.)
 
 **Option 3 — Hosts file:**
 
 ```text
-127.0.0.1 test-cafe.localhost
-127.0.0.1 test-bar.localhost
+127.0.0.1 dev.localhost
+127.0.0.1 prod.localhost
 ```
 
-Access API: `http://test-cafe.localhost:5184`
+Access API: `http://dev.localhost:5184`
 
 **Option 4 — FA tenant switcher**
 
@@ -243,7 +243,7 @@ Backend must be `ASPNETCORE_ENVIRONMENT=Development`. See `REGKASSE_AI_ONBOARDIN
 
 **Backend note:** `LicenseService` is a singleton and uses `IServiceScopeFactory` for database access (scoped `AppDbContext` / `ICurrentTenantAccessor`). Startup license warnings do not block the API.
 
-- Hosts file: e.g. `cafe.regkasse.local` → same slug resolution as production subdomains
+- Hosts file: e.g. `dev.regkasse.local` → same slug resolution as production subdomains
 
 ## Tenant Switching
 

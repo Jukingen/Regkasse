@@ -91,7 +91,7 @@ public sealed class ImpersonationAuditLogIntegrationTests
             "super-2",
             Roles.SuperAdmin,
             tenantId,
-            "cafe");
+            "dev");
 
         var row = await context.AuditLogs.AsNoTracking().SingleAsync();
         Assert.Equal(AuditLogActions.TENANT_IMPERSONATION_STARTED, row.Action);

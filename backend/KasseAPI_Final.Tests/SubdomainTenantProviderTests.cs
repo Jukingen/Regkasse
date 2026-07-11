@@ -73,8 +73,7 @@ public sealed class SubdomainTenantProviderTests
 
     [Theory]
     [InlineData("dev.regkasse.local", "dev")]
-    [InlineData("cafe.regkasse.local", "cafe")]
-    [InlineData("bar.regkasse.local", "bar")]
+    [InlineData("prod.regkasse.local", "prod")]
     [InlineData("tenant.example.local", "tenant")]
     public void GetCurrentTenantId_LocalDevelopmentHost_ReturnsSubdomainSlug(string host, string expectedSlug)
     {
