@@ -6,22 +6,31 @@ import type { ColumnsType } from 'antd/es/table';
 import { ReloadOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import Link from 'next/link';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { CashRegisterSelector } from '@/components/CashRegisterSelector';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import {
+  adminShiftOverviewQueryKey,
+  forceCloseAdminShiftRegister,
   type AdminDailyClosingOverviewRow,
   type AdminShiftRow,
 } from '@/features/shifts/api/shiftsOverview';
 import { useAdminShiftOverview } from '@/features/shifts/hooks/useAdminShiftOverview';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { usePermissions } from '@/hooks/usePermissions';
 import { FORMAT_EMPTY_DISPLAY, formatCurrency, formatDateTime, useI18n } from '@/i18n';
+import { AppPermissions } from '@/shared/auth/permissions';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
+
+const STALE_SHIFT_WARNING_HOURS = 8;
 
 function statusTagColor(status: string): string {
   switch (status) {
     case 'Active':
+    case 'RegisterOpen':
       return 'green';
     case 'Discrepancy':
       return 'orange';
@@ -38,6 +47,10 @@ export type ShiftOverviewProps = {
 
 export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = false }) => {
   const { t, formatLocale } = useI18n();
+  const { modal, message } = useAntdApp();
+  const { hasPermission } = usePermissions();
+  const queryClient = useQueryClient();
+  const canForceClose = hasPermission(AppPermissions.SHIFT_MANAGE);
   const ts = useCallback((path: string) => t(`shifts:${path}`), [t]);
 
   const [registerId, setRegisterId] = useState<string | undefined>();
@@ -56,6 +69,45 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
 
   const overviewQ = useAdminShiftOverview(queryParams);
 
+  const forceCloseMutation = useMutation({
+    mutationFn: (row: AdminShiftRow) =>
+      forceCloseAdminShiftRegister(row.cashRegisterId, {
+        reason: row.isOrphanedRegisterSession
+          ? 'Orphaned register session'
+          : 'Manual admin force-close',
+      }),
+    onSuccess: async () => {
+      message.success(ts('actions.forceCloseSuccess'));
+      await queryClient.invalidateQueries({ queryKey: adminShiftOverviewQueryKey() });
+    },
+    onError: (err) => {
+      message.error(
+        getUserFacingApiErrorMessage(t, err, {
+          logContext: 'ShiftOverview.forceClose',
+          fallbackKey: 'shifts:actions.forceCloseFailed',
+        }),
+      );
+    },
+  });
+
+  const handleForceClose = useCallback(
+    (row: AdminShiftRow) => {
+      modal.confirm({
+        title: ts('actions.forceCloseTitle'),
+        content: ts('actions.forceCloseConfirm'),
+        okText: ts('actions.forceClose'),
+        okButtonProps: { danger: true },
+        onOk: () => forceCloseMutation.mutateAsync(row),
+      });
+    },
+    [forceCloseMutation, modal, ts],
+  );
+
+  const activeShifts = overviewQ.data?.activeShifts ?? [];
+  const staleActiveShifts = activeShifts.filter(
+    (row) => (row.openDurationHours ?? 0) >= STALE_SHIFT_WARNING_HOURS,
+  );
+
   const formatDt = useCallback(
     (value?: string | null) =>
       value
@@ -70,14 +122,22 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
   );
 
   const renderStatus = useCallback(
-    (status: string) => (
-      <Tag color={statusTagColor(status)}>{ts(`status.${status}`) || status}</Tag>
+    (status: string, row: AdminShiftRow) => (
+      <Space size={4} wrap>
+        <Tag color={statusTagColor(status)}>{ts(`status.${status}`) || status}</Tag>
+        {row.isOrphanedRegisterSession ? (
+          <Tag color="gold">{ts('badges.orphanedRegister')}</Tag>
+        ) : null}
+        {(row.openDurationHours ?? 0) >= STALE_SHIFT_WARNING_HOURS ? (
+          <Tag color="orange">{ts('badges.staleShift')}</Tag>
+        ) : null}
+      </Space>
     ),
     [ts],
   );
 
-  const shiftColumns: ColumnsType<AdminShiftRow> = useMemo(
-    () => [
+  const shiftColumns: ColumnsType<AdminShiftRow> = useMemo(() => {
+    const columns: ColumnsType<AdminShiftRow> = [
       {
         title: ts('columns.cashier'),
         dataIndex: 'cashierName',
@@ -144,12 +204,39 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
         title: ts('columns.status'),
         dataIndex: 'status',
         key: 'status',
-        width: 130,
-        render: renderStatus,
+        width: 220,
+        render: (status: string, row) => renderStatus(status, row),
       },
-    ],
-    [formatDt, formatMoney, renderStatus, ts],
-  );
+    ];
+
+    if (canForceClose) {
+      columns.push({
+        title: ts('columns.actions'),
+        key: 'actions',
+        width: 180,
+        render: (_value, row) => (
+          <Button
+            size="small"
+            danger
+            loading={forceCloseMutation.isPending}
+            onClick={() => handleForceClose(row)}
+          >
+            {ts('actions.forceClose')}
+          </Button>
+        ),
+      });
+    }
+
+    return columns;
+  }, [
+    canForceClose,
+    forceCloseMutation.isPending,
+    formatDt,
+    formatMoney,
+    handleForceClose,
+    renderStatus,
+    ts,
+  ]);
 
   const historyColumns: ColumnsType<AdminShiftRow> = useMemo(
     () => [
@@ -168,9 +255,9 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
         align: 'right',
         render: formatMoney,
       },
-      ...shiftColumns.slice(4),
+      ...shiftColumns.slice(4, - (canForceClose ? 1 : 0)),
     ],
-    [formatMoney, shiftColumns, ts],
+    [canForceClose, formatMoney, shiftColumns, ts],
   );
 
   const closingColumns: ColumnsType<AdminDailyClosingOverviewRow> = useMemo(
@@ -243,14 +330,19 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
         dataIndex: 'shiftStatus',
         key: 'shiftStatus',
         width: 130,
-        render: renderStatus,
+        render: (status: string) => (
+          <Tag color={statusTagColor(status)}>{ts(`status.${status}`) || status}</Tag>
+        ),
       },
     ],
-    [formatDt, formatMoney, renderStatus, ts],
+    [formatDt, formatMoney, ts],
   );
 
   const loadError = overviewQ.isError
-    ? getUserFacingApiErrorMessage(overviewQ.error, ts('errors.loadFailed'))
+    ? getUserFacingApiErrorMessage(t, overviewQ.error, {
+        logContext: 'ShiftOverview.load',
+        fallbackKey: 'shifts:errors.loadFailed',
+      })
     : null;
 
   return (
@@ -308,12 +400,25 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
 
           {loadError ? <Alert type="error" showIcon title={loadError} style={{ marginBottom: 16 }} /> : null}
 
+          {staleActiveShifts.length > 0 ? (
+            <Alert
+              type="warning"
+              showIcon
+              title={ts('warnings.staleShiftsTitle')}
+              description={ts('warnings.staleShiftsDescription', {
+                count: staleActiveShifts.length,
+                hours: STALE_SHIFT_WARNING_HOURS,
+              })}
+              style={{ marginBottom: 16 }}
+            />
+          ) : null}
+
           <Card type="inner" title={ts('sections.active')} style={{ marginBottom: 16 }}>
             <Table<AdminShiftRow>
-              rowKey="id"
+              rowKey={(row) => `${row.id}-${row.cashRegisterId}`}
               size="small"
               loading={overviewQ.isLoading}
-              dataSource={overviewQ.data?.activeShifts ?? []}
+              dataSource={activeShifts}
               columns={shiftColumns}
               pagination={false}
               scroll={{ x: 1100 }}

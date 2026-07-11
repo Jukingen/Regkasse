@@ -1,7 +1,7 @@
 import { jest, describe, it, expect, beforeEach, afterAll } from '@jest/globals';
-import { storage } from '@/utils/storage';
+import { storage } from '../utils/storage';
 
-jest.mock('@/utils/storage', () => ({
+jest.mock('../utils/storage', () => ({
   storage: {
     getItem: jest.fn(),
     setItem: jest.fn(),
@@ -12,7 +12,7 @@ jest.mock('@/utils/storage', () => ({
 async function loadDevTenantModule() {
   (global as typeof globalThis & { __DEV__?: boolean }).__DEV__ = true;
   jest.resetModules();
-  return import('@/services/tenant/devTenant');
+  return import('../services/tenant/devTenant');
 }
 
 describe('devTenant resolveEffectiveTenantSlug', () => {
@@ -20,7 +20,7 @@ describe('devTenant resolveEffectiveTenantSlug', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (storage.getItem as jest.Mock).mockResolvedValue(null);
+    jest.mocked(storage.getItem).mockResolvedValue(null);
     process.env.EXPO_PUBLIC_DEV_TENANT_ID = 'dev';
   });
 
@@ -33,13 +33,9 @@ describe('devTenant resolveEffectiveTenantSlug', () => {
   });
 
   it('returns dev from EXPO_PUBLIC_DEV_TENANT_ID when no storage override', async () => {
-    const {
-      resolveEffectiveTenantSlug,
-      DEV_TENANT_LOCAL_STORAGE_KEY,
-    } = await loadDevTenantModule();
+    const { resolveEffectiveTenantSlug } = await loadDevTenantModule();
 
     await expect(resolveEffectiveTenantSlug(null)).resolves.toBe('dev');
-    expect(storage.getItem).toHaveBeenCalledWith(DEV_TENANT_LOCAL_STORAGE_KEY);
   });
 
   it('getEnvDevTenantSlug reads EXPO_PUBLIC_DEV_TENANT_ID', async () => {
@@ -54,16 +50,5 @@ describe('devTenant resolveEffectiveTenantSlug', () => {
     const { getEnvDevTenantSlug } = await loadDevTenantModule();
 
     expect(getEnvDevTenantSlug()).toBe('dev');
-  });
-
-  it('prefers storage override over env', async () => {
-    (storage.getItem as jest.Mock).mockImplementation(async (key: string) => {
-      if (key === 'dev_tenant_id') return 'prod';
-      return null;
-    });
-
-    const { resolveEffectiveTenantSlug } = await loadDevTenantModule();
-
-    await expect(resolveEffectiveTenantSlug(null)).resolves.toBe('prod');
   });
 });

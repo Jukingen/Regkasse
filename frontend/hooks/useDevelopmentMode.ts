@@ -1,6 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { POS_DEVELOPMENT_MODE_POLL_MS } from '../constants/posPollingIntervals';
+import { useAuth } from '../contexts/AuthContext';
 import { useConditionalPolling } from './useConditionalPolling';
 import { apiClient } from '../services/api/config';
 import {
@@ -11,8 +12,11 @@ import {
 export type { DevelopmentModeSettings } from '../services/developmentModeClientCache';
 
 export function useDevelopmentMode() {
+  const { isAuthenticated, user } = useAuth();
   const [settings, setSettings] = useState<DevelopmentModeSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const pollingEnabled =
+    !isAuthenticated || user?.mustChangePasswordOnNextLogin !== true;
 
   const refetch = useCallback(async () => {
     try {
@@ -27,9 +31,15 @@ export function useDevelopmentMode() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!pollingEnabled) {
+      setIsLoading(false);
+    }
+  }, [pollingEnabled]);
+
   useConditionalPolling(() => {
     void refetch();
-  }, POS_DEVELOPMENT_MODE_POLL_MS);
+  }, POS_DEVELOPMENT_MODE_POLL_MS, pollingEnabled);
 
   return { settings, isLoading, refetch };
 }

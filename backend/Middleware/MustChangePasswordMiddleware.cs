@@ -22,6 +22,8 @@ public sealed class MustChangePasswordMiddleware
         "/swagger",
         "/api/usermanagement/me/password",
         "/api/UserManagement/me/password",
+        "/api/license",
+        "/api/system/development-mode",
     };
 
     /// <summary>Test hook and documentation for exempt API paths while password change is pending.</summary>

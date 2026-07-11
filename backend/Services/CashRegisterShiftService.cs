@@ -297,4 +297,89 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
             throw;
         }
     }
+
+    /// <inheritdoc />
+    public async Task<CashRegisterCloseResult> TryForceCloseCashRegisterAsync(
+        Guid registerId,
+        string actorUserId,
+        decimal closingBalance,
+        string description,
+        CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+            await CashRegisterDatabaseLock.AcquireRegisterRowExclusiveLockAsync(_context, registerId, cancellationToken);
+
+            var register = await _context.CashRegisters
+                .Include(r => r.CurrentUser)
+                .FirstOrDefaultAsync(r => r.Id == registerId && r.TenantId == tenantId, cancellationToken);
+
+            if (register == null)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return CashRegisterCloseResult.NotFound();
+            }
+
+            if (register.Status == RegisterStatus.Closed || register.Status == RegisterStatus.Decommissioned)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return CashRegisterCloseResult.AlreadyClosed();
+            }
+
+            var previousOwnerId = register.CurrentUserId;
+            register.Status = RegisterStatus.Closed;
+            register.CurrentBalance = closingBalance;
+            register.LastBalanceUpdate = DateTime.UtcNow;
+            register.UpdatedAt = DateTime.UtcNow;
+            register.CurrentUser = null;
+            register.CurrentUserId = null;
+
+            var closeDescription = description.Length > 500 ? description[..500] : description;
+            var closeTx = new CashRegisterTransaction
+            {
+                CashRegisterId = register.Id,
+                TransactionType = TransactionType.Close,
+                Amount = closingBalance,
+                Description = closeDescription,
+                UserId = actorUserId,
+                TransactionDate = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true,
+            };
+
+            _context.CashRegisterTransactions.Add(closeTx);
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            _logger.LogWarning(
+                "Cash register {RegisterId} force-closed by {ActorUserId} (previous owner {PreviousOwnerId})",
+                registerId,
+                actorUserId,
+                previousOwnerId ?? "(none)");
+
+            if (_activityEvents != null)
+            {
+                await _activityEvents.TryPublishAsync(
+                    new ActivityEventPublishRequest(
+                        tenantId,
+                        ActivityEventType.CashRegisterClosed,
+                        "Cash register force-closed",
+                        Description: $"Register {register.RegisterNumber} was force-closed.",
+                        ActorUserId: actorUserId,
+                        EntityType: "cash_register",
+                        EntityId: registerId.ToString()),
+                    cancellationToken).ConfigureAwait(false);
+            }
+
+            return CashRegisterCloseResult.Success();
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            _logger.LogError(ex, "TryForceCloseCashRegisterAsync failed for register {RegisterId}", registerId);
+            throw;
+        }
+    }
 }

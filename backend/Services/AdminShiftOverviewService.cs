@@ -43,6 +43,30 @@ public sealed class AdminShiftOverviewService : IAdminShiftOverviewService
             .OrderByDescending(s => s.StartedAt)
             .ToListAsync(cancellationToken);
 
+        var activeRegisterIds = activeRows.Select(s => s.CashRegisterId).ToHashSet();
+        var orphanedOpenRegisters = await _context.CashRegisters.AsNoTracking()
+            .Include(r => r.CurrentUser)
+            .Where(r => r.TenantId == tenantId
+                        && r.Status == RegisterStatus.Open
+                        && r.IsActive
+                        && (!cashRegisterId.HasValue || r.Id == cashRegisterId.Value))
+            .Where(r => !activeRegisterIds.Contains(r.Id))
+            .OrderBy(r => r.RegisterNumber)
+            .ToListAsync(cancellationToken);
+
+        var orphanedOpenTimes = orphanedOpenRegisters.Count == 0
+            ? new Dictionary<Guid, DateTime>()
+            : await LoadLastOpenTimesAsync(
+                orphanedOpenRegisters.Select(r => r.Id).ToList(),
+                cancellationToken);
+
+        var nowUtc = DateTime.UtcNow;
+        var activeDtos = activeRows
+            .Select(s => MapShift(s, registerNumbers, isOrphaned: false, openDurationHours: ComputeOpenDurationHours(s.StartedAt, nowUtc)))
+            .Concat(orphanedOpenRegisters.Select(r => MapOrphanedRegister(r, orphanedOpenTimes, nowUtc)))
+            .OrderByDescending(r => r.StartedAt)
+            .ToList();
+
         var historyQuery = baseQuery.Where(s => s.Status != CashierShiftStatuses.Active);
         if (fromUtc.HasValue)
             historyQuery = historyQuery.Where(s => s.StartedAt >= fromUtc.Value);
@@ -73,8 +97,8 @@ public sealed class AdminShiftOverviewService : IAdminShiftOverviewService
 
         return new AdminShiftOverviewDto
         {
-            ActiveShifts = activeRows.Select(s => MapShift(s, registerNumbers)).ToList(),
-            ShiftHistory = historyRows.Select(s => MapShift(s, registerNumbers)).ToList(),
+            ActiveShifts = activeDtos,
+            ShiftHistory = historyRows.Select(s => MapShift(s, registerNumbers, isOrphaned: false, openDurationHours: null)).ToList(),
             DailyClosings = closingShiftRows
                 .Select(s => MapClosing(s, fiscalRows, registerNumbers))
                 .ToList(),
@@ -83,7 +107,9 @@ public sealed class AdminShiftOverviewService : IAdminShiftOverviewService
 
     private static AdminShiftRowDto MapShift(
         CashierShift shift,
-        IReadOnlyDictionary<Guid, string> registerNumbers) => new()
+        IReadOnlyDictionary<Guid, string> registerNumbers,
+        bool isOrphaned,
+        double? openDurationHours) => new()
     {
         Id = shift.Id,
         CashRegisterId = shift.CashRegisterId,
@@ -102,8 +128,64 @@ public sealed class AdminShiftOverviewService : IAdminShiftOverviewService
         DailyClosingId = shift.DailyClosingId,
         CashCount = shift.CashCount,
         Notes = shift.Notes,
+        IsOrphanedRegisterSession = isOrphaned,
+        OpenDurationHours = openDurationHours,
     };
 
+    private static AdminShiftRowDto MapOrphanedRegister(
+        CashRegister register,
+        IReadOnlyDictionary<Guid, DateTime> openTimes,
+        DateTime nowUtc)
+    {
+        openTimes.TryGetValue(register.Id, out var openedAt);
+        if (openedAt == default)
+            openedAt = register.UpdatedAt ?? nowUtc;
+
+        var owner = register.CurrentUser;
+        var ownerName = owner == null
+            ? "Unknown"
+            : $"{owner.FirstName} {owner.LastName}".Trim() is { Length: > 0 } fullName
+                ? fullName
+                : owner.UserName ?? owner.Email ?? "Unknown";
+
+        return new AdminShiftRowDto
+        {
+            Id = register.Id,
+            CashRegisterId = register.Id,
+            RegisterNumber = register.RegisterNumber,
+            CashierId = register.CurrentUserId ?? string.Empty,
+            CashierName = ownerName,
+            StartedAt = openedAt,
+            StartBalance = register.CurrentBalance,
+            Status = "RegisterOpen",
+            IsOrphanedRegisterSession = true,
+            OpenDurationHours = ComputeOpenDurationHours(openedAt, nowUtc),
+            Notes = "Register open without active cashier shift row",
+        };
+    }
+
+    private async Task<Dictionary<Guid, DateTime>> LoadLastOpenTimesAsync(
+        IReadOnlyList<Guid> registerIds,
+        CancellationToken cancellationToken)
+    {
+        var rows = await _context.CashRegisterTransactions.AsNoTracking()
+            .Where(t => registerIds.Contains(t.CashRegisterId)
+                        && t.TransactionType == TransactionType.Open
+                        && t.IsActive)
+            .GroupBy(t => t.CashRegisterId)
+            .Select(g => new { RegisterId = g.Key, OpenedAt = g.Max(t => t.TransactionDate) })
+            .ToListAsync(cancellationToken);
+
+        return rows.ToDictionary(r => r.RegisterId, r => r.OpenedAt);
+    }
+
+    private static double? ComputeOpenDurationHours(DateTime openedAtUtc, DateTime nowUtc)
+    {
+        var duration = nowUtc - openedAtUtc;
+        if (duration.TotalMinutes < 1)
+            return 0;
+        return Math.Round(duration.TotalHours, 1);
+    }
     private static AdminDailyClosingOverviewRowDto MapClosing(
         CashierShift shift,
         IReadOnlyDictionary<Guid, DailyClosing> fiscalRows,

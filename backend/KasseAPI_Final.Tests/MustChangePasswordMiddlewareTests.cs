@@ -17,6 +17,8 @@ public class MustChangePasswordMiddlewareTests
     [InlineData("/api/auth/login", true)]
     [InlineData("/api/UserManagement/me/password", true)]
     [InlineData("/api/health", true)]
+    [InlineData("/api/license/status", true)]
+    [InlineData("/api/system/development-mode", true)]
     [InlineData("/swagger/index.html", true)]
     [InlineData("/api/admin/products", false)]
     [InlineData("/api/companysettings", false)]
@@ -76,6 +78,36 @@ public class MustChangePasswordMiddlewareTests
         await db.SaveChangesAsync();
 
         var context = CreateAuthenticatedContext(userId, "/api/UserManagement/me/password");
+        var nextCalled = false;
+        RequestDelegate next = _ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        };
+
+        var middleware = new MustChangePasswordMiddleware(next);
+        await middleware.InvokeAsync(context, db, LocalizationTestDoubles.ApiMessageLocalizer());
+
+        Assert.True(nextCalled);
+        Assert.NotEqual(StatusCodes.Status403Forbidden, context.Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_WhenMustChangePassword_allows_license_status_for_pos_gate()
+    {
+        await using var db = CreateDbContext();
+        var userId = Guid.NewGuid().ToString();
+        db.Users.Add(new ApplicationUser
+        {
+            Id = userId,
+            UserName = "temp-user",
+            Email = "temp@example.com",
+            MustChangePasswordOnNextLogin = true,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var context = CreateAuthenticatedContext(userId, "/api/license/status");
         var nextCalled = false;
         RequestDelegate next = _ =>
         {

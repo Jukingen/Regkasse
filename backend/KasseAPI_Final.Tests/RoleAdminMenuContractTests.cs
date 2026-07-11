@@ -16,6 +16,7 @@ public class RoleAdminMenuContractTests
         AppPermissions.ModifierView,
         AppPermissions.PaymentView,
         AppPermissions.ReportView,
+        AppPermissions.LicenseView,
     };
 
     [Fact]

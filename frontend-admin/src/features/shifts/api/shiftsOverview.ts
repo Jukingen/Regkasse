@@ -18,6 +18,8 @@ export type AdminShiftRow = {
   dailyClosingId?: string | null;
   cashCount?: number | null;
   notes?: string | null;
+  isOrphanedRegisterSession?: boolean;
+  openDurationHours?: number | null;
 };
 
 export type AdminDailyClosingOverviewRow = {
@@ -64,5 +66,21 @@ export async function fetchAdminShiftOverview(
     url: '/api/admin/shifts/overview',
     method: 'GET',
     params,
+  });
+}
+
+export type AdminForceCloseShiftRequest = {
+  closingBalance?: number;
+  reason?: string;
+};
+
+export async function forceCloseAdminShiftRegister(
+  cashRegisterId: string,
+  body: AdminForceCloseShiftRequest = {},
+): Promise<{ cashRegisterId: string; closedShiftCount: number }> {
+  return customInstance({
+    url: `/api/admin/shifts/registers/${cashRegisterId.trim()}/force-close`,
+    method: 'POST',
+    data: body,
   });
 }

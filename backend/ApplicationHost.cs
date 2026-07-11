@@ -717,6 +717,10 @@ builder.Services.AddScoped<IPosCustomerQrLookupService, PosCustomerQrLookupServi
 builder.Services.AddScoped<IPaymentHistoryService, PaymentHistoryService>();
 builder.Services.AddScoped<IDailyClosingReportService, DailyClosingReportService>();
 builder.Services.AddScoped<IAdminShiftOverviewService, AdminShiftOverviewService>();
+builder.Services.AddScoped<IAdminShiftManagementService, AdminShiftManagementService>();
+builder.Services.AddScoped<IShiftAutoCloseService, ShiftAutoCloseService>();
+builder.Services.Configure<ShiftAutoCloseOptions>(
+    builder.Configuration.GetSection(ShiftAutoCloseOptions.SectionName));
 builder.Services.AddScoped<IPaymentMethodCatalogService, PaymentMethodCatalogService>();
 builder.Services.AddScoped<IPaymentMethodDefinitionBootstrapService, PaymentMethodDefinitionBootstrapService>();
 builder.Services.AddScoped<IPricingRuleResolver, PricingRuleResolver>();
@@ -894,6 +898,7 @@ builder.Services.Configure<KasseAPI_Final.Configuration.OfflineAlertRules>(
     builder.Configuration.GetSection(KasseAPI_Final.Configuration.OfflineAlertRules.SectionName));
 builder.Services.AddHostedService<KasseAPI_Final.Services.Offline.OfflineAlertService>();
 builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.OfflineOrderCleanupHostedService>();
+builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.ShiftAutoCloseHostedService>();
 builder.Services.AddSingleton<TseHealthStateStore>();
 builder.Services.AddSingleton<ITseHealthMonitor>(sp => sp.GetRequiredService<TseHealthStateStore>());
 builder.Services.AddSingleton<IOfflineReplayCompletionNotifier, LoggingOfflineReplayCompletionNotifier>();

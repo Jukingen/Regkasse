@@ -97,7 +97,7 @@ export function PosStatusOverviewProvider({ children }: { children: React.ReactN
 
   const refreshOverview = useCallback(
     async (force = false) => {
-      if (!isAuthenticated || !user?.id) {
+      if (!isAuthenticated || !user?.id || user.mustChangePasswordOnNextLogin) {
         if (!force) return;
         const anon = await licenseFromAnonymousStatus();
         if (anon) {
@@ -119,21 +119,21 @@ export function PosStatusOverviewProvider({ children }: { children: React.ReactN
         setLoading(false);
       }
     },
-    [applyOverview, isAuthenticated, user?.id],
+    [applyOverview, isAuthenticated, user?.id, user?.mustChangePasswordOnNextLogin],
   );
 
   useEffect(() => {
     void refreshOverview(false);
-  }, [isAuthenticated, user?.id, refreshOverview]);
+  }, [isAuthenticated, user?.id, user?.mustChangePasswordOnNextLogin, refreshOverview]);
 
   useEffect(() => registerPosStatusOverviewRefresh(refreshOverview), [refreshOverview]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || user?.mustChangePasswordOnNextLogin) return;
     return subscribePosStatusReconnectRefresh(() => {
       void refreshOverview(true);
     });
-  }, [isAuthenticated, refreshOverview]);
+  }, [isAuthenticated, user?.mustChangePasswordOnNextLogin, refreshOverview]);
 
   const { shouldShowGrace, shouldShowPreExpiry } = useMemo(
     () => deriveMandantWarningFlags(mandantWarning),

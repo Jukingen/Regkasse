@@ -17,8 +17,8 @@ using Microsoft.Extensions.Options;
 namespace KasseAPI_Final.Controllers;
 
 /// <summary>
-/// Anonymous-friendly license endpoints for POS bootstrap (status, features, activation) — no JWT required.
-/// POS may call these before any cashier signs in.
+/// License endpoints for POS bootstrap. <c>GET status</c> requires <see cref="AppPermissions.LicenseView"/>.
+/// <c>features</c> and <c>activate</c> remain anonymous-friendly (POS may activate before sign-in).
 /// </summary>
 [ApiController]
 [Route("api/license")]
@@ -60,9 +60,10 @@ public partial class LicenseController : ControllerBase
     /// <summary>
     /// Current license snapshot (trial vs paid, expiry, coarse feature tags, display mode).
     /// When <paramref name="tenantId"/> or resolved tenant context is present, mandant grace-period fields are included.
+    /// Requires <see cref="AppPermissions.LicenseView"/> (Cashier POS JWT includes this claim).
     /// </summary>
     [HttpGet("status")]
-    [AllowAnonymous]
+    [HasPermission(AppPermissions.LicenseView)]
     public async Task<ActionResult<LicensePublicStatusDto>> GetStatus(
         [FromQuery] Guid? tenantId,
         CancellationToken cancellationToken)

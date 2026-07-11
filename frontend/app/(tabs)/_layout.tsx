@@ -302,6 +302,10 @@ export default function TabLayout() {
         return <Redirect href="/(auth)/login" />;
     }
 
+    if (user.mustChangePasswordOnNextLogin) {
+        return <Redirect href="/(auth)/change-password" />;
+    }
+
     // POS rol guard: yetkisiz rol tabs'a erişemez, login'e geri gönderilir
     if (!isPosAllowedRole(user.role, user.roles)) {
         console.warn('[TabLayout] POS role denied, redirecting to login. role:', user.role);

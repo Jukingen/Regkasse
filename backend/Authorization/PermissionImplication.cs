@@ -95,6 +95,7 @@ public static class PermissionImplication
         {
             [AppPermissions.CashRegisterManage] = [AppPermissions.CashRegisterView],
             [AppPermissions.TableManage] = [AppPermissions.TableView],
+            [AppPermissions.LicenseManage] = [AppPermissions.LicenseView],
         };
 
         return map.ToFrozenDictionary(

@@ -59,7 +59,15 @@ public static class AdminAppPermissionProfile
         AppPermissions.ModifierView,
         AppPermissions.PaymentView,
         AppPermissions.ReportView,
+        AppPermissions.LicenseView,
     }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// POS Cashier permission keys for <c>app_context=pos</c> (mirrors <see cref="Roles.Cashier"/> matrix).
+    /// Includes <see cref="AppPermissions.LicenseView"/> for POST-login mandant license gate.
+    /// </summary>
+    public static readonly IReadOnlySet<string> CashierPosPermissions =
+        RolePermissionMatrix.GetPermissionsForRole(Roles.Cashier);
 
     /// <summary>
     /// Manager admin oversight reads that must survive <see cref="Filter"/> when present in the role matrix.
@@ -92,13 +100,24 @@ public static class AdminAppPermissionProfile
     ];
 
     /// <summary>
-    /// Applies admin-app scoping. POS and legacy (null) contexts return <paramref name="effectivePermissions"/> unchanged.
+    /// Applies admin-app scoping. POS Cashier sessions always embed the full <see cref="CashierPosPermissions"/> set.
+    /// Other POS / legacy (null) contexts return <paramref name="effectivePermissions"/> unchanged.
     /// </summary>
     public static IReadOnlySet<string> Filter(
         string? appContext,
         IReadOnlyList<string> canonicalRoles,
         IReadOnlySet<string> effectivePermissions)
     {
+        if (string.Equals(appContext, ClientAppPolicy.Pos, StringComparison.OrdinalIgnoreCase)
+            && canonicalRoles.Any(r => string.Equals(r, Roles.Cashier, StringComparison.OrdinalIgnoreCase))
+            && !canonicalRoles.Any(r => string.Equals(r, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase)))
+        {
+            var posCashier = new HashSet<string>(effectivePermissions, StringComparer.OrdinalIgnoreCase);
+            foreach (var p in CashierPosPermissions)
+                posCashier.Add(p);
+            return posCashier;
+        }
+
         if (!string.Equals(appContext, ClientAppPolicy.Admin, StringComparison.OrdinalIgnoreCase))
             return effectivePermissions;
 

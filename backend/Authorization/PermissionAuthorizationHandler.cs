@@ -34,10 +34,10 @@ public sealed class PermissionAuthorizationHandler : AuthorizationHandler<Permis
             .Select(c => c.Value)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        if (permissionClaims.Count > 0)
+        if (permissionClaims.Count > 0
+            && PermissionImplication.IsSatisfied(requirement.Permission, permissionClaims))
         {
-            if (PermissionImplication.IsSatisfied(requirement.Permission, permissionClaims))
-                context.Succeed(requirement);
+            context.Succeed(requirement);
             return;
         }
 

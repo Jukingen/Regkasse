@@ -11,13 +11,10 @@ export default function AuthLayout() {
     const { isAuthenticated, isLoading, user, logout } = useAuth();
 
     const isOnLoginScreen = Array.isArray(segments) && segments.includes('login');
+    const isOnChangePasswordScreen =
+        Array.isArray(segments) && segments.includes('change-password');
 
-    console.log('🔐 AUTH LAYOUT: Checking auth state:', { isAuthenticated, isLoading, isOnLoginScreen });
-
-    // Show full-screen loader only when loading AND not on login screen. When user is on login
-    // and taps "Log In", context isLoading becomes true; we must keep Slot mounted so the
-    // login screen can show its own loading/error state instead of unmounting and losing it.
-    if (isLoading && !isOnLoginScreen) {
+    if (isLoading && !isOnLoginScreen && !isOnChangePasswordScreen) {
         return (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                 <WaveLoader size={32} color="#007AFF" />
@@ -25,19 +22,21 @@ export default function AuthLayout() {
         );
     }
 
-    // Kullanıcı giriş yapmış ama POS'a yetkisiz rolle girmeye çalışıyorsa: logout yap, login'de tut
     if (isAuthenticated && user && !isPosAllowedRole(user.role, user.roles)) {
-        console.warn('AuthLayout: authenticated user has no POS access, logging out. role:', user.role);
         logout();
         return <Slot />;
     }
 
-    // Kullanıcı giriş yapmış ve POS yetkisi var → tabs'a yönlendir
+    if (isAuthenticated && user?.mustChangePasswordOnNextLogin) {
+        if (!isOnChangePasswordScreen) {
+            return <Redirect href="/(auth)/change-password" />;
+        }
+        return <Slot />;
+    }
+
     if (isAuthenticated && user) {
-        console.log('AuthLayout: User authenticated with POS role, redirecting to tabs');
         return <Redirect href="/(tabs)/cash-register" />;
     }
 
-    console.log('🔐 AUTH LAYOUT: Rendering Slot');
     return <Slot />;
 }

@@ -251,6 +251,12 @@ public class RolePermissionMatrixTests
     }
 
     [Fact]
+    public void RoleHasPermission_Cashier_Has_LicenseView_ForPosMandantStatusGate()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.LicenseView));
+    }
+
+    [Fact]
     public void RoleHasPermission_Manager_Has_FinanzOnlineManage_ForRksvAdminHub()
     {
         Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.FinanzOnlineManage));

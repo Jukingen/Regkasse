@@ -26,6 +26,7 @@
     "cashCount": "Cash count",
     "difference": "Difference",
     "status": "Status",
+    "actions": "Actions",
     "closingDate": "Closing date",
     "fiscalTotal": "Fiscal gross",
     "fiscalTax": "Fiscal tax",
@@ -36,7 +37,23 @@
   "status": {
     "Active": "Active",
     "Completed": "Completed",
-    "Discrepancy": "Discrepancy"
+    "Discrepancy": "Discrepancy",
+    "RegisterOpen": "Register open"
+  },
+  "badges": {
+    "orphanedRegister": "Register only",
+    "staleShift": "> 8h"
+  },
+  "actions": {
+    "forceClose": "Force close shift",
+    "forceCloseTitle": "Force close shift?",
+    "forceCloseConfirm": "The register will be closed and active shift rows ended. Use only when a shift is stuck.",
+    "forceCloseSuccess": "Shift/register was closed.",
+    "forceCloseFailed": "Could not close the shift."
+  },
+  "warnings": {
+    "staleShiftsTitle": "Long-running open shifts",
+    "staleShiftsDescription": "{{count}} active shift(s) have been open for more than {{hours}} hours. Please review or close them."
   },
   "tse": {
     "yes": "Signed",

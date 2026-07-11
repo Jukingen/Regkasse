@@ -26,6 +26,7 @@
     "cashCount": "Sayılan nakit",
     "difference": "Fark",
     "status": "Durum",
+    "actions": "İşlemler",
     "closingDate": "Kapanış tarihi",
     "fiscalTotal": "Mali toplam",
     "fiscalTax": "Mali KDV",
@@ -36,7 +37,23 @@
   "status": {
     "Active": "Aktif",
     "Completed": "Tamamlandı",
-    "Discrepancy": "Fark"
+    "Discrepancy": "Fark",
+    "RegisterOpen": "Kasa açık"
+  },
+  "badges": {
+    "orphanedRegister": "Yalnızca kasa",
+    "staleShift": "> 8 sa."
+  },
+  "actions": {
+    "forceClose": "Vardiyayı zorla kapat",
+    "forceCloseTitle": "Vardiya zorla kapatılsın mı?",
+    "forceCloseConfirm": "Kasa kapatılır ve aktif vardiya satırları sonlandırılır. Yalnızca vardiya takılı kaldığında kullanın.",
+    "forceCloseSuccess": "Vardiya/kasa kapatıldı.",
+    "forceCloseFailed": "Vardiya kapatılamadı."
+  },
+  "warnings": {
+    "staleShiftsTitle": "Uzun süredir açık vardiyalar",
+    "staleShiftsDescription": "{{count}} aktif vardiya {{hours}} saatten uzun süredir açık. Lütfen kontrol edin veya kapatın."
   },
   "tse": {
     "yes": "İmzalı",

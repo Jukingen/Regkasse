@@ -31,6 +31,7 @@ export interface LoginResponse {
     tenantId?: string | null;
     tenantSlug?: string | null;
     tenantDisplayName?: string | null;
+    mustChangePasswordOnNextLogin?: boolean;
   };
 }
 
@@ -44,6 +45,7 @@ export interface User {
   roles?: string[];
   /** Backend permission claims (resource.action). Aligned with backend RolePermissionMatrix. */
   permissions?: string[];
+  mustChangePasswordOnNextLogin?: boolean;
 }
 
 // Login işlemi
@@ -202,6 +204,16 @@ export const refreshToken = async (): Promise<string | null> => {
     return null;
   }
 };
+
+export async function changeMyPassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  await apiClient.put('/UserManagement/me/password', {
+    currentPassword,
+    newPassword,
+  });
+}
 
 // Demo kullanıcı ile otomatik login
 export const loginWithDemoUser = async (): Promise<LoginResponse> => {

@@ -27,6 +27,12 @@ public sealed class AdminShiftRowDto
     public Guid? DailyClosingId { get; init; }
     public decimal? CashCount { get; init; }
     public string? Notes { get; init; }
+
+    /// <summary>True when the register is open without a matching active <see cref="Models.CashierShift"/> row.</summary>
+    public bool IsOrphanedRegisterSession { get; init; }
+
+    /// <summary>Hours since the register was opened (for stale-shift warnings).</summary>
+    public double? OpenDurationHours { get; init; }
 }
 
 public sealed class AdminDailyClosingOverviewRowDto

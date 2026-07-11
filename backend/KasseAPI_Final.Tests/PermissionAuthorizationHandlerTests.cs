@@ -344,6 +344,29 @@ public class PermissionAuthorizationHandlerTests
     }
 
     [Fact]
+    public async Task PermissionPolicy_CartManage_Allows_Cashier_When_Jwt_Has_AdminFilteredClaimsOnly()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var adminFiltered = AdminAppPermissionProfile.Filter(
+            ClientAppPolicy.Admin,
+            new[] { Roles.Cashier },
+            RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Cashier }));
+        var identity = new ClaimsIdentity("Test");
+        identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, "user-id"));
+        identity.AddClaim(new Claim(ClaimTypes.Role, Roles.Cashier));
+        foreach (var p in adminFiltered)
+            identity.AddClaim(new Claim(PermissionCatalog.PermissionClaimType, p));
+        var user = new ClaimsPrincipal(identity);
+
+        Assert.DoesNotContain(AppPermissions.CartManage, adminFiltered);
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.CartManage));
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
     public async Task PermissionPolicy_CartManage_Allows_Cashier_Role()
     {
         var provider = BuildAuthorizationServices();
@@ -351,6 +374,30 @@ public class PermissionAuthorizationHandlerTests
         var user = CreatePrincipalWithRoles(Roles.Cashier);
 
         var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.CartManage));
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task AuthorizeAsync_Cashier_HasLicenseViewPolicy()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = CreatePrincipalWithRoles(Roles.Cashier);
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.LicenseView));
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task AuthorizeAsync_Manager_LicenseManage_SatisfiesLicenseViewPolicy()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = CreatePrincipalWithPermissions(AppPermissions.LicenseManage);
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.LicenseView));
 
         Assert.True(result.Succeeded);
     }

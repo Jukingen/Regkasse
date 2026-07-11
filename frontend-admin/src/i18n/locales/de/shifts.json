@@ -26,6 +26,7 @@
     "cashCount": "Gezähltes Bargeld",
     "difference": "Differenz",
     "status": "Status",
+    "actions": "Aktionen",
     "closingDate": "Abschlussdatum",
     "fiscalTotal": "Fiskal Brutto",
     "fiscalTax": "Fiskal MwSt.",
@@ -36,7 +37,23 @@
   "status": {
     "Active": "Aktiv",
     "Completed": "Abgeschlossen",
-    "Discrepancy": "Differenz"
+    "Discrepancy": "Differenz",
+    "RegisterOpen": "Kasse geöffnet"
+  },
+  "badges": {
+    "orphanedRegister": "Nur Kassenöffnung",
+    "staleShift": "> 8 Std."
+  },
+  "actions": {
+    "forceClose": "Schicht erzwingen schließen",
+    "forceCloseTitle": "Schicht erzwingen schließen?",
+    "forceCloseConfirm": "Die Kasse wird geschlossen und aktive Schichtzeilen beendet. Verwenden Sie dies nur, wenn die Schicht hängen geblieben ist.",
+    "forceCloseSuccess": "Schicht/Kasse wurde geschlossen.",
+    "forceCloseFailed": "Schicht konnte nicht geschlossen werden."
+  },
+  "warnings": {
+    "staleShiftsTitle": "Lange offene Schichten",
+    "staleShiftsDescription": "{{count}} aktive Schicht(en) sind seit mehr als {{hours}} Stunden geöffnet. Bitte prüfen oder schließen."
   },
   "tse": {
     "yes": "Signiert",

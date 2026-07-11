@@ -6,11 +6,25 @@ namespace KasseAPI_Final.Tests;
 public class AdminAppPermissionProfileTests
 {
     [Fact]
-    public void Filter_PosContext_ReturnsUnchanged()
+    public void Filter_PosContext_ReturnsFullCashierPosPermissions()
     {
         var effective = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Cashier });
         var result = AdminAppPermissionProfile.Filter(ClientAppPolicy.Pos, new[] { Roles.Cashier }, effective);
-        Assert.Equal(effective.Count, result.Count);
+
+        foreach (var permission in AdminAppPermissionProfile.CashierPosPermissions)
+            Assert.Contains(permission, result);
+    }
+
+    [Fact]
+    public void Filter_PosContext_Cashier_MergesMatrixWhenEffectiveSubset()
+    {
+        var subset = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { AppPermissions.ProductView };
+        var result = AdminAppPermissionProfile.Filter(ClientAppPolicy.Pos, new[] { Roles.Cashier }, subset);
+
+        Assert.Contains(AppPermissions.ProductView, result);
+        Assert.Contains(AppPermissions.CartManage, result);
+        Assert.Contains(AppPermissions.PaymentTake, result);
+        Assert.Contains(AppPermissions.LicenseView, result);
     }
 
     [Fact]
@@ -31,6 +45,24 @@ public class AdminAppPermissionProfileTests
         Assert.DoesNotContain(AppPermissions.TseSign, result);
         Assert.DoesNotContain(AppPermissions.CashRegisterView, result);
         Assert.DoesNotContain(AppPermissions.PaymentTake, result);
+    }
+
+    [Fact]
+    public void CashierPosPermissions_IncludesLicenseView_ForPosMandantGate()
+    {
+        Assert.Contains(AppPermissions.LicenseView, AdminAppPermissionProfile.CashierPosPermissions);
+    }
+
+    [Fact]
+    public void Filter_Admin_Cashier_IncludesLicenseView()
+    {
+        var effective = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Cashier });
+        var result = AdminAppPermissionProfile.Filter(
+            ClientAppPolicy.Admin,
+            new[] { Roles.Cashier },
+            effective);
+
+        Assert.Contains(AppPermissions.LicenseView, result);
     }
 
     [Fact]

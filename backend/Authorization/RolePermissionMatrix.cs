@@ -167,6 +167,7 @@ public static class RolePermissionMatrix
                 AppPermissions.InvoiceView,
                 AppPermissions.ReportView,
                 AppPermissions.DailyClosingView,
+                AppPermissions.LicenseView,
                 AppPermissions.ReceiptReprint,
                 AppPermissions.KitchenView,
                 AppPermissions.TseSign,

@@ -162,6 +162,7 @@ interface User {
     permissions?: string[];
     /** Demo user flag from backend ApplicationUser.IsDemo. Use this for restrictions; do not infer from role. */
     isDemo?: boolean;
+    mustChangePasswordOnNextLogin?: boolean;
     token?: string;
 }
 
@@ -176,6 +177,7 @@ interface AuthContextType {
     login: (loginIdentifier: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
     checkAuthStatus: () => Promise<void>;
+    refreshUserFromBackend: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -777,6 +779,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // State'leri birlikte set et - önce user, sonra authentication
             const userWithToken = {
                 ...loggedInUser,
+                mustChangePasswordOnNextLogin:
+                    (loggedInUser as { mustChangePasswordOnNextLogin?: boolean }).mustChangePasswordOnNextLogin === true,
                 token: cleanToken // cleanToken'ı user state'ine ekle (JWT only)
             };
             setUser(userWithToken);
@@ -791,7 +795,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
             }, 100);
 
-            // Kullanıcı ayarlarını backend'den çek
+            // Kullanıcı ayarlarını backend'den çek (şifre değişimi bekleniyorsa atla — diğer API'ler 403 döner)
+            if (!userWithToken.mustChangePasswordOnNextLogin) {
             try {
                 authDevLog('Fetching user settings after login...');
 
@@ -823,6 +828,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (currentLang !== DEFAULT_TEXT_LOCALE) {
                     await persistAndChangeLanguage(DEFAULT_TEXT_LOCALE);
                 }
+            }
             }
 
             // State güncellemesinin tamamlanmasını bekle
@@ -918,6 +924,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [clearCartCache, stopInactivityTimer]);
 
+    const refreshUserFromBackend = useCallback(async () => {
+        const refreshed = await authService.validateToken();
+        if (refreshed?.id) {
+            const token = await sessionManager.getAccessToken();
+            setUser({ ...refreshed, token: token ?? undefined });
+            setIsAuthenticated(true);
+        }
+    }, []);
+
     // 🚀 STABLE CONTEXT VALUE to prevent infinite loops
     const contextValue = React.useMemo(() => ({
         user,
@@ -927,8 +942,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         error,
         login,
         logout,
-        checkAuthStatus: stableCheckAuthStatus
-    }), [user, isAuthenticated, isLoading, isAuthReady, error, login, logout, stableCheckAuthStatus]);
+        checkAuthStatus: stableCheckAuthStatus,
+        refreshUserFromBackend,
+    }), [user, isAuthenticated, isLoading, isAuthReady, error, login, logout, stableCheckAuthStatus, refreshUserFromBackend]);
 
     return (
         <AuthContext.Provider value={contextValue}>
