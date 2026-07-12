@@ -108,6 +108,8 @@ namespace KasseAPI_Final.Data
         /// <summary>Append-only log when TSE operational health classification changes.</summary>
         public DbSet<TseHealthAuditLog> TseHealthAuditLogs { get; set; }
         public DbSet<DailyClosing> DailyClosings { get; set; }
+        public DbSet<Monatsbeleg> Monatsbelege { get; set; }
+        public DbSet<Jahresbeleg> Jahresbelege { get; set; }
         public DbSet<TagesberichtReport> TagesberichtReports { get; set; }
         public DbSet<MonatsberichtReport> MonatsberichtReports { get; set; }
         public DbSet<JahresberichtReport> JahresberichtReports { get; set; }
@@ -1916,12 +1918,17 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.ClosingType).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TotalTaxAmount).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.TseSignature).IsRequired().HasColumnType("text");
+                entity.Property(e => e.TseSignature).HasColumnType("text");
+                entity.Property(e => e.TseSignatureTimestamp)
+                    .HasMaxLength(50)
+                    .HasColumnName("tse_signature_timestamp");
                 entity.Property(e => e.CertificateThumbprint)
                     .HasMaxLength(64)
                     .HasColumnName("certificate_thumbprint");
                 entity.HasIndex(e => e.CertificateThumbprint)
                     .HasFilter("\"certificate_thumbprint\" IS NOT NULL");
+                entity.Property(e => e.PreviousSignature).HasColumnType("text");
+                entity.Property(e => e.Environment).HasMaxLength(20);
                 entity.Property(e => e.JwsHeader).HasColumnType("text");
                 entity.Property(e => e.JwsPayload).HasColumnType("text");
                 entity.Property(e => e.JwsSignature).HasColumnType("text");
@@ -1934,6 +1941,76 @@ namespace KasseAPI_Final.Data
                     .HasFilter("\"Status\" = 'Completed'");
                 entity.HasOne(e => e.User).WithMany().HasForeignKey(e => e.UserId);
                 entity.HasOne(e => e.CashRegister).WithMany().HasForeignKey(e => e.CashRegisterId);
+            });
+
+            builder.Entity<Monatsbeleg>(entity =>
+            {
+                entity.ToTable("monatsbeleg");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.TenantId);
+                entity.Property(e => e.CashRegisterId).HasColumnName("cash_register_id").IsRequired();
+                entity.Property(e => e.TotalCash).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TotalCard).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TotalVoucher).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TotalOther).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TotalGross).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TotalTax).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TaxRate20).HasColumnName("tax_rate_20").HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TaxRate10).HasColumnName("tax_rate_10").HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TaxRate0).HasColumnName("tax_rate_0").HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TseSignature).HasColumnType("text");
+                entity.Property(e => e.PreviousSignature).HasColumnType("text");
+                entity.Property(e => e.Environment).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.CreatedByUserId).HasColumnName("created_by_user_id").IsRequired().HasMaxLength(450);
+                entity.Property(e => e.CreatedAtUtc).HasColumnName("created_at_utc");
+                entity.Property(e => e.UpdatedAtUtc).HasColumnName("updated_at_utc");
+                entity.Property(e => e.DailyClosingId).HasColumnName("daily_closing_id");
+                entity.HasIndex(e => new { e.CashRegisterId, e.Year, e.Month })
+                    .IsUnique()
+                    .HasDatabaseName("ix_monatsbeleg_per_register_month");
+                entity.HasOne(e => e.CashRegister).WithMany().HasForeignKey(e => e.CashRegisterId);
+                entity.HasOne(e => e.DailyClosing).WithMany().HasForeignKey(e => e.DailyClosingId);
+            });
+
+            builder.Entity<Jahresbeleg>(entity =>
+            {
+                entity.ToTable("jahresbeleg");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.TenantId);
+                entity.Property(e => e.CashRegisterId).HasColumnName("cash_register_id").IsRequired();
+                entity.Property(e => e.TotalCash).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TotalCard).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TotalVoucher).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TotalOther).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TotalGross).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TotalTax).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TaxRate20).HasColumnName("tax_rate_20").HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TaxRate10).HasColumnName("tax_rate_10").HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TaxRate0).HasColumnName("tax_rate_0").HasColumnType("decimal(18,2)");
+                entity.Property(e => e.MonthlyReferences).HasColumnType("text");
+                entity.Property(e => e.TseSignature).HasColumnType("text");
+                entity.Property(e => e.PreviousSignature).HasColumnType("text");
+                entity.Property(e => e.Environment).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.IsDecemberMonatsbeleg).HasColumnName("is_december_monatsbeleg");
+                entity.Property(e => e.CreatedByUserId).HasColumnName("created_by_user_id").IsRequired().HasMaxLength(450);
+                entity.Property(e => e.CreatedAtUtc).HasColumnName("created_at_utc");
+                entity.Property(e => e.UpdatedAtUtc).HasColumnName("updated_at_utc");
+                entity.Property(e => e.DailyClosingId).HasColumnName("daily_closing_id");
+                entity.HasIndex(e => new { e.CashRegisterId, e.Year })
+                    .IsUnique()
+                    .HasDatabaseName("ix_jahresbeleg_per_register_year");
+                entity.HasOne(e => e.CashRegister).WithMany().HasForeignKey(e => e.CashRegisterId);
+                entity.HasOne(e => e.DailyClosing).WithMany().HasForeignKey(e => e.DailyClosingId);
             });
 
             builder.Entity<TagesberichtReport>(entity =>
@@ -3047,6 +3124,8 @@ namespace KasseAPI_Final.Data
             OfflineOrder oo => oo.CashRegisterId,
             CardPaymentTransaction ct => ct.CashRegisterId,
             DailyClosing dc => dc.CashRegisterId,
+            Monatsbeleg mb => mb.CashRegisterId,
+            Jahresbeleg jb => jb.CashRegisterId,
             TseSignature ts => ts.CashRegisterId,
             SignatureChainState sc => sc.CashRegisterId,
             Receipt r => r.CashRegisterId,

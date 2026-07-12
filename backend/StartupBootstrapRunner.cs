@@ -55,8 +55,15 @@ namespace KasseAPI_Final
 
             await RoleSeedData.SeedRolesAsync(roleManager);
             var tenantMembershipProvisioner = serviceProvider.GetRequiredService<IUserTenantMembershipProvisioner>();
-            await UserSeedData.SeedUsersAsync(userManager, tenantMembershipProvisioner);
             var webEnv = serviceProvider.GetRequiredService<IWebHostEnvironment>();
+            await UserSeedData.SeedUsersAsync(userManager, tenantMembershipProvisioner, webEnv);
+
+            var userSeedLogger = serviceProvider.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("KasseAPI_Final.Data.UserSeedData");
+            await UserSeedData.WarnIfDefaultSeedUsersExistInProductionAsync(
+                userManager,
+                webEnv,
+                userSeedLogger);
             await DemoTenantAdminSeed.SeedAsync(context, userManager, tenantMembershipProvisioner, webEnv);
             await AddDemoData.AddDemoDataAsync(context);
 

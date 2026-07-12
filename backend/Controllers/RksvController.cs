@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Rksv;
 
 namespace KasseAPI_Final.Controllers;
 
@@ -14,14 +15,29 @@ public sealed class RksvController : ControllerBase
 {
     private readonly IMonatsbelegReminderService _monatsbelegReminder;
     private readonly IRksvReminderService _rksvReminder;
+    private readonly IRksvEnvironmentService _rksvEnvironment;
 
     public RksvController(
         IMonatsbelegReminderService monatsbelegReminder,
-        IRksvReminderService rksvReminder)
+        IRksvReminderService rksvReminder,
+        IRksvEnvironmentService rksvEnvironment)
     {
         _monatsbelegReminder = monatsbelegReminder;
         _rksvReminder = rksvReminder;
+        _rksvEnvironment = rksvEnvironment;
     }
+
+    /// <summary>RKSV deployment environment (Demo/Production) for POS and Admin badges.</summary>
+    [HttpGet("environment")]
+    [ProducesResponseType(typeof(RksvEnvironmentStatusDto), StatusCodes.Status200OK)]
+    public ActionResult<RksvEnvironmentStatusDto> GetEnvironment() =>
+        Ok(RksvEnvironmentStatusDto.FromService(_rksvEnvironment));
+
+    /// <summary>RKSV environment status (simulation flag, labels, TSE display) for POS and Admin UI.</summary>
+    [HttpGet("status")]
+    [ProducesResponseType(typeof(RksvStatusDto), StatusCodes.Status200OK)]
+    public ActionResult<RksvStatusDto> GetStatus() =>
+        Ok(RksvStatusDto.FromService(_rksvEnvironment));
 
     /// <summary>Monatsbeleg reminder status for the given cash register (Vienna calendar month).</summary>
     [HttpGet("monatsbeleg/status/{cashRegisterId:guid}")]

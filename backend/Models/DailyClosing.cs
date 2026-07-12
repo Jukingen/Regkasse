@@ -41,14 +41,35 @@ namespace KasseAPI_Final.Models
         [Required]
         public int TransactionCount { get; set; }
 
-        [Required]
         [Column(TypeName = "text")]
-        public string TseSignature { get; set; } = string.Empty;
+        public string? TseSignature { get; set; }
+
+        [MaxLength(50)]
+        [Column("tse_signature_timestamp")]
+        public string? TseSignatureTimestamp { get; set; }
 
         /// <summary>SHA-1 thumbprint of the TSE signing certificate used for <see cref="TseSignature"/> (DEP grouping).</summary>
         [MaxLength(64)]
         [Column("certificate_thumbprint")]
         public string? CertificateThumbprint { get; set; }
+
+        /// <summary>Alias for <see cref="CertificateThumbprint"/> (RKSV Phase 1 naming).</summary>
+        [NotMapped]
+        public string? TseCertificateThumbprint
+        {
+            get => CertificateThumbprint;
+            set => CertificateThumbprint = value;
+        }
+
+        [Column(TypeName = "text")]
+        public string? PreviousSignature { get; set; }
+
+        public int SignatureChainLength { get; set; }
+
+        public bool IsSimulated { get; set; }
+
+        [MaxLength(20)]
+        public string? Environment { get; set; }
 
         // RKSV verification normalization (Phase 1) - nullable
         [MaxLength(50)]

@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
@@ -8,8 +10,48 @@ namespace KasseAPI_Final.Data
 {
     public static class UserSeedData
     {
-        public static async Task SeedUsersAsync(UserManager<ApplicationUser> userManager, IUserTenantMembershipProvisioner tenantMembershipProvisioner)
+        internal const string DefaultAdminEmail = "admin@admin.com";
+        internal const string DefaultDemoEmail = "demo@demo.com";
+
+        private static readonly string[] DefaultSeedUserEmails =
+        [
+            DefaultAdminEmail,
+            DefaultDemoEmail,
+        ];
+
+        /// <summary>
+        /// Production safety check: warn when legacy bootstrap seed accounts are still present.
+        /// </summary>
+        public static async Task WarnIfDefaultSeedUsersExistInProductionAsync(
+            UserManager<ApplicationUser> userManager,
+            IHostEnvironment hostEnvironment,
+            ILogger logger,
+            CancellationToken cancellationToken = default)
         {
+            if (!hostEnvironment.IsProduction())
+                return;
+
+            foreach (var email in DefaultSeedUserEmails)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var user = await userManager.FindByEmailAsync(email).ConfigureAwait(false);
+                if (user == null)
+                    continue;
+
+                logger.LogWarning(
+                    "Default seed user {Email} exists in production. Change the password, deactivate the account, or remove it.",
+                    email);
+            }
+        }
+
+        public static async Task SeedUsersAsync(
+            UserManager<ApplicationUser> userManager,
+            IUserTenantMembershipProvisioner tenantMembershipProvisioner,
+            IHostEnvironment hostEnvironment)
+        {
+            if (hostEnvironment.IsProduction())
+                return;
+
             // Eski kullanıcıları sil
             var oldAdmin = await userManager.FindByEmailAsync("admin@kasse.com");
             if (oldAdmin != null)
@@ -42,6 +84,7 @@ namespace KasseAPI_Final.Data
                     IsActive = true,
                     AccountType = "Admin",
                     IsDemo = false,
+                    MustChangePasswordOnNextLogin = true,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -102,6 +145,7 @@ namespace KasseAPI_Final.Data
                     IsActive = true,
                     AccountType = "Cashier",
                     IsDemo = true,
+                    MustChangePasswordOnNextLogin = true,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };

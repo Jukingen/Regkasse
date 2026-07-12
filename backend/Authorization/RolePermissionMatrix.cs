@@ -136,7 +136,9 @@ public static class RolePermissionMatrix
                 AppPermissions.RksvNullbelegCreate,
                 AppPermissions.RksvStartbelegCreate,
                 AppPermissions.RksvMonatsbelegCreate,
+                AppPermissions.RksvMonatsbelegView,
                 AppPermissions.RksvJahresbelegCreate,
+                AppPermissions.RksvJahresbelegView,
                 AppPermissions.RksvSchlussbelegCreate,
                 AppPermissions.AuditView, AppPermissions.AuditExport,
                 AppPermissions.SettingsView,
@@ -173,7 +175,9 @@ public static class RolePermissionMatrix
                 AppPermissions.TseSign,
                 AppPermissions.RksvStartbelegCreate,
                 AppPermissions.RksvMonatsbelegCreate,
+                AppPermissions.RksvMonatsbelegView,
                 AppPermissions.RksvJahresbelegCreate,
+                AppPermissions.RksvJahresbelegView,
                 AppPermissions.VoucherIssue,
             }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
 
@@ -217,7 +221,9 @@ public static class RolePermissionMatrix
                 AppPermissions.RksvNullbelegCreate,
                 AppPermissions.RksvStartbelegCreate,
                 AppPermissions.RksvMonatsbelegCreate,
+                AppPermissions.RksvMonatsbelegView,
                 AppPermissions.RksvJahresbelegCreate,
+                AppPermissions.RksvJahresbelegView,
             }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
         };
 

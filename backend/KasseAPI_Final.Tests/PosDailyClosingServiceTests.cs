@@ -4,12 +4,16 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Reports;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -17,6 +21,20 @@ namespace KasseAPI_Final.Tests;
 
 public class PosDailyClosingServiceTests
 {
+    private static IRksvEnvironmentService CreateRksvEnvironment() =>
+        new RksvEnvironmentService(
+            new ConfigurationBuilder().Build(),
+            TenantTestDoubles.HostEnvironmentReturning(Environments.Development));
+
+    private static Mock<UserManager<ApplicationUser>> CreateUserManager(ApplicationUser user)
+    {
+        var store = new Mock<IUserStore<ApplicationUser>>();
+        var mgr = new Mock<UserManager<ApplicationUser>>(
+            store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        mgr.Setup(m => m.FindByIdAsync(user.Id)).ReturnsAsync(user);
+        return mgr;
+    }
+
     private static AppDbContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -176,7 +194,14 @@ public class PosDailyClosingServiceTests
 
         var cashRegisterShift = new CashRegisterShiftService(
             ctx,
-            Mock.Of<UserManager<ApplicationUser>>(),
+            CreateUserManager(new ApplicationUser
+            {
+                Id = userId,
+                UserName = userId,
+                Email = $"{userId}@test",
+                FirstName = "Max",
+                LastName = "Test",
+            }).Object,
             Mock.Of<ILogger<CashRegisterShiftService>>(),
             TenantTestDoubles.PrimaryTenantResolver,
             RksvStartbelegTestDoubles.GateOff(),
@@ -190,7 +215,11 @@ public class PosDailyClosingServiceTests
             dailySummary.Object,
             TenantTestDoubles.PrimaryTenantResolver,
             Mock.Of<IAuditLogService>(),
-            Mock.Of<ILogger<PosDailyClosingService>>());
+            Mock.Of<ILogger<PosDailyClosingService>>(),
+            TenantTestDoubles.HostEnvironmentReturning(Environments.Development),
+            Options.Create(new TseOptions { Mode = "Fake", TseMode = "Demo" }),
+            new ConfigurationBuilder().Build(),
+            CreateRksvEnvironment());
 
         var result = await svc.PerformDailyClosingAsync(
             userId,
@@ -278,12 +307,19 @@ public class PosDailyClosingServiceTests
         Assert.NotNull(status.LastClosingPerformedAt);
     }
 
-    private static PosDailyClosingService CreateService(AppDbContext ctx, ITagesabschlussService? tagesabschluss = null)
+    private static PosDailyClosingService CreateService(AppDbContext ctx, ITagesabschlussService? tagesabschluss = null, string cashierUserId = "cashier-1")
     {
         var tages = tagesabschluss ?? CreateDefaultTagesabschlussService();
         var cashRegisterShift = new CashRegisterShiftService(
             ctx,
-            Mock.Of<UserManager<ApplicationUser>>(),
+            CreateUserManager(new ApplicationUser
+            {
+                Id = cashierUserId,
+                UserName = cashierUserId,
+                Email = $"{cashierUserId}@test",
+                FirstName = "Max",
+                LastName = "Test",
+            }).Object,
             Mock.Of<ILogger<CashRegisterShiftService>>(),
             TenantTestDoubles.PrimaryTenantResolver,
             RksvStartbelegTestDoubles.GateOff(),
@@ -297,7 +333,11 @@ public class PosDailyClosingServiceTests
             Mock.Of<IDailyClosingService>(),
             TenantTestDoubles.PrimaryTenantResolver,
             Mock.Of<IAuditLogService>(),
-            Mock.Of<ILogger<PosDailyClosingService>>());
+            Mock.Of<ILogger<PosDailyClosingService>>(),
+            TenantTestDoubles.HostEnvironmentReturning(Environments.Development),
+            Options.Create(new TseOptions { Mode = "Fake", TseMode = "Demo" }),
+            new ConfigurationBuilder().Build(),
+            CreateRksvEnvironment());
     }
 
     private static ITagesabschlussService CreateDefaultTagesabschlussService()

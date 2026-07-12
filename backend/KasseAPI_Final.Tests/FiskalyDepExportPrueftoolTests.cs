@@ -5,6 +5,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Export;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Tests.Fixtures;
 using KasseAPI_Final.Tse;
@@ -39,7 +40,7 @@ public sealed class FiskalyDepExportPrueftoolTests
         await using var db = CreateDb();
         var registerId = await SeedRegisterWithSignedReceiptsAsync(db, signedReceipts, thumbprint);
 
-        var service = new RksvDepExportService(db, fiskalyProvider, Mock.Of<ILogger<RksvDepExportService>>());
+        var service = CreateDepExportService(db, fiskalyProvider);
         var from = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         var to = new DateTime(2026, 1, 31, 23, 59, 59, DateTimeKind.Utc);
 
@@ -84,7 +85,7 @@ public sealed class FiskalyDepExportPrueftoolTests
         await using var db = CreateDb();
         var registerId = await SeedRegisterWithSignedReceiptsAsync(db, signedReceipts, thumbprint);
 
-        var service = new RksvDepExportService(db, fiskalyProvider, Mock.Of<ILogger<RksvDepExportService>>());
+        var service = CreateDepExportService(db, fiskalyProvider);
         var from = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         var to = new DateTime(2026, 1, 31, 23, 59, 59, DateTimeKind.Utc);
 
@@ -92,6 +93,7 @@ public sealed class FiskalyDepExportPrueftoolTests
         var crypto = await service.GenerateCryptoMaterialAsync(registerId);
 
         var tempDir = Path.Combine(Path.GetTempPath(), $"regkasse-fiskaly-prueftool-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
         var depPath = Path.Combine(tempDir, "dep-export.json");
         var cryptoPath = Path.Combine(tempDir, "crypto-material.json");
         var outputDir = Path.Combine(tempDir, "verification_output");
@@ -258,6 +260,20 @@ public sealed class FiskalyDepExportPrueftoolTests
             WriteIndented = true,
         });
         File.WriteAllText(path, json);
+    }
+
+    private static RksvDepExportService CreateDepExportService(AppDbContext db, ITseKeyProvider keyProvider)
+    {
+        var env = new Mock<IRksvEnvironmentService>();
+        env.Setup(x => x.IsDemoMode()).Returns(true);
+        env.Setup(x => x.IsTseSimulated()).Returns(true);
+
+        return new RksvDepExportService(
+            db,
+            keyProvider,
+            env.Object,
+            Mock.Of<IRksvDepPrueftoolRunner>(),
+            Mock.Of<ILogger<RksvDepExportService>>());
     }
 
     private static AppDbContext CreateDb()

@@ -29,6 +29,8 @@ public sealed class RksvDepExportEnvelopeDto
 
     public int BelegCount { get; set; }
 
+    public int BelegeGruppeCount { get; set; }
+
     public Guid CashRegisterId { get; set; }
 
     public string RegisterNumber { get; set; } = string.Empty;
@@ -36,4 +38,12 @@ public sealed class RksvDepExportEnvelopeDto
     public DateTime FromUtc { get; set; }
 
     public DateTime ToUtc { get; set; }
+
+    public bool IsDemo { get; set; }
+
+    public string Environment { get; set; } = string.Empty;
+
+    public bool FormatValidated { get; set; }
+
+    public Models.Export.RksvDepExportValidationResult? FormatValidation { get; set; }
 }

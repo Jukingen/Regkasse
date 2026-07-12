@@ -1,7 +1,9 @@
 using System.Security.Cryptography.X509Certificates;
+using System.Text.Json;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Export;
+using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Tse;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,17 +13,31 @@ public class RksvDepExportService : IRksvDepExportService
 {
     private static readonly TimeSpan MaxPeriod = TimeSpan.FromDays(366);
 
+    internal const string DemoLegalNoticeDe =
+        "DEMO / NICHT FISKAL — Dieser DEP-Export (Signaturjournal) dient nur zu Testzwecken. "
+        + "Er ersetzt keine amtliche Betriebsprüfung und ist ohne produktive TSE-Zertifikate nicht rechtlich bindend.";
+
+    internal const string ProductionLegalNoticeDe =
+        "Dieser DEP-Export (Signaturjournal) dient der Datenerfassung gemäß RKSV §7. "
+        + "Er ersetzt keine amtliche Betriebsprüfung; die fiskalische Gültigkeit erfordert eine erfolgreiche BMF-Prüfung.";
+
     private readonly AppDbContext _context;
     private readonly ITseKeyProvider _tseKeyProvider;
+    private readonly IRksvEnvironmentService _rksvEnv;
+    private readonly IRksvDepPrueftoolRunner _prueftoolRunner;
     private readonly ILogger<RksvDepExportService> _logger;
 
     public RksvDepExportService(
         AppDbContext context,
         ITseKeyProvider tseKeyProvider,
+        IRksvEnvironmentService rksvEnv,
+        IRksvDepPrueftoolRunner prueftoolRunner,
         ILogger<RksvDepExportService> logger)
     {
         _context = context;
         _tseKeyProvider = tseKeyProvider;
+        _rksvEnv = rksvEnv;
+        _prueftoolRunner = prueftoolRunner;
         _logger = logger;
     }
 
@@ -104,6 +120,352 @@ public class RksvDepExportService : IRksvDepExportService
             BelegeGruppe = belegeGruppe,
         };
     }
+
+    public async Task<RksvDepExportBuildResult> GenerateDepExportWithValidationAsync(
+        Guid cashRegisterId,
+        DateTime fromUtc,
+        DateTime toUtc,
+        bool includeSpecialReceipts = true,
+        bool includeDailyClosings = true,
+        CancellationToken cancellationToken = default)
+    {
+        var export = await GenerateDepExportAsync(
+                cashRegisterId,
+                fromUtc,
+                toUtc,
+                includeSpecialReceipts,
+                includeDailyClosings,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        var (groupCount, belegCount) = RksvDepExportStats.Count(export);
+        var exportJson = JsonSerializer.Serialize(export, BmfJsonOptions);
+        var validation = await ValidateExportFormatAsync(exportJson, cancellationToken).ConfigureAwait(false);
+        var isDemo = _rksvEnv.IsDemoMode() || _rksvEnv.IsTseSimulated();
+        var environment = isDemo ? "Demo" : "Production";
+
+        var registerNumber = await _context.CashRegisters
+            .AsNoTracking()
+            .Where(c => c.Id == cashRegisterId)
+            .Select(c => c.RegisterNumber)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false) ?? string.Empty;
+
+        return new RksvDepExportBuildResult
+        {
+            Root = export,
+            CashRegisterId = cashRegisterId,
+            RegisterNumber = registerNumber,
+            FromUtc = NormalizeUtc(fromUtc),
+            ToUtc = NormalizeUtc(toUtc),
+            BelegCount = belegCount,
+            BelegeGruppeCount = groupCount,
+            IsDemo = isDemo,
+            Environment = environment,
+            FormatValidated = validation.IsValid,
+            LegalNotice = isDemo ? DemoLegalNoticeDe : ProductionLegalNoticeDe,
+        };
+    }
+
+    public Task<RksvDepExportValidationResult> ValidateExportFormatAsync(
+        string exportJson,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var isDemo = _rksvEnv.IsDemoMode() || _rksvEnv.IsTseSimulated();
+        var environment = isDemo ? "Demo" : "Production";
+        var errors = new List<string>();
+        var warnings = new List<string>();
+        var groupCount = 0;
+        var belegCount = 0;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(exportJson);
+            var root = doc.RootElement;
+
+            if (!root.TryGetProperty("Belege-Gruppe", out var belegeGruppe))
+            {
+                errors.Add("Missing required property 'Belege-Gruppe'.");
+            }
+            else if (belegeGruppe.ValueKind != JsonValueKind.Array)
+            {
+                errors.Add("'Belege-Gruppe' must be a JSON array.");
+            }
+            else
+            {
+                groupCount = belegeGruppe.GetArrayLength();
+                if (groupCount == 0)
+                    errors.Add("'Belege-Gruppe' must contain at least one certificate group.");
+
+                var groupIndex = 0;
+                foreach (var group in belegeGruppe.EnumerateArray())
+                {
+                    groupIndex++;
+                    ValidateCertificateGroup(group, groupIndex, isDemo, errors, warnings, ref belegCount);
+                }
+            }
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "DEP export format validation failed: invalid JSON");
+            errors.Add($"Invalid JSON: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "DEP export format validation failed");
+            errors.Add($"Validation error: {ex.Message}");
+        }
+
+        return Task.FromResult(new RksvDepExportValidationResult
+        {
+            IsValid = errors.Count == 0,
+            IsDemo = isDemo,
+            Environment = environment,
+            BelegeGruppeCount = groupCount,
+            BelegCount = belegCount,
+            Errors = errors,
+            Warnings = warnings,
+        });
+    }
+
+    public Task<RksvDepPrueftoolResult> RunPrueftoolAsync(
+        string exportJson,
+        CancellationToken cancellationToken = default) =>
+        RunPrueftoolAsync(exportJson, Guid.Empty, forceRun: false, cancellationToken);
+
+    public async Task<RksvDepPrueftoolResult> RunPrueftoolAsync(
+        string exportJson,
+        Guid cashRegisterId,
+        bool forceRun,
+        CancellationToken cancellationToken = default)
+    {
+        RksvDepExportRootDto export;
+        try
+        {
+            export = JsonSerializer.Deserialize<RksvDepExportRootDto>(exportJson, BmfJsonOptions)
+                     ?? new RksvDepExportRootDto();
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "DEP Prüftool: invalid export JSON");
+            return new RksvDepPrueftoolResult
+            {
+                Success = false,
+                IsDemo = _rksvEnv.IsDemoMode() || _rksvEnv.IsTseSimulated(),
+                Environment = _rksvEnv.IsDemoMode() ? "Demo" : "Production",
+                Message = "Invalid export JSON",
+                ToolOutput = ex.Message,
+                ValidatedAtUtc = DateTime.UtcNow,
+            };
+        }
+
+        var isDemo = _rksvEnv.IsDemoMode() || _rksvEnv.IsTseSimulated();
+        if (!isDemo && cashRegisterId == Guid.Empty)
+        {
+            return new RksvDepPrueftoolResult
+            {
+                Success = false,
+                IsDemo = false,
+                Environment = "Production",
+                Message = "cashRegisterId is required for production Prüftool runs",
+                ToolOutput = "Provide cashRegisterId in the request body for crypto material generation.",
+                ValidatedAtUtc = DateTime.UtcNow,
+            };
+        }
+
+        return await RunPrueftoolAsync(cashRegisterId, export, forceRun, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<RksvDepPrueftoolResult> RunPrueftoolAsync(
+        Guid cashRegisterId,
+        RksvDepExportRootDto export,
+        bool forceRun = false,
+        CancellationToken cancellationToken = default)
+    {
+        var isDemo = _rksvEnv.IsDemoMode() || _rksvEnv.IsTseSimulated();
+        var environment = isDemo ? "Demo" : "Production";
+        var validatedAt = DateTime.UtcNow;
+
+        if (isDemo && !forceRun)
+        {
+            _logger.LogInformation(
+                "DEP Prüftool skipped in demo mode for register {RegisterId}",
+                cashRegisterId);
+
+            return new RksvDepPrueftoolResult
+            {
+                Success = true,
+                IsDemo = true,
+                Skipped = true,
+                Environment = environment,
+                Message = "Prüftool validation skipped in demo mode",
+                ToolOutput = "Skipped — use forceRun=true or production environment for BMF verification.",
+                ValidatedAtUtc = validatedAt,
+            };
+        }
+
+        if (!_prueftoolRunner.IsAvailable(out var unavailableReason))
+        {
+            var message = isDemo
+                ? "Prüftool not available in demo environment"
+                : "Prüftool validation required but BMF verifier is not available";
+
+            _logger.LogWarning(
+                "DEP Prüftool unavailable for register {RegisterId}: {Reason}",
+                cashRegisterId,
+                unavailableReason);
+
+            return new RksvDepPrueftoolResult
+            {
+                Success = !isDemo ? false : true,
+                IsDemo = isDemo,
+                Skipped = false,
+                Environment = environment,
+                Message = message,
+                ToolOutput = unavailableReason ?? "Prüftool unavailable",
+                ValidatedAtUtc = validatedAt,
+            };
+        }
+
+        var tempDir = Path.Combine(Path.GetTempPath(), $"regkasse-dep-prueftool-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var depPath = Path.Combine(tempDir, "dep-export.json");
+            var cryptoPath = Path.Combine(tempDir, "crypto-material.json");
+            var outputDir = Path.Combine(tempDir, "verification_output");
+
+            var depJson = JsonSerializer.Serialize(export, BmfJsonOptions);
+            await File.WriteAllTextAsync(depPath, depJson, cancellationToken).ConfigureAwait(false);
+
+            var crypto = await GenerateCryptoMaterialAsync(cashRegisterId, cancellationToken).ConfigureAwait(false);
+            RksvDepPrueftoolCryptoMaterialWriter.Write(crypto, cryptoPath);
+
+            var runResult = _prueftoolRunner.RunCheckDepExport(depPath, cryptoPath, outputDir);
+            var passed = runResult.ExitCode == 0
+                         && string.Equals(runResult.VerificationState, "PASS", StringComparison.OrdinalIgnoreCase);
+            var toolOutput = string.Join(
+                Environment.NewLine,
+                new[] { runResult.StdOut, runResult.StdErr }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+            _logger.LogInformation(
+                "DEP Prüftool finished for register {RegisterId}: exit={ExitCode} state={State} demo={IsDemo}",
+                cashRegisterId,
+                runResult.ExitCode,
+                runResult.VerificationState,
+                isDemo);
+
+            return new RksvDepPrueftoolResult
+            {
+                Success = passed,
+                IsDemo = isDemo,
+                Skipped = false,
+                Environment = environment,
+                Message = passed
+                    ? "Prüftool validation passed"
+                    : "Prüftool validation failed",
+                VerificationState = runResult.VerificationState,
+                ToolOutput = string.IsNullOrWhiteSpace(toolOutput)
+                    ? $"Exit code {runResult.ExitCode}"
+                    : toolOutput,
+                ValidatedAtUtc = validatedAt,
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "DEP Prüftool validation failed for register {RegisterId}", cashRegisterId);
+            return new RksvDepPrueftoolResult
+            {
+                Success = false,
+                IsDemo = isDemo,
+                Skipped = false,
+                Environment = environment,
+                Message = "Prüftool validation failed",
+                ToolOutput = ex.Message,
+                ValidatedAtUtc = validatedAt,
+            };
+        }
+        finally
+        {
+            try
+            {
+                if (Directory.Exists(tempDir))
+                    Directory.Delete(tempDir, recursive: true);
+            }
+            catch
+            {
+                // best effort cleanup
+            }
+        }
+    }
+
+    private static void ValidateCertificateGroup(
+        JsonElement group,
+        int groupIndex,
+        bool isDemo,
+        List<string> errors,
+        List<string> warnings,
+        ref int belegCount)
+    {
+        if (!group.TryGetProperty("Signaturzertifikat", out var signaturzertifikat)
+            || signaturzertifikat.ValueKind != JsonValueKind.String
+            || string.IsNullOrWhiteSpace(signaturzertifikat.GetString()))
+        {
+            errors.Add($"Group {groupIndex}: missing or empty 'Signaturzertifikat'.");
+        }
+
+        if (!group.TryGetProperty("Zertifizierungsstellen", out var zertifizierungsstellen)
+            || zertifizierungsstellen.ValueKind != JsonValueKind.Array)
+        {
+            errors.Add($"Group {groupIndex}: missing 'Zertifizierungsstellen' array.");
+        }
+        else if (!isDemo && zertifizierungsstellen.GetArrayLength() == 0)
+        {
+            warnings.Add(
+                $"Group {groupIndex}: empty 'Zertifizierungsstellen' — expected production PKI issuer chain.");
+        }
+
+        if (!group.TryGetProperty("Belege-kompakt", out var belegeKompakt)
+            || belegeKompakt.ValueKind != JsonValueKind.Array)
+        {
+            errors.Add($"Group {groupIndex}: missing 'Belege-kompakt' array.");
+            return;
+        }
+
+        if (belegeKompakt.GetArrayLength() == 0)
+        {
+            errors.Add($"Group {groupIndex}: 'Belege-kompakt' must contain at least one compact JWS.");
+            return;
+        }
+
+        var belegIndex = 0;
+        foreach (var beleg in belegeKompakt.EnumerateArray())
+        {
+            belegIndex++;
+            belegCount++;
+
+            if (beleg.ValueKind != JsonValueKind.String)
+            {
+                errors.Add($"Group {groupIndex}, beleg {belegIndex}: 'Belege-kompakt' entries must be compact JWS strings.");
+                continue;
+            }
+
+            if (!IsValidCompactJws(beleg.GetString()))
+            {
+                errors.Add($"Group {groupIndex}, beleg {belegIndex}: invalid compact JWS (expected header.payload.signature).");
+            }
+        }
+    }
+
+    private static readonly JsonSerializerOptions BmfJsonOptions = new()
+    {
+        PropertyNamingPolicy = null,
+        WriteIndented = true,
+    };
 
     public async Task<CryptoMaterialDto> GenerateCryptoMaterialAsync(
         Guid cashRegisterId,

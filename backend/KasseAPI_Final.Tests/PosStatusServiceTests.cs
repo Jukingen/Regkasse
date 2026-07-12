@@ -3,9 +3,12 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -25,6 +28,13 @@ public class PosStatusServiceTests
             .Options;
         return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(TenantId));
     }
+
+    private static IRksvEnvironmentService CreateDemoRksvEnvironment() =>
+        new RksvEnvironmentService(
+            new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string?> { ["RKSV:Mode"] = "Demo" })
+                .Build(),
+            Mock.Of<IHostEnvironment>(h => h.EnvironmentName == Environments.Development));
 
     [Fact]
     public async Task GetOverviewAsync_ReturnsLicenseRegisterAndSettingsSnapshot()
@@ -73,7 +83,7 @@ public class PosStatusServiceTests
                 MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterReady,
             });
 
-        var svc = new PosStatusService(license.Object, readiness.Object, ctx);
+        var svc = new PosStatusService(license.Object, readiness.Object, CreateDemoRksvEnvironment(), ctx);
         var principal = new ClaimsPrincipal(new ClaimsIdentity(
             new[] { new Claim(ClaimTypes.NameIdentifier, UserId) },
             "Test"));
@@ -88,6 +98,8 @@ public class PosStatusServiceTests
         Assert.NotNull(overview.Settings.CashRegisterId);
         Assert.Equal(updatedAt.Ticks, overview.Settings.SettingsVersion);
         Assert.True((DateTime.UtcNow - overview.ServerTimeUtc).TotalSeconds < 5);
+        Assert.Equal("Demo", overview.RksvEnvironment.Environment);
+        Assert.True(overview.RksvEnvironment.IsSimulated);
     }
 
     [Fact]
@@ -156,7 +168,7 @@ public class PosStatusServiceTests
             RksvStartbelegTestDoubles.GateOff(),
             RksvMonatsbelegTestDoubles.GateOff());
 
-        var svc = new PosStatusService(license.Object, readiness, ctx);
+        var svc = new PosStatusService(license.Object, readiness, CreateDemoRksvEnvironment(), ctx);
         var principal = new ClaimsPrincipal(new ClaimsIdentity(
             new[] { new Claim(ClaimTypes.NameIdentifier, UserId) },
             "Test"));

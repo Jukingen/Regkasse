@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using KasseAPI_Final.Models.Reports;
+using KasseAPI_Final.Services.Reports;
 
 namespace KasseAPI_Final.DTOs;
 
@@ -94,16 +96,36 @@ public sealed class PosDailyClosingReportDto
     public decimal TotalSales { get; init; }
     public decimal TotalCash { get; init; }
     public decimal TotalCard { get; init; }
+    public decimal TotalVoucherRedemptions { get; init; }
+    public decimal TotalOtherPaymentMethods { get; init; }
     public decimal CashCount { get; init; }
     public decimal Difference { get; init; }
     public decimal FiscalTotalAmount { get; init; }
     public decimal FiscalTotalTaxAmount { get; init; }
     public int FiscalTransactionCount { get; init; }
     public string? TseSignature { get; init; }
+    /// <summary>Compact JWS of the previous completed daily closing (signature chain).</summary>
+    public string? PreviousClosingSignature { get; init; }
+    public string? CashierName { get; init; }
+    public DailyClosingTaxBreakdownDto TaxBreakdown { get; init; } = new();
+    public PaymentBreakdown PaymentBreakdown { get; init; } = new();
+    public bool IsDemoFiscal { get; init; }
+    public string FiscalEnvironment { get; init; } = "Production";
+    public string TseStatusLabel { get; init; } = "TSE OK";
+    /// <summary>Short badge: TSE AKTIV / TSE SIMULIERT.</summary>
+    public string TseStatusBadge { get; init; } = string.Empty;
+    public string RksvFooterLabel { get; init; } = string.Empty;
+    /// <summary>RKSV §9 QR wire format in production; NON_FISCAL_DEMO marker in demo.</summary>
+    public string? QrPayload { get; init; }
     /// <summary>Daily, Monthly, or Yearly — drives localized PDF title.</summary>
     public string ClosingType { get; init; } = "Daily";
     public string SnapshotDisclaimerDe { get; init; } =
-        "Übersicht aus Zahlungszeilen — kein Ersatz für den operativen Tagesabschluss oder formale RKSV-Berichte.";
+        DailyClosingReportComposer.RksvDailyDisclaimerDe;
+    /// <summary>Shown when payment-row Umsatz and signed fiscal gross diverge.</summary>
+    public string? SalesFiscalReconciliationNote { get; init; }
+    /// <summary>Explains shift-scoped cash difference vs calendar-day cash sales.</summary>
+    public string? DifferenceScopeNote { get; init; }
+    public TransactionBreakdown TransactionBreakdown { get; init; } = new();
 }
 
 public sealed class PosDailyClosingResult

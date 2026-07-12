@@ -4,6 +4,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Export;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -25,23 +26,27 @@ public class AdminRksvDepExportController : ControllerBase
     private readonly IDepExportScheduler _scheduler;
     private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly IAuditLogService _auditLogService;
+    private readonly IRksvEnvironmentService _rksvEnv;
 
     public AdminRksvDepExportController(
         IRksvDepExportService depExportService,
         IDepExportHistoryService historyService,
         IDepExportScheduler scheduler,
         ICurrentTenantAccessor tenantAccessor,
-        IAuditLogService auditLogService)
+        IAuditLogService auditLogService,
+        IRksvEnvironmentService rksvEnv)
     {
         _depExportService = depExportService;
         _historyService = historyService;
         _scheduler = scheduler;
         _tenantAccessor = tenantAccessor;
         _auditLogService = auditLogService;
+        _rksvEnv = rksvEnv;
     }
 
     [HttpGet]
     [ProducesResponseType(typeof(RksvDepExportRootDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RksvDepExportEnvelopeDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetDepExport(
         [FromQuery] Guid cashRegisterId,
@@ -49,6 +54,7 @@ public class AdminRksvDepExportController : ControllerBase
         [FromQuery] DateTime toUtc,
         [FromQuery] bool includeSpecialReceipts = true,
         [FromQuery] bool includeDailyClosings = true,
+        [FromQuery] bool includeEnvelope = false,
         CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantAccessor.TenantId;
@@ -57,6 +63,50 @@ public class AdminRksvDepExportController : ControllerBase
 
         try
         {
+            if (includeEnvelope)
+            {
+                var build = await _depExportService.GenerateDepExportWithValidationAsync(
+                        cashRegisterId,
+                        fromUtc,
+                        toUtc,
+                        includeSpecialReceipts,
+                        includeDailyClosings,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                var exportJson = System.Text.Json.JsonSerializer.Serialize(build.Root);
+                var validation = await _depExportService
+                    .ValidateExportFormatAsync(exportJson, cancellationToken)
+                    .ConfigureAwait(false);
+
+                await RecordCompletedExportAsync(
+                        tenantId.Value,
+                        cashRegisterId,
+                        fromUtc,
+                        toUtc,
+                        includeSpecialReceipts,
+                        includeDailyClosings,
+                        build.Root,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                return Ok(new RksvDepExportEnvelopeDto
+                {
+                    LegalNotice = build.LegalNotice,
+                    Dep = build.Root,
+                    BelegCount = build.BelegCount,
+                    BelegeGruppeCount = build.BelegeGruppeCount,
+                    CashRegisterId = build.CashRegisterId,
+                    RegisterNumber = build.RegisterNumber,
+                    FromUtc = build.FromUtc,
+                    ToUtc = build.ToUtc,
+                    IsDemo = build.IsDemo,
+                    Environment = build.Environment,
+                    FormatValidated = build.FormatValidated,
+                    FormatValidation = validation,
+                });
+            }
+
             var export = await _depExportService.GenerateDepExportAsync(
                     cashRegisterId,
                     fromUtc,
@@ -66,27 +116,15 @@ public class AdminRksvDepExportController : ControllerBase
                     cancellationToken)
                 .ConfigureAwait(false);
 
-            await _historyService.RecordCompletedAsync(
-                    new DepExportHistoryRecordRequest
-                    {
-                        TenantId = tenantId.Value,
-                        CashRegisterId = cashRegisterId,
-                        FromUtc = fromUtc,
-                        ToUtc = toUtc,
-                        ExportedByUserId = User.GetActorUserId() ?? "unknown",
-                        Export = export,
-                        IncludeSpecialReceipts = includeSpecialReceipts,
-                        IncludeDailyClosings = includeDailyClosings,
-                    },
+            await RecordCompletedExportAsync(
+                    tenantId.Value,
+                    cashRegisterId,
+                    fromUtc,
+                    toUtc,
+                    includeSpecialReceipts,
+                    includeDailyClosings,
+                    export,
                     cancellationToken)
-                .ConfigureAwait(false);
-
-            await _auditLogService.LogSystemOperationAsync(
-                    "RksvDepExportJson",
-                    AuditLogEntityTypes.FISCAL_EXPORT,
-                    User.GetActorUserId() ?? "unknown",
-                    User.GetActorRole() ?? "Unknown",
-                    description: $"DEP export generated for register {cashRegisterId} from {fromUtc} to {toUtc}")
                 .ConfigureAwait(false);
 
             return Ok(export);
@@ -99,6 +137,52 @@ public class AdminRksvDepExportController : ControllerBase
         {
             return NotFound(new { message = ex.Message, code = "RKSV_DEP_EXPORT_REGISTER_NOT_FOUND" });
         }
+    }
+
+    [HttpPost("validate")]
+    [HasPermission(AppPermissions.ReportExport)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ValidateExport(
+        [FromBody] ValidateExportRequest request,
+        CancellationToken ct = default)
+    {
+        if (_tenantAccessor.TenantId is null)
+            return NotFound();
+
+        if (string.IsNullOrWhiteSpace(request.ExportJson))
+            return BadRequest(new { message = "exportJson is required.", code = "RKSV_DEP_EXPORT_JSON_REQUIRED" });
+
+        var result = await _depExportService.ValidateExportFormatAsync(request.ExportJson, ct).ConfigureAwait(false);
+
+        return Ok(new
+        {
+            success = result.IsValid,
+            message = result.IsValid ? "Export format is valid" : "Export format is invalid",
+            environment = _rksvEnv.GetEnvironmentDisplayName(),
+            validation = result,
+        });
+    }
+
+    [HttpPost("test-prueftool")]
+    [HasPermission(AppPermissions.ReportExport)]
+    [ProducesResponseType(typeof(RksvDepPrueftoolResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> TestPrueftool(
+        [FromBody] TestPrueftoolRequest request,
+        CancellationToken ct = default)
+    {
+        if (_tenantAccessor.TenantId is null)
+            return NotFound();
+
+        if (string.IsNullOrWhiteSpace(request.ExportJson))
+            return BadRequest(new { message = "exportJson is required.", code = "RKSV_DEP_EXPORT_JSON_REQUIRED" });
+
+        var result = await _depExportService
+            .RunPrueftoolAsync(request.ExportJson, ct)
+            .ConfigureAwait(false);
+
+        return Ok(result);
     }
 
     [HttpGet("test-material")]
@@ -235,6 +319,40 @@ public class AdminRksvDepExportController : ControllerBase
         return NoContent();
     }
 
+    private async Task RecordCompletedExportAsync(
+        Guid tenantId,
+        Guid cashRegisterId,
+        DateTime fromUtc,
+        DateTime toUtc,
+        bool includeSpecialReceipts,
+        bool includeDailyClosings,
+        RksvDepExportRootDto export,
+        CancellationToken cancellationToken)
+    {
+        await _historyService.RecordCompletedAsync(
+                new DepExportHistoryRecordRequest
+                {
+                    TenantId = tenantId,
+                    CashRegisterId = cashRegisterId,
+                    FromUtc = fromUtc,
+                    ToUtc = toUtc,
+                    ExportedByUserId = User.GetActorUserId() ?? "unknown",
+                    Export = export,
+                    IncludeSpecialReceipts = includeSpecialReceipts,
+                    IncludeDailyClosings = includeDailyClosings,
+                },
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        await _auditLogService.LogSystemOperationAsync(
+                "RksvDepExportJson",
+                AuditLogEntityTypes.FISCAL_EXPORT,
+                User.GetActorUserId() ?? "unknown",
+                User.GetActorRole() ?? "Unknown",
+                description: $"DEP export generated for register {cashRegisterId} from {fromUtc} to {toUtc}")
+            .ConfigureAwait(false);
+    }
+
     private static DepExportScheduleResponse ToScheduleDto(DepExportSchedule schedule) =>
         new()
         {
@@ -249,4 +367,14 @@ public class AdminRksvDepExportController : ControllerBase
             NextRunAt = schedule.NextRunAt,
             CreatedAt = schedule.CreatedAt,
         };
+}
+
+public record ValidateExportRequest
+{
+    public string ExportJson { get; init; } = string.Empty;
+}
+
+public record TestPrueftoolRequest
+{
+    public string ExportJson { get; init; } = string.Empty;
 }

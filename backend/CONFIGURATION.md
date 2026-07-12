@@ -80,6 +80,55 @@ dotnet user-secrets set "Backup:ExternalArchiveRoot" "C:\data\regkasse-backup-ar
 
 `ConnectionStrings:DefaultConnection` is already required for API startup; `Backup:VerifyLogicalDumpFileOnDisk` defaults to `true`. Set `Backup:PgDumpExecutablePath` only if `pg_dump` is not on `PATH`. See `docs/BACKUP_DEVELOPMENT_REAL_PG_DUMP.md`.
 
+### Production backup (required environment variables)
+
+Production must **not** use `ProductionStub` or `Fake`. Set real PostgreSQL logical backups via environment variables (or equivalent entries in untracked `appsettings.Production.json`). Do not commit machine paths or credentials to tracked files.
+
+**Minimum production backup env block:**
+
+```bash
+# PostgreSQL (required for pg_dump; use a least-privilege backup role in production)
+ConnectionStrings__DefaultConnection="Host=...;Port=5432;Database=...;Username=...;Password=..."
+
+# Real pg_dump adapter (mandatory in production)
+Backup__ExecutionAdapterKind=PgDump
+Backup__ArtifactStagingRoot=/var/backups/regkasse/staging
+Backup__ExternalArchiveRoot=/var/backups/regkasse/archive
+Backup__PgDumpExecutablePath=/usr/bin/pg_dump
+Backup__WorkerEnabled=true
+Backup__AcknowledgePhase1NoRealBackup=false
+```
+
+| Setting (JSON) | Environment variable | Production notes |
+|----------------|----------------------|------------------|
+| `Backup:ExecutionAdapterKind` | `Backup__ExecutionAdapterKind` | Must be `PgDump`. `ProductionStub` performs no PostgreSQL I/O. |
+| `Backup:ArtifactStagingRoot` | `Backup__ArtifactStagingRoot` | Absolute path; API user must be able to write `.dump` + manifest files. |
+| `Backup:ExternalArchiveRoot` | `Backup__ExternalArchiveRoot` | Absolute path; mandatory for PgDump outside Development. |
+| `Backup:PgDumpExecutablePath` | `Backup__PgDumpExecutablePath` | Full path when `pg_dump` is not on `PATH` (typical Linux: `/usr/bin/pg_dump`). |
+| `Backup:WorkerEnabled` | `Backup__WorkerEnabled` | Must be `true` for automated dequeue and scheduled runs. |
+| `Backup:AcknowledgePhase1NoRealBackup` | `Backup__AcknowledgePhase1NoRealBackup` | Must be `false` when using real backups. |
+
+**Recommended additional production keys** (also in `appsettings.Production.json` template):
+
+| Setting (JSON) | Environment variable | Example |
+|----------------|----------------------|---------|
+| `Backup:LogicalDumpConnectionStringName` | `Backup__LogicalDumpConnectionStringName` | `DefaultConnection` |
+| `Backup:ExternalArchiveMutableTargetAccepted` | `Backup__ExternalArchiveMutableTargetAccepted` | `true` (local filesystem archive; use immutability flags for WORM/S3 Object Lock instead) |
+| `Backup:ScheduledBackupEnabled` | `Backup__ScheduledBackupEnabled` | `true` |
+| `Backup:ScheduledBackupCron` | `Backup__ScheduledBackupCron` | `0 2 * * *` (daily 02:00 UTC) |
+| `Backup:RetentionPolicyMode` | `Backup__RetentionPolicyMode` | `ReportOnly` |
+| `Backup:ArtifactRetentionDays` | `Backup__ArtifactRetentionDays` | `30` |
+
+**Host prep (Linux example):**
+
+```bash
+sudo mkdir -p /var/backups/regkasse/staging /var/backups/regkasse/archive
+sudo chown <api-user>:<api-group> /var/backups/regkasse/staging /var/backups/regkasse/archive
+which pg_dump   # expect /usr/bin/pg_dump
+```
+
+Verify readiness in admin **Backup & DR** UI or trigger a manual backup after deploy; run a restore drill before go-live. See [`docs/BACKUP_PERMISSIONS.md`](../docs/BACKUP_PERMISSIONS.md) and [`backend/docs/BACKUP_DEVELOPMENT_REAL_PG_DUMP.md`](docs/BACKUP_DEVELOPMENT_REAL_PG_DUMP.md).
+
 ## `dotnet ef` and design-time DbContext
 
 The design-time factory loads, in order: optional `appsettings.json`, optional `appsettings.Development.json`, user secrets, then environment variables. CI agents without local JSON files should set `ConnectionStrings__DefaultConnection`.

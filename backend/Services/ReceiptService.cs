@@ -9,8 +9,12 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
+using KasseAPI_Final.Services.Rksv;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services
 {
@@ -28,16 +32,27 @@ namespace KasseAPI_Final.Services
         /// </summary>
         Task<ReceiptDTO> GenerateReceiptAsync(PaymentDetails payment);
         Task<PagedResult<ReceiptListItemDto>> GetReceiptListAsync(int page, int pageSize, string? sort, string? receiptNumber, string? cashRegisterId, string? cashierId, DateTime? issuedFrom, DateTime? issuedTo);
+        /// <summary>RKSV receipt footer: shortened TSE compact JWS for thermal/display output.</summary>
+        string GetTseSignatureDisplay(PaymentDetails payment);
+        /// <summary>RKSV compliance label for receipt QR block (Development/Staging vs Production).</summary>
+        string GetRksvFooter(IHostEnvironment env);
     }
 
     public class ReceiptService : IReceiptService
     {
+        internal const string DemoRksvFooterLabel = "DEMO / NICHT FISKAL";
+        internal const string ProductionRksvFooterLabel = "RKSV-konform";
+
         private readonly AppDbContext _context;
         private readonly ILogger<ReceiptService> _logger;
         private readonly ITseService _tseService;
         private readonly ICompanyProfileProvider _companyProfileProvider;
         private readonly IUserService _userService;
         private readonly ISettingsTenantResolver _settingsTenantResolver;
+        private readonly IHostEnvironment _hostEnvironment;
+        private readonly IRksvEnvironmentService _rksvEnvironment;
+        private readonly IConfiguration _configuration;
+        private readonly TseOptions _tseOptions;
 
         public ReceiptService(
             AppDbContext context,
@@ -45,7 +60,11 @@ namespace KasseAPI_Final.Services
             ITseService tseService,
             ICompanyProfileProvider companyProfileProvider,
             IUserService userService,
-            ISettingsTenantResolver settingsTenantResolver)
+            ISettingsTenantResolver settingsTenantResolver,
+            IHostEnvironment hostEnvironment,
+            IRksvEnvironmentService? rksvEnvironment = null,
+            IConfiguration? configuration = null,
+            IOptions<TseOptions>? tseOptions = null)
         {
             _context = context;
             _logger = logger;
@@ -53,6 +72,11 @@ namespace KasseAPI_Final.Services
             _companyProfileProvider = companyProfileProvider;
             _userService = userService;
             _settingsTenantResolver = settingsTenantResolver;
+            _hostEnvironment = hostEnvironment;
+            _configuration = configuration ?? new ConfigurationBuilder().Build();
+            _tseOptions = tseOptions?.Value ?? new TseOptions();
+            _rksvEnvironment = rksvEnvironment
+                               ?? new RksvEnvironmentService(_configuration, hostEnvironment);
         }
 
         /// <summary>Returns persisted receipt by ReceiptId or PaymentId. No lazy generation.</summary>
@@ -414,24 +438,29 @@ namespace KasseAPI_Final.Services
             return new List<PaymentItem>();
         }
 
-        /// <summary>RKSV §8 company header: payment snapshot first, then live tenant settings (no hardcoded defaults).</summary>
+        /// <summary>RKSV §8 company header: payment snapshot first, then tenant <see cref="CompanySettings"/> (no demo defaults).</summary>
         private async Task<(string Name, string Address, string TaxNumber, string Footer)> ResolveReceiptCompanyContextAsync(
             PaymentDetails? payment)
         {
-            var liveProfile = await _companyProfileProvider.GetCompanyProfileAsync().ConfigureAwait(false);
-            var (name, address, taxNumber) = CompanyProfileMapper.ResolveForDisplay(payment, liveProfile);
-
             var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync().ConfigureAwait(false);
             var settings = await _context.CompanySettings
                 .AsNoTracking()
                 .FirstOrDefaultAsync(s => s.TenantId == tenantId)
                 .ConfigureAwait(false);
 
-            var footer = settings?.CompanyDescription;
-            if (string.IsNullOrWhiteSpace(footer))
-                footer = liveProfile.FooterText;
+            // Use company settings from database, not hardcoded demo profile
+            var companyName = !string.IsNullOrWhiteSpace(payment?.CompanyName)
+                ? payment!.CompanyName!
+                : settings?.CompanyName ?? string.Empty;
+            var address = !string.IsNullOrWhiteSpace(payment?.CompanyAddress)
+                ? payment!.CompanyAddress!
+                : settings?.CompanyAddress ?? string.Empty;
+            var taxNumber = !string.IsNullOrWhiteSpace(payment?.Steuernummer)
+                ? payment!.Steuernummer!
+                : settings?.CompanyTaxNumber ?? string.Empty;
+            var footer = settings?.CompanyDescription ?? string.Empty;
 
-            return (name, address, taxNumber, footer ?? string.Empty);
+            return (companyName, address, taxNumber, footer);
         }
 
         public async Task<PagedResult<ReceiptListItemDto>> GetReceiptListAsync(int page, int pageSize, string? sort, string? receiptNumber, string? cashRegisterId, string? cashierId, DateTime? issuedFrom, DateTime? issuedTo)
@@ -559,6 +588,49 @@ namespace KasseAPI_Final.Services
             return last?.SignatureValue ?? string.Empty;
         }
 
+        /// <inheritdoc />
+        public string GetTseSignatureDisplay(PaymentDetails payment)
+        {
+            ArgumentNullException.ThrowIfNull(payment);
+
+            var signature = payment.TseSignature;
+            if (string.IsNullOrEmpty(signature))
+                return "TSE-Signatur: nicht verfügbar";
+
+            var shortened = signature.Length > 50
+                ? signature[..50] + "..."
+                : signature;
+
+            return $"TSE-Signatur:\n{shortened}";
+        }
+
+        /// <inheritdoc />
+        public string GetRksvFooter(IHostEnvironment env)
+        {
+            ArgumentNullException.ThrowIfNull(env);
+
+            var fiscal = FiscalEnvironmentResolver.Resolve(
+                env,
+                _tseOptions,
+                _configuration,
+                rksvEnvironment: _rksvEnvironment);
+
+            return string.Equals(fiscal.RksvFooterLabel, DemoRksvFooterLabel, StringComparison.Ordinal)
+                ? DemoRksvFooterLabel
+                : ProductionRksvFooterLabel;
+        }
+
+        /// <summary>Receipt Kassierer line: login name preferred over raw user id (UUID).</summary>
+        private static string? ResolveCashierDisplayName(ApplicationUser? appUser)
+        {
+            if (appUser == null)
+                return null;
+
+            // Use user name, not ID
+            var cashierName = appUser.UserName ?? appUser.Email ?? appUser.Id;
+            return string.IsNullOrWhiteSpace(cashierName) ? null : cashierName.Trim();
+        }
+
         private async Task<ReceiptDTO> MapToDtoAsync(Receipt receipt, ReceiptSignatureDTO? explicitSig = null)
         {
             var cashierIdStr = receipt.CashierId ?? string.Empty;
@@ -566,9 +638,7 @@ namespace KasseAPI_Final.Services
             if (!string.IsNullOrEmpty(cashierIdStr))
             {
                 var appUser = await _userService.GetUserByIdAsync(cashierIdStr).ConfigureAwait(false);
-                var n = appUser?.Name?.Trim();
-                if (!string.IsNullOrEmpty(n))
-                    cashierDisplay = n;
+                cashierDisplay = ResolveCashierDisplayName(appUser);
             }
 
             var (companyName, companyAddress, companyTaxNumber, footerText) =
@@ -710,7 +780,8 @@ namespace KasseAPI_Final.Services
                 },
                 
                 Signature = signature,
-                FooterText = footerText
+                FooterText = footerText,
+                RksvFooterLabel = GetRksvFooter(_hostEnvironment),
             };
         }
 

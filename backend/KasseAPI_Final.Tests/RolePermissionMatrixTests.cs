@@ -174,6 +174,18 @@ public class RolePermissionMatrixTests
     }
 
     [Fact]
+    public void RoleHasPermission_Cashier_Has_RksvMonatsbelegView()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.RksvMonatsbelegView));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Manager_Has_RksvMonatsbelegView()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.RksvMonatsbelegView));
+    }
+
+    [Fact]
     public void RoleHasPermission_Cashier_Has_RksvJahresbelegCreate()
     {
         Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.RksvJahresbelegCreate));

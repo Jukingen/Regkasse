@@ -94,7 +94,7 @@ public class PaymentRegisterCommitGateTests
             .ReturnsAsync((Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction _, Guid _, string reg, DateTime d) =>
                 $"AT-{reg}-{d:yyyyMMdd}-{++seqCallCount}");
 
-        var receiptService = new ReceiptService(context, new Mock<ILogger<ReceiptService>>().Object, tseMock.Object, TenantTestDoubles.CompanyProfileProviderReturning(companyProfile), Mock.Of<IUserService>(), TenantTestDoubles.PrimaryTenantResolver);
+        var receiptService = new ReceiptService(context, new Mock<ILogger<ReceiptService>>().Object, tseMock.Object, TenantTestDoubles.CompanyProfileProviderReturning(companyProfile), Mock.Of<IUserService>(), TenantTestDoubles.PrimaryTenantResolver, TenantTestDoubles.ProductionHostEnvironment);
         var auditMock = new Mock<IAuditLogService>();
         auditMock.Setup(x => x.LogPaymentOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(),

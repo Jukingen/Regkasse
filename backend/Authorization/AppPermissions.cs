@@ -154,8 +154,14 @@ public static class AppPermissions
 
     public const string RksvMonatsbelegCreate = "rksv.monatsbeleg.create";
 
+    /// <summary>View RKSV Monatsbeleg snapshot (monthly closing aggregation).</summary>
+    public const string RksvMonatsbelegView = "rksv.monatsbeleg.view";
+
     /// <summary>RKSV Jahresbeleg (annual zero TSE receipt per register/year). Manual or December monthly path.</summary>
     public const string RksvJahresbelegCreate = "rksv.jahresbeleg.create";
+
+    /// <summary>View RKSV Jahresbeleg snapshot (yearly closing aggregation).</summary>
+    public const string RksvJahresbelegView = "rksv.jahresbeleg.view";
 
     /// <summary>RKSV Schlussbeleg / Endbeleg — permanent cash register decommissioning (manager-level).</summary>
     public const string RksvSchlussbelegCreate = "rksv.schlussbeleg.create";

@@ -3,6 +3,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Export;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Tse;
 using Microsoft.EntityFrameworkCore;
@@ -105,11 +106,35 @@ public sealed class RksvDepExportServiceTests
             CreatedAt = issuedAt,
         };
 
-    private static RksvDepExportService CreateService(AppDbContext db, ITseKeyProvider? keyProvider = null) =>
+    private static RksvDepExportService CreateService(
+        AppDbContext db,
+        ITseKeyProvider? keyProvider = null,
+        IRksvEnvironmentService? rksvEnv = null,
+        IRksvDepPrueftoolRunner? prueftoolRunner = null) =>
         new(
             db,
             keyProvider ?? new SoftwareTseKeyProvider(),
+            rksvEnv ?? CreateDemoEnvironment(),
+            prueftoolRunner ?? Mock.Of<IRksvDepPrueftoolRunner>(),
             Mock.Of<ILogger<RksvDepExportService>>());
+
+    private static IRksvEnvironmentService CreateDemoEnvironment()
+    {
+        var mock = new Mock<IRksvEnvironmentService>();
+        mock.Setup(x => x.IsDemoMode()).Returns(true);
+        mock.Setup(x => x.IsProductionMode()).Returns(false);
+        mock.Setup(x => x.IsTseSimulated()).Returns(true);
+        return mock.Object;
+    }
+
+    private static IRksvEnvironmentService CreateProductionEnvironment()
+    {
+        var mock = new Mock<IRksvEnvironmentService>();
+        mock.Setup(x => x.IsDemoMode()).Returns(false);
+        mock.Setup(x => x.IsProductionMode()).Returns(true);
+        mock.Setup(x => x.IsTseSimulated()).Returns(false);
+        return mock.Object;
+    }
     [Theory]
     [InlineData(null, false)]
     [InlineData("", false)]
@@ -344,5 +369,142 @@ public sealed class RksvDepExportServiceTests
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             CreateService(db).GenerateCryptoMaterialAsync(Guid.NewGuid()));
+    }
+
+    [Fact]
+    public async Task ValidateExportFormat_AcceptsValidBmfStructure()
+    {
+        var root = new RksvDepExportRootDto
+        {
+            BelegeGruppe =
+            [
+                new RksvDepBelegeGruppeDto
+                {
+                    Signaturzertifikat = "CERT",
+                    Zertifizierungsstellen = [],
+                    BelegeKompakt = ["eyJhbGci.eyJkYXRh.c2ln"],
+                },
+            ],
+        };
+
+        var json = JsonSerializer.Serialize(root, new JsonSerializerOptions { PropertyNamingPolicy = null });
+        var result = await CreateService(CreateDb()).ValidateExportFormatAsync(json);
+
+        Assert.True(result.IsValid);
+        Assert.Equal(1, result.BelegeGruppeCount);
+        Assert.Equal(1, result.BelegCount);
+        Assert.Empty(result.Errors);
+    }
+
+    [Fact]
+    public async Task ValidateExportFormat_RejectsMissingBelegeGruppe()
+    {
+        var result = await CreateService(CreateDb()).ValidateExportFormatAsync("{}");
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.Contains("Belege-Gruppe", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task ValidateExportFormat_WarnsOnEmptyCaChain_InProductionMode()
+    {
+        var root = new RksvDepExportRootDto
+        {
+            BelegeGruppe =
+            [
+                new RksvDepBelegeGruppeDto
+                {
+                    Signaturzertifikat = "CERT",
+                    Zertifizierungsstellen = [],
+                    BelegeKompakt = ["eyJhbGci.eyJkYXRh.c2ln"],
+                },
+            ],
+        };
+
+        var json = JsonSerializer.Serialize(root, new JsonSerializerOptions { PropertyNamingPolicy = null });
+        await using var db = CreateDb();
+        var result = await CreateService(db, rksvEnv: CreateProductionEnvironment())
+            .ValidateExportFormatAsync(json);
+
+        Assert.True(result.IsValid);
+        Assert.NotEmpty(result.Warnings);
+    }
+
+    [Fact]
+    public async Task GenerateDepExportWithValidation_IncludesDemoMetadata()
+    {
+        await using var db = CreateDb();
+        var regId = await SeedRegisterAsync(db);
+        var from = new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc);
+        var to = new DateTime(2026, 5, 31, 23, 59, 59, DateTimeKind.Utc);
+
+        db.PaymentDetails.Add(CreatePayment(
+            regId,
+            new DateTime(2026, 5, 5, 10, 0, 0, DateTimeKind.Utc),
+            "AT-TSE-20260505-0001"));
+        await db.SaveChangesAsync();
+
+        var build = await CreateService(db).GenerateDepExportWithValidationAsync(regId, from, to);
+
+        Assert.True(build.IsDemo);
+        Assert.Equal("Demo", build.Environment);
+        Assert.True(build.FormatValidated);
+        Assert.Contains("DEMO / NICHT FISKAL", build.LegalNotice, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RunPrueftool_SkipsInDemoMode_WhenNotForced()
+    {
+        await using var db = CreateDb();
+        var regId = await SeedRegisterAsync(db);
+        var export = new RksvDepExportRootDto
+        {
+            BelegeGruppe =
+            [
+                new RksvDepBelegeGruppeDto
+                {
+                    Signaturzertifikat = "CERT",
+                    BelegeKompakt = ["eyJhbGci.eyJkYXRh.c2ln"],
+                },
+            ],
+        };
+
+        var result = await CreateService(db).RunPrueftoolAsync(regId, export);
+
+        Assert.True(result.Success);
+        Assert.True(result.Skipped);
+        Assert.Equal("Demo", result.Environment);
+        Assert.Contains("skipped", result.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task RunPrueftool_RequiresPass_InProductionMode_WhenAvailable()
+    {
+        await using var db = CreateDb();
+        var regId = await SeedRegisterAsync(db);
+        var export = new RksvDepExportRootDto
+        {
+            BelegeGruppe =
+            [
+                new RksvDepBelegeGruppeDto
+                {
+                    Signaturzertifikat = "CERT",
+                    BelegeKompakt = ["eyJhbGci.eyJkYXRh.c2ln"],
+                },
+            ],
+        };
+
+        var prueftool = new Mock<IRksvDepPrueftoolRunner>();
+        prueftool.Setup(x => x.IsAvailable(out It.Ref<string?>.IsAny)).Returns(true);
+        prueftool
+            .Setup(x => x.RunCheckDepExport(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(new RksvDepPrueftoolRunResult(1, "FAIL", "stderr", "stdout"));
+
+        var result = await CreateService(db, rksvEnv: CreateProductionEnvironment(), prueftoolRunner: prueftool.Object)
+            .RunPrueftoolAsync(regId, export);
+
+        Assert.False(result.Success);
+        Assert.False(result.Skipped);
+        Assert.Equal("Production", result.Environment);
     }
 }

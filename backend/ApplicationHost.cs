@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +14,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.SignalR;
 using KasseAPI_Final.Hubs;
+using KasseAPI_Final.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -23,6 +25,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.PaymentGateway;
 using KasseAPI_Final.Services.Reports;
+using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Services.Auth;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Services.AdminCashRegisters;
@@ -61,6 +64,8 @@ using Microsoft.Extensions.Configuration;
 using System.Net;
 using System.Net.Sockets;
 using QuestPDF.Infrastructure;
+using ElmahCore.Mvc;
+using ElmahCore.Postgresql;
 
 namespace KasseAPI_Final;
 
@@ -179,6 +184,8 @@ builder.Services.Configure<TenantDeletionOptions>(
     builder.Configuration.GetSection(TenantDeletionOptions.SectionName));
 builder.Services.Configure<InventoryOptions>(builder.Configuration.GetSection(InventoryOptions.SectionName));
 builder.Services.Configure<TseOptions>(builder.Configuration.GetSection(TseOptions.SectionName));
+builder.Services.Configure<RksvOptions>(builder.Configuration.GetSection(RksvOptions.SectionName));
+builder.Services.AddScoped<IRksvEnvironmentService, RksvEnvironmentService>();
 builder.Services.Configure<FiskalyOptions>(builder.Configuration.GetSection(FiskalyOptions.SectionName));
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.SectionName));
 builder.Services.Configure<AuditRetentionOptions>(builder.Configuration.GetSection(AuditRetentionOptions.SectionName));
@@ -195,6 +202,12 @@ builder.Services.Configure<FinanzOnlineSimulationOptions>(
     builder.Configuration.GetSection(FinanzOnlineSimulationOptions.SectionName));
 builder.Services.Configure<RksvFinanzOnlineSubmissionClientOptions>(
     builder.Configuration.GetSection(RksvFinanzOnlineSubmissionClientOptions.SectionName));
+builder.Services.AddHealthChecks()
+    .AddCheck<FinanzOnlineHealthCheck>("finanzonline")
+    .AddCheck<BackupHealthCheck>("backup")
+    .AddCheck<ElmahHealthCheck>("elmah");
+builder.Services.AddScoped<IElmahErrorQueryService, ElmahErrorQueryService>();
+
 builder.Services.Configure<NtpSettings>(builder.Configuration.GetSection(NtpSettings.SectionName));
 builder.Services.Configure<DevelopmentOptions>(builder.Configuration.GetSection(DevelopmentOptions.SectionName));
 builder.Services.Configure<OfflineVoucherEncryptionOptions>(
@@ -297,6 +310,22 @@ builder.Services.AddDbContext<AppDbContext>((_, options) =>
 
 builder.Services.AddDbContextFactory<AppDbContext>((_, options) =>
     ConfigureAppDbContextOptions(options, defaultConnection, isDevelopment));
+
+if (!isDevelopment && !OpenApiExportMode.IsEnabled)
+{
+    var elmahApplicationName = builder.Configuration["Elmah:ApplicationName"]?.Trim();
+    if (string.IsNullOrWhiteSpace(elmahApplicationName))
+        elmahApplicationName = "Regkasse";
+
+    builder.Services.AddElmah<PgsqlErrorLog>(options =>
+    {
+        options.ConnectionString = defaultConnection;
+        options.ApplicationName = elmahApplicationName;
+        options.OnPermissionCheck = context =>
+            context.User.Identity?.IsAuthenticated == true
+            && context.User.HasPermissionClaim(AppPermissions.SystemCritical);
+    });
+}
 
 builder.Services.AddDataProtection();
 
@@ -674,6 +703,10 @@ builder.Services.AddScoped<IFinanzOnlineService, FinanzOnlineService>();
 builder.Services.AddScoped<IFinanzOnlineAdminConnectivityService, FinanzOnlineAdminConnectivityService>();
 builder.Services.AddScoped<ITagesabschlussService, TagesabschlussService>();
 builder.Services.AddScoped<IDailyClosingService, DailyClosingService>();
+builder.Services.AddScoped<IMonatsbelegClosingService, MonatsbelegClosingService>();
+builder.Services.AddScoped<IJahresbelegClosingService, JahresbelegClosingService>();
+builder.Services.AddScoped<IMonatsbelegService, MonatsbelegService>();
+builder.Services.AddScoped<IJahresbelegService, JahresbelegService>();
 builder.Services.AddScoped<IOperationalReportingService, OperationalReportingService>();
 builder.Services.AddScoped<IComplianceOperationalReportingService, ComplianceOperationalReportingService>();
 builder.Services.AddScoped<IPeakHoursAnalysisService, PeakHoursAnalysisService>();
@@ -715,7 +748,9 @@ builder.Services.AddScoped<IPosCartTableOpsService, PosCartTableOpsService>();
 builder.Services.AddScoped<IPosSplitSessionService, PosSplitSessionService>();
 builder.Services.AddScoped<IPosCustomerQrLookupService, PosCustomerQrLookupService>();
 builder.Services.AddScoped<IPaymentHistoryService, PaymentHistoryService>();
+builder.Services.AddScoped<IMonatsbelegClosingService, MonatsbelegClosingService>();
 builder.Services.AddScoped<IDailyClosingReportService, DailyClosingReportService>();
+builder.Services.AddScoped<ITagesabschlussReportService, TagesabschlussReportService>();
 builder.Services.AddScoped<IAdminShiftOverviewService, AdminShiftOverviewService>();
 builder.Services.AddScoped<IAdminShiftManagementService, AdminShiftManagementService>();
 builder.Services.AddScoped<IShiftAutoCloseService, ShiftAutoCloseService>();
@@ -922,6 +957,7 @@ builder.Services.AddSingleton<IFiscalExportDownloadTicketStore, FiscalExportDown
 builder.Services.AddSingleton<IDisclaimerService, DisclaimerService>();
 builder.Services.AddScoped<IFiscalExportService, FiscalExportService>();
 builder.Services.AddScoped<IRksvDepExportService, RksvDepExportService>();
+builder.Services.AddSingleton<IRksvDepPrueftoolRunner, RksvDepPrueftoolRunner>();
 builder.Services.AddScoped<IRksvSignatureVerifyService, RksvSignatureVerifyService>();
 builder.Services.AddScoped<IDepExportHistoryService, DepExportHistoryService>();
 builder.Services.AddScoped<IDepExportScheduler, DepExportScheduler>();
@@ -1074,6 +1110,10 @@ app.UseMiddleware<KasseAPI_Final.Middleware.SessionActivityMiddleware>();
 app.UseMiddleware<KasseAPI_Final.Middleware.TenantOperationalGateMiddleware>();
 app.UseMiddleware<KasseAPI_Final.Middleware.LicenseMiddleware>();
 app.UseAuthorization();
+if (!app.Environment.IsDevelopment() && !OpenApiExportMode.IsEnabled)
+{
+    app.UseElmah();
+}
 app.UseMiddleware<KasseAPI_Final.Middleware.MustChangePasswordMiddleware>();
 
 // Payment Security Middleware
@@ -1102,6 +1142,16 @@ else
 app.MapGet("/health/finanzonline", (IServiceProvider services) =>
     Results.Json(FinanzOnlineReadinessEvaluator.EvaluateFromRootServices(services)))
     .AllowAnonymous();
+app.MapHealthChecks("/health/finanzonline/mode", new HealthCheckOptions
+{
+    Predicate = check => check.Name == "finanzonline",
+    AllowCachingResponses = false,
+}).AllowAnonymous();
+app.MapHealthChecks("/health/backup/mode", new HealthCheckOptions
+{
+    Predicate = check => check.Name == "backup",
+    AllowCachingResponses = false,
+}).AllowAnonymous();
 app.MapGet("/api/health/license", (ILicenseService lic, ILicenseReminderNotificationStore licenseReminders) =>
 {
     var status = lic.GetStatus();

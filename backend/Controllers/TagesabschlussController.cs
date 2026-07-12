@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
@@ -16,17 +17,20 @@ namespace KasseAPI_Final.Controllers
     public class TagesabschlussController : ControllerBase
     {
         private readonly ITagesabschlussService _tagesabschlussService;
+        private readonly IMonatsbelegClosingService _monatsbelegClosingService;
         private readonly IDailyClosingReportService _dailyClosingReportService;
         private readonly ISettingsTenantResolver _settingsTenantResolver;
         private readonly ILogger<TagesabschlussController> _logger;
 
         public TagesabschlussController(
             ITagesabschlussService tagesabschlussService,
+            IMonatsbelegClosingService monatsbelegClosingService,
             IDailyClosingReportService dailyClosingReportService,
             ISettingsTenantResolver settingsTenantResolver,
             ILogger<TagesabschlussController> logger)
         {
             _tagesabschlussService = tagesabschlussService;
+            _monatsbelegClosingService = monatsbelegClosingService;
             _dailyClosingReportService = dailyClosingReportService;
             _settingsTenantResolver = settingsTenantResolver;
             _logger = logger;
@@ -90,11 +94,24 @@ namespace KasseAPI_Final.Controllers
                     return Unauthorized(new TagesabschlussErrorResponse { error = "User ID not found in token" });
                 }
 
-                var result = await _tagesabschlussService.PerformMonthlyClosingAsync(userId, request.CashRegisterId);
+                var result = await _monatsbelegClosingService.CreateMonatsbelegClosingAsync(
+                    userId,
+                    new CreateMonatsbelegClosingRequest { CashRegisterId = request.CashRegisterId },
+                    CancellationToken.None);
 
                 if (result.Success)
                 {
-                    return Ok(result);
+                    return Ok(new TagesabschlussResult
+                    {
+                        Success = true,
+                        ClosingId = result.DailyClosingId ?? Guid.Empty,
+                        ClosingDate = new DateTime(result.Year, result.Month, 1, 0, 0, 0, DateTimeKind.Unspecified),
+                        ClosingType = "Monthly",
+                        TotalAmount = result.TotalGross,
+                        TotalTaxAmount = result.TotalTax,
+                        TransactionCount = result.TransactionCount,
+                        TseSignature = result.TseSignature,
+                    });
                 }
                 else
                 {
@@ -102,7 +119,6 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new TagesabschlussErrorResponse
                     {
                         error = result.ErrorMessage,
-                        paymentsWithoutInvoiceCount = result.PaymentsWithoutInvoiceCount
                     });
                 }
             }

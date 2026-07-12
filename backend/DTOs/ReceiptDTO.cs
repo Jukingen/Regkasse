@@ -81,6 +81,8 @@ namespace KasseAPI_Final.DTOs
         // --- Footer / RKSV ---
         public ReceiptSignatureDTO? Signature { get; set; }
         public string FooterText { get; set; } = "Vielen Dank für Ihren Besuch!";
+        /// <summary>Environment-aware RKSV compliance label for printed receipt QR block.</summary>
+        public string RksvFooterLabel { get; set; } = string.Empty;
     }
 
     public class ReceiptCompanyDTO

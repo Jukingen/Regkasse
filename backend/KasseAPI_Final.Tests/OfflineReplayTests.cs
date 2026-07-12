@@ -65,7 +65,7 @@ public class OfflineReplayTests
             tseMock.Object,
             TenantTestDoubles.CompanyProfileProviderReturning(companyProfile),
             userMock.Object,
-            TenantTestDoubles.PrimaryTenantResolver);
+            TenantTestDoubles.PrimaryTenantResolver, TenantTestDoubles.ProductionHostEnvironment);
 
         var cashRegResolver = new CashRegisterResolutionService(
             context,

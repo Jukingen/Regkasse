@@ -22,8 +22,20 @@ public sealed class DailyClosingSummaryDto
 
     public decimal TotalCard { get; set; }
 
+    public PaymentBreakdown PaymentBreakdown { get; set; } = new();
+
     /// <summary>Other payment methods on normal sale rows (e.g. mobile, bank transfer).</summary>
     public decimal TotalOtherPaymentMethods { get; set; }
+
+    /// <summary>Invoice-authoritative gross (same filter as RKSV Tagesabschluss signing).</summary>
+    public decimal FiscalTotalAmount { get; set; }
+
+    public decimal FiscalTotalTaxAmount { get; set; }
+
+    public int FiscalTransactionCount { get; set; }
+
+    /// <summary>Payment-row sales total minus <see cref="FiscalTotalAmount"/> when they diverge.</summary>
+    public decimal SalesFiscalDelta { get; set; }
 
     public int ReceiptCount { get; set; }
 
@@ -34,6 +46,11 @@ public sealed class DailyClosingSummaryDto
     public IReadOnlyList<DailyClosingSummaryLineDto> SpecialReceipts { get; set; } = Array.Empty<DailyClosingSummaryLineDto>();
 
     public IReadOnlyList<DailyClosingSummaryLineDto> Stornos { get; set; } = Array.Empty<DailyClosingSummaryLineDto>();
+
+    public TransactionBreakdown TransactionBreakdown { get; set; } = new();
+
+    /// <summary>Invoice-authoritative VAT buckets (20% / 10% / 0%).</summary>
+    public DailyClosingTaxBreakdownDto TaxBreakdown { get; set; } = new();
 
     /// <summary>German operator hint (UI may show as-is).</summary>
     public string SnapshotDisclaimerDe { get; set; } =

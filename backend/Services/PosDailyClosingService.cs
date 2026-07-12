@@ -1,9 +1,14 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Reports;
+using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services;
 
@@ -19,6 +24,10 @@ public sealed class PosDailyClosingService : IPosDailyClosingService
     private readonly ISettingsTenantResolver _tenantResolver;
     private readonly IAuditLogService _auditLog;
     private readonly ILogger<PosDailyClosingService> _logger;
+    private readonly IHostEnvironment _hostEnvironment;
+    private readonly TseOptions _tseOptions;
+    private readonly IConfiguration _configuration;
+    private readonly IRksvEnvironmentService _rksvEnvironment;
 
     public PosDailyClosingService(
         AppDbContext context,
@@ -28,7 +37,11 @@ public sealed class PosDailyClosingService : IPosDailyClosingService
         IDailyClosingService dailyClosingSummary,
         ISettingsTenantResolver tenantResolver,
         IAuditLogService auditLog,
-        ILogger<PosDailyClosingService> logger)
+        ILogger<PosDailyClosingService> logger,
+        IHostEnvironment hostEnvironment,
+        IOptions<TseOptions> tseOptions,
+        IConfiguration configuration,
+        IRksvEnvironmentService rksvEnvironment)
     {
         _context = context;
         _tagesabschluss = tagesabschluss;
@@ -38,6 +51,10 @@ public sealed class PosDailyClosingService : IPosDailyClosingService
         _tenantResolver = tenantResolver;
         _auditLog = auditLog;
         _logger = logger;
+        _hostEnvironment = hostEnvironment;
+        _tseOptions = tseOptions.Value;
+        _configuration = configuration;
+        _rksvEnvironment = rksvEnvironment;
     }
 
     public async Task<PosDailyClosingStatusDto> GetStatusAsync(
@@ -227,28 +244,50 @@ public sealed class PosDailyClosingService : IPosDailyClosingService
             .Select(r => r.RegisterNumber)
             .FirstOrDefaultAsync(cancellationToken);
 
-        var report = new PosDailyClosingReportDto
+        var previousClosingSignature = await _context.DailyClosings.AsNoTracking()
+            .Where(c =>
+                c.CashRegisterId == shift.CashRegisterId
+                && c.ClosingType == "Daily"
+                && c.Status == "Completed"
+                && c.ClosingDate < PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(businessDate))
+            .OrderByDescending(c => c.ClosingDate)
+            .Select(c => c.TseSignature)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var fiscalEnvironment = FiscalEnvironmentResolver.Resolve(
+            _hostEnvironment,
+            _tseOptions,
+            _configuration,
+            rksvEnvironment: _rksvEnvironment);
+
+        var closingSnapshot = new DailyClosing
         {
-            BusinessDate = businessDate,
-            RegisterNumber = registerNumber,
-            TotalSales = totals.Sales,
-            TotalCash = totals.Cash,
-            TotalCard = totals.Card,
-            CashCount = request.CashCount,
-            Difference = shift.Difference,
-            FiscalTotalAmount = fiscal.TotalAmount,
-            FiscalTotalTaxAmount = fiscal.TotalTaxAmount,
-            FiscalTransactionCount = fiscal.TransactionCount,
-            TseSignature = fiscal.TseSignature,
-            SnapshotDisclaimerDe = summary.SnapshotDisclaimerDe,
+            ClosingType = "Daily",
+            ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(businessDate),
+            TotalAmount = fiscal.TotalAmount,
+            TotalTaxAmount = fiscal.TotalTaxAmount,
+            TransactionCount = fiscal.TransactionCount,
+            TseSignature = fiscal.TseSignature ?? string.Empty,
         };
 
+        var report = DailyClosingReportComposer.Compose(
+            closingSnapshot,
+            registerNumber,
+            summary,
+            request.CashCount,
+            shift.Difference,
+            totals.Cash,
+            cashierName: shift.CashierName,
+            previousClosingSignature: previousClosingSignature,
+            fiscalEnvironment: fiscalEnvironment);
+
+        var auditPrefix = fiscalEnvironment.IsDemoFiscal ? "[TEST] " : string.Empty;
         await _auditLog.LogSystemOperationAsync(
             "PosDailyClosing",
             "cashier_shift",
             cashierUserId,
             actorRole,
-            description: $"POS daily closing. Sales: {totals.Sales:F2}, Cash diff: {shift.Difference:F2}",
+            description: $"{auditPrefix}POS daily closing. Sales: {totals.Sales:F2}, Cash diff: {shift.Difference:F2}",
             notes: request.Notes,
             actionType: AuditEventType.Other,
             entityId: shift.Id,

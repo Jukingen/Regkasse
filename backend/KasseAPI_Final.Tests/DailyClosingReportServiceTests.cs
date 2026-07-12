@@ -4,9 +4,14 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Reports;
+using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using Moq;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
@@ -22,6 +27,17 @@ public sealed class DailyClosingReportServiceTests
         return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
+    private static DailyClosingReportService CreateReportService(AppDbContext ctx) =>
+        new(
+            ctx,
+            DailyClosingTestDoubles.Create(ctx),
+            new MockQrImageService(),
+            Mock.Of<IHostEnvironment>(h => h.EnvironmentName == Environments.Production),
+            Options.Create(new TseOptions { Mode = "Real", TseMode = "Device" }),
+            new ConfigurationBuilder().Build(),
+            new RksvEnvironmentService(new ConfigurationBuilder().Build(),
+                Mock.Of<IHostEnvironment>(h => h.EnvironmentName == Environments.Production)));
+
     [Theory]
     [InlineData("de", "Tagesabschluss-Bericht")]
     [InlineData("en", "Daily Closing Report")]
@@ -33,7 +49,7 @@ public sealed class DailyClosingReportServiceTests
         var labels = DailyClosingReportTemplates.Resolve(language);
         Assert.Equal(expectedTitle, labels.Title);
 
-        var svc = new DailyClosingReportService(CreateContext());
+        var svc = CreateReportService(CreateContext());
         var pdf = svc.GenerateDailyReportPdf(SampleReport(), language ?? "de");
 
         Assert.StartsWith("%PDF", Encoding.ASCII.GetString(pdf[..4]));
@@ -48,7 +64,7 @@ public sealed class DailyClosingReportServiceTests
         SeedShiftWithClosing(ctx, closingId, "owner-1");
         await ctx.SaveChangesAsync();
 
-        var svc = new DailyClosingReportService(ctx);
+        var svc = CreateReportService(ctx);
         var pdf = await svc.TryGenerateStoredDailyReportPdfAsync(closingId, "other-user", "de");
 
         Assert.Null(pdf);
@@ -62,7 +78,7 @@ public sealed class DailyClosingReportServiceTests
         SeedShiftWithClosing(ctx, closingId, "cashier-1");
         await ctx.SaveChangesAsync();
 
-        var svc = new DailyClosingReportService(ctx);
+        var svc = CreateReportService(ctx);
         var pdf = await svc.TryGenerateStoredDailyReportPdfAsync(closingId, "cashier-1", "en");
 
         Assert.NotNull(pdf);
@@ -84,7 +100,7 @@ public sealed class DailyClosingReportServiceTests
     [InlineData("Yearly", "Jahresabschluss-Bericht")]
     public void GenerateDailyReportPdf_UsesClosingTypeTitle(string closingType, string expectedTitle)
     {
-        var svc = new DailyClosingReportService(CreateContext());
+        var svc = CreateReportService(CreateContext());
         var baseReport = SampleReport();
         var dto = new PosDailyClosingReportDto
         {
@@ -109,6 +125,75 @@ public sealed class DailyClosingReportServiceTests
         Assert.StartsWith("%PDF", Encoding.ASCII.GetString(pdf[..4]));
     }
 
+    [Fact]
+    public void Compose_UsesDemoDisclaimer_WhenDemoFiscal()
+    {
+        var closing = new DailyClosing
+        {
+            ClosingType = "Daily",
+            ClosingDate = new DateTime(2026, 6, 11),
+            TotalAmount = 100m,
+            TotalTaxAmount = 16.67m,
+            TransactionCount = 5,
+            TseSignature = "demo.sig",
+        };
+
+        var demoEnv = new FiscalEnvironmentResolver.FiscalEnvironment(
+            true,
+            "Demo",
+            "DEMO / NICHT FISKAL",
+            "TSE: SIMULIERT (NUR TEST)",
+            "TSE SIMULIERT");
+
+        var report = DailyClosingReportComposer.Compose(
+            closing,
+            "K1",
+            null,
+            0m,
+            0m,
+            fiscalEnvironment: demoEnv);
+
+        Assert.True(report.IsDemoFiscal);
+        Assert.Equal("TSE SIMULIERT", report.TseStatusBadge);
+        Assert.Equal("TSE: SIMULIERT (NUR TEST)", report.TseStatusLabel);
+        Assert.Contains("DEMO", report.SnapshotDisclaimerDe, StringComparison.OrdinalIgnoreCase);
+        Assert.StartsWith("NON_FISCAL_DEMO", report.QrPayload, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Compose_UsesDemoPaymentBreakdown_WhenDemoAndNoDaySummary()
+    {
+        var closing = new DailyClosing
+        {
+            ClosingType = "Daily",
+            ClosingDate = new DateTime(2026, 6, 11),
+            TotalAmount = 175m,
+            TotalTaxAmount = 29.17m,
+            TransactionCount = 3,
+            TseSignature = "demo.sig",
+        };
+
+        var demoEnv = new FiscalEnvironmentResolver.FiscalEnvironment(
+            true,
+            "Demo",
+            "DEMO / NICHT FISKAL",
+            "TSE: SIMULIERT (NUR TEST)",
+            "TSE SIMULIERT");
+
+        var report = DailyClosingReportComposer.Compose(
+            closing,
+            "K1",
+            daySummary: null,
+            0m,
+            0m,
+            fiscalEnvironment: demoEnv);
+
+        Assert.Equal(100m, report.PaymentBreakdown.Cash);
+        Assert.Equal(50m, report.PaymentBreakdown.Card);
+        Assert.Equal(25m, report.PaymentBreakdown.Voucher);
+        Assert.Equal(175m, report.PaymentBreakdown.Total);
+    }
+
     private static PosDailyClosingReportDto SampleReport() => new()
     {
         BusinessDate = new DateTime(2026, 6, 11),
@@ -116,6 +201,8 @@ public sealed class DailyClosingReportServiceTests
         TotalSales = 120.50m,
         TotalCash = 80m,
         TotalCard = 40.50m,
+        TotalVoucherRedemptions = 0m,
+        TotalOtherPaymentMethods = 0m,
         CashCount = 78m,
         Difference = -2m,
         FiscalTotalAmount = 120.50m,
@@ -123,6 +210,14 @@ public sealed class DailyClosingReportServiceTests
         FiscalTransactionCount = 15,
         TseSignature = "abc123signature",
     };
+
+    private sealed class MockQrImageService : IQrImageService
+    {
+        public byte[]? GenerateQrCodeImage(string? payload) => null;
+        public byte[]? GetQrPngFromExactPayload(string? payload) => null;
+        public Task<byte[]?> GetQrPngAsync(Guid paymentId, CancellationToken ct = default) => Task.FromResult<byte[]?>(null);
+        public Task<string?> GetQrSvgAsync(Guid paymentId, CancellationToken ct = default) => Task.FromResult<string?>(null);
+    }
 
     private static void SeedShiftWithClosing(AppDbContext ctx, Guid closingId, string cashierId)
     {

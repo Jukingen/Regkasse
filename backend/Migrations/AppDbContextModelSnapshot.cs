@@ -2598,6 +2598,10 @@ namespace KasseAPI_Final.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Environment")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<string>("FinanzOnlineError")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -2610,6 +2614,9 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<bool>("IsSimulated")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("JwsHeader")
                         .HasColumnType("text");
 
@@ -2619,9 +2626,15 @@ namespace KasseAPI_Final.Migrations
                     b.Property<string>("JwsSignature")
                         .HasColumnType("text");
 
+                    b.Property<string>("PreviousSignature")
+                        .HasColumnType("text");
+
                     b.Property<string>("Provider")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<int>("SignatureChainLength")
+                        .HasColumnType("integer");
 
                     b.Property<string>("SignatureFormat")
                         .HasMaxLength(50)
@@ -2646,8 +2659,12 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("TseSignature")
-                        .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<string>("TseSignatureTimestamp")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("tse_signature_timestamp");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -3735,6 +3752,122 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("issued_licenses", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.Jahresbeleg", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CashRegisterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cash_register_id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<Guid?>("DailyClosingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("daily_closing_id");
+
+                    b.Property<string>("Environment")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<bool>("IsDecemberMonatsbeleg")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_december_monatsbeleg");
+
+                    b.Property<bool>("IsSimulated")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("MonthlyReferences")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PreviousSignature")
+                        .HasColumnType("text");
+
+                    b.Property<int>("SignatureChainLength")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("TaxRate0")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("tax_rate_0");
+
+                    b.Property<decimal>("TaxRate10")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("tax_rate_10");
+
+                    b.Property<decimal>("TaxRate20")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("tax_rate_20");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<decimal>("TotalCard")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalCash")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalGross")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalOther")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalTax")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalVoucher")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("TransactionCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TseCertificateThumbprint")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("tse_certificate_thumbprint");
+
+                    b.Property<string>("TseSignature")
+                        .HasColumnType("text");
+
+                    b.Property<string>("TseSignatureTimestamp")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("tse_signature_timestamp");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DailyClosingId");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("CashRegisterId", "Year")
+                        .IsUnique()
+                        .HasDatabaseName("ix_jahresbeleg_per_register_year");
+
+                    b.ToTable("jahresbeleg", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.JahresberichtReport", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4268,6 +4401,120 @@ namespace KasseAPI_Final.Migrations
                         .IsUnique();
 
                     b.ToTable("localization_settings");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.Monatsbeleg", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CashRegisterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cash_register_id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<int>("DailyClosingCount")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("DailyClosingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("daily_closing_id");
+
+                    b.Property<string>("Environment")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<bool>("IsSimulated")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PreviousSignature")
+                        .HasColumnType("text");
+
+                    b.Property<int>("SignatureChainLength")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("TaxRate0")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("tax_rate_0");
+
+                    b.Property<decimal>("TaxRate10")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("tax_rate_10");
+
+                    b.Property<decimal>("TaxRate20")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("tax_rate_20");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<decimal>("TotalCard")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalCash")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalGross")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalOther")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalTax")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalVoucher")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("TransactionCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TseCertificateThumbprint")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("tse_certificate_thumbprint");
+
+                    b.Property<string>("TseSignature")
+                        .HasColumnType("text");
+
+                    b.Property<string>("TseSignatureTimestamp")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("tse_signature_timestamp");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DailyClosingId");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("CashRegisterId", "Year", "Month")
+                        .IsUnique()
+                        .HasDatabaseName("ix_monatsbeleg_per_register_month");
+
+                    b.ToTable("monatsbeleg", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.MonatsberichtReport", b =>
@@ -9354,6 +9601,31 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("SupersededByLicense");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.Jahresbeleg", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.CashRegister", "CashRegister")
+                        .WithMany()
+                        .HasForeignKey("CashRegisterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.DailyClosing", "DailyClosing")
+                        .WithMany()
+                        .HasForeignKey("DailyClosingId");
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CashRegister");
+
+                    b.Navigation("DailyClosing");
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.JahresberichtReport", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.CashRegister", "CashRegister")
@@ -9400,6 +9672,31 @@ namespace KasseAPI_Final.Migrations
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.Monatsbeleg", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.CashRegister", "CashRegister")
+                        .WithMany()
+                        .HasForeignKey("CashRegisterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.DailyClosing", "DailyClosing")
+                        .WithMany()
+                        .HasForeignKey("DailyClosingId");
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CashRegister");
+
+                    b.Navigation("DailyClosing");
 
                     b.Navigation("Tenant");
                 });

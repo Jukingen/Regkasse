@@ -6,6 +6,7 @@ using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -55,6 +56,16 @@ internal static class TenantTestDoubles
         m.Setup(x => x.GetCompanyProfileAsync(It.IsAny<CancellationToken>())).ReturnsAsync(profile);
         return m.Object;
     }
+
+    public static IHostEnvironment HostEnvironmentReturning(string environmentName)
+    {
+        var m = new Mock<IHostEnvironment>();
+        m.Setup(x => x.EnvironmentName).Returns(environmentName);
+        return m.Object;
+    }
+
+    public static IHostEnvironment ProductionHostEnvironment =>
+        HostEnvironmentReturning(Environments.Production);
 
     public static ICashRegisterSettingsService CashRegisterSettingsServiceReturning(
         PosCashRegisterFeatureOptions features)

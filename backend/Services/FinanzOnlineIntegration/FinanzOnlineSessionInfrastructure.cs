@@ -13,7 +13,7 @@ namespace KasseAPI_Final.Services.FinanzOnlineIntegration;
 public sealed class FinanzOnlineSessionOptions
 {
     public const string SectionName = "FinanzOnline:Session";
-    public bool UseSimulation { get; set; } = true;
+    public bool UseSimulation { get; set; } = false;
 
     /// <summary>SOAP service endpoint (document/literal), e.g. https://finanzonline.bmf.gv.at/fonws/ws/session — must be set via configuration.</summary>
     public string BaseUrl { get; set; } = string.Empty;

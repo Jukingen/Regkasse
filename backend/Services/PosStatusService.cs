@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Services.Rksv;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services;
@@ -9,15 +10,18 @@ public sealed class PosStatusService : IPosStatusService
 {
     private readonly ILicenseService _licenseService;
     private readonly IPosCashRegisterReadinessService _cashRegisterReadiness;
+    private readonly IRksvEnvironmentService _rksvEnvironment;
     private readonly AppDbContext _db;
 
     public PosStatusService(
         ILicenseService licenseService,
         IPosCashRegisterReadinessService cashRegisterReadiness,
+        IRksvEnvironmentService rksvEnvironment,
         AppDbContext db)
     {
         _licenseService = licenseService;
         _cashRegisterReadiness = cashRegisterReadiness;
+        _rksvEnvironment = rksvEnvironment;
         _db = db;
     }
 
@@ -63,6 +67,7 @@ public sealed class PosStatusService : IPosStatusService
             },
             CashRegister = cashRegister,
             Settings = settings,
+            RksvEnvironment = RksvEnvironmentStatusDto.FromService(_rksvEnvironment),
         };
     }
 

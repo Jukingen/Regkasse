@@ -450,7 +450,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
             tseMock.Object,
             TenantTestDoubles.CompanyProfileProviderReturning(companyProfile),
             Mock.Of<IUserService>(),
-            TenantTestDoubles.PrimaryTenantResolver);
+            TenantTestDoubles.PrimaryTenantResolver, TenantTestDoubles.ProductionHostEnvironment);
         var auditMock = auditMockOpt ?? new Mock<IAuditLogService>();
         if (auditMockOpt == null)
         {
