@@ -202,6 +202,7 @@ builder.Services.Configure<FinanzOnlineSimulationOptions>(
     builder.Configuration.GetSection(FinanzOnlineSimulationOptions.SectionName));
 builder.Services.Configure<RksvFinanzOnlineSubmissionClientOptions>(
     builder.Configuration.GetSection(RksvFinanzOnlineSubmissionClientOptions.SectionName));
+builder.Services.Configure<ElmahOptions>(builder.Configuration.GetSection(ElmahOptions.SectionName));
 builder.Services.AddHealthChecks()
     .AddCheck<FinanzOnlineHealthCheck>("finanzonline")
     .AddCheck<BackupHealthCheck>("backup")
@@ -313,9 +314,10 @@ builder.Services.AddDbContextFactory<AppDbContext>((_, options) =>
 
 if (!isDevelopment && !OpenApiExportMode.IsEnabled)
 {
-    var elmahApplicationName = builder.Configuration["Elmah:ApplicationName"]?.Trim();
-    if (string.IsNullOrWhiteSpace(elmahApplicationName))
-        elmahApplicationName = "Regkasse";
+    var elmahOptions = builder.Configuration.GetSection(ElmahOptions.SectionName).Get<ElmahOptions>() ?? new ElmahOptions();
+    var elmahApplicationName = string.IsNullOrWhiteSpace(elmahOptions.ApplicationName)
+        ? "Regkasse"
+        : elmahOptions.ApplicationName.Trim();
 
     builder.Services.AddElmah<PgsqlErrorLog>(options =>
     {
@@ -325,6 +327,7 @@ if (!isDevelopment && !OpenApiExportMode.IsEnabled)
             context.User.Identity?.IsAuthenticated == true
             && context.User.HasPermissionClaim(AppPermissions.SystemCritical);
     });
+    builder.Services.AddHostedService<ElmahRetentionHostedService>();
 }
 
 builder.Services.AddDataProtection();
@@ -1150,6 +1153,11 @@ app.MapHealthChecks("/health/finanzonline/mode", new HealthCheckOptions
 app.MapHealthChecks("/health/backup/mode", new HealthCheckOptions
 {
     Predicate = check => check.Name == "backup",
+    AllowCachingResponses = false,
+}).AllowAnonymous();
+app.MapHealthChecks("/health/elmah", new HealthCheckOptions
+{
+    Predicate = check => check.Name == "elmah",
     AllowCachingResponses = false,
 }).AllowAnonymous();
 app.MapGet("/api/health/license", (ILicenseService lic, ILicenseReminderNotificationStore licenseReminders) =>

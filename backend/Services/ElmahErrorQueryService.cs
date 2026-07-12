@@ -94,6 +94,48 @@ public sealed class ElmahErrorQueryService : IElmahErrorQueryService
         return deleted;
     }
 
+    public async Task<int> EnforceMaxEntriesAsync(
+        string applicationName,
+        int maxLogEntries,
+        CancellationToken cancellationToken = default)
+    {
+        if (maxLogEntries <= 0)
+            return 0;
+
+        var connectionString = RequireConnectionString();
+        await using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+
+        int totalCount;
+        await using (var countCommand = new NpgsqlCommand(
+                         "SELECT COUNT(*) FROM elmah_error WHERE application = @application",
+                         connection))
+        {
+            countCommand.Parameters.AddWithValue("application", applicationName);
+            totalCount = Convert.ToInt32(await countCommand.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false));
+        }
+
+        var excess = totalCount - maxLogEntries;
+        if (excess <= 0)
+            return 0;
+
+        await using var deleteCommand = new NpgsqlCommand(
+            """
+            DELETE FROM elmah_error
+            WHERE errorid IN (
+                SELECT errorid
+                FROM elmah_error
+                WHERE application = @application
+                ORDER BY sequence ASC
+                LIMIT @excess
+            )
+            """,
+            connection);
+        deleteCommand.Parameters.AddWithValue("application", applicationName);
+        deleteCommand.Parameters.AddWithValue("excess", excess);
+        return await deleteCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     private string RequireConnectionString()
     {
         var connectionString = _configuration.GetConnectionString("DefaultConnection");
