@@ -40,13 +40,33 @@ const withBundleAnalyzer = bundleAnalyzer({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     allowedDevOrigins: ['admin.regkasse.local', '*.regkasse.local'],
-    transpilePackages: ['@ant-design/icons', 'antd', 'rc-util', 'rc-pagination', 'rc-picker', 'rc-notification', 'rc-tooltip'],
+    transpilePackages: ['antd', '@ant-design/icons', 'rc-util', 'rc-pagination', 'rc-picker', 'rc-notification', 'rc-tooltip'],
     reactStrictMode: true,
     turbopack: {
         root: path.join(__dirname, '..'),
     },
     experimental: {
         optimizePackageImports: ['antd', '@ant-design/icons'],
+    },
+    async redirects() {
+        return [
+            { source: '/sales', destination: '/receipts', permanent: false },
+            { source: '/storno', destination: '/payments/storno-refund-audit', permanent: false },
+            { source: '/price-rules', destination: '/pricing-rules', permanent: false },
+            { source: '/reporting/operational', destination: '/reporting', permanent: false },
+            { source: '/reporting/center', destination: '/reporting/report-center', permanent: false },
+            { source: '/reporting/user-activity', destination: '/admin/reports/user-activity', permanent: false },
+            {
+                source: '/rksv/monatsbeleg',
+                destination: '/rksv/sonderbelege?focus=monatsbeleg',
+                permanent: false,
+            },
+            {
+                source: '/rksv/jahresbeleg',
+                destination: '/rksv/sonderbelege?focus=jahresbeleg',
+                permanent: false,
+            },
+        ];
     },
 };
 

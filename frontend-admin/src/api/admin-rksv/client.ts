@@ -1,15 +1,12 @@
-import { getApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import type { GetApiAdminFiscalExportParams } from '@/api/generated/model';
+import { listAdminCashRegisters } from '@/features/cash-registers/api/cashRegisters';
 import type {
   RksvComplianceReport,
   RksvComplianceReportQueryParams,
 } from '@/features/rksv/compliance/types';
 import { normalizeRksvBackendEnvironment } from '@/features/rksv/normalizeRksvBackendEnvironment';
 import type { RksvBackendEnvironmentStatus } from '@/features/rksv/types/rksvBackendEnvironment';
-import {
-  normalizeCashRegisterListBody,
-  type CashRegisterRow,
-} from '@/features/tagesabschluss/normalizers';
+import type { CashRegisterRow } from '@/features/tagesabschluss/normalizers';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 
 /** GET /api/rksv/status — canonical RKSV environment status for POS and Admin. */
@@ -37,9 +34,14 @@ export function fiscalExportDisclaimerAckHeaders(): Record<string, string> {
  * - If an endpoint is available in `@/api/generated/*`, call it directly from the page/hook layer.
  * - Every new manual wrapper must include a short WHY comment and a removal condition.
  */
+/** Canonical admin register list for RKSV pickers (JWT tenant scope). */
 export async function getAdminCashRegisters(): Promise<CashRegisterRow[]> {
-  const response = await getApiCashRegister();
-  return normalizeCashRegisterListBody(response);
+  const page = await listAdminCashRegisters({ page: 1, pageSize: 200 });
+  return page.items.map((register) => ({
+    id: register.id,
+    registerNumber: register.registerNumber,
+    location: register.location,
+  }));
 }
 
 export function downloadOfflinePayloadHashExportCsv(params: {
