@@ -34,7 +34,7 @@ export function useMissingMonths(options?: UseMissingMonthsOptions) {
         const entries: CurrentMonthMissingEntry[] = [];
         for (const item of query.data ?? []) {
             const cashRegisterId = item.cashRegisterId?.trim();
-            if (!cashRegisterId || item.status?.currentMonthExists) continue;
+            if (!cashRegisterId || !item.status || item.status.currentMonthExists) continue;
             entries.push({
                 cashRegisterId,
                 year,

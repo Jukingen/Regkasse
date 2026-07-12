@@ -163,11 +163,12 @@ export function PaymentTrendWidget({
                                 <XAxis dataKey="label" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
                                 <YAxis tick={{ fontSize: 11 }} width={48} />
                                 <Tooltip
-                                    formatter={(value: number, name: string) =>
-                                        name === 'revenue'
-                                            ? [`€${value.toFixed(2)}`, t('payments.trends.chart.revenue')]
-                                            : [value, t('payments.trends.chart.count')]
-                                    }
+                                    formatter={(value, name) => {
+                                        const n = Number(value ?? 0);
+                                        return name === 'revenue'
+                                            ? [`€${n.toFixed(2)}`, t('payments.trends.chart.revenue')]
+                                            : [n, t('payments.trends.chart.count')];
+                                    }}
                                 />
                                 <Line
                                     type="monotone"
@@ -183,8 +184,8 @@ export function PaymentTrendWidget({
                                 <XAxis dataKey="label" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
                                 <YAxis tick={{ fontSize: 11 }} width={48} />
                                 <Tooltip
-                                    formatter={(value: number) => [
-                                        `€${value.toFixed(2)}`,
+                                    formatter={(value) => [
+                                        `€${Number(value ?? 0).toFixed(2)}`,
                                         t('payments.trends.chart.revenue'),
                                     ]}
                                 />

@@ -41,7 +41,7 @@ function mapOverviewStatus(status: string): MandantLicenseOverviewKind {
         case 'expired':
         case 'trial':
         case 'no_license':
-            return status;
+            return 'none';
         default:
             return 'none';
     }

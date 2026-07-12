@@ -188,7 +188,7 @@ export function BackupVerificationReport({
             <Col xs={24} sm={8}>
               <Statistic
                 title={t('backupDr.verificationReport.backupSizeTitle')}
-                value={report.totalSizeFormatted || formatBackupBytes(report.totalSizeBytes)}
+                value={report.totalSizeFormatted || formatBackupBytes(report.totalSizeBytes, t)}
               />
             </Col>
             <Col xs={24} sm={8}>

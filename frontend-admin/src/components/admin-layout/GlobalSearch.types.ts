@@ -1,4 +1,19 @@
-import type { GlobalSearchResultItem } from '@/components/admin-layout/GlobalSearch.types';
+export type GlobalSearchMatchRank = 'exact' | 'startsWith' | 'contains';
+
+export type GlobalSearchResultItem = {
+    id: string;
+    menuKey: string;
+    href: string;
+    label: string;
+    breadcrumb?: string;
+    keywords: string[];
+};
+
+export type RankedGlobalSearchResult = {
+    item: GlobalSearchResultItem;
+    rank: GlobalSearchMatchRank;
+    score: number;
+};
 
 /** Pre-built, locale-resolved nav search catalog (before permission filter). */
 export type MenuSearchIndexSource = {

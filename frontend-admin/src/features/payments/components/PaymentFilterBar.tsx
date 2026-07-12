@@ -112,13 +112,13 @@ export function PaymentFilterBar({
             <Card size="small" style={{ marginBottom: 16 }}>
                 <Space wrap style={{ width: '100%', justifyContent: 'space-between' }}>
                     <Space wrap>
-                        <RangePicker format={DAYJS_DATE_FORMAT}
+                        <RangePicker
+                            format={DAYJS_DATE_FORMAT}
                             value={dateRangeValue}
                             placeholder={[
                                 t('payments.filtersBar.dateStart'),
                                 t('payments.filtersBar.dateEnd'),
                             ]}
-                            format="DD.MM.YYYY"
                             onChange={(dates) =>
                                 handleFilterChange(
                                     'dateRange',

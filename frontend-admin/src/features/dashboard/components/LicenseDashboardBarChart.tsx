@@ -19,7 +19,7 @@ export default function LicenseDashboardBarChart({ data }: { data: LicenseDashbo
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
                 <YAxis allowDecimals={false} width={36} tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(v: number) => [v, '']} labelStyle={{ fontSize: 12 }} />
+                <Tooltip formatter={(v) => [Number(v ?? 0), '']} labelStyle={{ fontSize: 12 }} />
                 <Bar dataKey="count" fill="#1677ff" radius={[4, 4, 0, 0]} maxBarSize={48} />
             </BarChart>
         </ResponsiveContainer>

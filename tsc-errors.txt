@@ -1,0 +1,206 @@
+﻿src/app/(protected)/kassenverwaltung/page.tsx(171,43): error TS2339: Property 'tenantName' does not exist on type 'CashRegisterViewItem'.
+src/app/(protected)/kassenverwaltung/page.tsx(172,43): error TS2339: Property 'tenantSlug' does not exist on type 'CashRegisterViewItem'.
+src/app/(protected)/payments/page.tsx(259,62): error TS2345: Argument of type '{ amount: number; reason: string; }' is not assignable to parameter of type 'RefundPaymentRequest'.
+  Property 'reasonCode' is missing in type '{ amount: number; reason: string; }' but required in type 'RefundPaymentRequest'.
+src/app/(protected)/payments/storno-refund-audit/page.tsx(212,59): error TS2345: Argument of type '{ isStorno: boolean; isRefund: boolean; stornoReason: string | undefined; startDate: string; endDate: string; cashRegisterId: string | undefined; } | { isStorno: boolean; stornoReason: string | undefined; startDate: string; endDate: string; cashRegisterId: string | undefined; } | { ...; }' is not assignable to parameter of type 'Omit<GetApiAdminPaymentsParams, "pageSize" | "pageNumber">'.
+  Type '{ isRefund: boolean; startDate: string; endDate: string; cashRegisterId: string | undefined; }' has no properties in common with type 'Omit<GetApiAdminPaymentsParams, "pageSize" | "pageNumber">'.
+src/app/(protected)/payments/trends/page.tsx(16,21): error TS2322: Type '(t: (key: string) => string) => { readonly title: string; readonly href: "/dashboard"; }' is not assignable to type '{ title: string; href?: string | undefined; }'.
+src/app/(protected)/profile/page.tsx(81,9): error TS2353: Object literal may only specify known properties, and 'fallbackMessage' does not exist in type 'UserFacingApiErrorOptions'.
+src/app/(protected)/reporting/report-center/page.tsx(223,78): error TS2322: Type '"submissionQueue"' is not assignable to type '"tagesbericht" | "monatsbericht" | "jahresbericht" | "periodenbericht" | "xz"'.
+src/components/admin-layout/GlobalSearch.tsx(11,15): error TS2459: Module '"@/components/admin-layout/GlobalSearch.types"' declares 'GlobalSearchResultItem' locally, but it is not exported.
+src/components/admin-layout/GlobalSearch.types.ts(1,15): error TS2303: Circular definition of import alias 'GlobalSearchResultItem'.
+src/components/admin-layout/GlobalSearch.types.ts(1,15): error TS2459: Module '"@/components/admin-layout/GlobalSearch.types"' declares 'GlobalSearchResultItem' locally, but it is not exported.
+src/components/CommandPalette/commandRegistry.ts(41,75): error TS2554: Expected 1 arguments, but got 2.
+src/features/analytics/components/PaymentTrendsDashboard.tsx(190,33): error TS2322: Type '(value: number, name: string) => [string, string] | [number, string]' is not assignable to type 'Formatter<ValueType, NameType> & ((value: ValueType, name: NameType, item: TooltipPayloadEntry, index: number, payload: TooltipPayload) => ReactNode | [...])'.
+  Type '(value: number, name: string) => [string, string] | [number, string]' is not assignable to type 'Formatter<ValueType, NameType>'.
+    Types of parameters 'value' and 'value' are incompatible.
+      Type 'ValueType | undefined' is not assignable to type 'number'.
+        Type 'undefined' is not assignable to type 'number'.
+src/features/analytics/components/PaymentTrendsDashboard.tsx(258,71): error TS2551: Property 'percentage' does not exist on type 'PieLabelRenderProps'. Did you mean 'percent'?
+src/features/analytics/components/PaymentTrendsDashboard.tsx(268,46): error TS2322: Type '(value: number) => string' is not assignable to type 'Formatter<ValueType, NameType> & ((value: ValueType, name: NameType, item: TooltipPayloadEntry, index: number, payload: TooltipPayload) => ReactNode | [...])'.
+  Type '(value: number) => string' is not assignable to type 'Formatter<ValueType, NameType>'.
+    Types of parameters 'value' and 'value' are incompatible.
+      Type 'ValueType | undefined' is not assignable to type 'number'.
+        Type 'undefined' is not assignable to type 'number'.
+src/features/audit/components/ActivityLog.tsx(129,52): error TS2345: Argument of type '{ startDate: string | undefined; endDate: string | undefined; userId: string | undefined; action: string | undefined; }' is not assignable to parameter of type 'AuditLogListParams'.
+  Type '{ startDate: string | undefined; endDate: string | undefined; userId: string | undefined; action: string | undefined; }' is missing the following properties from type 'AuditLogListParams': page, pageSize
+src/features/audit/components/AuditFilterBar.tsx(118,78): error TS2322: Type '{ value: "Success" | "Failed" | "Warning" | undefined; onChange: (status: "Success" | "Failed" | "Warning" | undefined) => void; disabled: boolean; }' is not assignable to type 'IntrinsicAttributes & { value?: "Success" | "Failed" | "Warning" | undefined; onChange: (status: "Success" | "Failed" | "Warning" | undefined) => void; } & Pick<...>'.
+  Property 'disabled' does not exist on type 'IntrinsicAttributes & { value?: "Success" | "Failed" | "Warning" | undefined; onChange: (status: "Success" | "Failed" | "Warning" | undefined) => void; } & Pick<...>'.
+src/features/audit/components/AuditFilterBar.tsx(153,21): error TS17001: JSX elements cannot have multiple attributes with the same name.
+src/features/auth/api/forgotUsername.ts(13,13): error TS2339: Property 'data' does not exist on type 'ForgotUsernameResponse'.
+src/features/backup-dr/components/BackupDurationChart.tsx(41,22): error TS2322: Type '(v: number) => [string, string]' is not assignable to type 'Formatter<ValueType, NameType> & ((value: ValueType, name: NameType, item: TooltipPayloadEntry, index: number, payload: TooltipPayload) => ReactNode | [...])'.
+  Type '(v: number) => [string, string]' is not assignable to type 'Formatter<ValueType, NameType>'.
+    Types of parameters 'v' and 'value' are incompatible.
+      Type 'ValueType | undefined' is not assignable to type 'number'.
+        Type 'undefined' is not assignable to type 'number'.
+src/features/backup-dr/components/BackupHistoryChart.tsx(97,15): error TS2322: Type '(value: number, name: string) => [string, string] | [number, string]' is not assignable to type 'Formatter<ValueType, NameType> & ((value: ValueType, name: NameType, item: TooltipPayloadEntry, index: number, payload: TooltipPayload) => ReactNode | [...])'.
+  Type '(value: number, name: string) => [string, string] | [number, string]' is not assignable to type 'Formatter<ValueType, NameType>'.
+    Types of parameters 'value' and 'value' are incompatible.
+      Type 'ValueType | undefined' is not assignable to type 'number'.
+        Type 'undefined' is not assignable to type 'number'.
+src/features/backup-dr/components/BackupHistoryChart.tsx(126,49): error TS2352: Conversion of type 'BarRectangleItem' to type 'BackupHistoryChartPoint' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'BarRectangleItem' is missing the following properties from type 'BackupHistoryChartPoint': date, success, failed, duration
+src/features/backup-dr/components/BackupHistoryChart.tsx(135,49): error TS2352: Conversion of type 'BarRectangleItem' to type 'BackupHistoryChartPoint' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'BarRectangleItem' is missing the following properties from type 'BackupHistoryChartPoint': date, success, failed, duration
+src/features/backup-dr/components/BackupScheduleSettings.tsx(86,40): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+src/features/backup-dr/components/BackupScheduleSettings.tsx(87,27): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'SetStateAction<number | null>'.
+  Type 'undefined' is not assignable to type 'SetStateAction<number | null>'.
+src/features/backup-dr/components/BackupScheduleSettings.tsx(101,5): error TS2322: Type '(backupSettingsPutRequestDto: BackupSettingsPutRequestDto, options?: SecondParameter<typeof customInstance>) => Promise<BackupSettingsResponseDto>' is not assignable to type 'MutationFunction<BackupSettingsResponseDto, BackupSettingsPutRequestDto>'.
+  Types of parameters 'options' and 'context' are incompatible.
+    Type 'MutationFunctionContext' has no properties in common with type 'AxiosRequestConfig<any>'.
+src/features/backup-dr/logic/backupMonitoringMetrics.ts(159,27): error TS2677: A type predicate's type must be assignable to its parameter's type.
+  Type 'BackupHistory30DayChartRow & { ts: number; }' is not assignable to type '{ key: string; runId: string | undefined; date: string; success: number; failed: number; duration: number; ts: number; } | null'.
+    Type 'BackupHistory30DayChartRow & { ts: number; }' is not assignable to type '{ key: string; runId: string | undefined; date: string; success: number; failed: number; duration: number; ts: number; }'.
+      Property 'runId' is optional in type 'BackupHistory30DayChartRow & { ts: number; }' but required in type '{ key: string; runId: string | undefined; date: string; success: number; failed: number; duration: number; ts: number; }'.
+src/features/backup-dr/logic/backupMonitoringMetrics.ts(160,21): error TS18047: 'a' is possibly 'null'.
+src/features/backup-dr/logic/backupMonitoringMetrics.ts(160,28): error TS18047: 'b' is possibly 'null'.
+src/features/backup-dr/logic/backupMonitoringMetrics.ts(161,13): error TS2339: Property 'ts' does not exist on type '{ key: string; runId: string | undefined; date: string; success: number; failed: number; duration: number; ts: number; } | null'.
+src/features/backup/components/BackupList.tsx(121,49): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | number'.
+  Type 'undefined' is not assignable to type 'string | number'.
+src/features/backup/components/BackupList.tsx(125,53): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | number'.
+  Type 'undefined' is not assignable to type 'string | number'.
+src/features/backup/components/BackupList.tsx(143,15): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/features/backup/components/BackupList.tsx(144,15): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/features/backup/components/BackupList.tsx(145,15): error TS2322: Type 'string | null | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/features/backup/components/BackupList.tsx(153,19): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/features/backup/components/BackupList.tsx(198,21): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/features/backup/components/BackupList.tsx(199,21): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/features/backup/components/BackupList.tsx(200,21): error TS2322: Type 'string | null | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/features/backup/components/BackupList.tsx(224,20): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string | number | Date'.
+      Type 'undefined' is not assignable to type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string | number'.
+      Type 'undefined' is not assignable to type 'string | number'.
+src/features/backup/components/BackupList.tsx(224,54): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string | number | Date'.
+      Type 'undefined' is not assignable to type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string | number'.
+      Type 'undefined' is not assignable to type 'string | number'.
+src/features/backup/components/BackupList.tsx(262,19): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/features/backup/components/BackupRunsTable.tsx(103,24): error TS2322: Type '(query: unknown) => number' is not assignable to type 'number | false | undefined'.
+src/features/backup/components/BackupSchedulePlanner.tsx(70,8): error TS2367: This comparison appears to be unintentional because the types 'number' and 'string' have no overlap.
+src/features/backup/components/BackupSchedulePlanner.tsx(84,8): error TS2367: This comparison appears to be unintentional because the types 'number' and 'string' have no overlap.
+src/features/backup/components/BackupSchedulePlanner.tsx(100,8): error TS2367: This comparison appears to be unintentional because the types 'number' and 'string' have no overlap.
+src/features/backup/components/BackupSchedulePlanner.tsx(116,8): error TS2367: This comparison appears to be unintentional because the types 'number' and 'string' have no overlap.
+src/features/backup/components/BackupVerificationReport.tsx(191,53): error TS2554: Expected 2 arguments, but got 1.
+src/features/backup/index.ts(16,8): error TS2300: Duplicate identifier 'BackupSettings'.
+src/features/backup/index.ts(27,10): error TS2300: Duplicate identifier 'BackupSettings'.
+src/features/backup/logic/backupDashboardStatsMapper.ts(46,5): error TS2322: Type 'number | undefined' is not assignable to type 'RestoreVerificationStatus | undefined'.
+  Type 'number' is not assignable to type 'RestoreVerificationStatus | undefined'.
+src/features/backup/logic/backupScheduleCronCodec.ts(29,3): error TS2322: Type 'string' is not assignable to type 'BackupScheduleFrequency'.
+src/features/backup/logic/backupScheduleCronCodec.ts(38,7): error TS2367: This comparison appears to be unintentional because the types 'number' and 'string' have no overlap.
+src/features/backup/logic/backupScheduleCronCodec.ts(41,7): error TS2367: This comparison appears to be unintentional because the types 'number' and 'string' have no overlap.
+src/features/backup/logic/backupScheduleCronCodec.ts(44,7): error TS2367: This comparison appears to be unintentional because the types 'number' and 'string' have no overlap.
+src/features/backup/logic/backupScheduleCronCodec.ts(56,7): error TS2322: Type 'string' is not assignable to type 'BackupScheduleFrequency'.
+src/features/backup/logic/backupScheduleCronCodec.ts(69,7): error TS2322: Type 'string' is not assignable to type 'BackupScheduleFrequency'.
+src/features/backup/logic/backupScheduleCronCodec.ts(80,7): error TS2322: Type 'string' is not assignable to type 'BackupScheduleFrequency'.
+src/features/backup/logic/backupScheduleCronCodec.ts(91,7): error TS2322: Type 'string' is not assignable to type 'BackupScheduleFrequency'.
+src/features/backup/logic/backupScheduleCronCodec.ts(102,5): error TS2322: Type 'string' is not assignable to type 'BackupScheduleFrequency'.
+src/features/backup/logic/backupScheduleCronCodec.ts(114,16): error TS2367: This comparison appears to be unintentional because the types 'number' and 'string' have no overlap.
+src/features/backup/logic/backupScheduleCronCodec.ts(115,17): error TS2367: This comparison appears to be unintentional because the types 'number' and 'string' have no overlap.
+src/features/backup/logic/backupScheduleCronCodec.ts(116,17): error TS2367: This comparison appears to be unintentional because the types 'number' and 'string' have no overlap.
+src/features/backup/logic/backupScheduleCronCodec.ts(123,7): error TS2367: This comparison appears to be unintentional because the types 'number' and 'string' have no overlap.
+src/features/backup/logic/backupScheduleCronCodec.ts(124,7): error TS2367: This comparison appears to be unintentional because the types 'number' and 'string' have no overlap.
+src/features/backup/logic/backupScheduleCronCodec.ts(125,7): error TS2367: This comparison appears to be unintentional because the types 'number' and 'string' have no overlap.
+src/features/backup/logic/backupScheduleCronCodec.ts(137,45): error TS2322: Type 'string' is not assignable to type 'BackupScheduleFrequency'.
+src/features/backup/logic/backupScheduleCronCodec.ts(137,54): error TS2322: Type 'string' is not assignable to type 'BackupScheduleFrequency'.
+src/features/backup/logic/backupScheduleCronCodec.ts(137,64): error TS2322: Type 'string' is not assignable to type 'BackupScheduleFrequency'.
+src/features/backup/logic/backupScheduleCronCodec.ts(137,75): error TS2322: Type 'string' is not assignable to type 'BackupScheduleFrequency'.
+src/features/backup/logic/backupScheduleCronCodec.ts(143,3): error TS2322: Type '"Custom"' is not assignable to type 'BackupScheduleFrequency'.
+src/features/command-palette/fuseCommandSearch.ts(4,21): error TS2702: 'Fuse' only refers to a type, but is being used as a namespace here.
+src/features/command-palette/mapApiSearchToCommandItems.tsx(19,9): error TS2322: Type 'string | null | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/features/command-palette/mapApiSearchToCommandItems.tsx(23,20): error TS2322: Type 'string | null | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/features/command-palette/mapApiSearchToCommandItems.tsx(23,65): error TS2322: Type 'string | null | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/features/command-palette/mapApiSearchToCommandItems.tsx(24,32): error TS2345: Argument of type 'string | null | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/features/dashboard/components/LicenseDashboardBarChart.tsx(22,26): error TS2322: Type '(v: number) => [number, string]' is not assignable to type 'Formatter<ValueType, NameType> & ((value: ValueType, name: NameType, item: TooltipPayloadEntry, index: number, payload: TooltipPayload) => ReactNode | [...])'.
+  Type '(v: number) => [number, string]' is not assignable to type 'Formatter<ValueType, NameType>'.
+    Types of parameters 'v' and 'value' are incompatible.
+      Type 'ValueType | undefined' is not assignable to type 'number'.
+        Type 'undefined' is not assignable to type 'number'.
+src/features/dashboard/widgets/PaymentTrendWidget.tsx(166,37): error TS2322: Type '(value: number, name: string) => [string, string] | [number, string]' is not assignable to type 'Formatter<ValueType, NameType> & ((value: ValueType, name: NameType, item: TooltipPayloadEntry, index: number, payload: TooltipPayload) => ReactNode | [...])'.
+  Type '(value: number, name: string) => [string, string] | [number, string]' is not assignable to type 'Formatter<ValueType, NameType>'.
+    Types of parameters 'value' and 'value' are incompatible.
+      Type 'ValueType | undefined' is not assignable to type 'number'.
+        Type 'undefined' is not assignable to type 'number'.
+src/features/dashboard/widgets/PaymentTrendWidget.tsx(186,37): error TS2322: Type '(value: number) => [string, string]' is not assignable to type 'Formatter<ValueType, NameType> & ((value: ValueType, name: NameType, item: TooltipPayloadEntry, index: number, payload: TooltipPayload) => ReactNode | [...])'.
+  Type '(value: number) => [string, string]' is not assignable to type 'Formatter<ValueType, NameType>'.
+    Types of parameters 'value' and 'value' are incompatible.
+      Type 'ValueType | undefined' is not assignable to type 'number'.
+        Type 'undefined' is not assignable to type 'number'.
+src/features/dashboard/widgets/TodaySalesWidget.tsx(82,50): error TS2322: Type '(v: number) => string' is not assignable to type 'Formatter<ValueType, NameType> & ((value: ValueType, name: NameType, item: TooltipPayloadEntry, index: number, payload: TooltipPayload) => ReactNode | [...])'.
+  Type '(v: number) => string' is not assignable to type 'Formatter<ValueType, NameType>'.
+    Types of parameters 'v' and 'value' are incompatible.
+      Type 'ValueType | undefined' is not assignable to type 'number'.
+        Type 'undefined' is not assignable to type 'number'.
+src/features/errors/hooks/useElmahErrors.ts(25,13): error TS2339: Property 'data' does not exist on type 'ElmahErrorListResponse'.
+src/features/invoices/components/InvoiceList.tsx(353,59): error TS2731: Implicit conversion of a 'symbol' to a 'string' will fail at runtime. Consider wrapping this expression in 'String(...)'.
+src/features/license/api/tenantLicenseOverview.ts(44,13): error TS2322: Type '"expired" | "active" | "trial" | "no_license" | "expiring_soon"' is not assignable to type 'MandantLicenseOverviewKind'.
+  Type '"no_license"' is not assignable to type 'MandantLicenseOverviewKind'.
+src/features/license/utils/licenseStatus.ts(191,13): error TS2322: Type 'undefined' is not assignable to type 'string'.
+src/features/payments/components/CardTransactionsPage.tsx(18,79): error TS2345: Argument of type 'string' is not assignable to parameter of type 'TranslateOptions'.
+src/features/payments/components/CardTransactionsTable.tsx(36,79): error TS2345: Argument of type 'string' is not assignable to parameter of type 'TranslateOptions'.
+src/features/payments/components/PaymentFilterBar.tsx(121,29): error TS17001: JSX elements cannot have multiple attributes with the same name.
+src/features/products/components/DevCatalogPurgeButton.tsx(26,17): error TS2532: Object is possibly 'undefined'.
+src/features/reports/components/UserActivityChart.tsx(91,53): error TS18048: 'percent' is possibly 'undefined'.
+src/features/reports/pages/UserActivityReportPage.tsx(19,17): error TS2322: Type '{ title: string; description: string; breadcrumbs: ({ readonly title: string; readonly href: "/dashboard"; } | { title: string; href: string; } | { title: string; })[]; }' is not assignable to type 'IntrinsicAttributes & AdminPageHeaderProps'.
+  Property 'description' does not exist on type 'IntrinsicAttributes & AdminPageHeaderProps'.
+src/features/rksv-operations/hooks/useRksvReminderOverview.ts(76,29): error TS2677: A type predicate's type must be assignable to its parameter's type.
+  Type '{ registerId: string; registerNumber: string; hasStartbeleg: boolean; monatsbelegStatus: "missing" | "overdue" | "ok"; jahresbelegStatus: "missing" | "overdue" | "ok" | "not_applicable"; daysRemaining?: number | undefined; daysOverdue?: number | undefined; }' is not assignable to type '{ registerId: string; registerNumber: string; hasStartbeleg: boolean; monatsbelegStatus: "missing" | "overdue" | "ok"; jahresbelegStatus: "missing" | "overdue" | "ok" | "not_applicable"; daysRemaining: number | undefined; }'.
+    Property 'daysRemaining' is optional in type '{ registerId: string; registerNumber: string; hasStartbeleg: boolean; monatsbelegStatus: "missing" | "overdue" | "ok"; jahresbelegStatus: "missing" | "overdue" | "ok" | "not_applicable"; daysRemaining?: number | undefined; daysOverdue?: number | undefined; }' but required in type '{ registerId: string; registerNumber: string; hasStartbeleg: boolean; monatsbelegStatus: "missing" | "overdue" | "ok"; jahresbelegStatus: "missing" | "overdue" | "ok" | "not_applicable"; daysRemaining: number | undefined; }'.
+src/features/rksv-operations/hooks/useRksvReminderOverview.ts(80,52): error TS18047: 'item' is possibly 'null'.
+src/features/rksv-operations/hooks/useRksvReminderOverview.ts(81,52): error TS18047: 'item' is possibly 'null'.
+src/features/rksv-operations/hooks/useRksvReminderOverview.ts(82,52): error TS18047: 'item' is possibly 'null'.
+src/features/rksv-operations/hooks/useRksvReminderOverview.ts(83,52): error TS18047: 'item' is possibly 'null'.
+src/features/rksv-operations/hooks/useRksvReminderOverview.ts(85,5): error TS2322: Type '({ registerId: string; registerNumber: string; hasStartbeleg: boolean; monatsbelegStatus: "missing" | "overdue" | "ok"; jahresbelegStatus: "missing" | "overdue" | "ok" | "not_applicable"; daysRemaining: number | undefined; } | null)[]' is not assignable to type '{ registerId: string; registerNumber: string; hasStartbeleg: boolean; monatsbelegStatus: "missing" | "overdue" | "ok"; jahresbelegStatus: "missing" | "overdue" | "ok" | "not_applicable"; daysRemaining?: number | undefined; daysOverdue?: number | undefined; }[]'.
+  Type '{ registerId: string; registerNumber: string; hasStartbeleg: boolean; monatsbelegStatus: "missing" | "overdue" | "ok"; jahresbelegStatus: "missing" | "overdue" | "ok" | "not_applicable"; daysRemaining: number | undefined; } | null' is not assignable to type '{ registerId: string; registerNumber: string; hasStartbeleg: boolean; monatsbelegStatus: "missing" | "overdue" | "ok"; jahresbelegStatus: "missing" | "overdue" | "ok" | "not_applicable"; daysRemaining?: number | undefined; daysOverdue?: number | undefined; }'.
+    Type 'null' is not assignable to type '{ registerId: string; registerNumber: string; hasStartbeleg: boolean; monatsbelegStatus: "missing" | "overdue" | "ok"; jahresbelegStatus: "missing" | "overdue" | "ok" | "not_applicable"; daysRemaining?: number | undefined; daysOverdue?: number | undefined; }'.
+src/features/rksv/components/CreateMonatsbelegModal.tsx(158,21): error TS2304: Cannot find name 'lateResult'.
+src/features/rksv/components/CreateMonatsbelegModal.tsx(159,38): error TS2304: Cannot find name 'lateResult'.
+src/features/rksv/hooks/useCreateMonatsbeleg.ts(22,17): error TS2353: Object literal may only specify known properties, and 'params' does not exist in type 'PostApiRksvSpecialReceiptsMonatsbelegParams'.
+src/features/rksv/hooks/useMissingMonths.ts(43,28): error TS18048: 'item.status' is possibly 'undefined'.
+src/features/settings/components/CompanySettingsForm.tsx(91,59): error TS2349: This expression is not callable.
+  Type 'never' has no call signatures.
+src/features/shifts/pages/ShiftOverview.tsx(53,54): error TS2339: Property 'SHIFT_MANAGE' does not exist on type '{ readonly CashRegisterView: "cash_register.view"; readonly CashRegisterManage: "cash_register.manage"; readonly CashRegisterDecommission: "cash_register.decommission"; readonly LicenseView: "license.view"; }'.
+src/features/shifts/pages/ShiftOverview.tsx(408,66): error TS2554: Expected 1 arguments, but got 2.
+src/features/super-admin/api/adminTenantLicense.ts(92,12): error TS2304: Cannot find name 'ExtendTenantLicenseResult'.
+src/features/super-admin/api/adminTenantLicense.ts(93,48): error TS2304: Cannot find name 'ExtendTenantLicenseResult'.
+src/features/tenancy/devTenantCatalog.ts(48,47): error TS2345: Argument of type 'string' is not assignable to parameter of type '"dev" | "prod"'.
+src/features/tenancy/devTenantCatalog.ts(68,25): error TS2345: Argument of type 'string' is not assignable to parameter of type '"dev" | "prod"'.
+src/features/user/components/SelfServiceUsernameModal.tsx(94,67): error TS2339: Property 'message' does not exist on type 'NormalizedApiError'.
+src/features/user/components/SelfServiceUsernameModal.tsx(95,42): error TS2339: Property 'message' does not exist on type 'NormalizedApiError'.
+src/features/users/api/users.ts(79,13): error TS2339: Property 'data' does not exist on type 'UsernameSuggestionResponse'.
+src/features/users/components/TenantUsersTabCore.tsx(583,25): error TS2322: Type '{ userId: string; email: string; name: string; role: string; isOwner: boolean; joinedAtUtc: string; } | null' is not assignable to type 'TenantUser | null'.
+  Property 'userName' is missing in type '{ userId: string; email: string; name: string; role: string; isOwner: boolean; joinedAtUtc: string; }' but required in type 'TenantUser'.
+src/features/users/components/UnifiedAdminUsersView.tsx(1277,25): error TS2322: Type '{ userId: string; email: string; name: string; role: string; isOwner: boolean; joinedAtUtc: string; } | null' is not assignable to type 'TenantUser | null'.
+  Property 'userName' is missing in type '{ userId: string; email: string; name: string; role: string; isOwner: boolean; joinedAtUtc: string; }' but required in type 'TenantUser'.
+src/hooks/useAuthorizedQuery.ts(58,44): error TS2345: Argument of type 'string | null | undefined' is not assignable to parameter of type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/hooks/useGlobalSearch.ts(9,15): error TS2459: Module '"@/components/admin-layout/GlobalSearch.types"' declares 'GlobalSearchResultItem' locally, but it is not exported.
+src/hooks/useMenuSearchIndex.ts(99,13): error TS2322: Type 'ItemType[] | undefined' is not assignable to type 'ItemType[]'.
+  Type 'undefined' is not assignable to type 'ItemType[]'.
+src/lib/adminRoutePrefetch.ts(28,13): error TS2561: Object literal may only specify known properties, but 'startDate' does not exist in type 'GetApiAdminPaymentsParams'. Did you mean to write 'StartDate'?
+src/lib/AntdAppBridgeRegistrar.tsx(11,30): error TS2741: Property 'warn' is missing in type 'HookAPI' but required in type 'ModalStaticFunctions'.
+src/lib/axios.ts(296,13): error TS2722: Cannot invoke an object which is possibly 'undefined'.
+src/lib/axios.ts(297,41): error TS2722: Cannot invoke an object which is possibly 'undefined'.
+src/lib/personalization/formatLocale.ts(11,10): error TS2678: Type '"YYYY-MM-DD"' is not comparable to type '"DD.MM.YYYY"'.
+src/lib/personalization/formatLocale.ts(13,10): error TS2678: Type '"MM/DD/YYYY"' is not comparable to type '"DD.MM.YYYY"'.
+src/shared/searchUtils.ts(14,5): error TS2305: Module '"@/components/admin-layout/GlobalSearch.types"' has no exported member 'GlobalSearchMatchRank'.
+src/shared/searchUtils.ts(15,5): error TS2459: Module '"@/components/admin-layout/GlobalSearch.types"' declares 'GlobalSearchResultItem' locally, but it is not exported.
+src/shared/searchUtils.ts(17,5): error TS2305: Module '"@/components/admin-layout/GlobalSearch.types"' has no exported member 'RankedGlobalSearchResult'.

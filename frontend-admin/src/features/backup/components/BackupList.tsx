@@ -32,6 +32,15 @@ type DownloadTarget = {
   fileName: string;
 };
 
+function toDownloadTarget(
+  backupRunId: string | null | undefined,
+  artifactId: string | null | undefined,
+  fileName: string | null | undefined,
+): DownloadTarget | null {
+  if (!backupRunId || !artifactId || !fileName) return null;
+  return { backupRunId, artifactId, fileName };
+}
+
 export function BackupList({ onRetryInvalidate }: BackupListProps) {
   const { message } = App.useApp();
   const queryClient = useQueryClient();
@@ -118,11 +127,11 @@ export function BackupList({ onRetryInvalidate }: BackupListProps) {
     (row: BackupListItemResponseDto) => (
       <div style={{ padding: "4px 0 8px" }}>
         <Typography.Title level={5} style={{ marginTop: 0, marginBottom: 8 }}>
-          {t("backupDr.backupList.cardTitle", { fileName: row.fileName })}
+          {t("backupDr.backupList.cardTitle", { fileName: row.fileName ?? "" })}
         </Typography.Title>
         <Space orientation="vertical" size={4}>
           <Typography.Text>
-            {t("backupDr.backupList.tenantLabel", { tenant: row.tenantSlug })}
+            {t("backupDr.backupList.tenantLabel", { tenant: row.tenantSlug ?? "" })}
           </Typography.Text>
           <Typography.Text type="secondary">
             {t("backupDr.backupList.createdLabel", { date: formatDate(row.createdAt) })}
@@ -138,25 +147,21 @@ export function BackupList({ onRetryInvalidate }: BackupListProps) {
           ) : null}
         </Space>
         <Space style={{ marginTop: 12 }} wrap>
-          {renderDownloadButton(
-            {
-              backupRunId: row.backupRunId,
-              artifactId: row.artifactId,
-              fileName: row.fileName,
-            },
-            row.downloadUrl,
-            t("backupDr.backupList.downloadDump"),
-          )}
-          {row.manifestArtifactId && row.manifestFileName
+          {toDownloadTarget(row.backupRunId, row.artifactId, row.fileName)
             ? renderDownloadButton(
-                {
-                  backupRunId: row.backupRunId,
-                  artifactId: row.manifestArtifactId,
-                  fileName: row.manifestFileName,
-                },
-                row.manifestDownloadUrl,
-                t("backupDr.backupList.downloadManifest"),
+                toDownloadTarget(row.backupRunId, row.artifactId, row.fileName)!,
+                row.downloadUrl,
+                t("backupDr.backupList.downloadDump"),
               )
+            : null}
+          {row.manifestArtifactId && row.manifestFileName
+            ? toDownloadTarget(row.backupRunId, row.manifestArtifactId, row.manifestFileName)
+              ? renderDownloadButton(
+                  toDownloadTarget(row.backupRunId, row.manifestArtifactId, row.manifestFileName)!,
+                  row.manifestDownloadUrl,
+                  t("backupDr.backupList.downloadManifest"),
+                )
+              : null
             : null}
         </Space>
       </div>
@@ -193,13 +198,10 @@ export function BackupList({ onRetryInvalidate }: BackupListProps) {
                 size="small"
                 style={{ padding: 0, height: "auto", fontWeight: 600 }}
                 loading={downloadingKey === `${row.backupRunId}:${row.artifactId}`}
-                onClick={() =>
-                  void handleDownload({
-                    backupRunId: row.backupRunId,
-                    artifactId: row.artifactId,
-                    fileName: row.fileName,
-                  })
-                }
+                onClick={() => {
+                  const target = toDownloadTarget(row.backupRunId, row.artifactId, row.fileName);
+                  if (target) void handleDownload(target);
+                }}
               >
                 {name}
               </Button>
@@ -221,7 +223,7 @@ export function BackupList({ onRetryInvalidate }: BackupListProps) {
         width: 180,
         render: (date: string) => formatDate(date),
         sorter: (a, b) =>
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+          new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime(),
         defaultSortOrder: "descend",
       },
       {
@@ -257,13 +259,14 @@ export function BackupList({ onRetryInvalidate }: BackupListProps) {
                   ? downloadingKey === `${row.backupRunId}:${row.manifestArtifactId}`
                   : false
               }
-              onClick={() =>
-                void handleDownload({
-                  backupRunId: row.backupRunId,
-                  artifactId: row.manifestArtifactId!,
-                  fileName: row.manifestFileName!,
-                })
-              }
+              onClick={() => {
+                const target = toDownloadTarget(
+                  row.backupRunId,
+                  row.manifestArtifactId,
+                  row.manifestFileName,
+                );
+                if (target) void handleDownload(target);
+              }}
             >
               {row.manifestFileName}
             </Button>

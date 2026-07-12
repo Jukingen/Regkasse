@@ -32,7 +32,7 @@ public class FinanzOnlineReconciliationTests
             .UseInMemoryDatabase(databaseName: $"FORecon_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static PaymentService CreatePaymentService(AppDbContext context, Mock<IFinanzOnlineService> finanzMock)
@@ -105,6 +105,7 @@ public class FinanzOnlineReconciliationTests
         context.Invoices.Add(new Invoice
         {
             Id = invoiceId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             SourcePaymentId = paymentId,
             InvoiceNumber = payment.ReceiptNumber,
             InvoiceDate = payment.CreatedAt,

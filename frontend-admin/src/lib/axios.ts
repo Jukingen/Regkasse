@@ -293,8 +293,8 @@ export const customInstance = <T>(config: AxiosRequestConfig, options?: AxiosReq
         if (signal.aborted) {
             source.cancel('Query was cancelled');
         } else {
-            signal.addEventListener('abort', onAbort, { once: true });
-            removeAbortListener = () => signal.removeEventListener('abort', onAbort);
+            signal.addEventListener?.('abort', onAbort, { once: true });
+            removeAbortListener = () => signal.removeEventListener?.('abort', onAbort);
         }
     }
 

@@ -16,9 +16,9 @@ export default function AdminReportsHubPage() {
         <AdminPageShell>
             <AdminPageHeader
                 title={t('reporting.userActivity.hubTitle')}
-                description={t('reporting.userActivity.hubIntro')}
                 breadcrumbs={[adminOverviewCrumb(t), { title: t('reporting.userActivity.hubTitle') }]}
             />
+            <Paragraph type="secondary">{t('reporting.userActivity.hubIntro')}</Paragraph>
             <Row gutter={[16, 16]}>
                 <Col xs={24} sm={12} lg={8}>
                     <Link href="/admin/reports/user-activity" style={{ display: 'block' }}>

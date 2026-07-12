@@ -43,7 +43,7 @@ export function statsToRecoverabilitySummary(
       stats.lastSuccessfulBackupAtUtc ?? stats.lastVerifiedBackupAtUtc ?? undefined,
     lastSuccessfulRestoreProofAt: stats.lastSuccessfulRestoreDrillAtUtc ?? undefined,
     lastSuccessfulArtifactVerificationAt: stats.lastVerifiedBackupAtUtc ?? undefined,
-    latestRestoreRunStatus: stats.latestRestoreDrillStatus,
+    latestRestoreRunStatus: stats.latestRestoreDrillStatus as BackupRecoverabilitySummaryResponseDto['latestRestoreRunStatus'],
   };
 }
 

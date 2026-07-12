@@ -247,7 +247,7 @@ export function bulkDeactivateAdminProducts(
       data: { productIds },
     },
     options,
-  ).then(unwrapData);
+  ).then((res) => unwrapData(res) as BulkDeactivateAdminProductsResult);
 }
 
 export function deactivateAllAdminProducts(
@@ -262,7 +262,7 @@ export function deactivateAllAdminProducts(
       data: { confirmPhrase },
     },
     options,
-  ).then(unwrapData);
+  ).then((res) => unwrapData(res) as DeactivateAllAdminProductsResult);
 }
 
 export const DEV_PURGE_CATALOG_CONFIRM_PHRASE = 'DEV-PURGE-CATALOG';
@@ -299,7 +299,7 @@ export function devPurgeAdminCatalog(
       },
     },
     options,
-  ).then(unwrapData);
+  ).then((res) => unwrapData(res) as DevPurgeAdminCatalogResult);
 }
 
 export function getAdminProductModifierGroups(productId: string, options?: SecondParameter<typeof customInstance>, signal?: AbortSignal) {
@@ -448,11 +448,7 @@ export function useUpdateAdminProduct(
   const { tenantSlug } = useCurrentTenant();
   return useMutation({
     mutationFn: ({ id, data }) =>
-      updateAdminProductSafe(
-        id,
-        data,
-        payloadToShallow(prepareAdminProductWritePayload(data as Product & { categoryId?: string; category?: string }, id) as Product),
-      ),
+      updateAdminProductSafe(id, data, payloadToShallow(data)),
     onSuccess: (result, { id, data }) => {
       const shallow = result.product ?? payloadToShallow(data);
       const safeProduct = { ...shallow, id } as Product;

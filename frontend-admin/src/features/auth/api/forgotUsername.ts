@@ -10,7 +10,7 @@ export type ForgotUsernameResponse = {
 };
 
 export async function requestForgotUsername(email: string): Promise<ForgotUsernameResponse> {
-    const { data } = await customInstance<ForgotUsernameResponse>({
+    return customInstance<ForgotUsernameResponse>({
         url: '/api/Auth/forgot-username',
         method: 'POST',
         data: {
@@ -18,5 +18,4 @@ export async function requestForgotUsername(email: string): Promise<ForgotUserna
             clientApp: 'admin',
         },
     });
-    return data;
 }

@@ -1,5 +1,6 @@
 import { AXIOS_INSTANCE } from '@/lib/axios';
 import type {
+    ExtendTenantLicenseResult,
     TenantLicenseHistoryItem,
     TenantLicenseOverview,
     TenantLicenseStatus,
@@ -78,12 +79,6 @@ export async function getMandantLicenseOverview(): Promise<TenantLicenseOverview
     const { data } = await AXIOS_INSTANCE.get<TenantLicenseOverview>('/api/admin/license/mandant');
     return data;
 }
-
-/** POST /api/admin/license/mandant/preview — validate key without applying. */
-export { previewTenantLicense as previewMandantLicense } from '@/features/license/api/tenantLicense';
-
-/** POST /api/admin/license/mandant/extend — extend effective tenant with REGK key. */
-export { extendTenantLicense as extendMandantLicense } from '@/features/license/api/tenantLicense';
 
 export async function activateAdminTenantTrial(tenantId: string): Promise<TenantLicenseOverview> {
     const { data } = await AXIOS_INSTANCE.post<TenantLicenseOverview>(

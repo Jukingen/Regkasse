@@ -187,11 +187,12 @@ export function PaymentTrendsDashboard() {
                             <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
                             <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
                             <Tooltip
-                                formatter={(value: number, name: string) => {
+                                formatter={(value, name) => {
+                                    const n = Number(value ?? 0);
                                     if (name === 'transactionCount') {
-                                        return [value, t('payments.trends.chart.count')];
+                                        return [n, t('payments.trends.chart.count')];
                                     }
-                                    return [`€${value.toFixed(2)}`, name];
+                                    return [`€${n.toFixed(2)}`, name];
                                 }}
                             />
                             <Legend />
@@ -254,8 +255,8 @@ export function PaymentTrendsDashboard() {
                                         cx="50%"
                                         cy="50%"
                                         outerRadius={100}
-                                        label={(entry) =>
-                                            `${entry.method} (${entry.percentage.toFixed(0)}%)`
+                                        label={({ name, percent }) =>
+                                            `${name} (${((percent ?? 0) * 100).toFixed(0)}%)`
                                         }
                                     >
                                         {methodPieData.map((entry, index) => (
@@ -265,7 +266,7 @@ export function PaymentTrendsDashboard() {
                                             />
                                         ))}
                                     </Pie>
-                                    <Tooltip formatter={(value: number) => `€${value.toFixed(2)}`} />
+                                    <Tooltip formatter={(value) => `€${Number(value ?? 0).toFixed(2)}`} />
                                 </PieChart>
                             </ResponsiveContainer>
                         ) : (

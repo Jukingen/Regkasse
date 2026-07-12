@@ -1,9 +1,9 @@
 import type { MessageInstance } from 'antd/es/message/interface';
-import type { ModalStaticFunctions } from 'antd/es/modal/confirm';
+import type { HookAPI } from 'antd/es/modal/useModal';
 
 type AntdAppApis = {
   message: MessageInstance;
-  modal: ModalStaticFunctions;
+  modal: HookAPI;
 };
 
 let apis: AntdAppApis | null = null;
@@ -36,7 +36,7 @@ function requireMessage(): MessageInstance {
   return apis.message;
 }
 
-function requireModal(): ModalStaticFunctions {
+function requireModal(): HookAPI {
   if (!apis?.modal) {
     throw new Error('Ant Design App modal API is not registered yet.');
   }
@@ -53,10 +53,10 @@ export const appMessage: MessageInstance = new Proxy({} as MessageInstance, {
 });
 
 /** Context-aware modal static API (use instead of `Modal.confirm`, etc.). */
-export const appModal: ModalStaticFunctions = new Proxy({} as ModalStaticFunctions, {
+export const appModal: HookAPI = new Proxy({} as HookAPI, {
   get(_target, prop) {
     const api = requireModal();
-    const value = api[prop as keyof ModalStaticFunctions];
+    const value = api[prop as keyof HookAPI];
     return typeof value === 'function' ? value.bind(api) : value;
   },
 });

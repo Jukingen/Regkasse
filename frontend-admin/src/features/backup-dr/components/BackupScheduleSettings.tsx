@@ -83,8 +83,8 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
     if (!d) return;
     setEnabled(Boolean(d.enabled));
     setPlanner(apiScheduleToPlannerState(d.schedule ?? null, d.scheduleCron || "0 2 * * *"));
-    setRetentionDays(Math.min(Math.max(d.retentionDays, RETENTION_UI_MIN), RETENTION_UI_MAX));
-    setServerRetentionRaw(d.retentionDays);
+    setRetentionDays(Math.min(Math.max(d.retentionDays ?? RETENTION_UI_MIN, RETENTION_UI_MIN), RETENTION_UI_MAX));
+    setServerRetentionRaw(d.retentionDays ?? null);
   }, [
     settingsQuery.data?.updatedAtUtc,
     settingsQuery.data?.enabled,
@@ -98,7 +98,7 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
   const plannerOk = isPlannerStateValid(planner);
 
   const putMutation = useMutation({
-    mutationFn: putBackupScheduleSettings,
+    mutationFn: (body: BackupSettingsPutRequestDto) => putBackupScheduleSettings(body),
     onSuccess: async () => {
       message.success(t("backupDr.scheduleSettings.saveSuccess"));
       await queryClient.invalidateQueries({ queryKey: getBackupScheduleSettingsQueryKey() });

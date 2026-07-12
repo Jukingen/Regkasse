@@ -22,7 +22,7 @@ import { useAdminShiftOverview } from '@/features/shifts/hooks/useAdminShiftOver
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { usePermissions } from '@/hooks/usePermissions';
 import { FORMAT_EMPTY_DISPLAY, formatCurrency, formatDateTime, useI18n } from '@/i18n';
-import { AppPermissions } from '@/shared/auth/permissions';
+import { AppPermissions, PERMISSIONS } from '@/shared/auth/permissions';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
 
 const STALE_SHIFT_WARNING_HOURS = 8;
@@ -50,7 +50,7 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
   const { modal, message } = useAntdApp();
   const { hasPermission } = usePermissions();
   const queryClient = useQueryClient();
-  const canForceClose = hasPermission(AppPermissions.SHIFT_MANAGE);
+  const canForceClose = hasPermission(PERMISSIONS.SHIFT_MANAGE);
   const ts = useCallback((path: string) => t(`shifts:${path}`), [t]);
 
   const [registerId, setRegisterId] = useState<string | undefined>();
@@ -405,7 +405,7 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
               type="warning"
               showIcon
               title={ts('warnings.staleShiftsTitle')}
-              description={ts('warnings.staleShiftsDescription', {
+              description={t('shifts:warnings.staleShiftsDescription', {
                 count: staleActiveShifts.length,
                 hours: STALE_SHIFT_WARNING_HOURS,
               })}

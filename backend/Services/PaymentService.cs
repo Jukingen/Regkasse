@@ -1811,7 +1811,9 @@ namespace KasseAPI_Final.Services
                     {
                         Success = false,
                         Message = "Payment is already cancelled",
-                        Errors = { "A reversal (storno) already exists for this payment" }
+                        Errors = { "A reversal (storno) already exists for this payment" },
+                        DiagnosticCode = "ALREADY_CANCELLED",
+                        IsDeterministicFailure = true
                     };
                 }
 
@@ -1919,6 +1921,79 @@ namespace KasseAPI_Final.Services
             }
 
             var resolvedStornoReason = stornoReasonEnum.Value;
+
+            if (!string.IsNullOrWhiteSpace(cancelIdempotencyKey))
+            {
+                var key = cancelIdempotencyKey.Trim();
+                var existingByKey = await _context.PaymentDetails.AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.CancelIdempotencyKey == key && p.IsStorno);
+                if (existingByKey != null)
+                {
+                    if (!await PaymentBelongsToEffectiveTenantAsync(existingByKey))
+                    {
+                        return new PaymentResult
+                        {
+                            Success = false,
+                            Message = "Payment not found",
+                            Errors = { "Payment not found" },
+                            IsDeterministicFailure = true
+                        };
+                    }
+
+                    if (existingByKey.OriginalPaymentId == paymentId)
+                    {
+                        _logger.LogInformation(
+                            "Idempotent storno: returning existing reversal {StornoId} for payment {PaymentId} key {Key}",
+                            existingByKey.Id,
+                            paymentId,
+                            key);
+                        return new PaymentResult
+                        {
+                            Success = true,
+                            Message = "Payment cancelled successfully",
+                            Payment = existingByKey,
+                            PaymentId = existingByKey.Id
+                        };
+                    }
+
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "Idempotency key already used for a different storno",
+                        Errors = { "CancelIdempotencyKey is already bound to another reversal." },
+                        IsDeterministicFailure = true,
+                        DiagnosticCode = "STORNO_IDEMPOTENCY_KEY_CONFLICT"
+                    };
+                }
+            }
+
+            var hasRefundRows = await _context.PaymentDetails.AsNoTracking()
+                .AnyAsync(p => p.OriginalPaymentId == paymentId && p.IsRefund && p.IsActive);
+            if (hasRefundRows)
+            {
+                return new PaymentResult
+                {
+                    Success = false,
+                    Message = "Cannot storno: partial refunds already exist for this receipt",
+                    Errors = { "A full storno is not allowed after partial refunds on the same sale." },
+                    IsDeterministicFailure = true,
+                    DiagnosticCode = "STORNO_BLOCKED_BY_REFUNDS"
+                };
+            }
+
+            var alreadyHasStorno = await _context.PaymentDetails.AsNoTracking()
+                .AnyAsync(p => p.OriginalPaymentId == paymentId && p.IsStorno);
+            if (alreadyHasStorno)
+            {
+                return new PaymentResult
+                {
+                    Success = false,
+                    Message = "Payment is already cancelled",
+                    Errors = { "A reversal (storno) already exists for this payment" },
+                    IsDeterministicFailure = true,
+                    DiagnosticCode = "STORNO_ALREADY_EXISTS"
+                };
+            }
 
             if (payment.CashRegisterId == Guid.Empty)
             {

@@ -584,6 +584,7 @@ export function TenantUsersTabCore({
                             resetRow
                                 ? {
                                       userId: resetRow.userId,
+                                      userName: resetRow.userName ?? resetRow.email ?? '',
                                       email: resetRow.email,
                                       name: resetRow.name,
                                       role: resetRow.role,

@@ -211,8 +211,8 @@ export default function ReportCenterPage() {
     setCashRegisterId(values.registerId);
   }, []);
 
-  const workspaceTabOptions = useMemo(() => {
-    const options = [
+  const workspaceTabOptions = useMemo((): Array<{ label: string; value: WorkspaceTab }> => {
+    const options: Array<{ label: string; value: WorkspaceTab }> = [
       { label: t('adminShell.reporting.reportCenter.tabTages'), value: 'tagesbericht' as const },
       { label: t('adminShell.reporting.reportCenter.tabMonats'), value: 'monatsbericht' as const },
       { label: t('adminShell.reporting.reportCenter.tabJahres'), value: 'jahresbericht' as const },

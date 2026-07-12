@@ -1,7 +1,7 @@
-import Fuse from 'fuse.js';
+import Fuse, { type IFuseOptions } from 'fuse.js';
 import type { CommandItem } from '@/features/command-palette/types';
 
-const FUSE_OPTIONS: Fuse.IFuseOptions<CommandItem> = {
+const FUSE_OPTIONS: IFuseOptions<CommandItem> = {
     keys: [
         { name: 'label', weight: 0.5 },
         { name: 'description', weight: 0.25 },

@@ -120,6 +120,58 @@ namespace KasseAPI_Final.DTOs
             }
         }
     }
+
+    /// <summary>
+    /// Dedicated POS full-receipt storno body for <c>POST /api/pos/payment/storno</c>.
+    /// Items are not required; server derives reversal lines from the original sale.
+    /// </summary>
+    public class CreateStornoPaymentRequest
+    {
+        [Required]
+        public Guid CustomerId { get; set; }
+
+        [Required]
+        public PaymentMethodRequest Payment { get; set; } = new();
+
+        [Required]
+        public int TableNumber { get; set; }
+
+        [Required]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Total amount must be greater than 0.")]
+        public decimal TotalAmount { get; set; }
+
+        [Required]
+        public Guid CashRegisterId { get; set; }
+
+        [Required]
+        [MaxLength(256)]
+        public string OriginalReceiptNumber { get; set; } = string.Empty;
+
+        [Required]
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public StornoReason StornoReason { get; set; }
+
+        [MaxLength(64)]
+        public string? IdempotencyKey { get; set; }
+
+        public string? Notes { get; set; }
+
+        public CreatePaymentRequest ToCreatePaymentRequest() => new()
+        {
+            CustomerId = CustomerId,
+            Items = [],
+            Payment = Payment,
+            TableNumber = TableNumber,
+            TotalAmount = TotalAmount,
+            CashRegisterId = CashRegisterId,
+            OriginalReceiptNumber = OriginalReceiptNumber,
+            StornoReason = StornoReason,
+            IdempotencyKey = IdempotencyKey,
+            Notes = Notes,
+            IsStorno = true,
+            IsRefund = false,
+        };
+    }
     
     /// <summary>
     /// Phase 2 deprecated: Satır bazlı extra/modifier. Yeni akış: add-on = ayrı PaymentItem (productId). Legacy compat için hâlâ kabul edilir.

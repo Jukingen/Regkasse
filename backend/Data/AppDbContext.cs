@@ -1056,6 +1056,7 @@ namespace KasseAPI_Final.Data
             {
                 entity.ToTable("offline_orders");
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id");
                 entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
                 entity.HasOne(e => e.Tenant)
                     .WithMany()

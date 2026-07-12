@@ -12,9 +12,9 @@ import {
 export type StatusFilterSelectProps = {
     value?: AuditLogStatusFilter;
     onChange: (status: AuditLogStatusFilter | undefined) => void;
-} & Pick<SelectProps, 'style' | 'className'>;
+} & Pick<SelectProps, 'style' | 'className' | 'disabled'>;
 
-export function StatusFilterSelect({ value, onChange, style, className }: StatusFilterSelectProps) {
+export function StatusFilterSelect({ value, onChange, style, className, disabled }: StatusFilterSelectProps) {
     const { t } = useI18n();
 
     const options = useMemo(
@@ -33,6 +33,7 @@ export function StatusFilterSelect({ value, onChange, style, className }: Status
             className={className}
             allowClear
             value={value}
+            disabled={disabled}
             onChange={(next) => onChange((next ?? undefined) as AuditLogStatusFilter | undefined)}
             options={options}
         />

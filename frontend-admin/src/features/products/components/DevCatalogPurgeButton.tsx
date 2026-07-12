@@ -23,7 +23,7 @@ type DevCatalogPurgeButtonProps = {
 };
 
 function isFiscalBlockError(error: unknown): boolean {
-    const raw = extractRawApiErrorMessage(error).toLowerCase();
+    const raw = (extractRawApiErrorMessage(error) ?? '').toLowerCase();
     return (
         raw.includes('signed fiscal') ||
         raw.includes('fiscal payment') ||

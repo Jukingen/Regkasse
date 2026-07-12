@@ -91,8 +91,8 @@ function SelfServiceUsernameModalContent({
                 message.error(t('users.username.conflict'));
                 return;
             }
-            if (normalized.code === 'BUSINESS_RULE' && normalized.message?.trim()) {
-                message.error(normalized.message.trim());
+            if (normalized.code === 'BUSINESS_RULE' && normalized.rawMessage?.trim()) {
+                message.error(normalized.rawMessage.trim());
                 return;
             }
             message.error(

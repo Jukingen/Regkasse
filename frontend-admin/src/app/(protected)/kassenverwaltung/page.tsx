@@ -51,6 +51,8 @@ const CAPABILITIES_QUERY_KEY = ['admin', 'cash-registers', 'capabilities'] as co
 
 type CashRegisterViewItem = CashRegister & {
     tenantId?: string | null;
+    tenantName?: string | null;
+    tenantSlug?: string | null;
 };
 
 function toCashRegisterViewItem(row: AdminCashRegisterListItem): CashRegisterViewItem {

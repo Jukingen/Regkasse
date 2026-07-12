@@ -15,7 +15,11 @@ import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 export function CardTransactionsPage() {
   const { t } = useI18n();
-  const ts = (key: string, fallback?: string) => t(`cardTransactions:${key}`, fallback ?? key);
+  const ts = (key: string, fallback?: string) => {
+    const fullKey = `cardTransactions:${key}`;
+    const value = t(fullKey);
+    return value === fullKey ? (fallback ?? key) : value;
+  };
 
   const [status, setStatus] = useState<string | undefined>();
   const [registerId, setRegisterId] = useState<string | undefined>();

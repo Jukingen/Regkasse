@@ -73,7 +73,7 @@ function buildOverviewFromStatusItems(
         daysRemaining: getDaysRemaining(reminderStatus),
       };
     })
-    .filter((item): item is RksvReminderOverview['reminders'][number] => item !== null);
+    .filter((item): item is NonNullable<typeof item> => item !== null);
 
   return {
     totalRegisters: reminders.length,

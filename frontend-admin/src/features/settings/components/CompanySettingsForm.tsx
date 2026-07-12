@@ -3,8 +3,10 @@
 import { Alert, Button, Card, Form, Input, Space, Spin, Typography } from 'antd';
 import Link from 'next/link';
 import { useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
+import { getGetApiCompanySettingsQueryKey } from '@/api/generated/company-settings/company-settings';
 import { useCompanySettings, useUpdateCompanySettings } from '@/features/settings/hooks/useCompanySettings';
 import {
     mapCompanyFormToUpdateRequest,
@@ -27,7 +29,11 @@ export function CompanySettingsForm() {
     const { t } = useI18n();
     const { message } = useAntdApp();
     const [form] = Form.useForm<CompanySettingsFormValues>();
-    const { data: settings, isLoading, isError, error, refetch, isFetching, isSuccess } = useCompanySettings();
+    const queryClient = useQueryClient();
+    const settingsQuery = useCompanySettings();
+    const { data: settings, isLoading, isError, error, isFetching, isSuccess } = settingsQuery;
+    const reloadSettings = () =>
+        queryClient.invalidateQueries({ queryKey: getGetApiCompanySettingsQueryKey() });
     const { updateSettings, isLoading: isUpdating } = useUpdateCompanySettings();
 
     useEffect(() => {
@@ -41,7 +47,7 @@ export function CompanySettingsForm() {
             const payload = mapCompanyFormToUpdateRequest(values, settings);
             await updateSettings(payload);
             message.success(t('settings.companyPage.saveSuccess'));
-            await refetch();
+            await reloadSettings();
         } catch {
             message.error(t('settings.page.saveFailed'));
         }
@@ -73,7 +79,7 @@ export function CompanySettingsForm() {
                 description={getLoadErrorDescription(error, t)}
                 showIcon
                 action={
-                    <Button size="small" type="primary" onClick={() => refetch()} loading={isFetching}>
+                    <Button size="small" type="primary" onClick={() => void reloadSettings()} loading={isFetching}>
                         {t('common.buttons.retry')}
                     </Button>
                 }
@@ -88,7 +94,7 @@ export function CompanySettingsForm() {
                 <Form form={form} style={{ display: 'none' }} preserve />
                 <Card>
                     <Typography.Paragraph type="secondary">{t('settings.page.empty')}</Typography.Paragraph>
-                    <Button type="primary" onClick={() => refetch()} loading={isFetching}>
+                    <Button type="primary" onClick={() => void reloadSettings()} loading={isFetching}>
                         {t('common.buttons.retry')}
                     </Button>
                 </Card>

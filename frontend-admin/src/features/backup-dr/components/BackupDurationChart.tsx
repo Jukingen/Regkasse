@@ -38,7 +38,7 @@ export function BackupDurationChart({
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="label" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
             <YAxis tick={{ fontSize: 11 }} width={40} />
-            <Tooltip formatter={(v: number) => [`${v} ${durationSuffix}`, ""]} />
+            <Tooltip formatter={(v) => [`${Number(v ?? 0)} ${durationSuffix}`, ""]} />
             <Line
               type="monotone"
               dataKey="durationSec"

@@ -25,8 +25,8 @@ const PREFETCHABLE_EXACT = new Set([
 function prefetchPayments(qc: QueryClient) {
     qc.prefetchQuery(
         getGetApiAdminPaymentsQueryOptions({
-            startDate: dayjs().subtract(30, 'day').format('YYYY-MM-DD'),
-            endDate: dayjs().format('YYYY-MM-DD'),
+            StartDate: dayjs().subtract(30, 'day').format('YYYY-MM-DD'),
+            EndDate: dayjs().format('YYYY-MM-DD'),
             pageNumber: 1,
             pageSize: 50,
         }),

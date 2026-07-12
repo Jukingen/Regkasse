@@ -156,7 +156,7 @@ export function buildBackupHistory30DayChartData(
         ts,
       };
     })
-    .filter((row): row is BackupHistory30DayChartRow & { ts: number } => row !== null)
+    .filter((row): row is NonNullable<typeof row> => row !== null)
     .sort((a, b) => a.ts - b.ts)
     .map(({ ts: _ts, ...row }) => row);
 }

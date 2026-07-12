@@ -55,7 +55,7 @@ export function useAuthorizationGate(options: AuthorizationGateOptions = {}): { 
     const isAuthorized = useMemo(() => {
         if (!isInitialized || !user) return false;
 
-        const roleOk = matchesRequiredRole(user.role, options.requiredRole);
+        const roleOk = matchesRequiredRole(user.role ?? undefined, options.requiredRole);
         const permissionOk = matchesRequiredPermission(
             hasPermission,
             hasAnyPermission,

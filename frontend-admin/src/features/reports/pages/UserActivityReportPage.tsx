@@ -1,5 +1,6 @@
 'use client';
 
+import { Typography } from 'antd';
 import { useSearchParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
@@ -16,13 +17,16 @@ export function UserActivityReportPage() {
         <AdminPageShell>
             <AdminPageHeader
                 title={t('reporting.userActivity.pageTitle')}
-                description={t('reporting.userActivity.pageIntro')}
                 breadcrumbs={[
                     adminOverviewCrumb(t),
                     { title: t('reporting.userActivity.hubTitle'), href: '/admin/reports' },
                     { title: t('reporting.userActivity.pageTitle') },
                 ]}
-            />
+            >
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                    {t('reporting.userActivity.pageIntro')}
+                </Typography.Paragraph>
+            </AdminPageHeader>
             <UserActivityReport initialUserId={initialUserId} />
         </AdminPageShell>
     );

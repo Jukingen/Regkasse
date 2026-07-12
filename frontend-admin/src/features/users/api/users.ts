@@ -76,12 +76,11 @@ export type UsernameSuggestionResponse = {
 };
 
 export async function fetchUsernameSuggestion(role: string): Promise<UsernameSuggestionResponse> {
-    const { data } = await customInstance<UsernameSuggestionResponse>({
+    return customInstance<UsernameSuggestionResponse>({
         url: '/api/admin/users/username-suggestions',
         method: 'GET',
         params: { role },
     });
-    return data;
 }
 
 type AdminCreateUserResponseDto = {

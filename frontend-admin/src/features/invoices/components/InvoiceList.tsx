@@ -350,7 +350,7 @@ export const InvoiceList: React.FC = () => {
                 const blobUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
                 const link = document.createElement('a');
                 link.href = blobUrl;
-                link.setAttribute('download', `Rechnung_${key}.pdf`);
+                link.setAttribute('download', `Rechnung_${String(key)}.pdf`);
                 document.body.appendChild(link);
                 link.click();
                 link.remove();

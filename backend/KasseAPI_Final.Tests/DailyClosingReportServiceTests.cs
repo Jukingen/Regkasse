@@ -95,6 +95,39 @@ public sealed class DailyClosingReportServiceTests
         Assert.Equal(expected, DailyClosingReportTemplates.NormalizeLanguage(input));
     }
 
+    [Fact]
+    public void GenerateDailyReportPdf_WithInflatedDemoMonatsbelegSignature_CompletesQuickly()
+    {
+        var longSig = DemoMonatsbelegSignatureFixture.Value;
+        var report = new PosDailyClosingReportDto
+        {
+            ClosingType = "Monthly",
+            BusinessDate = new DateTime(2026, 7, 1),
+            RegisterNumber = "KASSE-001",
+            TotalSales = 154m,
+            FiscalTotalAmount = 154m,
+            FiscalTotalTaxAmount = 13.97m,
+            FiscalTransactionCount = 10,
+            TseSignature = longSig,
+            QrPayload = "NON_FISCAL_DEMO_DAILY_2026-07-01_154.00",
+            IsDemoFiscal = true,
+            TseStatusLabel = "TSE: SIMULIERT (NUR TEST)",
+            TseStatusBadge = "TSE SIMULIERT",
+            SnapshotDisclaimerDe = "DEMO / NICHT FISKAL",
+        };
+
+        var svc = CreateReportService(CreateContext());
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var pdf = svc.GenerateDailyReportPdf(report, "de");
+        sw.Stop();
+
+        Assert.StartsWith("%PDF", Encoding.ASCII.GetString(pdf[..4]));
+        Assert.True(sw.ElapsedMilliseconds < 5000, $"PDF generation took {sw.ElapsedMilliseconds}ms");
+    }
+
+    private static readonly Lazy<string> DemoMonatsbelegSignatureFixture = new(() =>
+        File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "monatsbeleg_sig.txt")).Trim());
+
     [Theory]
     [InlineData("Monthly", "Monatsabschluss-Bericht")]
     [InlineData("Yearly", "Jahresabschluss-Bericht")]

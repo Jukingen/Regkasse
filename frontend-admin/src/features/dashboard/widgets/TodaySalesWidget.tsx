@@ -79,7 +79,7 @@ export function TodaySalesWidget({ title, dragHandleProps, onRefresh }: Props) {
                             <LineChart data={chartData}>
                                 <XAxis dataKey="date" hide />
                                 <YAxis hide />
-                                <RechartsTooltip formatter={(v: number) => `€${v.toFixed(2)}`} />
+                                <RechartsTooltip formatter={(v) => `€${Number(v ?? 0).toFixed(2)}`} />
                                 <Line type="monotone" dataKey="total" stroke="#1677ff" dot={false} />
                             </LineChart>
                         </ResponsiveContainer>

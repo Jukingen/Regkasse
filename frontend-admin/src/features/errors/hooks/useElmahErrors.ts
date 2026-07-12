@@ -22,7 +22,7 @@ type ElmahErrorListResponse = {
 };
 
 async function fetchElmahErrors(): Promise<ElmahErrorRow[]> {
-    const { data } = await customInstance<ElmahErrorListResponse>({
+    const data = await customInstance<ElmahErrorListResponse>({
         url: '/api/admin/errors',
         method: 'GET',
         params: { page: 1, pageSize: 100 },

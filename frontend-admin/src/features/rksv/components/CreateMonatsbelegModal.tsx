@@ -155,6 +155,8 @@ export function CreateMonatsbelegModal({
                     force: withForce,
                 });
 
+                const lateResult = toMonatsbelegLateSuccessResult(response, { year, month });
+
                 if (lateResult.isLateCreated || isPastMonth || withForce) {
                     setSuccessResult(lateResult);
                     setSuccessOpen(true);

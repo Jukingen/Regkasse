@@ -78,7 +78,8 @@ export default function ProfilePage() {
       message.success(t('profile.saveSuccess'));
     } catch (error) {
       openApiErrorMessage(message.open, t, error, {
-        fallbackMessage: t('profile.saveError'),
+        fallbackKey: 'profile.saveError',
+        logContext: 'ProfilePage.update',
       });
     }
   };

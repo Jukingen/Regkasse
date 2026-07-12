@@ -45,7 +45,9 @@ export function getDevTenantCatalogDisplayName(slug: string): string | null {
 /** Hyphen slug for switcher subtitle (e.g. prod → prod). */
 export function formatDisplaySlug(slug: string): string {
   const canonical = canonicalDevTenantSlug(slug).toLowerCase();
-  const preset = PRESET_SLUG_BY_CANONICAL.get(canonical);
+  const preset = PRESET_SLUG_BY_CANONICAL.get(
+    canonical as (typeof DEV_TENANT_CATALOG)[number]['canonicalSlug'],
+  );
   if (preset) {
     return preset;
   }
@@ -65,7 +67,7 @@ export function formatTenantDisplay(
 /** Lower index = higher in dev switcher lists; unknown tenants sort after catalog entries. */
 export function devTenantCatalogSortIndex(slug: string): number {
   const canonical = canonicalDevTenantSlug(slug).toLowerCase();
-  return SLUG_ORDER.get(canonical) ?? 999;
+  return SLUG_ORDER.get(canonical as (typeof DEV_TENANT_CATALOG)[number]['canonicalSlug']) ?? 999;
 }
 
 /** Dev switcher: Entwicklung / Test section (dev, demo seeds, or slug contains "test"). */

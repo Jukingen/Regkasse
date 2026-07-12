@@ -18,9 +18,7 @@ export function useCreateMonatsbeleg() {
 
     return useMutation<CreateMonatsbelegResponseExtended, unknown, CreateMonatsbelegVariables>({
         mutationFn: async ({ data, force }) =>
-            postApiRksvSpecialReceiptsMonatsbeleg(data, {
-                params: force ? { force: true } : undefined,
-            }),
+            postApiRksvSpecialReceiptsMonatsbeleg(data, force ? { force: true } : undefined),
         onSuccess: async () => {
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: monatsbelegQueryKeys.statusOverview }),

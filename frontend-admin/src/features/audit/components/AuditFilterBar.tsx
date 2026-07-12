@@ -141,8 +141,8 @@ export function AuditFilterBar({
                 />
             </Col>
             <Col xs={24} sm={12} md={8} lg={4}>
-                <RangePicker format={DAYJS_DATE_FORMAT}
-                    style={{ width: '100%' }}
+                <RangePicker
+                    format={DAYJS_DATE_FORMAT}
                     value={dateRange ?? undefined}
                     onChange={(dates) =>
                         onDateRangeChange(
@@ -150,7 +150,6 @@ export function AuditFilterBar({
                             dates?.[1]?.format('YYYY-MM-DD'),
                         )
                     }
-                    format="DD.MM.YYYY"
                 />
             </Col>
             <Col xs={24} sm={12} md={8} lg={4}>

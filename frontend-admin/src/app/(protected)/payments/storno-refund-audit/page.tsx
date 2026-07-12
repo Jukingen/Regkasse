@@ -78,30 +78,30 @@ export default function StornoRefundAuditPage() {
 
     const listParams = useMemo(() => {
         const base = {
-            startDate: dateRange[0].format('YYYY-MM-DD'),
-            endDate: dateRange[1].format('YYYY-MM-DD'),
-            cashRegisterId: registerId,
+            StartDate: dateRange[0].format('YYYY-MM-DD'),
+            EndDate: dateRange[1].format('YYYY-MM-DD'),
+            CashRegisterId: registerId,
             pageNumber: page,
             pageSize,
         };
         if (reversalType === 'all') {
             return {
                 ...base,
-                isStorno: true,
-                isRefund: true,
+                IsStorno: true,
+                IsRefund: true,
                 stornoReason: stornoReasonFilter,
             };
         }
         if (reversalType === 'storno') {
             return {
                 ...base,
-                isStorno: true,
+                IsStorno: true,
                 stornoReason: stornoReasonFilter,
             };
         }
         return {
             ...base,
-            isRefund: true,
+            IsRefund: true,
         };
     }, [dateRange, registerId, page, pageSize, reversalType, stornoReasonFilter]);
 

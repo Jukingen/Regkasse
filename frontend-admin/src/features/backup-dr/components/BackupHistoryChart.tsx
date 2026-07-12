@@ -94,11 +94,12 @@ export function BackupHistoryChart({
             />
             <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
             <Tooltip
-              formatter={(value: number, name: string) => {
+              formatter={(value, name) => {
+                const n = Number(value ?? 0);
                 if (name === durationLabel) {
-                  return [`${value} ${durationSuffix}`, durationLabel];
+                  return [`${n} ${durationSuffix}`, durationLabel];
                 }
-                return [value, name];
+                return [n, name];
               }}
             />
             <Legend />
@@ -123,7 +124,7 @@ export function BackupHistoryChart({
               name={successLabel}
               radius={[2, 2, 0, 0]}
               cursor={onBarClick ? "pointer" : undefined}
-              onClick={(data) => handleBarClick(data as BackupHistoryChartPoint)}
+              onClick={(data) => handleBarClick(data as unknown as BackupHistoryChartPoint)}
             />
             <Bar
               yAxisId="left"
@@ -132,7 +133,7 @@ export function BackupHistoryChart({
               name={failedLabel}
               radius={[2, 2, 0, 0]}
               cursor={onBarClick ? "pointer" : undefined}
-              onClick={(data) => handleBarClick(data as BackupHistoryChartPoint)}
+              onClick={(data) => handleBarClick(data as unknown as BackupHistoryChartPoint)}
             />
             <Line
               yAxisId="right"

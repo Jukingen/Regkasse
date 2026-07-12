@@ -16,7 +16,7 @@ import { triggerErrorMessageBackupDashboard } from '@/features/backup-dr/logic/b
 import type { CommandItem } from '@/components/CommandPalette/types';
 
 export type UseCommandRegistryParams = {
-    t: (key: string) => string;
+    t: (key: string, options?: Record<string, string | number>) => string;
     closePalette: () => void;
     permissionCtx: CommandPalettePermissionContext;
 };

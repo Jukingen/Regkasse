@@ -33,7 +33,11 @@ export function CardTransactionsTable({
   pagination,
 }: CardTransactionsTableProps) {
   const { t, formatLocale } = useI18n();
-  const ts = (key: string, fallback?: string) => t(`cardTransactions:${key}`, fallback ?? key);
+  const ts = (key: string, fallback?: string) => {
+    const fullKey = `cardTransactions:${key}`;
+    const value = t(fullKey);
+    return value === fullKey ? (fallback ?? key) : value;
+  };
   const [selected, setSelected] = useState<AdminCardTransactionRow | null>(null);
 
   const columns: ColumnsType<AdminCardTransactionRow> = useMemo(

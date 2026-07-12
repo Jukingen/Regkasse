@@ -233,17 +233,31 @@ backend/CreateTableOrderTables.sql
 .next/cache/
 **/.next/cache/
 
+# TestSprite
+test-results/
+tmp/
+*.pyc
+__pycache__/
+*.pyo
+
+# Test outputs (reproducible, should not be committed)
+*.tmp
+
 # TestSprite outputs
-/test-results/
 /test-screenshots/
 /test-videos/
 testsprite.log
+testsprite_tests/testsprite-mcp-test-report.*
 
 # TestSprite local runtime (API keys, machine paths, generated reports)
 testsprite_tests/tmp/*
 !testsprite_tests/tmp/.gitkeep
 !testsprite_tests/tmp/config.json.example
 testsprite.config.local.json
+
+# Optional: keep test plans but exclude results
+!testsprite_backend_test_plan.json
+!testsprite_frontend_test_plan.json
 
 # Test data artifacts
 /test-temp/

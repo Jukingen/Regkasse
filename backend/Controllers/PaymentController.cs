@@ -307,11 +307,10 @@ namespace KasseAPI_Final.Controllers
         /// </summary>
         [HttpPost("storno")]
         [HasPermission(AppPermissions.PaymentCancel)]
-        public async Task<IActionResult> CreateStornoPayment([FromBody] CreatePaymentRequest request)
+        public async Task<IActionResult> CreateStornoPayment([FromBody] CreateStornoPaymentRequest request)
         {
-            request.IsStorno = true;
-            request.IsRefund = false;
-            return await CreatePayment(request);
+            ArgumentNullException.ThrowIfNull(request);
+            return await CreatePayment(request.ToCreatePaymentRequest());
         }
 
         /// <summary>

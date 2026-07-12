@@ -131,6 +131,8 @@ export function ActivityLog() {
                 endDate: to?.format('YYYY-MM-DD'),
                 userId: filters.userId,
                 action: filters.actionType || undefined,
+                page: 1,
+                pageSize: 1000,
             });
             await downloadAuditLogExport('csv', query, {
                 exportFailedMessage: t('activity.exportFailed'),

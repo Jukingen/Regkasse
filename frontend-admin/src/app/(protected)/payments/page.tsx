@@ -17,6 +17,7 @@ import {
   useGetApiAdminPaymentsStatistics,
 } from '@/api/generated/admin/admin';
 import type { AdminPaymentDetailDto, AdminPaymentListItemDto } from '@/api/generated/model';
+import { RefundReasonCode } from '@/api/generated/model/refundReasonCode';
 import { useAdminPaymentsList } from '@/features/payments/api/adminPaymentsListQuery';
 import { PaymentFilterBar } from '@/features/payments/components/PaymentFilterBar';
 import { useKeysetCursors } from '@/shared/pagination/useKeysetPageStack';
@@ -256,7 +257,11 @@ export default function PaymentsPage() {
     mutationFn: async () => {
       if (!selectedPaymentId) throw new Error(t('payments.messages.errorNoPaymentSelected'));
       if (!refundAmount || refundAmount <= 0) throw new Error(t('payments.messages.errorRefundAmountPositive'));
-      return postApiAdminPaymentsIdRefund(selectedPaymentId, { amount: refundAmount, reason: refundReason.trim() });
+      return postApiAdminPaymentsIdRefund(selectedPaymentId, {
+        amount: refundAmount,
+        reason: refundReason.trim(),
+        reasonCode: RefundReasonCode.NUMBER_99,
+      });
     },
     onSuccess: async () => {
       message.success(t('payments.messages.refundSuccess'));
@@ -884,7 +889,7 @@ export default function PaymentsPage() {
               {canCancel && (
                 <Card size="small" title={t('payments.detail.cancelCardTitle')}>
                   <Space orientation="vertical" style={{ width: '100%' }}>
-                    {paymentDetailData?.isStorno ? (
+                    {paymentDetailData?.isStorno || paymentDetailData?.hasStornoReversal ? (
                       <Alert
                         type="info"
                         showIcon

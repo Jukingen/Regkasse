@@ -96,7 +96,7 @@ export function useMenuSearchIndex(): MenuSearchIndex {
 
         let filtered = filterSidebarMenuItems(allMenuItems, sidebarPermissionCtx) ?? [];
         if (hideKassenverwaltung) {
-            filtered = stripKassenverwaltungFromMenu(filtered);
+            filtered = stripKassenverwaltungFromMenu(filtered) ?? [];
         }
 
         return new Set(collectSelectableRouteKeysFromMenuItems(filtered));

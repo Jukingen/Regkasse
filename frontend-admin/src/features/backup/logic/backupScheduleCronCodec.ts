@@ -2,6 +2,7 @@ import type {
   BackupScheduleConfigurationDto,
   BackupScheduleFrequency,
 } from '@/api/generated/model';
+import { BackupScheduleFrequency as BackupScheduleFrequencyEnum } from '@/api/generated/model';
 import {
   BACKUP_SCHEDULE_PRESET_CRONS,
   normalizeCronWhitespace,
@@ -10,14 +11,33 @@ import {
 
 export type { BackupScheduleFrequency };
 
+/** UI / planner frequency labels (mapped to API numeric enum at boundaries). */
+export type BackupScheduleFrequencyKey = 'Daily' | 'Weekly' | 'Monthly' | 'Custom';
+
+const FREQUENCY_TO_API: Record<BackupScheduleFrequencyKey, BackupScheduleFrequency> = {
+  Daily: BackupScheduleFrequencyEnum.NUMBER_0,
+  Weekly: BackupScheduleFrequencyEnum.NUMBER_1,
+  Monthly: BackupScheduleFrequencyEnum.NUMBER_2,
+  Custom: BackupScheduleFrequencyEnum.NUMBER_3,
+};
+
+const FREQUENCY_FROM_API: Record<BackupScheduleFrequency, BackupScheduleFrequencyKey> = {
+  [BackupScheduleFrequencyEnum.NUMBER_0]: 'Daily',
+  [BackupScheduleFrequencyEnum.NUMBER_1]: 'Weekly',
+  [BackupScheduleFrequencyEnum.NUMBER_2]: 'Monthly',
+  [BackupScheduleFrequencyEnum.NUMBER_3]: 'Custom',
+};
+
 /** Planner/PUT schedule shape (required fields for local codec). */
 export type BackupScheduleConfiguration = Required<
-  Pick<BackupScheduleConfigurationDto, 'frequency' | 'hourUtc' | 'minuteUtc'>
+  Pick<BackupScheduleConfigurationDto, 'hourUtc' | 'minuteUtc'>
 > &
-  Pick<BackupScheduleConfigurationDto, 'dayOfWeek' | 'dayOfMonth' | 'customCron'>;
+  Pick<BackupScheduleConfigurationDto, 'dayOfWeek' | 'dayOfMonth' | 'customCron'> & {
+    frequency: BackupScheduleFrequencyKey;
+  };
 
 export interface BackupSchedulePlannerState {
-  frequency: BackupScheduleFrequency;
+  frequency: BackupScheduleFrequencyKey;
   hourUtc: number;
   minuteUtc: number;
   dayOfWeek: number;
@@ -106,9 +126,11 @@ export function parseCronToSchedule(cron: string): BackupSchedulePlannerState {
   };
 }
 
-export function plannerStateToPutSchedule(state: BackupSchedulePlannerState): BackupScheduleConfiguration {
+export function plannerStateToPutSchedule(
+  state: BackupSchedulePlannerState,
+): BackupScheduleConfigurationDto {
   return {
-    frequency: state.frequency,
+    frequency: FREQUENCY_TO_API[state.frequency],
     hourUtc: state.hourUtc,
     minuteUtc: state.minuteUtc,
     dayOfWeek: state.frequency === 'Weekly' ? state.dayOfWeek : null,
@@ -127,20 +149,21 @@ export function isPlannerStateValid(state: BackupSchedulePlannerState): boolean 
 }
 
 export function buildCronFromPlannerState(state: BackupSchedulePlannerState): string {
-  return buildCronFromSchedule(plannerStateToPutSchedule(state));
+  return buildCronFromSchedule({
+    frequency: state.frequency,
+    hourUtc: state.hourUtc,
+    minuteUtc: state.minuteUtc,
+    dayOfWeek: state.dayOfWeek,
+    dayOfMonth: state.dayOfMonth,
+    customCron: state.customCron,
+  });
 }
 
 function normalizeApiFrequency(
-  frequency: BackupScheduleConfigurationDto['frequency'] | number | undefined,
-): BackupScheduleFrequency {
-  if (typeof frequency === 'number') {
-    const map: BackupScheduleFrequency[] = ['Daily', 'Weekly', 'Monthly', 'Custom'];
-    return map[frequency] ?? 'Custom';
-  }
-  if (frequency === 'Daily' || frequency === 'Weekly' || frequency === 'Monthly' || frequency === 'Custom') {
-    return frequency;
-  }
-  return 'Custom';
+  frequency: BackupScheduleConfigurationDto['frequency'] | undefined,
+): BackupScheduleFrequencyKey {
+  if (frequency === undefined) return 'Custom';
+  return FREQUENCY_FROM_API[frequency] ?? 'Custom';
 }
 
 /** Map API schedule DTO to planner state. */

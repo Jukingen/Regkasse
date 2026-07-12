@@ -263,6 +263,20 @@ Then call: `http://dev.localhost:5184/api/health`
 
 **Production-like alternative:** `127.0.0.1 dev.regkasse.local` → slug `dev` (matches admin presets).
 
+#### Local role test accounts (operator-defined passwords)
+
+Typical local smoke-test matrix (tenant **`dev`** unless noted). Passwords are **not** seeded globally — set them in your DB or copy `credentials.json.example` → gitignored `credentials.json`.
+
+| Role | App | URL | Login identifier | Tenant context |
+|------|-----|-----|------------------|----------------|
+| SuperAdmin | FA | `http://localhost:3000` | `admin@admin.com` | Header switcher → **`dev`** (JWT may still show `default`) |
+| Manager | FA | `http://localhost:3000` | `manager1` | Header switcher → **`dev`** |
+| Cashier | POS | `http://localhost:8081` | `cashier1` | `EXPO_PUBLIC_DEV_TENANT_ID=dev` |
+
+**POS cashier password reset:** requires **`users.manage`** (`UserManage`). **Manager does not have this** — use **SuperAdmin** in FA: `/admin/tenants/{dev}/users` → reset password, or `POST /api/admin/users/{id}/force-password-reset`.
+
+**RBAC spot-check (expected):** Manager → RKSV/cash-registers/backup read OK; `/api/admin/users` → 403; `/api/admin/tenants` → 403. Cashier → `/api/pos/status/overview` + `/api/rksv/status` OK; `/api/admin/*` → 403.
+
 #### Option 4: FA tenant switcher
 
 In **development** mode (`NODE_ENV=development`), the admin shell shows a **tenant selector dropdown in the header** (`HeaderDevTenantSwitch` in `frontend-admin/src/app/(protected)/layout.tsx`).

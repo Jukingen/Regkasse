@@ -1,0 +1,69 @@
+[
+  {
+    "id": "TC001",
+    "title": "Cashier signs in and reaches the POS dashboard",
+    "description": "Verifies a cashier can log in at the POS web app and land on the authenticated tabs.",
+    "category": "Authentication",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:8081/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill username with cashier1 and password with the configured cashier password"
+      },
+      {
+        "type": "action",
+        "description": "Click Anmelden"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the POS dashboard or tabs are visible (not the login form)"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC002",
+    "title": "Cashier adds a product to the cart",
+    "description": "Verifies product selection and cart count increment on POS.",
+    "category": "Order Flow",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in as cashier1 on http://localhost:8081"
+      },
+      {
+        "type": "action",
+        "description": "Select a product category (e.g. Salate)"
+      },
+      {
+        "type": "action",
+        "description": "Tap a product to add it to the cart"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify cart count shows 1 item"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC003",
+    "title": "Backend health check confirms API readiness",
+    "description": "Verifies the ASP.NET backend health endpoint returns OK before POS workflows.",
+    "category": "API Health Monitoring",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to http://localhost:5184/api/health (backend API port 5184, not POS port 8081)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the response body is OK and indicates the backend is ready"
+      }
+    ],
+    "priority": "Medium"
+  }
+]

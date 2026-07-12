@@ -85,7 +85,7 @@ export async function invalidateBackupQueries(queryClient: ReturnType<typeof use
 
 export type UseBackupRunsOptions = {
   enabled?: boolean;
-  refetchInterval?: number | false;
+  refetchInterval?: number | false | ((query: unknown) => number | false);
   staleTime?: number;
 };
 

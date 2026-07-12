@@ -10,18 +10,19 @@ export function userDtoToCommandItem(
     roleLabel?: string,
 ): CommandItem {
     const name = [row.firstName, row.lastName].filter(Boolean).join(' ').trim();
-    const label = row.userName?.trim() || row.email?.trim() || name || row.id;
+    const label = row.userName?.trim() || row.email?.trim() || name || row.id || '—';
+    const userId = row.id || '';
     const namePart = name || '—';
     const rolePart = roleLabel ?? row.role ?? '—';
     return {
-        id: `user:${row.id}`,
+        id: `user:${userId}`,
         type: 'user',
         label,
         description: `${namePart} • ${rolePart}`,
         icon: <UserOutlined />,
         group: 'Users',
-        keywords: [row.id, row.email ?? '', row.userName ?? '', label, namePart, rolePart],
-        action: () => openUser(row.id),
+        keywords: [userId, row.email ?? '', row.userName ?? '', label, namePart, rolePart],
+        action: () => openUser(userId),
     };
 }
 

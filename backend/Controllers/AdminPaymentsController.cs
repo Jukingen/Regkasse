@@ -199,6 +199,21 @@ public class AdminPaymentsController : ControllerBase
 
             var stornoRefundAudit = await BuildStornoRefundAuditSectionAsync(p, tenantId, cancellationToken);
 
+            Guid? stornoReversalPaymentId = null;
+            string? stornoReversalReceiptNumber = null;
+            if (!p.IsStorno && !p.IsRefund)
+            {
+                var stornoChild = await _context.PaymentDetails.AsNoTracking()
+                    .Where(x => x.OriginalPaymentId == id && x.IsStorno)
+                    .Select(x => new { x.Id, x.ReceiptNumber })
+                    .FirstOrDefaultAsync(cancellationToken);
+                if (stornoChild != null)
+                {
+                    stornoReversalPaymentId = stornoChild.Id;
+                    stornoReversalReceiptNumber = stornoChild.ReceiptNumber;
+                }
+            }
+
             return Ok(new AdminPaymentDetailDto
             {
                 Id = p.Id,
@@ -246,7 +261,10 @@ public class AdminPaymentsController : ControllerBase
                 VoucherRedeemedAmount = voucherRedeemedAmount,
                 SettlementAmount = decimal.Round(p.TotalAmount - voucherRedeemedAmount, 2, MidpointRounding.AwayFromZero),
                 HasVoucherRedemption = voucherRedeemedAmount > 0m,
-                StornoRefundAudit = stornoRefundAudit
+                StornoRefundAudit = stornoRefundAudit,
+                HasStornoReversal = stornoReversalPaymentId.HasValue,
+                StornoReversalPaymentId = stornoReversalPaymentId,
+                StornoReversalReceiptNumber = stornoReversalReceiptNumber,
             });
         }
         catch (Exception ex)
@@ -756,6 +774,10 @@ public class AdminPaymentDetailDto
     public decimal SettlementAmount { get; set; }
     public bool HasVoucherRedemption { get; set; }
     public AdminPaymentStornoRefundAuditDto? StornoRefundAudit { get; set; }
+    /// <summary>True when a fiscal storno reversal row exists for this original sale.</summary>
+    public bool HasStornoReversal { get; set; }
+    public Guid? StornoReversalPaymentId { get; set; }
+    public string? StornoReversalReceiptNumber { get; set; }
 }
 
 public class AdminPaymentActionResponse

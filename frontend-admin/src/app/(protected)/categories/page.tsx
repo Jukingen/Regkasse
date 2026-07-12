@@ -16,6 +16,7 @@ import CategoryForm from '@/features/categories/components/CategoryForm';
 import CategoryTable from '@/features/categories/components/CategoryTable';
 import { ResetCategoriesButton } from '@/features/categories/components/ResetCategoriesButton';
 import { useI18n } from '@/i18n';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
 

@@ -13,7 +13,7 @@ export {
   useUpdateBackupSettings,
   type BackupConfigurationHealthView,
   type BackupRunsParams,
-  type BackupSettings,
+  type BackupSettings as BackupSettingsDto,
   type TriggerBackupParams,
 } from "@/features/backup/api/backupHooks";
 

@@ -31,8 +31,10 @@ export type ResolvedLicenseStatus = {
 
 type TenantLicenseInput = Pick<
     TenantLicenseStatusDto,
-    'daysRemaining' | 'kind' | 'licenseKey' | 'validUntilUtc'
->;
+    'daysRemaining' | 'licenseKey' | 'validUntilUtc'
+> & {
+    kind?: TenantLicenseStatusDto['kind'];
+};
 
 type TenantLicenseRowInput = {
     licenseDaysRemaining?: number | null;
@@ -188,7 +190,6 @@ export function resolveTenantRowLicenseStatus(
 ): ResolvedLicenseStatus {
     return resolveTenantLicenseStatus(
         {
-            kind: undefined,
             licenseKey: input?.licenseKey,
             validUntilUtc: input?.licenseValidUntilUtc,
             daysRemaining: input?.licenseDaysRemaining,

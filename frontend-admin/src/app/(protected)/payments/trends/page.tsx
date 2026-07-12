@@ -13,7 +13,7 @@ export default function PaymentTrendsPage() {
             <AdminPageHeader
                 title={t('payments.trendsDashboard.pageTitle')}
                 breadcrumbs={[
-                    adminOverviewCrumb,
+                    adminOverviewCrumb(t),
                     { title: ADMIN_NAV_LABELS.payments, href: '/payments' },
                     { title: t('payments.trendsDashboard.pageTitle') },
                 ]}
