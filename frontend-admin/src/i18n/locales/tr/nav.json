@@ -68,6 +68,7 @@
   "rolesPermissions": "Roller ve izinler",
   "permissionsOverview": "İzin özeti",
   "tenants": "Kiracılar",
+  "errorLogs": "Error Logs (Elmah)",
   "overview": "Genel bakış",
   "benefitDefinitions": "Avantajlar (tanımlar)",
   "benefitAssignments": "Avantajlar (atamalar)",

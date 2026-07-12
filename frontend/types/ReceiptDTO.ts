@@ -37,6 +37,9 @@ export interface ReceiptDTO {
 
     footerText?: string;
 
+    /** Environment-aware RKSV compliance label (from backend ReceiptService.GetRksvFooter). */
+    rksvFooterLabel?: string;
+
     // --- Signature Block (RKSV) ---
     signature: {
         algorithm: string; // e.g., "ES256"

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text } from 'react-native';
 
 import { SoftColors, SoftSpacing } from '../constants/SoftTheme';
-import { getEnvironmentBadge } from '../shared/config/environmentBadge';
+import { useRksvStatus } from '../hooks/useRksvStatus';
 import type { DevelopmentModeSettings } from '../services/developmentModeClientCache';
 
 type Props = {
@@ -10,58 +10,72 @@ type Props = {
 };
 
 /**
- * POS header chip when persisted development-mode is enabled (effective bypasses require Development host).
+ * POS header chip: RKSV Demo/Production from backend + optional development-mode bypass chip.
  */
 export function EnvironmentBadge({ settings }: Props) {
   const [open, setOpen] = useState(false);
+  const { data: rksv, isLoading } = useRksvStatus();
 
-  const buildEnvBadge = getEnvironmentBadge();
-
-  if (!settings?.enabled) {
-    if (!buildEnvBadge.text) {
-      return null;
-    }
-    return (
-      <Pressable
-        style={[styles.chip, styles.chipBuildEnv]}
-        accessibilityRole="text"
-        accessibilityLabel={buildEnvBadge.text}
-      >
-        <Text style={styles.chipText}>{buildEnvBadge.text}</Text>
-      </Pressable>
-    );
+  if (!rksv && !settings?.enabled && !isLoading) {
+    return null;
   }
 
   const active: string[] = [];
-  if (settings.bypassLicense) active.push('Lizenz');
-  if (settings.bypassNtpCheck) active.push('NTP');
-  if (settings.bypassTseCheck) active.push('TSE');
+  if (settings?.bypassLicense) active.push('Lizenz');
+  if (settings?.bypassNtpCheck) active.push('NTP');
+  if (settings?.bypassTseCheck) active.push('TSE');
 
   const lines: string[] = [];
-  if (settings.bypassLicense) lines.push('✓ Lizenzprüfung umgangen');
-  if (settings.bypassNtpCheck) lines.push('✓ NTP-Prüfung umgangen');
-  if (settings.bypassTseCheck) lines.push('✓ TSE-Prüfung umgangen');
-  if (settings.simulateOffline) lines.push('⚠ Offline-Simulation');
-  if (settings.forceOnline) lines.push('✓ Online erzwungen');
-  lines.push(`Gültig: ${settings.validDays} Tage`);
+  if (settings?.bypassLicense) lines.push('✓ Lizenzprüfung umgangen');
+  if (settings?.bypassNtpCheck) lines.push('✓ NTP-Prüfung umgangen');
+  if (settings?.bypassTseCheck) lines.push('✓ TSE-Prüfung umgangen');
+  if (settings?.simulateOffline) lines.push('⚠ Offline-Simulation');
+  if (settings?.forceOnline) lines.push('✓ Online erzwungen');
+  if (settings?.validDays != null) lines.push(`Gültig: ${settings.validDays} Tage`);
+  if (rksv?.tseStatusDisplay) lines.push(rksv.tseStatusDisplay);
+
+  const environmentLabel = rksv
+    ? rksv.isSimulated
+      ? '🧪 DEMO'
+      : '🚀 PRODUCTION'
+    : isLoading
+      ? '…'
+      : null;
+
+  const devSuffix =
+    settings?.enabled && active.length > 0 ? ` · DEV (${active.join(', ')})` : settings?.enabled ? ' · DEV' : '';
+
+  const chip = (
+    <Pressable
+      onPress={settings?.enabled ? () => setOpen(true) : undefined}
+      style={[styles.chip, rksv?.isSimulated ? styles.demoBadge : styles.prodBadge]}
+      accessibilityRole={settings?.enabled ? 'button' : 'text'}
+      accessibilityLabel={environmentLabel ? `${environmentLabel}${devSuffix}` : 'RKSV-Umgebung'}
+    >
+      <Text style={styles.chipText}>
+        {environmentLabel}
+        {devSuffix}
+      </Text>
+    </Pressable>
+  );
+
+  if (!settings?.enabled) {
+    return environmentLabel ? chip : null;
+  }
 
   return (
     <>
-      <Pressable
-        onPress={() => setOpen(true)}
-        style={styles.chip}
-        accessibilityRole="button"
-        accessibilityLabel="Entwicklungsmodus"
-      >
-        <Text style={styles.chipText}>
-          {buildEnvBadge?.text ?? '🧪 Entwicklung'}
-          {active.length > 0 ? ` · DEV (${active.join(', ')})` : ' · DEV'}
-        </Text>
-      </Pressable>
+      {chip}
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
             <Text style={styles.title}>Entwicklungsmodus</Text>
+            {environmentLabel ? (
+              <Text style={styles.line}>
+                RKSV: {environmentLabel}
+                {rksv?.tseStatusDisplay ? ` — ${rksv.tseStatusDisplay}` : ''}
+              </Text>
+            ) : null}
             {lines.map((line) => (
               <Text key={line} style={styles.line}>
                 {line}
@@ -83,10 +97,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: SoftSpacing.sm,
     paddingVertical: 4,
     borderRadius: 6,
+  },
+  demoBadge: {
     backgroundColor: '#fa8c16',
   },
-  chipBuildEnv: {
-    backgroundColor: '#fa8c16',
+  prodBadge: {
+    backgroundColor: '#389e0d',
   },
   chipText: {
     color: SoftColors.textInverse,

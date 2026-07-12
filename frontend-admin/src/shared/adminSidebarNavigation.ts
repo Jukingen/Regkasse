@@ -155,6 +155,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
         '/admin/access/roles',
         '/admin/access/matrix',
         '/admin/tenants',
+        '/admin/errors',
     ],
     [ADMIN_SIDEBAR_GROUP_KEYS.accessArea]: [
         '/admin/access',
@@ -288,7 +289,8 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
         p === '/admin/users' ||
         p.startsWith('/admin/users/') ||
         p === '/admin/tenants' ||
-        p.startsWith('/admin/tenants/')
+        p.startsWith('/admin/tenants/') ||
+        p === '/admin/errors'
     ) {
         keys.push(ADMIN_SIDEBAR_GROUP_KEYS.admin);
     }
@@ -366,6 +368,7 @@ export function filterSidebarMenuItems(
 
     const platformAdminKeys = new Set([
         '/admin/tenants',
+        '/admin/errors',
         '/admin/licenses',
         '/admin/cash-registers',
     ]);
@@ -388,6 +391,7 @@ export function filterSidebarMenuItems(
         }
         if (
             key === '/admin/tenants' ||
+            key === '/admin/errors' ||
             key === '/admin/licenses' ||
             key === '/admin/cash-registers'
         ) {

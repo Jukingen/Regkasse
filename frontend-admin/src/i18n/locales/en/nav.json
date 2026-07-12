@@ -68,6 +68,7 @@
   "rolesPermissions": "Roles & permissions",
   "permissionsOverview": "Permission overview",
   "tenants": "Tenants",
+  "errorLogs": "Error Logs (Elmah)",
   "overview": "Overview",
   "benefitDefinitions": "Benefits (definitions)",
   "benefitAssignments": "Benefits (assignments)",

@@ -76,6 +76,23 @@
     "billingStats": "Statistiken",
     "billingNew": "Neuer Verkauf"
   },
+  "elmah": {
+    "columns": {
+      "date": "Datum",
+      "status": "Status",
+      "message": "Message",
+      "type": "Type",
+      "user": "User",
+      "actions": "Aktionen"
+    },
+    "details": "Details",
+    "detailsTitle": "Error Details",
+    "clearLogs": "Logs leeren",
+    "clearConfirmTitle": "Error-Logs leeren?",
+    "clearConfirmBody": "Alle Elmah-Einträge für diese Anwendung werden dauerhaft gelöscht.",
+    "clearSuccess": "Error-Logs wurden geleert.",
+    "clearFailed": "Error-Logs konnten nicht geleert werden."
+  },
   "aria": {
     "openNav": "Navigationsmenü öffnen",
     "closeNav": "Navigationsmenü schließen",

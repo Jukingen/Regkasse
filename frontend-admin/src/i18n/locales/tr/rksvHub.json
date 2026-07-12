@@ -21,6 +21,18 @@
       "invalid": "FinanzOnline ortamı: INVALID — `{{envVar}}` şunu okuyor: \"{{value}}\". Yalnızca TEST veya PROD geçerlidir; build yapılandırmasını düzeltin."
     },
     "buildTimeBadgeTooltip": "Yalnızca admin derleme etiketi (derlemede TEST/PROD). Canlı FinanzOnline veya BMF durumu değil — bağlantı ve mutabakatı ayrı doğrulayın.",
+    "backend": {
+      "displayLabel": {
+        "demo": "🧪 DEMO",
+        "production": "🚀 Production"
+      },
+      "badgeTooltip": "Backend'den RKSV çalışma modu (RKSV:Mode). POS ve raporlarda TSE simülasyonu ile fiskal etiketlemeyi belirler.",
+      "banner": {
+        "demo": "RKSV çalışma modu: DEMO — TSE imzaları simüle; fişler ve gün sonları fiskal olarak geçerli değil.",
+        "production": "RKSV çalışma modu: PRODUCTION — fiskal uyumlu TSE imzaları ve RKSV etiketlemesi."
+      },
+      "tseStatus": "TSE durumu: {{status}}"
+    },
     "hint": {
       "test": "Üretim dışı etiket: eğitim ve tanı için; uyumluluk kararında tek başına kullanmayın.",
       "prod": "Üretim etiketi: her yeniden gönderim ve iptali canlı FinanzOnline kurallarına göre iki kez kontrol edin.",

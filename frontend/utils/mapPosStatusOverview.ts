@@ -7,6 +7,7 @@ import type {
   PosStatusOverviewDto,
 } from '../services/api/posStatusOverviewTypes';
 import { parsePosCashRegisterContextDto } from './posCashRegisterReadinessParse';
+import { normalizeRksvEnvironmentStatus } from './normalizeRksvEnvironment';
 
 function inferTrialFromPublic(p: LicensePublicStatusDto): boolean {
   const lt = (p.licenseType ?? '').trim().toLowerCase();
@@ -102,6 +103,7 @@ export function normalizePosStatusOverview(raw: unknown): PosStatusOverviewDto {
   const healthRaw = body.healthLicense ?? body.HealthLicense;
   const settingsRaw = body.settings ?? body.Settings;
   const cashRegisterRaw = body.cashRegister ?? body.CashRegister;
+  const rksvRaw = body.rksvEnvironment ?? body.RksvEnvironment;
 
   const license =
     licenseRaw && typeof licenseRaw === 'object'
@@ -148,5 +150,6 @@ export function normalizePosStatusOverview(raw: unknown): PosStatusOverviewDto {
     healthLicense: health,
     cashRegister: parsePosCashRegisterContextDto(cashRegisterRaw),
     settings,
+    rksvEnvironment: normalizeRksvEnvironmentStatus(rksvRaw),
   };
 }

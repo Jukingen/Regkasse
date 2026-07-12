@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { ReceiptDTO } from '../types/ReceiptDTO';
 import { formatUserDateTime } from '../utils/dateFormatter';
+import { formatTseSignatureDisplay } from '../services/receiptFormatter';
 
 interface ReceiptTemplateProps {
     receipt: ReceiptDTO;
@@ -20,6 +21,7 @@ export const ReceiptTemplate: React.FC<ReceiptTemplateProps> = ({ receipt }) => 
         cashierId,
         cashierDisplayName,
         kassenID,
+        footerText,
     } = receipt;
 
     const cashierLine =
@@ -125,13 +127,13 @@ export const ReceiptTemplate: React.FC<ReceiptTemplateProps> = ({ receipt }) => 
                         <View style={[styles.qrContainer, { alignItems: 'center', justifyContent: 'center', height: 150, width: 150, borderWidth: 1, borderColor: '#ccc' }]}>
                             <Text style={{ fontSize: 10, textAlign: 'center' }}>QR Code</Text>
                         </View>
-                        <Text style={styles.signatureText}>{signature.value}</Text>
+                        <Text style={styles.signatureText}>{formatTseSignatureDisplay(signature?.value)}</Text>
                         <Text style={styles.signatureMeta}>{signature.serialNumber} | {signature.timestamp}</Text>
                     </>
                 )}
             </View>
 
-            <Text style={styles.footerText}>Vielen Dank für Ihren Einkauf!</Text>
+            <Text style={styles.footerText}>{footerText || 'Vielen Dank für Ihren Einkauf!'}</Text>
         </ScrollView>
     );
 };

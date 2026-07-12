@@ -50,6 +50,7 @@ import CardPaymentModal from './CardPaymentModal';
 import { ReceiptSummary, type ReceiptSummaryReceipt } from './ReceiptSummary';
 import type { PaymentTseInfo } from '../services/api/paymentService';
 import type { ReceiptDTO } from '../types/ReceiptDTO';
+import { normalizeReceiptDto } from '../utils/normalizeReceiptDto';
 import { downloadInvoicePdf, InvoicePdfHttpError } from '../services/api/invoiceService';
 import { debugPosPaymentTrace } from '../utils/debugPosPaymentTrace';
 import {
@@ -196,49 +197,8 @@ function toSummaryReceipt(receipt: ReceiptDTO | null): ReceiptSummaryReceipt | n
 }
 
 // Backend cevabını ReceiptDTO'ya normalize et (PascalCase/camelCase uyumu)
-function normalizeReceiptDto(r: any): ReceiptDTO {
-  const items = (r.items ?? r.Items ?? []).map((i: any) => ({
-    itemId: i.itemId ?? i.ItemId,
-    name: i.name ?? i.Name,
-    quantity: i.quantity ?? i.Quantity ?? 0,
-    unitPrice: i.unitPrice ?? i.UnitPrice ?? 0,
-    totalPrice: i.totalPrice ?? i.TotalPrice ?? 0,
-    lineTotalNet: i.lineTotalNet ?? i.LineTotalNet,
-    lineTotalGross: i.lineTotalGross ?? i.LineTotalGross,
-    taxRate: i.taxRate ?? i.TaxRate ?? 0,
-    vatRate: i.vatRate ?? i.VatRate,
-    vatAmount: i.vatAmount ?? i.VatAmount,
-    categoryName: i.categoryName ?? i.CategoryName,
-    parentItemId: i.parentItemId ?? i.ParentItemId,
-    isModifierLine: i.isModifierLine ?? i.IsModifierLine ?? false,
-  }));
-  const taxRates = (r.taxRates ?? r.TaxRates ?? []).map((t: any) => ({
-    taxType: t.taxType ?? t.TaxType,
-    rate: t.rate ?? t.Rate ?? 0,
-    vatRate: t.vatRate ?? t.VatRate,
-    netAmount: t.netAmount ?? t.NetAmount ?? 0,
-    taxAmount: t.taxAmount ?? t.TaxAmount ?? 0,
-    grossAmount: t.grossAmount ?? t.GrossAmount ?? 0,
-  }));
-  return {
-    receiptId: r.receiptId ?? r.ReceiptId ?? '',
-    receiptNumber: r.receiptNumber ?? r.ReceiptNumber ?? '',
-    date: r.date ?? r.Date ?? new Date().toISOString(),
-    cashierId: r.cashierId ?? r.CashierId ?? '',
-    cashierDisplayName: r.cashierDisplayName ?? r.CashierDisplayName ?? undefined,
-    tableNumber: r.tableNumber ?? r.TableNumber,
-    company: r.company ?? r.Company ?? { name: '', address: '', taxNumber: '' },
-    kassenID: r.kassenID ?? r.KassenID ?? '',
-    items,
-    taxRates,
-    subtotal: r.subtotal ?? r.SubTotal ?? 0,
-    taxAmount: r.taxAmount ?? r.TaxAmount ?? 0,
-    grandTotal: r.grandTotal ?? r.GrandTotal ?? 0,
-    totals: r.totals ?? r.Totals,
-    payments: r.payments ?? r.Payments ?? [],
-    footerText: r.footerText ?? r.FooterText,
-    signature: r.signature ?? r.Signature ?? { algorithm: '', value: '', serialNumber: '', timestamp: '', qrData: '' },
-  };
+function normalizeReceiptDtoFromApi(r: unknown): ReceiptDTO {
+  return normalizeReceiptDto(r);
 }
 
 // Türkçe Açıklama: Ödeme alma modal'ı - Sepet içeriğini ödeme işlemine dönüştürür
@@ -846,7 +806,7 @@ export default function PaymentModal({
       .then((raw: any) => {
         const r = raw?.data ?? raw?.Value ?? raw;
         if (r && Array.isArray(r.items)) {
-          setReceiptData(normalizeReceiptDto(r));
+          setReceiptData(normalizeReceiptDtoFromApi(r));
         }
       })
       .catch(err => {

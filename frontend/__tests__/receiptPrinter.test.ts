@@ -3,7 +3,9 @@
  * Interspar-style: 10.70 gross, 10% → net 9.73, tax 0.97.
  * OMV-style: 11.89 gross, 20% → net 9.91, tax 1.98.
  */
+import { describe, expect, it } from '@jest/globals';
 import { formatReceiptHtml } from '../services/receiptFormatter';
+import { normalizeReceiptDto } from '../utils/normalizeReceiptDto';
 import type { ReceiptDTO } from '../types/ReceiptDTO';
 
 const baseReceipt = (overrides: Partial<ReceiptDTO> = {}): ReceiptDTO => ({
@@ -89,11 +91,69 @@ describe('receiptPrinter', () => {
     expect(firstRateIdx).toBeLessThan(secondRateIdx);
   });
 
-  it('shows DEMO label when isDemoFiscal is true', () => {
-    const data = baseReceipt({ grandTotal: 10 });
-    const html = formatReceiptHtml(data, { isDemoFiscal: true });
+  it('shows DEMO label when backend sends dev/staging rksvFooterLabel', () => {
+    const data = baseReceipt({ grandTotal: 10, rksvFooterLabel: 'DEMO / NICHT FISKAL' });
+    const html = formatReceiptHtml(data);
     expect(html).toContain('DEMO');
     expect(html).toContain('NICHT FISKAL');
+  });
+
+  it('shows production RKSV footer label by default', () => {
+    const data = baseReceipt({ grandTotal: 10 });
+    const html = formatReceiptHtml(data);
+    expect(html).toContain('RKSV-konform');
+    expect(html).not.toContain('NICHT FISKAL');
+  });
+
+  it('ignores isDemoFiscal when production rksvFooterLabel is set', () => {
+    const data = baseReceipt({
+      grandTotal: 10,
+      rksvFooterLabel: 'RKSV-konform',
+    });
+    const html = formatReceiptHtml(data, { isDemoFiscal: true });
+    expect(html).not.toContain('NICHT FISKAL');
+    expect(html).toContain('RKSV-konform');
+  });
+
+  it('renders TSE signature from backend SignatureValue mapping', () => {
+    const jws = 'eyJhbGciOiJFUzI1NiJ9.eyJ.test.sign';
+    const data = baseReceipt({
+      grandTotal: 10,
+      signature: {
+        algorithm: 'ES256',
+        value: jws,
+        serialNumber: 'TSE-001',
+        timestamp: '2026-07-12T12:00:00',
+        qrData: '',
+      },
+    });
+    const html = formatReceiptHtml(data);
+    expect(html).toContain('TSE-Signatur:');
+    expect(html).toContain(jws);
+  });
+
+  it('shows unavailable TSE signature message when signature is missing', () => {
+    const data = baseReceipt({ grandTotal: 10 });
+    const html = formatReceiptHtml(data);
+    expect(html).toContain('TSE-Signatur: nicht verfügbar');
+  });
+
+  it('normalizeReceiptDto maps PascalCase SignatureValue and Company from backend', () => {
+    const dto = normalizeReceiptDto({
+      ReceiptNumber: '1001',
+      CashierDisplayName: 'Max Mustermann',
+      Company: { Name: 'Cafe Wien', Address: 'Wien', TaxNumber: 'ATU99999999' },
+      Signature: { SignatureValue: 'eyJ.eyJ.sign' },
+      Items: [],
+      TaxRates: [],
+      SubTotal: 0,
+      TaxAmount: 0,
+      GrandTotal: 0,
+      Payments: [],
+    });
+    expect(dto.company.name).toBe('Cafe Wien');
+    expect(dto.signature.value).toBe('eyJ.eyJ.sign');
+    expect(dto.cashierDisplayName).toBe('Max Mustermann');
   });
 
   it('45.18 gross, 20% → MwSt 7.53 in receipt (cart/receipt consistency)', () => {

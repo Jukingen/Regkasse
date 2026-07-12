@@ -21,6 +21,18 @@
       "invalid": "FinanzOnline-Umgebung: INVALID — `{{envVar}}` liefert „{{value}}“. Nur TEST oder PROD sind zulässig; Build-Konfiguration korrigieren."
     },
     "buildTimeBadgeTooltip": "Nur Admin-Build-Kennzeichnung (TEST/PROD beim Kompilieren). Kein Live-Status zu FinanzOnline oder BMF — Verbindung und Abgleich separat prüfen.",
+    "backend": {
+      "displayLabel": {
+        "demo": "🧪 DEMO",
+        "production": "🚀 Production"
+      },
+      "badgeTooltip": "RKSV-Betriebsmodus vom Backend (RKSV:Mode). Steuert TSE-Simulation und fiskalische Kennzeichnung auf Kasse und in Berichten.",
+      "banner": {
+        "demo": "RKSV-Betriebsmodus: DEMO — TSE-Signaturen sind simuliert; Belege und Tagesabschlüsse sind nicht fiskalisch gültig.",
+        "production": "RKSV-Betriebsmodus: PRODUCTION — fiskalisch konforme TSE-Signaturen und RKSV-konforme Kennzeichnung."
+      },
+      "tseStatus": "TSE-Status: {{status}}"
+    },
     "hint": {
       "test": "Nicht-Produktions-Kennzeichnung: für Schulung und Diagnose; nicht allein für GoBD-relevante Entscheidungen nutzen.",
       "prod": "Produktions-Kennzeichnung: jede erneute Übermittlung und Storno gegenüber Live-FinanzOnline doppelt prüfen.",

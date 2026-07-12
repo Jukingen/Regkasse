@@ -7,6 +7,11 @@ import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ADMIN_NAV_GROUP_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { useGetApiTseStatus } from '@/features/rksv/useTseStatusCompat';
 import { useGetApiFinanzOnlineStatus } from '@/api/generated/finanz-online/finanz-online';
+import {
+  RksvDeploymentEnvironmentAlert,
+  RksvDeploymentEnvironmentBadge,
+} from '@/features/rksv/components/RksvDeploymentEnvironmentStatus';
+import { useRksvStatus } from '@/features/rksv/hooks/useRksvBackendEnvironment';
 import Link from 'next/link';
 import {
     OPERATOR_FO_SUMMARY_SCREEN_COPY,
@@ -20,29 +25,33 @@ import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescripti
 export default function RksvStatusPage() {
     const { t } = useI18n();
     const canOpenSonderbelege = useCanAccessPath(RKSV_SONDERBELEGE_PATH);
+    const { data: rksvEnv, isLoading: rksvEnvLoading } = useRksvStatus();
     const { data: tseStatus, isLoading: tseLoading, error: tseError } = useGetApiTseStatus();
     const { data: foStatus, isLoading: foLoading, error: foError } = useGetApiFinanzOnlineStatus();
 
-    const isLoading = tseLoading || foLoading;
-
-    if (isLoading) {
-        return (
-            <div style={{ textAlign: 'center', padding: 80 }}>
-                <Spin size="large" />
-            </div>
-        );
-    }
+    const diagnosticsLoading = tseLoading || foLoading;
 
     return (
         <>
             <AdminPageHeader
-                title={OPERATOR_RKSV_GENERAL_STATUS_COPY.pageTitle}
+                title={
+                    <Space align="baseline" wrap>
+                        <span>{OPERATOR_RKSV_GENERAL_STATUS_COPY.pageTitle}</span>
+                        <RksvDeploymentEnvironmentBadge
+                            status={rksvEnv}
+                            isDemo={rksvEnv?.isSimulated}
+                            loading={rksvEnvLoading}
+                        />
+                    </Space>
+                }
                 breadcrumbs={[
                     ADMIN_OVERVIEW_CRUMB,
                     { title: ADMIN_NAV_GROUP_LABELS.rksv, href: '/rksv' },
                     { title: OPERATOR_RKSV_GENERAL_STATUS_COPY.breadcrumbLabel },
                 ]}
             />
+
+            <RksvDeploymentEnvironmentAlert style={{ marginBottom: 16 }} />
 
             <Alert
                 type="warning"
@@ -132,6 +141,11 @@ export default function RksvStatusPage() {
             <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
                 {t('rksvHub.rksvStatusPage.sectionDiagnosticsTitle')}
             </Typography.Text>
+            {diagnosticsLoading ? (
+                <div style={{ textAlign: 'center', padding: 48 }}>
+                    <Spin size="large" />
+                </div>
+            ) : (
             <Row gutter={[16, 16]}>
                 <Col xs={24} md={12}>
                     <Card title={OPERATOR_RKSV_GENERAL_STATUS_COPY.tseCardTitle} size="small">
@@ -251,6 +265,7 @@ export default function RksvStatusPage() {
                     </Card>
                 </Col>
             </Row>
+            )}
 
             <Divider style={{ margin: '16px 0' }} />
 

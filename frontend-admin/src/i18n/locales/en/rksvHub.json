@@ -21,6 +21,18 @@
       "invalid": "FinanzOnline environment: INVALID — `{{envVar}}` reads \"{{value}}\". Only TEST or PROD are permitted; fix the build configuration."
     },
     "buildTimeBadgeTooltip": "Admin build-time label only (TEST/PROD at compile). Not live FinanzOnline or BMF status — check connectivity and reconciliation separately.",
+    "backend": {
+      "displayLabel": {
+        "demo": "🧪 DEMO",
+        "production": "🚀 Production"
+      },
+      "badgeTooltip": "RKSV operating mode from the backend (RKSV:Mode). Controls TSE simulation and fiscal labeling on POS and reports.",
+      "banner": {
+        "demo": "RKSV operating mode: DEMO — TSE signatures are simulated; receipts and daily closings are not fiscally valid.",
+        "production": "RKSV operating mode: PRODUCTION — fiscally compliant TSE signatures and RKSV labeling."
+      },
+      "tseStatus": "TSE status: {{status}}"
+    },
     "hint": {
       "test": "Non-production label: use for training and diagnostics; do not rely on it alone for compliance decisions.",
       "prod": "Production label: double-check every resubmit and reversal against live FinanzOnline rules.",

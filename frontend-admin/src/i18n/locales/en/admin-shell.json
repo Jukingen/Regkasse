@@ -76,6 +76,23 @@
     "billingStats": "Statistics",
     "billingNew": "New sale"
   },
+  "elmah": {
+    "columns": {
+      "date": "Date",
+      "status": "Status",
+      "message": "Message",
+      "type": "Type",
+      "user": "User",
+      "actions": "Actions"
+    },
+    "details": "Details",
+    "detailsTitle": "Error details",
+    "clearLogs": "Clear logs",
+    "clearConfirmTitle": "Clear error logs?",
+    "clearConfirmBody": "All Elmah entries for this application will be permanently deleted.",
+    "clearSuccess": "Error logs cleared.",
+    "clearFailed": "Could not clear error logs."
+  },
   "aria": {
     "openNav": "Open navigation menu",
     "closeNav": "Close navigation menu",

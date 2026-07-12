@@ -76,6 +76,23 @@
     "billingStats": "İstatistikler",
     "billingNew": "Yeni satış"
   },
+  "elmah": {
+    "columns": {
+      "date": "Tarih",
+      "status": "Durum",
+      "message": "Mesaj",
+      "type": "Tür",
+      "user": "Kullanıcı",
+      "actions": "İşlemler"
+    },
+    "details": "Detaylar",
+    "detailsTitle": "Hata detayları",
+    "clearLogs": "Logları temizle",
+    "clearConfirmTitle": "Hata logları temizlensin mi?",
+    "clearConfirmBody": "Bu uygulama için tüm Elmah kayıtları kalıcı olarak silinecek.",
+    "clearSuccess": "Hata logları temizlendi.",
+    "clearFailed": "Hata logları temizlenemedi."
+  },
   "aria": {
     "openNav": "Gezinme menüsünü aç",
     "closeNav": "Gezinme menüsünü kapat",

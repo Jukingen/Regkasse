@@ -151,19 +151,60 @@ export async function endShiftApi(endBalance: number, notes?: string): Promise<E
   return parsed;
 }
 
+export interface TransactionBreakdown {
+  cash: number;
+  card: number;
+  voucher: number;
+  cancellations: number;
+  total: number;
+}
+
+export interface DailyClosingTaxBreakdown {
+  grossAt20: number;
+  taxAt20: number;
+  grossAt10: number;
+  taxAt10: number;
+  grossAt0: number;
+  grossAt13?: number;
+  taxAt13?: number;
+}
+
+export interface PaymentBreakdown {
+  cash: number;
+  card: number;
+  voucher: number;
+  other: number;
+  total: number;
+}
+
 export interface PosDailyClosingReportDto {
   businessDate: string;
   registerNumber?: string | null;
+  cashierName?: string | null;
   totalSales: number;
   totalCash: number;
   totalCard: number;
+  totalVoucherRedemptions: number;
+  totalOtherPaymentMethods: number;
   cashCount: number;
   difference: number;
   fiscalTotalAmount: number;
   fiscalTotalTaxAmount: number;
   fiscalTransactionCount: number;
   tseSignature?: string | null;
+  previousClosingSignature?: string | null;
+  taxBreakdown?: DailyClosingTaxBreakdown;
+  paymentBreakdown?: PaymentBreakdown;
+  isDemoFiscal?: boolean;
+  fiscalEnvironment?: string;
+  tseStatusLabel?: string;
+  tseStatusBadge?: string;
+  rksvFooterLabel?: string;
+  qrPayload?: string | null;
   snapshotDisclaimerDe?: string;
+  salesFiscalReconciliationNote?: string | null;
+  differenceScopeNote?: string | null;
+  transactionBreakdown?: TransactionBreakdown;
 }
 
 export interface PosDailyClosingResult {
@@ -205,23 +246,89 @@ export class DailyClosingApiError extends Error {
   }
 }
 
+function parseTransactionBreakdown(raw: unknown): TransactionBreakdown {
+  if (!isRecord(raw)) {
+    return { cash: 0, card: 0, voucher: 0, cancellations: 0, total: 0 };
+  }
+  return {
+    cash: readNumber(raw.cash ?? raw.Cash, 0),
+    card: readNumber(raw.card ?? raw.Card, 0),
+    voucher: readNumber(raw.voucher ?? raw.Voucher, 0),
+    cancellations: readNumber(raw.cancellations ?? raw.Cancellations, 0),
+    total: readNumber(raw.total ?? raw.Total, 0),
+  };
+}
+
+function parseTaxBreakdown(raw: unknown): DailyClosingTaxBreakdown | undefined {
+  if (!isRecord(raw)) return undefined;
+  return {
+    grossAt20: readNumber(raw.grossAt20 ?? raw.GrossAt20, 0),
+    taxAt20: readNumber(raw.taxAt20 ?? raw.TaxAt20, 0),
+    grossAt10: readNumber(raw.grossAt10 ?? raw.GrossAt10, 0),
+    taxAt10: readNumber(raw.taxAt10 ?? raw.TaxAt10, 0),
+    grossAt0: readNumber(raw.grossAt0 ?? raw.GrossAt0, 0),
+    grossAt13: readNumber(raw.grossAt13 ?? raw.GrossAt13, 0),
+    taxAt13: readNumber(raw.taxAt13 ?? raw.TaxAt13, 0),
+  };
+}
+
+function parsePaymentBreakdown(raw: unknown): PaymentBreakdown | undefined {
+  if (!isRecord(raw)) return undefined;
+  return {
+    cash: readNumber(raw.cash ?? raw.Cash, 0),
+    card: readNumber(raw.card ?? raw.Card, 0),
+    voucher: readNumber(raw.voucher ?? raw.Voucher, 0),
+    other: readNumber(raw.other ?? raw.Other, 0),
+    total: readNumber(raw.total ?? raw.Total, 0),
+  };
+}
+
 function parsePosDailyClosingReportDto(raw: unknown): PosDailyClosingReportDto | null {
   if (!isRecord(raw)) return null;
   return {
     businessDate: readString(raw.businessDate ?? raw.BusinessDate),
     registerNumber: (raw.registerNumber ?? raw.RegisterNumber ?? null) as string | null,
+    cashierName: readString(raw.cashierName ?? raw.CashierName) || null,
     totalSales: readNumber(raw.totalSales ?? raw.TotalSales),
     totalCash: readNumber(raw.totalCash ?? raw.TotalCash),
     totalCard: readNumber(raw.totalCard ?? raw.TotalCard),
+    totalVoucherRedemptions: readNumber(
+      raw.totalVoucherRedemptions ?? raw.TotalVoucherRedemptions,
+      0
+    ),
+    totalOtherPaymentMethods: readNumber(
+      raw.totalOtherPaymentMethods ?? raw.TotalOtherPaymentMethods,
+      0
+    ),
     cashCount: readNumber(raw.cashCount ?? raw.CashCount),
     difference: readNumber(raw.difference ?? raw.Difference),
     fiscalTotalAmount: readNumber(raw.fiscalTotalAmount ?? raw.FiscalTotalAmount),
     fiscalTotalTaxAmount: readNumber(raw.fiscalTotalTaxAmount ?? raw.FiscalTotalTaxAmount),
     fiscalTransactionCount: readNumber(raw.fiscalTransactionCount ?? raw.FiscalTransactionCount),
     tseSignature: (raw.tseSignature ?? raw.TseSignature ?? null) as string | null,
+    previousClosingSignature: (raw.previousClosingSignature ??
+      raw.PreviousClosingSignature ??
+      null) as string | null,
+    taxBreakdown: parseTaxBreakdown(raw.taxBreakdown ?? raw.TaxBreakdown),
+    paymentBreakdown: parsePaymentBreakdown(raw.paymentBreakdown ?? raw.PaymentBreakdown),
+    isDemoFiscal: raw.isDemoFiscal === true || raw.IsDemoFiscal === true,
+    fiscalEnvironment: readString(raw.fiscalEnvironment ?? raw.FiscalEnvironment) || undefined,
+    tseStatusLabel: readString(raw.tseStatusLabel ?? raw.TseStatusLabel) || undefined,
+    tseStatusBadge: readString(raw.tseStatusBadge ?? raw.TseStatusBadge) || undefined,
+    rksvFooterLabel: readString(raw.rksvFooterLabel ?? raw.RksvFooterLabel) || undefined,
+    qrPayload: (raw.qrPayload ?? raw.QrPayload ?? null) as string | null,
     snapshotDisclaimerDe: readString(
       raw.snapshotDisclaimerDe ?? raw.SnapshotDisclaimerDe,
       ''
+    ),
+    salesFiscalReconciliationNote: (raw.salesFiscalReconciliationNote ??
+      raw.SalesFiscalReconciliationNote ??
+      null) as string | null,
+    differenceScopeNote: (raw.differenceScopeNote ?? raw.DifferenceScopeNote ?? null) as
+      | string
+      | null,
+    transactionBreakdown: parseTransactionBreakdown(
+      raw.transactionBreakdown ?? raw.TransactionBreakdown
     ),
   };
 }

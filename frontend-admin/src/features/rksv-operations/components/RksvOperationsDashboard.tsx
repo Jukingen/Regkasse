@@ -57,6 +57,10 @@ import {
   RksvFinanzOnlineEnvironmentBadge,
   useRksvFinanzOnlineEnvironment,
 } from './RksvFinanzOnlineEnvironmentStatus';
+import {
+  RksvDeploymentEnvironmentAlert,
+  RksvDeploymentEnvironmentBadge,
+} from '@/features/rksv/components/RksvDeploymentEnvironmentStatus';
 import type { OpsHealthLevel } from '../types';
 import type { GetApiAdminOfflineIntentCoverageParams, GetApiAdminOperationsSummaryParams } from '@/api/generated/model';
 import { useI18n } from '@/i18n/I18nProvider';
@@ -339,6 +343,7 @@ export function RksvOperationsDashboard() {
         title={
           <Space align="baseline" wrap>
             <span>{t('nav.rksvOperationsOverview')}</span>
+            <RksvDeploymentEnvironmentBadge />
             <RksvFinanzOnlineEnvironmentBadge parsed={rksvEnvParsed} />
           </Space>
         }
@@ -359,6 +364,8 @@ export function RksvOperationsDashboard() {
           </Space>
         }
       />
+
+      <RksvDeploymentEnvironmentAlert style={{ marginBottom: token.marginMD }} />
 
       <RksvFinanzOnlineEnvironmentAlert
         parsed={rksvEnvParsed}

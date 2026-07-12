@@ -3,9 +3,12 @@ import type { ReceiptDTO } from '../types/ReceiptDTO';
 
 export interface FormatReceiptParams {
   qrBase64?: string;
+  /** @deprecated Prefer receipt.rksvFooterLabel from backend (environment-aware). */
   isDemoFiscal?: boolean;
   verificationUrl?: string;
 }
+
+const PRODUCTION_RKSV_FOOTER = 'RKSV-konform';
 
 function safeCurrency(value: number | undefined | null): string {
   if (value === undefined || value === null || isNaN(value)) return '0.00';
@@ -23,19 +26,36 @@ function getTaxCode(rate: number): string {
   return 'C';
 }
 
+/** RKSV TSE compact JWS display (matches backend ReceiptService.GetTseSignatureDisplay). */
+export function formatTseSignatureDisplay(signatureValue: string | undefined | null): string {
+  const signature = signatureValue?.trim();
+  if (!signature) return 'TSE-Signatur: nicht verfügbar';
+  const shortened = signature.length > 50 ? `${signature.slice(0, 50)}...` : signature;
+  return `TSE-Signatur:\n${shortened}`;
+}
+
+function resolveSignatureValue(signature: ReceiptDTO['signature'] | undefined): string {
+  if (!signature) return '';
+  const raw = signature.value?.trim();
+  return raw || '';
+}
+
 /**
  * Build receipt HTML. Tax table sorted by rate ascending (10% → 20%).
  * sum(taxSummary.netAmount)==subtotalNet, sum(taxSummary.taxAmount)==includedTaxTotal, sum(taxSummary.grossAmount)==grandTotalGross.
  */
 export function formatReceiptHtml(data: ReceiptDTO, params?: FormatReceiptParams): string {
   const items = data.items || [];
-  const company = data.company || { name: 'Unknown', address: '', taxNumber: '' };
+  const company = data.company || { name: '', address: '', taxNumber: '' };
   const taxRates = [...(data.taxRates || [])].sort((a, b) => (a.rate ?? 0) - (b.rate ?? 0));
   const payments = data.payments || [];
   const signature = data.signature;
   const qrBase64 = params?.qrBase64;
-  const isDemoFiscal = params?.isDemoFiscal ?? false;
   const verificationUrl = params?.verificationUrl ?? (data as any).verificationUrl;
+  const rksvFooterLabel =
+    (data.rksvFooterLabel && data.rksvFooterLabel.trim()) ||
+    (params?.isDemoFiscal ? 'DEMO / NICHT FISKAL' : PRODUCTION_RKSV_FOOTER);
+  const isDemoFooter = rksvFooterLabel.includes('DEMO');
 
   const itemsHtml = items.map(item => `
         <tr>
@@ -87,7 +107,11 @@ export function formatReceiptHtml(data: ReceiptDTO, params?: FormatReceiptParams
         ? '<div class="reversal-banner" style="text-align:center;font-weight:bold;font-size:14px;margin-bottom:8px;color:#e65100;">ERSTATTUNGSBELEG</div>'
         : '';
 
-  const demoLabel = isDemoFiscal ? '<div class="qr-demo-label">DEMO / NICHT FISKAL</div>' : '';
+  const demoLabel = isDemoFooter
+    ? `<div class="qr-demo-label">${rksvFooterLabel}</div>`
+    : `<div class="qr-fiscal-label">${rksvFooterLabel}</div>`;
+  const signatureValue = resolveSignatureValue(signature);
+  const tseSignatureHtml = `<div class="tse-signature">${formatTseSignatureDisplay(signatureValue).replace('\n', '<br/>')}</div>`;
   const qrBlock = qrBase64
     ? `
         <div class="qr-block">
@@ -121,6 +145,8 @@ export function formatReceiptHtml(data: ReceiptDTO, params?: FormatReceiptParams
           .qr-block { text-align: center; margin: 12px 0; margin-top: 15px; }
           .qr-image { display: block; margin: 8px auto; max-width: 180px; height: auto; }
           .qr-demo-label { font-weight: bold; color: #c62828; font-size: 11px; margin-bottom: 6px; }
+          .qr-fiscal-label { font-weight: bold; color: #2e7d32; font-size: 11px; margin-bottom: 6px; }
+          .tse-signature { font-size: 9px; word-break: break-all; margin-top: 6px; text-align: center; }
           .qr-fallback { font-size: 10px; color: #666; text-align: center; margin: 8px 0; }
           .total-sep { text-align: center; font-size: 11px; margin: 4px 0; letter-spacing: 1px; }
           .mwst-section { margin-top: 12px; font-size: 11px; }
@@ -136,9 +162,9 @@ export function formatReceiptHtml(data: ReceiptDTO, params?: FormatReceiptParams
       <body>
         ${reversalBanner}
         <div class="company-info">
-          <h1>${company.name || 'Store Name'}</h1>
+          <h1>${company.name || '—'}</h1>
           <div>${company.address || ''}</div>
-          <div>UID: ${company.taxNumber || ''}</div>
+          <div>${company.taxNumber ? `UID: ${company.taxNumber}` : ''}</div>
         </div>
         <div class="meta-info">
           <div>Beleg: ${data.receiptNumber}</div>
@@ -189,7 +215,7 @@ export function formatReceiptHtml(data: ReceiptDTO, params?: FormatReceiptParams
         <div class="signature-block">
           <div style="font-weight: bold; margin-bottom: 5px;">Registrierkassensicherheitsverordnung</div>
           ${qrBlock}
-          ${signature?.value ? `<div style="margin-top: 6px; font-size: 9px; word-break: break-all;">${signature.value}</div>` : ''}
+          ${tseSignatureHtml}
           ${signature?.serialNumber && signature?.timestamp ? `<div style="margin-top: 2px; font-size: 9px;">${signature.serialNumber} | ${signature.timestamp}</div>` : ''}
         </div>
         <div class="footer">

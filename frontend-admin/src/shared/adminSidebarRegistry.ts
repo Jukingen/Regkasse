@@ -551,6 +551,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         icon: 'ApartmentOutlined',
         permission: PERMISSIONS.SYSTEM_CRITICAL,
     },
+    elmahErrors: {
+        id: 'elmahErrors',
+        menuKey: '/admin/errors',
+        href: '/admin/errors',
+        labelKey: 'nav.errorLogs',
+        icon: 'FileSearchOutlined',
+        permission: PERMISSIONS.SYSTEM_CRITICAL,
+    },
     superAdminLicenses: {
         id: 'superAdminLicenses',
         menuKey: '/admin/licenses',
@@ -930,7 +938,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
                 icon: 'KeyOutlined',
                 catalogIds: ['accessOverview', 'users', 'accessRoles', 'accessMatrix'],
             },
-            { kind: 'leaves', catalogIds: ['superAdminTenants', 'superAdminCashRegisters'] },
+            { kind: 'leaves', catalogIds: ['superAdminTenants', 'superAdminCashRegisters', 'elmahErrors'] },
         ],
     },
 ];

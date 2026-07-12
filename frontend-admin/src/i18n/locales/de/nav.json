@@ -68,6 +68,7 @@
   "rolesPermissions": "Rollen & Berechtigungen",
   "permissionsOverview": "Berechtigungsübersicht",
   "tenants": "Mandanten",
+  "errorLogs": "Error Logs (Elmah)",
   "overview": "Übersicht",
   "benefitDefinitions": "Vorteile (Definitionen)",
   "benefitAssignments": "Vorteile (Zuweisungen)",

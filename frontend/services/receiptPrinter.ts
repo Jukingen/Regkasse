@@ -5,6 +5,7 @@ import printerService from './PrinterService';
 import { ReceiptDTO } from '../types/ReceiptDTO';
 import { formatReceiptHtml } from './receiptFormatter';
 import { formatUserDate } from '../utils/dateFormatter';
+import { normalizeReceiptDto } from '../utils/normalizeReceiptDto';
 import {
   formatRefundReceiptHtml,
   formatStornoReceiptHtml,
@@ -64,69 +65,8 @@ class ReceiptPrinter {
    * Helper to normalize PascalCase properties to camelCase
    * Because backend sends ReceiptNumber, Date, etc., but frontend expects receiptNumber, date
    */
-  private normalizeReceiptDTO(data: any): ReceiptDTO {
-    // If it's already normalized (camelCase), just return it
-    if (data.receiptNumber && !data.ReceiptNumber) {
-      return data as ReceiptDTO;
-    }
-
-    // Map PascalCase to camelCase
-    return {
-      receiptId: data.ReceiptId || data.receiptId || '',
-      receiptNumber: data.ReceiptNumber || data.receiptNumber || 'Unknown',
-      date: data.Date || data.date || new Date().toISOString(),
-      cashierId: data.cashierId || data.CashierId || '',
-      cashierDisplayName: data.cashierDisplayName ?? data.CashierDisplayName,
-      tableNumber: data.TableNumber || data.tableNumber,
-      kassenID: data.KassenID || data.kassenID || 'Unknown',
-
-      company: {
-        name: data.Company?.Name || data.company?.name || 'Unknown',
-        address: data.Company?.Address || data.company?.address || '',
-        taxNumber: data.Company?.TaxNumber || data.company?.taxNumber || ''
-      },
-
-      items: (data.Items || data.items || []).map((item: any) => ({
-        name: item.Name || item.name || '',
-        quantity: item.Quantity || item.quantity || 0,
-        unitPrice: item.UnitPrice || item.unitPrice || 0,
-        totalPrice: item.TotalPrice || item.totalPrice || 0,
-        taxRate: item.TaxRate || item.taxRate || 0
-      })),
-
-      subtotal: data.SubTotal || data.subtotal || 0,
-      taxAmount: data.TaxAmount || data.taxAmount || 0,
-      grandTotal: data.GrandTotal || data.grandTotal || 0,
-
-      taxRates: (data.TaxRates || data.taxRates || []).map((t: any) => ({
-        taxType: t.TaxType ?? t.taxType,
-        rate: t.Rate ?? t.rate ?? 0,
-        netAmount: t.NetAmount ?? t.netAmount ?? 0,
-        taxAmount: t.TaxAmount ?? t.taxAmount ?? 0,
-        grossAmount: t.GrossAmount ?? t.grossAmount ?? 0
-      })),
-
-      payments: (data.Payments || data.payments || []).map((p: any) => ({
-        method: p.Method || p.method || 'cash',
-        amount: p.Amount || p.amount || 0,
-        tendered: p.Tendered || p.tendered,
-        change: p.Change || p.change
-      })),
-
-      footerText: data.FooterText || data.footerText,
-
-      signature: data.Signature ? {
-        algorithm: data.Signature.Algorithm || data.signature?.algorithm || '',
-        value: data.Signature.Value || data.signature?.value || '',
-        serialNumber: data.Signature.SerialNumber || data.signature?.serialNumber || '',
-        timestamp: data.Signature.Timestamp || data.signature?.timestamp || '',
-        qrData: data.Signature.QrData || data.signature?.qrData || ''
-      } : data.signature,
-      verificationUrl: data.VerificationUrl ?? data.verificationUrl,
-      fiscalTraceKind: data.FiscalTraceKind ?? data.fiscalTraceKind ?? null,
-      originalPaymentId: data.OriginalPaymentId ?? data.originalPaymentId ?? null,
-      originalSaleReceiptId: data.OriginalSaleReceiptId ?? data.originalSaleReceiptId ?? null,
-    };
+  private normalizeReceiptDTO(data: unknown): ReceiptDTO {
+    return normalizeReceiptDto(data);
   }
 
   /**

@@ -1,5 +1,6 @@
 export const rksvAdminQueryKeys = {
   base: ['admin', 'rksv'] as const,
+  environment: ['admin', 'rksv', 'environment'] as const,
   cashRegisters: ['admin', 'rksv', 'cash-registers'] as const,
   finanzOnline: {
     base: ['admin', 'rksv', 'finanzonline-reconciliation'] as const,
