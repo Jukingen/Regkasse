@@ -11,16 +11,10 @@ import {
 } from '@ant-design/icons';
 
 import { useI18n } from '@/i18n';
-
-const CANONICAL_ROLES = [
-    'SuperAdmin',
-    'Manager',
-    'Cashier',
-    'Waiter',
-    'Kitchen',
-    'ReportViewer',
-    'Accountant',
-] as const;
+import {
+    formatRoleBadgeLabel,
+    isCanonicalRoleName,
+} from '@/features/users/utils/roleDisplayLabel';
 
 const ROLE_COLORS: Record<string, string> = {
     SuperAdmin: 'red',
@@ -44,38 +38,21 @@ const ROLE_ICONS: Record<string, React.ReactNode> = {
 
 export type UserRoleBadgeProps = {
     role: string;
+    /**
+     * @deprecated Owner is shown in tenant/name columns (UnifiedAdminUsersView, TenantUserTable).
+     * Role column must only show the canonical role label.
+     */
     isOwner?: boolean;
     /** @deprecated Prefer role-based colors; kept for callers that still pass it. */
     platform?: boolean;
 };
 
-const BADGE_LABEL_KEYS: Partial<Record<(typeof CANONICAL_ROLES)[number], string>> = {
-    SuperAdmin: 'users.roles.badgeLabels.SuperAdmin',
-    Manager: 'users.roles.badgeLabels.Manager',
-    Cashier: 'users.roles.badgeLabels.Cashier',
-    Accountant: 'users.roles.badgeLabels.Accountant',
-    Waiter: 'users.roles.badgeLabels.Waiter',
-    Kitchen: 'users.roles.badgeLabels.Kitchen',
-    ReportViewer: 'users.roles.badgeLabels.ReportViewer',
-};
-
-export function UserRoleBadge({ role, isOwner }: UserRoleBadgeProps) {
+/** Canonical role badge for user tables — does not render tenant-owner badge. */
+export function UserRoleBadge({ role }: UserRoleBadgeProps) {
     const { t } = useI18n();
-    const isCanonical = (CANONICAL_ROLES as readonly string[]).includes(role);
-    const badgeKey = BADGE_LABEL_KEYS[role as (typeof CANONICAL_ROLES)[number]];
-    const label =
-        isCanonical && badgeKey
-            ? t(badgeKey)
-            : isCanonical
-              ? t(`users.roles.displayNames.${role}` as 'users.roles.displayNames.SuperAdmin')
-              : role;
+    const label = isCanonicalRoleName(role) ? formatRoleBadgeLabel(t, role) : role;
     const color = ROLE_COLORS[role] ?? 'default';
     const icon = ROLE_ICONS[role] ?? <UserOutlined />;
 
-    return (
-        <>
-            <Tag color={color} icon={icon}>{label}</Tag>
-            {isOwner ? <Tag color="geekblue">{t('users.tabs.tenant.ownerBadge')}</Tag> : null}
-        </>
-    );
+    return <Tag color={color} icon={icon}>{label}</Tag>;
 }

@@ -894,8 +894,9 @@ namespace KasseAPI_Final.Controllers
                 var actorRole = GetCurrentUserRole();
                 var targetCanonicalRole = RoleCanonicalization.GetCanonicalRole(user.Role);
                 var actorCanonicalRole = RoleCanonicalization.GetCanonicalRole(actorRole);
+                var isSuperAdmin = string.Equals(actorCanonicalRole, Roles.SuperAdmin, StringComparison.Ordinal);
                 if (string.Equals(targetCanonicalRole, Roles.SuperAdmin, StringComparison.Ordinal) &&
-                    !string.Equals(actorCanonicalRole, Roles.SuperAdmin, StringComparison.Ordinal))
+                    !isSuperAdmin)
                 {
                     var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
                     return StatusCode(403, new
@@ -906,6 +907,15 @@ namespace KasseAPI_Final.Controllers
                         missingRequirement = "Role",
                         correlationId,
                     });
+                }
+
+                if (!isSuperAdmin && _tenantAccessor.TenantId is Guid scopedTenantId)
+                {
+                    var inTenant = await _context.UserTenantMemberships
+                        .AsNoTracking()
+                        .AnyAsync(m => m.UserId == id && m.TenantId == scopedTenantId && m.IsActive);
+                    if (!inTenant)
+                        return NotFound(new { message = "User not found" });
                 }
 
                 var token = await _userManager.GeneratePasswordResetTokenAsync(user);

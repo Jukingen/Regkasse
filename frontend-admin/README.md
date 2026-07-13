@@ -88,9 +88,19 @@ Code: `src/shared/config/rksvEnvironment.ts`.
 - **Ant Design 6**: use `destroyOnHidden` (not `destroyOnClose`), `popupRender` (not `dropdownRender`); official v5→v6 codemod is not published — apply [migration guide](https://ant.design/docs/react/migration-v6) warnings as needed.
 - **i18n**: Custom `I18nProvider` + JSON catalogs; runtime namespace’ler ve dosya adı eşlemesi için `src/i18n/README.md` kaynak kabul edilir.
 
+## Roles
+
+| UI (de) | Backend | Scope |
+|---------|---------|-------|
+| **Mandanten-Admin** | `Manager` | Tenant management |
+| **Kassierer** | `Cashier` | POS operations |
+| **Super-Administrator** | `SuperAdmin` | Full system access |
+
+Backend role names remain `Manager`, `Cashier`, `SuperAdmin` in API/database; UI labels come from `src/i18n/locales/*/users.json`.
+
 ## User Management
 
-Users are created directly by administrators (Super Admin or Manager). **No email invitations** are sent.
+Users are created directly by administrators (Super Admin or **Mandanten-Admin**). **No email invitations** are sent.
 
 ### Creating a user
 
@@ -109,7 +119,7 @@ The Quick Create tab in `CreateUserModal` lets administrators create tenant user
 **How it works:**
 
 1. Open **Users** → **Create User** (or tenant detail → **Benutzer**) and switch to the **Schnell anlegen** tab.
-2. Select **Rolle**: `Manager`, `Cashier`, or `Accountant` (platform `Admin` / `SuperAdmin` are not available on this path).
+2. Select **Rolle**: **Mandanten-Admin** (`Manager`), **Kassierer** (`Cashier`), or **Buchhaltung** (`Accountant`) — platform `Admin` / `SuperAdmin` are not available on this path.
 3. Select **Mandant** when creating from the global users page (fixed when opened from tenant detail).
 4. The system generates:
    - **Username:** `{rolePrefix}{nextAvailableNumber}` (e.g. `manager1`, `cashier2`, `user3` for Accountant)
@@ -256,7 +266,7 @@ Backend must be `ASPNETCORE_ENVIRONMENT=Development`. See `REGKASSE_AI_ONBOARDIN
 
 **Header context:** `TenantBadge` (active company or Super Admin mode), `LicenseStatusIndicator` (**Mandantenlizenz** only via `useHeaderTenantLicense` — four states: keine / abgelaufen / bald ab / lizenziert; never Server-Lizenz).
 
-| Header badge (Manager) | Condition | Color |
+| Header badge (Mandanten-Admin) | Condition | Color |
 |------------------------|-----------|-------|
 | Keine Mandantenlizenz | `license_valid_until_utc` null | Red |
 | Lizenz abgelaufen | past end date | Red |
@@ -280,7 +290,7 @@ Access: **`admin.regkasse.at`** (or local dev on platform host). Role: **`SuperA
 | Impersonate (“Login as”) | list / detail / home selector | `impersonateAdminTenant`, `ImpersonationRedirectOverlay` |
 | Platform home (pick tenant) | `/admin` | `SuperAdminTenantSelector` |
 | Server license (On-Premise) | `/admin/license` | `api/manual/adminLicense.ts` — **Server-Lizenz**; not Mandantenlizenz (see header badge) |
-| Billing tenant license (docs) | — | [`../docs/BILLING_TENANT_LICENSE.md`](../docs/BILLING_TENANT_LICENSE.md); Manager API `POST /api/admin/license/extend` |
+| Billing tenant license (docs) | — | [`../docs/BILLING_TENANT_LICENSE.md`](../docs/BILLING_TENANT_LICENSE.md); Mandanten-Admin API `POST /api/admin/license/extend` |
 
 **Create tenant** runs backend `TenantProvisioningService` (cash register, demo products, owner admin, optional 30-day trial). Success modal shows one-time credentials.
 
@@ -303,11 +313,11 @@ Access: **`admin.regkasse.at`** (or local dev on platform host). Role: **`SuperA
 | What you see | Meaning |
 |--------------|---------|
 | **Super Admin Modus** (`TenantBadge`) | Platform host; no mandant context |
-| Green/orange/red **Mandantenlizenz** tag (Manager on `{slug}.*`) | `tenants.license_valid_until_utc` / trial heuristic — **not** server On-Premise |
+| Green/orange/red **Mandantenlizenz** tag (Mandanten-Admin on `{slug}.*`) | `tenants.license_valid_until_utc` / trial heuristic — **not** server On-Premise |
 | **Lizenz (On-Premise)** `/admin/license` | Deployment / machine license (`LicenseService`) |
 | Dev switcher license column | Same mandant fields per tenant row |
 
-Expiry: header tag **orange** if ≤7 days; **red** if expired; content **banner** for Managers if ≤15 days or expired. Super Admin platform mode hides these (`suppressLicenseWarnings`).
+Expiry: header tag **orange** if ≤7 days; **red** if expired; content **banner** for Mandanten-Admins if ≤15 days or expired. Super Admin platform mode hides these (`suppressLicenseWarnings`).
 
 ![Manager license badge (placeholder)](../docs/images/tenant-management/fa-manager-license-badge.png)  
 ![Deployment license page (placeholder)](../docs/images/tenant-management/fa-deployment-license.png)

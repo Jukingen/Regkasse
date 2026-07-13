@@ -404,6 +404,11 @@ describe('UnifiedAdminUsersView', () => {
 
         expect(screen.queryByTestId('tenant-filter')).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /Plattform-Admin anlegen/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('columnheader', { name: /^Passwort$/i })).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: /Temporäres Passwort erzeugen und anzeigen/i }),
+        ).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Passwort zurücksetzen/i })).toBeInTheDocument();
         expect(mockListTenantUsers).toHaveBeenCalledWith(
             expect.objectContaining({ tenantId: 'tenant-1' }),
         );

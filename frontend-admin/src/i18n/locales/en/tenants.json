@@ -673,7 +673,7 @@
       "title": "Tenant users",
       "subtitle": "Assign existing users to this tenant, set the tenant owner (primary admin), and manage roles."
     },
-    "ownerBadge": "Tenant admin",
+    "ownerBadge": "Primary admin",
     "empty": "No users assigned yet. Add an existing user or provision an admin when creating a tenant.",
     "columns": {
       "name": "Name",
@@ -691,7 +691,7 @@
       "back": "Back to list",
       "add": "Add existing user",
       "remove": "Remove",
-      "setOwner": "Set as tenant admin",
+      "setOwner": "Set as primary admin",
       "resetPassword": "Password"
     },
     "resetPassword": {

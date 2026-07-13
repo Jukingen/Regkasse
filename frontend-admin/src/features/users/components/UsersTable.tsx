@@ -67,6 +67,8 @@ export function UsersTable({
 }: UsersTableProps) {
     const { t, formatLocale } = useI18n();
 
+    // Security: list tables must not expose a password column for Manager.
+    // SuperAdmin credential handoff lives in UnifiedAdminUsersView; reset stays in actions.
     const columns: ColumnsType<UserInfo> = useMemo(
         () => [
             {

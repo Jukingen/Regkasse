@@ -79,6 +79,7 @@ public class AdminAppPermissionProfileTests
         Assert.Contains(AppPermissions.CashRegisterDecommission, result);
         Assert.Contains(AppPermissions.ReportExport, result);
         Assert.Contains(AppPermissions.UserView, result);
+        Assert.Contains(AppPermissions.UserResetPassword, result);
         Assert.Contains(AppPermissions.TableView, result);
         Assert.Contains(AppPermissions.SaleView, result);
         Assert.DoesNotContain(AppPermissions.PaymentTake, result);

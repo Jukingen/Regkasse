@@ -298,6 +298,12 @@ public class RolePermissionMatrixTests
     }
 
     [Fact]
+    public void RoleHasPermission_Manager_Has_UserResetPassword()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.UserResetPassword));
+    }
+
+    [Fact]
     public void RoleHasPermission_Manager_DoesNotHave_UserManage()
     {
         Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.UserManage));

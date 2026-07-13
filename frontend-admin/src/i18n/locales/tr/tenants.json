@@ -673,7 +673,7 @@
       "title": "Kiracı kullanıcıları",
       "subtitle": "Mevcut kullanıcıları bu kiracıya atayın, kiracı sahibini (owner) belirleyin ve rolleri yönetin."
     },
-    "ownerBadge": "Kiracı yöneticisi",
+    "ownerBadge": "Ana yönetici",
     "empty": "Henüz kullanıcı atanmadı. Mevcut bir kullanıcı ekleyin veya kiracı oluştururken yönetici tanımlayın.",
     "columns": {
       "name": "Ad",
@@ -691,7 +691,7 @@
       "back": "Listeye dön",
       "add": "Mevcut kullanıcı ekle",
       "remove": "Kaldır",
-      "setOwner": "Kiracı yöneticisi yap",
+      "setOwner": "Ana yönetici yap",
       "resetPassword": "Şifre"
     },
     "resetPassword": {

@@ -85,17 +85,17 @@
   },
   "roles": {
     "displayNames": {
-      "SuperAdmin": "Super administrator",
-      "Manager": "Manager",
+      "SuperAdmin": "Super Administrator",
+      "Manager": "Tenant Admin",
       "Cashier": "Cashier",
       "Waiter": "Waiter",
       "Kitchen": "Kitchen",
-      "ReportViewer": "Reports (read-only)",
-      "Accountant": "Accounting"
+      "ReportViewer": "Report Viewer",
+      "Accountant": "Accountant"
     },
     "badgeLabels": {
       "SuperAdmin": "Platform admin",
-      "Manager": "Tenant admin",
+      "Manager": "Tenant Admin",
       "Cashier": "Cashier",
       "Accountant": "Accountant",
       "Waiter": "Waiter",
@@ -467,7 +467,7 @@
       "removeFromTenant": "Remove from tenant",
       "removedSuccess": "User was removed from the tenant.",
       "openTenantUsers": "Open tenant",
-      "ownerBadge": "Tenant admin",
+      "ownerBadge": "Primary admin",
       "confirmRemove": {
         "title": "Remove user from tenant?",
         "body": "The user loses access to «{{tenant}}». The account is kept for other tenants or later assignment."
@@ -512,7 +512,7 @@
       "licenseLine": "License: {{license}}"
     },
     "roleOptions": {
-      "Manager": { "label": "Manager" },
+      "Manager": { "label": "Tenant Admin" },
       "Cashier": { "label": "Cashier" },
       "Accountant": { "label": "Accountant" },
       "Waiter": { "label": "Waiter" },
@@ -563,7 +563,17 @@
     "resetPassword": {
       "title": "Reset password",
       "securityNote": "All user sessions will be ended. The new password must be at least {{min}} characters and include uppercase, lowercase, a number, and a special character.",
-      "newPasswordLabel": "New password (min. {{min}} chars, upper/lowercase, number, special character)"
+      "newPasswordLabel": "New password (min. {{min}} chars, upper/lowercase, number, special character)",
+      "generated": {
+        "title": "Reset password",
+        "confirmTitle": "Reset password for {{name}}?",
+        "body": "A new secure password will be generated. The user must change it on next login.",
+        "confirm": "Reset password",
+        "resultTitle": "Password has been reset",
+        "forceChangeHint": "The user must change the password on next login.",
+        "passwordLabel": "New password:",
+        "copyHint": "Copy and share securely with the user. The password is shown only once."
+      }
     }
   },
   "reactivate": {

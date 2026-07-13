@@ -85,17 +85,17 @@
   },
   "roles": {
     "displayNames": {
-      "SuperAdmin": "Süper yönetici",
-      "Manager": "Yönetici",
+      "SuperAdmin": "Süper Yönetici",
+      "Manager": "Müşteri Yöneticisi",
       "Cashier": "Kasiyer",
       "Waiter": "Garson",
       "Kitchen": "Mutfak",
-      "ReportViewer": "Raporlar (salt okunur)",
+      "ReportViewer": "Rapor Görüntüleyici",
       "Accountant": "Muhasebe"
     },
     "badgeLabels": {
       "SuperAdmin": "Platform yöneticisi",
-      "Manager": "Mandant yöneticisi",
+      "Manager": "Müşteri Yöneticisi",
       "Cashier": "Kasiyer",
       "Accountant": "Muhasebeci",
       "Waiter": "Garson",
@@ -467,7 +467,7 @@
       "removeFromTenant": "Mandanttan kaldır",
       "removedSuccess": "Kullanıcı mandanttan kaldırıldı.",
       "openTenantUsers": "Mandantı aç",
-      "ownerBadge": "Mandant yöneticisi",
+      "ownerBadge": "Ana yönetici",
       "confirmRemove": {
         "title": "Kullanıcı mandanttan kaldırılsın mı?",
         "body": "Kullanıcı «{{tenant}}» erişimini kaybeder. Hesap diğer mandantlar veya sonraki atama için korunur."
@@ -512,7 +512,7 @@
       "licenseLine": "Lisans: {{license}}"
     },
     "roleOptions": {
-      "Manager": { "label": "Manager" },
+      "Manager": { "label": "Kiracı yöneticisi" },
       "Cashier": { "label": "Kasiyer" },
       "Accountant": { "label": "Muhasebe" },
       "Waiter": { "label": "Garson" },
@@ -563,7 +563,17 @@
     "resetPassword": {
       "title": "Şifreyi sıfırla",
       "securityNote": "Kullanıcının tüm oturumları sonlandırılır. Yeni şifre en az {{min}} karakter olmalı; büyük/küçük harf, rakam ve özel karakter içermelidir.",
-      "newPasswordLabel": "Yeni şifre (en az {{min}} karakter, büyük/küçük harf, rakam, özel karakter)"
+      "newPasswordLabel": "Yeni şifre (en az {{min}} karakter, büyük/küçük harf, rakam, özel karakter)",
+      "generated": {
+        "title": "Şifreyi sıfırla",
+        "confirmTitle": "{{name}} için şifre sıfırlansın mı?",
+        "body": "Yeni güvenli bir şifre oluşturulacak. Kullanıcı bir sonraki girişte değiştirmek zorunda.",
+        "confirm": "Şifreyi sıfırla",
+        "resultTitle": "Şifre sıfırlandı",
+        "forceChangeHint": "Kullanıcı bir sonraki girişte şifreyi değiştirmelidir.",
+        "passwordLabel": "Yeni şifre:",
+        "copyHint": "Kopyalayıp kullanıcıya güvenli şekilde iletin. Şifre yalnızca bir kez gösterilir."
+      }
     }
   },
   "reactivate": {

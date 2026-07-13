@@ -109,7 +109,7 @@ public static class RolePermissionMatrix
 
             [Roles.Manager] = new[]
             {
-                AppPermissions.UserView, AppPermissions.RoleView,
+                AppPermissions.UserView, AppPermissions.UserResetPassword, AppPermissions.RoleView,
                 AppPermissions.ProductView, AppPermissions.ProductManage,
                 AppPermissions.CategoryView, AppPermissions.CategoryManage,
                 AppPermissions.ModifierView, AppPermissions.ModifierManage,

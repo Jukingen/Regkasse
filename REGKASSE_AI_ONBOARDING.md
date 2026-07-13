@@ -270,12 +270,12 @@ Typical local smoke-test matrix (tenant **`dev`** unless noted). Passwords are *
 | Role | App | URL | Login identifier | Tenant context |
 |------|-----|-----|------------------|----------------|
 | SuperAdmin | FA | `http://localhost:3000` | `admin@admin.com` | Header switcher → **`dev`** (JWT may still show `default`) |
-| Manager | FA | `http://localhost:3000` | `manager1` | Header switcher → **`dev`** |
+| Mandanten-Admin (`Manager`) | FA | `http://localhost:3000` | `manager1` | Header switcher → **`dev`** |
 | Cashier | POS | `http://localhost:8081` | `cashier1` | `EXPO_PUBLIC_DEV_TENANT_ID=dev` |
 
-**POS cashier password reset:** requires **`users.manage`** (`UserManage`). **Manager does not have this** — use **SuperAdmin** in FA: `/admin/tenants/{dev}/users` → reset password, or `POST /api/admin/users/{id}/force-password-reset`.
+**POS cashier password reset:** requires **`users.manage`** (`UserManage`). **Mandanten-Admin does not have this** — use **SuperAdmin** in FA: `/admin/tenants/{dev}/users` → reset password, or `POST /api/admin/users/{id}/force-password-reset`.
 
-**RBAC spot-check (expected):** Manager → RKSV/cash-registers/backup read OK; `/api/admin/users` → 403; `/api/admin/tenants` → 403. Cashier → `/api/pos/status/overview` + `/api/rksv/status` OK; `/api/admin/*` → 403.
+**RBAC spot-check (expected):** Mandanten-Admin (`Manager`) → RKSV/cash-registers/backup read OK; `/api/admin/users` → 403; `/api/admin/tenants` → 403. Cashier → `/api/pos/status/overview` + `/api/rksv/status` OK; `/api/admin/*` → 403.
 
 #### Option 4: FA tenant switcher
 
@@ -293,6 +293,25 @@ In **`__DEV__`**, POS shows `DevTenantSwitcher` in the tab layout (`frontend/src
 - Persists slug and refreshes API base URL + headers
 
 **Verify isolation:** `dotnet test backend/KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj --filter "FullyQualifiedName~TenantIsolation"`
+
+## User Roles
+
+| Backend role | UI (de) | Scope |
+|--------------|---------|-------|
+| **SuperAdmin** | Super-Administrator | System-wide administrator |
+| **Manager** | **Mandanten-Admin** | Tenant-level administrator |
+| **Cashier** | Kassierer | POS operations |
+| **Waiter** | Kellner | Order taking |
+| **Kitchen** | Küche | Kitchen display |
+| **Accountant** | Buchhaltung | Financial reporting |
+| **ReportViewer** | Berichte (nur Lesen) | Read-only reports |
+
+- **SuperAdmin**: System-wide administrator; tenant CRUD, impersonation, billing, platform backup.
+- **Mandanten-Admin (`Manager`)**: Tenant-level administrator — can manage users, settings, reports, and backup for **their** tenant; cannot access other tenants. Backend/API role string remains `"Manager"`.
+- **Cashier / Waiter / Kitchen**: POS-facing roles.
+- **Accountant / ReportViewer**: Reporting-focused roles.
+
+Source of truth for permissions: `backend/Authorization/RolePermissionMatrix.cs`. UI labels: `frontend-admin/src/i18n/locales/*/users.json` → `roles.displayNames`.
 
 ### Super Admin
 
@@ -316,7 +335,7 @@ Access: **`admin.regkasse.at`** (host slug `admin`; operational business APIs us
 | Assign existing user | `POST /api/admin/tenants/{tenantId}/users/assign` | Membership only — no new Identity row |
 | System-wide metrics | — | Per-tenant dashboard/reports only; no dedicated cross-tenant SaaS metrics API yet |
 
-**Roles:** `SuperAdmin` on `AdminTenantsController`; tenant user endpoints also accept `[HasPermission(user.manage)]` (Managers on their tenant where policy allows).
+**Roles:** `SuperAdmin` on `AdminTenantsController`; tenant user endpoints also accept `[HasPermission(user.manage)]` (Mandanten-Admins on their tenant where policy allows).
 
 #### User management (direct creation)
 
@@ -341,7 +360,7 @@ Request DTOs: `CreateTenantUserRequest`, `CreateQuickTenantUserRequest`, `AdminC
 
 Full guide: **`docs/USER_MANAGEMENT.md`**.
 
-**Backup (Manager):** default `backup.manage` + `settings.view`; not `settings.manage`. See **`docs/BACKUP_PERMISSIONS.md`**, **`ai/modules/backup_permissions.md`**.
+**Backup (Mandanten-Admin):** default `backup.manage` + `settings.view`; not `settings.manage`. See **`docs/BACKUP_PERMISSIONS.md`**, **`ai/modules/backup_permissions.md`**.
 
 **Role:** `SuperAdmin` only on `AdminTenantsController` for tenant CRUD (`[Authorize(Roles = SuperAdmin)]`).
 
@@ -1265,7 +1284,7 @@ Known or suspected risks:
 - Fiscal export is NOT a legal RKSV proof. Payloads include explicit disclaimer text; when enabled, API calls may also require **`X-Disclaimer-Acknowledged: true`**. Exports are for diagnostics and internal analysis only.
 - The codebase references Epson-style TSE devices and generic providers (e.g., Epson-TSE, fiskaly) through model comments and simulation logic. Runtime signing is provider-based (Fake vs Real) and not tied to a single OEM SDK. Supported vendors are configuration-driven, not defined as a fixed compatibility list.
 - This repository does not define a production deployment architecture. CI uses GitHub Actions with PostgreSQL containers for testing, but production hosting (cloud, on-prem, containers, etc.) is deployment-specific.
-- Canonical roles are defined in backend/Authorization/Roles.cs: SuperAdmin → full access; Manager → admin + RKSV + voucher + reporting; Cashier → POS + payment + TSE signing; Waiter → limited POS usage; Accountant → reporting + FinanzOnline + RKSV (no Schlussbeleg); Kitchen / ReportViewer → specialized roles. Always treat RolePermissionMatrix as the source of truth.
+- Canonical roles are defined in `backend/Authorization/Roles.cs`: **SuperAdmin** → full access; **Manager** (UI: **Mandanten-Admin**) → admin + RKSV + voucher + reporting; **Cashier** → POS + payment + TSE signing; **Waiter** → limited POS usage; **Accountant** → reporting + FinanzOnline + RKSV (no Schlussbeleg); **Kitchen** / **ReportViewer** → specialized roles. Always treat `RolePermissionMatrix` as the source of truth.
 - The system does NOT enforce sales blocking after early Jahresbeleg. This is explicitly treated as a legal/process responsibility, not a hard backend restriction. Duplicate Jahresbeleg creation is prevented, but continued operation is not blocked in code.
 
 ---

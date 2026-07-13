@@ -83,13 +83,15 @@ export function canDeactivateReactivate(role: UserRole | undefined | null): bool
 
 /**
  * Force-reset another user's password.
- * Backend: only SuperAdmin can reset a SuperAdmin target.
+ * Backend: Manager with user.reset.password (tenant-scoped); SuperAdmin with user.manage or user.reset.password.
+ * Only SuperAdmin can reset a SuperAdmin target.
  */
 export function canResetPassword(
   actorRole: UserRole | undefined | null,
   targetRole: UserRole | undefined | null
 ): boolean {
-  if (!canManageUsers(actorRole)) return false;
+  if (actorRole == null || actorRole === '') return false;
+  if (actorRole !== 'SuperAdmin' && actorRole !== 'Manager') return false;
   if (targetRole === 'SuperAdmin') return isSuperAdmin(actorRole);
   return true;
 }

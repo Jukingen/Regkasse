@@ -1,6 +1,6 @@
 # Access & roles hub (Zugriff & Rollen)
 
-**Audience:** Frontend-admin maintainers, QA, Super Admin / Manager operators.  
+**Audience:** Frontend-admin maintainers, QA, Super Admin / Mandanten-Admin operators.  
 **UI language:** German (de-AT). **Technical docs:** English.
 
 Operational RBAC surfaces for tenant admins are grouped under **Verwaltung → Zugriff & Rollen** instead of scattering user and role tools across unrelated menu leaves.
@@ -63,14 +63,14 @@ Contract tests:
 Cashier (and other POS-primary roles) may sign in to FA in controlled cases. After login:
 
 - Backend filters claims to **`AdminAppPermissionProfile`** (catalog subset for admin UI).
-- Manager: admin permissions minus explicit POS-terminal keys.
+- Mandanten-Admin (`Manager`): admin permissions minus explicit POS-terminal keys.
 - Cashier: small whitelist (`product.view`, `category.view`, `modifier.view`, `payment.view`, `report.view`).
 
 POS continues to use full matrix permissions from login without admin filter.
 
 Key files: `backend/Authorization/AdminAppPermissionProfile.cs`, `TokenClaimsService.cs`, `AuthController.cs` (`/api/Auth/login`, `/api/Auth/me`).
 
-**Backup (Manager):** default role includes `backup.manage` (trigger + schedule) and `settings.view` (read routes). Platform backup surfaces (execution mode, artifact download) remain `settings.manage`. Details: [`docs/BACKUP_PERMISSIONS.md`](../../docs/BACKUP_PERMISSIONS.md).
+**Backup (Mandanten-Admin):** default role includes `backup.manage` (trigger + schedule) and `settings.view` (read routes). Platform backup surfaces (execution mode, artifact download) remain `settings.manage`. Details: [`docs/BACKUP_PERMISSIONS.md`](../../docs/BACKUP_PERMISSIONS.md).
 
 ---
 

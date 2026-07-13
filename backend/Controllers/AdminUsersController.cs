@@ -1451,6 +1451,79 @@ public partial class AdminUsersController : ControllerBase
     }
 
     /// <summary>
+    /// Generates a secure temporary password for a tenant user. Manager: own-tenant only (JWT tenant context).
+    /// Password is returned once; user must change it on next login.
+    /// </summary>
+    [HasPermission(AppPermissions.UserResetPassword)]
+    [HttpPost("{id}/reset-password")]
+    [ProducesResponseType(typeof(AdminTemporaryPasswordResponse), 200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 403)]
+    [ProducesResponseType(typeof(ApiError), 404)]
+    public async Task<ActionResult<AdminTemporaryPasswordResponse>> ResetPassword(
+        string id,
+        CancellationToken cancellationToken = default)
+    {
+        if (id == ActorId)
+            return BadRequest(ApiError.BusinessRule("You cannot reset your own password from this action."));
+
+        if (!IsActorSuperAdmin() && _tenantAccessor.TenantId is not Guid)
+        {
+            return BadRequest(ApiError.BusinessRule(
+                "Tenant context is required to reset a user password.",
+                "TENANT_CONTEXT_REQUIRED"));
+        }
+
+        if (!await IsUserAccessibleInAmbientTenantAsync(id, cancellationToken).ConfigureAwait(false))
+            return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
+
+        var user = await _userManager.FindByIdAsync(id);
+        if (user == null || !user.IsActive)
+            return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
+
+        if (string.Equals(user.Role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase) && !IsActorSuperAdmin())
+            return StatusCode(403, ApiError.Forbidden("Forbidden", "Only Super Admin can reset a Super Admin password."));
+
+        var targetTenantId = await ResolvePrimaryTenantIdForUserAsync(id, cancellationToken).ConfigureAwait(false);
+        var generatedPassword = PasswordGenerator.GenerateSecurePassword(12);
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        user.MustChangePasswordOnNextLogin = true;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        var result = await _userManager.ResetPasswordAsync(user, token, generatedPassword);
+        if (!result.Succeeded)
+        {
+            return BadRequest(ApiError.Validation(
+                "Password reset failed",
+                result.Errors.GroupBy(e => e.Code).ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray())));
+        }
+
+        if (ActorId != null)
+        {
+            await _auditLogService.LogUserLifecycleAsync(
+                AuditEventType.PasswordResetForced,
+                ActorId,
+                ActorRole,
+                id,
+                targetTenantId,
+                IsActorSuperAdmin() ? "Password reset by Super Admin." : "Password reset by Manager.",
+                null,
+                AuditLogStatus.Success,
+                "Generated password reset; user must change password on next login.",
+                oldValues: new { MustChangePasswordOnNextLogin = false },
+                newValues: new { MustChangePasswordOnNextLogin = true, PasswordReturned = true });
+        }
+
+        await _sessionInvalidation.InvalidateSessionsForUserAsync(id, cancellationToken);
+
+        return Ok(new AdminTemporaryPasswordResponse
+        {
+            GeneratedPassword = generatedPassword,
+            ForcePasswordChangeOnNextLogin = true,
+        });
+    }
+
+    /// <summary>
     /// Generates a new temporary password, stores only the hash, and returns the password once for Super Admin handoff.
     /// Intended for controlled operator recovery; existing password hashes are never exposed.
     /// </summary>

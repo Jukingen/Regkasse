@@ -8,7 +8,7 @@
 
 ## Summary
 
-Managers (tenant admins) can **view** backup status and **manage** tenant-scoped backup operations (manual trigger + schedule/retention) via a **narrow** permission `backup.manage`. They do **not** receive the broad `settings.manage` permission (which also gates license, NTP, execution mode, artifact download, etc.).
+Mandanten-Admins (`Manager` role) can **view** backup status and **manage** tenant-scoped backup operations (manual trigger + schedule/retention) via a **narrow** permission `backup.manage`. They do **not** receive the broad `settings.manage` permission (which also gates license, NTP, execution mode, artifact download, etc.).
 
 Super Admin retains full platform backup control via `settings.manage` (which **implies** `backup.manage`) and `system.critical`.
 
@@ -39,7 +39,7 @@ settings.manage → settings.backup, backup.manage
 
 | Role | `settings.view` | `backup.manage` | `settings.manage` |
 |------|-----------------|-----------------|-------------------|
-| **Manager** | Yes | **Yes** (default) | No |
+| **Mandanten-Admin (`Manager`)** | Yes | **Yes** (default) | No |
 | **SuperAdmin** | Yes | Yes (via implication) | Yes |
 | **Cashier** | No | No | No |
 

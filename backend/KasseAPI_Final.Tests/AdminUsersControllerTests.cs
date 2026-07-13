@@ -793,6 +793,189 @@ public class AdminUsersControllerTests
     }
 
     [Fact]
+    public async Task ResetPassword_AsManager_ReturnsGeneratedPassword_UpdatesFlag_AndInvalidatesSessions()
+    {
+        await using var db = CreateEphemeralContext();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Cafe",
+            Slug = "cafe-reset",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            Id = Guid.NewGuid(),
+            UserId = "user-1",
+            TenantId = tenantId,
+            IsActive = true,
+            IsOwner = false,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var user = new ApplicationUser
+        {
+            Id = "user-1",
+            UserName = "cashier",
+            Email = "cashier@test.com",
+            FirstName = "Ca",
+            LastName = "Shier",
+            Role = Roles.Cashier,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            MustChangePasswordOnNextLogin = false,
+        };
+
+        var userStore = new Mock<IUserStore<ApplicationUser>>();
+        var userManager = new Mock<UserManager<ApplicationUser>>(
+            userStore.Object,
+            Options.Create(new IdentityOptions()),
+            new PasswordHasher<ApplicationUser>(),
+            new List<IUserValidator<ApplicationUser>>(),
+            new List<IPasswordValidator<ApplicationUser>>(),
+            new UpperInvariantLookupNormalizer(),
+            new IdentityErrorDescriber(),
+            null!,
+            Mock.Of<ILogger<UserManager<ApplicationUser>>>());
+        userManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        userManager.Setup(x => x.GeneratePasswordResetTokenAsync(user)).ReturnsAsync("reset-token");
+        userManager.Setup(x => x.ResetPasswordAsync(user, "reset-token", It.IsAny<string>()))
+            .Callback<ApplicationUser, string, string>((target, _token, password) =>
+            {
+                target.PasswordHash = $"hashed:{password}";
+            })
+            .ReturnsAsync(IdentityResult.Success);
+
+        var roleStore = new Mock<IRoleStore<IdentityRole>>();
+        var roleManager = new RoleManager<IdentityRole>(
+            roleStore.Object,
+            null!,
+            new UpperInvariantLookupNormalizer(),
+            new IdentityErrorDescriber(),
+            null!);
+
+        var audit = new Mock<IAuditLogService>();
+        audit.Setup(x => x.LogUserLifecycleAsync(
+                AuditEventType.PasswordResetForced,
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                "user-1",
+                tenantId,
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                AuditLogStatus.Success,
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>()))
+            .ReturnsAsync(new AuditLog { Id = Guid.NewGuid(), Action = AuditLogActions.FORCE_RESET_PASSWORD });
+        var session = new Mock<IUserSessionInvalidation>();
+        session.Setup(x => x.InvalidateSessionsForUserAsync("user-1", It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        var controller = CreateController(
+            userManager.Object,
+            roleManager,
+            audit.Object,
+            session.Object,
+            actorId: "manager-1",
+            actorRole: Roles.Manager,
+            context: db,
+            tenantAccessor: new CurrentTenantAccessor { TenantId = tenantId });
+
+        var result = await controller.ResetPassword("user-1");
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var body = Assert.IsType<AdminUsersController.AdminTemporaryPasswordResponse>(ok.Value);
+        Assert.False(string.IsNullOrWhiteSpace(body.GeneratedPassword));
+        Assert.True(body.ForcePasswordChangeOnNextLogin);
+        Assert.True(user.MustChangePasswordOnNextLogin);
+
+        audit.Verify(
+            x => x.LogUserLifecycleAsync(
+                AuditEventType.PasswordResetForced,
+                It.IsAny<string>(),
+                Roles.Manager,
+                "user-1",
+                tenantId,
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                AuditLogStatus.Success,
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>()),
+            Times.Once);
+        session.Verify(x => x.InvalidateSessionsForUserAsync("user-1", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ResetPassword_WhenUserNotInAmbientTenant_ReturnsNotFound()
+    {
+        var (_, controller, user) = await SeedCrossTenantMutationScenarioAsync();
+
+        var result = await controller.ResetPassword(user.Id);
+
+        Assert.IsType<NotFoundObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task ResetPassword_WhenManagerWithoutTenantContext_ReturnsBadRequest()
+    {
+        await using var db = CreateEphemeralContext();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Cafe",
+            Slug = "cafe-no-ctx",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        var user = new ApplicationUser
+        {
+            Id = "user-1",
+            UserName = "cashier",
+            Email = "cashier@test.com",
+            Role = Roles.Cashier,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        };
+        db.Users.Add(user);
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = user.Id,
+            TenantId = tenantId,
+            IsActive = true,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var userManager = CreateUserManager(db);
+        var roleManager = new RoleManager<IdentityRole>(
+            new RoleStore<IdentityRole>(db),
+            null!,
+            new UpperInvariantLookupNormalizer(),
+            new IdentityErrorDescriber(),
+            null!);
+
+        var controller = CreateController(
+            userManager,
+            roleManager,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object,
+            actorId: "manager-1",
+            actorRole: Roles.Manager,
+            context: db);
+
+        var result = await controller.ResetPassword(user.Id);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    [Fact]
     public async Task List_IncludesTenantInfo_ForPlatformAndTenantUsers()
     {
         await using var db = CreateEphemeralContext();

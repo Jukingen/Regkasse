@@ -19,6 +19,7 @@ export const AppPermissions = {
 export const PERMISSIONS = {
   USER_VIEW: 'user.view',
   USER_MANAGE: 'user.manage',
+  USER_RESET_PASSWORD: 'user.reset.password',
   ROLE_VIEW: 'role.view',
   ROLE_MANAGE: 'role.manage',
   PRODUCT_VIEW: 'product.view',

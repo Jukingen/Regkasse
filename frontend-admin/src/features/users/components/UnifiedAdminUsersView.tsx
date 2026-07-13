@@ -577,47 +577,8 @@ export function UnifiedAdminUsersView({
 
     const renderLastLoginCell = (value: string | null | undefined) => {
         if (!value) {
-            return <Tag color="default">{t('users.unified.lastLogin.never')}</Tag>;
+            return t('users.unified.lastLogin.never');
         }
-
-        const lastLogin = dayjs(value);
-        if (!lastLogin.isValid()) {
-            return '—';
-        }
-
-        const now = dayjs();
-        if (now.isSame(lastLogin, 'day')) {
-            return <Tag color="green">{t('users.unified.lastLogin.today')}</Tag>;
-        }
-
-        const daysDiff = Math.max(0, now.startOf('day').diff(lastLogin.startOf('day'), 'day'));
-
-        if (daysDiff < 7) {
-            return (
-                <Tag color="blue">
-                    {t(
-                        daysDiff === 1
-                            ? 'users.unified.lastLogin.dayAgo'
-                            : 'users.unified.lastLogin.daysAgo',
-                        { count: daysDiff },
-                    )}
-                </Tag>
-            );
-        }
-
-        if (daysDiff < 30) {
-            return (
-                <Tag color="orange">
-                    {t(
-                        daysDiff === 1
-                            ? 'users.unified.lastLogin.dayAgo'
-                            : 'users.unified.lastLogin.daysAgo',
-                        { count: daysDiff },
-                    )}
-                </Tag>
-            );
-        }
-
         return formatDateTime(value, formatLocale);
     };
 
@@ -628,10 +589,14 @@ export function UnifiedAdminUsersView({
     );
 
     const renderPasswordCell = (row: UnifiedAdminUserRow) => {
+        if (!isSuperAdminActor) {
+            return null;
+        }
+
         const canRevealPassword =
-            (policy.canProvisionTenantCredentials || isTenantScoped) &&
             policy.canResetPassword(row.role) &&
-            row.userId !== currentUserId;
+            row.userId !== currentUserId &&
+            policy.canProvisionTenantCredentials;
 
         return (
             <Space size="small">
@@ -1013,12 +978,16 @@ export function UnifiedAdminUsersView({
                 width: '12%',
                 render: (v: string | null | undefined) => renderLastLoginCell(v),
             },
-            {
-                title: t('users.create.password'),
-                key: 'password',
-                width: '16%',
-                render: (_: unknown, row) => renderPasswordCell(row),
-            },
+            ...(isSuperAdminActor
+                ? [
+                      {
+                          title: t('users.create.password'),
+                          key: 'password',
+                          width: '16%',
+                          render: (_: unknown, row: UnifiedAdminUserRow) => renderPasswordCell(row),
+                      },
+                  ]
+                : []),
             {
                 title: t('users.unified.columns.twoFactor'),
                 key: 'twoFactor',
@@ -1038,6 +1007,7 @@ export function UnifiedAdminUsersView({
             t,
             formatLocale,
             policy,
+            isSuperAdminActor,
             onView,
             onEdit,
             onDeactivate,
@@ -1290,13 +1260,16 @@ export function UnifiedAdminUsersView({
                         onClose={() => setResetRow(null)}
                         onCompleted={() => tenantUsersQuery.refetch()}
                     />
-                    <PasswordViewModal
-                        open={!!passwordRow}
-                        userId={passwordRow?.userId ?? ''}
-                        userEmail={passwordRow?.email ?? ''}
-                        onClose={() => setPasswordRow(null)}
-                    />
                 </>
+            ) : null}
+
+            {isSuperAdminActor ? (
+                <PasswordViewModal
+                    open={!!passwordRow}
+                    userId={passwordRow?.userId ?? ''}
+                    userEmail={passwordRow?.email ?? ''}
+                    onClose={() => setPasswordRow(null)}
+                />
             ) : null}
 
             {usernameEditUser?.id ? (

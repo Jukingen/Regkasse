@@ -12,6 +12,22 @@ Backend contract: GET permissions-catalog, GET with-permissions, PUT/DELETE role
 
 Hub overview: [`docs/ACCESS_AND_ROLES_HUB.md`](docs/ACCESS_AND_ROLES_HUB.md).
 
+## Role Labels (UI display vs backend)
+
+Backend role names in database/API remain unchanged. Admin UI maps canonical roles to German display labels via `users.roles.displayNames` (`roleDisplayLabel.ts`):
+
+| Backend (`Roles.cs`) | UI label (de) |
+|----------------------|---------------|
+| `SuperAdmin` | Super-Administrator |
+| `Manager` | **Mandanten-Admin** |
+| `Cashier` | Kassierer |
+| `Waiter` | Kellner |
+| `Kitchen` | Küche |
+| `Accountant` | Buchhaltung |
+| `ReportViewer` | Berichte (nur Lesen) |
+
+Badge chips use `users.roles.badgeLabels` (shorter labels where applicable, e.g. SuperAdmin → Plattform-Admin).
+
 ## Presets
 
 - **Data model:** `RolePreset { id, label, permissionKeys }` in `rolePresets.ts`. Preset apply replaces current draft with `getPresetKeysInCatalog(preset, catalogKeys)` (only keys present in catalog).

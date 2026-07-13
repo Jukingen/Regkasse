@@ -126,6 +126,14 @@ export async function generateTemporaryPassword(userId: string): Promise<Tempora
   });
 }
 
+/** Manager tenant-scoped password reset — generates password once; user must change on next login. */
+export async function resetUserPasswordWithGeneration(userId: string): Promise<TemporaryPasswordResponse> {
+  return customInstance<TemporaryPasswordResponse>({
+    url: `/api/admin/users/${userId}/reset-password`,
+    method: 'POST',
+  });
+}
+
 export function useGenerateTemporaryPasswordMutation() {
   const queryClient = useQueryClient();
 

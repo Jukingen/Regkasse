@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from 'antd';
 import { cleanupOrphanedDevUsers } from '@/features/users/api/devCleanup';
 import { listQueryKey } from '@/features/users/api/usersGateway';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n/I18nProvider';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 
@@ -22,6 +23,7 @@ export function DevOrphanedUsersCleanupButton({
     onTenantListRefetch,
 }: DevOrphanedUsersCleanupButtonProps) {
   const { message, modal } = useAntdApp();
+    const { isSuperAdmin } = usePermissions();
 
     const { t } = useI18n();
     const queryClient = useQueryClient();
@@ -48,7 +50,7 @@ export function DevOrphanedUsersCleanupButton({
         },
     });
 
-    if (!isDevelopmentBuild) {
+    if (!isDevelopmentBuild || !isSuperAdmin) {
         return null;
     }
 

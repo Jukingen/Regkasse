@@ -86,7 +86,7 @@
   "roles": {
     "displayNames": {
       "SuperAdmin": "Super-Administrator",
-      "Manager": "Manager",
+      "Manager": "Mandanten-Admin",
       "Cashier": "Kassierer",
       "Waiter": "Kellner",
       "Kitchen": "Küche",
@@ -95,7 +95,7 @@
     },
     "badgeLabels": {
       "SuperAdmin": "Plattform-Admin",
-      "Manager": "Mandant-Admin",
+      "Manager": "Mandanten-Admin",
       "Cashier": "Kassierer",
       "Accountant": "Buchhalter",
       "Waiter": "Kellner",
@@ -467,7 +467,7 @@
       "removeFromTenant": "Aus Mandant entfernen",
       "removedSuccess": "Benutzer wurde aus dem Mandanten entfernt.",
       "openTenantUsers": "Mandant öffnen",
-      "ownerBadge": "Mandanten-Admin",
+      "ownerBadge": "Hauptadministrator",
       "confirmRemove": {
         "title": "Benutzer aus Mandant entfernen?",
         "body": "Der Benutzer verliert den Zugang zu «{{tenant}}». Das Konto bleibt für andere Mandanten oder eine spätere Zuweisung erhalten."
@@ -512,7 +512,7 @@
       "licenseLine": "Lizenz: {{license}}"
     },
     "roleOptions": {
-      "Manager": { "label": "Manager" },
+      "Manager": { "label": "Mandanten-Admin" },
       "Cashier": { "label": "Kassierer" },
       "Accountant": { "label": "Buchhaltung" },
       "Waiter": { "label": "Kellner" },
@@ -563,7 +563,17 @@
     "resetPassword": {
       "title": "Passwort zurücksetzen",
       "securityNote": "Alle Sitzungen des Benutzers werden beendet. Das neue Passwort muss mindestens {{min}} Zeichen haben sowie Groß- und Kleinbuchstaben, eine Zahl und ein Sonderzeichen.",
-      "newPasswordLabel": "Neues Passwort (min. {{min}} Zeichen, Groß-/Kleinbuchstaben, Zahl, Sonderzeichen)"
+      "newPasswordLabel": "Neues Passwort (min. {{min}} Zeichen, Groß-/Kleinbuchstaben, Zahl, Sonderzeichen)",
+      "generated": {
+        "title": "Passwort zurücksetzen",
+        "confirmTitle": "Passwort für {{name}} zurücksetzen?",
+        "body": "Ein neues, sicheres Passwort wird generiert. Der Benutzer muss es beim nächsten Login ändern.",
+        "confirm": "Passwort zurücksetzen",
+        "resultTitle": "Passwort wurde zurückgesetzt",
+        "forceChangeHint": "Der Benutzer muss das Passwort beim nächsten Login ändern.",
+        "passwordLabel": "Neues Passwort:",
+        "copyHint": "Bitte kopieren und sicher an den Benutzer weitergeben. Das Passwort wird nur einmal angezeigt."
+      }
     }
   },
   "reactivate": {

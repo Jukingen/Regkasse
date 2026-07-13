@@ -167,7 +167,7 @@ curl http://localhost:5184/api/health?tenant=dev
 - All sales are logged in `billing_audit_log` (not fiscal audit)
 - Invoices are generated as PDF with company logo and VAT breakdown
 - License keys format: `REGK-{validUntil:yyyyMMdd}-{tenantSlug}-{random}`
-- Managers can extend licenses using license keys provided by Super Admin
+- Mandanten-Admins (`Manager` role) can extend licenses using license keys provided by Super Admin
 
 **Docs:** `docs/BILLING_TENANT_LICENSE.md`, `docs/API_CONTRACTS.md` (Billing section), `ai/modules/billing_license.md`
 
@@ -205,16 +205,34 @@ curl http://localhost:5184/api/health?tenant=dev
 - MUST invalidate all active sessions for the user
 - MUST check username uniqueness (case-insensitive)
 
+### Roles
+
+Canonical backend role names (database / JWT / API) and Admin UI display labels (German default):
+
+| Backend (`Roles.cs`) | UI display (de) | Scope |
+|----------------------|-----------------|-------|
+| **SuperAdmin** | Super-Administrator | System-wide administrator |
+| **Manager** | **Mandanten-Admin** | Tenant-level administrator |
+| **Cashier** | Kassierer | POS operations |
+| **Waiter** | Kellner | Order taking |
+| **Kitchen** | Küche | Kitchen display |
+| **Accountant** | Buchhaltung | Financial reporting |
+| **ReportViewer** | Berichte (nur Lesen) | Read-only reports |
+
+- **SuperAdmin**: Full system access; platform operator on `admin.regkasse.at`.
+- **Mandanten-Admin (`Manager`)**: Tenant administrator — users, settings, reports, backup (`backup.manage`) for **their** tenant only; cannot access other tenants.
+- Backend role string remains `"Manager"` for compatibility; only UI labels use **Mandanten-Admin** (see `users.roles.displayNames` in FA i18n).
+
 ### User Permissions
 - `users.view` - View user list
 - `users.manage` - Create/edit/delete users
 - `settings.view` - View system settings (includes backup status/history routes)
-- `settings.manage` - Modify broad system settings (license, NTP, execution mode, artifact download — **not** granted to Manager by default)
-- `backup.manage` - Tenant-scoped backup ops: manual trigger + schedule/retention (`RolePermissionMatrix` Manager default). Narrower than `settings.manage`. See `docs/BACKUP_PERMISSIONS.md`.
+- `settings.manage` - Modify broad system settings (license, NTP, execution mode, artifact download — **not** granted to Mandanten-Admin (`Manager`) by default)
+- `backup.manage` - Tenant-scoped backup ops: manual trigger + schedule/retention (`RolePermissionMatrix` Mandanten-Admin default). Narrower than `settings.manage`. See `docs/BACKUP_PERMISSIONS.md`.
 - `reports.view` - View reports
 - `reports.export` - Export reports
 - **FA hub:** Verwaltung → Zugriff & Rollen — `/admin/access`, `/admin/users`, `/admin/access/roles`, `/admin/access/matrix` (see `frontend-admin/docs/ACCESS_AND_ROLES_HUB.md`)
-- **Admin session filter:** JWT/`/me` permissions for `app_context=admin` via `AdminAppPermissionProfile` (Cashier whitelist; Manager strips POS-terminal keys)
+- **Admin session filter:** JWT/`/me` permissions for `app_context=admin` via `AdminAppPermissionProfile` (Cashier whitelist; Mandanten-Admin strips POS-terminal keys)
 
 ## Audit & Compliance
 
@@ -368,7 +386,7 @@ Requires JDK 17+ on PATH; uses `backend/Tests/regkassen-verification-depformat-1
 
 **Canonical doc:** [`docs/BACKUP_PERMISSIONS.md`](docs/BACKUP_PERMISSIONS.md)
 
-| Action | Manager (tenant) | Super Admin |
+| Action | Mandanten-Admin (`Manager`) | Super Admin |
 |--------|------------------|-------------|
 | View backup status / history | Yes (`settings.view`) | Yes |
 | View all tenants' backup UI scope | No (deployment-wide list is platform context) | Yes |
@@ -380,14 +398,14 @@ Requires JDK 17+ on PATH; uses `backend/Tests/regkassen-verification-depformat-1
 | Request restore | No | Yes (requires second approval) |
 | Approve restore | No | Yes (second Super Admin) |
 
-**Permission keys:** `settings.view` (read routes), `backup.manage` (trigger + schedule), `settings.manage` (platform backup ops; implies `backup.manage`). Manager must **not** receive `settings.manage` for backup-only access.
+**Permission keys:** `settings.view` (read routes), `backup.manage` (trigger + schedule), `settings.manage` (platform backup ops; implies `backup.manage`). Mandanten-Admin must **not** receive `settings.manage` for backup-only access.
 
 **Tenant scoping:** Trigger endpoints do not accept client `tenantId`; non–Super Admin requires resolved tenant context (`TENANT_CONTEXT_REQUIRED` otherwise). `backup_runs.tenant_id` (nullable) gates access for manual/import runs; scheduled deployment-wide runs remain shared. **Access plane** is tenant-filtered; **data plane** is still one instance dump per run — see `docs/BACKUP_PERMISSIONS.md`.
 
 ### Backup Types
 | Type | Scope | Who Can Trigger |
 |------|-------|-----------------|
-| Manual backup (tenant-bound JWT) | Deployment run; access gated by `backup.manage` + tenant context | Manager, Super Admin |
+| Manual backup (tenant-bound JWT) | Deployment run; access gated by `backup.manage` + tenant context | Mandanten-Admin, Super Admin |
 | Full / all-tenants backup | Deployment | Super Admin only |
 | Scheduled backup | Per automation settings | Automated (`BackupScheduledEnqueueService`) |
 
@@ -498,7 +516,7 @@ Use `/ai` docs selectively based on the task:
 - **Offline order snapshots (new)** → `ai/modules/offline_orders.md`, `docs/release/OFFLINE_SYSTEMS_SEPARATION.md`
 - Admin API integration work → `ai/10_API_BOUNDARY_POLICY.md`
 - Billing / mandant license sales → `docs/BILLING_TENANT_LICENSE.md`, `ai/modules/billing_license.md`
-- **Backup RBAC / Manager tenant scoping** → `docs/BACKUP_PERMISSIONS.md`, `ai/modules/backup_permissions.md`
+- **Backup RBAC / Mandanten-Admin tenant scoping** → `docs/BACKUP_PERMISSIONS.md`, `ai/modules/backup_permissions.md`
 - High-risk areas → `ai/07_DO_NOT_TOUCH.md`
 
 ## Code Quality Rules

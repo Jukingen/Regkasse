@@ -35,6 +35,16 @@ cd frontend && npm start
 | Agent rules | [`AGENTS.md`](AGENTS.md) |
 | Billing / mandant license | [`docs/BILLING_TENANT_LICENSE.md`](docs/BILLING_TENANT_LICENSE.md) |
 
+## User Roles
+
+| UI name | Backend role | Scope |
+|---------|--------------|-------|
+| **Super-Administrator** | `SuperAdmin` | System administrator |
+| **Mandanten-Admin** | `Manager` | Tenant administrator |
+| **Kassierer** | `Cashier` | POS operations |
+
+Backend/API role strings are unchanged (`"Manager"` in database and JWT). Only Admin UI display labels use **Mandanten-Admin**.
+
 ## License Management
 
 ### Super Admin
@@ -43,7 +53,7 @@ cd frontend && npm start
 - **License Sales:** `/admin/billing` — Manage license sales and statistics
 - **New Sale:** `/admin/billing/sales/new` — Create a new license sale with PDF invoice
 
-### Manager
+### Mandanten-Admin (`Manager`)
 
 - **License Status:** `/admin/license` — View own tenant license status
 - **Extend License:** Enter license key to extend tenant license

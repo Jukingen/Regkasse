@@ -67,6 +67,9 @@ export function formatUserDateTime(
   return `${datePart} ${h}:${m}`;
 }
 
+/** Alias for table columns — `DD.MM.YYYY HH:mm`. */
+export const formatDateTime = formatUserDateTime;
+
 /** `10:30` or `10:30:45`. */
 export function formatUserTime(
   input: string | number | Date | null | undefined,

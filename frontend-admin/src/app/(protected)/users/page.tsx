@@ -47,6 +47,7 @@ import {
     DeactivateUserModal,
     ResetPasswordUserModal,
 } from '@/features/users/components/UsersPageActionModals';
+import { ResetPasswordModal } from '@/features/users/components/ResetPasswordModal';
 import { createUsersFormRules, buildUsersFormRulesContext, mapBackendPasswordError } from '@/features/users/constants/validation';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
@@ -65,19 +66,7 @@ function fullName(record: UserInfo): string {
     return name || record.userName || record.id || '—';
 }
 
-const CANONICAL_ROLE_VALUES = [
-    'SuperAdmin',
-    'Manager',
-    'Cashier',
-    'Waiter',
-    'Kitchen',
-    'ReportViewer',
-    'Accountant',
-] as const;
-
-function isCanonicalRoleName(roleName: string): roleName is (typeof CANONICAL_ROLE_VALUES)[number] {
-    return (CANONICAL_ROLE_VALUES as readonly string[]).includes(roleName);
-}
+import { formatRoleDisplayLabel, CANONICAL_ROLE_NAMES } from '@/features/users/utils/roleDisplayLabel';
 
 /** Aktiver Mandant-Kontext (Badge + API) — einheitlich über useCurrentTenant. */
 function UsersPageActiveTenantContext() {
@@ -172,8 +161,7 @@ export default function UsersPage() {
     const searchParams = useSearchParams();
 
     const roleDisplayLabel = useCallback(
-        (roleName: string) =>
-            isCanonicalRoleName(roleName) ? t(`users.roles.displayNames.${roleName}`) : roleName,
+        (roleName: string) => formatRoleDisplayLabel(t, roleName),
         [t],
     );
     const [createOpen, setCreateOpen] = useState(false);
@@ -244,9 +232,9 @@ export default function UsersPage() {
     const roleOptions = useMemo(
         () =>
             roles?.map((r) => ({ value: r, label: roleDisplayLabel(r) })) ??
-            CANONICAL_ROLE_VALUES.map((value) => ({
+            CANONICAL_ROLE_NAMES.map((value) => ({
                 value,
-                label: t(`users.roles.displayNames.${value}`),
+                label: roleDisplayLabel(value),
             })),
         [roles, t, roleDisplayLabel],
     );
@@ -525,13 +513,7 @@ export default function UsersPage() {
                         )}
                         {isSuperAdminLayout ? (
                             <DevOrphanedUsersCleanupButton invalidatePlatformUsers />
-                        ) : (
-                            <DevOrphanedUsersCleanupButton
-                                onTenantListRefetch={() => {
-                                    void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
-                                }}
-                            />
-                        )}
+                        ) : null}
                     </Space>
                 }
             >
@@ -663,18 +645,32 @@ export default function UsersPage() {
             </Modal>
 
             {resetPasswordUser ? (
-                <ResetPasswordUserModal
-                    user={resetPasswordUser}
-                    onCancel={() => {
-                        setResetPasswordUser(null);
-                        setResetPasswordValidationError(null);
-                    }}
-                    onConfirm={handleResetPasswordConfirm}
-                    confirmLoading={resetPasswordMutation.isPending}
-                    passwordRules={modalRules.newPassword}
-                    validationError={resetPasswordValidationError}
-                    onClearValidationError={handleClearResetPasswordValidationError}
-                />
+                policy.useGeneratedPasswordReset ? (
+                    <ResetPasswordModal
+                        open
+                        user={resetPasswordUser}
+                        onClose={() => setResetPasswordUser(null)}
+                        onSuccess={() => {
+                            invalidateAllUserLists();
+                            if (resetPasswordUser.id) {
+                                queryClient.invalidateQueries({ queryKey: [`/api/AuditLog/user/${resetPasswordUser.id}`] });
+                            }
+                        }}
+                    />
+                ) : (
+                    <ResetPasswordUserModal
+                        user={resetPasswordUser}
+                        onCancel={() => {
+                            setResetPasswordUser(null);
+                            setResetPasswordValidationError(null);
+                        }}
+                        onConfirm={handleResetPasswordConfirm}
+                        confirmLoading={resetPasswordMutation.isPending}
+                        passwordRules={modalRules.newPassword}
+                        validationError={resetPasswordValidationError}
+                        onClearValidationError={handleClearResetPasswordValidationError}
+                    />
+                )
             ) : null}
 
             {createRoleOpen ? (

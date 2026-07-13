@@ -18,6 +18,24 @@ Related: [`MULTI_TENANT.md`](MULTI_TENANT.md), [`LICENSE_SYSTEM.md`](LICENSE_SYS
 
 ---
 
+## Tenant Roles
+
+| UI (de) | Backend (`Roles.cs`) | Responsibilities |
+|---------|----------------------|------------------|
+| **Mandanten-Admin** | `Manager` | Tenant administrator for a specific Mandant |
+
+**Mandanten-Admin (`Manager`)** is responsible for managing a specific tenant:
+
+- User management (within tenant)
+- Cash register management
+- Settings (tenant-scoped)
+- Reports and exports
+- Backup trigger and schedule (`backup.manage`)
+
+Cannot access other tenants or platform-wide Super Admin surfaces (`/admin/tenants`, platform user CRUD).
+
+---
+
 ## What is a tenant (Mandant)?
 
 A **Mandant** is one SaaS customer company in Regkasse:
@@ -175,7 +193,7 @@ Payment receipts, daily closings, audit logs, and related fiscal data are subjec
 
 1. Open tenant → tab **Benutzer** (or `/admin/tenants/{id}/users`).
 2. Click **Benutzer anlegen**.
-3. Enter **E-Mail**, optional name, **Rolle** (`Manager` / `Cashier` / `Accountant`, …), optionally **Mandanten-Administrator (Owner)**.
+3. Enter **E-Mail**, optional name, **Rolle** (**Mandanten-Admin** / `Manager`, `Cashier`, `Accountant`, …), optionally **Mandanten-Administrator (Owner)**.
 4. Confirm — backend creates Identity user + membership; returns a **one-time password** in the UI (no invitation email).
 
 **Bestehenden Benutzer hinzufügen** — attach an existing account (`AddExistingUserModal` → assign membership only; no new login).
@@ -221,8 +239,8 @@ FA shows **two separate license concepts**. Mixing them caused operator confusio
 - **Stored on:** `tenants.license_key`, `tenants.license_valid_until_utc`, `tenants.current_license_sale_id` (billing link).
 - **Super Admin management:** tenant detail → **License** tab — `LicenseManager` + `/api/admin/tenants/{id}/license/*` (`adminTenantLicense.ts`).
 - **Super Admin billing sales:** `POST /api/admin/billing/license-sales` → `license_sales` row + billing key — see [`BILLING_TENANT_LICENSE.md`](BILLING_TENANT_LICENSE.md).
-- **Manager extend (billing):** `POST /api/admin/license/extend` (`settings.manage`); FA client still on `/api/admin/license/mandant/extend` until migrated (`tenantLicense.ts`).
-- **Manager header badge:** `LicenseStatusIndicator` → `useHeaderTenantLicense` — only when `showTenantLicenseInHeader` (Manager + real tenant slug, not Super Admin). Shows **Mandantenlizenz** from `GET /api/tenants/switcher` (via `useCurrentTenant`), never deployment license.
+- **Mandanten-Admin extend (billing):** `POST /api/admin/license/extend` (`settings.manage`); FA client still on `/api/admin/license/mandant/extend` until migrated (`tenantLicense.ts`).
+- **Mandanten-Admin header badge:** `LicenseStatusIndicator` → `useHeaderTenantLicense` — only when `showTenantLicenseInHeader` (Mandanten-Admin / `Manager` + real tenant slug, not Super Admin). Shows **Mandantenlizenz** from `GET /api/tenants/switcher` (via `useCurrentTenant`), never deployment license.
 - **Dev switcher rows:** `getTenantSwitcherLicenseBadge` — explicit hint *„Mandantenlizenz (Unternehmen)“*.
 
 Resolution logic (shared):
@@ -248,7 +266,7 @@ Badge mapping for header pill (`headerLicenseStatus.ts`):
 
 Dev switcher / tenant list still use `mandantLicenseBadge.ts` → `mapTenantLicenseLabelToBadge`.
 
-**Expiry banner (Manager only):** `LicenseExpiryBanner` — warning if ≤15 days, error if expired. Super Admin never sees it.
+**Expiry banner (Mandanten-Admin only):** `LicenseExpiryBanner` — warning if ≤15 days, error if expired. Super Admin never sees it.
 
 ---
 
@@ -310,7 +328,7 @@ On `admin.*` without impersonation / dev override:
 
 Order in `AdminShellHeader` (`frontend-admin/src/components/layout/Header.tsx`):
 
-`EnvironmentBadge` → `TenantBadge` → `HeaderDevTenantSwitch` (dev) → `LicenseStatusIndicator` (Manager **Mandantenlizenz** via `useHeaderTenantLicense`) → language → user menu.
+`EnvironmentBadge` → `TenantBadge` → `HeaderDevTenantSwitch` (dev) → `LicenseStatusIndicator` (Mandanten-Admin **Mandantenlizenz** via `useHeaderTenantLicense`) → language → user menu.
 
 ---
 

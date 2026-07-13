@@ -102,7 +102,7 @@ describe('TenantMembershipManager', () => {
         expect(await screen.findByRole('dialog')).toBeInTheDocument();
         expect(screen.getAllByText('Cafe Central').length).toBeGreaterThan(0);
         expect(screen.getAllByText('(cafe-central)').length).toBeGreaterThan(0);
-        expect(screen.getAllByText('Mandanten-Admin').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Hauptadministrator').length).toBeGreaterThan(0);
         expect(screen.queryByText('Suspended Shop')).not.toBeInTheDocument();
         expect(screen.getByRole('checkbox', { name: /Cafe Central/ })).toBeChecked();
     });

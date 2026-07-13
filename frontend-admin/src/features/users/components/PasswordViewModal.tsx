@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react';
 import { Modal, Alert, Button, Input, Space } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
 
-import { useGenerateTemporaryPasswordMutation } from '@/features/users/api/usersGateway';
+import { useGenerateTemporaryPasswordMutation, resetUserPasswordWithGeneration } from '@/features/users/api/usersGateway';
+import { useUsersPolicy } from '@/shared/auth/usersPolicy';
 import { useI18n } from '@/i18n';
 import { copyTextToClipboard } from '@/lib/clipboard';
 
@@ -25,7 +26,9 @@ export function PasswordViewModal({
   const { message } = useAntdApp();
 
     const { t } = useI18n();
+    const policy = useUsersPolicy();
     const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
     const generateTemporaryPasswordMutation = useGenerateTemporaryPasswordMutation();
 
     useEffect(() => {
@@ -36,12 +39,17 @@ export function PasswordViewModal({
 
     const handleGenerate = async () => {
         if (!userId) return;
+        setLoading(true);
         try {
-            const result = await generateTemporaryPasswordMutation.mutateAsync(userId);
+            const result = policy.useGeneratedPasswordReset
+                ? await resetUserPasswordWithGeneration(userId)
+                : await generateTemporaryPasswordMutation.mutateAsync(userId);
             setPassword(result.generatedPassword ?? '');
             message.success(t('tenants.users.messages.passwordReset'));
         } catch {
             message.error(t('tenants.users.messages.passwordResetFailed'));
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -92,7 +100,7 @@ export function PasswordViewModal({
                     <Button
                         type="primary"
                         onClick={() => void handleGenerate()}
-                        loading={generateTemporaryPasswordMutation.isPending}
+                        loading={loading || generateTemporaryPasswordMutation.isPending}
                     >
                         {t('users.password.generateTemporary')}
                     </Button>

@@ -673,7 +673,7 @@
       "title": "Mandanten-Benutzer",
       "subtitle": "Bestehende Benutzer diesem Mandanten zuweisen, Mandanten-Administrator (Owner) festlegen und Rollen verwalten."
     },
-    "ownerBadge": "Mandanten-Admin",
+    "ownerBadge": "Hauptadministrator",
     "empty": "Noch keine Benutzer zugewiesen. Fügen Sie einen bestehenden Benutzer hinzu oder legen Sie beim Anlegen eines Mandanten einen Administrator an.",
     "columns": {
       "name": "Name",
@@ -691,7 +691,7 @@
       "back": "Zurück zur Liste",
       "add": "Bestehenden Benutzer hinzufügen",
       "remove": "Entfernen",
-      "setOwner": "Als Mandanten-Admin",
+      "setOwner": "Als Hauptadministrator",
       "resetPassword": "Passwort"
     },
     "resetPassword": {

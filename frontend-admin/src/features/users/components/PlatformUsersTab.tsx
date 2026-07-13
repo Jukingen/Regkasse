@@ -62,6 +62,7 @@ export function PlatformUsersTab({
 }: PlatformUsersTabProps) {
     const { t, formatLocale } = useI18n();
 
+    // Security: no password column — Manager resets passwords via actions only.
     const columns: ColumnsType<UserInfo> = useMemo(
         () => [
             {
