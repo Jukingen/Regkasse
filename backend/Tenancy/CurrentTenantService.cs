@@ -1,7 +1,4 @@
-using KasseAPI_Final.Data;
-using KasseAPI_Final.Models;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
+using KasseAPI_Final.Services.Tenancy;
 
 namespace KasseAPI_Final.Tenancy;
 
@@ -11,67 +8,23 @@ namespace KasseAPI_Final.Tenancy;
 /// </summary>
 public sealed class CurrentTenantService
 {
-    private readonly ITenantProvider _tenantProvider;
-    private readonly ICurrentTenantAccessor _tenantAccessor;
-    private readonly AppDbContext _db;
-    private readonly ILogger<CurrentTenantService> _logger;
+    private readonly ITenantContextService _tenantContextService;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public CurrentTenantService(
-        ITenantProvider tenantProvider,
-        ICurrentTenantAccessor tenantAccessor,
-        AppDbContext db,
-        ILogger<CurrentTenantService> logger)
+        ITenantContextService tenantContextService,
+        IHttpContextAccessor httpContextAccessor)
     {
-        _tenantProvider = tenantProvider;
-        _tenantAccessor = tenantAccessor;
-        _db = db;
-        _logger = logger;
+        _tenantContextService = tenantContextService;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     /// <summary>Loads tenant by subdomain slug and updates the ambient accessor for this request scope.</summary>
-    public async Task ApplyCurrentTenantAsync(CancellationToken cancellationToken = default)
+    public Task ApplyCurrentTenantAsync(CancellationToken cancellationToken = default)
     {
-        var slug = NormalizeSlug(_tenantProvider.GetCurrentTenantId());
+        var httpContext = _httpContextAccessor.HttpContext
+            ?? throw new InvalidOperationException("HttpContext is not available for tenant resolution");
 
-        var tenant = await _db.Tenants
-            .AsNoTracking()
-            .IgnoreQueryFilters()
-            .Where(t => t.Slug == slug)
-            .Select(t => new { t.Id, t.Status, t.IsActive })
-            .FirstOrDefaultAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        if (tenant == null)
-        {
-            _logger.LogWarning(
-                "Tenant slug {Slug} not found; using legacy default tenant {DefaultTenantId}",
-                slug,
-                LegacyDefaultTenantIds.Primary);
-            _tenantAccessor.TenantId = LegacyDefaultTenantIds.Primary;
-            return;
-        }
-
-        if (string.Equals(tenant.Status, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase)
-            || !tenant.IsActive)
-        {
-            _logger.LogWarning(
-                "Tenant slug {Slug} is deleted or inactive (status={Status}); refusing host tenant binding",
-                slug,
-                tenant.Status);
-            _tenantAccessor.TenantId = null;
-            return;
-        }
-
-        _tenantAccessor.TenantId = tenant.Id;
-    }
-
-    private static string NormalizeSlug(string slug)
-    {
-        if (string.Equals(slug, "admin", StringComparison.OrdinalIgnoreCase))
-        {
-            return LegacyDefaultTenantIds.PrimarySlug;
-        }
-
-        return DevTenantSlugAliases.ResolveCanonical(slug);
+        return _tenantContextService.ApplyFromRequestAsync(httpContext, cancellationToken);
     }
 }

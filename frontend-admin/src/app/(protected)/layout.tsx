@@ -22,6 +22,7 @@ import { AdminShellHeader } from '@/components/layout/Header';
 import { CommandPaletteShell } from '@/components/CommandPalette';
 import { AdminLayout } from '@/components/admin-layout/AdminLayout';
 import { AppLayout } from '@/components/AppLayout';
+import { TenantProvider } from '@/features/tenancy/providers/TenantProvider';
 import { LicenseExpiryBanner } from '@/components/admin-layout/LicenseExpiryBanner';
 import { ReadOnlyBanner } from '@/components/ReadOnlyBanner';
 import { AdminDesktopSiderResizeHandle } from '@/components/admin-layout/AdminDesktopSiderResizeHandle';
@@ -76,6 +77,7 @@ export default function DashboardLayout({
     // AuthGate: wait for /me (see useAuth.isAuthInitializing). PermissionRouteGuard: ROUTE_PERMISSIONS vs user.permissions (content only).
     return (
         <AuthGate mode="protected">
+            <TenantProvider>
             <AppLayout>
             <CommandPaletteShell />
                 <Suspense fallback={null}>
@@ -153,6 +155,7 @@ export default function DashboardLayout({
                     </Layout>
                 </Layout>
             </AppLayout>
+            </TenantProvider>
         </AuthGate>
     );
 }

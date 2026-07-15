@@ -17,6 +17,14 @@ import {
 } from '@/features/super-admin/utils/tenantHeaderSwitcher';
 import { resolveActiveTenantId } from '@/features/tenancy/utils/resolveActiveTenantIdentity';
 
+/** Minimal tenant fields from GET /api/tenants/current. */
+export type TenantSnapshot = {
+    id: string;
+    slug: string;
+    name: string;
+    licenseValidUntilUtc: string | null;
+};
+
 export type CurrentTenant = {
     tenantSlug: string | null | undefined;
     tenantId: string | null;
@@ -43,8 +51,11 @@ export type CurrentTenant = {
     isTenantRecordLoading: boolean;
 };
 
-/** Resolves active mandant (header switcher / JWT / dev override). Used by {@link TenantProvider}. */
-export function useCurrentTenantState(): CurrentTenant {
+/** Resolves active mandant (header switcher / JWT / dev override / API current). Used by {@link TenantProvider}. */
+export function useCurrentTenantState(
+    apiTenant: TenantSnapshot | null = null,
+    apiTenantLoading = false,
+): CurrentTenant {
     const { user } = useAuth();
     const ctx = useTenantContext();
     const mode = useSuperAdminTenantMode();
@@ -77,17 +88,18 @@ export function useCurrentTenantState(): CurrentTenant {
             hostSlug: ctx.hostSlug,
         });
 
-        const tenantSlug = resolvedRow?.slug ?? ctx.tenantSlug;
-        const tenantId = resolveActiveTenantId({
+        const tenantSlug = apiTenant?.slug ?? resolvedRow?.slug ?? ctx.tenantSlug;
+        const tenantId = apiTenant?.id ?? resolveActiveTenantId({
             resolvedRowId: resolvedRow?.id,
             jwtTenantId,
             jwtTenantSlug,
             activeTenantSlug: tenantSlug,
         });
-        const tenantName = resolvedRow?.name ?? ctx.tenantName;
+        const tenantName = apiTenant?.name ?? resolvedRow?.name ?? ctx.tenantName;
         const tenantStatus = resolvedRow?.status ?? null;
         const isActive = resolvedRow?.isActive ?? true;
-        const licenseValidUntilUtc = resolvedRow?.licenseValidUntilUtc ?? null;
+        const licenseValidUntilUtc =
+            apiTenant?.licenseValidUntilUtc ?? resolvedRow?.licenseValidUntilUtc ?? null;
         const licenseKey = resolvedRow?.licenseKey ?? null;
         const licenseDaysRemaining = resolvedRow?.licenseDaysRemaining ?? null;
         const isTenantSuspended = resolvedRow ? isTenantSuspendedOrInactive(resolvedRow) : false;
@@ -105,9 +117,10 @@ export function useCurrentTenantState(): CurrentTenant {
             Boolean(tenantSlug && tenantSlug !== 'admin' && !tenantId);
 
         const isTenantRecordLoading =
-            ctx.hasAuthToken
+            apiTenantLoading
+            || (ctx.hasAuthToken
             && awaitingTenantId
-            && (switcherQuery.isLoading || switcherQuery.isFetching);
+            && (switcherQuery.isLoading || switcherQuery.isFetching));
 
         return {
             tenantSlug,
@@ -152,5 +165,10 @@ export function useCurrentTenantState(): CurrentTenant {
         switcherQuery.data,
         switcherQuery.isLoading,
         switcherQuery.fetchStatus,
+        apiTenant?.id,
+        apiTenant?.slug,
+        apiTenant?.name,
+        apiTenant?.licenseValidUntilUtc,
+        apiTenantLoading,
     ]);
 }

@@ -12,7 +12,6 @@ import { AuthSessionInvalidationListener } from '@/features/auth/components/Auth
 import { TenantChangeListener } from '@/features/auth/components/TenantChangeListener';
 import { TenantSwitchProvider } from '@/features/auth/contexts/TenantSwitchContext';
 import { AuthProvider } from '@/features/auth/providers/AuthProvider';
-import { TenantProvider } from '@/features/tenancy/providers/TenantProvider';
 
 /** Root client providers: i18n → query → theme → user preferences. */
 export function AppProviders({ children }: { children: ReactNode }) {
@@ -28,7 +27,6 @@ export function AppProviders({ children }: { children: ReactNode }) {
       <TenantSwitchProvider>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-            <TenantProvider>
             <ThemeProvider>
               <PersonalizationProvider>
                 <AuthSessionInvalidationListener />
@@ -39,7 +37,6 @@ export function AppProviders({ children }: { children: ReactNode }) {
                 ) : null}
               </PersonalizationProvider>
             </ThemeProvider>
-            </TenantProvider>
           </AuthProvider>
         </QueryClientProvider>
       </TenantSwitchProvider>

@@ -1,35 +1,31 @@
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
 
 namespace KasseAPI_Final.Middleware;
 
 /// <summary>
-/// Sets <see cref="ICurrentTenantAccessor"/> from the authenticated user's <c>tenant_id</c> JWT claim.
-/// Development: when <see cref="SubdomainTenantProvider.DevTenantHeaderName"/> or <c>?tenant=</c> is present,
-/// keeps the tenant already resolved by <see cref="TenantResolutionMiddleware"/> so local mandant switching works.
+/// After authentication, re-resolves tenant via <see cref="ITenantContextService"/> (JWT-first).
+/// Unauthenticated requests keep the slug binding from <see cref="TenantResolutionMiddleware"/>.
 /// </summary>
 public sealed class TenantContextMiddleware
 {
     private readonly RequestDelegate _next;
-    private readonly IWebHostEnvironment _environment;
 
-    public TenantContextMiddleware(RequestDelegate next, IWebHostEnvironment environment)
-    {
-        _next = next;
-        _environment = environment;
-    }
+    public TenantContextMiddleware(RequestDelegate next) => _next = next;
 
-    public async Task InvokeAsync(HttpContext context, ICurrentTenantAccessor tenantAccessor)
+    public async Task InvokeAsync(
+        HttpContext context,
+        ICurrentTenantAccessor tenantAccessor,
+        ITenantContextService tenantContextService)
     {
-        if (_environment.IsDevelopment() && HasDevTenantOverride(context))
+        if (context.User?.Identity?.IsAuthenticated == true)
         {
-            await _next(context).ConfigureAwait(false);
-            return;
+            var resolved = await tenantContextService
+                .ResolveTenantContextAsync(context, context.RequestAborted)
+                .ConfigureAwait(false);
+            tenantAccessor.TenantId = resolved.Id;
         }
-
-        var raw = context.User?.FindFirst(ScopeCheckService.TenantIdClaim)?.Value;
-        if (Guid.TryParse(raw, out var tenantId) && tenantId != Guid.Empty)
-            tenantAccessor.TenantId = tenantId;
 
         await _next(context).ConfigureAwait(false);
     }

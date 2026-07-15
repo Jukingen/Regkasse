@@ -532,6 +532,8 @@ builder.Services.AddScoped<IUserTenantMembershipProvisioner, UserTenantMembershi
 builder.Services.AddScoped<ISettingsTenantResolver, SettingsTenantResolver>();
 builder.Services.AddScoped<ICurrentTenantAccessor, CurrentTenantAccessor>();
 builder.Services.AddScoped<ITenantProvider, SubdomainTenantProvider>();
+// Request tenant resolution: JWT → dev header/query → host slug → admin fallback.
+builder.Services.AddScoped<ITenantContextService, TenantContextService>();
 builder.Services.AddScoped<TenantLicenseValidator>();
 builder.Services.AddScoped<CurrentTenantService>();
 

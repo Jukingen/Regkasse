@@ -26,6 +26,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -328,15 +329,10 @@ public sealed class TenantIsolationTests : IClassFixture<TenantIsolationWebAppli
             new Tenant { Id = TenantBId, Name = "B", Slug = TenantBSlug, Status = TenantStatuses.Active, IsActive = true, CreatedAt = DateTime.UtcNow });
         await db.SaveChangesAsync();
 
-        var provider = SubdomainTenantProviderTestsHelper.Create(host, isDevelopment: false);
-        Assert.Equal(expectedSlug, provider.GetCurrentTenantId());
-
         var accessor = new CurrentTenantAccessor();
-        var service = new CurrentTenantService(
-            provider,
-            accessor,
-            db,
-            Mock.Of<ILogger<CurrentTenantService>>());
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Host = new HostString(host);
+        var service = CreateCurrentTenantService(db, accessor, httpContext, isDevelopment: false);
         await service.ApplyCurrentTenantAsync();
 
         var expectedId = expectedSlug == TenantASlug ? TenantAId : TenantBId;
@@ -358,18 +354,10 @@ public sealed class TenantIsolationTests : IClassFixture<TenantIsolationWebAppli
         });
         await db.SaveChangesAsync();
 
-        var provider = SubdomainTenantProviderTestsHelper.Create(
-            "localhost",
-            isDevelopment: true,
-            headerTenant: "test_cafe");
-        Assert.Equal("test_cafe", provider.GetCurrentTenantId());
-
         var accessor = new CurrentTenantAccessor();
-        var service = new CurrentTenantService(
-            provider,
-            accessor,
-            db,
-            Mock.Of<ILogger<CurrentTenantService>>());
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers[SubdomainTenantProvider.DevTenantHeaderName] = "test_cafe";
+        var service = CreateCurrentTenantService(db, accessor, httpContext, isDevelopment: true);
         await service.ApplyCurrentTenantAsync();
 
         Assert.Equal(TenantAId, accessor.TenantId);
@@ -674,6 +662,28 @@ public sealed class TenantIsolationTests : IClassFixture<TenantIsolationWebAppli
             new IdentityErrorDescriber(),
             null!,
             Mock.Of<ILogger<UserManager<ApplicationUser>>>());
+    }
+
+    private static CurrentTenantService CreateCurrentTenantService(
+        AppDbContext db,
+        CurrentTenantAccessor accessor,
+        DefaultHttpContext httpContext,
+        bool isDevelopment)
+    {
+        var environment = new Mock<IWebHostEnvironment>();
+        environment.SetupGet(e => e.EnvironmentName)
+            .Returns(isDevelopment ? Environments.Development : Environments.Production);
+
+        var tenantContextService = new TenantContextService(
+            db,
+            accessor,
+            environment.Object,
+            NullLogger<TenantContextService>.Instance);
+
+        var httpContextAccessor = new Mock<IHttpContextAccessor>();
+        httpContextAccessor.Setup(a => a.HttpContext).Returns(httpContext);
+
+        return new CurrentTenantService(tenantContextService, httpContextAccessor.Object);
     }
 }
 

@@ -1,84 +1,89 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { FirmenInfoTenant } from '../FirmenInfo';
 import { FirmenInfo } from '../FirmenInfo';
+
+const mockUseTenant = vi.fn();
 
 vi.mock('@/i18n', () => ({
     useI18n: () => ({
-        t: (key: string, params?: Record<string, string | number>) => {
-            if (key === 'common.tenant.tenant') return 'Mandant';
-            if (key === 'common.tenant.tenantAlt') return 'Firma';
-            if (key === 'common.tenant.companyInfo') return 'Firmen-Info';
-            if (key === 'adminShell.tenant.infoCardName') return 'Anzeigename';
-            if (key === 'adminShell.tenant.infoCardSlug') return 'Slug';
-            if (key === 'adminShell.tenant.infoCardId') return 'Firmen-ID';
-            if (key === 'adminShell.tenant.info.license') return 'Lizenzstatus';
-            if (key === 'adminShell.tenant.info.registeredAt') return 'Registriert am';
-            if (key === 'license.phase.labels.active') return 'Aktiv';
-            return params ? `${key}:${JSON.stringify(params)}` : key;
+        t: (key: string) => {
+            const labels: Record<string, string> = {
+                'common.tenant.tenant': 'Mandant',
+                'common.tenant.tenantAlt': 'Firma',
+                'common.tenant.companyInfo': 'Firmen-Info',
+                'common.dataList.errorLoadTitle': 'Fehler beim Laden',
+                'common.dataList.loadingTip': 'Laden',
+                'adminShell.tenant.infoCardName': 'Anzeigename',
+                'adminShell.tenant.infoCardSlug': 'Slug',
+                'adminShell.tenant.infoCardId': 'Firmen-ID',
+                'adminShell.tenant.info.license': 'Lizenzstatus',
+                'adminShell.tenant.selectTenantFirstTitle': 'Kein Mandant',
+                'adminShell.tenant.selectTenantFirstBody': 'Bitte Mandant wählen',
+                'license.phase.labels.active': 'Aktiv',
+                'license.phase.labels.noLicense': 'Keine Lizenz',
+                'license.mandant.validUntil': 'Gültig bis',
+            };
+            return labels[key] ?? key;
         },
         formatLocale: 'de-DE',
     }),
     formatDate: (value: string) => value.slice(0, 10),
 }));
 
-vi.mock('@/features/tenancy/hooks/useCurrentTenant', () => ({
-    useCurrentTenant: () => ({
-        tenantId: null,
-        tenantSlug: null,
-        isRealTenantSlug: false,
-        isTenantRecordLoading: false,
-    }),
+vi.mock('@/features/tenancy/providers/TenantProvider', () => ({
+    useTenant: () => mockUseTenant(),
 }));
-
-vi.mock('@/features/tenant/hooks/useTenantInfo', () => ({
-    useTenantInfo: () => ({
-        tenantSlug: null,
-        tenantName: null,
-        registeredAt: null,
-        licenseStatus: {
-            kind: 'no_license',
-            daysRemaining: 0,
-            daysExpired: 0,
-            canWrite: false,
-            canManageUsers: false,
-            canAccess: false,
-        },
-        isLoading: false,
-        isTenantRecordLoading: false,
-    }),
-}));
-
-const sampleTenant: FirmenInfoTenant = {
-    id: 'dev-tenant-id',
-    name: 'Development',
-    slug: 'dev',
-    createdAt: '2026-01-15T10:00:00Z',
-    licenseStatus: {
-        kind: 'active',
-        daysRemaining: 30,
-        daysExpired: 0,
-        canWrite: true,
-        canManageUsers: true,
-        canAccess: true,
-    },
-};
 
 describe('FirmenInfo', () => {
-    it('renders tenant fields from the provided tenant prop', () => {
-        render(<FirmenInfo tenant={sampleTenant} />);
+    it('renders tenant fields from useTenant', () => {
+        mockUseTenant.mockReturnValue({
+            tenant: {
+                id: 'dev-tenant-id',
+                name: 'Development',
+                slug: 'dev',
+                licenseValid: true,
+                licenseValidUntilUtc: '2026-04-25T00:00:00Z',
+            },
+            isLoading: false,
+            error: null,
+            setTenant: vi.fn(),
+            refresh: vi.fn(),
+        });
+
+        render(<FirmenInfo />);
 
         expect(screen.getByText('Firmen-Info')).toBeTruthy();
         expect(screen.getAllByText('Development').length).toBeGreaterThan(0);
         expect(screen.getByText('dev')).toBeTruthy();
         expect(screen.getByText('dev-tenant-id')).toBeTruthy();
-        expect(screen.getByText('2026-01-15')).toBeTruthy();
+        expect(screen.getByText('2026-04-25')).toBeTruthy();
         expect(screen.getByText('Aktiv')).toBeTruthy();
     });
 
-    it('returns null when tenant prop is explicitly null', () => {
-        const { container } = render(<FirmenInfo tenant={null} />);
-        expect(container.innerHTML).toBe('');
+    it('shows warning when tenant is missing', () => {
+        mockUseTenant.mockReturnValue({
+            tenant: null,
+            isLoading: false,
+            error: null,
+            setTenant: vi.fn(),
+            refresh: vi.fn(),
+        });
+
+        render(<FirmenInfo />);
+        expect(screen.getByText('Kein Mandant')).toBeTruthy();
+    });
+
+    it('shows loading spinner when useTenant is loading', () => {
+        mockUseTenant.mockReturnValue({
+            tenant: null,
+            isLoading: true,
+            error: null,
+            setTenant: vi.fn(),
+            refresh: vi.fn(),
+        });
+
+        render(<FirmenInfo />);
+        expect(screen.getByLabelText('Laden')).toBeTruthy();
     });
 });

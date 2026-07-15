@@ -4,7 +4,7 @@ namespace KasseAPI_Final.Middleware;
 
 /// <summary>
 /// Resolves tenant from the request host (subdomain) before auth and sets <see cref="ICurrentTenantAccessor"/>.
-/// JWT <see cref="TenantContextMiddleware"/> may override after authentication.
+/// JWT <see cref="TenantContextMiddleware"/> re-resolves via <see cref="Services.Tenancy.ITenantContextService"/> after authentication.
 /// </summary>
 public sealed class TenantResolutionMiddleware
 {

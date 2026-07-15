@@ -104,13 +104,10 @@ export function TenantLicenseSection() {
         return null;
     }, [resolvedStatus, t]);
 
-    if (currentTenant.isTenantRecordLoading) {
+    if (currentTenant.isTenantRecordLoading && !tenantId) {
         return (
             <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-                <FirmenInfo loading />
-                <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
-                    <Spin />
-                </div>
+                <FirmenInfo />
             </Space>
         );
     }
