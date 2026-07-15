@@ -180,6 +180,7 @@ public sealed class AdminBillingControllerTests
                 PdfGeneratorMock.Object,
                 BillingTestDoubles.CreateAuditService(_db),
                 BillingTestDoubles.NoOpReminder,
+                BillingTestDoubles.NoOpLicenseReminder,
                 BillingTestDoubles.NoOpBackup,
                 NullCurrentUserService.Instance,
                 NullLogger<AdminBillingController>.Instance)

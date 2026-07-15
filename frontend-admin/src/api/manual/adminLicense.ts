@@ -1,6 +1,6 @@
 import { AXIOS_INSTANCE } from '@/lib/axios';
 
-/** Anonymous POS/FA snapshot from <c>GET /api/license/status</c>. */
+/** POS/FA mandant + deployment snapshot from <c>GET /api/license/status</c>. */
 export type LicensePublicStatusDto = {
     /** Trial, Licensed, Expired, or Demo (development snapshot). */
     licenseType: 'Trial' | 'Licensed' | 'Expired' | 'Demo' | 'Paid' | string;
@@ -14,7 +14,31 @@ export type LicensePublicStatusDto = {
     mode?: 'Demo' | 'Trial' | 'Production' | string;
     /** True when development-mode license bypass supplied the snapshot (Development host only). */
     isDevelopmentBypass?: boolean;
+    /** Mandant access flag when <c>tenantId</c> query or tenant context is resolved. */
+    canAccess?: boolean | null;
+    /** Mandant transaction flag when tenant context is resolved. */
+    canTransact?: boolean | null;
+    /** German mandant status copy when tenant context is resolved. */
+    statusMessage?: string | null;
+    /** True when mandant license is expired but still within the grace window. */
+    isInGracePeriod?: boolean;
+    /** Remaining mandant grace days when <c>isInGracePeriod</c> is true. */
+    gracePeriodRemaining?: number;
+    /** True when mandant license requires renewal (lockdown). */
+    requiresRenewal?: boolean;
 };
+
+/** Unified FA tenant license read-model cache key (POS contract: GET /api/license/status). */
+export const tenantLicenseUnifiedQueryKey = ['tenant', 'license'] as const;
+
+export type TenantLicenseQuerySource = 'admin' | 'public' | 'auto';
+
+export function tenantLicenseUnifiedQueryKeyFor(
+    tenantId?: string | null,
+    source: TenantLicenseQuerySource = 'auto',
+) {
+    return [...tenantLicenseUnifiedQueryKey, tenantId ?? 'current', source] as const;
+}
 
 export type LicenseStatusResponse = {
     isValid: boolean;
@@ -177,7 +201,16 @@ export const licenseQueryKeys = {
 };
 
 export async function getPublicLicenseStatus(): Promise<LicensePublicStatusDto> {
-    const { data } = await AXIOS_INSTANCE.get<LicensePublicStatusDto>('/api/license/status');
+    return getTenantLicensePublicStatus();
+}
+
+/** GET /api/license/status — optional mandant overlay via <c>tenantId</c> (POS + FA unified contract). */
+export async function getTenantLicensePublicStatus(
+    tenantId?: string | null,
+): Promise<LicensePublicStatusDto> {
+    const { data } = await AXIOS_INSTANCE.get<LicensePublicStatusDto>('/api/license/status', {
+        params: tenantId ? { tenantId } : undefined,
+    });
     return data;
 }
 

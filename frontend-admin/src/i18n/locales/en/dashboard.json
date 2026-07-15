@@ -144,7 +144,8 @@
       "expiresSoon7": "License expiring soon — please renew.",
       "expiresSoon30": "License expires within 30 days.",
       "noExpiryDate": "No license expiry date configured",
-      "openSettings": "Open settings"
+      "openSettings": "Open settings",
+      "actionRequired": "Tenant license renewal is required."
     },
     "recentUsers": {
       "empty": "No users"

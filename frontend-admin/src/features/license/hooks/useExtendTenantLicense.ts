@@ -4,8 +4,8 @@ import type { AxiosError } from 'axios';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { invalidateTenantLicenseQueries } from '@/features/license/utils/invalidateTenantLicenseQueries';
 import { useI18n } from '@/i18n';
-import { tenantLicenseQueryKeys } from '@/features/license/api/tenantLicense';
 import {
     extendTenantLicense,
     type ExtendTenantLicenseResult,
@@ -50,9 +50,7 @@ export function useExtendTenantLicense(tenantId: string) {
     const queryClient = useQueryClient();
 
     const invalidate = () => {
-        void queryClient.invalidateQueries({ queryKey: tenantLicenseQueryKeys.detail(tenantId) });
-        void queryClient.invalidateQueries({ queryKey: ['tenant-license-status'] });
-        void queryClient.invalidateQueries({ queryKey: ['api', 'admin', 'tenants'] });
+        void invalidateTenantLicenseQueries(queryClient, tenantId);
     };
 
     return useMutation<ExtendTenantLicenseResult, unknown, ExtendTenantLicenseFormValues>({

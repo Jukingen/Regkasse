@@ -19,6 +19,7 @@ import type { PosStatusOverviewDto } from '../services/api/posStatusOverviewType
 import type { PosCashRegisterContextDto } from '../utils/posCashRegisterReadinessParse';
 import {
   getCachedLicenseStatus,
+  invalidateLicenseStatusCache,
   setCachedLicenseStatus,
   type LicenseStatus,
 } from '../services/license/licenseStatusCache';
@@ -44,6 +45,11 @@ type PosStatusOverviewContextValue = {
 const PosStatusOverviewContext = createContext<PosStatusOverviewContextValue | null>(null);
 
 let cachedOverview: PosStatusOverviewDto | null = null;
+
+/** Clears module overview cache (login, tenant switch, license QA update). */
+export function clearCachedPosStatusOverview(): void {
+  cachedOverview = null;
+}
 
 export function getCachedPosSettingsSnapshot(): {
   cashRegisterId: string | null;
@@ -119,12 +125,15 @@ export function PosStatusOverviewProvider({ children }: { children: React.ReactN
         setLoading(false);
       }
     },
-    [applyOverview, isAuthenticated, user?.id, user?.mustChangePasswordOnNextLogin],
+    [applyOverview, isAuthenticated, user?.id, user?.tenantId, user?.mustChangePasswordOnNextLogin],
   );
 
   useEffect(() => {
-    void refreshOverview(false);
-  }, [isAuthenticated, user?.id, user?.mustChangePasswordOnNextLogin, refreshOverview]);
+    if (!isAuthenticated) return;
+    invalidateLicenseStatusCache();
+    clearCachedPosStatusOverview();
+    void refreshOverview(true);
+  }, [isAuthenticated, user?.id, user?.tenantId, user?.mustChangePasswordOnNextLogin, refreshOverview]);
 
   useEffect(() => registerPosStatusOverviewRefresh(refreshOverview), [refreshOverview]);
 

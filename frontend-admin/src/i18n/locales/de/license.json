@@ -19,6 +19,26 @@
     "expiresSoon": "Läuft bald ab",
     "trial": "Testversion"
   },
+  "history": {
+    "title": "Lizenzverlauf",
+    "empty": "Keine Lizenzänderungen protokolliert",
+    "columns": {
+      "date": "Datum",
+      "event": "Ereignis",
+      "summary": "Details",
+      "actor": "Durchgeführt von",
+      "licenseKey": "Lizenzschlüssel"
+    },
+    "events": {
+      "activated": "Aktivierung",
+      "extended": "Verlängerung",
+      "renewed": "Erneuerung",
+      "issued": "Ausgestellt",
+      "revoked": "Widerrufen",
+      "trial": "Testversion",
+      "updated": "Aktualisiert"
+    }
+  },
   "server": {
     "title": "Server-Lizenz Status",
     "subtitle": "Diese Lizenz gilt für den gesamten Server und alle Mandanten.",
@@ -607,5 +627,97 @@
     "features": "Funktionen",
     "isValid": "Betrieb erlaubt",
     "loadError": "Öffentlicher Status konnte nicht geladen werden."
+  },
+  "testPanel": {
+    "title": "Lizenz-Testpanel",
+    "subtitle": "Nur in der Development-Umgebung. Mandanten- und Server-Lizenzablauf für QA-Szenarien anpassen.",
+    "devOnlyNotice": "Dieses Panel ist nur in Development verfügbar (Super Admin).",
+    "productionBlocked": "Das Lizenz-Testpanel ist in Production deaktiviert.",
+    "selectTenant": "Mandant",
+    "selectTenantPlaceholder": "Mandant wählen…",
+    "refresh": "Status aktualisieren",
+    "refreshedAt": "Zuletzt aktualisiert: {time}",
+    "developmentBypassActive": "Development-Mode Lizenz-Bypass ist aktiv — der angezeigte Server-Status kann synthetisch sein.",
+    "overrideHint": "Szenarien ersetzen die Mandantenlizenz sofort (keine Verlängerung). „999 Tage“ bedeutet oft: kein Ablaufdatum in der DB — nach Anwenden sehen Sie die echte Restlaufzeit.",
+    "unlimitedNoExpiry": "Unbegrenzt (kein Ablaufdatum)",
+    "tenantSection": "Mandantenlizenz (SaaS)",
+    "deploymentSection": "Server-Lizenz (Deployment)",
+    "validUntil": "Gültig bis",
+    "daysRemaining": "Verbleibende Tage",
+    "status": "Status",
+    "mode": "Modus",
+    "licenseKey": "Lizenzschlüssel",
+    "customExpiry": "Ablaufdatum",
+    "applyTenant": "Mandant anwenden",
+    "applyDeployment": "Server anwenden",
+    "toggleActive": "Aktiv (30 Tage)",
+    "toggleExpired": "Abgelaufen",
+    "scenarioTitle": "Schnellszenarien",
+    "scenario1Day": "1 Tag",
+    "scenario7Days": "7 Tage",
+    "scenario30Days": "30 Tage",
+    "scenarioExpired": "Abgelaufen",
+    "scopeTenant": "Nur Mandant",
+    "scopeDeployment": "Nur Server",
+    "scopeBoth": "Beide",
+    "applyScenario": "Szenario anwenden",
+    "success": "Lizenzstatus aktualisiert.",
+    "scenarioSuccess": "Lizenz auf {days} Tage gesetzt.",
+    "scenarioExpiredSuccess": "Lizenz als abgelaufen gesetzt.",
+    "manualSuccess": "Lizenz gültig bis {date} gesetzt.",
+    "error": "Lizenz konnte nicht aktualisiert werden.",
+    "noTenantSelected": "Bitte zuerst einen Mandanten wählen.",
+    "alertTitle": "🧪 Development License Test Panel",
+    "alertDescription": "Dieses Panel läuft nur in der Development-Umgebung. In Production ist es deaktiviert.",
+    "simulationTitle": "Lizenz Simulation",
+    "manualTitle": "Manuelle Einstellung",
+    "updateButton": "Aktualisieren",
+    "scenario30DaysLabel": "🟢 30 Tage vor Ablauf",
+    "scenario7DaysLabel": "🟡 7 Tage vor Ablauf",
+    "scenario1DayLabel": "🟠 1 Tag vor Ablauf",
+    "scenarioExpiredLabel": "🔴 Abgelaufen",
+    "mockStatus": {
+      "healthy": "🟢 30 Tage vor Ablauf (healthy)",
+      "warning": "🟡 7 Tage vor Ablauf (warning)",
+      "urgent": "🟠 1 Tag vor Ablauf (urgent)",
+      "expired": "🔴 Abgelaufen (expired)"
+    },
+    "statusLabels": {
+      "active": "Aktiv",
+      "expired": "Abgelaufen",
+      "expiring_soon": "Läuft bald ab",
+      "trial": "Testversion",
+      "no_license": "Keine Lizenz"
+    }
+  },
+  "debug": {
+    "title": "Lizenz-Debug",
+    "noticeTitle": "Super-Admin Troubleshooting",
+    "noticeDescription": "Vergleicht Mandanten-Lizenzquellen (unified GET /api/license/status vs. Admin-Detail). Der Header und das Dashboard-Widget nutzen die unified Quelle.",
+    "refresh": "Alle Quellen aktualisieren",
+    "tenantContext": "Mandant für Diagnose",
+    "tenantPlaceholder": "Mandant wählen (Standard: aktueller Kontext)",
+    "currentSlug": "Aktueller Slug",
+    "platformMode": "Super-Admin Plattformmodus",
+    "queryKey": "TanStack Query Key (unified)",
+    "fetchedAt": "Unified zuletzt geladen",
+    "comparisonTitle": "Quellenvergleich",
+    "columns": {
+      "source": "Quelle",
+      "endpoint": "API / Hook",
+      "kind": "Status",
+      "daysRemaining": "Tage verbleibend",
+      "validUntil": "Gültig bis",
+      "canAccess": "canAccess"
+    },
+    "sources": {
+      "unified": "Unified (POS-Vertrag)",
+      "adminDetail": "Admin Mandant-Detail",
+      "header": "Header-Badge (abgeleitet)",
+      "resolved": "resolveTenantLicenseStatus",
+      "deployment": "Server-Lizenz (Deployment)",
+      "adminStatus": "Admin Server-Status",
+      "history": "Lizenzverlauf (Metadaten)"
+    }
   }
 }

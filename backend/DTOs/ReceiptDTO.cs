@@ -53,6 +53,10 @@ namespace KasseAPI_Final.DTOs
         public DateTime ReceiptPersistedAtUtc { get; set; }
         public string CashierId { get; set; } = string.Empty;
         public string? CashierDisplayName { get; set; }
+        /// <summary>Cashier shift row id when resolvable at issue time.</summary>
+        public Guid? ShiftId { get; set; }
+        /// <summary>RKSV Schicht-Nr. display (short shift id).</summary>
+        public string? ShiftNumber { get; set; }
         public int? TableNumber { get; set; } // Optional
         /// <summary>RKSV / receipt display register id: <c>CashRegisters.RegisterNumber</c>, not the register row GUID. Same text as <see cref="DisplayRegisterNumber"/>.</summary>
         public string KassenID { get; set; } = string.Empty;

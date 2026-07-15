@@ -104,8 +104,10 @@ import type {
   CreateCashRegisterRequest,
   CreateCategoryRequest,
   CreateDepExportScheduleRequest,
+  CreateJahresbelegClosingRequest,
   CreateLegalHoldRequest,
   CreateLicenseSaleRequest,
+  CreateMonatsbelegClosingRequest,
   CreatePaymentMethodDefinitionRequest,
   CreatePricingRuleRequest,
   CreateQuickTenantUserRequest,
@@ -130,6 +132,7 @@ import type {
   DevTenantCatalogCleanupRequest,
   DevelopmentModeSettingsPutRequestDto,
   DevelopmentModeSettingsResponseDto,
+  ElmahErrorListResponseDto,
   ExpiringLicenseInfo,
   ExtendLicenseRequest,
   ExtendLicenseRequestBody,
@@ -161,10 +164,14 @@ import type {
   GetApiAdminCardTransactionsParams,
   GetApiAdminCashRegistersParams,
   GetApiAdminCategoriesSearchParams,
+  GetApiAdminErrorsParams,
   GetApiAdminFinanzonlineOutboxParams,
   GetApiAdminFinanzonlineReconciliationParams,
   GetApiAdminFiscalExportParams,
   GetApiAdminIntegrityParams,
+  GetApiAdminJahresbelegClosingIdReportPdfParams,
+  GetApiAdminJahresbelegClosingParams,
+  GetApiAdminJahresbelegClosingPreviewParams,
   GetApiAdminLegalHoldParams,
   GetApiAdminLicenseActivationAttemptsParams,
   GetApiAdminLicenseDashboardActivationSeriesParams,
@@ -175,6 +182,9 @@ import type {
   GetApiAdminLicensesExportCsvParams,
   GetApiAdminLicensesExportJsonParams,
   GetApiAdminLicensesReportSummaryParams,
+  GetApiAdminMonatsbelegClosingIdReportPdfParams,
+  GetApiAdminMonatsbelegClosingParams,
+  GetApiAdminMonatsbelegClosingPreviewParams,
   GetApiAdminOfflineIntentCoverageParams,
   GetApiAdminOfflineIntentCoverageTopRiskParams,
   GetApiAdminOfflineOrdersParams,
@@ -190,12 +200,16 @@ import type {
   GetApiAdminPaymentsTrendsParams,
   GetApiAdminProductsParams,
   GetApiAdminProductsSearchParams,
+  GetApiAdminReportPdfsClosingClosingIdExistsParams,
+  GetApiAdminReportPdfsClosingClosingIdParams,
+  GetApiAdminReportPdfsDownloadReportTypeReportIdParams,
   GetApiAdminReportsDailyClosingParams,
   GetApiAdminReportsDailyReconciliationParams,
   GetApiAdminReportsOfflineRecoveryParams,
   GetApiAdminReportsPeakHoursParams,
   GetApiAdminReportsProductMovementParams,
   GetApiAdminReportsReportTypeExportParams,
+  GetApiAdminReportsReportTypeReportIdPdfParams,
   GetApiAdminReportsTseContinuityParams,
   GetApiAdminReportsUserActivityExportParams,
   GetApiAdminReportsUserActivityParams,
@@ -222,6 +236,10 @@ import type {
   IntegrityReportDto,
   IssuedLicenseDetailResponse,
   IssuedLicensesListResponse,
+  JahresbelegClosingResult,
+  JahresbelegDetailDto,
+  JahresbelegListItemDto,
+  JahresbelegSummaryDto,
   LegalHoldDto,
   LicenseActivationAttemptsPagedResponse,
   LicenseDashboardActivationSeriesResponse,
@@ -241,6 +259,10 @@ import type {
   LicenseStatusResponse,
   LicenseTransferRequestInfoResponse,
   MandantLicenseHistoryResponse,
+  MonatsbelegClosingResult,
+  MonatsbelegDetailDto,
+  MonatsbelegListItemDto,
+  MonatsbelegSummaryDto,
   NotificationConfig,
   NtpAdminConfigurationDto,
   NtpAdminConfigurationUpdateDto,
@@ -288,6 +310,7 @@ import type {
   ReplayBatchDetailResponse,
   ReplayOfflineOrderResult,
   ReplayOfflineOrdersResult,
+  ReportPdfExistsResponse,
   RestoreApprovalRequest,
   RestorePointValidationResultDto,
   RestoreProofMilestonesResponseDto,
@@ -301,7 +324,8 @@ import type {
   RestoreVerificationTriggerResponseDto,
   RevokeLicenseByIdRequestBody,
   RevokeLicenseRequestBody,
-  RksvDepExportRootDto,
+  RksvDepExportEnvelopeDto,
+  RksvDepPrueftoolResult,
   RksvEvidenceBundleRequestDto,
   RksvExportDisclaimerResponseDto,
   RksvSignatureVerifyRequest,
@@ -332,6 +356,7 @@ import type {
   TenantSlugSuggestionsDto,
   TenantUserDto,
   TenantUserPasswordResetResultDto,
+  TestPrueftoolRequest,
   TimeSyncDriftSummaryDto,
   TransferLicenseRequestBody,
   TrendAnalysisResponse,
@@ -354,6 +379,7 @@ import type {
   UserPreferencesResponseDto,
   UserUsernameHistoryDto,
   UsernameSuggestionResponse,
+  ValidateExportRequest,
   ValidatePitrRestorePointRequestDto,
   ValidationProblemDetails,
   VerifyAdminVoucherCodeRequest,
@@ -4288,6 +4314,111 @@ export const usePutApiAdminDevelopmentModeSettings = <TError = ProblemDetails | 
 
       return useMutation(mutationOptions);
     }
+    export const getApiAdminErrors = (
+    params?: GetApiAdminErrorsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<ElmahErrorListResponseDto>(
+      {url: `/api/admin/errors`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminErrorsQueryKey = (params?: GetApiAdminErrorsParams,) => {
+    return [`/api/admin/errors`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminErrorsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminErrors>>, TError = unknown>(params?: GetApiAdminErrorsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminErrors>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminErrorsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminErrors>>> = ({ signal }) => getApiAdminErrors(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminErrors>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminErrorsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminErrors>>>
+export type GetApiAdminErrorsQueryError = unknown
+
+export const useGetApiAdminErrors = <TData = Awaited<ReturnType<typeof getApiAdminErrors>>, TError = unknown>(
+ params?: GetApiAdminErrorsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminErrors>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminErrorsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const deleteApiAdminErrors = (
+    
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/errors`, method: 'DELETE'
+    },
+      options);
+    }
+  
+
+
+export const getDeleteApiAdminErrorsMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminErrors>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminErrors>>, TError,void, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiAdminErrors>>, void> = () => {
+          
+
+          return  deleteApiAdminErrors(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteApiAdminErrorsMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiAdminErrors>>>
+    
+    export type DeleteApiAdminErrorsMutationError = unknown
+
+    export const useDeleteApiAdminErrors = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminErrors>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof deleteApiAdminErrors>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteApiAdminErrorsMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
     export const getApiAdminReportsDailyReconciliation = (
     params?: GetApiAdminReportsDailyReconciliationParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -4948,6 +5079,285 @@ export const useGetApiAdminIncidentsCorrelationId = <TData = Awaited<ReturnType<
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiAdminIncidentsCorrelationIdQueryOptions(correlationId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminJahresbelegClosingPreview = (
+    params?: GetApiAdminJahresbelegClosingPreviewParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<JahresbelegSummaryDto>(
+      {url: `/api/admin/jahresbeleg-closing/preview`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminJahresbelegClosingPreviewQueryKey = (params?: GetApiAdminJahresbelegClosingPreviewParams,) => {
+    return [`/api/admin/jahresbeleg-closing/preview`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminJahresbelegClosingPreviewQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminJahresbelegClosingPreview>>, TError = unknown>(params?: GetApiAdminJahresbelegClosingPreviewParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminJahresbelegClosingPreview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminJahresbelegClosingPreviewQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminJahresbelegClosingPreview>>> = ({ signal }) => getApiAdminJahresbelegClosingPreview(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminJahresbelegClosingPreview>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminJahresbelegClosingPreviewQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminJahresbelegClosingPreview>>>
+export type GetApiAdminJahresbelegClosingPreviewQueryError = unknown
+
+export const useGetApiAdminJahresbelegClosingPreview = <TData = Awaited<ReturnType<typeof getApiAdminJahresbelegClosingPreview>>, TError = unknown>(
+ params?: GetApiAdminJahresbelegClosingPreviewParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminJahresbelegClosingPreview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminJahresbelegClosingPreviewQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminJahresbelegClosing = (
+    createJahresbelegClosingRequest: CreateJahresbelegClosingRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<JahresbelegClosingResult>(
+      {url: `/api/admin/jahresbeleg-closing`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: createJahresbelegClosingRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminJahresbelegClosingMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminJahresbelegClosing>>, TError,{data: CreateJahresbelegClosingRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminJahresbelegClosing>>, TError,{data: CreateJahresbelegClosingRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminJahresbelegClosing>>, {data: CreateJahresbelegClosingRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminJahresbelegClosing(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminJahresbelegClosingMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminJahresbelegClosing>>>
+    export type PostApiAdminJahresbelegClosingMutationBody = CreateJahresbelegClosingRequest
+    export type PostApiAdminJahresbelegClosingMutationError = ProblemDetails
+
+    export const usePostApiAdminJahresbelegClosing = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminJahresbelegClosing>>, TError,{data: CreateJahresbelegClosingRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminJahresbelegClosing>>,
+        TError,
+        {data: CreateJahresbelegClosingRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminJahresbelegClosingMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminJahresbelegClosing = (
+    params?: GetApiAdminJahresbelegClosingParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<JahresbelegListItemDto[]>(
+      {url: `/api/admin/jahresbeleg-closing`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminJahresbelegClosingQueryKey = (params?: GetApiAdminJahresbelegClosingParams,) => {
+    return [`/api/admin/jahresbeleg-closing`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminJahresbelegClosingQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminJahresbelegClosing>>, TError = unknown>(params?: GetApiAdminJahresbelegClosingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminJahresbelegClosing>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminJahresbelegClosingQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminJahresbelegClosing>>> = ({ signal }) => getApiAdminJahresbelegClosing(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminJahresbelegClosing>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminJahresbelegClosingQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminJahresbelegClosing>>>
+export type GetApiAdminJahresbelegClosingQueryError = unknown
+
+export const useGetApiAdminJahresbelegClosing = <TData = Awaited<ReturnType<typeof getApiAdminJahresbelegClosing>>, TError = unknown>(
+ params?: GetApiAdminJahresbelegClosingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminJahresbelegClosing>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminJahresbelegClosingQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminJahresbelegClosingId = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<JahresbelegDetailDto>(
+      {url: `/api/admin/jahresbeleg-closing/${id}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminJahresbelegClosingIdQueryKey = (id: string,) => {
+    return [`/api/admin/jahresbeleg-closing/${id}`] as const;
+    }
+
+    
+export const getGetApiAdminJahresbelegClosingIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminJahresbelegClosingId>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminJahresbelegClosingId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminJahresbelegClosingIdQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminJahresbelegClosingId>>> = ({ signal }) => getApiAdminJahresbelegClosingId(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminJahresbelegClosingId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminJahresbelegClosingIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminJahresbelegClosingId>>>
+export type GetApiAdminJahresbelegClosingIdQueryError = ProblemDetails
+
+export const useGetApiAdminJahresbelegClosingId = <TData = Awaited<ReturnType<typeof getApiAdminJahresbelegClosingId>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminJahresbelegClosingId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminJahresbelegClosingIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminJahresbelegClosingIdReportPdf = (
+    id: string,
+    params?: GetApiAdminJahresbelegClosingIdReportPdfParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<Blob>(
+      {url: `/api/admin/jahresbeleg-closing/${id}/report-pdf`, method: 'GET',
+        params,
+        responseType: 'blob', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminJahresbelegClosingIdReportPdfQueryKey = (id: string,
+    params?: GetApiAdminJahresbelegClosingIdReportPdfParams,) => {
+    return [`/api/admin/jahresbeleg-closing/${id}/report-pdf`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminJahresbelegClosingIdReportPdfQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminJahresbelegClosingIdReportPdf>>, TError = ProblemDetails>(id: string,
+    params?: GetApiAdminJahresbelegClosingIdReportPdfParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminJahresbelegClosingIdReportPdf>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminJahresbelegClosingIdReportPdfQueryKey(id,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminJahresbelegClosingIdReportPdf>>> = ({ signal }) => getApiAdminJahresbelegClosingIdReportPdf(id,params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminJahresbelegClosingIdReportPdf>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminJahresbelegClosingIdReportPdfQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminJahresbelegClosingIdReportPdf>>>
+export type GetApiAdminJahresbelegClosingIdReportPdfQueryError = ProblemDetails
+
+export const useGetApiAdminJahresbelegClosingIdReportPdf = <TData = Awaited<ReturnType<typeof getApiAdminJahresbelegClosingIdReportPdf>>, TError = ProblemDetails>(
+ id: string,
+    params?: GetApiAdminJahresbelegClosingIdReportPdfParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminJahresbelegClosingIdReportPdf>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminJahresbelegClosingIdReportPdfQueryOptions(id,params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -6758,6 +7168,285 @@ export const useGetApiAdminLicensesReportSummary = <TData = Awaited<ReturnType<t
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiAdminLicensesReportSummaryQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminMonatsbelegClosingPreview = (
+    params?: GetApiAdminMonatsbelegClosingPreviewParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<MonatsbelegSummaryDto>(
+      {url: `/api/admin/monatsbeleg-closing/preview`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminMonatsbelegClosingPreviewQueryKey = (params?: GetApiAdminMonatsbelegClosingPreviewParams,) => {
+    return [`/api/admin/monatsbeleg-closing/preview`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminMonatsbelegClosingPreviewQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingPreview>>, TError = unknown>(params?: GetApiAdminMonatsbelegClosingPreviewParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingPreview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminMonatsbelegClosingPreviewQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingPreview>>> = ({ signal }) => getApiAdminMonatsbelegClosingPreview(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingPreview>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminMonatsbelegClosingPreviewQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingPreview>>>
+export type GetApiAdminMonatsbelegClosingPreviewQueryError = unknown
+
+export const useGetApiAdminMonatsbelegClosingPreview = <TData = Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingPreview>>, TError = unknown>(
+ params?: GetApiAdminMonatsbelegClosingPreviewParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingPreview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminMonatsbelegClosingPreviewQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminMonatsbelegClosing = (
+    createMonatsbelegClosingRequest: CreateMonatsbelegClosingRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<MonatsbelegClosingResult>(
+      {url: `/api/admin/monatsbeleg-closing`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: createMonatsbelegClosingRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminMonatsbelegClosingMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminMonatsbelegClosing>>, TError,{data: CreateMonatsbelegClosingRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminMonatsbelegClosing>>, TError,{data: CreateMonatsbelegClosingRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminMonatsbelegClosing>>, {data: CreateMonatsbelegClosingRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminMonatsbelegClosing(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminMonatsbelegClosingMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminMonatsbelegClosing>>>
+    export type PostApiAdminMonatsbelegClosingMutationBody = CreateMonatsbelegClosingRequest
+    export type PostApiAdminMonatsbelegClosingMutationError = ProblemDetails
+
+    export const usePostApiAdminMonatsbelegClosing = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminMonatsbelegClosing>>, TError,{data: CreateMonatsbelegClosingRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminMonatsbelegClosing>>,
+        TError,
+        {data: CreateMonatsbelegClosingRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminMonatsbelegClosingMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminMonatsbelegClosing = (
+    params?: GetApiAdminMonatsbelegClosingParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<MonatsbelegListItemDto[]>(
+      {url: `/api/admin/monatsbeleg-closing`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminMonatsbelegClosingQueryKey = (params?: GetApiAdminMonatsbelegClosingParams,) => {
+    return [`/api/admin/monatsbeleg-closing`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminMonatsbelegClosingQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminMonatsbelegClosing>>, TError = unknown>(params?: GetApiAdminMonatsbelegClosingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminMonatsbelegClosing>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminMonatsbelegClosingQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminMonatsbelegClosing>>> = ({ signal }) => getApiAdminMonatsbelegClosing(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminMonatsbelegClosing>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminMonatsbelegClosingQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminMonatsbelegClosing>>>
+export type GetApiAdminMonatsbelegClosingQueryError = unknown
+
+export const useGetApiAdminMonatsbelegClosing = <TData = Awaited<ReturnType<typeof getApiAdminMonatsbelegClosing>>, TError = unknown>(
+ params?: GetApiAdminMonatsbelegClosingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminMonatsbelegClosing>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminMonatsbelegClosingQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminMonatsbelegClosingId = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<MonatsbelegDetailDto>(
+      {url: `/api/admin/monatsbeleg-closing/${id}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminMonatsbelegClosingIdQueryKey = (id: string,) => {
+    return [`/api/admin/monatsbeleg-closing/${id}`] as const;
+    }
+
+    
+export const getGetApiAdminMonatsbelegClosingIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingId>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminMonatsbelegClosingIdQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingId>>> = ({ signal }) => getApiAdminMonatsbelegClosingId(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminMonatsbelegClosingIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingId>>>
+export type GetApiAdminMonatsbelegClosingIdQueryError = ProblemDetails
+
+export const useGetApiAdminMonatsbelegClosingId = <TData = Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingId>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminMonatsbelegClosingIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminMonatsbelegClosingIdReportPdf = (
+    id: string,
+    params?: GetApiAdminMonatsbelegClosingIdReportPdfParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<Blob>(
+      {url: `/api/admin/monatsbeleg-closing/${id}/report-pdf`, method: 'GET',
+        params,
+        responseType: 'blob', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminMonatsbelegClosingIdReportPdfQueryKey = (id: string,
+    params?: GetApiAdminMonatsbelegClosingIdReportPdfParams,) => {
+    return [`/api/admin/monatsbeleg-closing/${id}/report-pdf`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminMonatsbelegClosingIdReportPdfQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingIdReportPdf>>, TError = ProblemDetails>(id: string,
+    params?: GetApiAdminMonatsbelegClosingIdReportPdfParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingIdReportPdf>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminMonatsbelegClosingIdReportPdfQueryKey(id,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingIdReportPdf>>> = ({ signal }) => getApiAdminMonatsbelegClosingIdReportPdf(id,params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingIdReportPdf>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminMonatsbelegClosingIdReportPdfQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingIdReportPdf>>>
+export type GetApiAdminMonatsbelegClosingIdReportPdfQueryError = ProblemDetails
+
+export const useGetApiAdminMonatsbelegClosingIdReportPdf = <TData = Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingIdReportPdf>>, TError = ProblemDetails>(
+ id: string,
+    params?: GetApiAdminMonatsbelegClosingIdReportPdfParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminMonatsbelegClosingIdReportPdf>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminMonatsbelegClosingIdReportPdfQueryOptions(id,params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -9515,7 +10204,239 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminReportsUserActivity = (
+    export const getApiAdminReportPdfsClosingClosingId = (
+    closingId: string,
+    params?: GetApiAdminReportPdfsClosingClosingIdParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<Blob>(
+      {url: `/api/admin/report-pdfs/closing/${closingId}`, method: 'GET',
+        params,
+        responseType: 'blob', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminReportPdfsClosingClosingIdQueryKey = (closingId: string,
+    params?: GetApiAdminReportPdfsClosingClosingIdParams,) => {
+    return [`/api/admin/report-pdfs/closing/${closingId}`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminReportPdfsClosingClosingIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminReportPdfsClosingClosingId>>, TError = ProblemDetails>(closingId: string,
+    params?: GetApiAdminReportPdfsClosingClosingIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsClosingClosingId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminReportPdfsClosingClosingIdQueryKey(closingId,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminReportPdfsClosingClosingId>>> = ({ signal }) => getApiAdminReportPdfsClosingClosingId(closingId,params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(closingId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsClosingClosingId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminReportPdfsClosingClosingIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportPdfsClosingClosingId>>>
+export type GetApiAdminReportPdfsClosingClosingIdQueryError = ProblemDetails
+
+export const useGetApiAdminReportPdfsClosingClosingId = <TData = Awaited<ReturnType<typeof getApiAdminReportPdfsClosingClosingId>>, TError = ProblemDetails>(
+ closingId: string,
+    params?: GetApiAdminReportPdfsClosingClosingIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsClosingClosingId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminReportPdfsClosingClosingIdQueryOptions(closingId,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminReportPdfsReceiptPaymentId = (
+    paymentId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<Blob>(
+      {url: `/api/admin/report-pdfs/receipt/${paymentId}`, method: 'GET',
+        responseType: 'blob', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminReportPdfsReceiptPaymentIdQueryKey = (paymentId: string,) => {
+    return [`/api/admin/report-pdfs/receipt/${paymentId}`] as const;
+    }
+
+    
+export const getGetApiAdminReportPdfsReceiptPaymentIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminReportPdfsReceiptPaymentId>>, TError = ProblemDetails>(paymentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsReceiptPaymentId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminReportPdfsReceiptPaymentIdQueryKey(paymentId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminReportPdfsReceiptPaymentId>>> = ({ signal }) => getApiAdminReportPdfsReceiptPaymentId(paymentId, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(paymentId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsReceiptPaymentId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminReportPdfsReceiptPaymentIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportPdfsReceiptPaymentId>>>
+export type GetApiAdminReportPdfsReceiptPaymentIdQueryError = ProblemDetails
+
+export const useGetApiAdminReportPdfsReceiptPaymentId = <TData = Awaited<ReturnType<typeof getApiAdminReportPdfsReceiptPaymentId>>, TError = ProblemDetails>(
+ paymentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsReceiptPaymentId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminReportPdfsReceiptPaymentIdQueryOptions(paymentId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminReportPdfsClosingClosingIdExists = (
+    closingId: string,
+    params?: GetApiAdminReportPdfsClosingClosingIdExistsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<ReportPdfExistsResponse>(
+      {url: `/api/admin/report-pdfs/closing/${closingId}/exists`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminReportPdfsClosingClosingIdExistsQueryKey = (closingId: string,
+    params?: GetApiAdminReportPdfsClosingClosingIdExistsParams,) => {
+    return [`/api/admin/report-pdfs/closing/${closingId}/exists`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminReportPdfsClosingClosingIdExistsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminReportPdfsClosingClosingIdExists>>, TError = ProblemDetails>(closingId: string,
+    params?: GetApiAdminReportPdfsClosingClosingIdExistsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsClosingClosingIdExists>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminReportPdfsClosingClosingIdExistsQueryKey(closingId,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminReportPdfsClosingClosingIdExists>>> = ({ signal }) => getApiAdminReportPdfsClosingClosingIdExists(closingId,params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(closingId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsClosingClosingIdExists>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminReportPdfsClosingClosingIdExistsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportPdfsClosingClosingIdExists>>>
+export type GetApiAdminReportPdfsClosingClosingIdExistsQueryError = ProblemDetails
+
+export const useGetApiAdminReportPdfsClosingClosingIdExists = <TData = Awaited<ReturnType<typeof getApiAdminReportPdfsClosingClosingIdExists>>, TError = ProblemDetails>(
+ closingId: string,
+    params?: GetApiAdminReportPdfsClosingClosingIdExistsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsClosingClosingIdExists>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminReportPdfsClosingClosingIdExistsQueryOptions(closingId,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminReportPdfsReceiptPaymentIdExists = (
+    paymentId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<ReportPdfExistsResponse>(
+      {url: `/api/admin/report-pdfs/receipt/${paymentId}/exists`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminReportPdfsReceiptPaymentIdExistsQueryKey = (paymentId: string,) => {
+    return [`/api/admin/report-pdfs/receipt/${paymentId}/exists`] as const;
+    }
+
+    
+export const getGetApiAdminReportPdfsReceiptPaymentIdExistsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminReportPdfsReceiptPaymentIdExists>>, TError = ProblemDetails>(paymentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsReceiptPaymentIdExists>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminReportPdfsReceiptPaymentIdExistsQueryKey(paymentId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminReportPdfsReceiptPaymentIdExists>>> = ({ signal }) => getApiAdminReportPdfsReceiptPaymentIdExists(paymentId, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(paymentId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsReceiptPaymentIdExists>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminReportPdfsReceiptPaymentIdExistsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportPdfsReceiptPaymentIdExists>>>
+export type GetApiAdminReportPdfsReceiptPaymentIdExistsQueryError = ProblemDetails
+
+export const useGetApiAdminReportPdfsReceiptPaymentIdExists = <TData = Awaited<ReturnType<typeof getApiAdminReportPdfsReceiptPaymentIdExists>>, TError = ProblemDetails>(
+ paymentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsReceiptPaymentIdExists>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminReportPdfsReceiptPaymentIdExistsQueryOptions(paymentId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminReportsUserActivity = (
     params?: GetApiAdminReportsUserActivityParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -10389,7 +11310,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 ) => {
       
       
-      return customInstance<RksvDepExportRootDto>(
+      return customInstance<RksvDepExportEnvelopeDto>(
       {url: `/api/admin/rksv/dep-export`, method: 'GET',
         params, signal
     },
@@ -10439,7 +11360,109 @@ export const useGetApiAdminRksvDepExport = <TData = Awaited<ReturnType<typeof ge
 
 
 
-export const getApiAdminRksvDepExportTestMaterial = (
+export const postApiAdminRksvDepExportValidate = (
+    validateExportRequest: ValidateExportRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/rksv/dep-export/validate`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: validateExportRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminRksvDepExportValidateMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRksvDepExportValidate>>, TError,{data: ValidateExportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRksvDepExportValidate>>, TError,{data: ValidateExportRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminRksvDepExportValidate>>, {data: ValidateExportRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminRksvDepExportValidate(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminRksvDepExportValidateMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminRksvDepExportValidate>>>
+    export type PostApiAdminRksvDepExportValidateMutationBody = ValidateExportRequest
+    export type PostApiAdminRksvDepExportValidateMutationError = ProblemDetails
+
+    export const usePostApiAdminRksvDepExportValidate = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRksvDepExportValidate>>, TError,{data: ValidateExportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminRksvDepExportValidate>>,
+        TError,
+        {data: ValidateExportRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminRksvDepExportValidateMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminRksvDepExportTestPrueftool = (
+    testPrueftoolRequest: TestPrueftoolRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<RksvDepPrueftoolResult>(
+      {url: `/api/admin/rksv/dep-export/test-prueftool`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: testPrueftoolRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminRksvDepExportTestPrueftoolMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRksvDepExportTestPrueftool>>, TError,{data: TestPrueftoolRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRksvDepExportTestPrueftool>>, TError,{data: TestPrueftoolRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminRksvDepExportTestPrueftool>>, {data: TestPrueftoolRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminRksvDepExportTestPrueftool(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminRksvDepExportTestPrueftoolMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminRksvDepExportTestPrueftool>>>
+    export type PostApiAdminRksvDepExportTestPrueftoolMutationBody = TestPrueftoolRequest
+    export type PostApiAdminRksvDepExportTestPrueftoolMutationError = ProblemDetails
+
+    export const usePostApiAdminRksvDepExportTestPrueftool = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRksvDepExportTestPrueftool>>, TError,{data: TestPrueftoolRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminRksvDepExportTestPrueftool>>,
+        TError,
+        {data: TestPrueftoolRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminRksvDepExportTestPrueftoolMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminRksvDepExportTestMaterial = (
     params?: GetApiAdminRksvDepExportTestMaterialParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -14273,6 +15296,55 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
+    export const postApiAdminUsersIdResetPassword = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<AdminTemporaryPasswordResponse>(
+      {url: `/api/admin/users/${id}/reset-password`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminUsersIdResetPasswordMutationOptions = <TError = ApiError,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminUsersIdResetPassword>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminUsersIdResetPassword>>, TError,{id: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminUsersIdResetPassword>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  postApiAdminUsersIdResetPassword(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminUsersIdResetPasswordMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminUsersIdResetPassword>>>
+    
+    export type PostApiAdminUsersIdResetPasswordMutationError = ApiError
+
+    export const usePostApiAdminUsersIdResetPassword = <TError = ApiError,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminUsersIdResetPassword>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminUsersIdResetPassword>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminUsersIdResetPasswordMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
     export const postApiAdminUsersIdGenerateTemporaryPassword = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -17427,6 +18499,136 @@ export const useGetApiAdminReplayBatchCorrelationId = <TData = Awaited<ReturnTyp
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiAdminReplayBatchCorrelationIdQueryOptions(correlationId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminReportPdfsDownloadReportTypeReportId = (
+    reportType: string,
+    reportId: string,
+    params?: GetApiAdminReportPdfsDownloadReportTypeReportIdParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<Blob>(
+      {url: `/api/admin/report-pdfs/download/${reportType}/${reportId}`, method: 'GET',
+        params,
+        responseType: 'blob', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminReportPdfsDownloadReportTypeReportIdQueryKey = (reportType: string,
+    reportId: string,
+    params?: GetApiAdminReportPdfsDownloadReportTypeReportIdParams,) => {
+    return [`/api/admin/report-pdfs/download/${reportType}/${reportId}`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminReportPdfsDownloadReportTypeReportIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminReportPdfsDownloadReportTypeReportId>>, TError = ProblemDetails>(reportType: string,
+    reportId: string,
+    params?: GetApiAdminReportPdfsDownloadReportTypeReportIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsDownloadReportTypeReportId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminReportPdfsDownloadReportTypeReportIdQueryKey(reportType,reportId,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminReportPdfsDownloadReportTypeReportId>>> = ({ signal }) => getApiAdminReportPdfsDownloadReportTypeReportId(reportType,reportId,params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(reportType && reportId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsDownloadReportTypeReportId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminReportPdfsDownloadReportTypeReportIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportPdfsDownloadReportTypeReportId>>>
+export type GetApiAdminReportPdfsDownloadReportTypeReportIdQueryError = ProblemDetails
+
+export const useGetApiAdminReportPdfsDownloadReportTypeReportId = <TData = Awaited<ReturnType<typeof getApiAdminReportPdfsDownloadReportTypeReportId>>, TError = ProblemDetails>(
+ reportType: string,
+    reportId: string,
+    params?: GetApiAdminReportPdfsDownloadReportTypeReportIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsDownloadReportTypeReportId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminReportPdfsDownloadReportTypeReportIdQueryOptions(reportType,reportId,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminReportsReportTypeReportIdPdf = (
+    reportType: string,
+    reportId: string,
+    params?: GetApiAdminReportsReportTypeReportIdPdfParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<Blob>(
+      {url: `/api/admin/reports/${reportType}/${reportId}/pdf`, method: 'GET',
+        params,
+        responseType: 'blob', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminReportsReportTypeReportIdPdfQueryKey = (reportType: string,
+    reportId: string,
+    params?: GetApiAdminReportsReportTypeReportIdPdfParams,) => {
+    return [`/api/admin/reports/${reportType}/${reportId}/pdf`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminReportsReportTypeReportIdPdfQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminReportsReportTypeReportIdPdf>>, TError = ProblemDetails>(reportType: string,
+    reportId: string,
+    params?: GetApiAdminReportsReportTypeReportIdPdfParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsReportTypeReportIdPdf>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminReportsReportTypeReportIdPdfQueryKey(reportType,reportId,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminReportsReportTypeReportIdPdf>>> = ({ signal }) => getApiAdminReportsReportTypeReportIdPdf(reportType,reportId,params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(reportType && reportId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsReportTypeReportIdPdf>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminReportsReportTypeReportIdPdfQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportsReportTypeReportIdPdf>>>
+export type GetApiAdminReportsReportTypeReportIdPdfQueryError = ProblemDetails
+
+export const useGetApiAdminReportsReportTypeReportIdPdf = <TData = Awaited<ReturnType<typeof getApiAdminReportsReportTypeReportIdPdf>>, TError = ProblemDetails>(
+ reportType: string,
+    reportId: string,
+    params?: GetApiAdminReportsReportTypeReportIdPdfParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsReportTypeReportIdPdf>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminReportsReportTypeReportIdPdfQueryOptions(reportType,reportId,params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

@@ -91,7 +91,61 @@ public sealed class LicenseServiceGetLicenseStatusTests
     }
 
     [Fact]
-    public async Task GetLicenseStatusAsync_InDevelopment_ReturnsUnlimitedAccess_EvenWhenTenantExpired()
+    public async Task GetLicenseStatusAsync_InDevelopment_ReturnsPersistedTenantRow()
+    {
+        var tenantId = Guid.NewGuid();
+        var validUntil = DateTime.UtcNow.Date.AddDays(1);
+        await using var db = new AppDbContext(
+            new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase($"LicenseStatusDev_{Guid.NewGuid():N}")
+                .Options,
+            NullCurrentTenantAccessor.Instance);
+
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Dev Tenant",
+            Slug = "dev-tenant",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            LicenseValidUntilUtc = validUntil,
+            LicenseKey = "TEST-KEY",
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var serviceProvider = new Mock<IServiceProvider>();
+        serviceProvider.Setup(x => x.GetService(typeof(AppDbContext))).Returns(db);
+        var scope = new Mock<IServiceScope>();
+        scope.SetupGet(x => x.ServiceProvider).Returns(serviceProvider.Object);
+        var scopeFactory = new Mock<IServiceScopeFactory>();
+        scopeFactory.Setup(x => x.CreateScope()).Returns(scope.Object);
+
+        var hostEnvironment = new Mock<IHostEnvironment>();
+        hostEnvironment.SetupGet(x => x.EnvironmentName).Returns(Environments.Development);
+
+        var service = new LicenseService(
+            Options.Create(new LicenseOptions()),
+            Mock.Of<IHttpClientFactory>(),
+            Mock.Of<ILicenseStorageService>(),
+            scopeFactory.Object,
+            Mock.Of<IActivityEventPublisher>(),
+            Mock.Of<ILogger<LicenseService>>(),
+            hostEnvironment.Object,
+            Options.Create(new TseOptions { TseMode = "Device" }),
+            Mock.Of<IOptionsMonitor<DevelopmentOptions>>(o => o.CurrentValue == new DevelopmentOptions()),
+            Mock.Of<IDevelopmentModeService>(d => d.ShouldBypassLicense() == false));
+
+        var info = await service.GetLicenseStatusAsync(tenantId);
+
+        Assert.Equal(1, info.DaysRemaining);
+        Assert.True(info.CanAccess);
+        Assert.Contains("läuft in 1 Tagen ab", info.StatusMessage);
+        Assert.NotEqual(999, info.DaysRemaining);
+    }
+
+    [Fact]
+    public async Task GetLicenseStatusAsync_InDevelopment_WhenGraceExpired_ReportsLockdown()
     {
         var tenantId = Guid.NewGuid();
         await using var db = new AppDbContext(
@@ -136,11 +190,8 @@ public sealed class LicenseServiceGetLicenseStatusTests
 
         var info = await service.GetLicenseStatusAsync(tenantId);
 
-        Assert.True(info.IsActive);
-        Assert.True(info.CanAccess);
-        Assert.True(info.CanTransact);
-        Assert.Equal(999, info.DaysRemaining);
-        Assert.False(info.IsInGracePeriod);
-        Assert.Equal("Development Mode - Unlimited Access", info.StatusMessage);
+        Assert.False(info.CanAccess);
+        Assert.True(info.RequiresRenewal);
+        Assert.Contains("Zugang gesperrt", info.StatusMessage);
     }
 }

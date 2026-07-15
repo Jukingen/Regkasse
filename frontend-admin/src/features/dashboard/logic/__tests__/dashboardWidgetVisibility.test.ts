@@ -21,7 +21,7 @@ const catalog: DashboardWidgetCatalogItem[] = [
         widgetId: 'license-expiry',
         title: 'License',
         description: '',
-        requiredPermission: PERMISSIONS.SETTINGS_MANAGE,
+        requiredPermission: PERMISSIONS.LICENSE_MANAGE,
         defaultOrder: 1,
         defaultVisible: true,
         supportsAutoRefresh: true,
@@ -47,7 +47,7 @@ const catalog: DashboardWidgetCatalogItem[] = [
 ];
 
 describe('dashboardWidgetVisibility', () => {
-    it('hides settings.manage widgets from managers', () => {
+    it('hides license.manage widgets from managers without license permission', () => {
         const hasPermission = (p: string) =>
             p === PERMISSIONS.REPORT_VIEW ||
             p === PERMISSIONS.SETTINGS_VIEW ||
@@ -61,9 +61,9 @@ describe('dashboardWidgetVisibility', () => {
         ]);
     });
 
-    it('shows settings.manage widgets only when granted', () => {
+    it('shows license.manage widgets when granted', () => {
         expect(
-            canShowDashboardWidget(catalog[1], (p) => p === PERMISSIONS.SETTINGS_MANAGE),
+            canShowDashboardWidget(catalog[1], (p) => p === PERMISSIONS.LICENSE_MANAGE),
         ).toBe(true);
         expect(canShowDashboardWidget(catalog[1], () => false)).toBe(false);
     });

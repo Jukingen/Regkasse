@@ -34,6 +34,7 @@ vi.mock('@/features/auth/services/tenantSwitchController', () => ({
 
 vi.mock('@/features/auth/services/tenantStorage', () => ({
     tenantStorage: {
+        getTenantId: () => null,
         persistBootstrap: (...args: unknown[]) => mockPersistBootstrap(...args),
     },
 }));
@@ -117,8 +118,8 @@ describe('useTenantChangeListener', () => {
         });
 
         expect(mockQueryClientClear).toHaveBeenCalledTimes(1);
-        expect(mockMessageInfo).toHaveBeenCalledWith('adminShell.tenant.switch.toast:bar');
-        expect(mockPersistBootstrap).toHaveBeenCalledWith({ tenantSlug: 'prod' });
+        expect(mockMessageInfo).toHaveBeenCalledWith('adminShell.tenant.switch.toast:prod');
+        expect(mockPersistBootstrap).toHaveBeenCalledWith({ tenantSlug: 'prod', tenantId: null });
         expect(mockRemoveToken).toHaveBeenCalledTimes(1);
         expect(mockBeginTenantSwitch).toHaveBeenCalledTimes(1);
         expect(mockReload).toHaveBeenCalledTimes(1);
@@ -147,8 +148,8 @@ describe('useTenantChangeListener', () => {
         });
 
         expect(mockQueryClientClear).toHaveBeenCalledTimes(1);
-        expect(mockMessageInfo).toHaveBeenCalledWith('adminShell.tenant.switch.toast:bar');
-        expect(mockPersistBootstrap).toHaveBeenCalledWith({ tenantSlug: 'prod' });
+        expect(mockMessageInfo).toHaveBeenCalledWith('adminShell.tenant.switch.toast:prod');
+        expect(mockPersistBootstrap).toHaveBeenCalledWith({ tenantSlug: 'prod', tenantId: null });
         expect(mockReload).toHaveBeenCalledTimes(1);
     });
 
@@ -164,7 +165,7 @@ describe('useTenantChangeListener', () => {
         expect(mockQueryClientClear).toHaveBeenCalledTimes(1);
         expect(mockBeginTenantSwitch).toHaveBeenCalledTimes(1);
         expect(mockReload).toHaveBeenCalledTimes(1);
-        expect(mockPersistBootstrap).toHaveBeenCalledWith({ tenantSlug: 'prod' });
+        expect(mockPersistBootstrap).toHaveBeenCalledWith({ tenantSlug: 'prod', tenantId: null });
     });
 
     it('safety timeout resets guard when reload does not navigate away', () => {

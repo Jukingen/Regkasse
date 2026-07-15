@@ -182,6 +182,7 @@ function ReceiptsPageContent() {
                     onTableChange={handleTableChange}
                     emptyText={emptyText}
                     showPaymentPdfReprint
+                    showStoredPdfDownload
                 />
             ) : null}
         </Space>

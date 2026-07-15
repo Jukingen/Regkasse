@@ -2,6 +2,8 @@
   "dashboard": "Kontrol paneli",
   "licenseManagement": "Lisans yönetimi",
   "licenses": "Lisanslar",
+  "licenseTest": "🧪 Lisans testi",
+  "licenseDebug": "Lisans debug",
   "platformLicenses": "Kiracı lisansları",
   "licenseSales": "Lisans satışı",
   "operations": "Operasyon",

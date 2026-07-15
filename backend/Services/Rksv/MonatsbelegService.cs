@@ -138,6 +138,13 @@ public sealed class MonatsbelegService : IMonatsbelegService
             CreatedAt = signedAtUtc,
         };
 
+        await DailyClosingOperationalResolver.StampOperationalFieldsAsync(
+            _db,
+            dailyClosing,
+            cashRegisterId,
+            actorUserId,
+            cancellationToken: cancellationToken);
+
         var monatsbeleg = new Monatsbeleg
         {
             CashRegisterId = cashRegisterId,

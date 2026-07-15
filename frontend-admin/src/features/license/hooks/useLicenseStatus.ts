@@ -1,21 +1,22 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
+import type { UseQueryResult } from '@tanstack/react-query';
 
+import { useI18n } from '@/i18n';
+import { useTenantLicense } from '@/hooks/useTenantLicense';
+import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
+import {
+    getLicenseStatusMessage,
+    resolveDeploymentLicenseStatus,
+    resolveTenantLicenseFromPublicStatus,
+    resolveTenantRowLicenseStatus,
+    type LicenseStatusKind,
+} from '@/features/license/utils/licenseStatus';
 import {
     getDeploymentLicenseStatus,
     licenseQueryKeys,
 } from '@/api/manual/adminLicense';
-import { useAuthorizationGate, useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
-import { useI18n } from '@/i18n';
-import { getTenantLicense } from '@/features/license/api/tenantLicense';
-import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
+import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
 import { PERMISSIONS } from '@/shared/auth/permissions';
-import {
-    getLicenseStatusMessage,
-    resolveDeploymentLicenseStatus,
-    resolveTenantLicenseStatus,
-    resolveTenantRowLicenseStatus,
-    type LicenseStatusKind,
-} from '@/features/license/utils/licenseStatus';
 
 export interface LicenseStatus {
     kind: LicenseStatusKind;
@@ -27,45 +28,67 @@ export interface LicenseStatus {
     message: string;
 }
 
-export const useTenantLicenseStatus = (tenantId?: string) => {
-    const { t, textLocale } = useI18n();
+function mapTenantLicenseStatus(
+    t: ReturnType<typeof useI18n>['t'],
+    currentTenant: ReturnType<typeof useCurrentTenant>,
+    remoteStatus: ReturnType<typeof resolveTenantLicenseFromPublicStatus> | null,
+): LicenseStatus {
+    const status =
+        remoteStatus ??
+        resolveTenantRowLicenseStatus({
+            licenseValidUntilUtc: currentTenant.licenseValidUntilUtc,
+            licenseKey: currentTenant.licenseKey,
+            licenseDaysRemaining: currentTenant.licenseDaysRemaining,
+        });
+
+    return {
+        ...status,
+        message: getLicenseStatusMessage(status, 'tenant', t),
+    };
+}
+
+export const useTenantLicenseStatus = (tenantId?: string): UseQueryResult<LicenseStatus> => {
+    const { t } = useI18n();
     const currentTenant = useCurrentTenant();
-    const { isAuthorized: canFetchTenantLicense } = useAuthorizationGate({
-        requiredPermission: PERMISSIONS.LICENSE_MANAGE,
-    });
     const resolvedTenantId = tenantId ?? currentTenant.tenantId ?? undefined;
-    const shouldFetchRemote =
-        canFetchTenantLicense && Boolean(resolvedTenantId && currentTenant.isRealTenantSlug);
+    const query = useTenantLicense(resolvedTenantId);
 
-    return useQuery({
-        queryKey: [
-            'tenant-license-status',
-            resolvedTenantId,
-            textLocale,
-            shouldFetchRemote ? 'remote' : 'local',
-        ],
-        queryFn: async () => {
-            if (shouldFetchRemote && resolvedTenantId) {
-                const response = await getTenantLicense(resolvedTenantId);
-                const status = resolveTenantLicenseStatus(response.status);
-                return {
-                    ...status,
-                    message: getLicenseStatusMessage(status, 'tenant', t),
-                } satisfies LicenseStatus;
-            }
+    const data = useMemo(() => {
+        if (!resolvedTenantId || !currentTenant.hasAuthToken) {
+            return undefined;
+        }
 
-            const status = resolveTenantRowLicenseStatus({
-                licenseValidUntilUtc: currentTenant.licenseValidUntilUtc,
-                licenseKey: currentTenant.licenseKey,
-                licenseDaysRemaining: currentTenant.licenseDaysRemaining,
-            });
-            return {
-                ...status,
-                message: getLicenseStatusMessage(status, 'tenant', t),
-            } satisfies LicenseStatus;
-        },
-        enabled: Boolean(resolvedTenantId && currentTenant.hasAuthToken),
-    });
+        if (query.data) {
+            return mapTenantLicenseStatus(
+                t,
+                currentTenant,
+                resolveTenantLicenseFromPublicStatus(query.data),
+            );
+        }
+
+        if (query.isLoading || query.isFetching) {
+            return undefined;
+        }
+
+        // Remote query ran but returned nothing — do not fall back to stale switcher row.
+        if (resolvedTenantId && currentTenant.isRealTenantSlug && currentTenant.hasAuthToken) {
+            return undefined;
+        }
+
+        return mapTenantLicenseStatus(t, currentTenant, null);
+    }, [
+        resolvedTenantId,
+        currentTenant,
+        query.data,
+        query.isLoading,
+        query.isFetching,
+        t,
+    ]);
+
+    return {
+        ...query,
+        data,
+    } as UseQueryResult<LicenseStatus>;
 };
 
 export const useDeploymentLicenseStatus = () => {

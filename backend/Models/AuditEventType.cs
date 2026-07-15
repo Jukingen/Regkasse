@@ -41,5 +41,7 @@ public enum AuditEventType
     LicenseExtended = 27,
     /// <summary>Super Admin or Manager updated mandant license key and/or validity.</summary>
     LicenseUpdated = 28,
+    /// <summary>Persisted RKSV report PDF downloaded from admin (Nachdruck / stored copy).</summary>
+    ReportPdfDownloaded = 29,
     Other = 99
 }

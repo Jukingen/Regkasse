@@ -21,6 +21,7 @@ import { PosStatusOverviewProvider } from '../contexts/PosStatusOverviewContext'
 import { useMemoryMonitor } from '../hooks/useMemoryOptimization';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { clearLegacyTenantSwitcherCache } from '../services/tenant/clearLegacyTenantSwitcherCache';
+import { OfflineSyncService } from '../services/offline/offlineSyncService';
 
 console.log('🚀 ROOT LAYOUT: Module loaded successfully');
 
@@ -42,6 +43,10 @@ export default function RootLayout() {
 
   React.useEffect(() => {
     void clearLegacyTenantSwitcherCache();
+  }, []);
+
+  React.useEffect(() => {
+    OfflineSyncService.getInstance();
   }, []);
 
   React.useEffect(() => {

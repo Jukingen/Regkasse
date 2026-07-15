@@ -144,7 +144,8 @@
       "expiresSoon7": "Lisans yakında sona eriyor — lütfen yenileyin.",
       "expiresSoon30": "Lisans 30 gün içinde sona eriyor.",
       "noExpiryDate": "Lisans bitiş tarihi tanımlı değil",
-      "openSettings": "Ayarları aç"
+      "openSettings": "Ayarları aç",
+      "actionRequired": "Mandant lisansının yenilenmesi gerekiyor."
     },
     "recentUsers": {
       "empty": "Kullanıcı yok"

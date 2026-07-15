@@ -3,16 +3,25 @@ import type { PosDailyClosingReportDto } from '../services/api/shiftService';
 export interface DailyClosingReportLabels {
   title: string;
   date: string;
+  period: string;
   register: string;
+  cashRegisterId: string;
   cashier: string;
   tseStatus: string;
+  tseProvider: string;
+  depExport: string;
   sales: string;
   cash: string;
   card: string;
   voucher: string;
   other: string;
   paymentMethodsSection: string;
+  financialSummarySection: string;
   transactionBreakdownSection: string;
+  rksvStatusSection: string;
+  startbeleg: string;
+  monatsbeleg: string;
+  jahresbeleg: string;
   breakdownCash: string;
   breakdownCard: string;
   breakdownVoucher: string;
@@ -21,6 +30,7 @@ export interface DailyClosingReportLabels {
   cashCount: string;
   difference: string;
   fiscalTotal: string;
+  fiscalNet: string;
   fiscalTax: string;
   taxSection: string;
   tax20: string;
@@ -28,6 +38,7 @@ export interface DailyClosingReportLabels {
   tax0: string;
   transactions: string;
   tseSignature: string;
+  tseVerification: string;
   previousSignature: string;
   disclaimer: string;
 }
@@ -53,6 +64,31 @@ import { formatUserDate } from './dateFormatter';
 
 function formatDate(iso: string, _locale: string): string {
   return formatUserDate(iso) || iso;
+}
+
+function formatBelegStatus(exists?: boolean): string {
+  return exists ? 'Ja' : 'Nein';
+}
+
+function formatPeriod(startUtc?: string | null, endUtc?: string | null, locale = 'de-AT'): string {
+  if (!startUtc || !endUtc) return '—';
+  const start = new Date(startUtc);
+  const end = new Date(endUtc);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return '—';
+  const fmt = new Intl.DateTimeFormat(locale, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  return `${fmt.format(start)} – ${fmt.format(end)}`;
+}
+
+function formatVerificationStatus(report: PosDailyClosingReportDto): string {
+  if (report.tseSignatureVerified) return 'GEPRÜFT';
+  if (report.isDemoFiscal) return 'SIMULIERT';
+  return 'NICHT VERIFIZIERT';
 }
 
 export function formatDailyClosingReportHtml(
@@ -122,6 +158,22 @@ export function formatDailyClosingReportHtml(
     ? `<p class="${report.isDemoFiscal ? 'demo-badge' : 'prod-badge'}">${escapeHtml(tseBadgeText)}</p>`
     : '';
 
+  const companyHeader = report.companyName?.trim()
+    ? `<div style="text-align:center;margin-bottom:12px;line-height:1.4;">
+        <div style="font-weight:700;">${escapeHtml(report.companyName.trim())}</div>
+        ${report.companyAddress?.trim() ? `<div>${escapeHtml(report.companyAddress.trim())}</div>` : ''}
+        ${report.companyVatId?.trim() ? `<div>UID: ${escapeHtml(report.companyVatId.trim())}</div>` : ''}
+      </div>`
+    : '';
+
+  const cashRegisterId =
+    report.cashRegisterId?.trim() || report.registerNumber?.trim() || '—';
+  const tseProvider = report.tseProviderLabel?.trim() || tseStatus;
+  const depExport = report.depExportStatusLabel?.trim() || '—';
+  const fiscalNet =
+    report.fiscalTotalNetAmount ??
+    report.fiscalTotalAmount - report.fiscalTotalTaxAmount;
+
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -138,14 +190,19 @@ export function formatDailyClosingReportHtml(
   </style>
 </head>
 <body>
+  ${companyHeader}
   <h1>${escapeHtml(labels.title)}</h1>
   <table>
     ${row(labels.date, formatDate(report.businessDate, formatLocale))}
+    ${row(labels.period, formatPeriod(report.periodStartUtc, report.periodEndUtc, formatLocale))}
+    ${row(labels.cashRegisterId, cashRegisterId)}
     ${row(labels.register, report.registerNumber || '—')}
     ${row(labels.cashier, report.cashierName || '—')}
-    ${row(labels.tseStatus, tseStatus)}
-    ${row(labels.sales, formatMoney(report.totalSales, formatLocale))}
+    ${row(labels.tseProvider, tseProvider)}
+    ${row(labels.depExport, depExport)}
+    ${section(labels.financialSummarySection)}
     ${row(labels.fiscalTotal, formatMoney(report.fiscalTotalAmount, formatLocale))}
+    ${row(labels.fiscalNet, formatMoney(fiscalNet, formatLocale))}
     ${row(labels.fiscalTax, formatMoney(report.fiscalTotalTaxAmount, formatLocale))}
     ${row(labels.transactions, String(report.fiscalTransactionCount))}
     ${taxRows ? section(labels.taxSection) + taxRows : ''}
@@ -162,9 +219,14 @@ export function formatDailyClosingReportHtml(
     ${row(labels.breakdownTotal, String(breakdown.total))}
     ${row(labels.cashCount, formatMoney(report.cashCount, formatLocale))}
     ${row(labels.difference, formatMoney(report.difference, formatLocale))}
+    ${section(labels.rksvStatusSection)}
+    ${row(labels.startbeleg, formatBelegStatus(report.hasStartbeleg))}
+    ${row(labels.monatsbeleg, formatBelegStatus(report.hasMonatsbeleg))}
+    ${row(labels.jahresbeleg, formatBelegStatus(report.hasJahresbeleg))}
   </table>
   ${notes}
   <p class="tse"><strong>${escapeHtml(labels.tseSignature)}:</strong> ${escapeHtml(tseSignature)}</p>
+  <p class="tse"><strong>${escapeHtml(labels.tseVerification)}:</strong> ${escapeHtml(formatVerificationStatus(report))}</p>
   ${report.previousClosingSignature?.trim() ? `<p class="tse"><strong>${escapeHtml(labels.previousSignature)}:</strong> ${escapeHtml(previousSignature)}</p>` : ''}
   ${tseBadge}
   <p class="disclaimer">${escapeHtml(disclaimer)}</p>

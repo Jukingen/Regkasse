@@ -1,5 +1,6 @@
 using KasseAPI_Final;
 using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Services.License;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -116,11 +117,14 @@ public sealed class LicenseReminderHostedService : IHostedService, IDisposable
         var lic = sp.GetRequiredService<ILicenseService>();
         var store = sp.GetRequiredService<ILicenseReminderNotificationStore>();
         var mail = sp.GetRequiredService<ILicenseReminderEmailSender>();
+        var mandantReminders = sp.GetRequiredService<ILicenseReminderService>();
         var options = sp.GetRequiredService<IOptions<LicenseOptions>>().Value;
 
         lic.EvaluateOnStartup();
         var status = await lic.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
         var now = DateTimeOffset.UtcNow;
+
+        await TrySendMandantExpiryRemindersAsync(mandantReminders, cancellationToken).ConfigureAwait(false);
 
         if (status.IsExpired)
         {
@@ -167,6 +171,30 @@ public sealed class LicenseReminderHostedService : IHostedService, IDisposable
             {
                 _logger.LogWarning(ex, "License urgency email was not sent (SMTP error).");
             }
+        }
+    }
+
+    private async Task TrySendMandantExpiryRemindersAsync(
+        ILicenseReminderService mandantReminders,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var mandantResult = await mandantReminders
+                .SendDueMandantExpiryRemindersAsync(cancellationToken)
+                .ConfigureAwait(false);
+            if (mandantResult.EmailsSent > 0)
+            {
+                _logger.LogInformation(
+                    "Mandant license expiry reminders sent: sent={Sent} skipped={Skipped} failed={Failed}",
+                    mandantResult.EmailsSent,
+                    mandantResult.Skipped,
+                    mandantResult.Failed);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Mandant license expiry reminder sweep failed.");
         }
     }
 

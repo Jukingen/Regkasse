@@ -144,7 +144,8 @@
       "expiresSoon7": "Lizenz läuft in Kürze ab — bitte verlängern.",
       "expiresSoon30": "Lizenz läuft innerhalb von 30 Tagen ab.",
       "noExpiryDate": "Kein Lizenzablaufdatum hinterlegt",
-      "openSettings": "Einstellungen öffnen"
+      "openSettings": "Einstellungen öffnen",
+      "actionRequired": "Mandantenlizenz erfordert eine Verlängerung."
     },
     "recentUsers": {
       "empty": "Keine Benutzer"

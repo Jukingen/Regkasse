@@ -22,7 +22,9 @@ public static class MonatsbelegReportComposer
         Monatsbeleg closing,
         MonatsbelegSummaryDto summary,
         string? registerNumber,
-        FiscalEnvironmentResolver.FiscalEnvironment fiscalEnvironment)
+        FiscalEnvironmentResolver.FiscalEnvironment fiscalEnvironment,
+        TagesabschlussCloudContext? cloudContext = null,
+        DailyClosing? linkedDailyClosing = null)
     {
         ArgumentNullException.ThrowIfNull(closing);
         ArgumentNullException.ThrowIfNull(summary);
@@ -38,11 +40,29 @@ public static class MonatsbelegReportComposer
             monthAnchor,
             closing.TotalGross);
 
+        var (periodStartUtc, periodEndUtc) = RksvClosingPeriodHelper.MonthUtcRange(closing.Year, closing.Month);
+
         return new PosDailyClosingReportDto
         {
             ClosingType = "Monthly",
             BusinessDate = monthAnchor,
-            RegisterNumber = registerNumber,
+            CashRegisterId = closing.CashRegisterId,
+            RegisterNumber = cloudContext?.RegisterNumber ?? registerNumber,
+            CompanyName = cloudContext?.CompanyName,
+            CompanyAddress = cloudContext?.CompanyAddress,
+            CompanyVatId = cloudContext?.CompanyVatId,
+            PeriodStartUtc = cloudContext?.PeriodStartUtc ?? periodStartUtc,
+            PeriodEndUtc = cloudContext?.PeriodEndUtc ?? periodEndUtc,
+            TseProviderLabel = cloudContext?.TseProviderLabel,
+            DepExportStatusLabel = cloudContext?.DepExportStatusLabel,
+            TseSignatureVerified = cloudContext?.TseSignatureVerified ?? false,
+            HasStartbeleg = cloudContext?.HasStartbeleg ?? false,
+            HasMonatsbeleg = cloudContext?.HasMonatsbeleg ?? true,
+            HasJahresbeleg = cloudContext?.HasJahresbeleg ?? false,
+            CashierName = string.IsNullOrWhiteSpace(linkedDailyClosing?.CashierName)
+                ? null
+                : linkedDailyClosing!.CashierName,
+            ShiftNumber = RksvShiftNumberFormatter.Format(linkedDailyClosing?.ShiftNumber),
             TotalSales = closing.TotalGross,
             TotalCash = closing.TotalCash,
             TotalCard = closing.TotalCard,

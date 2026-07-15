@@ -66,3 +66,13 @@ public sealed class AdminOfflineOrdersListResponse
     public int PageNumber { get; set; }
     public int PageSize { get; set; }
 }
+
+/// <summary>POS sync health snapshot for offline order queue monitoring.</summary>
+public sealed class PosOfflineSyncHealthDto
+{
+    public int PendingOrders { get; set; }
+    public int MaxPending { get; set; }
+    public bool IsHealthy { get; set; }
+    public string Status { get; set; } = "healthy";
+    public DateTime? LastSyncAt { get; set; }
+}

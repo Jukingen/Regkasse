@@ -28,13 +28,48 @@ namespace KasseAPI_Final.Tests;
 /// </summary>
 public class AdminUsersControllerTests
 {
-    private static AppDbContext CreateEphemeralContext()
+    private static AppDbContext CreateEphemeralContext(ICurrentTenantAccessor? tenantAccessor = null)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"AdminUsers_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, NullCurrentTenantAccessor.Instance);
+        return new AppDbContext(options, tenantAccessor ?? NullCurrentTenantAccessor.Instance);
+    }
+
+    private static (AppDbContext Db, CurrentTenantAccessor TenantAccessor) CreateTenantScopedContext(Guid? tenantId = null)
+    {
+        var id = tenantId ?? Guid.NewGuid();
+        var accessor = new CurrentTenantAccessor { TenantId = id };
+        return (CreateEphemeralContext(accessor), accessor);
+    }
+
+    private static void EnsureTenant(AppDbContext db, Guid tenantId, string slug)
+    {
+        if (db.Tenants.IgnoreQueryFilters().Any(t => t.Id == tenantId))
+            return;
+
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Test Tenant",
+            Slug = slug,
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+    }
+
+    private static void AddActiveMembership(AppDbContext db, string userId, Guid tenantId)
+    {
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            TenantId = tenantId,
+            IsActive = true,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
     }
 
     private static UserManager<ApplicationUser> CreateUserManager(AppDbContext db)
@@ -795,8 +830,9 @@ public class AdminUsersControllerTests
     [Fact]
     public async Task ResetPassword_AsManager_ReturnsGeneratedPassword_UpdatesFlag_AndInvalidatesSessions()
     {
-        await using var db = CreateEphemeralContext();
         var tenantId = Guid.NewGuid();
+        var tenantAccessor = new CurrentTenantAccessor { TenantId = tenantId };
+        await using var db = CreateEphemeralContext(tenantAccessor);
         db.Tenants.Add(new Tenant
         {
             Id = tenantId,
@@ -883,7 +919,7 @@ public class AdminUsersControllerTests
             actorId: "manager-1",
             actorRole: Roles.Manager,
             context: db,
-            tenantAccessor: new CurrentTenantAccessor { TenantId = tenantId });
+            tenantAccessor: tenantAccessor);
 
         var result = await controller.ResetPassword("user-1");
 
@@ -1257,7 +1293,9 @@ public class AdminUsersControllerTests
     [Fact]
     public async Task List_Search_Matches_UserName_And_Email()
     {
+        var tenantId = Guid.NewGuid();
         await using var db = CreateEphemeralContext();
+        EnsureTenant(db, tenantId, "search-tenant");
         db.Users.AddRange(
             new ApplicationUser
             {
@@ -1292,6 +1330,9 @@ public class AdminUsersControllerTests
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
             });
+        AddActiveMembership(db, "by-name", tenantId);
+        AddActiveMembership(db, "by-email", tenantId);
+        AddActiveMembership(db, "no-match", tenantId);
         await db.SaveChangesAsync();
 
         var controller = CreateController(
@@ -1377,7 +1418,10 @@ public class AdminUsersControllerTests
             new AdminUsersController.UpdateUserTenantsRequest { TenantIds = new List<Guid> { tenantB } });
 
         Assert.IsType<NoContentResult>(result);
-        var memberships = await db.UserTenantMemberships.Where(m => m.UserId == "cashier-1").ToListAsync();
+        var memberships = await db.UserTenantMemberships
+            .IgnoreQueryFilters()
+            .Where(m => m.UserId == "cashier-1")
+            .ToListAsync();
         Assert.False(memberships.Single(m => m.TenantId == tenantA).IsActive);
         Assert.True(memberships.Single(m => m.TenantId == tenantB).IsActive);
         audit.Verify(
@@ -1669,7 +1713,8 @@ public class AdminUsersControllerTests
     [Fact]
     public async Task UpdateUsername_WhenReserved_ReturnsBadRequest()
     {
-        await using var db = CreateEphemeralContext();
+        var (db, tenantAccessor) = CreateTenantScopedContext();
+        EnsureTenant(db, tenantAccessor.TenantId!.Value, "reserved-tenant");
         db.Users.Add(new ApplicationUser
         {
             Id = "user-1",
@@ -1681,13 +1726,15 @@ public class AdminUsersControllerTests
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
         });
+        AddActiveMembership(db, "user-1", tenantAccessor.TenantId!.Value);
         await db.SaveChangesAsync();
 
         var controller = CreateController(
             db,
             new Mock<IAuditLogService>().Object,
             new Mock<IUserSessionInvalidation>().Object,
-            actorRole: Roles.Manager);
+            actorRole: Roles.Manager,
+            tenantAccessor: tenantAccessor);
 
         var result = await controller.UpdateUsername(
             "user-1",
@@ -1735,7 +1782,8 @@ public class AdminUsersControllerTests
     [Fact]
     public async Task UpdateUsername_WhenAccountTooNew_ReturnsBadRequest()
     {
-        await using var db = CreateEphemeralContext();
+        var (db, tenantAccessor) = CreateTenantScopedContext();
+        EnsureTenant(db, tenantAccessor.TenantId!.Value, "new-account-tenant");
         db.Users.Add(new ApplicationUser
         {
             Id = "user-1",
@@ -1748,13 +1796,15 @@ public class AdminUsersControllerTests
             IsActive = true,
             CreatedAt = DateTime.UtcNow.AddHours(-1),
         });
+        AddActiveMembership(db, "user-1", tenantAccessor.TenantId!.Value);
         await db.SaveChangesAsync();
 
         var controller = CreateController(
             db,
             new Mock<IAuditLogService>().Object,
             new Mock<IUserSessionInvalidation>().Object,
-            actorRole: Roles.Manager);
+            actorRole: Roles.Manager,
+            tenantAccessor: tenantAccessor);
 
         var result = await controller.UpdateUsername(
             "user-1",
@@ -1806,7 +1856,8 @@ public class AdminUsersControllerTests
     [Fact]
     public async Task UpdateUsername_WhenRateLimited_ReturnsBadRequest()
     {
-        await using var db = CreateEphemeralContext();
+        var (db, tenantAccessor) = CreateTenantScopedContext();
+        EnsureTenant(db, tenantAccessor.TenantId!.Value, "rate-limit-tenant");
         var user = new ApplicationUser
         {
             Id = "user-1",
@@ -1820,6 +1871,7 @@ public class AdminUsersControllerTests
             CreatedAt = DateTime.UtcNow,
         };
         db.Users.Add(user);
+        AddActiveMembership(db, user.Id, tenantAccessor.TenantId!.Value);
         await db.SaveChangesAsync();
 
         var userManager = CreateUserManager(db);
@@ -1840,7 +1892,8 @@ public class AdminUsersControllerTests
             new Mock<IAuditLogService>().Object,
             new Mock<IUserSessionInvalidation>().Object,
             context: db,
-            actorRole: Roles.Manager);
+            actorRole: Roles.Manager,
+            tenantAccessor: tenantAccessor);
 
         var result = await controller.UpdateUsername(
             "user-1",

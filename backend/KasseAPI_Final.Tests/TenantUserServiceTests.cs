@@ -694,4 +694,38 @@ public sealed class TenantUserServiceTests
         Assert.Null(result);
         Assert.Contains("cannot be assigned", error ?? string.Empty, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public async Task ListAsync_WhenAmbientTenantDoesNotMatchRequestedTenant_ReturnsNull()
+    {
+        var tenantA = Guid.NewGuid();
+        var tenantB = Guid.NewGuid();
+        var tenantAccessor = new CurrentTenantAccessor { TenantId = tenantA };
+        await using var db = CreateDb(tenantAccessor);
+        db.Tenants.AddRange(
+            new Tenant
+            {
+                Id = tenantA,
+                Name = "Tenant A",
+                Slug = "tenant-a",
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            },
+            new Tenant
+            {
+                Id = tenantB,
+                Name = "Tenant B",
+                Slug = "tenant-b",
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, CreateUserManager(db), tenantAccessor: tenantAccessor);
+        var result = await service.ListAsync(tenantB);
+
+        Assert.Null(result);
+    }
 }

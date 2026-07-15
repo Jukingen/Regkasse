@@ -2773,6 +2773,55 @@
         }
       }
     },
+    "/api/admin/errors": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ElmahErrorListResponseDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
     "/api/admin/reports/daily-reconciliation": {
       "get": {
         "tags": [
@@ -3352,6 +3401,207 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/IncidentInvestigationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/jahresbeleg-closing/preview": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JahresbelegSummaryDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/jahresbeleg-closing": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateJahresbelegClosingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JahresbelegClosingResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JahresbelegListItemDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/jahresbeleg-closing/{id}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JahresbelegDetailDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/jahresbeleg-closing/{id}/report-pdf": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -4483,6 +4733,223 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LicenseReportSummaryDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/monatsbeleg-closing/preview": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonatsbelegSummaryDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/monatsbeleg-closing": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMonatsbelegClosingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonatsbelegClosingResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MonatsbelegListItemDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/monatsbeleg-closing/{id}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonatsbelegDetailDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/monatsbeleg-closing/{id}/report-pdf": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -6455,6 +6922,182 @@
         }
       }
     },
+    "/api/admin/report-pdfs/closing/{closingId}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "closingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/report-pdfs/receipt/{paymentId}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/report-pdfs/closing/{closingId}/exists": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "closingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportPdfExistsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/report-pdfs/receipt/{paymentId}/exists": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportPdfExistsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/reports/user-activity": {
       "get": {
         "tags": [
@@ -7115,6 +7758,14 @@
               "type": "boolean",
               "default": true
             }
+          },
+          {
+            "name": "includeEnvelope",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
           }
         ],
         "responses": {
@@ -7123,13 +7774,82 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RksvDepExportRootDto"
+                  "$ref": "#/components/schemas/RksvDepExportEnvelopeDto"
                 }
               }
             }
           },
           "404": {
             "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/rksv/dep-export/validate": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateExportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/rksv/dep-export/test-prueftool": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestPrueftoolRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RksvDepPrueftoolResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
             "content": {
               "application/json": {
                 "schema": {
@@ -10503,6 +11223,65 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users/{id}/reset-password": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminTemporaryPasswordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
             "content": {
               "application/json": {
                 "schema": {
@@ -18379,7 +19158,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreatePaymentRequest"
+                "$ref": "#/components/schemas/CreateStornoPaymentRequest"
               }
             }
           }
@@ -20839,6 +21618,138 @@
         }
       }
     },
+    "/api/admin/report-pdfs/download/{reportType}/{reportId}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "reportType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/reports/{reportType}/{reportId}/pdf": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "reportType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/Reports/sales": {
       "get": {
         "tags": [
@@ -21092,6 +22003,44 @@
         }
       }
     },
+    "/api/rksv/environment": {
+      "get": {
+        "tags": [
+          "Rksv"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RksvEnvironmentStatusDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rksv/status": {
+      "get": {
+        "tags": [
+          "Rksv"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RksvStatusDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/rksv/monatsbeleg/status/{cashRegisterId}": {
       "get": {
         "tags": [
@@ -21212,6 +22161,342 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/rksv/jahresbeleg/create": {
+      "post": {
+        "tags": [
+          "RksvJahresbeleg"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRksvJahresbelegRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rksv/jahresbeleg/{cashRegisterId}/{year}": {
+      "get": {
+        "tags": [
+          "RksvJahresbeleg"
+        ],
+        "parameters": [
+          {
+            "name": "cashRegisterId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "year",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JahresbelegResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rksv/jahresbeleg/history/{cashRegisterId}": {
+      "get": {
+        "tags": [
+          "RksvJahresbeleg"
+        ],
+        "parameters": [
+          {
+            "name": "cashRegisterId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JahresbelegSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rksv/jahresbeleg/exists/{cashRegisterId}/{year}": {
+      "get": {
+        "tags": [
+          "RksvJahresbeleg"
+        ],
+        "parameters": [
+          {
+            "name": "cashRegisterId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "year",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/rksv/monatsbeleg/create": {
+      "post": {
+        "tags": [
+          "RksvMonatsbeleg"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRksvMonatsbelegRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rksv/monatsbeleg/{cashRegisterId}/{year}/{month}": {
+      "get": {
+        "tags": [
+          "RksvMonatsbeleg"
+        ],
+        "parameters": [
+          {
+            "name": "cashRegisterId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "year",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonatsbelegResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rksv/monatsbeleg/history/{cashRegisterId}": {
+      "get": {
+        "tags": [
+          "RksvMonatsbeleg"
+        ],
+        "parameters": [
+          {
+            "name": "cashRegisterId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MonatsbelegSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rksv/monatsbeleg/exists/{cashRegisterId}/{year}/{month}": {
+      "get": {
+        "tags": [
+          "RksvMonatsbeleg"
+        ],
+        "parameters": [
+          {
+            "name": "cashRegisterId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "year",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -24843,6 +26128,18 @@
           },
           "stornoRefundAudit": {
             "$ref": "#/components/schemas/AdminPaymentStornoRefundAuditDto"
+          },
+          "hasStornoReversal": {
+            "type": "boolean"
+          },
+          "stornoReversalPaymentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "stornoReversalReceiptNumber": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -26079,6 +27376,7 @@
           26,
           27,
           28,
+          29,
           99
         ],
         "type": "integer",
@@ -30158,6 +31456,30 @@
             "minLength": 1,
             "type": "string"
           },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "address": {
+            "type": "string",
+            "nullable": true
+          },
+          "vatId": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "website": {
+            "type": "string",
+            "nullable": true
+          },
           "companyRegistrationNumber": {
             "maxLength": 20,
             "type": "string",
@@ -30914,6 +32236,21 @@
         },
         "additionalProperties": false
       },
+      "CreateJahresbelegClosingRequest": {
+        "type": "object",
+        "properties": {
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "CreateJahresbelegRequest": {
         "required": [
           "cashRegisterId"
@@ -31099,6 +32436,26 @@
           "sortOrder": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateMonatsbelegClosingRequest": {
+        "type": "object",
+        "properties": {
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -31633,6 +32990,41 @@
         },
         "additionalProperties": false
       },
+      "CreateRksvJahresbelegRequest": {
+        "type": "object",
+        "properties": {
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "useDecemberMonatsbeleg": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateRksvMonatsbelegRequest": {
+        "type": "object",
+        "properties": {
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "CreateRoleRequest": {
         "required": [
           "name"
@@ -31739,6 +33131,59 @@
             "nullable": true
           },
           "qrData": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateStornoPaymentRequest": {
+        "required": [
+          "cashRegisterId",
+          "customerId",
+          "originalReceiptNumber",
+          "payment",
+          "stornoReason",
+          "tableNumber",
+          "totalAmount"
+        ],
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "payment": {
+            "$ref": "#/components/schemas/PaymentMethodRequest"
+          },
+          "tableNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalAmount": {
+            "maximum": 1.7976931348623157E+308,
+            "minimum": 0.01,
+            "type": "number",
+            "format": "double"
+          },
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "originalReceiptNumber": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "stornoReason": {
+            "$ref": "#/components/schemas/StornoReason"
+          },
+          "idempotencyKey": {
+            "maxLength": 64,
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
             "type": "string",
             "nullable": true
           }
@@ -32234,7 +33679,26 @@
             "type": "number",
             "format": "double"
           },
+          "paymentBreakdown": {
+            "$ref": "#/components/schemas/PaymentBreakdown"
+          },
           "totalOtherPaymentMethods": {
+            "type": "number",
+            "format": "double"
+          },
+          "fiscalTotalAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "fiscalTotalTaxAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "fiscalTransactionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "salesFiscalDelta": {
             "type": "number",
             "format": "double"
           },
@@ -32263,6 +33727,12 @@
               "$ref": "#/components/schemas/DailyClosingSummaryLineDto"
             },
             "nullable": true
+          },
+          "transactionBreakdown": {
+            "$ref": "#/components/schemas/TransactionBreakdown"
+          },
+          "taxBreakdown": {
+            "$ref": "#/components/schemas/DailyClosingTaxBreakdownDto"
           },
           "snapshotDisclaimerDe": {
             "type": "string",
@@ -32313,6 +33783,40 @@
             "type": "string",
             "format": "uuid",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DailyClosingTaxBreakdownDto": {
+        "type": "object",
+        "properties": {
+          "grossAt20": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxAt20": {
+            "type": "number",
+            "format": "double"
+          },
+          "grossAt10": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxAt10": {
+            "type": "number",
+            "format": "double"
+          },
+          "grossAt0": {
+            "type": "number",
+            "format": "double"
+          },
+          "grossAt13": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxAt13": {
+            "type": "number",
+            "format": "double"
           }
         },
         "additionalProperties": false
@@ -33217,6 +34721,69 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "ElmahErrorListItemDto": {
+        "type": "object",
+        "properties": {
+          "errorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "application": {
+            "type": "string",
+            "nullable": true
+          },
+          "host": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "user": {
+            "type": "string",
+            "nullable": true
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "timeUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "allXml": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ElmahErrorListResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ElmahErrorListItemDto"
+            },
+            "nullable": true
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
       },
       "EndShiftRequest": {
         "type": "object",
@@ -35947,6 +37514,416 @@
         },
         "additionalProperties": false
       },
+      "JahresbelegClosingResult": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "jahresbelegId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "dailyClosingId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalGross": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalTax": {
+            "type": "number",
+            "format": "double"
+          },
+          "transactionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "monatsbelegCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tseSignature": {
+            "type": "string",
+            "nullable": true
+          },
+          "previousSignature": {
+            "type": "string",
+            "nullable": true
+          },
+          "isSimulated": {
+            "type": "boolean"
+          },
+          "environment": {
+            "type": "string",
+            "nullable": true
+          },
+          "isDecemberMonatsbeleg": {
+            "type": "boolean"
+          },
+          "report": {
+            "$ref": "#/components/schemas/PosDailyClosingReportDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "JahresbelegDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "registerNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/JahresbelegSummaryDto"
+          },
+          "tseSignature": {
+            "type": "string",
+            "nullable": true
+          },
+          "previousSignature": {
+            "type": "string",
+            "nullable": true
+          },
+          "signatureChainLength": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isSimulated": {
+            "type": "boolean"
+          },
+          "environment": {
+            "type": "string",
+            "nullable": true
+          },
+          "isDecemberMonatsbeleg": {
+            "type": "boolean"
+          },
+          "rksvFooterLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "tseStatusBadge": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dailyClosingId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "JahresbelegListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "registerNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalGross": {
+            "type": "number",
+            "format": "double"
+          },
+          "transactionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isSimulated": {
+            "type": "boolean"
+          },
+          "environment": {
+            "type": "string",
+            "nullable": true
+          },
+          "isDecemberMonatsbeleg": {
+            "type": "boolean"
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "JahresbelegMonthlyReferenceDto": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "JahresbelegResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cashRegisterName": {
+            "type": "string",
+            "nullable": true
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalCash": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalCard": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalVoucher": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalOther": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalGross": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalTax": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxRate20": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxRate10": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxRate0": {
+            "type": "number",
+            "format": "double"
+          },
+          "transactionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "monthlyReferences": {
+            "type": "string",
+            "nullable": true
+          },
+          "tseSignature": {
+            "type": "string",
+            "nullable": true
+          },
+          "tseSignatureTimestamp": {
+            "type": "string",
+            "nullable": true
+          },
+          "previousSignature": {
+            "type": "string",
+            "nullable": true
+          },
+          "signatureChainLength": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isSimulated": {
+            "type": "boolean"
+          },
+          "environment": {
+            "type": "string",
+            "nullable": true
+          },
+          "isDecemberMonatsbeleg": {
+            "type": "boolean"
+          },
+          "tseStatusDisplay": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "JahresbelegSummary": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalGross": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalTax": {
+            "type": "number",
+            "format": "double"
+          },
+          "transactionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isSimulated": {
+            "type": "boolean"
+          },
+          "hasSignature": {
+            "type": "boolean"
+          },
+          "isDecemberMonatsbeleg": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "JahresbelegSummaryDto": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "monatsbelegCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "monthlyReferences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JahresbelegMonthlyReferenceDto"
+            },
+            "nullable": true
+          },
+          "totalCash": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalCard": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalVoucher": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalOther": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalGross": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalTax": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxRate20": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxRate10": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxRate0": {
+            "type": "number",
+            "format": "double"
+          },
+          "transactionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "paymentBreakdown": {
+            "$ref": "#/components/schemas/PaymentBreakdown"
+          },
+          "taxBreakdown": {
+            "$ref": "#/components/schemas/DailyClosingTaxBreakdownDto"
+          },
+          "transactionBreakdown": {
+            "$ref": "#/components/schemas/TransactionBreakdown"
+          },
+          "isDecemberMonatsbeleg": {
+            "type": "boolean"
+          },
+          "missingMonths": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "JahresberichtAdjustmentDto": {
         "type": "object",
         "properties": {
@@ -37759,6 +39736,181 @@
         },
         "additionalProperties": false
       },
+      "MonatsbelegClosingResult": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "monatsbelegId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "dailyClosingId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalGross": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalTax": {
+            "type": "number",
+            "format": "double"
+          },
+          "transactionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dailyClosingCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tseSignature": {
+            "type": "string",
+            "nullable": true
+          },
+          "previousSignature": {
+            "type": "string",
+            "nullable": true
+          },
+          "isSimulated": {
+            "type": "boolean"
+          },
+          "environment": {
+            "type": "string",
+            "nullable": true
+          },
+          "report": {
+            "$ref": "#/components/schemas/PosDailyClosingReportDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MonatsbelegDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "registerNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/MonatsbelegSummaryDto"
+          },
+          "tseSignature": {
+            "type": "string",
+            "nullable": true
+          },
+          "previousSignature": {
+            "type": "string",
+            "nullable": true
+          },
+          "signatureChainLength": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isSimulated": {
+            "type": "boolean"
+          },
+          "environment": {
+            "type": "string",
+            "nullable": true
+          },
+          "rksvFooterLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "tseStatusBadge": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dailyClosingId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MonatsbelegListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "registerNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalGross": {
+            "type": "number",
+            "format": "double"
+          },
+          "transactionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isSimulated": {
+            "type": "boolean"
+          },
+          "environment": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
       "MonatsbelegRegisterStatusItemDto": {
         "type": "object",
         "properties": {
@@ -37768,6 +39920,111 @@
           },
           "status": {
             "$ref": "#/components/schemas/MonatsbelegStatusDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MonatsbelegResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cashRegisterName": {
+            "type": "string",
+            "nullable": true
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalCash": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalCard": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalVoucher": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalOther": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalGross": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalTax": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxRate20": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxRate10": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxRate0": {
+            "type": "number",
+            "format": "double"
+          },
+          "transactionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dailyClosingCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tseSignature": {
+            "type": "string",
+            "nullable": true
+          },
+          "tseSignatureTimestamp": {
+            "type": "string",
+            "nullable": true
+          },
+          "tseCertificateThumbprint": {
+            "type": "string",
+            "nullable": true
+          },
+          "previousSignature": {
+            "type": "string",
+            "nullable": true
+          },
+          "signatureChainLength": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isSimulated": {
+            "type": "boolean"
+          },
+          "environment": {
+            "type": "string",
+            "nullable": true
+          },
+          "tseStatusDisplay": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -37832,6 +40089,113 @@
           "warningMessage": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MonatsbelegSummary": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalGross": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalTax": {
+            "type": "number",
+            "format": "double"
+          },
+          "transactionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isSimulated": {
+            "type": "boolean"
+          },
+          "hasSignature": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MonatsbelegSummaryDto": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "dailyClosingCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCash": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalCard": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalVoucher": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalOther": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalGross": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalTax": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxRate20": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxRate10": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxRate0": {
+            "type": "number",
+            "format": "double"
+          },
+          "transactionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "paymentBreakdown": {
+            "$ref": "#/components/schemas/PaymentBreakdown"
+          },
+          "taxBreakdown": {
+            "$ref": "#/components/schemas/DailyClosingTaxBreakdownDto"
+          },
+          "transactionBreakdown": {
+            "$ref": "#/components/schemas/TransactionBreakdown"
           }
         },
         "additionalProperties": false
@@ -39687,6 +42051,32 @@
         },
         "additionalProperties": false
       },
+      "PaymentBreakdown": {
+        "type": "object",
+        "properties": {
+          "cash": {
+            "type": "number",
+            "format": "double"
+          },
+          "card": {
+            "type": "number",
+            "format": "double"
+          },
+          "voucher": {
+            "type": "number",
+            "format": "double"
+          },
+          "other": {
+            "type": "number",
+            "format": "double"
+          },
+          "total": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
       "PaymentCreateSuccessData": {
         "type": "object",
         "properties": {
@@ -40981,9 +43371,56 @@
             "type": "string",
             "format": "date-time"
           },
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
           "registerNumber": {
             "type": "string",
             "nullable": true
+          },
+          "companyName": {
+            "type": "string",
+            "nullable": true
+          },
+          "companyAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "companyVatId": {
+            "type": "string",
+            "nullable": true
+          },
+          "periodStartUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "periodEndUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "tseProviderLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "depExportStatusLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "tseSignatureVerified": {
+            "type": "boolean"
+          },
+          "hasStartbeleg": {
+            "type": "boolean"
+          },
+          "hasMonatsbeleg": {
+            "type": "boolean"
+          },
+          "hasJahresbeleg": {
+            "type": "boolean"
           },
           "totalSales": {
             "type": "number",
@@ -40994,6 +43431,14 @@
             "format": "double"
           },
           "totalCard": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalVoucherRedemptions": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalOtherPaymentMethods": {
             "type": "number",
             "format": "double"
           },
@@ -41013,11 +43458,56 @@
             "type": "number",
             "format": "double"
           },
+          "fiscalTotalNetAmount": {
+            "type": "number",
+            "format": "double"
+          },
           "fiscalTransactionCount": {
             "type": "integer",
             "format": "int32"
           },
           "tseSignature": {
+            "type": "string",
+            "nullable": true
+          },
+          "previousClosingSignature": {
+            "type": "string",
+            "nullable": true
+          },
+          "cashierName": {
+            "type": "string",
+            "nullable": true
+          },
+          "shiftNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "taxBreakdown": {
+            "$ref": "#/components/schemas/DailyClosingTaxBreakdownDto"
+          },
+          "paymentBreakdown": {
+            "$ref": "#/components/schemas/PaymentBreakdown"
+          },
+          "isDemoFiscal": {
+            "type": "boolean"
+          },
+          "fiscalEnvironment": {
+            "type": "string",
+            "nullable": true
+          },
+          "tseStatusLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "tseStatusBadge": {
+            "type": "string",
+            "nullable": true
+          },
+          "rksvFooterLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "qrPayload": {
             "type": "string",
             "nullable": true
           },
@@ -41028,6 +43518,17 @@
           "snapshotDisclaimerDe": {
             "type": "string",
             "nullable": true
+          },
+          "salesFiscalReconciliationNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "differenceScopeNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "transactionBreakdown": {
+            "$ref": "#/components/schemas/TransactionBreakdown"
           }
         },
         "additionalProperties": false
@@ -41174,6 +43675,9 @@
           },
           "settings": {
             "$ref": "#/components/schemas/PosStatusSettingsSnapshotDto"
+          },
+          "rksvEnvironment": {
+            "$ref": "#/components/schemas/RksvEnvironmentStatusDto"
           }
         },
         "additionalProperties": false
@@ -42206,6 +44710,15 @@
             "type": "string",
             "nullable": true
           },
+          "shiftId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "shiftNumber": {
+            "type": "string",
+            "nullable": true
+          },
           "tableNumber": {
             "type": "integer",
             "format": "int32",
@@ -42265,6 +44778,10 @@
             "$ref": "#/components/schemas/ReceiptSignatureDTO"
           },
           "footerText": {
+            "type": "string",
+            "nullable": true
+          },
+          "rksvFooterLabel": {
             "type": "string",
             "nullable": true
           }
@@ -42446,6 +44963,9 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          },
+          "hasStoredPdf": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -43414,6 +45934,15 @@
         },
         "additionalProperties": false
       },
+      "ReportPdfExistsResponse": {
+        "type": "object",
+        "properties": {
+          "hasStoredPdf": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "ReportSubmissionEnvelopeDto": {
         "type": "object",
         "properties": {
@@ -44325,6 +46854,56 @@
         },
         "additionalProperties": false
       },
+      "RksvDepExportEnvelopeDto": {
+        "type": "object",
+        "properties": {
+          "legalNotice": {
+            "type": "string",
+            "nullable": true
+          },
+          "dep": {
+            "$ref": "#/components/schemas/RksvDepExportRootDto"
+          },
+          "belegCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "belegeGruppeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "registerNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "fromUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "toUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isDemo": {
+            "type": "boolean"
+          },
+          "environment": {
+            "type": "string",
+            "nullable": true
+          },
+          "formatValidated": {
+            "type": "boolean"
+          },
+          "formatValidation": {
+            "$ref": "#/components/schemas/RksvDepExportValidationResult"
+          }
+        },
+        "additionalProperties": false
+      },
       "RksvDepExportRootDto": {
         "type": "object",
         "properties": {
@@ -44333,6 +46912,107 @@
             "items": {
               "$ref": "#/components/schemas/RksvDepBelegeGruppeDto"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RksvDepExportValidationResult": {
+        "type": "object",
+        "properties": {
+          "isValid": {
+            "type": "boolean"
+          },
+          "isDemo": {
+            "type": "boolean"
+          },
+          "environment": {
+            "type": "string",
+            "nullable": true
+          },
+          "belegeGruppeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "belegCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RksvDepPrueftoolResult": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "isDemo": {
+            "type": "boolean"
+          },
+          "skipped": {
+            "type": "boolean"
+          },
+          "environment": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "verificationState": {
+            "type": "string",
+            "nullable": true
+          },
+          "toolOutput": {
+            "type": "string",
+            "nullable": true
+          },
+          "validatedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RksvEnvironmentStatusDto": {
+        "type": "object",
+        "properties": {
+          "environment": {
+            "type": "string",
+            "nullable": true
+          },
+          "isSimulated": {
+            "type": "boolean"
+          },
+          "showDemoLabel": {
+            "type": "boolean"
+          },
+          "tseStatusDisplay": {
+            "type": "string",
+            "nullable": true
+          },
+          "tseStatusBadge": {
+            "type": "string",
+            "nullable": true
+          },
+          "environmentDisplayName": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -44572,6 +47252,30 @@
             "nullable": true
           },
           "certificateThumbprintUsed": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RksvStatusDto": {
+        "type": "object",
+        "properties": {
+          "isSimulated": {
+            "type": "boolean"
+          },
+          "environment": {
+            "type": "string",
+            "nullable": true
+          },
+          "showDemoLabel": {
+            "type": "boolean"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "tseStatus": {
             "type": "string",
             "nullable": true
           }
@@ -46239,6 +48943,9 @@
           "warning": {
             "type": "string",
             "nullable": true
+          },
+          "hasStoredPdf": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -47573,6 +50280,16 @@
         },
         "additionalProperties": false
       },
+      "TestPrueftoolRequest": {
+        "type": "object",
+        "properties": {
+          "exportJson": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "TimeSyncDriftSummaryDto": {
         "type": "object",
         "properties": {
@@ -47639,6 +50356,32 @@
           "revenue": {
             "type": "number",
             "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TransactionBreakdown": {
+        "type": "object",
+        "properties": {
+          "cash": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "card": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "voucher": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cancellations": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
@@ -50376,6 +53119,16 @@
         },
         "additionalProperties": false
       },
+      "ValidateExportRequest": {
+        "type": "object",
+        "properties": {
+          "exportJson": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ValidatePitrRestorePointRequestDto": {
         "type": "object",
         "properties": {
@@ -50773,6 +53526,9 @@
       "name": "AdminDevelopmentMode"
     },
     {
+      "name": "AdminElmahErrors"
+    },
+    {
       "name": "AdminEnhancedReports"
     },
     {
@@ -50782,10 +53538,16 @@
       "name": "AdminIncidentInvestigation"
     },
     {
+      "name": "AdminJahresbelegClosing"
+    },
+    {
       "name": "AdminLicense"
     },
     {
       "name": "AdminLicenses"
+    },
+    {
+      "name": "AdminMonatsbelegClosing"
     },
     {
       "name": "AdminOfflineMonitoring"
@@ -50807,6 +53569,9 @@
     },
     {
       "name": "AdminProducts"
+    },
+    {
+      "name": "AdminReportPdf"
     },
     {
       "name": "AdminReports"
@@ -51010,6 +53775,9 @@
       "name": "ReportHistory"
     },
     {
+      "name": "ReportPdf"
+    },
+    {
       "name": "Reports"
     },
     {
@@ -51017,6 +53785,12 @@
     },
     {
       "name": "Rksv"
+    },
+    {
+      "name": "RksvJahresbeleg"
+    },
+    {
+      "name": "RksvMonatsbeleg"
     },
     {
       "name": "RksvReceiptQrValidation"

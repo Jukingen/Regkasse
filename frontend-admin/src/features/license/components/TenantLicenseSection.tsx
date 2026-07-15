@@ -8,20 +8,28 @@ import {
     Descriptions,
     Empty,
     Space,
+    Spin,
     Tag,
     Typography,
 } from 'antd';
 
 import { useI18n, formatDate } from '@/i18n';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
-import { useTenantLicense } from '@/features/license/hooks/useTenantLicense';
+import { useTenantLicense } from '@/hooks/useTenantLicense';
+import { useTenantLicenseDetail } from '@/features/license/hooks/useTenantLicenseDetail';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PERMISSIONS } from '@/shared/auth/permissions';
 import { LicenseExtendModal } from '@/features/license/components/LicenseExtendModal';
+import { LicenseHistory } from '@/features/license/components/LicenseHistory';
+import { FirmenInfo } from '@/features/tenants/components/FirmenInfo';
 import { maskTenantLicenseKey } from '@/features/license/utils/tenantLicenseExtend';
 import {
     getLicenseStatusDayText,
     getLicenseStatusLabel,
     getLicenseStatusMessage,
     getLicenseStatusTagColor,
+    mapPublicStatusToTenantLicenseStatus,
+    resolveTenantLicenseFromPublicStatus,
     resolveTenantLicenseStatus,
 } from '@/features/license/utils/licenseStatus';
 
@@ -30,13 +38,39 @@ const EXPIRING_SOON_THRESHOLD_DAYS = 7;
 export function TenantLicenseSection() {
     const { t, formatLocale } = useI18n();
     const currentTenant = useCurrentTenant();
+    const { hasPermission } = usePermissions();
     const [extendOpen, setExtendOpen] = useState(false);
 
     const tenantId = currentTenant.tenantId ?? '';
-    const licenseQuery = useTenantLicense(tenantId);
+    const isSuperAdmin = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
 
-    const status = licenseQuery.data?.status;
-    const resolvedStatus = status ? resolveTenantLicenseStatus(status) : null;
+    const publicLicenseQuery = useTenantLicense(tenantId, {
+        enabled: !isSuperAdmin && Boolean(tenantId),
+    });
+    const adminLicenseQuery = useTenantLicenseDetail(tenantId, {
+        enabled: isSuperAdmin && Boolean(tenantId),
+    });
+
+    const licenseQuery = isSuperAdmin ? adminLicenseQuery : publicLicenseQuery;
+
+    const status = useMemo(() => {
+        if (isSuperAdmin) {
+            return adminLicenseQuery.data?.status ?? null;
+        }
+        if (!publicLicenseQuery.data) {
+            return null;
+        }
+        return mapPublicStatusToTenantLicenseStatus(publicLicenseQuery.data);
+    }, [isSuperAdmin, adminLicenseQuery.data, publicLicenseQuery.data]);
+
+    const resolvedStatus = useMemo(() => {
+        if (isSuperAdmin) {
+            return status ? resolveTenantLicenseStatus(status) : null;
+        }
+        return publicLicenseQuery.data
+            ? resolveTenantLicenseFromPublicStatus(publicLicenseQuery.data)
+            : null;
+    }, [isSuperAdmin, status, publicLicenseQuery.data]);
 
     const expiryBanner = useMemo(() => {
         if (!resolvedStatus) return null;
@@ -70,8 +104,29 @@ export function TenantLicenseSection() {
         return null;
     }, [resolvedStatus, t]);
 
+    if (currentTenant.isTenantRecordLoading) {
+        return (
+            <Space orientation="vertical" size="large" style={{ width: '100%' }}>
+                <FirmenInfo loading />
+                <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
+                    <Spin />
+                </div>
+            </Space>
+        );
+    }
+
+    if (!tenantId) {
+        return (
+            <Space orientation="vertical" size="large" style={{ width: '100%' }}>
+                <FirmenInfo />
+            </Space>
+        );
+    }
+
     return (
         <Space orientation="vertical" size="large" style={{ width: '100%' }}>
+            <FirmenInfo />
+
             <Typography.Title level={4} style={{ margin: 0 }}>
                 {t('license.page.tenantLicense')}
             </Typography.Title>
@@ -89,14 +144,16 @@ export function TenantLicenseSection() {
                                 {getLicenseStatusLabel(resolvedStatus?.kind ?? 'no_license', t)}
                             </Tag>
                         </Descriptions.Item>
-                        <Descriptions.Item label={t('license.mandant.licenseKey')}>
-                            <Typography.Text
-                                code
-                                copyable={status.licenseKey ? { text: status.licenseKey } : undefined}
-                            >
-                                {maskTenantLicenseKey(status.licenseKey)}
-                            </Typography.Text>
-                        </Descriptions.Item>
+                        {isSuperAdmin ? (
+                            <Descriptions.Item label={t('license.mandant.licenseKey')}>
+                                <Typography.Text
+                                    code
+                                    copyable={status.licenseKey ? { text: status.licenseKey } : undefined}
+                                >
+                                    {maskTenantLicenseKey(status.licenseKey)}
+                                </Typography.Text>
+                            </Descriptions.Item>
+                        ) : null}
                         <Descriptions.Item label={t('license.mandant.validUntil')}>
                             {status.validUntilUtc ? formatDate(status.validUntilUtc, formatLocale) : '—'}
                         </Descriptions.Item>
@@ -129,6 +186,8 @@ export function TenantLicenseSection() {
                 resolvedStatus={resolvedStatus}
                 onClose={() => setExtendOpen(false)}
             />
+
+            <LicenseHistory tenantId={tenantId} />
         </Space>
     );
 }

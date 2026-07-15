@@ -60,7 +60,8 @@ public class RksvStartbelegServiceTests
             Options.Create(tseOptions),
             new Mock<ILogger<RksvSpecialReceiptService>>().Object,
             new RksvSpecialReceiptFinanzOnlineSubmissionTracker(context),
-            new FinanzOnlineOutboxService(context, new Mock<ILogger<FinanzOnlineOutboxService>>().Object));
+            new FinanzOnlineOutboxService(context, new Mock<ILogger<FinanzOnlineOutboxService>>().Object),
+            Mock.Of<IReportPdfCaptureService>());
     }
 
     private static async Task<(Guid RegisterId, RksvSpecialReceiptService Service)> SeedAsync(AppDbContext context)

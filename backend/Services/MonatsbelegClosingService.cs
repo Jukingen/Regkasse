@@ -26,7 +26,9 @@ public sealed class MonatsbelegClosingService : IMonatsbelegClosingService
     private readonly TseOptions _tseOptions;
     private readonly IConfiguration _configuration;
     private readonly IRksvEnvironmentService _rksvEnvironment;
+    private readonly IMonatsbelegReportService _reportService;
     private readonly ILogger<MonatsbelegClosingService> _logger;
+    private readonly IReportPdfCaptureService _reportPdfCapture;
 
     public MonatsbelegClosingService(
         AppDbContext context,
@@ -38,7 +40,9 @@ public sealed class MonatsbelegClosingService : IMonatsbelegClosingService
         IOptions<TseOptions> tseOptions,
         IConfiguration configuration,
         IRksvEnvironmentService rksvEnvironment,
-        ILogger<MonatsbelegClosingService> logger)
+        IMonatsbelegReportService reportService,
+        ILogger<MonatsbelegClosingService> logger,
+        IReportPdfCaptureService reportPdfCapture)
     {
         _context = context;
         _dailyClosingService = dailyClosingService;
@@ -49,7 +53,9 @@ public sealed class MonatsbelegClosingService : IMonatsbelegClosingService
         _tseOptions = tseOptions.Value;
         _configuration = configuration;
         _rksvEnvironment = rksvEnvironment;
+        _reportService = reportService;
         _logger = logger;
+        _reportPdfCapture = reportPdfCapture;
     }
 
     public async Task<MonatsbelegSummaryDto> GenerateMonthlySummaryPreviewAsync(
@@ -193,6 +199,13 @@ public sealed class MonatsbelegClosingService : IMonatsbelegClosingService
             CreatedAt = signedAtUtc,
         };
 
+        await DailyClosingOperationalResolver.StampOperationalFieldsAsync(
+            _context,
+            dailyClosing,
+            request.CashRegisterId,
+            actorUserId,
+            cancellationToken: cancellationToken);
+
         var monatsbeleg = new Monatsbeleg
         {
             CashRegisterId = request.CashRegisterId,
@@ -234,11 +247,13 @@ public sealed class MonatsbelegClosingService : IMonatsbelegClosingService
             return Fail($"Monthly closing already exists for {year}-{month:00}");
         }
 
-        var report = MonatsbelegReportComposer.Compose(
+        var report = await _reportService.ComposeReportDtoAsync(
             monatsbeleg,
             summary,
             register.RegisterNumber,
-            fiscalEnvironment);
+            fiscalEnvironment,
+            dailyClosing,
+            cancellationToken);
 
         _logger.LogInformation(
             "Monatsbeleg created Id={MonatsbelegId} Register={RegisterId} Period={Year}-{Month} Simulated={Simulated}",
@@ -247,6 +262,8 @@ public sealed class MonatsbelegClosingService : IMonatsbelegClosingService
             year,
             month,
             fiscalEnvironment.IsDemoFiscal);
+
+        await _reportPdfCapture.TryCaptureClosingReportAsync(dailyClosing.Id, actorUserId, cancellationToken: cancellationToken);
 
         return new MonatsbelegClosingResult
         {
@@ -351,7 +368,20 @@ public sealed class MonatsbelegClosingService : IMonatsbelegClosingService
             _configuration,
             rksvEnvironment: _rksvEnvironment);
 
-        return MonatsbelegReportComposer.Compose(entity, summary, registerNumber, fiscalEnvironment);
+        DailyClosing? linkedDailyClosing = null;
+        if (entity.DailyClosingId.HasValue)
+        {
+            linkedDailyClosing = await _context.DailyClosings.AsNoTracking()
+                .FirstOrDefaultAsync(d => d.Id == entity.DailyClosingId.Value, cancellationToken);
+        }
+
+        return await _reportService.ComposeReportDtoAsync(
+            entity,
+            summary,
+            registerNumber,
+            fiscalEnvironment,
+            linkedDailyClosing,
+            cancellationToken);
     }
 
     public async Task<bool> CanCreateForCurrentMonthAsync(

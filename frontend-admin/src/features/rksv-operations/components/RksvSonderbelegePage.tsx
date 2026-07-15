@@ -24,6 +24,8 @@ import { PERMISSIONS } from '@/shared/auth/permissions';
 import { formatEUR } from '@/shared/utils/currency';
 import { formatRegisterDisplayLabel } from '@/shared/utils/registerIdentity';
 import { ReprintButton } from '@/features/payments/components/ReprintButton';
+import { StoredReportPdfButton } from '@/features/reports/components/StoredReportPdfButton';
+import { reportPdfTypeFromSpecialReceiptKind } from '@/features/reports/api/reportPdfApi';
 import { rksvSpecialReceiptKindLabelDe } from '@/features/rksv-operations/rksvSpecialReceiptDisplay';
 import {
     isRksvFinanzOnlineTrackedSpecialReceiptKind,
@@ -683,6 +685,23 @@ export default function RksvSonderbelegePage() {
                 render: (v: number | undefined) => formatEUR(v ?? 0),
             },
             {
+                title: 'PDF',
+                key: 'pdf',
+                width: 90,
+                align: 'center',
+                render: (_: unknown, row) =>
+                    row.paymentId ? (
+                        <StoredReportPdfButton
+                            reportType={reportPdfTypeFromSpecialReceiptKind(row.rksvSpecialReceiptKind)}
+                            targetId={row.paymentId}
+                            fileNameBase={row.receiptNumber}
+                            size="small"
+                        />
+                    ) : (
+                        '—'
+                    ),
+            },
+            {
                 title: 'Aktionen',
                 key: 'actions',
                 render: (_: unknown, row) => (
@@ -1106,11 +1125,19 @@ export default function RksvSonderbelegePage() {
                                                     </Link>
                                                 ) : null}
                                                 {row.paymentId ? (
-                                                    <ReprintButton
-                                                        paymentId={row.paymentId}
-                                                        receiptNumber={row.receiptNumber}
-                                                        size="small"
-                                                    />
+                                                    <>
+                                                        <StoredReportPdfButton
+                                                            reportType={reportPdfTypeFromSpecialReceiptKind(row.rksvSpecialReceiptKind)}
+                                                            targetId={row.paymentId}
+                                                            fileNameBase={row.receiptNumber}
+                                                            size="small"
+                                                        />
+                                                        <ReprintButton
+                                                            paymentId={row.paymentId}
+                                                            receiptNumber={row.receiptNumber}
+                                                            size="small"
+                                                        />
+                                                    </>
                                                 ) : null}
                                             </Space>
                                         </Space>

@@ -330,6 +330,13 @@ public sealed class DailyClosingService : IDailyClosingService
             CreatedAt = signedAtUtc,
         };
 
+        await DailyClosingOperationalResolver.StampOperationalFieldsAsync(
+            _db,
+            closing,
+            cashRegisterId,
+            actorUserId,
+            cancellationToken: cancellationToken);
+
         _db.DailyClosings.Add(closing);
 
         try

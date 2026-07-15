@@ -158,6 +158,8 @@ interface User {
     firstName?: string;
     lastName?: string;
     roles?: string[];
+    tenantId?: string | null;
+    tenantSlug?: string | null;
     /** Backend permission claims (resource.action). Used for permission-first UI. */
     permissions?: string[];
     /** Demo user flag from backend ApplicationUser.IsDemo. Use this for restrictions; do not infer from role. */
@@ -779,6 +781,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // State'leri birlikte set et - önce user, sonra authentication
             const userWithToken = {
                 ...loggedInUser,
+                tenantId: loginUser.tenantId ?? loggedInUser.tenantId,
+                tenantSlug: loginUser.tenantSlug ?? loggedInUser.tenantSlug,
                 mustChangePasswordOnNextLogin:
                     (loggedInUser as { mustChangePasswordOnNextLogin?: boolean }).mustChangePasswordOnNextLogin === true,
                 token: cleanToken // cleanToken'ı user state'ine ekle (JWT only)

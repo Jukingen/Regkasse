@@ -211,7 +211,8 @@ public sealed class LicenseSyncService : ILicenseSyncService
         && il.SupersededByLicenseId == null;
 
     private static bool IsSyntheticTierKey(string key) =>
-        key.StartsWith("TIER:", StringComparison.OrdinalIgnoreCase);
+        key.StartsWith("TIER:", StringComparison.OrdinalIgnoreCase)
+        || key.StartsWith("TEST-", StringComparison.OrdinalIgnoreCase);
 
     private static string SafePrefix(string key) =>
         key.Length <= 12 ? key : key[..12];

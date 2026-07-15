@@ -130,6 +130,7 @@ namespace KasseAPI_Final.Data
         public DbSet<OperationalReportSchedule> OperationalReportSchedules { get; set; }
         public DbSet<DepExportHistory> DepExportHistories { get; set; }
         public DbSet<DepExportSchedule> DepExportSchedules { get; set; }
+        public DbSet<ReportPdf> ReportPdfs { get; set; }
         public DbSet<ActivityEvent> ActivityEvents { get; set; }
         public DbSet<ActivityEventRead> ActivityEventReads { get; set; }
         public DbSet<TenantNotificationConfig> TenantNotificationConfigs { get; set; }
@@ -1916,6 +1917,13 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.TenantId);
                 entity.Property(e => e.CashRegisterId).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.UserId).IsRequired();
+                entity.Property(e => e.CashierName)
+                    .HasColumnName("cashier_name")
+                    .HasMaxLength(200)
+                    .HasDefaultValue(string.Empty);
+                entity.Property(e => e.ShiftNumber)
+                    .HasColumnName("shift_number")
+                    .HasDefaultValue(0);
                 entity.Property(e => e.ClosingType).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TotalTaxAmount).HasColumnType("decimal(18,2)");
@@ -2525,6 +2533,24 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.StoragePath).HasMaxLength(500);
                 entity.HasIndex(e => new { e.TenantId, e.CashRegisterId, e.ExportedAt });
                 entity.HasIndex(e => e.ScheduleId).HasFilter("\"schedule_id\" IS NOT NULL");
+            });
+
+            builder.Entity<ReportPdf>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).IsRequired();
+                entity.Property(e => e.ReportType).IsRequired().HasMaxLength(32);
+                entity.Property(e => e.ReportId).IsRequired();
+                entity.Property(e => e.PdfPath).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.GeneratedAt).IsRequired();
+                entity.Property(e => e.GeneratedByUserId)
+                    .IsRequired()
+                    .HasConversion(AspNetUserIdConverter);
+                entity.Property(e => e.FileSizeBytes).IsRequired();
+                entity.Property(e => e.Language).IsRequired().HasMaxLength(8);
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.HasIndex(e => e.TenantId);
+                entity.HasIndex(e => new { e.TenantId, e.ReportType, e.ReportId, e.Language }).IsUnique();
             });
 
             builder.Entity<DepExportSchedule>(entity =>

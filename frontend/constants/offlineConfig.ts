@@ -17,6 +17,7 @@ export const OFFLINE_CONFIG = {
   TOKEN_REFRESH_THRESHOLD_HOURS: 24, // Refresh token 24 hours before expiry
 
   // Sync
+  STATUS_POLL_INTERVAL_SECONDS: 5, // UI sync status refresh cadence
   SYNC_INTERVAL_SECONDS: 30, // Check for sync every 30 seconds
   SYNC_RETRY_MAX: 3, // Max retry attempts
   SYNC_RETRY_DELAY_SECONDS: 60, // Wait 60 seconds between retries
@@ -39,5 +40,6 @@ export const OFFLINE_CONFIG = {
     ORDERS: '/api/pos/offline-orders/replay',
     PAYMENTS: '/api/offline-transactions/replay',
     STATUS: '/api/pos/offline-orders/status',
+    HEALTH: '/api/pos/offline/health',
   },
 } as const;

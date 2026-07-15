@@ -85,7 +85,10 @@ export function useTenantChangeListener() {
             clearReloadSafetyTimer();
             handlingRef.current = true;
             beginTenantSwitch();
-            tenantStorage.persistBootstrap({ tenantSlug: normalized });
+            tenantStorage.persistBootstrap({
+                tenantSlug: normalized,
+                tenantId: tenantStorage.getTenantId(),
+            });
             // Drop JWT so login re-issues tenant_id for the selected mandant (dev header is not enough alone).
             authStorage.removeToken();
             queryClient.clear();

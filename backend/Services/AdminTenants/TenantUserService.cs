@@ -1,4 +1,5 @@
 using System.Text.Json;
+using KasseAPI_Final.Auth;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Helpers;
@@ -82,6 +83,9 @@ public sealed class TenantUserService : ITenantUserService
 
     public async Task<IReadOnlyList<TenantUserDto>?> ListAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {
+        if (!CanAccessTenant(tenantId))
+            return null;
+
         if (!await TenantExistsAsync(tenantId, cancellationToken).ConfigureAwait(false))
             return null;
 
@@ -123,6 +127,9 @@ public sealed class TenantUserService : ITenantUserService
         AddAdminTenantUserRequest request,
         CancellationToken cancellationToken = default)
     {
+        if (!CanAccessTenant(tenantId))
+            return (null, "Tenant not found.");
+
         if (!await TenantExistsAsync(tenantId, cancellationToken).ConfigureAwait(false))
             return (null, "Tenant not found.");
 
@@ -219,6 +226,9 @@ public sealed class TenantUserService : ITenantUserService
         string? explicitUserName = null,
         CancellationToken cancellationToken = default)
     {
+        if (!CanAccessTenant(tenantId))
+            return (null, "Tenant not found.");
+
         var tenant = await _db.Tenants.AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken)
             .ConfigureAwait(false);
@@ -382,6 +392,16 @@ public sealed class TenantUserService : ITenantUserService
         return string.IsNullOrWhiteSpace(role) ? Roles.FallbackUnknown : role.Trim();
     }
 
+    private bool IsActorSuperAdmin() =>
+        string.Equals(
+            RoleCanonicalization.GetCanonicalRole(ResolveActorRole()),
+            Roles.SuperAdmin,
+            StringComparison.Ordinal);
+
+    private bool CanAccessTenant(Guid tenantId) =>
+        IsActorSuperAdmin()
+        || (_tenantAccessor.TenantId is Guid ambient && ambient == tenantId);
+
     private async Task LogQuickUserCreatedAuditAsync(
         string actorUserId,
         Guid tenantId,
@@ -455,6 +475,9 @@ public sealed class TenantUserService : ITenantUserService
         UpdateAdminTenantUserRequest request,
         CancellationToken cancellationToken = default)
     {
+        if (!CanAccessTenant(tenantId))
+            return (null, "Tenant not found.");
+
         if (!await TenantExistsAsync(tenantId, cancellationToken).ConfigureAwait(false))
             return (null, "Tenant not found.");
 
@@ -504,6 +527,9 @@ public sealed class TenantUserService : ITenantUserService
         string userId,
         CancellationToken cancellationToken = default)
     {
+        if (!CanAccessTenant(tenantId))
+            return (null, "Tenant not found.");
+
         if (!await TenantExistsAsync(tenantId, cancellationToken).ConfigureAwait(false))
             return (null, "Tenant not found.");
 
@@ -563,6 +589,9 @@ public sealed class TenantUserService : ITenantUserService
         UpdateTenantUserRoleRequest request,
         CancellationToken cancellationToken = default)
     {
+        if (!CanAccessTenant(tenantId))
+            return (null, "Tenant not found.");
+
         if (!await TenantExistsAsync(tenantId, cancellationToken).ConfigureAwait(false))
             return (null, "Tenant not found.");
 
@@ -597,6 +626,9 @@ public sealed class TenantUserService : ITenantUserService
         string userId,
         CancellationToken cancellationToken = default)
     {
+        if (!CanAccessTenant(tenantId))
+            return (false, "Tenant not found.");
+
         if (!await TenantExistsAsync(tenantId, cancellationToken).ConfigureAwait(false))
             return (false, "Tenant not found.");
 

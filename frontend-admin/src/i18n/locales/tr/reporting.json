@@ -1,4 +1,10 @@
 {
+  "storedPdf": {
+    "button": "PDF",
+    "loading": "PDF yukleniyor…",
+    "success": "PDF indirildi",
+    "error": "PDF yuklenemedi"
+  },
   "policy": {
     "formalReportLanguageTitle": "Resmi rapor metinleri",
     "formalReportLanguageBody": "Yonetim arayuzu Turkce olabilir; bu bolumdeki yasal ve muhasebe rapor metinleri yalnizca Almanca veya Ingilizce gosterilir (varsayilan: Almanca).",

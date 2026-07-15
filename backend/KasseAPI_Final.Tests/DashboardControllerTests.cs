@@ -122,7 +122,7 @@ public sealed class DashboardControllerTests
 
         Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.BackupStatus);
         Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.OfflineSystemStatus);
-        Assert.DoesNotContain(items, i => i.WidgetId == DashboardWidgetCatalog.LicenseExpiry);
+        Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.LicenseExpiry);
     }
 
     [Fact]

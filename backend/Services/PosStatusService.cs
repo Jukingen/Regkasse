@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Rksv;
 using Microsoft.EntityFrameworkCore;
 
@@ -37,12 +38,13 @@ public sealed class PosStatusService : IPosStatusService
         await Task.WhenAll(deploymentTask, mandantTask).ConfigureAwait(false);
 
         var deployment = await deploymentTask.ConfigureAwait(false);
-        var licenseDto = LicensePublicStatusMapper.MapDeploymentStatus(deployment);
-        licenseDto = LicensePublicStatusMapper.ApplyMandantOverlay(
-            licenseDto,
-            await mandantTask.ConfigureAwait(false));
+        var mandantStatus = await mandantTask.ConfigureAwait(false);
+        var licenseDto = LicensePublicStatusMapper.ApplyMandantOverlay(
+            LicensePublicStatusMapper.MapDeploymentStatus(deployment),
+            mandantStatus);
 
         var healthSnapshot = _licenseService.GetStatus();
+        var healthLicense = BuildHealthLicenseSnapshot(healthSnapshot, licenseDto);
 
         var cashRegister = await _cashRegisterReadiness.GetReadinessSnapshotForPosAsync(
             userId,
@@ -54,22 +56,30 @@ public sealed class PosStatusService : IPosStatusService
         {
             ServerTimeUtc = DateTime.UtcNow,
             License = licenseDto,
-            HealthLicense = new PosStatusLicenseHealthDto
-            {
-                IsValid = healthSnapshot.IsValid,
-                IsTrial = healthSnapshot.IsTrial,
-                IsExpired = healthSnapshot.IsExpired,
-                DaysRemaining = healthSnapshot.DaysRemaining,
-                ExpiryDate = healthSnapshot.ExpiryDate.HasValue
-                    ? DateTime.SpecifyKind(healthSnapshot.ExpiryDate.Value, DateTimeKind.Utc)
-                    : null,
-                MachineHash = healthSnapshot.MachineHash,
-            },
+            HealthLicense = healthLicense,
             CashRegister = cashRegister,
             Settings = settings,
             RksvEnvironment = RksvEnvironmentStatusDto.FromService(_rksvEnvironment),
         };
     }
+
+    /// <summary>
+    /// POS overview always applies mandant overlay; health subset must match license badge.
+    /// </summary>
+    private static PosStatusLicenseHealthDto BuildHealthLicenseSnapshot(
+        LicenseStatusResponse deploymentHealth,
+        LicensePublicStatusDto licenseDto) =>
+        new()
+        {
+            IsValid = licenseDto.IsValid,
+            IsTrial = string.Equals(licenseDto.LicenseType, "Trial", StringComparison.OrdinalIgnoreCase),
+            IsExpired = licenseDto.IsExpired,
+            DaysRemaining = licenseDto.DaysRemaining,
+            ExpiryDate = licenseDto.ValidUntil.HasValue
+                ? DateTime.SpecifyKind(licenseDto.ValidUntil.Value, DateTimeKind.Utc)
+                : null,
+            MachineHash = deploymentHealth.MachineHash,
+        };
 
     private async Task<PosStatusSettingsSnapshotDto> LoadSettingsSnapshotAsync(
         string userId,

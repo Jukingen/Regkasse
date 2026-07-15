@@ -13,7 +13,29 @@ export function resolveTenantLicenseLabel(
     now = Date.now(),
     serverDaysRemaining?: number | null,
 ): TenantLicenseLabel {
-    if (!licenseValidUntilUtc) {
+    const serverDays =
+        typeof serverDaysRemaining === 'number' && Number.isFinite(serverDaysRemaining)
+            ? Math.trunc(serverDaysRemaining)
+            : null;
+
+    if (!licenseValidUntilUtc?.trim()) {
+        if (serverDays != null) {
+            if (serverDays < 0) {
+                return { kind: 'expired', label: 'Abgelaufen', daysRemaining: serverDays };
+            }
+
+            const isTrial = !licenseKey?.trim() || serverDays <= 31;
+            if (isTrial) {
+                return {
+                    kind: 'trial',
+                    label: `Demo (${serverDays} T.)`,
+                    daysRemaining: serverDays,
+                };
+            }
+
+            return { kind: 'valid', label: '—', daysRemaining: serverDays };
+        }
+
         if (licenseKey?.trim()) {
             return { kind: 'valid', label: '—', daysRemaining: null };
         }
@@ -22,10 +44,7 @@ export function resolveTenantLicenseLabel(
 
     const until = new Date(licenseValidUntilUtc);
     const diffMs = until.getTime() - now;
-    const daysRemaining =
-        typeof serverDaysRemaining === 'number' && Number.isFinite(serverDaysRemaining)
-            ? Math.trunc(serverDaysRemaining)
-            : Math.ceil(diffMs / (24 * 60 * 60 * 1000));
+    const daysRemaining = serverDays ?? Math.ceil(diffMs / (24 * 60 * 60 * 1000));
 
     if (daysRemaining < 0) {
         return { kind: 'expired', label: 'Abgelaufen', daysRemaining };

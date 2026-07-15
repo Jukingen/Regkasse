@@ -2,6 +2,7 @@ using System.Text;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Reports;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Reports;
 using KasseAPI_Final.Services.Rksv;
@@ -27,7 +28,10 @@ public sealed class DailyClosingReportServiceTests
         return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
-    private static DailyClosingReportService CreateReportService(AppDbContext ctx) =>
+    private static DailyClosingReportService CreateReportService(
+        AppDbContext ctx,
+        IReportPdfService? reportPdfService = null,
+        ICurrentUserService? currentUserService = null) =>
         new(
             ctx,
             DailyClosingTestDoubles.Create(ctx),
@@ -36,7 +40,28 @@ public sealed class DailyClosingReportServiceTests
             Options.Create(new TseOptions { Mode = "Real", TseMode = "Device" }),
             new ConfigurationBuilder().Build(),
             new RksvEnvironmentService(new ConfigurationBuilder().Build(),
-                Mock.Of<IHostEnvironment>(h => h.EnvironmentName == Environments.Production)));
+                Mock.Of<IHostEnvironment>(h => h.EnvironmentName == Environments.Production)),
+            CreateReportEnricherMock(),
+            new RksvReportTextService(CreateReportEnricherMock()),
+            Mock.Of<IReportPdfStorageService>(),
+            reportPdfService ?? Mock.Of<IReportPdfService>(),
+            currentUserService ?? Mock.Of<ICurrentUserService>());
+
+    private static ITagesabschlussReportEnricher CreateReportEnricherMock()
+    {
+        var mock = new Mock<ITagesabschlussReportEnricher>();
+        mock.Setup(e => e.BuildContextAsync(It.IsAny<DailyClosing>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new TagesabschlussCloudContext());
+        mock.Setup(e => e.BuildContextForRegisterAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<bool>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new TagesabschlussCloudContext());
+        return mock.Object;
+    }
 
     [Theory]
     [InlineData("de", "Tagesabschluss-Bericht")]
@@ -54,6 +79,20 @@ public sealed class DailyClosingReportServiceTests
 
         Assert.StartsWith("%PDF", Encoding.ASCII.GetString(pdf[..4]));
         Assert.True(pdf.Length > 200);
+    }
+
+    [Fact]
+    public void GenerateDailyReportText_UsesUnifiedTemplate_ForMonatsbeleg()
+    {
+        var svc = CreateReportService(CreateContext());
+        var report = SampleReport(closingType: "Monthly");
+
+        var text = svc.GenerateDailyReportText(report);
+
+        Assert.Contains("MONATSBELEG", text, StringComparison.Ordinal);
+        Assert.Contains("Finanzübersicht:", text, StringComparison.Ordinal);
+        Assert.Contains("RKSV / FinanzOnline:", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("EFR", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -227,9 +266,10 @@ public sealed class DailyClosingReportServiceTests
         Assert.Equal(175m, report.PaymentBreakdown.Total);
     }
 
-    private static PosDailyClosingReportDto SampleReport() => new()
+    private static PosDailyClosingReportDto SampleReport(string closingType = "Daily") => new()
     {
         BusinessDate = new DateTime(2026, 6, 11),
+        ClosingType = closingType,
         RegisterNumber = "K1",
         TotalSales = 120.50m,
         TotalCash = 80m,

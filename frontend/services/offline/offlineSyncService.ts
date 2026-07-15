@@ -1,10 +1,12 @@
-import NetInfo from '@react-native-community/netinfo';
+import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
 
 import { OfflineSessionManager } from '@/services/auth/offlineSessionManager';
 import { OfflineConfigService } from '@/services/config/offlineConfigService';
+import { apiClient } from '@/services/api/config';
 import { eventEmitter } from '@/utils/eventEmitter';
 
 import { OfflineOrderManager } from './offlineOrderManager';
+import { OfflineSyncHistory } from './offlineSyncHistory';
 
 export interface SyncStatus {
   isSyncing: boolean;
@@ -20,6 +22,14 @@ export type SyncAllResult = {
   errors: number;
 };
 
+type ServerSyncHealth = {
+  pendingOrders: number;
+  maxPending: number;
+  isHealthy: boolean;
+  status: 'healthy' | 'warning';
+  lastSyncAt: string | null;
+};
+
 function countSyncResults(details: Array<{ success: boolean }> | undefined): {
   synced: number;
   errors: number;
@@ -31,24 +41,64 @@ function countSyncResults(details: Array<{ success: boolean }> | undefined): {
   return { synced, errors: details.length - synced };
 }
 
+function isNetworkOnline(state: NetInfoState): boolean {
+  if (state.isConnected !== true) return false;
+  // NetInfo often reports null on reconnect; treat connected as online unless explicitly unreachable.
+  return state.isInternetReachable !== false;
+}
+
+type NetworkInformationLike = EventTarget & {
+  effectiveType?: string;
+  downlink?: number;
+  rtt?: number;
+  saveData?: boolean;
+};
+
+type NavigatorWithNetworkInformation = Navigator & {
+  connection?: NetworkInformationLike;
+  mozConnection?: NetworkInformationLike;
+  webkitConnection?: NetworkInformationLike;
+};
+
+function getNetworkConnection(): NetworkInformationLike | null {
+  if (typeof navigator === 'undefined') return null;
+  const nav = navigator as NavigatorWithNetworkInformation;
+  return nav.connection ?? nav.mozConnection ?? nav.webkitConnection ?? null;
+}
+
+function isBrowserOnline(): boolean {
+  if (typeof navigator === 'undefined' || !('onLine' in navigator)) {
+    return false;
+  }
+  return navigator.onLine;
+}
+
 export class OfflineSyncService {
   private static instance: OfflineSyncService | undefined;
+  private static readonly RECONNECT_SYNC_DEBOUNCE_MS = 1_000;
+
   private readonly config: OfflineConfigService;
   private readonly sessionManager: OfflineSessionManager;
   private readonly orderManager: OfflineOrderManager;
   private syncInterval: ReturnType<typeof setInterval> | null = null;
+  private statusPollInterval: ReturnType<typeof setInterval> | null = null;
+  private reconnectSyncTimer: ReturnType<typeof setTimeout> | null = null;
   private netInfoUnsubscribe: (() => void) | null = null;
+  private networkConnection: NetworkInformationLike | null = null;
   private isSyncing = false;
   private lastSyncAt: Date | null = null;
   private pendingOrdersCount = 0;
+  private lastKnownOnline: boolean | null = null;
+  private lastServerHealthStatus: ServerSyncHealth['status'] | null = null;
 
   private constructor() {
     this.config = OfflineConfigService.getInstance();
     this.sessionManager = OfflineSessionManager.getInstance();
     this.orderManager = OfflineOrderManager.getInstance({ autoSync: false });
     this.setupListeners();
-    void this.refreshPendingCounts();
+    void this.initializeOnlineState();
     this.startAutoSync();
+    this.startStatusPolling();
   }
 
   static getInstance(): OfflineSyncService {
@@ -58,12 +108,77 @@ export class OfflineSyncService {
     return OfflineSyncService.instance;
   }
 
+  private async initializeOnlineState(): Promise<void> {
+    this.lastKnownOnline = await this.isOnline();
+    await this.refreshPendingCounts();
+    this.emitStatusChange();
+  }
+
   private startAutoSync(): void {
     const intervalMs = this.config.get('SYNC_INTERVAL_SECONDS') * 1000;
 
     this.syncInterval = setInterval(() => {
       void this.autoSync();
     }, intervalMs);
+  }
+
+  private startStatusPolling(): void {
+    const intervalMs = this.config.get('STATUS_POLL_INTERVAL_SECONDS') * 1000;
+
+    this.statusPollInterval = setInterval(() => {
+      void this.pollSyncStatus();
+    }, intervalMs);
+  }
+
+  private async pollSyncStatus(): Promise<void> {
+    await this.refreshPendingCounts();
+
+    const online = await this.isOnline();
+    if (this.lastKnownOnline === false && online) {
+      this.scheduleReconnectSync();
+    }
+    this.lastKnownOnline = online;
+
+    if (online) {
+      await this.pollServerSyncHealth();
+    }
+
+    const status = this.getSyncStatus();
+    this.emitStatusChange(status);
+  }
+
+  private async pollServerSyncHealth(): Promise<void> {
+    try {
+      const path = this.config.get('SYNC_ENDPOINTS').HEALTH.replace(/^\/api/, '');
+      const raw = await apiClient.get<{ data?: ServerSyncHealth; success?: boolean }>(path);
+      const health = raw?.data;
+      if (!health) return;
+
+      if (
+        health.status === 'warning' &&
+        this.lastServerHealthStatus !== 'warning'
+      ) {
+        eventEmitter.emit('sync:warning', {
+          message: `${health.pendingOrders} Offline-Bestellungen warten auf dem Server`,
+        });
+      }
+
+      this.lastServerHealthStatus = health.status;
+    } catch {
+      // Non-blocking — local sync continues when health endpoint is unavailable.
+    }
+  }
+
+  private scheduleReconnectSync(): void {
+    if (this.reconnectSyncTimer) {
+      clearTimeout(this.reconnectSyncTimer);
+    }
+
+    this.reconnectSyncTimer = setTimeout(() => {
+      this.reconnectSyncTimer = null;
+      eventEmitter.emit('sync:online');
+      void this.autoSync();
+    }, OfflineSyncService.RECONNECT_SYNC_DEBOUNCE_MS);
   }
 
   private async autoSync(): Promise<void> {
@@ -99,10 +214,14 @@ export class OfflineSyncService {
         errors,
       };
     } catch (error) {
-      eventEmitter.emit(
-        'sync:error',
-        error instanceof Error ? error : new Error('Offline sync failed')
-      );
+      const message = error instanceof Error ? error.message : 'Offline sync failed';
+      void OfflineSyncHistory.getInstance().record({
+        type: 'order',
+        status: 'failed',
+        message,
+      });
+
+      eventEmitter.emit('sync:error', error instanceof Error ? error : new Error(message));
 
       return {
         success: false,
@@ -127,12 +246,9 @@ export class OfflineSyncService {
   private async isOnline(): Promise<boolean> {
     try {
       const state = await NetInfo.fetch();
-      return state.isConnected === true && state.isInternetReachable !== false;
+      return isNetworkOnline(state);
     } catch {
-      if (typeof navigator !== 'undefined' && 'onLine' in navigator) {
-        return navigator.onLine;
-      }
-      return false;
+      return isBrowserOnline();
     }
   }
 
@@ -148,33 +264,72 @@ export class OfflineSyncService {
     };
   }
 
-  private emitStatusChange(): void {
-    eventEmitter.emit('sync:status', this.getSyncStatus());
+  private emitStatusChange(status: SyncStatus = this.getSyncStatus()): void {
+    eventEmitter.emit('sync:status', status);
+  }
+
+  private handleConnectivityChange(online: boolean): void {
+    const wasOffline = this.lastKnownOnline === false;
+    this.lastKnownOnline = online;
+
+    if (online) {
+      if (wasOffline) {
+        this.scheduleReconnectSync();
+      }
+      return;
+    }
+
+    eventEmitter.emit('sync:offline');
+    this.emitStatusChange();
+  }
+
+  private readonly handleOnline = (): void => {
+    void this.evaluateNetworkStatus();
+  };
+
+  private readonly handleOffline = (): void => {
+    this.handleConnectivityChange(false);
+  };
+
+  private readonly handleNetworkChange = (): void => {
+    void this.evaluateNetworkStatus();
+  };
+
+  private async evaluateNetworkStatus(): Promise<void> {
+    const online = await this.isOnline();
+    this.handleConnectivityChange(online);
+  }
+
+  /** Web: Network Information API + online/offline fallback. Native: NetInfo handles events. */
+  private checkNetworkStatus(): void {
+    if (typeof navigator === 'undefined' || typeof window === 'undefined') {
+      return;
+    }
+
+    this.networkConnection = getNetworkConnection();
+    if (this.networkConnection) {
+      this.networkConnection.addEventListener('change', this.handleNetworkChange);
+    }
+
+    window.addEventListener('online', this.handleOnline);
+    window.addEventListener('offline', this.handleOffline);
   }
 
   private setupListeners(): void {
     this.netInfoUnsubscribe = NetInfo.addEventListener((state) => {
-      const online =
-        state.isConnected === true && state.isInternetReachable !== false;
-
-      if (online) {
-        eventEmitter.emit('sync:online');
-        void this.autoSync();
-        return;
-      }
-
-      eventEmitter.emit('sync:offline');
+      this.handleConnectivityChange(isNetworkOnline(state));
     });
 
-    if (typeof window !== 'undefined') {
-      window.addEventListener('online', () => {
-        eventEmitter.emit('sync:online');
-        void this.autoSync();
-      });
+    this.checkNetworkStatus();
+  }
 
-      window.addEventListener('offline', () => {
-        eventEmitter.emit('sync:offline');
-      });
+  private teardownNetworkStatus(): void {
+    this.networkConnection?.removeEventListener('change', this.handleNetworkChange);
+    this.networkConnection = null;
+
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('online', this.handleOnline);
+      window.removeEventListener('offline', this.handleOffline);
     }
   }
 
@@ -193,8 +348,19 @@ export class OfflineSyncService {
       this.syncInterval = null;
     }
 
+    if (this.statusPollInterval) {
+      clearInterval(this.statusPollInterval);
+      this.statusPollInterval = null;
+    }
+
+    if (this.reconnectSyncTimer) {
+      clearTimeout(this.reconnectSyncTimer);
+      this.reconnectSyncTimer = null;
+    }
+
     this.netInfoUnsubscribe?.();
     this.netInfoUnsubscribe = null;
+    this.teardownNetworkStatus();
   }
 
   static resetForTests(): void {

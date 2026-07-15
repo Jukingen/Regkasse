@@ -12,4 +12,5 @@ fromUtc?: string;
 toUtc?: string;
 includeSpecialReceipts?: boolean;
 includeDailyClosings?: boolean;
+includeEnvelope?: boolean;
 };

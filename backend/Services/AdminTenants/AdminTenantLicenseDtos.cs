@@ -17,7 +17,9 @@ public sealed record TenantLicenseHistoryItemDto(
     string EventType,
     DateTime AtUtc,
     string Summary,
-    string? LicenseKey);
+    string? LicenseKey,
+    string? ActorUserId = null,
+    string? ActorDisplayName = null);
 
 public sealed record TenantLicenseOverviewDto(
     TenantLicenseStatusDto Status,

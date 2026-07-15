@@ -35,13 +35,8 @@ export interface AdminPaymentDetailDto {
   finanzOnlineRetryCount?: number;
   /** @nullable */
   finanzOnlineStatus?: string | null;
-  hasVoucherRedemption?: boolean;
-  /** True when a fiscal storno reversal exists for this original sale. */
   hasStornoReversal?: boolean;
-  /** @nullable */
-  stornoReversalPaymentId?: string | null;
-  /** @nullable */
-  stornoReversalReceiptNumber?: string | null;
+  hasVoucherRedemption?: boolean;
   id?: string;
   /** @nullable */
   idempotencyKey?: string | null;
@@ -81,6 +76,10 @@ export interface AdminPaymentDetailDto {
   status?: string | null;
   stornoReason?: StornoReason;
   stornoRefundAudit?: AdminPaymentStornoRefundAuditDto;
+  /** @nullable */
+  stornoReversalPaymentId?: string | null;
+  /** @nullable */
+  stornoReversalReceiptNumber?: string | null;
   tableNumber?: number;
   taxAmount?: number;
   totalAmount?: number;

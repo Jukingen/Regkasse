@@ -1,4 +1,10 @@
 {
+  "storedPdf": {
+    "button": "PDF",
+    "loading": "PDF wird geladen…",
+    "success": "PDF heruntergeladen",
+    "error": "PDF konnte nicht geladen werden"
+  },
   "policy": {
     "formalReportLanguageTitle": "Formale Berichtstexte",
     "formalReportLanguageBody": "Die Oberfläche kann auf Türkisch eingestellt sein; formale Berichtstexte in diesem Bereich sind jedoch nur auf Deutsch oder Englisch verfügbar (Standard: Deutsch).",

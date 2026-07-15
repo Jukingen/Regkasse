@@ -19,6 +19,26 @@
     "expiresSoon": "Yakında sona eriyor",
     "trial": "Deneme"
   },
+  "history": {
+    "title": "Lisans geçmişi",
+    "empty": "Kayıtlı lisans değişikliği yok",
+    "columns": {
+      "date": "Tarih",
+      "event": "Olay",
+      "summary": "Detay",
+      "actor": "İşlemi yapan",
+      "licenseKey": "Lisans anahtarı"
+    },
+    "events": {
+      "activated": "Aktivasyon",
+      "extended": "Uzatma",
+      "renewed": "Yenileme",
+      "issued": "Verildi",
+      "revoked": "İptal edildi",
+      "trial": "Deneme",
+      "updated": "Güncellendi"
+    }
+  },
   "server": {
     "title": "Sunucu lisans durumu",
     "subtitle": "Bu lisans tüm sunucu ve kiracılar için geçerlidir.",
@@ -607,5 +627,97 @@
     "features": "Özellikler",
     "isValid": "İşleme izin",
     "loadError": "Genel lisans durumu yüklenemedi."
+  },
+  "testPanel": {
+    "title": "Lisans test paneli",
+    "subtitle": "Yalnızca Development ortamı. Kiracı ve deployment lisans bitişini QA senaryoları için ayarlayın.",
+    "devOnlyNotice": "Bu panel yalnızca Development ortamında kullanılabilir (Super Admin).",
+    "productionBlocked": "Lisans test paneli production ortamında devre dışı.",
+    "selectTenant": "Kiracı",
+    "selectTenantPlaceholder": "Kiracı seçin…",
+    "refresh": "Durumu yenile",
+    "refreshedAt": "Son güncelleme: {time}",
+    "developmentBypassActive": "Development-mode lisans bypass aktif — deployment durumu sentetik olabilir.",
+    "overrideHint": "Senaryolar kiracı lisansını anında değiştirir (üzerine ekleme yapmaz). „999 gün“ çoğu zaman DB'de bitiş tarihi olmadığı anlamına gelir — uyguladıktan sonra gerçek kalan günü görürsünüz.",
+    "unlimitedNoExpiry": "Sınırsız (bitiş tarihi yok)",
+    "tenantSection": "Kiracı lisansı (SaaS)",
+    "deploymentSection": "Sunucu lisansı (Deployment)",
+    "validUntil": "Geçerlilik",
+    "daysRemaining": "Kalan gün",
+    "status": "Durum",
+    "mode": "Mod",
+    "licenseKey": "Lisans anahtarı",
+    "customExpiry": "Bitiş tarihi",
+    "applyTenant": "Kiracıya uygula",
+    "applyDeployment": "Deployment'a uygula",
+    "toggleActive": "Aktif (30 gün)",
+    "toggleExpired": "Süresi dolmuş",
+    "scenarioTitle": "Hızlı senaryolar",
+    "scenario1Day": "1 gün",
+    "scenario7Days": "7 gün",
+    "scenario30Days": "30 gün",
+    "scenarioExpired": "Süresi dolmuş",
+    "scopeTenant": "Yalnızca kiracı",
+    "scopeDeployment": "Yalnızca deployment",
+    "scopeBoth": "Her ikisi",
+    "applyScenario": "Senaryoyu uygula",
+    "success": "Lisans durumu güncellendi.",
+    "scenarioSuccess": "Lisans {days} güne ayarlandı.",
+    "scenarioExpiredSuccess": "Lisans süresi dolmuş olarak ayarlandı.",
+    "manualSuccess": "Lisans {date} tarihine kadar geçerli.",
+    "error": "Lisans güncellenemedi.",
+    "noTenantSelected": "Lütfen önce bir kiracı seçin.",
+    "alertTitle": "🧪 Development License Test Panel",
+    "alertDescription": "Bu panel yalnızca geliştirme ortamında çalışır. Production ortamında devre dışıdır.",
+    "simulationTitle": "Lisans simülasyonu",
+    "manualTitle": "Manuel ayar",
+    "updateButton": "Güncelle",
+    "scenario30DaysLabel": "🟢 Bitişe 30 gün",
+    "scenario7DaysLabel": "🟡 Bitişe 7 gün",
+    "scenario1DayLabel": "🟠 Bitişe 1 gün",
+    "scenarioExpiredLabel": "🔴 Süresi dolmuş",
+    "mockStatus": {
+      "healthy": "🟢 Bitişe 30 gün (healthy)",
+      "warning": "🟡 Bitişe 7 gün (warning)",
+      "urgent": "🟠 Bitişe 1 gün (urgent)",
+      "expired": "🔴 Süresi dolmuş (expired)"
+    },
+    "statusLabels": {
+      "active": "Aktif",
+      "expired": "Süresi dolmuş",
+      "expiring_soon": "Yakında bitiyor",
+      "trial": "Deneme",
+      "no_license": "Lisans yok"
+    }
+  },
+  "debug": {
+    "title": "Lisans debug",
+    "noticeTitle": "Super Admin sorun giderme",
+    "noticeDescription": "Kiracı lisans kaynaklarını karşılaştırır (unified GET /api/license/status vs admin detay). Header ve dashboard widget unified kaynağı kullanır.",
+    "refresh": "Tüm kaynakları yenile",
+    "tenantContext": "Teşhis kiracısı",
+    "tenantPlaceholder": "Kiracı seç (varsayılan: mevcut bağlam)",
+    "currentSlug": "Mevcut slug",
+    "platformMode": "Super Admin platform modu",
+    "queryKey": "TanStack Query anahtarı (unified)",
+    "fetchedAt": "Unified son yükleme",
+    "comparisonTitle": "Kaynak karşılaştırması",
+    "columns": {
+      "source": "Kaynak",
+      "endpoint": "API / hook",
+      "kind": "Durum",
+      "daysRemaining": "Kalan gün",
+      "validUntil": "Geçerlilik",
+      "canAccess": "canAccess"
+    },
+    "sources": {
+      "unified": "Unified (POS sözleşmesi)",
+      "adminDetail": "Admin kiracı detayı",
+      "header": "Header rozeti (türetilmiş)",
+      "resolved": "resolveTenantLicenseStatus",
+      "deployment": "Sunucu lisansı (deployment)",
+      "adminStatus": "Admin sunucu durumu",
+      "history": "Lisans geçmişi (meta)"
+    }
   }
 }

@@ -18,13 +18,125 @@ import type {
   MonatsbelegRegisterStatusItemDto,
   MonatsbelegStatusDto,
   ProblemDetails,
+  RksvEnvironmentStatusDto,
   RksvReminderRegisterStatusItemDto,
-  RksvReminderStatusDto
+  RksvReminderStatusDto,
+  RksvStatusDto
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
 
 
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
+
+
+export const getApiRksvEnvironment = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<RksvEnvironmentStatusDto>(
+      {url: `/api/rksv/environment`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiRksvEnvironmentQueryKey = () => {
+    return [`/api/rksv/environment`] as const;
+    }
+
+    
+export const getGetApiRksvEnvironmentQueryOptions = <TData = Awaited<ReturnType<typeof getApiRksvEnvironment>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRksvEnvironment>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiRksvEnvironmentQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiRksvEnvironment>>> = ({ signal }) => getApiRksvEnvironment(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiRksvEnvironment>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiRksvEnvironmentQueryResult = NonNullable<Awaited<ReturnType<typeof getApiRksvEnvironment>>>
+export type GetApiRksvEnvironmentQueryError = unknown
+
+export const useGetApiRksvEnvironment = <TData = Awaited<ReturnType<typeof getApiRksvEnvironment>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRksvEnvironment>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiRksvEnvironmentQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiRksvStatus = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<RksvStatusDto>(
+      {url: `/api/rksv/status`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiRksvStatusQueryKey = () => {
+    return [`/api/rksv/status`] as const;
+    }
+
+    
+export const getGetApiRksvStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiRksvStatus>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRksvStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiRksvStatusQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiRksvStatus>>> = ({ signal }) => getApiRksvStatus(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiRksvStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiRksvStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiRksvStatus>>>
+export type GetApiRksvStatusQueryError = unknown
+
+export const useGetApiRksvStatus = <TData = Awaited<ReturnType<typeof getApiRksvStatus>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRksvStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiRksvStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
 
 
 export const getApiRksvMonatsbelegStatusCashRegisterId = (

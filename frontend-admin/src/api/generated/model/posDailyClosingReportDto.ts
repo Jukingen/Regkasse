@@ -5,23 +5,73 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { PaymentBreakdown } from './paymentBreakdown';
+import type { DailyClosingTaxBreakdownDto } from './dailyClosingTaxBreakdownDto';
+import type { TransactionBreakdown } from './transactionBreakdown';
 
 export interface PosDailyClosingReportDto {
   businessDate?: string;
   cashCount?: number;
   /** @nullable */
+  cashierName?: string | null;
+  /** @nullable */
+  cashRegisterId?: string | null;
+  /** @nullable */
   closingType?: string | null;
+  /** @nullable */
+  companyAddress?: string | null;
+  /** @nullable */
+  companyName?: string | null;
+  /** @nullable */
+  companyVatId?: string | null;
+  /** @nullable */
+  depExportStatusLabel?: string | null;
   difference?: number;
+  /** @nullable */
+  differenceScopeNote?: string | null;
+  /** @nullable */
+  fiscalEnvironment?: string | null;
   fiscalTotalAmount?: number;
+  fiscalTotalNetAmount?: number;
   fiscalTotalTaxAmount?: number;
   fiscalTransactionCount?: number;
+  hasJahresbeleg?: boolean;
+  hasMonatsbeleg?: boolean;
+  hasStartbeleg?: boolean;
+  isDemoFiscal?: boolean;
+  paymentBreakdown?: PaymentBreakdown;
+  /** @nullable */
+  periodEndUtc?: string | null;
+  /** @nullable */
+  periodStartUtc?: string | null;
+  /** @nullable */
+  previousClosingSignature?: string | null;
+  /** @nullable */
+  qrPayload?: string | null;
   /** @nullable */
   registerNumber?: string | null;
   /** @nullable */
+  rksvFooterLabel?: string | null;
+  /** @nullable */
+  salesFiscalReconciliationNote?: string | null;
+  /** @nullable */
+  shiftNumber?: string | null;
+  /** @nullable */
   snapshotDisclaimerDe?: string | null;
+  taxBreakdown?: DailyClosingTaxBreakdownDto;
   totalCard?: number;
   totalCash?: number;
+  totalOtherPaymentMethods?: number;
   totalSales?: number;
+  totalVoucherRedemptions?: number;
+  transactionBreakdown?: TransactionBreakdown;
+  /** @nullable */
+  tseProviderLabel?: string | null;
   /** @nullable */
   tseSignature?: string | null;
+  tseSignatureVerified?: boolean;
+  /** @nullable */
+  tseStatusBadge?: string | null;
+  /** @nullable */
+  tseStatusLabel?: string | null;
 }

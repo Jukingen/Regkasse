@@ -36,6 +36,12 @@ import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
 import { FORMAT_EMPTY_DISPLAY, formatCurrency, formatDateTime, formatNumber } from '@/i18n/formatting';
 import { downloadClosingReportPdf } from '@/features/tagesabschluss/downloadClosingReportPdf';
+import {
+  downloadReportPdf,
+  reportPdfTypeFromClosingType,
+  triggerReportPdfBlobDownload,
+} from '@/features/reports/api/reportPdfApi';
+import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 import { FA_QUICK_CASH_REGISTER_QUERY_PARAM } from '@/features/cash-registers/constants/quickSwitch';
@@ -138,6 +144,7 @@ export default function TagesabschlussPage() {
   const { hasPermission } = usePermissions();
   const canView = hasPermission(PERMISSIONS.DAILY_CLOSING_VIEW);
   const canExecute = hasPermission(PERMISSIONS.DAILY_CLOSING_EXECUTE);
+  const canDownloadPdf = hasPermission(PERMISSIONS.REPORT_VIEW);
 
   const queryRegisterId = searchParams.get(FA_QUICK_CASH_REGISTER_QUERY_PARAM)?.trim();
   const [selectedRegisterId, setSelectedRegisterId] = useState<string | undefined>(() =>
@@ -233,25 +240,27 @@ export default function TagesabschlussPage() {
   const canCloseMonthly = canClose?.canCloseMonthly === true;
   const canCloseYearly = canClose?.canCloseYearly === true;
 
-  const downloadHistoryPdf = useCallback(
-    async (row: TagesabschlussResult) => {
-      const closingId = row.closingId?.trim();
-      if (!closingId) {
+  const downloadPdf = useCallback(
+    async (reportType: string, reportId: string, fileNameBase?: string) => {
+      const id = reportId.trim();
+      if (!id) {
         message.warning(t('tagesabschluss.messages.pdfUnavailable'));
         return;
       }
+
+      const messageKey = 'tagesabschluss-history-pdf';
+      message.loading({ content: t('reporting.storedPdf.loading'), key: messageKey });
       try {
-        await downloadClosingReportPdf(closingId, {
-          language: formatLocale,
-          closingType: row.closingType,
+        const lang = (formatLocale ?? 'de').split('-')[0] || 'de';
+        const blob = await downloadReportPdf(reportType, id, { language: lang });
+        triggerReportPdfBlobDownload(blob, fileNameBase ?? `${reportType}_${id}`);
+        message.success({ content: t('reporting.storedPdf.success'), key: messageKey });
+      } catch (error) {
+        message.destroy(messageKey);
+        openApiErrorMessage(message.open, t, error, {
+          logContext: 'TagesabschlussPage.downloadPdf',
+          fallbackKey: 'tagesabschluss.errors.pdfDownload',
         });
-      } catch (e) {
-        message.error(
-          getUserFacingApiErrorMessage(t, e, {
-            logContext: 'TagesabschlussClosingPdf',
-            fallbackKey: 'tagesabschluss.errors.pdfDownload',
-          }),
-        );
       }
     },
     [formatLocale, message, t],
@@ -467,22 +476,35 @@ export default function TagesabschlussPage() {
         title: t('tagesabschluss.history.colPdf'),
         key: 'pdf',
         width: 90,
-        render: (_: unknown, row: TagesabschlussResult) =>
-          row.closingId ? (
+        render: (_: unknown, row: TagesabschlussResult) => {
+          const closingId = row.closingId?.trim();
+          if (!closingId || !canDownloadPdf) {
+            return FORMAT_EMPTY_DISPLAY;
+          }
+
+          const reportType = reportPdfTypeFromClosingType(row.closingType);
+          return (
             <Button
               type="link"
               size="small"
               icon={<FilePdfOutlined />}
-              onClick={() => void downloadHistoryPdf(row)}
+              onClick={() => void downloadPdf(reportType, closingId, `${reportType}_${closingId}`)}
             >
-              PDF
+              {t('reporting.storedPdf.button')}
             </Button>
-          ) : (
-            FORMAT_EMPTY_DISPLAY
-          ),
+          );
+        },
       },
     ],
-    [t, formatLocale, closingTypeLabel, closingRowStatusLabel, historyFinanzOnlineStatusLabel, downloadHistoryPdf]
+    [
+      t,
+      formatLocale,
+      closingTypeLabel,
+      closingRowStatusLabel,
+      historyFinanzOnlineStatusLabel,
+      canDownloadPdf,
+      downloadPdf,
+    ],
   );
 
   const closingBusy = dailyMu.isPending || monthlyMu.isPending || yearlyMu.isPending;

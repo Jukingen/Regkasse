@@ -8,12 +8,14 @@
 import type { PosCashRegisterContextDto } from './posCashRegisterContextDto';
 import type { PosStatusLicenseHealthDto } from './posStatusLicenseHealthDto';
 import type { LicensePublicStatusDto } from './licensePublicStatusDto';
+import type { RksvEnvironmentStatusDto } from './rksvEnvironmentStatusDto';
 import type { PosStatusSettingsSnapshotDto } from './posStatusSettingsSnapshotDto';
 
 export interface PosStatusOverviewDto {
   cashRegister?: PosCashRegisterContextDto;
   healthLicense?: PosStatusLicenseHealthDto;
   license?: LicensePublicStatusDto;
+  rksvEnvironment?: RksvEnvironmentStatusDto;
   serverTimeUtc?: string;
   settings?: PosStatusSettingsSnapshotDto;
 }

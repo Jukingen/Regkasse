@@ -1,6 +1,7 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.License;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -21,6 +22,8 @@ internal static class BillingTestDoubles
         new(db, NullCurrentUserService.Instance, NullLogger<BillingAuditService>.Instance);
 
     internal static NoOpReminderService NoOpReminder { get; } = new();
+
+    internal static NoOpLicenseReminderService NoOpLicenseReminder { get; } = new();
 
     internal static NoOpBillingBackupService NoOpBackup { get; } = new();
 
@@ -65,6 +68,15 @@ internal sealed class NoOpReminderService : IReminderService, IBillingReminderSe
 
     public Task<BillingReminderListResponse> ListAsync(BillingReminderQuery query, CancellationToken ct = default) =>
         Task.FromResult(new BillingReminderListResponse());
+}
+
+internal sealed class NoOpLicenseReminderService : ILicenseReminderService
+{
+    public Task<LicenseReminderRunResult> SendDueMandantExpiryRemindersAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(new LicenseReminderRunResult(0, 0, 0));
+
+    public Task<int> SendDueBillingSaleRemindersAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(0);
 }
 
 internal sealed class NoOpBillingBackupService : IBillingBackupService

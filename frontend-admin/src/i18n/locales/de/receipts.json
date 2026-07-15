@@ -43,6 +43,7 @@
     "colSpecialKind": "Sonderbeleg (RKSV)",
     "colGrandTotal": "Gesamtbetrag",
     "colPdfReprint": "Nachdruck",
+    "colStoredPdf": "PDF",
     "colNext": "Aktion",
     "open": "Öffnen",
     "paginationTotal": "{{from}}–{{to}} von {{total}} Belegen"

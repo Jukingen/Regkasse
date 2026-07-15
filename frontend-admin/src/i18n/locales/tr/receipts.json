@@ -43,6 +43,7 @@
     "colSpecialKind": "Ozel belge (RKSV)",
     "colGrandTotal": "Genel toplam",
     "colPdfReprint": "Yeniden yazdir",
+    "colStoredPdf": "PDF",
     "colNext": "Islem",
     "open": "Ac",
     "paginationTotal": "{{from}}–{{to}} / {{total}} fis"

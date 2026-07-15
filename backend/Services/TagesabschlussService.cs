@@ -13,6 +13,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Time;
 using KasseAPI_Final.Tse;
+using KasseAPI_Final.Services.Reports;
 
 namespace KasseAPI_Final.Services
 {
@@ -56,6 +57,8 @@ namespace KasseAPI_Final.Services
         private readonly IHostEnvironment _hostEnvironment;
         private readonly IDevelopmentModeService? _developmentModeService;
         private readonly ILogger<TagesabschlussService> _logger;
+        private readonly IReportPdfCaptureService _reportPdfCapture;
+        private readonly IReportPdfStorageService _reportPdfStorage;
 
         public TagesabschlussService(
             AppDbContext context,
@@ -66,6 +69,8 @@ namespace KasseAPI_Final.Services
             IOptions<TseOptions> tseOptions,
             IHostEnvironment hostEnvironment,
             ILogger<TagesabschlussService> logger,
+            IReportPdfCaptureService reportPdfCapture,
+            IReportPdfStorageService reportPdfStorage,
             IDevelopmentModeService? developmentModeService = null)
         {
             _context = context;
@@ -76,6 +81,8 @@ namespace KasseAPI_Final.Services
             _tseOptions = tseOptions.Value;
             _hostEnvironment = hostEnvironment;
             _logger = logger;
+            _reportPdfCapture = reportPdfCapture;
+            _reportPdfStorage = reportPdfStorage;
             _developmentModeService = developmentModeService;
         }
 
@@ -244,6 +251,12 @@ namespace KasseAPI_Final.Services
                     CreatedAt = DateTime.UtcNow
                 };
 
+                await DailyClosingOperationalResolver.StampOperationalFieldsAsync(
+                    _context,
+                    dailyClosing,
+                    cashRegisterId,
+                    userId);
+
                 _context.DailyClosings.Add(dailyClosing);
 
                 // Submit to FinanzOnline if enabled
@@ -264,6 +277,8 @@ namespace KasseAPI_Final.Services
                 var duplicateResult = await TrySaveClosingOrReturnDuplicateAsync(dailyClosing.ClosingType);
                 if (duplicateResult != null)
                     return duplicateResult;
+
+                await _reportPdfCapture.TryCaptureClosingReportAsync(dailyClosing.Id, userId);
 
                 return new TagesabschlussResult
                 {
@@ -406,10 +421,18 @@ namespace KasseAPI_Final.Services
                     CreatedAt = DateTime.UtcNow
                 };
 
+                await DailyClosingOperationalResolver.StampOperationalFieldsAsync(
+                    _context,
+                    monthlyClosing,
+                    cashRegisterId,
+                    userId);
+
                 _context.DailyClosings.Add(monthlyClosing);
                 var duplicateResult = await TrySaveClosingOrReturnDuplicateAsync(monthlyClosing.ClosingType);
                 if (duplicateResult != null)
                     return duplicateResult;
+
+                await _reportPdfCapture.TryCaptureClosingReportAsync(monthlyClosing.Id, userId);
 
                 return new TagesabschlussResult
                 {
@@ -549,10 +572,18 @@ namespace KasseAPI_Final.Services
                     CreatedAt = DateTime.UtcNow
                 };
 
+                await DailyClosingOperationalResolver.StampOperationalFieldsAsync(
+                    _context,
+                    yearlyClosing,
+                    cashRegisterId,
+                    userId);
+
                 _context.DailyClosings.Add(yearlyClosing);
                 var duplicateResult = await TrySaveClosingOrReturnDuplicateAsync(yearlyClosing.ClosingType);
                 if (duplicateResult != null)
                     return duplicateResult;
+
+                await _reportPdfCapture.TryCaptureClosingReportAsync(yearlyClosing.Id, userId);
 
                 return new TagesabschlussResult
                 {
@@ -634,18 +665,35 @@ namespace KasseAPI_Final.Services
                 .ToListAsync(cancellationToken)
                 .ConfigureAwait(false);
 
-            return closings.Select(c => new TagesabschlussResult
+            var storedByType = new Dictionary<string, IReadOnlySet<Guid>>(StringComparer.Ordinal);
+            foreach (var group in closings.GroupBy(c => ReportPdfTypes.FromClosingType(c.ClosingType)))
             {
-                Success = true,
-                ClosingId = c.Id,
-                ClosingDate = c.ClosingDate,
-                ClosingType = c.ClosingType,
-                TotalAmount = c.TotalAmount,
-                TotalTaxAmount = c.TotalTaxAmount,
-                TransactionCount = c.TransactionCount,
-                TseSignature = c.TseSignature,
-                Status = c.Status,
-                FinanzOnlineStatus = c.FinanzOnlineStatus
+                var ids = group.Select(c => c.Id).ToList();
+                var stored = await _reportPdfStorage.GetStoredReportIdsAsync(
+                    group.Key,
+                    ids,
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
+                storedByType[group.Key] = stored;
+            }
+
+            return closings.Select(c =>
+            {
+                var reportType = ReportPdfTypes.FromClosingType(c.ClosingType);
+                var hasStoredPdf = storedByType.TryGetValue(reportType, out var stored) && stored.Contains(c.Id);
+                return new TagesabschlussResult
+                {
+                    Success = true,
+                    ClosingId = c.Id,
+                    ClosingDate = c.ClosingDate,
+                    ClosingType = c.ClosingType,
+                    TotalAmount = c.TotalAmount,
+                    TotalTaxAmount = c.TotalTaxAmount,
+                    TransactionCount = c.TransactionCount,
+                    TseSignature = c.TseSignature,
+                    Status = c.Status,
+                    FinanzOnlineStatus = c.FinanzOnlineStatus,
+                    HasStoredPdf = hasStoredPdf,
+                };
             }).ToList();
         }
 
@@ -824,5 +872,7 @@ namespace KasseAPI_Final.Services
         public int PaymentsWithoutInvoiceCount { get; set; }
         /// <summary>Optional warning on success. Unused when closing is blocked (PaymentsWithoutInvoiceCount &gt; 0).</summary>
         public string? Warning { get; set; }
+        /// <summary>True when a persisted RKSV closing PDF exists for download.</summary>
+        public bool HasStoredPdf { get; set; }
     }
 }

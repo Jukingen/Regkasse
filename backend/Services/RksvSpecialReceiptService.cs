@@ -39,6 +39,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
     private readonly ILogger<RksvSpecialReceiptService> _logger;
     private readonly IRksvSpecialReceiptFinanzOnlineSubmissionTracker _fonSubmissionTracker;
     private readonly IFinanzOnlineOutboxService _finanzOnlineOutbox;
+    private readonly IReportPdfCaptureService _reportPdfCapture;
 
     public RksvSpecialReceiptService(
         AppDbContext db,
@@ -50,7 +51,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         IOptions<TseOptions> tseOptions,
         ILogger<RksvSpecialReceiptService> logger,
         IRksvSpecialReceiptFinanzOnlineSubmissionTracker fonSubmissionTracker,
-        IFinanzOnlineOutboxService finanzOnlineOutbox)
+        IFinanzOnlineOutboxService finanzOnlineOutbox,
+        IReportPdfCaptureService reportPdfCapture)
     {
         _db = db;
         _tseService = tseService;
@@ -62,6 +64,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         _logger = logger;
         _fonSubmissionTracker = fonSubmissionTracker;
         _finanzOnlineOutbox = finanzOnlineOutbox;
+        _reportPdfCapture = reportPdfCapture;
     }
 
     private static readonly JsonSerializerOptions RksvFonOutboxJsonOpts = new()
@@ -223,6 +226,12 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
             _logger.LogInformation(
                 "Nullbeleg created PaymentId={PaymentId} ReceiptNumber={ReceiptNumber} Register={Register} Period={Y}-{M}",
                 paymentId, receiptNumber, register.RegisterNumber, request.Year, resolvedMonth);
+
+            await _reportPdfCapture.TryCaptureReceiptReportAsync(
+                paymentId,
+                RksvSpecialReceiptKinds.Nullbeleg,
+                actorUserId,
+                cancellationToken).ConfigureAwait(false);
 
             return new CreateNullbelegResponse
             {
@@ -562,6 +571,12 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 "Startbeleg created PaymentId={PaymentId} ReceiptNumber={ReceiptNumber} Register={Register}",
                 paymentId, receiptNumber, register.RegisterNumber);
 
+            await _reportPdfCapture.TryCaptureReceiptReportAsync(
+                paymentId,
+                RksvSpecialReceiptKinds.Startbeleg,
+                actorUserId,
+                cancellationToken).ConfigureAwait(false);
+
             return new CreateStartbelegResponse
             {
                 PaymentId = paymentId,
@@ -794,6 +809,12 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                     "Monatsbeleg created PaymentId={PaymentId} ReceiptNumber={ReceiptNumber} Register={Register} Period={Y}-{M}",
                     paymentId, receiptNumber, register.RegisterNumber, request.Year, request.Month);
             }
+
+            await _reportPdfCapture.TryCaptureReceiptReportAsync(
+                paymentId,
+                RksvSpecialReceiptKinds.Monatsbeleg,
+                actorUserId,
+                cancellationToken).ConfigureAwait(false);
 
             return new CreateMonatsbelegResponse
             {
@@ -1044,6 +1065,12 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                     paymentId, receiptNumber, register.RegisterNumber, request.Year);
             }
 
+            await _reportPdfCapture.TryCaptureReceiptReportAsync(
+                paymentId,
+                RksvSpecialReceiptKinds.Jahresbeleg,
+                actorUserId,
+                cancellationToken).ConfigureAwait(false);
+
             return new CreateJahresbelegResponse
             {
                 PaymentId = paymentId,
@@ -1250,6 +1277,12 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
             _logger.LogInformation(
                 "Schlussbeleg created and register decommissioned PaymentId={PaymentId} ReceiptNumber={ReceiptNumber} Register={Register}",
                 paymentId, receiptNumber, register.RegisterNumber);
+
+            await _reportPdfCapture.TryCaptureReceiptReportAsync(
+                paymentId,
+                RksvSpecialReceiptKinds.Schlussbeleg,
+                actorUserId,
+                cancellationToken).ConfigureAwait(false);
 
             return new CreateSchlussbelegResponse
             {

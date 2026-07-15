@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+    mapPublicStatusToTenantLicenseStatus,
     resolveDeploymentLicenseStatus,
+    resolveTenantLicenseFromPublicStatus,
     resolveTenantLicenseStatus,
     resolveTenantRowLicenseStatus,
 } from '../licenseStatus';
@@ -91,5 +93,60 @@ describe('licenseStatus', () => {
         expect(status.daysRemaining).toBe(12);
         expect(status.canWrite).toBe(true);
         expect(status.canAccess).toBe(true);
+    });
+
+    it('maps dev bypass public status to active tenant license', () => {
+        const status = resolveTenantLicenseFromPublicStatus({
+            licenseType: 'Licensed',
+            validUntil: null,
+            daysRemaining: 999,
+            features: [],
+            isExpired: false,
+            isValid: true,
+            canAccess: true,
+            canTransact: true,
+            isDevelopmentBypass: true,
+        });
+
+        expect(status.kind).toBe('active');
+        expect(status.daysRemaining).toBe(999);
+        expect(status.canAccess).toBe(true);
+    });
+
+    it('maps mandant grace period from public status overlay', () => {
+        const status = resolveTenantLicenseFromPublicStatus({
+            licenseType: 'Licensed',
+            validUntil: '2026-05-10T00:00:00Z',
+            daysRemaining: -5,
+            features: [],
+            isExpired: false,
+            isValid: true,
+            canAccess: true,
+            canTransact: true,
+            isInGracePeriod: true,
+            gracePeriodRemaining: 16,
+        });
+
+        expect(status.kind).toBe('grace_write');
+        expect(status.canWrite).toBe(true);
+    });
+
+    it('maps public status to tenant license display fields for Manager UI', () => {
+        const status = mapPublicStatusToTenantLicenseStatus({
+            licenseType: 'Licensed',
+            validUntil: '2026-07-16T00:00:00Z',
+            daysRemaining: 1,
+            features: ['admin_basic'],
+            isExpired: false,
+            isValid: true,
+            canAccess: true,
+            canTransact: true,
+        });
+
+        expect(status.kind).toBe('active');
+        expect(status.validUntilUtc).toBe('2026-07-16T00:00:00Z');
+        expect(status.daysRemaining).toBe(1);
+        expect(status.licenseKey).toBeNull();
+        expect(status.features).toEqual(['admin_basic']);
     });
 });

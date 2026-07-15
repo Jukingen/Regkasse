@@ -7,6 +7,8 @@ import {
 } from '../payment/pendingPaymentQueue';
 import type { IOfflineStorage, OfflineOrder } from './offlineStorage';
 import { getOfflineStorage } from './offlineStorage';
+import { eventEmitter } from '@/utils/eventEmitter';
+import { OfflineSyncHistory } from './offlineSyncHistory';
 
 const EXPIRY_MS = 72 * 60 * 60 * 1000;
 
@@ -136,6 +138,22 @@ function calculateTotal(orderData: unknown): number {
   return 0;
 }
 
+function calculateRetryDelayMs(attempt: number): number {
+  return Math.pow(2, attempt) * 1000;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isNonRetryableSyncError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return (
+    error.message === 'cash_register_id_missing' ||
+    error.message === VOUCHER_OFFLINE_NOT_ALLOWED_MESSAGE_DE
+  );
+}
+
 async function defaultIsOnlineChecker(): Promise<boolean> {
   try {
     const state = await NetInfo.fetch();
@@ -249,28 +267,39 @@ export class OfflineOrderManager {
   private async sendOrdersToBackend(orders: OfflineOrder[]): Promise<SyncResult> {
     const details: SyncDetail[] = [];
     const uploadedById = new Map<string, OfflineOrder>();
+    const total = orders.length;
+
+    this.emitSyncProgress(0, total);
+
+    if (total > 0) {
+      void OfflineSyncHistory.getInstance().record({
+        type: 'order',
+        status: 'pending',
+        message: `Sync started for ${total} offline order(s)`,
+      });
+    }
 
     for (const order of orders) {
       const cashRegisterId = extractCashRegisterId(order.orderData);
       if (!cashRegisterId) {
         await this.markAttemptFailed(order, 'cash_register_id_missing');
-        details.push({
+        this.pushSyncDetail(details, {
           success: false,
           id: order.id,
           error: 'cash_register_id_missing',
-        });
+        }, total, order);
         continue;
       }
 
       try {
         const working = order.serverOrderGuid
           ? order
-          : await this.uploadOrderToBackend(order, cashRegisterId);
+          : await this.syncWithRetry(order, cashRegisterId);
         uploadedById.set(working.id, working);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'upload_failed';
         await this.markAttemptFailed(order, message);
-        details.push({ success: false, id: order.id, error: message });
+        this.pushSyncDetail(details, { success: false, id: order.id, error: message }, total, order);
       }
     }
 
@@ -285,23 +314,23 @@ export class OfflineOrderManager {
 
     for (const [cashRegisterId, registerOrders] of byRegister) {
       try {
-        const replayDetails = await this.replayRegister(cashRegisterId);
+        const replayDetails = await this.replayRegisterWithRetry(cashRegisterId);
         for (const order of registerOrders) {
           const match = replayDetails.find((d) => d.orderId === order.serverOrderGuid);
           if (match?.success) {
             await this.storage.deleteOrder(order.id);
-            details.push({ success: true, id: order.id });
+            this.pushSyncDetail(details, { success: true, id: order.id }, total, order);
           } else {
             const error = match?.errorMessage ?? 'offline_order_replay_failed';
             await this.markAttemptFailed(order, error);
-            details.push({ success: false, id: order.id, error });
+            this.pushSyncDetail(details, { success: false, id: order.id, error }, total, order);
           }
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'replay_failed';
         for (const order of registerOrders) {
           await this.markAttemptFailed(order, message);
-          details.push({ success: false, id: order.id, error: message });
+          this.pushSyncDetail(details, { success: false, id: order.id, error: message }, total, order);
         }
       }
     }
@@ -312,6 +341,80 @@ export class OfflineOrderManager {
       message: failed === 0 ? 'Sync completed' : `${failed} order(s) failed`,
       details,
     };
+  }
+
+  private emitSyncProgress(current: number, total: number): void {
+    eventEmitter.emit('sync:progress', { current, total });
+  }
+
+  private pushSyncDetail(
+    details: SyncDetail[],
+    detail: SyncDetail,
+    total: number,
+    order?: OfflineOrder
+  ): void {
+    details.push(detail);
+    this.emitSyncProgress(details.length, total);
+    this.recordSyncHistory(detail, order);
+  }
+
+  private recordSyncHistory(detail: SyncDetail, order?: OfflineOrder): void {
+    const label = order?.offlineOrderId ?? detail.id;
+    const message = detail.success
+      ? `Order ${label} synced successfully`
+      : detail.error ?? `Order ${label} sync failed`;
+
+    void OfflineSyncHistory.getInstance().recordOrderSync(
+      detail.id,
+      detail.success ? 'success' : 'failed',
+      message
+    );
+  }
+
+  /** Upload a single offline order snapshot (no replay). */
+  private async syncOrder(order: OfflineOrder, cashRegisterId: string): Promise<OfflineOrder> {
+    if (order.serverOrderGuid) {
+      return order;
+    }
+    return this.uploadOrderToBackend(order, cashRegisterId);
+  }
+
+  /** Retry upload with exponential backoff (2s, 4s, 8s). */
+  private async syncWithRetry(
+    order: OfflineOrder,
+    cashRegisterId: string,
+    attempt = 1
+  ): Promise<OfflineOrder> {
+    try {
+      return await this.syncOrder(order, cashRegisterId);
+    } catch (error) {
+      if (attempt < this.maxSyncAttempts && !isNonRetryableSyncError(error)) {
+        await sleep(calculateRetryDelayMs(attempt));
+        return this.syncWithRetry(order, cashRegisterId, attempt + 1);
+      }
+      throw error;
+    }
+  }
+
+  private async replayRegisterWithRetry(
+    cashRegisterId: string,
+    attempt = 1
+  ): Promise<
+    Array<{
+      orderId?: string;
+      success?: boolean;
+      errorMessage?: string | null;
+    }>
+  > {
+    try {
+      return await this.replayRegister(cashRegisterId);
+    } catch (error) {
+      if (attempt < this.maxSyncAttempts) {
+        await sleep(calculateRetryDelayMs(attempt));
+        return this.replayRegisterWithRetry(cashRegisterId, attempt + 1);
+      }
+      throw error;
+    }
   }
 
   private async uploadOrderToBackend(

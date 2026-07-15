@@ -92,7 +92,19 @@ public sealed class PosDailyClosingRequest
 public sealed class PosDailyClosingReportDto
 {
     public DateTime BusinessDate { get; init; }
+    public Guid? CashRegisterId { get; init; }
     public string? RegisterNumber { get; init; }
+    public string? CompanyName { get; init; }
+    public string? CompanyAddress { get; init; }
+    public string? CompanyVatId { get; init; }
+    public DateTime? PeriodStartUtc { get; init; }
+    public DateTime? PeriodEndUtc { get; init; }
+    public string? TseProviderLabel { get; init; }
+    public string? DepExportStatusLabel { get; init; }
+    public bool TseSignatureVerified { get; init; }
+    public bool HasStartbeleg { get; init; }
+    public bool HasMonatsbeleg { get; init; }
+    public bool HasJahresbeleg { get; init; }
     public decimal TotalSales { get; init; }
     public decimal TotalCash { get; init; }
     public decimal TotalCard { get; init; }
@@ -102,11 +114,14 @@ public sealed class PosDailyClosingReportDto
     public decimal Difference { get; init; }
     public decimal FiscalTotalAmount { get; init; }
     public decimal FiscalTotalTaxAmount { get; init; }
+    public decimal FiscalTotalNetAmount { get; init; }
     public int FiscalTransactionCount { get; init; }
     public string? TseSignature { get; init; }
     /// <summary>Compact JWS of the previous completed daily closing (signature chain).</summary>
     public string? PreviousClosingSignature { get; init; }
     public string? CashierName { get; init; }
+    /// <summary>RKSV Schicht-Nr. (short cashier shift id).</summary>
+    public string? ShiftNumber { get; init; }
     public DailyClosingTaxBreakdownDto TaxBreakdown { get; init; } = new();
     public PaymentBreakdown PaymentBreakdown { get; init; } = new();
     public bool IsDemoFiscal { get; init; }

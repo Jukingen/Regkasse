@@ -13,8 +13,7 @@ import {
 import { useCreateUser } from '@/features/users/hooks/useCreateUser';
 import { getApiAdminTenantsQueryKey } from '@/features/tenancy/api/getApiAdminTenants';
 import type { TenantListItemForSwitcher } from '@/features/tenancy/hooks/useTenantListForSwitcher';
-import { persistTenantSlugAndRefresh } from '@/features/tenancy/services/setTenantAndRefresh';
-import { persistCashRegisterOnTenantSwitch } from '@/features/tenancy/services/persistCashRegisterOnTenantSwitch';
+import { switchDevTenantContext } from '@/features/tenancy/services/setTenantAndRefresh';
 import { useI18n } from '@/i18n';
 
 export type TenantSwitcherNoAdminFlowProps = {
@@ -79,8 +78,7 @@ export function TenantSwitcherNoAdminFlow({
         closeAll();
         onCompleted?.();
         if (tenant) {
-            await persistCashRegisterOnTenantSwitch(tenant.id);
-            persistTenantSlugAndRefresh(tenant.slug);
+            await switchDevTenantContext({ slug: tenant.slug, id: tenant.id });
         }
     }, [closeAll, onCompleted, tenant]);
 
@@ -88,8 +86,7 @@ export function TenantSwitcherNoAdminFlow({
         if (!tenant) return;
         closeAll();
         onCompleted?.();
-        await persistCashRegisterOnTenantSwitch(tenant.id);
-        persistTenantSlugAndRefresh(tenant.slug);
+        await switchDevTenantContext({ slug: tenant.slug, id: tenant.id });
     }, [tenant, closeAll, onCompleted]);
 
     return (

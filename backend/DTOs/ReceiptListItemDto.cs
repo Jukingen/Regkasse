@@ -44,5 +44,8 @@ namespace KasseAPI_Final.DTOs
 
         /// <summary>Canonical end date of the RKSV period covered by this receipt.</summary>
         public DateTime? IntendedPeriodDate { get; set; }
+
+        /// <summary>True when a persisted RKSV receipt PDF exists for download.</summary>
+        public bool HasStoredPdf { get; set; }
     }
 }

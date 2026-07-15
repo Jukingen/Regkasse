@@ -1,7 +1,9 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Reports;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Reports;
 using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
@@ -49,7 +51,34 @@ public sealed class JahresbelegClosingServiceTests
             Options.Create(tseOptions),
             configuration,
             new RksvEnvironmentService(configuration, hostEnvironment),
-            Mock.Of<ILogger<JahresbelegClosingService>>());
+            CreateJahresbelegReportService(),
+            Mock.Of<ILogger<JahresbelegClosingService>>(),
+            Mock.Of<IReportPdfCaptureService>());
+    }
+
+    private static IJahresbelegReportService CreateJahresbelegReportService()
+    {
+        var enricher = CreateReportEnricherMock();
+        return new JahresbelegReportService(enricher, new RksvReportTextService(enricher));
+    }
+
+    private static ITagesabschlussReportEnricher CreateReportEnricherMock()
+    {
+        var mock = new Mock<ITagesabschlussReportEnricher>();
+        mock.Setup(e => e.BuildContextForRegisterAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<bool>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new TagesabschlussCloudContext
+            {
+                CompanyName = "Test GmbH",
+                CompanyAddress = "Wien",
+                CompanyVatId = "ATU12345678",
+            });
+        return mock.Object;
     }
 
     private static Mock<ITseService> CreateTseMock()

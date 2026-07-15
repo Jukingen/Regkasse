@@ -4,6 +4,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Reports;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Reports;
 using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
@@ -163,6 +164,22 @@ public class PosDailyClosingServiceTests
             IsActive = true,
             ReceiptNumber = "R-1",
         });
+        ctx.DailyClosings.Add(new DailyClosing
+        {
+            Id = closingId,
+            TenantId = LegacyDefaultTenantIds.Primary,
+            CashRegisterId = regId,
+            UserId = userId,
+            ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(
+                PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified()),
+            ClosingType = "Daily",
+            TotalAmount = 25m,
+            TotalTaxAmount = 5m,
+            TransactionCount = 1,
+            TseSignature = "jws.sig",
+            Status = "Completed",
+            CreatedAt = DateTime.UtcNow,
+        });
         await ctx.SaveChangesAsync();
 
         var tagesabschluss = new Mock<ITagesabschlussService>();
@@ -219,7 +236,8 @@ public class PosDailyClosingServiceTests
             TenantTestDoubles.HostEnvironmentReturning(Environments.Development),
             Options.Create(new TseOptions { Mode = "Fake", TseMode = "Demo" }),
             new ConfigurationBuilder().Build(),
-            CreateRksvEnvironment());
+            CreateRksvEnvironment(),
+            CreateReportEnricherMock());
 
         var result = await svc.PerformDailyClosingAsync(
             userId,
@@ -337,7 +355,23 @@ public class PosDailyClosingServiceTests
             TenantTestDoubles.HostEnvironmentReturning(Environments.Development),
             Options.Create(new TseOptions { Mode = "Fake", TseMode = "Demo" }),
             new ConfigurationBuilder().Build(),
-            CreateRksvEnvironment());
+            CreateRksvEnvironment(),
+            CreateReportEnricherMock());
+    }
+
+    private static ITagesabschlussReportEnricher CreateReportEnricherMock()
+    {
+        var mock = new Mock<ITagesabschlussReportEnricher>();
+        mock.Setup(e => e.BuildContextAsync(It.IsAny<DailyClosing>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new TagesabschlussCloudContext
+            {
+                CompanyName = "Test GmbH",
+                CompanyAddress = "Wien",
+                CompanyVatId = "ATU99999999",
+                TseProviderLabel = "fiskaly Cloud-HSM",
+                DepExportStatusLabel = "Ausstehend",
+            });
+        return mock.Object;
     }
 
     private static ITagesabschlussService CreateDefaultTagesabschlussService()

@@ -42,6 +42,8 @@ public sealed class TagesabschlussServiceOperationalTests
             Options.Create(tseOptions ?? new TseOptions { Mode = "Real", TseMode = "Device" }),
             Mock.Of<IHostEnvironment>(h => h.EnvironmentName == Environments.Development),
             NullLogger<TagesabschlussService>.Instance,
+            Mock.Of<IReportPdfCaptureService>(),
+            Mock.Of<IReportPdfStorageService>(),
             developmentMode);
 
     [Fact]
@@ -225,6 +227,8 @@ public sealed class TagesabschlussServiceOperationalTests
             Options.Create(new TseOptions { Mode = "Real", TseMode = "Device" }),
             Mock.Of<IHostEnvironment>(h => h.EnvironmentName == Environments.Development),
             NullLogger<TagesabschlussService>.Instance,
+            Mock.Of<IReportPdfCaptureService>(),
+            Mock.Of<IReportPdfStorageService>(),
             devMode);
 
         var result = await sut.PerformDailyClosingAsync(userId, registerId);

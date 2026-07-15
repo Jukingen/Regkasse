@@ -1,9 +1,13 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace KasseAPI_Final.Models
 {
+    /// <summary>
+    /// Fiscal daily/monthly/yearly closing record. RKSV operational fields
+    /// (<see cref="CashierName"/>, <see cref="ShiftNumber"/>) are stamped at close time.
+    /// Company presentation fields are assembled at report time via enricher + company settings.
+    /// </summary>
     [Table("DailyClosings")]
     public class DailyClosing : ITenantEntity
     {
@@ -22,6 +26,15 @@ namespace KasseAPI_Final.Models
 
         [Required]
         public string UserId { get; set; } = string.Empty;
+
+        /// <summary>RKSV Mitarbeiter — display name of cashier who performed the closing.</summary>
+        [MaxLength(200)]
+        [Column("cashier_name")]
+        public string CashierName { get; set; } = string.Empty;
+
+        /// <summary>RKSV Schicht-Nr. — sequential shift index for the cash register.</summary>
+        [Column("shift_number")]
+        public int ShiftNumber { get; set; }
 
         [Required]
         public DateTime ClosingDate { get; set; }

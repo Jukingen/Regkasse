@@ -11,6 +11,9 @@ import ReceiptDetailCard from '@/features/receipts/components/ReceiptDetailCard'
 import ReceiptItemsTable from '@/features/receipts/components/ReceiptItemsTable';
 import ReceiptTaxSummary from '@/features/receipts/components/ReceiptTaxSummary';
 import SignatureStatusPanel from '@/features/receipts/components/SignatureStatusPanel';
+import { ReprintButton } from '@/features/payments/components/ReprintButton';
+import { StoredReportPdfButton } from '@/features/reports/components/StoredReportPdfButton';
+import { reportPdfTypeFromSpecialReceiptKind } from '@/features/reports/api/reportPdfApi';
 import RksvSpecialReceiptFinanzOnlineSubmissionCard from '@/features/receipts/components/RksvSpecialReceiptFinanzOnlineSubmissionCard';
 import { useI18n } from '@/i18n';
 import { analyzeRegisterFkField } from '@/shared/utils/registerIdentity';
@@ -116,6 +119,15 @@ export default function ReceiptDetailPage() {
             </Button>
 
             <ReceiptDetailCard receipt={receipt} />
+
+            <Space wrap>
+                <StoredReportPdfButton
+                    reportType={reportPdfTypeFromSpecialReceiptKind(receipt.rksvSpecialReceiptKind)}
+                    targetId={receipt.paymentId}
+                    fileNameBase={receipt.receiptNumber}
+                />
+                <ReprintButton paymentId={receipt.paymentId} receiptNumber={receipt.receiptNumber} />
+            </Space>
 
             <RksvSpecialReceiptFinanzOnlineSubmissionCard
                 receiptId={receipt.receiptId}

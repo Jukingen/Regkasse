@@ -15,6 +15,8 @@ export type TenantLicenseHistoryItem = {
     atUtc: string;
     summary: string;
     licenseKey?: string | null;
+    actorUserId?: string | null;
+    actorDisplayName?: string | null;
 };
 
 export type TenantLicenseOverview = {

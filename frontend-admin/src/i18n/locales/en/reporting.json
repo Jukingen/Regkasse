@@ -1,4 +1,10 @@
 {
+  "storedPdf": {
+    "button": "PDF",
+    "loading": "Loading PDF…",
+    "success": "PDF downloaded",
+    "error": "Could not load PDF"
+  },
   "policy": {
     "formalReportLanguageTitle": "Formal report text",
     "formalReportLanguageBody": "Your admin UI may be Turkish; legal and accounting report text in this area is only shown in German or English (default: German).",

@@ -14,6 +14,7 @@ export interface ReceiptListItemDto {
   cashRegisterId?: string | null;
   createdAt?: string;
   grandTotal?: number;
+  hasStoredPdf?: boolean;
   /** @nullable */
   intendedPeriodDate?: string | null;
   isLateCreated?: boolean;

@@ -56,4 +56,10 @@ describe('resolveTenantLicenseLabel', () => {
         expect(result.kind).toBe('expired');
         expect(result.daysRemaining).toBe(-3);
     });
+
+    it('returns valid when server days remain without end date (dev bypass)', () => {
+        const result = resolveTenantLicenseLabel(null, 'REGK-KEY', now, 999);
+        expect(result.kind).toBe('valid');
+        expect(result.daysRemaining).toBe(999);
+    });
 });

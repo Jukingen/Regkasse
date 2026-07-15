@@ -54,11 +54,17 @@ export interface ReceiptDTO {
   receiptNumber?: string | null;
   receiptPersistedAtUtc?: string;
   rksvFinanzOnlineSubmission?: RksvFinanzOnlineSubmissionStatusDto;
+  /** @nullable */
+  rksvFooterLabel?: string | null;
   rksvNullbelegActsAsJahresbeleg?: boolean;
   /** @nullable */
   rksvSpecialReceiptKind?: string | null;
   sequenceDuplicateDetected?: boolean;
   sequenceGapDetected?: boolean;
+  /** @nullable */
+  shiftId?: string | null;
+  /** @nullable */
+  shiftNumber?: string | null;
   signature?: ReceiptSignatureDTO;
   subTotal?: number;
   /** @nullable */

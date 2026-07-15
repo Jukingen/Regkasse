@@ -40,21 +40,25 @@ public static class IdentityLoginLookup
             return null;
 
         var normalized = NormalizeUserName(userManager, trimmed);
-        var user = userManager.Users
-            .FirstOrDefault(u => u.NormalizedUserName == normalized);
+        var user = await userManager.Users
+            .Where(u => u.NormalizedUserName == normalized)
+            .OrderBy(u => u.Id)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
 
         if (user != null)
-            return await Task.FromResult<ApplicationUser?>(user).ConfigureAwait(false);
+            return user;
 
         // Legacy rows without NormalizedUserName backfill
         var upper = trimmed.ToUpperInvariant();
-        user = userManager.Users
-            .FirstOrDefault(u =>
+        return await userManager.Users
+            .Where(u =>
                 u.NormalizedUserName == null
                 && u.UserName != null
-                && u.UserName.ToUpper() == upper);
-
-        return await Task.FromResult(user).ConfigureAwait(false);
+                && u.UserName.ToUpper() == upper)
+            .OrderBy(u => u.Id)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
     }
 
     public static async Task<bool> IsUserNameTakenByOtherUserAsync(

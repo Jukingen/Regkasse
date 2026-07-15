@@ -2,6 +2,8 @@
   "dashboard": "Dashboard",
   "licenseManagement": "Lizenzverwaltung",
   "licenses": "Lizenzen",
+  "licenseTest": "🧪 Lizenz Test",
+  "licenseDebug": "Lizenz-Debug",
   "platformLicenses": "Mandantenlizenzen",
   "licenseSales": "Lizenzverkauf",
   "operations": "Betrieb",

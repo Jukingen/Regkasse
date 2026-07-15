@@ -16,6 +16,7 @@ export interface TagesabschlussResult {
   errorMessage?: string | null;
   /** @nullable */
   finanzOnlineStatus?: string | null;
+  hasStoredPdf?: boolean;
   paymentsWithoutInvoiceCount: number;
   /** @nullable */
   status?: string | null;

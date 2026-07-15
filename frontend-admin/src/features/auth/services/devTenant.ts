@@ -90,7 +90,7 @@ export function getDevTenant(): string {
  * Persists dev tenant slug and notifies listeners (same-tab CustomEvent + cross-tab storage).
  * @returns true when the slug actually changed.
  */
-export function writeDevTenantSlug(slug: string): boolean {
+export function writeDevTenantSlug(slug: string, tenantId?: string | null): boolean {
   if (!isDevelopment() || typeof window === 'undefined') {
     return false;
   }
@@ -99,11 +99,18 @@ export function writeDevTenantSlug(slug: string): boolean {
     return false;
   }
   const previousSlug = normalizeSlug(window.localStorage.getItem(DEV_TENANT_LOCAL_STORAGE_KEY));
-  if (previousSlug === normalized) {
+  const slugChanged = previousSlug !== normalized;
+  if (!slugChanged && !tenantId?.trim()) {
     return false;
   }
   window.localStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, normalized);
-  tenantStorage.persistBootstrap({ tenantSlug: normalized });
+  tenantStorage.persistBootstrap({
+    tenantSlug: normalized,
+    tenantId: tenantId?.trim() || undefined,
+  });
+  if (!slugChanged) {
+    return false;
+  }
   window.dispatchEvent(
     new CustomEvent<DevTenantChangedDetail>(DEV_TENANT_CHANGED_EVENT, {
       detail: { slug: normalized, previousSlug },

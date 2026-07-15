@@ -22,7 +22,9 @@ public static class JahresbelegReportComposer
         Jahresbeleg closing,
         JahresbelegSummaryDto summary,
         string? registerNumber,
-        FiscalEnvironmentResolver.FiscalEnvironment fiscalEnvironment)
+        FiscalEnvironmentResolver.FiscalEnvironment fiscalEnvironment,
+        TagesabschlussCloudContext? cloudContext = null,
+        DailyClosing? linkedDailyClosing = null)
     {
         ArgumentNullException.ThrowIfNull(closing);
         ArgumentNullException.ThrowIfNull(summary);
@@ -38,11 +40,29 @@ public static class JahresbelegReportComposer
             yearAnchor,
             closing.TotalGross);
 
+        var (periodStartUtc, periodEndUtc) = RksvClosingPeriodHelper.YearUtcRange(closing.Year);
+
         return new PosDailyClosingReportDto
         {
             ClosingType = "Yearly",
             BusinessDate = yearAnchor,
-            RegisterNumber = registerNumber,
+            CashRegisterId = closing.CashRegisterId,
+            RegisterNumber = cloudContext?.RegisterNumber ?? registerNumber,
+            CompanyName = cloudContext?.CompanyName,
+            CompanyAddress = cloudContext?.CompanyAddress,
+            CompanyVatId = cloudContext?.CompanyVatId,
+            PeriodStartUtc = cloudContext?.PeriodStartUtc ?? periodStartUtc,
+            PeriodEndUtc = cloudContext?.PeriodEndUtc ?? periodEndUtc,
+            TseProviderLabel = cloudContext?.TseProviderLabel,
+            DepExportStatusLabel = cloudContext?.DepExportStatusLabel,
+            TseSignatureVerified = cloudContext?.TseSignatureVerified ?? false,
+            HasStartbeleg = cloudContext?.HasStartbeleg ?? false,
+            HasMonatsbeleg = cloudContext?.HasMonatsbeleg ?? false,
+            HasJahresbeleg = cloudContext?.HasJahresbeleg ?? true,
+            CashierName = string.IsNullOrWhiteSpace(linkedDailyClosing?.CashierName)
+                ? null
+                : linkedDailyClosing!.CashierName,
+            ShiftNumber = RksvShiftNumberFormatter.Format(linkedDailyClosing?.ShiftNumber),
             TotalSales = closing.TotalGross,
             TotalCash = closing.TotalCash,
             TotalCard = closing.TotalCard,

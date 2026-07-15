@@ -30,8 +30,7 @@ import {
     shouldShowHeaderDevTenantSwitch,
     tenantHeaderShowsNoAdminWarning,
 } from '@/features/super-admin/utils/tenantHeaderSwitcher';
-import { persistTenantSlugAndRefresh } from '@/features/tenancy/services/setTenantAndRefresh';
-import { persistCashRegisterOnTenantSwitch } from '@/features/tenancy/services/persistCashRegisterOnTenantSwitch';
+import { switchDevTenantContext } from '@/features/tenancy/services/setTenantAndRefresh';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import {
     filterTenantSwitcherItems,
@@ -168,11 +167,8 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
     const isFiltering = searchQuery.length > 0;
     const normalizedCurrentId = currentTenantId?.trim().toLowerCase() ?? '';
 
-    const applySlugSwitch = useCallback((slug: string) => {
-        persistTenantSlugAndRefresh(slug);
-    }, []);
-
-    const requestSwitch = useCallback(
+    /** Persists `dev_tenant_id` + tenant bootstrap id, then reloads via {@link DEV_TENANT_CHANGED_EVENT}. */
+    const handleTenantChange = useCallback(
         async (tenant: TenantListItemForSwitcher) => {
             if (isSuperAdminUser && tenantNeedsNoAdminWarning(tenant)) {
                 setOpen(false);
@@ -182,10 +178,9 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
             }
             setOpen(false);
             setSearch('');
-            await persistCashRegisterOnTenantSwitch(tenant.id);
-            applySlugSwitch(tenant.slug);
+            await switchDevTenantContext({ slug: tenant.slug, id: tenant.id });
         },
-        [isSuperAdminUser, applySlugSwitch, setOpen],
+        [isSuperAdminUser, setOpen],
     );
 
     const handleOpenChange = useCallback(
@@ -287,7 +282,7 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
                                   normalizedCurrentId.length > 0 &&
                                   row.id.trim().toLowerCase() === normalizedCurrentId
                               }
-                              onSwitch={requestSwitch}
+                              onSwitch={handleTenantChange}
                           />
                       ))
                     : null}
@@ -297,7 +292,7 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
                             title={t('adminShell.tenant.devSwitcher.sectionDevelopment')}
                             tenants={developmentTenants}
                             normalizedCurrentId={normalizedCurrentId}
-                            onSwitch={requestSwitch}
+                            onSwitch={handleTenantChange}
                         />
                         {developmentTenants.length > 0 && productionTenants.length > 0 ? (
                             <div className="switcher-section-divider" role="separator" />
@@ -306,7 +301,7 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
                             title={t('adminShell.tenant.devSwitcher.sectionProduction')}
                             tenants={productionTenants}
                             normalizedCurrentId={normalizedCurrentId}
-                            onSwitch={requestSwitch}
+                            onSwitch={handleTenantChange}
                         />
                     </>
                 ) : null}

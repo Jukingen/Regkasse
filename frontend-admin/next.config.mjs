@@ -51,6 +51,7 @@ const nextConfig = {
     async redirects() {
         return [
             { source: '/sales', destination: '/receipts', permanent: false },
+            { source: '/belege', destination: '/receipts', permanent: false },
             { source: '/storno', destination: '/payments/storno-refund-audit', permanent: false },
             { source: '/price-rules', destination: '/pricing-rules', permanent: false },
             { source: '/reporting/operational', destination: '/reporting', permanent: false },

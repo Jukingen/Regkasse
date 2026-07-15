@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using KasseAPI_Final;
 using KasseAPI_Final.Auth;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
@@ -423,8 +424,17 @@ namespace KasseAPI_Final.Controllers
 
                 var actorCanonicalRole = RoleCanonicalization.GetCanonicalRole(GetCurrentUserRole());
                 var isSuperAdmin = string.Equals(actorCanonicalRole, Roles.SuperAdmin, StringComparison.Ordinal);
-                if (!isSuperAdmin && _tenantAccessor.TenantId is Guid scopedTenantId)
+                if (!isSuperAdmin)
                 {
+                    if (_tenantAccessor.TenantId is not Guid scopedTenantId || scopedTenantId == Guid.Empty)
+                    {
+                        return StatusCode(403, new
+                        {
+                            message = "Tenant context is required to list users.",
+                            code = "TENANT_CONTEXT_REQUIRED",
+                        });
+                    }
+
                     q = q.Where(u =>
                         _context.UserTenantMemberships.Any(m =>
                             m.UserId == u.Id && m.TenantId == scopedTenantId && m.IsActive)
@@ -509,6 +519,23 @@ namespace KasseAPI_Final.Controllers
                 if (user == null)
                 {
                     return NotFound(new { message = "User not found" });
+                }
+
+                var actorCanonicalRole = RoleCanonicalization.GetCanonicalRole(GetCurrentUserRole());
+                var isSuperAdmin = string.Equals(actorCanonicalRole, Roles.SuperAdmin, StringComparison.Ordinal);
+                if (!isSuperAdmin)
+                {
+                    if (_tenantAccessor.TenantId is not Guid scopedTenantId || scopedTenantId == Guid.Empty)
+                    {
+                        return NotFound(new { message = "User not found" });
+                    }
+
+                    var inTenant = await _context.UserTenantMemberships.AsNoTracking()
+                        .AnyAsync(m => m.UserId == id && m.TenantId == scopedTenantId && m.IsActive);
+                    if (!inTenant || string.Equals(user.Role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return NotFound(new { message = "User not found" });
+                    }
                 }
 
                 var userInfo = new UserInfo

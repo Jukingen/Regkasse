@@ -65,9 +65,8 @@ import { LicenseActivationHistoryCard } from './LicenseActivationHistoryCard';
 import { LicenseReportsCard } from './LicenseReportsCard';
 import { TenantLicenseSection } from '@/features/license/components/TenantLicenseSection';
 import { TenantLicenseTabs } from '@/features/license/components/TenantLicenseTabs';
-import { billingQueryKeys } from '@/features/billing/constants/billingQueryKeys';
-import { tenantLicenseOverviewQueryKey } from '@/features/license/api/tenantLicenseOverview';
 import { resolveLicensePageSectionVisibility } from '@/features/license/utils/licensePageVisibility';
+import { useLicensePageRefresh } from '@/features/license/hooks/useLicensePageRefresh';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 
 type LicenseFormValues = {
@@ -961,23 +960,36 @@ export default function AdminLicensePage() {
         resolveLicensePageSectionVisibility(
         user,
         {
-            hasTenantContext: Boolean(currentTenant.tenantId && currentTenant.isRealTenantSlug),
+            hasTenantContext: Boolean(
+                currentTenant.isRealTenantSlug
+                && (currentTenant.tenantId || currentTenant.isTenantRecordLoading),
+            ),
             role: user?.role,
             isSuperAdminPlatformMode: currentTenant.isSuperAdminPlatformMode,
         },
     );
     const canActivate = showDeploymentSection;
 
+    const { refresh: refreshLicensePage, isFetching: isLicensePageRefreshing } = useLicensePageRefresh({
+        tenantId: currentTenant.tenantId,
+        showAllTenantLicensesSection,
+        canActivate,
+    });
+
     const statusQuery = useQuery({
         queryKey: licenseQueryKeys.deploymentStatus,
         queryFn: () => getDeploymentLicenseStatus(),
         enabled: showDeploymentSection,
+        refetchOnMount: true,
+        refetchOnWindowFocus: true,
     });
 
     const publicStatusQuery = useQuery({
         queryKey: licenseQueryKeys.publicStatus,
         queryFn: () => getPublicLicenseStatus(),
         enabled: showDeploymentSection,
+        refetchOnMount: true,
+        refetchOnWindowFocus: true,
     });
 
     const activateMutation = useMutation({
@@ -1031,30 +1043,9 @@ export default function AdminLicensePage() {
                 ]}
                 actions={
                     <Button
-                        icon={<ReloadOutlined />}
-                        onClick={() => {
-                            if (showAllTenantLicensesSection) {
-                                void queryClient.invalidateQueries({
-                                    queryKey: tenantLicenseOverviewQueryKey,
-                                });
-                                void queryClient.invalidateQueries({ queryKey: billingQueryKeys.all });
-                            }
-                            if (showTenantLicenseSection && currentTenant.tenantId) {
-                                void queryClient.invalidateQueries({
-                                    queryKey: ['admin', 'tenant-license', currentTenant.tenantId],
-                                });
-                                void queryClient.invalidateQueries({ queryKey: ['tenant-license-status'] });
-                            }
-                            void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.deploymentStatus });
-                            void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.publicStatus });
-                            if (canActivate) {
-                                void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.listRoot });
-                                void queryClient.invalidateQueries({
-                                    queryKey: licenseQueryKeys.activationAttemptsRoot,
-                                });
-                                void queryClient.invalidateQueries({ queryKey: ['admin', 'licenses'] });
-                            }
-                        }}
+                        icon={<ReloadOutlined spin={isLicensePageRefreshing} />}
+                        onClick={() => void refreshLicensePage()}
+                        loading={isLicensePageRefreshing}
                     >
                         {t('common.buttons.refresh')}
                     </Button>

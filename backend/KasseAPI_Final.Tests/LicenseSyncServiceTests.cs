@@ -89,4 +89,38 @@ public sealed class LicenseSyncServiceTests
         var reloaded = await db.Tenants.IgnoreQueryFilters().SingleAsync(t => t.Id == tenantId);
         Assert.Equal(trialUntil, reloaded.LicenseValidUntilUtc);
     }
+
+    [Fact]
+    public async Task SyncTenantLicenseExpiryAsync_TestOverrideKey_DoesNotOverwrite()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        var testUntil = DateTime.UtcNow.AddDays(1);
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "QA",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            LicenseKey = "TEST-abc123",
+            LicenseValidUntilUtc = testUntil,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.IssuedLicenses.Add(new IssuedLicense
+        {
+            Id = Guid.NewGuid(),
+            LicenseKey = "REGK-AAAAA-BBBBB-CCCCC",
+            CustomerName = "QA",
+            ExpiryAtUtc = DateTime.UtcNow.AddDays(999),
+            SignedJwt = "jwt",
+            IssuedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = new LicenseSyncService(db, Mock.Of<ILogger<LicenseSyncService>>());
+        await service.SyncTenantLicenseExpiryAsync(tenantId);
+
+        var reloaded = await db.Tenants.IgnoreQueryFilters().SingleAsync(t => t.Id == tenantId);
+        Assert.Equal(testUntil, reloaded.LicenseValidUntilUtc);
+    }
 }

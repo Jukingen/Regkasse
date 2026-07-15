@@ -179,7 +179,19 @@ export interface PaymentBreakdown {
 
 export interface PosDailyClosingReportDto {
   businessDate: string;
+  cashRegisterId?: string | null;
   registerNumber?: string | null;
+  companyName?: string | null;
+  companyAddress?: string | null;
+  companyVatId?: string | null;
+  periodStartUtc?: string | null;
+  periodEndUtc?: string | null;
+  tseProviderLabel?: string | null;
+  depExportStatusLabel?: string | null;
+  tseSignatureVerified?: boolean;
+  hasStartbeleg?: boolean;
+  hasMonatsbeleg?: boolean;
+  hasJahresbeleg?: boolean;
   cashierName?: string | null;
   totalSales: number;
   totalCash: number;
@@ -190,6 +202,7 @@ export interface PosDailyClosingReportDto {
   difference: number;
   fiscalTotalAmount: number;
   fiscalTotalTaxAmount: number;
+  fiscalTotalNetAmount?: number;
   fiscalTransactionCount: number;
   tseSignature?: string | null;
   previousClosingSignature?: string | null;
@@ -287,7 +300,19 @@ function parsePosDailyClosingReportDto(raw: unknown): PosDailyClosingReportDto |
   if (!isRecord(raw)) return null;
   return {
     businessDate: readString(raw.businessDate ?? raw.BusinessDate),
+    cashRegisterId: readString(raw.cashRegisterId ?? raw.CashRegisterId) || null,
     registerNumber: (raw.registerNumber ?? raw.RegisterNumber ?? null) as string | null,
+    companyName: readString(raw.companyName ?? raw.CompanyName) || null,
+    companyAddress: readString(raw.companyAddress ?? raw.CompanyAddress) || null,
+    companyVatId: readString(raw.companyVatId ?? raw.CompanyVatId) || null,
+    periodStartUtc: (raw.periodStartUtc ?? raw.PeriodStartUtc ?? null) as string | null,
+    periodEndUtc: (raw.periodEndUtc ?? raw.PeriodEndUtc ?? null) as string | null,
+    tseProviderLabel: readString(raw.tseProviderLabel ?? raw.TseProviderLabel) || null,
+    depExportStatusLabel: readString(raw.depExportStatusLabel ?? raw.DepExportStatusLabel) || null,
+    tseSignatureVerified: raw.tseSignatureVerified === true || raw.TseSignatureVerified === true,
+    hasStartbeleg: raw.hasStartbeleg === true || raw.HasStartbeleg === true,
+    hasMonatsbeleg: raw.hasMonatsbeleg === true || raw.HasMonatsbeleg === true,
+    hasJahresbeleg: raw.hasJahresbeleg === true || raw.HasJahresbeleg === true,
     cashierName: readString(raw.cashierName ?? raw.CashierName) || null,
     totalSales: readNumber(raw.totalSales ?? raw.TotalSales),
     totalCash: readNumber(raw.totalCash ?? raw.TotalCash),
@@ -304,6 +329,7 @@ function parsePosDailyClosingReportDto(raw: unknown): PosDailyClosingReportDto |
     difference: readNumber(raw.difference ?? raw.Difference),
     fiscalTotalAmount: readNumber(raw.fiscalTotalAmount ?? raw.FiscalTotalAmount),
     fiscalTotalTaxAmount: readNumber(raw.fiscalTotalTaxAmount ?? raw.FiscalTotalTaxAmount),
+    fiscalTotalNetAmount: readNumber(raw.fiscalTotalNetAmount ?? raw.FiscalTotalNetAmount, 0),
     fiscalTransactionCount: readNumber(raw.fiscalTransactionCount ?? raw.FiscalTransactionCount),
     tseSignature: (raw.tseSignature ?? raw.TseSignature ?? null) as string | null,
     previousClosingSignature: (raw.previousClosingSignature ??

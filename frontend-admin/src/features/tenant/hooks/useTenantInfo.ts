@@ -33,8 +33,9 @@ export function useTenantInfo() {
     return useMemo(() => {
         const adminTenant = adminTenantQuery.data;
         const companyTenant = companyQuery.data?.tenant;
-        const tenantId =
-            ctx.tenantId ?? companyTenant?.id ?? companyQuery.data?.tenantId ?? null;
+
+        const tenantId = ctx.tenantId ?? null;
+        const tenantSlug = ctx.tenantSlug ?? companyTenant?.slug ?? null;
 
         const name =
             ctx.tenantName?.trim() ||
@@ -52,20 +53,24 @@ export function useTenantInfo() {
         });
 
         return {
-            tenantSlug: companyTenant?.slug ?? ctx.tenantSlug,
+            tenantSlug,
             tenantId,
             tenantName: name,
             registeredAt,
             licenseStatus,
             hasAuthToken: ctx.hasAuthToken,
+            isTenantRecordLoading: ctx.isTenantRecordLoading,
             isLoading:
-                (companyQuery.isLoading && companyQuery.fetchStatus !== 'idle') ||
-                (adminTenantQuery.isLoading && adminTenantQuery.fetchStatus !== 'idle'),
+                ctx.isTenantRecordLoading
+                || (companyQuery.isLoading && companyQuery.fetchStatus !== 'idle')
+                || (adminTenantQuery.isLoading && adminTenantQuery.fetchStatus !== 'idle'),
         };
     }, [
         ctx.hasAuthToken,
+        ctx.isTenantRecordLoading,
         ctx.licenseDaysRemaining,
         ctx.licenseKey,
+        ctx.tenantId,
         ctx.tenantName,
         ctx.tenantSlug,
         ctx.licenseValidUntilUtc,

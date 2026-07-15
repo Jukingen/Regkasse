@@ -42,6 +42,54 @@ namespace KasseAPI_Final.Models
         [MaxLength(20)]
         public string CompanyTaxNumber { get; set; } = string.Empty;
 
+        /// <summary>RKSV report alias for <see cref="CompanyName"/>.</summary>
+        [NotMapped]
+        public string Name
+        {
+            get => CompanyName;
+            set => CompanyName = value;
+        }
+
+        /// <summary>RKSV report alias for <see cref="CompanyAddress"/>.</summary>
+        [NotMapped]
+        public string Address
+        {
+            get => CompanyAddress;
+            set => CompanyAddress = value;
+        }
+
+        /// <summary>RKSV report alias for <see cref="CompanyTaxNumber"/>.</summary>
+        [NotMapped]
+        public string VatId
+        {
+            get => CompanyTaxNumber;
+            set => CompanyTaxNumber = value;
+        }
+
+        /// <summary>RKSV report alias for <see cref="CompanyPhone"/>.</summary>
+        [NotMapped]
+        public string? Phone
+        {
+            get => CompanyPhone;
+            set => CompanyPhone = value;
+        }
+
+        /// <summary>RKSV report alias for <see cref="CompanyEmail"/>.</summary>
+        [NotMapped]
+        public string? Email
+        {
+            get => CompanyEmail;
+            set => CompanyEmail = value;
+        }
+
+        /// <summary>RKSV report alias for <see cref="CompanyWebsite"/>.</summary>
+        [NotMapped]
+        public string? Website
+        {
+            get => CompanyWebsite;
+            set => CompanyWebsite = value;
+        }
+
         [MaxLength(20)]
         public string? CompanyRegistrationNumber { get; set; }
 

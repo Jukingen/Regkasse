@@ -96,16 +96,15 @@ public partial class AdminUsersController : ControllerBase
         if (tenantId == null)
             return false;
 
-        var membership = await _context.UserTenantMemberships
-            .AsNoTracking()
-            .FirstOrDefaultAsync(
-                m => m.UserId == userId
-                    && m.TenantId == tenantId
-                    && m.IsActive,
-                cancellationToken)
-            .ConfigureAwait(false);
+        var membershipQuery = MembershipsQuery()
+            .Where(m => m.UserId == userId && m.IsActive);
 
-        return membership != null;
+        if (expectedTenantId is Guid explicitTenantId)
+            membershipQuery = membershipQuery.Where(m => m.TenantId == explicitTenantId);
+
+        return await membershipQuery
+            .AnyAsync(cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private async Task<bool> IsUserAccessibleInAmbientTenantAsync(
@@ -113,7 +112,7 @@ public partial class AdminUsersController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         if (_tenantAccessor.TenantId is not Guid ambientTenantId)
-            return true;
+            return IsActorSuperAdmin();
 
         if (await ValidateUserInTenantAsync(userId, ambientTenantId, cancellationToken).ConfigureAwait(false))
             return true;
@@ -121,12 +120,44 @@ public partial class AdminUsersController : ControllerBase
         if (!IsActorSuperAdmin())
             return false;
 
+        return await IsPlatformScopedUserAsync(userId, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Users visible to Super Admin outside the ambient tenant: platform operators only (SuperAdmin role or no active business-tenant membership).
+    /// Uses unfiltered membership queries so EF tenant filters cannot hide cross-tenant rows.
+    /// </summary>
+    private async Task<bool> IsPlatformScopedUserAsync(string userId, CancellationToken cancellationToken)
+    {
         var businessTenantIdSet = (await GetBusinessTenantIdsAsync(cancellationToken).ConfigureAwait(false)).ToHashSet();
-        var user = await UsersWithMembershipsQuery()
-            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken)
+        if (businessTenantIdSet.Count == 0)
+            return false;
+
+        var role = await _context.Users
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(u => u.Id == userId)
+            .Select(u => u.Role)
+            .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        return user != null && IsPlatformOperator(user, businessTenantIdSet);
+        if (role == null)
+            return false;
+
+        if (string.Equals(role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        var hasActiveBusinessMembership = await _context.UserTenantMemberships
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .AnyAsync(m =>
+                m.UserId == userId
+                && m.IsActive
+                && businessTenantIdSet.Contains(m.TenantId),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        return !hasActiveBusinessMembership;
     }
 
     private static bool HasActiveMembershipInTenant(ApplicationUser user, Guid tenantId) =>
@@ -292,10 +323,11 @@ public partial class AdminUsersController : ControllerBase
     {
         if (!IsActorSuperAdmin())
         {
-            if (_tenantAccessor.TenantId is Guid ambientTenantId)
-                tenantId = ambientTenantId;
-            else
+            if (_tenantAccessor.TenantId is not Guid ambientTenantId || ambientTenantId == Guid.Empty)
                 return new List<AdminTenantUserRowDto>();
+
+            // Mandanten-Admin: ignore client-supplied tenantId; ambient JWT tenant only.
+            tenantId = ambientTenantId;
         }
 
         if (tenantId.HasValue && tenantId.Value != Guid.Empty)
@@ -352,6 +384,10 @@ public partial class AdminUsersController : ControllerBase
                 })
                 .ToList();
         }
+
+        // Cross-tenant membership listing is Super Admin only.
+        if (!IsActorSuperAdmin())
+            return new List<AdminTenantUserRowDto>();
 
         var businessTenantIds = await GetBusinessTenantIdsAsync(cancellationToken).ConfigureAwait(false);
 
@@ -504,8 +540,10 @@ public partial class AdminUsersController : ControllerBase
 
     private async Task<Guid?> ResolvePrimaryTenantIdForUserAsync(string userId, CancellationToken cancellationToken)
     {
+        // Unfiltered: audit metadata must resolve the user's tenant even when ambient context is platform-wide.
         return await _context.UserTenantMemberships
             .AsNoTracking()
+            .IgnoreQueryFilters()
             .Where(m => m.UserId == userId
                 && m.IsActive
                 && m.Tenant != null
@@ -616,10 +654,13 @@ public partial class AdminUsersController : ControllerBase
         if (user == null)
             return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
 
-        if (_tenantAccessor.TenantId is Guid ambientTenantId
-            && !CanAccessUserInAmbientTenant(user, ambientTenantId, businessTenantIdSet))
+        if (!IsActorSuperAdmin())
         {
-            return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
+            if (_tenantAccessor.TenantId is not Guid ambientTenantId)
+                return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
+
+            if (!CanAccessUserInAmbientTenant(user, ambientTenantId, businessTenantIdSet))
+                return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
         }
 
         return Ok(ToDto(user, businessTenantIdSet));
@@ -646,15 +687,16 @@ public partial class AdminUsersController : ControllerBase
         if (user == null)
             return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
 
-        if (!IsActorSuperAdmin()
-            && _tenantAccessor.TenantId is Guid ambientTenantId
-            && !CanAccessUserInAmbientTenant(user, ambientTenantId, businessTenantIdSet))
+        if (!IsActorSuperAdmin())
         {
-            return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
+            if (_tenantAccessor.TenantId is not Guid ambientTenantId)
+                return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
+
+            if (!CanAccessUserInAmbientTenant(user, ambientTenantId, businessTenantIdSet))
+                return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
         }
 
-        var membershipQuery = _context.UserTenantMemberships
-            .AsNoTracking()
+        var membershipQuery = MembershipsQuery()
             .Include(m => m.Tenant)
             .Where(m => m.UserId == id && m.IsActive && businessTenantIds.Contains(m.TenantId));
 

@@ -5,13 +5,21 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { PaymentBreakdown } from './paymentBreakdown';
 import type { DailyClosingSummaryLineDto } from './dailyClosingSummaryLineDto';
+import type { DailyClosingTaxBreakdownDto } from './dailyClosingTaxBreakdownDto';
+import type { TransactionBreakdown } from './transactionBreakdown';
 
 export interface DailyClosingSummaryDto {
   businessDate?: string;
   /** @nullable */
   cashRegisterId?: string | null;
+  fiscalTotalAmount?: number;
+  fiscalTotalTaxAmount?: number;
+  fiscalTransactionCount?: number;
+  paymentBreakdown?: PaymentBreakdown;
   receiptCount?: number;
+  salesFiscalDelta?: number;
   /** @nullable */
   snapshotDisclaimerDe?: string | null;
   /** @nullable */
@@ -20,9 +28,11 @@ export interface DailyClosingSummaryDto {
   /** @nullable */
   stornos?: DailyClosingSummaryLineDto[] | null;
   stornoTotalAmount?: number;
+  taxBreakdown?: DailyClosingTaxBreakdownDto;
   totalCard?: number;
   totalCash?: number;
   totalOtherPaymentMethods?: number;
   totalSales?: number;
   totalVoucherRedemptions?: number;
+  transactionBreakdown?: TransactionBreakdown;
 }

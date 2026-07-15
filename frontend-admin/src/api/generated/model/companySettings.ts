@@ -9,6 +9,8 @@ import type { CompanySettingsBusinessHours } from './companySettingsBusinessHour
 import type { Tenant } from './tenant';
 
 export interface CompanySettings {
+  /** @nullable */
+  address?: string | null;
   /**
    * @maxLength 50
    * @nullable
@@ -126,6 +128,8 @@ export interface CompanySettings {
    * @nullable
    */
   defaultTseDeviceId?: string | null;
+  /** @nullable */
+  email?: string | null;
   /**
    * @maxLength 500
    * @nullable
@@ -170,6 +174,8 @@ export interface CompanySettings {
   language: string;
   /** @nullable */
   lastFinanzOnlineSync?: string | null;
+  /** @nullable */
+  name?: string | null;
   /**
    * @maxLength 50
    * @nullable
@@ -177,6 +183,8 @@ export interface CompanySettings {
   paymentTerms?: string | null;
   /** @nullable */
   pendingInvoices?: number | null;
+  /** @nullable */
+  phone?: string | null;
   /**
    * @minLength 1
    * @maxLength 50
@@ -209,4 +217,8 @@ export interface CompanySettings {
    */
   updatedBy?: string | null;
   useDecemberMonatsbelegAsJahresbeleg?: boolean;
+  /** @nullable */
+  vatId?: string | null;
+  /** @nullable */
+  website?: string | null;
 }

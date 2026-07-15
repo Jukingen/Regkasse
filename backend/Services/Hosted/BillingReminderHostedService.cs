@@ -1,4 +1,5 @@
 using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.License;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -28,9 +29,10 @@ public class BillingReminderHostedService : BackgroundService
 
                 using var scope = _scopeFactory.CreateScope();
                 var reminderService = scope.ServiceProvider.GetRequiredService<IReminderService>();
+                var licenseReminderService = scope.ServiceProvider.GetRequiredService<ILicenseReminderService>();
 
                 await reminderService.CheckAndCreateRemindersAsync(stoppingToken).ConfigureAwait(false);
-                await reminderService.SendPendingRemindersAsync(stoppingToken).ConfigureAwait(false);
+                await licenseReminderService.SendDueBillingSaleRemindersAsync(stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {

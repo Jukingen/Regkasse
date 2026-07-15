@@ -83,7 +83,12 @@ function iconEl(token?: SidebarIconToken): React.ReactNode {
 }
 
 function visibleCatalogIds(catalogIds: readonly SidebarCatalogId[]): SidebarCatalogId[] {
-    return catalogIds.filter((id) => !SIDEBAR_NAV_ITEM_CATALOG[id].sidebarHidden);
+    return catalogIds.filter((id) => {
+        const item = SIDEBAR_NAV_ITEM_CATALOG[id];
+        if (item.sidebarHidden) return false;
+        if (item.developmentOnly && process.env.NODE_ENV !== 'development') return false;
+        return true;
+    });
 }
 
 function buildNestedSidebarGroup(

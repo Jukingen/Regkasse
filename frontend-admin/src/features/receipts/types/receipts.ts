@@ -57,6 +57,8 @@ export interface ReceiptListItemDto {
     rksvSpecialReceiptKind?: string | null;
     /** FinanzOnline/BMF lifecycle for Startbeleg/Jahresbeleg when a tracking row exists. */
     rksvFinanzOnlineSubmissionStatus?: string | null;
+    /** True when a persisted RKSV receipt PDF exists. */
+    hasStoredPdf?: boolean;
 }
 
 /** Paginated list envelope */

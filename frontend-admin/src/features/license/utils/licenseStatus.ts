@@ -1,4 +1,4 @@
-import type { LicenseStatusResponse } from '@/api/manual/adminLicense';
+import type { LicensePublicStatusDto, LicenseStatusResponse } from '@/api/manual/adminLicense';
 import type { TenantLicenseStatus as TenantLicenseStatusDto } from '@/features/license/api/tenantLicense';
 import {
     DEPLOYMENT_GRACE_WRITE_DAYS,
@@ -193,6 +193,75 @@ export function resolveTenantRowLicenseStatus(
             licenseKey: input?.licenseKey,
             validUntilUtc: input?.licenseValidUntilUtc,
             daysRemaining: input?.licenseDaysRemaining,
+        },
+        nowMs,
+    );
+}
+
+/** Maps Manager-facing GET /api/license/status to admin tenant license display fields. */
+export function mapPublicStatusToTenantLicenseStatus(
+    dto: LicensePublicStatusDto,
+    nowMs = Date.now(),
+): TenantLicenseStatusDto {
+    const resolved = resolveTenantLicenseFromPublicStatus(dto, nowMs);
+    return {
+        kind: resolved.kind,
+        validUntilUtc: dto.validUntil,
+        daysRemaining: resolved.daysRemaining,
+        licenseKey: null,
+        features: dto.features ?? [],
+    };
+}
+
+/** Maps unified GET /api/license/status mandant overlay to FA tenant license phases. */
+export function resolveTenantLicenseFromPublicStatus(
+    dto: LicensePublicStatusDto | null | undefined,
+    nowMs = Date.now(),
+): ResolvedLicenseStatus {
+    if (!dto) {
+        return buildStatus('no_license', 0, getTenantPermissions('no_license'));
+    }
+
+    const hasMandantOverlay = typeof dto.canAccess === 'boolean';
+
+    if (hasMandantOverlay) {
+        if (dto.canAccess === false && dto.requiresRenewal) {
+            const daysRemaining = isFiniteNumber(dto.daysRemaining)
+                ? Math.trunc(dto.daysRemaining)
+                : getSignedDaysRemaining(dto.validUntil, null, nowMs);
+            return buildStatus('lockdown', daysRemaining, getTenantPermissions('lockdown'));
+        }
+
+        if (dto.canAccess === false) {
+            return buildStatus('no_license', 0, getTenantPermissions('no_license'));
+        }
+
+        if (dto.isInGracePeriod) {
+            const graceRemaining = isFiniteNumber(dto.gracePeriodRemaining)
+                ? Math.max(0, Math.trunc(dto.gracePeriodRemaining))
+                : 0;
+            const daysExpired = Math.max(0, TENANT_GRACE_PERIOD_DAYS - graceRemaining);
+            const daysRemaining = isFiniteNumber(dto.daysRemaining)
+                ? Math.trunc(dto.daysRemaining)
+                : -daysExpired;
+            return buildStatus('grace_write', daysRemaining, getTenantPermissions('grace_write'));
+        }
+
+        return resolveTenantLicenseStatus(
+            {
+                validUntilUtc: dto.validUntil,
+                daysRemaining: dto.daysRemaining,
+                kind: 'active',
+            },
+            nowMs,
+        );
+    }
+
+    return resolveTenantLicenseStatus(
+        {
+            validUntilUtc: dto.validUntil,
+            daysRemaining: dto.daysRemaining,
+            kind: dto.isValid && !dto.isExpired ? 'active' : undefined,
         },
         nowMs,
     );

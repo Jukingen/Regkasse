@@ -43,6 +43,7 @@
     "colSpecialKind": "Special receipt (RKSV)",
     "colGrandTotal": "Grand total",
     "colPdfReprint": "Reprint",
+    "colStoredPdf": "PDF",
     "colNext": "Action",
     "open": "Open",
     "paginationTotal": "{{from}}–{{to}} of {{total}} receipts"

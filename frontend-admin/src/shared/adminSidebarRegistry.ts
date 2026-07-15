@@ -85,6 +85,8 @@ export type SidebarNavCatalogItem = {
     permission?: string | string[];
     /** When true, route is registered but omitted from sidebar leaves (deep-link only). */
     sidebarHidden?: boolean;
+    /** When true, leaf is shown only when `NODE_ENV === 'development'`. */
+    developmentOnly?: boolean;
 };
 
 /**
@@ -543,6 +545,24 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         /** Mandant license (Manager) + deployment license (Super Admin / settings.manage). */
         permission: [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SETTINGS_MANAGE],
     },
+    /** Dev-only — hidden outside `NODE_ENV=development` via `developmentOnly` + `buildAdminSidebar`. */
+    licenseTest: {
+        id: 'licenseTest',
+        menuKey: '/admin/license/test',
+        href: '/admin/license/test',
+        labelKey: 'nav.licenseTest',
+        icon: 'ExperimentOutlined',
+        permission: PERMISSIONS.SYSTEM_CRITICAL,
+        developmentOnly: true,
+    },
+    licenseDebug: {
+        id: 'licenseDebug',
+        menuKey: '/admin/license/debug',
+        href: '/admin/license/debug',
+        labelKey: 'nav.licenseDebug',
+        icon: 'BugOutlined',
+        permission: PERMISSIONS.SYSTEM_CRITICAL,
+    },
     superAdminTenants: {
         id: 'superAdminTenants',
         menuKey: '/admin/tenants',
@@ -799,7 +819,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         blocks: [
             {
                 kind: 'leaves',
-                catalogIds: ['licenseManagement', 'superAdminLicenses', 'billingOverview'],
+                catalogIds: ['licenseManagement', 'licenseTest', 'superAdminLicenses', 'billingOverview'],
             },
         ],
     },

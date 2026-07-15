@@ -19,6 +19,26 @@
     "expiresSoon": "Expiring soon",
     "trial": "Trial"
   },
+  "history": {
+    "title": "License history",
+    "empty": "No license changes recorded",
+    "columns": {
+      "date": "Date",
+      "event": "Event",
+      "summary": "Details",
+      "actor": "Performed by",
+      "licenseKey": "License key"
+    },
+    "events": {
+      "activated": "Activation",
+      "extended": "Extension",
+      "renewed": "Renewal",
+      "issued": "Issued",
+      "revoked": "Revoked",
+      "trial": "Trial",
+      "updated": "Updated"
+    }
+  },
   "server": {
     "title": "Server license status",
     "subtitle": "This license applies to the entire server and all tenants.",
@@ -607,5 +627,97 @@
     "features": "Features",
     "isValid": "Operations allowed",
     "loadError": "Could not load public license status."
+  },
+  "testPanel": {
+    "title": "License test panel",
+    "subtitle": "Development environment only. Adjust tenant and deployment license expiry for QA scenarios.",
+    "devOnlyNotice": "This panel is available in Development only (Super Admin).",
+    "productionBlocked": "The license test panel is disabled in production.",
+    "selectTenant": "Tenant",
+    "selectTenantPlaceholder": "Select tenant…",
+    "refresh": "Refresh status",
+    "refreshedAt": "Last updated: {time}",
+    "developmentBypassActive": "Development-mode license bypass is active — deployment status may be synthetic.",
+    "overrideHint": "Scenarios replace the tenant license immediately (not an extension). “999 days” usually means no expiry date in the DB — after applying, you will see the real remaining days.",
+    "unlimitedNoExpiry": "Unlimited (no expiry date)",
+    "tenantSection": "Tenant license (SaaS)",
+    "deploymentSection": "Deployment license",
+    "validUntil": "Valid until",
+    "daysRemaining": "Days remaining",
+    "status": "Status",
+    "mode": "Mode",
+    "licenseKey": "License key",
+    "customExpiry": "Expiry date",
+    "applyTenant": "Apply to tenant",
+    "applyDeployment": "Apply to deployment",
+    "toggleActive": "Active (30 days)",
+    "toggleExpired": "Expired",
+    "scenarioTitle": "Quick scenarios",
+    "scenario1Day": "1 day",
+    "scenario7Days": "7 days",
+    "scenario30Days": "30 days",
+    "scenarioExpired": "Expired",
+    "scopeTenant": "Tenant only",
+    "scopeDeployment": "Deployment only",
+    "scopeBoth": "Both",
+    "applyScenario": "Apply scenario",
+    "success": "License status updated.",
+    "scenarioSuccess": "License set to {days} days.",
+    "scenarioExpiredSuccess": "License set to expired.",
+    "manualSuccess": "License valid until {date}.",
+    "error": "License could not be updated.",
+    "noTenantSelected": "Please select a tenant first.",
+    "alertTitle": "🧪 Development License Test Panel",
+    "alertDescription": "This panel runs in development only. It is disabled in production.",
+    "simulationTitle": "License simulation",
+    "manualTitle": "Manual settings",
+    "updateButton": "Update",
+    "scenario30DaysLabel": "🟢 30 days until expiry",
+    "scenario7DaysLabel": "🟡 7 days until expiry",
+    "scenario1DayLabel": "🟠 1 day until expiry",
+    "scenarioExpiredLabel": "🔴 Expired",
+    "mockStatus": {
+      "healthy": "🟢 30 days until expiry (healthy)",
+      "warning": "🟡 7 days until expiry (warning)",
+      "urgent": "🟠 1 day until expiry (urgent)",
+      "expired": "🔴 Expired"
+    },
+    "statusLabels": {
+      "active": "Active",
+      "expired": "Expired",
+      "expiring_soon": "Expiring soon",
+      "trial": "Trial",
+      "no_license": "No license"
+    }
+  },
+  "debug": {
+    "title": "License debug",
+    "noticeTitle": "Super Admin troubleshooting",
+    "noticeDescription": "Compares mandant license sources (unified GET /api/license/status vs admin detail). Header and dashboard widget use the unified source.",
+    "refresh": "Refresh all sources",
+    "tenantContext": "Tenant for diagnostics",
+    "tenantPlaceholder": "Select tenant (default: current context)",
+    "currentSlug": "Current slug",
+    "platformMode": "Super Admin platform mode",
+    "queryKey": "TanStack Query key (unified)",
+    "fetchedAt": "Unified last fetched",
+    "comparisonTitle": "Source comparison",
+    "columns": {
+      "source": "Source",
+      "endpoint": "API / hook",
+      "kind": "Status",
+      "daysRemaining": "Days remaining",
+      "validUntil": "Valid until",
+      "canAccess": "canAccess"
+    },
+    "sources": {
+      "unified": "Unified (POS contract)",
+      "adminDetail": "Admin mandant detail",
+      "header": "Header badge (derived)",
+      "resolved": "resolveTenantLicenseStatus",
+      "deployment": "Server license (deployment)",
+      "adminStatus": "Admin server status",
+      "history": "License history (metadata)"
+    }
   }
 }

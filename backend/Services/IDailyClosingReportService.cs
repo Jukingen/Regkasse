@@ -1,4 +1,5 @@
 using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Models.Reports;
 
 namespace KasseAPI_Final.Services;
 
@@ -6,6 +7,11 @@ public interface IDailyClosingReportService
 {
     /// <summary>Builds a localized PDF for an in-memory closing report snapshot.</summary>
     byte[] GenerateDailyReportPdf(PosDailyClosingReportDto report, string language = "de");
+
+    /// <summary>Unified RKSV plain-text report for thermal/POS (Tagesabschluss, Monatsbeleg, Jahresbeleg).</summary>
+    string GenerateDailyReportText(
+        PosDailyClosingReportDto report,
+        TagesabschlussCloudContext? cloudContext = null);
 
     /// <summary>
     /// Loads a persisted daily closing for the caller's shift and returns a localized PDF, or null when not found.

@@ -2,6 +2,7 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.License;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using IBillingTenantLicenseService = KasseAPI_Final.Services.Billing.ITenantLicenseService;
@@ -20,6 +21,7 @@ public sealed class AdminBillingController : ControllerBase
     private readonly IInvoicePdfGenerator _pdfGenerator;
     private readonly IBillingAuditService _auditService;
     private readonly IReminderService _reminderService;
+    private readonly ILicenseReminderService _licenseReminderService;
     private readonly IBillingBackupService _backupService;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<AdminBillingController> _logger;
@@ -30,6 +32,7 @@ public sealed class AdminBillingController : ControllerBase
         IInvoicePdfGenerator pdfGenerator,
         IBillingAuditService auditService,
         IReminderService reminderService,
+        ILicenseReminderService licenseReminderService,
         IBillingBackupService backupService,
         ICurrentUserService currentUserService,
         ILogger<AdminBillingController> logger)
@@ -39,6 +42,7 @@ public sealed class AdminBillingController : ControllerBase
         _pdfGenerator = pdfGenerator;
         _auditService = auditService;
         _reminderService = reminderService;
+        _licenseReminderService = licenseReminderService;
         _backupService = backupService;
         _currentUserService = currentUserService;
         _logger = logger;
@@ -416,8 +420,14 @@ public sealed class AdminBillingController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> TriggerReminderSend(CancellationToken ct)
     {
-        await _reminderService.SendPendingRemindersAsync(ct).ConfigureAwait(false);
-        return Ok(new { message = "Reminders sent" });
+        var billingSent = await _licenseReminderService.SendDueBillingSaleRemindersAsync(ct).ConfigureAwait(false);
+        var mandantResult = await _licenseReminderService.SendDueMandantExpiryRemindersAsync(ct).ConfigureAwait(false);
+        return Ok(new
+        {
+            message = "Reminders sent",
+            billingEmailsSent = billingSent,
+            mandantEmailsSent = mandantResult.EmailsSent,
+        });
     }
 
     #endregion

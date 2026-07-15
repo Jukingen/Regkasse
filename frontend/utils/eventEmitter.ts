@@ -6,8 +6,14 @@ export type SyncStatusPayload = {
   nextSyncAt: Date | null;
 };
 
+export type SyncProgressPayload = {
+  current: number;
+  total: number;
+};
+
 export type EventMap = {
   'sync:status': SyncStatusPayload;
+  'sync:progress': SyncProgressPayload;
   'sync:completed': { synced: number; errors: number };
   'sync:error': Error;
   'sync:warning': { message: string };

@@ -546,10 +546,26 @@ public sealed class LicenseService : ILicenseService
                 _developmentModeService,
                 _options.Value))
         {
-            return CreateUnlimitedMandantLicenseStatus(
-                _hostEnvironment.IsDevelopment()
-                    ? "Development Mode - Unlimited Access"
-                    : "Demo Mode - Unlimited Access");
+            // Development: expose persisted mandant row for FA/POS status UI (QA scenarios).
+            // Middleware still skips enforcement when policy is disabled.
+            if (_hostEnvironment.IsDevelopment())
+            {
+                return await WithDbContextAsync(async (db, ct) =>
+                {
+                    var tenant = await db.Tenants
+                        .AsNoTracking()
+                        .IgnoreQueryFilters()
+                        .FirstOrDefaultAsync(t => t.Id == tenantId, ct)
+                        .ConfigureAwait(false);
+
+                    if (tenant == null)
+                        return new LicenseStatusInfo { CanAccess = false };
+
+                    return BuildTenantLicenseStatusInfo(tenant);
+                }, cancellationToken).ConfigureAwait(false);
+            }
+
+            return CreateUnlimitedMandantLicenseStatus("Demo Mode - Unlimited Access");
         }
 
         return await WithDbContextAsync(async (db, ct) =>

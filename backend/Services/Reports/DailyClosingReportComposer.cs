@@ -52,7 +52,9 @@ public static class DailyClosingReportComposer
         decimal? shiftCashSales = null,
         string? cashierName = null,
         string? previousClosingSignature = null,
-        FiscalEnvironmentResolver.FiscalEnvironment? fiscalEnvironment = null)
+        string? shiftNumber = null,
+        FiscalEnvironmentResolver.FiscalEnvironment? fiscalEnvironment = null,
+        TagesabschlussCloudContext? cloudContext = null)
     {
         ArgumentNullException.ThrowIfNull(closing);
 
@@ -139,8 +141,21 @@ public static class DailyClosingReportComposer
         {
             ClosingType = closing.ClosingType,
             BusinessDate = closing.ClosingDate,
-            RegisterNumber = registerNumber,
+            CashRegisterId = closing.CashRegisterId,
+            RegisterNumber = cloudContext?.RegisterNumber ?? registerNumber,
+            CompanyName = cloudContext?.CompanyName,
+            CompanyAddress = cloudContext?.CompanyAddress,
+            CompanyVatId = cloudContext?.CompanyVatId,
+            PeriodStartUtc = cloudContext?.PeriodStartUtc,
+            PeriodEndUtc = cloudContext?.PeriodEndUtc,
+            TseProviderLabel = cloudContext?.TseProviderLabel,
+            DepExportStatusLabel = cloudContext?.DepExportStatusLabel,
+            TseSignatureVerified = cloudContext?.TseSignatureVerified ?? false,
+            HasStartbeleg = cloudContext?.HasStartbeleg ?? false,
+            HasMonatsbeleg = cloudContext?.HasMonatsbeleg ?? false,
+            HasJahresbeleg = cloudContext?.HasJahresbeleg ?? false,
             CashierName = cashierName,
+            ShiftNumber = shiftNumber,
             TotalSales = totalSales,
             TotalCash = totalCash,
             TotalCard = totalCard,
@@ -150,6 +165,7 @@ public static class DailyClosingReportComposer
             Difference = shiftDifference,
             FiscalTotalAmount = fiscalTotal,
             FiscalTotalTaxAmount = closing.TotalTaxAmount,
+            FiscalTotalNetAmount = fiscalTotal - closing.TotalTaxAmount,
             FiscalTransactionCount = closing.TransactionCount,
             TseSignature = closing.TseSignature,
             PreviousClosingSignature = previousClosingSignature,

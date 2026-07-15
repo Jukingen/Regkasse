@@ -1,5 +1,6 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Reports;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
@@ -19,17 +20,23 @@ public class AdminMonatsbelegClosingController : ControllerBase
 {
     private readonly IMonatsbelegClosingService _monatsbelegClosing;
     private readonly IDailyClosingReportService _reportService;
+    private readonly IReportPdfStorageService _reportPdfStorage;
+    private readonly IReportPdfCaptureService _reportPdfCapture;
     private readonly ISettingsTenantResolver _tenantResolver;
     private readonly ILogger<AdminMonatsbelegClosingController> _logger;
 
     public AdminMonatsbelegClosingController(
         IMonatsbelegClosingService monatsbelegClosing,
         IDailyClosingReportService reportService,
+        IReportPdfStorageService reportPdfStorage,
+        IReportPdfCaptureService reportPdfCapture,
         ISettingsTenantResolver tenantResolver,
         ILogger<AdminMonatsbelegClosingController> logger)
     {
         _monatsbelegClosing = monatsbelegClosing;
         _reportService = reportService;
+        _reportPdfStorage = reportPdfStorage;
+        _reportPdfCapture = reportPdfCapture;
         _tenantResolver = tenantResolver;
         _logger = logger;
     }
@@ -115,12 +122,69 @@ public class AdminMonatsbelegClosingController : ControllerBase
         [FromQuery] string? language,
         CancellationToken cancellationToken)
     {
+        var detail = await _monatsbelegClosing.GetByIdAsync(id, cancellationToken);
+        if (detail == null)
+            return NotFound();
+
+        var normalizedLanguage = language ?? "de";
+        if (detail.DailyClosingId is Guid closingId)
+        {
+            var stored = await TryOpenStoredClosingPdfAsync(
+                ReportPdfTypes.Monatsbeleg,
+                closingId,
+                normalizedLanguage,
+                cancellationToken).ConfigureAwait(false);
+            if (stored is not null)
+                return stored;
+        }
+
         var report = await _monatsbelegClosing.BuildReportDtoAsync(id, cancellationToken);
         if (report == null)
             return NotFound();
 
-        var pdf = _reportService.GenerateDailyReportPdf(report, language ?? "de");
+        var pdf = _reportService.GenerateDailyReportPdf(report, normalizedLanguage);
         return File(pdf, "application/pdf", $"monatsbeleg-{report.BusinessDate:yyyy-MM}.pdf");
+    }
+
+    private async Task<IActionResult?> TryOpenStoredClosingPdfAsync(
+        string reportType,
+        Guid closingId,
+        string language,
+        CancellationToken cancellationToken)
+    {
+        var download = await _reportPdfStorage.TryOpenDownloadAsync(
+            reportType,
+            closingId,
+            language,
+            cancellationToken).ConfigureAwait(false);
+        if (download is not null)
+            return File(download.Value.Stream, download.Value.ContentType, download.Value.FileName);
+
+        var actorUserId = User.GetActorUserId() ?? string.Empty;
+        await _reportPdfCapture.TryCaptureClosingReportAsync(
+            closingId,
+            actorUserId,
+            language,
+            cancellationToken).ConfigureAwait(false);
+
+        download = await _reportPdfStorage.TryOpenDownloadAsync(
+            reportType,
+            closingId,
+            language,
+            cancellationToken).ConfigureAwait(false);
+        if (download is not null)
+            return File(download.Value.Stream, download.Value.ContentType, download.Value.FileName);
+
+        var pdf = await _reportService.TryGenerateClosingReportPdfAsync(
+            closingId,
+            actorUserId: null,
+            language,
+            cancellationToken).ConfigureAwait(false);
+        if (pdf is not { Length: > 0 })
+            return null;
+
+        var fileName = ReportPdfStorageService.BuildDownloadFileName(reportType, closingId);
+        return File(pdf, "application/pdf", fileName);
     }
 
     private static (int Year, int Month) ResolvePeriod(int? year, int? month)

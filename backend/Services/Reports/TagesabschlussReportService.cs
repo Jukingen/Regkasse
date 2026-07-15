@@ -1,10 +1,10 @@
-using System.Globalization;
-using System.Text;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Reports;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Time;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -25,32 +25,68 @@ public interface ITagesabschlussReportService
     /// <summary>TSE status badge for report header/footer blocks.</summary>
     string GetTseStatusBadge(bool isSimulated);
 
-    /// <summary>Plain-text RKSV Tagesabschluss report for thermal/POS print.</summary>
+    /// <summary>Plain-text RKSV Tagesabschluss report for thermal/POS print (Cloud POS layout).</summary>
     string GenerateReport(
         DailyClosing closing,
         DailyClosingSummaryDto? daySummary = null,
-        string? cashierName = null);
+        string? cashierName = null,
+        TagesabschlussCloudContext? cloudContext = null,
+        string? shiftNumber = null);
+
+    /// <summary>Builds cloud context from tenant settings and renders the report.</summary>
+    Task<string> GenerateReportAsync(
+        DailyClosing closing,
+        DailyClosingSummaryDto? daySummary = null,
+        string? cashierName = null,
+        string? shiftNumber = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Generates closing PDF, persists to filesystem + <c>report_pdfs</c>, returns stored row id.</summary>
+    Task<Guid> GenerateAndSavePdfAsync(
+        Guid closingId,
+        Guid userId,
+        string language = "de",
+        CancellationToken cancellationToken = default);
 }
 
 public sealed class TagesabschlussReportService : ITagesabschlussReportService
 {
-    private static readonly CultureInfo DeAt = CultureInfo.GetCultureInfo("de-AT");
-
+    private readonly AppDbContext _context;
+    private readonly IDailyClosingReportService _dailyClosingReportService;
+    private readonly IReportPdfService _reportPdfService;
+    private readonly IReportPdfStorageService _reportPdfStorage;
+    private readonly ICurrentUserService _currentUserService;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly TseOptions _tseOptions;
     private readonly IConfiguration _configuration;
     private readonly IRksvEnvironmentService _rksvEnvironment;
+    private readonly ITagesabschlussReportEnricher _reportEnricher;
+    private readonly IRksvReportTextService _reportText;
 
     public TagesabschlussReportService(
         IHostEnvironment hostEnvironment,
         IOptions<TseOptions> tseOptions,
         IConfiguration configuration,
-        IRksvEnvironmentService rksvEnvironment)
+        IRksvEnvironmentService rksvEnvironment,
+        ITagesabschlussReportEnricher reportEnricher,
+        IRksvReportTextService reportText,
+        AppDbContext context,
+        IDailyClosingReportService dailyClosingReportService,
+        IReportPdfService reportPdfService,
+        IReportPdfStorageService reportPdfStorage,
+        ICurrentUserService currentUserService)
     {
         _hostEnvironment = hostEnvironment;
         _tseOptions = tseOptions.Value;
         _configuration = configuration;
         _rksvEnvironment = rksvEnvironment;
+        _reportEnricher = reportEnricher;
+        _reportText = reportText;
+        _context = context;
+        _dailyClosingReportService = dailyClosingReportService;
+        _reportPdfService = reportPdfService;
+        _reportPdfStorage = reportPdfStorage;
+        _currentUserService = currentUserService;
     }
 
     /// <inheritdoc />
@@ -83,87 +119,148 @@ public sealed class TagesabschlussReportService : ITagesabschlussReportService
             : "TSE AKTIV";
 
     /// <inheritdoc />
+    public async Task<string> GenerateReportAsync(
+        DailyClosing closing,
+        DailyClosingSummaryDto? daySummary = null,
+        string? cashierName = null,
+        string? shiftNumber = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(closing);
+        var cloudContext = await _reportEnricher.BuildContextAsync(closing, cancellationToken)
+            .ConfigureAwait(false);
+        return GenerateReport(
+            closing,
+            daySummary,
+            cashierName,
+            cloudContext,
+            shiftNumber ?? RksvShiftNumberFormatter.Format(closing.ShiftNumber));
+    }
+
+    /// <inheritdoc />
+    public async Task<Guid> GenerateAndSavePdfAsync(
+        Guid closingId,
+        Guid userId,
+        string language = "de",
+        CancellationToken cancellationToken = default)
+    {
+        if (closingId == Guid.Empty)
+            throw new ArgumentException("Closing id is required.", nameof(closingId));
+
+        var closing = await _context.DailyClosings.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == closingId, cancellationToken)
+            .ConfigureAwait(false)
+            ?? throw new KeyNotFoundException($"Daily closing {closingId} was not found.");
+
+        var pdfBytes = await GeneratePdfAsync(closingId, language, cancellationToken).ConfigureAwait(false);
+        var reportType = ReportPdfTypes.FromClosingType(closing.ClosingType);
+        var actorId = ResolveActorUserId(userId);
+        var fileName = ReportPdfArchiveNames.ForReport(reportType, closingId);
+
+        if (string.Equals(
+                DailyClosingReportTemplates.NormalizeLanguage(language),
+                "de",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return await _reportPdfService.SavePdfAsync(
+                reportType,
+                closingId,
+                pdfBytes,
+                fileName,
+                actorId,
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        var pdfRecord = await _reportPdfStorage.SaveAsync(
+            new ReportPdfStoreRequest
+            {
+                TenantId = closing.TenantId,
+                ReportType = reportType,
+                ReportId = closingId,
+                PdfBytes = pdfBytes,
+                GeneratedByUserId = actorId,
+                Language = language,
+            },
+            cancellationToken).ConfigureAwait(false);
+
+        return pdfRecord.Id;
+    }
+
+    private Guid ResolveActorUserId(Guid userId) =>
+        userId != Guid.Empty ? userId : _currentUserService.GetCurrentUserId();
+
+    private async Task<byte[]> GeneratePdfAsync(
+        Guid closingId,
+        string language,
+        CancellationToken cancellationToken)
+    {
+        var pdfBytes = await _dailyClosingReportService.TryGenerateClosingReportPdfAsync(
+            closingId,
+            actorUserId: null,
+            language,
+            cancellationToken).ConfigureAwait(false);
+
+        if (pdfBytes is null or { Length: 0 })
+            throw new InvalidOperationException($"Could not generate PDF for closing {closingId}.");
+
+        return pdfBytes;
+    }
+
+    /// <inheritdoc />
     public string GenerateReport(
         DailyClosing closing,
         DailyClosingSummaryDto? daySummary = null,
-        string? cashierName = null)
+        string? cashierName = null,
+        TagesabschlussCloudContext? cloudContext = null,
+        string? shiftNumber = null)
     {
         ArgumentNullException.ThrowIfNull(closing);
 
-        var company = _configuration.GetSection("Company").Get<TagesabschlussCompanyConfig>()
-                      ?? new TagesabschlussCompanyConfig();
-        var footer = _rksvEnvironment.GetRksvFooter();
-        var tseStatus = _rksvEnvironment.GetTseStatusDisplay();
-
-        var payments = daySummary?.PaymentBreakdown ?? new PaymentBreakdown();
-        if (payments.Total == 0m && daySummary != null)
-        {
-            payments = PaymentBreakdown.FromAmounts(
-                daySummary.TotalCash,
-                daySummary.TotalCard,
-                daySummary.TotalVoucherRedemptions,
-                daySummary.TotalOtherPaymentMethods);
-        }
-
-        var tax = daySummary?.TaxBreakdown ?? new DailyClosingTaxBreakdownDto();
-        var totalGross = closing.TotalAmount;
-        var totalTax = closing.TotalTaxAmount > 0m ? closing.TotalTaxAmount : daySummary?.FiscalTotalTaxAmount ?? 0m;
-
-        var registerLabel = closing.CashRegister?.RegisterNumber
-                            ?? closing.CashRegister?.Location
-                            ?? closing.CashRegisterId.ToString("N");
-        var cashier = cashierName
-                      ?? closing.User?.UserName
-                      ?? closing.User?.Email
-                      ?? closing.UserId;
+        cloudContext ??= BuildFallbackCloudContext(closing);
+        var model = TagesabschlussReportModel.From(
+            closing,
+            cloudContext,
+            daySummary,
+            cashierName ?? (string.IsNullOrWhiteSpace(closing.CashierName) ? null : closing.CashierName),
+            shiftNumber ?? RksvShiftNumberFormatter.Format(closing.ShiftNumber));
         var closingLocal = PostgreSqlUtcDateTime.ViennaCalendarMidnightContainingInstant(closing.ClosingDate);
         var qrPayload = FiscalEnvironmentResolver.BuildClosingQrPayload(
             closing.IsSimulated || _rksvEnvironment.IsDemoMode(),
             closing.TseSignature,
             closingLocal,
-            totalGross);
+            model.TotalGross);
 
-        var builder = new StringBuilder();
-        builder.AppendLine("═══════════════════════════════════════════");
-        builder.AppendLine($"  {company.Name}");
-        builder.AppendLine($"  {company.Address}");
-        builder.AppendLine($"  UID: {company.VatId}");
-        builder.AppendLine("───────────────────────────────────────────");
-        builder.AppendLine($"  TAGESABSCHLUSS - {_rksvEnvironment.GetEnvironmentDisplayName()}");
-        builder.AppendLine("───────────────────────────────────────────");
-        builder.AppendLine($"  Datum:           {closingLocal:dd.MM.yyyy HH:mm}");
-        builder.AppendLine($"  Kasse:           {registerLabel}");
-        builder.AppendLine($"  Kassierer:       {cashier}");
-        builder.AppendLine($"  {tseStatus}");
-        builder.AppendLine("───────────────────────────────────────────");
-        builder.AppendLine("  Zahlungsarten:");
-        builder.AppendLine($"    Bargeld:       {FormatMoney(payments.Cash)}");
-        builder.AppendLine($"    Karte:         {FormatMoney(payments.Card)}");
-        builder.AppendLine($"    Gutschein:     {FormatMoney(payments.Voucher)}");
-        builder.AppendLine($"    Sonstige:      {FormatMoney(payments.Other)}");
-        builder.AppendLine($"    Gesamt:        {FormatMoney(totalGross)}");
-        builder.AppendLine("───────────────────────────────────────────");
-        builder.AppendLine("  Steuern:");
-        builder.AppendLine($"    20%:           {FormatMoney(tax.TaxAt20)}");
-        builder.AppendLine($"    10%:           {FormatMoney(tax.TaxAt10)}");
-        builder.AppendLine($"    0%:            {FormatMoney(tax.GrossAt0)}");
-        builder.AppendLine($"    Gesamt MwSt.:  {FormatMoney(totalTax)}");
-        builder.AppendLine("───────────────────────────────────────────");
-        builder.AppendLine($"  Transaktionen:   {closing.TransactionCount}");
-        builder.AppendLine("───────────────────────────────────────────");
-        builder.AppendLine("  Signaturkette:");
-        builder.AppendLine($"    Länge:         {closing.SignatureChainLength}");
-        builder.AppendLine($"    Vorherige:     {FormatSignaturePreview(closing.PreviousSignature)}");
-        builder.AppendLine($"    Aktuelle:      {FormatSignaturePreview(closing.TseSignature)}");
-        builder.AppendLine("───────────────────────────────────────────");
-        builder.AppendLine("  TSE-Signatur:");
-        builder.AppendLine($"  {closing.TseSignature ?? "—"}");
-        builder.AppendLine("───────────────────────────────────────────");
-        builder.AppendLine($"  QR-Code: {qrPayload}");
-        builder.AppendLine(footer);
-        builder.AppendLine("═══════════════════════════════════════════");
+        var registerNumber = closing.CashRegister?.RegisterNumber ?? cloudContext.RegisterNumber;
 
-        return builder.ToString();
+        return _reportText.RenderTagesabschluss(
+            model,
+            _rksvEnvironment.GetEnvironmentDisplayName(),
+            _rksvEnvironment.GetRksvFooter(),
+            qrPayload,
+            registerNumber);
+    }
+
+    private TagesabschlussCloudContext BuildFallbackCloudContext(DailyClosing closing)
+    {
+        var company = _configuration.GetSection("Company").Get<TagesabschlussCompanyConfig>()
+                      ?? new TagesabschlussCompanyConfig();
+        var businessDay = PostgreSqlUtcDateTime.ViennaCalendarMidnightContainingInstant(closing.ClosingDate);
+        var (periodStartUtc, periodEndExclusiveUtc) =
+            PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(businessDay);
+        var isSimulated = closing.IsSimulated || _rksvEnvironment.IsTseSimulated();
+
+        return new TagesabschlussCloudContext
+        {
+            CompanyName = company.Name,
+            CompanyAddress = company.Address,
+            CompanyVatId = company.VatId,
+            RegisterNumber = closing.CashRegister?.RegisterNumber,
+            TseProviderLabel = isSimulated ? "TSE simuliert (Demo)" : "fiskaly Cloud-HSM",
+            DepExportStatusLabel = "Ausstehend",
+            PeriodStartUtc = periodStartUtc,
+            PeriodEndUtc = periodEndExclusiveUtc,
+            TseSignatureVerified = !isSimulated && !string.IsNullOrWhiteSpace(closing.TseSignature),
+        };
     }
 
     private bool ResolveClosingIsDemo() =>
@@ -173,20 +270,6 @@ public sealed class TagesabschlussReportService : ITagesabschlussReportService
                 _configuration,
                 rksvEnvironment: _rksvEnvironment)
             .IsDemoFiscal;
-
-    private static string FormatMoney(decimal amount) =>
-        amount.ToString("C", DeAt);
-
-    private static string FormatSignaturePreview(string? signature)
-    {
-        if (string.IsNullOrWhiteSpace(signature))
-            return "—";
-
-        var trimmed = signature.Trim();
-        return trimmed.Length <= 20
-            ? trimmed
-            : $"{trimmed[..20]}...";
-    }
 
     private sealed class TagesabschlussCompanyConfig
     {

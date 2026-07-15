@@ -25,7 +25,9 @@ public sealed class JahresbelegClosingService : IJahresbelegClosingService
     private readonly TseOptions _tseOptions;
     private readonly IConfiguration _configuration;
     private readonly IRksvEnvironmentService _rksvEnvironment;
+    private readonly IJahresbelegReportService _reportService;
     private readonly ILogger<JahresbelegClosingService> _logger;
+    private readonly IReportPdfCaptureService _reportPdfCapture;
 
     public JahresbelegClosingService(
         AppDbContext context,
@@ -36,7 +38,9 @@ public sealed class JahresbelegClosingService : IJahresbelegClosingService
         IOptions<TseOptions> tseOptions,
         IConfiguration configuration,
         IRksvEnvironmentService rksvEnvironment,
-        ILogger<JahresbelegClosingService> logger)
+        IJahresbelegReportService reportService,
+        ILogger<JahresbelegClosingService> logger,
+        IReportPdfCaptureService reportPdfCapture)
     {
         _context = context;
         _tseService = tseService;
@@ -46,7 +50,9 @@ public sealed class JahresbelegClosingService : IJahresbelegClosingService
         _tseOptions = tseOptions.Value;
         _configuration = configuration;
         _rksvEnvironment = rksvEnvironment;
+        _reportService = reportService;
         _logger = logger;
+        _reportPdfCapture = reportPdfCapture;
     }
 
     public async Task<JahresbelegSummaryDto> GenerateYearlySummaryPreviewAsync(
@@ -187,6 +193,13 @@ public sealed class JahresbelegClosingService : IJahresbelegClosingService
             CreatedAt = signedAtUtc,
         };
 
+        await DailyClosingOperationalResolver.StampOperationalFieldsAsync(
+            _context,
+            dailyClosing,
+            request.CashRegisterId,
+            actorUserId,
+            cancellationToken: cancellationToken);
+
         var jahresbeleg = new Jahresbeleg
         {
             CashRegisterId = request.CashRegisterId,
@@ -233,11 +246,13 @@ public sealed class JahresbelegClosingService : IJahresbelegClosingService
         cashReg.LastJahresbelegUtc = signedAtUtc;
         await _context.SaveChangesAsync(cancellationToken);
 
-        var report = JahresbelegReportComposer.Compose(
+        var report = await _reportService.ComposeReportDtoAsync(
             jahresbeleg,
             summary,
             register.RegisterNumber,
-            fiscalEnvironment);
+            fiscalEnvironment,
+            dailyClosing,
+            cancellationToken);
 
         _logger.LogInformation(
             "Jahresbeleg created Id={JahresbelegId} Register={RegisterId} Year={Year} Simulated={Simulated} DecemberMb={DecemberMb}",
@@ -246,6 +261,8 @@ public sealed class JahresbelegClosingService : IJahresbelegClosingService
             year,
             fiscalEnvironment.IsDemoFiscal,
             summary.IsDecemberMonatsbeleg);
+
+        await _reportPdfCapture.TryCaptureClosingReportAsync(dailyClosing.Id, actorUserId, cancellationToken: cancellationToken);
 
         return new JahresbelegClosingResult
         {
@@ -346,7 +363,20 @@ public sealed class JahresbelegClosingService : IJahresbelegClosingService
             _configuration,
             rksvEnvironment: _rksvEnvironment);
 
-        return JahresbelegReportComposer.Compose(entity, summary, registerNumber, fiscalEnvironment);
+        DailyClosing? linkedDailyClosing = null;
+        if (entity.DailyClosingId.HasValue)
+        {
+            linkedDailyClosing = await _context.DailyClosings.AsNoTracking()
+                .FirstOrDefaultAsync(d => d.Id == entity.DailyClosingId.Value, cancellationToken);
+        }
+
+        return await _reportService.ComposeReportDtoAsync(
+            entity,
+            summary,
+            registerNumber,
+            fiscalEnvironment,
+            linkedDailyClosing,
+            cancellationToken);
     }
 
     public async Task<bool> CanCreateForCurrentYearAsync(

@@ -50,7 +50,14 @@ public sealed class ReceiptPdfService : IReceiptPdfService
     }
 
     /// <inheritdoc />
-    public async Task<byte[]> GenerateReprintPdfAsync(Guid paymentId, CancellationToken cancellationToken = default)
+    public Task<byte[]> GenerateReprintPdfAsync(Guid paymentId, CancellationToken cancellationToken = default) =>
+        GeneratePdfAsync(paymentId, includeReprintWatermark: true, cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<byte[]> GeneratePdfAsync(
+        Guid paymentId,
+        bool includeReprintWatermark = true,
+        CancellationToken cancellationToken = default)
     {
         var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
 
@@ -136,11 +143,14 @@ public sealed class ReceiptPdfService : IReceiptPdfService
                 {
                     column.Spacing(2);
 
-                    column.Item().AlignCenter().Text(ReprintWatermarkPrimary)
-                        .FontSize(8).Italic().FontColor(Colors.Grey.Darken2);
-                    column.Item().AlignCenter().Text("(kein Original)")
-                        .FontSize(7).Italic().FontColor(Colors.Grey.Darken2);
-                    column.Item().LineHorizontal(0.5f).LineColor(Colors.Grey.Medium);
+                    if (includeReprintWatermark)
+                    {
+                        column.Item().AlignCenter().Text(ReprintWatermarkPrimary)
+                            .FontSize(8).Italic().FontColor(Colors.Grey.Darken2);
+                        column.Item().AlignCenter().Text("(kein Original)")
+                            .FontSize(7).Italic().FontColor(Colors.Grey.Darken2);
+                        column.Item().LineHorizontal(0.5f).LineColor(Colors.Grey.Medium);
+                    }
 
                     column.Spacing(3);
 

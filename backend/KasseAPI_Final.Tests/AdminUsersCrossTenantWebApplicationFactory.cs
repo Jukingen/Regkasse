@@ -27,6 +27,8 @@ public sealed class AdminUsersCrossTenantWebApplicationFactory : WebApplicationF
     internal const string TenantBSlug = "tenant-b";
     internal const string AdminAEmail = "admin-a@test.com";
     internal const string AdminAPassword = "TestPass123!";
+    internal const string ManagerAEmail = "manager-a@test.com";
+    internal const string ManagerAPassword = "TestPass123!";
     internal const string UserAId = "user-tenant-a";
     internal const string UserBId = "user-tenant-b";
     internal const string JwtIssuer = "OpenApiExport";
@@ -173,6 +175,22 @@ public sealed class AdminUsersCrossTenantWebApplicationFactory : WebApplicationF
         await userManager.CreateAsync(userB, "OtherPass123!").ConfigureAwait(false);
         await userManager.AddToRoleAsync(userB, Roles.Cashier).ConfigureAwait(false);
 
+        var managerA = new ApplicationUser
+        {
+            Id = "manager-a",
+            UserName = ManagerAEmail,
+            Email = ManagerAEmail,
+            FirstName = "Manager",
+            LastName = "Tenant A",
+            Role = Roles.Manager,
+            EmployeeNumber = "MGR-A-001",
+            IsActive = true,
+            EmailConfirmed = true,
+            CreatedAt = now,
+        };
+        await userManager.CreateAsync(managerA, ManagerAPassword).ConfigureAwait(false);
+        await userManager.AddToRoleAsync(managerA, Roles.Manager).ConfigureAwait(false);
+
         db.UserTenantMemberships.AddRange(
             new UserTenantMembership
             {
@@ -187,6 +205,14 @@ public sealed class AdminUsersCrossTenantWebApplicationFactory : WebApplicationF
                 UserId = userA.Id,
                 TenantId = TenantAId,
                 IsActive = true,
+                CreatedAtUtc = now,
+            },
+            new UserTenantMembership
+            {
+                UserId = managerA.Id,
+                TenantId = TenantAId,
+                IsActive = true,
+                IsOwner = false,
                 CreatedAtUtc = now,
             },
             new UserTenantMembership

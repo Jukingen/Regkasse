@@ -169,7 +169,9 @@ public sealed class VerificationPackComplianceTests
             finanz.Object,
             Options.Create(new TseOptions { AllowSimulatedDailyClosing = true, Mode = "Fake" }),
             hostEnv.Object,
-            NullLogger<TagesabschlussService>.Instance);
+            NullLogger<TagesabschlussService>.Instance,
+            Mock.Of<IReportPdfCaptureService>(),
+            Mock.Of<IReportPdfStorageService>());
 
         var result = await sut.PerformDailyClosingAsync("user-1", regId);
 

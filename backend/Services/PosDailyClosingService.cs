@@ -28,6 +28,7 @@ public sealed class PosDailyClosingService : IPosDailyClosingService
     private readonly TseOptions _tseOptions;
     private readonly IConfiguration _configuration;
     private readonly IRksvEnvironmentService _rksvEnvironment;
+    private readonly ITagesabschlussReportEnricher _reportEnricher;
 
     public PosDailyClosingService(
         AppDbContext context,
@@ -41,7 +42,8 @@ public sealed class PosDailyClosingService : IPosDailyClosingService
         IHostEnvironment hostEnvironment,
         IOptions<TseOptions> tseOptions,
         IConfiguration configuration,
-        IRksvEnvironmentService rksvEnvironment)
+        IRksvEnvironmentService rksvEnvironment,
+        ITagesabschlussReportEnricher reportEnricher)
     {
         _context = context;
         _tagesabschluss = tagesabschluss;
@@ -55,6 +57,7 @@ public sealed class PosDailyClosingService : IPosDailyClosingService
         _tseOptions = tseOptions.Value;
         _configuration = configuration;
         _rksvEnvironment = rksvEnvironment;
+        _reportEnricher = reportEnricher;
     }
 
     public async Task<PosDailyClosingStatusDto> GetStatusAsync(
@@ -199,6 +202,15 @@ public sealed class PosDailyClosingService : IPosDailyClosingService
         }
 
         shift.DailyClosingId = fiscal.ClosingId;
+
+        var closingRow = await _context.DailyClosings
+            .FirstAsync(c => c.Id == fiscal.ClosingId, cancellationToken);
+        closingRow.CashierName = shift.CashierName;
+        closingRow.ShiftNumber = await DailyClosingOperationalResolver.ResolveShiftSequenceNumberAsync(
+            _context,
+            shift.Id,
+            cancellationToken);
+
         shift.EndedAt = endedAt;
         shift.EndBalance = request.CashCount;
         shift.UpdatedAt = endedAt;
@@ -260,26 +272,28 @@ public sealed class PosDailyClosingService : IPosDailyClosingService
             _configuration,
             rksvEnvironment: _rksvEnvironment);
 
-        var closingSnapshot = new DailyClosing
-        {
-            ClosingType = "Daily",
-            ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(businessDate),
-            TotalAmount = fiscal.TotalAmount,
-            TotalTaxAmount = fiscal.TotalTaxAmount,
-            TransactionCount = fiscal.TransactionCount,
-            TseSignature = fiscal.TseSignature ?? string.Empty,
-        };
+        var closingEntity = await _context.DailyClosings.AsNoTracking()
+            .FirstAsync(c => c.Id == fiscal.ClosingId, cancellationToken);
+        var cloudContext = await _reportEnricher.BuildContextAsync(closingEntity, cancellationToken);
 
         var report = DailyClosingReportComposer.Compose(
-            closingSnapshot,
+            closingEntity,
             registerNumber,
             summary,
             request.CashCount,
             shift.Difference,
             totals.Cash,
-            cashierName: shift.CashierName,
+            cashierName: shift.CashierName ?? closingEntity.CashierName,
             previousClosingSignature: previousClosingSignature,
-            fiscalEnvironment: fiscalEnvironment);
+            shiftNumber: RksvShiftNumberFormatter.Format(
+                closingEntity.ShiftNumber > 0
+                    ? closingEntity.ShiftNumber
+                    : await DailyClosingOperationalResolver.ResolveShiftSequenceNumberAsync(
+                        _context,
+                        shift.Id,
+                        cancellationToken)),
+            fiscalEnvironment: fiscalEnvironment,
+            cloudContext: cloudContext);
 
         var auditPrefix = fiscalEnvironment.IsDemoFiscal ? "[TEST] " : string.Empty;
         await _auditLog.LogSystemOperationAsync(

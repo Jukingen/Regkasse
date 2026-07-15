@@ -9,6 +9,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
+using KasseAPI_Final.Services.Reports;
 using KasseAPI_Final.Services.Rksv;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -36,8 +37,15 @@ namespace KasseAPI_Final.Services
         string GetTseSignatureDisplay(PaymentDetails payment);
         /// <summary>RKSV compliance label for receipt QR block (Development/Staging vs Production).</summary>
         string GetRksvFooter(IHostEnvironment env);
+
+        /// <summary>Unified Cloud POS plain-text RKSV report for thermal reprint.</summary>
+        Task<string> GeneratePlainTextReportAsync(ReceiptDTO receipt, CancellationToken cancellationToken = default);
     }
 
+    /// <summary>
+    /// RKSV receipt generation. Plain-text thermal output uses <see cref="IRksvReportTextService"/>
+    /// (shared <see cref="RksvReportTemplate"/>); Sonderbelege may also use dedicated report services.
+    /// </summary>
     public class ReceiptService : IReceiptService
     {
         internal const string DemoRksvFooterLabel = "DEMO / NICHT FISKAL";
@@ -53,6 +61,9 @@ namespace KasseAPI_Final.Services
         private readonly IRksvEnvironmentService _rksvEnvironment;
         private readonly IConfiguration _configuration;
         private readonly TseOptions _tseOptions;
+        private readonly IRksvReportTextService? _reportText;
+        private readonly IReportPdfCaptureService? _reportPdfCapture;
+        private readonly IReportPdfStorageService? _reportPdfStorage;
 
         public ReceiptService(
             AppDbContext context,
@@ -64,7 +75,10 @@ namespace KasseAPI_Final.Services
             IHostEnvironment hostEnvironment,
             IRksvEnvironmentService? rksvEnvironment = null,
             IConfiguration? configuration = null,
-            IOptions<TseOptions>? tseOptions = null)
+            IOptions<TseOptions>? tseOptions = null,
+            IRksvReportTextService? reportText = null,
+            IReportPdfCaptureService? reportPdfCapture = null,
+            IReportPdfStorageService? reportPdfStorage = null)
         {
             _context = context;
             _logger = logger;
@@ -77,6 +91,21 @@ namespace KasseAPI_Final.Services
             _tseOptions = tseOptions?.Value ?? new TseOptions();
             _rksvEnvironment = rksvEnvironment
                                ?? new RksvEnvironmentService(_configuration, hostEnvironment);
+            _reportText = reportText;
+            _reportPdfCapture = reportPdfCapture;
+            _reportPdfStorage = reportPdfStorage;
+        }
+
+        /// <inheritdoc />
+        public Task<string> GeneratePlainTextReportAsync(
+            ReceiptDTO receipt,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(receipt);
+            if (_reportText == null)
+                throw new InvalidOperationException("IRksvReportTextService is not configured.");
+
+            return _reportText.RenderReceiptAsync(receipt, cancellationToken);
         }
 
         /// <summary>Returns persisted receipt by ReceiptId or PaymentId. No lazy generation.</summary>
@@ -257,6 +286,14 @@ namespace KasseAPI_Final.Services
             // 9. Save
             _context.Receipts.Add(newReceipt);
             await _context.SaveChangesAsync();
+
+            if (_reportPdfCapture != null)
+            {
+                await _reportPdfCapture.TryCaptureReceiptReportAsync(
+                    paymentId,
+                    payment.RksvSpecialReceiptKind,
+                    payment.CashierId ?? string.Empty);
+            }
 
             // Reload to get Payment navigation populated (or just set it manually for DTO mapping)
             newReceipt.Payment = payment;
@@ -546,6 +583,17 @@ namespace KasseAPI_Final.Services
                 })
                 .ToListAsync();
 
+            if (_reportPdfStorage != null && items.Count > 0)
+            {
+                foreach (var group in items.GroupBy(i => ReportPdfTypes.FromSpecialReceiptKind(i.RksvSpecialReceiptKind)))
+                {
+                    var paymentIds = group.Select(i => i.PaymentId).ToList();
+                    var stored = await _reportPdfStorage.GetStoredReportIdsAsync(group.Key, paymentIds);
+                    foreach (var item in group)
+                        item.HasStoredPdf = stored.Contains(item.PaymentId);
+                }
+            }
+
             return new PagedResult<ReceiptListItemDto>
             {
                 Items = items,
@@ -631,6 +679,32 @@ namespace KasseAPI_Final.Services
             return string.IsNullOrWhiteSpace(cashierName) ? null : cashierName.Trim();
         }
 
+        private async Task<Guid?> ResolveShiftIdForReceiptAsync(
+            Guid cashRegisterId,
+            string cashierId,
+            DateTime issuedAtUtc)
+        {
+            if (cashRegisterId == Guid.Empty || string.IsNullOrWhiteSpace(cashierId))
+                return null;
+
+            var issuedUtc = issuedAtUtc.Kind == DateTimeKind.Utc
+                ? issuedAtUtc
+                : DateTime.SpecifyKind(issuedAtUtc, DateTimeKind.Utc);
+
+            var shiftId = await _context.CashierShifts.AsNoTracking()
+                .Where(s =>
+                    s.CashRegisterId == cashRegisterId
+                    && s.CashierId == cashierId
+                    && s.StartedAt <= issuedUtc
+                    && (s.EndedAt == null || s.EndedAt >= issuedUtc))
+                .OrderByDescending(s => s.StartedAt)
+                .Select(s => s.Id)
+                .FirstOrDefaultAsync()
+                .ConfigureAwait(false);
+
+            return shiftId == Guid.Empty ? null : shiftId;
+        }
+
         private async Task<ReceiptDTO> MapToDtoAsync(Receipt receipt, ReceiptSignatureDTO? explicitSig = null)
         {
             var cashierIdStr = receipt.CashierId ?? string.Empty;
@@ -701,6 +775,12 @@ namespace KasseAPI_Final.Services
                 }
             }
 
+            var shiftId = await ResolveShiftIdForReceiptAsync(
+                    receipt.CashRegisterId,
+                    cashierIdStr,
+                    receipt.IssuedAt)
+                .ConfigureAwait(false);
+
             return new ReceiptDTO
             {
                 ReceiptId = receipt.ReceiptId,
@@ -724,6 +804,8 @@ namespace KasseAPI_Final.Services
                 ReceiptPersistedAtUtc = receipt.CreatedAt,
                 CashierId = cashierIdStr,
                 CashierDisplayName = cashierDisplay,
+                ShiftId = shiftId,
+                ShiftNumber = RksvShiftNumberFormatter.Format(shiftId),
                 KassenID = registerDisplay,
                 DisplayRegisterNumber = registerDisplay,
                 TableNumber = receipt.Payment?.TableNumber,

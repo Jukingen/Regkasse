@@ -34,6 +34,7 @@ import type {
   ConfirmCardPaymentRequest,
   CreateCartRequest,
   CreatePaymentRequest,
+  CreateStornoPaymentRequest,
   CurrentShiftResponse,
   Customer,
   CustomerQrLookupRequest,
@@ -1388,14 +1389,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const postApiPosPaymentStorno = (
-    createPaymentRequest: CreatePaymentRequest,
+    createStornoPaymentRequest: CreateStornoPaymentRequest,
  options?: SecondParameter<typeof customInstance>,) => {
       
       
       return customInstance<void>(
       {url: `/api/pos/payment/storno`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
-      data: createPaymentRequest
+      data: createStornoPaymentRequest
     },
       options);
     }
@@ -1403,14 +1404,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
 
 export const getPostApiPosPaymentStornoMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosPaymentStorno>>, TError,{data: CreatePaymentRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof postApiPosPaymentStorno>>, TError,{data: CreatePaymentRequest}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosPaymentStorno>>, TError,{data: CreateStornoPaymentRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiPosPaymentStorno>>, TError,{data: CreateStornoPaymentRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosPaymentStorno>>, {data: CreatePaymentRequest}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosPaymentStorno>>, {data: CreateStornoPaymentRequest}> = (props) => {
           const {data} = props ?? {};
 
           return  postApiPosPaymentStorno(data,requestOptions)
@@ -1422,15 +1423,15 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiPosPaymentStornoMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosPaymentStorno>>>
-    export type PostApiPosPaymentStornoMutationBody = CreatePaymentRequest
+    export type PostApiPosPaymentStornoMutationBody = CreateStornoPaymentRequest
     export type PostApiPosPaymentStornoMutationError = unknown
 
     export const usePostApiPosPaymentStorno = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosPaymentStorno>>, TError,{data: CreatePaymentRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosPaymentStorno>>, TError,{data: CreateStornoPaymentRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosPaymentStorno>>,
         TError,
-        {data: CreatePaymentRequest},
+        {data: CreateStornoPaymentRequest},
         TContext
       > => {
 

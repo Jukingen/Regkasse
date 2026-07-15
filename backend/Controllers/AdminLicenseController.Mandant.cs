@@ -4,6 +4,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Billing;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -184,9 +185,12 @@ public sealed partial class AdminLicenseController
 
         var auditItems = await LoadMandantRenewalAuditHistoryAsync(resolvedTenantId.Value, cancellationToken)
             .ConfigureAwait(false);
+        var billingItems = await LoadMandantBillingAuditHistoryAsync(resolvedTenantId.Value, cancellationToken)
+            .ConfigureAwait(false);
 
         var merged = overview.History
             .Concat(auditItems)
+            .Concat(billingItems)
             .OrderByDescending(i => i.AtUtc)
             .ToList();
 
@@ -263,18 +267,126 @@ public sealed partial class AdminLicenseController
                 a.Timestamp,
                 a.Description,
                 a.Action,
+                a.ActionType,
+                a.UserId,
+                a.UserRole,
             })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
+        var actorNames = await ResolveUserDisplayNamesAsync(
+                rows.Select(r => r.UserId).Where(id => !string.IsNullOrWhiteSpace(id)),
+                cancellationToken)
+            .ConfigureAwait(false);
+
         return rows
-            .Select(r => new TenantLicenseHistoryItemDto(
-                null,
-                "renewed",
-                DateTime.SpecifyKind(r.Timestamp, DateTimeKind.Utc),
-                string.IsNullOrWhiteSpace(r.Description) ? "License renewed." : r.Description.Trim(),
-                null))
+            .Select(r =>
+            {
+                var eventType = r.ActionType switch
+                {
+                    AuditEventType.LicenseExtended => "extended",
+                    AuditEventType.LicenseUpdated => "updated",
+                    _ => "renewed",
+                };
+                actorNames.TryGetValue(r.UserId, out var actorName);
+                var actorLabel = !string.IsNullOrWhiteSpace(actorName)
+                    ? actorName
+                    : string.IsNullOrWhiteSpace(r.UserRole) ? null : r.UserRole;
+
+                return new TenantLicenseHistoryItemDto(
+                    null,
+                    eventType,
+                    DateTime.SpecifyKind(r.Timestamp, DateTimeKind.Utc),
+                    string.IsNullOrWhiteSpace(r.Description) ? "License renewed." : r.Description.Trim(),
+                    null,
+                    string.IsNullOrWhiteSpace(r.UserId) ? null : r.UserId,
+                    actorLabel);
+            })
             .ToList();
+    }
+
+    private async Task<IReadOnlyList<TenantLicenseHistoryItemDto>> LoadMandantBillingAuditHistoryAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken)
+    {
+        var rows = await _db.BillingAuditLogs
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(b =>
+                b.TenantId == tenantId
+                && (b.Action == BillingAuditEventTypes.LicenseActivated
+                    || b.Action == BillingAuditEventTypes.LicenseExtended))
+            .OrderByDescending(b => b.TimestampUtc)
+            .Take(50)
+            .Select(b => new
+            {
+                b.TimestampUtc,
+                b.Action,
+                b.Details,
+                b.UserId,
+            })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (rows.Count == 0)
+            return Array.Empty<TenantLicenseHistoryItemDto>();
+
+        var actorNames = await ResolveUserDisplayNamesAsync(
+                rows.Select(r => r.UserId.ToString("D")),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        return rows
+            .Select(r =>
+            {
+                var eventType = string.Equals(r.Action, BillingAuditEventTypes.LicenseActivated, StringComparison.Ordinal)
+                    ? "activated"
+                    : "extended";
+                actorNames.TryGetValue(r.UserId.ToString("D"), out var actorName);
+
+                return new TenantLicenseHistoryItemDto(
+                    null,
+                    eventType,
+                    DateTime.SpecifyKind(r.TimestampUtc, DateTimeKind.Utc),
+                    string.IsNullOrWhiteSpace(r.Details)
+                        ? eventType == "activated"
+                            ? "License activated."
+                            : "License extended."
+                        : r.Details.Trim(),
+                    null,
+                    r.UserId.ToString("D"),
+                    string.IsNullOrWhiteSpace(actorName) ? "System" : actorName);
+            })
+            .ToList();
+    }
+
+    private async Task<IReadOnlyDictionary<string, string>> ResolveUserDisplayNamesAsync(
+        IEnumerable<string> userIds,
+        CancellationToken cancellationToken)
+    {
+        var ids = userIds
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (ids.Count == 0)
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        var users = await _db.Users
+            .AsNoTracking()
+            .Where(u => ids.Contains(u.Id))
+            .Select(u => new { u.Id, u.FirstName, u.LastName, u.UserName })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return users.ToDictionary(
+            u => u.Id,
+            u =>
+            {
+                var name = $"{u.FirstName} {u.LastName}".Trim();
+                return string.IsNullOrWhiteSpace(name) ? u.UserName ?? u.Id : name;
+            },
+            StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>

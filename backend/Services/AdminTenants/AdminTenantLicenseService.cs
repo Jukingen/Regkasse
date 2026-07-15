@@ -3,6 +3,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Services.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
@@ -547,8 +548,8 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
             tenant.LicenseValidUntilUtc,
             tenant.LicenseKey);
 
-        var subject = $"Regkasse Lizenz-Erinnerung - {tenant.Name}";
-        var body = BuildReminderEmailBody(tenant, daysRemaining, kind);
+        var subject = LicenseReminderEmailComposer.BuildMandantExpirySubject(tenant.Name, daysRemaining ?? 0);
+        var body = LicenseReminderEmailComposer.BuildMandantExpiryBody(tenant, daysRemaining, kind);
         var sent = await _licenseReminderEmailSender
             .TrySendTenantLicenseReminderAsync(recipientEmail, subject, body, cancellationToken)
             .ConfigureAwait(false);
@@ -624,36 +625,6 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
             return ownerEmail;
 
         return string.IsNullOrWhiteSpace(fallbackTenantEmail) ? null : fallbackTenantEmail.Trim();
-    }
-
-    private static string BuildReminderEmailBody(Tenant tenant, int? daysRemaining, string kind)
-    {
-        var validUntilLabel = tenant.LicenseValidUntilUtc?.ToString("dd.MM.yyyy") ?? "—";
-        var statusLabel = kind switch
-        {
-            "active" => "Aktiv",
-            "grace_write" => "Grace Write",
-            "grace_read_only" => "Grace ReadOnly",
-            "lockdown" => "Lockdown",
-            "no_license" => "Keine Lizenz",
-            _ => kind,
-        };
-        var remainingLabel = daysRemaining.HasValue ? daysRemaining.Value.ToString() : "—";
-
-        return string.Join(Environment.NewLine,
-        [
-            "Guten Tag,",
-            string.Empty,
-            $"für den Mandanten \"{tenant.Name}\" wurde eine Lizenz-Erinnerung ausgelöst.",
-            string.Empty,
-            $"Mandant: {tenant.Name}",
-            $"Subdomain: {tenant.Slug}",
-            $"Lizenzstatus: {statusLabel}",
-            $"Gültig bis: {validUntilLabel}",
-            $"Verbleibende Tage: {remainingLabel}",
-            string.Empty,
-            "Bitte prüfen Sie die Lizenzverlängerung im Regkasse Adminbereich.",
-        ]);
     }
 
     private async Task<Tenant?> LoadMutableTenantAsync(Guid tenantId, CancellationToken cancellationToken) =>
@@ -765,7 +736,8 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
                 _hostEnvironment,
                 _tseOptions,
                 _developmentModeService,
-                _licenseOptions))
+                _licenseOptions)
+            && !_hostEnvironment.IsDevelopment())
         {
             return new TenantLicenseStatusDto(
                 "active",

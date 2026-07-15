@@ -14,6 +14,8 @@ import Link from 'next/link';
 import { useI18n } from '@/i18n';
 import { formatRksvSpecialReceiptKindDisplay } from '@/features/receipts/utils/formatRksvSpecialReceiptKind';
 import { ReprintButton } from '@/features/payments/components/ReprintButton';
+import { StoredReportPdfButton } from '@/features/reports/components/StoredReportPdfButton';
+import { reportPdfTypeFromSpecialReceiptKind } from '@/features/reports/api/reportPdfApi';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
@@ -42,6 +44,8 @@ interface ReceiptsTableProps {
     onStartReprint?: (row: ReceiptListItemDto) => void;
     /** Admin PDF reprint column (shown only when caller opts in and JWT has receipt.reprint). */
     showPaymentPdfReprint?: boolean;
+    /** Stored original PDF download (receipt.reprint). */
+    showStoredPdfDownload?: boolean;
 }
 
 function buildColumns(
@@ -50,6 +54,7 @@ function buildColumns(
     reprintActionLabel: string | undefined,
     onStartReprint: ((row: ReceiptListItemDto) => void) | undefined,
     showPaymentPdfReprint: boolean | undefined,
+    showStoredPdfDownload: boolean | undefined,
 ): ColumnsType<ReceiptListItemDto> {
     const base: ColumnsType<ReceiptListItemDto> = [
         {
@@ -160,6 +165,24 @@ function buildColumns(
         });
     }
 
+    if (showStoredPdfDownload) {
+        base.push({
+            title: t('receipts.table.colStoredPdf'),
+            key: 'storedPdf',
+            width: 110,
+            fixed: 'right',
+            align: 'center',
+            render: (_: unknown, record: ReceiptListItemDto) => (
+                <StoredReportPdfButton
+                    reportType={reportPdfTypeFromSpecialReceiptKind(record.rksvSpecialReceiptKind)}
+                    targetId={record.paymentId}
+                    fileNameBase={record.receiptNumber}
+                    size="small"
+                />
+            ),
+        });
+    }
+
     if (showPaymentPdfReprint) {
         base.push({
             title: t('receipts.table.colPdfReprint'),
@@ -208,15 +231,27 @@ export default function ReceiptsTable({
     reprintActionLabel,
     onStartReprint,
     showPaymentPdfReprint,
+    showStoredPdfDownload,
 }: ReceiptsTableProps) {
     const { t, formatLocale } = useI18n();
     const { hasPermission } = usePermissions();
     const showPdfReprintColumn =
         Boolean(showPaymentPdfReprint) && hasPermission(PERMISSIONS.RECEIPT_REPRINT);
+    const showStoredPdfColumn =
+        Boolean(showStoredPdfDownload)
+        && (hasPermission(PERMISSIONS.REPORT_VIEW) || hasPermission(PERMISSIONS.RECEIPT_REPRINT));
 
     const columns = React.useMemo(
-        () => buildColumns(t, reprintEnabled, reprintActionLabel, onStartReprint, showPdfReprintColumn),
-        [t, reprintEnabled, reprintActionLabel, onStartReprint, showPdfReprintColumn],
+        () =>
+            buildColumns(
+                t,
+                reprintEnabled,
+                reprintActionLabel,
+                onStartReprint,
+                showPdfReprintColumn,
+                showStoredPdfColumn,
+            ),
+        [t, reprintEnabled, reprintActionLabel, onStartReprint, showPdfReprintColumn, showStoredPdfColumn],
     );
 
     // Apply current sort indicator to the matching column
@@ -227,7 +262,7 @@ export default function ReceiptsTable({
         return col;
     });
 
-    const scrollX = 1230 + (reprintEnabled ? 180 : 0) + (showPdfReprintColumn ? 170 : 0);
+    const scrollX = 1230 + (reprintEnabled ? 180 : 0) + (showPdfReprintColumn ? 170 : 0) + (showStoredPdfColumn ? 120 : 0);
     const useVirtual = shouldUseAdminTableVirtual(data.length);
 
     return (

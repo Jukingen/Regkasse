@@ -2,6 +2,7 @@
 
 /**
  * Header badge: Mandantenlizenz (tenant row) only — never deployment / Server-Lizenz.
+ * Unified read model: {@link useTenantLicense} (Super Admin → admin API; Manager → public status).
  */
 
 import { Tooltip } from 'antd';
@@ -20,7 +21,7 @@ export type LicenseStatusIndicatorProps = {
 
 export function LicenseStatusIndicator({ compact: _compact = false }: LicenseStatusIndicatorProps) {
     const { t } = useI18n();
-    const { mode, license, licenseValidUntilUtc, isLoading } = useHeaderTenantLicense();
+    const { mode, resolvedStatus, isLoading, isUnavailable } = useHeaderTenantLicense();
 
     if (mode === 'hidden') {
         return null;
@@ -34,13 +35,22 @@ export function LicenseStatusIndicator({ compact: _compact = false }: LicenseSta
         );
     }
 
-    if (!license) {
-        return null;
+    if (isUnavailable || !resolvedStatus) {
+        return (
+            <Tooltip title={t('license.badge.unavailableTooltip')}>
+                <div
+                    className="license-badge expired license-badge-tooltip-trigger"
+                    aria-label={t('license.badge.unavailable')}
+                >
+                    <span className="license-text">{t('license.badge.unavailable')}</span>
+                </div>
+            </Tooltip>
+        );
     }
 
-    const statusClass = getHeaderLicenseStatusClass(license, licenseValidUntilUtc);
-    const statusText = getHeaderLicenseStatusText(license, t, licenseValidUntilUtc);
-    const tooltip = getHeaderLicenseTooltip(license, t, licenseValidUntilUtc);
+    const statusClass = getHeaderLicenseStatusClass(resolvedStatus);
+    const statusText = getHeaderLicenseStatusText(resolvedStatus, t);
+    const tooltip = getHeaderLicenseTooltip(resolvedStatus, t);
 
     return (
         <Tooltip title={tooltip}>

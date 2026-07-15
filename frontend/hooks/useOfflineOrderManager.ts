@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
+
+import { OfflineSyncService } from '@/services/offline/offlineSyncService';
+import { eventEmitter } from '@/utils/eventEmitter';
+
 import {
   getOfflineOrderManager,
   type OfflineStatus,
@@ -6,27 +10,71 @@ import {
 } from '../services/offline/offlineOrderManager';
 import type { OfflineOrder } from '../services/offline/offlineStorage';
 
+function mapSyncStatusToOfflineStatus(
+  syncStatus: ReturnType<OfflineSyncService['getSyncStatus']>,
+  isOnline: boolean
+): OfflineStatus {
+  return {
+    isOnline,
+    pendingCount: syncStatus.pendingOrders,
+    isSyncing: syncStatus.isSyncing,
+    oldestPending: null,
+  };
+}
+
 export function useOfflineOrderManager() {
   const [status, setStatus] = useState<OfflineStatus | undefined>();
   const [manager] = useState(() => getOfflineOrderManager());
+  const [syncService] = useState(() => OfflineSyncService.getInstance());
 
   const refreshStatus = useCallback(async () => {
     try {
-      setStatus(await manager.getStatus());
+      const managerStatus = await manager.getStatus();
+      const syncStatus = syncService.getSyncStatus();
+      setStatus({
+        ...managerStatus,
+        pendingCount: syncStatus.pendingOrders,
+        isSyncing: syncStatus.isSyncing,
+      });
     } catch (err) {
       console.warn('[useOfflineOrderManager] Status refresh failed:', err);
     }
-  }, [manager]);
+  }, [manager, syncService]);
 
   useEffect(() => {
     void refreshStatus();
 
-    const interval = setInterval(() => {
-      void refreshStatus();
-    }, 5000);
+    const onSyncStatus = (
+      syncStatus: ReturnType<OfflineSyncService['getSyncStatus']>
+    ) => {
+      void (async () => {
+        try {
+          const managerStatus = await manager.getStatus();
+          setStatus({
+            ...managerStatus,
+            pendingCount: syncStatus.pendingOrders,
+            isSyncing: syncStatus.isSyncing,
+          });
+        } catch {
+          setStatus(mapSyncStatusToOfflineStatus(syncStatus, true));
+        }
+      })();
+    };
 
-    return () => clearInterval(interval);
-  }, [refreshStatus]);
+    const onConnectivityChange = () => {
+      void refreshStatus();
+    };
+
+    eventEmitter.on('sync:status', onSyncStatus);
+    eventEmitter.on('sync:online', onConnectivityChange);
+    eventEmitter.on('sync:offline', onConnectivityChange);
+
+    return () => {
+      eventEmitter.off('sync:status', onSyncStatus);
+      eventEmitter.off('sync:online', onConnectivityChange);
+      eventEmitter.off('sync:offline', onConnectivityChange);
+    };
+  }, [manager, refreshStatus]);
 
   const saveOrder = useCallback(
     async (orderData: unknown, paymentMethod: string): Promise<OfflineOrder> => {
@@ -38,10 +86,16 @@ export function useOfflineOrderManager() {
   );
 
   const syncNow = useCallback(async (): Promise<SyncResult> => {
-    const result = await manager.syncPendingOrders();
+    const result = await syncService.syncNow();
     await refreshStatus();
-    return result;
-  }, [manager, refreshStatus]);
+    return {
+      success: result.success,
+      message: result.success
+        ? `${result.synced} order(s) synced`
+        : `${result.errors} order(s) failed`,
+      details: undefined,
+    };
+  }, [refreshStatus, syncService]);
 
   const getPending = useCallback(
     () => manager.getPendingOrders(),
