@@ -129,22 +129,20 @@ export function MonatsbelegComplianceTable({
     const pastMissingEntries = useMemo(() => collectPastMissingMonatsbelege(overviewItems), [overviewItems]);
 
     const createCurrentMonthMonatsbelegForTest = useCallback(async (record: RegisterMonatsbelegRow) => {
-        const { year, month } = getViennaCalendarYearMonth();
-        if (record.status?.currentMonthExists) {
-            message.info(t('dashboard.monatsbeleg.alreadyExists'));
-            return;
-        }
+        const { year: viennaYear, month: viennaMonth } = getViennaCalendarYearMonth();
+        const month = viennaMonth === 1 ? 12 : viennaMonth - 1;
+        const year = viennaMonth === 1 ? viennaYear - 1 : viennaYear;
 
         try {
             await customInstance({
-                url: '/api/rksv/special-receipts/monatsbeleg',
+                url: '/api/rksv/special-receipts/monatsbeleg?force=true',
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 data: {
                     cashRegisterId: record.registerId,
                     year,
                     month,
-                    reason: 'Demo Monatsbeleg aktueller Monat',
+                    reason: 'Demo Monatsbeleg Vormonat',
                 },
             });
             await queryClient.invalidateQueries({ queryKey: monatsbelegQueryKeys.statusOverview });

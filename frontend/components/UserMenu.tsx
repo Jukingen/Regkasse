@@ -1,47 +1,110 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, Vibration, View } from 'react-native';
 
 import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
 import { useAuth } from '../contexts/AuthContext';
 
+/** POS UI role labels (de-DE) — aligned with AGENTS.md / Admin display names. */
+const ROLE_LABELS: Record<string, string> = {
+  SuperAdmin: 'Super-Administrator',
+  Manager: 'Mandanten-Admin',
+  Cashier: 'Kassierer',
+  Waiter: 'Kellner',
+  Kitchen: 'Küche',
+  Accountant: 'Buchhaltung',
+  ReportViewer: 'Berichte (nur Lesen)',
+};
+
 function resolveDisplayName(user: {
   username?: string;
-  email?: string;
+  userName?: string;
   firstName?: string;
   lastName?: string;
+  email?: string;
 }): string {
-  const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+  const fullName = [user.firstName?.trim(), user.lastName?.trim()].filter(Boolean).join(' ');
   if (fullName) return fullName;
-  if (user.username?.trim()) return user.username.trim();
+  const name = user.username?.trim() || user.userName?.trim();
+  if (name) return name;
   if (user.email?.trim()) return user.email.trim();
   return 'Benutzer';
 }
 
-function resolveInitials(displayName: string): string {
-  const parts = displayName.split(/[\s@._-]+/).filter(Boolean);
-  if (parts.length === 0) return '?';
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase();
+/** Up to two initials for the avatar (name parts or username/email prefix). */
+function resolveAvatarInitials(
+  user: {
+    username?: string;
+    userName?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+  },
+  displayName: string,
+): string {
+  const first = user.firstName?.trim()?.charAt(0);
+  const last = user.lastName?.trim()?.charAt(0);
+  if (first || last) {
+    return `${(first || '').toUpperCase()}${(last || '').toUpperCase()}`.slice(0, 2) || '?';
+  }
+
+  const parts = displayName
+    .trim()
+    .split(/[\s._-]+/)
+    .filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
+  }
+  if (parts.length === 1 && parts[0].length >= 2) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  if (parts.length === 1) {
+    return parts[0].charAt(0).toUpperCase();
+  }
+  return '?';
+}
+
+function resolveRoleLabel(role: string | undefined, roles?: string[]): string {
+  const primary = role?.trim() || roles?.find(Boolean)?.trim();
+  if (!primary) return 'Benutzer';
+  return ROLE_LABELS[primary] || primary;
 }
 
 /**
- * Compact POS header user chip: avatar + name, dropdown with Abmelden.
+ * POS header user chip: avatar initials + name/role, dropdown with settings + Abmelden.
  */
 export function UserMenu() {
   const { user, logout } = useAuth();
-  const { t } = useTranslation(['auth']);
+  const router = useRouter();
+  const { t } = useTranslation(['auth', 'navigation']);
   const [showMenu, setShowMenu] = useState(false);
 
   const displayName = useMemo(() => (user ? resolveDisplayName(user) : ''), [user]);
-  const initials = useMemo(() => resolveInitials(displayName || '?'), [displayName]);
+  const initials = useMemo(
+    () => (user ? resolveAvatarInitials(user, displayName || '?') : '?'),
+    [user, displayName],
+  );
+  const roleLabel = useMemo(
+    () => (user ? resolveRoleLabel(user.role, user.roles) : ''),
+    [user],
+  );
 
   if (!user) return null;
 
+  const closeMenu = () => setShowMenu(false);
+
   const handleLogout = () => {
-    setShowMenu(false);
+    Vibration.vibrate(10);
+    closeMenu();
     void logout();
+  };
+
+  const handleOpenSettings = () => {
+    Vibration.vibrate(10);
+    closeMenu();
+    router.push('/(tabs)/settings' as const);
   };
 
   return (
@@ -50,16 +113,21 @@ export function UserMenu() {
         style={({ pressed }) => [styles.userButton, pressed && styles.userButtonPressed]}
         onPress={() => setShowMenu(true)}
         accessibilityRole="button"
-        accessibilityLabel={displayName}
+        accessibilityLabel={`${displayName}, ${roleLabel}`}
         accessibilityHint={t('auth:logout')}
         hitSlop={6}
       >
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{initials}</Text>
         </View>
-        <Text style={styles.userName} numberOfLines={1}>
-          {displayName}
-        </Text>
+        <View style={styles.userInfo}>
+          <Text style={styles.userName} numberOfLines={1}>
+            {displayName}
+          </Text>
+          <Text style={styles.userRole} numberOfLines={1}>
+            {roleLabel}
+          </Text>
+        </View>
         <Ionicons name="chevron-down" size={14} color={SoftColors.textSecondary} />
       </Pressable>
 
@@ -67,39 +135,58 @@ export function UserMenu() {
         transparent
         visible={showMenu}
         animationType="fade"
-        onRequestClose={() => setShowMenu(false)}
+        onRequestClose={closeMenu}
       >
         <Pressable
           style={styles.overlay}
-          onPress={() => setShowMenu(false)}
+          onPress={closeMenu}
           accessibilityRole="button"
           accessibilityLabel="Menü schließen"
         >
           <Pressable style={styles.dropdown} onPress={(e) => e.stopPropagation()}>
             <View style={styles.dropdownHeader}>
-              <Text style={styles.dropdownName} numberOfLines={1}>
-                {displayName}
-              </Text>
-              {user.email ? (
-                <Text style={styles.dropdownEmail} numberOfLines={1}>
-                  {user.email}
+              <View style={styles.dropdownAvatar}>
+                <Text style={styles.dropdownAvatarText}>{initials}</Text>
+              </View>
+              <View style={styles.dropdownInfo}>
+                <Text style={styles.dropdownName} numberOfLines={1}>
+                  {displayName}
                 </Text>
-              ) : null}
-              {user.role ? (
-                <Text style={styles.dropdownRole} numberOfLines={1}>
-                  {user.role}
-                </Text>
-              ) : null}
+                {user.email ? (
+                  <Text style={styles.dropdownEmail} numberOfLines={1}>
+                    {user.email}
+                  </Text>
+                ) : null}
+                <View style={styles.roleBadge}>
+                  <Text style={styles.roleBadgeText} numberOfLines={1}>
+                    {roleLabel}
+                  </Text>
+                </View>
+              </View>
             </View>
+
             <View style={styles.divider} />
+
             <Pressable
-              style={({ pressed }) => [styles.dropdownItem, pressed && styles.dropdownItemPressed]}
+              style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+              onPress={handleOpenSettings}
+              accessibilityRole="button"
+              accessibilityLabel={t('navigation:settings')}
+            >
+              <Ionicons name="settings-outline" size={18} color={SoftColors.textPrimary} />
+              <Text style={styles.menuItemText}>{t('navigation:settings')}</Text>
+            </Pressable>
+
+            <View style={styles.divider} />
+
+            <Pressable
+              style={({ pressed }) => [styles.menuItem, pressed && styles.logoutItemPressed]}
               onPress={handleLogout}
               accessibilityRole="button"
               accessibilityLabel={t('auth:logout')}
             >
               <Ionicons name="log-out-outline" size={18} color={SoftColors.error} />
-              <Text style={styles.dropdownItemText}>{t('auth:logout')}</Text>
+              <Text style={styles.logoutText}>{t('auth:logout')}</Text>
             </Pressable>
           </Pressable>
         </Pressable>
@@ -115,38 +202,48 @@ const styles = StyleSheet.create({
   userButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SoftSpacing.xs,
-    paddingHorizontal: SoftSpacing.xs,
-    paddingVertical: 4,
+    gap: SoftSpacing.sm,
+    paddingHorizontal: SoftSpacing.sm,
+    paddingVertical: SoftSpacing.xs,
     borderRadius: SoftRadius.md,
-    maxWidth: 140,
+    maxWidth: 200,
   },
   userButtonPressed: {
     opacity: 0.85,
   },
   avatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: SoftColors.accentDark,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     color: SoftColors.textInverse,
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '700',
+  },
+  userInfo: {
+    flexShrink: 1,
+    minWidth: 0,
   },
   userName: {
     ...SoftTypography.label,
-    fontSize: 13,
+    fontSize: 14,
+    fontWeight: '600',
     color: SoftColors.textPrimary,
-    flexShrink: 1,
-    maxWidth: 72,
+    maxWidth: 120,
+  },
+  userRole: {
+    ...SoftTypography.caption,
+    fontSize: 12,
+    color: SoftColors.textSecondary,
+    maxWidth: 120,
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: SoftColors.overlay,
     justifyContent: 'flex-start',
     alignItems: 'flex-end',
     paddingTop: SoftSpacing.xl + SoftSpacing.lg,
@@ -155,47 +252,86 @@ const styles = StyleSheet.create({
   dropdown: {
     backgroundColor: SoftColors.bgCard,
     borderRadius: SoftRadius.lg,
-    minWidth: 200,
-    maxWidth: 280,
+    minWidth: 240,
+    maxWidth: 320,
     paddingVertical: SoftSpacing.xs,
     ...SoftShadows.md,
   },
   dropdownHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: SoftSpacing.md,
-    paddingVertical: SoftSpacing.sm,
+    paddingVertical: SoftSpacing.sm + 2,
+  },
+  dropdownAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: SoftColors.accentDark,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: SoftSpacing.sm + 2,
+  },
+  dropdownAvatarText: {
+    color: SoftColors.textInverse,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  dropdownInfo: {
+    flex: 1,
+    minWidth: 0,
   },
   dropdownName: {
     ...SoftTypography.h3,
-    fontSize: 15,
+    fontSize: 16,
+    fontWeight: '700',
     color: SoftColors.textPrimary,
   },
   dropdownEmail: {
     ...SoftTypography.caption,
+    fontSize: 12,
     color: SoftColors.textSecondary,
     marginTop: 2,
   },
-  dropdownRole: {
+  roleBadge: {
+    backgroundColor: SoftColors.bgSecondary,
+    borderRadius: SoftRadius.sm,
+    paddingHorizontal: SoftSpacing.sm,
+    paddingVertical: 2,
+    marginTop: SoftSpacing.xs,
+    alignSelf: 'flex-start',
+  },
+  roleBadgeText: {
     ...SoftTypography.caption,
-    fontSize: 11,
-    color: SoftColors.textMuted,
-    marginTop: 2,
+    fontSize: 12,
+    fontWeight: '600',
+    color: SoftColors.textSecondary,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: SoftColors.border,
     marginHorizontal: SoftSpacing.sm,
   },
-  dropdownItem: {
+  menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SoftSpacing.sm,
     paddingHorizontal: SoftSpacing.md,
     paddingVertical: SoftSpacing.sm + 2,
   },
-  dropdownItemPressed: {
+  menuItemPressed: {
+    backgroundColor: SoftColors.bgSecondary,
+  },
+  menuItemText: {
+    ...SoftTypography.label,
+    fontSize: 14,
+    color: SoftColors.textPrimary,
+    fontWeight: '500',
+  },
+  logoutItemPressed: {
     backgroundColor: SoftColors.errorBg,
   },
-  dropdownItemText: {
+  logoutText: {
     ...SoftTypography.label,
     fontSize: 14,
     color: SoftColors.error,

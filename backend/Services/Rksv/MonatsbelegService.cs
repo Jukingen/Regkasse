@@ -55,17 +55,16 @@ public sealed class MonatsbelegService : IMonatsbelegService
         var targetMonthLocal = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Unspecified);
         var currentMonthLocal = new DateTime(viennaToday.Year, viennaToday.Month, 1, 0, 0, 0, DateTimeKind.Unspecified);
 
-        if (targetMonthLocal > currentMonthLocal)
+        if (targetMonthLocal >= currentMonthLocal)
         {
-            throw new InvalidOperationException("Cannot create Monatsbeleg for a future Vienna calendar month");
+            throw new InvalidOperationException(
+                "Cannot create Monatsbeleg for the current or a future Vienna calendar month");
         }
 
-        var periodEndDay = targetMonthLocal.Year == viennaToday.Year && targetMonthLocal.Month == viennaToday.Month
-            ? viennaToday
-            : PostgreSqlUtcDateTime.ViennaCalendarDateMidnightUnspecified(
-                year,
-                month,
-                DateTime.DaysInMonth(year, month));
+        var periodEndDay = PostgreSqlUtcDateTime.ViennaCalendarDateMidnightUnspecified(
+            year,
+            month,
+            DateTime.DaysInMonth(year, month));
         var (monthStartUtc, _) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(targetMonthLocal);
         var (_, periodEndUtc) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(periodEndDay);
 

@@ -3,7 +3,7 @@
 import React, { ReactNode, useEffect, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth, AuthStatus } from '@/features/auth/hooks/useAuth';
-import { getRequiredPermissionForPath } from './routePermissions';
+import { getRequiredPermissionForPath, permissionsSatisfyRoute } from './routePermissions';
 import { ALLOW_EMPTY_PERMISSIONS_FOR_ROUTE_ACCESS } from './routeGuardConfig';
 import { isChangePasswordPath } from '@/features/auth/constants/changePasswordRoute';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
@@ -20,10 +20,7 @@ type GuardState = 'loading' | 'unauthenticated' | 'no_permissions' | 'insufficie
 function checkRoutePermission(pathname: string, permissions: string[]): boolean {
   const required = getRequiredPermissionForPath(pathname);
   if (required === undefined) return false;
-  const arr = Array.isArray(required) ? required : [required];
-  if (arr.length === 0) return permissions.length > 0;
-  if (!permissions.length) return false;
-  return arr.some((p) => permissions.includes(p));
+  return permissionsSatisfyRoute(pathname, permissions, required);
 }
 
 /**

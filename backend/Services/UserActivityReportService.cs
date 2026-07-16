@@ -132,31 +132,38 @@ public sealed class UserActivityReportService : IUserActivityReportService
             .ConfigureAwait(false);
 
         var auditBase = BuildAuditQuery(userId, tenantScope, rangeStart, rangeEnd, query.ActionType);
-
         var loginQuery = auditBase.Where(a => a.Action == AuditLogActions.USER_LOGIN);
 
-        var failedLoginTask = loginQuery.CountAsync(a => a.Status != AuditLogStatus.Success, cancellationToken);
-        var successLoginTask = loginQuery.CountAsync(a => a.Status == AuditLogStatus.Success, cancellationToken);
-        var lastLoginTask = loginQuery
+        // Sequential EF queries — a single scoped DbContext must not run concurrent operations.
+        var failedLoginAttempts = await loginQuery
+            .CountAsync(a => a.Status != AuditLogStatus.Success, cancellationToken)
+            .ConfigureAwait(false);
+        var auditedSuccessfulLogins = await loginQuery
+            .CountAsync(a => a.Status == AuditLogStatus.Success, cancellationToken)
+            .ConfigureAwait(false);
+        var lastLoginAudit = await loginQuery
             .Where(a => a.Status == AuditLogStatus.Success)
             .OrderByDescending(a => a.Timestamp)
             .Select(a => new { a.Timestamp, a.IpAddress })
-            .FirstOrDefaultAsync(cancellationToken);
-        var totalActionsTask = auditBase.CountAsync(cancellationToken);
-        var actionRowsTask = auditBase
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        var totalActions = await auditBase.CountAsync(cancellationToken).ConfigureAwait(false);
+        var actionRowList = await auditBase
             .GroupBy(a => new { a.Action, a.EntityType, a.Status })
             .Select(g => new { g.Key.Action, g.Key.EntityType, g.Key.Status, Count = g.Count() })
-            .ToListAsync(cancellationToken);
-        var dailyTask = auditBase
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        var dailyActivity = await auditBase
             .GroupBy(a => a.Timestamp.Date)
             .Select(g => new UserActivityDailyCountDto { Date = g.Key, Count = g.Count() })
             .OrderBy(d => d.Date)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
 
-        Task<List<UserActivityTimelineItemDto>>? timelineTask = null;
+        var activityTimeline = new List<UserActivityTimelineItemDto>();
         if (query.IncludeTimeline)
         {
-            timelineTask = auditBase
+            activityTimeline = await auditBase
                 .OrderByDescending(a => a.Timestamp)
                 .Take(timelineLimit)
                 .Select(a => new UserActivityTimelineItemDto
@@ -172,35 +179,22 @@ public sealed class UserActivityReportService : IUserActivityReportService
                     Description = a.Description,
                     TseSignature = a.TseSignature,
                 })
-                .ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
         }
 
-        Task<List<UserActivityRankingDto>>? topUsersTask = null;
+        var topActiveUsers = new List<UserActivityRankingDto>();
         if (query.IncludeTopUsers && comparisonTenantIds.Count > 0)
         {
-            topUsersTask = BuildTopActiveUsersAsync(
-                comparisonTenantIds, rangeStart, rangeEnd, query.ActionType, cancellationToken);
+            topActiveUsers = await BuildTopActiveUsersAsync(
+                    comparisonTenantIds, rangeStart, rangeEnd, query.ActionType, cancellationToken)
+                .ConfigureAwait(false);
         }
 
-        var sessionStatsTask = LoadSessionStatsAsync(userId, tenantScope, cancellationToken);
-
-        await Task.WhenAll(
-            failedLoginTask,
-            successLoginTask,
-            lastLoginTask,
-            totalActionsTask,
-            actionRowsTask,
-            dailyTask,
-            sessionStatsTask,
-            timelineTask ?? Task.FromResult(new List<UserActivityTimelineItemDto>()),
-            topUsersTask ?? Task.FromResult(new List<UserActivityRankingDto>())).ConfigureAwait(false);
-
-        var actionRowList = await actionRowsTask.ConfigureAwait(false);
+        var sessionStats = await LoadSessionStatsAsync(userId, tenantScope, cancellationToken)
+            .ConfigureAwait(false);
         var summary = SummarizeActions(
             actionRowList.Select(r => (r.Action, r.EntityType, r.Status, r.Count)));
-        var sessionStats = await sessionStatsTask.ConfigureAwait(false);
-        var lastLoginAudit = await lastLoginTask.ConfigureAwait(false);
-        var auditedSuccessfulLogins = await successLoginTask.ConfigureAwait(false);
 
         var tenantName = await ResolveTenantDisplayNameAsync(userId, tenantScope, cancellationToken)
             .ConfigureAwait(false);
@@ -215,7 +209,7 @@ public sealed class UserActivityReportService : IUserActivityReportService
         _logger.LogInformation(
             "User activity report for {UserId}: {TotalActions} actions in {Days}d window",
             userId,
-            await totalActionsTask.ConfigureAwait(false),
+            totalActions,
             (rangeEnd - rangeStart).TotalDays);
 
         return new UserActivityReportDto
@@ -230,19 +224,15 @@ public sealed class UserActivityReportService : IUserActivityReportService
             LastLoginAt = lastLoginAt,
             LastLoginIp = lastLoginIp,
             TotalLogins = totalLogins,
-            FailedLoginAttempts = await failedLoginTask.ConfigureAwait(false),
+            FailedLoginAttempts = failedLoginAttempts,
             ActiveSessions = sessionStats.ActiveCount,
             AverageSessionDurationMinutes = sessionStats.AverageMinutes,
             LastSessionEndAt = sessionStats.LastEnd,
-            TotalActions = await totalActionsTask.ConfigureAwait(false),
+            TotalActions = totalActions,
             ActionsPerformed = summary,
-            DailyActivity = await dailyTask.ConfigureAwait(false),
-            TopActiveUsers = topUsersTask != null
-                ? await topUsersTask.ConfigureAwait(false)
-                : new List<UserActivityRankingDto>(),
-            ActivityTimeline = timelineTask != null
-                ? await timelineTask.ConfigureAwait(false)
-                : new List<UserActivityTimelineItemDto>(),
+            DailyActivity = dailyActivity,
+            TopActiveUsers = topActiveUsers,
+            ActivityTimeline = activityTimeline,
         };
     }
 
@@ -253,7 +243,9 @@ public sealed class UserActivityReportService : IUserActivityReportService
         DateTime rangeEnd,
         string? actionType)
     {
-        var q = _db.AuditLogs.AsNoTracking().Where(a => a.UserId == userId);
+        // Explicit tenantScope below — bypass ambient fail-closed filter so SuperAdmin
+        // (and tests without ICurrentTenantAccessor) can still aggregate by membership scope.
+        var q = _db.AuditLogs.AsNoTracking().IgnoreQueryFilters().Where(a => a.UserId == userId);
         if (tenantScope.Count > 0)
             q = q.Where(a => tenantScope.Contains(a.TenantId));
         q = q.Where(a => a.Timestamp >= rangeStart && a.Timestamp < rangeEnd);
@@ -293,7 +285,7 @@ public sealed class UserActivityReportService : IUserActivityReportService
         string? actionType,
         CancellationToken cancellationToken)
     {
-        var q = _db.AuditLogs.AsNoTracking()
+        var q = _db.AuditLogs.AsNoTracking().IgnoreQueryFilters()
             .Where(a => tenantIds.Contains(a.TenantId))
             .Where(a => a.Timestamp >= rangeStart && a.Timestamp < rangeEnd);
         if (!string.IsNullOrWhiteSpace(actionType))
@@ -337,7 +329,7 @@ public sealed class UserActivityReportService : IUserActivityReportService
         IReadOnlyList<Guid> tenantScope,
         CancellationToken cancellationToken)
     {
-        var sessionQuery = _db.AuthSessions.AsNoTracking().Where(s => s.UserId == userId);
+        var sessionQuery = _db.AuthSessions.AsNoTracking().IgnoreQueryFilters().Where(s => s.UserId == userId);
         if (tenantScope.Count > 0)
             sessionQuery = sessionQuery.Where(s => s.TenantId == null || tenantScope.Contains(s.TenantId.Value));
 

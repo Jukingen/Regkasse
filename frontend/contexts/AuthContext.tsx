@@ -153,7 +153,10 @@ const checkBackendAuth = async (): Promise<{ isAuthenticated: boolean; user: any
 
 interface User {
     id: string;
+    /** Canonical POS field (normalized from API `userName` or `username`). */
     username?: string;
+    /** Backend JSON field from login /me (ASP.NET camelCase of UserName). */
+    userName?: string;
     email: string;
     role: string;
     firstName?: string;
@@ -167,6 +170,11 @@ interface User {
     isDemo?: boolean;
     mustChangePasswordOnNextLogin?: boolean;
     token?: string;
+}
+
+/** Map backend `userName` onto canonical `username` for POS UI. */
+function normalizeUser(raw: User | (Partial<User> & { id: string; email: string; role: string })): User {
+    return authService.normalizeAuthUser(raw) as User;
 }
 
 
@@ -435,10 +443,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             return;
                         }
 
-                        const userWithToken: User = {
+                        const userWithToken: User = normalizeUser({
                             ...storedUser,
                             token: cleanToken
-                        };
+                        });
 
                         // FIX: Only update if user actually changed to reference loop
                         // Deep compare basic properties to avoid loop
@@ -480,7 +488,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     const shouldUpdate = !user || user.id !== result.user.id;
 
                     if (shouldUpdate) {
-                        setUser(result.user);
+                        setUser(normalizeUser(result.user));
                         authDevLog('✅ [AUTH CHECK] User state updated from backend');
                     }
                     setIsAuthenticated(true);
@@ -567,10 +575,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         }
 
                         // Token geçerliyse user state'i restore et
-                        const userWithToken = {
+                        const userWithToken = normalizeUser({
                             ...storedUser,
                             token: cleanToken
-                        };
+                        });
 
                         authDevLog('✅ AUTH INIT: Restoring user state from storage');
                         setUser(userWithToken);
@@ -792,14 +800,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             // State'leri birlikte set et - önce user, sonra authentication
-            const userWithToken = {
+            const userWithToken = normalizeUser({
                 ...loggedInUser,
                 tenantId: loginUser.tenantId ?? loggedInUser.tenantId,
                 tenantSlug: loginUser.tenantSlug ?? loggedInUser.tenantSlug,
                 mustChangePasswordOnNextLogin:
                     (loggedInUser as { mustChangePasswordOnNextLogin?: boolean }).mustChangePasswordOnNextLogin === true,
                 token: cleanToken // cleanToken'ı user state'ine ekle (JWT only)
-            };
+            });
             setUser(userWithToken);
             authDevLog('User state set to:', userWithToken); // Debug log
 
@@ -965,7 +973,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const refreshed = await authService.validateToken();
         if (refreshed?.id) {
             const token = await sessionManager.getAccessToken();
-            setUser({ ...refreshed, token: token ?? undefined });
+            setUser(normalizeUser({ ...refreshed, token: token ?? undefined }));
             setIsAuthenticated(true);
         }
     }, []);

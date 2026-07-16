@@ -26,8 +26,17 @@ describe('getUsersPolicy', () => {
     expect(policy.canView).toBe(false);
   });
 
-  it('does not grant Manager create/edit without user.manage', () => {
+  it('grants Manager create/edit when user.manage is present', () => {
     const policy = getUsersPolicy('Manager', [...MANAGER_ADMIN_PERMISSIONS]);
+    expect(policy.canCreate).toBe(true);
+    expect(policy.canEdit).toBe(true);
+    expect(policy.canManagePermissions).toBe(true);
+    expect(policy.canCreateRole).toBe(false);
+  });
+
+  it('does not grant Manager create/edit without user.manage', () => {
+    const withoutManage = MANAGER_ADMIN_PERMISSIONS.filter((p) => p !== PERMISSIONS.USER_MANAGE);
+    const policy = getUsersPolicy('Manager', [...withoutManage]);
     expect(policy.canCreate).toBe(false);
     expect(policy.canEdit).toBe(false);
     expect(policy.canManagePermissions).toBe(false);

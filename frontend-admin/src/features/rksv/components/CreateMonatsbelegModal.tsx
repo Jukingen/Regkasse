@@ -133,8 +133,10 @@ export function CreateMonatsbelegModal({
     const handleSubmit = useCallback(
         async (explicitForce?: boolean) => {
             const withForce = explicitForce ?? forceMode;
-            if (isFutureMonth) {
-                message.error('Monatsbeleg kann nicht für einen zukünftigen Kalendermonat erstellt werden.');
+            if (isFutureMonth || isCurrentMonth) {
+                message.error(
+                    'Monatsbeleg kann nur für abgeschlossene (vergangene) Kalendermonate erstellt werden.',
+                );
                 return;
             }
 
@@ -190,8 +192,8 @@ export function CreateMonatsbelegModal({
                             <div>
                                 <p style={{ marginBottom: 0 }}>{warningMessage}</p>
                                 <p style={{ marginTop: 12, marginBottom: 0 }}>
-                                    Der Beleg wird mit dem realen aktuellen Datum erstellt und als verspätet markiert
-                                    (keine Rückdatierung).
+                                    Dieser Monatsbeleg wird für den ausgewählten Zeitraum erstellt, aber mit dem
+                                    heutigen Datum versehen (keine Rückdatierung).
                                 </p>
                                 <p style={{ marginTop: 12, marginBottom: 0, color: '#ff4d4f' }}>
                                     Möchten Sie fortfahren?
@@ -231,6 +233,7 @@ export function CreateMonatsbelegModal({
             cashRegisterId,
             createMonatsbeleg,
             forceMode,
+            isCurrentMonth,
             isFutureMonth,
             isPastMonth,
             lateReason,
@@ -262,7 +265,7 @@ export function CreateMonatsbelegModal({
             cancelText="Abbrechen"
             okButtonProps={{
                 danger: isPastMonth && monthDiff > 6,
-                disabled: isFutureMonth,
+                disabled: isFutureMonth || isCurrentMonth,
             }}
             width={500}
             destroyOnHidden
@@ -272,10 +275,8 @@ export function CreateMonatsbelegModal({
                 <Descriptions.Item label="Jahr">{year}</Descriptions.Item>
                 <Descriptions.Item label="Monat">{month}</Descriptions.Item>
                 <Descriptions.Item label="Status">
-                    {isFutureMonth ? (
-                        <Tag color="red">Zukünftiger Monat</Tag>
-                    ) : isCurrentMonth ? (
-                        <Tag color="green">Aktueller Monat</Tag>
+                    {isFutureMonth || isCurrentMonth ? (
+                        <Tag color="red">Monat noch nicht abgeschlossen</Tag>
                     ) : (
                         <Tag color={severityConfig.color}>
                             {monthDiff} {monthDiff === 1 ? 'Monat' : 'Monate'} überfällig
@@ -284,12 +285,12 @@ export function CreateMonatsbelegModal({
                 </Descriptions.Item>
             </Descriptions>
 
-            {isFutureMonth ? (
+            {isFutureMonth || isCurrentMonth ? (
                 <Alert
                     type="error"
                     showIcon
-                    title="Zukünftiger Monat nicht erlaubt"
-                    description="Monatsbelege können nur für den aktuellen oder vergangene Kalendermonate erstellt werden."
+                    title="Nur abgeschlossene Monate erlaubt"
+                    description="Monatsbelege können erst nach Monatsende für vergangene Kalendermonate erstellt werden."
                     style={{ marginTop: 16 }}
                 />
             ) : null}
@@ -299,7 +300,7 @@ export function CreateMonatsbelegModal({
                     type="info"
                     title="Nachträgliche (verspätete) Erstellung"
                     description={
-                        'Der Beleg wird mit dem tatsächlichen aktuellen Datum erstellt und von der TSE zum jetzigen Zeitpunkt signiert. ' +
+                        'Dieser Monatsbeleg wird für den ausgewählten Zeitraum erstellt, aber mit dem heutigen Datum versehen. ' +
                         `Der abgedeckte Zeitraum (${formatViennaYearMonth(year, month)}) wird korrekt hinterlegt und der Beleg als „verspätet erstellt" markiert. ` +
                         'Das Erstellungsdatum wird NICHT rückdatiert; die verspätete Erstellung ist bei einer Prüfung transparent nachvollziehbar.'
                     }

@@ -7,7 +7,7 @@ import dayjs from 'dayjs';
 import type { TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useReceiptSearchParams } from '@/features/receipts/hooks/useReceiptSearchParams';
 import { useReceiptListQuery } from '@/features/receipts/hooks/useReceiptListQuery';
 import ReceiptsFilterBar from '@/features/receipts/components/ReceiptsFilterBar';
@@ -108,8 +108,8 @@ function ReceiptsPageContent() {
     return (
         <Space orientation="vertical" size="large" style={{ width: '100%' }}>
             <AdminPageHeader
-                title={ADMIN_NAV_LABELS.receipts}
-                breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.receipts }]}
+                title={t(ADMIN_NAV_LABEL_KEYS.receipts)}
+                breadcrumbs={[adminOverviewCrumb(t), { title: t(ADMIN_NAV_LABEL_KEYS.receipts) }]}
                 actions={
                     <Tooltip title={t('receipts.list.refreshTooltip')}>
                         <Button

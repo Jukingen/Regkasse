@@ -248,6 +248,7 @@
     "advancedSearchTitle": "Erweiterte Belegsuche (kompakt)",
     "fullReceiptSearch": "Vollständige Belegliste",
     "emptyReceipts": "Keine Belege für diese Filter.",
+    "exceptionQueueLoadError": "Ausnahme-Warteschlange konnte nicht geladen werden.",
     "reprintTitle": "Nachdruck (auditierbar)",
     "reprintHint": "Wählen Sie einen Beleg in der Tabelle («Nachdruck») oder öffnen Sie den Assistenten und geben Sie die Payment-GUID ein. Vorschau ohne Audit; Bestätigung schreibt ReceiptReprintConfirmed / ReceiptReprintRejected.",
     "reprintWorkflowTitle": "Nachdruck-Assistent",
@@ -538,7 +539,13 @@
     "colId": "ID",
     "colNumber": "Nr.",
     "colStatus": "Status",
-    "colCapacity": "Plätze"
+    "colCapacity": "Plätze",
+    "status": {
+      "Available": "Frei",
+      "Occupied": "Belegt",
+      "Reserved": "Reserviert",
+      "Cleaning": "Reinigung"
+    }
   },
   "search": {
     "placeholder": "Menü durchsuchen…",

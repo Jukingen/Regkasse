@@ -15,6 +15,7 @@ using KasseAPI_Final.Controllers.Base;
 using KasseAPI_Final.Tse;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Security;
+using KasseAPI_Final.Services.Rksv;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -34,6 +35,7 @@ namespace KasseAPI_Final.Controllers
         private readonly IPaymentHistoryService _paymentHistoryService;
         private readonly SignaturePipeline _signaturePipeline;
         private readonly IAuthorizationService _authorizationService;
+        private readonly IRksvEnvironmentService _rksvEnvironment;
 
         private readonly IQrImageService _qrImageService;
 
@@ -44,6 +46,7 @@ namespace KasseAPI_Final.Controllers
             IQrImageService qrImageService,
             SignaturePipeline signaturePipeline,
             IAuthorizationService authorizationService,
+            IRksvEnvironmentService rksvEnvironment,
             ILogger<PaymentController> logger) 
             : base(logger)
         {
@@ -53,6 +56,7 @@ namespace KasseAPI_Final.Controllers
             _qrImageService = qrImageService;
             _signaturePipeline = signaturePipeline;
             _authorizationService = authorizationService;
+            _rksvEnvironment = rksvEnvironment;
         }
 
         /// <summary>
@@ -735,7 +739,10 @@ namespace KasseAPI_Final.Controllers
                     return SuccessResponse(new { steps = emptySteps, compactJws = (string?)null }, "No signature on payment");
                 }
 
-                var steps = _signaturePipeline.VerifyDiagnostic(tseSignature);
+                var steps = SignatureDiagnosticSimulation.ApplySimulationMode(
+                    _signaturePipeline.VerifyDiagnostic(tseSignature),
+                    _rksvEnvironment.IsTseSimulated(),
+                    hasSignature: true);
                 // Admin: JWS (compactJws) debug endpoint'te döner
                 return SuccessResponse(new { steps, compactJws = tseSignature }, "Signature diagnostic completed");
             }

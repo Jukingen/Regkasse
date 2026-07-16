@@ -68,7 +68,9 @@ public sealed class MonatsbelegServiceTests
         TenantTestDoubles.EnsureDefaultTenant(ctx);
 
         var regId = Guid.NewGuid();
-        var (year, month) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+        var (currentYear, currentMonth) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+        var year = currentMonth == 1 ? currentYear - 1 : currentYear;
+        var month = currentMonth == 1 ? 12 : currentMonth - 1;
         var day = PostgreSqlUtcDateTime.ViennaCalendarDateMidnightUnspecified(year, month, 5);
         var dayPersist = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(day);
 
@@ -113,7 +115,9 @@ public sealed class MonatsbelegServiceTests
         TenantTestDoubles.EnsureDefaultTenant(ctx);
 
         var regId = Guid.NewGuid();
-        var (year, month) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+        var (currentYear, currentMonth) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+        var year = currentMonth == 1 ? currentYear - 1 : currentYear;
+        var month = currentMonth == 1 ? 12 : currentMonth - 1;
         var dayPersist = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(
             PostgreSqlUtcDateTime.ViennaCalendarDateMidnightUnspecified(year, month, 1));
 

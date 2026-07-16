@@ -714,7 +714,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/rksv/sonderbelege?focus=test-helper',
         labelKey: 'nav.rksvTestHelper',
         icon: 'ExperimentOutlined',
-        permission: PERMISSIONS.RKSV_TEST_HELPER,
+        permission: PERMISSIONS.SYSTEM_CRITICAL,
     },
 };
 

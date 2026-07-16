@@ -103,7 +103,7 @@ public sealed class UserActivityReportServiceTests
             ambientTenantId: null);
 
         Assert.NotNull(report);
-        Assert.Equal(4, report!.TotalActions);
+        Assert.Equal(3, report!.TotalActions);
         Assert.Equal(1, report.FailedLoginAttempts);
         Assert.Equal(1, report.ActionsPerformed.PaymentsProcessed);
         Assert.True(report.DailyActivity.Count >= 1);

@@ -58,7 +58,7 @@ public static class RoleMetadata
     private static readonly Dictionary<string, string> Descriptions = new(StringComparer.OrdinalIgnoreCase)
     {
         [Roles.SuperAdmin] = "Full system and user management; system roles cannot be mutated.",
-        [Roles.Manager] = "Operational management, users view, most POS permissions.",
+        [Roles.Manager] = "Tenant administrator: user lifecycle, reports, settings view, most POS permissions.",
         [Roles.Cashier] = "Sales, payments, cart, TSE sign.",
         [Roles.Waiter] = "Tables, orders, limited payment.",
         [Roles.Kitchen] = "Kitchen display and order status.",

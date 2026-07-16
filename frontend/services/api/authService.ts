@@ -21,7 +21,10 @@ export interface LoginResponse {
   refreshToken?: string; // Opsiyonel, backend'den gelirse kullan
   user: {
     id: string;
+    /** Canonical POS field after normalizeAuthUser. */
     username?: string;
+    /** Backend camelCase of UserName (login /me). */
+    userName?: string;
     email: string;
     role: string;
     firstName?: string;
@@ -38,6 +41,7 @@ export interface LoginResponse {
 export interface User {
   id: string;
   username?: string;
+  userName?: string;
   email: string;
   role: string;
   firstName?: string;
@@ -46,6 +50,25 @@ export interface User {
   /** Backend permission claims (resource.action). Aligned with backend RolePermissionMatrix. */
   permissions?: string[];
   mustChangePasswordOnNextLogin?: boolean;
+  isDemo?: boolean;
+  tenantId?: string | null;
+  tenantSlug?: string | null;
+}
+
+/** Prefer backend `userName`; keep both fields in sync for POS UI. */
+export function normalizeAuthUser<T extends { username?: string; userName?: string }>(raw: T): T & {
+  username?: string;
+  userName?: string;
+} {
+  const username =
+    (typeof raw.username === 'string' && raw.username.trim()) ||
+    (typeof raw.userName === 'string' && raw.userName.trim()) ||
+    undefined;
+  return {
+    ...raw,
+    username,
+    userName: username ?? raw.userName,
+  };
 }
 
 // Login işlemi
@@ -56,6 +79,13 @@ export const login = async (credentials: LoginRequest): Promise<LoginResponse> =
     // Token storage'ı AuthContext'te yapılıyor, burada yapmıyoruz
     // await storage.setItem('token', response.token);
     // await storage.setItem('user', JSON.stringify(response.user));
+
+    if (response?.user) {
+      return {
+        ...response,
+        user: normalizeAuthUser(response.user),
+      };
+    }
 
     return response;
   } catch (error: unknown) {
@@ -153,10 +183,12 @@ export const validateToken = async (): Promise<User | null> => {
         console.log('✅ Backend token validation başarılı:', response.id);
       }
 
-      // AsyncStorage'daki user bilgisini güncelle
-      await sessionManager.persistSession({ token, user: response });
+      const normalized = normalizeAuthUser(response);
 
-      return response;
+      // AsyncStorage'daki user bilgisini güncelle
+      await sessionManager.persistSession({ token, user: normalized });
+
+      return normalized;
     } else {
       if (isDev) {
         console.log('❌ Backend token validation başarısız: invalid response');

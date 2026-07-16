@@ -9,8 +9,13 @@ import type { IOfflineStorage, OfflineOrder } from './offlineStorage';
 import { getOfflineStorage } from './offlineStorage';
 import { eventEmitter } from '@/utils/eventEmitter';
 import { OfflineSyncHistory } from './offlineSyncHistory';
+import { OFFLINE_CONFIG } from '@/constants/offlineConfig';
 
-const EXPIRY_MS = 72 * 60 * 60 * 1000;
+const EXPIRY_MS = OFFLINE_CONFIG.OFFLINE_EXPIRY_HOURS * 60 * 60 * 1000;
+
+/** German POS operator message when local offline queue is at capacity. */
+export const OFFLINE_LIMIT_EXCEEDED_MESSAGE_DE =
+  'Offline-Limit erreicht. Bitte Internetverbindung prüfen und synchronisieren.';
 
 export type SyncDetail = {
   success: boolean;
@@ -196,6 +201,16 @@ export class OfflineOrderManager {
       throw new Error(VOUCHER_OFFLINE_NOT_ALLOWED_MESSAGE_DE);
     }
 
+    const maxLimit = OFFLINE_CONFIG.MAX_OFFLINE_TRANSACTIONS;
+    const pendingBefore = await this.storage.getPendingOrders();
+    if (pendingBefore.length >= maxLimit) {
+      eventEmitter.emit('offline:limit-exceeded', {
+        pendingCount: pendingBefore.length,
+        maxLimit,
+      });
+      throw new Error(OFFLINE_LIMIT_EXCEEDED_MESSAGE_DE);
+    }
+
     const now = new Date();
     const order: OfflineOrder = {
       id: newUuid(),
@@ -213,6 +228,16 @@ export class OfflineOrderManager {
 
     await this.storage.saveOrder(order);
     await this.checkExpiryWarning(order);
+
+    const pending = await this.storage.getPendingOrders();
+    const remaining = Math.max(0, maxLimit - pending.length);
+    eventEmitter.emit('offline:order-saved', {
+      offlineOrderId: order.offlineOrderId,
+      pendingCount: pending.length,
+      maxLimit,
+      remaining,
+    });
+
     return order;
   }
 
@@ -513,6 +538,40 @@ export class OfflineOrderManager {
       isSyncing: this.currentReplay,
       oldestPending: pending.length > 0 ? pending[0].createdAt : null,
     };
+  }
+
+  /** Pending offline order count (local queue). */
+  async getPendingCount(): Promise<number> {
+    const pending = await this.storage.getPendingOrders();
+    return pending.length;
+  }
+
+  /**
+   * Hours until the soonest pending order expires.
+   * Returns the full offline window when the queue is empty.
+   */
+  async getHoursRemaining(
+    fallbackHours: number = OFFLINE_CONFIG.OFFLINE_EXPIRY_HOURS
+  ): Promise<number> {
+    const pending = await this.storage.getPendingOrders();
+    if (pending.length === 0) {
+      return fallbackHours;
+    }
+
+    const now = Date.now();
+    let minHours = Number.POSITIVE_INFINITY;
+    for (const order of pending) {
+      const hours = (new Date(order.expiresAt).getTime() - now) / (1000 * 60 * 60);
+      if (hours < minHours) {
+        minHours = hours;
+      }
+    }
+
+    if (!Number.isFinite(minHours)) {
+      return fallbackHours;
+    }
+
+    return Math.max(0, Math.ceil(minHours));
   }
 
   async getPendingOrders(): Promise<OfflineOrder[]> {

@@ -19,8 +19,8 @@ export type CanonicalRole = (typeof ROLES_CANONICAL)[number];
 /** Roles that have user.view (list/roles/search). Backend: Manager, SuperAdmin. */
 export const ROLES_CAN_VIEW_USERS = ['SuperAdmin', 'Manager'] as const;
 
-/** Roles that have user.manage. Backend: SuperAdmin only. */
-export const ROLES_CAN_MANAGE_USERS = ['SuperAdmin'] as const;
+/** Roles that have user.manage. Backend: SuperAdmin + Mandanten-Admin (Manager). */
+export const ROLES_CAN_MANAGE_USERS = ['SuperAdmin', 'Manager'] as const;
 
 /** Sadece SuperAdmin rol oluşturabilir (POST /api/UserManagement/roles) */
 export const ROLES_CAN_CREATE_ROLE = ['SuperAdmin'] as const;

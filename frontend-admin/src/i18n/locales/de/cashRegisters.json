@@ -191,6 +191,7 @@
     "cancel": "Abbrechen",
     "confirm": "Trotzdem stilllegen",
     "mustCloseFirst": "Die Kasse muss geschlossen sein (keine offene Schicht), bevor ein Endbeleg erstellt werden kann.",
+    "defaultReason": "Stilllegung über Kassenverwaltung",
     "success": "Schlussbeleg (Endbeleg) erstellt — Status «Stillgelegt». Keine neuen Zahlungen mehr möglich.",
     "restoreTooltip": "RKSV: Stilllegung über Schlussbeleg ist unwiderruflich. Wiederherstellen ist nicht möglich."
   },
@@ -269,8 +270,14 @@
     "statsTotal": "Kassen gesamt",
     "selectTenant": "Mandant",
     "selectTenantHint": "Bitte einen Mandanten auswählen, um die Kassenliste anzuzeigen.",
+    "platformScopeTag": "Alle Mandanten",
     "managerIntro": "Wählen Sie eine Kasse, um zur Kassenverwaltung Ihres Mandanten zu wechseln.",
     "openKassenverwaltung": "Zur Kassenverwaltung"
+  },
+  "tenantSelector": {
+    "allTenants": "Alle Mandanten",
+    "placeholder": "Alle Mandanten anzeigen",
+    "tenantOption": "{{name}} ({{slug}})"
   },
   "selector": {
     "placeholder": "Kasse auswählen…",

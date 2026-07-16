@@ -18,7 +18,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { AXIOS_INSTANCE } from '@/lib/axios';
-import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import {
     getApiAdminOfflineTransactions,
     getApiAdminOfflineTransactionsSummary,
@@ -28,10 +27,12 @@ import {
     postApiAdminOfflineTransactionsRetryAll,
 } from '@/api/generated/admin/admin';
 import type { AdminOfflineTransactionRowDto } from '@/api/generated/model/adminOfflineTransactionRowDto';
+import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdminCashRegisterList';
 import { useI18n } from '@/i18n/I18nProvider';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 
 dayjs.extend(utc);
 
@@ -69,23 +70,24 @@ export default function AdminOfflineTransactionsPage() {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(50);
 
-    const { data: registersData } = useGetApiCashRegister({
-        query: { enabled: allowed, staleTime: 120_000 },
+    const { registers } = useAdminCashRegisterList({
+        allowTenantScopedDefault: true,
+        excludeDecommissioned: false,
+        enabled: allowed,
+        pageSize: 200,
+        pollIntervalMs: 120_000,
     });
 
-    const registerOptions = useMemo(() => {
-        const raw = registersData as unknown;
-        const arr = Array.isArray(raw)
-            ? raw
-            : (raw as { registers?: { id?: string; registerNumber?: string; location?: string }[] })?.registers ??
-              [];
-        return (arr as { id?: string; registerNumber?: string; location?: string }[])
-            .filter((r) => r?.id)
-            .map((r) => ({
-                value: r.id as string,
-                label: `${r.registerNumber ?? ''} · ${r.location ?? ''}`,
-            }));
-    }, [registersData]);
+    const registerOptions = useMemo(
+        () =>
+            registers
+                .filter((r) => r?.id)
+                .map((r) => ({
+                    value: r.id,
+                    label: `${r.registerNumber ?? ''} · ${r.location ?? ''}`,
+                })),
+        [registers],
+    );
 
     const listParams = useMemo(() => {
         const fromUtc = rangeUtc?.[0]?.utc().startOf('day').toISOString();
@@ -325,7 +327,23 @@ export default function AdminOfflineTransactionsPage() {
                     type="warning"
                     showIcon
                     title="Hoher Offline-Rückstau"
-                    description={`Es sind ${summaryQuery.data?.pendingCount} Zahlungen noch nicht fiskal signiert (Schwelle &gt; 10).`}
+                    description={`Es sind ${summaryQuery.data?.pendingCount} Zahlungen noch nicht fiskal signiert (Schwelle > 10).`}
+                />
+            ) : null}
+
+            {summaryQuery.isError || listQuery.isError ? (
+                <Alert
+                    type="error"
+                    showIcon
+                    title="Offline-Transaktionen konnten nicht geladen werden"
+                    description={
+                        <ApiErrorAlertDescription
+                            t={t}
+                            error={listQuery.error ?? summaryQuery.error}
+                            logContext="OfflineTransactions.list"
+                            fallbackKey="common.messages.unknownError"
+                        />
+                    }
                 />
             ) : null}
 

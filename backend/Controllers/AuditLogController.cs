@@ -52,7 +52,7 @@ namespace KasseAPI_Final.Controllers
         /// GET: api/auditlog - Get all audit logs with filtering and pagination
         /// </summary>
         [HttpGet]
-        [HasPermission(AppPermissions.UserView)]
+        [HasPermission(AppPermissions.AuditView)]
         public async Task<ActionResult<AuditLogsResponse>> GetAuditLogs(
             [FromQuery] DateTime? startDate = null,
             [FromQuery] DateTime? endDate = null,

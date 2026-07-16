@@ -248,6 +248,7 @@
     "advancedSearchTitle": "Advanced receipt search (compact)",
     "fullReceiptSearch": "Full receipt list",
     "emptyReceipts": "No receipts for these filters.",
+    "exceptionQueueLoadError": "Could not load exception queue.",
     "reprintTitle": "Reprint (auditable)",
     "reprintHint": "Pick a row («Reprint») or open the wizard and paste the payment GUID. Preview is read-only; confirm writes ReceiptReprintConfirmed / ReceiptReprintRejected to audit.",
     "reprintWorkflowTitle": "Reprint wizard",
@@ -538,7 +539,13 @@
     "colId": "ID",
     "colNumber": "No.",
     "colStatus": "Status",
-    "colCapacity": "Covers"
+    "colCapacity": "Covers",
+    "status": {
+      "Available": "Available",
+      "Occupied": "Occupied",
+      "Reserved": "Reserved",
+      "Cleaning": "Cleaning"
+    }
   },
   "search": {
     "placeholder": "Search menu…",

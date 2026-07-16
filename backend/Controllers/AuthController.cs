@@ -392,6 +392,7 @@ namespace KasseAPI_Final.Controllers
                     user = new
                     {
                         id = user.Id,
+                        userName = user.UserName,
                         email = user.Email,
                         firstName = user.FirstName,
                         lastName = user.LastName,

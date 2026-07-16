@@ -15,6 +15,7 @@ import type { MenuProps } from 'antd';
 import type { CashRegister } from '@/api/generated/model';
 import { useI18n } from '@/i18n';
 import { usePermissions } from '@/hooks/usePermissions';
+import { PERMISSIONS } from '@/shared/auth/permissions';
 import {
     canDecommissionRegister,
     isDecommissionedRegister,
@@ -43,13 +44,21 @@ export function CashRegisterActions({
     canOperate = true,
 }: CashRegisterActionsProps) {
     const { t } = useI18n();
-    const { isSuperAdmin } = usePermissions();
+    const {
+        isSuperAdmin,
+        canManageCashRegisters,
+        canDecommissionCashRegisters,
+        hasPermission,
+    } = usePermissions();
 
     const registerId = register.id?.trim();
     const status = rawRegisterStatus(register);
     const decommissioned = isDecommissionedRegister(status);
     const isOpen = status === REGISTER_STATUS.open;
     const isClosed = status === REGISTER_STATUS.closed;
+    const canEdit = canManageCashRegisters;
+    const canDecommission = canDecommissionCashRegisters;
+    const canHardDelete = isSuperAdmin || hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
 
     if (!registerId || decommissioned || !canOperate) {
         return null;
@@ -75,28 +84,35 @@ export function CashRegisterActions({
         },
     ];
 
-    if (isSuperAdmin) {
-        items.push(
-            { type: 'divider' },
-            {
-                key: 'edit',
-                label: t('cashRegisters.actions.edit'),
-                icon: <EditOutlined />,
-            },
-            {
-                key: 'delete',
-                label: t('cashRegisters.actions.delete'),
-                icon: <DeleteOutlined />,
-                danger: true,
-            },
-            {
-                key: 'decommission',
-                label: t('cashRegisters.actions.decommission'),
-                icon: <StopOutlined />,
-                danger: true,
-                disabled: !canDecommissionRegister(status),
-            },
-        );
+    if (canEdit || canDecommission || canHardDelete) {
+        items.push({ type: 'divider' });
+    }
+
+    if (canEdit) {
+        items.push({
+            key: 'edit',
+            label: t('cashRegisters.actions.edit'),
+            icon: <EditOutlined />,
+        });
+    }
+
+    if (canHardDelete) {
+        items.push({
+            key: 'delete',
+            label: t('cashRegisters.actions.delete'),
+            icon: <DeleteOutlined />,
+            danger: true,
+        });
+    }
+
+    if (canDecommission) {
+        items.push({
+            key: 'decommission',
+            label: t('cashRegisters.actions.decommission'),
+            icon: <StopOutlined />,
+            danger: true,
+            disabled: !canDecommissionRegister(status),
+        });
     }
 
     return (

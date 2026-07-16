@@ -28,6 +28,9 @@ public sealed class EnhancedCashRegisterDto
     public DateTime? LastMonatsbelegUtc { get; set; }
     public DateTime? LastJahresbelegUtc { get; set; }
 
+    /// <summary>UTC timestamp when the RKSV Startbeleg was recorded; null when not yet created.</summary>
+    public DateTime? StartbelegCreatedAtUtc { get; set; }
+
     /// <summary>healthy | degraded | offline | notConfigured</summary>
     public string TseHealthStatus { get; set; } = "notConfigured";
 
@@ -62,6 +65,7 @@ public sealed class EnhancedCashRegisterDto
             UpdatedBy = source.UpdatedBy,
             LastMonatsbelegUtc = source.LastMonatsbelegUtc,
             LastJahresbelegUtc = source.LastJahresbelegUtc,
+            StartbelegCreatedAtUtc = source.StartbelegCreatedAtUtc,
             TseHealthStatus = source.TseHealthStatus,
             OfflineQueueCount = source.OfflineQueueCount,
             LastSyncAtUtc = source.LastSyncAtUtc,

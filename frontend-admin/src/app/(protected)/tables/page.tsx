@@ -21,7 +21,15 @@ export default function TablesAdminPage() {
     {
       title: t('adminShell.tablesAdmin.colStatus'),
       dataIndex: 'status',
-      render: (s: string) => <Tag color={s === 'Available' ? 'green' : 'blue'}>{s}</Tag>,
+      render: (s: string) => {
+        const statusKey = `adminShell.tablesAdmin.status.${s}`;
+        const label = t(statusKey);
+        return (
+          <Tag color={s === 'Available' ? 'green' : 'blue'}>
+            {label === statusKey ? s : label}
+          </Tag>
+        );
+      },
     },
     { title: t('adminShell.tablesAdmin.colCapacity'), dataIndex: 'capacity', width: 100 },
   ];

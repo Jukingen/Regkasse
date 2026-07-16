@@ -66,6 +66,7 @@ export const MENU_PERMISSIONS: Record<string, string | string[] | undefined> = {
   '/settings/session': PERMISSIONS.SETTINGS_VIEW,
   '/settings/offline': PERMISSIONS.SETTINGS_MANAGE,
   '/settings/personalization': PERMISSIONS.SETTINGS_VIEW,
+  '/settings/appearance': PERMISSIONS.SETTINGS_VIEW,
   '/settings/payment-methods': PERMISSIONS.SETTINGS_VIEW,
   '/settings/backup-dr': PERMISSIONS.SETTINGS_VIEW,
   '/backup': PERMISSIONS.SETTINGS_VIEW,
@@ -75,6 +76,8 @@ export const MENU_PERMISSIONS: Record<string, string | string[] | undefined> = {
   '/backup/configuration/schedule': PERMISSIONS.BACKUP_MANAGE,
   '/backup/configuration/platform': PERMISSIONS.SETTINGS_MANAGE,
   '/backup/audit': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/config': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/logs': PERMISSIONS.SETTINGS_VIEW,
   '/settings/development-mode': PERMISSIONS.SYSTEM_CRITICAL,
 
   // Backup (legacy redirect)

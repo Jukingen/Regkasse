@@ -28,17 +28,18 @@ import {
     usePostApiAdminOfflineOrdersIdReplay,
     usePostApiAdminOfflineOrdersReplayAll,
 } from '@/api/generated/admin/admin';
-import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import type { AdminOfflineOrderRowDto } from '@/api/generated/model/adminOfflineOrderRowDto';
 import type { GetApiAdminOfflineOrdersParams } from '@/api/generated/model/getApiAdminOfflineOrdersParams';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ADMIN_NAV_GROUP_LABELS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import type { OfflineOrderStatus } from '@/features/offline/types';
+import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdminCashRegisterList';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatUserDateTime } from '@/lib/dateFormatter';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 
 const REFETCH_MS = 30_000;
 
@@ -101,6 +102,8 @@ export default function OfflineOrdersPage() {
         isLoading,
         refetch,
         isFetching,
+        isError,
+        error,
     } = useGetApiAdminOfflineOrders(listParams, {
         query: { enabled: allowed, refetchInterval: REFETCH_MS },
     });
@@ -113,22 +116,24 @@ export default function OfflineOrdersPage() {
         mutation: { onSuccess: invalidateList },
     });
 
-    const { data: registersData } = useGetApiCashRegister({
-        query: { enabled: allowed, staleTime: 120_000 },
+    const { registers } = useAdminCashRegisterList({
+        allowTenantScopedDefault: true,
+        excludeDecommissioned: false,
+        enabled: allowed,
+        pageSize: 200,
+        pollIntervalMs: 120_000,
     });
 
-    const registerOptions = useMemo(() => {
-        const raw = registersData as unknown;
-        const arr = Array.isArray(raw)
-            ? raw
-            : (raw as { registers?: { id?: string; registerNumber?: string; location?: string }[] })?.registers ?? [];
-        return (arr as { id?: string; registerNumber?: string; location?: string }[])
-            .filter((r) => r?.id)
-            .map((r) => ({
-                value: r.id as string,
-                label: `${r.registerNumber ?? ''} · ${r.location ?? ''}`,
-            }));
-    }, [registersData]);
+    const registerOptions = useMemo(
+        () =>
+            registers
+                .filter((r) => r?.id)
+                .map((r) => ({
+                    value: r.id,
+                    label: `${r.registerNumber ?? ''} · ${r.location ?? ''}`,
+                })),
+        [registers],
+    );
 
     const statusColor = (status: string): string => {
         if (status === 'pending') return 'warning';
@@ -317,6 +322,22 @@ export default function OfflineOrdersPage() {
             </AdminPageHeader>
 
             <Alert type="warning" showIcon title={tp('warningTitle')} description={tp('warningDescription')} />
+
+            {isError ? (
+                <Alert
+                    type="error"
+                    showIcon
+                    title={tp('loadErrorTitle')}
+                    description={
+                        <ApiErrorAlertDescription
+                            t={t}
+                            error={error}
+                            logContext="OfflineOrders.list"
+                            fallbackKey="common.messages.unknownError"
+                        />
+                    }
+                />
+            ) : null}
 
             <Card
                 title={tp('filtersTitle')}

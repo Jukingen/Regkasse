@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CartDisplay } from '../../components/CartDisplay';
 import { CartSummary } from '../../components/CartSummary';
 import { CashRegisterHeader } from '../../components/CashRegisterHeader';
+import { OfflineCounter } from '../../components/OfflineCounter';
 import CategoryFilter from '../../components/CategoryFilter';
 import { BillSplitMergeSheet } from '../../components/BillSplitMergeSheet';
 import CustomerSelectionSheet from '../../components/CustomerSelectionSheet';
@@ -786,6 +787,9 @@ export default function CashRegisterScreen() {
         provisioningMessage={recoveryProvisioningMessage}
         onOpenPaymentHistory={handleOpenPaymentHistory}
       />
+
+      {/* Offline order capacity / sync status — always visible on main POS */}
+      <OfflineCounter />
 
       <MonatsbelegWarningBannerStrip
         monatsbelegStatus={monatsbelegStatus}

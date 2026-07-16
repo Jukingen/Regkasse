@@ -248,6 +248,7 @@
     "advancedSearchTitle": "Gelişmiş fiş araması (kompakt)",
     "fullReceiptSearch": "Tam fiş listesi",
     "emptyReceipts": "Bu filtrelerle fiş yok.",
+    "exceptionQueueLoadError": "İstisna kuyruğu yüklenemedi.",
     "reprintTitle": "Yeniden yazdırma (denetlenebilir)",
     "reprintHint": "Tabloda «Yeniden yazdır» seçin veya sihirbazı açıp ödeme GUID’ini girin. Önizleme salt okunur; onay ReceiptReprintConfirmed / ReceiptReprintRejected yazar.",
     "reprintWorkflowTitle": "Yeniden yazdırma sihirbazı",
@@ -538,7 +539,13 @@
     "colId": "Kimlik",
     "colNumber": "No",
     "colStatus": "Durum",
-    "colCapacity": "Kapasite"
+    "colCapacity": "Kapasite",
+    "status": {
+      "Available": "Müsait",
+      "Occupied": "Dolu",
+      "Reserved": "Rezerve",
+      "Cleaning": "Temizlik"
+    }
   },
   "search": {
     "placeholder": "Menüde ara…",

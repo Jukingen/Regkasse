@@ -11,7 +11,7 @@ import type { AdminPaymentListItemDto } from '@/api/generated/model';
 import { StornoRefundAuditDetailModal } from '@/features/payments/stornoRefundAudit/StornoRefundAuditDetailModal';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
-import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import type { CashRegister } from '@/api/generated/model';
 import { useI18n } from '@/i18n';
@@ -262,7 +262,7 @@ export default function StornoRefundAuditPage() {
             <AdminPageHeader
                 title={t('payments.stornoRefundAudit.pageTitle')}
                 breadcrumbs={[
-                    ADMIN_OVERVIEW_CRUMB,
+                    adminOverviewCrumb(t),
                     { title: t('nav.payments'), href: '/payments' },
                     { title: t('payments.stornoRefundAudit.pageTitle') },
                 ]}

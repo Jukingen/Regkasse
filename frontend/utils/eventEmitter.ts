@@ -11,6 +11,18 @@ export type SyncProgressPayload = {
   total: number;
 };
 
+export type OfflineOrderSavedPayload = {
+  offlineOrderId: string;
+  pendingCount: number;
+  maxLimit: number;
+  remaining: number;
+};
+
+export type OfflineLimitExceededPayload = {
+  pendingCount: number;
+  maxLimit: number;
+};
+
 export type EventMap = {
   'sync:status': SyncStatusPayload;
   'sync:progress': SyncProgressPayload;
@@ -22,6 +34,8 @@ export type EventMap = {
   'offline:warning': { hoursRemaining: number };
   'offline:critical': { hoursRemaining: number };
   'offline:expired': { orderIds: string[] };
+  'offline:order-saved': OfflineOrderSavedPayload;
+  'offline:limit-exceeded': OfflineLimitExceededPayload;
 };
 
 type EventListener<T> = (data: T) => void;

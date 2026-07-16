@@ -162,6 +162,17 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
         var monthDiff = MonatsbelegPastMonthPolicy.ComputeMonthDiff(request.Year, request.Month);
         var isPastMonth = monthDiff > 0;
 
+        if (monthDiff <= 0)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Invalid Monatsbeleg period",
+                Detail =
+                    "Monatsbeleg can only be created for completed (past) Vienna calendar months. The current unfinished month is not allowed.",
+                Status = StatusCodes.Status400BadRequest,
+            });
+        }
+
         if (isPastMonth && !force)
         {
             await AuditSpecialBlockedAsync(

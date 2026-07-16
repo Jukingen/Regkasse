@@ -19,6 +19,10 @@ export const ADMIN_SIDEBAR_NON_RKSV_LEAF_ROUTE_KEYS = getSidebarCatalogLeafMenuK
 export const ROUTE_GUARD_PATHS_WITHOUT_SIDEBAR_LEAF = [
     '/orders',
     '/vouchers/new',
+    /** Legacy alias → `/receipts`. */
+    '/sales',
+    /** Legacy alias → `/payments/storno-refund-audit`. */
+    '/storno',
     /** New sale wizard — catalog entry is `sidebarHidden`; reached from overview/sales/tenant hub. */
     '/admin/billing/sales/new',
     /** Sale detail `/admin/billing/sales/{id}` — prefix-guarded via `/admin/billing/sales` (no sidebar leaf). */

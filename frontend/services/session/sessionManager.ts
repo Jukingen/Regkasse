@@ -11,6 +11,7 @@ export const SESSION_KEYS = {
 export interface StoredSessionUser {
   id: string;
   username?: string;
+  userName?: string;
   email: string;
   role: string;
   firstName?: string;

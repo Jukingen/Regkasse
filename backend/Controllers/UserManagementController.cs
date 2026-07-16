@@ -643,8 +643,28 @@ namespace KasseAPI_Final.Controllers
 
                     if (!string.Equals(request.Role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
                     {
+                        // Bind membership to the actor's tenant (Mandanten-Admin), not the legacy primary GUID.
+                        Guid membershipTenantId;
+                        if (_tenantAccessor.TenantId is Guid currentTenant && currentTenant != Guid.Empty)
+                        {
+                            membershipTenantId = currentTenant;
+                        }
+                        else if (IsCurrentUserSuperAdmin())
+                        {
+                            membershipTenantId = LegacyDefaultTenantIds.Primary;
+                        }
+                        else
+                        {
+                            await tx.RollbackAsync(createCt);
+                            return BadRequest(new
+                            {
+                                message = "Tenant context is required to create users.",
+                                code = "TENANT_CONTEXT_REQUIRED",
+                            });
+                        }
+
                         await _tenantMembershipProvisioner.ProvisionActiveMembershipAsync(
-                            user.Id, LegacyDefaultTenantIds.Primary, cancellationToken: createCt);
+                            user.Id, membershipTenantId, cancellationToken: createCt);
                     }
 
                     await tx.CommitAsync(createCt);
@@ -728,6 +748,10 @@ namespace KasseAPI_Final.Controllers
                     return NotFound(new { message = "User not found" });
                 }
 
+                var tenantGate = await EnsureTenantScopedUserAccessAsync(user, id);
+                if (tenantGate != null)
+                    return tenantGate;
+
                 // Audit diff: only whitelisted safe fields (UserAuditDiffHelper). No credentials, no Notes/TaxNumber/EmployeeNumber.
                 object? oldSnapshot = UserAuditDiffHelper.CreateSafeSnapshot(user);
 
@@ -755,7 +779,10 @@ namespace KasseAPI_Final.Controllers
                 user.LastName = request.LastName;
                 user.EmployeeNumber = request.EmployeeNumber.Trim();
                 user.TaxNumber = string.IsNullOrWhiteSpace(request.TaxNumber) ? null : request.TaxNumber.Trim();
-                user.Notes = request.Notes;
+                // Notes is NOT NULL in DB; omitted JSON null must not wipe to null.
+                if (request.Notes is not null)
+                    user.Notes = request.Notes;
+                user.Notes ??= string.Empty;
                 if (request.IsDemo.HasValue)
                     user.IsDemo = request.IsDemo.Value;
 
@@ -998,6 +1025,10 @@ namespace KasseAPI_Final.Controllers
                     return NotFound(new { message = "User not found" });
                 }
 
+                var tenantGate = await EnsureTenantScopedUserAccessAsync(user, id);
+                if (tenantGate != null)
+                    return tenantGate;
+
                 if (!user.IsActive)
                 {
                     return BadRequest(new { message = "User is already deactivated" });
@@ -1056,6 +1087,10 @@ namespace KasseAPI_Final.Controllers
                 {
                     return NotFound(new { message = "User not found" });
                 }
+
+                var tenantGate = await EnsureTenantScopedUserAccessAsync(user, id);
+                if (tenantGate != null)
+                    return tenantGate;
 
                 if (user.IsActive)
                 {
@@ -1283,6 +1318,29 @@ namespace KasseAPI_Final.Controllers
             return _tenantAccessor.TenantId;
         }
 
+        /// <summary>
+        /// Non–Super Admin actors may only mutate users that are active members of the current tenant.
+        /// Cross-tenant or SuperAdmin targets → HTTP 404 (not 403).
+        /// </summary>
+        private async Task<IActionResult?> EnsureTenantScopedUserAccessAsync(ApplicationUser user, string userId)
+        {
+            if (IsCurrentUserSuperAdmin())
+                return null;
+
+            if (_tenantAccessor.TenantId is not Guid scopedTenantId || scopedTenantId == Guid.Empty)
+                return NotFound(new { message = "User not found" });
+
+            if (string.Equals(user.Role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+                return NotFound(new { message = "User not found" });
+
+            var inTenant = await _context.UserTenantMemberships.AsNoTracking()
+                .AnyAsync(m => m.UserId == userId && m.TenantId == scopedTenantId && m.IsActive);
+            if (!inTenant)
+                return NotFound(new { message = "User not found" });
+
+            return null;
+        }
+
         // GET: api/usermanagement/roles/permissions-catalog
         [HttpGet("roles/permissions-catalog")]
         [HasPermission(AppPermissions.UserView)]
@@ -1448,13 +1506,26 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // POST: api/usermanagement/roles
+        // POST: api/usermanagement/roles — SuperAdmin only (custom Identity roles are deployment-wide).
         [HttpPost("roles")]
         [HasPermission(AppPermissions.UserManage)]
         public async Task<IActionResult> CreateRole([FromBody] CreateRoleRequest request)
         {
             try
             {
+                if (!IsCurrentUserSuperAdmin())
+                {
+                    var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
+                    return StatusCode(403, new
+                    {
+                        code = ApiError.ForbiddenPayload.Code,
+                        reason = ApiError.ForbiddenPayload.Reason,
+                        requiredPolicy = "SuperAdmin",
+                        missingRequirement = "Role",
+                        correlationId,
+                    });
+                }
+
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);

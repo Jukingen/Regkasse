@@ -304,9 +304,11 @@ public class RolePermissionMatrixTests
     }
 
     [Fact]
-    public void RoleHasPermission_Manager_DoesNotHave_UserManage()
+    public void RoleHasPermission_Manager_Has_UserManage()
     {
-        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.UserManage));
+        // Mandanten-Admin must manage tenant users (create/edit/deactivate); role CRUD stays SuperAdmin-only.
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.UserManage));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.RoleManage));
     }
 
     [Fact]

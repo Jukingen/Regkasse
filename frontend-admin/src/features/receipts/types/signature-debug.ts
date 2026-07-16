@@ -5,7 +5,7 @@
 export interface SignatureDiagnosticStepDto {
     stepId: number;
     name: string;
-    status: 'PASS' | 'FAIL' | 'WARN';
+    status: 'PASS' | 'FAIL' | 'WARN' | 'SIMULATED';
     evidence?: string | null;
 }
 

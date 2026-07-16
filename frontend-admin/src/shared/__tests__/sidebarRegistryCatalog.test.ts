@@ -70,6 +70,6 @@ describe('sidebarRegistryCatalog', () => {
     it('hides RKSV test helper from Manager sidebar permissions', () => {
         const managerPerms = [...MANAGER_ADMIN_PERMISSIONS];
         expect(isMenuItemAllowed('/rksv/sb/test-helper', managerPerms)).toBe(false);
-        expect(SIDEBAR_NAV_ITEM_CATALOG.specialReceiptTestHelper.permission).toBe(PERMISSIONS.RKSV_TEST_HELPER);
+        expect(SIDEBAR_NAV_ITEM_CATALOG.specialReceiptTestHelper.permission).toBe(PERMISSIONS.SYSTEM_CRITICAL);
     });
 });

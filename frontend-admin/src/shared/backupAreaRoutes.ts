@@ -28,6 +28,8 @@ export const BACKUP_AREA_ROUTE_PATHS = [
     '/backup/configuration/schedule',
     '/backup/configuration/platform',
     /** Legacy redirects (still guarded). */
+    '/backup/config',
+    '/backup/logs',
     '/settings/backup',
     '/settings/backup-dr',
     '/admin/backup',
@@ -96,9 +98,9 @@ export function backupPathFromPathname(pathname: string | null | undefined): str
     const p = (pathname ?? '').replace(/\/+$/, '') || '/';
     if (p === BACKUP_DASHBOARD_PATH || p === '/backup') return BACKUP_DASHBOARD_PATH;
     if (p === BACKUP_RUNS_PATH) return BACKUP_RUNS_PATH;
-    if (p === BACKUP_CONFIGURATION_PATH || p.startsWith(`${BACKUP_CONFIGURATION_PATH}/`)) {
+    if (p === BACKUP_CONFIGURATION_PATH || p.startsWith(`${BACKUP_CONFIGURATION_PATH}/`) || p === '/backup/config') {
         return BACKUP_CONFIGURATION_PATH;
     }
-    if (p === BACKUP_AUDIT_PATH) return BACKUP_AUDIT_PATH;
+    if (p === BACKUP_AUDIT_PATH || p === '/backup/logs') return BACKUP_AUDIT_PATH;
     return null;
 }

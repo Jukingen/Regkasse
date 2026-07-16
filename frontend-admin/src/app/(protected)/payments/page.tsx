@@ -8,7 +8,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Table, Card, Typography, Tag, Space, Button, Drawer, Descriptions, Alert, Statistic, Row, Col, Input, InputNumber, Collapse, Empty } from 'antd';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
-import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { CreditCardOutlined, InfoCircleOutlined, ReloadOutlined } from '@ant-design/icons';
 import { OPERATOR_LINK_LABELS } from '@/shared/operatorTruthCopy';
 import {
@@ -478,14 +478,19 @@ export default function PaymentsPage() {
   return (
     <AdminPageShell>
       <AdminPageHeader
-        title={ADMIN_NAV_LABELS.payments}
-        breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.payments }]}
+        title={t(ADMIN_NAV_LABEL_KEYS.payments)}
+        breadcrumbs={[adminOverviewCrumb(t), { title: t(ADMIN_NAV_LABEL_KEYS.payments) }]}
         actions={
           <Space wrap>
             <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isLoading}>
               {t('payments.toolbar.refresh')}
             </Button>
-            <Button icon={<CreditCardOutlined />}>{t('payments.toolbar.terminalStatus')}</Button>
+            <Button
+              icon={<CreditCardOutlined />}
+              href="/admin/payments/card-transactions"
+            >
+              {t('payments.toolbar.terminalStatus')}
+            </Button>
           </Space>
         }
       >

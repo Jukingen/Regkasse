@@ -493,5 +493,6 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
             CreatedBy = register.CreatedBy,
             UpdatedAt = register.UpdatedAt,
             UpdatedBy = register.UpdatedBy,
+            StartbelegCreatedAtUtc = register.StartbelegCreatedAt,
         };
 }

@@ -133,7 +133,7 @@ public class RksvMonatsbelegServiceTests
     {
         await using var context = CreateContext();
         var (regId, service, _) = await SeedAsync(context);
-        var (y, m) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+        var (y, m) = GetPreviousViennaMonth();
 
         var resp = await service.CreateMonatsbelegAsync(
             new CreateMonatsbelegRequest
@@ -143,7 +143,8 @@ public class RksvMonatsbelegServiceTests
                 Month = m,
                 Reason = "RKSV Monat"
             },
-            "cashier-1");
+            "cashier-1",
+            forcePastMonth: true);
 
         Assert.NotEqual(Guid.Empty, resp.PaymentId);
         Assert.False(string.IsNullOrEmpty(resp.ReceiptNumber));
@@ -171,11 +172,12 @@ public class RksvMonatsbelegServiceTests
     {
         await using var context = CreateContext();
         var (regId, service, _) = await SeedAsync(context);
-        var (y, m) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+        var (y, m) = GetPreviousViennaMonth();
         var req = new CreateMonatsbelegRequest { CashRegisterId = regId, Year = y, Month = m };
-        await service.CreateMonatsbelegAsync(req, "u1");
+        await service.CreateMonatsbelegAsync(req, "u1", forcePastMonth: true);
 
-        var ex = await Assert.ThrowsAsync<RksvOperationGuardException>(() => service.CreateMonatsbelegAsync(req, "u1"));
+        var ex = await Assert.ThrowsAsync<RksvOperationGuardException>(() =>
+            service.CreateMonatsbelegAsync(req, "u1", forcePastMonth: true));
         if (m == 12)
         {
             Assert.Equal(RksvGuardErrorCodes.DuplicateJahresbeleg, ex.ErrorCode);
@@ -245,7 +247,22 @@ public class RksvMonatsbelegServiceTests
                 new CreateMonatsbelegRequest { CashRegisterId = regId, Year = futureYear, Month = futureMonth },
                 "u1",
                 forcePastMonth: true));
-        Assert.Contains("future Vienna calendar month", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("completed (past) Vienna calendar months", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task CreateMonatsbelegAsync_CurrentMonth_ThrowsEvenWithForce()
+    {
+        await using var context = CreateContext();
+        var (regId, service, _) = await SeedAsync(context);
+        var (year, month) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.CreateMonatsbelegAsync(
+                new CreateMonatsbelegRequest { CashRegisterId = regId, Year = year, Month = month },
+                "u1",
+                forcePastMonth: true));
+        Assert.Contains("completed (past) Vienna calendar months", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     private static (int Year, int Month) GetPreviousViennaMonth()

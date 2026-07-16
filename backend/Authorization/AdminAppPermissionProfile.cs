@@ -12,7 +12,8 @@ namespace KasseAPI_Final.Authorization;
 /// Oversight <em>read</em> keys are preserved, including:</para>
 /// <list type="bullet">
 /// <item><description><see cref="AppPermissions.UserView"/> — user list, /admin/users, staff hub (Mandanten-Admin)</description></item>
-/// <item><description><see cref="AppPermissions.UserResetPassword"/> — tenant-scoped password reset (not full <c>user.manage</c>)</description></item>
+/// <item><description><see cref="AppPermissions.UserManage"/> — tenant user create/edit/deactivate (Mandanten-Admin)</description></item>
+/// <item><description><see cref="AppPermissions.UserResetPassword"/> — tenant-scoped password reset</description></item>
 /// <item><description><see cref="AppPermissions.PaymentView"/> — payment lists, admin payment APIs, signature forensics</description></item>
 /// <item><description><see cref="AppPermissions.SaleView"/> — receipts / Belege (no separate receipt.view catalog key)</description></item>
 /// <item><description><see cref="AppPermissions.ReportView"/>, <see cref="AppPermissions.ReportExport"/> — reporting and RKSV oversight exports</description></item>
@@ -78,6 +79,7 @@ public static class AdminAppPermissionProfile
     public static readonly IReadOnlyList<string> ManagerOversightViewPermissions =
     [
         AppPermissions.UserView,
+        AppPermissions.UserManage,
         AppPermissions.UserResetPassword,
         AppPermissions.RoleView,
         AppPermissions.PaymentView,

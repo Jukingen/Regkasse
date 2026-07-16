@@ -143,7 +143,14 @@ function normalizeReceiptSignaturePayload(raw: unknown): PaymentSignatureDebugPa
     {
       stepId: 2,
       name: 'TSE signature verification',
-      status: verifyResult === 'PASS' ? 'PASS' : verifyResult === 'FAIL' ? 'FAIL' : 'WARN',
+      status:
+        verifyResult === 'PASS'
+          ? 'PASS'
+          : verifyResult === 'FAIL'
+            ? 'FAIL'
+            : verifyResult === 'SIMULATED'
+              ? 'SIMULATED'
+              : 'WARN',
       evidence: `verifyResult=${verifyResult}`,
     },
   ];

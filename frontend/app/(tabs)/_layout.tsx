@@ -19,6 +19,8 @@ import { TimeSyncStatusProvider } from '../../hooks/useTimeSyncStatus';
 import { TseStatusBanner } from '../../components/TseStatusBanner';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { ToastContainer } from '../../components/ToastNotification';
+import { eventEmitter } from '../../utils/eventEmitter';
+import { OFFLINE_CONFIG } from '../../constants/offlineConfig';
 import { MonatsbelegSessionBlockModal } from '../../components/MonatsbelegSessionBlockModal';
 import { StartbelegRequiredBanner } from '../../components/StartbelegRequiredBanner';
 import { subscribeOfflineSyncComplete } from '../../services/payment/offlineQueueSyncNotifier';
@@ -122,6 +124,71 @@ function PosTabsInner({
     },
     [removeTabBarToast]
   );
+
+  useEffect(() => {
+    const onOrderSaved = (payload: {
+      offlineOrderId: string;
+      pendingCount: number;
+      maxLimit: number;
+      remaining: number;
+    }) => {
+      const remaining = payload.remaining;
+      let type: 'success' | 'warning' | 'error' = 'success';
+      let message =
+        remaining === 1
+          ? `Bestellung offline gespeichert — noch 1 Bestellung möglich (${payload.pendingCount}/${payload.maxLimit})`
+          : `Bestellung offline gespeichert — noch ${remaining} Bestellungen möglich (${payload.pendingCount}/${payload.maxLimit})`;
+      let duration = 3000;
+
+      if (payload.pendingCount >= OFFLINE_CONFIG.CRITICAL_PENDING_COUNT) {
+        type = 'error';
+        duration = 5000;
+        message = `Kritisch: Offline-Warteschlange fast voll (${payload.pendingCount}/${payload.maxLimit}) — nur noch ${remaining} möglich`;
+      } else if (payload.pendingCount >= OFFLINE_CONFIG.WARNING_PENDING_COUNT) {
+        type = 'warning';
+        duration = 4500;
+        message = `Warnung: ${payload.pendingCount}/${payload.maxLimit} Offline-Bestellungen — bitte bald synchronisieren`;
+      }
+
+      pushTabBarToast({ type, message, duration });
+    };
+
+    const onLimitExceeded = (payload: { pendingCount: number; maxLimit: number }) => {
+      pushTabBarToast({
+        type: 'error',
+        message: `Offline-Limit erreicht (${payload.pendingCount}/${payload.maxLimit}). Bitte Internetverbindung prüfen und synchronisieren.`,
+        duration: 5000,
+      });
+    };
+
+    const onOfflineWarning = (payload: { hoursRemaining: number }) => {
+      pushTabBarToast({
+        type: 'warning',
+        message: `Offline-Frist: noch ca. ${Math.ceil(payload.hoursRemaining)} Stunden — bitte verbinden und synchronisieren`,
+        duration: 6000,
+      });
+    };
+
+    const onOfflineCritical = (payload: { hoursRemaining: number }) => {
+      pushTabBarToast({
+        type: 'error',
+        message: `Kritisch: Offline-Frist endet in ca. ${Math.ceil(payload.hoursRemaining)} Stunden — Bestellungen drohen zu verfallen`,
+        duration: 8000,
+      });
+    };
+
+    eventEmitter.on('offline:order-saved', onOrderSaved);
+    eventEmitter.on('offline:limit-exceeded', onLimitExceeded);
+    eventEmitter.on('offline:warning', onOfflineWarning);
+    eventEmitter.on('offline:critical', onOfflineCritical);
+
+    return () => {
+      eventEmitter.off('offline:order-saved', onOrderSaved);
+      eventEmitter.off('offline:limit-exceeded', onLimitExceeded);
+      eventEmitter.off('offline:warning', onOfflineWarning);
+      eventEmitter.off('offline:critical', onOfflineCritical);
+    };
+  }, [pushTabBarToast]);
 
   return (
     <TseHealthProvider>

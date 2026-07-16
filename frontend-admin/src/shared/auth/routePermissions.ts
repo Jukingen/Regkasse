@@ -4,9 +4,21 @@
  * every sidebar leaf must have matching entries here — enforced by `sidebarRouteCoverage` tests.
  *
  * Empty array = route requires at least one permission (no specific permission).
+ * Array default = ANY (OR). Paths in {@link ROUTE_PERMISSIONS_REQUIRE_ALL} need EVERY listed permission (AND),
+ * matching backend multi-`[HasPermission]` attributes.
  * Fail-closed: no permissions in token → deny unless migration flag is set.
  */
 import { AppPermissions, PERMISSIONS, ANY_AUTHENTICATED_PERMISSION } from './permissions';
+
+/**
+ * Routes whose permission arrays are AND (backend requires all).
+ * All other array entries in {@link ROUTE_PERMISSIONS} remain OR.
+ */
+export const ROUTE_PERMISSIONS_REQUIRE_ALL = new Set<string>([
+  '/rksv/dep-export',
+  '/admin/rksv/dep-export',
+  '/rksv/integrity',
+]);
 
 export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/dashboard': ANY_AUTHENTICATED_PERMISSION,
@@ -24,6 +36,8 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/payments/card-transactions': PERMISSIONS.PAYMENT_VIEW,
   '/admin/payments/card-transactions': PERMISSIONS.PAYMENT_VIEW,
   '/payments/storno-refund-audit': PERMISSIONS.PAYMENT_VIEW,
+  /** Legacy alias → `/payments/storno-refund-audit` (must be registered or PermissionRouteGuard 403s before redirect). */
+  '/storno': PERMISSIONS.PAYMENT_VIEW,
   '/admin/tse/offline-transactions': PERMISSIONS.PAYMENT_VIEW,
   /** Manager oversight — operational sales (receipts / payments filter pages). */
   '/receipts': PERMISSIONS.SALE_VIEW,
@@ -38,8 +52,8 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/reporting/tagesbericht': PERMISSIONS.REPORT_VIEW,
   '/reporting/monatsbericht': PERMISSIONS.REPORT_VIEW,
   '/reporting/jahresbericht': PERMISSIONS.REPORT_VIEW,
-  /** Verkauf nav group alias (no dedicated page; documents sales-transactions IA). */
-  '/sales': PERMISSIONS.REPORT_VIEW,
+  /** Legacy alias → `/receipts` (must match target guard; SALE_VIEW not REPORT_VIEW). */
+  '/sales': PERMISSIONS.SALE_VIEW,
   '/reports/daily-closing': PERMISSIONS.REPORT_VIEW,
   '/admin/reports': PERMISSIONS.REPORT_VIEW,
   '/admin/reports/user-activity': PERMISSIONS.REPORT_VIEW,
@@ -84,6 +98,8 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   /** Super Admin / settings.manage — offline limits and toggles. */
   '/settings/offline': PERMISSIONS.SETTINGS_MANAGE,
   '/settings/personalization': PERMISSIONS.SETTINGS_VIEW,
+  /** Legacy redirect — canonical `/settings/personalization`. */
+  '/settings/appearance': PERMISSIONS.SETTINGS_VIEW,
   '/settings/payment-methods': PERMISSIONS.SETTINGS_VIEW,
   /** Super Admin / settings.manage — TSE defaults (legacy hub tab; deep-link route). */
   '/settings/tse': PERMISSIONS.SETTINGS_MANAGE,
@@ -101,6 +117,9 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/backup/configuration/schedule': PERMISSIONS.BACKUP_MANAGE,
   '/backup/configuration/platform': PERMISSIONS.SETTINGS_MANAGE,
   '/backup/audit': PERMISSIONS.SETTINGS_VIEW,
+  /** Legacy redirects */
+  '/backup/config': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/logs': PERMISSIONS.SETTINGS_VIEW,
   /** Legacy redirect — canonical `/backup/runs`. */
   '/admin/backup': PERMISSIONS.SETTINGS_VIEW,
   '/settings/development-mode': PERMISSIONS.SYSTEM_CRITICAL,
@@ -137,8 +156,8 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/rksv/sb/jahresbeleg': PERMISSIONS.FINANZONLINE_MANAGE,
   '/rksv/sb/nullbeleg': PERMISSIONS.FINANZONLINE_MANAGE,
   '/rksv/sb/schlussbeleg': PERMISSIONS.FINANZONLINE_MANAGE,
-  /** Sidebar-only: Demo-Modus test tools on Sonderbelege (Super Admin catalog). */
-  '/rksv/sb/test-helper': PERMISSIONS.RKSV_TEST_HELPER,
+  /** Sidebar-only: Demo-Modus test tools on Sonderbelege (Super Admin / system.critical). */
+  '/rksv/sb/test-helper': PERMISSIONS.SYSTEM_CRITICAL,
   '/rksv/sonderbelege': PERMISSIONS.FINANZONLINE_MANAGE,
   '/rksv/status': PERMISSIONS.SETTINGS_VIEW,
   '/rksv/cmc-certificate': PERMISSIONS.SETTINGS_VIEW,
@@ -179,4 +198,28 @@ export function getRequiredPermissionForPath(pathname: string): string | string[
     if (normalized === key || normalized.startsWith(key + '/')) return ROUTE_PERMISSIONS[key];
   }
   return undefined;
+}
+
+/** True when the path's permission array must be satisfied with AND (all), not OR (any). */
+export function pathRequiresAllPermissions(pathname: string): boolean {
+  const normalized = pathname.replace(/\/$/, '') || '/';
+  if (ROUTE_PERMISSIONS_REQUIRE_ALL.has(normalized)) return true;
+  for (const key of ROUTE_PERMISSIONS_REQUIRE_ALL) {
+    if (normalized === key || normalized.startsWith(key + '/')) return true;
+  }
+  return false;
+}
+
+/** Shared rule for {@link PermissionRouteGuard} and {@link canAccessPath}. */
+export function permissionsSatisfyRoute(
+  pathname: string,
+  permissions: string[],
+  required: string | string[],
+): boolean {
+  const arr = Array.isArray(required) ? required : [required];
+  if (arr.length === 0) return permissions.length > 0;
+  if (!permissions.length) return false;
+  return pathRequiresAllPermissions(pathname)
+    ? arr.every((p) => permissions.includes(p))
+    : arr.some((p) => permissions.includes(p));
 }

@@ -228,7 +228,7 @@ public class PermissionAuthorizationHandlerTests
     }
 
     [Fact]
-    public async Task PermissionPolicy_UserManage_Denies_Manager_Role()
+    public async Task PermissionPolicy_UserManage_Allows_Manager_Role()
     {
         var provider = BuildAuthorizationServices();
         var auth = provider.GetRequiredService<IAuthorizationService>();
@@ -236,7 +236,7 @@ public class PermissionAuthorizationHandlerTests
 
         var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.UserManage));
 
-        Assert.False(result.Succeeded);
+        Assert.True(result.Succeeded);
     }
 
     // --- SystemCritical: SuperAdmin only ---

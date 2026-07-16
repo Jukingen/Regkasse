@@ -191,6 +191,7 @@
     "cancel": "İptal",
     "confirm": "Yine de kapat",
     "mustCloseFirst": "Endbeleg için kasa kapalı olmalıdır (açık vardiya yok).",
+    "defaultReason": "Kasa yönetiminden devre dışı bırakma",
     "success": "Schlussbeleg oluşturuldu — kasa kapatıldı. Yeni ödeme yok.",
     "restoreTooltip": "RKSV: Schlussbeleg ile kapatma geri alınamaz."
   },
@@ -269,8 +270,14 @@
     "statsTotal": "Toplam kasa",
     "selectTenant": "Kiracı",
     "selectTenantHint": "Kasa listesi için bir kiracı seçin.",
+    "platformScopeTag": "Tüm kiracılar",
     "managerIntro": "Mandant kasa yönetimine geçmek için bir kasa seçin.",
     "openKassenverwaltung": "Kasa yönetimine git"
+  },
+  "tenantSelector": {
+    "allTenants": "Tüm kiracılar",
+    "placeholder": "Tüm kiracıları göster",
+    "tenantOption": "{{name}} ({{slug}})"
   },
   "selector": {
     "placeholder": "Kasa seçin…",

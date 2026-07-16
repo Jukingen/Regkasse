@@ -170,6 +170,14 @@ vi.mock('@/features/users/hooks/useUsersList', () => ({
   },
 }));
 
+vi.mock('@/features/tenancy/providers/TenantProvider', () => ({
+  useTenant: () => ({
+    tenant: testPageContext.authRole === 'SuperAdmin' ? null : 'dev',
+    setTenant: vi.fn(),
+    clearTenant: vi.fn(),
+  }),
+}));
+
 vi.mock('@/features/tenancy/hooks/useCurrentTenant', () => ({
   useCurrentTenant: () => ({
     hasAuthToken: true,

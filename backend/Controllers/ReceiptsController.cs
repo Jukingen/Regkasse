@@ -1,11 +1,10 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Tse;
 using KasseAPI_Final.DTOs;
-using System.Security.Claims;
 using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Controllers
@@ -17,12 +16,15 @@ namespace KasseAPI_Final.Controllers
         private readonly IReceiptService _receiptService;
         private readonly ILogger<ReceiptsController> _logger;
 
-        private readonly ITseService _tseService;
+        private readonly ITseVerificationService _tseVerification;
 
-        public ReceiptsController(IReceiptService receiptService, ITseService tseService, ILogger<ReceiptsController> logger)
+        public ReceiptsController(
+            IReceiptService receiptService,
+            ITseVerificationService tseVerification,
+            ILogger<ReceiptsController> logger)
         {
             _receiptService = receiptService;
-            _tseService = tseService;
+            _tseVerification = tseVerification;
             _logger = logger;
         }
 
@@ -130,7 +132,7 @@ namespace KasseAPI_Final.Controllers
                 if (sig == null || string.IsNullOrEmpty(sig.SignatureValue))
                     return Ok(new { receiptId, signatureValue = (string?)null, prevSignatureValue = (string?)null, verifyResult = "SKIP", message = "No TSE signature" });
 
-                var valid = await _tseService.ValidateTseSignatureAsync(sig.SignatureValue);
+                var verification = await _tseVerification.VerifySignatureAsync(sig.SignatureValue);
                 return Ok(new
                 {
                     receiptId,
@@ -139,7 +141,9 @@ namespace KasseAPI_Final.Controllers
                     timestamp = sig.Timestamp,
                     prevSignatureValue = sig.PrevSignatureValue,
                     signatureValue = sig.SignatureValue,
-                    verifyResult = valid ? "PASS" : "FAIL"
+                    verifyResult = verification.ToVerifyResultCode(),
+                    isSimulated = verification.IsSimulated,
+                    verificationMessage = verification.Message
                 });
             }
             catch (Exception ex)

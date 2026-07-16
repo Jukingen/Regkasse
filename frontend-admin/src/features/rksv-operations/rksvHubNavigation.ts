@@ -46,6 +46,9 @@ export const RKSV_HUB_GROUPS: RksvHubGroupDef[] = [
       { href: '/rksv/signature-chain', labelKey: 'rksvHub.link.signatureChain' },
       { href: '/rksv/offline-intent-coverage', labelKey: 'rksvHub.link.offlineCoverage' },
       { href: '/rksv/offline-orders', labelKey: 'rksvHub.link.offlineOrders' },
+      { href: '/admin/tse/offline-transactions', labelKey: 'rksvHub.link.offlineTransactions' },
+      { href: '/admin/rksv/signature-verify', labelKey: 'rksvHub.link.signatureVerify' },
+      { href: '/admin/audit/fiscal-exports', labelKey: 'rksvHub.link.fiscalExportAudit' },
     ],
   },
   {

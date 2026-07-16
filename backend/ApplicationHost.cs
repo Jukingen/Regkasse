@@ -645,6 +645,7 @@ else
 
 // Register services
 builder.Services.AddScoped<ITseService, TseService>();
+builder.Services.AddScoped<ITseVerificationService, TseVerificationService>();
 builder.Services.AddHttpClient<IFinanzOnlineSessionTransport, SoapFinanzOnlineSessionTransport>((sp, client) =>
 {
     var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<FinanzOnlineSessionOptions>>().CurrentValue;

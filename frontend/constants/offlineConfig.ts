@@ -4,8 +4,13 @@
  */
 export const OFFLINE_CONFIG = {
   // Limits
-  MAX_OFFLINE_TRANSACTIONS: 50, // RKSV max limit
+  MAX_OFFLINE_TRANSACTIONS: 50, // RKSV max limit (POS counter / capacity UI)
   MAX_OFFLINE_ORDERS: 100, // Separate from transactions
+
+  /** Yellow warning when pending offline orders reach this count (80% of 50). */
+  WARNING_PENDING_COUNT: 40,
+  /** Red critical when pending offline orders reach this count. */
+  CRITICAL_PENDING_COUNT: 48,
 
   // Time limits
   OFFLINE_EXPIRY_HOURS: 72, // 3 days (RKSV compliance)

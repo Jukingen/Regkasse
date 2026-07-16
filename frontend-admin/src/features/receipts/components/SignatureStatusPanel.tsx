@@ -6,11 +6,14 @@ import {
     CheckCircleOutlined,
     CloseCircleOutlined,
     WarningOutlined,
+    ExperimentOutlined,
     WifiOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useSignatureDebugQuery } from '../hooks/useSignatureDebugQuery';
 import type { SignatureDiagnosticStepDto } from '../types/signature-debug';
+import { useRksvStatus } from '@/features/rksv/hooks/useRksvBackendEnvironment';
+import { useEnvironment } from '@/hooks/useEnvironment';
 import { useI18n } from '@/i18n';
 
 const { Text } = Typography;
@@ -29,11 +32,34 @@ interface SignatureStatusPanelProps {
     offlineTrace?: ReceiptOfflineTraceProps | null;
 }
 
-function StatusTag({ status }: { status: string }) {
+function resolveDisplayStatus(
+    status: string,
+    tseSimulated: boolean,
+): SignatureDiagnosticStepDto['status'] | string {
+    if (status === 'SIMULATED') return 'SIMULATED';
+    // Defense in depth: older APIs may still return FAIL under FakeTseProvider.
+    if (tseSimulated && status === 'FAIL') return 'SIMULATED';
+    return status;
+}
+
+function StatusTag({
+    status,
+    simulatedLabel,
+}: {
+    status: string;
+    simulatedLabel: string;
+}) {
     if (status === 'PASS') {
         return (
             <Tag icon={<CheckCircleOutlined />} color="success">
                 PASS
+            </Tag>
+        );
+    }
+    if (status === 'SIMULATED') {
+        return (
+            <Tag icon={<ExperimentOutlined />} color="orange">
+                {simulatedLabel}
             </Tag>
         );
     }
@@ -57,12 +83,30 @@ function StatusTag({ status }: { status: string }) {
 export default function SignatureStatusPanel({ paymentId, offlineTrace }: SignatureStatusPanelProps) {
     const { t } = useI18n();
     const s = (key: string) => t(`receipts.detail.signature.${key}`);
+    const { isDevelopment } = useEnvironment();
+    const { isDemo: tseSimulatedFromApi, isLoading: envLoading } = useRksvStatus();
+    // Prefer backend TSE/demo flag; fall back to frontend NODE_ENV while RKSV env loads.
+    const usesSimulatedTse = envLoading ? isDevelopment : tseSimulatedFromApi;
     const { data, isLoading, isError, error } = useSignatureDebugQuery(paymentId);
     const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+
+    const environmentBadge = (
+        <Alert
+            type={usesSimulatedTse ? 'warning' : 'info'}
+            showIcon
+            icon={usesSimulatedTse ? <ExperimentOutlined /> : undefined}
+            style={{ marginBottom: 16 }}
+            title={usesSimulatedTse ? s('envBadgeDevTitle') : s('envBadgeProdTitle')}
+            description={
+                usesSimulatedTse ? s('envBadgeDevDescription') : s('envBadgeProdDescription')
+            }
+        />
+    );
 
     if (!paymentId) {
         return (
             <Card title={s('cardTitle')}>
+                {environmentBadge}
                 <Alert
                     type="info"
                     title={s('noPaymentTitle')}
@@ -79,6 +123,7 @@ export default function SignatureStatusPanel({ paymentId, offlineTrace }: Signat
     if (isOffline) {
         return (
             <Card title={s('cardTitle')}>
+                {environmentBadge}
                 <Alert
                     type="warning"
                     icon={<WifiOutlined />}
@@ -93,6 +138,7 @@ export default function SignatureStatusPanel({ paymentId, offlineTrace }: Signat
     if (isLoading) {
         return (
             <Card title={s('cardTitle')}>
+                {environmentBadge}
                 <Spin description={s('verifyingTip')} />
             </Card>
         );
@@ -101,6 +147,7 @@ export default function SignatureStatusPanel({ paymentId, offlineTrace }: Signat
     if (isError) {
         return (
             <Card title={s('cardTitle')}>
+                {environmentBadge}
                 <Alert
                     type="error"
                     title={s('verificationFailed')}
@@ -112,13 +159,20 @@ export default function SignatureStatusPanel({ paymentId, offlineTrace }: Signat
     }
 
     const payload = data?.data ?? { steps: [], compactJws: null };
-    const steps = payload.steps;
+    const steps = payload.steps.map((step) => ({
+        ...step,
+        status: resolveDisplayStatus(step.status, usesSimulatedTse) as SignatureDiagnosticStepDto['status'],
+    }));
     const compactJws = payload.compactJws;
     const hasFail = steps.some((st) => st.status === 'FAIL');
+    const hasSimulated = steps.some((st) => st.status === 'SIMULATED');
     const failSteps = steps.filter((st) => st.status === 'FAIL');
+    const simulatedSteps = steps.filter((st) => st.status === 'SIMULATED');
+    const simulatedLabel = s('simulatedTag');
 
     return (
         <Card title={s('cardTitle')}>
+            {environmentBadge}
             {showOfflineTimeline ? (
                 <Alert
                     type="info"
@@ -173,7 +227,7 @@ export default function SignatureStatusPanel({ paymentId, offlineTrace }: Signat
                                 </div>
                             )}
                         </div>
-                        <StatusTag status={step.status} />
+                        <StatusTag status={step.status} simulatedLabel={simulatedLabel} />
                     </div>
                 ))}
             </div>
@@ -205,6 +259,34 @@ export default function SignatureStatusPanel({ paymentId, offlineTrace }: Signat
                     ]}
                 />
             )}
+
+            {hasSimulated && simulatedSteps.length > 0 && !hasFail ? (
+                <Collapse
+                    style={{ marginTop: 16 }}
+                    items={[
+                        {
+                            key: 'simulated',
+                            label: s('collapseSimulatedSteps'),
+                            children: (
+                                <div style={{ fontFamily: 'monospace', fontSize: 12 }}>
+                                    {simulatedSteps.map((st) => (
+                                        <div key={st.stepId} style={{ marginBottom: 8 }}>
+                                            <strong>
+                                                {t('receipts.detail.signature.stepLine', {
+                                                    stepId: st.stepId,
+                                                    name: st.name,
+                                                })}
+                                            </strong>
+                                            <br />
+                                            {st.evidence ?? s('noEvidence')}
+                                        </div>
+                                    ))}
+                                </div>
+                            ),
+                        },
+                    ]}
+                />
+            ) : null}
 
             {compactJws ? (
                 <Collapse

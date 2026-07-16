@@ -109,7 +109,8 @@ public static class RolePermissionMatrix
 
             [Roles.Manager] = new[]
             {
-                AppPermissions.UserView, AppPermissions.UserResetPassword, AppPermissions.RoleView,
+                // Tenant user lifecycle (Mandanten-Admin): view + manage; password reset also via UserResetPassword.
+                AppPermissions.UserView, AppPermissions.UserManage, AppPermissions.UserResetPassword, AppPermissions.RoleView,
                 AppPermissions.ProductView, AppPermissions.ProductManage,
                 AppPermissions.CategoryView, AppPermissions.CategoryManage,
                 AppPermissions.ModifierView, AppPermissions.ModifierManage,

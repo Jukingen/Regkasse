@@ -169,7 +169,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         [HttpPut("session")]
-        [HasPermission(AppPermissions.SettingsManage)]
+        [HasPermission(AppPermissions.SettingsView)]
         public async Task<IActionResult> UpdateSessionSettings(
             [FromBody] UpdateSessionSettingsRequest request,
             CancellationToken cancellationToken)

@@ -104,10 +104,31 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(HttpContext?.RequestAborted ?? default);
+                // Project to DTO — serializing CashRegister + CurrentUser causes circular JSON and truncated responses.
                 var registers = await _context.CashRegisters
-                    .Include(cr => cr.CurrentUser)
                     .AsNoTracking()
                     .Where(cr => cr.TenantId == tenantId)
+                    .OrderBy(cr => cr.RegisterNumber)
+                    .Select(cr => new CashRegisterDto
+                    {
+                        Id = cr.Id,
+                        TenantId = cr.TenantId,
+                        RegisterNumber = cr.RegisterNumber,
+                        Location = cr.Location,
+                        Status = cr.Status,
+                        StartingBalance = cr.StartingBalance,
+                        CurrentBalance = cr.CurrentBalance,
+                        LastBalanceUpdate = cr.LastBalanceUpdate,
+                        CurrentUserId = cr.CurrentUserId,
+                        IsActive = cr.IsActive,
+                        IsDefaultForTenant = cr.IsDefaultForTenant,
+                        DecommissionedAtUtc = cr.DecommissionedAtUtc,
+                        DecommissionReason = cr.DecommissionReason,
+                        CreatedAt = cr.CreatedAt,
+                        CreatedBy = cr.CreatedBy,
+                        UpdatedAt = cr.UpdatedAt,
+                        UpdatedBy = cr.UpdatedBy,
+                    })
                     .ToListAsync();
 
                 return Ok(new { message = _messages.Get(ApiMessageKeys.RegistersFetchSuccess), registers });

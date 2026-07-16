@@ -43,7 +43,12 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-    mockUsePermissions.mockReturnValue({ isSuperAdmin: false });
+    mockUsePermissions.mockReturnValue({
+        isSuperAdmin: false,
+        canManageCashRegisters: true,
+        canDecommissionCashRegisters: false,
+        hasPermission: () => false,
+    });
 });
 
 function renderActions(
@@ -59,7 +64,7 @@ function renderActions(
 }
 
 describe('CashRegisterActions', () => {
-    it('shows shift and daily closing actions for Manager', () => {
+    it('shows shift and daily closing actions for Manager without decommission', () => {
         renderActions();
 
         fireEvent.click(screen.getByRole('button', { name: /Aktionen/i }));
@@ -67,12 +72,33 @@ describe('CashRegisterActions', () => {
         expect(screen.getByText('Schicht öffnen')).toBeInTheDocument();
         expect(screen.getByText('Schicht schließen')).toBeInTheDocument();
         expect(screen.getByText('Tagesabschluss')).toBeInTheDocument();
+        expect(screen.getByText('Bearbeiten')).toBeInTheDocument();
         expect(screen.queryByText('Stilllegen')).not.toBeInTheDocument();
         expect(screen.queryByText('Löschen')).not.toBeInTheDocument();
     });
 
-    it('shows lifecycle actions for Super Admin', () => {
-        mockUsePermissions.mockReturnValue({ isSuperAdmin: true });
+    it('shows decommission for Mandanten-Admin with cash_register.decommission', () => {
+        mockUsePermissions.mockReturnValue({
+            isSuperAdmin: false,
+            canManageCashRegisters: true,
+            canDecommissionCashRegisters: true,
+            hasPermission: () => false,
+        });
+        renderActions();
+
+        fireEvent.click(screen.getByRole('button', { name: /Aktionen/i }));
+
+        expect(screen.getByText('Stilllegen')).toBeInTheDocument();
+        expect(screen.queryByText('Löschen')).not.toBeInTheDocument();
+    });
+
+    it('shows lifecycle actions including hard delete for Super Admin', () => {
+        mockUsePermissions.mockReturnValue({
+            isSuperAdmin: true,
+            canManageCashRegisters: true,
+            canDecommissionCashRegisters: true,
+            hasPermission: () => true,
+        });
         renderActions();
 
         fireEvent.click(screen.getByRole('button', { name: /Aktionen/i }));

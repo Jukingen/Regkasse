@@ -71,6 +71,7 @@ export default function KassenverwaltungPage() {
         canAccessPage,
         canLoadRegisters,
         canManageCashRegisters,
+        canDecommissionCashRegisters,
         hasPermission,
         licenseBlocksModule,
         licenseLoading,
@@ -79,11 +80,13 @@ export default function KassenverwaltungPage() {
     } = useCashRegisterModuleAccess();
 
     const canView = canAccessPage;
-    /** Register lifecycle (create / decommission / hard delete) — Super Admin only in FA. */
-    const canCreate = isSuperAdminUser;
-    const canDecommission = isSuperAdminUser;
+    /** Create — cash_register.manage (Mandanten-Admin + Super Admin). */
+    const canCreate = canManageCashRegisters;
+    /** Decommission — cash_register.decommission (Mandanten-Admin + Super Admin). */
+    const canDecommission = canDecommissionCashRegisters;
     /** Shift open/close and daily closing — Manager with cash_register.manage. */
     const canOperate = canManageCashRegisters;
+    /** Hard delete remains platform-critical (Super Admin). */
     const canHardDelete = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
     const canOpenSonderbelege = useCanAccessPath(RKSV_SONDERBELEGE_PATH);
 
@@ -295,7 +298,10 @@ export default function KassenverwaltungPage() {
         }
         decommissionMutation.mutate({
             id,
-            reason: nextReason?.trim() || decommissionReason.trim() || 'Kassenverwaltung Stilllegung',
+            reason:
+                nextReason?.trim() ||
+                decommissionReason.trim() ||
+                t('cashRegisters.decommission.defaultReason'),
         });
     }, [decommissionRegister, decommissionReason, decommissionMutation, t]);
 
@@ -412,7 +418,7 @@ export default function KassenverwaltungPage() {
                             loading={tenantsLoading}
                         />
                         <Tag color={selectedTenant ? 'default' : 'blue'}>
-                            {selectedTenant?.slug ?? 'Super Admin'}
+                            {selectedTenant?.slug ?? t('cashRegisters.adminPage.platformScopeTag')}
                         </Tag>
                     </Space>
                 ) : null}

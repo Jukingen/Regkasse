@@ -191,6 +191,7 @@
     "cancel": "Cancel",
     "confirm": "Decommission anyway",
     "mustCloseFirst": "The register must be closed (no open shift) before an Endbeleg can be created.",
+    "defaultReason": "Decommission via cash register admin",
     "success": "Schlussbeleg created — register decommissioned. No new payments allowed.",
     "restoreTooltip": "RKSV: decommissioning via Schlussbeleg is irreversible. Restore is not possible."
   },
@@ -269,8 +270,14 @@
     "statsTotal": "Total registers",
     "selectTenant": "Tenant",
     "selectTenantHint": "Select a tenant to load the cash register list.",
+    "platformScopeTag": "All tenants",
     "managerIntro": "Pick a register to open cash register management for your tenant.",
     "openKassenverwaltung": "Open cash register management"
+  },
+  "tenantSelector": {
+    "allTenants": "All tenants",
+    "placeholder": "Show all tenants",
+    "tenantOption": "{{name}} ({{slug}})"
   },
   "selector": {
     "placeholder": "Select register…",

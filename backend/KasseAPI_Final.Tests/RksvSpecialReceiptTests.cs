@@ -299,14 +299,25 @@ public class RksvSpecialReceiptTests
         await using var context = CreateContext();
         var (registerId, service) = await SeedRegisterAsync(context);
         var (y, m) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+        if (m == 1)
+        {
+            y -= 1;
+            m = 12;
+        }
+        else
+        {
+            m -= 1;
+        }
 
         var first = await service.CreateMonatsbelegAsync(
             new CreateMonatsbelegRequest { CashRegisterId = registerId, Year = y, Month = m },
-            "u1");
+            "u1",
+            forcePastMonth: true);
         var exception = await Record.ExceptionAsync(() =>
             service.CreateMonatsbelegAsync(
                 new CreateMonatsbelegRequest { CashRegisterId = registerId, Year = y, Month = m },
-                "u1"));
+                "u1",
+                forcePastMonth: true));
 
         first.Should().NotBeNull();
         exception.Should().BeOfType<RksvOperationGuardException>();

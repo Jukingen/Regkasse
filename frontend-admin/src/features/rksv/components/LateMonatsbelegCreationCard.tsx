@@ -86,14 +86,14 @@ export function LateMonatsbelegCreationCard({
         () =>
             Array.from({ length: 12 }, (_, idx) => {
                 const value = idx + 1;
-                const isFuture =
+                const isCurrentOrFuture =
                     typeof selectedYear === 'number' &&
                     selectedYear === viennaYear &&
-                    value > viennaMonth;
+                    value >= viennaMonth;
                 return {
                     value,
                     label: formatMonatsbelegMonthNameDe(value),
-                    disabled: isFuture,
+                    disabled: isCurrentOrFuture,
                 };
             }),
         [selectedYear, viennaMonth, viennaYear],
@@ -115,8 +115,10 @@ export function LateMonatsbelegCreationCard({
 
             const { year, month } = values;
             const monthDiff = getMonthDifference(year, month);
-            if (monthDiff < 0) {
-                message.error('Monatsbeleg kann nicht für einen zukünftigen Kalendermonat erstellt werden.');
+            if (monthDiff <= 0) {
+                message.error(
+                    'Monatsbeleg kann nur für abgeschlossene (vergangene) Kalendermonate erstellt werden.',
+                );
                 return;
             }
 
@@ -158,8 +160,8 @@ export function LateMonatsbelegCreationCard({
                             <div>
                                 <p style={{ marginBottom: 0 }}>{warningMessage}</p>
                                 <p style={{ marginTop: 12, marginBottom: 0 }}>
-                                    Der Beleg wird mit dem realen aktuellen Datum erstellt und als verspätet markiert
-                                    (keine Rückdatierung).
+                                    Dieser Monatsbeleg wird für den ausgewählten Zeitraum erstellt, aber mit dem
+                                    heutigen Datum versehen (keine Rückdatierung).
                                 </p>
                                 <p style={{ marginTop: 12, marginBottom: 0, color: '#ff4d4f' }}>
                                     Möchten Sie fortfahren?
@@ -223,12 +225,12 @@ export function LateMonatsbelegCreationCard({
                 description={
                     <div>
                         <p style={{ marginBottom: 8 }}>
-                            Diese Belege werden mit dem <strong>tatsächlichen aktuellen Datum</strong> erstellt und als{' '}
-                            <strong>verspätet</strong> markiert.
+                            Dieser Monatsbeleg wird für den ausgewählten Zeitraum erstellt, aber mit dem heutigen
+                            Datum versehen.
                         </p>
                         <p style={{ marginBottom: 8 }}>
-                            Der abgedeckte Zeitraum wird korrekt hinterlegt. Bei einer Prüfung ist die verspätete
-                            Erstellung transparent nachvollziehbar.
+                            Der abgedeckte Zeitraum wird korrekt hinterlegt und als <strong>verspätet</strong>{' '}
+                            markiert. Bei einer Prüfung ist die verspätete Erstellung transparent nachvollziehbar.
                         </p>
                         <p style={{ color: '#dc2626', fontSize: 13, marginBottom: 0 }}>
                             Dieser Vorgang wird im Audit-Log protokolliert.

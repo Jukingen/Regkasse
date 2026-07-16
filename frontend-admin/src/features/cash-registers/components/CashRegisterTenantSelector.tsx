@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { Select } from 'antd';
 
 import type { AdminTenantListItem } from '@/features/super-admin/api/adminTenants';
+import { useI18n } from '@/i18n';
 
 const ALL_TENANTS_VALUE = '__all_tenants__';
 
@@ -20,20 +21,25 @@ export function CashRegisterTenantSelector({
     tenants,
     loading = false,
 }: CashRegisterTenantSelectorProps) {
+    const { t } = useI18n();
+
     const options = useMemo(
         () => [
-            { label: '📋 Alle Mandanten', value: ALL_TENANTS_VALUE },
+            { label: t('cashRegisters.tenantSelector.allTenants'), value: ALL_TENANTS_VALUE },
             ...tenants.map((tenant) => ({
-                label: `🏢 ${tenant.name} (${tenant.slug})`,
+                label: t('cashRegisters.tenantSelector.tenantOption', {
+                    name: tenant.name,
+                    slug: tenant.slug,
+                }),
                 value: tenant.id,
             })),
         ],
-        [tenants],
+        [t, tenants],
     );
 
     return (
         <Select
-            placeholder="Alle Mandanten anzeigen"
+            placeholder={t('cashRegisters.tenantSelector.placeholder')}
             style={{ width: 280 }}
             allowClear
             value={value}

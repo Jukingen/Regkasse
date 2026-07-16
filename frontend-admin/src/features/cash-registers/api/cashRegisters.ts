@@ -64,6 +64,8 @@ export type AdminCashRegisterListItem = {
     updatedBy?: string | null;
     lastMonatsbelegUtc?: string | null;
     lastJahresbelegUtc?: string | null;
+    /** UTC ISO when Startbeleg was recorded; null/undefined when not created. */
+    startbelegCreatedAtUtc?: string | null;
     tseHealthStatus?: TseHealthStatus | string | null;
     offlineQueueCount?: number;
     lastSyncAtUtc?: string | null;

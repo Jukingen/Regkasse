@@ -40,6 +40,7 @@ import { useReceiptListQuery } from '@/features/receipts/hooks/useReceiptListQue
 import type { ReceiptListItemDto, ReceiptListParams } from '@/features/receipts/types/receipts';
 import { RECEIPT_LIST_DEFAULTS } from '@/features/receipts/types/receipts';
 import { getApiAdminOperationsSummary } from '@/api/generated/admin/admin';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 
 export default function OperationsCenterView() {
     const { t } = useI18n();
@@ -92,11 +93,10 @@ export default function OperationsCenterView() {
     };
 
     const title = t('nav.operationsCenter');
-    const emptyListHint = isError
-        ? String((error as Error)?.message ?? 'Error')
-        : !isLoading && !(listData?.items?.length)
-          ? t('adminShell.operationsCenter.emptyReceipts')
-          : undefined;
+    const emptyListHint =
+        !isError && !isLoading && !(listData?.items?.length)
+            ? t('adminShell.operationsCenter.emptyReceipts')
+            : undefined;
 
     return (
         <Space orientation="vertical" size="large" style={{ width: '100%' }}>
@@ -138,7 +138,11 @@ export default function OperationsCenterView() {
                     <Col xs={24} lg={12}>
                         <Card title={t('adminShell.operationsCenter.exceptionQueueTitle')} loading={summaryQuery.isLoading}>
                             {summaryQuery.isError ? (
-                                <Alert type="error" title={String(summaryQuery.error)} showIcon />
+                                <Alert
+                                    type="error"
+                                    title={t('adminShell.operationsCenter.exceptionQueueLoadError')}
+                                    showIcon
+                                />
                             ) : (
                                 <Row gutter={16}>
                                     <Col span={12}>
@@ -209,7 +213,19 @@ export default function OperationsCenterView() {
                         type="error"
                         showIcon
                         style={{ marginBottom: 12 }}
-                        title={String((error as Error)?.message ?? 'Error')}
+                        title={t('receipts.list.loadErrorFallback')}
+                        description={
+                            error ? (
+                                <ApiErrorAlertDescription
+                                    t={t}
+                                    error={error}
+                                    logContext="OperationsCenterView.receipts"
+                                    fallbackKey="receipts.list.loadErrorFallback"
+                                />
+                            ) : (
+                                t('receipts.list.loadErrorFallback')
+                            )
+                        }
                     />
                 ) : null}
                 <ReceiptsFilterBar

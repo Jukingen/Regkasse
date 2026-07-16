@@ -273,25 +273,24 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         return r ?? TruncateNotes($"Early: {e}");
     }
 
-    private static void ValidateMonatsbelegTargetMonth(int requestYear, int requestMonth, bool isCurrentMonth, bool forcePastMonth)
+    private static void ValidateMonatsbelegTargetMonth(int requestYear, int requestMonth, bool forcePastMonth)
     {
         var (viennaYear, viennaMonth) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
-        if (isCurrentMonth)
-            return;
-
         var targetAnchor = new DateTime(requestYear, requestMonth, 1);
         var currentAnchor = new DateTime(viennaYear, viennaMonth, 1);
-        if (targetAnchor > currentAnchor)
+
+        // Only completed (past) Vienna months are allowed — current unfinished month is blocked.
+        if (targetAnchor >= currentAnchor)
         {
             throw new InvalidOperationException(
-                $"Monatsbeleg cannot be created for a future Vienna calendar month ({requestYear}-{requestMonth:00}).");
+                $"Monatsbeleg can only be created for completed (past) Vienna calendar months, not {requestYear}-{requestMonth:00}.");
         }
 
         if (!forcePastMonth)
         {
             throw new RksvOperationGuardException(
                 RksvGuardErrorCodes.MonatsbelegPastMonthRequiresForce,
-                $"Monatsbeleg can only be created for the current Vienna calendar month ({viennaYear}-{viennaMonth:00}), not {requestYear}-{requestMonth:00}.");
+                $"Monatsbeleg for past month {requestYear}-{requestMonth:00} requires confirmation (force=true).");
         }
     }
 
@@ -605,9 +604,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         if (string.IsNullOrWhiteSpace(actorUserId))
             throw new ArgumentException("Actor user id is required.", nameof(actorUserId));
 
-        var (viennaYear, viennaMonth) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
-        var isCurrentMonth = request.Year == viennaYear && request.Month == viennaMonth;
-        ValidateMonatsbelegTargetMonth(request.Year, request.Month, isCurrentMonth, forcePastMonth);
+        ValidateMonatsbelegTargetMonth(request.Year, request.Month, forcePastMonth);
 
         var tenantIdForDecember = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
 
@@ -798,7 +795,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
             var dto = await _receiptService.GetReceiptByPaymentIdAsync(paymentId).ConfigureAwait(false);
             var qr = dto?.Signature?.QrData ?? string.Empty;
 
-            if (forcePastMonth && !isCurrentMonth)
+            if (forcePastMonth)
             {
                 _logger.LogWarning(
                     "Monatsbeleg created with forcePastMonth override PaymentId={PaymentId} Register={Register} Period={Y}-{M} IsLate={IsLate} DaysLate={DaysLate}",

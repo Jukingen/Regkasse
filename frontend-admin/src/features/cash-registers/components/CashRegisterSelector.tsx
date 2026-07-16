@@ -168,7 +168,9 @@ export function CashRegisterSelector({
         () =>
             registers.map((register) => ({
                 value: register.id,
-                label: register.registerNumber,
+                label: register.location?.trim()
+                    ? `${register.registerNumber} — ${register.location.trim()}`
+                    : register.registerNumber,
                 register,
                 isDefault: register.isDefaultForTenant === true,
             })),
@@ -227,7 +229,9 @@ export function CashRegisterSelector({
                     <Space size={8}>
                         <span>
                             <ShopOutlined style={{ marginRight: 8, color: '#1677ff' }} />
-                            {register.registerNumber}
+                            {register.location?.trim()
+                                ? `${register.registerNumber} — ${register.location.trim()}`
+                                : register.registerNumber}
                             {mandant ? (
                                 <Typography.Text type="secondary" style={{ marginLeft: 8, fontSize: 12 }}>
                                     {mandant.slug}
@@ -240,9 +244,11 @@ export function CashRegisterSelector({
                             </Tag>
                         ) : null}
                     </Space>
-                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                        {register.location?.trim() || t('cashRegisters.selector.noLocation')}
-                    </Typography.Text>
+                    {listAllTenants ? (
+                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                            {register.tenantSlug ?? register.tenantName ?? ''}
+                        </Typography.Text>
+                    ) : null}
                 </div>
             );
         },
