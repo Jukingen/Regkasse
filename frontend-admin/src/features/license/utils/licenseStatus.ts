@@ -380,3 +380,58 @@ export function getLicenseStatusDayText(
 
     return null;
 }
+
+const HOUR_MS = 60 * 60 * 1000;
+
+/** Wall-clock hours until expiry (ceil). Null when expiry is missing/invalid. */
+export function getLicenseHoursRemaining(
+    validUntilUtc: string | null | undefined,
+    nowMs = Date.now(),
+): number | null {
+    if (!validUntilUtc?.trim()) {
+        return null;
+    }
+
+    const expiresAtMs = new Date(validUntilUtc).getTime();
+    if (!Number.isFinite(expiresAtMs)) {
+        return null;
+    }
+
+    const remainingMs = expiresAtMs - nowMs;
+    if (remainingMs <= 0) {
+        return 0;
+    }
+
+    return Math.ceil(remainingMs / HOUR_MS);
+}
+
+/**
+ * Remaining-time copy for license cards/banners.
+ * Prefer hours when less than 24h remain so header and page stay aligned.
+ */
+export function getLicenseStatusRemainingText(
+    status: ResolvedLicenseStatus,
+    t: TranslateFn,
+    validUntilUtc?: string | null,
+    nowMs = Date.now(),
+): string | null {
+    if (status.daysExpired > 0) {
+        return t('license.phase.daysExpired', { days: status.daysExpired });
+    }
+
+    const hoursRemaining = getLicenseHoursRemaining(validUntilUtc, nowMs);
+    if (
+        status.kind === 'active'
+        && hoursRemaining !== null
+        && hoursRemaining > 0
+        && hoursRemaining < 24
+    ) {
+        return t('license.phase.hoursRemaining', { hours: hoursRemaining });
+    }
+
+    if (status.daysRemaining > 0) {
+        return t('license.phase.daysRemaining', { days: status.daysRemaining });
+    }
+
+    return null;
+}

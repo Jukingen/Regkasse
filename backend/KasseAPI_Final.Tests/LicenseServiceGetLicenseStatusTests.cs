@@ -43,12 +43,42 @@ public sealed class LicenseServiceGetLicenseStatusTests
     [Fact]
     public void BuildTenantLicenseStatusInfo_WhenWithinWarningWindow_UsesGermanWarningCopy()
     {
-        var validUntil = DateTime.UtcNow.Date.AddDays(10);
-        var info = LicenseService.BuildTenantLicenseStatusInfo(CreateTenant(validUntil));
+        var now = new DateTime(2026, 7, 16, 12, 0, 0, DateTimeKind.Utc);
+        var validUntil = now.AddDays(10);
+        var info = LicenseService.BuildTenantLicenseStatusInfo(CreateTenant(validUntil), now);
 
         Assert.Equal(10, info.DaysRemaining);
+        Assert.Equal(validUntil, info.ValidUntil);
         Assert.Contains("läuft in 10 Tagen ab", info.StatusMessage);
         Assert.False(info.RequiresRenewal);
+    }
+
+    [Fact]
+    public void BuildTenantLicenseStatusInfo_PreservesFullValidUntilTimestamp()
+    {
+        var now = new DateTime(2026, 7, 16, 19, 15, 0, DateTimeKind.Utc);
+        var validUntil = new DateTime(2026, 7, 17, 16, 36, 0, DateTimeKind.Utc);
+        var info = LicenseService.BuildTenantLicenseStatusInfo(CreateTenant(validUntil), now);
+
+        Assert.Equal(validUntil, info.ValidUntil);
+        Assert.NotEqual(validUntil.Date, info.ValidUntil);
+        Assert.Equal(1, info.DaysRemaining);
+        Assert.True(info.CanAccess);
+        Assert.False(info.IsInGracePeriod);
+    }
+
+    [Fact]
+    public void BuildTenantLicenseStatusInfo_WhenLessThanOneDayLeft_UsesCeilingDaysNotCalendarMidnight()
+    {
+        var now = new DateTime(2026, 7, 16, 21, 15, 0, DateTimeKind.Utc);
+        // Real expiry later same evening locally; must not collapse to UTC midnight (02:00 CEST).
+        var validUntil = new DateTime(2026, 7, 17, 16, 36, 0, DateTimeKind.Utc);
+        var info = LicenseService.BuildTenantLicenseStatusInfo(CreateTenant(validUntil), now);
+
+        Assert.Equal(validUntil, info.ValidUntil);
+        Assert.Equal(1, info.DaysRemaining);
+        // Truncating to UTC midnight would have yielded ~4–5 hours; full stamp leaves ~19h.
+        Assert.True((validUntil - now).TotalHours > 18);
     }
 
     [Fact]

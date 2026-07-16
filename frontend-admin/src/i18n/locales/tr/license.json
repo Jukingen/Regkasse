@@ -178,6 +178,7 @@
       "noLicense": "Lisans yok"
     },
     "daysRemaining": "{{days}} gün kaldı",
+    "hoursRemaining": "{{hours}} saat kaldı",
     "daysExpired": "{{days}} gündür süresi dolmuş",
     "capabilities": {
       "write": "Yazma izni",
@@ -216,9 +217,11 @@
       "tooltip": {
         "validUntil": "Geçerlilik",
         "daysRemaining": "Kalan gün",
+        "hoursRemaining": "Kalan saat",
         "status": "Durum",
         "countdown": "Bitişe kalan: {{countdown}}",
-        "ariaSummary": "Geçerlilik: {{dateTime}}. Kalan gün: {{days}}. Durum: {{status}}."
+        "ariaSummary": "Geçerlilik: {{dateTime}}. Kalan gün: {{days}}. Durum: {{status}}.",
+        "ariaSummaryHours": "Geçerlilik: {{dateTime}}. Kalan saat: {{hours}}. Durum: {{status}}."
       },
       "daysRemaining": "{{days}} gün",
       "trial": "Deneme sürümü",

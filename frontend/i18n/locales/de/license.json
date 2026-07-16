@@ -4,6 +4,7 @@
     "loading": "Lade…",
     "unknown": "Lizenz ?",
     "daysShort": "{{count}}T",
+    "hoursShort": "{{count}}Std",
     "unlimitedShort": "Voll",
     "expiredShort": "! "
   },
@@ -20,6 +21,7 @@
   "expiryNone": "Kein festes Ablaufdatum (soweit aktiv)",
   "daysRemainingLabel": "Verbleibend",
   "daysRemainingValue": "{{count}} Tag(e)",
+  "hoursRemainingValue": "{{count}} Std.",
   "technicalToggleShow": "Technische Angaben anzeigen",
   "technicalToggleHide": "Technische Angaben ausblenden",
   "machineFingerprintLabel": "Geräte-Fingerprint (SHA-256)",
@@ -89,6 +91,7 @@
     "expiredBody": "Ihre Testlizenz ist abgelaufen. Zahlungen sind blockiert. Bitte kontaktieren Sie Ihren Administrator.",
     "trialSoonTitle": "Demo-Modus – Lizenz läuft bald ab",
     "trialSoonBody": "Ihre Testlizenz endet in {{count}} Tag(en). Möchten Sie trotzdem fortfahren?",
+    "trialSoonBodyHours": "Ihre Testlizenz endet in {{count}} Std. Möchten Sie trotzdem fortfahren?",
     "cancel": "Abbrechen",
     "proceed": "Fortfahren",
     "ok": "OK",

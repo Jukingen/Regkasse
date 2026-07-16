@@ -12,9 +12,19 @@ export type FirmenInfoProps = {
     loading?: boolean;
     /** Optional error from parent tenant fetch. */
     error?: Error | null;
+    /**
+     * Canonical license expiry from `/api/license/status` (or admin license detail).
+     * When set, preferred over {@link Tenant.licenseValidUntilUtc} so Firmen Info matches Mandantenlizenz.
+     */
+    licenseValidUntilUtc?: string | null;
 };
 
-export function FirmenInfo({ tenant, loading = false, error = null }: FirmenInfoProps) {
+export function FirmenInfo({
+    tenant,
+    loading = false,
+    error = null,
+    licenseValidUntilUtc,
+}: FirmenInfoProps) {
     const { t } = useI18n();
 
     if (loading) {
@@ -47,6 +57,10 @@ export function FirmenInfo({ tenant, loading = false, error = null }: FirmenInfo
     const licenseLabel = tenant.licenseValid
         ? t('license.phase.labels.active')
         : t('license.phase.labels.noLicense');
+    const validUntil =
+        licenseValidUntilUtc?.trim()
+            ? licenseValidUntilUtc
+            : tenant.licenseValidUntilUtc;
 
     return (
         <Card title={t('common.tenant.companyInfo')}>
@@ -69,7 +83,7 @@ export function FirmenInfo({ tenant, loading = false, error = null }: FirmenInfo
                     <Tag color={tenant.licenseValid ? 'green' : 'red'}>{licenseLabel}</Tag>
                 </Descriptions.Item>
                 <Descriptions.Item label={t('license.mandant.validUntil')}>
-                    {formatGermanDateTime(tenant.licenseValidUntilUtc)}
+                    {formatGermanDateTime(validUntil)}
                 </Descriptions.Item>
             </Descriptions>
         </Card>

@@ -1,4 +1,5 @@
 import type { ResolvedLicenseStatus } from '@/features/license/utils/licenseStatus';
+import { getLicenseHoursRemaining } from '@/features/license/utils/licenseStatus';
 import { formatUserDateTime } from '@/lib/dateFormatter';
 
 export type HeaderLicenseStatusClass = 'valid' | 'warning' | 'expired';
@@ -8,8 +9,6 @@ export type HeaderLicenseStatusContext = {
 };
 
 type TranslateFn = (key: string, params?: Record<string, string | number>) => string;
-
-const HOUR_MS = 60 * 60 * 1000;
 
 function isGracePhase(status: ResolvedLicenseStatus): boolean {
     return status.kind === 'grace_write' || status.kind === 'grace_readonly';
@@ -26,23 +25,7 @@ function formatExpiryDateTime(validUntilUtc: string | null | undefined): string 
     return formatUserDateTime(validUntilUtc) || '';
 }
 
-export function getLicenseHoursRemaining(validUntilUtc: string | null | undefined, nowMs = Date.now()): number | null {
-    if (!validUntilUtc?.trim()) {
-        return null;
-    }
-
-    const expiresAtMs = new Date(validUntilUtc).getTime();
-    if (!Number.isFinite(expiresAtMs)) {
-        return null;
-    }
-
-    const remainingMs = expiresAtMs - nowMs;
-    if (remainingMs <= 0) {
-        return 0;
-    }
-
-    return Math.ceil(remainingMs / HOUR_MS);
-}
+export { getLicenseHoursRemaining };
 
 function isExpiredStatus(status: ResolvedLicenseStatus): boolean {
     return status.kind === 'lockdown' || status.kind === 'expired' || status.daysRemaining < 0;
@@ -124,6 +107,15 @@ export function getHeaderLicenseTooltip(
     }
 
     const statusLabel = getHeaderLicenseTooltipStatusLabel(status, t);
+    const hoursRemaining = getLicenseHoursRemaining(context?.validUntilUtc);
+    if (hoursRemaining !== null && hoursRemaining > 0 && hoursRemaining < 24) {
+        return t('license.badge.headerShort.tooltip.ariaSummaryHours', {
+            dateTime,
+            hours: hoursRemaining,
+            status: statusLabel,
+        });
+    }
+
     const daysRemaining = Math.max(0, status.daysRemaining);
 
     return t('license.badge.headerShort.tooltip.ariaSummary', {

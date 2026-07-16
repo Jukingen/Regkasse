@@ -4,6 +4,7 @@ import type { TFunction } from 'i18next';
 import type { LicenseStatus } from '../hooks/useLicenseStatus';
 import { isDevelopmentSimulationEnvironment } from '../src/config/devFlags';
 import { deploymentLicenseAllows, LICENSE_DEPLOYMENT_FEATURE } from './licenseDeploymentFeatures';
+import { normalizeLicenseDaysRemaining, preferLicenseHoursRemaining } from './licenseExpiryRemaining';
 
 let loggedDevLicenseBypass = false;
 
@@ -48,8 +49,10 @@ export function isLicenseExpiredForCriticalActions(status: LicenseStatus | null 
 function shouldConfirmTrialWindow(status: LicenseStatus): boolean {
   if (areLicenseChecksBypassedInDevelopment()) return false;
   if (!isTrialLikeLicenseStatus(status)) return false;
-  const days = Number.isFinite(status.daysRemaining) ? Math.max(0, Math.floor(status.daysRemaining)) : 0;
-  return days <= TRIAL_CONFIRM_MAX_DAYS_REMAINING;
+  const days = Math.max(0, normalizeLicenseDaysRemaining(status.daysRemaining));
+  const hours = preferLicenseHoursRemaining(days, status.expiryDate);
+  // Last calendar day (or <24h) still needs the short trial confirm.
+  return days <= TRIAL_CONFIRM_MAX_DAYS_REMAINING || hours?.kind === 'hours';
 }
 
 /**
@@ -96,11 +99,16 @@ export function ensureLicenseAllowsCriticalAction(
   }
 
   if (shouldConfirmTrialWindow(status)) {
-    const days = Math.max(0, Math.floor(status.daysRemaining));
+    const days = Math.max(0, normalizeLicenseDaysRemaining(status.daysRemaining));
+    const remaining = preferLicenseHoursRemaining(days, status.expiryDate);
+    const body =
+      remaining?.kind === 'hours'
+        ? t('criticalGuard.trialSoonBodyHours', { count: remaining.hours })
+        : t('criticalGuard.trialSoonBody', { count: days });
     return new Promise((resolve) => {
       Alert.alert(
         t('criticalGuard.trialSoonTitle'),
-        t('criticalGuard.trialSoonBody', { count: days }),
+        body,
         [
           { text: t('criticalGuard.cancel'), style: 'cancel', onPress: () => resolve(false) },
           { text: t('criticalGuard.proceed'), onPress: () => resolve(true) },

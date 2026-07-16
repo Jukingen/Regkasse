@@ -28,7 +28,7 @@
     "syncSummaryAllFailed": "Keine Zahlung synchronisiert. {{failed}} fehlgeschlagen — bitte Offline-Warteschlange in den Einstellungen prüfen und ggf. erneut senden."
   },
   "cartAccessibility": {
-    "default": "Warenkorb, zum Bezahlen",
-    "withCount": "Warenkorb, {{count}} Artikel, zum Bezahlen"
+    "default": "Warenkorb {{total}}, zum Bezahlen",
+    "withCount": "Warenkorb {{total}}, {{count}} Artikel, zum Bezahlen"
   }
 }

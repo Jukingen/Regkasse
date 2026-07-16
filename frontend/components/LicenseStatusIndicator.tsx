@@ -6,6 +6,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View, type ViewStyle } 
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
 import { useLicenseStatus, type LicenseStatus } from '../hooks/useLicenseStatus';
 import { LicenseModal } from '../src/features/license/LicenseModal';
+import { preferLicenseHoursRemaining } from '../utils/licenseExpiryRemaining';
 
 type BadgeTone = 'neutral' | 'green' | 'yellow' | 'orange' | 'red';
 
@@ -78,12 +79,22 @@ export function LicenseStatusIndicator({
     if (unlimitedPaid) {
       return t('license:badge.unlimitedShort');
     }
+    const remaining = preferLicenseHoursRemaining(status.daysRemaining, status.expiryDate);
+    if (remaining?.kind === 'hours') {
+      return t('license:badge.hoursShort', { count: remaining.hours });
+    }
     return t('license:badge.daysShort', { count: status.daysRemaining });
   }, [loading, status, unlimitedPaid, t]);
 
   const accessibilityLabel = useMemo(() => {
     if (!status) return t('license:badge.unknown');
     if (status.isExpired) return t('license:warningExpired');
+    const remaining = preferLicenseHoursRemaining(status.daysRemaining, status.expiryDate);
+    if (remaining?.kind === 'hours') {
+      const hoursLabel = t('license:hoursRemainingValue', { count: remaining.hours });
+      if (status.isTrial) return `${t('license:typeTrial')}, ${hoursLabel}`;
+      return `${t('license:typePaid')}, ${hoursLabel}`;
+    }
     if (status.isTrial) return `${t('license:typeTrial')}, ${status.daysRemaining} Tag(e)`;
     return `${t('license:typePaid')}, ${status.daysRemaining} Tag(e)`;
   }, [status, t]);

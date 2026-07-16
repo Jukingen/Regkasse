@@ -16,7 +16,9 @@ import { DevTenantSwitcher } from '../../src/components/dev/DevTenantSwitcher';
 import PaymentModal from '../../components/PaymentModal';
 import { TimeSyncBanner } from '../../components/TimeSyncBanner';
 import { TimeSyncStatusProvider } from '../../hooks/useTimeSyncStatus';
-import { TseStatusBanner } from '../../components/TseStatusBanner';
+import { TseOfflineRestrictionBanner, TseStatusBanner } from '../../components/TseStatusBanner';
+import { OfflineStatusChip } from '../../components/OfflineStatusChip';
+import { MonatsbelegHeaderBadge } from '../../components/MonatsbelegHeaderBadge';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { ToastContainer } from '../../components/ToastNotification';
 import { eventEmitter } from '../../utils/eventEmitter';
@@ -24,7 +26,6 @@ import { OFFLINE_CONFIG } from '../../constants/offlineConfig';
 import { MonatsbelegSessionBlockModal } from '../../components/MonatsbelegSessionBlockModal';
 import { StartbelegRequiredBanner } from '../../components/StartbelegRequiredBanner';
 import { subscribeOfflineSyncComplete } from '../../services/payment/offlineQueueSyncNotifier';
-import { useOfflineOrderManager } from '../../hooks/useOfflineOrderManager';
 import { POS_HEALTH_POLL_MS } from '../../constants/posPollingIntervals';
 import { useConditionalPolling } from '../../hooks/useConditionalPolling';
 import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
@@ -35,8 +36,8 @@ import { TseHealthProvider } from '../../contexts/TseHealthContext';
 import { POS_ENSURE_READY_ON_ENTRY } from '../../constants/posFeatureFlags';
 import { useCart, getCartDisplayTotals, getCartLineTotal } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { useAdminPermissions } from '../../utils/adminPermissions';
 import { isPosAllowedRole } from '../../utils/posRoleGuard';
+import { formatPrice } from '../../utils/formatPrice';
 import {
   isReadinessRegisterDecommissioned,
   isReadinessStartbelegGateActive,
@@ -46,7 +47,6 @@ import {
 type PosTabsInnerProps = {
   t: (key: string, options?: Record<string, string | number>) => string;
   insets: ReturnType<typeof useSafeAreaInsets>;
-  canAccessAdmin: boolean;
   cartCount: number;
   isPaymentModalVisible: boolean;
   setIsPaymentModalVisible: (visible: boolean) => void;
@@ -61,7 +61,6 @@ type PosTabsInnerProps = {
 function PosTabsInner({
   t,
   insets,
-  canAccessAdmin,
   cartCount,
   isPaymentModalVisible,
   setIsPaymentModalVisible,
@@ -73,8 +72,6 @@ function PosTabsInner({
   developmentModeSettings,
 }: PosTabsInnerProps) {
   const posReadiness = usePosRegisterReadiness();
-  const { status: offlineStatus } = useOfflineOrderManager();
-  const pendingOfflineCount = offlineStatus?.pendingCount ?? 0;
 
   const [tabBarToasts, setTabBarToasts] = useState<
     { id: string; type: 'success' | 'error' | 'info' | 'warning'; message: string; duration?: number }[]
@@ -197,13 +194,20 @@ function PosTabsInner({
         <LicenseWarningBanner />
         <LicenseExpiryBanner />
         <View style={styles.licenseStatusBar}>
-          <LicenseStatusIndicator />
-          <DevTenantSwitcher />
-          <EnvironmentBadge settings={developmentModeSettings} />
-          <UserMenu />
+          <View style={styles.headerStatusLeft}>
+            <TseStatusBanner />
+            <OfflineStatusChip />
+            <MonatsbelegHeaderBadge />
+          </View>
+          <View style={styles.headerRight}>
+            <LicenseStatusIndicator />
+            <DevTenantSwitcher />
+            <EnvironmentBadge settings={developmentModeSettings} />
+            <UserMenu />
+          </View>
         </View>
         <TimeSyncBanner />
-        <TseStatusBanner />
+        <TseOfflineRestrictionBanner />
       <MonatsbelegSessionBlockModal />
       <StartbelegRequiredBanner />
       <Tabs
@@ -240,8 +244,13 @@ function PosTabsInner({
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   accessibilityLabel={
                     cartCount > 0
-                      ? t('navigation:cartAccessibility.withCount', { count: cartCount })
-                      : t('navigation:cartAccessibility.default')
+                      ? t('navigation:cartAccessibility.withCount', {
+                          count: cartCount,
+                          total: formatPrice(totals.grandTotalGross),
+                        })
+                      : t('navigation:cartAccessibility.default', {
+                          total: formatPrice(totals.grandTotalGross),
+                        })
                   }
                   accessibilityRole="button"
                 >
@@ -253,38 +262,29 @@ function PosTabsInner({
                       </View>
                     )}
                   </View>
-                  <Text style={styles.cartLabel}>{t('navigation:cart')}</Text>
+                  <Text style={styles.cartLabel} numberOfLines={1}>
+                    {formatPrice(totals.grandTotalGross)}
+                  </Text>
                 </Pressable>
               );
             },
           }}
         />
 
+        {/* Settings & Admin remain routable via UserMenu; hidden from footer */}
         <Tabs.Screen
           name="settings"
           options={{
-            title: t('navigation:settings') || 'Ayarlar',
-            tabBarIcon: ({ color }) => (
-              <View style={styles.settingsIconContainer}>
-                <Ionicons name="settings-outline" size={24} color={color} />
-                {pendingOfflineCount > 0 ? (
-                  <View style={styles.settingsBadge} accessibilityElementsHidden>
-                    <Text style={styles.badgeText}>
-                      {pendingOfflineCount > 99 ? '99+' : pendingOfflineCount}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-            ),
+            href: null,
+            title: t('navigation:settings') || 'Einstellungen',
           }}
         />
 
         <Tabs.Screen
           name="admin-menu"
           options={{
-            href: canAccessAdmin ? undefined : null,
+            href: null,
             title: 'Admin',
-            tabBarIcon: ({ color }) => <Ionicons name="shield-checkmark-outline" size={24} color={color} />,
           }}
         />
       </Tabs>
@@ -318,7 +318,6 @@ export default function TabLayout() {
     const { t } = useTranslation(['navigation', 'checkout']);
     const insets = useSafeAreaInsets();
     const { isAuthenticated, isLoading, isAuthReady, user, checkAuthStatus, logout } = useAuth();
-    const adminPermissions = useAdminPermissions();
     const { settings: developmentModeSettings } = useDevelopmentModeContext();
     const checkAuthStatusRef = useRef(checkAuthStatus);
     checkAuthStatusRef.current = checkAuthStatus;
@@ -396,21 +395,12 @@ export default function TabLayout() {
         return <Redirect href="/(auth)/login" />;
     }
 
-    const canAccessAdmin =
-        adminPermissions.canViewLicense ||
-        adminPermissions.canManageCashRegisters ||
-        adminPermissions.canManageUsers ||
-        adminPermissions.canViewReports ||
-        adminPermissions.canManageRksv ||
-        adminPermissions.canManageTenants;
-
     return (
         <PosRegisterReadinessProvider>
             <TimeSyncStatusProvider enabled>
                 <PosTabsInner
                     t={t}
                     insets={insets}
-                    canAccessAdmin={canAccessAdmin}
                     cartCount={cartCount}
                     isPaymentModalVisible={isPaymentModalVisible}
                     setIsPaymentModalVisible={setIsPaymentModalVisible}
@@ -429,15 +419,32 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
     licenseStatusBar: {
         flexDirection: 'row',
-        justifyContent: 'flex-end',
+        justifyContent: 'space-between',
         alignItems: 'center',
         gap: 8,
-        flexWrap: 'wrap',
+        flexWrap: 'nowrap',
         paddingHorizontal: SoftSpacing.sm,
         paddingVertical: 6,
         backgroundColor: SoftColors.bgPrimary,
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: SoftColors.border,
+        minHeight: 40,
+    },
+    headerStatusLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        flex: 1,
+        flexShrink: 1,
+        minWidth: 0,
+    },
+    headerRight: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        gap: 8,
+        flexWrap: 'wrap',
+        flexShrink: 0,
     },
     cartTabButton: {
         flex: 1,
@@ -468,26 +475,6 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         minWidth: 20,
         height: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: 4,
-        borderWidth: 2,
-        borderColor: SoftColors.bgCard,
-    },
-    settingsIconContainer: {
-        width: 28,
-        height: 28,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    settingsBadge: {
-        position: 'absolute',
-        top: -6,
-        right: -10,
-        backgroundColor: SoftColors.error,
-        borderRadius: 10,
-        minWidth: 18,
-        height: 18,
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 4,

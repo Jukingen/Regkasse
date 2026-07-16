@@ -4,6 +4,7 @@
     "loading": "Loading…",
     "unknown": "License ?",
     "daysShort": "{{count}}d",
+    "hoursShort": "{{count}}h",
     "unlimitedShort": "Pro",
     "expiredShort": "! "
   },
@@ -20,6 +21,7 @@
   "expiryNone": "No fixed expiry (while active)",
   "daysRemainingLabel": "Remaining",
   "daysRemainingValue": "{{count}} day(s)",
+  "hoursRemainingValue": "{{count}} h",
   "technicalToggleShow": "Show technical details",
   "technicalToggleHide": "Hide technical details",
   "machineFingerprintLabel": "Device fingerprint (SHA-256)",
@@ -89,6 +91,7 @@
     "expiredBody": "Your trial license has expired. Payments are blocked. Please contact your administrator.",
     "trialSoonTitle": "Demo / trial – license ending soon",
     "trialSoonBody": "Your trial license ends in {{count}} day(s). Continue anyway?",
+    "trialSoonBodyHours": "Your trial license ends in {{count}} h. Continue anyway?",
     "cancel": "Cancel",
     "proceed": "Continue",
     "ok": "OK",

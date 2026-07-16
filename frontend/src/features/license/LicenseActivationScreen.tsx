@@ -22,6 +22,7 @@ import {
 import { useLicenseStatus } from '../../../hooks/useLicenseStatus';
 import { adminRedirector } from '@/src/features/admin-navigation/openAdmin';
 import { formatUserDateTime } from '../../../utils/dateFormatter';
+import { preferLicenseHoursRemaining } from '../../../utils/licenseExpiryRemaining';
 
 const LICENSE_KEY_PATTERN = /^REGK-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$/i;
 
@@ -72,13 +73,18 @@ export default function LicenseActivationScreen() {
   const statusSubline = useMemo(() => {
     if (!status) return null;
     if (unlimitedPaid) return t('license:expiryNone');
+    const remaining = preferLicenseHoursRemaining(status.daysRemaining, status.expiryDate);
+    const remainingText =
+      remaining?.kind === 'hours'
+        ? t('license:hoursRemainingValue', { count: remaining.hours })
+        : t('license:daysRemainingValue', { count: status.daysRemaining });
     if (status.expiryDate) {
       const formatted = formatUserDateTime(status.expiryDate);
       if (formatted) {
-        return t('license:activationExpiryLine', { date: formatted });
+        return `${t('license:activationExpiryLine', { date: formatted })} · ${remainingText}`;
       }
     }
-    return t('license:daysRemainingValue', { count: status.daysRemaining });
+    return remainingText;
   }, [status, unlimitedPaid, t]);
 
   const hasConfiguredExtensionUrl = useMemo(() => adminRedirector.isAvailable('licenseExtend'), []);

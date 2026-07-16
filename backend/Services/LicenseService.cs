@@ -597,12 +597,16 @@ public sealed class LicenseService : ILicenseService
             StatusMessage = statusMessage,
         };
 
-    internal static LicenseStatusInfo BuildTenantLicenseStatusInfo(Tenant tenant)
+    /// <summary>
+    /// Builds mandant license status from the tenant row.
+    /// Preserves full <see cref="Tenant.LicenseValidUntilUtc"/> (no UTC-midnight truncation)
+    /// and uses ceiling day math for remaining time (same as <see cref="Tenancy.TenantLicenseStatusMapper"/>).
+    /// </summary>
+    internal static LicenseStatusInfo BuildTenantLicenseStatusInfo(Tenant tenant, DateTime? nowUtc = null)
     {
-        var today = DateTime.UtcNow.Date;
-        var validUntil = tenant.LicenseValidUntilUtc?.Date;
+        var now = nowUtc ?? DateTime.UtcNow;
 
-        if (!validUntil.HasValue)
+        if (!tenant.LicenseValidUntilUtc.HasValue)
         {
             return new LicenseStatusInfo
             {
@@ -615,9 +619,24 @@ public sealed class LicenseService : ILicenseService
             };
         }
 
-        var daysRemaining = (validUntil.Value - today).Days;
-        var isExpired = daysRemaining < 0;
-        var daysOverdue = isExpired ? Math.Abs(daysRemaining) : 0;
+        var validUntil = DateTime.SpecifyKind(tenant.LicenseValidUntilUtc.Value, DateTimeKind.Utc);
+        var isExpired = now >= validUntil;
+        int daysRemaining;
+        int daysOverdue;
+        if (isExpired)
+        {
+            // Match LicenseStatusInfoBuilder / TenantLicenseValidator: whole elapsed days via TimeSpan.Days.
+            daysOverdue = Math.Max(0, (now - validUntil).Days);
+            if (daysOverdue == 0)
+                daysOverdue = 1;
+            daysRemaining = -daysOverdue;
+        }
+        else
+        {
+            daysRemaining = (int)Math.Ceiling((validUntil - now).TotalDays);
+            daysOverdue = 0;
+        }
+
         var isInGracePeriod = isExpired && daysOverdue <= GracePeriodDays;
         var gracePeriodRemaining = isInGracePeriod ? GracePeriodDays - daysOverdue : 0;
         var canAccess = !isExpired || isInGracePeriod;
@@ -628,7 +647,7 @@ public sealed class LicenseService : ILicenseService
         {
             statusMessage = daysRemaining <= WarningDaysBeforeExpiry
                 ? $"Lizenz läuft in {daysRemaining} Tagen ab"
-                : $"Lizenz gültig bis {validUntil.Value:dd.MM.yyyy}";
+                : $"Lizenz gültig bis {validUntil:dd.MM.yyyy}";
         }
         else if (isInGracePeriod)
         {

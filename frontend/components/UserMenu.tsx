@@ -6,6 +6,7 @@ import { Modal, Pressable, StyleSheet, Text, Vibration, View } from 'react-nativ
 
 import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
 import { useAuth } from '../contexts/AuthContext';
+import { useAdminPermissions } from '../utils/adminPermissions';
 
 /** POS UI role labels (de-DE) — aligned with AGENTS.md / Admin display names. */
 const ROLE_LABELS: Record<string, string> = {
@@ -73,12 +74,13 @@ function resolveRoleLabel(role: string | undefined, roles?: string[]): string {
 }
 
 /**
- * POS header user chip: avatar initials + name/role, dropdown with settings + Abmelden.
+ * POS header user chip: avatar initials + name/role, dropdown with settings/admin + Abmelden.
  */
 export function UserMenu() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const { t } = useTranslation(['auth', 'navigation']);
+  const adminPermissions = useAdminPermissions();
   const [showMenu, setShowMenu] = useState(false);
 
   const displayName = useMemo(() => (user ? resolveDisplayName(user) : ''), [user]);
@@ -90,6 +92,14 @@ export function UserMenu() {
     () => (user ? resolveRoleLabel(user.role, user.roles) : ''),
     [user],
   );
+
+  const canAccessAdmin =
+    adminPermissions.canViewLicense ||
+    adminPermissions.canManageCashRegisters ||
+    adminPermissions.canManageUsers ||
+    adminPermissions.canViewReports ||
+    adminPermissions.canManageRksv ||
+    adminPermissions.canManageTenants;
 
   if (!user) return null;
 
@@ -105,6 +115,12 @@ export function UserMenu() {
     Vibration.vibrate(10);
     closeMenu();
     router.push('/(tabs)/settings' as const);
+  };
+
+  const handleOpenAdmin = () => {
+    Vibration.vibrate(10);
+    closeMenu();
+    router.push('/(tabs)/admin-menu' as const);
   };
 
   return (
@@ -176,6 +192,18 @@ export function UserMenu() {
               <Ionicons name="settings-outline" size={18} color={SoftColors.textPrimary} />
               <Text style={styles.menuItemText}>{t('navigation:settings')}</Text>
             </Pressable>
+
+            {canAccessAdmin ? (
+              <Pressable
+                style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+                onPress={handleOpenAdmin}
+                accessibilityRole="button"
+                accessibilityLabel="Admin"
+              >
+                <Ionicons name="shield-checkmark-outline" size={18} color={SoftColors.textPrimary} />
+                <Text style={styles.menuItemText}>Admin</Text>
+              </Pressable>
+            ) : null}
 
             <View style={styles.divider} />
 

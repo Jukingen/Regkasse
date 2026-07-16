@@ -1,13 +1,7 @@
 import { apiClient } from './config';
+import { getViennaYearMonth } from '../../utils/resolvePosMonatsbelegTarget';
 
-/** Europe/Vienna calendar year and month (matches server Monatsbeleg guard). */
-export function getViennaYearMonth(now: Date = new Date()): { year: number; month: number } {
-  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Vienna', year: 'numeric', month: '2-digit' });
-  const parts = fmt.formatToParts(now);
-  const year = Number(parts.find((p) => p.type === 'year')?.value ?? '0');
-  const month = Number(parts.find((p) => p.type === 'month')?.value ?? '0');
-  return { year, month };
-}
+export { getViennaYearMonth };
 
 /** POST /api/rksv/special-receipts/startbeleg */
 export type CreateStartbelegRequest = {

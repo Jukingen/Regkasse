@@ -2,6 +2,7 @@ import { licenseApi, type LicensePublicStatusDto } from '../../api/license';
 import { apiClient } from '../api/config';
 import { applyPersistedLicenseOverride } from '../../utils/posLicenseLocalOverride';
 import { POS_LICENSE_CACHE_MS } from '../../constants/posPollingIntervals';
+import { normalizeLicenseDaysRemaining } from '../../utils/licenseExpiryRemaining';
 
 /** Deployment license snapshot (health + public status merge). */
 export type LicenseStatus = {
@@ -31,7 +32,7 @@ function normalizeHealth(raw: Record<string, unknown> | null | undefined): Licen
   const daysRemainingRaw = raw.daysRemaining;
   const days =
     typeof daysRemainingRaw === 'number' && Number.isFinite(daysRemainingRaw)
-      ? Math.max(0, Math.floor(daysRemainingRaw))
+      ? Math.max(0, normalizeLicenseDaysRemaining(daysRemainingRaw))
       : 0;
   return {
     isValid: raw.isValid === true,
@@ -63,7 +64,7 @@ function inferPaidFromPublic(p: LicensePublicStatusDto): boolean {
 function mergePublic(base: LicenseStatus | null, pub: LicensePublicStatusDto): LicenseStatus | null {
   const publicDays =
     typeof pub.daysRemaining === 'number' && Number.isFinite(pub.daysRemaining)
-      ? Math.max(0, Math.floor(pub.daysRemaining))
+      ? Math.max(0, normalizeLicenseDaysRemaining(pub.daysRemaining))
       : null;
   const publicExpired = pub.isExpired === true;
   const publicPaid = inferPaidFromPublic(pub);

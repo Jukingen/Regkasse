@@ -1,5 +1,6 @@
 import { licenseApi, type TenantLicenseStatusDto } from '../../api/license';
 import { showToast } from '../../utils/toast';
+import { formatLicenseRemainingDe } from '../../utils/licenseExpiryRemaining';
 
 const EXPIRY_WARNING_DAYS = 14;
 
@@ -16,6 +17,7 @@ export async function checkLicenseStatus(tenantId: string): Promise<boolean> {
       daysRemaining,
       isInGracePeriod,
       gracePeriodRemaining,
+      validUntil,
     } = data;
 
     if (canAccess === false) {
@@ -29,10 +31,9 @@ export async function checkLicenseStatus(tenantId: string): Promise<boolean> {
         `Lizenz abgelaufen. Grace Period: noch ${gracePeriodRemaining} Tage. Bitte verlängern.`,
       );
     } else if (daysRemaining <= EXPIRY_WARNING_DAYS && daysRemaining > 0) {
-      showToast(
-        'Lizenz',
-        `Lizenz läuft in ${daysRemaining} Tagen ab. Bitte rechtzeitig verlängern.`,
-      );
+      const remainingLabel =
+        formatLicenseRemainingDe(daysRemaining, validUntil) ?? `${daysRemaining} Tagen`;
+      showToast('Lizenz', `Lizenz läuft in ${remainingLabel} ab. Bitte rechtzeitig verlängern.`);
     }
 
     return true;

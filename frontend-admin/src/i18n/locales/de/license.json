@@ -178,6 +178,7 @@
       "noLicense": "Keine Lizenz"
     },
     "daysRemaining": "{{days}} Tage verbleibend",
+    "hoursRemaining": "{{hours}} Stunden verbleibend",
     "daysExpired": "Seit {{days}} Tagen abgelaufen",
     "capabilities": {
       "write": "Schreiben erlaubt",
@@ -216,9 +217,11 @@
       "tooltip": {
         "validUntil": "Gültig bis",
         "daysRemaining": "Verbleibende Tage",
+        "hoursRemaining": "Verbleibende Stunden",
         "status": "Status",
         "countdown": "Läuft ab in: {{countdown}}",
-        "ariaSummary": "Gültig bis: {{dateTime}}. Verbleibende Tage: {{days}}. Status: {{status}}."
+        "ariaSummary": "Gültig bis: {{dateTime}}. Verbleibende Tage: {{days}}. Status: {{status}}.",
+        "ariaSummaryHours": "Gültig bis: {{dateTime}}. Verbleibende Stunden: {{hours}}. Status: {{status}}."
       },
       "daysRemaining": "{{days}} Tage",
       "trial": "Testversion",

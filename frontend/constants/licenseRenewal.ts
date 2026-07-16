@@ -41,7 +41,7 @@ async function getLicenseRenewalStatus(): Promise<LicenseRenewalMailtoContext> {
       machineHash: typeof raw.machineHash === 'string' ? raw.machineHash : null,
       daysRemaining:
         typeof raw.daysRemaining === 'number' && Number.isFinite(raw.daysRemaining)
-          ? Math.max(0, Math.floor(raw.daysRemaining))
+          ? Math.max(0, Math.trunc(raw.daysRemaining))
           : 0,
       isTrial: raw.isTrial === true,
       isExpired: raw.isExpired === true,

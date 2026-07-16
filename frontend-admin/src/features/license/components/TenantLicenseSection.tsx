@@ -24,9 +24,9 @@ import { LicenseHistory } from '@/features/license/components/LicenseHistory';
 import { FirmenInfo } from '@/features/tenants/components/FirmenInfo';
 import { maskTenantLicenseKey } from '@/features/license/utils/tenantLicenseExtend';
 import {
-    getLicenseStatusDayText,
     getLicenseStatusLabel,
     getLicenseStatusMessage,
+    getLicenseStatusRemainingText,
     getLicenseStatusTagColor,
     mapPublicStatusToTenantLicenseStatus,
     resolveTenantLicenseFromPublicStatus,
@@ -73,6 +73,11 @@ export function TenantLicenseSection() {
             : null;
     }, [isSuperAdmin, status, publicLicenseQuery.data]);
 
+    const remainingText = useMemo(() => {
+        if (!resolvedStatus) return null;
+        return getLicenseStatusRemainingText(resolvedStatus, t, status?.validUntilUtc);
+    }, [resolvedStatus, status?.validUntilUtc, t]);
+
     const expiryBanner = useMemo(() => {
         if (!resolvedStatus) return null;
         const days = resolvedStatus.daysRemaining;
@@ -82,7 +87,7 @@ export function TenantLicenseSection() {
                     type="warning"
                     showIcon
                     title={t('license.mandant.expiresSoon')}
-                    description={getLicenseStatusDayText(resolvedStatus, t) ?? undefined}
+                    description={remainingText ?? undefined}
                 />
             );
         }
@@ -103,13 +108,14 @@ export function TenantLicenseSection() {
             );
         }
         return null;
-    }, [resolvedStatus, t]);
+    }, [resolvedStatus, remainingText, t]);
 
     const firmenInfo = (
         <FirmenInfo
             tenant={tenant}
             loading={tenantLoading || (currentTenant.isTenantRecordLoading && !tenantId)}
             error={tenantError}
+            licenseValidUntilUtc={status?.validUntilUtc}
         />
     );
 
@@ -157,7 +163,7 @@ export function TenantLicenseSection() {
                         </Descriptions.Item>
                         {resolvedStatus ? (
                             <Descriptions.Item label={t('tenants.detail.license.remaining')}>
-                                {getLicenseStatusDayText(resolvedStatus, t) ?? '—'}
+                                {remainingText ?? '—'}
                             </Descriptions.Item>
                         ) : null}
                     </Descriptions>

@@ -18,7 +18,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CartDisplay } from '../../components/CartDisplay';
 import { CartSummary } from '../../components/CartSummary';
 import { CashRegisterHeader } from '../../components/CashRegisterHeader';
-import { OfflineCounter } from '../../components/OfflineCounter';
 import CategoryFilter from '../../components/CategoryFilter';
 import { BillSplitMergeSheet } from '../../components/BillSplitMergeSheet';
 import CustomerSelectionSheet from '../../components/CustomerSelectionSheet';
@@ -41,10 +40,6 @@ import { useTableOrdersRecoveryOptimized } from '../../hooks/useTableOrdersRecov
 import { customerService, isWalkInCustomerId } from '../../services/api/customerService';
 import type { AddOnSelection } from '../../services/api/productModifiersService';
 import { Product } from '../../services/api/productService';
-import {
-  getMonatsbelegStatus,
-  type MonatsbelegStatusDto,
-} from '../../services/api/rksvSpecialReceiptsService';
 import { formatPrice } from '../../utils/formatPrice';
 import { useProductDisplayLocale } from '../../hooks/useProductDisplayLocale';
 import { resolveProductDisplayName } from '../../utils/productLocalization';
@@ -61,104 +56,6 @@ import {
 
 /** POS modifier selection (quantity independent from product qty). Cart is source of truth. */
 type SelectedModifier = { id: string; name: string; price: number; quantity?: number };
-
-/** RKSV Monatsbeleg reminder strip (Vienna month); yellow dismissible, red must be resolved. */
-function MonatsbelegWarningBannerStrip({
-  monatsbelegStatus,
-  yellowDismissed,
-  onDismissYellow,
-  onNavigateCreate,
-  t,
-}: {
-  monatsbelegStatus:
-    | { phase: 'idle' }
-    | { phase: 'loading' }
-    | { phase: 'success'; data: MonatsbelegStatusDto }
-    | { phase: 'error' };
-  yellowDismissed: boolean;
-  onDismissYellow: () => void;
-  onNavigateCreate: () => void;
-  t: (key: string, options?: Record<string, string | number>) => string;
-}) {
-  if (monatsbelegStatus.phase !== 'success') {
-    return null;
-  }
-  const { warningLevel, daysUntilDeadline } = monatsbelegStatus.data;
-  if (warningLevel !== 'yellow' && warningLevel !== 'red') {
-    return null;
-  }
-  if (warningLevel === 'yellow' && yellowDismissed) {
-    return null;
-  }
-
-  const isRed = warningLevel === 'red';
-  const message = isRed
-    ? t('checkout:posFlow.monatsbelegBanner.red')
-    : t('checkout:posFlow.monatsbelegBanner.yellow', { days: daysUntilDeadline });
-
-  return (
-    <View
-      style={[styles.mbBanner, isRed ? styles.mbBannerRed : styles.mbBannerYellow]}
-      accessibilityRole="alert"
-    >
-      <Text style={[styles.mbBannerText, isRed && styles.mbBannerTextRed]}>{message}</Text>
-      <View style={styles.mbBannerRow}>
-        <Pressable
-          onPress={onNavigateCreate}
-          style={({ pressed }) => [styles.mbBannerCta, pressed && styles.mbBannerCtaPressed]}
-          accessibilityRole="button"
-          accessibilityLabel={t('checkout:posFlow.monatsbelegBanner.createNow')}
-        >
-          <Text style={styles.mbBannerCtaText}>{t('checkout:posFlow.monatsbelegBanner.createNow')}</Text>
-        </Pressable>
-        {!isRed ? (
-          <Pressable
-            onPress={onDismissYellow}
-            style={({ pressed }) => [styles.mbDismissBtn, pressed && styles.mbBannerCtaPressed]}
-            accessibilityRole="button"
-            accessibilityLabel={t('checkout:posFlow.monatsbelegBanner.dismissA11y')}
-            hitSlop={8}
-          >
-            <Ionicons name="close" size={22} color={SoftColors.textPrimary} />
-          </Pressable>
-        ) : null}
-      </View>
-    </View>
-  );
-}
-
-/** RKSV: prominent notice when the current Vienna month Monatsbeleg is past the 7th-day grace (server: currentMonthOverdue). */
-function MonatsbelegCurrentMonthOverduePanel({
-  monatsbelegStatus,
-  onNavigateCreate,
-  t,
-}: {
-  monatsbelegStatus:
-    | { phase: 'idle' }
-    | { phase: 'loading' }
-    | { phase: 'success'; data: MonatsbelegStatusDto }
-    | { phase: 'error' };
-  onNavigateCreate: () => void;
-  t: (key: string, options?: Record<string, string | number>) => string;
-}) {
-  if (monatsbelegStatus.phase !== 'success' || monatsbelegStatus.data.currentMonthOverdue !== true) {
-    return null;
-  }
-  return (
-    <View style={styles.mbOverduePanel} accessibilityRole="alert">
-      <Text style={styles.mbOverdueTitle}>{t('checkout:posFlow.monatsbelegCurrentMonthOverdue.title')}</Text>
-      <Text style={styles.mbOverdueBody}>{t('checkout:posFlow.monatsbelegCurrentMonthOverdue.description')}</Text>
-      <Pressable
-        onPress={onNavigateCreate}
-        style={({ pressed }) => [styles.mbBannerCta, pressed && styles.mbBannerCtaPressed]}
-        accessibilityRole="button"
-        accessibilityLabel={t('checkout:posFlow.monatsbelegCurrentMonthOverdue.cta')}
-      >
-        <Text style={styles.mbBannerCtaText}>{t('checkout:posFlow.monatsbelegCurrentMonthOverdue.cta')}</Text>
-      </Pressable>
-    </View>
-  );
-}
 
 /** Presentational: step number + section title (used for Category and Summary headers). */
 function SectionHeader({
@@ -376,14 +273,6 @@ function usePOSOrderFlow(
 export default function CashRegisterScreen() {
   const { t } = useTranslation(['checkout', 'common']);
   const router = useRouter();
-  const [monatsbelegStatus, setMonatsbelegStatus] = useState<
-    | { phase: 'idle' }
-    | { phase: 'loading' }
-    | { phase: 'success'; data: MonatsbelegStatusDto }
-    | { phase: 'error' }
-  >({ phase: 'idle' });
-  const [yellowBannerDismissed, setYellowBannerDismissed] = useState(false);
-  const prevMbWarningLevelRef = useRef<string | null>(null);
   const [tableSelectionLoading, setTableSelectionLoading] = useState<number | null>(null);
   const [customerSheetVisible, setCustomerSheetVisible] = useState(false);
   const [splitMergeVisible, setSplitMergeVisible] = useState(false);
@@ -443,43 +332,6 @@ export default function CashRegisterScreen() {
       }
     }, [])
   );
-
-  useFocusEffect(
-    useCallback(() => {
-      const id = posReadiness.data?.effectiveRegisterId?.trim();
-      if (!id || !isValidPosCashRegisterId(id)) {
-        setMonatsbelegStatus({ phase: 'idle' });
-        return;
-      }
-      let cancelled = false;
-      setMonatsbelegStatus({ phase: 'loading' });
-      getMonatsbelegStatus(id)
-        .then((data) => {
-          if (cancelled) return;
-          setMonatsbelegStatus({ phase: 'success', data });
-        })
-        .catch(() => {
-          if (cancelled) return;
-          setMonatsbelegStatus({ phase: 'error' });
-        });
-      return () => {
-        cancelled = true;
-      };
-    }, [posReadiness.data?.effectiveRegisterId])
-  );
-
-  useEffect(() => {
-    if (monatsbelegStatus.phase !== 'success') return;
-    const w = monatsbelegStatus.data.warningLevel;
-    if (w !== prevMbWarningLevelRef.current) {
-      prevMbWarningLevelRef.current = w;
-      setYellowBannerDismissed(false);
-    }
-  }, [monatsbelegStatus]);
-
-  const handleMonatsbelegNavigate = useCallback(() => {
-    router.push('/(tabs)/settings' as const);
-  }, [router]);
 
   const handleOpenPaymentHistory = useCallback(() => {
     const registerId = posReadiness.data?.effectiveRegisterId?.trim();
@@ -788,23 +640,6 @@ export default function CashRegisterScreen() {
         onOpenPaymentHistory={handleOpenPaymentHistory}
       />
 
-      {/* Offline order capacity / sync status — always visible on main POS */}
-      <OfflineCounter />
-
-      <MonatsbelegWarningBannerStrip
-        monatsbelegStatus={monatsbelegStatus}
-        yellowDismissed={yellowBannerDismissed}
-        onDismissYellow={() => setYellowBannerDismissed(true)}
-        onNavigateCreate={handleMonatsbelegNavigate}
-        t={t}
-      />
-
-      <MonatsbelegCurrentMonthOverduePanel
-        monatsbelegStatus={monatsbelegStatus}
-        onNavigateCreate={handleMonatsbelegNavigate}
-        t={t}
-      />
-
       {/* Root List - ProductList acts as the main scrollable container */}
       {/* Stock info intentionally hidden from cashier UI. Stock management is handled in admin panel. Kept in code for potential future POS usage. */}
       <ProductList
@@ -908,75 +743,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: SoftColors.bgPrimary,
-  },
-
-  mbBanner: {
-    paddingHorizontal: SoftSpacing.md,
-    paddingVertical: SoftSpacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: SoftColors.borderLight,
-    gap: SoftSpacing.sm,
-  },
-  mbBannerYellow: {
-    backgroundColor: SoftColors.warningBg,
-  },
-  mbBannerRed: {
-    backgroundColor: SoftColors.errorBg,
-    borderLeftWidth: 4,
-    borderLeftColor: SoftColors.error,
-  },
-  mbBannerText: {
-    ...SoftTypography.bodySmall,
-    color: SoftColors.textPrimary,
-    fontWeight: '600',
-  },
-  mbBannerTextRed: {
-    color: SoftColors.error,
-  },
-  mbBannerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: SoftSpacing.sm,
-  },
-  mbBannerCta: {
-    alignSelf: 'flex-start',
-    backgroundColor: SoftColors.accent,
-    paddingHorizontal: SoftSpacing.md,
-    paddingVertical: SoftSpacing.sm,
-    borderRadius: SoftRadius.md,
-  },
-  mbBannerCtaPressed: {
-    opacity: 0.85,
-  },
-  mbBannerCtaText: {
-    color: SoftColors.textInverse,
-    fontWeight: '600',
-    ...SoftTypography.label,
-  },
-  mbDismissBtn: {
-    padding: SoftSpacing.xs,
-    marginLeft: 'auto',
-  },
-
-  mbOverduePanel: {
-    paddingHorizontal: SoftSpacing.md,
-    paddingVertical: SoftSpacing.md,
-    backgroundColor: SoftColors.warningBg,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: SoftColors.borderLight,
-    borderLeftWidth: 4,
-    borderLeftColor: SoftColors.warning,
-    gap: SoftSpacing.xs,
-  },
-  mbOverdueTitle: {
-    ...SoftTypography.body,
-    color: SoftColors.textPrimary,
-    fontWeight: '700',
-  },
-  mbOverdueBody: {
-    ...SoftTypography.bodySmall,
-    color: SoftColors.textPrimary,
   },
 
   tableOpsRow: {

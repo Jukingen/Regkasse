@@ -28,7 +28,7 @@
     "syncSummaryAllFailed": "No payments synchronized. {{failed}} failed — check Offline Queue in Settings and retry if needed."
   },
   "cartAccessibility": {
-    "default": "Cart, proceed to payment",
-    "withCount": "Cart, {{count}} items, proceed to payment"
+    "default": "Cart {{total}}, proceed to payment",
+    "withCount": "Cart {{total}}, {{count}} items, proceed to payment"
   }
 }

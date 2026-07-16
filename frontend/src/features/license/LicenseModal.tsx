@@ -25,6 +25,7 @@ import { type LicenseStatus } from '../../../hooks/useLicenseStatus';
 import { openAdmin, openLicenseExtension } from '@/src/features/admin-navigation/openAdmin';
 import { openMailtoUrl } from '../../../utils/openLink';
 import { formatUserDateTime } from '../../../utils/dateFormatter';
+import { preferLicenseHoursRemaining } from '../../../utils/licenseExpiryRemaining';
 
 const LICENSE_KEY_PATTERN = /^REGK-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$/i;
 
@@ -237,7 +238,18 @@ export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid,
                   <View style={styles.row}>
                     <Text style={styles.label}>{t('license:daysRemainingLabel')}</Text>
                     <Text style={styles.value}>
-                      {unlimitedPaid ? '—' : t('license:daysRemainingValue', { count: status.daysRemaining })}
+                      {unlimitedPaid
+                        ? '—'
+                        : (() => {
+                            const remaining = preferLicenseHoursRemaining(
+                              status.daysRemaining,
+                              status.expiryDate,
+                            );
+                            if (remaining?.kind === 'hours') {
+                              return t('license:hoursRemainingValue', { count: remaining.hours });
+                            }
+                            return t('license:daysRemainingValue', { count: status.daysRemaining });
+                          })()}
                     </Text>
                   </View>
 

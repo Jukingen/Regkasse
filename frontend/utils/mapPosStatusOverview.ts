@@ -8,6 +8,7 @@ import type {
 } from '../services/api/posStatusOverviewTypes';
 import { parsePosCashRegisterContextDto } from './posCashRegisterReadinessParse';
 import { normalizeRksvEnvironmentStatus } from './normalizeRksvEnvironment';
+import { normalizeLicenseDaysRemaining } from './licenseExpiryRemaining';
 
 function inferTrialFromPublic(p: LicensePublicStatusDto): boolean {
   const lt = (p.licenseType ?? '').trim().toLowerCase();
@@ -41,8 +42,8 @@ export function mapOverviewLicenseToStatus(
 
   const days =
     typeof license.daysRemaining === 'number' && Number.isFinite(license.daysRemaining)
-      ? Math.max(0, Math.floor(license.daysRemaining))
-      : Math.max(0, Math.floor(health.daysRemaining));
+      ? Math.max(0, normalizeLicenseDaysRemaining(license.daysRemaining))
+      : Math.max(0, normalizeLicenseDaysRemaining(health.daysRemaining));
 
   return {
     isValid: mergedValid,
@@ -68,11 +69,11 @@ export function mapOverviewToMandantWarning(
 
   const daysRemaining =
     typeof license.daysRemaining === 'number' && Number.isFinite(license.daysRemaining)
-      ? Math.max(0, Math.floor(license.daysRemaining))
+      ? Math.max(0, normalizeLicenseDaysRemaining(license.daysRemaining))
       : 0;
   const gracePeriodRemaining =
     typeof license.gracePeriodRemaining === 'number' && Number.isFinite(license.gracePeriodRemaining)
-      ? Math.max(0, Math.floor(license.gracePeriodRemaining))
+      ? Math.max(0, normalizeLicenseDaysRemaining(license.gracePeriodRemaining))
       : 0;
 
   return {
@@ -81,6 +82,10 @@ export function mapOverviewToMandantWarning(
     isInGracePeriod: license.isInGracePeriod === true,
     canAccess: license.canAccess !== false,
     statusMessage: license.statusMessage ?? null,
+    validUntil:
+      typeof license.validUntil === 'string' && license.validUntil.length > 0
+        ? license.validUntil
+        : null,
   };
 }
 

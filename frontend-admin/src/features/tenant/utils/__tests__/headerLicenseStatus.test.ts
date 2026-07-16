@@ -19,8 +19,10 @@ const t = (key: string, params?: Record<string, string | number>) => {
         'license.badge.headerShort.validUntilTooltip': `Gültig bis: ${params?.dateTime ?? ''}`,
         'license.badge.headerShort.expiredAtTooltip': `Abgelaufen am: ${params?.dateTime ?? ''}`,
         'license.badge.headerShort.tooltip.ariaSummary': `Gültig bis: ${params?.dateTime ?? ''}. Verbleibende Tage: ${params?.days ?? 0}. Status: ${params?.status ?? ''}.`,
+        'license.badge.headerShort.tooltip.ariaSummaryHours': `Gültig bis: ${params?.dateTime ?? ''}. Verbleibende Stunden: ${params?.hours ?? 0}. Status: ${params?.status ?? ''}.`,
         'license.badge.headerShort.tooltip.validUntil': 'Gültig bis',
         'license.badge.headerShort.tooltip.daysRemaining': 'Verbleibende Tage',
+        'license.badge.headerShort.tooltip.hoursRemaining': 'Verbleibende Stunden',
         'license.badge.headerShort.tooltip.status': 'Status',
         'license.phase.labels.expired': 'Abgelaufen',
         'license.badge.headerShort.daysRemaining': `${params?.days ?? 0} Tage`,
@@ -124,11 +126,27 @@ describe('headerLicenseStatus', () => {
             canManageUsers: true,
             canAccess: true,
         });
-        const tooltip = getHeaderLicenseTooltip(license, t, { validUntilUtc: VALID_UNTIL });
+        // Far-future expiry so hours path is not used
+        const farUntil = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString();
+        const tooltip = getHeaderLicenseTooltip(license, t, { validUntilUtc: farUntil });
         expect(tooltip).toContain('Gültig bis:');
         expect(tooltip).toContain('Verbleibende Tage: 5');
         expect(tooltip).toContain('Status: Aktiv');
-        expect(hasDetailedHeaderLicenseTooltip({ validUntilUtc: VALID_UNTIL })).toBe(true);
+        expect(hasDetailedHeaderLicenseTooltip({ validUntilUtc: farUntil })).toBe(true);
+    });
+
+    it('shows hours in aria summary when less than one day remains', () => {
+        const license = status({
+            kind: 'active',
+            daysRemaining: 1,
+            canWrite: true,
+            canManageUsers: true,
+            canAccess: true,
+        });
+        const validUntil = new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString();
+        const tooltip = getHeaderLicenseTooltip(license, t, { validUntilUtc: validUntil });
+        expect(tooltip).toContain('Verbleibende Stunden: 5');
+        expect(tooltip).not.toContain('Verbleibende Tage:');
     });
 
     it('shows expired status in detailed tooltip summary', () => {

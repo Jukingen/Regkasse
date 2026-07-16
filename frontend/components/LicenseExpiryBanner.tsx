@@ -5,7 +5,8 @@ import { SoftColors, SoftSpacing } from '../constants/SoftTheme';
 import { useLicenseStatus } from '../hooks/useLicenseStatus';
 import { areLicenseChecksBypassedInDevelopment } from '../utils/licenseCriticalActionGuard';
 import { TENANT_WARNING_DAYS_BEFORE_EXPIRY } from '../constants/licenseGracePeriod';
-import { formatUserDate } from '../utils/dateFormatter';
+import { formatUserDateTime } from '../utils/dateFormatter';
+import { formatLicenseRemainingDe } from '../utils/licenseExpiryRemaining';
 
 const WARNING_THRESHOLD_DAYS = TENANT_WARNING_DAYS_BEFORE_EXPIRY;
 
@@ -28,7 +29,7 @@ export function LicenseExpiryBanner() {
   const { isExpired, daysRemaining, expiryDate } = status;
 
   if (isExpired) {
-    const dateLabel = formatExpiryDateDe(expiryDate);
+    const dateLabel = formatExpiryDateTimeDe(expiryDate);
     return (
       <View style={[styles.banner, styles.expired]} accessibilityRole="alert">
         <Text style={styles.expiredText} numberOfLines={2}>
@@ -41,13 +42,14 @@ export function LicenseExpiryBanner() {
   }
 
   if (daysRemaining > 0 && daysRemaining <= WARNING_THRESHOLD_DAYS) {
-    const dateLabel = formatExpiryDateDe(expiryDate);
+    const dateLabel = formatExpiryDateTimeDe(expiryDate);
+    const remainingLabel = formatLicenseRemainingDe(daysRemaining, expiryDate) ?? `${daysRemaining} Tag(e)`;
     return (
       <View style={[styles.banner, styles.warning]} accessibilityRole="alert">
         <Text style={styles.warningText} numberOfLines={2}>
           {dateLabel
-            ? `Lizenz läuft in ${daysRemaining} Tag(en) ab (${dateLabel}) – bitte rechtzeitig verlängern`
-            : `Lizenz läuft in ${daysRemaining} Tag(en) ab – bitte rechtzeitig verlängern`}
+            ? `Lizenz läuft in ${remainingLabel} ab (${dateLabel}) – bitte rechtzeitig verlängern`
+            : `Lizenz läuft in ${remainingLabel} ab – bitte rechtzeitig verlängern`}
         </Text>
       </View>
     );
@@ -56,10 +58,10 @@ export function LicenseExpiryBanner() {
   return null;
 }
 
-function formatExpiryDateDe(iso: string | null): string | null {
+function formatExpiryDateTimeDe(iso: string | null): string | null {
   if (!iso) return null;
-  const formatted = formatUserDate(iso);
-  return formatted || iso.slice(0, 10);
+  const formatted = formatUserDateTime(iso);
+  return formatted || null;
 }
 
 const styles = StyleSheet.create({

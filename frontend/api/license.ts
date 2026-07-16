@@ -27,6 +27,7 @@ export type TenantLicenseStatusDto = Pick<
   | 'daysRemaining'
   | 'isInGracePeriod'
   | 'gracePeriodRemaining'
+  | 'validUntil'
 >;
 
 /** Matches backend `LicenseActivationResult` (camelCase JSON). */

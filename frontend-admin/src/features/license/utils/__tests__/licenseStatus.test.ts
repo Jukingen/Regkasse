@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+    getLicenseStatusRemainingText,
     mapPublicStatusToTenantLicenseStatus,
     resolveDeploymentLicenseStatus,
     resolveTenantLicenseFromPublicStatus,
@@ -10,6 +11,12 @@ import {
 
 describe('licenseStatus', () => {
     const nowMs = new Date('2026-05-20T12:00:00Z').getTime();
+    const t = (key: string, params?: Record<string, string | number>) => {
+        if (key === 'license.phase.hoursRemaining') return `${params?.hours ?? 0} Stunden verbleibend`;
+        if (key === 'license.phase.daysRemaining') return `${params?.days ?? 0} Tage verbleibend`;
+        if (key === 'license.phase.daysExpired') return `Seit ${params?.days ?? 0} Tagen abgelaufen`;
+        return key;
+    };
 
     it('maps tenant grace_read_only to grace_readonly permissions', () => {
         const status = resolveTenantLicenseStatus(
@@ -148,5 +155,43 @@ describe('licenseStatus', () => {
         expect(status.daysRemaining).toBe(1);
         expect(status.licenseKey).toBeNull();
         expect(status.features).toEqual(['admin_basic']);
+    });
+
+    it('prefers hours remaining text when less than 24h left', () => {
+        const validUntil = new Date(nowMs + 5 * 60 * 60 * 1000).toISOString();
+        const text = getLicenseStatusRemainingText(
+            {
+                kind: 'active',
+                daysRemaining: 1,
+                daysExpired: 0,
+                canWrite: true,
+                canManageUsers: true,
+                canAccess: true,
+            },
+            t,
+            validUntil,
+            nowMs,
+        );
+
+        expect(text).toBe('5 Stunden verbleibend');
+    });
+
+    it('keeps day remaining text when more than 24h left', () => {
+        const validUntil = new Date(nowMs + 36 * 60 * 60 * 1000).toISOString();
+        const text = getLicenseStatusRemainingText(
+            {
+                kind: 'active',
+                daysRemaining: 2,
+                daysExpired: 0,
+                canWrite: true,
+                canManageUsers: true,
+                canAccess: true,
+            },
+            t,
+            validUntil,
+            nowMs,
+        );
+
+        expect(text).toBe('2 Tage verbleibend');
     });
 });

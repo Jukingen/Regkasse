@@ -4,6 +4,7 @@
     "loading": "Yükleniyor…",
     "unknown": "Lisans ?",
     "daysShort": "{{count}}g",
+    "hoursShort": "{{count}}sa",
     "unlimitedShort": "Pro",
     "expiredShort": "! "
   },
@@ -20,6 +21,7 @@
   "expiryNone": "Sabit bitiş tarihi yok (etkin olduğu sürece)",
   "daysRemainingLabel": "Kalan süre",
   "daysRemainingValue": "{{count}} gün",
+  "hoursRemainingValue": "{{count}} sa",
   "technicalToggleShow": "Teknik ayrıntıları göster",
   "technicalToggleHide": "Teknik ayrıntıları gizle",
   "machineFingerprintLabel": "Cihaz parmak izi (SHA-256)",
@@ -89,6 +91,7 @@
     "expiredBody": "Deneme lisansınızın süresi doldu. Ödemeler engellenmiş olabilir. Yöneticinize başvurun.",
     "trialSoonTitle": "Demo / deneme – lisans bitiyor",
     "trialSoonBody": "Deneme lisansınız {{count}} gün içinde bitiyor. Yine de devam etmek istiyor musunuz?",
+    "trialSoonBodyHours": "Deneme lisansınız {{count}} saat içinde bitiyor. Yine de devam etmek istiyor musunuz?",
     "cancel": "İptal",
     "proceed": "Devam",
     "ok": "Tamam",

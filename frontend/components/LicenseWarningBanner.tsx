@@ -6,6 +6,7 @@ import { useMandantLicenseWarning } from '../hooks/useMandantLicenseWarning';
 import { useLicenseStatus } from '../hooks/useLicenseStatus';
 import { areLicenseChecksBypassedInDevelopment } from '../utils/licenseCriticalActionGuard';
 import { openLicenseExtension } from '../utils/openAdmin';
+import { formatLicenseRemainingDe } from '../utils/licenseExpiryRemaining';
 
 /**
  * Mandant (tenant) license warning band with optional renew action (German POS copy).
@@ -43,12 +44,12 @@ export function LicenseWarningBanner() {
   }
 
   if (shouldShowPreExpiry) {
-    const days = state.daysRemaining;
+    const remainingLabel =
+      formatLicenseRemainingDe(state.daysRemaining, state.validUntil) ??
+      `${state.daysRemaining} Tag${state.daysRemaining === 1 ? '' : 'e'}`;
     return (
       <View style={[styles.banner, styles.infoBanner]} accessibilityRole="alert">
-        <Text style={styles.infoText}>
-          Lizenz läuft in {days} Tag{days === 1 ? '' : 'en'} ab.
-        </Text>
+        <Text style={styles.infoText}>Lizenz läuft in {remainingLabel} ab.</Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Jetzt verlängern"

@@ -28,7 +28,7 @@
     "syncSummaryAllFailed": "Hic odeme senkronize edilmedi. {{failed}} basarisiz — Ayarlar > cevrimdisi kuyruga bakin ve gerekirse tekrar deneyin."
   },
   "cartAccessibility": {
-    "default": "Sepet, odemeye devam et",
-    "withCount": "Sepet, {{count}} urun, odemeye devam et"
+    "default": "Sepet {{total}}, odemeye devam et",
+    "withCount": "Sepet {{total}}, {{count}} urun, odemeye devam et"
   }
 }
