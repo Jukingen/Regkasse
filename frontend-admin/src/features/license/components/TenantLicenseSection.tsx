@@ -8,13 +8,13 @@ import {
     Descriptions,
     Empty,
     Space,
-    Spin,
     Tag,
     Typography,
 } from 'antd';
 
-import { useI18n, formatDate } from '@/i18n';
+import { useI18n, formatGermanDateTime } from '@/i18n';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
+import { useTenant } from '@/features/tenancy/providers/TenantProvider';
 import { useTenantLicense } from '@/hooks/useTenantLicense';
 import { useTenantLicenseDetail } from '@/features/license/hooks/useTenantLicenseDetail';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -36,8 +36,9 @@ import {
 const EXPIRING_SOON_THRESHOLD_DAYS = 7;
 
 export function TenantLicenseSection() {
-    const { t, formatLocale } = useI18n();
+    const { t } = useI18n();
     const currentTenant = useCurrentTenant();
+    const { tenant, isLoading: tenantLoading, error: tenantError } = useTenant();
     const { hasPermission } = usePermissions();
     const [extendOpen, setExtendOpen] = useState(false);
 
@@ -104,25 +105,25 @@ export function TenantLicenseSection() {
         return null;
     }, [resolvedStatus, t]);
 
-    if (currentTenant.isTenantRecordLoading && !tenantId) {
-        return (
-            <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-                <FirmenInfo />
-            </Space>
-        );
-    }
+    const firmenInfo = (
+        <FirmenInfo
+            tenant={tenant}
+            loading={tenantLoading || (currentTenant.isTenantRecordLoading && !tenantId)}
+            error={tenantError}
+        />
+    );
 
-    if (!tenantId) {
+    if ((currentTenant.isTenantRecordLoading && !tenantId) || !tenantId) {
         return (
             <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-                <FirmenInfo />
+                {firmenInfo}
             </Space>
         );
     }
 
     return (
         <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-            <FirmenInfo />
+            {firmenInfo}
 
             <Typography.Title level={4} style={{ margin: 0 }}>
                 {t('license.page.tenantLicense')}
@@ -152,7 +153,7 @@ export function TenantLicenseSection() {
                             </Descriptions.Item>
                         ) : null}
                         <Descriptions.Item label={t('license.mandant.validUntil')}>
-                            {status.validUntilUtc ? formatDate(status.validUntilUtc, formatLocale) : '—'}
+                            {formatGermanDateTime(status.validUntilUtc)}
                         </Descriptions.Item>
                         {resolvedStatus ? (
                             <Descriptions.Item label={t('tenants.detail.license.remaining')}>

@@ -1,9 +1,13 @@
 using System.Globalization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -12,6 +16,7 @@ namespace KasseAPI_Final.Services;
 
 /// <summary>
 /// RKSV-safe receipt reprint: uses persisted receipt number, TSE payload/signature snapshot, and stored QR string only.
+/// Special receipts (Sonderbelege) use <see cref="SpecialReceiptPdfService"/> with full RKSV header/QR/footer.
 /// </summary>
 public sealed class ReceiptPdfService : IReceiptPdfService
 {
@@ -30,6 +35,11 @@ public sealed class ReceiptPdfService : IReceiptPdfService
     private readonly AppDbContext _context;
     private readonly IQrImageService _qrService;
     private readonly ISettingsTenantResolver _tenantResolver;
+    private readonly ICompanyProfileProvider _companyProfileProvider;
+    private readonly IHostEnvironment _hostEnvironment;
+    private readonly TseOptions _tseOptions;
+    private readonly IConfiguration? _configuration;
+    private readonly IRksvEnvironmentService? _rksvEnvironment;
     private readonly ILogger<ReceiptPdfService> _logger;
 
     static ReceiptPdfService()
@@ -41,11 +51,21 @@ public sealed class ReceiptPdfService : IReceiptPdfService
         AppDbContext context,
         IQrImageService qrService,
         ISettingsTenantResolver tenantResolver,
-        ILogger<ReceiptPdfService> logger)
+        ICompanyProfileProvider companyProfileProvider,
+        IHostEnvironment hostEnvironment,
+        IOptions<TseOptions> tseOptions,
+        ILogger<ReceiptPdfService> logger,
+        IConfiguration? configuration = null,
+        IRksvEnvironmentService? rksvEnvironment = null)
     {
         _context = context;
         _qrService = qrService;
         _tenantResolver = tenantResolver;
+        _companyProfileProvider = companyProfileProvider;
+        _hostEnvironment = hostEnvironment;
+        _tseOptions = tseOptions?.Value ?? new TseOptions();
+        _configuration = configuration;
+        _rksvEnvironment = rksvEnvironment;
         _logger = logger;
     }
 
@@ -118,11 +138,53 @@ public sealed class ReceiptPdfService : IReceiptPdfService
             }
         }
 
+        var paymentMethodLabel = FormatPaymentMethod(payment.PaymentMethodRaw);
+        var specialKind = payment.RksvSpecialReceiptKind?.Trim();
+
+        if (!string.IsNullOrEmpty(specialKind))
+        {
+            var liveProfile = await _companyProfileProvider.GetCompanyProfileAsync(cancellationToken)
+                .ConfigureAwait(false);
+            var (companyName, companyAddress, companyVatId) =
+                CompanyProfileMapper.ResolveForDisplay(payment, liveProfile);
+            var fiscal = FiscalEnvironmentResolver.Resolve(
+                _hostEnvironment,
+                _tseOptions,
+                _configuration,
+                rksvEnvironment: _rksvEnvironment);
+            var tseSignature = !string.IsNullOrWhiteSpace(payment.TseSignature)
+                ? payment.TseSignature
+                : receipt.SignatureValue;
+
+            return SpecialReceiptPdfService.Generate(
+                new SpecialReceiptPdfData
+                {
+                    TenantId = tenantId,
+                    CompanyName = companyName,
+                    CompanyAddress = companyAddress,
+                    CompanyVatId = companyVatId,
+                    ReceiptType = GetSpecialReceiptDisplayName(specialKind),
+                    CashRegisterId = payment.CashRegisterId.ToString("N"),
+                    RegisterNumber = payment.CashRegister?.RegisterNumber ?? registerLabel,
+                    ReceiptNumber = receipt.ReceiptNumber,
+                    IssuedAt = payment.TseTimestamp != default ? payment.TseTimestamp : receipt.IssuedAt,
+                    TotalAmount = payment.TotalAmount,
+                    PaymentMethod = paymentMethodLabel,
+                    TseSignature = tseSignature,
+                    TseSignatureTimestamp = FormatAustriaLocal(payment.TseTimestamp),
+                    QrContent = qrPayload ?? string.Empty,
+                    RksvFooterLabel = fiscal.RksvFooterLabel.Contains("DEMO", StringComparison.OrdinalIgnoreCase)
+                        ? ReceiptService.DemoRksvFooterLabel
+                        : ReceiptService.ProductionRksvFooterLabel,
+                    IncludeReprintWatermark = includeReprintWatermark,
+                },
+                qrEmbedPng,
+                qrFallbackChunk);
+        }
+
         var deAt = CultureInfo.GetCultureInfo("de-AT");
         var inv = CultureInfo.InvariantCulture;
         var belegZeit = FormatAustriaLocal(payment.TseTimestamp);
-        var paymentMethodLabel = FormatPaymentMethod(payment.PaymentMethodRaw);
-        var specialKind = payment.RksvSpecialReceiptKind?.Trim();
 
         var orderedItems = receipt.Items
             .OrderBy(i => i.ParentItemId == null ? 0 : 1)
@@ -157,8 +219,6 @@ public sealed class ReceiptPdfService : IReceiptPdfService
                     column.Item().Text(registerLabel);
                     column.Item().Text($"Nr: {receipt.ReceiptNumber}");
                     column.Item().Text(belegZeit);
-                    if (!string.IsNullOrEmpty(specialKind))
-                        column.Item().Text(GetSpecialReceiptDisplayName(specialKind));
 
                     column.Item().LineHorizontal(0.5f).LineColor(Colors.Grey.Medium);
 
@@ -268,7 +328,7 @@ public sealed class ReceiptPdfService : IReceiptPdfService
             RksvSpecialReceiptKinds.Startbeleg => "Startbeleg",
             RksvSpecialReceiptKinds.Monatsbeleg => "Monatsbeleg",
             RksvSpecialReceiptKinds.Jahresbeleg => "Jahresbeleg",
-            RksvSpecialReceiptKinds.Schlussbeleg => "Endbeleg",
+            RksvSpecialReceiptKinds.Schlussbeleg => "Schlussbeleg",
             _ => kind
         };
 

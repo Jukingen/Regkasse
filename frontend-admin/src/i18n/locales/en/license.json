@@ -209,6 +209,17 @@
       "none": "No tenant license",
       "expired": "License expired",
       "expiringSoon": "License expiring soon",
+      "expiringSoonWithDays": "Expires in {{days}} days",
+      "expiringSoonWithHours": "Expires in {{hours}} h",
+      "validUntilTooltip": "Valid until: {{dateTime}}",
+      "expiredAtTooltip": "Expired on: {{dateTime}}",
+      "tooltip": {
+        "validUntil": "Valid until",
+        "daysRemaining": "Days remaining",
+        "status": "Status",
+        "countdown": "Expires in: {{countdown}}",
+        "ariaSummary": "Valid until: {{dateTime}}. Days remaining: {{days}}. Status: {{status}}."
+      },
       "daysRemaining": "{{days}} days",
       "trial": "Trial",
       "licensed": "Licensed",
@@ -635,6 +646,10 @@
     "productionBlocked": "The license test panel is disabled in production.",
     "selectTenant": "Tenant",
     "selectTenantPlaceholder": "Select tenant…",
+    "loadingTenant": "Loading tenant…",
+    "tenantLoadError": "Failed to load tenant",
+    "contextTenantHint": "Current context: {name} ({slug})",
+
     "refresh": "Refresh status",
     "refreshedAt": "Last updated: {time}",
     "developmentBypassActive": "Development-mode license bypass is active — deployment status may be synthetic.",

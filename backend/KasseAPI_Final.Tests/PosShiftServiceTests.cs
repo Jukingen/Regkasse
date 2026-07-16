@@ -266,4 +266,152 @@ public class PosShiftServiceTests
         Assert.Equal(15m, result.Shift.TotalCash);
         Assert.Equal(0m, result.Shift.TotalCard);
     }
+
+    [Fact]
+    public async Task AutoOpenShift_CreatesRow_WithIsAutoOpened()
+    {
+        await using var ctx = CreateContext();
+        const string userId = "cashier-1";
+        var regId = Guid.NewGuid();
+        var actor = new ApplicationUser
+        {
+            Id = userId,
+            UserName = "k1",
+            Email = "k1@test",
+            FirstName = "Max",
+            LastName = "Muster",
+        };
+        ctx.Users.Add(actor);
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "Front",
+            StartingBalance = 25m,
+            CurrentBalance = 25m,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+        });
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx, actor);
+        var dto = await svc.AutoOpenShiftAsync(userId, "fallback", regId);
+
+        Assert.Equal(CashierShiftStatuses.Active, dto.Status);
+        Assert.True(dto.IsAutoOpened);
+        Assert.False(dto.IsAutoClosed);
+        Assert.Equal(25m, dto.StartBalance);
+
+        var register = await ctx.CashRegisters.FindAsync(regId);
+        Assert.Equal(RegisterStatus.Open, register!.Status);
+        Assert.Equal(userId, register.CurrentUserId);
+    }
+
+    [Fact]
+    public async Task AutoOpenShift_WhenAlreadyActive_ReturnsExistingIdempotent()
+    {
+        await using var ctx = CreateContext();
+        const string userId = "cashier-1";
+        var regId = Guid.NewGuid();
+        var existingId = Guid.NewGuid();
+        ctx.CashierShifts.Add(new CashierShift
+        {
+            Id = existingId,
+            TenantId = LegacyDefaultTenantIds.Primary,
+            CashRegisterId = regId,
+            CashierId = userId,
+            CashierName = "Max",
+            StartBalance = 50m,
+            StartedAt = DateTime.UtcNow,
+            Status = CashierShiftStatuses.Active,
+            IsAutoOpened = true,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+        });
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var dto = await svc.AutoOpenShiftAsync(userId, "Max", Guid.NewGuid());
+
+        Assert.Equal(existingId, dto.Id);
+        Assert.True(dto.IsAutoOpened);
+        Assert.Equal(1, await ctx.CashierShifts.CountAsync());
+    }
+
+    [Fact]
+    public async Task AutoCloseShift_CompletesWithoutClosingRegister()
+    {
+        await using var ctx = CreateContext();
+        const string userId = "cashier-1";
+        var regId = Guid.NewGuid();
+        var startedAt = DateTime.UtcNow.AddHours(-1);
+
+        var actor = new ApplicationUser { Id = userId, UserName = "k1", Email = "k1@test", FirstName = "Max", LastName = "M" };
+        ctx.Users.Add(actor);
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Id = regId,
+            RegisterNumber = "K2",
+            Location = "Front",
+            StartingBalance = 100m,
+            CurrentBalance = 130m,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CurrentUserId = userId,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+        });
+        ctx.CashierShifts.Add(new CashierShift
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            CashRegisterId = regId,
+            CashierId = userId,
+            CashierName = "Max",
+            StartBalance = 100m,
+            StartedAt = startedAt,
+            Status = CashierShiftStatuses.Active,
+            IsAutoOpened = true,
+            CreatedAt = startedAt,
+            IsActive = true,
+        });
+        ctx.PaymentDetails.Add(new PaymentDetails
+        {
+            Id = Guid.NewGuid(),
+            CashRegisterId = regId,
+            TotalAmount = 30m,
+            PaymentMethodRaw = ((int)PaymentMethod.Cash).ToString(),
+            CreatedAt = startedAt.AddMinutes(10),
+            IsActive = true,
+            ReceiptNumber = "R-auto",
+        });
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx, actor);
+        var dto = await svc.AutoCloseShiftAsync(userId, Roles.Cashier);
+
+        Assert.NotNull(dto);
+        Assert.Equal(CashierShiftStatuses.Completed, dto!.Status);
+        Assert.True(dto.IsAutoClosed);
+        Assert.Equal(30m, dto.TotalSales);
+        Assert.Equal(0m, dto.Difference);
+
+        var register = await ctx.CashRegisters.FindAsync(regId);
+        Assert.Equal(RegisterStatus.Open, register!.Status);
+        Assert.Equal(userId, register.CurrentUserId);
+    }
+
+    [Fact]
+    public async Task AutoCloseShift_WhenNoActive_ReturnsNull()
+    {
+        await using var ctx = CreateContext();
+        var svc = CreateService(ctx);
+
+        var dto = await svc.AutoCloseShiftAsync("cashier-1", Roles.Cashier);
+
+        Assert.Null(dto);
+    }
 }

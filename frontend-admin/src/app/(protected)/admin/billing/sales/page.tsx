@@ -9,7 +9,7 @@ import { type Dayjs } from 'dayjs';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useBillingSalesList } from '@/features/billing/hooks';
 import { BillingAccessGate } from '@/features/billing/components/BillingAccessGate';
-import { formatDate } from '@/lib/dateFormatter';
+import { formatGermanDateTime } from '@/lib/dateFormatter';
 import { downloadLicenseSaleInvoicePdf } from '@/features/billing/utils/downloadInvoicePdf';
 import type { LicenseSaleResponse } from '@/api/generated/model';
 import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
@@ -128,7 +128,7 @@ export default function BillingSalesPage() {
             title: 'Gültig bis',
             dataIndex: 'validUntilUtc',
             key: 'validUntilUtc',
-            render: (date: string | undefined) => (date ? formatDate(date) : '—'),
+            render: (date: string | undefined) => (date ? formatGermanDateTime(date) : '—'),
         },
         {
             title: 'Betrag (Netto)',
@@ -160,7 +160,7 @@ export default function BillingSalesPage() {
             title: 'Verkauft am',
             dataIndex: 'soldAtUtc',
             key: 'soldAtUtc',
-            render: (date: string | undefined) => (date ? formatDate(date) : '—'),
+            render: (date: string | undefined) => (date ? formatGermanDateTime(date) : '—'),
         },
         {
             title: 'Aktionen',

@@ -204,6 +204,22 @@ public class RksvNullbelegServiceTests
     }
 
     [Fact]
+    public async Task CreateNullbelegAsync_OmitsYearAndMonth_DefaultsToCurrentViennaPeriod()
+    {
+        await using var context = CreateContext();
+        var (regId, service, _, _) = await SeedAndBuildAsync(context);
+
+        var (viennaYear, viennaMonth) = KasseAPI_Final.Time.PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+        var resp = await service.CreateNullbelegAsync(
+            new CreateNullbelegRequest { CashRegisterId = regId, Reason = "default period" },
+            "manager-1");
+
+        var payment = await context.PaymentDetails.AsNoTracking().FirstAsync(p => p.Id == resp.PaymentId);
+        Assert.Equal(viennaYear, payment.RksvSpecialReceiptYear);
+        Assert.Equal(viennaMonth, payment.RksvSpecialReceiptMonth);
+    }
+
+    [Fact]
     public async Task CreateNullbelegAsync_DuplicateMonth_Throws()
     {
         await using var context = CreateContext();

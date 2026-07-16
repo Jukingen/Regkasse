@@ -128,6 +128,7 @@
     "quickUserCreatedDescription": "Super Admin created quick user '{{email}}' ({{role}}) for tenant '{{slug}}'",
     "userNameChangedDescription": "Username changed from {{old}} → {{new}}",
     "userNameChangedPrefix": "Username changed from",
+    "tagesabschlussBackdatedDescription": "Backdated daily closing for {{date}} ({{daysLate}} day(s) late). Reason: {{reason}}",
     "actionLabels": {
       "login": "Login",
       "createInvoice": "Create invoice",
@@ -139,7 +140,9 @@
       "userDeactivate": "User deactivated",
       "userReactivate": "User reactivated",
       "passwordResetForced": "Password reset",
-      "changeOwnPassword": "Own password changed"
+      "changeOwnPassword": "Own password changed",
+      "tagesabschlussCreated": "Daily closing created",
+      "tagesabschlussBackdatedCreated": "Backdated daily closing"
     },
     "statusLabels": {
       "Success": "Success",

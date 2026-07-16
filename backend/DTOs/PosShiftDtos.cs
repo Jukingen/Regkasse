@@ -13,6 +13,12 @@ public sealed class StartShiftRequest
     public decimal StartBalance { get; set; }
 }
 
+public sealed class AutoOpenShiftRequest
+{
+    [Required]
+    public Guid CashRegisterId { get; set; }
+}
+
 public sealed class EndShiftRequest
 {
     [Range(0, 999_999_999)]
@@ -41,6 +47,8 @@ public sealed class CashierShiftDto
     public string? Notes { get; init; }
     public Guid? DailyClosingId { get; init; }
     public decimal? CashCount { get; init; }
+    public bool IsAutoOpened { get; init; }
+    public bool IsAutoClosed { get; init; }
 }
 
 public sealed class CurrentShiftResponse
@@ -136,6 +144,8 @@ public sealed class PosDailyClosingReportDto
     public string ClosingType { get; init; } = "Daily";
     public string SnapshotDisclaimerDe { get; init; } =
         DailyClosingReportComposer.RksvDailyDisclaimerDe;
+    /// <summary>Plain-text late-closing note when <c>DailyClosing.IsBackdated</c>.</summary>
+    public string? BackdatedNotice { get; init; }
     /// <summary>Shown when payment-row Umsatz and signed fiscal gross diverge.</summary>
     public string? SalesFiscalReconciliationNote { get; init; }
     /// <summary>Explains shift-scoped cash difference vs calendar-day cash sales.</summary>

@@ -7,11 +7,13 @@
 
 import { Tooltip } from 'antd';
 
+import { HeaderLicenseTooltipContent } from '@/features/tenant/components/HeaderLicenseTooltipContent';
 import { useHeaderTenantLicense } from '@/features/tenant/hooks/useHeaderTenantLicense';
 import {
     getHeaderLicenseStatusClass,
     getHeaderLicenseStatusText,
     getHeaderLicenseTooltip,
+    hasDetailedHeaderLicenseTooltip,
 } from '@/features/tenant/utils/headerLicenseStatus';
 import { useI18n } from '@/i18n';
 
@@ -21,7 +23,7 @@ export type LicenseStatusIndicatorProps = {
 
 export function LicenseStatusIndicator({ compact: _compact = false }: LicenseStatusIndicatorProps) {
     const { t } = useI18n();
-    const { mode, resolvedStatus, isLoading, isUnavailable } = useHeaderTenantLicense();
+    const { mode, resolvedStatus, licenseValidUntilUtc, isLoading, isUnavailable } = useHeaderTenantLicense();
 
     if (mode === 'hidden') {
         return null;
@@ -48,13 +50,27 @@ export function LicenseStatusIndicator({ compact: _compact = false }: LicenseSta
         );
     }
 
+    const statusContext = { validUntilUtc: licenseValidUntilUtc };
     const statusClass = getHeaderLicenseStatusClass(resolvedStatus);
-    const statusText = getHeaderLicenseStatusText(resolvedStatus, t);
-    const tooltip = getHeaderLicenseTooltip(resolvedStatus, t);
+    const statusText = getHeaderLicenseStatusText(resolvedStatus, t, statusContext);
+    const tooltipAriaLabel = getHeaderLicenseTooltip(resolvedStatus, t, statusContext);
+    const showDetailedTooltip = hasDetailedHeaderLicenseTooltip(statusContext);
 
     return (
-        <Tooltip title={tooltip}>
-            <div className={`license-badge ${statusClass} license-badge-tooltip-trigger`} aria-label={tooltip}>
+        <Tooltip
+            title={
+                showDetailedTooltip ? (
+                    <HeaderLicenseTooltipContent status={resolvedStatus} context={statusContext} t={t} />
+                ) : (
+                    tooltipAriaLabel
+                )
+            }
+            placement="bottom"
+        >
+            <div
+                className={`license-badge ${statusClass} license-badge-tooltip-trigger`}
+                aria-label={tooltipAriaLabel}
+            >
                 <span className="license-text">{statusText}</span>
             </div>
         </Tooltip>

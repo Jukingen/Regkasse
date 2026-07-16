@@ -209,6 +209,17 @@
       "none": "Kiracı lisansı yok",
       "expired": "Lisans süresi doldu",
       "expiringSoon": "Lisans yakında bitiyor",
+      "expiringSoonWithDays": "{{days}} gün içinde bitiyor",
+      "expiringSoonWithHours": "{{hours}} saat içinde bitiyor",
+      "validUntilTooltip": "Geçerlilik: {{dateTime}}",
+      "expiredAtTooltip": "Bitiş: {{dateTime}}",
+      "tooltip": {
+        "validUntil": "Geçerlilik",
+        "daysRemaining": "Kalan gün",
+        "status": "Durum",
+        "countdown": "Bitişe kalan: {{countdown}}",
+        "ariaSummary": "Geçerlilik: {{dateTime}}. Kalan gün: {{days}}. Durum: {{status}}."
+      },
       "daysRemaining": "{{days}} gün",
       "trial": "Deneme sürümü",
       "licensed": "Lisanslı",
@@ -635,6 +646,10 @@
     "productionBlocked": "Lisans test paneli production ortamında devre dışı.",
     "selectTenant": "Kiracı",
     "selectTenantPlaceholder": "Kiracı seçin…",
+    "loadingTenant": "Kiracı yükleniyor…",
+    "tenantLoadError": "Kiracı yüklenirken hata oluştu",
+    "contextTenantHint": "Geçerli bağlam: {name} ({slug})",
+
     "refresh": "Durumu yenile",
     "refreshedAt": "Son güncelleme: {time}",
     "developmentBypassActive": "Development-mode lisans bypass aktif — deployment durumu sentetik olabilir.",

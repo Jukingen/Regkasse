@@ -8,6 +8,9 @@ export const DAYJS_DATE_FORMAT = 'DD.MM.YYYY';
 export const DAYJS_DATETIME_FORMAT = 'DD.MM.YYYY HH:mm';
 export const DAYJS_DATETIME_SECONDS_FORMAT = 'DD.MM.YYYY HH:mm:ss';
 
+/** Empty / invalid display placeholder for German format helpers. */
+export const GERMAN_DATE_EMPTY = '—' as const;
+
 export type FormatUserDateTimeOptions = {
   /** When true: `DD.MM.YYYY HH:mm:ss`; otherwise `DD.MM.YYYY HH:mm`. */
   includeSeconds?: boolean;
@@ -83,6 +86,24 @@ export function formatUserTime(
     return `${h}:${m}:${pad2(d.getSeconds())}`;
   }
   return `${h}:${m}`;
+}
+
+/**
+ * German UI datetime — `DD.MM.YYYY HH:mm`, or `—` when missing/invalid.
+ * Prefer over raw `toLocaleString` so Admin stays consistent across de/en/tr text locales.
+ */
+export function formatGermanDateTime(date: string | Date | null | undefined): string {
+  return formatUserDateTime(date) || GERMAN_DATE_EMPTY;
+}
+
+/** German UI date — `DD.MM.YYYY`, or `—` when missing/invalid. */
+export function formatGermanDate(date: string | Date | null | undefined): string {
+  return formatUserDate(date) || GERMAN_DATE_EMPTY;
+}
+
+/** German UI time — `HH:mm`, or `—` when missing/invalid. */
+export function formatGermanTime(date: string | Date | null | undefined): string {
+  return formatUserTime(date) || GERMAN_DATE_EMPTY;
 }
 
 /** Maps personalization / DatePicker pattern (only DD.MM.YYYY supported in UI). */

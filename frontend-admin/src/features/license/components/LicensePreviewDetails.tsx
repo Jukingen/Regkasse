@@ -3,7 +3,7 @@
 import { FileTextOutlined } from '@ant-design/icons';
 import { Alert, Card, Descriptions, Flex, Space, Spin, Tag, Typography } from 'antd';
 
-import { formatDate } from '@/i18n';
+import { formatGermanDateTime } from '@/i18n';
 import type {
     ExtendTenantLicenseResult,
     TenantLicensePreviewResult,
@@ -63,7 +63,7 @@ export function LicensePreviewDetails({
                         description={
                             extendResult.validUntilUtc
                                 ? t('license.extendModal.successDetails', {
-                                      date: formatDate(extendResult.validUntilUtc, formatLocale),
+                                      date: formatGermanDateTime(extendResult.validUntilUtc),
                                   })
                                 : undefined
                         }
@@ -76,7 +76,7 @@ export function LicensePreviewDetails({
                         </Descriptions.Item>
                         <Descriptions.Item label={t('license.extendModal.validUntilLabel')}>
                             {extendResult.validUntilUtc
-                                ? formatDate(extendResult.validUntilUtc, formatLocale)
+                                ? formatGermanDateTime(extendResult.validUntilUtc)
                                 : '—'}
                         </Descriptions.Item>
                     </Descriptions>
@@ -105,12 +105,12 @@ export function LicensePreviewDetails({
                             ) : null}
                             <Descriptions.Item label={t('license.extendModal.previewValidFrom')}>
                                 {preview.validFromUtc
-                                    ? formatDate(preview.validFromUtc, formatLocale)
+                                    ? formatGermanDateTime(preview.validFromUtc)
                                     : '—'}
                             </Descriptions.Item>
                             <Descriptions.Item label={t('license.extendModal.previewValidUntil')}>
                                 {preview.validUntilUtc
-                                    ? formatDate(preview.validUntilUtc, formatLocale)
+                                    ? formatGermanDateTime(preview.validUntilUtc)
                                     : '—'}
                             </Descriptions.Item>
                             <Descriptions.Item label={t('license.extendModal.previewDuration')}>

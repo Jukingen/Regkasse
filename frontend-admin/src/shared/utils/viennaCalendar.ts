@@ -30,6 +30,27 @@ export function getMonthDifference(year: number, month: number, now: Date = new 
     return currentAnchor - targetAnchor;
 }
 
+/** Current calendar day components in Europe/Vienna. */
+export function getViennaCalendarDate(now: Date = new Date()): { year: number; month: number; day: number } {
+    const fmt = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Vienna',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    });
+    const parts = fmt.formatToParts(now);
+    const year = Number(parts.find((p) => p.type === 'year')?.value) || now.getUTCFullYear();
+    const month = Number(parts.find((p) => p.type === 'month')?.value) || 1;
+    const day = Number(parts.find((p) => p.type === 'day')?.value) || 1;
+    return { year, month, day };
+}
+
+/** YYYY-MM-DD for the current Vienna calendar day. */
+export function formatViennaCalendarDate(now: Date = new Date()): string {
+    const { year, month, day } = getViennaCalendarDate(now);
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
 /** Compares an ISO UTC timestamp to the current Vienna calendar date. */
 export function isSameViennaCalendarDay(isoUtc: string | null | undefined, now: Date = new Date()): boolean {
     if (!isoUtc?.trim()) {

@@ -4,7 +4,7 @@ import React from 'react';
 import { Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import Link from 'next/link';
-import { useI18n, formatDate } from '@/i18n';
+import { useI18n, formatGermanDateTime } from '@/i18n';
 import { billingApi } from '@/features/billing/api/billingApi';
 import type { ExpiringLicenseInfo } from '@/api/generated/model';
 import { useBillingAccess } from '@/features/billing/hooks/useBillingAccess';
@@ -39,7 +39,7 @@ export function BillingExpiringTable() {
             dataIndex: 'validUntilUtc',
             key: 'validUntilUtc',
             render: (value: string | undefined) =>
-                value ? formatDate(value, formatLocale, { dateStyle: 'medium' }) : '—',
+                value ? formatGermanDateTime(value) : '—',
         },
         {
             title: t('billing.expiring.columns.daysRemaining'),

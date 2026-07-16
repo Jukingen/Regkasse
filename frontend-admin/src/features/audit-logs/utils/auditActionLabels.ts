@@ -10,6 +10,8 @@ export const AUDIT_ACTION_FILTER_VALUES = [
     'USER_DEACTIVATE',
     'USER_REACTIVATE',
     'FORCE_RESET_PASSWORD',
+    'TagesabschlussCreated',
+    'TagesabschlussBackdatedCreated',
 ] as const;
 
 export type AuditActionFilter = (typeof AUDIT_ACTION_FILTER_VALUES)[number];
@@ -28,12 +30,24 @@ const ACTION_LABEL_KEYS: Record<string, string> = {
     FORCE_RESET_PASSWORD: 'common.auditLogs.actionLabels.passwordResetForced',
     USER_PASSWORD_RESET: 'common.auditLogs.actionLabels.passwordResetForced',
     CHANGE_OWN_PASSWORD: 'common.auditLogs.actionLabels.changeOwnPassword',
+    TagesabschlussCreated: 'common.auditLogs.actionLabels.tagesabschlussCreated',
+    TagesabschlussBackdatedCreated: 'common.auditLogs.actionLabels.tagesabschlussBackdatedCreated',
+};
+
+const ACTION_TAG_COLORS: Record<string, string> = {
+    TagesabschlussCreated: 'green',
+    TagesabschlussBackdatedCreated: 'orange',
 };
 
 export function getAuditActionLabelKey(action: string | null | undefined): string | null {
     const key = action?.trim();
     if (!key) return null;
     return ACTION_LABEL_KEYS[key] ?? null;
+}
+
+export function getAuditActionTagColor(action: string | null | undefined): string {
+    const key = action?.trim() ?? '';
+    return ACTION_TAG_COLORS[key] ?? 'blue';
 }
 
 export function isAuditActionFilterValue(value: string): value is AuditActionFilter {

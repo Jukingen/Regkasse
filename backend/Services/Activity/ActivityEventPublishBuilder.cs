@@ -84,6 +84,7 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.BackupSucceeded => "Backup succeeded",
             ActivityEventType.RestoreDrillFailed => "Restore drill failed",
             ActivityEventType.RestoreDrillSucceeded => "Restore drill succeeded",
+            ActivityEventType.DailyClosingBackdatedCreated => "Backdated daily closing created",
             _ => type.ToString(),
         };
 
@@ -162,6 +163,8 @@ internal static class ActivityEventPublishBuilder
                 or ActivityEventType.CashRegisterClosed
                 or ActivityEventType.CashRegisterDecommissioned
                 => ("cash_register", TryGetString(metadata, "CashRegisterId")),
+            ActivityEventType.DailyClosingBackdatedCreated
+                => ("DailyClosing", TryGetString(metadata, "ClosingId")),
             _ => (null, null),
         };
     }

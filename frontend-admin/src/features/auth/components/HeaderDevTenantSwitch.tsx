@@ -32,6 +32,7 @@ import {
 } from '@/features/super-admin/utils/tenantHeaderSwitcher';
 import { switchDevTenantContext } from '@/features/tenancy/services/setTenantAndRefresh';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
+import { useTenant } from '@/features/tenancy/providers/TenantProvider';
 import {
     filterTenantSwitcherItems,
     tenantNeedsNoAdminWarning,
@@ -142,6 +143,7 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
     const router = useRouter();
     const { user } = useAuth();
     const { tenantId: currentTenantId } = useCurrentTenant();
+    const { tenant: apiTenant, refresh: refreshTenantContext } = useTenant();
     const { open, setOpen } = useHeaderTenantSwitcher();
     const isSuperAdminUser = isSuperAdmin(user?.role);
     const [includeDeleted, setIncludeDeleted] = useState(false);
@@ -165,7 +167,8 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
     );
     const searchQuery = search.trim();
     const isFiltering = searchQuery.length > 0;
-    const normalizedCurrentId = currentTenantId?.trim().toLowerCase() ?? '';
+    const normalizedCurrentId =
+        (apiTenant?.id ?? currentTenantId)?.trim().toLowerCase() ?? '';
 
     /** Persists `dev_tenant_id` + tenant bootstrap id, then reloads via {@link DEV_TENANT_CHANGED_EVENT}. */
     const handleTenantChange = useCallback(
@@ -178,9 +181,10 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
             }
             setOpen(false);
             setSearch('');
+            refreshTenantContext();
             await switchDevTenantContext({ slug: tenant.slug, id: tenant.id });
         },
-        [isSuperAdminUser, setOpen],
+        [isSuperAdminUser, refreshTenantContext, setOpen],
     );
 
     const handleOpenChange = useCallback(

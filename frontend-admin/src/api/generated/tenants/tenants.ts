@@ -16,7 +16,9 @@ import type {
 } from '@tanstack/react-query'
 import type {
   AdminTenantListItemDto,
-  GetApiTenantsSwitcherParams
+  CurrentTenantDto,
+  GetApiTenantsSwitcherParams,
+  ProblemDetails
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
 
@@ -70,6 +72,61 @@ export const useGetApiTenantsSwitcher = <TData = Awaited<ReturnType<typeof getAp
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiTenantsSwitcherQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiTenantsCurrent = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<CurrentTenantDto>(
+      {url: `/api/tenants/current`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiTenantsCurrentQueryKey = () => {
+    return [`/api/tenants/current`] as const;
+    }
+
+    
+export const getGetApiTenantsCurrentQueryOptions = <TData = Awaited<ReturnType<typeof getApiTenantsCurrent>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTenantsCurrent>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiTenantsCurrentQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiTenantsCurrent>>> = ({ signal }) => getApiTenantsCurrent(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiTenantsCurrent>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiTenantsCurrentQueryResult = NonNullable<Awaited<ReturnType<typeof getApiTenantsCurrent>>>
+export type GetApiTenantsCurrentQueryError = ProblemDetails
+
+export const useGetApiTenantsCurrent = <TData = Awaited<ReturnType<typeof getApiTenantsCurrent>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTenantsCurrent>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiTenantsCurrentQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

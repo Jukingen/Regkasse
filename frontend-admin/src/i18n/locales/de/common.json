@@ -128,6 +128,7 @@
     "quickUserCreatedDescription": "Super Admin erstellte Schnell-Benutzer '{{email}}' ({{role}}) für Mandant '{{slug}}'",
     "userNameChangedDescription": "Benutzername geändert von {{old}} → {{new}}",
     "userNameChangedPrefix": "Benutzername geändert von",
+    "tagesabschlussBackdatedDescription": "Nachträglicher Tagesabschluss für {{date}} ({{daysLate}} Tag(e) verspätet). Grund: {{reason}}",
     "actionLabels": {
       "login": "Login",
       "createInvoice": "Rechnung erstellen",
@@ -139,7 +140,9 @@
       "userDeactivate": "Benutzer deaktiviert",
       "userReactivate": "Benutzer reaktiviert",
       "passwordResetForced": "Passwort zurückgesetzt",
-      "changeOwnPassword": "Eigenes Passwort geändert"
+      "changeOwnPassword": "Eigenes Passwort geändert",
+      "tagesabschlussCreated": "Tagesabschluss erstellt",
+      "tagesabschlussBackdatedCreated": "Tagesabschluss nachträglich"
     },
     "statusLabels": {
       "Success": "Erfolg",

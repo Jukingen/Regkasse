@@ -25,7 +25,7 @@ import {
 import { useMutation, useQuery, useQueryClient, type UseMutationResult, type UseQueryResult } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb, ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
-import { useI18n, formatDate } from '@/i18n';
+import { useI18n, formatGermanDateTime } from '@/i18n';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { tenantStorage } from '@/features/auth/services/tenantStorage';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -311,13 +311,7 @@ function IssuedLicensesTableCard() {
                 key: 'activatedAtUtc',
                 width: 140,
                 render: (iso: string) =>
-                    formatDate(iso, formatLocale, {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                    }),
+                    formatGermanDateTime(iso),
             },
             {
                 title: t('license.issued.super.colLastSeen'),
@@ -325,13 +319,7 @@ function IssuedLicensesTableCard() {
                 key: 'lastSeenAtUtc',
                 width: 140,
                 render: (iso: string) =>
-                    formatDate(iso, formatLocale, {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                    }),
+                    formatGermanDateTime(iso),
             },
             {
                 title: t('license.issued.super.colValidUntil'),
@@ -339,13 +327,7 @@ function IssuedLicensesTableCard() {
                 key: 'validUntilUtc',
                 width: 140,
                 render: (iso: string) =>
-                    formatDate(iso, formatLocale, {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                    }),
+                    formatGermanDateTime(iso),
             },
             {
                 title: t('license.issued.super.colCust'),
@@ -419,11 +401,7 @@ function IssuedLicensesTableCard() {
                 key: 'expiryAtUtc',
                 width: 140,
                 render: (iso: string) =>
-                    formatDate(iso, formatLocale, {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                    }),
+                    formatGermanDateTime(iso),
             },
             {
                 title: t('license.issued.columns.type'),
@@ -456,13 +434,7 @@ function IssuedLicensesTableCard() {
                 width: 150,
                 render: (iso: string | null | undefined) =>
                     iso
-                        ? formatDate(iso, formatLocale, {
-                              year: 'numeric',
-                              month: '2-digit',
-                              day: '2-digit',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                          })
+                        ? formatGermanDateTime(iso)
                         : '—',
             },
             {
@@ -479,11 +451,7 @@ function IssuedLicensesTableCard() {
                 key: 'issuedAtUtc',
                 width: 140,
                 render: (iso: string) =>
-                    formatDate(iso, formatLocale, {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                    }),
+                    formatGermanDateTime(iso),
             },
             {
                 title: t('license.issued.columns.actions'),
@@ -721,13 +689,7 @@ function IssuedLicensesTableCard() {
                         </Descriptions.Item>
                         <Descriptions.Item label={t('license.generation.result.expiry')}>
                             {extendResult.expiryAtUtc
-                                ? formatDate(extendResult.expiryAtUtc, formatLocale, {
-                                      year: 'numeric',
-                                      month: '2-digit',
-                                      day: '2-digit',
-                                      hour: '2-digit',
-                                      minute: '2-digit',
-                                  })
+                                ? formatGermanDateTime(extendResult.expiryAtUtc)
                                 : '—'}
                         </Descriptions.Item>
                         <Descriptions.Item label={t('license.generation.result.signedJwt')}>
@@ -901,13 +863,7 @@ function IssuedLicensesTableCard() {
                                 </Typography.Paragraph>
                             </Descriptions.Item>
                             <Descriptions.Item label={t('license.issued.columns.expiryDate')}>
-                                {formatDate(detailsQuery.data.expiryAtUtc, formatLocale, {
-                                    year: 'numeric',
-                                    month: '2-digit',
-                                    day: '2-digit',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                })}
+                                {formatGermanDateTime(detailsQuery.data.expiryAtUtc)}
                             </Descriptions.Item>
                             <Descriptions.Item label={t('license.issued.columns.type')}>
                                 {detailsQuery.data.requireFingerprint
@@ -1199,13 +1155,7 @@ function DeploymentLicensePanel({
                         </Descriptions.Item>
                         <Descriptions.Item label={t('license.simpleUi.validUntil')}>
                             {publicStatusQuery.data.validUntil
-                                ? formatDate(publicStatusQuery.data.validUntil, formatLocale, {
-                                      year: 'numeric',
-                                      month: '2-digit',
-                                      day: '2-digit',
-                                      hour: '2-digit',
-                                      minute: '2-digit',
-                                  })
+                                ? formatGermanDateTime(publicStatusQuery.data.validUntil)
                                 : '—'}
                         </Descriptions.Item>
                         <Descriptions.Item label={t('license.simpleUi.daysRemaining')}>
@@ -1240,13 +1190,7 @@ function DeploymentLicensePanel({
                                 </Descriptions.Item>
                                 <Descriptions.Item label={t('license.simpleUi.validUntil')}>
                                     {s?.expiryDate
-                                        ? formatDate(s.expiryDate, formatLocale, {
-                                              year: 'numeric',
-                                              month: '2-digit',
-                                              day: '2-digit',
-                                              hour: '2-digit',
-                                              minute: '2-digit',
-                                          })
+                                        ? formatGermanDateTime(s.expiryDate)
                                         : '—'}
                                 </Descriptions.Item>
                                 <Descriptions.Item label={t('license.simpleUi.daysRemaining')}>

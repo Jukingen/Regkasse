@@ -373,5 +373,140 @@ public sealed class DailyClosingServiceTests
         Assert.Equal("Daily", persisted.ClosingType);
         Assert.Equal("thumb-test", persisted.CertificateThumbprint);
         Assert.True(persisted.IsSimulated);
+        Assert.False(persisted.IsBackdated);
+        Assert.False(result.IsBackdated);
+    }
+
+    [Fact]
+    public async Task CreateDailyClosingAsync_WhenPastBusinessDay_SetsIsBackdatedAndKeepsRealCreatedAt()
+    {
+        var tenantId = Guid.NewGuid();
+        var regId = Guid.NewGuid();
+        var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+        var pastDay = viennaToday.AddDays(-3);
+        var (fromUtc, _) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(pastDay);
+        var noonUtc = fromUtc.AddHours(12);
+
+        await using var ctx = new AppDbContext(
+            new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase($"DailyClosingBackdated_{Guid.NewGuid():N}")
+                .Options,
+            TenantTestDoubles.TenantAccessorReturning(tenantId));
+
+        ctx.Tenants.Add(new Tenant { Id = tenantId, Name = "T", Slug = "t-back-dc", IsActive = true });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = regId,
+            TenantId = tenantId,
+            RegisterNumber = "K1",
+            Location = "Front",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = noonUtc,
+            Status = RegisterStatus.Open,
+            CreatedAt = noonUtc,
+        });
+        var paymentId = Guid.NewGuid();
+        ctx.PaymentDetails.Add(new PaymentDetails
+        {
+            Id = paymentId,
+            CashRegisterId = regId,
+            TotalAmount = 15m,
+            TaxAmount = 2.5m,
+            PaymentMethodRaw = "0",
+            CashierId = "cashier-test",
+            CustomerName = "Guest",
+            Steuernummer = "ATU12345678",
+            TseSignature = "sig",
+            TseTimestamp = noonUtc,
+            ReceiptNumber = "R-15",
+            CreatedAt = noonUtc,
+            IsActive = true,
+        });
+        ctx.Invoices.Add(new Invoice
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            CashRegisterId = regId,
+            SourcePaymentId = paymentId,
+            InvoiceNumber = "INV-15",
+            InvoiceDate = noonUtc,
+            DueDate = noonUtc,
+            Subtotal = 12.5m,
+            TaxAmount = 2.5m,
+            TotalAmount = 15m,
+            PaidAmount = 15m,
+            RemainingAmount = 0m,
+            CompanyName = "Test Co",
+            CompanyTaxNumber = "ATU12345678",
+            CompanyAddress = "Addr",
+            TseSignature = "sig",
+            KassenId = "K1",
+            TseTimestamp = noonUtc,
+            TaxDetails = System.Text.Json.JsonDocument.Parse("{\"standard\":2.5}"),
+            InvoiceItems = System.Text.Json.JsonDocument.Parse("[]"),
+            Status = InvoiceStatus.Paid,
+            CreatedAt = noonUtc,
+            IsActive = true,
+        });
+        await ctx.SaveChangesAsync();
+
+        var beforeUtc = DateTime.UtcNow.AddSeconds(-1);
+        var sut = DailyClosingTestDoubles.Create(ctx);
+        var result = await sut.CreateDailyClosingAsync(
+            regId,
+            pastDay,
+            isBackdated: true,
+            reason: "Technisches Problem / Systemausfall");
+        var afterUtc = DateTime.UtcNow.AddSeconds(1);
+
+        Assert.True(result.Success);
+        Assert.True(result.IsBackdated);
+        Assert.NotNull(result.Closing);
+        Assert.True(result.Closing!.IsBackdated);
+        Assert.Equal("Technisches Problem / Systemausfall", result.Closing.LateCreationReason);
+
+        var persisted = await ctx.DailyClosings.SingleAsync();
+        Assert.True(persisted.IsBackdated);
+        Assert.Equal("Technisches Problem / Systemausfall", persisted.LateCreationReason);
+        Assert.Equal(
+            PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(pastDay),
+            persisted.ClosingDate);
+        Assert.InRange(persisted.CreatedAt, beforeUtc, afterUtc);
+    }
+
+    [Fact]
+    public async Task CreateDailyClosingAsync_WhenFutureDate_Fails()
+    {
+        var tenantId = Guid.NewGuid();
+        var regId = Guid.NewGuid();
+        var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+
+        await using var ctx = new AppDbContext(
+            new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase($"DailyClosingFuture_{Guid.NewGuid():N}")
+                .Options,
+            TenantTestDoubles.TenantAccessorReturning(tenantId));
+
+        ctx.Tenants.Add(new Tenant { Id = tenantId, Name = "T", Slug = "t-future-dc", IsActive = true });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = regId,
+            TenantId = tenantId,
+            RegisterNumber = "K1",
+            Location = "Front",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await ctx.SaveChangesAsync();
+
+        var sut = DailyClosingTestDoubles.Create(ctx);
+        var result = await sut.CreateDailyClosingAsync(regId, viennaToday.AddDays(1));
+
+        Assert.False(result.Success);
+        Assert.Contains("future", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
     }
 }

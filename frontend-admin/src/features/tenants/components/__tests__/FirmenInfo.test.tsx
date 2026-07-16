@@ -3,8 +3,6 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { FirmenInfo } from '../FirmenInfo';
 
-const mockUseTenant = vi.fn();
-
 vi.mock('@/i18n', () => ({
     useI18n: () => ({
         t: (key: string) => {
@@ -18,8 +16,6 @@ vi.mock('@/i18n', () => ({
                 'adminShell.tenant.infoCardSlug': 'Slug',
                 'adminShell.tenant.infoCardId': 'Firmen-ID',
                 'adminShell.tenant.info.license': 'Lizenzstatus',
-                'adminShell.tenant.selectTenantFirstTitle': 'Kein Mandant',
-                'adminShell.tenant.selectTenantFirstBody': 'Bitte Mandant wählen',
                 'license.phase.labels.active': 'Aktiv',
                 'license.phase.labels.noLicense': 'Keine Lizenz',
                 'license.mandant.validUntil': 'Gültig bis',
@@ -28,62 +24,50 @@ vi.mock('@/i18n', () => ({
         },
         formatLocale: 'de-DE',
     }),
-    formatDate: (value: string) => value.slice(0, 10),
+    formatGermanDateTime: (value: string) => {
+        const d = new Date(value);
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mi = String(d.getMinutes()).padStart(2, '0');
+        return `${dd}.${mm}.${yyyy} ${hh}:${mi}`;
+    },
 }));
 
-vi.mock('@/features/tenancy/providers/TenantProvider', () => ({
-    useTenant: () => mockUseTenant(),
-}));
+const devTenant = {
+    id: 'dev-tenant-id',
+    name: 'Development',
+    slug: 'dev',
+    licenseValid: true,
+    licenseValidUntilUtc: '2026-04-25T00:00:00Z',
+};
 
 describe('FirmenInfo', () => {
-    it('renders tenant fields from useTenant', () => {
-        mockUseTenant.mockReturnValue({
-            tenant: {
-                id: 'dev-tenant-id',
-                name: 'Development',
-                slug: 'dev',
-                licenseValid: true,
-                licenseValidUntilUtc: '2026-04-25T00:00:00Z',
-            },
-            isLoading: false,
-            error: null,
-            setTenant: vi.fn(),
-            refresh: vi.fn(),
-        });
-
-        render(<FirmenInfo />);
+    it('renders tenant fields from tenant prop', () => {
+        render(<FirmenInfo tenant={devTenant} />);
 
         expect(screen.getByText('Firmen-Info')).toBeTruthy();
         expect(screen.getAllByText('Development').length).toBeGreaterThan(0);
         expect(screen.getByText('dev')).toBeTruthy();
         expect(screen.getByText('dev-tenant-id')).toBeTruthy();
-        expect(screen.getByText('2026-04-25')).toBeTruthy();
+        expect(screen.getByText(/25\.04\.2026/)).toBeTruthy();
         expect(screen.getByText('Aktiv')).toBeTruthy();
     });
 
-    it('shows warning when tenant is missing', () => {
-        mockUseTenant.mockReturnValue({
-            tenant: null,
-            isLoading: false,
-            error: null,
-            setTenant: vi.fn(),
-            refresh: vi.fn(),
-        });
-
-        render(<FirmenInfo />);
-        expect(screen.getByText('Kein Mandant')).toBeTruthy();
+    it('returns null when tenant prop is missing', () => {
+        const { container } = render(<FirmenInfo tenant={null} />);
+        expect(container.firstChild).toBeNull();
     });
 
-    it('shows loading spinner when useTenant is loading', () => {
-        mockUseTenant.mockReturnValue({
-            tenant: null,
-            isLoading: true,
-            error: null,
-            setTenant: vi.fn(),
-            refresh: vi.fn(),
-        });
-
-        render(<FirmenInfo />);
+    it('shows loading spinner when loading prop is true', () => {
+        render(<FirmenInfo tenant={null} loading />);
         expect(screen.getByLabelText('Laden')).toBeTruthy();
+    });
+
+    it('shows error alert when error prop is set', () => {
+        render(<FirmenInfo tenant={null} error={new Error('Network failed')} />);
+        expect(screen.getByText('Fehler beim Laden')).toBeTruthy();
+        expect(screen.getByText('Network failed')).toBeTruthy();
     });
 });

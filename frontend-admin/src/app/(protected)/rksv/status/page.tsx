@@ -8,9 +8,13 @@ import { ADMIN_NAV_GROUP_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShel
 import { useGetApiTseStatus } from '@/features/rksv/useTseStatusCompat';
 import { useGetApiFinanzOnlineStatus } from '@/api/generated/finanz-online/finanz-online';
 import {
-  RksvDeploymentEnvironmentAlert,
-  RksvDeploymentEnvironmentBadge,
+    RksvDeploymentEnvironmentAlert,
+    RksvDeploymentEnvironmentBadge,
 } from '@/features/rksv/components/RksvDeploymentEnvironmentStatus';
+import {
+    RksvFinanzOnlineEnvironmentBadge,
+    useRksvFinanzOnlineEnvironment,
+} from '@/features/rksv-operations/components/RksvFinanzOnlineEnvironmentStatus';
 import { useRksvStatus } from '@/features/rksv/hooks/useRksvBackendEnvironment';
 import Link from 'next/link';
 import {
@@ -26,10 +30,12 @@ export default function RksvStatusPage() {
     const { t } = useI18n();
     const canOpenSonderbelege = useCanAccessPath(RKSV_SONDERBELEGE_PATH);
     const { data: rksvEnv, isLoading: rksvEnvLoading } = useRksvStatus();
+    const { parsed: foEnv } = useRksvFinanzOnlineEnvironment();
     const { data: tseStatus, isLoading: tseLoading, error: tseError } = useGetApiTseStatus();
     const { data: foStatus, isLoading: foLoading, error: foError } = useGetApiFinanzOnlineStatus();
 
     const diagnosticsLoading = tseLoading || foLoading;
+    const tseSimulatedLabel = rksvEnv?.tseStatusDisplay?.trim() || null;
 
     return (
         <>
@@ -42,6 +48,7 @@ export default function RksvStatusPage() {
                             isDemo={rksvEnv?.isSimulated}
                             loading={rksvEnvLoading}
                         />
+                        <RksvFinanzOnlineEnvironmentBadge parsed={foEnv} />
                     </Space>
                 }
                 breadcrumbs={[
@@ -152,18 +159,25 @@ export default function RksvStatusPage() {
                         <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
                             {OPERATOR_RKSV_GENERAL_STATUS_COPY.tseStatisticTitle}
                         </Typography.Text>
-                        <Tooltip title={t('rksvHub.rksvStatusPage.tseTagTooltip')}>
-                            <Tag
-                                color={tseStatus?.isConnected ? 'success' : 'error'}
-                                icon={
-                                    tseStatus?.isConnected ? <CheckCircleOutlined /> : <CloseCircleOutlined />
-                                }
-                            >
-                                {tseStatus?.isConnected
-                                    ? OPERATOR_RKSV_GENERAL_STATUS_COPY.tseReachableTag
-                                    : OPERATOR_RKSV_GENERAL_STATUS_COPY.tseUnreachableTag}
-                            </Tag>
-                        </Tooltip>
+                        <Space wrap size={[8, 8]} style={{ marginBottom: 8 }}>
+                            {tseSimulatedLabel ? (
+                                <Tooltip title={t('rksvHub.env.backend.badgeTooltip')}>
+                                    <Tag color="warning">{tseSimulatedLabel}</Tag>
+                                </Tooltip>
+                            ) : null}
+                            <Tooltip title={t('rksvHub.rksvStatusPage.tseTagTooltip')}>
+                                <Tag
+                                    color={tseStatus?.isConnected ? 'success' : 'error'}
+                                    icon={
+                                        tseStatus?.isConnected ? <CheckCircleOutlined /> : <CloseCircleOutlined />
+                                    }
+                                >
+                                    {tseStatus?.isConnected
+                                        ? OPERATOR_RKSV_GENERAL_STATUS_COPY.tseReachableTag
+                                        : OPERATOR_RKSV_GENERAL_STATUS_COPY.tseUnreachableTag}
+                                </Tag>
+                            </Tooltip>
+                        </Space>
                         {tseStatus?.serialNumber && (
                             <p style={{ marginTop: 8 }}>
                                 {OPERATOR_RKSV_GENERAL_STATUS_COPY.tseSerialLabel}: {tseStatus.serialNumber}

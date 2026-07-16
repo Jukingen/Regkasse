@@ -44,6 +44,8 @@ export function resolveDailyClosingStatusMessage(
       });
     case 'register_unavailable':
       return t('settings:shift.dailyClosing.statusRegisterUnavailable');
+    case 'no_active_shift':
+      return t('settings:shift.dailyClosing.statusNoActiveShift');
     default:
       return t('settings:shift.dailyClosing.statusBlocked');
   }

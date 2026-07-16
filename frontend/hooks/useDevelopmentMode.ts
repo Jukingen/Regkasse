@@ -12,11 +12,15 @@ import {
 export type { DevelopmentModeSettings } from '../services/developmentModeClientCache';
 
 export function useDevelopmentMode() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, isAuthReady } = useAuth();
   const [settings, setSettings] = useState<DevelopmentModeSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Public endpoint, but only poll after auth bootstrap and never while password change is required.
+  // Skip while unauthenticated to avoid attaching stale JWTs from storage (ASP.NET challenge → 401).
   const pollingEnabled =
-    !isAuthenticated || user?.mustChangePasswordOnNextLogin !== true;
+    isAuthReady &&
+    isAuthenticated &&
+    user?.mustChangePasswordOnNextLogin !== true;
 
   const refetch = useCallback(async () => {
     try {

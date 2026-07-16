@@ -11,6 +11,7 @@ import { LicenseExpiryBanner } from '../../components/LicenseExpiryBanner';
 import { LicenseWarningBanner } from '../../components/LicenseWarningBanner';
 import { LicenseStatusIndicator } from '../../components/LicenseStatusIndicator';
 import { EnvironmentBadge } from '../../components/EnvironmentBadge';
+import { UserMenu } from '../../components/UserMenu';
 import { DevTenantSwitcher } from '../../src/components/dev/DevTenantSwitcher';
 import PaymentModal from '../../components/PaymentModal';
 import { TimeSyncBanner } from '../../components/TimeSyncBanner';
@@ -21,6 +22,7 @@ import { ToastContainer } from '../../components/ToastNotification';
 import { MonatsbelegSessionBlockModal } from '../../components/MonatsbelegSessionBlockModal';
 import { StartbelegRequiredBanner } from '../../components/StartbelegRequiredBanner';
 import { subscribeOfflineSyncComplete } from '../../services/payment/offlineQueueSyncNotifier';
+import { useOfflineOrderManager } from '../../hooks/useOfflineOrderManager';
 import { POS_HEALTH_POLL_MS } from '../../constants/posPollingIntervals';
 import { useConditionalPolling } from '../../hooks/useConditionalPolling';
 import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
@@ -69,6 +71,8 @@ function PosTabsInner({
   developmentModeSettings,
 }: PosTabsInnerProps) {
   const posReadiness = usePosRegisterReadiness();
+  const { status: offlineStatus } = useOfflineOrderManager();
+  const pendingOfflineCount = offlineStatus?.pendingCount ?? 0;
 
   const [tabBarToasts, setTabBarToasts] = useState<
     { id: string; type: 'success' | 'error' | 'info' | 'warning'; message: string; duration?: number }[]
@@ -129,6 +133,7 @@ function PosTabsInner({
           <LicenseStatusIndicator />
           <DevTenantSwitcher />
           <EnvironmentBadge settings={developmentModeSettings} />
+          <UserMenu />
         </View>
         <TimeSyncBanner />
         <TseStatusBanner />
@@ -192,7 +197,18 @@ function PosTabsInner({
           name="settings"
           options={{
             title: t('navigation:settings') || 'Ayarlar',
-            tabBarIcon: ({ color }) => <Ionicons name="settings-outline" size={24} color={color} />,
+            tabBarIcon: ({ color }) => (
+              <View style={styles.settingsIconContainer}>
+                <Ionicons name="settings-outline" size={24} color={color} />
+                {pendingOfflineCount > 0 ? (
+                  <View style={styles.settingsBadge} accessibilityElementsHidden>
+                    <Text style={styles.badgeText}>
+                      {pendingOfflineCount > 99 ? '99+' : pendingOfflineCount}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            ),
           }}
         />
 
@@ -385,6 +401,26 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         minWidth: 20,
         height: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 4,
+        borderWidth: 2,
+        borderColor: SoftColors.bgCard,
+    },
+    settingsIconContainer: {
+        width: 28,
+        height: 28,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    settingsBadge: {
+        position: 'absolute',
+        top: -6,
+        right: -10,
+        backgroundColor: SoftColors.error,
+        borderRadius: 10,
+        minWidth: 18,
+        height: 18,
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 4,

@@ -37,7 +37,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Perform daily closing for the current day
+        /// Perform daily closing for the current Vienna day, or for an optional past business day (nachträglich).
         /// </summary>
         [HttpPost("daily")]
         [HasPermission(AppPermissions.DailyClosingExecute)]
@@ -54,7 +54,11 @@ namespace KasseAPI_Final.Controllers
                     return Unauthorized(new TagesabschlussErrorResponse { error = "User ID not found in token" });
                 }
 
-                var result = await _tagesabschlussService.PerformDailyClosingAsync(userId, request.CashRegisterId);
+                var result = await _tagesabschlussService.PerformDailyClosingAsync(
+                    userId,
+                    request.CashRegisterId,
+                    request.ClosingDate,
+                    request.Reason);
 
                 if (result.Success)
                 {
@@ -225,17 +229,19 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Check if daily closing can be performed for a cash register
+        /// Check if daily closing can be performed for a cash register (optional Vienna business day).
         /// </summary>
         [HttpGet("can-close/{cashRegisterId}")]
         [HasPermission(AppPermissions.DailyClosingView)]
         [ProducesResponseType(typeof(TagesabschlussCanCloseResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(TagesabschlussErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<TagesabschlussCanCloseResponse>> CanPerformClosing(Guid cashRegisterId)
+        public async Task<ActionResult<TagesabschlussCanCloseResponse>> CanPerformClosing(
+            Guid cashRegisterId,
+            [FromQuery] DateTime? closingDate)
         {
             try
             {
-                var canClose = await _tagesabschlussService.CanPerformClosingAsync(cashRegisterId);
+                var canClose = await _tagesabschlussService.CanPerformClosingAsync(cashRegisterId, closingDate);
                 var canCloseMonthly = await _tagesabschlussService.CanPerformMonthlyClosingAsync(cashRegisterId);
                 var canCloseYearly = await _tagesabschlussService.CanPerformYearlyClosingAsync(cashRegisterId);
                 var lastClosingDate = await _tagesabschlussService.GetLastClosingDateAsync(cashRegisterId);
@@ -249,18 +255,43 @@ namespace KasseAPI_Final.Controllers
                     await _tagesabschlussService.GetLastClosingDateForTypeAsync(cashRegisterId, "Yearly");
                 var lastYearlyClosingPerformedAt =
                     await _tagesabschlussService.GetLastClosingPerformedAtForTypeAsync(cashRegisterId, "Yearly");
+
                 var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+                var targetDay = closingDate.HasValue
+                    ? PostgreSqlUtcDateTime.ViennaCalendarDateMidnightUnspecified(
+                        closingDate.Value.Year, closingDate.Value.Month, closingDate.Value.Day)
+                    : viennaToday;
+                var isBackdated = targetDay < viennaToday;
+                var isFuture = targetDay > viennaToday;
+
                 var (dayStartUtc, dayEndExclusiveUtc) =
-                    PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(viennaToday);
-                var paymentsWithoutInvoiceCount =
-                    await _tagesabschlussService.GetPaymentsWithoutInvoiceCountAsync(
+                    PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(targetDay);
+                var paymentsWithoutInvoiceCount = isFuture
+                    ? 0
+                    : await _tagesabschlussService.GetPaymentsWithoutInvoiceCountAsync(
                         cashRegisterId, dayStartUtc, dayEndExclusiveUtc);
 
-                string message = canClose
-                    ? "Daily closing can be performed"
-                    : (paymentsWithoutInvoiceCount > 0
-                        ? $"{paymentsWithoutInvoiceCount} payment(s) without invoice; resolve before closing."
-                        : "Daily closing already performed for today");
+                string message;
+                if (canClose)
+                {
+                    message = isBackdated
+                        ? $"Backdated daily closing can be performed for {targetDay:yyyy-MM-dd}"
+                        : "Daily closing can be performed";
+                }
+                else if (isFuture)
+                {
+                    message = "Daily closing cannot be performed for a future date";
+                }
+                else if (paymentsWithoutInvoiceCount > 0)
+                {
+                    message = $"{paymentsWithoutInvoiceCount} payment(s) without invoice; resolve before closing.";
+                }
+                else
+                {
+                    message = isBackdated
+                        ? $"Daily closing already performed for {targetDay:yyyy-MM-dd}"
+                        : "Daily closing already performed for today";
+                }
 
                 return Ok(new TagesabschlussCanCloseResponse
                 {
@@ -274,6 +305,8 @@ namespace KasseAPI_Final.Controllers
                     lastYearlyClosingDate = lastYearlyClosingDate,
                     lastYearlyClosingPerformedAt = lastYearlyClosingPerformedAt,
                     paymentsWithoutInvoiceCount = paymentsWithoutInvoiceCount,
+                    isBackdated = isBackdated,
+                    closingDate = targetDay,
                     message = message
                 });
             }
@@ -363,6 +396,19 @@ namespace KasseAPI_Final.Controllers
     {
         [Required]
         public Guid CashRegisterId { get; set; }
+
+        /// <summary>
+        /// Optional Vienna business day (date components). Null = today.
+        /// Past dates create a late (nachträglich) closing; creation timestamps are never backdated.
+        /// </summary>
+        public DateTime? ClosingDate { get; set; }
+
+        /// <summary>
+        /// Required when <see cref="ClosingDate"/> is a past Vienna day: documents why the closing is late.
+        /// Stored on the closing and in the audit log for Betriebsprüfung transparency.
+        /// </summary>
+        [MaxLength(500)]
+        public string? Reason { get; set; }
     }
 
     public class TagesabschlussCanCloseResponse
@@ -381,6 +427,11 @@ namespace KasseAPI_Final.Controllers
         public DateTime? lastYearlyClosingPerformedAt { get; set; }
         [Required]
         public int paymentsWithoutInvoiceCount { get; set; }
+        /// <summary>True when <see cref="closingDate"/> is a past Vienna calendar day.</summary>
+        [Required]
+        public bool isBackdated { get; set; }
+        /// <summary>Vienna business day evaluated by this readiness check.</summary>
+        public DateTime? closingDate { get; set; }
         public string? message { get; set; }
     }
 

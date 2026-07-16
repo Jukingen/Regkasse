@@ -32,11 +32,23 @@ public class CashRegisterConflictPaymentE2EIntegrationTests
             .UseInMemoryDatabase($"CashRegConflictE2E_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static ClaimsPrincipal CashierPrincipal() =>
         new(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, Roles.Cashier) }, "test"));
+
+    private static IPosShiftService CreateNoOpPosShiftService()
+    {
+        var mock = new Mock<IPosShiftService>();
+        mock.Setup(s => s.AutoOpenShiftAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Guid>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CashierShiftDto());
+        return mock.Object;
+    }
 
     private static PosCashRegisterReadinessService CreateReadinessSut(
         AppDbContext ctx,
@@ -46,6 +58,7 @@ public class CashRegisterConflictPaymentE2EIntegrationTests
             ctx,
             new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff()),
             shift,
+            CreateNoOpPosShiftService(),
             TenantTestDoubles.CashRegisterSettingsServiceReturning(features),
             Mock.Of<ILogger<PosCashRegisterReadinessService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
 

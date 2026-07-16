@@ -1,19 +1,15 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Alert, Button, Card, DatePicker, Descriptions, Form, Select, Space, Spin, Tag } from 'antd';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 
 import { useAntdApp } from '@/hooks/useAntdApp';
-import { useI18n } from '@/i18n';
+import { DAYJS_DATETIME_FORMAT, formatGermanDateTime, useI18n } from '@/i18n';
 import { isDevelopment } from '@/features/auth/services/devTenant';
 import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
-import {
-    fetchLicenseTestSnapshot,
-    licenseTestQueryKey,
-} from '@/features/license/api/licenseTest';
 import {
     LICENSE_TEST_MOCK_SCENARIOS,
     licenseTestScenarioFromDays,
@@ -21,7 +17,10 @@ import {
     licenseTestScenarioLabelKey,
     licenseTestStatusTagColor,
 } from '@/features/license/constants/licenseTestScenarios';
+import { useLicenseTest } from '@/features/license/hooks/useLicenseTest';
 import { useUpdateLicenseTest } from '@/features/license/hooks/useUpdateLicenseTest';
+import { useTenant } from '@/features/tenancy/providers/TenantProvider';
+import { technicalConsole } from '@/shared/dev/technicalConsole';
 
 type LicenseTestFormValues = {
     tenantId: string;
@@ -33,7 +32,31 @@ export function LicenseTestPanel() {
     const { message } = useAntdApp();
     const [form] = Form.useForm<LicenseTestFormValues>();
     const { updateMutation, scenarioMutation, isPending } = useUpdateLicenseTest();
+    const {
+        tenant: contextTenant,
+        isLoading: tenantLoading,
+        error: tenantError,
+    } = useTenant();
     const tenantId = Form.useWatch('tenantId', form);
+
+    // Keep the panel aligned with header / TenantProvider mandant context.
+    useEffect(() => {
+        if (!contextTenant?.id) {
+            return;
+        }
+        const current = form.getFieldValue('tenantId') as string | undefined;
+        if (current !== contextTenant.id) {
+            form.setFieldsValue({ tenantId: contextTenant.id });
+        }
+    }, [contextTenant?.id, form]);
+
+    useEffect(() => {
+        if (!isDevelopment()) {
+            return;
+        }
+        technicalConsole.devLog('[License Test] tenant:', contextTenant);
+        technicalConsole.devLog('[License Test] tenantId:', contextTenant?.id ?? null);
+    }, [contextTenant]);
 
     const tenantsQuery = useQuery({
         queryKey: ['admin', 'tenants', false],
@@ -41,11 +64,7 @@ export function LicenseTestPanel() {
         enabled: isDevelopment(),
     });
 
-    const snapshotQuery = useQuery({
-        queryKey: licenseTestQueryKey(tenantId),
-        queryFn: () => fetchLicenseTestSnapshot(tenantId),
-        enabled: isDevelopment() && Boolean(tenantId),
-    });
+    const snapshotQuery = useLicenseTest(tenantId);
 
     const tenantOptions = useMemo(
         () =>
@@ -97,18 +116,53 @@ export function LicenseTestPanel() {
     const tenant = snapshotQuery.data?.tenant;
     const deployment = snapshotQuery.data?.deployment;
 
+    if (tenantLoading && !contextTenant) {
+        return <Spin tip={t('license.testPanel.loadingTenant')} />;
+    }
+
+    if (tenantError && !contextTenant) {
+        return (
+            <Alert
+                type="error"
+                showIcon
+                message={t('license.testPanel.tenantLoadError')}
+                description={tenantError.message}
+            />
+        );
+    }
+
     return (
         <Form
             form={form}
             layout="vertical"
-            initialValues={{ validUntil: dayjs().add(30, 'day') }}
+            initialValues={{
+                tenantId: contextTenant?.id,
+                validUntil: dayjs().add(30, 'day'),
+            }}
             onFinish={handleSubmit}
         >
+            {!contextTenant ? (
+                <Alert
+                    type="warning"
+                    showIcon
+                    message={t('license.testPanel.noTenantSelected')}
+                    style={{ marginBottom: 16 }}
+                />
+            ) : null}
+
             <Card title={t('license.testPanel.selectTenant')} style={{ marginBottom: 16 }}>
                 <Form.Item
                     name="tenantId"
                     label={t('license.testPanel.selectTenant')}
                     rules={[{ required: true, message: t('license.testPanel.noTenantSelected') }]}
+                    extra={
+                        contextTenant
+                            ? t('license.testPanel.contextTenantHint', {
+                                  name: contextTenant.name,
+                                  slug: contextTenant.slug,
+                              })
+                            : undefined
+                    }
                 >
                     <Select
                         showSearch
@@ -126,6 +180,9 @@ export function LicenseTestPanel() {
                         <Spin />
                     ) : tenant ? (
                         <Descriptions column={1} size="small">
+                            <Descriptions.Item label={t('license.testPanel.selectTenant')}>
+                                {`${tenant.name} (${tenant.slug})`}
+                            </Descriptions.Item>
                             <Descriptions.Item label={t('license.testPanel.status')}>
                                 <Tag color={licenseTestStatusTagColor(tenant.status)}>
                                     {t(
@@ -134,9 +191,7 @@ export function LicenseTestPanel() {
                                 </Tag>
                             </Descriptions.Item>
                             <Descriptions.Item label={t('license.testPanel.validUntil')}>
-                                {tenant.validUntilUtc
-                                    ? dayjs(tenant.validUntilUtc).format('YYYY-MM-DD HH:mm')
-                                    : '—'}
+                                {formatGermanDateTime(tenant.validUntilUtc)}
                             </Descriptions.Item>
                             <Descriptions.Item label={t('license.testPanel.daysRemaining')}>
                                 {!tenant.validUntilUtc && tenant.daysRemaining >= 999
@@ -161,9 +216,7 @@ export function LicenseTestPanel() {
                             {deployment.mode}
                         </Descriptions.Item>
                         <Descriptions.Item label={t('license.testPanel.validUntil')}>
-                            {deployment.expiryDateUtc
-                                ? dayjs(deployment.expiryDateUtc).format('YYYY-MM-DD HH:mm')
-                                : '—'}
+                            {formatGermanDateTime(deployment.expiryDateUtc)}
                         </Descriptions.Item>
                     </Descriptions>
                 </Card>
@@ -192,7 +245,7 @@ export function LicenseTestPanel() {
                     label={t('license.testPanel.validUntil')}
                     rules={[{ required: true }]}
                 >
-                    <DatePicker showTime style={{ width: '100%' }} />
+                    <DatePicker showTime format={DAYJS_DATETIME_FORMAT} style={{ width: '100%' }} />
                 </Form.Item>
                 <Form.Item>
                     <Button type="primary" htmlType="submit" loading={isPending}>

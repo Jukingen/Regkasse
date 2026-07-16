@@ -5,6 +5,8 @@ import {
     getHeaderLicenseStatusClass,
     getHeaderLicenseStatusText,
     getHeaderLicenseTooltip,
+    getHeaderLicenseTooltipStatusLabel,
+    hasDetailedHeaderLicenseTooltip,
 } from '../headerLicenseStatus';
 
 const t = (key: string, params?: Record<string, string | number>) => {
@@ -12,6 +14,15 @@ const t = (key: string, params?: Record<string, string | number>) => {
         'license.badge.headerShort.none': 'Keine Mandantenlizenz',
         'license.badge.headerShort.expired': 'Lizenz abgelaufen',
         'license.badge.headerShort.expiringSoon': 'Lizenz läuft bald ab',
+        'license.badge.headerShort.expiringSoonWithDays': `Läuft ab in ${params?.days ?? 0} Tagen`,
+        'license.badge.headerShort.expiringSoonWithHours': `Läuft ab in ${params?.hours ?? 0} Std.`,
+        'license.badge.headerShort.validUntilTooltip': `Gültig bis: ${params?.dateTime ?? ''}`,
+        'license.badge.headerShort.expiredAtTooltip': `Abgelaufen am: ${params?.dateTime ?? ''}`,
+        'license.badge.headerShort.tooltip.ariaSummary': `Gültig bis: ${params?.dateTime ?? ''}. Verbleibende Tage: ${params?.days ?? 0}. Status: ${params?.status ?? ''}.`,
+        'license.badge.headerShort.tooltip.validUntil': 'Gültig bis',
+        'license.badge.headerShort.tooltip.daysRemaining': 'Verbleibende Tage',
+        'license.badge.headerShort.tooltip.status': 'Status',
+        'license.phase.labels.expired': 'Abgelaufen',
         'license.badge.headerShort.daysRemaining': `${params?.days ?? 0} Tage`,
         'license.badge.headerShort.licensed': 'Lizenziert',
         'license.badge.headerShort.mandantTooltip': `Mandantenlizenz: ${params?.status ?? ''}`,
@@ -19,6 +30,8 @@ const t = (key: string, params?: Record<string, string | number>) => {
     };
     return table[key] ?? key;
 };
+
+const VALID_UNTIL = '2026-07-20T21:30:00.000Z';
 
 function status(partial: Partial<ResolvedLicenseStatus> & Pick<ResolvedLicenseStatus, 'kind'>): ResolvedLicenseStatus {
     return {
@@ -56,7 +69,7 @@ describe('headerLicenseStatus', () => {
         expect(getHeaderLicenseStatusText(license, t)).toBe('Lizenz abgelaufen');
     });
 
-    it('maps seven or fewer days to warning class and expiring soon text', () => {
+    it('maps seven or fewer days to warning class and expiring soon text with days', () => {
         const license = status({
             kind: 'active',
             daysRemaining: 5,
@@ -65,7 +78,19 @@ describe('headerLicenseStatus', () => {
             canAccess: true,
         });
         expect(getHeaderLicenseStatusClass(license)).toBe('warning');
-        expect(getHeaderLicenseStatusText(license, t)).toBe('Lizenz läuft bald ab');
+        expect(getHeaderLicenseStatusText(license, t, { validUntilUtc: VALID_UNTIL })).toBe('Läuft ab in 5 Tagen');
+    });
+
+    it('shows hours remaining when less than one day left', () => {
+        const license = status({
+            kind: 'active',
+            daysRemaining: 0,
+            canWrite: true,
+            canManageUsers: true,
+            canAccess: true,
+        });
+        const validUntil = new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString();
+        expect(getHeaderLicenseStatusText(license, t, { validUntilUtc: validUntil })).toBe('Läuft ab in 6 Std.');
     });
 
     it('maps more than seven days to valid class and Aktiv (N Tage) text', () => {
@@ -80,7 +105,7 @@ describe('headerLicenseStatus', () => {
         expect(getHeaderLicenseStatusText(license, t)).toBe('Aktiv (30 Tage)');
     });
 
-    it('prefixes tooltip with Mandantenlizenz', () => {
+    it('prefixes tooltip with Mandantenlizenz for active licenses without expiry date', () => {
         const license = status({
             kind: 'active',
             daysRemaining: 30,
@@ -89,5 +114,28 @@ describe('headerLicenseStatus', () => {
             canAccess: true,
         });
         expect(getHeaderLicenseTooltip(license, t)).toBe('Mandantenlizenz: Aktiv (30 Tage)');
+    });
+
+    it('shows detailed aria summary in tooltip when valid-until is known', () => {
+        const license = status({
+            kind: 'active',
+            daysRemaining: 5,
+            canWrite: true,
+            canManageUsers: true,
+            canAccess: true,
+        });
+        const tooltip = getHeaderLicenseTooltip(license, t, { validUntilUtc: VALID_UNTIL });
+        expect(tooltip).toContain('Gültig bis:');
+        expect(tooltip).toContain('Verbleibende Tage: 5');
+        expect(tooltip).toContain('Status: Aktiv');
+        expect(hasDetailedHeaderLicenseTooltip({ validUntilUtc: VALID_UNTIL })).toBe(true);
+    });
+
+    it('shows expired status in detailed tooltip summary', () => {
+        const license = status({ kind: 'expired', daysRemaining: -5, daysExpired: 5 });
+        expect(getHeaderLicenseTooltipStatusLabel(license, t)).toBe('Abgelaufen');
+        const tooltip = getHeaderLicenseTooltip(license, t, { validUntilUtc: VALID_UNTIL });
+        expect(tooltip).toContain('Verbleibende Tage: 0');
+        expect(tooltip).toContain('Status: Abgelaufen');
     });
 });

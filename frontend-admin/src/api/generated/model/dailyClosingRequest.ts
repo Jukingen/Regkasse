@@ -8,4 +8,11 @@
 
 export interface DailyClosingRequest {
   cashRegisterId: string;
+  /** @nullable */
+  closingDate?: string | null;
+  /**
+   * @maxLength 500
+   * @nullable
+   */
+  reason?: string | null;
 }

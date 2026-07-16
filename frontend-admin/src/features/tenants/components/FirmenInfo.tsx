@@ -2,19 +2,22 @@
 
 import { Alert, Card, Descriptions, Spin, Tag, Typography } from 'antd';
 
-import { useTenant } from '@/features/tenancy/providers/TenantProvider';
-import { formatDate, useI18n } from '@/i18n';
+import type { Tenant } from '@/features/tenancy/providers/TenantProvider';
+import { formatGermanDateTime, useI18n } from '@/i18n';
 
 export type FirmenInfoProps = {
-    /** Forces loading UI (e.g. while parent resolves related data). */
+    /** Active mandant from parent ({@link useTenant} / {@link useCurrentTenant}). */
+    tenant: Tenant | null;
+    /** Optional loading UI while parent resolves tenant context. */
     loading?: boolean;
+    /** Optional error from parent tenant fetch. */
+    error?: Error | null;
 };
 
-export function FirmenInfo({ loading: loadingOverride }: FirmenInfoProps = {}) {
-    const { tenant, isLoading, error } = useTenant();
-    const { t, formatLocale } = useI18n();
+export function FirmenInfo({ tenant, loading = false, error = null }: FirmenInfoProps) {
+    const { t } = useI18n();
 
-    if (loadingOverride || isLoading) {
+    if (loading) {
         return (
             <Card title={t('common.tenant.companyInfo')}>
                 <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
@@ -36,14 +39,7 @@ export function FirmenInfo({ loading: loadingOverride }: FirmenInfoProps = {}) {
     }
 
     if (!tenant) {
-        return (
-            <Alert
-                type="warning"
-                showIcon
-                title={t('adminShell.tenant.selectTenantFirstTitle')}
-                description={t('adminShell.tenant.selectTenantFirstBody')}
-            />
-        );
+        return null;
     }
 
     const mandantLabel = `${t('common.tenant.tenant')} (${t('common.tenant.tenantAlt')})`;
@@ -73,13 +69,7 @@ export function FirmenInfo({ loading: loadingOverride }: FirmenInfoProps = {}) {
                     <Tag color={tenant.licenseValid ? 'green' : 'red'}>{licenseLabel}</Tag>
                 </Descriptions.Item>
                 <Descriptions.Item label={t('license.mandant.validUntil')}>
-                    {tenant.licenseValidUntilUtc
-                        ? formatDate(tenant.licenseValidUntilUtc, formatLocale, {
-                              year: 'numeric',
-                              month: '2-digit',
-                              day: '2-digit',
-                          })
-                        : '—'}
+                    {formatGermanDateTime(tenant.licenseValidUntilUtc)}
                 </Descriptions.Item>
             </Descriptions>
         </Card>

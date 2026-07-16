@@ -7,6 +7,10 @@
  */
 
 export interface TenantLicenseHistoryItemDto {
+  /** @nullable */
+  actorDisplayName?: string | null;
+  /** @nullable */
+  actorUserId?: string | null;
   atUtc?: string;
   /** @nullable */
   eventType?: string | null;

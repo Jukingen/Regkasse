@@ -678,6 +678,8 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.Notes).HasColumnName("notes").HasColumnType("text");
                 entity.Property(e => e.DailyClosingId).HasColumnName("daily_closing_id");
                 entity.Property(e => e.CashCount).HasColumnName("cash_count").HasColumnType("decimal(18,2)");
+                entity.Property(e => e.IsAutoOpened).HasColumnName("is_auto_opened").IsRequired().HasDefaultValue(false);
+                entity.Property(e => e.IsAutoClosed).HasColumnName("is_auto_closed").IsRequired().HasDefaultValue(false);
                 entity.HasOne(e => e.DailyClosing)
                     .WithMany()
                     .HasForeignKey(e => e.DailyClosingId)
@@ -1925,6 +1927,12 @@ namespace KasseAPI_Final.Data
                     .HasColumnName("shift_number")
                     .HasDefaultValue(0);
                 entity.Property(e => e.ClosingType).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.IsBackdated)
+                    .HasColumnName("is_backdated")
+                    .HasDefaultValue(false);
+                entity.Property(e => e.LateCreationReason)
+                    .HasColumnName("late_creation_reason")
+                    .HasMaxLength(500);
                 entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TotalTaxAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TseSignature).HasColumnType("text");

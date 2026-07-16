@@ -22,6 +22,7 @@ internal static class ActivityEventSeverityRules
             ActivityEventType.SuspiciousUnusualTime => ActivitySeverityNames.Warning,
             ActivityEventType.SuspiciousSameCardMultiple => ActivitySeverityNames.Error,
             ActivityEventType.SuspiciousRapidTransactions => ActivitySeverityNames.Warning,
+            ActivityEventType.DailyClosingBackdatedCreated => ActivitySeverityNames.Warning,
             _ => ActivitySeverityNames.Info,
         };
 

@@ -35,7 +35,7 @@ import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useHeaderTenantLicense } from '@/features/tenant/hooks/useHeaderTenantLicense';
 import { useTenantLicense } from '@/hooks/useTenantLicense';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
-import { formatDateTime, useI18n } from '@/i18n';
+import { useI18n, formatGermanDateTime } from '@/i18n';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
 import { NotFoundAccessView } from '@/shared/auth/NotFoundAccessView';
@@ -239,7 +239,7 @@ export default function LicenseDebugPage() {
                         </Descriptions.Item>
                         <Descriptions.Item label={t('license.debug.fetchedAt')}>
                             {unifiedQuery.dataUpdatedAt
-                                ? formatDateTime(new Date(unifiedQuery.dataUpdatedAt).toISOString(), formatLocale)
+                                ? formatGermanDateTime(new Date(unifiedQuery.dataUpdatedAt).toISOString())
                                 : '—'}
                         </Descriptions.Item>
                     </Descriptions>

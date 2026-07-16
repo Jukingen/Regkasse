@@ -91,6 +91,9 @@ public sealed class RksvReportTemplate
 
     public string RksvFooter { get; set; } = string.Empty;
 
+    /// <summary>Optional late-closing / operator notice block (e.g. backdated Tagesabschluss).</summary>
+    public string? OperatorNotice { get; set; }
+
     public string? EnvironmentDisplay { get; set; }
 
     public string? ReceiptNumber { get; set; }
@@ -218,6 +221,11 @@ public static class RksvReportTemplateRenderer
         builder.AppendLine("───────────────────────────────────────────");
         if (!string.IsNullOrWhiteSpace(template.QrCode))
             builder.AppendLine($"  QR-Code: {template.QrCode.Trim()}");
+        if (!string.IsNullOrWhiteSpace(template.OperatorNotice))
+        {
+            builder.AppendLine(template.OperatorNotice.TrimEnd());
+        }
+
         if (!string.IsNullOrWhiteSpace(template.RksvFooter))
             builder.AppendLine(template.RksvFooter);
         builder.AppendLine("═══════════════════════════════════════════");

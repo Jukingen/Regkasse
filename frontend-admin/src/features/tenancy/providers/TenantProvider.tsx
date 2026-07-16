@@ -56,6 +56,42 @@ function mapCurrentTenantDto(dto: CurrentTenantDto): Tenant {
     };
 }
 
+/** Same mandant identity as {@link useCurrentTenant} / users page (dev header + switcher + API). */
+export function resolveEffectiveTenant(
+    tenantOverride: Tenant | null,
+    apiDto: CurrentTenantDto | undefined,
+    current: CurrentTenant,
+): Tenant | null {
+    if (tenantOverride) {
+        return tenantOverride;
+    }
+
+    const tenantId = current.tenantId;
+    const tenantSlug = current.tenantSlug;
+    if (tenantId && tenantSlug && current.isRealTenantSlug) {
+        const apiMatchesCurrent = apiDto?.id === tenantId;
+        const licenseValidUntilUtc = apiMatchesCurrent
+            ? (apiDto?.licenseValidUntilUtc ?? null)
+            : (current.licenseValidUntilUtc ?? null);
+        const licenseValid = apiMatchesCurrent
+            ? (apiDto?.licenseValid ?? false)
+            : Boolean(
+                  licenseValidUntilUtc
+                  && new Date(licenseValidUntilUtc).getTime() > Date.now(),
+              );
+
+        return {
+            id: tenantId,
+            slug: tenantSlug,
+            name: current.tenantName?.trim() || tenantSlug,
+            licenseValid,
+            licenseValidUntilUtc,
+        };
+    }
+
+    return apiDto ? mapCurrentTenantDto(apiDto) : null;
+}
+
 /**
  * FA mandant context: server snapshot via GET /api/tenants/current plus enriched {@link CurrentTenant} for legacy hooks.
  */
@@ -72,14 +108,17 @@ export function TenantProvider({ children }: TenantProviderProps) {
         refetchOnWindowFocus: isDevelopment(),
     });
 
-    const resolvedTenant = useMemo(() => {
-        if (tenantOverride) {
-            return tenantOverride;
-        }
-        return data ? mapCurrentTenantDto(data) : null;
-    }, [tenantOverride, data]);
+    const apiTenantSnapshot = useMemo(
+        () => (data ? mapCurrentTenantDto(data) : null),
+        [data],
+    );
 
-    const currentTenant = useCurrentTenantState(resolvedTenant, isLoading);
+    const currentTenant = useCurrentTenantState(apiTenantSnapshot, isLoading);
+
+    const effectiveTenant = useMemo(
+        () => resolveEffectiveTenant(tenantOverride, data, currentTenant),
+        [tenantOverride, data, currentTenant],
+    );
 
     useEffect(() => {
         if (!isDevelopment()) {
@@ -98,15 +137,15 @@ export function TenantProvider({ children }: TenantProviderProps) {
 
     const apiContextValue = useMemo<TenantContextType>(
         () => ({
-            tenant: resolvedTenant,
+            tenant: effectiveTenant,
             setTenant: setTenantOverride,
-            isLoading,
+            isLoading: isLoading || currentTenant.isTenantRecordLoading,
             error: error instanceof Error ? error : error ? new Error(String(error)) : null,
             refresh: () => {
                 void refetch();
             },
         }),
-        [resolvedTenant, isLoading, error, refetch],
+        [effectiveTenant, isLoading, currentTenant.isTenantRecordLoading, error, refetch],
     );
 
     return (

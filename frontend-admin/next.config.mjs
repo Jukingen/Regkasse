@@ -67,6 +67,47 @@ const nextConfig = {
                 destination: '/rksv/sonderbelege?focus=jahresbeleg',
                 permanent: false,
             },
+            // Virtual Sonderbeleg menu keys + short aliases → canonical focus panels
+            {
+                source: '/rksv/sb/startbeleg',
+                destination: '/rksv/sonderbelege?focus=startbeleg',
+                permanent: false,
+            },
+            {
+                source: '/rksv/sb/monatsbeleg',
+                destination: '/rksv/sonderbelege?focus=monatsbeleg',
+                permanent: false,
+            },
+            {
+                source: '/rksv/sb/monats',
+                destination: '/rksv/sonderbelege?focus=monatsbeleg',
+                permanent: false,
+            },
+            {
+                source: '/rksv/sb/jahresbeleg',
+                destination: '/rksv/sonderbelege?focus=jahresbeleg',
+                permanent: false,
+            },
+            {
+                source: '/rksv/sb/jahres',
+                destination: '/rksv/sonderbelege?focus=jahresbeleg',
+                permanent: false,
+            },
+            {
+                source: '/rksv/sb/nullbeleg',
+                destination: '/rksv/sonderbelege?focus=nullbeleg',
+                permanent: false,
+            },
+            {
+                source: '/rksv/sb/schlussbeleg',
+                destination: '/rksv/sonderbelege?focus=schlussbeleg',
+                permanent: false,
+            },
+            {
+                source: '/rksv/sb/test-helper',
+                destination: '/rksv/sonderbelege?focus=test-helper',
+                permanent: false,
+            },
         ];
     },
 };

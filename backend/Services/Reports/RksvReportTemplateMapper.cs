@@ -42,6 +42,12 @@ public static class RksvReportTemplateMapper
             DepExportStatus = model.DepExportStatusLabel,
             QrCode = qrPayload,
             RksvFooter = rksvFooter,
+            OperatorNotice = model.IsBackdated
+                ? DailyClosingBackdatedReportNote.Format(
+                    model.ClosingDate,
+                    model.CreatedAt,
+                    model.LateCreationReason)
+                : null,
             EnvironmentDisplay = environmentDisplay,
             CashTotal = model.CashTotal,
             CardTotal = model.CardTotal,
@@ -97,6 +103,7 @@ public static class RksvReportTemplateMapper
             DepExportStatus = cloudContext?.DepExportStatusLabel ?? report.DepExportStatusLabel,
             QrCode = report.QrPayload ?? string.Empty,
             RksvFooter = report.SnapshotDisclaimerDe,
+            OperatorNotice = report.BackdatedNotice,
             EnvironmentDisplay = report.FiscalEnvironment,
             CashTotal = payments.Cash > 0m ? payments.Cash : report.TotalCash,
             CardTotal = payments.Card > 0m ? payments.Card : report.TotalCard,

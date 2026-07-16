@@ -42,6 +42,7 @@
     "BackupFailed": "Backup failed",
     "BackupSucceeded": "Backup succeeded",
     "RestoreDrillFailed": "Restore drill failed",
-    "RestoreDrillSucceeded": "Restore drill succeeded"
+    "RestoreDrillSucceeded": "Restore drill succeeded",
+    "DailyClosingBackdatedCreated": "Backdated daily closing created"
   }
 }

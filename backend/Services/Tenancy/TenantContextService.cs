@@ -92,6 +92,16 @@ public sealed class TenantContextService : ITenantContextService
             .ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
+    public async Task ApplyFromHostAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken = default)
+    {
+        var slug = GetHostTenantSlug(httpContext);
+        _tenantAccessor.TenantId = await ResolveTenantIdFromSlugBindingAsync(slug, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
     private async Task<TenantContext?> ResolveTenantContextFromSlugBindingAsync(
         string rawSlug,
         CancellationToken cancellationToken)

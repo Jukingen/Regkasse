@@ -7,9 +7,11 @@ public sealed class CreateNullbelegRequest
     [Required]
     public Guid CashRegisterId { get; set; }
 
+    /// <summary>Vienna calendar year. When omitted, server uses the current Vienna year.</summary>
     [Range(2000, 2100)]
-    public int Year { get; set; }
+    public int? Year { get; set; }
 
+    /// <summary>Vienna calendar month 1–12. When omitted, server uses the current Vienna month.</summary>
     [Range(1, 12)]
     public int? Month { get; set; }
 

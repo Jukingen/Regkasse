@@ -141,6 +141,11 @@
     "licenseExpiry": {
       "daysRemaining": "Verbleibende Tage",
       "validUntil": "Gültig bis: {{date}}",
+      "validUntilLabel": "Gültig bis",
+      "remainingLabel": "Verbleibend",
+      "remainingValue": "{{days}} Tage ({{hours}} Stunden)",
+      "statusLabel": "Status",
+      "countdown": "Läuft ab in: {{countdown}}",
       "expiresSoon7": "Lizenz läuft in Kürze ab — bitte verlängern.",
       "expiresSoon30": "Lizenz läuft innerhalb von 30 Tagen ab.",
       "noExpiryDate": "Kein Lizenzablaufdatum hinterlegt",

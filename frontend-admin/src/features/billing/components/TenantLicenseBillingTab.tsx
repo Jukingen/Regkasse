@@ -7,7 +7,7 @@ import { Button, Card, Col, Row, Space, Spin, Statistic, Table, Tag, Typography 
 import type { ColumnsType } from 'antd/es/table';
 import { EditOutlined, EyeOutlined, PlusOutlined } from '@ant-design/icons';
 import type { LicenseSaleResponse } from '@/api/generated/model';
-import { useI18n, formatDate } from '@/i18n';
+import { useI18n, formatGermanDateTime } from '@/i18n';
 import { useBillingSalesList, useBillingStats } from '@/features/billing/hooks';
 
 function saleStatusColor(status: string | null | undefined): string {
@@ -112,7 +112,7 @@ export function TenantLicenseBillingTab() {
                     const days = computeDaysRemaining(date);
                     return (
                         <Space size="small">
-                            <span>{formatDate(date, formatLocale, { dateStyle: 'medium' })}</span>
+                            <span>{formatGermanDateTime(date)}</span>
                             {days != null ? (
                                 <Tag color={daysRemainingTagColor(days)}>
                                     {t('license.tenant.daysRemaining', { count: days })}

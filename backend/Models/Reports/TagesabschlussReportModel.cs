@@ -15,6 +15,13 @@ public sealed class TagesabschlussReportModel
 
     public DateTime ClosingDate { get; init; }
 
+    /// <summary>Real UTC creation time (never forged for late closings).</summary>
+    public DateTime CreatedAt { get; init; }
+
+    public bool IsBackdated { get; init; }
+
+    public string? LateCreationReason { get; init; }
+
     public DateTime? PeriodStart { get; init; }
 
     public DateTime? PeriodEnd { get; init; }
@@ -93,6 +100,9 @@ public sealed class TagesabschlussReportModel
             Id = closing.Id,
             CashRegisterId = closing.CashRegisterId,
             ClosingDate = closing.ClosingDate,
+            CreatedAt = closing.CreatedAt,
+            IsBackdated = closing.IsBackdated,
+            LateCreationReason = closing.LateCreationReason,
             PeriodStart = cloud.PeriodStartUtc,
             PeriodEnd = cloud.PeriodEndUtc,
             CompanyName = cloud.CompanyName,

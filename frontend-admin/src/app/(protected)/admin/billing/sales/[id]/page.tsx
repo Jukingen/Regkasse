@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useBillingSale, useCancelLicenseSale } from '@/features/billing/hooks';
 import { BillingAccessGate } from '@/features/billing/components/BillingAccessGate';
-import { formatDate } from '@/lib/dateFormatter';
+import { formatGermanDateTime } from '@/lib/dateFormatter';
 import { downloadLicenseSaleInvoicePdf } from '@/features/billing/utils/downloadInvoicePdf';
 import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 import { useI18n } from '@/i18n';
@@ -132,7 +132,7 @@ export default function BillingSaleDetailPage() {
                         <Descriptions column={{ xs: 1, sm: 2, md: 3 }} bordered size="small">
                             <Descriptions.Item label="Rechnungsnummer">{sale.invoiceNumber ?? '—'}</Descriptions.Item>
                             <Descriptions.Item label="Datum">
-                                {sale.soldAtUtc ? formatDate(sale.soldAtUtc) : '—'}
+                                {sale.soldAtUtc ? formatGermanDateTime(sale.soldAtUtc) : '—'}
                             </Descriptions.Item>
                             <Descriptions.Item label="Bearbeiter">{sale.soldBy ?? 'System'}</Descriptions.Item>
 
@@ -148,11 +148,11 @@ export default function BillingSaleDetailPage() {
                             </Descriptions.Item>
 
                             <Descriptions.Item label="Gültig ab">
-                                {sale.validFromUtc ? formatDate(sale.validFromUtc) : '—'}
+                                {sale.validFromUtc ? formatGermanDateTime(sale.validFromUtc) : '—'}
                             </Descriptions.Item>
                             <Descriptions.Item label="Gültig bis">
                                 <span style={{ fontWeight: 600 }}>
-                                    {sale.validUntilUtc ? formatDate(sale.validUntilUtc) : '—'}
+                                    {sale.validUntilUtc ? formatGermanDateTime(sale.validUntilUtc) : '—'}
                                 </span>
                             </Descriptions.Item>
                             <Descriptions.Item label="Tage">
@@ -186,7 +186,7 @@ export default function BillingSaleDetailPage() {
                             </p>
                             <p style={{ marginBottom: 0 }}>
                                 <strong>Datum:</strong>{' '}
-                                {sale.cancelledAtUtc ? formatDate(sale.cancelledAtUtc) : '—'}
+                                {sale.cancelledAtUtc ? formatGermanDateTime(sale.cancelledAtUtc) : '—'}
                             </p>
                         </Card>
                     ) : null}

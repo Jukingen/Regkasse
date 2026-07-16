@@ -8,10 +8,14 @@ using Microsoft.Extensions.Options;
 namespace KasseAPI_Final.Services;
 
 /// <summary>
-/// Auto-closes cash registers that have remained open beyond the configured duration.
+/// Auto-closes cash registers / cashier shifts left open beyond the configured inactivity duration.
 /// </summary>
 public interface IShiftAutoCloseService
 {
+    /// <summary>
+    /// Force-closes stale open registers and soft-closes orphaned active CashierShift rows.
+    /// Returns the number of registers closed (orphan shift soft-closes are logged separately).
+    /// </summary>
     Task<int> CloseStaleOpenRegistersAsync(CancellationToken cancellationToken = default);
 }
 
@@ -45,7 +49,9 @@ public sealed class ShiftAutoCloseService : IShiftAutoCloseService
         var maxHours = Math.Max(1, _options.MaxOpenDurationHours);
         var cutoff = DateTime.UtcNow.AddHours(-maxHours);
 
+        // Hosted worker runs with no tenant context; IgnoreQueryFilters is required for the sweep.
         var openRegisters = await _context.CashRegisters
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .Where(r => r.Status == RegisterStatus.Open && r.IsActive)
             .Select(r => new
@@ -56,6 +62,7 @@ public sealed class ShiftAutoCloseService : IShiftAutoCloseService
                 r.CurrentBalance,
                 r.UpdatedAt,
                 LastOpenAt = _context.CashRegisterTransactions
+                    .IgnoreQueryFilters()
                     .Where(t => t.CashRegisterId == r.Id
                                 && t.TransactionType == TransactionType.Open
                                 && t.IsActive)
@@ -73,9 +80,6 @@ public sealed class ShiftAutoCloseService : IShiftAutoCloseService
             })
             .ToList();
 
-        if (stale.Count == 0)
-            return 0;
-
         var closedCount = 0;
         foreach (var register in stale)
         {
@@ -90,7 +94,7 @@ public sealed class ShiftAutoCloseService : IShiftAutoCloseService
                     register.Id,
                     actorUserId: "system",
                     register.CurrentBalance,
-                    $"Auto-close: register open > {maxHours}h",
+                    $"Auto-close: inactivity > {maxHours}h",
                     cancellationToken);
 
                 if (result.Kind != CashRegisterCloseKind.Success)
@@ -106,13 +110,7 @@ public sealed class ShiftAutoCloseService : IShiftAutoCloseService
                 var endedAt = DateTime.UtcNow;
                 foreach (var shift in activeShifts)
                 {
-                    shift.EndedAt = endedAt;
-                    shift.Status = CashierShiftStatuses.Completed;
-                    shift.Notes = string.IsNullOrWhiteSpace(shift.Notes)
-                        ? $"Auto-close after {maxHours}h"
-                        : $"{shift.Notes}; Auto-close after {maxHours}h";
-                    shift.UpdatedAt = endedAt;
-                    shift.UpdatedBy = "system";
+                    CompleteShiftForInactivity(shift, endedAt, maxHours);
                 }
 
                 if (activeShifts.Count > 0)
@@ -120,10 +118,11 @@ public sealed class ShiftAutoCloseService : IShiftAutoCloseService
 
                 closedCount++;
                 _logger.LogWarning(
-                    "Auto-closed stale register {RegisterId} ({RegisterNumber}) for tenant {TenantId}",
+                    "Auto-closed stale register {RegisterId} ({RegisterNumber}) for tenant {TenantId} after {MaxHours}h inactivity",
                     register.Id,
                     register.RegisterNumber,
-                    register.TenantId);
+                    register.TenantId,
+                    maxHours);
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
@@ -139,6 +138,68 @@ public sealed class ShiftAutoCloseService : IShiftAutoCloseService
             }
         }
 
+        var orphanShiftsClosed = await SoftCloseOrphanActiveShiftsAsync(cutoff, maxHours, cancellationToken);
+        if (orphanShiftsClosed > 0)
+        {
+            _logger.LogWarning(
+                "Auto-closed {Count} orphaned active CashierShift row(s) after {MaxHours}h inactivity",
+                orphanShiftsClosed,
+                maxHours);
+        }
+
         return closedCount;
+    }
+
+    /// <summary>
+    /// Soft-closes Active CashierShift rows older than the cutoff when the register is already closed
+    /// (or the shift was left behind). Does not close cash registers.
+    /// </summary>
+    private async Task<int> SoftCloseOrphanActiveShiftsAsync(
+        DateTime cutoffUtc,
+        int maxHours,
+        CancellationToken cancellationToken)
+    {
+        var previousTenant = _tenantAccessor.TenantId;
+        try
+        {
+            // Clear tenant so we can load across tenants with IgnoreQueryFilters.
+            _tenantAccessor.TenantId = null;
+
+            var orphans = await _context.CashierShifts
+                .IgnoreQueryFilters()
+                .Where(s => s.Status == CashierShiftStatuses.Active
+                            && s.IsActive
+                            && s.StartedAt <= cutoffUtc)
+                .ToListAsync(cancellationToken);
+
+            if (orphans.Count == 0)
+                return 0;
+
+            var endedAt = DateTime.UtcNow;
+            foreach (var shift in orphans)
+            {
+                CompleteShiftForInactivity(shift, endedAt, maxHours);
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            return orphans.Count;
+        }
+        finally
+        {
+            _tenantAccessor.TenantId = previousTenant;
+        }
+    }
+
+    private static void CompleteShiftForInactivity(CashierShift shift, DateTime endedAtUtc, int maxHours)
+    {
+        shift.EndedAt = endedAtUtc;
+        shift.Status = CashierShiftStatuses.Completed;
+        shift.IsAutoClosed = true;
+        var note = $"Auto-closed: inactivity > {maxHours}h";
+        shift.Notes = string.IsNullOrWhiteSpace(shift.Notes)
+            ? note
+            : $"{shift.Notes}; {note}";
+        shift.UpdatedAt = endedAtUtc;
+        shift.UpdatedBy = "system";
     }
 }

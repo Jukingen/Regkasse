@@ -179,6 +179,7 @@ import type {
   GetApiAdminLicenseHistoryParams,
   GetApiAdminLicenseListParams,
   GetApiAdminLicenseTenantsParams,
+  GetApiAdminLicenseTestParams,
   GetApiAdminLicensesExportCsvParams,
   GetApiAdminLicensesExportJsonParams,
   GetApiAdminLicensesReportSummaryParams,
@@ -203,9 +204,12 @@ import type {
   GetApiAdminReportPdfsClosingClosingIdExistsParams,
   GetApiAdminReportPdfsClosingClosingIdParams,
   GetApiAdminReportPdfsDownloadReportTypeReportIdParams,
+  GetApiAdminReportPdfsReportTypeReportIdParams,
   GetApiAdminReportsDailyClosingParams,
   GetApiAdminReportsDailyReconciliationParams,
   GetApiAdminReportsOfflineRecoveryParams,
+  GetApiAdminReportsPdfDownloadReportTypeReportIdParams,
+  GetApiAdminReportsPdfReportTypeReportIdParams,
   GetApiAdminReportsPeakHoursParams,
   GetApiAdminReportsProductMovementParams,
   GetApiAdminReportsReportTypeExportParams,
@@ -257,6 +261,11 @@ import type {
   LicenseSaleResponse,
   LicenseSaleStatsResponse,
   LicenseStatusResponse,
+  LicenseTestRequest,
+  LicenseTestScenarioRequest,
+  LicenseTestSetExpiryRequest,
+  LicenseTestSnapshotDto,
+  LicenseTestTenantRequest,
   LicenseTransferRequestInfoResponse,
   MandantLicenseHistoryResponse,
   MonatsbelegClosingResult,
@@ -284,6 +293,7 @@ import type {
   PeakHoursReportDto,
   PitrAvailabilityResponseDto,
   PostApiAdminBackupArtifactsImportBody,
+  PostApiAdminLicenseTestRefreshParams,
   PostApiAdminOfflineOrdersReplayAllParams,
   PostApiAdminProductsDemoTemplateImportBody,
   PostApiAdminProductsDemoTemplatePreviewBody,
@@ -17866,6 +17876,316 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
+    export const getApiAdminLicenseTest = (
+    params?: GetApiAdminLicenseTestParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<LicenseTestSnapshotDto>(
+      {url: `/api/admin/license/test`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminLicenseTestQueryKey = (params?: GetApiAdminLicenseTestParams,) => {
+    return [`/api/admin/license/test`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminLicenseTestQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminLicenseTest>>, TError = ProblemDetails>(params?: GetApiAdminLicenseTestParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseTest>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminLicenseTestQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminLicenseTest>>> = ({ signal }) => getApiAdminLicenseTest(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseTest>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminLicenseTestQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicenseTest>>>
+export type GetApiAdminLicenseTestQueryError = ProblemDetails
+
+export const useGetApiAdminLicenseTest = <TData = Awaited<ReturnType<typeof getApiAdminLicenseTest>>, TError = ProblemDetails>(
+ params?: GetApiAdminLicenseTestParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseTest>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminLicenseTestQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminLicenseTestUpdate = (
+    licenseTestRequest: LicenseTestRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<LicenseTestSnapshotDto>(
+      {url: `/api/admin/license/test/update`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: licenseTestRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminLicenseTestUpdateMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseTestUpdate>>, TError,{data: LicenseTestRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseTestUpdate>>, TError,{data: LicenseTestRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminLicenseTestUpdate>>, {data: LicenseTestRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminLicenseTestUpdate(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminLicenseTestUpdateMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminLicenseTestUpdate>>>
+    export type PostApiAdminLicenseTestUpdateMutationBody = LicenseTestRequest
+    export type PostApiAdminLicenseTestUpdateMutationError = ProblemDetails
+
+    export const usePostApiAdminLicenseTestUpdate = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseTestUpdate>>, TError,{data: LicenseTestRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminLicenseTestUpdate>>,
+        TError,
+        {data: LicenseTestRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminLicenseTestUpdateMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminLicenseTestTenant = (
+    licenseTestTenantRequest: LicenseTestTenantRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<LicenseTestSnapshotDto>(
+      {url: `/api/admin/license/test/tenant`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: licenseTestTenantRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminLicenseTestTenantMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseTestTenant>>, TError,{data: LicenseTestTenantRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseTestTenant>>, TError,{data: LicenseTestTenantRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminLicenseTestTenant>>, {data: LicenseTestTenantRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminLicenseTestTenant(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminLicenseTestTenantMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminLicenseTestTenant>>>
+    export type PostApiAdminLicenseTestTenantMutationBody = LicenseTestTenantRequest
+    export type PostApiAdminLicenseTestTenantMutationError = ProblemDetails
+
+    export const usePostApiAdminLicenseTestTenant = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseTestTenant>>, TError,{data: LicenseTestTenantRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminLicenseTestTenant>>,
+        TError,
+        {data: LicenseTestTenantRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminLicenseTestTenantMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminLicenseTestDeployment = (
+    licenseTestSetExpiryRequest: LicenseTestSetExpiryRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<LicenseTestSnapshotDto>(
+      {url: `/api/admin/license/test/deployment`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: licenseTestSetExpiryRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminLicenseTestDeploymentMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseTestDeployment>>, TError,{data: LicenseTestSetExpiryRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseTestDeployment>>, TError,{data: LicenseTestSetExpiryRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminLicenseTestDeployment>>, {data: LicenseTestSetExpiryRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminLicenseTestDeployment(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminLicenseTestDeploymentMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminLicenseTestDeployment>>>
+    export type PostApiAdminLicenseTestDeploymentMutationBody = LicenseTestSetExpiryRequest
+    export type PostApiAdminLicenseTestDeploymentMutationError = ProblemDetails
+
+    export const usePostApiAdminLicenseTestDeployment = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseTestDeployment>>, TError,{data: LicenseTestSetExpiryRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminLicenseTestDeployment>>,
+        TError,
+        {data: LicenseTestSetExpiryRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminLicenseTestDeploymentMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminLicenseTestScenario = (
+    licenseTestScenarioRequest: LicenseTestScenarioRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<LicenseTestSnapshotDto>(
+      {url: `/api/admin/license/test/scenario`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: licenseTestScenarioRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminLicenseTestScenarioMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseTestScenario>>, TError,{data: LicenseTestScenarioRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseTestScenario>>, TError,{data: LicenseTestScenarioRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminLicenseTestScenario>>, {data: LicenseTestScenarioRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminLicenseTestScenario(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminLicenseTestScenarioMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminLicenseTestScenario>>>
+    export type PostApiAdminLicenseTestScenarioMutationBody = LicenseTestScenarioRequest
+    export type PostApiAdminLicenseTestScenarioMutationError = ProblemDetails
+
+    export const usePostApiAdminLicenseTestScenario = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseTestScenario>>, TError,{data: LicenseTestScenarioRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminLicenseTestScenario>>,
+        TError,
+        {data: LicenseTestScenarioRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminLicenseTestScenarioMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminLicenseTestRefresh = (
+    params?: PostApiAdminLicenseTestRefreshParams,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<LicenseTestSnapshotDto>(
+      {url: `/api/admin/license/test/refresh`, method: 'POST',
+        params
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminLicenseTestRefreshMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseTestRefresh>>, TError,{params?: PostApiAdminLicenseTestRefreshParams}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseTestRefresh>>, TError,{params?: PostApiAdminLicenseTestRefreshParams}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminLicenseTestRefresh>>, {params?: PostApiAdminLicenseTestRefreshParams}> = (props) => {
+          const {params} = props ?? {};
+
+          return  postApiAdminLicenseTestRefresh(params,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminLicenseTestRefreshMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminLicenseTestRefresh>>>
+    
+    export type PostApiAdminLicenseTestRefreshMutationError = ProblemDetails
+
+    export const usePostApiAdminLicenseTestRefresh = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseTestRefresh>>, TError,{params?: PostApiAdminLicenseTestRefreshParams}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminLicenseTestRefresh>>,
+        TError,
+        {params?: PostApiAdminLicenseTestRefreshParams},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminLicenseTestRefreshMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
     export const getApiAdminOfflineIntentCoverage = (
     params?: GetApiAdminOfflineIntentCoverageParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -18509,16 +18829,16 @@ export const useGetApiAdminReplayBatchCorrelationId = <TData = Awaited<ReturnTyp
 
 
 
-export const getApiAdminReportPdfsDownloadReportTypeReportId = (
+export const getApiAdminReportsPdfReportTypeReportId = (
     reportType: string,
     reportId: string,
-    params?: GetApiAdminReportPdfsDownloadReportTypeReportIdParams,
+    params?: GetApiAdminReportsPdfReportTypeReportIdParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
       
       return customInstance<Blob>(
-      {url: `/api/admin/report-pdfs/download/${reportType}/${reportId}`, method: 'GET',
+      {url: `/api/admin/reports/pdf/${reportType}/${reportId}`, method: 'GET',
         params,
         responseType: 'blob', signal
     },
@@ -18526,44 +18846,109 @@ export const getApiAdminReportPdfsDownloadReportTypeReportId = (
     }
   
 
-export const getGetApiAdminReportPdfsDownloadReportTypeReportIdQueryKey = (reportType: string,
+export const getGetApiAdminReportsPdfReportTypeReportIdQueryKey = (reportType: string,
     reportId: string,
-    params?: GetApiAdminReportPdfsDownloadReportTypeReportIdParams,) => {
-    return [`/api/admin/report-pdfs/download/${reportType}/${reportId}`, ...(params ? [params]: [])] as const;
+    params?: GetApiAdminReportsPdfReportTypeReportIdParams,) => {
+    return [`/api/admin/reports/pdf/${reportType}/${reportId}`, ...(params ? [params]: [])] as const;
     }
 
     
-export const getGetApiAdminReportPdfsDownloadReportTypeReportIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminReportPdfsDownloadReportTypeReportId>>, TError = ProblemDetails>(reportType: string,
+export const getGetApiAdminReportsPdfReportTypeReportIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminReportsPdfReportTypeReportId>>, TError = ProblemDetails>(reportType: string,
     reportId: string,
-    params?: GetApiAdminReportPdfsDownloadReportTypeReportIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsDownloadReportTypeReportId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+    params?: GetApiAdminReportsPdfReportTypeReportIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsPdfReportTypeReportId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminReportPdfsDownloadReportTypeReportIdQueryKey(reportType,reportId,params);
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminReportsPdfReportTypeReportIdQueryKey(reportType,reportId,params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminReportPdfsDownloadReportTypeReportId>>> = ({ signal }) => getApiAdminReportPdfsDownloadReportTypeReportId(reportType,reportId,params, requestOptions, signal);
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminReportsPdfReportTypeReportId>>> = ({ signal }) => getApiAdminReportsPdfReportTypeReportId(reportType,reportId,params, requestOptions, signal);
 
       
 
       
 
-   return  { queryKey, queryFn, enabled: !!(reportType && reportId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsDownloadReportTypeReportId>>, TError, TData> & { queryKey: QueryKey }
+   return  { queryKey, queryFn, enabled: !!(reportType && reportId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsPdfReportTypeReportId>>, TError, TData> & { queryKey: QueryKey }
 }
 
-export type GetApiAdminReportPdfsDownloadReportTypeReportIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportPdfsDownloadReportTypeReportId>>>
-export type GetApiAdminReportPdfsDownloadReportTypeReportIdQueryError = ProblemDetails
+export type GetApiAdminReportsPdfReportTypeReportIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportsPdfReportTypeReportId>>>
+export type GetApiAdminReportsPdfReportTypeReportIdQueryError = ProblemDetails
 
-export const useGetApiAdminReportPdfsDownloadReportTypeReportId = <TData = Awaited<ReturnType<typeof getApiAdminReportPdfsDownloadReportTypeReportId>>, TError = ProblemDetails>(
+export const useGetApiAdminReportsPdfReportTypeReportId = <TData = Awaited<ReturnType<typeof getApiAdminReportsPdfReportTypeReportId>>, TError = ProblemDetails>(
  reportType: string,
     reportId: string,
-    params?: GetApiAdminReportPdfsDownloadReportTypeReportIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsDownloadReportTypeReportId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+    params?: GetApiAdminReportsPdfReportTypeReportIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsPdfReportTypeReportId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
-  const queryOptions = getGetApiAdminReportPdfsDownloadReportTypeReportIdQueryOptions(reportType,reportId,params,options)
+  const queryOptions = getGetApiAdminReportsPdfReportTypeReportIdQueryOptions(reportType,reportId,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminReportPdfsReportTypeReportId = (
+    reportType: string,
+    reportId: string,
+    params?: GetApiAdminReportPdfsReportTypeReportIdParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<Blob>(
+      {url: `/api/admin/report-pdfs/${reportType}/${reportId}`, method: 'GET',
+        params,
+        responseType: 'blob', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminReportPdfsReportTypeReportIdQueryKey = (reportType: string,
+    reportId: string,
+    params?: GetApiAdminReportPdfsReportTypeReportIdParams,) => {
+    return [`/api/admin/report-pdfs/${reportType}/${reportId}`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminReportPdfsReportTypeReportIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminReportPdfsReportTypeReportId>>, TError = ProblemDetails>(reportType: string,
+    reportId: string,
+    params?: GetApiAdminReportPdfsReportTypeReportIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsReportTypeReportId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminReportPdfsReportTypeReportIdQueryKey(reportType,reportId,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminReportPdfsReportTypeReportId>>> = ({ signal }) => getApiAdminReportPdfsReportTypeReportId(reportType,reportId,params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(reportType && reportId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsReportTypeReportId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminReportPdfsReportTypeReportIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportPdfsReportTypeReportId>>>
+export type GetApiAdminReportPdfsReportTypeReportIdQueryError = ProblemDetails
+
+export const useGetApiAdminReportPdfsReportTypeReportId = <TData = Awaited<ReturnType<typeof getApiAdminReportPdfsReportTypeReportId>>, TError = ProblemDetails>(
+ reportType: string,
+    reportId: string,
+    params?: GetApiAdminReportPdfsReportTypeReportIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsReportTypeReportId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminReportPdfsReportTypeReportIdQueryOptions(reportType,reportId,params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -18629,6 +19014,136 @@ export const useGetApiAdminReportsReportTypeReportIdPdf = <TData = Awaited<Retur
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiAdminReportsReportTypeReportIdPdfQueryOptions(reportType,reportId,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminReportsPdfDownloadReportTypeReportId = (
+    reportType: string,
+    reportId: string,
+    params?: GetApiAdminReportsPdfDownloadReportTypeReportIdParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<Blob>(
+      {url: `/api/admin/reports/pdf/download/${reportType}/${reportId}`, method: 'GET',
+        params,
+        responseType: 'blob', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminReportsPdfDownloadReportTypeReportIdQueryKey = (reportType: string,
+    reportId: string,
+    params?: GetApiAdminReportsPdfDownloadReportTypeReportIdParams,) => {
+    return [`/api/admin/reports/pdf/download/${reportType}/${reportId}`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminReportsPdfDownloadReportTypeReportIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminReportsPdfDownloadReportTypeReportId>>, TError = ProblemDetails>(reportType: string,
+    reportId: string,
+    params?: GetApiAdminReportsPdfDownloadReportTypeReportIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsPdfDownloadReportTypeReportId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminReportsPdfDownloadReportTypeReportIdQueryKey(reportType,reportId,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminReportsPdfDownloadReportTypeReportId>>> = ({ signal }) => getApiAdminReportsPdfDownloadReportTypeReportId(reportType,reportId,params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(reportType && reportId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsPdfDownloadReportTypeReportId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminReportsPdfDownloadReportTypeReportIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportsPdfDownloadReportTypeReportId>>>
+export type GetApiAdminReportsPdfDownloadReportTypeReportIdQueryError = ProblemDetails
+
+export const useGetApiAdminReportsPdfDownloadReportTypeReportId = <TData = Awaited<ReturnType<typeof getApiAdminReportsPdfDownloadReportTypeReportId>>, TError = ProblemDetails>(
+ reportType: string,
+    reportId: string,
+    params?: GetApiAdminReportsPdfDownloadReportTypeReportIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsPdfDownloadReportTypeReportId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminReportsPdfDownloadReportTypeReportIdQueryOptions(reportType,reportId,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminReportPdfsDownloadReportTypeReportId = (
+    reportType: string,
+    reportId: string,
+    params?: GetApiAdminReportPdfsDownloadReportTypeReportIdParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<Blob>(
+      {url: `/api/admin/report-pdfs/download/${reportType}/${reportId}`, method: 'GET',
+        params,
+        responseType: 'blob', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminReportPdfsDownloadReportTypeReportIdQueryKey = (reportType: string,
+    reportId: string,
+    params?: GetApiAdminReportPdfsDownloadReportTypeReportIdParams,) => {
+    return [`/api/admin/report-pdfs/download/${reportType}/${reportId}`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminReportPdfsDownloadReportTypeReportIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminReportPdfsDownloadReportTypeReportId>>, TError = ProblemDetails>(reportType: string,
+    reportId: string,
+    params?: GetApiAdminReportPdfsDownloadReportTypeReportIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsDownloadReportTypeReportId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminReportPdfsDownloadReportTypeReportIdQueryKey(reportType,reportId,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminReportPdfsDownloadReportTypeReportId>>> = ({ signal }) => getApiAdminReportPdfsDownloadReportTypeReportId(reportType,reportId,params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(reportType && reportId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsDownloadReportTypeReportId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminReportPdfsDownloadReportTypeReportIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportPdfsDownloadReportTypeReportId>>>
+export type GetApiAdminReportPdfsDownloadReportTypeReportIdQueryError = ProblemDetails
+
+export const useGetApiAdminReportPdfsDownloadReportTypeReportId = <TData = Awaited<ReturnType<typeof getApiAdminReportPdfsDownloadReportTypeReportId>>, TError = ProblemDetails>(
+ reportType: string,
+    reportId: string,
+    params?: GetApiAdminReportPdfsDownloadReportTypeReportIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportPdfsDownloadReportTypeReportId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminReportPdfsDownloadReportTypeReportIdQueryOptions(reportType,reportId,params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

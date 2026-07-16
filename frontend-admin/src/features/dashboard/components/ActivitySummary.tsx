@@ -35,6 +35,7 @@ function getActivityTypeTagColor(type: string, severity: ActivitySeverity): stri
         BackupFailed: 'red',
         RestoreDrillSucceeded: 'green',
         RestoreDrillFailed: 'red',
+        DailyClosingBackdatedCreated: 'orange',
         LicenseExpiringSoon: 'gold',
         LicenseExpired: 'red',
         FinanzOnlineSubmissionFailed: 'red',

@@ -21,7 +21,7 @@ import {
     type LicenseActivationAttemptListItemDto,
     type LicenseActivationAttemptsListParams,
 } from '@/api/manual/adminLicense';
-import { useI18n, formatDate } from '@/i18n';
+import { useI18n, formatGermanDateTime } from '@/i18n';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 dayjs.extend(utc);
@@ -132,14 +132,7 @@ export function LicenseActivationHistoryCard() {
                 key: 'activatedAtUtc',
                 width: 170,
                 render: (iso: string) =>
-                    formatDate(iso, formatLocale, {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                    }),
+                    formatGermanDateTime(iso),
             },
             {
                 title: t('license.activationHistory.colDeactivated'),
@@ -148,14 +141,7 @@ export function LicenseActivationHistoryCard() {
                 width: 170,
                 render: (iso: string | null) =>
                     iso
-                        ? formatDate(iso, formatLocale, {
-                              year: 'numeric',
-                              month: '2-digit',
-                              day: '2-digit',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              second: '2-digit',
-                          })
+                        ? formatGermanDateTime(iso)
                         : '—',
             },
             {

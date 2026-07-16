@@ -26,7 +26,7 @@ import {
 import dayjs from 'dayjs';
 
 import { useAntdApp } from '@/hooks/useAntdApp';
-import { useI18n, formatDate } from '@/i18n';
+import { useI18n, formatGermanDateTime } from '@/i18n';
 import { useDebounce } from '@/hooks/useDebounce';
 import type { TenantLicenseOverviewItem } from '@/features/license/api/tenantLicenseOverview';
 import { EditTenantLicenseModal } from '@/features/license/components/EditTenantLicenseModal';
@@ -138,7 +138,7 @@ export function TenantLicenseOverview() {
                 row.tenantName,
                 row.tenantSlug,
                 row.licenseKey ? maskTenantLicenseKey(row.licenseKey) : '—',
-                row.validUntilUtc ? formatDate(row.validUntilUtc, formatLocale) : '—',
+                row.validUntilUtc ? formatGermanDateTime(row.validUntilUtc) : '—',
                 t(mandantLicenseOverviewKindLabelKey(row.status)),
             ]
                 .map((value) => toCsvCell(String(value)))
@@ -200,7 +200,7 @@ export function TenantLicenseOverview() {
                     return left - right;
                 },
                 render: (value: string | null) =>
-                    value ? formatDate(value, formatLocale) : '—',
+                    value ? formatGermanDateTime(value) : '—',
             },
             {
                 title: t('license.superAdmin.table.status'),

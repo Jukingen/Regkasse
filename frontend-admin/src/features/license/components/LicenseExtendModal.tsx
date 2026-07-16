@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button, Descriptions, Flex, Form, Input, Modal, Tag, Typography } from 'antd';
 
-import { useI18n, formatDate } from '@/i18n';
+import { useI18n, formatGermanDateTime } from '@/i18n';
 import { LicensePreviewDetails } from '@/features/license/components/LicensePreviewDetails';
 import type { TenantLicenseStatus } from '@/features/license/api/tenantLicense';
 import type { ExtendTenantLicenseResult } from '@/features/license/api/tenantLicense';
@@ -125,7 +125,7 @@ function LicenseExtendModalContent({
                         </Tag>
                     </Descriptions.Item>
                     <Descriptions.Item label={t('license.extendModal.validUntilLabel')}>
-                        {status.validUntilUtc ? formatDate(status.validUntilUtc, formatLocale) : '—'}
+                        {status.validUntilUtc ? formatGermanDateTime(status.validUntilUtc) : '—'}
                     </Descriptions.Item>
                 </Descriptions>
             ) : null}

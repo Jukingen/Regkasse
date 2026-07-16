@@ -3,6 +3,7 @@ import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
 import { OfflineSessionManager } from '@/services/auth/offlineSessionManager';
 import { OfflineConfigService } from '@/services/config/offlineConfigService';
 import { apiClient } from '@/services/api/config';
+import { sessionManager } from '@/services/session/sessionManager';
 import { eventEmitter } from '@/utils/eventEmitter';
 
 import { OfflineOrderManager } from './offlineOrderManager';
@@ -147,7 +148,18 @@ export class OfflineSyncService {
     this.emitStatusChange(status);
   }
 
+  private async hasValidAccessToken(): Promise<boolean> {
+    const token = await sessionManager.getAccessToken();
+    if (!token) return false;
+    return !sessionManager.isExpired(token);
+  }
+
   private async pollServerSyncHealth(): Promise<void> {
+    // Requires PaymentTake — never call from login / unauthenticated bootstrap.
+    if (!(await this.hasValidAccessToken())) {
+      return;
+    }
+
     try {
       const path = this.config.get('SYNC_ENDPOINTS').HEALTH.replace(/^\/api/, '');
       const raw = await apiClient.get<{ data?: ServerSyncHealth; success?: boolean }>(path);

@@ -82,6 +82,36 @@ public sealed class RksvReportTemplateTests
     }
 
     [Fact]
+    public void FromTagesabschluss_IncludesBackdatedOperatorNotice()
+    {
+        var closingDate = new DateTime(2026, 7, 14, 0, 0, 0, DateTimeKind.Utc);
+        var createdAt = new DateTime(2026, 7, 15, 10, 30, 0, DateTimeKind.Utc);
+        var model = new TagesabschlussReportModel
+        {
+            CashRegisterId = Guid.NewGuid(),
+            ClosingDate = closingDate,
+            CreatedAt = createdAt,
+            IsBackdated = true,
+            LateCreationReason = "Technisches Problem / Systemausfall",
+            TotalGross = 50m,
+            TotalNet = 40m,
+        };
+
+        var text = RksvReportTemplateRenderer.Render(
+            RksvReportTemplateMapper.FromTagesabschluss(
+                model,
+                environmentDisplay: "Production",
+                rksvFooter: "RKSV-konform",
+                qrPayload: "QR",
+                registerNumber: "K1"));
+
+        Assert.Contains("verspätet erstellt", text, StringComparison.Ordinal);
+        Assert.Contains("Ursprüngliches Datum: 14.07.2026", text, StringComparison.Ordinal);
+        Assert.Contains("Erstellt am: 15.07.2026", text, StringComparison.Ordinal);
+        Assert.Contains("Grund: Technisches Problem / Systemausfall", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FromReceipt_IncludesLineItems()
     {
         var template = RksvReportTemplateMapper.FromReceipt(new ReceiptDTO

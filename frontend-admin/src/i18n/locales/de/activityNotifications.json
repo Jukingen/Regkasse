@@ -42,6 +42,7 @@
     "BackupFailed": "Backup fehlgeschlagen",
     "BackupSucceeded": "Backup erfolgreich",
     "RestoreDrillFailed": "Restore-Übung fehlgeschlagen",
-    "RestoreDrillSucceeded": "Restore-Übung erfolgreich"
+    "RestoreDrillSucceeded": "Restore-Übung erfolgreich",
+    "DailyClosingBackdatedCreated": "Tagesabschluss nachträglich erstellt"
   }
 }

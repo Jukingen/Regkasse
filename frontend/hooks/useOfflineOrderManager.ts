@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { OfflineSyncService } from '@/services/offline/offlineSyncService';
+import {
+  OfflineSyncService,
+  type SyncAllResult,
+} from '@/services/offline/offlineSyncService';
 import { eventEmitter } from '@/utils/eventEmitter';
 
 import {
   getOfflineOrderManager,
   type OfflineStatus,
-  type SyncResult,
 } from '../services/offline/offlineOrderManager';
 import type { OfflineOrder } from '../services/offline/offlineStorage';
 
@@ -85,16 +87,10 @@ export function useOfflineOrderManager() {
     [manager, refreshStatus]
   );
 
-  const syncNow = useCallback(async (): Promise<SyncResult> => {
+  const syncNow = useCallback(async (): Promise<SyncAllResult> => {
     const result = await syncService.syncNow();
     await refreshStatus();
-    return {
-      success: result.success,
-      message: result.success
-        ? `${result.synced} order(s) synced`
-        : `${result.errors} order(s) failed`,
-      details: undefined,
-    };
+    return result;
   }, [refreshStatus, syncService]);
 
   const getPending = useCallback(

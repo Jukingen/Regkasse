@@ -1,8 +1,9 @@
 import { useRouter } from 'expo-router';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { useOfflineOrderManager } from '../../hooks/useOfflineOrderManager';
 import { usePosRegisterSelection } from '../../hooks/usePosRegisterSelection';
 
 import { AppUpdateChecker } from '../../components/AppUpdateChecker';
@@ -27,6 +28,11 @@ export default function SettingsScreen() {
   const { logout } = useAuth();
   const { status, loading, error, refetch } = useTimeSyncStatus();
   const { effectiveRegisterId } = usePosRegisterSelection();
+  const { status: offlineStatus, syncNow } = useOfflineOrderManager();
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const pendingCount = offlineStatus?.pendingCount ?? 0;
+  const syncBusy = isSyncing || Boolean(offlineStatus?.isSyncing);
 
   const openPaymentHistory = useCallback(() => {
     if (!effectiveRegisterId) {
@@ -39,6 +45,56 @@ export default function SettingsScreen() {
     router.push('/(screens)/PaymentHistoryScreen' as const);
   }, [effectiveRegisterId, router, t]);
 
+  const handleOfflineSync = useCallback(async () => {
+    if (syncBusy) return;
+    if (offlineStatus?.isOnline === false) {
+      Alert.alert(
+        t('settings:offlineSync.alertTitle'),
+        t('settings:offlineSync.alertOffline'),
+        [{ text: t('settings:offlineSync.ok') }]
+      );
+      return;
+    }
+    setIsSyncing(true);
+    try {
+      const result = await syncNow();
+      if (result.errors > 0 && result.synced === 0) {
+        Alert.alert(
+          t('settings:offlineSync.alertTitle'),
+          t('settings:offlineSync.alertFailed'),
+          [{ text: t('settings:offlineSync.ok') }]
+        );
+        return;
+      }
+      if (result.errors > 0) {
+        Alert.alert(
+          t('settings:offlineSync.alertTitle'),
+          t('settings:offlineSync.alertPartial', {
+            synced: result.synced,
+            errors: result.errors,
+          }),
+          [{ text: t('settings:offlineSync.ok') }]
+        );
+        return;
+      }
+      Alert.alert(
+        t('settings:offlineSync.alertTitle'),
+        result.synced === 1
+          ? t('settings:offlineSync.alertSuccessOne')
+          : t('settings:offlineSync.alertSuccess', { synced: result.synced }),
+        [{ text: t('settings:offlineSync.ok') }]
+      );
+    } catch {
+      Alert.alert(
+        t('settings:offlineSync.alertTitle'),
+        t('settings:offlineSync.alertFailed'),
+        [{ text: t('settings:offlineSync.ok') }]
+      );
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [offlineStatus?.isOnline, syncBusy, syncNow, t]);
+
   // CRITICAL FIX: Translation değerlerini useMemo ile cache'le
   const translations = useMemo(() => ({
     settings: t('settings:title'),
@@ -48,6 +104,16 @@ export default function SettingsScreen() {
     offlineQueueTitle: t('settings:offlineQueue.title'),
     offlineQueueDescription: t('settings:offlineQueue.description'),
     offlineQueueOpen: t('settings:offlineQueue.open'),
+    offlineSyncTitle: t('settings:offlineSync.title'),
+    offlineSyncDescription:
+      pendingCount === 0
+        ? t('settings:offlineSync.allSynced')
+        : pendingCount === 1
+          ? t('settings:offlineSync.pendingOne')
+          : t('settings:offlineSync.pending', { count: pendingCount }),
+    offlineSyncButton: syncBusy
+      ? t('settings:offlineSync.syncing')
+      : t('settings:offlineSync.syncNow'),
     paymentHistoryTitle: t('settings:paymentHistory.title'),
     paymentHistoryDescription: t('settings:paymentHistory.description'),
     paymentHistoryOpen: t('settings:paymentHistory.open'),
@@ -67,7 +133,7 @@ export default function SettingsScreen() {
         : null,
     ntpLoadError: t('settings:ntp.loadError'),
     ntpRefresh: t('settings:ntp.refresh'),
-  }), [t, status?.lastSyncAt, status?.offsetSeconds, status?.warningLevel]);
+  }), [t, status?.lastSyncAt, status?.offsetSeconds, status?.warningLevel, pendingCount, syncBusy]);
 
   return (
     <ScrollView style={styles.container}>
@@ -148,6 +214,23 @@ export default function SettingsScreen() {
         {!effectiveRegisterId ? (
           <Text style={styles.descriptionMuted}>{t('settings:paymentHistory.noRegisterHint')}</Text>
         ) : null}
+      </View>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{translations.offlineSyncTitle}</Text>
+        <Text style={styles.description}>
+          {translations.offlineSyncDescription}
+        </Text>
+        <TouchableOpacity
+          style={[styles.queueLinkButton, syncBusy && styles.queueLinkButtonDisabled]}
+          onPress={() => {
+            void handleOfflineSync();
+          }}
+          disabled={syncBusy}
+          accessibilityRole="button"
+          accessibilityLabel={translations.offlineSyncButton}
+        >
+          <Text style={styles.queueLinkText}>{translations.offlineSyncButton}</Text>
+        </TouchableOpacity>
       </View>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{translations.offlineQueueTitle}</Text>
@@ -242,6 +325,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 12,
     alignItems: 'center',
+  },
+  queueLinkButtonDisabled: {
+    backgroundColor: '#94a3b8',
   },
   queueLinkText: {
     color: '#fff',

@@ -1225,7 +1225,62 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPosPaymentMethods = (
+    export const getApiPosOfflineHealth = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/pos/offline/health`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiPosOfflineHealthQueryKey = () => {
+    return [`/api/pos/offline/health`] as const;
+    }
+
+    
+export const getGetApiPosOfflineHealthQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosOfflineHealth>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosOfflineHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiPosOfflineHealthQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosOfflineHealth>>> = ({ signal }) => getApiPosOfflineHealth(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosOfflineHealth>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiPosOfflineHealthQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosOfflineHealth>>>
+export type GetApiPosOfflineHealthQueryError = unknown
+
+export const useGetApiPosOfflineHealth = <TData = Awaited<ReturnType<typeof getApiPosOfflineHealth>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosOfflineHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiPosOfflineHealthQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiPosPaymentMethods = (
     params?: GetApiPosPaymentMethodsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {

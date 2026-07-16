@@ -150,6 +150,14 @@ public static class DailyClosingReportPdfGenerator
                         }
                     });
 
+                    if (!string.IsNullOrWhiteSpace(report.BackdatedNotice))
+                    {
+                        col.Item().PaddingTop(4).Text(report.BackdatedNotice)
+                            .FontSize(7)
+                            .FontColor(Colors.Orange.Darken2)
+                            .LineHeight(1.3f);
+                    }
+
                     if (!string.IsNullOrWhiteSpace(report.SalesFiscalReconciliationNote))
                     {
                         col.Item().PaddingTop(4).Text(report.SalesFiscalReconciliationNote)

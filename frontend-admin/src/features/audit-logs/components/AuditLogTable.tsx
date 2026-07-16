@@ -7,7 +7,7 @@ import { formatDateTime, formatNumber } from '@/i18n/formatting';
 import type { AuditLogEntryDto } from '@/api/generated/model';
 import { AuditLogDetailsCell } from '@/features/audit-logs/components/AuditLogDetailsCell';
 import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
-import { getAuditActionLabelKey } from '@/features/audit-logs/utils/auditActionLabels';
+import { getAuditActionLabelKey, getAuditActionTagColor } from '@/features/audit-logs/utils/auditActionLabels';
 import { formatAuditLogReason } from '@/features/audit-logs/utils/formatAuditLogDescription';
 import { viewAuditLogStatusPresentation } from '@/shared/verificationsAuditView';
 import { useI18n } from '@/i18n';
@@ -99,7 +99,7 @@ export function AuditLogTable({
                     const label = labelKey ? t(labelKey as 'common.auditLogs.actionLabels.login') : raw;
                     return (
                         <Tooltip title={raw}>
-                            <Tag color="blue">{label}</Tag>
+                            <Tag color={getAuditActionTagColor(raw)}>{label}</Tag>
                         </Tooltip>
                     );
                 },

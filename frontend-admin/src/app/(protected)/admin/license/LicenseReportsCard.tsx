@@ -18,7 +18,7 @@ import {
     licenseQueryKeys,
     type LicenseExportReportParams,
 } from '@/api/manual/adminLicense';
-import { useI18n, formatDate } from '@/i18n';
+import { useI18n, formatGermanDateTime } from '@/i18n';
 import { deploymentLicenseAllows, LICENSE_DEPLOYMENT_FEATURE } from '@/shared/licenseDeploymentFeatures';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
@@ -187,14 +187,7 @@ export function LicenseReportsCard({ enabledLicenseFeatures }: Props) {
                 ) : s ? (
                     <Descriptions bordered column={1} size="small">
                         <Descriptions.Item label={t('license.reports.generatedAt')}>
-                            {formatDate(s.generatedAtUtc, formatLocale, {
-                                year: 'numeric',
-                                month: '2-digit',
-                                day: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                second: '2-digit',
-                            })}
+                            {formatGermanDateTime(s.generatedAtUtc)}
                         </Descriptions.Item>
                         <Descriptions.Item label={t('license.reports.issuedTotal')}>
                             {s.issuedTotalInDateFilter}

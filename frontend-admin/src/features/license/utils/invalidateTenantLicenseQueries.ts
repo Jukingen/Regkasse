@@ -7,6 +7,7 @@ import {
 import { licenseHistoryQueryKeys } from '@/features/license/api/licenseHistory';
 import { tenantLicenseOverviewQueryKey } from '@/features/license/api/tenantLicenseOverview';
 import { tenantLicenseQueryKeys } from '@/features/license/api/tenantLicense';
+import { currentTenantQueryKey } from '@/features/tenancy/api/getCurrentTenant';
 import { getApiAdminTenantsQueryKey } from '@/features/tenancy/api/getApiAdminTenants';
 
 const INVALIDATE_ALL = { refetchType: 'all' as const };
@@ -17,6 +18,7 @@ export async function invalidateTenantLicenseQueries(
     tenantId?: string | null,
 ): Promise<void> {
     const tasks: Array<Promise<void>> = [
+        queryClient.invalidateQueries({ queryKey: currentTenantQueryKey, ...INVALIDATE_ALL }),
         queryClient.invalidateQueries({ queryKey: tenantLicenseUnifiedQueryKey, ...INVALIDATE_ALL }),
         queryClient.invalidateQueries({ queryKey: tenantLicenseQueryKeys.root, ...INVALIDATE_ALL }),
         queryClient.invalidateQueries({ queryKey: tenantLicenseOverviewQueryKey, ...INVALIDATE_ALL }),
@@ -46,6 +48,7 @@ export async function invalidateTenantLicenseQueries(
 
     // Refetch mounted queries immediately (header badge while navigating from test panel).
     await Promise.all([
+        queryClient.refetchQueries({ queryKey: currentTenantQueryKey, type: 'active' }),
         queryClient.refetchQueries({ queryKey: tenantLicenseUnifiedQueryKey, type: 'active' }),
         queryClient.refetchQueries({ queryKey: tenantLicenseQueryKeys.root, type: 'active' }),
         queryClient.refetchQueries({ queryKey: getApiAdminTenantsQueryKey(false), type: 'active' }),

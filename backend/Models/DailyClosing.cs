@@ -39,6 +39,21 @@ namespace KasseAPI_Final.Models
         [Required]
         public DateTime ClosingDate { get; set; }
 
+        /// <summary>
+        /// True when this daily closing covers a past Vienna business day (nachträglich).
+        /// <see cref="CreatedAt"/> remains the real UTC creation instant and is never backdated.
+        /// </summary>
+        [Column("is_backdated")]
+        public bool IsBackdated { get; set; }
+
+        /// <summary>
+        /// Operator-provided reason for a late (nachträglich) daily closing; null for same-day closings.
+        /// Documented for Betriebsprüfung transparency; does not affect TSE signing time.
+        /// </summary>
+        [MaxLength(500)]
+        [Column("late_creation_reason")]
+        public string? LateCreationReason { get; set; }
+
         [Required]
         [MaxLength(20)]
         public string ClosingType { get; set; } = string.Empty; // Daily, Monthly, Yearly

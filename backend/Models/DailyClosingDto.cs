@@ -17,6 +17,12 @@ public class DailyClosingDto
 
     public DateTime ClosingDate { get; set; }
 
+    /// <summary>True when created nachträglich for a past Vienna business day.</summary>
+    public bool IsBackdated { get; set; }
+
+    /// <summary>Operator reason for late creation; null when not backdated.</summary>
+    public string? LateCreationReason { get; set; }
+
     public string ClosingType { get; set; } = string.Empty;
 
     public decimal TotalAmount { get; set; }

@@ -257,6 +257,11 @@ Kasa dönemini TSE ile mühürlemek ve (etkinse) FinanzOnline’a iletmek.
 - Faturasız ödeme: `Closing blocked: N payment(s) without a matching invoice`.
 - İşlem yok: “No transactions found for today…”.
 
+### Nachträglicher (rückdatierter) Tagesabschluss
+- Geçmiş Vienna iş günü için kapanış mümkün; `CreatedAt` / TSE imza zamanı **geriye alınmaz**.
+- `is_backdated`, `late_creation_reason` (zorunlu) ve audit `TagesabschlussBackdatedCreated`.
+- Ayrıntı: [`docs/BACKDATED_TAGESABSCHLUSS.md`](BACKDATED_TAGESABSCHLUSS.md).
+
 ### Eksik / kısmi
 - Aylık/yıllık kapanışta FinanzOnline gönderiminin günlük ile **paralel olmadığı** kod okumasıyla ortaya çıkar; üretim kararı için ek doğrulama önerilir.
 

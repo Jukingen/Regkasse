@@ -31,6 +31,20 @@ describe('formatAuditLogDescription', () => {
         };
         expect(formatAuditLogDescription(record, t)).toBe('Benutzername geändert');
     });
+
+    it('formats TagesabschlussBackdatedCreated from requestData', () => {
+        const record: AuditLogEntryDto = {
+            action: 'TagesabschlussBackdatedCreated',
+            requestData:
+                '{"closingDate":"2026-07-14","backdatedReason":"Technisches Problem","daysLate":1}',
+        };
+        expect(formatAuditLogDescription(record, (key, params) => {
+            if (key === 'common.auditLogs.tagesabschlussBackdatedDescription' && params) {
+                return `${params.date}|${params.reason}|${params.daysLate}`;
+            }
+            return key;
+        })).toBe('2026-07-14|Technisches Problem|1');
+    });
 });
 
 describe('formatAuditLogReason', () => {

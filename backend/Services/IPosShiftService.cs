@@ -18,6 +18,25 @@ public interface IPosShiftService
         EndShiftRequest request,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Idempotent: returns the active shift if one exists; otherwise opens the register (if needed)
+    /// and creates a CashierShift with <c>IsAutoOpened</c>.
+    /// </summary>
+    Task<CashierShiftDto> AutoOpenShiftAsync(
+        string cashierUserId,
+        string cashierDisplayName,
+        Guid cashRegisterId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Soft-closes the caller's active CashierShift without closing the cash register.
+    /// No-op when there is no active shift (idempotent for logout).
+    /// </summary>
+    Task<CashierShiftDto?> AutoCloseShiftAsync(
+        string cashierUserId,
+        string actorRole,
+        CancellationToken cancellationToken = default);
+
     Task<ShiftTotalsDto> GetShiftTotalsAsync(
         Guid cashRegisterId,
         DateTime startedAtUtc,

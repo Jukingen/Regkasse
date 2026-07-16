@@ -15,6 +15,7 @@ export type NotificationConfigSeverityThreshold = {
   CashRegisterClosed?: string;
   CashRegisterDecommissioned?: string;
   CashRegisterOpened?: string;
+  DailyClosingBackdatedCreated?: string;
   FinanzOnlineSubmissionFailed?: string;
   LicenseExpired?: string;
   LicenseExpiringSoon?: string;

@@ -1,48 +1,41 @@
 'use client';
 
 import { useState } from 'react';
-import { Alert, Button, Space, Spin, Statistic, Tag, Typography } from 'antd';
+import { Alert, Button, Descriptions, Space, Spin, Tag } from 'antd';
 import { SafetyCertificateOutlined } from '@ant-design/icons';
 
 import { LicenseExtendModal } from '@/features/license/components/LicenseExtendModal';
+import { LicenseExpiryCountdownText } from '@/features/license/components/LicenseExpiryCountdownText';
 import { useTenantLicenseStatus } from '@/features/license/hooks/useLicenseStatus';
 import { useTenantLicenseDetail } from '@/features/license/hooks/useTenantLicenseDetail';
 import type { WidgetShellProps } from '@/features/dashboard/components/WidgetShell';
 import { WidgetShell } from '@/features/dashboard/components/WidgetShell';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import {
-    getLicenseStatusDayText,
     getLicenseStatusLabel,
     getLicenseStatusTagColor,
     resolveTenantLicenseStatus,
 } from '@/features/license/utils/licenseStatus';
+import {
+    getHeaderLicenseTooltipStatusLabel,
+    getLicenseHoursRemaining,
+} from '@/features/tenant/utils/headerLicenseStatus';
 import { useAuthorizationGate } from '@/hooks/useAuthorizedQuery';
 import { useTenantLicense, tenantLicenseUnifiedQueryKey } from '@/hooks/useTenantLicense';
-import { formatDate, useI18n } from '@/i18n';
+import { useI18n } from '@/i18n';
+import { formatGermanDateTime } from '@/lib/dateFormatter';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { useQueryClient } from '@tanstack/react-query';
 
 type Props = Pick<WidgetShellProps, 'title' | 'dragHandleProps'>;
 
-function resolveDaysAccent(daysRemaining: number, kind: string): string {
-    if (kind === 'lockdown' || kind === 'expired' || kind === 'no_license') {
-        return '#cf1322';
-    }
-    if (kind === 'grace_write' || kind === 'grace_readonly') {
-        return '#d48806';
-    }
-    if (daysRemaining <= 7) {
-        return '#cf1322';
-    }
-    if (daysRemaining <= 30) {
-        return '#d48806';
-    }
-    return '#3f8600';
+function isLicenseValidForWidget(kind: string, daysRemaining: number): boolean {
+    return kind === 'active' && daysRemaining > 0;
 }
 
 /** Mandant license expiry widget — unified `GET /api/license/status` read model. */
 export function LicenseExpiryWidget({ title, dragHandleProps }: Props) {
-    const { t, formatLocale } = useI18n();
+    const { t } = useI18n();
     const queryClient = useQueryClient();
     const currentTenant = useCurrentTenant();
     const { isAuthorized: canView } = useAuthorizationGate({
@@ -100,10 +93,16 @@ export function LicenseExpiryWidget({ title, dragHandleProps }: Props) {
     }
 
     const statusLabel = getLicenseStatusLabel(kind, t);
-    const remainingLabel =
-        resolvedStatus != null ? getLicenseStatusDayText(resolvedStatus, t) : null;
     const showExpiryWarning =
         kind === 'active' && daysRemaining > 0 && daysRemaining <= 30;
+    const displayDaysRemaining = Math.max(0, daysRemaining);
+    const hoursRemaining = getLicenseHoursRemaining(validUntil) ?? 0;
+    const isValid = resolvedStatus != null && isLicenseValidForWidget(kind, daysRemaining);
+    const detailStatusLabel =
+        resolvedStatus != null ? getHeaderLicenseTooltipStatusLabel(resolvedStatus, t) : statusLabel;
+    const validUntilDisplay =
+        licenseQuery.data?.validUntilFormatted
+        ?? (validUntil ? formatGermanDateTime(validUntil) : '—');
 
     return (
         <>
@@ -115,25 +114,25 @@ export function LicenseExpiryWidget({ title, dragHandleProps }: Props) {
                 extra={<Tag color={getLicenseStatusTagColor(kind)}>{statusLabel}</Tag>}
             >
                 <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-                    <Statistic
-                        title={t('dashboard.widgets.licenseExpiry.daysRemaining')}
-                        value={Math.max(0, daysRemaining)}
-                        styles={{
-                            content: {
-                                color: resolveDaysAccent(daysRemaining, kind),
-                            },
-                        }}
-                    />
-                    {remainingLabel ? (
-                        <Typography.Text type="secondary">{remainingLabel}</Typography.Text>
-                    ) : null}
-                    {validUntil ? (
-                        <Typography.Text type="secondary">
-                            {t('dashboard.widgets.licenseExpiry.validUntil', {
-                                date: formatDate(validUntil, formatLocale),
+                    <Descriptions bordered size="small" column={1}>
+                        <Descriptions.Item label={t('dashboard.widgets.licenseExpiry.validUntilLabel')}>
+                            {validUntilDisplay}
+                        </Descriptions.Item>
+                        <Descriptions.Item label={t('dashboard.widgets.licenseExpiry.remainingLabel')}>
+                            {t('dashboard.widgets.licenseExpiry.remainingValue', {
+                                days: displayDaysRemaining,
+                                hours: hoursRemaining,
                             })}
-                        </Typography.Text>
-                    ) : null}
+                        </Descriptions.Item>
+                        <Descriptions.Item label={t('dashboard.widgets.licenseExpiry.statusLabel')}>
+                            <Tag color={isValid ? 'green' : 'red'}>{detailStatusLabel}</Tag>
+                        </Descriptions.Item>
+                    </Descriptions>
+                    <LicenseExpiryCountdownText
+                        expiresAt={validUntil}
+                        labelKey="dashboard.widgets.licenseExpiry.countdown"
+                        t={t}
+                    />
                     {showExpiryWarning ? (
                         <Alert
                             type={daysRemaining <= 7 ? 'error' : 'warning'}

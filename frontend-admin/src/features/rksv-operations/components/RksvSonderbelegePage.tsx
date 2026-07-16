@@ -434,6 +434,7 @@ export default function RksvSonderbelegePage() {
             await postJson('/api/rksv/special-receipts/nullbeleg', {
                 cashRegisterId: registerId,
                 year: viennaYear,
+                month: viennaMonth,
                 reason: reasonShort.trim() || 'Nullbeleg für Prüfzwecke',
                 actsAsJahresbeleg: null,
             });
@@ -445,7 +446,7 @@ export default function RksvSonderbelegePage() {
         } finally {
             setBusy(null);
         }
-    }, [registerId, viennaYear, reasonShort, postJson, invalidateLists]);
+    }, [registerId, viennaYear, viennaMonth, reasonShort, postJson, invalidateLists]);
 
     const onStartbeleg = useCallback(async () => {
         if (!registerId) return message.warning('Bitte eine Kasse wählen.');

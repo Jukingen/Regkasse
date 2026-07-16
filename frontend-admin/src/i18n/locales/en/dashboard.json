@@ -141,6 +141,11 @@
     "licenseExpiry": {
       "daysRemaining": "Days remaining",
       "validUntil": "Valid until: {{date}}",
+      "validUntilLabel": "Valid until",
+      "remainingLabel": "Remaining",
+      "remainingValue": "{{days}} days ({{hours}} hours)",
+      "statusLabel": "Status",
+      "countdown": "Expires in: {{countdown}}",
       "expiresSoon7": "License expiring soon — please renew.",
       "expiresSoon30": "License expires within 30 days.",
       "noExpiryDate": "No license expiry date configured",

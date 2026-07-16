@@ -12,7 +12,7 @@ import { CopyOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useI18n, formatDate } from '@/i18n';
+import { useI18n, formatGermanDateTime } from '@/i18n';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 import {
     licenseQueryKeys,
@@ -167,11 +167,7 @@ export function IssuedLicenseUpgradeModal({ row, onClose }: IssuedLicenseUpgrade
                         <Typography.Paragraph type="secondary">{t('license.issued.upgrade.customerHint', { customer: row.customerName })}</Typography.Paragraph>
                         <Descriptions bordered column={1} size="small" style={{ marginBottom: 12 }}>
                             <Descriptions.Item label={t('license.issued.upgrade.currentExpiry')}>
-                                {formatDate(row.expiryAtUtc, formatLocale, {
-                                    year: 'numeric',
-                                    month: '2-digit',
-                                    day: '2-digit',
-                                })}
+                                {formatGermanDateTime(row.expiryAtUtc)}
                             </Descriptions.Item>
                         </Descriptions>
                         <Typography.Text>{t('license.issued.upgrade.newExpiryLabel')}</Typography.Text>
@@ -262,11 +258,7 @@ export function IssuedLicenseUpgradeModal({ row, onClose }: IssuedLicenseUpgrade
                             </Descriptions.Item>
                             <Descriptions.Item label={t('license.generation.result.expiry')}>
                                 {outcome.expiryAtUtc
-                                    ? formatDate(outcome.expiryAtUtc, formatLocale, {
-                                          year: 'numeric',
-                                          month: '2-digit',
-                                          day: '2-digit',
-                                      })
+                                    ? formatGermanDateTime(outcome.expiryAtUtc)
                                     : '—'}
                             </Descriptions.Item>
                         </Descriptions>

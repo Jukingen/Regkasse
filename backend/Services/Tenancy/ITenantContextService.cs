@@ -18,4 +18,11 @@ public interface ITenantContextService
     Task ApplyFromRequestAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Pre-auth binding from request host subdomain only (ignores dev header/query).
+    /// </summary>
+    Task ApplyFromHostAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken = default);
 }

@@ -56,6 +56,7 @@ namespace KasseAPI_Final.Controllers
         private readonly ISessionService _sessionService;
         private readonly IApiMessageLocalizer _messages;
         private readonly II18nErrorService _i18nErrorService;
+        private readonly IPosShiftService _posShiftService;
 
         /// <summary>Throttles diagnostic logs when /me is called without a resolvable user id claim.</summary>
         private static readonly object GetCurrentUserMissingIdLogSync = new();
@@ -79,7 +80,8 @@ namespace KasseAPI_Final.Controllers
             ITenantSessionPolicyService sessionPolicyService,
             ISessionService sessionService,
             IApiMessageLocalizer messages,
-            II18nErrorService i18nErrorService)
+            II18nErrorService i18nErrorService,
+            IPosShiftService posShiftService)
         {
             _context = context;
             _userManager = userManager;
@@ -99,6 +101,7 @@ namespace KasseAPI_Final.Controllers
             _sessionService = sessionService;
             _messages = messages;
             _i18nErrorService = i18nErrorService;
+            _posShiftService = posShiftService;
         }
 
         /// <summary>
@@ -450,6 +453,19 @@ namespace KasseAPI_Final.Controllers
                     _logger.LogWarning(cartCleanupEx, "Cart cleanup failed for user: {UserId}, but logout will continue", userId);
                 }
 
+                try
+                {
+                    var actorRole = User.GetActorRole() ?? Roles.FallbackUnknown;
+                    await _posShiftService.AutoCloseShiftAsync(userId, actorRole);
+                }
+                catch (Exception shiftCloseEx)
+                {
+                    _logger.LogWarning(
+                        shiftCloseEx,
+                        "Auto-close cashier shift failed for user: {UserId}, but logout will continue",
+                        userId);
+                }
+
                 _logger.LogInformation("Logout successful for user: {UserId}", userId);
                 return Ok(new { message = "Logout successful" });
             }
@@ -700,6 +716,19 @@ namespace KasseAPI_Final.Controllers
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrWhiteSpace(userId))
                 return Unauthorized(new { message = "User not authenticated" });
+
+            try
+            {
+                var actorRole = User.GetActorRole() ?? Roles.FallbackUnknown;
+                await _posShiftService.AutoCloseShiftAsync(userId, actorRole);
+            }
+            catch (Exception shiftCloseEx)
+            {
+                _logger.LogWarning(
+                    shiftCloseEx,
+                    "Auto-close cashier shift failed for user: {UserId} during logout-all, continuing",
+                    userId);
+            }
 
             await _refreshTokenService.LogoutAllAsync(userId, "logout_all");
             return Ok(new { message = "All sessions invalidated" });

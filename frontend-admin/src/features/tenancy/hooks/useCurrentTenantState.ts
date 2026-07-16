@@ -15,7 +15,10 @@ import {
     isTenantSuspendedOrInactive,
     resolveActiveTenantFromSwitcherList,
 } from '@/features/super-admin/utils/tenantHeaderSwitcher';
-import { resolveActiveTenantId } from '@/features/tenancy/utils/resolveActiveTenantIdentity';
+import {
+    resolveActiveTenantId,
+    tenantSlugsMatch,
+} from '@/features/tenancy/utils/resolveActiveTenantIdentity';
 
 /** Minimal tenant fields from GET /api/tenants/current. */
 export type TenantSnapshot = {
@@ -24,6 +27,77 @@ export type TenantSnapshot = {
     name: string;
     licenseValidUntilUtc: string | null;
 };
+
+/**
+ * Prefer switcher / dev-header identity when GET /api/tenants/current still reflects a
+ * mismatched JWT mandant (e.g. Super Admin `default` while header is `dev`).
+ */
+export function resolveTenantIdentityFromApiAndSwitcher(input: {
+    apiTenant: TenantSnapshot | null | undefined;
+    resolvedRow: Pick<
+        AdminTenantListItem,
+        'id' | 'slug' | 'name' | 'licenseValidUntilUtc' | 'licenseKey' | 'licenseDaysRemaining'
+    > | null;
+    ctxSlug: string | null | undefined;
+    ctxName: string | null | undefined;
+    jwtTenantId: string | null;
+    jwtTenantSlug: string | null | undefined;
+}): {
+    tenantId: string | null;
+    tenantSlug: string | null | undefined;
+    tenantName: string | null;
+    licenseValidUntilUtc: string | null;
+    licenseKey: string | null;
+    licenseDaysRemaining: number | null;
+} {
+    const switcherSlug = input.resolvedRow?.slug ?? input.ctxSlug;
+    const switcherId = resolveActiveTenantId({
+        resolvedRowId: input.resolvedRow?.id,
+        jwtTenantId: input.jwtTenantId,
+        jwtTenantSlug: input.jwtTenantSlug,
+        activeTenantSlug: switcherSlug,
+    });
+
+    const apiMatchesSwitcher = Boolean(
+        input.apiTenant
+        && (
+            (switcherId != null && input.apiTenant.id === switcherId)
+            || (
+                switcherSlug != null
+                && switcherSlug !== 'admin'
+                && tenantSlugsMatch(input.apiTenant.slug, switcherSlug)
+            )
+        ),
+    );
+
+    const preferSwitcherIdentity =
+        Boolean(switcherId && switcherSlug && switcherSlug !== 'admin')
+        && !apiMatchesSwitcher;
+
+    const tenantSlug = preferSwitcherIdentity
+        ? switcherSlug
+        : (input.apiTenant?.slug ?? switcherSlug);
+    const tenantId = preferSwitcherIdentity
+        ? switcherId
+        : (input.apiTenant?.id ?? switcherId);
+    const tenantName = preferSwitcherIdentity
+        ? (input.resolvedRow?.name ?? input.ctxName ?? null)
+        : (input.apiTenant?.name ?? input.resolvedRow?.name ?? input.ctxName ?? null);
+
+    const licenseValidUntilUtc =
+        input.apiTenant && tenantId != null && input.apiTenant.id === tenantId
+            ? (input.apiTenant.licenseValidUntilUtc ?? input.resolvedRow?.licenseValidUntilUtc ?? null)
+            : (input.resolvedRow?.licenseValidUntilUtc ?? input.apiTenant?.licenseValidUntilUtc ?? null);
+
+    return {
+        tenantId,
+        tenantSlug,
+        tenantName,
+        licenseValidUntilUtc,
+        licenseKey: input.resolvedRow?.licenseKey ?? null,
+        licenseDaysRemaining: input.resolvedRow?.licenseDaysRemaining ?? null,
+    };
+}
 
 export type CurrentTenant = {
     tenantSlug: string | null | undefined;
@@ -88,20 +162,23 @@ export function useCurrentTenantState(
             hostSlug: ctx.hostSlug,
         });
 
-        const tenantSlug = apiTenant?.slug ?? resolvedRow?.slug ?? ctx.tenantSlug;
-        const tenantId = apiTenant?.id ?? resolveActiveTenantId({
-            resolvedRowId: resolvedRow?.id,
+        const {
+            tenantId,
+            tenantSlug,
+            tenantName,
+            licenseValidUntilUtc,
+            licenseKey,
+            licenseDaysRemaining,
+        } = resolveTenantIdentityFromApiAndSwitcher({
+            apiTenant,
+            resolvedRow,
+            ctxSlug: ctx.tenantSlug,
+            ctxName: ctx.tenantName,
             jwtTenantId,
             jwtTenantSlug,
-            activeTenantSlug: tenantSlug,
         });
-        const tenantName = apiTenant?.name ?? resolvedRow?.name ?? ctx.tenantName;
         const tenantStatus = resolvedRow?.status ?? null;
         const isActive = resolvedRow?.isActive ?? true;
-        const licenseValidUntilUtc =
-            apiTenant?.licenseValidUntilUtc ?? resolvedRow?.licenseValidUntilUtc ?? null;
-        const licenseKey = resolvedRow?.licenseKey ?? null;
-        const licenseDaysRemaining = resolvedRow?.licenseDaysRemaining ?? null;
         const isTenantSuspended = resolvedRow ? isTenantSuspendedOrInactive(resolvedRow) : false;
 
         const isSuperAdminUser = isSuperAdmin(user?.role);

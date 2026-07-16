@@ -12,6 +12,9 @@ public sealed class DailyClosingResult
 
     public DailyClosingDto? Closing { get; init; }
 
+    /// <summary>True when the created closing covers a past Vienna business day (nachträglich).</summary>
+    public bool IsBackdated { get; init; }
+
     public PaymentBreakdown PaymentBreakdown { get; init; } = new();
 
     public DailyClosingTaxBreakdownDto TaxBreakdown { get; init; } = new();

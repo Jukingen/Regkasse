@@ -51,6 +51,8 @@ import { ResetPasswordModal } from '@/features/users/components/ResetPasswordMod
 import { createUsersFormRules, buildUsersFormRulesContext, mapBackendPasswordError } from '@/features/users/constants/validation';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
+import { useTenant } from '@/features/tenancy/providers/TenantProvider';
+import { technicalConsole } from '@/shared/dev/technicalConsole';
 import { getTenantSwitcherLicenseBadge } from '@/features/super-admin/utils/tenantHeaderSwitcher';
 import { UnifiedAdminUsersView } from '@/features/users/components/UnifiedAdminUsersView';
 import { DevOrphanedUsersCleanupButton } from '@/features/users/components/DevOrphanedUsersCleanupButton';
@@ -176,9 +178,14 @@ export default function UsersPage() {
     const [createRoleOpen, setCreateRoleOpen] = useState(false);
     const [resetPasswordValidationError, setResetPasswordValidationError] = useState<string | null>(null);
     const { user: currentUser } = useAuth();
+    const { tenant } = useTenant();
     const { tenantId: currentTenantId, isRealTenantSlug } = useCurrentTenant();
     const policy = useUsersPolicy();
     const isSuperAdminLayout = isSuperAdmin(currentUser?.role);
+
+    useEffect(() => {
+        technicalConsole.devLog('[Users Page] tenant:', tenant);
+    }, [tenant]);
 
     useEffect(() => {
         if (isSuperAdminLayout && pathname === '/users') {

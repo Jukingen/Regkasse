@@ -172,6 +172,35 @@ const axiosInstance = axios.create({
 
 const REFRESH_HEADER = 'x-auth-refresh-retry';
 
+/** Paths that must never send a Bearer token (stale JWT can fail AllowAnonymous via JwtBearer). */
+function isAnonymousAuthPath(url: string | undefined): boolean {
+    if (!url) return false;
+    const path = url.split('?')[0]?.toLowerCase() ?? '';
+    // Exact liveness only — do not match /tse/health or /pos/offline/health.
+    const isLivenessHealth =
+        path === '/health' ||
+        path === '/api/health' ||
+        path.endsWith('/api/health');
+    return (
+        path.includes('/auth/login') ||
+        path.includes('/auth/refresh') ||
+        path.includes('/license/activate') ||
+        isLivenessHealth
+    );
+}
+
+function requestHadAuthorization(config: { headers?: Record<string, unknown> } | undefined): boolean {
+    const headers = config?.headers;
+    if (!headers) return false;
+    const value =
+        headers.Authorization ??
+        headers.authorization ??
+        (typeof (headers as { get?: (key: string) => unknown }).get === 'function'
+            ? (headers as { get: (key: string) => unknown }).get('Authorization')
+            : undefined);
+    return typeof value === 'string' && value.trim().length > 0;
+}
+
 /** Map known backend Turkish literals to German for POS UI (backend unchanged). */
 function translateKnownTurkishApiErrorMessages(data: unknown): void {
     if (!data || typeof data !== 'object' || Array.isArray(data)) return;
@@ -197,7 +226,7 @@ function translateKnownTurkishApiErrorMessages(data: unknown): void {
     }
 }
 
-// Request interceptor - Token kontrolü ve ekleme
+// Request interceptor — attach Bearer only for authenticated, non-expired sessions.
 axiosInstance.interceptors.request.use(
     async (config) => {
         await applyDevNetworkDelayIfConfigured();
@@ -207,30 +236,43 @@ axiosInstance.interceptors.request.use(
         config.headers = config.headers ?? {};
         config.headers['Accept-Language'] = 'de';
 
-        // Token kontrolü
-        const token = await sessionManager.getAccessToken();
-        if (token) {
-            // Token'ın geçerlilik süresini kontrol et
-            if (TokenManager.isTokenExpired(token)) {
-                if (isDev) {
-                    console.log('Token expired, clearing...');
-                }
-                await TokenManager.clearTokens();
-                // router.replace('/login'); // router kaldırıldığı için bu satır kaldırıldı
-                return Promise.reject(new Error('Token expired'));
+        // Skip auth for public endpoints (stale JWT must never be sent).
+        if (isAnonymousAuthPath(config.url)) {
+            if (config.headers.Authorization) {
+                delete config.headers.Authorization;
             }
+            if (config.headers.authorization) {
+                delete config.headers.authorization;
+            }
+            return config;
+        }
 
-            // Token'ı header'a ekle (JWT token'a Bearer prefix ekle)
+        const token = await sessionManager.getAccessToken();
+        if (token && !TokenManager.isTokenExpired(token)) {
             config.headers.Authorization = `Bearer ${token}`;
+            return config;
+        }
+
+        // Expired / missing token: never attach Authorization (avoids login-screen 401 loops).
+        if (token && TokenManager.isTokenExpired(token)) {
+            if (isDev) {
+                console.log('Token expired, clearing...');
+            }
+            await TokenManager.clearTokens();
+            if (typeof window !== 'undefined' && window.dispatchEvent) {
+                window.dispatchEvent(new CustomEvent('AUTH_SESSION_EXPIRED'));
+            }
+        }
+
+        if (config.headers.Authorization) {
+            delete config.headers.Authorization;
+        }
+        if (config.headers.authorization) {
+            delete config.headers.authorization;
         }
         return config;
     },
-    (error) => {
-        if (isDev) {
-            console.error('❌ Request interceptor error:', error);
-        }
-        return Promise.reject(error);
-    }
+    (error) => Promise.reject(error)
 );
 
 // Response interceptor - Hata yönetimi ve token yenileme
@@ -246,17 +288,28 @@ axiosInstance.interceptors.response.use(
         }
 
         if (isDev) {
-            console.error('❌ API error:', {
-                status: error.response?.status,
-                url: error.config?.url,
-                message: error.message
-            });
+            // Expected on login/bootstrap when callers hit protected routes without a session.
+            if (error.response?.status !== 401) {
+                console.error('❌ API error:', {
+                    status: error.response?.status,
+                    url: error.config?.url,
+                    message: error.message
+                });
+            }
         }
 
         // 401 Unauthorized - Token geçersiz
         if (error.response?.status === 401) {
             if (isDev) {
                 console.log('⚠️ Unauthorized error (401)');
+            }
+
+            const originalConfig = error.config || {};
+            const hadAuthHeader = requestHadAuthorization(originalConfig);
+
+            // Unauthenticated call to a protected endpoint (login screen / bootstrap) — do not logout/refresh.
+            if (!hadAuthHeader) {
+                return Promise.reject(error);
             }
 
             // FIX: Check if token is actually expired locally
@@ -268,14 +321,8 @@ axiosInstance.interceptors.response.use(
                 if (isDev) {
                     console.log('[API] 401 received. Local Token Expired:', isExpired);
                 }
-
-                // Log auth header presence
-                if (isDev) {
-                    console.log('[API] Request had Auth Header:', !!error.config?.headers?.Authorization);
-                }
             }
 
-            const originalConfig = error.config || {};
             const wasRetried = !!originalConfig.headers?.[REFRESH_HEADER];
 
             if (!wasRetried) {
@@ -305,13 +352,9 @@ axiosInstance.interceptors.response.use(
                     const event = new CustomEvent('AUTH_SESSION_EXPIRED');
                     window.dispatchEvent(event);
                 }
-            } else {
-                if (isDev) {
-                    console.warn('⚠️ Server returned 401 but token is locally valid.');
-                    console.warn('⚠️ This might be server time skew or invalid signature.');
-                }
-                // Do NOT dispatch logout event immediately if user asked to "Login'e gitme"
-                // Just let the error propagate so UI can show message
+            } else if (isDev) {
+                console.warn('⚠️ Server returned 401 but token is locally valid.');
+                console.warn('⚠️ This might be server time skew or invalid signature.');
             }
 
             // Reject the promise - letting UI handle the error state if needed before redirect happens

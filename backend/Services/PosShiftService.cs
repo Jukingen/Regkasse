@@ -1,3 +1,4 @@
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
@@ -229,6 +230,163 @@ public sealed class PosShiftService : IPosShiftService
     }
   }
 
+  public async Task<CashierShiftDto> AutoOpenShiftAsync(
+      string cashierUserId,
+      string cashierDisplayName,
+      Guid cashRegisterId,
+      CancellationToken cancellationToken = default)
+  {
+    var existing = await _context.CashierShifts.AsNoTracking()
+        .Where(s => s.CashierId == cashierUserId && s.Status == CashierShiftStatuses.Active && s.IsActive)
+        .OrderByDescending(s => s.StartedAt)
+        .FirstOrDefaultAsync(cancellationToken);
+
+    if (existing != null)
+    {
+      var liveTotals = await GetShiftTotalsAsync(
+          existing.CashRegisterId,
+          existing.StartedAt,
+          DateTime.UtcNow,
+          cancellationToken);
+      return MapToDto(existing, liveTotals);
+    }
+
+    var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+    var register = await _context.CashRegisters.AsNoTracking()
+        .FirstOrDefaultAsync(r => r.Id == cashRegisterId && r.TenantId == tenantId, cancellationToken);
+
+    if (register == null)
+      throw new PosShiftStartException(PosShiftStartResultKind.RegisterNotFound, "Cash register not found");
+
+    var startBalance = register.CurrentBalance;
+    var openResult = await _cashRegisterShift.TryOpenCashRegisterAsync(
+        cashRegisterId,
+        cashierUserId,
+        startBalance,
+        "POS auto-open shift",
+        allowIdempotentSameUser: true,
+        cancellationToken);
+
+    switch (openResult.Kind)
+    {
+      case CashRegisterOpenKind.SuccessOpened:
+      case CashRegisterOpenKind.SuccessIdempotentAlreadyOpen:
+        break;
+      case CashRegisterOpenKind.FailedNotFound:
+        throw new PosShiftStartException(PosShiftStartResultKind.RegisterNotFound, "Cash register not found");
+      case CashRegisterOpenKind.FailedConflictOtherUser:
+        throw new PosShiftStartException(
+            PosShiftStartResultKind.RegisterOpenConflict,
+            "Cash register is held by another user");
+      default:
+        throw new PosShiftStartException(
+            PosShiftStartResultKind.RegisterOpenFailed,
+            "Cash register could not be opened for this shift");
+    }
+
+    // Re-read balance after open (may have been set by open path).
+    var balanceAfterOpen = await _context.CashRegisters.AsNoTracking()
+        .Where(r => r.Id == cashRegisterId)
+        .Select(r => r.CurrentBalance)
+        .FirstOrDefaultAsync(cancellationToken);
+
+    var displayName = await ResolveCashierDisplayNameAsync(cashierUserId, cashierDisplayName, cancellationToken);
+    var startedAt = DateTime.UtcNow;
+    var shift = new CashierShift
+    {
+      TenantId = tenantId,
+      CashRegisterId = cashRegisterId,
+      CashierId = cashierUserId,
+      CashierName = displayName,
+      StartBalance = balanceAfterOpen,
+      StartedAt = startedAt,
+      Status = CashierShiftStatuses.Active,
+      IsAutoOpened = true,
+      CreatedAt = startedAt,
+      UpdatedAt = startedAt,
+      CreatedBy = cashierUserId,
+    };
+
+    _context.CashierShifts.Add(shift);
+    await _context.SaveChangesAsync(cancellationToken);
+
+    await _auditLog.LogSystemOperationAsync(
+        "ShiftStarted",
+        "cashier_shift",
+        cashierUserId,
+        Roles.FallbackUnknown,
+        description: $"Shift auto-opened with balance {shift.StartBalance:F2}",
+        actionType: AuditEventType.Other,
+        entityId: shift.Id,
+        tenantId: shift.TenantId);
+
+    _logger.LogInformation(
+        "Cashier shift {ShiftId} auto-opened by {UserId} on register {RegisterId}",
+        shift.Id,
+        cashierUserId,
+        cashRegisterId);
+
+    return MapToDto(shift);
+  }
+
+  public async Task<CashierShiftDto?> AutoCloseShiftAsync(
+      string cashierUserId,
+      string actorRole,
+      CancellationToken cancellationToken = default)
+  {
+    var shift = await _context.CashierShifts
+        .FirstOrDefaultAsync(
+            s => s.CashierId == cashierUserId && s.Status == CashierShiftStatuses.Active && s.IsActive,
+            cancellationToken);
+
+    if (shift == null)
+      return null;
+
+    var endedAt = DateTime.UtcNow;
+    var totals = await GetShiftTotalsAsync(shift.CashRegisterId, shift.StartedAt, endedAt, cancellationToken);
+
+    var endBalance = await _context.CashRegisters.AsNoTracking()
+        .Where(r => r.Id == shift.CashRegisterId)
+        .Select(r => (decimal?)r.CurrentBalance)
+        .FirstOrDefaultAsync(cancellationToken) ?? shift.StartBalance + totals.Cash;
+
+    shift.EndBalance = endBalance;
+    shift.TotalSales = totals.Sales;
+    shift.TotalCash = totals.Cash;
+    shift.TotalCard = totals.Card;
+    shift.Difference = endBalance - shift.StartBalance - totals.Cash;
+    shift.EndedAt = endedAt;
+    shift.Status = CashierShiftStatuses.Completed;
+    shift.IsAutoClosed = true;
+    shift.Notes = string.IsNullOrWhiteSpace(shift.Notes)
+        ? "Auto-closed on logout"
+        : $"{shift.Notes}; Auto-closed on logout";
+    shift.UpdatedAt = endedAt;
+    shift.UpdatedBy = cashierUserId;
+
+    await _context.SaveChangesAsync(cancellationToken);
+
+    await _auditLog.LogSystemOperationAsync(
+        "ShiftEnded",
+        "cashier_shift",
+        cashierUserId,
+        actorRole,
+        description: $"Shift auto-closed. Sales: {totals.Sales:F2}, Difference: {shift.Difference:F2}",
+        notes: "Auto-closed on logout",
+        actionType: AuditEventType.Other,
+        entityId: shift.Id,
+        tenantId: shift.TenantId);
+
+    _logger.LogInformation(
+        "Cashier shift {ShiftId} auto-closed for {UserId}. Sales={Sales}, Difference={Difference}",
+        shift.Id,
+        cashierUserId,
+        shift.TotalSales,
+        shift.Difference);
+
+    return MapToDto(shift);
+  }
+
   public async Task<ShiftTotalsDto> GetShiftTotalsAsync(
       Guid cashRegisterId,
       DateTime startedAtUtc,
@@ -297,6 +455,8 @@ public sealed class PosShiftService : IPosShiftService
     Notes = shift.Notes,
     DailyClosingId = shift.DailyClosingId,
     CashCount = shift.CashCount,
+    IsAutoOpened = shift.IsAutoOpened,
+    IsAutoClosed = shift.IsAutoClosed,
   };
 
   private static ShiftClosingReceiptDto BuildClosingReceipt(CashierShift shift, string? registerNumber) => new()

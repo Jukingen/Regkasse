@@ -76,6 +76,23 @@ export function formatAuditLogDescription(
         return translate('common.auditLogs.quickUserCreatedDescription', { email, role, slug });
     }
 
+    if (action === 'TagesabschlussBackdatedCreated') {
+        const closingDate =
+            parseAuditJsonField(record.requestData, 'closingDate') ??
+            parseAuditJsonField(record.requestData, 'ClosingDate');
+        const reason =
+            parseAuditJsonField(record.requestData, 'backdatedReason') ??
+            parseAuditJsonField(record.requestData, 'reason');
+        const daysLate = parseAuditJsonField(record.requestData, 'daysLate');
+        if (closingDate || reason) {
+            return translate('common.auditLogs.tagesabschlussBackdatedDescription', {
+                date: closingDate ?? '—',
+                reason: reason ?? '—',
+                daysLate: daysLate ?? '—',
+            });
+        }
+    }
+
     return record.description?.trim() ?? '';
 }
 

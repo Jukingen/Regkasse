@@ -28,4 +28,5 @@ public enum ActivityEventType
     SuspiciousUnusualTime = 63,
     SuspiciousSameCardMultiple = 64,
     SuspiciousRapidTransactions = 65,
+    DailyClosingBackdatedCreated = 70,
 }

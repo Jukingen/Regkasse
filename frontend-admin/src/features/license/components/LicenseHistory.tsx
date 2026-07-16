@@ -10,7 +10,7 @@ import {
     getLicenseHistoryEventTagColor,
 } from '@/features/license/utils/licenseHistoryLabels';
 import type { TenantLicenseHistoryItem } from '@/features/license/api/tenantLicense';
-import { formatDateTime, useI18n } from '@/i18n';
+import { useI18n, formatGermanDateTime } from '@/i18n';
 
 export type LicenseHistoryProps = {
     tenantId?: string;
@@ -27,7 +27,7 @@ export function LicenseHistory({ tenantId }: LicenseHistoryProps) {
             dataIndex: 'atUtc',
             key: 'atUtc',
             width: 170,
-            render: (value: string) => formatDateTime(value, formatLocale),
+            render: (value: string) => formatGermanDateTime(value),
         },
         {
             title: t('license.history.columns.event'),

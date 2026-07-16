@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAntdApp } from '@/hooks/useAntdApp';
-import { useI18n, formatCurrency, formatDate, formatDateTime } from '@/i18n';
+import { useI18n, formatCurrency, formatGermanDateTime } from '@/i18n';
 import { billingApi } from '@/features/billing/api/billingApi';
 import type { LicenseSaleResponse } from '@/api/generated/model';
 import { useBillingAccess } from '@/features/billing/hooks/useBillingAccess';
@@ -152,7 +152,7 @@ export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActi
             dataIndex: 'validUntilUtc',
             key: 'validUntilUtc',
             render: (value: string | undefined) =>
-                value ? formatDate(value, formatLocale, { dateStyle: 'medium' }) : '—',
+                value ? formatGermanDateTime(value) : '—',
         },
         {
             title: t('billing.sales.columns.status'),
@@ -167,7 +167,7 @@ export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActi
             dataIndex: 'soldAtUtc',
             key: 'soldAtUtc',
             render: (value: string | undefined) =>
-                value ? formatDateTime(value, formatLocale) : '—',
+                value ? formatGermanDateTime(value) : '—',
         },
         {
             key: 'actions',
@@ -298,7 +298,7 @@ export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActi
                         </Descriptions.Item>
                         <Descriptions.Item label={t('billing.sales.columns.validUntil')}>
                             {selectedSale.validUntilUtc
-                                ? formatDate(selectedSale.validUntilUtc, formatLocale, { dateStyle: 'medium' })
+                                ? formatGermanDateTime(selectedSale.validUntilUtc)
                                 : '—'}
                         </Descriptions.Item>
                         <Descriptions.Item label={t('billing.sales.columns.status')}>

@@ -131,6 +131,7 @@ public static class DailyClosingReportComposer
         var disclaimer = isDaily
             ? TagesabschlussReportService.FormatFooter(fiscalEnv.IsDemoFiscal)
             : RksvPeriodDisclaimerDe;
+        var backdatedNotice = isDaily ? DailyClosingBackdatedReportNote.TryFormat(closing) : null;
         var qrPayload = FiscalEnvironmentResolver.BuildClosingQrPayload(
             fiscalEnv.IsDemoFiscal,
             closing.TseSignature,
@@ -178,6 +179,7 @@ public static class DailyClosingReportComposer
             RksvFooterLabel = fiscalEnv.RksvFooterLabel,
             QrPayload = qrPayload,
             SnapshotDisclaimerDe = disclaimer,
+            BackdatedNotice = backdatedNotice,
             SalesFiscalReconciliationNote = reconciliationNote,
             DifferenceScopeNote = differenceNote,
             TransactionBreakdown = transactionBreakdown,

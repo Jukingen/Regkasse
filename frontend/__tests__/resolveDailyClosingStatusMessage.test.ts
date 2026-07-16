@@ -20,6 +20,7 @@ const t = (key: string, options?: Record<string, unknown>) => {
     return `PAYMENTS_${options?.count}`;
   }
   if (key === 'settings:shift.dailyClosing.statusRegisterUnavailable') return 'REGISTER_UNAVAILABLE';
+  if (key === 'settings:shift.dailyClosing.statusNoActiveShift') return 'NO_ACTIVE_SHIFT';
   return 'BLOCKED';
 };
 
@@ -83,6 +84,18 @@ describe('resolveDailyClosingStatusMessage', () => {
         t
       )
     ).toBe('PAYMENTS_3');
+  });
+
+  it('maps no active shift', () => {
+    expect(
+      resolveDailyClosingStatusMessage(
+        baseStatus({
+          blockReason: 'no_active_shift',
+          hasActiveShift: false,
+        }),
+        t
+      )
+    ).toBe('NO_ACTIVE_SHIFT');
   });
 });
 

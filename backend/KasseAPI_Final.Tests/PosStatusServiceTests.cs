@@ -165,6 +165,7 @@ public class PosStatusServiceTests
             ctx,
             resolution,
             Mock.Of<ICashRegisterShiftService>(),
+            Mock.Of<IPosShiftService>(),
             TenantTestDoubles.CashRegisterSettingsServiceReturning(new PosCashRegisterFeatureOptions()),
             Mock.Of<ILogger<PosCashRegisterReadinessService>>(),
             TenantTestDoubles.PrimaryTenantResolver,

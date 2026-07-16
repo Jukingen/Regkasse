@@ -11,6 +11,9 @@ export interface TagesabschlussCanCloseResponse {
   canCloseMonthly: boolean;
   canCloseYearly: boolean;
   /** @nullable */
+  closingDate?: string | null;
+  isBackdated: boolean;
+  /** @nullable */
   lastClosingDate?: string | null;
   /** @nullable */
   lastClosingPerformedAt?: string | null;

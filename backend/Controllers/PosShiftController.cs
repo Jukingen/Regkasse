@@ -111,6 +111,72 @@ public sealed class PosShiftController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Auto-opens a cashier shift for the caller's resolved register (idempotent if already active).
+    /// Does not require a start balance; uses the register current balance.
+    /// </summary>
+    [HttpPost("auto-open")]
+    [HasPermission(AppPermissions.ShiftOpen)]
+    [ProducesResponseType(typeof(CashierShiftDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<CashierShiftDto>> AutoOpenShift(
+        [FromBody] AutoOpenShiftRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request == null)
+            return BadRequest(new { error = "Request body is required" });
+
+        var userId = User.GetActorUserId();
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized(new { message = "User not authenticated" });
+
+        try
+        {
+            var shift = await _shiftService.AutoOpenShiftAsync(
+                userId,
+                User.Identity?.Name ?? string.Empty,
+                request.CashRegisterId,
+                cancellationToken);
+            return Ok(shift);
+        }
+        catch (PosShiftStartException ex) when (ex.Kind == PosShiftStartResultKind.RegisterNotFound)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (PosShiftStartException ex) when (ex.Kind == PosShiftStartResultKind.RegisterOpenConflict)
+        {
+            return Conflict(new { error = ex.Message });
+        }
+        catch (PosShiftStartException ex)
+        {
+            _logger.LogWarning(ex, "AutoOpenShift failed for user {UserId}", userId);
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Soft-closes the caller's active CashierShift without closing the cash register (idempotent).
+    /// </summary>
+    [HttpPost("auto-close")]
+    [HasPermission(AppPermissions.ShiftClose)]
+    [ProducesResponseType(typeof(CashierShiftDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> AutoCloseShift(CancellationToken cancellationToken)
+    {
+        var userId = User.GetActorUserId();
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized(new { message = "User not authenticated" });
+
+        var actorRole = User.GetActorRole() ?? Roles.FallbackUnknown;
+        var shift = await _shiftService.AutoCloseShiftAsync(userId, actorRole, cancellationToken);
+        if (shift == null)
+            return NoContent();
+
+        return Ok(shift);
+    }
+
     /// <summary>Ends the active shift, closes the register, and returns a non-fiscal closing summary.</summary>
     [HttpPost("end")]
     [HasPermission(AppPermissions.ShiftClose)]

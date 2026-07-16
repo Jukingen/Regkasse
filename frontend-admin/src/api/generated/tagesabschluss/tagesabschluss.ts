@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query'
 import type {
   DailyClosingRequest,
+  GetApiTagesabschlussCanCloseCashRegisterIdParams,
   GetApiTagesabschlussClosingClosingIdReportPdfParams,
   GetApiTagesabschlussHistoryParams,
   GetApiTagesabschlussStatisticsParams,
@@ -307,32 +308,36 @@ export const useGetApiTagesabschlussHistory = <TData = Awaited<ReturnType<typeof
 
 export const getApiTagesabschlussCanCloseCashRegisterId = (
     cashRegisterId: string,
+    params?: GetApiTagesabschlussCanCloseCashRegisterIdParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
       
       return customInstance<TagesabschlussCanCloseResponse>(
-      {url: `/api/Tagesabschluss/can-close/${cashRegisterId}`, method: 'GET', signal
+      {url: `/api/Tagesabschluss/can-close/${cashRegisterId}`, method: 'GET',
+        params, signal
     },
       options);
     }
   
 
-export const getGetApiTagesabschlussCanCloseCashRegisterIdQueryKey = (cashRegisterId: string,) => {
-    return [`/api/Tagesabschluss/can-close/${cashRegisterId}`] as const;
+export const getGetApiTagesabschlussCanCloseCashRegisterIdQueryKey = (cashRegisterId: string,
+    params?: GetApiTagesabschlussCanCloseCashRegisterIdParams,) => {
+    return [`/api/Tagesabschluss/can-close/${cashRegisterId}`, ...(params ? [params]: [])] as const;
     }
 
     
-export const getGetApiTagesabschlussCanCloseCashRegisterIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiTagesabschlussCanCloseCashRegisterId>>, TError = TagesabschlussErrorResponse>(cashRegisterId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussCanCloseCashRegisterId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetApiTagesabschlussCanCloseCashRegisterIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiTagesabschlussCanCloseCashRegisterId>>, TError = TagesabschlussErrorResponse>(cashRegisterId: string,
+    params?: GetApiTagesabschlussCanCloseCashRegisterIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussCanCloseCashRegisterId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetApiTagesabschlussCanCloseCashRegisterIdQueryKey(cashRegisterId);
+  const queryKey =  queryOptions?.queryKey ?? getGetApiTagesabschlussCanCloseCashRegisterIdQueryKey(cashRegisterId,params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiTagesabschlussCanCloseCashRegisterId>>> = ({ signal }) => getApiTagesabschlussCanCloseCashRegisterId(cashRegisterId, requestOptions, signal);
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiTagesabschlussCanCloseCashRegisterId>>> = ({ signal }) => getApiTagesabschlussCanCloseCashRegisterId(cashRegisterId,params, requestOptions, signal);
 
       
 
@@ -345,11 +350,12 @@ export type GetApiTagesabschlussCanCloseCashRegisterIdQueryResult = NonNullable<
 export type GetApiTagesabschlussCanCloseCashRegisterIdQueryError = TagesabschlussErrorResponse
 
 export const useGetApiTagesabschlussCanCloseCashRegisterId = <TData = Awaited<ReturnType<typeof getApiTagesabschlussCanCloseCashRegisterId>>, TError = TagesabschlussErrorResponse>(
- cashRegisterId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussCanCloseCashRegisterId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ cashRegisterId: string,
+    params?: GetApiTagesabschlussCanCloseCashRegisterIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussCanCloseCashRegisterId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
-  const queryOptions = getGetApiTagesabschlussCanCloseCashRegisterIdQueryOptions(cashRegisterId,options)
+  const queryOptions = getGetApiTagesabschlussCanCloseCashRegisterIdQueryOptions(cashRegisterId,params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

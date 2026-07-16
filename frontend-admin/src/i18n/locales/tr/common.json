@@ -122,6 +122,7 @@
     "quickUserCreatedDescription": "Super Admin, '{{slug}}' kiracısı için hızlı kullanıcı '{{email}}' ({{role}}) oluşturdu",
     "userNameChangedDescription": "Kullanici adi {{old}} → {{new}} olarak degistirildi",
     "userNameChangedPrefix": "Kullanici adi degistirildi:",
+    "tagesabschlussBackdatedDescription": "Gecikmeli gun sonu: {{date}} ({{daysLate}} gun gecikme). Neden: {{reason}}",
     "actionLabels": {
       "login": "Giris",
       "createInvoice": "Fatura olustur",
@@ -133,7 +134,9 @@
       "userDeactivate": "Kullanici devre disi",
       "userReactivate": "Kullanici yeniden etkin",
       "passwordResetForced": "Sifre sifirlandi",
-      "changeOwnPassword": "Kendi sifresi degistirildi"
+      "changeOwnPassword": "Kendi sifresi degistirildi",
+      "tagesabschlussCreated": "Gun sonu olusturuldu",
+      "tagesabschlussBackdatedCreated": "Gecikmeli gun sonu"
     },
     "statusLabels": {
       "Success": "Basarili",

@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.Hosted;
 
-/// <summary>Periodically auto-closes cash registers left open beyond <see cref="ShiftAutoCloseOptions.MaxOpenDurationHours"/>.</summary>
+/// <summary>Periodically auto-closes cash registers / cashier shifts left open beyond <see cref="ShiftAutoCloseOptions.MaxOpenDurationHours"/> (inactivity).</summary>
 public sealed class ShiftAutoCloseHostedService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;

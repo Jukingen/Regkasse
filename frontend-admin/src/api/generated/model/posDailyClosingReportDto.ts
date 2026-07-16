@@ -10,6 +10,8 @@ import type { DailyClosingTaxBreakdownDto } from './dailyClosingTaxBreakdownDto'
 import type { TransactionBreakdown } from './transactionBreakdown';
 
 export interface PosDailyClosingReportDto {
+  /** @nullable */
+  backdatedNotice?: string | null;
   businessDate?: string;
   cashCount?: number;
   /** @nullable */

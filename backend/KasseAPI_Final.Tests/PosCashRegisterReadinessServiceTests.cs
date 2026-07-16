@@ -2,6 +2,7 @@ using System.Security.Claims;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using Microsoft.EntityFrameworkCore;
@@ -22,7 +23,7 @@ public class PosCashRegisterReadinessServiceTests
             .UseInMemoryDatabase($"PosReady_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static ClaimsPrincipal CashierPrincipal() =>
@@ -50,11 +51,24 @@ public class PosCashRegisterReadinessServiceTests
             ctx,
             resolution,
             shift,
+            CreateNoOpPosShiftService(),
             TenantTestDoubles.CashRegisterSettingsServiceReturning(featureOptions),
             Mock.Of<ILogger<PosCashRegisterReadinessService>>(),
             TenantTestDoubles.PrimaryTenantResolver,
             startPol,
             monthPol);
+    }
+
+    private static IPosShiftService CreateNoOpPosShiftService()
+    {
+        var mock = new Mock<IPosShiftService>();
+        mock.Setup(s => s.AutoOpenShiftAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Guid>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CashierShiftDto());
+        return mock.Object;
     }
 
     [Fact]

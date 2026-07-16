@@ -1,6 +1,7 @@
 'use client';
 
 import type { LicenseTestScenarioPreset } from '@/features/license/constants/licenseTestScenarios';
+import { formatGermanDateTime } from '@/lib/dateFormatter';
 
 type TranslateFn = (key: string, params?: Record<string, string | number>) => string;
 
@@ -33,15 +34,8 @@ export function getLicenseTestScenarioSuccessMessage(
 }
 
 export function getLicenseTestManualSuccessMessage(validUntilIso: string, t: TranslateFn): string {
-    const date = new Date(validUntilIso);
-    const formatted = Number.isNaN(date.getTime())
-        ? validUntilIso
-        : date.toLocaleString(undefined, {
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-              hour: '2-digit',
-              minute: '2-digit',
-          });
-    return t('license.testPanel.manualSuccess', { date: formatted });
+    const formatted = formatGermanDateTime(validUntilIso);
+    return t('license.testPanel.manualSuccess', {
+        date: formatted === '—' ? validUntilIso : formatted,
+    });
 }

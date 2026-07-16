@@ -12,7 +12,7 @@ import dayjs, { type Dayjs } from 'dayjs';
 import { Modal, Alert, Button, Card, Checkbox, DatePicker, Descriptions, Form, Input, Space, Typography } from 'antd';
 import { CopyOutlined, KeyOutlined } from '@ant-design/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useI18n, formatDate } from '@/i18n';
+import { useI18n, formatGermanDateTime } from '@/i18n';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 import { deploymentLicenseAllows, LICENSE_DEPLOYMENT_FEATURE } from '@/shared/licenseDeploymentFeatures';
 import {
@@ -410,11 +410,7 @@ function IssuedLicenseResult({
     const jwt = pickJwt(issued);
 
     const formattedExpiry = issued.expiryAtUtc
-        ? formatDate(issued.expiryAtUtc, formatLocale, {
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-          })
+        ? formatGermanDateTime(issued.expiryAtUtc)
         : '—';
 
     return (

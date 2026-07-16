@@ -141,6 +141,11 @@
     "licenseExpiry": {
       "daysRemaining": "Kalan gün",
       "validUntil": "Geçerlilik: {{date}}",
+      "validUntilLabel": "Geçerlilik",
+      "remainingLabel": "Kalan",
+      "remainingValue": "{{days}} gün ({{hours}} saat)",
+      "statusLabel": "Durum",
+      "countdown": "Bitişe kalan: {{countdown}}",
       "expiresSoon7": "Lisans yakında sona eriyor — lütfen yenileyin.",
       "expiresSoon30": "Lisans 30 gün içinde sona eriyor.",
       "noExpiryDate": "Lisans bitiş tarihi tanımlı değil",

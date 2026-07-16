@@ -15,7 +15,8 @@ export const AUDIT_LOG_ENTITY_TYPE_FILTER_VALUES = [
     'SystemConfig',
     'TseDevice',
     'PosCritical',
-    'FiscalExport',
+    'DailyClosing',
+  'FiscalExport',
 ] as const;
 
 export type AuditLogEntityTypeFilter = (typeof AUDIT_LOG_ENTITY_TYPE_FILTER_VALUES)[number];

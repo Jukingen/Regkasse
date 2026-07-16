@@ -125,6 +125,8 @@ public sealed class TagesabschlussServiceOperationalTests
             TransactionCount = 3,
             TseSignature = "sig",
             Status = "Completed",
+            IsBackdated = true,
+            LateCreationReason = "Technisches Problem / Systemausfall",
             CreatedAt = DateTime.UtcNow,
         });
         await ctx.SaveChangesAsync();
@@ -137,6 +139,9 @@ public sealed class TagesabschlussServiceOperationalTests
 
         Assert.Single(history);
         Assert.Equal(120m, history[0].TotalAmount);
+        Assert.True(history[0].IsBackdated);
+        Assert.Equal("Technisches Problem / Systemausfall", history[0].LateCreationReason);
+        Assert.True(history[0].CreatedAt > DateTime.MinValue);
         Assert.Equal("manager-user", await ctx.DailyClosings.Select(d => d.UserId).FirstAsync());
     }
 
@@ -392,5 +397,185 @@ public sealed class TagesabschlussServiceOperationalTests
                 }));
 
         Assert.Equal("\"Status\" = 'Completed'", periodIndex.GetFilter());
+    }
+
+    [Fact]
+    public async Task PerformDailyClosingAsync_WhenPastBusinessDay_CreatesBackdatedClosingWithRealCreatedAt()
+    {
+        var tenantId = Guid.NewGuid();
+        var registerId = Guid.NewGuid();
+        var userId = "dev-user";
+        var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+        var pastDay = viennaToday.AddDays(-2);
+        var (dayStartUtc, _) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(pastDay);
+        var noonUtc = dayStartUtc.AddHours(12);
+
+        await using var ctx = CreateContext(tenantId);
+        ctx.Tenants.Add(new Tenant { Id = tenantId, Name = "T", Slug = "t-back", IsActive = true });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = registerId,
+            TenantId = tenantId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = noonUtc,
+            Status = RegisterStatus.Open,
+            CreatedAt = noonUtc,
+        });
+        await ctx.SaveChangesAsync();
+
+        ctx.Invoices.Add(new Invoice
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            CashRegisterId = registerId,
+            InvoiceNumber = "INV-PAST",
+            InvoiceDate = noonUtc,
+            DueDate = noonUtc,
+            Subtotal = 8m,
+            TaxAmount = 2m,
+            TotalAmount = 10m,
+            PaidAmount = 10m,
+            RemainingAmount = 0m,
+            CompanyName = "Test Co",
+            CompanyTaxNumber = "ATU12345678",
+            CompanyAddress = "Addr",
+            TaxDetails = System.Text.Json.JsonDocument.Parse("{}"),
+            InvoiceItems = System.Text.Json.JsonDocument.Parse("[]"),
+            Status = InvoiceStatus.Paid,
+            CreatedAt = noonUtc,
+            IsActive = true,
+        });
+        await ctx.SaveChangesAsync();
+
+        // Today already closed — backdating a missed day must still be allowed.
+        ctx.DailyClosings.Add(new DailyClosing
+        {
+            TenantId = tenantId,
+            CashRegisterId = registerId,
+            UserId = userId,
+            ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(viennaToday),
+            ClosingType = "Daily",
+            TotalAmount = 1m,
+            TotalTaxAmount = 0m,
+            TransactionCount = 1,
+            TseSignature = "today-sig",
+            Status = "Completed",
+            CreatedAt = DateTime.UtcNow,
+        });
+        await ctx.SaveChangesAsync();
+
+        var tseMock = new Mock<ITseService>();
+        tseMock.Setup(s => s.GetTseStatusAsync()).ReturnsAsync(new TseStatus
+        {
+            IsConnected = false,
+            Status = "Disconnected",
+            ErrorMessage = "TSE device is not connected",
+        });
+        tseMock
+            .Setup(s => s.CreateDailyClosingSignatureAsync(
+                registerId,
+                It.IsAny<string>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<decimal>(),
+                It.IsAny<int>()))
+            .ReturnsAsync("backdated-daily-closing-jws");
+
+        var sut = new TagesabschlussService(
+            ctx,
+            tseMock.Object,
+            new FakeTseProvider(NullLogger<FakeTseProvider>.Instance),
+            new SoftwareTseKeyProvider(),
+            Mock.Of<IFinanzOnlineService>(f => f.IsEnabledAsync() == Task.FromResult(false)),
+            Options.Create(new TseOptions { Mode = "Real", TseMode = "Device" }),
+            Mock.Of<IHostEnvironment>(h => h.EnvironmentName == Environments.Development),
+            NullLogger<TagesabschlussService>.Instance,
+            Mock.Of<IReportPdfCaptureService>(),
+            Mock.Of<IReportPdfStorageService>(),
+            Mock.Of<IDevelopmentModeService>(d => d.ShouldBypassTseCheck() == true));
+
+        var beforeUtc = DateTime.UtcNow.AddSeconds(-1);
+        var result = await sut.PerformDailyClosingAsync(
+            userId,
+            registerId,
+            pastDay,
+            "Ich habe vergessen, den Tagesabschluss zu erstellen");
+        var afterUtc = DateTime.UtcNow.AddSeconds(1);
+
+        Assert.True(result.Success);
+        Assert.True(result.IsBackdated);
+        Assert.Equal(1, result.TransactionCount);
+        Assert.Contains("nachträglich", result.Warning ?? "", StringComparison.OrdinalIgnoreCase);
+
+        var stored = await ctx.DailyClosings
+            .SingleAsync(d => d.ClosingType == "Daily"
+                              && d.ClosingDate == PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(pastDay));
+        Assert.Equal(10m, stored.TotalAmount);
+        Assert.Equal("Ich habe vergessen, den Tagesabschluss zu erstellen", stored.LateCreationReason);
+        Assert.InRange(stored.CreatedAt, beforeUtc, afterUtc);
+        Assert.True(
+            PostgreSqlUtcDateTime.ViennaCalendarMidnightContainingInstant(stored.CreatedAt) > pastDay);
+    }
+
+    [Fact]
+    public async Task PerformDailyClosingAsync_WhenPastDayWithoutReason_ReturnsBlocked()
+    {
+        var tenantId = Guid.NewGuid();
+        var registerId = Guid.NewGuid();
+        var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+        var pastDay = viennaToday.AddDays(-1);
+
+        await using var ctx = CreateContext(tenantId);
+        ctx.Tenants.Add(new Tenant { Id = tenantId, Name = "T", Slug = "t-noreason", IsActive = true });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = registerId,
+            TenantId = tenantId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await ctx.SaveChangesAsync();
+
+        var sut = CreateService(ctx);
+        var result = await sut.PerformDailyClosingAsync("user", registerId, pastDay, reason: null);
+
+        Assert.False(result.Success);
+        Assert.Contains("reason", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task CanPerformClosingAsync_WhenFutureDate_ReturnsFalse()
+    {
+        var tenantId = Guid.NewGuid();
+        var registerId = Guid.NewGuid();
+        var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+
+        await using var ctx = CreateContext(tenantId);
+        ctx.Tenants.Add(new Tenant { Id = tenantId, Name = "T", Slug = "t-future", IsActive = true });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = registerId,
+            TenantId = tenantId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await ctx.SaveChangesAsync();
+
+        var sut = CreateService(ctx);
+        var canClose = await sut.CanPerformClosingAsync(registerId, viennaToday.AddDays(1));
+
+        Assert.False(canClose);
     }
 }

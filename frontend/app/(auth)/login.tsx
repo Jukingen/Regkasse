@@ -39,31 +39,46 @@ export default function LoginScreen() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
   const passwordInputRef = useRef<TextInput>(null);
 
-  const { login } = useAuth();
+  // Auth layout redirects when authenticated; this screen must not call protected APIs.
+  const { login, isAuthenticated, isAuthReady } = useAuth();
 
   useEffect(() => {
-    loadSavedLoginIdentifier();
-  }, []);
+    // Wait for AuthContext bootstrap only — no network calls on the login screen.
+    if (!isAuthReady) return;
+    setIsBootstrapping(false);
+  }, [isAuthReady, isAuthenticated]);
 
-  const loadSavedLoginIdentifier = async () => {
-    try {
-      const saved =
-        (await storage.getItem(LAST_USERNAME_KEY)) ??
-        (await storage.getItem(SAVED_LOGIN_IDENTIFIER_KEY)) ??
-        (await storage.getItem(LEGACY_SAVED_USERNAME_KEY));
-      if (saved) {
-        setLoginIdentifier(saved);
-        requestAnimationFrame(() => passwordInputRef.current?.focus());
+  useEffect(() => {
+    if (!isAuthReady || isAuthenticated) return;
+
+    let cancelled = false;
+    const loadSavedLoginIdentifier = async () => {
+      try {
+        const saved =
+          (await storage.getItem(LAST_USERNAME_KEY)) ??
+          (await storage.getItem(SAVED_LOGIN_IDENTIFIER_KEY)) ??
+          (await storage.getItem(LEGACY_SAVED_USERNAME_KEY));
+        if (cancelled) return;
+        if (saved) {
+          setLoginIdentifier(saved);
+          requestAnimationFrame(() => passwordInputRef.current?.focus());
+        }
+
+        // One-shot cleanup: remove legacy plaintext password from storage (local only)
+        await storage.removeItem('savedPassword');
+      } catch {
+        // no-op
       }
+    };
 
-      // One-shot cleanup: remove legacy plaintext password from storage
-      await storage.removeItem('savedPassword');
-    } catch (error) {
-      // no-op
-    }
-  };
+    void loadSavedLoginIdentifier();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthReady, isAuthenticated]);
 
   // Validate form fields
   const validateForm = useCallback((): boolean => {
@@ -124,6 +139,16 @@ export default function LoginScreen() {
     }
   }, []);
 
+  // Authenticated users are redirected by `(auth)/_layout`; keep a short bootstrap gate only.
+  if (isBootstrapping || !isAuthReady || isAuthenticated) {
+    return (
+      <View style={[styles.container, styles.bootstrapGate]}>
+        <StatusBar style="light" />
+        <WaveLoader size={28} color="#9B59B6" />
+      </View>
+    );
+  }
+
   return (
     <>
       <StatusBar style="light" />
@@ -141,7 +166,7 @@ export default function LoginScreen() {
             </View>
           </LinearGradient>
 
-          {/* White Bottom Section */}
+          {/* White Bottom Section — form submit is the only API call from this screen */}
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.formSection}
@@ -231,6 +256,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  bootstrapGate: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   gradientHeader: {
     height: height * 0.35,

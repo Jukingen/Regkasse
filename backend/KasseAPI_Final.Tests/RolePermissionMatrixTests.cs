@@ -442,4 +442,12 @@ public class RolePermissionMatrixTests
         Assert.Contains(AppPermissions.PaymentTake, merged);
         Assert.Equal(3, merged.Count);
     }
+
+    [Fact]
+    public void RoleHasPermission_Manager_Has_PosDailyClosingPermissions()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.ShiftOpen));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.ShiftClose));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.TseSign));
+    }
 }

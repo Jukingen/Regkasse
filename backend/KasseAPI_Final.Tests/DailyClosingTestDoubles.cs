@@ -21,6 +21,7 @@ internal static class DailyClosingTestDoubles
         ICurrentUserService? currentUser = null,
         IHttpContextAccessor? httpContextAccessor = null,
         ISettingsTenantResolver? tenantResolver = null,
+        IAuditLogService? auditLogService = null,
         string actorUserId = "cashier-test")
     {
         var hostEnvironment = TenantTestDoubles.HostEnvironmentReturning(Environments.Development);
@@ -32,6 +33,7 @@ internal static class DailyClosingTestDoubles
         currentUser ??= Mock.Of<ICurrentUserService>();
         httpContextAccessor ??= CreateHttpContextAccessor(actorUserId);
         tenantResolver ??= TenantTestDoubles.PrimaryTenantResolver;
+        auditLogService ??= Mock.Of<IAuditLogService>();
 
         return new DailyClosingService(
             ctx,
@@ -40,7 +42,9 @@ internal static class DailyClosingTestDoubles
             rksvEnv,
             currentUser,
             httpContextAccessor,
-            tenantResolver);
+            tenantResolver,
+            auditLogService,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<DailyClosingService>.Instance);
     }
 
     public static Mock<ITseService> CreateDefaultTseMock()

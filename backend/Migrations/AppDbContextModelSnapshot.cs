@@ -2051,6 +2051,20 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
+                    b.Property<bool>("IsAutoClosed")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_auto_closed");
+
+                    b.Property<bool>("IsAutoOpened")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_auto_opened");
+
                     b.Property<string>("Notes")
                         .HasColumnType("text")
                         .HasColumnName("notes");
@@ -2622,6 +2636,12 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<bool>("IsBackdated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_backdated");
+
                     b.Property<bool>("IsSimulated")
                         .HasColumnType("boolean");
 
@@ -2633,6 +2653,11 @@ namespace KasseAPI_Final.Migrations
 
                     b.Property<string>("JwsSignature")
                         .HasColumnType("text");
+
+                    b.Property<string>("LateCreationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("late_creation_reason");
 
                     b.Property<string>("PreviousSignature")
                         .HasColumnType("text");

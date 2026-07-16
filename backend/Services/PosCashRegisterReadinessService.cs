@@ -17,6 +17,7 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
     private readonly AppDbContext _context;
     private readonly ICashRegisterResolutionService _resolution;
     private readonly ICashRegisterShiftService _shift;
+    private readonly IPosShiftService _posShift;
     private readonly ICashRegisterSettingsService _cashRegisterSettings;
     private readonly ILogger<PosCashRegisterReadinessService> _logger;
     private readonly ISettingsTenantResolver _settingsTenantResolver;
@@ -27,6 +28,7 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
         AppDbContext context,
         ICashRegisterResolutionService resolution,
         ICashRegisterShiftService shift,
+        IPosShiftService posShift,
         ICashRegisterSettingsService cashRegisterSettings,
         ILogger<PosCashRegisterReadinessService> logger,
         ISettingsTenantResolver settingsTenantResolver,
@@ -36,6 +38,7 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
         _context = context;
         _resolution = resolution;
         _shift = shift;
+        _posShift = posShift;
         _cashRegisterSettings = cashRegisterSettings;
         _logger = logger;
         _settingsTenantResolver = settingsTenantResolver;
@@ -154,6 +157,7 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
 
             dto.NextAction = "ready";
             dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterReady;
+            await TryAutoOpenCashierShiftAsync(userId, effectiveRegister.Id, cancellationToken);
             return StampPreferred(dto, userSettings);
         }
 
@@ -232,6 +236,7 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
                 dto.NextAction = "ready";
                 dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterAutoOpened;
                 await PersistAssignmentAfterOpenAsync(userSettings, effectiveRegister.Id, userId, cancellationToken);
+                await TryAutoOpenCashierShiftAsync(userId, effectiveRegister.Id, cancellationToken);
                 _logger.LogInformation(
                     "POS auto-opened cash register {RegisterId} for user {UserId} ({Mode})",
                     effectiveRegister.Id,
@@ -245,6 +250,7 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
                 dto.NextAction = "ready";
                 dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterReady;
                 await PersistAssignmentAfterOpenAsync(userSettings, effectiveRegister.Id, userId, cancellationToken);
+                await TryAutoOpenCashierShiftAsync(userId, effectiveRegister.Id, cancellationToken);
                 return StampPreferred(dto, userSettings);
 
             case CashRegisterOpenKind.FailedConflictOtherUser:
@@ -279,6 +285,25 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
                 dto.NextAction = "open_register";
                 dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterClosed;
                 return StampPreferred(dto, userSettings);
+        }
+    }
+
+    private async Task TryAutoOpenCashierShiftAsync(
+        string userId,
+        Guid cashRegisterId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _posShift.AutoOpenShiftAsync(userId, string.Empty, cashRegisterId, cancellationToken);
+        }
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(
+                ex,
+                "Auto-open CashierShift failed for user {UserId} on register {RegisterId} (non-blocking)",
+                userId,
+                cashRegisterId);
         }
     }
 

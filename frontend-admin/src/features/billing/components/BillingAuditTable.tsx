@@ -3,7 +3,7 @@
 import React from 'react';
 import { Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useI18n, formatDateTime } from '@/i18n';
+import { useI18n, formatGermanDateTime } from '@/i18n';
 import { billingApi } from '@/features/billing/api/billingApi';
 import type { BillingAuditLogResponse } from '@/api/generated/model';
 import { useBillingAccess } from '@/features/billing/hooks/useBillingAccess';
@@ -24,7 +24,7 @@ export function BillingAuditTable({ pageSize = 10 }: { pageSize?: number }) {
             key: 'timestampUtc',
             width: 180,
             render: (value: string | undefined) =>
-                value ? formatDateTime(value, formatLocale) : '—',
+                value ? formatGermanDateTime(value) : '—',
         },
         {
             title: t('billing.audit.columns.action'),

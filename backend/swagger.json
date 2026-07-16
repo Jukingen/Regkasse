@@ -16748,6 +16748,276 @@
         }
       }
     },
+    "/api/admin/license/test": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseTestSnapshotDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/license/test/update": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LicenseTestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseTestSnapshotDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/license/test/tenant": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LicenseTestTenantRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseTestSnapshotDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/license/test/deployment": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LicenseTestSetExpiryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseTestSnapshotDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/license/test/scenario": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LicenseTestScenarioRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseTestSnapshotDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/license/test/refresh": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseTestSnapshotDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/Localization": {
       "get": {
         "tags": [
@@ -17674,6 +17944,18 @@
       "get": {
         "tags": [
           "MultilingualReceipt"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/pos/offline/health": {
+      "get": {
+        "tags": [
+          "POS"
         ],
         "responses": {
           "200": {
@@ -21618,7 +21900,73 @@
         }
       }
     },
-    "/api/admin/report-pdfs/download/{reportType}/{reportId}": {
+    "/api/admin/reports/pdf/{reportType}/{reportId}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "reportType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/report-pdfs/{reportType}/{reportId}": {
       "get": {
         "tags": [
           "Admin"
@@ -21685,6 +22033,138 @@
       }
     },
     "/api/admin/reports/{reportType}/{reportId}/pdf": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "reportType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/reports/pdf/download/{reportType}/{reportId}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "reportType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/report-pdfs/download/{reportType}/{reportId}": {
       "get": {
         "tags": [
           "Admin"
@@ -23428,6 +23908,14 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "closingDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
           }
         ],
         "responses": {
@@ -23736,6 +24224,45 @@
                   "items": {
                     "$ref": "#/components/schemas/AdminTenantListItemDto"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tenants/current": {
+      "get": {
+        "tags": [
+          "Tenants"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentTenantDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -33390,6 +33917,32 @@
         },
         "additionalProperties": false
       },
+      "CurrentTenantDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "licenseValidUntilUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "licenseValid": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "Customer": {
         "required": [
           "createdAt",
@@ -33647,6 +34200,16 @@
           "cashRegisterId": {
             "type": "string",
             "format": "uuid"
+          },
+          "closingDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "reason": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -39442,6 +40005,214 @@
         },
         "additionalProperties": false
       },
+      "LicenseTestDeploymentStatusDto": {
+        "type": "object",
+        "properties": {
+          "isValid": {
+            "type": "boolean"
+          },
+          "isTrial": {
+            "type": "boolean"
+          },
+          "isExpired": {
+            "type": "boolean"
+          },
+          "daysRemaining": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expiryDateUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "licenseKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "isDevelopmentBypass": {
+            "type": "boolean"
+          },
+          "mode": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LicenseTestRequest": {
+        "required": [
+          "tenantId"
+        ],
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "validUntil": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LicenseTestScenario": {
+        "enum": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "LicenseTestScenarioRequest": {
+        "required": [
+          "scenario",
+          "scope"
+        ],
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "scope": {
+            "$ref": "#/components/schemas/LicenseTestScope"
+          },
+          "scenario": {
+            "$ref": "#/components/schemas/LicenseTestScenario"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LicenseTestScope": {
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "LicenseTestSetExpiryRequest": {
+        "type": "object",
+        "properties": {
+          "validUntilUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "setExpired": {
+            "type": "boolean"
+          },
+          "setActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LicenseTestSnapshotDto": {
+        "type": "object",
+        "properties": {
+          "tenant": {
+            "$ref": "#/components/schemas/LicenseTestTenantStatusDto"
+          },
+          "deployment": {
+            "$ref": "#/components/schemas/LicenseTestDeploymentStatusDto"
+          },
+          "developmentModeBypassActive": {
+            "type": "boolean"
+          },
+          "refreshedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LicenseTestTenantRequest": {
+        "required": [
+          "tenantId"
+        ],
+        "type": "object",
+        "properties": {
+          "validUntilUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "setExpired": {
+            "type": "boolean"
+          },
+          "setActive": {
+            "type": "boolean"
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LicenseTestTenantStatusDto": {
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "licenseKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "validUntilUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "daysRemaining": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "daysOverdue": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "isInGracePeriod": {
+            "type": "boolean"
+          },
+          "canAccess": {
+            "type": "boolean"
+          },
+          "canTransact": {
+            "type": "boolean"
+          },
+          "statusMessage": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "LicenseTransferRequestInfoResponse": {
         "type": "object",
         "properties": {
@@ -40716,6 +41487,9 @@
               },
               "SuspiciousRapidTransactions": {
                 "type": "boolean"
+              },
+              "DailyClosingBackdatedCreated": {
+                "type": "boolean"
               }
             },
             "additionalProperties": false,
@@ -40791,6 +41565,9 @@
                 "type": "string"
               },
               "SuspiciousRapidTransactions": {
+                "type": "string"
+              },
+              "DailyClosingBackdatedCreated": {
                 "type": "string"
               }
             },
@@ -43516,6 +44293,10 @@
             "nullable": true
           },
           "snapshotDisclaimerDe": {
+            "type": "string",
+            "nullable": true
+          },
+          "backdatedNotice": {
             "type": "string",
             "nullable": true
           },
@@ -48808,6 +49589,7 @@
           "canClose",
           "canCloseMonthly",
           "canCloseYearly",
+          "isBackdated",
           "paymentsWithoutInvoiceCount"
         ],
         "type": "object",
@@ -48855,6 +49637,14 @@
             "type": "integer",
             "format": "int32"
           },
+          "isBackdated": {
+            "type": "boolean"
+          },
+          "closingDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
           "message": {
             "type": "string",
             "nullable": true
@@ -48884,6 +49674,8 @@
       "TagesabschlussResult": {
         "required": [
           "closingDate",
+          "createdAt",
+          "isBackdated",
           "paymentsWithoutInvoiceCount",
           "success",
           "totalAmount",
@@ -48905,6 +49697,10 @@
             "nullable": true
           },
           "closingDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
             "type": "string",
             "format": "date-time"
           },
@@ -48946,6 +49742,13 @@
           },
           "hasStoredPdf": {
             "type": "boolean"
+          },
+          "isBackdated": {
+            "type": "boolean"
+          },
+          "lateCreationReason": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -49905,6 +50708,14 @@
             "nullable": true
           },
           "licenseKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "actorUserId": {
+            "type": "string",
+            "nullable": true
+          },
+          "actorDisplayName": {
             "type": "string",
             "nullable": true
           }
@@ -53697,6 +54508,9 @@
       "name": "License"
     },
     {
+      "name": "LicenseTest"
+    },
+    {
       "name": "Localization"
     },
     {
@@ -53707,6 +54521,9 @@
     },
     {
       "name": "MultilingualReceipt"
+    },
+    {
+      "name": "OfflineHealth"
     },
     {
       "name": "OfflineIntentCoverage"

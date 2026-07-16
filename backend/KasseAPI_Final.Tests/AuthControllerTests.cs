@@ -315,7 +315,8 @@ public class AuthControllerTests
             sessionPolicy.Object,
             sessionService.Object,
             LocalizationTestDoubles.ApiMessageLocalizer(),
-            LocalizationTestDoubles.I18nErrorService());
+            LocalizationTestDoubles.I18nErrorService(),
+            Mock.Of<IPosShiftService>());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext(),
@@ -1034,7 +1035,8 @@ public class AuthControllerTests
             sessionPolicy.Object,
             new Mock<ISessionService>().Object,
             LocalizationTestDoubles.ApiMessageLocalizer(),
-            LocalizationTestDoubles.I18nErrorService());
+            LocalizationTestDoubles.I18nErrorService(),
+            Mock.Of<IPosShiftService>());
     }
 
     private static AuthController CreateForgotUsernameController(
@@ -1070,7 +1072,8 @@ public class AuthControllerTests
             sessionPolicy.Object,
             new Mock<ISessionService>().Object,
             LocalizationTestDoubles.ApiMessageLocalizer(),
-            LocalizationTestDoubles.I18nErrorService());
+            LocalizationTestDoubles.I18nErrorService(),
+            Mock.Of<IPosShiftService>());
     }
 
     [Fact]

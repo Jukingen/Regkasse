@@ -209,6 +209,17 @@
       "none": "Keine Mandantenlizenz",
       "expired": "Lizenz abgelaufen",
       "expiringSoon": "Lizenz läuft bald ab",
+      "expiringSoonWithDays": "Läuft ab in {{days}} Tagen",
+      "expiringSoonWithHours": "Läuft ab in {{hours}} Std.",
+      "validUntilTooltip": "Gültig bis: {{dateTime}}",
+      "expiredAtTooltip": "Abgelaufen am: {{dateTime}}",
+      "tooltip": {
+        "validUntil": "Gültig bis",
+        "daysRemaining": "Verbleibende Tage",
+        "status": "Status",
+        "countdown": "Läuft ab in: {{countdown}}",
+        "ariaSummary": "Gültig bis: {{dateTime}}. Verbleibende Tage: {{days}}. Status: {{status}}."
+      },
       "daysRemaining": "{{days}} Tage",
       "trial": "Testversion",
       "licensed": "Lizenziert",
@@ -635,6 +646,10 @@
     "productionBlocked": "Das Lizenz-Testpanel ist in Production deaktiviert.",
     "selectTenant": "Mandant",
     "selectTenantPlaceholder": "Mandant wählen…",
+    "loadingTenant": "Mandant wird geladen…",
+    "tenantLoadError": "Fehler beim Laden des Mandanten",
+    "contextTenantHint": "Aktueller Kontext: {name} ({slug})",
+
     "refresh": "Status aktualisieren",
     "refreshedAt": "Zuletzt aktualisiert: {time}",
     "developmentBypassActive": "Development-Mode Lizenz-Bypass ist aktiv — der angezeigte Server-Status kann synthetisch sein.",

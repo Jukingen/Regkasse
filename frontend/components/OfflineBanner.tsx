@@ -1,12 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
@@ -45,49 +42,14 @@ function SyncProgressBar({ current, total }: SyncProgress) {
   );
 }
 
-type ManualSyncButtonProps = {
-  isSyncing: boolean;
-  onPress: () => void;
-  variant?: 'default' | 'pending' | 'compact';
-};
-
-function ManualSyncButton({
-  isSyncing,
-  onPress,
-  variant = 'default',
-}: ManualSyncButtonProps) {
-  const buttonStyle =
-    variant === 'pending'
-      ? styles.pendingButton
-      : variant === 'compact'
-        ? styles.compactButton
-        : styles.button;
-
-  return (
-    <Pressable
-      style={[buttonStyle, isSyncing && styles.buttonDisabled]}
-      onPress={onPress}
-      disabled={isSyncing}
-      accessibilityRole="button"
-      accessibilityLabel={isSyncing ? 'Synchronisierung läuft' : 'Jetzt synchronisieren'}
-    >
-      {isSyncing ? (
-        <ActivityIndicator color={SoftColors.textInverse} size="small" />
-      ) : (
-        <Ionicons name="refresh" size={18} color={SoftColors.textInverse} />
-      )}
-      <Text style={styles.buttonText}>
-        {isSyncing ? 'Synchronisiere...' : 'Jetzt synchronisieren'}
-      </Text>
-    </Pressable>
-  );
-}
-
+/**
+ * Status-only banner for offline / pending orders.
+ * Manual sync lives on the Settings screen (less distraction during checkout).
+ */
 export function OfflineBanner() {
   const insets = useSafeAreaInsets();
-  const { status, syncNow, getPending } = useOfflineOrderManager();
+  const { status, getPending } = useOfflineOrderManager();
   const [expiringCount, setExpiringCount] = useState(0);
-  const [syncing, setSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState<SyncProgress>({ current: 0, total: 0 });
 
   useEffect(() => {
@@ -95,8 +57,8 @@ export function OfflineBanner() {
       setSyncProgress(progress);
     };
 
-    const onStatusChange = (status: { isSyncing: boolean }) => {
-      if (!status.isSyncing) {
+    const onStatusChange = (next: { isSyncing: boolean }) => {
+      if (!next.isSyncing) {
         setSyncProgress({ current: 0, total: 0 });
       }
     };
@@ -132,43 +94,18 @@ export function OfflineBanner() {
     };
   }, [status, getPending]);
 
-  const handleManualSync = useCallback(async () => {
-    if (syncing || status?.isSyncing) return;
-    setSyncing(true);
-    try {
-      await syncNow();
-    } finally {
-      setSyncing(false);
-    }
-  }, [syncNow, status?.isSyncing, syncing]);
-
   if (!status) {
     return null;
   }
 
-  const isSyncing = syncing || status.isSyncing;
+  const isSyncing = status.isSyncing;
   const showSyncProgress = isSyncing && syncProgress.total > 0;
   const showFullBanner = !status.isOnline || status.pendingCount > 0 || isSyncing;
 
   if (!showFullBanner) {
-    return (
-      <View
-        style={[
-          styles.container,
-          { bottom: TAB_BAR_HEIGHT + insets.bottom + SoftSpacing.sm },
-        ]}
-        pointerEvents="box-none"
-      >
-        <View style={[styles.banner, styles.compactBanner]}>
-          <ManualSyncButton
-            isSyncing={isSyncing}
-            onPress={() => void handleManualSync()}
-            variant="compact"
-          />
-        </View>
-      </View>
-    );
+    return null;
   }
+
   return (
     <View
       style={[
@@ -200,10 +137,7 @@ export function OfflineBanner() {
           {showSyncProgress ? (
             <SyncProgressBar current={syncProgress.current} total={syncProgress.total} />
           ) : null}
-          <ManualSyncButton
-            isSyncing={isSyncing}
-            onPress={() => void handleManualSync()}
-          />
+          <Text style={styles.hint}>Synchronisierung unter Einstellungen</Text>
         </View>
       ) : null}
 
@@ -229,11 +163,7 @@ export function OfflineBanner() {
           {showSyncProgress ? (
             <SyncProgressBar current={syncProgress.current} total={syncProgress.total} />
           ) : null}
-          <ManualSyncButton
-            isSyncing={isSyncing}
-            onPress={() => void handleManualSync()}
-            variant="pending"
-          />
+          <Text style={styles.hint}>Synchronisierung unter Einstellungen</Text>
         </View>
       ) : null}
 
@@ -241,12 +171,9 @@ export function OfflineBanner() {
         <View style={[styles.banner, styles.pendingBanner]}>
           {showSyncProgress ? (
             <SyncProgressBar current={syncProgress.current} total={syncProgress.total} />
-          ) : null}
-          <ManualSyncButton
-            isSyncing={isSyncing}
-            onPress={() => void handleManualSync()}
-            variant="pending"
-          />
+          ) : (
+            <Text style={styles.title}>Synchronisiere…</Text>
+          )}
         </View>
       ) : null}
     </View>
@@ -277,10 +204,6 @@ const styles = StyleSheet.create({
   pendingBanner: {
     backgroundColor: '#1e3a5f',
   },
-  compactBanner: {
-    backgroundColor: '#2a4a6b',
-    paddingVertical: SoftSpacing.xs,
-  },
   icon: {
     fontSize: 16,
     textAlign: 'center',
@@ -307,6 +230,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
+  hint: {
+    ...SoftTypography.caption,
+    color: 'rgba(255,255,255,0.85)',
+    textAlign: 'center',
+    marginTop: SoftSpacing.xs,
+  },
   progressContainer: {
     gap: SoftSpacing.xs,
   },
@@ -326,45 +255,5 @@ const styles = StyleSheet.create({
     color: SoftColors.textInverse,
     textAlign: 'center',
     fontWeight: '600',
-  },
-  button: {
-    marginTop: SoftSpacing.xs,
-    minHeight: 40,
-    borderRadius: SoftRadius.sm,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SoftSpacing.xs,
-    paddingHorizontal: SoftSpacing.md,
-  },
-  compactButton: {
-    minHeight: 40,
-    borderRadius: SoftRadius.sm,
-    backgroundColor: SoftColors.accent,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SoftSpacing.xs,
-    paddingHorizontal: SoftSpacing.md,
-  },
-  pendingButton: {
-    marginTop: SoftSpacing.xs,
-    minHeight: 40,
-    borderRadius: SoftRadius.sm,
-    backgroundColor: SoftColors.accent,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SoftSpacing.xs,
-    paddingHorizontal: SoftSpacing.md,
-  },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  buttonText: {
-    ...SoftTypography.caption,
-    color: SoftColors.textInverse,
-    fontWeight: '700',
   },
 });

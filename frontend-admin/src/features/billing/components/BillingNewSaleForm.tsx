@@ -25,7 +25,7 @@ import dayjs, { type Dayjs } from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAntdApp } from '@/hooks/useAntdApp';
-import { useI18n, formatCurrency, formatDate } from '@/i18n';
+import { useI18n, formatCurrency, formatGermanDateTime } from '@/i18n';
 import { billingApi } from '@/features/billing/api/billingApi';
 import type { LicenseSalePreviewResponse } from '@/api/generated/model';
 import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
@@ -251,9 +251,7 @@ export function BillingNewSaleForm({ initialTenantId }: { initialTenantId?: stri
                                             {licenseStatus?.validUntilUtc ? (
                                                 <p style={{ marginBottom: 0 }}>
                                                     <strong>{t('billing.new.validUntil')}:</strong>{' '}
-                                                    {formatDate(licenseStatus.validUntilUtc, formatLocale, {
-                                                        dateStyle: 'medium',
-                                                    })}
+                                                    {formatGermanDateTime(licenseStatus.validUntilUtc)}
                                                     {licenseStatus.daysRemaining != null ? (
                                                         <span style={{ marginLeft: 8 }}>
                                                             (
@@ -376,15 +374,13 @@ export function BillingNewSaleForm({ initialTenantId }: { initialTenantId?: stri
                                     </Descriptions.Item>
                                     <Descriptions.Item label={t('billing.new.validFrom')}>
                                         {preview.validFromUtc
-                                            ? formatDate(preview.validFromUtc, formatLocale, { dateStyle: 'medium' })
+                                            ? formatGermanDateTime(preview.validFromUtc)
                                             : '—'}
                                     </Descriptions.Item>
                                     <Descriptions.Item label={t('billing.new.validUntil')}>
                                         <strong>
                                             {preview.validUntilUtc
-                                                ? formatDate(preview.validUntilUtc, formatLocale, {
-                                                      dateStyle: 'medium',
-                                                  })
+                                                ? formatGermanDateTime(preview.validUntilUtc)
                                                 : '—'}
                                         </strong>
                                     </Descriptions.Item>

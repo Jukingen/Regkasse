@@ -15,6 +15,7 @@ export type NotificationConfigEnabledEvents = {
   CashRegisterClosed?: boolean;
   CashRegisterDecommissioned?: boolean;
   CashRegisterOpened?: boolean;
+  DailyClosingBackdatedCreated?: boolean;
   FinanzOnlineSubmissionFailed?: boolean;
   LicenseExpired?: boolean;
   LicenseExpiringSoon?: boolean;

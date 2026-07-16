@@ -1,3 +1,4 @@
+import { classifyDailyClosingError } from '../../utils/errorMessages';
 import { apiClient, API_BASE_URL, resolveTenantFetchHeaders } from './config';
 import { sessionManager } from '../session/sessionManager';
 import { isRecord, unwrapApiResponseLayer } from './normalizePosPaymentMethods';
@@ -139,6 +140,25 @@ export async function startShiftApi(cashRegisterId: string, startBalance: number
   return shift;
 }
 
+/** Auto-open CashierShift for the assigned register (idempotent). Non-blocking callers should catch. */
+export async function autoOpenShiftApi(cashRegisterId: string): Promise<CashierShiftDto> {
+  const raw = await apiClient.post<unknown>('/pos/shift/auto-open', {
+    cashRegisterId,
+  });
+  const shift = parseCashierShiftDto(unwrapApiResponseLayer(raw));
+  if (!shift) {
+    throw new Error('Invalid shift auto-open response');
+  }
+  return shift;
+}
+
+/** Soft-close active CashierShift without closing the register (idempotent). */
+export async function autoCloseShiftApi(): Promise<CashierShiftDto | null> {
+  const raw = await apiClient.post<unknown>('/pos/shift/auto-close', {});
+  if (raw == null || raw === '') return null;
+  return parseCashierShiftDto(unwrapApiResponseLayer(raw));
+}
+
 export async function endShiftApi(endBalance: number, notes?: string): Promise<EndShiftResponse> {
   const raw = await apiClient.post<unknown>('/pos/shift/end', {
     endBalance,
@@ -250,12 +270,24 @@ export class DailyClosingReportPdfError extends Error {
 }
 
 export class DailyClosingApiError extends Error {
+  /** Stable POS-facing code for i18n / errorMessages mapper. */
+  code: string;
   paymentsWithoutInvoiceCount?: number;
+  httpStatus?: number;
 
-  constructor(message: string, paymentsWithoutInvoiceCount?: number) {
+  constructor(
+    message: string,
+    options?: {
+      code?: string;
+      paymentsWithoutInvoiceCount?: number;
+      httpStatus?: number;
+    }
+  ) {
     super(message);
     this.name = 'DailyClosingApiError';
-    this.paymentsWithoutInvoiceCount = paymentsWithoutInvoiceCount;
+    this.code = options?.code ?? 'UNKNOWN';
+    this.paymentsWithoutInvoiceCount = options?.paymentsWithoutInvoiceCount;
+    this.httpStatus = options?.httpStatus;
   }
 }
 
@@ -446,21 +478,51 @@ export async function performDailyClosingApi(
     });
     const result = parsePosDailyClosingResult(raw);
     if (!result.success) {
-      throw new DailyClosingApiError(
-        result.errorMessage || 'Daily closing failed',
-        result.paymentsWithoutInvoiceCount
-      );
+      const technical = result.errorMessage || 'Daily closing failed';
+      const code = classifyDailyClosingError({
+        message: technical,
+        paymentsWithoutInvoiceCount: result.paymentsWithoutInvoiceCount,
+        httpStatus: 400,
+      });
+      throw new DailyClosingApiError(technical, {
+        code,
+        paymentsWithoutInvoiceCount: result.paymentsWithoutInvoiceCount,
+        httpStatus: 400,
+      });
     }
     return result;
   } catch (error: unknown) {
     if (error instanceof DailyClosingApiError) throw error;
-    const e = error as { response?: { data?: unknown }; data?: unknown } | null;
+    const e = error as {
+      response?: { data?: unknown; status?: number };
+      data?: unknown;
+      status?: number;
+      message?: string;
+      code?: string;
+    } | null;
     const data = (e?.response?.data ?? e?.data) as Record<string, unknown> | undefined;
-    const msg = typeof data?.error === 'string' ? data.error : 'Daily closing failed';
+    const msg =
+      (typeof data?.error === 'string' && data.error) ||
+      (typeof data?.message === 'string' && data.message) ||
+      (typeof e?.message === 'string' && e.message) ||
+      'Daily closing failed';
     const count =
       typeof data?.paymentsWithoutInvoiceCount === 'number'
         ? data.paymentsWithoutInvoiceCount
         : undefined;
-    throw new DailyClosingApiError(msg, count);
+    const httpStatus = e?.response?.status ?? e?.status;
+    const code = classifyDailyClosingError({
+      message: msg,
+      httpStatus,
+      axiosCode: typeof e?.code === 'string' ? e.code : null,
+      paymentsWithoutInvoiceCount: count,
+      code: typeof data?.code === 'string' ? data.code : null,
+      blockReason: typeof data?.blockReason === 'string' ? data.blockReason : null,
+    });
+    throw new DailyClosingApiError(msg, {
+      code,
+      paymentsWithoutInvoiceCount: count,
+      httpStatus,
+    });
   }
 }

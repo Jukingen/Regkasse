@@ -18,6 +18,7 @@ import { tenantStorage, type TenantBootstrap } from '../services/tenant/tenantSt
 import { AuthAppError } from '../features/auth/authErrors';
 import { createLoginFailedError, handleLoginError } from '../utils/loginErrorHandler';
 import { getUserSettingsAfterLogin } from '../services/api/userSettingsService';
+import { autoCloseShiftApi, autoOpenShiftApi } from '../services/api/shiftService';
 import { checkLicenseStatus } from '../services/api/licenseStatusService';
 import { authTrace } from '../utils/authTrace';
 // CRITICAL FIX: useTranslation hook'unu kaldırdık - infinite loop'a neden oluyordu
@@ -269,11 +270,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return isExpired;
             }
 
+            // No exp claim → treat as expired (do not restore session)
             authDevWarn('⚠️ TOKEN CHECK: No expiration time found in token');
-            return false; // Expiration yoksa güvenlik için false döndür
+            return true;
         } catch (error) {
             authDevError('❌ TOKEN CHECK: Token expiration check failed:', error);
-            return false;
+            return true;
         }
     };
 
@@ -392,7 +394,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // 🔑 Token kontrolü yap
             const token = await sessionManager.getAccessToken();
             if (!token) {
-                await handleLogoutAndRedirect();
+                setUser(null);
+                setIsAuthenticated(false);
                 return;
             }
 
@@ -401,7 +404,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const isTokenExpired = checkTokenExpiration(cleanToken);
 
             if (isTokenExpired) {
-                await handleLogoutAndRedirect();
+                await sessionManager.clearSession();
+                setUser(null);
+                setIsAuthenticated(false);
                 return;
             }
 
@@ -491,12 +496,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 authDevWarn('⚠️ [F5 FIX] Backend auth check hatası:', backendError);
             }
 
-            // Hiçbir user bilgisi bulunamazsa logout yap
-            await handleLogoutAndRedirect();
+            // Hiçbir user bilgisi bulunamazsa logout yap (session may be half-written)
+            await sessionManager.clearSession();
+            setUser(null);
+            setIsAuthenticated(false);
 
         } catch (error) {
             authDevError('❌ [F5 FIX] Auth check hatası:', error);
-            await handleLogoutAndRedirect();
+            await sessionManager.clearSession();
+            setUser(null);
+            setIsAuthenticated(false);
         } finally {
             setIsLoading(false);
             setIsAuthReady(true); // ✅ Ready
@@ -578,15 +587,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     }
                 }
 
-                // Storage'da geçerli auth bulunamazsa normal auth check yap
-                authDevLog('❌ AUTH INIT: No valid auth in storage, performing full auth check');
-                await stableCheckAuthStatus(); // Await added
-                setIsAuthReady(true); // ✅ Ready even if failed
+                // Storage'da geçerli auth bulunamazsa oturumsuz kal — login ekranında API çağırma
+                authDevLog('❌ AUTH INIT: No valid auth in storage, staying unauthenticated');
+                setUser(null);
+                setIsAuthenticated(false);
+                setIsLoading(false);
+                setIsAuthReady(true);
 
             } catch (error) {
                 authDevError('❌ AUTH INIT: Error during initialization:', error);
-                await stableCheckAuthStatus(); // Await added
-                setIsAuthReady(true); // ✅ Ready even if failed
+                setUser(null);
+                setIsAuthenticated(false);
+                setIsLoading(false);
+                setIsAuthReady(true);
             }
         };
 
@@ -811,6 +824,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const userSettings = await getUserSettingsAfterLogin();
                 authDevLog('User settings loaded after login (bootstrap or GET fallback):', userSettings);
 
+                const cashRegisterId =
+                  typeof userSettings?.cashRegisterId === 'string'
+                    ? userSettings.cashRegisterId.trim()
+                    : '';
+                if (cashRegisterId) {
+                  try {
+                    await autoOpenShiftApi(cashRegisterId);
+                    authDevLog('Auto-open shift completed for register:', cashRegisterId);
+                  } catch (autoOpenErr) {
+                    authDevWarn('Auto-open shift failed (non-blocking):', autoOpenErr);
+                  }
+                }
+
                 if (userSettings?.language) {
                     // Map API language (e.g. de-DE) to i18n text locale (de | en | tr)
                     const next = normalizeTextLocale(userSettings.language);
@@ -860,6 +886,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             // 🧹 ÖNCE CART CACHE'İ TEMİZLE
             await clearCartCache();
+
+            try {
+                await autoCloseShiftApi();
+                authDevLog('Auto-close shift completed');
+            } catch (autoCloseErr) {
+                authDevWarn('Auto-close shift failed (non-blocking):', autoCloseErr);
+            }
 
             // Backend logout + storage cleanup via authService
             await authService.logout();
