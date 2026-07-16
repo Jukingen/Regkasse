@@ -1,5 +1,9 @@
 import type { CashRegister } from '@/api/generated/model';
-import { rawRegisterStatus, REGISTER_STATUS } from '@/features/cash-registers/utils/registerStatus';
+import {
+    rawRegisterStatus,
+    readStartbelegCreatedAt,
+    REGISTER_STATUS,
+} from '@/features/cash-registers/utils/registerStatus';
 
 /** Inferred operational context when a register is in Closed status. */
 export type ClosedRegisterContext = 'neverOpened' | 'afterShift' | 'generic';
@@ -35,7 +39,7 @@ export function inferClosedRegisterContext(register: CashRegister): ClosedRegist
         return null;
     }
 
-    if (!register.startbelegCreatedAt) {
+    if (!readStartbelegCreatedAt(register)) {
         return 'neverOpened';
     }
 

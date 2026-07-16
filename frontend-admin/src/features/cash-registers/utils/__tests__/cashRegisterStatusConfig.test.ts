@@ -6,7 +6,9 @@ import {
 
 const t = (key: string) => key;
 
-function reg(partial: Partial<CashRegister> & { status?: number }): CashRegister {
+function reg(
+    partial: Partial<CashRegister> & { status?: number; startbelegCreatedAtUtc?: string },
+): CashRegister {
     return partial as CashRegister;
 }
 
@@ -19,6 +21,18 @@ describe('cashRegisterStatusConfig', () => {
 
     it('infers neverOpened when startbeleg is missing', () => {
         expect(inferClosedSubStatus(reg({ status: 1 }))).toBe('neverOpened');
+    });
+
+    it('does not treat admin Utc startbeleg as neverOpened', () => {
+        expect(
+            inferClosedSubStatus(
+                reg({
+                    status: 1,
+                    startbelegCreatedAtUtc: '2026-01-01T00:00:00Z',
+                    lastBalanceUpdate: '2026-01-02T18:00:00Z',
+                }),
+            ),
+        ).toBe('shiftChange');
     });
 
     it('infers licenseExpired when option is set', () => {

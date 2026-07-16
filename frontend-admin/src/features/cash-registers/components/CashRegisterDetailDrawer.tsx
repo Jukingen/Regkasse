@@ -13,7 +13,7 @@ import { CashRegisterStatusBadge } from '@/features/cash-registers/components/Ca
 import { CashRegisterStatusContextAlert } from '@/features/cash-registers/components/CashRegisterStatusContextAlert';
 import { useCanAccessPath } from '@/hooks/useCanAccessPath';
 import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
-import { rawRegisterStatus, readDecommissionMeta } from '@/features/cash-registers/utils/registerStatus';
+import { rawRegisterStatus, readDecommissionMeta, readStartbelegCreatedAt } from '@/features/cash-registers/utils/registerStatus';
 export type CashRegisterDetailDrawerProps = {
     open: boolean;
     register: CashRegister | null;
@@ -51,6 +51,8 @@ export function CashRegisterDetailDrawer({
         register?.currentUser?.userName?.trim() ||
         register?.currentUserId?.trim() ||
         null;
+
+    const startbelegCreatedAt = readStartbelegCreatedAt(register);
 
     const offlineHref = registerId
         ? `/admin/tse/offline-transactions?cashRegisterId=${encodeURIComponent(registerId)}`
@@ -108,8 +110,8 @@ export function CashRegisterDetailDrawer({
                             : FORMAT_EMPTY_DISPLAY}
                     </Descriptions.Item>
                     <Descriptions.Item label={t('cashRegisters.detail.startbelegCreatedAt')}>
-                        {register.startbelegCreatedAt
-                            ? formatDateTime(register.startbelegCreatedAt, formatLocale)
+                        {startbelegCreatedAt
+                            ? formatDateTime(startbelegCreatedAt, formatLocale)
                             : FORMAT_EMPTY_DISPLAY}
                     </Descriptions.Item>
                     <Descriptions.Item label={t('cashRegisters.detail.lastMonatsbelegUtc')}>

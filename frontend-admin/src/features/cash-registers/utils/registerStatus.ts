@@ -6,6 +6,28 @@ export function rawRegisterStatus(reg: CashRegister): number | undefined {
     return typeof r.status === 'number' ? r.status : undefined;
 }
 
+/**
+ * Admin list DTO uses `startbelegCreatedAtUtc`; entity/OpenAPI CashRegister uses `startbelegCreatedAt`.
+ * Read either so status badges and RKSV detail stay consistent across Manager and Super Admin views.
+ */
+export function readStartbelegCreatedAt(
+    reg: CashRegister | null | undefined,
+): string | null {
+    if (!reg) {
+        return null;
+    }
+    const r = reg as unknown as {
+        startbelegCreatedAt?: string | null;
+        startbelegCreatedAtUtc?: string | null;
+    };
+    const value = r.startbelegCreatedAt ?? r.startbelegCreatedAtUtc;
+    if (typeof value !== 'string') {
+        return null;
+    }
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+}
+
 export const REGISTER_STATUS = {
     closed: 1,
     open: 2,

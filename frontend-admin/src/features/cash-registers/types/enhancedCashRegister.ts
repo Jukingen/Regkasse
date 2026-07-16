@@ -15,6 +15,8 @@ export type EnhancedCashRegister = CashRegister & {
     tenantSlug?: string | null;
     lastMonatsbelegUtc?: string | null;
     lastJahresbelegUtc?: string | null;
+    /** Admin DTO field; prefer via `readStartbelegCreatedAt` / normalized `startbelegCreatedAt`. */
+    startbelegCreatedAtUtc?: string | null;
     tseHealthStatus?: TseHealthStatus | string | null;
     offlineQueueCount?: number;
     lastSyncAtUtc?: string | null;

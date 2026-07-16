@@ -4,7 +4,9 @@ import {
     isClosedRegister,
 } from '@/features/cash-registers/utils/registerClosedContext';
 
-function reg(partial: Partial<CashRegister> & { status?: number }): CashRegister {
+function reg(
+    partial: Partial<CashRegister> & { status?: number; startbelegCreatedAtUtc?: string },
+): CashRegister {
     return partial as CashRegister;
 }
 
@@ -16,6 +18,18 @@ describe('registerClosedContext', () => {
 
     it('inferClosedRegisterContext returns neverOpened without startbeleg', () => {
         expect(inferClosedRegisterContext(reg({ status: 1 }))).toBe('neverOpened');
+    });
+
+    it('inferClosedRegisterContext accepts admin Utc startbeleg field', () => {
+        expect(
+            inferClosedRegisterContext(
+                reg({
+                    status: 1,
+                    startbelegCreatedAtUtc: '2026-01-01T10:00:00Z',
+                    lastBalanceUpdate: '2026-01-02T18:00:00Z',
+                }),
+            ),
+        ).toBe('afterShift');
     });
 
     it('inferClosedRegisterContext returns afterShift when startbeleg and last balance update exist', () => {

@@ -3,9 +3,11 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
+import type { EnhancedCashRegister } from '@/features/cash-registers/types/enhancedCashRegister';
 import {
     adminCashRegisterListQueryKey,
     listAdminCashRegisters,
+    toEnhancedCashRegister,
     type ListAdminCashRegistersParams,
 } from '@/features/cash-registers/api/cashRegisters';
 import {
@@ -42,8 +44,11 @@ export function useAdminCashRegisterList(options: UseAdminCashRegisterListOption
         if (tenantId) {
             return { tenantId, page: 1, pageSize };
         }
-        if (allowAllTenants || allowTenantScopedDefault) {
-            return { page: 1, pageSize };
+        if (allowAllTenants) {
+            return { page: 1, pageSize, listScope: 'all' };
+        }
+        if (allowTenantScopedDefault) {
+            return { page: 1, pageSize, listScope: 'jwt' };
         }
         return null;
     }, [allowAllTenants, allowTenantScopedDefault, pageSize, tenantId]);
@@ -57,7 +62,7 @@ export function useAdminCashRegisterList(options: UseAdminCashRegisterListOption
     });
 
     const registers = useMemo(() => {
-        const items = query.data?.items ?? [];
+        const items = (query.data?.items ?? []).map(toEnhancedCashRegister);
         if (!excludeDecommissioned) {
             return items;
         }

@@ -46,7 +46,6 @@ import {
     decommissionCashRegister,
     getCashRegisterCapabilities,
     hardDeleteCashRegister,
-    type AdminCashRegisterListItem,
 } from '@/features/cash-registers/api/cashRegisters';
 import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdminCashRegisterList';
 import { useCashRegisterActionHandler } from '@/features/cash-registers/hooks/useCashRegisterActionHandler';
@@ -78,10 +77,6 @@ function statsAccentCardStyle(color?: string): React.CSSProperties {
         ...STATS_CARD_BASE_STYLE,
         borderInlineStart: `4px solid ${color}`,
     };
-}
-
-function toCashRegister(row: AdminCashRegisterListItem): CashRegister {
-    return row as unknown as CashRegister;
 }
 
 function toCsvCell(value: string): string {
@@ -175,7 +170,7 @@ export default function AdminCashRegistersPage() {
     });
 
     const allRegisters = useMemo(
-        () => tenantRegisters.map(toCashRegister),
+        () => tenantRegisters,
         [tenantRegisters],
     );
 

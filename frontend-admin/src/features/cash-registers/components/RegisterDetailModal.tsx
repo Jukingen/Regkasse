@@ -10,7 +10,7 @@ import type { EnhancedCashRegister } from '@/features/cash-registers/types/enhan
 import { formatRelativeTime } from '@/features/cash-registers/utils/formatRelativeTime';
 import { CashRegisterStatusBadge } from '@/features/cash-registers/components/CashRegisterStatusBadge';
 import { CashRegisterStatusContextAlert } from '@/features/cash-registers/components/CashRegisterStatusContextAlert';
-import { rawRegisterStatus, readDecommissionMeta } from '@/features/cash-registers/utils/registerStatus';
+import { rawRegisterStatus, readDecommissionMeta, readStartbelegCreatedAt } from '@/features/cash-registers/utils/registerStatus';
 
 export type RegisterDetailModalProps = {
     open: boolean;
@@ -44,6 +44,8 @@ export function RegisterDetailModal({
         register?.currentUser?.userName?.trim() ||
         register?.currentUserId?.trim() ||
         null;
+
+    const startbelegCreatedAt = readStartbelegCreatedAt(register);
 
     const deviceModel = enhanced?.deviceInfo?.model?.trim();
     const deviceOs = enhanced?.deviceInfo?.osVersion?.trim();
@@ -92,6 +94,11 @@ export function RegisterDetailModal({
                             registerId={registerId}
                             offlineQueueCount={enhanced?.offlineQueueCount}
                         />
+                    </Descriptions.Item>
+                    <Descriptions.Item label={t('cashRegisters.detail.startbelegCreatedAt')}>
+                        {startbelegCreatedAt
+                            ? formatDateTime(startbelegCreatedAt, formatLocale)
+                            : FORMAT_EMPTY_DISPLAY}
                     </Descriptions.Item>
                     <Descriptions.Item label={t('cashRegisters.detail.lastMonatsbelegUtc')}>
                         {enhanced?.lastMonatsbelegUtc

@@ -4,7 +4,11 @@ import {
     inferClosedRegisterContext,
     isClosedRegister,
 } from '@/features/cash-registers/utils/registerClosedContext';
-import { rawRegisterStatus, REGISTER_STATUS } from '@/features/cash-registers/utils/registerStatus';
+import {
+    rawRegisterStatus,
+    readStartbelegCreatedAt,
+    REGISTER_STATUS,
+} from '@/features/cash-registers/utils/registerStatus';
 
 export type ClosedSubStatus =
     | 'dailyClosing'
@@ -34,7 +38,7 @@ export function inferClosedSubStatus(
         return 'licenseExpired';
     }
 
-    if (!register.startbelegCreatedAt) {
+    if (!readStartbelegCreatedAt(register)) {
         return 'neverOpened';
     }
 

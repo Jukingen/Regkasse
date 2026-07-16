@@ -2,6 +2,7 @@ import type { CashRegister } from '@/api/generated/model';
 import type {
     CashRegisterDeviceInfo,
     CashRegisterTseHealthResponse,
+    EnhancedCashRegister,
     TseHealthStatus,
 } from '@/features/cash-registers/types/enhancedCashRegister';
 import { customInstance } from '@/lib/axios';
@@ -85,6 +86,12 @@ export type ListAdminCashRegistersParams = {
     excludeStatus?: string;
     page?: number;
     pageSize?: number;
+    /**
+     * Cache-scope marker when `tenantId` is omitted:
+     * - `jwt` — Manager: API resolves tenant from JWT
+     * - `all` — Super Admin: platform-wide list
+     */
+    listScope?: 'jwt' | 'all';
 };
 
 export const adminCashRegisterListQueryKey = (params?: ListAdminCashRegistersParams) =>
@@ -92,13 +99,37 @@ export const adminCashRegisterListQueryKey = (params?: ListAdminCashRegistersPar
         'admin',
         'cash-registers',
         'list',
-        params?.tenantId ?? '__all__',
+        params?.tenantId ?? (params?.listScope === 'jwt' ? '__jwt__' : '__all__'),
         params?.excludeStatus ?? '__none__',
         params?.pageSize ?? 100,
     ] as const;
 
 export const cashRegisterByTenantQueryKey = (tenantId?: string) =>
     ['cash-registers', 'by-tenant', tenantId ?? '__none__'] as const;
+
+/** Map admin list DTO onto CashRegister/Enhanced shape used by FA table + detail UI. */
+export function toEnhancedCashRegister(row: AdminCashRegisterListItem): EnhancedCashRegister {
+    const startbeleg =
+        typeof row.startbelegCreatedAtUtc === 'string' && row.startbelegCreatedAtUtc.trim()
+            ? row.startbelegCreatedAtUtc.trim()
+            : null;
+
+    return {
+        ...(row as unknown as EnhancedCashRegister),
+        startbelegCreatedAt: startbeleg,
+        startbelegCreatedAtUtc: startbeleg,
+        lastMonatsbelegUtc: row.lastMonatsbelegUtc ?? null,
+        lastJahresbelegUtc: row.lastJahresbelegUtc ?? null,
+        tenantId: row.tenantId,
+        tenantName: row.tenantName ?? null,
+        tenantSlug: row.tenantSlug ?? null,
+        tseHealthStatus: row.tseHealthStatus ?? null,
+        offlineQueueCount: row.offlineQueueCount,
+        lastSyncAtUtc: row.lastSyncAtUtc ?? null,
+        currentCashierName: row.currentCashierName ?? null,
+        deviceInfo: row.deviceInfo ?? null,
+    };
+}
 
 export async function listCashRegistersByTenant(): Promise<AdminCashRegisterListItem[]> {
     const data = await customInstance<AdminCashRegisterListItem[]>({

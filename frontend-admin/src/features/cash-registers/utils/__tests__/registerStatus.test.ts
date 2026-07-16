@@ -3,8 +3,10 @@ import {
     REGISTER_STATUS,
     canDecommissionRegister,
     isDecommissionedRegister,
+    readStartbelegCreatedAt,
     registerStatusEmoji,
 } from '@/features/cash-registers/utils/registerStatus';
+import type { CashRegister } from '@/api/generated/model';
 
 describe('registerStatus', () => {
     it('allows decommission only when closed', () => {
@@ -22,5 +24,21 @@ describe('registerStatus', () => {
         expect(registerStatusEmoji(REGISTER_STATUS.open)).toBe('🟢');
         expect(registerStatusEmoji(REGISTER_STATUS.closed)).toBe('🔴');
         expect(registerStatusEmoji(REGISTER_STATUS.decommissioned)).toBe('⚫');
+    });
+
+    it('reads startbeleg from entity or admin Utc field', () => {
+        expect(
+            readStartbelegCreatedAt({
+                startbelegCreatedAt: '2026-01-01T00:00:00Z',
+            } as CashRegister),
+        ).toBe('2026-01-01T00:00:00Z');
+
+        expect(
+            readStartbelegCreatedAt({
+                startbelegCreatedAtUtc: '2026-02-01T00:00:00Z',
+            } as CashRegister & { startbelegCreatedAtUtc: string }),
+        ).toBe('2026-02-01T00:00:00Z');
+
+        expect(readStartbelegCreatedAt({} as CashRegister)).toBeNull();
     });
 });

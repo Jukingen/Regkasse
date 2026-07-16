@@ -26,12 +26,12 @@ import { DecommissionModal } from '@/features/cash-registers/components/Decommis
 import { CashRegisterDetailDrawer } from '@/features/cash-registers/components/CashRegisterDetailDrawer';
 import { CashRegisterHardDeleteModal } from '@/features/cash-registers/components/CashRegisterHardDeleteModal';
 import {
-    type AdminCashRegisterListItem,
     cashRegisterListQueryKey,
     decommissionCashRegister,
     getCashRegisterCapabilities,
     hardDeleteCashRegister,
 } from '@/features/cash-registers/api/cashRegisters';
+import type { EnhancedCashRegister } from '@/features/cash-registers/types/enhancedCashRegister';
 import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdminCashRegisterList';
 import { useCashRegisterActionHandler } from '@/features/cash-registers/hooks/useCashRegisterActionHandler';
 import {
@@ -49,15 +49,7 @@ import styles from './kassenverwaltung.module.css';
 
 const CAPABILITIES_QUERY_KEY = ['admin', 'cash-registers', 'capabilities'] as const;
 
-type CashRegisterViewItem = CashRegister & {
-    tenantId?: string | null;
-    tenantName?: string | null;
-    tenantSlug?: string | null;
-};
-
-function toCashRegisterViewItem(row: AdminCashRegisterListItem): CashRegisterViewItem {
-    return row as unknown as CashRegisterViewItem;
-}
+type CashRegisterViewItem = EnhancedCashRegister;
 
 export default function KassenverwaltungPage() {
   const { message } = useAntdApp();
@@ -134,9 +126,7 @@ export default function KassenverwaltungPage() {
 
     const allRegisters = useMemo(
         (): CashRegisterViewItem[] =>
-            isSuperAdminUser
-                ? adminRegistersQuery.registers.map(toCashRegisterViewItem)
-                : tenantRegistersQuery.registers.map(toCashRegisterViewItem),
+            isSuperAdminUser ? adminRegistersQuery.registers : tenantRegistersQuery.registers,
         [adminRegistersQuery.registers, isSuperAdminUser, tenantRegistersQuery.registers],
     );
 
