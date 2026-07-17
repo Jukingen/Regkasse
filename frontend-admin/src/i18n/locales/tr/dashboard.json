@@ -124,6 +124,8 @@
     "last_backup": "Son yedekleme",
     "no_backup": "Henüz yedek yok",
     "success_rate_30d": "Başarı oranı (30 gün)",
+    "storage": "Depolama",
+    "storage_alert": "Depolama limitine yaklaşıyor (staging ≥ %80)",
     "config_health": "Yapılandırma: {{level}}",
     "view_details": "Yedekleme özetini aç",
     "load_failed": "Yedekleme durumu yüklenemedi."

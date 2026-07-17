@@ -43,6 +43,13 @@ public sealed class BackupArtifact
     [Column("lifecycle_state")]
     public BackupArtifactLifecycleState LifecycleState { get; set; } = BackupArtifactLifecycleState.Staging;
 
+    /// <summary>
+    /// Cost-oriented storage class (Hot/Warm/Cold). Independent of <see cref="LifecycleState"/> pipeline stage.
+    /// </summary>
+    [Required]
+    [Column("storage_tier")]
+    public BackupStorageTier StorageTier { get; set; } = BackupStorageTier.Hot;
+
     /// <summary>UI-safe external locator after archive copy (e.g. archive/runId/file); never a host filesystem path.</summary>
     [MaxLength(512)]
     [Column("external_redacted_locator")]

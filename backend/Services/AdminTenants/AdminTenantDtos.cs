@@ -136,6 +136,10 @@ public sealed class CreateAdminTenantRequest
 
     /// <summary>When true, imports the full demo menu (Salate, Pizzas, Pasta, …) instead of three generic demo products.</summary>
     public bool ImportDemoMenu { get; set; }
+
+    /// <summary>Optional cash register number for provisioning (default: KASSE-001).</summary>
+    [MaxLength(20)]
+    public string? CashRegisterNumber { get; set; }
 }
 
 public sealed class HardDeleteAdminTenantRequest

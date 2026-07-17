@@ -1,5 +1,7 @@
 # Backup Phase 1 — Operations runbook (starter)
 
+**Hub:** [BACKUP_AND_DISASTER_RECOVERY.md](./BACKUP_AND_DISASTER_RECOVERY.md) · Always-applied: [AGENTS.md](../AGENTS.md) § Backup & Disaster Recovery.
+
 For PostgreSQL logical dump execution (`pg_dump`), see [backup-phase2-runbook.md](./backup-phase2-runbook.md).
 
 ## What Phase 1 is

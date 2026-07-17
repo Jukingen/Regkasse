@@ -62,11 +62,25 @@ public sealed class BackupRunService : IBackupRunService
 
     public async Task<IReadOnlyList<BackupListItemResponseDto>> GetBackupListAsync(
         Guid? tenantId,
+        bool isSuperAdmin,
         CancellationToken cancellationToken = default)
     {
         var runQuery = _db.BackupRuns.AsNoTracking()
             .Where(r => r.Status == BackupRunStatus.Succeeded);
-        runQuery = BackupRunTenantSlugResolver.ApplyTenantHint(runQuery, tenantId);
+
+        if (isSuperAdmin)
+        {
+            // All succeeded dumps (Tenant + System).
+        }
+        else
+        {
+            // Mandanten-Admin: own Tenant strategy only — never System (may contain Identity / all tenants).
+            if (tenantId is not Guid tid || tid == Guid.Empty)
+                return Array.Empty<BackupListItemResponseDto>();
+
+            runQuery = runQuery.Where(r =>
+                r.Strategy == BackupStrategyKind.Tenant && r.TenantId == tid);
+        }
 
         var rows = await (
                 from artifact in _db.BackupArtifacts.AsNoTracking()
@@ -137,6 +151,7 @@ public sealed class BackupRunService : IBackupRunService
                 }
             }
 
+            var durationSeconds = BackupRunMetricsFormatter.ComputeDurationSeconds(run.StartedAt, run.CompletedAt);
             return new BackupListItemResponseDto
             {
                 BackupRunId = run.Id,
@@ -146,6 +161,10 @@ public sealed class BackupRunService : IBackupRunService
                 CreatedAt = artifact.CreatedAt,
                 TenantSlug = tenantSlug,
                 IsFake = IsSimulatedAdapter(run.AdapterKind),
+                Status = run.Status,
+                Strategy = run.Strategy,
+                DurationSeconds = durationSeconds,
+                DurationFormatted = BackupRunMetricsFormatter.FormatDuration(durationSeconds),
                 DownloadUrl = fileOnDisk
                     ? BuildArtifactDownloadUrl(run.Id, artifact.Id)
                     : null,

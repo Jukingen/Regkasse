@@ -106,6 +106,8 @@ export type CreateAdminTenantRequest = {
     grantTrialLicense?: boolean;
     /** When true, imports full demo menu (Salate, Pizzas, …) instead of three generic demo products. */
     importDemoMenu?: boolean;
+    /** Optional cash register number (default KASSE-001). */
+    cashRegisterNumber?: string | null;
 };
 
 export type UpdateAdminTenantRequest = {

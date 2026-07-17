@@ -39,6 +39,14 @@ public sealed class BackupRun : KasseAPI_Final.Models.IRunLeaseColumns
     [Column("tenant_id")]
     public Guid? TenantId { get; set; }
 
+    /// <summary>
+    /// Product strategy (TenantAdmin vs SuperAdmin). Independent of dump physics:
+    /// both may still be instance-wide <c>pg_dump</c>; see <see cref="BackupStrategyKind"/>.
+    /// </summary>
+    [Required]
+    [Column("strategy")]
+    public BackupStrategyKind Strategy { get; set; } = BackupStrategyKind.System;
+
     [MaxLength(450)]
     [Column("requested_by_user_id")]
     public string? RequestedByUserId { get; set; }

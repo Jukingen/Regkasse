@@ -108,10 +108,13 @@ public sealed class BackupRunServiceTests
         {
             Id = runId,
             Status = BackupRunStatus.Succeeded,
+            Strategy = BackupStrategyKind.Tenant,
+            TenantId = tenantId,
             TriggerSource = BackupTriggerSource.Manual,
             AdapterKind = "Fake",
             IdempotencyKey = $"manual-tenant-{tenantId:D}-1734567890123",
             RequestedAt = createdAt,
+            StartedAt = createdAt.AddMinutes(-3),
             CompletedAt = createdAt
         });
         db.BackupArtifacts.Add(new BackupArtifact
@@ -126,7 +129,7 @@ public sealed class BackupRunServiceTests
         await db.SaveChangesAsync();
 
         var svc = CreateService(db);
-        var items = await svc.GetBackupListAsync(tenantId);
+        var items = await svc.GetBackupListAsync(tenantId, isSuperAdmin: false);
 
         var row = Assert.Single(items);
         Assert.Equal("backup_dev_20260703_150100.dump", row.FileName);
@@ -136,6 +139,10 @@ public sealed class BackupRunServiceTests
         Assert.True(row.IsFake);
         Assert.Equal(runId, row.BackupRunId);
         Assert.Equal(artifactId, row.ArtifactId);
+        Assert.Equal(BackupRunStatus.Succeeded, row.Status);
+        Assert.Equal(BackupStrategyKind.Tenant, row.Strategy);
+        Assert.Equal(180, row.DurationSeconds);
+        Assert.Equal("3m", row.DurationFormatted);
         Assert.Null(row.DownloadUrl);
     }
 
@@ -152,11 +159,14 @@ public sealed class BackupRunServiceTests
 
         var runA = Guid.NewGuid();
         var runB = Guid.NewGuid();
+        var systemRun = Guid.NewGuid();
         db.BackupRuns.AddRange(
             new BackupRun
             {
                 Id = runA,
                 Status = BackupRunStatus.Succeeded,
+                Strategy = BackupStrategyKind.Tenant,
+                TenantId = tenantA,
                 TriggerSource = BackupTriggerSource.Manual,
                 AdapterKind = "PgDump",
                 IdempotencyKey = $"manual-tenant-{tenantA:D}-1",
@@ -166,9 +176,21 @@ public sealed class BackupRunServiceTests
             {
                 Id = runB,
                 Status = BackupRunStatus.Succeeded,
+                Strategy = BackupStrategyKind.Tenant,
+                TenantId = tenantB,
                 TriggerSource = BackupTriggerSource.Manual,
                 AdapterKind = "PgDump",
                 IdempotencyKey = $"manual-tenant-{tenantB:D}-2",
+                RequestedAt = DateTime.UtcNow
+            },
+            new BackupRun
+            {
+                Id = systemRun,
+                Status = BackupRunStatus.Succeeded,
+                Strategy = BackupStrategyKind.System,
+                TenantId = null,
+                TriggerSource = BackupTriggerSource.Scheduled,
+                AdapterKind = "PgDump",
                 RequestedAt = DateTime.UtcNow
             });
         db.BackupArtifacts.AddRange(
@@ -185,14 +207,22 @@ public sealed class BackupRunServiceTests
                 ArtifactType = BackupArtifactType.LogicalDump,
                 StorageDescriptor = "backup_prod_20260702_230000.dump",
                 CreatedAt = DateTime.UtcNow
+            },
+            new BackupArtifact
+            {
+                BackupRunId = systemRun,
+                ArtifactType = BackupArtifactType.LogicalDump,
+                StorageDescriptor = "backup_system.dump",
+                CreatedAt = DateTime.UtcNow
             });
         await db.SaveChangesAsync();
 
         var svc = CreateService(db);
-        var items = await svc.GetBackupListAsync(tenantA);
+        var items = await svc.GetBackupListAsync(tenantA, isSuperAdmin: false);
 
         Assert.Single(items);
         Assert.Equal("dev", items[0].TenantSlug);
+        Assert.Equal(BackupStrategyKind.Tenant, items[0].Strategy);
         Assert.False(items[0].IsFake);
     }
 
@@ -209,6 +239,7 @@ public sealed class BackupRunServiceTests
         {
             Id = runId,
             Status = BackupRunStatus.Succeeded,
+            Strategy = BackupStrategyKind.System,
             TriggerSource = BackupTriggerSource.Scheduled,
             AdapterKind = "PgDump",
             RequestedAt = createdAt,
@@ -235,10 +266,11 @@ public sealed class BackupRunServiceTests
         await db.SaveChangesAsync();
 
         var svc = CreateService(db);
-        var items = await svc.GetBackupListAsync(null);
+        var items = await svc.GetBackupListAsync(null, isSuperAdmin: true);
 
         var row = Assert.Single(items);
         Assert.Equal("backup_scheduled_20260703_150100.dump", row.FileName);
+        Assert.Equal(BackupStrategyKind.System, row.Strategy);
         Assert.Equal(manifestId, row.ManifestArtifactId);
         Assert.Equal("backup_scheduled_20260703_150100_manifest.json", row.ManifestFileName);
         Assert.Equal(256, row.ManifestFileSize);

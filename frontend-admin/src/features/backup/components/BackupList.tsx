@@ -6,7 +6,7 @@
 
 import React, { useCallback, useMemo, useState } from "react";
 import { App, Alert, Button, Space, Spin, Table, Tag, Tooltip, Typography, Upload } from "antd";
-import { DownloadOutlined, FileOutlined, InboxOutlined, UploadOutlined } from "@ant-design/icons";
+import { DownloadOutlined, FileOutlined, InboxOutlined, UploadOutlined, RollbackOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useI18n } from "@/i18n";
 import { formatBytes, formatDateTime } from "@/i18n/formatting";
@@ -21,9 +21,23 @@ import {
   usePostApiAdminBackupArtifactsImport,
 } from "@/api/generated/admin/admin";
 import { useQueryClient } from "@tanstack/react-query";
+import { BackupStatusBadge } from "@/features/backup/components/BackupStatusBadge";
+import {
+  RestoreModal,
+  type RestoreModalBackup,
+} from "@/features/backup/components/RestoreModal";
 
 export interface BackupListProps {
   onRetryInvalidate?: () => Promise<void>;
+  /** When set, only the newest N rows are shown (overview hub). */
+  limit?: number;
+  /** Hide import dropzone — used on compact overview. */
+  compact?: boolean;
+  /**
+   * Client-side strategy filter (API already enforces role).
+   * `tenant` = Mandanten packages only; `system` = System only; `all` = no filter (Super Admin hub).
+   */
+  strategyFilter?: "tenant" | "system" | "all";
 }
 
 type DownloadTarget = {
@@ -41,16 +55,22 @@ function toDownloadTarget(
   return { backupRunId, artifactId, fileName };
 }
 
-export function BackupList({ onRetryInvalidate }: BackupListProps) {
+export function BackupList({
+  onRetryInvalidate,
+  limit,
+  compact = false,
+  strategyFilter = "all",
+}: BackupListProps) {
   const { message } = App.useApp();
   const queryClient = useQueryClient();
   const { t, formatLocale } = useI18n();
-  const { canDownloadBackup } = useBackupPermissions();
+  const { canDownloadBackup, canRestore } = useBackupPermissions();
   const listQuery = useBackupList();
   const importMutation = usePostApiAdminBackupArtifactsImport();
   const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
   const [dumpFile, setDumpFile] = useState<File | null>(null);
   const [manifestFile, setManifestFile] = useState<File | null>(null);
+  const [restoreTarget, setRestoreTarget] = useState<RestoreModalBackup | null>(null);
 
   const formatDate = useCallback(
     (iso: string | undefined | null) => {
@@ -170,53 +190,8 @@ export function BackupList({ onRetryInvalidate }: BackupListProps) {
   );
 
   const columns: ColumnsType<BackupListItemResponseDto> = useMemo(
-    () => [
-      {
-        title: t("backupDr.backupList.fileName"),
-        dataIndex: "fileName",
-        key: "fileName",
-        ellipsis: true,
-        render: (name: string, row) => {
-          const canDownloadRow = Boolean(row.downloadUrl) && canDownloadBackup;
-          if (!canDownloadRow) {
-            return (
-              <Tooltip
-                title={
-                  !row.downloadUrl
-                    ? t("backupDr.backupList.fileNotOnDisk")
-                    : t("backupDr.backupList.noDownloadPermission")
-                }
-              >
-                <Typography.Text strong>{name}</Typography.Text>
-              </Tooltip>
-            );
-          }
-          return (
-            <Tooltip title={t("backupDr.backupList.downloadTooltip")}>
-              <Button
-                type="link"
-                size="small"
-                style={{ padding: 0, height: "auto", fontWeight: 600 }}
-                loading={downloadingKey === `${row.backupRunId}:${row.artifactId}`}
-                onClick={() => {
-                  const target = toDownloadTarget(row.backupRunId, row.artifactId, row.fileName);
-                  if (target) void handleDownload(target);
-                }}
-              >
-                {name}
-              </Button>
-            </Tooltip>
-          );
-        },
-      },
-      {
-        title: t("backupDr.backupList.tenant"),
-        dataIndex: "tenantSlug",
-        key: "tenantSlug",
-        width: 120,
-        render: (slug: string) => <Tag color="blue">{slug || t("backupDr.runsTable.noValue")}</Tag>,
-      },
-      {
+    () => {
+      const dateColumn: ColumnsType<BackupListItemResponseDto>[number] = {
         title: t("backupDr.backupList.date"),
         dataIndex: "createdAt",
         key: "createdAt",
@@ -225,68 +200,211 @@ export function BackupList({ onRetryInvalidate }: BackupListProps) {
         sorter: (a, b) =>
           new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime(),
         defaultSortOrder: "descend",
-      },
-      {
+      };
+
+      const sizeColumn: ColumnsType<BackupListItemResponseDto>[number] = {
         title: t("backupDr.backupList.size"),
         dataIndex: "fileSize",
         key: "fileSize",
         width: 100,
         render: (size: number | null | undefined) => formatFileSize(size),
-      },
-      {
-        title: t("backupDr.backupList.manifest"),
-        key: "manifest",
-        width: 200,
-        ellipsis: true,
-        render: (_: unknown, row) => {
-          if (!row.manifestFileName) return t("backupDr.runsTable.noValue");
-          const canDownloadManifest = Boolean(row.manifestDownloadUrl) && canDownloadBackup;
-          if (!canDownloadManifest) {
-            return (
-              <Tooltip title={t("backupDr.backupList.manifestUnavailable")}>
-                <Typography.Text type="secondary">{row.manifestFileName}</Typography.Text>
-              </Tooltip>
-            );
-          }
+      };
+
+      const statusColumn: ColumnsType<BackupListItemResponseDto>[number] = {
+        title: t("backupDr.backupList.status"),
+        dataIndex: "status",
+        key: "status",
+        width: 150,
+        render: (status: number | undefined) => <BackupStatusBadge status={status} />,
+      };
+
+      const strategyColumn: ColumnsType<BackupListItemResponseDto>[number] = {
+        title: t("backupDr.backupList.strategy"),
+        dataIndex: "strategy",
+        key: "strategy",
+        width: 110,
+        render: (strategy: BackupListItemResponseDto["strategy"]) => {
+          const isTenant = strategy === 0 || strategy === "Tenant";
           return (
-            <Button
-              type="link"
-              size="small"
-              icon={<FileOutlined />}
-              style={{ padding: 0, height: "auto" }}
-              loading={
-                row.manifestArtifactId
-                  ? downloadingKey === `${row.backupRunId}:${row.manifestArtifactId}`
-                  : false
-              }
-              onClick={() => {
-                const target = toDownloadTarget(
-                  row.backupRunId,
-                  row.manifestArtifactId,
-                  row.manifestFileName,
-                );
-                if (target) void handleDownload(target);
-              }}
-            >
-              {row.manifestFileName}
-            </Button>
+            <Tag color={isTenant ? "blue" : "purple"}>
+              {isTenant
+                ? t("backupDr.backupList.strategyTenant")
+                : t("backupDr.backupList.strategySystem")}
+            </Tag>
           );
         },
-      },
-      {
-        title: t("backupDr.backupList.type"),
-        dataIndex: "isFake",
-        key: "isFake",
-        width: 110,
-        render: (isFake: boolean) =>
-          isFake ? (
-            <Tag color="orange">{t("backupDr.backupList.typeTest")}</Tag>
-          ) : (
-            <Tag color="green">{t("backupDr.backupList.typeProduction")}</Tag>
-          ),
-      },
+      };
+
+      const durationColumn: ColumnsType<BackupListItemResponseDto>[number] = {
+        title: t("backupDr.backupList.duration"),
+        dataIndex: "durationFormatted",
+        key: "duration",
+        width: 100,
+        render: (formatted: string | null | undefined, row) => {
+          if (formatted?.trim()) return formatted.trim();
+          if (row.durationSeconds != null && row.durationSeconds >= 0) {
+            return t("backupDr.runsTable.durationMinutes", {
+              minutes: (row.durationSeconds / 60).toFixed(1),
+            });
+          }
+          return t("backupDr.runsTable.noDuration");
+        },
+      };
+
+      const restoreColumn: ColumnsType<BackupListItemResponseDto>[number] | null = canRestore
+        ? {
+            title: t("backupDr.manualRestore.table.actions"),
+            key: "restore",
+            width: 160,
+            render: (_: unknown, row: BackupListItemResponseDto) =>
+              row.backupRunId ? (
+                <Button
+                  type="link"
+                  size="small"
+                  danger
+                  icon={<RollbackOutlined />}
+                  onClick={() =>
+                    setRestoreTarget({
+                      backupRunId: row.backupRunId!,
+                      fileName: row.fileName,
+                      tenantSlug: row.tenantSlug,
+                    })
+                  }
+                >
+                  {t("backupDr.manualRestore.table.requestRestore")}
+                </Button>
+              ) : null,
+          }
+        : null;
+
+      if (compact) {
+        return [
+          dateColumn,
+          ...(strategyFilter === "all" ? [strategyColumn] : []),
+          sizeColumn,
+          statusColumn,
+          durationColumn,
+          ...(restoreColumn ? [restoreColumn] : []),
+        ];
+      }
+
+      return [
+        {
+          title: t("backupDr.backupList.fileName"),
+          dataIndex: "fileName",
+          key: "fileName",
+          ellipsis: true,
+          render: (name: string, row) => {
+            const canDownloadRow = Boolean(row.downloadUrl) && canDownloadBackup;
+            if (!canDownloadRow) {
+              return (
+                <Tooltip
+                  title={
+                    !row.downloadUrl
+                      ? t("backupDr.backupList.fileNotOnDisk")
+                      : t("backupDr.backupList.noDownloadPermission")
+                  }
+                >
+                  <Typography.Text strong>{name}</Typography.Text>
+                </Tooltip>
+              );
+            }
+            return (
+              <Tooltip title={t("backupDr.backupList.downloadTooltip")}>
+                <Button
+                  type="link"
+                  size="small"
+                  style={{ padding: 0, height: "auto", fontWeight: 600 }}
+                  loading={downloadingKey === `${row.backupRunId}:${row.artifactId}`}
+                  onClick={() => {
+                    const target = toDownloadTarget(row.backupRunId, row.artifactId, row.fileName);
+                    if (target) void handleDownload(target);
+                  }}
+                >
+                  {name}
+                </Button>
+              </Tooltip>
+            );
+          },
+        },
+        {
+          title: t("backupDr.backupList.tenant"),
+          dataIndex: "tenantSlug",
+          key: "tenantSlug",
+          width: 120,
+          render: (slug: string) => <Tag color="blue">{slug || t("backupDr.runsTable.noValue")}</Tag>,
+        },
+        ...(strategyFilter === "all" ? [strategyColumn] : []),
+        dateColumn,
+        sizeColumn,
+        statusColumn,
+        durationColumn,
+        {
+          title: t("backupDr.backupList.manifest"),
+          key: "manifest",
+          width: 200,
+          ellipsis: true,
+          render: (_: unknown, row) => {
+            if (!row.manifestFileName) return t("backupDr.runsTable.noValue");
+            const canDownloadManifest = Boolean(row.manifestDownloadUrl) && canDownloadBackup;
+            if (!canDownloadManifest) {
+              return (
+                <Tooltip title={t("backupDr.backupList.manifestUnavailable")}>
+                  <Typography.Text type="secondary">{row.manifestFileName}</Typography.Text>
+                </Tooltip>
+              );
+            }
+            return (
+              <Button
+                type="link"
+                size="small"
+                icon={<FileOutlined />}
+                style={{ padding: 0, height: "auto" }}
+                loading={
+                  row.manifestArtifactId
+                    ? downloadingKey === `${row.backupRunId}:${row.manifestArtifactId}`
+                    : false
+                }
+                onClick={() => {
+                  const target = toDownloadTarget(
+                    row.backupRunId,
+                    row.manifestArtifactId,
+                    row.manifestFileName,
+                  );
+                  if (target) void handleDownload(target);
+                }}
+              >
+                {row.manifestFileName}
+              </Button>
+            );
+          },
+        },
+        {
+          title: t("backupDr.backupList.type"),
+          dataIndex: "isFake",
+          key: "isFake",
+          width: 110,
+          render: (isFake: boolean) =>
+            isFake ? (
+              <Tag color="orange">{t("backupDr.backupList.typeTest")}</Tag>
+            ) : (
+              <Tag color="green">{t("backupDr.backupList.typeProduction")}</Tag>
+            ),
+        },
+        ...(restoreColumn ? [restoreColumn] : []),
+      ];
+    },
+    [
+      canDownloadBackup,
+      canRestore,
+      compact,
+      downloadingKey,
+      formatDate,
+      formatFileSize,
+      handleDownload,
+      strategyFilter,
+      t,
     ],
-    [canDownloadBackup, downloadingKey, formatDate, formatFileSize, handleDownload, t],
   );
 
   const onRetry = useCallback(async () => {
@@ -318,13 +436,35 @@ export function BackupList({ onRetryInvalidate }: BackupListProps) {
     }
   }, [dumpFile, importMutation, listQuery, manifestFile, message, queryClient, t]);
 
+  const rows = useMemo(() => {
+    let all = listQuery.data ?? [];
+    if (strategyFilter === "tenant") {
+      all = all.filter((r) => r.strategy === 0 || r.strategy === "Tenant");
+    } else if (strategyFilter === "system") {
+      all = all.filter((r) => r.strategy === 1 || r.strategy === "System");
+    }
+    if (limit == null || limit <= 0) return all;
+    return all.slice(0, limit);
+  }, [limit, listQuery.data, strategyFilter]);
+
+  const showImport = canDownloadBackup && !compact;
+
   if (listQuery.isLoading && !listQuery.data) {
     return <Spin />;
   }
 
   return (
     <>
-      {canDownloadBackup ? (
+      {canDownloadBackup && !compact ? (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 12 }}
+          title={t("backupDr.backupList.sharedDumpWarningTitle")}
+          description={t("backupDr.backupList.sharedDumpWarningDescription")}
+        />
+      ) : null}
+      {showImport ? (
         <Alert
           type="info"
           showIcon
@@ -333,7 +473,7 @@ export function BackupList({ onRetryInvalidate }: BackupListProps) {
           description={t("backupDr.backupList.import.description")}
         />
       ) : null}
-      {canDownloadBackup ? (
+      {showImport ? (
         <Space orientation="vertical" size={12} style={{ width: "100%", marginBottom: 16 }}>
           <Upload.Dragger
             accept=".dump,.sql"
@@ -396,15 +536,26 @@ export function BackupList({ onRetryInvalidate }: BackupListProps) {
         rowKey={(row) => `${row.backupRunId}:${row.artifactId}`}
         size="small"
         loading={listQuery.isFetching}
-        dataSource={listQuery.data ?? []}
+        dataSource={rows}
         columns={columns}
-        expandable={{
-          expandedRowRender: (row) => renderBackupCard(row),
-          rowExpandable: () => true,
-        }}
+        expandable={
+          compact
+            ? undefined
+            : {
+                expandedRowRender: (row) => renderBackupCard(row),
+                rowExpandable: () => true,
+              }
+        }
         locale={{ emptyText: t("backupDr.backupList.empty") }}
-        pagination={{ pageSize: 20, showSizeChanger: false }}
+        pagination={compact || limit != null ? false : { pageSize: 20, showSizeChanger: false }}
       />
+      {restoreTarget ? (
+        <RestoreModal
+          open
+          backup={restoreTarget}
+          onClose={() => setRestoreTarget(null)}
+        />
+      ) : null}
     </>
   );
 }

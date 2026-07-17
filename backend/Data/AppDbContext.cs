@@ -2649,6 +2649,8 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.TenantId)
                     .HasDatabaseName("ix_backup_runs_tenant_id")
                     .HasFilter("tenant_id IS NOT NULL");
+                entity.HasIndex(e => e.Strategy)
+                    .HasDatabaseName("ix_backup_runs_strategy");
                 entity.HasIndex(e => e.NextRetryAtUtc)
                     .HasDatabaseName("ix_backup_runs_next_retry_at")
                     .HasFilter("next_retry_at_utc IS NOT NULL");
@@ -2677,6 +2679,8 @@ namespace KasseAPI_Final.Data
                 entity.ToTable("backup_artifacts");
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.BackupRunId);
+                entity.HasIndex(e => e.StorageTier)
+                    .HasDatabaseName("ix_backup_artifacts_storage_tier");
             });
 
             builder.Entity<BackupVerification>(entity =>

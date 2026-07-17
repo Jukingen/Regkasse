@@ -14,11 +14,18 @@ public sealed class FakeBackupExecutionAdapter : IBackupExecutionAdapter
 {
     private readonly IOptionsMonitor<BackupOptions> _options;
     private readonly IBackupChecksumService _checksum;
+    private readonly IBackupEncryptionService _encryption;
 
-    public FakeBackupExecutionAdapter(IOptionsMonitor<BackupOptions> options, IBackupChecksumService checksum)
+    public FakeBackupExecutionAdapter(
+        IOptionsMonitor<BackupOptions> options,
+        IBackupChecksumService checksum,
+        IBackupEncryptionService? encryption = null)
     {
         _options = options;
         _checksum = checksum;
+        _encryption = encryption ?? new BackupEncryptionService(
+            options,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<BackupEncryptionService>.Instance);
     }
 
     public string AdapterKind => "Fake";
@@ -50,12 +57,16 @@ public sealed class FakeBackupExecutionAdapter : IBackupExecutionAdapter
 
             var stubPayload = Encoding.UTF8.GetBytes($"fake-bytes-{context.BackupRunId:N}");
             await File.WriteAllBytesAsync(stubLogicalPath, stubPayload, context.CancellationToken);
+            await _encryption.EncryptFileInPlaceAsync(stubLogicalPath, context.CancellationToken);
 
             var stubMeta = JsonSerializer.Serialize(new { phase = 1, note = "no real pg_dump", noStagingRoot = true });
             await File.WriteAllTextAsync(stubManifestPath, stubMeta, context.CancellationToken);
+            await _encryption.EncryptFileInPlaceAsync(stubManifestPath, context.CancellationToken);
 
             var stubLogicalHash = await _checksum.ComputeFileSha256HexAsync(stubLogicalPath, context.CancellationToken);
             var stubManifestHash = await _checksum.ComputeFileSha256HexAsync(stubManifestPath, context.CancellationToken);
+            var stubLogicalLen = new FileInfo(stubLogicalPath).Length;
+            var stubManifestLen = new FileInfo(stubManifestPath).Length;
 
             return new BackupExecutionResult
             {
@@ -66,7 +77,7 @@ public sealed class FakeBackupExecutionAdapter : IBackupExecutionAdapter
                     {
                         ArtifactType = BackupArtifactType.LogicalDump,
                         StorageDescriptor = stubLogicalPath,
-                        ByteSize = stubPayload.Length,
+                        ByteSize = stubLogicalLen,
                         ContentHashSha256 = stubLogicalHash,
                         MetadataJson = stubMeta,
                         // Staging kökü yapılandırılmadığında doğrulama yalnızca metadata; dosya yine diskte (indirme için).
@@ -76,7 +87,7 @@ public sealed class FakeBackupExecutionAdapter : IBackupExecutionAdapter
                     {
                         ArtifactType = BackupArtifactType.VerificationManifest,
                         StorageDescriptor = stubManifestPath,
-                        ByteSize = stubMeta.Length,
+                        ByteSize = stubManifestLen,
                         ContentHashSha256 = stubManifestHash,
                         MetadataJson = "{\"kind\":\"fake-manifest\"}",
                         RequireOnDiskHashVerification = false
@@ -99,12 +110,16 @@ public sealed class FakeBackupExecutionAdapter : IBackupExecutionAdapter
 
         var payload = Encoding.UTF8.GetBytes($"fake-bytes-{context.BackupRunId:N}");
         await File.WriteAllBytesAsync(logicalPath, payload, context.CancellationToken);
+        await _encryption.EncryptFileInPlaceAsync(logicalPath, context.CancellationToken);
 
         var metaOnDisk = JsonSerializer.Serialize(new { phase = 1, note = "no real pg_dump" });
         await File.WriteAllTextAsync(manifestPath, metaOnDisk, context.CancellationToken);
+        await _encryption.EncryptFileInPlaceAsync(manifestPath, context.CancellationToken);
 
         var logicalHash = await _checksum.ComputeFileSha256HexAsync(logicalPath, context.CancellationToken);
         var manifestHash = await _checksum.ComputeFileSha256HexAsync(manifestPath, context.CancellationToken);
+        var logicalLen = new FileInfo(logicalPath).Length;
+        var manifestLen = new FileInfo(manifestPath).Length;
 
         return new BackupExecutionResult
         {
@@ -115,7 +130,7 @@ public sealed class FakeBackupExecutionAdapter : IBackupExecutionAdapter
                 {
                     ArtifactType = BackupArtifactType.LogicalDump,
                     StorageDescriptor = logicalName,
-                    ByteSize = payload.Length,
+                    ByteSize = logicalLen,
                     ContentHashSha256 = logicalHash,
                     MetadataJson = metaOnDisk,
                     RequireOnDiskHashVerification = true
@@ -124,7 +139,7 @@ public sealed class FakeBackupExecutionAdapter : IBackupExecutionAdapter
                 {
                     ArtifactType = BackupArtifactType.VerificationManifest,
                     StorageDescriptor = manifestName,
-                    ByteSize = metaOnDisk.Length,
+                    ByteSize = manifestLen,
                     ContentHashSha256 = manifestHash,
                     MetadataJson = "{\"kind\":\"fake-manifest\"}",
                     RequireOnDiskHashVerification = true

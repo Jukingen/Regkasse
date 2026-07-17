@@ -78,6 +78,7 @@ public sealed class ActivityBackupAlertPublisher : IBackupAlertPublisher
         {
             BackupAlertKind.RestoreVerificationFailed => (ActivityEventType.RestoreDrillFailed, "restore_drill_failed"),
             BackupAlertKind.RestoreDrillOperationalRisk => (ActivityEventType.RestoreDrillFailed, "restore_drill_risk"),
+            BackupAlertKind.StoragePressure => (ActivityEventType.BackupFailed, "backup_storage_pressure"),
             _ => (ActivityEventType.BackupFailed, "backup_failed"),
         };
 }

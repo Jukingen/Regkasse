@@ -11,32 +11,27 @@ using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
-using Environments = Microsoft.Extensions.Hosting.Environments;
 
 namespace KasseAPI_Final.Tests;
 
-/// <summary>
-/// POST /api/admin/backup/trigger tenant-scoping guard: a tenant-scoped role (Manager with backup.manage)
-/// may only enqueue while bound to a resolved tenant context; SuperAdmin operates deployment-wide.
-/// The endpoint never accepts a client-supplied tenantId, so cross-tenant triggering is impossible by construction.
-/// </summary>
 public sealed class AdminBackupTriggerTenantScopingTests
 {
-    private static AppDbContext CreateDb() =>
-        new(new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase($"admin_backup_trigger_scope_{Guid.NewGuid():N}")
-            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
-            .Options);
-
-    private static IOptionsMonitor<BackupOptions> OptionsMonitor(BackupOptions value)
+    private static AppDbContext CreateDb()
     {
-        var mock = new Mock<IOptionsMonitor<BackupOptions>>();
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
+            .Options;
+        return new AppDbContext(options);
+    }
+
+    private static IOptionsMonitor<T> OptionsMonitor<T>(T value) where T : class
+    {
+        var mock = new Mock<IOptionsMonitor<T>>();
         mock.Setup(m => m.CurrentValue).Returns(value);
         return mock.Object;
     }
@@ -49,6 +44,7 @@ public sealed class AdminBackupTriggerTenantScopingTests
             Status = BackupRunStatus.Queued,
             TriggerSource = BackupTriggerSource.Manual,
             AdapterKind = BackupExecutionAdapterKind.Fake.ToString(),
+            Strategy = BackupStrategyKind.Tenant,
             RequestedAt = DateTime.UtcNow,
             QueuedAt = DateTime.UtcNow,
         },
@@ -67,6 +63,8 @@ public sealed class AdminBackupTriggerTenantScopingTests
                 It.IsAny<string>(),
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
+                It.IsAny<BackupStrategyKind?>(),
+                It.IsAny<bool>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(NewRunQueuedOutcome());
 
@@ -89,11 +87,14 @@ public sealed class AdminBackupTriggerTenantScopingTests
             db,
             Mock.Of<IBackupSettingsAdminService>(),
             Mock.Of<IBackupDashboardStatsService>(),
+            Mock.Of<IBackupComplianceStatusService>(),
+            Mock.Of<IBackupStorageCostService>(),
             Mock.Of<IPitrService>(),
             Mock.Of<IBackupVerificationReportService>(),
             Mock.Of<ICurrentTenantAccessor>(a => a.TenantId == tenantId),
             Mock.Of<IBackupRunTenantAccessService>(),
-            Mock.Of<IBackupArtifactImportService>());
+            Mock.Of<IBackupArtifactImportService>(),
+            Mock.Of<IBackupTimeEstimator>());
 
         var http = new DefaultHttpContext
         {
@@ -125,6 +126,8 @@ public sealed class AdminBackupTriggerTenantScopingTests
                 It.IsAny<string>(),
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
+                It.IsAny<BackupStrategyKind?>(),
+                It.IsAny<bool>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -144,12 +147,14 @@ public sealed class AdminBackupTriggerTenantScopingTests
                 It.IsAny<string>(),
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
+                It.IsAny<BackupStrategyKind?>(),
+                It.IsAny<bool>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
     [Fact]
-    public async Task Trigger_SuperAdmin_WithoutTenantContext_Enqueues_DeploymentWide()
+    public async Task Trigger_SuperAdmin_WithoutTenantContext_Enqueues()
     {
         await using var db = CreateDb();
         var (controller, trigger) = CreateController(db, Roles.SuperAdmin, tenantId: null);
@@ -163,6 +168,8 @@ public sealed class AdminBackupTriggerTenantScopingTests
                 It.IsAny<string>(),
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
+                It.IsAny<BackupStrategyKind?>(),
+                It.IsAny<bool>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }

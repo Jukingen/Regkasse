@@ -782,9 +782,16 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(1024)")
                         .HasColumnName("storage_descriptor");
 
+                    b.Property<int>("StorageTier")
+                        .HasColumnType("integer")
+                        .HasColumnName("storage_tier");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BackupRunId");
+
+                    b.HasIndex("StorageTier")
+                        .HasDatabaseName("ix_backup_artifacts_storage_tier");
 
                     b.ToTable("backup_artifacts", (string)null);
                 });
@@ -890,6 +897,10 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("status");
 
+                    b.Property<int>("Strategy")
+                        .HasColumnType("integer")
+                        .HasColumnName("strategy");
+
                     b.Property<Guid?>("TenantId")
                         .HasColumnType("uuid")
                         .HasColumnName("tenant_id");
@@ -915,6 +926,9 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("RequestedAt");
 
                     b.HasIndex("Status");
+
+                    b.HasIndex("Strategy")
+                        .HasDatabaseName("ix_backup_runs_strategy");
 
                     b.HasIndex("TenantId")
                         .HasDatabaseName("ix_backup_runs_tenant_id")

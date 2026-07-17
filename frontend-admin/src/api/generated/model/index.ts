@@ -122,6 +122,7 @@ export * from './backupRunResponseDto';
 export * from './backupRunResponseDtoStatus';
 export * from './backupRunResponseDtoTriggerSource';
 export * from './backupRunStatus';
+export * from './backupStrategyKind';
 export * from './backupScheduleConfigurationDto';
 export * from './backupScheduleFrequency';
 export * from './backupScheduleLatestRunSummaryDto';

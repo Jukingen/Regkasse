@@ -10,8 +10,8 @@ namespace KasseAPI_Final.Services.Backup;
 /// <summary>Admin-facing per-tenant backup automation (cron + retention).</summary>
 public sealed class BackupSettingsAdminService : IBackupSettingsAdminService
 {
-    public const int MinRetentionDays = 1;
-    public const int MaxRetentionDays = 3650;
+    public const int MinRetentionDays = 7;
+    public const int MaxRetentionDays = 90;
 
     private readonly AppDbContext _db;
     private readonly ICurrentTenantAccessor _tenantAccessor;

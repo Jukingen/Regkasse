@@ -124,6 +124,8 @@
     "last_backup": "Last backup",
     "no_backup": "No backup yet",
     "success_rate_30d": "Success rate (30 days)",
+    "storage": "Storage",
+    "storage_alert": "Storage limit approaching (staging ≥ 80%)",
     "config_health": "Configuration: {{level}}",
     "view_details": "Open backup overview",
     "load_failed": "Could not load backup status."

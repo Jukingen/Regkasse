@@ -18,7 +18,6 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
 import { useCanManageTenantDeletion } from '@/features/super-admin/hooks/useCanManageTenantDeletion';
-import { CreateTenantWizard } from '@/features/super-admin/components/CreateTenantWizard';
 import { ImpersonationRedirectOverlay } from '@/features/super-admin/components/ImpersonationRedirectOverlay';
 import { TenantLicenseBadge } from '@/features/super-admin/components/TenantLicenseBadge';
 import { TenantStatusBadge } from '@/features/super-admin/components/TenantStatusBadge';
@@ -59,7 +58,6 @@ export default function SuperAdminTenantsPage() {
     const { user } = useAuth();
     const queryClient = useQueryClient();
     const [includeDeleted, setIncludeDeleted] = useState(false);
-    const [createOpen, setCreateOpen] = useState(false);
     const [editRow, setEditRow] = useState<AdminTenantListItem | null>(null);
     const [editForm] = Form.useForm<TenantFormValues>();
     const [impersonationRedirecting, setImpersonationRedirecting] = useState(false);
@@ -252,9 +250,11 @@ export default function SuperAdminTenantsPage() {
                     { title: t('tenants.page.title'), href: '/admin/tenants' },
                 ]}
                 actions={
-                    <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
-                        {t('tenants.actions.create')}
-                    </Button>
+                    <Link href="/admin/tenants/create">
+                        <Button type="primary" icon={<PlusOutlined />}>
+                            {t('tenants.actions.create')}
+                        </Button>
+                    </Link>
                 }
             />
 
@@ -311,15 +311,6 @@ export default function SuperAdminTenantsPage() {
                     }}
                 />
             </Card>
-
-            <CreateTenantWizard
-                open={createOpen}
-                onClose={() => setCreateOpen(false)}
-                onCreated={invalidateTenants}
-                onCreateAnother={() => setCreateOpen(true)}
-                onSwitchToTenant={(tenantId) => impersonateMutation.mutate(tenantId)}
-                switchToTenantLoading={impersonateMutation.isPending}
-            />
 
             <Modal
                 title={t('tenants.edit.title')}

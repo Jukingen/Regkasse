@@ -24,6 +24,7 @@ public sealed class BackupRunAccessEvaluatorTests
         {
             Id = Guid.NewGuid(),
             Status = BackupRunStatus.Succeeded,
+            Strategy = BackupStrategyKind.Tenant,
             TriggerSource = BackupTriggerSource.Manual,
             AdapterKind = "Fake",
             TenantId = TenantA,
@@ -43,6 +44,7 @@ public sealed class BackupRunAccessEvaluatorTests
             {
                 Id = Guid.NewGuid(),
                 Status = BackupRunStatus.Succeeded,
+                Strategy = BackupStrategyKind.Tenant,
                 TriggerSource = BackupTriggerSource.Manual,
                 AdapterKind = "Fake",
                 TenantId = TenantA,
@@ -52,6 +54,7 @@ public sealed class BackupRunAccessEvaluatorTests
             {
                 Id = Guid.NewGuid(),
                 Status = BackupRunStatus.Succeeded,
+                Strategy = BackupStrategyKind.Tenant,
                 TriggerSource = BackupTriggerSource.Manual,
                 AdapterKind = "Fake",
                 TenantId = Guid.NewGuid(),
@@ -68,19 +71,20 @@ public sealed class BackupRunAccessEvaluatorTests
     }
 
     [Fact]
-    public void IsRunAccessible_allows_scheduled_deployment_wide_run_for_manager()
+    public void IsRunAccessible_denies_scheduled_system_run_for_manager()
     {
         var run = new BackupRun
         {
             Id = Guid.NewGuid(),
             Status = BackupRunStatus.Succeeded,
+            Strategy = BackupStrategyKind.System,
             TriggerSource = BackupTriggerSource.Scheduled,
             AdapterKind = "Fake",
             TenantId = null,
         };
 
         var scope = new BackupRunAccessScope(IsSuperAdmin: false, TenantA, "manager-1");
-        Assert.True(BackupRunAccessEvaluator.IsRunAccessible(run, scope));
+        Assert.False(BackupRunAccessEvaluator.IsRunAccessible(run, scope));
     }
 
     [Fact]
@@ -91,6 +95,7 @@ public sealed class BackupRunAccessEvaluatorTests
         {
             Id = Guid.NewGuid(),
             Status = BackupRunStatus.Succeeded,
+            Strategy = BackupStrategyKind.Tenant,
             TriggerSource = BackupTriggerSource.Manual,
             AdapterKind = "Fake",
             TenantId = otherTenant,
@@ -101,16 +106,18 @@ public sealed class BackupRunAccessEvaluatorTests
     }
 
     [Fact]
-    public async Task ApplyCallerAccessFilter_includes_scheduled_runs_for_manager()
+    public async Task ApplyCallerAccessFilter_excludes_scheduled_system_runs_for_manager()
     {
         await using var db = CreateDb();
         var scheduledId = Guid.NewGuid();
+        var tenantRunId = Guid.NewGuid();
         var otherManualId = Guid.NewGuid();
         db.BackupRuns.AddRange(
             new BackupRun
             {
                 Id = scheduledId,
                 Status = BackupRunStatus.Succeeded,
+                Strategy = BackupStrategyKind.System,
                 TriggerSource = BackupTriggerSource.Scheduled,
                 AdapterKind = "Fake",
                 TenantId = null,
@@ -118,8 +125,19 @@ public sealed class BackupRunAccessEvaluatorTests
             },
             new BackupRun
             {
+                Id = tenantRunId,
+                Status = BackupRunStatus.Succeeded,
+                Strategy = BackupStrategyKind.Tenant,
+                TriggerSource = BackupTriggerSource.Manual,
+                AdapterKind = "Fake",
+                TenantId = TenantA,
+                RequestedAt = DateTime.UtcNow.AddMinutes(-2),
+            },
+            new BackupRun
+            {
                 Id = otherManualId,
                 Status = BackupRunStatus.Succeeded,
+                Strategy = BackupStrategyKind.Tenant,
                 TriggerSource = BackupTriggerSource.Manual,
                 AdapterKind = "Fake",
                 TenantId = Guid.NewGuid(),
@@ -133,7 +151,8 @@ public sealed class BackupRunAccessEvaluatorTests
             .Select(r => r.Id)
             .ToListAsync();
 
-        Assert.Contains(scheduledId, ids);
+        Assert.Contains(tenantRunId, ids);
+        Assert.DoesNotContain(scheduledId, ids);
         Assert.DoesNotContain(otherManualId, ids);
     }
 
@@ -190,6 +209,7 @@ public sealed class BackupRunAccessEvaluatorTests
             {
                 Id = runA,
                 Status = BackupRunStatus.Succeeded,
+                Strategy = BackupStrategyKind.Tenant,
                 TriggerSource = BackupTriggerSource.Manual,
                 AdapterKind = "Fake",
                 TenantId = tenantA,
@@ -199,6 +219,7 @@ public sealed class BackupRunAccessEvaluatorTests
             {
                 Id = runB,
                 Status = BackupRunStatus.Succeeded,
+                Strategy = BackupStrategyKind.Tenant,
                 TriggerSource = BackupTriggerSource.Manual,
                 AdapterKind = "Fake",
                 TenantId = tenantB,

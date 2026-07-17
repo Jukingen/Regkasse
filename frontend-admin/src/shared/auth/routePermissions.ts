@@ -114,6 +114,10 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   /** Canonical backup & DR routes */
   '/backup': PERMISSIONS.SETTINGS_VIEW,
   '/backup/dashboard': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/performance': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/compliance': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/costs': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/restore-history': PERMISSIONS.SETTINGS_VIEW,
   '/backup/runs': PERMISSIONS.SETTINGS_VIEW,
   '/backup/configuration': PERMISSIONS.SETTINGS_VIEW,
   '/backup/configuration/schedule': PERMISSIONS.BACKUP_MANAGE,

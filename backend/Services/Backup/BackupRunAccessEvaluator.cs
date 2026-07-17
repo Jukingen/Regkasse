@@ -3,8 +3,9 @@ using KasseAPI_Final.Models.Backup;
 namespace KasseAPI_Final.Services.Backup;
 
 /// <summary>
-/// Central tenant access rules for deployment-wide <see cref="BackupRun"/> rows
-/// (canonical <see cref="BackupRun.TenantId"/> with idempotency-key legacy fallback).
+/// Central tenant access rules for <see cref="BackupRun"/> rows.
+/// Mandanten-Admin sees only <see cref="BackupStrategyKind.Tenant"/> for their tenant —
+/// never System dumps (Identity / all-tenants).
 /// </summary>
 public static class BackupRunAccessEvaluator
 {
@@ -16,12 +17,13 @@ public static class BackupRunAccessEvaluator
         if (!scope.CallerTenantId.HasValue || scope.CallerTenantId.Value == Guid.Empty)
             return false;
 
+        // System strategy (scheduled / all-tenants / Super Admin packages) is Super Admin only.
+        if (run.Strategy == BackupStrategyKind.System)
+            return false;
+
         var callerTenantId = scope.CallerTenantId.Value;
         if (run.TenantId.HasValue)
             return run.TenantId.Value == callerTenantId;
-
-        if (IsSharedDeploymentWideRun(run))
-            return true;
 
         if (BackupRunTenantSlugResolver.MatchesTenantHint(run, callerTenantId))
             return true;
@@ -45,47 +47,50 @@ public static class BackupRunAccessEvaluator
         var callerUserId = scope.CallerUserId;
 
         return query.Where(r =>
-            r.TenantId == tenantId
-            || (r.TenantId == null
-                && (r.TriggerSource == BackupTriggerSource.Scheduled
-                    || (r.IdempotencyKey != null
-                        && r.IdempotencyKey.ToLower().StartsWith("manual-all-tenants"))))
-            || (r.TenantId == null
-                && r.IdempotencyKey != null
-                && (r.IdempotencyKey.ToLower().Contains(manualNeedle)
-                    || r.IdempotencyKey.ToLower().Contains(importNeedle)))
-            || (r.TenantId == null
-                && r.TriggerSource == BackupTriggerSource.Manual
-                && callerUserId != null
-                && r.RequestedByUserId == callerUserId
-                && (r.IdempotencyKey == null
-                    || (!r.IdempotencyKey.ToLower().Contains("manual-tenant-")
-                        && !r.IdempotencyKey.ToLower().StartsWith("manual-all-tenants")
-                        && !r.IdempotencyKey.ToLower().Contains("import-tenant-")))));
+            r.Strategy == BackupStrategyKind.Tenant
+            && (
+                r.TenantId == tenantId
+                || (r.TenantId == null
+                    && r.IdempotencyKey != null
+                    && (r.IdempotencyKey.ToLower().Contains(manualNeedle)
+                        || r.IdempotencyKey.ToLower().Contains(importNeedle)))
+                || (r.TenantId == null
+                    && r.TriggerSource == BackupTriggerSource.Manual
+                    && callerUserId != null
+                    && r.RequestedByUserId == callerUserId
+                    && (r.IdempotencyKey == null
+                        || (!r.IdempotencyKey.ToLower().Contains("manual-tenant-")
+                            && !r.IdempotencyKey.ToLower().StartsWith("manual-all-tenants")
+                            && !r.IdempotencyKey.ToLower().Contains("import-tenant-"))))));
     }
 
-    /// <summary>Tenant-scoped backup list/history filter (tenant_id column + shared deployment runs + legacy idempotency hint).</summary>
+    /// <summary>
+    /// Tenant-scoped list/history filter: Tenant strategy for this tenant only
+    /// (plus legacy idempotency-encoded tenant rows). Excludes System / shared dumps.
+    /// </summary>
     public static IQueryable<BackupRun> ApplyTenantScopeFilter(IQueryable<BackupRun> query, Guid tenantId)
     {
         var manualNeedle = $"manual-tenant-{tenantId}".ToLowerInvariant();
         var importNeedle = $"import-tenant-{tenantId}".ToLowerInvariant();
         return query.Where(r =>
-            r.TenantId == tenantId
-            || (r.TenantId == null
-                && (r.TriggerSource == BackupTriggerSource.Scheduled
-                    || (r.IdempotencyKey != null
-                        && r.IdempotencyKey.ToLower().StartsWith("manual-all-tenants"))))
-            || (r.TenantId == null
-                && r.IdempotencyKey != null
-                && (r.IdempotencyKey.ToLower().Contains(manualNeedle)
-                    || r.IdempotencyKey.ToLower().Contains(importNeedle))));
+            r.Strategy == BackupStrategyKind.Tenant
+            && (
+                r.TenantId == tenantId
+                || (r.TenantId == null
+                    && r.IdempotencyKey != null
+                    && (r.IdempotencyKey.ToLower().Contains(manualNeedle)
+                        || r.IdempotencyKey.ToLower().Contains(importNeedle)))));
     }
 
     /// <summary>
-    /// Deployment-wide backup rows readable/downloadable by any tenant-scoped Manager (shared PostgreSQL dump).
+    /// Deployment-wide System rows (scheduled / all-tenants). Visible to Super Admin only —
+    /// Managers must not download these (may contain Identity + all tenants).
     /// </summary>
     public static bool IsSharedDeploymentWideRun(BackupRun run)
     {
+        if (run.Strategy == BackupStrategyKind.System)
+            return true;
+
         if (run.TenantId.HasValue)
             return false;
 

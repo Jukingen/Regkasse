@@ -71,11 +71,14 @@ public sealed class AdminBackupReadTenantScopingTests
             db,
             Mock.Of<IBackupSettingsAdminService>(),
             Mock.Of<IBackupDashboardStatsService>(),
+            Mock.Of<IBackupComplianceStatusService>(),
+            Mock.Of<IBackupStorageCostService>(),
             Mock.Of<IPitrService>(),
             Mock.Of<IBackupVerificationReportService>(),
             Mock.Of<ICurrentTenantAccessor>(a => a.TenantId == tenantId),
             tenantAccess,
-            Mock.Of<IBackupArtifactImportService>());
+            Mock.Of<IBackupArtifactImportService>(),
+            Mock.Of<IBackupTimeEstimator>());
 
         var claims = new List<Claim>
         {
@@ -102,6 +105,8 @@ public sealed class AdminBackupReadTenantScopingTests
                 Status = BackupRunStatus.Succeeded,
                 TriggerSource = BackupTriggerSource.Manual,
                 AdapterKind = "Fake",
+                Strategy = BackupStrategyKind.Tenant,
+                TenantId = TenantA,
                 IdempotencyKey = $"manual-tenant-{TenantA:D}-1",
                 RequestedAt = DateTime.UtcNow.AddHours(-1),
             },
@@ -111,6 +116,8 @@ public sealed class AdminBackupReadTenantScopingTests
                 Status = BackupRunStatus.Succeeded,
                 TriggerSource = BackupTriggerSource.Manual,
                 AdapterKind = "Fake",
+                Strategy = BackupStrategyKind.Tenant,
+                TenantId = TenantB,
                 IdempotencyKey = $"manual-tenant-{TenantB:D}-2",
                 RequestedAt = DateTime.UtcNow,
             });
@@ -176,7 +183,7 @@ public sealed class AdminBackupReadTenantScopingTests
     }
 
     [Fact]
-    public async Task GetRunById_Manager_CanReadScheduledDeploymentRun()
+    public async Task GetRunById_Manager_CannotReadScheduledSystemRun()
     {
         await using var db = CreateDb();
         var scheduledId = Guid.NewGuid();
@@ -186,6 +193,7 @@ public sealed class AdminBackupReadTenantScopingTests
             Status = BackupRunStatus.Succeeded,
             TriggerSource = BackupTriggerSource.Scheduled,
             AdapterKind = "Fake",
+            Strategy = BackupStrategyKind.System,
             TenantId = null,
             RequestedAt = DateTime.UtcNow,
         });
@@ -194,7 +202,7 @@ public sealed class AdminBackupReadTenantScopingTests
         var controller = CreateController(db, Roles.Manager, TenantA, new BackupRunTenantAccessService(db));
         var result = await controller.GetRunById(scheduledId, CancellationToken.None);
 
-        Assert.IsType<OkObjectResult>(result.Result);
+        Assert.IsType<NotFoundResult>(result.Result);
     }
 
     [Fact]
@@ -221,6 +229,7 @@ public sealed class AdminBackupReadTenantScopingTests
                 Status = BackupRunStatus.Succeeded,
                 TriggerSource = BackupTriggerSource.Manual,
                 AdapterKind = "Fake",
+                Strategy = BackupStrategyKind.Tenant,
                 TenantId = TenantA,
                 RequestedAt = DateTime.UtcNow.AddHours(-2),
             },
@@ -230,6 +239,7 @@ public sealed class AdminBackupReadTenantScopingTests
                 Status = BackupRunStatus.Succeeded,
                 TriggerSource = BackupTriggerSource.Manual,
                 AdapterKind = "Fake",
+                Strategy = BackupStrategyKind.Tenant,
                 TenantId = TenantB,
                 RequestedAt = DateTime.UtcNow,
             });

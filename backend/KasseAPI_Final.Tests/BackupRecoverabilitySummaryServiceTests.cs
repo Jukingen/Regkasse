@@ -377,6 +377,9 @@ public sealed class BackupRecoverabilitySummaryServiceTests
             nameof(BackupLatestStatusResponseDto.AverageSucceededBackupDurationSampleCount),
             nameof(BackupLatestStatusResponseDto.AverageSucceededBackupDurationSeconds),
             nameof(BackupLatestStatusResponseDto.ConfigurationHealth),
+            nameof(BackupLatestStatusResponseDto.EstimatedRemainingSeconds),
+            nameof(BackupLatestStatusResponseDto.EstimatedTotalSeconds),
+            nameof(BackupLatestStatusResponseDto.EstimateSource),
             nameof(BackupLatestStatusResponseDto.LatestRun),
             nameof(BackupLatestStatusResponseDto.Restore)
         };

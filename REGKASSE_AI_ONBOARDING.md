@@ -63,6 +63,7 @@ The project aims to provide a production-grade POS system that can:
 7. Provide an admin panel for reporting, RKSV status, receipts, payments, vouchers, and special receipt operations.
 8. Support fiscal export packages for diagnostics and internal analysis (explicitly not legal RKSV proof; see Fiscal Export section).
 9. Keep all critical fiscal operations auditable.
+10. Provide Backup & Disaster Recovery with Tenant vs System strategies, role-aware Admin UI, and validation-only restore (no production restore via API).
 
 ---
 
@@ -360,7 +361,7 @@ Request DTOs: `CreateTenantUserRequest`, `CreateQuickTenantUserRequest`, `AdminC
 
 Full guide: **`docs/USER_MANAGEMENT.md`**.
 
-**Backup (Mandanten-Admin):** default `backup.manage` + `settings.view`; not `settings.manage`. See **`docs/BACKUP_PERMISSIONS.md`**, **`ai/modules/backup_permissions.md`**.
+**Backup (Mandanten-Admin):** default `backup.manage` + `settings.view`; not `settings.manage`. Tenant strategy only (no Identity / no System dumps). See **`docs/BACKUP_AND_DISASTER_RECOVERY.md`**, **`docs/BACKUP_PERMISSIONS.md`**, **`ai/modules/backup_permissions.md`**.
 
 **Role:** `SuperAdmin` only on `AdminTenantsController` for tenant CRUD (`[Authorize(Roles = SuperAdmin)]`).
 
@@ -373,6 +374,8 @@ Full guide: **`docs/USER_MANAGEMENT.md`**.
 5. Server logs record actor user id + tenant; **`impersonated_by` on `AuditLog` is not yet implemented** (do not document as present).
 
 Cannot impersonate deleted, suspended, or inactive tenants.
+
+**Backup strategy (detail):** see **[Backup Strategy](#backup-strategy)** below · hub [`docs/BACKUP_AND_DISASTER_RECOVERY.md`](docs/BACKUP_AND_DISASTER_RECOVERY.md).
 
 ### Multi-Tenant Security
 
@@ -465,6 +468,54 @@ EXPO_PUBLIC_DEV_TENANT_ID=dev
   - can append **`?tenant=<slug>`** to the dev base URL via `hydrateDevTenantApiBaseUrl()`.
 
 Restart Metro after changing `.env`.
+
+---
+
+## Backup Strategy
+
+**Hub:** [`docs/BACKUP_AND_DISASTER_RECOVERY.md`](docs/BACKUP_AND_DISASTER_RECOVERY.md) · Full guide: [`docs/BACKUP_SYSTEM.md`](docs/BACKUP_SYSTEM.md) · Always-applied: [`AGENTS.md`](AGENTS.md) § Backup & Disaster Recovery.  
+**Detail:** [`docs/BACKUP_CONTENT_POLICY.md`](docs/BACKUP_CONTENT_POLICY.md), [`docs/BACKUP_PERMISSIONS.md`](docs/BACKUP_PERMISSIONS.md), [`docs/restore-boundary-notes.md`](docs/restore-boundary-notes.md).
+
+### Tenant Backup
+
+- **Trigger:** Mandanten-Admin (`Manager`) via `IBackupService.CreateTenantBackupAsync` / manual FA trigger (`backup.manage` + JWT tenant context). Not the daily cron product path.
+- **Scope:** Tenant-specific business/fiscal data only (payments, receipts, products, customers, vouchers, cash registers, tenant audit, invoice metadata).
+- **Artifact:** `*.tenant.zip` (JSON tables). **No** AspNet Identity / credentials.
+- **Retention:** **30** days default (API/FA configurable **7–90**).
+- **Compression:** ZIP archive (deflate). Not a separate `.gz` sidecar.
+- **Access:** Own tenant list/download only; Managers never see System dumps.
+
+### System Backup
+
+- **Schedule:** Daily automatic at **02:00 UTC** by default (`scheduleCron: "0 2 * * *"`, `BackupScheduledEnqueueService`) — **System** strategy (`tenant_id` null).
+- **Also:** Super Admin manual `CreateSystemBackupAsync`.
+- **Scope:** All active tenants + system data (platform settings, deployment licenses, full audit).
+- **Artifact:** `pg_dump -Fc` (custom format, zlib **`-Z6`**) **+** `*.system.zip` (includes Identity).
+- **Retention:** **90** days default.
+- **Recovery:** Validation restore / drills use System `pg_dump` artifacts (isolated `restore_validation_*` DB). Full live production recovery remains operator/DBA-led outside the API. Tenant ZIP is **not** `pg_restore`-compatible.
+
+### RKSV Compliance
+
+- Restore only to the **same tenant** when ambient tenant and `backup_runs.tenant_id` are both set (`IRestoreService`).
+- Cross-tenant restore via API is prohibited (**404**).
+- Restore workflow timestamps recorded (`RequestedAt` / `ApprovedAt` / audit UTC); original fiscal timestamps (**`IssuedAt`**, receipt times) are **preserved** (no backdating).
+- Audit trail: who, when, what (`AuditEventType.Restore*`, correlation id, source backup tenant / scope).
+- No production restore via API; dual Super Admin approval for validation restore. Mandanten-Admin cannot restore.
+
+### Cost Optimization
+
+- Compressed backups: System `pg_dump -Fc -Z6`; Tenant/System ZIP via `CompressionService` (text/JSON Optimal; already-compressed entries NoCompression).
+- Configurable retention (7–90 days clamp on admin settings; strategy defaults 30 / 90).
+- Storage usage alerts at **80%** staging disk (`Backup:StagingDiskUsageAlertPercent`); FA dashboard warning + periodic `StorageAlertService` (default every 6h).
+- Automatic cleanup of expired succeeded backups (`BackupSucceededRunRetentionCleaner`).
+- Optional smart GFS retention (`Backup:SmartRetentionEnabled` → `SmartRetentionService`: 7 daily / 4 weekly / 12 monthly / 7 yearly).
+- Optional storage tiers (`Backup:StorageTierManagementEnabled` → `StorageTierService`: Hot ≤7d / Warm ≤30d / Cold &gt;30d; Cold prefers `ExternalArchiveRoot`).
+- Enqueue storage budget guard (~**10 GB** summed succeeded dumps via `BackupService.MaxStorageBytes`); `StorageAlertService` also alerts at **80%** of that budget.
+
+### FA (role-aware)
+
+- `/backup` hub: `TenantBackupView` (Mandanten-Admin) vs `SystemBackupView` (Super Admin).
+- Detail: `/backup/dashboard`, runs, configuration, audit.
 
 ---
 
@@ -1287,6 +1338,7 @@ Known or suspected risks:
 - This repository does not define a production deployment architecture. CI uses GitHub Actions with PostgreSQL containers for testing, but production hosting (cloud, on-prem, containers, etc.) is deployment-specific.
 - Canonical roles are defined in `backend/Authorization/Roles.cs`: **SuperAdmin** → full access; **Manager** (UI: **Mandanten-Admin**) → admin + RKSV + voucher + reporting; **Cashier** → POS + payment + TSE signing; **Waiter** → limited POS usage; **Accountant** → reporting + FinanzOnline + RKSV (no Schlussbeleg); **Kitchen** / **ReportViewer** → specialized roles. Always treat `RolePermissionMatrix` as the source of truth.
 - The system does NOT enforce sales blocking after early Jahresbeleg. This is explicitly treated as a legal/process responsibility, not a hard backend restriction. Duplicate Jahresbeleg creation is prevented, but continued operation is not blocked in code.
+- Backup restore via API is **validation-only** (isolated DB); production recovery is operator/DBA-led. Tenant ZIP packages are not `pg_restore` inputs. Mandanten-Admin must not see System dumps (Identity / all tenants).
 
 ---
 
@@ -1326,6 +1378,7 @@ Critical domain rules:
 - Offline voucher payments are forbidden.
 - Backend is final authority; frontend guardrails are UX only.
 - Do not claim legal compliance guarantees.
+- Backup: Tenant (Manager) vs System (Super Admin); Identity only in System; no production restore via API; cross-tenant restore forbidden.
 
 Development rules:
 - Keep changes minimal and scoped.

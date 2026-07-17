@@ -9,7 +9,7 @@ This repository is a POS monorepo. Prefer safe, incremental improvements over br
 - For medium or large tasks, also read **`REGKASSE_AI_ONBOARDING.md`** and relevant docs under `ai/`.
 - Keep this file valid Markdown (closed code fences, proper headings); broken formatting reduces what agents can parse reliably.
 
-**Last updated:** 2026-06-11
+**Last updated:** 2026-07-17
 
 ## Language Rules
 Follow these language rules strictly:
@@ -394,48 +394,54 @@ Requires JDK 17+ on PATH; uses `backend/Tests/regkassen-verification-depformat-1
 
 **Developer guide:** `docs/DEP_EXPORT_DEVELOPMENT.md`
 
-## Backup & Restore Rules
+## Backup & Disaster Recovery
 
-### Backup Policy
-- Daily automated backup is mandatory per tenant
-- Manual backup can be triggered by authorized roles only
-- Backup metadata MUST include `tenant_id`, `triggered_by`, `started_at_utc`, `finished_at_utc`, `status`
-- Sensitive data in backup manifests/logs MUST be masked
-
-### Backup Permissions
-
-**Canonical doc:** [`docs/BACKUP_PERMISSIONS.md`](docs/BACKUP_PERMISSIONS.md)
-
-| Action | Mandanten-Admin (`Manager`) | Super Admin |
-|--------|------------------|-------------|
-| View backup status / history | Yes (`settings.view`) | Yes |
-| View all tenants' backup UI scope | No (deployment-wide list is platform context) | Yes |
-| Trigger manual backup | Yes (`backup.manage` + JWT tenant context) | Yes (deployment-wide) |
-| Trigger full system backup | No | Yes |
-| Modify backup schedule / retention | Yes (`backup.manage`, own tenant binding) | Yes |
-| Change execution mode / download artifacts | No (`settings.manage`) | Yes |
-| Delete backup | No | Yes |
-| Request restore | No | Yes (requires second approval) |
-| Approve restore | No | Yes (second Super Admin) |
-
-**Permission keys:** `settings.view` (read routes), `backup.manage` (trigger + schedule), `settings.manage` (platform backup ops; implies `backup.manage`). Mandanten-Admin must **not** receive `settings.manage` for backup-only access.
-
-**Tenant scoping:** Trigger endpoints do not accept client `tenantId`; non–Super Admin requires resolved tenant context (`TENANT_CONTEXT_REQUIRED` otherwise). `backup_runs.tenant_id` (nullable) gates access for manual/import runs; scheduled deployment-wide runs remain shared. **Access plane** is tenant-filtered; **data plane** is still one instance dump per run — see `docs/BACKUP_PERMISSIONS.md`.
+**Hub doc:** [`docs/BACKUP_AND_DISASTER_RECOVERY.md`](docs/BACKUP_AND_DISASTER_RECOVERY.md) · Full guide: [`docs/BACKUP_SYSTEM.md`](docs/BACKUP_SYSTEM.md)  
+**Permissions:** [`docs/BACKUP_PERMISSIONS.md`](docs/BACKUP_PERMISSIONS.md) · **Content/cost:** [`docs/BACKUP_CONTENT_POLICY.md`](docs/BACKUP_CONTENT_POLICY.md) · **Restore boundary:** [`docs/restore-boundary-notes.md`](docs/restore-boundary-notes.md)
 
 ### Backup Types
-| Type | Scope | Who Can Trigger |
-|------|-------|-----------------|
-| Manual backup (tenant-bound JWT) | Deployment run; access gated by `backup.manage` + tenant context | Mandanten-Admin, Super Admin |
-| Full / all-tenants backup | Deployment | Super Admin only |
-| Scheduled backup | Per automation settings | Automated (`BackupScheduledEnqueueService`) |
+- **Tenant Backup** (`BackupStrategyKind.Tenant`): Mandanten-Admin (`Manager`) — single-tenant business/fiscal package (`*.tenant.zip`). Facade: `IBackupService.CreateTenantBackupAsync`.
+- **System Backup** (`BackupStrategyKind.System`): Super Admin — full instance `pg_dump` + structured `*.system.zip` (all active tenants, Identity, licenses, platform). Facade: `IBackupService.CreateSystemBackupAsync`. Scheduled cron uses System strategy (`BackupScheduledEnqueueService`).
 
-### Restore Policy (HIGH RISK)
-- NEVER allow automatic restore to production
-- Restore requires two SuperAdmin approvals
-- Restore target must be isolated/test database only
-- Every restore request/approval/execution step MUST be written to full audit trail
-- Restore operations MUST use correlation IDs for end-to-end tracing
-- Cross-tenant restore is forbidden unless explicit Super Admin recovery workflow
+### Backup Content
+| Included | Tenant | System |
+|----------|--------|--------|
+| Payments, receipts, products, customers, vouchers, cash registers, fiscal rows | Yes (own tenant) | Yes (all tenants) |
+| Reports / invoices (DB metadata; PDF bytes under `report-pdfs/` are filesystem, not in dump) | Yes | Yes |
+| Audit logs (read-only history in package) | Tenant-scoped | Full / deployment |
+| User credentials (`AspNet*` Identity) | **No** | **Yes** |
+
+Sensitive data in manifests/logs MUST be masked. Backup metadata MUST include `strategy`, optional `tenant_id`, actor, timestamps, and `status`.
+
+### Retention Policy
+- **Tenant Backup:** default **30** days (admin API / FA clamp **7–90**)
+- **System Backup:** default **90** days
+- Auto-delete of expired succeeded artifacts after each succeeded run (`BackupSucceededRunRetentionCleaner`)
+- Optional GFS smart retention (`Backup:SmartRetentionEnabled`): 7 daily / 4 weekly / 12 monthly / 7 yearly sparse archives via `SmartRetentionService` (replaces flat cutoff when enabled)
+- Optional storage tiers (`Backup:StorageTierManagementEnabled`): Hot ≤7d / Warm ≤30d / Cold &gt;30d via `StorageTierService` (Cold prefers external archive; no automatic Glacier/S3 move)
+- Storage cost dashboard: `GET /api/admin/backup/storage-costs` + FA `/backup/costs` (indicative EUR rates, not invoices)
+- Optional daily cleanup (`Backup:AutomaticCleanupEnabled` → `AutomaticCleanupService`): retention delete + tier retag + `BACKUP_AUTO_DELETED` audit
+
+### Restore Rules (HIGH RISK)
+- Restore only into **same tenant** when ambient tenant and `backup_runs.tenant_id` are both set (RKSV / isolation gate via `IRestoreService`)
+- **No backdating** of restored fiscal timestamps (`IssuedAt` / receipt times are not rewritten)
+- **Full audit trail** required (`AuditEventType.Restore*`, correlation IDs)
+- Cross-tenant restore via API is **prohibited** (404 semantics)
+- NEVER automatic restore to production; validation-only isolated DB (`restore_validation_*`); dual Super Admin approval
+- Tenant ZIP packages are **not** `pg_restore`-compatible; validation restore stays on System `pg_dump` artifacts
+
+### Permissions
+
+| Actor | Allowed |
+|-------|---------|
+| **Mandanten-Admin (`Manager`)** | View / list / trigger **own Tenant** backups (`settings.view` + `backup.manage`); download own tenant packages; schedule/retention for tenant scope. **No** System list/download. **No** restore / restore-drill. |
+| **Super Admin** | View / list **all** backups + System backup; trigger System; execution mode (`settings.manage`); validation restore + restore drills (dual approval where required) |
+
+**Permission keys:** `settings.view` (read), `backup.manage` (trigger + schedule + tenant download/import), `settings.manage` (platform ops; implies `backup.manage`). Mandanten-Admin must **not** receive `settings.manage` for backup-only access.
+
+**Tenant scoping:** Trigger body does not accept client `tenantId`; non–Super Admin requires JWT tenant context (`TENANT_CONTEXT_REQUIRED`). List/download/run access: `BackupRunAccessEvaluator` — Managers see only `strategy=Tenant` + own `tenant_id` (System dumps are Super Admin only).
+
+**FA UI:** `/backup` hub is role-aware (`TenantBackupView` vs `SystemBackupView`).
 
 ### Backup Status (`BackupRunStatus`)
 `Queued`, `Running`, `AwaitingVerification`, `Succeeded`, `Failed`, `VerificationFailed`, `Cancelled`
@@ -443,9 +449,10 @@ Requires JDK 17+ on PATH; uses `backend/Tests/regkassen-verification-depformat-1
 ### Backup Configuration
 ```yaml
 enabled: true
-scheduleCron: "0 2 * * *"  # Daily at 2 AM
-retentionDays: 30
-executionMode: "PgDump"  # Fake, PgDump, ProductionStub
+scheduleCron: "0 2 * * *"  # Daily 02:00 UTC (System strategy)
+retentionDays: 30           # Tenant default; System default 90 via strategy policy
+# SmartRetentionEnabled: false  # optional GFS 7/4/12/7 via SmartRetentionService
+executionMode: "PgDump"     # Fake, PgDump, ProductionStub
 externalArchiveRoot: "/backup/archive"  # Super Admin only
 ```
 
@@ -538,7 +545,11 @@ Use `/ai` docs selectively based on the task:
 - **Offline order snapshots (new)** → `ai/modules/offline_orders.md`, `docs/release/OFFLINE_SYSTEMS_SEPARATION.md`
 - Admin API integration work → `ai/10_API_BOUNDARY_POLICY.md`
 - Billing / mandant license sales → `docs/BILLING_TENANT_LICENSE.md`, `ai/modules/billing_license.md`
+- **Backup & Disaster Recovery (hub)** → `docs/BACKUP_AND_DISASTER_RECOVERY.md`, `docs/BACKUP_SYSTEM.md`, `AGENTS.md` § Backup & Disaster Recovery
 - **Backup RBAC / Mandanten-Admin tenant scoping** → `docs/BACKUP_PERMISSIONS.md`, `ai/modules/backup_permissions.md`
+- **Backup content / cost / Tenant vs System strategy** → `docs/BACKUP_CONTENT_POLICY.md`, `BackupStrategyKind`, `IBackupService.CreateTenantBackupAsync` / `CreateSystemBackupAsync`
+- **Restore boundary (no production restore)** → `docs/restore-boundary-notes.md`
+- **Restore RKSV compliance / audit trail** → `docs/RKSV_COMPLIANCE.md`
 - High-risk areas → `ai/07_DO_NOT_TOUCH.md`
 
 ## Code Quality Rules
@@ -566,6 +577,7 @@ Use `/ai` docs selectively based on the task:
 - FinanzOnline outbox SOAP submission flow
 - Tenant isolation (query filters, 404 semantics)
 - Singleton + EF pattern (always use `IServiceScopeFactory`)
+- Backup / restore (Tenant vs System strategy, no production restore, Manager must not access System dumps)
 
 ## Do NOT
 - Do not introduce a parallel architecture or broad rewrite

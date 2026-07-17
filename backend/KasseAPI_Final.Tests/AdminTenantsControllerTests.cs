@@ -234,8 +234,9 @@ public sealed class AdminTenantsControllerTests
                 It.IsAny<string?>(),
                 It.IsAny<bool>(),
                 It.IsAny<bool>(),
+                It.IsAny<string?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Tenant t, string? _, string? __, bool grantTrial, bool _, CancellationToken _) =>
+            .ReturnsAsync((Tenant t, string? _, string? __, bool grantTrial, bool _, string? ___, CancellationToken _) =>
             {
                 if (grantTrial)
                     t.LicenseValidUntilUtc = DateTime.UtcNow.AddDays(30);

@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Diagnostics;
 using System.Text.Json;
 using KasseAPI_Final.Configuration;
@@ -19,6 +20,7 @@ public sealed class PostgreSqlPgDumpBackupExecutionAdapter : IBackupExecutionAda
     private readonly IPgDumpProcessRunner _runner;
     private readonly IBackupManifestService _manifestService;
     private readonly IBackupChecksumService _checksumService;
+    private readonly IBackupEncryptionService _encryption;
     private readonly ILogger<PostgreSqlPgDumpBackupExecutionAdapter> _logger;
 
     public PostgreSqlPgDumpBackupExecutionAdapter(
@@ -27,6 +29,7 @@ public sealed class PostgreSqlPgDumpBackupExecutionAdapter : IBackupExecutionAda
         IPgDumpProcessRunner runner,
         IBackupManifestService manifestService,
         IBackupChecksumService checksumService,
+        IBackupEncryptionService encryption,
         ILogger<PostgreSqlPgDumpBackupExecutionAdapter> logger)
     {
         _configuration = configuration;
@@ -34,6 +37,7 @@ public sealed class PostgreSqlPgDumpBackupExecutionAdapter : IBackupExecutionAda
         _runner = runner;
         _manifestService = manifestService;
         _checksumService = checksumService;
+        _encryption = encryption;
         _logger = logger;
     }
 
@@ -91,6 +95,8 @@ public sealed class PostgreSqlPgDumpBackupExecutionAdapter : IBackupExecutionAda
             return Fail("PATH_ESCAPE", "Resolved output path left staging root.");
 
         var timeout = TimeSpan.FromSeconds(Math.Max(60, opts.PgDumpTimeoutSeconds));
+        var exclude = BackupStrategyPolicy.ResolveExcludeTables(context.Strategy, opts)
+            .ToArray();
         var spec = new PgDumpProcessSpec
         {
             ExecutablePath = string.IsNullOrWhiteSpace(opts.PgDumpExecutablePath)
@@ -102,7 +108,9 @@ public sealed class PostgreSqlPgDumpBackupExecutionAdapter : IBackupExecutionAda
             Password = password,
             Database = csb.Database,
             OutputFilePath = outputPath,
-            Timeout = timeout
+            Timeout = timeout,
+            CompressionLevel = opts.PgDumpCompressionLevel,
+            ExcludeTables = exclude,
         };
 
         _logger.LogInformation(
@@ -159,6 +167,10 @@ public sealed class PostgreSqlPgDumpBackupExecutionAdapter : IBackupExecutionAda
             return Fail("DUMP_FORMAT_INVALID", formatReason ?? "Custom-format sanity check failed.");
         }
 
+        // Encrypt after format sanity so we never wrap an invalid dump; hash is of on-disk (possibly cipher) bytes.
+        await _encryption.EncryptFileInPlaceAsync(outputPath, context.CancellationToken);
+        fi = new FileInfo(outputPath);
+
         var hex = await _checksumService.ComputeFileSha256HexAsync(outputPath, context.CancellationToken);
         var dumpRelativeName = fileName;
         var manifestRelativeName = BackupArtifactFileNameBuilder.BuildManifestFileName(
@@ -184,17 +196,21 @@ public sealed class PostgreSqlPgDumpBackupExecutionAdapter : IBackupExecutionAda
         if (!File.Exists(manifestPath))
             return Fail("MANIFEST_WRITE_FAILED", "Manifest path missing after write.");
 
+        await _encryption.EncryptFileInPlaceAsync(manifestPath, context.CancellationToken);
         var manifestFi = new FileInfo(manifestPath);
         if (manifestFi.Length == 0)
             return Fail("MANIFEST_EMPTY", "Manifest file is zero-byte after write.");
 
+        var manifestHash = await _checksumService.ComputeFileSha256HexAsync(manifestPath, context.CancellationToken);
+
         _logger.LogInformation(
-            "pg_dump adapter completed: runId={RunId}, correlationId={CorrelationId}, dumpBytes={DumpBytes}, manifestBytes={ManifestBytes}, elapsedMs={ElapsedMs}",
+            "pg_dump adapter completed: runId={RunId}, correlationId={CorrelationId}, dumpBytes={DumpBytes}, manifestBytes={ManifestBytes}, elapsedMs={ElapsedMs}, encrypted={Encrypted}",
             context.BackupRunId,
             context.CorrelationId,
             fi.Length,
             manifestFi.Length,
-            sw.ElapsedMilliseconds);
+            sw.ElapsedMilliseconds,
+            _encryption.IsEnabled);
 
         return new BackupExecutionResult
         {
@@ -207,15 +223,20 @@ public sealed class PostgreSqlPgDumpBackupExecutionAdapter : IBackupExecutionAda
                     StorageDescriptor = dumpRelativeName,
                     ByteSize = fi.Length,
                     ContentHashSha256 = hex,
-                    MetadataJson = JsonSerializer.Serialize(new { format = "custom", role = "logical_dump" }),
+                    MetadataJson = JsonSerializer.Serialize(new
+                    {
+                        format = "custom",
+                        role = "logical_dump",
+                        encrypted = _encryption.IsEnabled
+                    }),
                     RequireOnDiskHashVerification = true
                 },
                 new BackupArtifactDescriptor
                 {
                     ArtifactType = BackupArtifactType.VerificationManifest,
                     StorageDescriptor = manifestRelativeName,
-                    ByteSize = manifestDoc.JsonText.Length,
-                    ContentHashSha256 = manifestDoc.ContentSha256LowerHex,
+                    ByteSize = manifestFi.Length,
+                    ContentHashSha256 = manifestHash,
                     MetadataJson = manifestDoc.JsonText,
                     RequireOnDiskHashVerification = true
                 }

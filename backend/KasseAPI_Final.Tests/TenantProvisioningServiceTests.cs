@@ -125,6 +125,51 @@ public sealed class TenantProvisioningServiceTests
     }
 
     [Fact]
+    public async Task ProvisionAsync_UsesCustomCashRegisterNumber()
+    {
+        await using var db = CreateDb();
+        var tenant = new Tenant
+        {
+            Id = Guid.NewGuid(),
+            Name = "Custom Register",
+            Slug = "custom-reg",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        };
+        db.Tenants.Add(tenant);
+        await db.SaveChangesAsync();
+
+        var uniqueness = new Mock<IUserUniquenessValidationService>();
+        uniqueness.Setup(x => x.IsEmailTakenByOtherUserAsync(It.IsAny<string?>(), It.IsAny<string?>()))
+            .ReturnsAsync(false);
+
+        var service = new TenantProvisioningService(
+            db,
+            CreateUserManagerMock().Object,
+            new UserTenantMembershipProvisioner(db),
+            uniqueness.Object,
+            Mock.Of<IDemoProductImportService>(),
+            new PaymentMethodDefinitionBootstrapService(db),
+            Mock.Of<ILogger<TenantProvisioningService>>());
+
+        var (result, error) = await service.ProvisionAsync(
+            tenant,
+            null,
+            null,
+            grantTrialLicense: false,
+            importDemoMenu: false,
+            cashRegisterNumber: "KASSE-007");
+
+        Assert.Null(error);
+        Assert.NotNull(result);
+        Assert.Equal("KASSE-007", result!.CashRegisterNumber);
+
+        var register = await db.CashRegisters.IgnoreQueryFilters().SingleAsync(r => r.TenantId == tenant.Id);
+        Assert.Equal("KASSE-007", register.RegisterNumber);
+    }
+
+    [Fact]
     public async Task ProvisionAsync_ImportDemoMenu_UsesImportServiceInsteadOfGenericProducts()
     {
         await using var db = CreateDb();

@@ -3,6 +3,43 @@
     "title": "Yedekleme ve felaket kurtarma",
     "subtitle": "Salt görünürlük. İşler worker’da — bu arayüzde değil."
   },
+  "overview": {
+    "pageTitle": "Yedekleme özeti",
+    "pageSubtitle": "Durum, zamanlama, son dökümler ve işlemler. Ayrıntılı DR izleme Dashboard altındadır.",
+    "recentTitle": "Son yedekler",
+    "viewAllRuns": "Tüm çalıştırmaları gör",
+    "tenantView": {
+      "pageTitle": "Kiracı yedeklemesi",
+      "pageSubtitle": "Yalnızca kiracı verileriniz — Identity veya platform verisi yok. Saklama genelde 30 gün.",
+      "alertTitle": "Kiracı yedeklemesi",
+      "alertDescription": "Manuel ve zamanlanmış yedekler yalnızca bu kiracının verilerini dışa aktarır (ödemeler, fişler, ürünler, müşteriler, denetim). Kullanıcı kimlik bilgileri ve sistem ayarları dahil değildir.",
+      "recentTitle": "Son kiracı yedekleri"
+    },
+    "systemView": {
+      "pageTitle": "Sistem yedeklemesi (Süper Admin)",
+      "pageSubtitle": "Örnek geneli döküm artı yapılandırılmış sistem paketi (tüm kiracılar, Identity, lisanslar). Saklama genelde 90 gün.",
+      "alertTitle": "Sistem yedeklemesi",
+      "alertDescription": "Tüm aktif kiracıları, AspNet Identity, platform ayarlarını ve dağıtım lisanslarını içerir. Doğrulama geri yükleme yalnızca pg_dump artefaktları ile (çift Süper Admin onayı).",
+      "recentTitle": "Son sistem / örnek yedekleri"
+    },
+    "configCard": {
+      "title": "Zamanlama ve saklama",
+      "openSchedule": "Zamanlamayı düzenle",
+      "openConfiguration": "Tam yapılandırma",
+      "readOnlyHint": "Zamanlama ayarları için yedek yönetimi izni gerekir.",
+      "enabled": "Zamanlanmış yedekler",
+      "enabledYes": "Açık",
+      "enabledNo": "Kapalı",
+      "cron": "Cron (UTC)",
+      "retention": "Saklama",
+      "retentionDays": "{{days}} gün",
+      "hint": "Varsayılan: her gün 02:00 UTC, 30 gün saklama (7–90). Bkz."
+    },
+    "actions": {
+      "title": "İşlemler",
+      "detailedMonitoring": "Ayrıntılı izleme"
+    }
+  },
   "postureSummary": {
     "title": "Tek bakış (API)",
     "postureLabel": "DR kanıtı ve güncel boşluk",
@@ -47,11 +84,21 @@
     },
     "metrics": {
       "lastBackup": "Son yedek",
+      "nextBackup": "Sonraki yedek",
       "backupSize": "Yedek boyutu",
       "duration": "Süre",
       "successRate30d": "Başarı oranı (30 gün)",
       "trendVsPriorMonth": "önceki aya göre",
-      "lastRestoreDrill": "Son restore tatbikatı"
+      "lastRestoreDrill": "Son restore tatbikatı",
+      "totalRuns": "Toplam (30 gün)",
+      "succeededRuns": "Başarılı",
+      "failedRuns": "Başarısız",
+      "pendingRuns": "Bekleyen",
+      "stagingDisk": "Staging disk kullanımı"
+    },
+    "diskAlert": {
+      "title": "Staging depolama neredeyse dolu",
+      "description": "Yedek staging birimi %{{percent}} dolulukta. Sonraki çalıştırmadan önce alan açın veya saklama süresini gözden geçirin."
     },
     "charts": {
       "history30d": "Yedek geçmişi (30 gün)",
@@ -667,6 +714,75 @@
   },
   "manualRestore": {
     "title": "Manuel geri yükleme iste",
+    "restoreModal": {
+      "title": "Yedeği geri yükle"
+    },
+    "restorePreview": {
+      "cardTitle": "Geri yükleme önizlemesi",
+      "alertTitle": "Geri yükleme hazırlanıyor",
+      "alertDescription": "Aşağıdaki veriler izole doğrulama veritabanına yüklenebilir — asla üretime değil.",
+      "loadFailed": "Geri yükleme önizlemesi yüklenemedi.",
+      "dumpNotAnalyzed": "Mantıksal dump TOC analiz edilemedi",
+      "dumpNotAnalyzedDetail": "TOC analizi olmadan tablo listesi eksik kalır.",
+      "rowCountDisclaimer": "Satır sayıları dump TOC’taki tablolar için canlı DB tahminidir — doğrulama geri yüklemesinin dry-run’ı değildir.",
+      "emptyTables": "Önizlemede tablo verisi yok.",
+      "compliance": {
+        "alertTitle": "RKSV uyumluluk kontrolü",
+        "loadFailed": "Uyumluluk kontrolü yüklenemedi.",
+        "noChecks": "Uyumluluk kontrolü dönmedi.",
+        "validationOnlyNote": "Yalnızca restore_validation_* içinde doğrulama geri yüklemesi — asla üretim değil.",
+        "checks": {
+          "sameTenant": "Yedek aynı kiracı / hedeflenen kapsam ile eşleşiyor",
+          "backupIntegrity": "Yedek bütünlüğü doğrulandı (SHA-256)",
+          "rksvGate": "RKSV doğrulama kapıları geçildi",
+          "artifactStrategy": "Artefakt, doğrulama geri yüklemesi için System dump",
+          "unknown": "Ek kontrol"
+        },
+        "status": {
+          "checking": "Kontrol ediliyor…",
+          "compliant": "RKSV kontrolleri geçti",
+          "notCompliant": "RKSV kontrolleri başarısız",
+          "checkFailed": "Uyumluluk kontrolü kullanılamıyor"
+        }
+      },
+      "labels": {
+        "tables": "Veritabanı",
+        "records": "Kayıtlar",
+        "size": "Boyut",
+        "backupRun": "Yedek çalıştırması",
+        "tenant": "Kiracı",
+        "backupDate": "Yedek tarihi",
+        "complianceStatus": "Uyumluluk"
+      },
+      "values": {
+        "tables": "{{count}} tablo",
+        "records": "{{count}} kayıt",
+        "sizeMib": "{{size}} MB"
+      },
+      "columns": {
+        "table": "Tablo",
+        "count": "Kayıtlar",
+        "changes": "Değişiklikler"
+      },
+      "changeKind": {
+        "inDump": "Dump’ta mevcut",
+        "missingFromDump": "Dump’ta yok",
+        "mismatch": "Canlı DB’den farklı",
+        "mismatchWithDiff": "{{label}} (Δ {{diff}})",
+        "aligned": "Canlı DB ile uyumlu"
+      }
+    },
+    "rksvAlert": {
+      "title": "RKSV uyumluluk uyarısı",
+      "sameTenant": "Geri yükleme yalnızca aynı kiracı için izinlidir (kiracılar arası geri yükleme engellenir).",
+      "originalTimestamps": "Geri yüklenen tüm veriler orijinal zaman damgalarını korur (geriye tarihleme yok).",
+      "auditLogged": "İşlem korelasyon kimliği ile denetim günlüğüne yazılır.",
+      "validationOnly": "Yalnızca izole doğrulama veritabanında çalışır — asla üretimde değil."
+    },
+    "acknowledgements": {
+      "sameTenant": "Bu yedeğin mevcut kiracıya / hedeflenen geri yükleme kapsamına ait olduğunu onaylıyorum.",
+      "rksvUnderstood": "Yukarıdaki RKSV uyumluluk uyarılarını anladım."
+    },
     "alert": {
       "title": "Yüksek riskli işlem",
       "description": "İkinci bir yönetici onayı gerekir. Geri yükleme YALNIZCA izole bir doğrulama veritabanında çalışır (validationOnly)."
@@ -674,6 +790,9 @@
     "tokenHint": "İstekten sonra ikinci bir Super Admin, e-posta ile gönderilen 6 haneli kodu girmelidir.",
     "fields": {
       "backup": "Yedek çalıştırması",
+      "fileName": "Dosya",
+      "tenant": "Kiracı",
+      "sharedDump": "Paylaşılan örnek dökümü (tüm kiracıları içerebilir)",
       "targetDatabase": "Hedef veritabanı",
       "targetDatabaseHelp": "Geçici doğrulama veritabanı (restore_validation_ öneki)",
       "reason": "Gerekçe",
@@ -692,6 +811,8 @@
     },
     "actions": {
       "close": "Kapat",
+      "cancel": "İptal",
+      "restore": "Geri yükle",
       "submitRequest": "Geri yüklemeyi iste",
       "confirmApproval": "Onayla ve doğrulamayı başlat",
       "confirmReject": "Reddet",
@@ -710,7 +831,9 @@
       "invalidTargetDb": "Hedef veritabanı restore_validation_ ile başlamalı ve geçerli bir PostgreSQL adı olmalı.",
       "invalidToken": "Kod tam 6 rakam olmalı.",
       "rejectReasonRequired": "Red gerekçesi zorunlu.",
-      "missingRunId": "Yedek çalıştırma kimliği eksik."
+      "missingRunId": "Yedek çalıştırma kimliği eksik.",
+      "acknowledgementsRequired": "Devam etmeden önce her iki RKSV onayını işaretleyin.",
+      "complianceRequired": "Geri yükleme istemeden önce RKSV uyumluluk kontrolünü geçin."
     },
     "status": {
       "pendingApproval": "Onay bekliyor",
@@ -742,6 +865,11 @@
     }
   },
   "progress": {
+    "cardTitle": "Yedek ilerlemesi",
+    "idle": "Çalışan yedek yok.",
+    "stepOf": "{{current}} / {{total}}",
+    "estimatedRemaining": "Tahmini kalan süre: {{time}}",
+    "errorAlert": "Yedek başarısız",
     "titleQueued": "Yedek kuyrukta — henüz bitmedi",
     "titleRunning": "Yedek çalışıyor",
     "titleAwaiting": "Yedek neredeyse bitti — doğrulama / kopya",
@@ -1429,6 +1557,217 @@
     "saveError": "Kaydetme hatası",
     "savePartialSettingsOnly": "Zamanlama kaydedildi; çalıştırma modu değiştirilmedi."
   },
+  "performance": {
+    "pageTitle": "Yedek performansı",
+    "pageSubtitle": "Süre, boyut, başarı oranı ve staging kullanımı (30 gün).",
+    "subtitle": "GET /api/admin/backup/dashboard/stats metrikleri — gösterge niteliğinde, SLA değil.",
+    "metrics": {
+      "avgDuration": "Ortalama süre",
+      "avgSize": "Son yedek boyutu",
+      "successRate": "Başarı oranı (30 gün)",
+      "storageUsed": "Staging kullanımı"
+    },
+    "avgSizeHint": "Son bilinen başarılı artefakt boyutu (30 günlük ortalama değil).",
+    "storageHint": "Staging/arşiv disk kullanımı yüzde olarak (mutlak GB değil).",
+    "sampleCount": "n={{n}} başarılı çalıştırma",
+    "suffix": {
+      "seconds": "s",
+      "mb": "MB",
+      "percent": "%"
+    },
+    "durationSeconds": "{{s}} s",
+    "historyTitle": "Yedek geçmişi (30 gün)",
+    "historyEmpty": "Bu dönemde geçmiş yok.",
+    "columns": {
+      "date": "Tarih",
+      "duration": "Süre",
+      "size": "Boyut",
+      "status": "Durum"
+    }
+  },
+  "restoreHistory": {
+    "pageTitle": "Geri yükleme geçmişi",
+    "pageSubtitle": "Yalnızca doğrulama amaçlı manuel geri yükleme istekleri (Super Admin).",
+    "infoTitle": "Yalnızca doğrulama geri yüklemeleri",
+    "infoDescription": "restore_validation_* veritabanlarına dual-onay isteklerini listeler. Asla üretim değil. Satır sayıları raporda varsa gösterilir.",
+    "forbiddenTitle": "Geri yükleme geçmişi yalnızca Super Admin",
+    "forbiddenDescription": "Mandanten-Admin geri yükleme göremez veya isteyemez. Platform Super Admin ile iletişime geçin.",
+    "loadFailed": "Geri yükleme geçmişi yüklenemedi.",
+    "empty": "Henüz geri yükleme isteği yok.",
+    "columns": {
+      "date": "Tarih",
+      "backupRun": "Yedek çalıştırması",
+      "targetDatabase": "Hedef veritabanı",
+      "requestedBy": "İsteyen",
+      "status": "Durum",
+      "validationOnly": "Kapsam",
+      "actions": "İşlemler"
+    },
+    "values": {
+      "validationOnly": "Yalnızca doğrulama",
+      "notValidationOnly": "Doğrulama değil"
+    },
+    "actions": {
+      "report": "Rapor"
+    },
+    "report": {
+      "title": "Geri yükleme uyumluluk raporu",
+      "loadFailed": "Geri yükleme raporu yüklenemedi.",
+      "restoreId": "Geri yükleme isteği",
+      "tenant": "Kiracı",
+      "restoredAt": "Geri yükleme zamanı",
+      "backupDate": "Yedek tarihi",
+      "tables": "Tablolar (TOC satırları)",
+      "records": "Kayıtlar",
+      "recordsUnknown": "Takip edilmiyor",
+      "status": "Durum",
+      "rksv": "RKSV",
+      "compliant": "Kontroller geçti",
+      "notCompliant": "Kontroller başarısız",
+      "targetDatabase": "Hedef veritabanı",
+      "findings": "Bulgular"
+    }
+  },
+  "compliance": {
+    "pageTitle": "RKSV uyumluluk durumu",
+    "pageSubtitle": "Yedek geri yükleme hazırlık kapıları (30 gün) — ürün kontrolleri, BMF sertifikası değil.",
+    "disclaimerTitle": "Yalnızca ürün kapıları",
+    "disclaimerDefault": "Mantıksal dump SHA-256’sı olan başarılı yedekler hazır sayılır. Disk doğrulaması geri yükleme anında yapılır. Resmi RKSV/BMF sertifikası değildir.",
+    "warningTitle": "Uyumluluk uyarısı",
+    "warningDescription": "Bazı yedeklerde bütünlük meta verisi eksik veya ürün kapıları geçilmedi. Geri yüklemeden önce listeyi kontrol edin.",
+    "allOkTitle": "Listedeki tüm yedekler ürün kapılarını geçti",
+    "allOkDescription": "Penceredeki başarılı yedeklerde geçerli SHA-256 var. Geri yükleme yine validation-only ve dual onaylıdır.",
+    "loadFailed": "Uyumluluk durumu yüklenemedi.",
+    "empty": "Son 30 günde başarılı yedek yok.",
+    "listTitle": "Yedek uyumluluk listesi",
+    "stats": {
+      "total": "Toplam yedek",
+      "compliant": "Kapıya hazır",
+      "nonCompliant": "Hazır değil",
+      "lastCheck": "Son kontrol",
+      "restoreTotal": "Geri yükleme istekleri",
+      "restoreCompleted": "Tamamlanan",
+      "restoreFailed": "Başarısız"
+    },
+    "columns": {
+      "date": "Tarih",
+      "tenant": "Kiracı",
+      "status": "Durum",
+      "compliant": "RKSV kapıları"
+    },
+    "values": {
+      "yes": "Hazır",
+      "no": "Hazır değil"
+    },
+    "reasons": {
+      "systemDumpHashPresent": "System dump + SHA-256",
+      "tenantPackageIntegrityOk": "Kiracı paketi + SHA-256",
+      "missingSha256": "SHA-256 eksik",
+      "missingLogicalDump": "Mantıksal dump yok",
+      "backupNotSucceeded": "Başarısız",
+      "unknown": "Diğer"
+    }
+  },
+  "costs": {
+    "pageTitle": "Yedek depolama maliyetleri",
+    "pageSubtitle": "Gösterge niteliğinde Hot/Warm/Cold maliyetleri ve bütçe kullanımı — bulut faturası değildir.",
+    "disclaimerTitle": "Yalnızca maliyet tahmini",
+    "disclaimerDefault": "Yapılandırılmış EUR/GiB-ay oranlarıyla operasyonel tahmin. Sağlayıcı faturası değildir.",
+    "capacityWarningTitle": "Depolama bütçesi neredeyse dolu",
+    "capacityWarningDescription": "Dump bütçesinin %{{percent}}’i kullanılıyor. Saklama süresini düşürün veya eski başarılı artefaktları temizleyin.",
+    "loadFailed": "Depolama maliyetleri yüklenemedi.",
+    "empty": "Depolama verisi yok.",
+    "tiersTitle": "Depolama katmanı dağılımı",
+    "recommendationsTitle": "Maliyet tasarrufu önerileri",
+    "saveTag": "%{{percent}} tasarruf",
+    "stats": {
+      "totalStorage": "Toplam depolama",
+      "budget": "Bütçe {{budget}} GB",
+      "monthlyCost": "Aylık maliyet",
+      "costPerGb": "GB başına",
+      "backupCount": "Yedek sayısı",
+      "averageSize": "Ortalama boyut",
+      "retentionSavings": "Katman tasarrufu",
+      "projectedMonthly": "Tahmini / ay"
+    },
+    "columns": {
+      "tier": "Katman",
+      "sizeGb": "Boyut (GB)",
+      "costEur": "Maliyet (€)",
+      "access": "Erişim",
+      "retention": "Saklama",
+      "artifacts": "Artefakt"
+    },
+    "access": {
+      "fast": "Hızlı",
+      "medium": "Orta",
+      "slow": "Yavaş",
+      "unknown": "—"
+    },
+    "recommendations": {
+      "storagePressure": {
+        "title": "Depolama bütçesi neredeyse dolu",
+        "description": "Başarılı dump’lar bütçenin %80’inin üzerinde. Saklamayı düşürün, akıllı retention açın veya eski çalıştırmaları silin."
+      },
+      "enableSmartRetention": {
+        "title": "Akıllı GFS retention’ı açın",
+        "description": "Backup:SmartRetentionEnabled=true ile haftalık/aylık/yıllık seyreltme günlük dump’ları tutmak yerine uygulanır."
+      },
+      "enableStorageTiers": {
+        "title": "Depolama katmanı etiketlemeyi açın",
+        "description": "Backup:StorageTierManagementEnabled=true Hot/Warm/Cold sınıflandırmasını maliyet tahminine bağlar."
+      },
+      "rebalanceHot": {
+        "title": "Hâlâ çok fazla veri Hot’ta",
+        "description": "Dump baytlarının çoğu Hot. Tier geçişinin çalıştığını doğrulayın veya eski artefaktları Warm/Cold’a kaydırın."
+      },
+      "tierSavingsLow": {
+        "title": "Katman tasarrufu henüz düşük",
+        "description": "Warm/Cold payı düşük. Eski dump’ların soğumasını bekleyin veya Cold için ExternalArchiveRoot tercih edin."
+      },
+      "healthy": {
+        "title": "Maliyet profili sağlıklı görünüyor",
+        "description": "Bütçe ve katman dağılımı beklenen aralıkta. Büyük mandant büyümesinden sonra izlemeye devam edin."
+      }
+    }
+  },
+  "backupDiff": {
+    "cardTitle": "Yedek karşılaştırması",
+    "alertTitle": "TOC karşılaştırması (satır düzeyi diff değil)",
+    "alertDescription": "Mantıksal dump içindekiler listesinde (pg_restore --list) hangi tabloların bulunduğunu ve artefakt boyutunu karşılaştırır. Dump dosyalarının içerik/satır diff’i değildir.",
+    "selectBackup1": "Yedek 1 seç",
+    "selectBackup2": "Yedek 2 seç",
+    "pickTwo": "İki farklı yedek çalıştırması seçin.",
+    "sameRun": "Her iki taraf aynı çalıştırma — iki farklı seçin.",
+    "loadFailed": "Karşılaştırma yüklenemedi.",
+    "dumpNotAnalyzed": "En az bir dump TOC analiz edilemedi",
+    "dumpNotAnalyzedDetail": "TOC analizi olmadan tablo listesi eksik kalır (staging/pg_restore).",
+    "onlyChanged": "Yalnızca farklı tabloları göster",
+    "empty": "Tablo farkı yok.",
+    "labels": {
+      "size1": "Boyut yedek 1",
+      "size2": "Boyut yedek 2",
+      "sizeDiff": "Boyut farkı",
+      "changedTables": "Farklı tablolar"
+    },
+    "sizeLarger1": "(yedek 1 daha büyük)",
+    "sizeLarger2": "(yedek 2 daha büyük)",
+    "columns": {
+      "table": "Tablo",
+      "backup1": "Yedek 1",
+      "backup2": "Yedek 2",
+      "diff": "Fark"
+    },
+    "presence": {
+      "yes": "Dump’ta",
+      "no": "Dump’ta değil"
+    },
+    "diff": {
+      "same": "Aynı",
+      "only1": "Yalnızca yedek 1",
+      "only2": "Yalnızca yedek 2"
+    }
+  },
   "runsTable": {
     "instanceScopeTitle": "Örnek geneli yedekler",
     "instanceScopeDescription": "Tüm kiracılar aynı PostgreSQL örneğini paylaşır. Liste dağıtım geneli çalıştırmaları gösterir; kiracı filtresi manuel tetiklenen koşularda (idempotency anahtarı) uygulanır.",
@@ -1566,6 +1905,11 @@
     "tenant": "Kiracı",
     "date": "Tarih",
     "size": "Boyut",
+    "status": "Durum",
+    "duration": "Süre",
+    "strategy": "Strateji",
+    "strategyTenant": "Kiracı",
+    "strategySystem": "Sistem",
     "type": "Tür",
     "typeTest": "Test",
     "typeProduction": "Üretim",
@@ -1583,6 +1927,8 @@
     "sizeLabel": "Boyut: {{size}}",
     "downloadDump": "Yedeği indir",
     "downloadManifest": "Manifesti indir",
+    "sharedDumpWarningTitle": "Paylaşılan örnek dökümü",
+    "sharedDumpWarningDescription": "Yedek dosyaları bu API örneğinin tam PostgreSQL dökümleridir. Erişim denetimi için etiketlenseler bile tüm kiracıların verilerini içerebilirler. Güvenli saklayın; organizasyon dışına paylaşmayın.",
     "import": {
       "title": "Yedek dosyası içe aktar",
       "description": "Daha önce dışa aktarılmış bir dump yükleyerek bu kiracı için kaydedin. Veritabanı otomatik olarak geri yüklenmez.",

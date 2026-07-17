@@ -1,6 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Models.Backup;
+using KasseAPI_Final.Services.Backup;
 
 namespace KasseAPI_Final.Services.OperationalRuns;
 
@@ -10,7 +12,7 @@ namespace KasseAPI_Final.Services.OperationalRuns;
 /// </summary>
 public static class OperationalRunConfigSnapshotBuilder
 {
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -26,11 +28,13 @@ public static class OperationalRunConfigSnapshotBuilder
         string capturePhase,
         DateTime capturedAtUtc,
         BackupExecutionAdapterKind? effectiveExecutionAdapterKind = null,
-        AdminBackupRuntimeExecutionMode? adminRuntimeExecutionMode = null)
+        AdminBackupRuntimeExecutionMode? adminRuntimeExecutionMode = null,
+        BackupStrategyKind? backupStrategy = null)
     {
         var utc = DateTime.SpecifyKind(capturedAtUtc, DateTimeKind.Utc);
         var effectiveKind = effectiveExecutionAdapterKind ?? options.ExecutionAdapterKind;
         var adminMode = adminRuntimeExecutionMode ?? AdminBackupRuntimeExecutionMode.InheritFromConfiguration;
+        var strategy = backupStrategy ?? BackupStrategyKind.System;
         var payload = new BackupRunConfigSnapshotV1(
             SchemaVersion: CurrentSchemaVersion,
             Scope: "backup_run",
@@ -39,6 +43,8 @@ public static class OperationalRunConfigSnapshotBuilder
             ExecutionAdapterKind: effectiveKind.ToString(),
             ConfigurationExecutionAdapterKind: options.ExecutionAdapterKind.ToString(),
             AdminRuntimeExecutionMode: adminMode.ToString(),
+            BackupStrategy: strategy.ToString(),
+            StrategyRetentionDaysDefault: BackupStrategyPolicy.DefaultRetentionDays(strategy),
             WorkerEnabled: options.WorkerEnabled,
             OrchestratorDistributedLockEnabled: options.OrchestratorDistributedLockEnabled,
             OrchestratorAdvisoryLockKey1: options.OrchestratorAdvisoryLockKey1,
@@ -122,6 +128,8 @@ public static class OperationalRunConfigSnapshotBuilder
         string ExecutionAdapterKind,
         string ConfigurationExecutionAdapterKind,
         string AdminRuntimeExecutionMode,
+        string BackupStrategy,
+        int StrategyRetentionDaysDefault,
         bool WorkerEnabled,
         bool OrchestratorDistributedLockEnabled,
         int OrchestratorAdvisoryLockKey1,

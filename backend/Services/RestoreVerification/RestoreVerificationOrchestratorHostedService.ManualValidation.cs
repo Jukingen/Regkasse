@@ -64,6 +64,7 @@ public sealed partial class RestoreVerificationOrchestratorHostedService
 
       var manualRequestId = ManualRestoreRunDetailsJson.TryGetManualRestoreRequestId(run.DetailsJson);
       ManualRestoreRequest? manualEntity = null;
+      Guid? sourceBackupTenantId = null;
       if (manualRequestId is Guid reqId)
       {
           manualEntity = await db.ManualRestoreRequests
@@ -76,6 +77,10 @@ public sealed partial class RestoreVerificationOrchestratorHostedService
               manualEntity.Status = result.Success
                   ? ManualRestoreRequestStatus.Completed
                   : ManualRestoreRequestStatus.Failed;
+              sourceBackupTenantId = await db.BackupRuns.AsNoTracking()
+                  .Where(r => r.Id == manualEntity.BackupRunId)
+                  .Select(r => r.TenantId)
+                  .FirstOrDefaultAsync(cancellationToken);
           }
       }
 
@@ -89,6 +94,7 @@ public sealed partial class RestoreVerificationOrchestratorHostedService
                   audit,
                   actor,
                   manualEntity,
+                  sourceBackupTenantId,
                   succeeded: false,
                   run.CorrelationId);
           }
@@ -144,6 +150,7 @@ public sealed partial class RestoreVerificationOrchestratorHostedService
               audit,
               actor,
               manualEntity,
+              sourceBackupTenantId,
               succeeded: true,
               run.CorrelationId);
       }

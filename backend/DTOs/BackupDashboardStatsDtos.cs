@@ -26,6 +26,24 @@ public sealed class BackupDashboardStatsResponseDto
 
     public int SucceededRuns30Days { get; init; }
 
+    /// <summary>Failed + VerificationFailed in last 30 days.</summary>
+    public int FailedRuns30Days { get; init; }
+
+    /// <summary>Queued + Running (active) runs visible to the caller.</summary>
+    public int PendingRunsCount { get; init; }
+
+    /// <summary>Total runs in the 30-day window (all statuses).</summary>
+    public int TotalRuns30Days { get; init; }
+
+    /// <summary>Earliest next scheduled fire (UTC) from enabled schedule rows; null when none.</summary>
+    public DateTime? NextScheduledBackupAtUtc { get; init; }
+
+    /// <summary>Staging volume used percent when measurable; null when unset/unavailable.</summary>
+    public double? StagingDiskUsedPercent { get; init; }
+
+    /// <summary>True when staging usage is at/above <c>Backup:StagingDiskUsageAlertPercent</c>.</summary>
+    public bool StagingDiskAlert { get; init; }
+
     /// <summary>Hours since last succeeded backup; null when none.</summary>
     public double? RpoHours { get; init; }
 

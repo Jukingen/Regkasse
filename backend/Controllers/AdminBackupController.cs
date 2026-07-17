@@ -42,11 +42,14 @@ public sealed class AdminBackupController : ControllerBase
     private readonly AppDbContext _db;
     private readonly IBackupSettingsAdminService _backupSettings;
     private readonly IBackupDashboardStatsService _dashboardStats;
+    private readonly IBackupComplianceStatusService _complianceStatus;
+    private readonly IBackupStorageCostService _storageCosts;
     private readonly IPitrService _pitr;
     private readonly IBackupVerificationReportService _verificationReport;
     private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly IBackupRunTenantAccessService _backupTenantAccess;
     private readonly IBackupArtifactImportService _artifactImport;
+    private readonly IBackupTimeEstimator _timeEstimator;
 
     public AdminBackupController(
         IBackupManualTriggerService trigger,
@@ -63,11 +66,14 @@ public sealed class AdminBackupController : ControllerBase
         AppDbContext db,
         IBackupSettingsAdminService backupSettings,
         IBackupDashboardStatsService dashboardStats,
+        IBackupComplianceStatusService complianceStatus,
+        IBackupStorageCostService storageCosts,
         IPitrService pitr,
         IBackupVerificationReportService verificationReport,
         ICurrentTenantAccessor tenantAccessor,
         IBackupRunTenantAccessService backupTenantAccess,
-        IBackupArtifactImportService artifactImport)
+        IBackupArtifactImportService artifactImport,
+        IBackupTimeEstimator timeEstimator)
     {
         _trigger = trigger;
         _query = query;
@@ -83,11 +89,14 @@ public sealed class AdminBackupController : ControllerBase
         _db = db;
         _backupSettings = backupSettings;
         _dashboardStats = dashboardStats;
+        _complianceStatus = complianceStatus;
+        _storageCosts = storageCosts;
         _pitr = pitr;
         _verificationReport = verificationReport;
         _tenantAccessor = tenantAccessor;
         _backupTenantAccess = backupTenantAccess;
         _artifactImport = artifactImport;
+        _timeEstimator = timeEstimator;
     }
 
     /// <summary>Enqueue manual backup (HTTP thread does not run pg_dump / file IO).</summary>
@@ -116,13 +125,18 @@ public sealed class AdminBackupController : ControllerBase
             });
         }
 
+        var isSuperAdmin = User.IsInRole(Roles.SuperAdmin);
         var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
         var outcome = await _trigger.RequestManualBackupAsync(
             userId,
             role,
             body?.IdempotencyKey,
             correlationId,
-            cancellationToken);
+            strategy: isSuperAdmin && !_tenantAccessor.TenantId.HasValue
+                ? BackupStrategyKind.System
+                : BackupStrategyKind.Tenant,
+            deploymentWide: isSuperAdmin && !_tenantAccessor.TenantId.HasValue,
+            cancellationToken: cancellationToken);
 
         var artifactPolicy = _readiness.GetArtifactPipelinePolicy();
         var dto = BackupTriggerResponseFactory.Create(
@@ -244,6 +258,38 @@ public sealed class AdminBackupController : ControllerBase
         return Ok(await _dashboardStats.GetAsync(BuildRunAccessScope(), cancellationToken));
     }
 
+    /// <summary>
+    /// Backup restore-readiness / RKSV product-gate rollup (30 days). Not BMF certification.
+    /// </summary>
+    [HttpGet("compliance-status")]
+    [HasPermission(AppPermissions.SettingsView)]
+    [ProducesResponseType(typeof(BackupComplianceStatusResponseDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<BackupComplianceStatusResponseDto>> GetComplianceStatus(
+        CancellationToken cancellationToken)
+    {
+        var tenantGuard = ValidateScopedReadTenantContext();
+        if (tenantGuard != null)
+            return tenantGuard;
+
+        return Ok(await _complianceStatus.GetAsync(BuildRunAccessScope(), cancellationToken));
+    }
+
+    /// <summary>
+    /// Indicative Hot/Warm/Cold storage cost rollup (ops estimate — not a cloud invoice).
+    /// </summary>
+    [HttpGet("storage-costs")]
+    [HasPermission(AppPermissions.SettingsView)]
+    [ProducesResponseType(typeof(BackupStorageCostResponseDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<BackupStorageCostResponseDto>> GetStorageCosts(
+        CancellationToken cancellationToken)
+    {
+        var tenantGuard = ValidateScopedReadTenantContext();
+        if (tenantGuard != null)
+            return tenantGuard;
+
+        return Ok(await _storageCosts.GetAsync(BuildRunAccessScope(), cancellationToken));
+    }
+
     [HttpGet("status/latest")]
     [HasPermission(AppPermissions.SettingsView)]
     public async Task<ActionResult<BackupLatestStatusResponseDto>> GetLatestStatus(CancellationToken cancellationToken)
@@ -259,6 +305,15 @@ public sealed class AdminBackupController : ControllerBase
         var cfg = _readiness.GetConfigurationHealth();
         var artifactPolicy = _readiness.GetArtifactPipelinePolicy();
         var downloadEnrichment = CreateDownloadEnrichment(CanCallerDownloadArtifacts());
+        var estimate = _timeEstimator.Estimate(new BackupTimeEstimateRequest
+        {
+            DataSizeBytes = ResolveEstimateDataSizeBytes(latest),
+            StepCount = BackupPipelineProjector.PipelineStepKeysOrdered.Count,
+            AverageSucceededDurationSeconds = durationStats.AverageDurationSeconds,
+            StartedAtUtc = latest?.StartedAt,
+            RequestedAtUtc = latest?.RequestedAt,
+            Status = latest?.Status
+        });
         return Ok(new BackupLatestStatusResponseDto
         {
             LatestRun = latest == null
@@ -278,8 +333,22 @@ public sealed class AdminBackupController : ControllerBase
             ConfigurationHealth = BackupConfigurationHealthResponseMapper.FromSnapshot(cfg),
             ArtifactPipelinePolicy = BackupArtifactPipelinePolicyMapper.ToDto(artifactPolicy),
             AverageSucceededBackupDurationSeconds = durationStats.AverageDurationSeconds,
-            AverageSucceededBackupDurationSampleCount = durationStats.SampleCount
+            AverageSucceededBackupDurationSampleCount = durationStats.SampleCount,
+            EstimatedTotalSeconds = Math.Round(estimate.EstimatedTotalSeconds, 1),
+            EstimatedRemainingSeconds = estimate.EstimatedRemainingSeconds is null
+                ? null
+                : Math.Round(estimate.EstimatedRemainingSeconds.Value, 1),
+            EstimateSource = estimate.Source
         });
+    }
+
+    private static long ResolveEstimateDataSizeBytes(BackupRun? latest)
+    {
+        if (latest?.Artifacts is not { Count: > 0 })
+            return 0;
+
+        var sum = latest.Artifacts.Sum(a => a.ByteSize ?? 0);
+        return sum > 0 ? sum : 0;
     }
 
     /// <summary>
@@ -569,7 +638,10 @@ public sealed class AdminBackupController : ControllerBase
             });
         }
 
-        var items = await _backupRunService.GetBackupListAsync(_tenantAccessor.TenantId, cancellationToken);
+        var items = await _backupRunService.GetBackupListAsync(
+            _tenantAccessor.TenantId,
+            isSuperAdmin: User.IsInRole(Roles.SuperAdmin),
+            cancellationToken);
         return Ok(items);
     }
 

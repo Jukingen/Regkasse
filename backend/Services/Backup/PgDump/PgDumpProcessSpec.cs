@@ -13,4 +13,10 @@ public sealed class PgDumpProcessSpec
     public required string Database { get; init; }
     public required string OutputFilePath { get; init; }
     public TimeSpan Timeout { get; init; } = TimeSpan.FromHours(2);
+
+    /// <summary><c>pg_dump -Z</c> level 0–9 for custom-format zlib compression.</summary>
+    public int CompressionLevel { get; init; } = 6;
+
+    /// <summary>Optional tables to pass as <c>--exclude-table</c> (credentials / cache).</summary>
+    public IReadOnlyList<string> ExcludeTables { get; init; } = Array.Empty<string>();
 }

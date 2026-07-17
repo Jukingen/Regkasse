@@ -144,6 +144,7 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
                     request.AdminPassword,
                     request.GrantTrialLicense,
                     request.ImportDemoMenu,
+                    request.CashRegisterNumber,
                     cancellationToken)
                 .ConfigureAwait(false);
 

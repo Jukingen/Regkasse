@@ -11,16 +11,24 @@
 import type { BackupManagementTabKey } from '@/features/backup-management/components/BackupManagementPanel';
 
 export const BACKUP_DASHBOARD_PATH = '/backup/dashboard' as const;
+export const BACKUP_PERFORMANCE_PATH = '/backup/performance' as const;
+export const BACKUP_COMPLIANCE_PATH = '/backup/compliance' as const;
+export const BACKUP_COSTS_PATH = '/backup/costs' as const;
+export const BACKUP_RESTORE_HISTORY_PATH = '/backup/restore-history' as const;
 export const BACKUP_RUNS_PATH = '/backup/runs' as const;
 export const BACKUP_CONFIGURATION_PATH = '/backup/configuration' as const;
 export const BACKUP_AUDIT_PATH = '/backup/audit' as const;
 
-/** Sidebar section landing (dashboard). */
-export const BACKUP_HUB_LANDING_PATH = BACKUP_DASHBOARD_PATH;
+/** Sidebar / hub landing — simple overview at `/backup`. */
+export const BACKUP_HUB_LANDING_PATH = '/backup' as const;
 
 export const BACKUP_AREA_ROUTE_PATHS = [
     '/backup',
     BACKUP_DASHBOARD_PATH,
+    BACKUP_PERFORMANCE_PATH,
+    BACKUP_COMPLIANCE_PATH,
+    BACKUP_COSTS_PATH,
+    BACKUP_RESTORE_HISTORY_PATH,
     BACKUP_RUNS_PATH,
     BACKUP_CONFIGURATION_PATH,
     BACKUP_AUDIT_PATH,
@@ -46,9 +54,33 @@ export const BACKUP_SIDEBAR_VIRTUAL_KEYS = {
 export const BACKUP_SECONDARY_NAV_ITEMS = [
     {
         id: 'overview',
-        menuKey: BACKUP_DASHBOARD_PATH,
-        href: BACKUP_DASHBOARD_PATH,
+        menuKey: BACKUP_HUB_LANDING_PATH,
+        href: BACKUP_HUB_LANDING_PATH,
         labelKey: 'nav.backupOverview',
+    },
+    {
+        id: 'performance',
+        menuKey: BACKUP_PERFORMANCE_PATH,
+        href: BACKUP_PERFORMANCE_PATH,
+        labelKey: 'nav.backupPerformance',
+    },
+    {
+        id: 'compliance',
+        menuKey: BACKUP_COMPLIANCE_PATH,
+        href: BACKUP_COMPLIANCE_PATH,
+        labelKey: 'nav.backupCompliance',
+    },
+    {
+        id: 'costs',
+        menuKey: BACKUP_COSTS_PATH,
+        href: BACKUP_COSTS_PATH,
+        labelKey: 'nav.backupCosts',
+    },
+    {
+        id: 'restoreHistory',
+        menuKey: BACKUP_RESTORE_HISTORY_PATH,
+        href: BACKUP_RESTORE_HISTORY_PATH,
+        labelKey: 'nav.backupRestoreHistory',
     },
     {
         id: 'runs',
@@ -96,7 +128,11 @@ export const BACKUP_SCHEDULE_SETTINGS_HREF =
 
 export function backupPathFromPathname(pathname: string | null | undefined): string | null {
     const p = (pathname ?? '').replace(/\/+$/, '') || '/';
-    if (p === BACKUP_DASHBOARD_PATH || p === '/backup') return BACKUP_DASHBOARD_PATH;
+    if (p === '/backup' || p === BACKUP_DASHBOARD_PATH) return BACKUP_HUB_LANDING_PATH;
+    if (p === BACKUP_PERFORMANCE_PATH) return BACKUP_PERFORMANCE_PATH;
+    if (p === BACKUP_COMPLIANCE_PATH) return BACKUP_COMPLIANCE_PATH;
+    if (p === BACKUP_COSTS_PATH) return BACKUP_COSTS_PATH;
+    if (p === BACKUP_RESTORE_HISTORY_PATH) return BACKUP_RESTORE_HISTORY_PATH;
     if (p === BACKUP_RUNS_PATH) return BACKUP_RUNS_PATH;
     if (p === BACKUP_CONFIGURATION_PATH || p.startsWith(`${BACKUP_CONFIGURATION_PATH}/`) || p === '/backup/config') {
         return BACKUP_CONFIGURATION_PATH;

@@ -864,6 +864,11 @@ builder.Services.AddSingleton<FakeBackupExecutionAdapter>();
 builder.Services.AddSingleton<PostgreSqlBackupExecutionAdapterStub>();
 builder.Services.AddSingleton<IPgDumpProcessRunner, PgDumpProcessRunner>();
 builder.Services.AddSingleton<PostgreSqlPgDumpBackupExecutionAdapter>();
+builder.Services.AddSingleton<ICompressionService, CompressionService>();
+builder.Services.AddSingleton<ITenantScopedBackupExporter, TenantScopedBackupExporter>();
+builder.Services.AddSingleton<TenantScopedLogicalBackupExecutionAdapter>();
+builder.Services.AddSingleton<ISystemScopedBackupExporter, SystemScopedBackupExporter>();
+builder.Services.AddSingleton<CompositeSystemBackupExecutionAdapter>();
 builder.Services.Configure<OperationalDrAlertOptions>(
     builder.Configuration.GetSection(OperationalDrAlertOptions.SectionName));
 builder.Services.Configure<OperationalDrObservabilityOptions>(
@@ -873,6 +878,8 @@ builder.Services
     .ConfigureHttpClient(c => c.Timeout = TimeSpan.FromMinutes(2));
 builder.Services.AddSingleton<LoggingBackupAlertPublisher>();
 builder.Services.AddSingleton<WebhookBackupAlertPublisher>();
+builder.Services.AddSingleton<IBackupFailureEmailAlertService, BackupFailureEmailAlertService>();
+builder.Services.AddSingleton<EmailBackupAlertPublisher>();
 builder.Services.AddSingleton<IBackupAlertPublisher>(sp =>
     new CompositeBackupAlertPublisher(
         new IBackupAlertPublisher[]
@@ -880,12 +887,18 @@ builder.Services.AddSingleton<IBackupAlertPublisher>(sp =>
             sp.GetRequiredService<LoggingBackupAlertPublisher>(),
             sp.GetRequiredService<WebhookBackupAlertPublisher>(),
             sp.GetRequiredService<ActivityBackupAlertPublisher>(),
+            sp.GetRequiredService<EmailBackupAlertPublisher>(),
         }));
 builder.Services.AddSingleton<IDrOperationalObservabilityMetrics, PrometheusDrOperationalObservabilityMetrics>();
 builder.Services.AddSingleton<DrStaleRunRecoveryAlertingObserver>();
 builder.Services.AddSingleton<IDrStaleRunRecoveryObserver>(sp =>
     sp.GetRequiredService<DrStaleRunRecoveryAlertingObserver>());
 builder.Services.AddHostedService<DrOperationalObservabilityHostedService>();
+builder.Services.AddSingleton<IBackupTimeEstimator, BackupTimeEstimator>();
+builder.Services.AddSingleton<ISmartRetentionService, SmartRetentionService>();
+builder.Services.AddSingleton<IStorageTierService, StorageTierService>();
+builder.Services.AddScoped<IBackupService, BackupService>();
+builder.Services.AddScoped<IIncrementalBackupService, IncrementalBackupService>();
 builder.Services.AddScoped<IBackupManualTriggerService, BackupManualTriggerService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IBackupRunQueryService, BackupRunQueryService>();
@@ -895,7 +908,11 @@ builder.Services.AddScoped<IBackupArtifactDownloadService, BackupArtifactDownloa
 builder.Services.AddScoped<IBackupRunTenantAccessService, BackupRunTenantAccessService>();
 builder.Services.AddScoped<IBackupArtifactImportService, BackupArtifactImportService>();
 builder.Services.AddScoped<IBackupRecoverabilitySummaryService, BackupRecoverabilitySummaryService>();
+builder.Services.AddSingleton<IBackupStagingDiskMonitor, BackupStagingDiskMonitor>();
+builder.Services.AddSingleton<IBackupEncryptionService, BackupEncryptionService>();
 builder.Services.AddScoped<IBackupDashboardStatsService, BackupDashboardStatsService>();
+builder.Services.AddScoped<IBackupComplianceStatusService, BackupComplianceStatusService>();
+builder.Services.AddScoped<IBackupStorageCostService, BackupStorageCostService>();
 builder.Services.AddScoped<IBackupVerificationService, BackupVerificationService>();
 builder.Services.AddScoped<IBackupVerificationReportService, BackupVerificationReportService>();
 builder.Services.AddSingleton<IRestoreOrchestrationBoundary, DeferredRestoreOrchestrationBoundary>();
@@ -910,6 +927,8 @@ builder.Services.AddScoped<IBackupSettingsAdminService, BackupSettingsAdminServi
 builder.Services.AddHostedService<BackupOrchestratorHostedService>();
 builder.Services.AddHostedService<BackupSchedulerService>();
 builder.Services.AddHostedService<BackupRetentionPolicyDiagnosticsHostedService>();
+builder.Services.AddHostedService<StorageAlertService>();
+builder.Services.AddHostedService<AutomaticCleanupService>();
 
 builder.Services.AddSingleton<IPgRestoreListInspector, PgRestoreListInspector>();
 builder.Services.AddSingleton<IPgRestoreIsolatedRestoreRunner, PgRestoreIsolatedRestoreRunner>();
@@ -931,6 +950,9 @@ builder.Services.Configure<ManualRestoreApprovalOptions>(
 builder.Services.AddSingleton<ManualRestoreTargetDatabaseGuard>();
 builder.Services.AddScoped<IManualRestoreApprovalEmailService, ManualRestoreApprovalEmailService>();
 builder.Services.AddScoped<IManualRestoreApprovalNotificationService, ManualRestoreApprovalNotificationService>();
+builder.Services.AddScoped<IRestoreService, RestoreService>();
+builder.Services.AddScoped<IComplianceCheckService, ComplianceCheckService>();
+builder.Services.AddScoped<IRestoreReportService, RestoreReportService>();
 builder.Services.AddScoped<IManualRestoreTriggerService, ManualRestoreTriggerService>();
 builder.Services.Configure<PaymentReversalApprovalOptions>(
     builder.Configuration.GetSection(PaymentReversalApprovalOptions.SectionName));

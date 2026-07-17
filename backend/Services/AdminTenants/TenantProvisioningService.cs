@@ -49,6 +49,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         string? adminPassword,
         bool grantTrialLicense,
         bool importDemoMenu = false,
+        string? cashRegisterNumber = null,
         CancellationToken cancellationToken = default)
     {
         var resolvedEmail = ResolveAdminEmail(tenant, adminEmail);
@@ -69,11 +70,13 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         if (password.Length < 8)
             return (null, "Admin password must be at least 8 characters.");
 
+        var resolvedRegisterNumber = ResolveRegisterNumber(cashRegisterNumber);
+
         var now = DateTime.UtcNow;
         var cashRegister = new CashRegister
         {
             TenantId = tenant.Id,
-            RegisterNumber = DefaultRegisterNumber,
+            RegisterNumber = resolvedRegisterNumber,
             Location = DefaultRegisterLocation,
             StartingBalance = 0m,
             CurrentBalance = 0m,
@@ -231,6 +234,15 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
             return trimmed;
 
         return $"admin@{tenant.Slug}.regkasse.at";
+    }
+
+    private static string ResolveRegisterNumber(string? cashRegisterNumber)
+    {
+        var trimmed = cashRegisterNumber?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+            return DefaultRegisterNumber;
+
+        return trimmed.Length > 20 ? trimmed[..20] : trimmed;
     }
 
     private static List<Product> CreateDemoProducts(Guid tenantId, Category category)

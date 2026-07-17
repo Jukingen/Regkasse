@@ -16,6 +16,12 @@ export interface BackupLatestStatusResponseDto {
   /** @nullable */
   averageSucceededBackupDurationSeconds?: number | null;
   configurationHealth?: BackupConfigurationHealthResponseDto;
+  /** @nullable */
+  estimatedRemainingSeconds?: number | null;
+  /** @nullable */
+  estimatedTotalSeconds?: number | null;
+  /** @nullable */
+  estimateSource?: string | null;
   latestRun?: BackupRunResponseDto;
   restore?: RestoreCapabilityDto;
 }

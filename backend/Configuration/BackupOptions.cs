@@ -111,6 +111,23 @@ public sealed class BackupOptions
     public string? AlertingChannelPlaceholder { get; set; }
 
     /// <summary>
+    /// Comma- or semicolon-separated ops recipients for German backup-failure emails
+    /// (<c>EmailBackupAlertPublisher</c> / <c>IBackupFailureEmailAlertService</c>).
+    /// Empty skips dedicated SMTP (activity-feed email path may still notify).
+    /// Example: <c>admin@regkasse.at</c>.
+    /// </summary>
+    public string? FailureAlertEmailRecipients { get; set; }
+
+    /// <summary>
+    /// When true, staging artifacts are wrapped with AES-256-GCM after write
+    /// (<see cref="Services.Backup.BackupEncryptionService"/>). Requires <see cref="EncryptionKeyBase64"/>.
+    /// </summary>
+    public bool EncryptionEnabled { get; set; }
+
+    /// <summary>Base64-encoded 32-byte AES-256 key for artifact encryption at rest.</summary>
+    public string? EncryptionKeyBase64 { get; set; }
+
+    /// <summary>
     /// Production-like ortamda (Development dışı): <see cref="ExecutionAdapterKind"/> <see cref="BackupExecutionAdapterKind.ProductionStub"/> iken
     /// zorunlu. <c>pg_dump</c> / gerçek PostgreSQL mantıksal yedek çalıştırılmadığını operatör beyan eder.
     /// </summary>
@@ -183,6 +200,69 @@ public sealed class BackupOptions
     /// Declared lag between last archived WAL and database "now" for PITR upper bound (minutes).
     /// </summary>
     public int? PitrWalArchiveDeclaredLagMinutes { get; set; }
+
+    /// <summary>
+    /// <c>pg_dump -Fc</c> compression level (<c>-Z</c>, 0–9). Default 6 balances size vs CPU (cost optimization).
+    /// Custom format already uses zlib; this tunes the zlib level (not a separate .gz wrapper).
+    /// </summary>
+    public int PgDumpCompressionLevel { get; set; } = 6;
+
+    /// <summary>
+    /// Optional <c>--exclude-table</c> list for logical dumps (schema-qualified or bare names).
+    /// Default excludes ASP.NET Identity credential tables so password hashes are not in dumps.
+    /// Tenant business data, audit logs, and fiscal tables remain included. Empty array = dump all tables.
+    /// </summary>
+    public string[] LogicalDumpExcludeTables { get; set; } =
+    {
+        "AspNetUsers",
+        "AspNetUserClaims",
+        "AspNetUserLogins",
+        "AspNetUserTokens",
+    };
+
+    /// <summary>
+    /// When staging root disk usage reaches this percent, dashboard/health surfaces a cost/ops alert.
+    /// Also used by <c>StorageAlertService</c> for periodic staging-volume alerts.
+    /// </summary>
+    public int StagingDiskUsageAlertPercent { get; set; } = 80;
+
+    /// <summary>
+    /// Poll interval for <c>StorageAlertService</c> (budget + staging disk). Minimum enforced: 5 minutes.
+    /// </summary>
+    public TimeSpan StorageAlertCheckInterval { get; set; } = TimeSpan.FromHours(6);
+
+    /// <summary>
+    /// When true, succeeded-run cleanup uses GFS smart retention
+    /// (<see cref="Services.Backup.SmartRetentionService"/>: 7 daily / 4 weekly / 12 monthly / 7 yearly)
+    /// instead of the flat Tenant 30d / System 90d cutoff.
+    /// Default false preserves existing schedule retention windows.
+    /// </summary>
+    public bool SmartRetentionEnabled { get; set; }
+
+    /// <summary>
+    /// When true, post-success retention pass also reclassifies succeeded artifacts into
+    /// Hot (≤7d) / Warm (≤30d) / Cold (&gt;30d) via <see cref="Services.Backup.StorageTierService"/>.
+    /// Cold is a preference for external archive — not an automatic Glacier/S3 move.
+    /// </summary>
+    public bool StorageTierManagementEnabled { get; set; }
+
+    /// <summary>Indicative EUR/GiB-month for Hot (fast staging). Ops estimate only.</summary>
+    public decimal StorageCostHotEurPerGbMonth { get; set; } = 0.023m;
+
+    /// <summary>Indicative EUR/GiB-month for Warm.</summary>
+    public decimal StorageCostWarmEurPerGbMonth { get; set; } = 0.0125m;
+
+    /// <summary>Indicative EUR/GiB-month for Cold (archive preference).</summary>
+    public decimal StorageCostColdEurPerGbMonth { get; set; } = 0.004m;
+
+    /// <summary>
+    /// When true, <see cref="Services.Backup.AutomaticCleanupService"/> runs periodic retention cleanup
+    /// (and optional storage-tier retag). Complements post-success cleanup.
+    /// </summary>
+    public bool AutomaticCleanupEnabled { get; set; }
+
+    /// <summary>Interval between automatic cleanup passes. Minimum enforced: 1 hour. Default: 1 day.</summary>
+    public TimeSpan AutomaticCleanupInterval { get; set; } = TimeSpan.FromDays(1);
 }
 
 /// <summary>Maps to registered <see cref="Services.Backup.IBackupExecutionAdapter"/> implementation.</summary>

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Button, Space, Statistic, Typography } from 'antd';
+import { Alert, Button, Space, Statistic, Typography } from 'antd';
 import { CloudServerOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import dayjs from 'dayjs';
@@ -34,6 +34,7 @@ function dayjsLocale(code: string): string {
     return 'de';
 }
 
+/** Dashboard backup status widget (success rate, last run, staging storage). */
 export function BackupStatusWidget({ title, dragHandleProps, onRefresh }: Props) {
     const { t, textLocale } = useI18n();
     const { isAuthorized } = useAuthorizationGate({ requiredPermission: PERMISSIONS.SETTINGS_VIEW });
@@ -75,6 +76,11 @@ export function BackupStatusWidget({ title, dragHandleProps, onRefresh }: Props)
         ? dayjs(stats.lastBackupAtUtc).locale(relativeLocale).fromNow()
         : t('dashboard.backupStatusWidget.no_backup');
 
+    const storagePercent = stats.stagingDiskUsedPercent ?? null;
+    const storageAlert =
+        stats.stagingDiskAlert === true ||
+        (storagePercent != null && storagePercent >= 80);
+
     return (
         <WidgetShell
             title={title}
@@ -87,10 +93,17 @@ export function BackupStatusWidget({ title, dragHandleProps, onRefresh }: Props)
                 <div
                     style={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
                         gap: 16,
                     }}
                 >
+                    <Statistic
+                        title={t('dashboard.backupStatusWidget.success_rate_30d')}
+                        value={stats.successRate30DaysPercent ?? 0}
+                        suffix="%"
+                        precision={0}
+                        loading={query.isLoading}
+                    />
                     <div>
                         <Typography.Text type="secondary" style={{ fontSize: 14 }}>
                             {t('dashboard.backupStatusWidget.last_backup')}
@@ -100,13 +113,21 @@ export function BackupStatusWidget({ title, dragHandleProps, onRefresh }: Props)
                         </div>
                     </div>
                     <Statistic
-                        title={t('dashboard.backupStatusWidget.success_rate_30d')}
-                        value={stats.successRate30DaysPercent ?? 0}
+                        title={t('dashboard.backupStatusWidget.storage')}
+                        value={storagePercent ?? 0}
                         suffix="%"
                         precision={0}
                         loading={query.isLoading}
                     />
                 </div>
+
+                {storageAlert ? (
+                    <Alert
+                        type="warning"
+                        showIcon
+                        message={t('dashboard.backupStatusWidget.storage_alert')}
+                    />
+                ) : null}
 
                 {stats.configurationHealth?.level ? (
                     <div style={{ fontSize: 12, color: '#64748b' }}>
@@ -116,7 +137,7 @@ export function BackupStatusWidget({ title, dragHandleProps, onRefresh }: Props)
                     </div>
                 ) : null}
 
-                <Link href="/backup/dashboard" style={{ display: 'block' }}>
+                <Link href="/backup" style={{ display: 'block' }}>
                     <Button type="primary" icon={<CloudServerOutlined />} block>
                         {t('dashboard.backupStatusWidget.view_details')}
                     </Button>
@@ -125,3 +146,6 @@ export function BackupStatusWidget({ title, dragHandleProps, onRefresh }: Props)
         </WidgetShell>
     );
 }
+
+/** Alias matching Phase 1 plan name (`BackupWidget`). */
+export { BackupStatusWidget as BackupWidget };

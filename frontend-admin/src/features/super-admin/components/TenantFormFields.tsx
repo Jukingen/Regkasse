@@ -10,7 +10,7 @@ import type { FormInstance } from 'antd';
 import { CreateTenantFormField } from '@/features/super-admin/components/CreateTenantFormField';
 import { TenantSlugFieldExtras } from '@/features/super-admin/components/TenantSlugFieldExtras';
 import type { useTenantCreateFormFields } from '@/features/super-admin/hooks/useTenantCreateFormFields';
-import type { CreateTenantFormValues } from '@/features/super-admin/components/CreateTenantModal';
+import type { CreateTenantFormValues } from '@/features/super-admin/components/CreateTenantWizard/types';
 import styles from '@/styles/tenant-form.module.css';
 
 export type TenantFormFieldsProps = {

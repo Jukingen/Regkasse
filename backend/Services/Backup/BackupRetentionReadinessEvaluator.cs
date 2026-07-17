@@ -65,7 +65,7 @@ public static class BackupRetentionReadinessEvaluator
                 }
 
                 notes.Add(
-                    $"Retention policy is ExecutionPlanned with ArtifactRetentionDays={options.ArtifactRetentionDays}: automated deletion is not implemented; Backup:RetentionArtifactDeletionEnabled remains false until a retention job ships.");
+                    $"Retention policy is ExecutionPlanned with ArtifactRetentionDays={options.ArtifactRetentionDays}: the reserved Backup:RetentionArtifactDeletionEnabled flag stays false. Succeeded-run cleanup is owned by BackupSucceededRunRetentionCleaner (post-success hook using schedule RetentionDays).");
                 return new BackupRetentionReadinessSnapshot
                 {
                     Mode = options.RetentionPolicyMode,

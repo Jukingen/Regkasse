@@ -6,6 +6,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
@@ -303,12 +304,15 @@ namespace KasseAPI_Final.Controllers
                 var userId = User.GetActorUserId();
                 var role = User.GetActorRole() ?? "Unknown";
                 var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
+                var isSuperAdmin = User.IsInRole(Roles.SuperAdmin);
                 var outcome = await _backupManualTrigger.RequestManualBackupAsync(
                     userId,
                     role,
                     idempotencyKey: null,
                     correlationId,
-                    cancellationToken);
+                    strategy: isSuperAdmin ? BackupStrategyKind.System : BackupStrategyKind.Tenant,
+                    deploymentWide: isSuperAdmin,
+                    cancellationToken: cancellationToken);
 
                 var dto = BackupTriggerResponseFactory.Create(outcome);
 

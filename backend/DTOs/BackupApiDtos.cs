@@ -223,6 +223,18 @@ public sealed class BackupListItemResponseDto
 
     public bool IsFake { get; init; }
 
+    /// <summary>Parent backup run status (list currently returns succeeded dumps only).</summary>
+    public BackupRunStatus Status { get; init; }
+
+    /// <summary>Tenant vs System strategy for role-aware UI filtering.</summary>
+    public BackupStrategyKind Strategy { get; init; }
+
+    /// <summary>Run duration in seconds when started/completed timestamps are present.</summary>
+    public int? DurationSeconds { get; init; }
+
+    /// <summary>English human-readable duration (e.g. "2m 30s").</summary>
+    public string? DurationFormatted { get; init; }
+
     /// <summary>Relative admin download path; requires <c>backup.manage</c> (tenant-scoped) or <c>settings.manage</c>.</summary>
     public string? DownloadUrl { get; init; }
 
@@ -355,6 +367,20 @@ public sealed class BackupLatestStatusResponseDto
 
     /// <summary><see cref="AverageSucceededBackupDurationSeconds"/> için kullanılan başarılı çalıştırma sayısı.</summary>
     public int AverageSucceededBackupDurationSampleCount { get; init; }
+
+    /// <summary>
+    /// Indicative total duration estimate (seconds) for the latest run context.
+    /// Prefer historical average when samples exist; otherwise size+step heuristic.
+    /// </summary>
+    public double? EstimatedTotalSeconds { get; init; }
+
+    /// <summary>
+    /// Indicative remaining seconds while the latest run is queued/running/awaiting verification; otherwise null.
+    /// </summary>
+    public double? EstimatedRemainingSeconds { get; init; }
+
+    /// <summary><c>historical</c> or <c>heuristic</c> — how <see cref="EstimatedTotalSeconds"/> was derived.</summary>
+    public string? EstimateSource { get; init; }
 }
 
 /// <summary>

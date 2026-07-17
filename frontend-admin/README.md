@@ -306,7 +306,55 @@ Access: **`admin.regkasse.at`** (or local dev on platform host). Role: **`SuperA
 
 **Impersonation (production):** redirect to `https://{tenantSlug}.regkasse.at/impersonate-callback#impersonate_token=…` — [`../docs/IMPERSONATION_FLOW.md`](../docs/IMPERSONATION_FLOW.md).
 
-**Docs index:** [`../docs/TENANT_MANAGEMENT.md`](../docs/TENANT_MANAGEMENT.md), [`../docs/BILLING_TENANT_LICENSE.md`](../docs/BILLING_TENANT_LICENSE.md), [`../docs/CUSTOMER_ONBOARDING.md`](../docs/CUSTOMER_ONBOARDING.md), [`../docs/USER_MANAGEMENT.md`](../docs/USER_MANAGEMENT.md), [`../docs/CASH_REGISTER_LIFECYCLE.md`](../docs/CASH_REGISTER_LIFECYCLE.md), [`../docs/LICENSE_SYSTEM.md`](../docs/LICENSE_SYSTEM.md), [`../docs/MULTI_TENANT.md`](../docs/MULTI_TENANT.md).
+**Docs index:** [`../docs/TENANT_MANAGEMENT.md`](../docs/TENANT_MANAGEMENT.md), [`../docs/BILLING_TENANT_LICENSE.md`](../docs/BILLING_TENANT_LICENSE.md), [`../docs/CUSTOMER_ONBOARDING.md`](../docs/CUSTOMER_ONBOARDING.md), [`../docs/USER_MANAGEMENT.md`](../docs/USER_MANAGEMENT.md), [`../docs/CASH_REGISTER_LIFECYCLE.md`](../docs/CASH_REGISTER_LIFECYCLE.md), [`../docs/LICENSE_SYSTEM.md`](../docs/LICENSE_SYSTEM.md), [`../docs/MULTI_TENANT.md`](../docs/MULTI_TENANT.md), [`../docs/BACKUP_SYSTEM.md`](../docs/BACKUP_SYSTEM.md).
+
+## Backup Management
+
+Role-aware Backup & Disaster Recovery UI. Full guide: [`../docs/BACKUP_SYSTEM.md`](../docs/BACKUP_SYSTEM.md) · Permissions: [`../docs/BACKUP_PERMISSIONS.md`](../docs/BACKUP_PERMISSIONS.md) · RKSV restore: [`../docs/RKSV_COMPLIANCE.md`](../docs/RKSV_COMPLIANCE.md).
+
+There is **no** `backup.view` permission. Read access uses **`settings.view`**. Manage uses **`backup.manage`** (Mandanten-Admin default); platform ops use **`settings.manage`** (implies `backup.manage`).
+
+### Access
+
+| | |
+|--|--|
+| **Hub URL** | `/backup` (role-aware overview) |
+| **Related routes** | `/backup/dashboard`, `/backup/runs`, `/backup/configuration`, `/backup/audit` |
+| **View** | `settings.view` |
+| **Trigger / schedule / tenant download** | `backup.manage` (or `settings.manage`) |
+| **Execution mode / platform config** | `settings.manage` only |
+| **Restore / restore drills** | **Super Admin only** (`useBackupPermissions().canRestore`) |
+
+Hook: `src/features/backup/hooks/useBackupPermissions.ts`. Routes: `src/shared/backupAreaRoutes.ts`.
+
+### Super Admin view (`SystemBackupView`)
+
+- View backup status, System + all tenant runs, DR dashboard metrics.
+- Create **System** manual backup.
+- View backup history / list (strategy column when showing all).
+- Configure schedule and **platform** execution mode.
+- **Validation-only** restore from System `pg_dump` (`RestoreModal`, dual acknowledgement / dual Super Admin approval) — **not** production restore.
+- Restore drills via DR surfaces (not Mandanten-Admin).
+
+### Mandanten-Admin view (`TenantBackupView`)
+
+- View **own tenant** backups only (`BackupStrategyKind.Tenant`).
+- Create manual **Tenant** backup; configure tenant-scoped schedule/retention when permitted.
+- Download / import own Tenant packages.
+- **No** restore (API + UI).
+- **No** access to other tenants’ backups or **System** dumps (Identity / all-tenants).
+
+Hub page: `src/app/(protected)/backup/page.tsx` → `isSuperAdmin ? SystemBackupView : TenantBackupView`.
+
+### Features (by capability)
+
+| Feature | Mandanten-Admin | Super Admin |
+|---------|-----------------|-------------|
+| View backup status | Own Tenant | All + System |
+| Create manual backup | Tenant strategy | System strategy |
+| View backup history / list | Own Tenant | All |
+| Configure schedule | Own tenant binding | Yes (+ platform mode) |
+| Restore from backup | No | Validation-only (System dump) |
 
 ## License display
 

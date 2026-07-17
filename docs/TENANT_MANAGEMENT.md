@@ -14,7 +14,7 @@
 | **Firma wechseln** (Dev) | tenant switch | `X-Tenant-Id` + `localStorage.dev_tenant_id` reload |
 | **Plattform-Admin** | platform admin host | `admin.regkasse.at` — no mandant context until impersonation |
 
-Related: [`MULTI_TENANT.md`](MULTI_TENANT.md), [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md), [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md), [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md), [`IMPERSONATION_FLOW.md`](IMPERSONATION_FLOW.md).
+Related: [`MULTI_TENANT.md`](MULTI_TENANT.md), [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md), [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md), [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md), [`IMPERSONATION_FLOW.md`](IMPERSONATION_FLOW.md), [`BACKUP_SYSTEM.md`](BACKUP_SYSTEM.md), [`BACKUP_PERMISSIONS.md`](BACKUP_PERMISSIONS.md).
 
 ---
 
@@ -30,7 +30,7 @@ Related: [`MULTI_TENANT.md`](MULTI_TENANT.md), [`LICENSE_SYSTEM.md`](LICENSE_SYS
 - Cash register management
 - Settings (tenant-scoped)
 - Reports and exports
-- Backup trigger and schedule (`backup.manage`)
+- Backup trigger and schedule (`backup.manage`) — **own Tenant** packages only; **no** restore (see [Backup Management](#backup-management))
 
 Cannot access other tenants or platform-wide Super Admin surfaces (`/admin/tenants`, platform user CRUD).
 
@@ -87,25 +87,17 @@ Route: `/admin/tenants/[tenantId]` — query `?tab=users|registers|license|setti
 
 ### Create tenant (onboarding wizard)
 
-**UI:** `CreateTenantWizard` (exported alias `CreateTenantModal`) — foolproof flow documented in [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md)
+**UI:** `CreateTenantWizard` — multi-step Super Admin flow documented in [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md)
 
-- Live slug normalization (`normalizeTenantSlugInput`) and availability check (`CheckSlugAvailabilityAsync` on backend).
-- Optional **trial license** checkbox maps to `grantTrialLicense` (default **true** in API DTO).
-- On success, `OnboardingSuccessModal` shows one-time **provisioning** payload (admin password, register id, demo product ids).
+- **Entry:** `/admin/tenants` → **Mandant anlegen** → `/admin/tenants/create`
+- Steps: Firma → Administrator → Kasse & Lizenz → Zusammenfassung → Ergebnis
+- Live slug availability: `GET /api/admin/tenants/slug-availability`
+- License duration (30/90/365) maps to `licenseValidUntilUtc`; demo menu via `importDemoMenu`
+- On success, Step 5 shows one-time **provisioning** credentials (admin password, register, login URL)
 
-**Backend:** `AdminTenantService.CreateAsync` runs provisioning inside a DB transaction:
+**Backend:** `AdminTenantService.CreateAsync` → `TenantOnboardingService` + `TenantProvisioningService` (transactional).
 
-```247:254:backend/Services/AdminTenants/AdminTenantService.cs
-            var (provisioning, provisionError) = await _provisioningService
-                .ProvisionAsync(
-                    tenant,
-                    request.AdminEmail,
-                    request.AdminPassword,
-                    request.GrantTrialLicense,
-                    cancellationToken)
-```
-
-See [Auto-provisioning](#auto-provisioning-tenantprovisioningservice).
+See [Customer onboarding](CUSTOMER_ONBOARDING.md) for Mandanten-Admin first login, POS setup (`pos.regkasse.at`), and troubleshooting.
 
 ### Edit tenant
 
@@ -360,6 +352,36 @@ Response includes `provisioning` DTO (one-time password, register id, product id
 
 ---
 
+## Backup Management
+
+Full guide: [`BACKUP_SYSTEM.md`](BACKUP_SYSTEM.md) · Hub: [`BACKUP_AND_DISASTER_RECOVERY.md`](BACKUP_AND_DISASTER_RECOVERY.md) · Always-applied: [`AGENTS.md`](../AGENTS.md) § Backup & Disaster Recovery.
+
+### Tenant Backup
+
+- Each Mandant has its own **Tenant** strategy backups (`BackupStrategyKind.Tenant`, `backup_runs.tenant_id` set).
+- Artifact: `*.tenant.zip` — tenant-scoped business/fiscal data (payments, receipts, products, customers, …). **No** AspNet Identity.
+- Mandanten-Admin (`Manager`) can **view**, **trigger**, and **download** own tenant backups (`settings.view` + `backup.manage`).
+- Mandanten-Admin **cannot restore** via API (restore is Super Admin, validation-only). Tenant ZIP is not `pg_restore`-compatible.
+- Backup data and list/download access are tenant-scoped (`BackupRunAccessEvaluator`); cross-tenant → HTTP **404**.
+- FA: `/backup` → `TenantBackupView`.
+
+### System Backup (platform)
+
+- Daily scheduled dump at **02:00 UTC** by default (`BackupStrategyKind.System`) — all tenants + Identity + platform settings.
+- Used for validation restore / drills and operator-led instance recovery evidence.
+- Mandanten-Admin **never** lists or downloads System dumps.
+
+### Access Control
+
+| Actor | Access |
+|-------|--------|
+| **Mandanten-Admin (`Manager`)** | Own tenant backups only (Tenant strategy). Trigger / list / download / import. **No** restore. **No** System backup. |
+| **Super Admin** | All tenant backups **+** system backup. Validation restore + restore drills (dual approval where required). Execution mode / platform config (`settings.manage`). |
+
+Permissions detail: [`BACKUP_PERMISSIONS.md`](BACKUP_PERMISSIONS.md).
+
+---
+
 ## Key file index
 
 | Area | Path |
@@ -379,6 +401,8 @@ Response includes `provisioning` DTO (one-time password, register id, product id
 | Backend provisioning | `backend/Services/AdminTenants/TenantProvisioningService.cs` |
 | Backend tenant service | `backend/Services/AdminTenants/AdminTenantService.cs` |
 | Switcher endpoint | `backend/Controllers/TenantsController.cs` |
+| Backup hub (FA) | `frontend-admin/src/app/(protected)/backup/page.tsx` |
+| Backup access filter | `backend/Services/Backup/BackupRunAccessEvaluator.cs` |
 | i18n (DE) | `frontend-admin/src/i18n/locales/de/admin-shell.json`, `license.json` |
 
 ---

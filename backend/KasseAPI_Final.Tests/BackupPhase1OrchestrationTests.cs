@@ -59,14 +59,14 @@ public sealed class BackupPhase1OrchestrationTests
             Mock.Of<IBackupAlertPublisher>(),
             NullLogger<BackupManualTriggerService>.Instance);
 
-        var outcome = await svc.RequestManualBackupAsync("u1", "SuperAdmin", null, "corr-1", default);
+        var outcome = await svc.RequestManualBackupAsync("u1", "SuperAdmin", null, "corr-1", cancellationToken: default);
 
         Assert.Equal(BackupManualTriggerResultKind.NewRunQueued, outcome.Kind);
         Assert.Equal(BackupRunStatus.Queued, outcome.Run.Status);
         Assert.Equal(BackupTriggerSource.Manual, outcome.Run.TriggerSource);
         Assert.NotNull(outcome.Run.ConfigSnapshotJson);
         Assert.Contains("backup_manual_enqueue", outcome.Run.ConfigSnapshotJson, StringComparison.Ordinal);
-        Assert.Contains("\"schemaVersion\":3", outcome.Run.ConfigSnapshotJson, StringComparison.Ordinal);
+        Assert.Contains("\"schemaVersion\":4", outcome.Run.ConfigSnapshotJson, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public sealed class BackupPhase1OrchestrationTests
             Mock.Of<IBackupAlertPublisher>(),
             NullLogger<BackupManualTriggerService>.Instance);
 
-        var outcome = await svc.RequestManualBackupAsync("u1", "Manager", null, "corr-tenant", default);
+        var outcome = await svc.RequestManualBackupAsync("u1", "Manager", null, "corr-tenant", cancellationToken: default);
 
         Assert.Equal(BackupManualTriggerResultKind.NewRunQueued, outcome.Kind);
         Assert.NotNull(outcome.Run.IdempotencyKey);
@@ -136,7 +136,7 @@ public sealed class BackupPhase1OrchestrationTests
             Mock.Of<IBackupAlertPublisher>(),
             NullLogger<BackupManualTriggerService>.Instance);
 
-        var first = await svcA.RequestManualBackupAsync("manager-a", "Manager", null, "corr-a", default);
+        var first = await svcA.RequestManualBackupAsync("manager-a", "Manager", null, "corr-a", cancellationToken: default);
         Assert.Equal(BackupManualTriggerResultKind.NewRunQueued, first.Kind);
 
         var accessorB = new NullCurrentTenantAccessor { TenantId = tenantB };
@@ -148,7 +148,7 @@ public sealed class BackupPhase1OrchestrationTests
             Mock.Of<IBackupAlertPublisher>(),
             NullLogger<BackupManualTriggerService>.Instance);
 
-        var second = await svcB.RequestManualBackupAsync("manager-b", "Manager", null, "corr-b", default);
+        var second = await svcB.RequestManualBackupAsync("manager-b", "Manager", null, "corr-b", cancellationToken: default);
         Assert.Equal(BackupManualTriggerResultKind.NewRunQueued, second.Kind);
         Assert.NotEqual(first.Run.Id, second.Run.Id);
         Assert.Equal(2, await db.BackupRuns.CountAsync());
@@ -182,8 +182,8 @@ public sealed class BackupPhase1OrchestrationTests
             alerts.Object,
             NullLogger<BackupManualTriggerService>.Instance);
 
-        var first = await svc.RequestManualBackupAsync("u1", "SuperAdmin", null, "c1", default);
-        var second = await svc.RequestManualBackupAsync("u1", "SuperAdmin", null, "c2", default);
+        var first = await svc.RequestManualBackupAsync("u1", "SuperAdmin", null, "c1", cancellationToken: default);
+        var second = await svc.RequestManualBackupAsync("u1", "SuperAdmin", null, "c2", cancellationToken: default);
 
         Assert.Equal(BackupManualTriggerResultKind.NewRunQueued, first.Kind);
         Assert.Equal(BackupManualTriggerResultKind.DuplicateActiveManualPrevented, second.Kind);
@@ -219,8 +219,8 @@ public sealed class BackupPhase1OrchestrationTests
             NullLogger<BackupManualTriggerService>.Instance);
 
         var key = "idem-1";
-        var a = await svc.RequestManualBackupAsync("u1", "SuperAdmin", key, "c1", default);
-        var b = await svc.RequestManualBackupAsync("u1", "SuperAdmin", key, "c2", default);
+        var a = await svc.RequestManualBackupAsync("u1", "SuperAdmin", key, "c1", cancellationToken: default);
+        var b = await svc.RequestManualBackupAsync("u1", "SuperAdmin", key, "c2", cancellationToken: default);
 
         Assert.Equal(a.Run.Id, b.Run.Id);
         Assert.Equal(BackupManualTriggerResultKind.IdempotentReplay, b.Kind);

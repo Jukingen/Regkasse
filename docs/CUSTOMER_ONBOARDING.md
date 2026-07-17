@@ -1,213 +1,211 @@
-# Customer onboarding (Super Admin)
+# Customer Onboarding Process
 
-> **Audience:** Super Admin operators, support, FA maintainers.  
-> **UI language:** German (de-AT). **Technical/API:** English.
+> **Audience:** Super Admin operators, support, Mandanten-Admins, FA maintainers.  
+> **UI language (operators):** German (de-AT). **Technical/API:** English.  
+> **Related:** [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md), [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md), [`MULTI_TENANT.md`](MULTI_TENANT.md), [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md), [`EMAIL_CONFIGURATION.md`](EMAIL_CONFIGURATION.md), [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md).
 
-Guides the **foolproof customer onboarding wizard** in Frontend Admin: one form, atomic server provisioning, progress UI, success handoff, optional welcome email, and automatic rollback on failure.
-
-Related: [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md), [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md), [`MULTI_TENANT.md`](MULTI_TENANT.md), [`EMAIL_CONFIGURATION.md`](EMAIL_CONFIGURATION.md).
-
----
-
-## Overview
-
-| Item | Detail |
-|------|--------|
-| **Entry** | `/admin/tenants` → **Mandant anlegen** / **Neuen Kunden (Mandant) anlegen** |
-| **UI component** | `CreateTenantWizard` (`frontend-admin/src/features/super-admin/components/CreateTenantWizard.tsx`) |
-| **Backend** | `TenantOnboardingService.CreateAsync` → transaction + `TenantProvisioningService` |
-| **API** | `POST /api/admin/tenants` (Super Admin JWT) |
-
-The wizard replaces the legacy single modal: **form → processing steps → success modal** (or structured error with slug suggestions).
+End-to-end guide from **Super Admin tenant creation** through **Mandanten-Admin first login**, **POS setup**, and **first sale**.
 
 ---
 
-## Step-by-step flow (operator)
+## Process flow (overview)
+
+```text
+SuperAdmin → Mandant anlegen (wizard) → Credentials handoff
+         → Mandanten-Admin first login (password change)
+         → POS setup (shared POS UI)
+         → First sale / Testverkauf
+```
 
 ```mermaid
 flowchart LR
-    A[Formular] --> B[Fortschritt]
-    B --> C{Erfolg?}
-    C -->|Ja| D[Erfolg + Zugangsdaten]
-    C -->|Nein| E[Fehler + Rollback-Hinweis]
-    E --> A
+    SA[Super Admin<br/>CreateTenantWizard] --> PROV[Provision<br/>tenant + admin + Kasse]
+    PROV --> HAND[Credentials<br/>UI + optional email]
+    HAND --> LOGIN[Mandanten-Admin<br/>first login]
+    LOGIN --> PWD[Force password change]
+    PWD --> POS[POS setup<br/>pos.regkasse.at]
+    POS --> SALE[First sale]
 ```
 
-### 1. Form (German fields)
-
-![Onboarding form (placeholder)](images/onboarding/fa-onboarding-form.png)
-
-| Feld (DE) | API / code | Erklärung |
-|-----------|------------|-----------|
-| **Firmenname** | `name` | Anzeigename auf Belegen und in der Verwaltung (2–200 Zeichen). |
-| **Subdomain / Adresse** | `slug` | Kürzel für `{slug}.regkasse.at` — nur `a-z`, `0-9`, `-`. Wird aus Firmenname vorgeschlagen. |
-| **E-Mail (Kontakt)** | `email` | Kontakt des Unternehmens; dient auch als Admin-Anmeldung, wenn keine separate Admin-E-Mail gesetzt wird. |
-| **Telefon / Adresse** | `phone`, `address` | Optional (eingeklappter Bereich „Weitere Angaben“). |
-| **Demo-Lizenz (30 Tage)** | `grantTrialLicense` | Standard **aktiv** → `license_valid_until_utc = now + 30 days`. |
-| **Demo-Produkte und Kasse** | `autoDemoSetup` (UI) | Immer mit Server-Provisioning verknüpft (Kasse + 3 Demo-Artikel). |
-
-**Vorschau-URL:** `{slug}.{baseDomain}` — `baseDomain` aus `getTenantAppBaseDomain()` (z. B. `regkasse.at` / Dev `regkasse.local`).
-
-**Admin-Zugang (automatisch):**
-
-- E-Mail: Kontakt-E-Mail oder `admin@{slug}.regkasse.at`
-- Passwort: serverseitig generiert (`GenerateCompliantPassword`), **einmalig** im Erfolgsdialog
-- `MustChangePasswordOnNextLogin = true`
-
-### 2. Processing (animated steps)
-
-While `POST /api/admin/tenants` runs, `CreateTenantProcessingView` shows steps from `tenantOnboardingSteps.ts`:
-
-| Step (DE key) | Server work |
-|---------------|-------------|
-| Firma wird angelegt … | Insert `tenants` row |
-| Adresse wird aktiviert … | Slug committed |
-| Administrator wird erstellt … | Identity user + owner membership |
-| Demo-Lizenz wird aktiviert … | Only if `grantTrialLicense` |
-| Kasse wird eingerichtet … | `KASSE-001` / *Hauptkasse* |
-| Demo-Produkte werden angelegt … | Category *Allgemein* + 3 RKSV demo products |
-| Zugangsdaten werden bereitgestellt … | Response DTO / welcome email (post-commit) |
-
-![Processing steps (placeholder)](images/onboarding/fa-onboarding-processing.png)
-
-**Hinweis im UI:** *„Falls ein Schritt fehlschlägt, wird automatisch zurückgerollt.“*
-
-### 3. Success screen
-
-`OnboardingSuccessModal` shows:
-
-- Portal-URL: `https://{slug}.regkasse.at`
-- **Einmalpasswort** (copy buttons, strength hint)
-- Erste Schritte (DE): einloggen, Passwort ändern, Produkte, Drucker, Testverkauf
-- Welcome-email status (sent / not sent)
-- Actions: **Neuen Kunden anlegen**, **Zum Kunden wechseln** (impersonate / dev switch)
-
-![Success modal (placeholder)](images/onboarding/fa-onboarding-success.png)
+| Phase | Actor | Where |
+|-------|--------|--------|
+| Create tenant | Super Admin | `admin.regkasse.at` → `/admin/tenants` or `/admin/tenants/create` |
+| Receive credentials | Customer / operator handoff | Welcome email and/or FA result screen |
+| First login | Mandanten-Admin (`Manager`) | Admin FA session (tenant-scoped JWT) |
+| POS setup | Mandanten-Admin / Kassierer | Shared POS: `https://pos.regkasse.at` |
+| First sale | Kassierer / Mandanten-Admin | POS → payment → TSE receipt |
 
 ---
 
-## Slug availability and suggestions
+## Step 1: Super Admin creates tenant
 
-### Live check (form)
+### Entry
 
-- Debounced call: `GET /api/admin/tenants/slug-availability?slug={slug}`
-- UI: ✅ Verfügbar / Bereits vergeben / reserviert (`admin`, `www`, …)
-- Normalization: `normalizeTenantSlugInput` (client) + `TenantSlugSuggestions.NormalizeSlug` (server)
+1. Login as **SuperAdmin** on `https://admin.regkasse.at`
+2. Open **Mandanten** → `/admin/tenants`
+3. Click **Mandant anlegen** → navigates to `/admin/tenants/create`
+4. Complete the **5-step** `CreateTenantWizard`
+5. Review summary → confirm → wait for processing → copy credentials from the result screen
 
-### Suggestions on conflict
+**UI:** `frontend-admin/src/features/super-admin/components/CreateTenantWizard/`  
+**API:** `POST /api/admin/tenants` (Super Admin JWT)  
+**Backend:** `TenantOnboardingService.CreateAsync` → DB transaction + `TenantProvisioningService`
 
-- `GET /api/admin/tenants/slug-suggestions?name={firmenname}&slug={preferred}&max=5`
-- Used in `OnboardingErrorModal` when `errorCode` is `slug_taken` or `slug_invalid`
-- Operator can click **Verwenden** to apply a suggestion back to the form
+### Wizard steps
 
-```bash
-# Example (Super Admin JWT)
-curl -H "Authorization: Bearer $TOKEN" \
-  "https://admin.regkasse.at/api/admin/tenants/slug-suggestions?name=Cafe%20Beispiel&slug=dev&max=5"
+| Step | UI | What is collected |
+|------|-----|-------------------|
+| **1. Firma** | `Step1TenantInfo` | Company name, slug (auto from name + live availability), contact email, optional phone/address |
+| **2. Administrator** | `Step2AdminUser` | Admin email, password (auto or manual), role fixed **Mandanten-Admin** (`Manager`) |
+| **3. Kasse & Lizenz** | `Step3RegisterLicense` | Register name (default `KASSE-001`), license 30/90/365 days + start date, demo products checkbox |
+| **4. Zusammenfassung** | `Step4Summary` | Read-only review + irreversible warning |
+| **5. Ergebnis** | `Step5Result` | One-time password, login URL, copy / handoff actions |
+
+While create runs, `CreateTenantProcessingView` shows animated provisioning steps (company → slug → admin → license → register → products → credentials).
+
+**Rollback:** If provisioning fails after the tenant row is inserted, the transaction is rolled back (no partial customer). UI: `OnboardingErrorModal` with German rollback note.
+
+### Slug check
+
+- Live: `GET /api/admin/tenants/slug-availability?slug={slug}`
+- Conflict suggestions: `GET /api/admin/tenants/slug-suggestions?name=…&slug=…`
+- Reserved: `admin`, `www`, `api`, `pos`, …
+
+---
+
+## Step 2: Tenant receives credentials
+
+After success, Super Admin (or SMTP) delivers:
+
+| Item | Source |
+|------|--------|
+| **Admin email** | Wizard Step 2 / `provisioning.adminEmail` |
+| **Temporary password** | Shown **once** on Step 5 (and in welcome email if SMTP works) |
+| **Portal / handoff URL** | Built as `https://{slug}.regkasse.at` in FA (`buildTenantPortalUrl`) |
+| **Force password change** | `MustChangePasswordOnNextLogin = true` |
+
+### Welcome email (SMTP)
+
+**Service:** `WelcomeEmailService`  
+**Trigger:** After successful commit (outside the DB transaction). Email failure does **not** undo the tenant.
+
+| SMTP configured | Result |
+|-----------------|--------|
+| Yes | Email to contact/admin with URL, email, temporary password, first steps (DE) |
+| No / send failed | Onboarding still succeeds; audit `TENANT_ONBOARDING_WELCOME_EMAIL` = Warning; Super Admin must copy credentials from Step 5 |
+
+---
+
+## Step 3: Mandanten-Admin first login
+
+```text
+1. Open admin / portal URL from handoff (or https://admin.regkasse.at)
+2. Sign in with admin email + temporary password
+3. System forces password change (MustChangePasswordOnNextLogin)
+4. Land on FA dashboard (tenant-scoped JWT)
+5. Check registers under Kassen / tenant overview
+6. Optionally open POS for first sale (next step)
 ```
+
+### Checklist (operator → customer)
+
+- [ ] Customer can open the login URL
+- [ ] Temporary password works exactly once for first login
+- [ ] Password change succeeds (min length / complexity per Identity policy)
+- [ ] Dashboard loads without cross-tenant errors
+- [ ] License status looks valid (30/90/365 days as created)
+- [ ] Cash register `KASSE-001` (or custom number) is visible
+
+**Role:** Backend role string remains `Manager`; UI label **Mandanten-Admin**.
+
+---
+
+## Step 4: POS setup
+
+Production uses a **single shared POS UI** (not a per-tenant POS host). See [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md).
+
+| Surface | Production URL |
+|---------|----------------|
+| POS | `https://pos.regkasse.at` |
+| Admin FA | `https://admin.regkasse.at` |
+| API | `https://api.regkasse.at` |
+
+```text
+1. Open https://pos.regkasse.at (or mobile POS app pointing at production API)
+2. Login with the same Mandanten-Admin (or cashier) credentials
+3. Tenant is resolved from JWT tenant_id after login (not from Host slug)
+4. Select cash register KASSE-001 / Hauptkasse
+5. Confirm TSE / NTP health as required by fiscal rules
+6. Start selling (Testverkauf recommended first)
+```
+
+### Development tips
+
+- POS: `http://localhost:8081` with `EXPO_PUBLIC_DEV_TENANT_ID` / DevTenantSwitcher
+- API: `http://localhost:5184` with `X-Tenant-Id: {slug}` or `?tenant={slug}` (Development only)
+
+---
+
+## Step 5: First sale (Testverkauf)
+
+Recommended first-day path for the customer:
+
+1. Ensure register is selected and TSE is healthy
+2. Add a **demo product** (provisioned on create) to the cart
+3. Complete payment → fiscal receipt with TSE signature
+4. Verify receipt in FA (reports / payments) if needed
+5. Optionally configure printer, additional users, and real product catalog
+
+Do **not** treat demo products as production assortment — replace or deactivate after go-live.
 
 ---
 
 ## Auto-provisioned assets
 
-Executed inside **one database transaction** (`TenantOnboardingService`); failure → **rollback** (no partial tenant).
+Executed inside **one database transaction** (`TenantOnboardingService`); failure → **rollback**.
 
 | Asset | Default | Notes |
 |-------|---------|--------|
-| Tenant row | `status=active`, `isActive=true` | |
-| Cash register | `KASSE-001`, *Hauptkasse*, `Closed` | `RegisterStatus.Closed` |
-| Category | *Allgemein*, 20% VAT | |
-| Demo products | 3 RKSV demo articles | RKSV-compliant sample SKUs |
-| Admin user | Manager role, **owner** membership | `user_tenant_memberships.is_owner=true` |
-| Trial license | +30 days UTC | If `grantTrialLicense` and no explicit `licenseValidUntilUtc` |
+| Tenant row | `status=active`, `isActive=true` | Slug unique |
+| Cash register | `KASSE-001`, *Hauptkasse*, `Closed` | Optional custom number from wizard |
+| Category / products | *Allgemein* + 3 demo SKUs, or full demo menu | `importDemoMenu` |
+| Admin user | `Manager`, **owner** membership | Password change forced |
+| License | 30 / 90 / 365 days from start date | `licenseValidUntilUtc` |
 
-Response field `provisioning` (one-time):
-
-- `adminEmail`, `generatedPassword`
-- `cashRegisterId`, `cashRegisterNumber`
-- `categoryId`, `productIds[]`
-- `trialLicenseValidUntilUtc`
-- `welcomeEmailSent`, `forcePasswordChangeOnNextLogin`
+Response `provisioning` (one-time): `adminEmail`, `generatedPassword`, `cashRegisterId`, `cashRegisterNumber`, `productIds[]`, `trialLicenseValidUntilUtc`, `welcomeEmailSent`, `forcePasswordChangeOnNextLogin`.
 
 ---
 
-## Welcome email (SMTP)
+## Troubleshooting
 
-**Service:** `WelcomeEmailService` — `backend/Services/Email/WelcomeEmailService.cs`  
-**Trigger:** After successful commit (outside transaction); failure does **not** roll back the tenant.
+| Symptom | Likely cause | What to do |
+|---------|--------------|------------|
+| **Slug bereits vergeben** / `slug_taken` | Slug already used | Pick a suggestion from error modal or change slug; live check on Step 1 |
+| **Admin-E-Mail bereits vergeben** / `admin_email_taken` | Identity user email collision | Use another admin email |
+| **Password too short** | Manual password &lt; 8 chars | Wizard Step 2 validation; server also rejects |
+| **Create fails mid-progress** | Provisioning error | Transaction rollback; fix cause and retry — no partial tenant in production DB |
+| **No welcome email** | SMTP missing/misconfigured | Copy credentials from Step 5; fix `Email:Smtp` (see [`EMAIL_CONFIGURATION.md`](EMAIL_CONFIGURATION.md)) |
+| **Customer cannot login** | Wrong host, typo, or suspended tenant | Confirm URL, email, password; check tenant status on `/admin/tenants` |
+| **Password change loop / stuck** | Client not completing force-change flow | Support: verify `MustChangePasswordOnNextLogin`; Super Admin can reset password from tenant users tab |
+| **POS shows wrong / no tenant** | Dev header vs production JWT | Production: login only (no `X-Tenant-Id`); Dev: set `EXPO_PUBLIC_DEV_TENANT_ID` |
+| **No cash register on POS** | Register not selected / inactive | FA → tenant registers; ensure `KASSE-001` active |
+| **Cannot sell (TSE / NTP)** | Fiscal gate | Check TSE health and NTP offset before treating online payments as allowed |
+| **License expired immediately** | Wrong start date / duration | Super Admin → tenant **Lizenz** tab; extend or re-issue |
 
-### Configuration (English)
+### Structured API error codes
 
-```json
-{
-  "Email": {
-    "Smtp": {
-      "Host": "smtp.example.com",
-      "Port": 587,
-      "EnableSsl": true,
-      "User": "api@example.com",
-      "Password": "<secret>",
-      "From": "noreply@regkasse.at"
-    }
-  }
-}
-```
-
-Section: `EmailSmtpOptions.SectionName` = `"Email:Smtp"`.
-
-### When SMTP is configured
-
-| Item | Content |
+| Code | Meaning |
 |------|---------|
-| **To** | `tenants.email` (Kontakt) or provisioning admin email |
-| **Subject** | `Willkommen bei Regkasse – {TenantName}` |
-| **Body (DE)** | Mandant name, portal URL, admin email, temporary password, first-login password change, numbered first steps |
-
-### When SMTP is missing or send fails
-
-- Onboarding still **succeeds**
-- Audit: `TENANT_ONBOARDING_WELCOME_EMAIL` with status **Warning**
-- FA success modal: *„SMTP ist nicht konfiguriert … Passwort nur hier angezeigt.“*
-- Operator must copy credentials manually
-
----
-
-## Error handling and rollback
-
-### Transaction rollback
-
-| Failure point | DB state | UI |
-|---------------|----------|-----|
-| Invalid / taken slug | No row | Error before transaction |
-| Provisioning error (email taken, password policy, etc.) | **Rollback** | `OnboardingErrorModal` + `rollbackNote` |
-| Unhandled exception | **Rollback** | Generic failure message |
-
-German rollback hint: *„Es wurden keine Daten gespeichert (automatisches Zurückrollen).“*
-
-### Structured error codes
-
-Parsed in `parseTenantOnboardingError.ts`:
-
-| Code | Operator message (DE) |
-|------|------------------------|
-| `slug_invalid` | Subdomain ungültig + Vorschläge |
-| `slug_taken` | Subdomain vergeben + Vorschläge |
-| `admin_email_taken` | E-Mail bereits vergeben |
-| `provisioning_failed` | Einrichtung fehlgeschlagen |
-| `unknown` | Allgemeiner Fehler |
-
-API `400` body may include `errorCode`, `message`, `slugSuggestions[]`.
+| `slug_invalid` | Bad slug format / reserved |
+| `slug_taken` | Slug already exists |
+| `admin_email_taken` | Admin email in use |
+| `provisioning_failed` | User/register/products setup failed |
+| `unknown` | Generic failure |
 
 ### Audit trail (system)
 
-Correlation id per attempt; actions include:
-
-- `TENANT_ONBOARDING_STARTED`
-- `TENANT_ONBOARDING_TENANT_CREATED`
-- `TENANT_ONBOARDING_PROVISIONED`
-- `TENANT_ONBOARDING_WELCOME_EMAIL`
-- `TENANT_ONBOARDING_COMPLETED`
-- `TENANT_ONBOARDING_FAILED`
+Per attempt (correlation id):  
+`TENANT_ONBOARDING_STARTED` → `TENANT_ONBOARDING_TENANT_CREATED` → `TENANT_ONBOARDING_PROVISIONED` → `TENANT_ONBOARDING_WELCOME_EMAIL` → `TENANT_ONBOARDING_COMPLETED` (or `…_FAILED`).
 
 ---
 
@@ -218,11 +216,22 @@ curl -X POST "https://admin.regkasse.at/api/admin/tenants" \
   -H "Authorization: Bearer <super-admin-jwt>" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Café Beispiel GmbH",
-    "slug": "cafe-beispiel",
-    "email": "geschaeftsfuehrer@cafe-beispiel.at",
-    "grantTrialLicense": true
+    "name": "Cafe Muster GmbH",
+    "slug": "cafe-muster",
+    "email": "info@cafe-muster.at",
+    "adminEmail": "admin@cafe-muster.at",
+    "grantTrialLicense": true,
+    "licenseValidUntilUtc": "2027-07-17T23:59:59.999Z",
+    "importDemoMenu": true,
+    "cashRegisterNumber": "KASSE-001"
   }'
+```
+
+Slug preview:
+
+```bash
+curl -H "Authorization: Bearer <super-admin-jwt>" \
+  "https://admin.regkasse.at/api/admin/tenants/slug-availability?slug=cafe-muster"
 ```
 
 ---
@@ -231,17 +240,22 @@ curl -X POST "https://admin.regkasse.at/api/admin/tenants" \
 
 | Layer | Path |
 |-------|------|
-| Wizard UI | `frontend-admin/src/features/super-admin/components/CreateTenantWizard.tsx` |
-| Form fields | `TenantFormFields.tsx`, `useTenantCreateFormFields.ts` |
-| Progress | `CreateTenantProcessingView.tsx`, `useTenantOnboardingProgress.ts` |
-| Errors / success | `OnboardingErrorModal.tsx`, `OnboardingSuccessModal.tsx` |
+| Create route | `frontend-admin/src/app/(protected)/admin/tenants/create/page.tsx` |
+| Wizard | `frontend-admin/src/features/super-admin/components/CreateTenantWizard/` |
+| Steps | `Step1TenantInfo`, `Step2AdminUser`, `Step3RegisterLicense`, `Step4Summary`, `Step5Result` |
+| Progress / errors | `CreateTenantProcessingView`, `OnboardingErrorModal` |
 | Backend onboarding | `backend/Services/AdminTenants/TenantOnboardingService.cs` |
 | Provisioning | `backend/Services/AdminTenants/TenantProvisioningService.cs` |
 | Slug helpers | `backend/Services/AdminTenants/TenantSlugSuggestions.cs` |
+| Scenario tests | `backend/KasseAPI_Final.Tests/CreateTenantWizardScenarioTests.cs` |
 | i18n (DE) | `frontend-admin/src/i18n/locales/de/tenants.json` → `create.*`, `onboarding.*`, `provisioning.*` |
 
 ---
 
 ## Screenshots
 
-Place PNGs under `docs/images/onboarding/` (see [`images/onboarding/README.md`](images/onboarding/README.md)).
+Place PNGs under `docs/images/onboarding/` (see [`images/onboarding/README.md`](images/onboarding/README.md) if present):
+
+- Wizard Step 1–5
+- Processing view
+- Result / credentials handoff

@@ -7,7 +7,9 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.RestoreVerification;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Services.OperationalRuns;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -17,6 +19,8 @@ public sealed class ManualRestoreTriggerService : IManualRestoreTriggerService
 {
     private readonly AppDbContext _db;
     private readonly IAuditLogService _audit;
+    private readonly IComplianceCheckService _complianceCheck;
+    private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly ManualRestoreTargetDatabaseGuard _targetGuard;
     private readonly IManualRestoreApprovalNotificationService _notification;
     private readonly IOptionsMonitor<ManualRestoreApprovalOptions> _options;
@@ -26,6 +30,8 @@ public sealed class ManualRestoreTriggerService : IManualRestoreTriggerService
     public ManualRestoreTriggerService(
         AppDbContext db,
         IAuditLogService audit,
+        IComplianceCheckService complianceCheck,
+        ICurrentTenantAccessor tenantAccessor,
         ManualRestoreTargetDatabaseGuard targetGuard,
         IManualRestoreApprovalNotificationService notification,
         IOptionsMonitor<ManualRestoreApprovalOptions> options,
@@ -34,6 +40,8 @@ public sealed class ManualRestoreTriggerService : IManualRestoreTriggerService
     {
         _db = db;
         _audit = audit;
+        _complianceCheck = complianceCheck;
+        _tenantAccessor = tenantAccessor;
         _targetGuard = targetGuard;
         _notification = notification;
         _options = options;
@@ -56,13 +64,28 @@ public sealed class ManualRestoreTriggerService : IManualRestoreTriggerService
         var targetDb = request.TargetDatabaseName.Trim().ToLowerInvariant();
         _targetGuard.ValidateOrThrow(targetDb);
 
-        var backup = await _db.BackupRuns.AsNoTracking()
-            .FirstOrDefaultAsync(r => r.Id == request.BackupRunId, cancellationToken);
-        if (backup == null)
-            throw new KeyNotFoundException($"Backup run {request.BackupRunId} was not found.");
-        if (backup.Status != BackupRunStatus.Succeeded)
-            throw new InvalidOperationException(
-                $"Backup run {request.BackupRunId} must be in Succeeded status (current: {backup.Status}).");
+        // Pre-restore RKSV compliance: same-tenant, dump integrity, validation gates.
+        var operatingTenantId = _tenantAccessor.TenantId ?? Guid.Empty;
+        var compliance = await _complianceCheck.CheckRestoreComplianceAsync(
+            request.BackupRunId,
+            operatingTenantId,
+            cancellationToken);
+        if (!compliance.Succeeded)
+        {
+            if (string.Equals(compliance.Code, RestoreService.CrossTenantCode, StringComparison.Ordinal))
+            {
+                // Cross-tenant → 404 (not 403), consistent with tenant isolation semantics.
+                throw new KeyNotFoundException($"Backup run {request.BackupRunId} was not found.");
+            }
+
+            if (string.Equals(compliance.Code, ComplianceCheckService.BackupNotFoundCode, StringComparison.Ordinal))
+                throw new KeyNotFoundException(compliance.Error ?? $"Backup run {request.BackupRunId} was not found.");
+
+            if (string.Equals(compliance.Code, RestoreService.ProductionRestoreCode, StringComparison.Ordinal))
+                throw new ArgumentException(compliance.Error, nameof(request));
+
+            throw new InvalidOperationException(compliance.Error ?? "Restore compliance check failed.");
+        }
 
         var ttlMinutes = Math.Max(1, _options.CurrentValue.ApprovalTokenTtlMinutes);
         var ttl = TimeSpan.FromMinutes(ttlMinutes);
@@ -101,6 +124,7 @@ public sealed class ManualRestoreTriggerService : IManualRestoreTriggerService
             _audit,
             actorUserId,
             entity,
+            sourceBackupTenantId: compliance.TenantId,
             requiresApproval: true,
             correlationId,
             notes: notificationSent > 0
@@ -173,7 +197,14 @@ public sealed class ManualRestoreTriggerService : IManualRestoreTriggerService
 
         await _db.SaveChangesAsync(cancellationToken);
 
-        await ManualRestoreAudit.LogApprovedAsync(_audit, approverUserId, entity, drillRun.Id, correlationId);
+        var sourceTenantId = await ResolveSourceBackupTenantIdAsync(entity.BackupRunId, cancellationToken);
+        await ManualRestoreAudit.LogApprovedAsync(
+            _audit,
+            approverUserId,
+            entity,
+            sourceTenantId,
+            drillRun.Id,
+            correlationId);
 
         _logger.LogInformation(
             "Manual restore approved: requestId={RequestId}, drillRunId={DrillRunId}, approver={ApproverId}",
@@ -201,10 +232,12 @@ public sealed class ManualRestoreTriggerService : IManualRestoreTriggerService
         entity.ApprovalTokenHash = null;
         await _db.SaveChangesAsync(cancellationToken);
 
+        var sourceTenantId = await ResolveSourceBackupTenantIdAsync(entity.BackupRunId, cancellationToken);
         await ManualRestoreAudit.LogRejectedAsync(
             _audit,
             actorUserId,
             entity,
+            sourceTenantId,
             entity.RejectionReason ?? rejectionReason,
             correlationId);
 
@@ -355,13 +388,25 @@ public sealed class ManualRestoreTriggerService : IManualRestoreTriggerService
             && entity.Status is ManualRestoreRequestStatus.Completed or ManualRestoreRequestStatus.Failed)
         {
             var actor = entity.ApprovedByUserId ?? entity.RequestedByUserId ?? "system";
+            var sourceTenantId = await ResolveSourceBackupTenantIdAsync(entity.BackupRunId, cancellationToken);
             await ManualRestoreAudit.LogExecutionOutcomeAsync(
                 _audit,
                 actor,
                 entity,
+                sourceTenantId,
                 entity.Status == ManualRestoreRequestStatus.Completed,
                 entity.CorrelationId);
         }
+    }
+
+    private async Task<Guid?> ResolveSourceBackupTenantIdAsync(
+        Guid backupRunId,
+        CancellationToken cancellationToken)
+    {
+        return await _db.BackupRuns.AsNoTracking()
+            .Where(r => r.Id == backupRunId)
+            .Select(r => r.TenantId)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     private static string BuildResultSummary(RestoreVerificationRun drill, bool succeeded)

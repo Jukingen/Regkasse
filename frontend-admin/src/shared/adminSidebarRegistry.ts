@@ -482,8 +482,8 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     },
     backupDr: {
         id: 'backupDr',
-        menuKey: '/backup/dashboard',
-        href: '/backup/dashboard',
+        menuKey: '/backup',
+        href: '/backup',
         labelKey: 'nav.backupOverview',
         icon: 'DashboardOutlined',
         permission: PERMISSIONS.SETTINGS_VIEW,

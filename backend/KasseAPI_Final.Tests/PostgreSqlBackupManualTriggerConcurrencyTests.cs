@@ -85,7 +85,7 @@ public sealed class PostgreSqlBackupManualTriggerConcurrencyTests
             {
                 await using var db = CreateContext();
                 var svc = CreateService(db);
-                var o = await svc.RequestManualBackupAsync("u1", "Admin", null, $"corr-{i}", ct);
+                var o = await svc.RequestManualBackupAsync("u1", "Admin", null, $"corr-{i}", cancellationToken: ct);
                 bag.Add(o);
             });
 
@@ -119,7 +119,7 @@ public sealed class PostgreSqlBackupManualTriggerConcurrencyTests
             {
                 await using var db = CreateContext();
                 var svc = CreateService(db);
-                var o = await svc.RequestManualBackupAsync("u1", "Admin", key, $"corr-{i}", ct);
+                var o = await svc.RequestManualBackupAsync("u1", "Admin", key, $"corr-{i}", cancellationToken: ct);
                 bag.Add(o);
             });
 
@@ -144,8 +144,8 @@ public sealed class PostgreSqlBackupManualTriggerConcurrencyTests
         {
             var svc = CreateService(db);
 
-            var first = await svc.RequestManualBackupAsync("u1", "Admin", null, "c1", default);
-            var second = await svc.RequestManualBackupAsync("u1", "Admin", null, "c2", default);
+            var first = await svc.RequestManualBackupAsync("u1", "Admin", null, "c1", cancellationToken: default);
+            var second = await svc.RequestManualBackupAsync("u1", "Admin", null, "c2", cancellationToken: default);
 
             Assert.Equal(BackupManualTriggerResultKind.NewRunQueued, first.Kind);
             Assert.Equal(BackupManualTriggerResultKind.DuplicateActiveManualPrevented, second.Kind);
@@ -154,8 +154,8 @@ public sealed class PostgreSqlBackupManualTriggerConcurrencyTests
             await WipeBackupRunsAsync(db);
 
             const string key = "idem-seq";
-            var a = await svc.RequestManualBackupAsync("u1", "Admin", key, "c3", default);
-            var b = await svc.RequestManualBackupAsync("u1", "Admin", key, "c4", default);
+            var a = await svc.RequestManualBackupAsync("u1", "Admin", key, "c3", cancellationToken: default);
+            var b = await svc.RequestManualBackupAsync("u1", "Admin", key, "c4", cancellationToken: default);
             Assert.Equal(BackupManualTriggerResultKind.NewRunQueued, a.Kind);
             Assert.Equal(BackupManualTriggerResultKind.IdempotentReplay, b.Kind);
             Assert.Equal(a.Run.Id, b.Run.Id);

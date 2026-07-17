@@ -23,7 +23,7 @@ describe('backupAreaRoutesAlignment', () => {
                         href.startsWith('/settings/backup'),
                 ),
         );
-        expect(catalogHrefs.has('/backup/dashboard')).toBe(true);
+        expect(catalogHrefs.has('/backup')).toBe(true);
         expect(catalogHrefs.has('/backup/runs')).toBe(true);
     });
 

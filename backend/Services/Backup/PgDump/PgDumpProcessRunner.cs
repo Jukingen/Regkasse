@@ -28,6 +28,14 @@ public sealed class PgDumpProcessRunner : IPgDumpProcessRunner
         args.Append(" -p ").Append(spec.Port);
         args.Append(" -U ").Append(QuoteArg(spec.User));
         args.Append(" -Fc --no-owner --no-acl ");
+        var z = Math.Clamp(spec.CompressionLevel, 0, 9);
+        args.Append("-Z").Append(z).Append(' ');
+        foreach (var table in spec.ExcludeTables)
+        {
+            if (string.IsNullOrWhiteSpace(table))
+                continue;
+            args.Append("--exclude-table=").Append(QuoteArg(table.Trim())).Append(' ');
+        }
         args.Append("-f ").Append(QuoteArg(spec.OutputFilePath));
         args.Append(' ').Append(QuoteArg(spec.Database));
 

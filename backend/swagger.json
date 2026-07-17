@@ -29317,6 +29317,18 @@
           "isFake": {
             "type": "boolean"
           },
+          "status": {
+            "$ref": "#/components/schemas/BackupRunStatus"
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "durationFormatted": {
+            "type": "string",
+            "nullable": true
+          },
           "downloadUrl": {
             "type": "string",
             "nullable": true

@@ -27,6 +27,8 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
     private readonly FakeBackupExecutionAdapter _fakeAdapter;
     private readonly PostgreSqlBackupExecutionAdapterStub _productionStubAdapter;
     private readonly PostgreSqlPgDumpBackupExecutionAdapter _pgDumpAdapter;
+    private readonly TenantScopedLogicalBackupExecutionAdapter _tenantLogicalAdapter;
+    private readonly CompositeSystemBackupExecutionAdapter _systemCompositeAdapter;
     private readonly IBackupArtifactExternalArchive _externalArchive;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly IBackupAlertPublisher _alerts;
@@ -40,6 +42,8 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
         FakeBackupExecutionAdapter fakeAdapter,
         PostgreSqlBackupExecutionAdapterStub productionStubAdapter,
         PostgreSqlPgDumpBackupExecutionAdapter pgDumpAdapter,
+        TenantScopedLogicalBackupExecutionAdapter tenantLogicalAdapter,
+        CompositeSystemBackupExecutionAdapter systemCompositeAdapter,
         IBackupArtifactExternalArchive externalArchive,
         IHostEnvironment hostEnvironment,
         IBackupAlertPublisher alerts,
@@ -52,6 +56,8 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
         _fakeAdapter = fakeAdapter;
         _productionStubAdapter = productionStubAdapter;
         _pgDumpAdapter = pgDumpAdapter;
+        _tenantLogicalAdapter = tenantLogicalAdapter;
+        _systemCompositeAdapter = systemCompositeAdapter;
         _externalArchive = externalArchive;
         _hostEnvironment = hostEnvironment;
         _alerts = alerts;
@@ -88,8 +94,18 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
         }
     }
 
-    private IBackupExecutionAdapter SelectAdapter(BackupExecutionAdapterKind kind)
+    private IBackupExecutionAdapter SelectAdapter(BackupExecutionAdapterKind kind, BackupStrategyKind strategy)
     {
+        // Tenant → tenant JSON ZIP; System → pg_dump + structured system.zip (composite).
+        // Fake / ProductionStub keep pipeline-test adapters.
+        if (kind == BackupExecutionAdapterKind.PgDump)
+        {
+            if (strategy == BackupStrategyKind.Tenant)
+                return _tenantLogicalAdapter;
+            if (strategy == BackupStrategyKind.System)
+                return _systemCompositeAdapter;
+        }
+
         return kind switch
         {
             BackupExecutionAdapterKind.ProductionStub => _productionStubAdapter,
@@ -161,7 +177,8 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
         run.ConfigSnapshotJson = OperationalRunConfigSnapshotBuilder.SerializeBackup(
             _options.CurrentValue,
             "backup_run_start",
-            DateTime.UtcNow);
+            DateTime.UtcNow,
+            backupStrategy: run.Strategy);
         var leaseOpts = _options.CurrentValue;
         RunLeaseHeartbeatHelper.StampInitialLease(run, DateTime.UtcNow, leaseOpts.RunLeaseTimeout);
         await db.SaveChangesAsync(ct);
@@ -240,16 +257,24 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
             .FirstOrDefaultAsync(x => x.Id == BackupRuntimeExecutionPreference.SingletonId, ct);
         var adminModeExec = prefExec?.Mode ?? AdminBackupRuntimeExecutionMode.InheritFromConfiguration;
         var effectiveKindExec = BackupEffectiveExecutionAdapterResolver.ResolveEffectiveAdapterKind(opts, adminModeExec);
-        var adapter = SelectAdapter(effectiveKindExec);
+        var adapter = SelectAdapter(effectiveKindExec, run.Strategy);
+            run.AdapterKind = adapter.AdapterKind;
             var tenantSlugForFileName = await BackupRunTenantSlugResolver.ResolveSlugAsync(run, db, ct);
             var artifactFileNameTimestampUtc = DateTime.UtcNow;
+            DateTime? incrementalSinceUtc = null;
+            if (BackupIncrementalPackageMetadata.TryReadIncrementalSinceUtc(run.ConfigSnapshotJson, out var sinceUtc))
+                incrementalSinceUtc = sinceUtc;
+
             var execContext = new BackupExecutionContext(
                 run.Id,
                 run.CorrelationId,
                 adapter.AdapterKind,
                 ct,
                 tenantSlugForFileName,
-                artifactFileNameTimestampUtc);
+                artifactFileNameTimestampUtc,
+                run.Strategy,
+                run.TenantId,
+                incrementalSinceUtc);
 
             BackupExecutionResult result;
             try
@@ -282,7 +307,11 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
                     run.Id,
                     run.CorrelationId,
                     "Adapter threw before completion.",
-                    new Dictionary<string, string> { ["failureStage"] = "unhandled_exception_adapter" }));
+                    new Dictionary<string, string>
+                    {
+                        ["failureStage"] = "unhandled_exception_adapter",
+                        ["tenantSlug"] = tenantSlugForFileName,
+                    }));
                 return;
             }
 
@@ -321,7 +350,8 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
                     new Dictionary<string, string>
                     {
                         ["errorCode"] = run.FailureCode ?? "",
-                        ["adapterKind"] = adapter.AdapterKind
+                        ["adapterKind"] = adapter.AdapterKind,
+                        ["tenantSlug"] = tenantSlugForFileName,
                     }));
                 return;
             }
@@ -400,7 +430,11 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
                     run.Id,
                     run.CorrelationId,
                     "Artifact metadata verifier threw.",
-                    new Dictionary<string, string> { ["failureStage"] = "verifier_exception" }));
+                    new Dictionary<string, string>
+                    {
+                        ["failureStage"] = "verifier_exception",
+                        ["tenantSlug"] = tenantSlugForFileName,
+                    }));
                 return;
             }
 
@@ -425,7 +459,11 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
                     run.Id,
                     run.CorrelationId,
                     vOutcome.FailureReason ?? "Artifact metadata verification failed.",
-                    new Dictionary<string, string> { ["failureStage"] = "artifact_metadata_verification" }));
+                    new Dictionary<string, string>
+                    {
+                        ["failureStage"] = "artifact_metadata_verification",
+                        ["tenantSlug"] = tenantSlugForFileName,
+                    }));
                 BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
                 await db.SaveChangesAsync(ct);
                 await BackupAutomaticRetryCoordinator.TrySchedulePendingRetryAfterTerminalSaveAsync(
@@ -464,7 +502,11 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
                     run.Id,
                     run.CorrelationId,
                     completenessFailure,
-                    new Dictionary<string, string> { ["failureStage"] = "incomplete_verified_artifact_set" }));
+                    new Dictionary<string, string>
+                    {
+                        ["failureStage"] = "incomplete_verified_artifact_set",
+                        ["tenantSlug"] = tenantSlugForFileName,
+                    }));
                 BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
                 await db.SaveChangesAsync(ct);
                 await BackupAutomaticRetryCoordinator.TrySchedulePendingRetryAfterTerminalSaveAsync(
@@ -551,7 +593,11 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
                     run.Id,
                     run.CorrelationId,
                     verification.FailureReason,
-                    new Dictionary<string, string> { ["failureStage"] = "external_archive_precheck" }));
+                    new Dictionary<string, string>
+                    {
+                        ["failureStage"] = "external_archive_precheck",
+                        ["tenantSlug"] = tenantSlugForFileName,
+                    }));
                 return;
             }
 
@@ -602,7 +648,8 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
                     new Dictionary<string, string>
                     {
                         ["failureStage"] = "external_archive_copy",
-                        ["errorCode"] = extOutcome.ErrorCode ?? ""
+                        ["errorCode"] = extOutcome.ErrorCode ?? "",
+                        ["tenantSlug"] = tenantSlugForFileName,
                     }));
                 return;
             }

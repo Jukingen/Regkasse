@@ -11,7 +11,11 @@ public sealed record BackupExecutionContext(
     string AdapterKindLabel,
     CancellationToken CancellationToken,
     string TenantSlugForFileName = BackupRunTenantSlugResolver.DeploymentSlug,
-    DateTime? ArtifactFileNameTimestampUtc = null);
+    DateTime? ArtifactFileNameTimestampUtc = null,
+    BackupStrategyKind Strategy = BackupStrategyKind.System,
+    Guid? TenantId = null,
+    /// <summary>When set, TenantLogical adapter exports only rows changed since this UTC watermark.</summary>
+    DateTime? IncrementalSinceUtc = null);
 
 /// <summary>
 /// In-memory description of an artifact before persistence.

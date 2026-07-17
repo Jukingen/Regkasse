@@ -1,5 +1,8 @@
 # Backup Phase 2 — PostgreSQL logical dump (pg_dump)
 
+**Hub:** [BACKUP_AND_DISASTER_RECOVERY.md](./BACKUP_AND_DISASTER_RECOVERY.md) · Content/cost: [BACKUP_CONTENT_POLICY.md](./BACKUP_CONTENT_POLICY.md).  
+**Note:** System strategy uses `pg_dump`; Tenant strategy uses `*.tenant.zip` (not this runbook’s restore path).
+
 ## Scope
 
 - **In scope:** `ExecutionAdapterKind=PgDump` runs `pg_dump -Fc` from the **backup orchestrator worker** only; artifacts written under `Backup:ArtifactStagingRoot`; optional **on-disk SHA-256** re-hash during artifact verification (still **not** restore proof).

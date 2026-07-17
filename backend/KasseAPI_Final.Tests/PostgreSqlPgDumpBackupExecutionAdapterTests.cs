@@ -55,6 +55,9 @@ public sealed class PostgreSqlPgDumpBackupExecutionAdapterTests
                 runner.Object,
                 new BackupManifestService(checksum),
                 checksum,
+                new BackupEncryptionService(
+                    Monitor(new BackupOptions()),
+                    NullLogger<BackupEncryptionService>.Instance),
                 NullLogger<PostgreSqlPgDumpBackupExecutionAdapter>.Instance);
 
             var ctx = new BackupExecutionContext(
@@ -122,6 +125,9 @@ public sealed class PostgreSqlPgDumpBackupExecutionAdapterTests
                 runner.Object,
                 new BackupManifestService(checksum),
                 checksum,
+                new BackupEncryptionService(
+                    Monitor(new BackupOptions()),
+                    NullLogger<BackupEncryptionService>.Instance),
                 NullLogger<PostgreSqlPgDumpBackupExecutionAdapter>.Instance);
 
             var result = await adapter.ExecuteAsync(
@@ -177,6 +183,9 @@ public sealed class PostgreSqlPgDumpBackupExecutionAdapterTests
                 runner.Object,
                 new BackupManifestService(checksum),
                 checksum,
+                new BackupEncryptionService(
+                    Monitor(new BackupOptions()),
+                    NullLogger<BackupEncryptionService>.Instance),
                 NullLogger<PostgreSqlPgDumpBackupExecutionAdapter>.Instance);
 
             var result = await adapter.ExecuteAsync(
@@ -232,6 +241,9 @@ public sealed class PostgreSqlPgDumpBackupExecutionAdapterTests
                 runner.Object,
                 new BackupManifestService(checksum),
                 checksum,
+                new BackupEncryptionService(
+                    Monitor(new BackupOptions()),
+                    NullLogger<BackupEncryptionService>.Instance),
                 NullLogger<PostgreSqlPgDumpBackupExecutionAdapter>.Instance);
 
             var result = await adapter.ExecuteAsync(

@@ -10,7 +10,7 @@ import {
     buildTenantPortalUrl,
     checkAdminTenantSlugAvailability,
 } from '@/features/super-admin/api/adminTenants';
-import type { CreateTenantFormValues } from '@/features/super-admin/components/CreateTenantModal';
+import type { CreateTenantFormValues } from '@/features/super-admin/components/CreateTenantWizard/types';
 import {
     validateAddress,
     validateCompanyName,

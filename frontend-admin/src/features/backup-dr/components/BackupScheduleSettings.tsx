@@ -27,7 +27,7 @@ import { BACKUP_ACTIVE_POLL_MS, isBackupLatestRunActiveStatus } from "@/features
 import { useGetApiAdminBackupStatusLatest } from "@/api/generated/admin-backup/admin-backup";
 
 const RETENTION_UI_MAX = 90;
-const RETENTION_UI_MIN = 1;
+const RETENTION_UI_MIN = 7;
 const BACKUP_STATUS_IDLE_POLL_MS = 60_000;
 
 export interface BackupScheduleSettingsProps {

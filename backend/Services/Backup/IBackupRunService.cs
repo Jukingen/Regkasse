@@ -15,9 +15,11 @@ public interface IBackupRunService
 
     /// <summary>
     /// Readable list of succeeded logical dump artifacts (file name, tenant slug, download path).
+    /// Super Admin: all succeeded dumps. Mandanten-Admin: only Tenant-strategy rows for <paramref name="tenantId"/>.
     /// </summary>
     Task<IReadOnlyList<BackupListItemResponseDto>> GetBackupListAsync(
         Guid? tenantId,
+        bool isSuperAdmin,
         CancellationToken cancellationToken = default);
 }
 

@@ -33,6 +33,12 @@ export interface BackupDashboardStatsResponseDto {
   successRateTrendVsPrior30DaysPercent?: number | null;
   terminalRuns30Days?: number;
   succeededRuns30Days?: number;
+  failedRuns30Days?: number;
+  pendingRunsCount?: number;
+  totalRuns30Days?: number;
+  nextScheduledBackupAtUtc?: string | null;
+  stagingDiskUsedPercent?: number | null;
+  stagingDiskAlert?: boolean;
   rpoHours?: number | null;
   rtoMinutes?: number | null;
   lastSuccessfulRestoreDrillAtUtc?: string | null;

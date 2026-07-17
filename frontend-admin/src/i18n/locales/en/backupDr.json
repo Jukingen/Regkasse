@@ -3,6 +3,43 @@
     "title": "Backup & disaster recovery",
     "subtitle": "Read-only visibility. Workers execute jobs — not this UI."
   },
+  "overview": {
+    "pageTitle": "Backup overview",
+    "pageSubtitle": "Status, schedule, recent dumps, and actions. Detailed DR monitoring is under Dashboard.",
+    "recentTitle": "Recent backups",
+    "viewAllRuns": "View all runs",
+    "tenantView": {
+      "pageTitle": "Tenant backup",
+      "pageSubtitle": "Your tenant data only — no Identity or platform data. Retention typically 30 days.",
+      "alertTitle": "Tenant backup",
+      "alertDescription": "Manual and scheduled backups export only this tenant’s data (payments, receipts, products, customers, audit). User credentials and system settings are not included.",
+      "recentTitle": "Recent tenant backups"
+    },
+    "systemView": {
+      "pageTitle": "System backup (Super Admin)",
+      "pageSubtitle": "Instance-wide dump plus structured system package (all tenants, Identity, licenses). Retention typically 90 days.",
+      "alertTitle": "System backup",
+      "alertDescription": "Includes all active tenants, AspNet Identity, platform settings, and deployment licenses. Validation restore uses pg_dump artifacts only (dual Super Admin approval).",
+      "recentTitle": "Recent system / instance backups"
+    },
+    "configCard": {
+      "title": "Schedule & retention",
+      "openSchedule": "Edit schedule",
+      "openConfiguration": "Full configuration",
+      "readOnlyHint": "Schedule settings require backup manage permission.",
+      "enabled": "Scheduled backups",
+      "enabledYes": "Enabled",
+      "enabledNo": "Disabled",
+      "cron": "Cron (UTC)",
+      "retention": "Retention",
+      "retentionDays": "{{days}} days",
+      "hint": "Daily default is 02:00 UTC with 30-day retention (7–90). See"
+    },
+    "actions": {
+      "title": "Actions",
+      "detailedMonitoring": "Detailed monitoring"
+    }
+  },
   "postureSummary": {
     "title": "At a glance (API)",
     "postureLabel": "DR proof & current gap",
@@ -47,11 +84,21 @@
     },
     "metrics": {
       "lastBackup": "Last backup",
+      "nextBackup": "Next backup",
       "backupSize": "Backup size",
       "duration": "Duration",
       "successRate30d": "Success rate (30 days)",
       "trendVsPriorMonth": "vs prior month",
-      "lastRestoreDrill": "Last restore drill"
+      "lastRestoreDrill": "Last restore drill",
+      "totalRuns": "Total (30 days)",
+      "succeededRuns": "Succeeded",
+      "failedRuns": "Failed",
+      "pendingRuns": "Pending",
+      "stagingDisk": "Staging disk used"
+    },
+    "diskAlert": {
+      "title": "Staging storage almost full",
+      "description": "Backup staging volume is at {{percent}}% capacity. Free space or raise retention cleanup before the next run."
     },
     "charts": {
       "history30d": "Backup history (30 days)",
@@ -667,6 +714,75 @@
   },
   "manualRestore": {
     "title": "Request manual restore",
+    "restoreModal": {
+      "title": "Restore backup"
+    },
+    "restorePreview": {
+      "cardTitle": "Restore preview",
+      "alertTitle": "Restore is being prepared",
+      "alertDescription": "The following data would be loaded into the isolated validation database — never production.",
+      "loadFailed": "Could not load restore preview.",
+      "dumpNotAnalyzed": "Logical dump TOC could not be analyzed",
+      "dumpNotAnalyzedDetail": "Without TOC analysis the table list is incomplete.",
+      "rowCountDisclaimer": "Row counts are live-DB estimates for tables in the dump TOC — not a dry-run of the validation restore.",
+      "emptyTables": "No table data in the preview.",
+      "compliance": {
+        "alertTitle": "RKSV compliance check",
+        "loadFailed": "Could not load the compliance check.",
+        "noChecks": "No compliance checks returned.",
+        "validationOnlyNote": "Validation-only restore into restore_validation_* — never production.",
+        "checks": {
+          "sameTenant": "Backup matches the same tenant / intended scope",
+          "backupIntegrity": "Backup integrity verified (SHA-256)",
+          "rksvGate": "RKSV validation gates passed",
+          "artifactStrategy": "Artifact is a System dump suitable for validation restore",
+          "unknown": "Additional check"
+        },
+        "status": {
+          "checking": "Checking…",
+          "compliant": "RKSV checks passed",
+          "notCompliant": "RKSV checks failed",
+          "checkFailed": "Compliance check unavailable"
+        }
+      },
+      "labels": {
+        "tables": "Database",
+        "records": "Records",
+        "size": "Size",
+        "backupRun": "Backup run",
+        "tenant": "Tenant",
+        "backupDate": "Backup date",
+        "complianceStatus": "Compliance"
+      },
+      "values": {
+        "tables": "{{count}} tables",
+        "records": "{{count}} records",
+        "sizeMib": "{{size}} MB"
+      },
+      "columns": {
+        "table": "Table",
+        "count": "Records",
+        "changes": "Changes"
+      },
+      "changeKind": {
+        "inDump": "Present in dump",
+        "missingFromDump": "Missing from dump",
+        "mismatch": "Differs from live DB",
+        "mismatchWithDiff": "{{label}} (Δ {{diff}})",
+        "aligned": "Aligned with live DB"
+      }
+    },
+    "rksvAlert": {
+      "title": "RKSV compliance notice",
+      "sameTenant": "Restore is only allowed for the same tenant (cross-tenant restore is blocked).",
+      "originalTimestamps": "All restored data keeps its original timestamps (no backdating).",
+      "auditLogged": "The operation is recorded in the audit log with correlation id.",
+      "validationOnly": "Runs only in an isolated validation database — never production."
+    },
+    "acknowledgements": {
+      "sameTenant": "I confirm this backup belongs to the current tenant / intended restore scope.",
+      "rksvUnderstood": "I understand the RKSV compliance notices above."
+    },
     "alert": {
       "title": "High-risk operation",
       "description": "This requires a second administrator approval. Restore runs ONLY in an isolated validation database (validationOnly)."
@@ -674,6 +790,9 @@
     "tokenHint": "After submitting, a second Super Admin must enter the 6-digit token sent by email.",
     "fields": {
       "backup": "Backup run",
+      "fileName": "File",
+      "tenant": "Tenant",
+      "sharedDump": "Shared instance dump (may include all tenants)",
       "targetDatabase": "Target database",
       "targetDatabaseHelp": "Temporary validation database (prefix restore_validation_)",
       "reason": "Reason",
@@ -692,6 +811,8 @@
     },
     "actions": {
       "close": "Close",
+      "cancel": "Cancel",
+      "restore": "Restore",
       "submitRequest": "Request restore",
       "confirmApproval": "Approve and start validation",
       "confirmReject": "Reject",
@@ -710,7 +831,9 @@
       "invalidTargetDb": "Target database must start with restore_validation_ and be a valid PostgreSQL name.",
       "invalidToken": "Token must be exactly 6 digits.",
       "rejectReasonRequired": "Rejection reason is required.",
-      "missingRunId": "Backup run ID is missing."
+      "missingRunId": "Backup run ID is missing.",
+      "acknowledgementsRequired": "Confirm both RKSV acknowledgements before continuing.",
+      "complianceRequired": "Resolve the RKSV compliance check before requesting restore."
     },
     "status": {
       "pendingApproval": "Pending approval",
@@ -742,6 +865,11 @@
     }
   },
   "progress": {
+    "cardTitle": "Backup progress",
+    "idle": "No backup in progress.",
+    "stepOf": "{{current}} / {{total}}",
+    "estimatedRemaining": "Estimated time remaining: {{time}}",
+    "errorAlert": "Backup failed",
     "titleQueued": "Backup queued — not finished yet",
     "titleRunning": "Backup in progress",
     "titleAwaiting": "Backup almost done — verification / copy",
@@ -1429,6 +1557,217 @@
     "saveError": "Error while saving",
     "savePartialSettingsOnly": "Schedule saved; execution mode was not changed."
   },
+  "performance": {
+    "pageTitle": "Backup performance",
+    "pageSubtitle": "Duration, size, success rate, and staging usage (30 days).",
+    "subtitle": "Metrics from GET /api/admin/backup/dashboard/stats — indicative, not an SLA.",
+    "metrics": {
+      "avgDuration": "Average duration",
+      "avgSize": "Last backup size",
+      "successRate": "Success rate (30 days)",
+      "storageUsed": "Staging used"
+    },
+    "avgSizeHint": "Size of the last known successful artifact (not a 30-day average).",
+    "storageHint": "Staging/archive volume percent (not absolute GB).",
+    "sampleCount": "n={{n}} successful runs",
+    "suffix": {
+      "seconds": "s",
+      "mb": "MB",
+      "percent": "%"
+    },
+    "durationSeconds": "{{s}} s",
+    "historyTitle": "Backup history (30 days)",
+    "historyEmpty": "No history in this period.",
+    "columns": {
+      "date": "Date",
+      "duration": "Duration",
+      "size": "Size",
+      "status": "Status"
+    }
+  },
+  "restoreHistory": {
+    "pageTitle": "Restore history",
+    "pageSubtitle": "Validation-only manual restore requests (Super Admin).",
+    "infoTitle": "Validation restores only",
+    "infoDescription": "Lists dual-approval restore requests into restore_validation_* databases. Never production. Row counts appear on the report when available.",
+    "forbiddenTitle": "Restore history is Super Admin only",
+    "forbiddenDescription": "Mandanten-Admin cannot view or request restores. Contact a platform Super Admin.",
+    "loadFailed": "Could not load restore history.",
+    "empty": "No restore requests yet.",
+    "columns": {
+      "date": "Date",
+      "backupRun": "Backup run",
+      "targetDatabase": "Target database",
+      "requestedBy": "Requested by",
+      "status": "Status",
+      "validationOnly": "Scope",
+      "actions": "Actions"
+    },
+    "values": {
+      "validationOnly": "Validation only",
+      "notValidationOnly": "Not validation-only"
+    },
+    "actions": {
+      "report": "Report"
+    },
+    "report": {
+      "title": "Restore compliance report",
+      "loadFailed": "Could not load the restore report.",
+      "restoreId": "Restore request",
+      "tenant": "Tenant",
+      "restoredAt": "Restored at",
+      "backupDate": "Backup date",
+      "tables": "Tables (TOC lines)",
+      "records": "Records",
+      "recordsUnknown": "Not tracked",
+      "status": "Status",
+      "rksv": "RKSV",
+      "compliant": "Checks passed",
+      "notCompliant": "Checks failed",
+      "targetDatabase": "Target database",
+      "findings": "Findings"
+    }
+  },
+  "compliance": {
+    "pageTitle": "RKSV compliance status",
+    "pageSubtitle": "Backup restore-readiness gates (30 days) — product controls, not BMF certification.",
+    "disclaimerTitle": "Product gates only",
+    "disclaimerDefault": "Succeeded backups with a logical dump SHA-256 are marked ready. On-disk re-verify runs at restore time. Not official RKSV/BMF certification.",
+    "warningTitle": "Compliance warning",
+    "warningDescription": "Some backups are missing integrity metadata or failed product gates. Review the list before restore.",
+    "allOkTitle": "All listed backups pass product gates",
+    "allOkDescription": "Succeeded backups in the window have a valid stored SHA-256. Restore still runs validation-only with dual approval.",
+    "loadFailed": "Could not load compliance status.",
+    "empty": "No succeeded backups in the last 30 days.",
+    "listTitle": "Backup compliance list",
+    "stats": {
+      "total": "Backups total",
+      "compliant": "Gate-ready",
+      "nonCompliant": "Not ready",
+      "lastCheck": "Last check",
+      "restoreTotal": "Restore requests",
+      "restoreCompleted": "Restores completed",
+      "restoreFailed": "Restores failed"
+    },
+    "columns": {
+      "date": "Date",
+      "tenant": "Tenant",
+      "status": "Status",
+      "compliant": "RKSV gates"
+    },
+    "values": {
+      "yes": "Ready",
+      "no": "Not ready"
+    },
+    "reasons": {
+      "systemDumpHashPresent": "System dump + SHA-256",
+      "tenantPackageIntegrityOk": "Tenant package + SHA-256",
+      "missingSha256": "Missing SHA-256",
+      "missingLogicalDump": "No logical dump",
+      "backupNotSucceeded": "Not succeeded",
+      "unknown": "Other"
+    }
+  },
+  "costs": {
+    "pageTitle": "Backup storage costs",
+    "pageSubtitle": "Indicative Hot/Warm/Cold costs and budget usage — not a cloud invoice.",
+    "disclaimerTitle": "Cost estimate only",
+    "disclaimerDefault": "Operational estimate using configured EUR/GiB-month rates. Not a provider invoice.",
+    "capacityWarningTitle": "Storage budget nearly full",
+    "capacityWarningDescription": "{{percent}}% of the dump budget is used. Lower retention or free old succeeded artifacts.",
+    "loadFailed": "Could not load storage costs.",
+    "empty": "No storage data available.",
+    "tiersTitle": "Storage tier breakdown",
+    "recommendationsTitle": "Cost-saving recommendations",
+    "saveTag": "Save {{percent}}%",
+    "stats": {
+      "totalStorage": "Total storage",
+      "budget": "Budget {{budget}} GB",
+      "monthlyCost": "Monthly cost",
+      "costPerGb": "Per GB",
+      "backupCount": "Backup count",
+      "averageSize": "Average size",
+      "retentionSavings": "Tier savings",
+      "projectedMonthly": "Projected / month"
+    },
+    "columns": {
+      "tier": "Tier",
+      "sizeGb": "Size (GB)",
+      "costEur": "Cost (€)",
+      "access": "Access",
+      "retention": "Retention",
+      "artifacts": "Artifacts"
+    },
+    "access": {
+      "fast": "Fast",
+      "medium": "Medium",
+      "slow": "Slow",
+      "unknown": "—"
+    },
+    "recommendations": {
+      "storagePressure": {
+        "title": "Storage budget nearly full",
+        "description": "Succeeded dumps above 80% budget. Lower retention, enable smart retention, or delete old runs."
+      },
+      "enableSmartRetention": {
+        "title": "Enable smart GFS retention",
+        "description": "Set Backup:SmartRetentionEnabled=true to thin weekly/monthly/yearly copies instead of every daily dump."
+      },
+      "enableStorageTiers": {
+        "title": "Enable storage tier tagging",
+        "description": "Set Backup:StorageTierManagementEnabled=true so Hot/Warm/Cold classification drives cost estimates."
+      },
+      "rebalanceHot": {
+        "title": "Too much data still on Hot",
+        "description": "Most dump bytes are Hot. Confirm the tier pass runs, or move aged artifacts toward Warm/Cold."
+      },
+      "tierSavingsLow": {
+        "title": "Limited tier savings so far",
+        "description": "Warm/Cold share is low. Let older dumps age colder or prefer ExternalArchiveRoot for Cold."
+      },
+      "healthy": {
+        "title": "Storage cost profile looks healthy",
+        "description": "Budget usage and tier mix are within expected ranges. Keep monitoring after large tenant growth."
+      }
+    }
+  },
+  "backupDiff": {
+    "cardTitle": "Backup comparison",
+    "alertTitle": "TOC comparison (not a row-level diff)",
+    "alertDescription": "Compares which tables appear in the logical dump table of contents (pg_restore --list), plus artifact size. Not a content/row diff of the dump files.",
+    "selectBackup1": "Select backup 1",
+    "selectBackup2": "Select backup 2",
+    "pickTwo": "Select two different backup runs.",
+    "sameRun": "Both sides are the same run — pick two different ones.",
+    "loadFailed": "Could not load comparison.",
+    "dumpNotAnalyzed": "At least one dump TOC could not be analyzed",
+    "dumpNotAnalyzedDetail": "Without TOC analysis the table list is incomplete (staging/pg_restore).",
+    "onlyChanged": "Show only differing tables",
+    "empty": "No table differences.",
+    "labels": {
+      "size1": "Size backup 1",
+      "size2": "Size backup 2",
+      "sizeDiff": "Size difference",
+      "changedTables": "Differing tables"
+    },
+    "sizeLarger1": "(backup 1 larger)",
+    "sizeLarger2": "(backup 2 larger)",
+    "columns": {
+      "table": "Table",
+      "backup1": "Backup 1",
+      "backup2": "Backup 2",
+      "diff": "Difference"
+    },
+    "presence": {
+      "yes": "In dump",
+      "no": "Not in dump"
+    },
+    "diff": {
+      "same": "Same",
+      "only1": "Only backup 1",
+      "only2": "Only backup 2"
+    }
+  },
   "runsTable": {
     "instanceScopeTitle": "Instance-wide backups",
     "instanceScopeDescription": "All tenants share the same PostgreSQL instance. This list is deployment-wide; tenant filter applies to manually triggered runs (idempotency key).",
@@ -1566,6 +1905,11 @@
     "tenant": "Tenant",
     "date": "Date",
     "size": "Size",
+    "status": "Status",
+    "duration": "Duration",
+    "strategy": "Strategy",
+    "strategyTenant": "Tenant",
+    "strategySystem": "System",
     "type": "Type",
     "typeTest": "Test",
     "typeProduction": "Production",
@@ -1583,6 +1927,8 @@
     "sizeLabel": "Size: {{size}}",
     "downloadDump": "Download backup",
     "downloadManifest": "Download manifest",
+    "sharedDumpWarningTitle": "Shared instance dump",
+    "sharedDumpWarningDescription": "Backup files are full PostgreSQL dumps of this API instance. They may include data from all tenants, even when a run is labeled for access control. Download and store them securely; do not share outside your organization.",
     "import": {
       "title": "Import backup file",
       "description": "Upload a previously exported dump to register it for this tenant. This does not restore the database automatically.",

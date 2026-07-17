@@ -90,3 +90,89 @@ export async function getManualRestoreHistory(
     params: { page, pageSize },
   });
 }
+
+export const MANUAL_RESTORE_COMPLIANCE_CHECK_PATH =
+  '/api/admin/restore/compliance-check' as const;
+
+export function getRestoreComplianceCheckQueryKey(
+  backupRunId: string,
+  tenantId?: string | null,
+) {
+  return [
+    MANUAL_RESTORE_COMPLIANCE_CHECK_PATH,
+    backupRunId,
+    tenantId ?? '',
+  ] as const;
+}
+
+export interface RestoreComplianceCheckItemDto {
+  name: string;
+  passed: boolean;
+  detail?: string | null;
+}
+
+export interface RestoreComplianceCheckResponseDto {
+  succeeded: boolean;
+  code?: string | null;
+  error?: string | null;
+  backupRunId?: string | null;
+  tenantId?: string | null;
+  checks: RestoreComplianceCheckItemDto[];
+}
+
+/** Pre-restore RKSV compliance (same-tenant, integrity, validation gates). */
+export async function getRestoreComplianceCheck(
+  backupRunId: string,
+  tenantId?: string | null,
+): Promise<RestoreComplianceCheckResponseDto> {
+  return customInstance<RestoreComplianceCheckResponseDto>({
+    url: MANUAL_RESTORE_COMPLIANCE_CHECK_PATH,
+    method: 'GET',
+    params: {
+      backupRunId,
+      ...(tenantId ? { tenantId } : {}),
+    },
+  });
+}
+
+export function getManualRestoreReportPath(requestId: string) {
+  return `/api/admin/restore/request/${requestId}/report` as const;
+}
+
+export function getManualRestoreReportQueryKey(requestId: string) {
+  return [getManualRestoreReportPath(requestId)] as const;
+}
+
+/** RKSV-oriented restore compliance report for a manual restore request. */
+export interface RestoreReportResponseDto {
+  restoreId: string;
+  tenantId?: string | null;
+  tenantName?: string | null;
+  restoredAt?: string | null;
+  restoredBy?: string | null;
+  backupId: string;
+  backupDate?: string | null;
+  tablesRestored?: number | null;
+  recordsRestored?: number | null;
+  status: string;
+  complianceChecked: boolean;
+  rksvCompliant: boolean;
+  rksvComplianceNotes?: string | null;
+  complianceFindings?: string[];
+  validationOnly: boolean;
+  targetDatabaseName: string;
+  restoreVerificationRunId?: string | null;
+  drillStatus?: string | null;
+  fiscalSqlPassed?: boolean | null;
+  postRestoreContinuityChecksPassed?: boolean | null;
+  correlationId?: string | null;
+}
+
+export async function getManualRestoreReport(
+  requestId: string,
+): Promise<RestoreReportResponseDto> {
+  return customInstance<RestoreReportResponseDto>({
+    url: getManualRestoreReportPath(requestId),
+    method: 'GET',
+  });
+}

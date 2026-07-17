@@ -1,8 +1,10 @@
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.RestoreVerification;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.Backup;
 
@@ -22,17 +24,23 @@ public sealed class BackupDashboardStatsService : IBackupDashboardStatsService
     private readonly AppDbContext _db;
     private readonly IBackupRunQueryService _runQuery;
     private readonly IBackupOperationalReadiness _readiness;
+    private readonly IBackupStagingDiskMonitor _diskMonitor;
+    private readonly IOptionsMonitor<BackupOptions> _backupOptions;
     private readonly TimeProvider _timeProvider;
 
     public BackupDashboardStatsService(
         AppDbContext db,
         IBackupRunQueryService runQuery,
         IBackupOperationalReadiness readiness,
+        IBackupStagingDiskMonitor diskMonitor,
+        IOptionsMonitor<BackupOptions> backupOptions,
         TimeProvider timeProvider)
     {
         _db = db;
         _runQuery = runQuery;
         _readiness = readiness;
+        _diskMonitor = diskMonitor;
+        _backupOptions = backupOptions;
         _timeProvider = timeProvider;
     }
 
@@ -147,6 +155,18 @@ public sealed class BackupDashboardStatsService : IBackupDashboardStatsService
                 .Where(a => a.ArtifactType == BackupArtifactType.LogicalDump)
                 .Sum(a => a.ByteSize ?? 0L);
 
+        var failed30 = terminal30.Count(r =>
+            r.Status is BackupRunStatus.Failed or BackupRunStatus.VerificationFailed);
+        var pendingCount = await AccessibleRuns(accessScope)
+            .CountAsync(
+                r => r.Status == BackupRunStatus.Queued || r.Status == BackupRunStatus.Running,
+                cancellationToken);
+
+        var nextScheduled = await ResolveNextScheduledBackupAtUtcAsync(cancellationToken);
+
+        var opts = _backupOptions.CurrentValue;
+        var disk = _diskMonitor.TryGetUsage(opts.ArtifactStagingRoot, opts.StagingDiskUsageAlertPercent);
+
         return new BackupDashboardStatsResponseDto
         {
             LastBackupAtUtc = latestRun?.CompletedAt ?? latestRun?.RequestedAt,
@@ -160,6 +180,12 @@ public sealed class BackupDashboardStatsService : IBackupDashboardStatsService
             SuccessRateTrendVsPrior30DaysPercent = trend,
             TerminalRuns30Days = terminal30.Count,
             SucceededRuns30Days = succeeded30,
+            FailedRuns30Days = failed30,
+            PendingRunsCount = pendingCount,
+            TotalRuns30Days = runs30.Count,
+            NextScheduledBackupAtUtc = nextScheduled,
+            StagingDiskUsedPercent = disk?.UsedPercent,
+            StagingDiskAlert = disk?.Alert ?? false,
             RpoHours = rpoHours,
             RtoMinutes = rtoMinutes,
             LastSuccessfulRestoreDrillAtUtc = lastRestoreProof?.CompletedAt,
@@ -171,6 +197,34 @@ public sealed class BackupDashboardStatsService : IBackupDashboardStatsService
             ArtifactPipelinePolicy = BackupArtifactPipelinePolicyMapper.ToDto(artifactPolicy),
             History30Days = history,
         };
+    }
+
+    private async Task<DateTime?> ResolveNextScheduledBackupAtUtcAsync(CancellationToken cancellationToken)
+    {
+        var fromTenantSchedules = await _db.BackupScheduleConfigurations.AsNoTracking()
+            .Where(c => c.Enabled && c.NextRunAt != null)
+            .Select(c => c.NextRunAt)
+            .ToListAsync(cancellationToken);
+
+        var fromSingleton = await _db.BackupSettings.AsNoTracking()
+            .Where(s => s.Enabled && s.NextRunAt != null)
+            .Select(s => s.NextRunAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        DateTime? earliest = null;
+        foreach (var candidate in fromTenantSchedules)
+        {
+            if (candidate is not DateTime dt)
+                continue;
+            if (earliest == null || dt < earliest)
+                earliest = dt;
+        }
+
+        if (fromSingleton is DateTime singletonNext
+            && (earliest == null || singletonNext < earliest))
+            earliest = singletonNext;
+
+        return earliest;
     }
 
     private IQueryable<BackupRun> AccessibleRuns(BackupRunAccessScope? accessScope)

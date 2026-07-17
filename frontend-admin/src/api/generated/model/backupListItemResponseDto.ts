@@ -5,6 +5,8 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { BackupRunStatus } from './backupRunStatus';
+import type { BackupStrategyKind } from './backupStrategyKind';
 
 export interface BackupListItemResponseDto {
   artifactId?: string;
@@ -12,6 +14,10 @@ export interface BackupListItemResponseDto {
   createdAt?: string;
   /** @nullable */
   downloadUrl?: string | null;
+  /** @nullable */
+  durationFormatted?: string | null;
+  /** @nullable */
+  durationSeconds?: number | null;
   /** @nullable */
   fileName?: string | null;
   /** @nullable */
@@ -25,6 +31,8 @@ export interface BackupListItemResponseDto {
   manifestFileName?: string | null;
   /** @nullable */
   manifestFileSize?: number | null;
+  status?: BackupRunStatus;
+  strategy?: BackupStrategyKind;
   /** @nullable */
   tenantSlug?: string | null;
 }

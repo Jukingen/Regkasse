@@ -126,6 +126,8 @@ public sealed class BackupScheduledEnqueueService : IBackupScheduledEnqueueServi
             Status = BackupRunStatus.Queued,
             TriggerSource = BackupTriggerSource.Scheduled,
             AdapterKind = adapterKind,
+            Strategy = BackupStrategyKind.System,
+            TenantId = null,
             RequestedAt = capturedAt,
             QueuedAt = capturedAt,
             CorrelationId = null,
@@ -134,7 +136,8 @@ public sealed class BackupScheduledEnqueueService : IBackupScheduledEnqueueServi
                 useTenantSchedules ? "backup_scheduled_enqueue_tenant" : "backup_scheduled_enqueue",
                 capturedAt,
                 effectiveKind,
-                health.AdminRuntimeExecutionMode)
+                health.AdminRuntimeExecutionMode,
+                BackupStrategyKind.System)
         };
 
         db.BackupRuns.Add(run);

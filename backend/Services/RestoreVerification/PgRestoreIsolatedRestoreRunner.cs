@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using KasseAPI_Final.Services.Backup;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 
@@ -10,10 +11,14 @@ namespace KasseAPI_Final.Services.RestoreVerification;
 /// </summary>
 public sealed class PgRestoreIsolatedRestoreRunner : IPgRestoreIsolatedRestoreRunner
 {
+    private readonly IBackupEncryptionService _encryption;
     private readonly ILogger<PgRestoreIsolatedRestoreRunner> _logger;
 
-    public PgRestoreIsolatedRestoreRunner(ILogger<PgRestoreIsolatedRestoreRunner> logger)
+    public PgRestoreIsolatedRestoreRunner(
+        IBackupEncryptionService encryption,
+        ILogger<PgRestoreIsolatedRestoreRunner> logger)
     {
+        _encryption = encryption;
         _logger = logger;
     }
 
@@ -75,8 +80,31 @@ public sealed class PgRestoreIsolatedRestoreRunner : IPgRestoreIsolatedRestoreRu
 
         var databaseCreated = false;
         var restoreSucceeded = false;
+        string? decryptedTempPath = null;
         try
         {
+            var dumpPathForRestore = Path.GetFullPath(absoluteCustomDumpPath);
+            var peek = new byte[BackupEncryptionService.HeaderSize];
+            await using (var fs = File.OpenRead(dumpPathForRestore))
+            {
+                var read = await fs.ReadAsync(peek.AsMemory(0, peek.Length), cancellationToken);
+                if (read >= BackupEncryptionService.Magic.Length
+                    && _encryption.LooksEncrypted(peek.AsSpan(0, read)))
+                {
+                    decryptedTempPath = Path.Combine(
+                        Path.GetTempPath(),
+                        $"regkasse-restore-decrypt-{Guid.NewGuid():N}.dump");
+                    await _encryption.DecryptFileToAsync(
+                            dumpPathForRestore,
+                            decryptedTempPath,
+                            cancellationToken)
+                        .ConfigureAwait(false);
+                    dumpPathForRestore = decryptedTempPath;
+                    _logger.LogInformation(
+                        "Isolated pg_restore: decrypted encrypted dump to temp for restore drill.");
+                }
+            }
+
             await using (var conn = new NpgsqlConnection(adminCs))
             {
                 await conn.OpenAsync(cancellationToken);
@@ -103,7 +131,7 @@ public sealed class PgRestoreIsolatedRestoreRunner : IPgRestoreIsolatedRestoreRu
             args.Append(" -U ").Append(QuoteArg(targetB.Username ?? ""));
             args.Append(" -d ").Append(QuoteArg(newDatabaseName));
             args.Append(" --no-owner --no-acl ");
-            args.Append(QuoteArg(Path.GetFullPath(absoluteCustomDumpPath)));
+            args.Append(QuoteArg(dumpPathForRestore));
 
             var psi = new ProcessStartInfo
             {
@@ -125,7 +153,7 @@ public sealed class PgRestoreIsolatedRestoreRunner : IPgRestoreIsolatedRestoreRu
             _logger.LogInformation(
                 "Isolated pg_restore starting: database={Database}, dumpFile={DumpFile}",
                 newDatabaseName,
-                absoluteCustomDumpPath);
+                dumpPathForRestore);
 
             if (!proc.Start())
             {
@@ -170,6 +198,19 @@ public sealed class PgRestoreIsolatedRestoreRunner : IPgRestoreIsolatedRestoreRu
         }
         finally
         {
+            if (decryptedTempPath != null)
+            {
+                try
+                {
+                    if (File.Exists(decryptedTempPath))
+                        File.Delete(decryptedTempPath);
+                }
+                catch
+                {
+                    // best-effort temp cleanup
+                }
+            }
+
             if (!databaseCreated)
             {
                 // nothing to drop

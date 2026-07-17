@@ -189,12 +189,66 @@ function DashboardBody({
         <Alert type="info" showIcon title={t("backupDr.monitoring.header.activeHint")} />
       ) : null}
 
+      {stats.stagingDiskAlert ? (
+        <Alert
+          type="warning"
+          showIcon
+          title={t("backupDr.monitoring.diskAlert.title")}
+          description={t("backupDr.monitoring.diskAlert.description", {
+            percent: stats.stagingDiskUsedPercent ?? "—",
+          })}
+        />
+      ) : null}
+
+      <Row gutter={[16, 16]}>
+        <Col xs={24} sm={12} lg={6}>
+          <MetricCard
+            title={t("backupDr.monitoring.metrics.totalRuns")}
+            value={String(stats.totalRuns30Days ?? 0)}
+            status="info"
+            loading={statsFetching}
+          />
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <MetricCard
+            title={t("backupDr.monitoring.metrics.succeededRuns")}
+            value={String(stats.succeededRuns30Days ?? 0)}
+            status="success"
+            loading={statsFetching}
+          />
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <MetricCard
+            title={t("backupDr.monitoring.metrics.failedRuns")}
+            value={String(stats.failedRuns30Days ?? 0)}
+            status={(stats.failedRuns30Days ?? 0) > 0 ? "error" : "success"}
+            loading={statsFetching}
+          />
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <MetricCard
+            title={t("backupDr.monitoring.metrics.pendingRuns")}
+            value={String(stats.pendingRunsCount ?? 0)}
+            status={(stats.pendingRunsCount ?? 0) > 0 ? "warning" : "info"}
+            loading={statsFetching}
+          />
+        </Col>
+      </Row>
+
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
           <MetricCard
             title={t("backupDr.monitoring.metrics.lastBackup")}
             value={lastBackupLabel}
             status={metrics?.lastBackupStatus}
+            loading={statsFetching}
+          />
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <MetricCard
+            title={t("backupDr.monitoring.metrics.nextBackup")}
+            value={formatDt(stats.nextScheduledBackupAtUtc, formatLocale)}
+            status={stats.nextScheduledBackupAtUtc ? "info" : undefined}
             loading={statsFetching}
           />
         </Col>
@@ -219,6 +273,9 @@ function DashboardBody({
             loading={statsFetching}
           />
         </Col>
+      </Row>
+
+      <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
           <MetricCard
             title={t("backupDr.monitoring.metrics.lastRestoreDrill")}
@@ -227,6 +284,18 @@ function DashboardBody({
               formatLocale,
             )}`}
             status={metrics?.drillStatus}
+            loading={statsFetching}
+          />
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <MetricCard
+            title={t("backupDr.monitoring.metrics.stagingDisk")}
+            value={
+              stats.stagingDiskUsedPercent != null
+                ? `${stats.stagingDiskUsedPercent}%`
+                : "—"
+            }
+            status={stats.stagingDiskAlert ? "warning" : "info"}
             loading={statsFetching}
           />
         </Col>
