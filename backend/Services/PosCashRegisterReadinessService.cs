@@ -475,6 +475,19 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
             }
         }
 
+        // Align with FA auto-select: prefer tenant default when settings/sole do not resolve.
+        if (effective == null)
+        {
+            var tenantDefault = registers.FirstOrDefault(r =>
+                r.IsDefaultForTenant &&
+                CashRegisterPosOperationalCardinality.CountsTowardPosOperationalCardinality(r));
+            if (tenantDefault != null)
+            {
+                effective = tenantDefault;
+                resolution = "tenant_default";
+            }
+        }
+
         return (effective, resolution);
     }
 

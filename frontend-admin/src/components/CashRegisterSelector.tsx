@@ -1,8 +1,9 @@
 'use client';
 
-import { Alert, Form, Select, Skeleton, Tag } from 'antd';
+import { Alert, Form, Select, Skeleton, Space } from 'antd';
 import type { SelectProps } from 'antd';
 
+import { SelectedCashRegisterCard } from '@/components/SelectedCashRegisterCard';
 import { useCashRegisterSelection } from '@/hooks/useCashRegisterSelection';
 import { useI18n } from '@/i18n';
 
@@ -54,6 +55,7 @@ export function CashRegisterSelector({
 
     const {
         registerOptions,
+        selectedRegister,
         selectedRegisterId,
         setSelectedRegisterId,
         registers,
@@ -95,23 +97,22 @@ export function CashRegisterSelector({
 
     if (isSingleRegister) {
         const register = registers[0];
+        if (!register) {
+            return null;
+        }
         return (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Space orientation="vertical" size={8} style={{ width: '100%', ...style }} className={className}>
                 {showFormItem && resolvedLabel ? (
-                    <span style={{ fontWeight: 500, color: '#1e293b' }}>{resolvedLabel}:</span>
+                    <span style={{ fontWeight: 500, color: '#1e293b' }}>{resolvedLabel}</span>
                 ) : null}
-                <span style={{ color: '#475569' }}>{register.registerNumber}</span>
-                <Tag color="blue" variant="filled">
-                    {t('cashRegisters.selector.autoSelectedTag')}
-                </Tag>
-            </div>
+                <SelectedCashRegisterCard register={register} showAutoSelectedTag />
+            </Space>
         );
     }
 
     const select = (
         <Select
-            className={className}
-            style={{ minWidth: 200, ...style }}
+            style={{ minWidth: 200, width: '100%', maxWidth: 420 }}
             value={selectedRegisterId}
             onChange={(next) => setSelectedRegisterId(next)}
             disabled={disabled}
@@ -121,13 +122,21 @@ export function CashRegisterSelector({
         />
     );
 
-    if (showFormItem && resolvedLabel) {
-        return (
+    const selectField =
+        showFormItem && resolvedLabel ? (
             <Form.Item label={resolvedLabel} required={required} style={{ marginBottom: 0 }}>
                 {select}
             </Form.Item>
+        ) : (
+            select
         );
-    }
 
-    return select;
+    return (
+        <Space orientation="vertical" size={8} style={{ width: '100%', ...style }} className={className}>
+            {selectedRegister ? (
+                <SelectedCashRegisterCard register={selectedRegister} showAutoSelectedTag={false} />
+            ) : null}
+            {selectField}
+        </Space>
+    );
 }

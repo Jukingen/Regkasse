@@ -96,11 +96,22 @@ For medium or large changes, always provide:
 
 ## Multi-Tenant Architecture (CRITICAL)
 
+### Production hosts (Single POS UI)
+
+| Surface | URL |
+|---------|-----|
+| POS UI | `https://pos.regkasse.at` |
+| FA UI | `https://admin.regkasse.at` |
+| API | `https://api.regkasse.at` |
+
+**Decision:** One shared POS UI for all tenants. Detail: [`docs/POS_PRODUCTION_ARCHITECTURE.md`](docs/POS_PRODUCTION_ARCHITECTURE.md).
+
 ### Tenant Identification
-- **Production:** Subdomain only (`{slug}.regkasse.at`)
-- **Development:** `X-Tenant-Id` header or `?tenant={slug}` query
+- **Production (POS):** Shared host `pos.regkasse.at` — tenant from JWT `tenant_id` after login (not from Host slug). Reserved labels: `pos`, `api`, `admin`, `www`.
+- **Production (API):** `api.regkasse.at` — authenticated traffic scoped by JWT `tenant_id`; do not use `X-Tenant-Id` / `?tenant=` in Production.
+- **Development:** `X-Tenant-Id` header or `?tenant={slug}` query (POS: `EXPO_PUBLIC_DEV_TENANT_ID` + DevTenantSwitcher; FA: header switcher).
 - JWT contains `tenant_id` claim after authentication
-- Super Admin: `admin.regkasse.at`
+- Super Admin / FA: `admin.regkasse.at`
 
 ### Tenant Isolation
 - Tenant-scoped tables MUST have non-null `tenant_id` on entities implementing `ITenantEntity`
@@ -120,7 +131,7 @@ For medium or large changes, always provide:
 ### Impersonation Flow
 1. Super Admin clicks "Login as" on `/admin/tenants` (FA)
 2. Backend issues JWT with target `tenant_id` claim and `tenant_impersonation=true`
-3. Production target: redirect to `https://{slug}.regkasse.at` with token handoff
+3. Production target: stay on FA / hand off token for mandant session (POS remains `pos.regkasse.at` with JWT tenant — not `{slug}` POS hosts)
 4. Subsequent API calls use tenant-scoped JWT; EF filters apply to target tenant
 5. Structured server logs record actor + tenant
 
@@ -135,6 +146,14 @@ var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbCo
 await using var db = await factory.CreateDbContextAsync(ct);
 ```
 
+### Development URLs
+
+```text
+POS UI:     http://localhost:8081
+FA UI:      http://admin.regkasse.local:3000
+API:        http://localhost:5184
+```
+
 ### Testing Multi-Tenant Locally
 
 ```bash
@@ -144,9 +163,10 @@ curl -H "X-Tenant-Id: dev" http://localhost:5184/api/health
 # Query parameter
 curl http://localhost:5184/api/health?tenant=dev
 
-# Hosts file simulation
+# Hosts file simulation (optional; FA often uses admin.regkasse.local)
+127.0.0.1 admin.regkasse.local
 127.0.0.1 dev.regkasse.local
-# Then: http://dev.regkasse.local:5184
+# Then: http://dev.regkasse.local:5184  or  http://admin.regkasse.local:3000
 ```
 
 ## API Boundaries (DO NOT CROSS)
@@ -257,7 +277,7 @@ Do **not** confuse with `ActivityEventType` (admin activity feed / notifications
 ### Activity Feed Event Types (`ActivityEventType`)
 Admin bell / SSE / email / webhook — source of truth: `backend/Models/ActivityEventType.cs`.
 
-Includes: `UserCreated`, `UserUpdated`, `UserDeleted`, `CashRegisterOpened`, `CashRegisterClosed`, `CashRegisterDecommissioned`, `LicenseExpiringSoon`, `LicenseExpired`, `OfflineQueueGrowing`, `OfflineOrdersBacklogGrowing`, `OfflineOrdersExpiringSoon`, `OfflineSyncStalled`, `FinanzOnlineSubmissionFailed`, `BackupFailed`, `BackupSucceeded`, `RestoreDrillFailed`, `RestoreDrillSucceeded`.
+Includes: `UserCreated`, `UserUpdated`, `UserDeleted`, `CashRegisterOpened`, `CashRegisterClosed`, `CashRegisterDecommissioned`, `LicenseExpiringSoon`, `LicenseExpired`, `OfflineQueueGrowing`, `OfflineOrdersBacklogGrowing`, `OfflineOrdersExpiringSoon`, `OfflineSyncStalled`, `FinanzOnlineSubmissionFailed`, `BackupFailed`, `BackupSucceeded`, `RestoreDrillFailed`, `RestoreDrillSucceeded`, `DailyClosingBackdatedCreated`, `DailyClosingPendingReminder`.
 
 ### Data Retention
 - Audit logs: minimum 7 years
@@ -512,6 +532,8 @@ Use `/ai` docs selectively based on the task:
 - Backend/API/auth/contract work → `ai/01_BACKEND_CONTRACT.md`, `ai/03_API_CONTRACT.md`
 - Database/entity/migration work → `ai/02_DATABASE_CONTRACT.md`
 - Compliance/fiscal/TSE/RKSV work → `ai/05_SECURITY_COMPLIANCE.md`, `ai/modules/tse_finanzonline.md`
+- **POS production hosts / Single POS UI** → `docs/POS_PRODUCTION_ARCHITECTURE.md`, `docs/MULTI_TENANT.md`
+- **Tagesabschluss sonrası (ödeme engeli, çift kapanış)** → `docs/RKSV_AFTER_TAGESABSCHLUSS.md`, `docs/RKSV_CASH_REGISTER_OPERATIONS.md` §11
 - **Offline TSE intents (legacy)** → `ai/modules/offline_transactions_legacy.md`
 - **Offline order snapshots (new)** → `ai/modules/offline_orders.md`, `docs/release/OFFLINE_SYSTEMS_SEPARATION.md`
 - Admin API integration work → `ai/10_API_BOUNDARY_POLICY.md`
@@ -704,4 +726,6 @@ Frontend POS:
 ```env
 EXPO_PUBLIC_API_BASE_URL=http://192.168.1.100:5184/api
 EXPO_PUBLIC_DEV_TENANT_ID=dev
+# Production target: EXPO_PUBLIC_API_BASE_URL=https://api.regkasse.at/api
+# (single POS UI — see docs/POS_PRODUCTION_ARCHITECTURE.md)
 ```

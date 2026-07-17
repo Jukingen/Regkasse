@@ -32,7 +32,9 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
     /// <inheritdoc />
     public async Task<AuthTenantSnapshot> ResolveSnapshotForLoginAsync(string userId, CancellationToken cancellationToken = default)
     {
+        // Memberships are ITenantEntity; login must see all tenants for the user (fail-closed filters hide others).
         var active = await _db.UserTenantMemberships
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .Include(m => m.Tenant)
             .Where(m => m.UserId == userId
@@ -76,16 +78,48 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
 
         if (active.Count > 1)
         {
+            var preferred = PickPreferredMembership(active);
             _logger.LogCritical(
-                "Login tenant: user {UserId} has {Count} active memberships; expected at most one. Using oldest by CreatedAtUtc. Fix data or add tenant switch before enabling multi-tenant.",
+                "Login tenant: user {UserId} has {Count} active memberships; expected at most one. Using preferred tenant {TenantId} ({TenantSlug}). Fix data or add tenant switch before enabling multi-tenant.",
                 userId,
-                active.Count);
+                active.Count,
+                preferred.TenantId,
+                preferred.Tenant?.Slug);
+            return await BuildSnapshotFromMembershipAsync(preferred, cancellationToken).ConfigureAwait(false);
         }
 
         return await BuildSnapshotFromMembershipAsync(active[0], cancellationToken).ConfigureAwait(false);
     }
 
-    private static string? NormalizeRequestSlug(string slug)
+    /// <summary>
+    /// Multi-membership tie-break when request slug is missing/admin:
+    /// prefer demo <c>dev</c> (POS local default), else oldest non-legacy-default, else oldest.
+    /// </summary>
+    internal static UserTenantMembership PickPreferredMembership(IReadOnlyList<UserTenantMembership> active)
+    {
+        if (active.Count == 0)
+        {
+            throw new ArgumentException("Expected at least one membership.", nameof(active));
+        }
+
+        var dev = active.FirstOrDefault(m =>
+            m.TenantId == DemoTenantIds.Dev
+            || string.Equals(m.Tenant?.Slug, "dev", StringComparison.OrdinalIgnoreCase));
+        if (dev != null)
+        {
+            return dev;
+        }
+
+        var nonLegacy = active.FirstOrDefault(m => m.TenantId != LegacyDefaultTenantIds.Primary);
+        if (nonLegacy != null)
+        {
+            return nonLegacy;
+        }
+
+        return active[0];
+    }
+
+    private static string? NormalizeRequestSlug(string? slug)
     {
         var trimmed = slug?.Trim();
         if (string.IsNullOrEmpty(trimmed)
@@ -117,7 +151,7 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
 
     /// <inheritdoc />
     public Task<bool> HasActiveMembershipAsync(string userId, CancellationToken cancellationToken = default) =>
-        _db.UserTenantMemberships.AsNoTracking()
+        _db.UserTenantMemberships.IgnoreQueryFilters().AsNoTracking()
             .Where(m => m.UserId == userId && m.IsActive)
             .Join(
                 _db.Tenants.AsNoTracking(),
@@ -133,6 +167,7 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
         CancellationToken cancellationToken)
     {
         var rows = await _db.UserTenantMemberships
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .Where(m => m.UserId == userId)
             .Select(m => new

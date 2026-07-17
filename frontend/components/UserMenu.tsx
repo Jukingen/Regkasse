@@ -6,7 +6,14 @@ import { Modal, Pressable, StyleSheet, Text, Vibration, View } from 'react-nativ
 
 import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
 import { useAuth } from '../contexts/AuthContext';
+import { useCashRegister } from '../hooks/useCashRegister';
 import { useAdminPermissions } from '../utils/adminPermissions';
+
+function shortRegisterId(id: string): string {
+  const trimmed = id.trim();
+  if (trimmed.length <= 8) return trimmed;
+  return `${trimmed.slice(0, 8)}…`;
+}
 
 /** POS UI role labels (de-DE) — aligned with AGENTS.md / Admin display names. */
 const ROLE_LABELS: Record<string, string> = {
@@ -82,6 +89,7 @@ export function UserMenu() {
   const { t } = useTranslation(['auth', 'navigation']);
   const adminPermissions = useAdminPermissions();
   const [showMenu, setShowMenu] = useState(false);
+  const { register } = useCashRegister({ enabled: showMenu });
 
   const displayName = useMemo(() => (user ? resolveDisplayName(user) : ''), [user]);
   const initials = useMemo(
@@ -153,13 +161,14 @@ export function UserMenu() {
         animationType="fade"
         onRequestClose={closeMenu}
       >
-        <Pressable
-          style={styles.overlay}
-          onPress={closeMenu}
-          accessibilityRole="button"
-          accessibilityLabel="Menü schließen"
-        >
-          <Pressable style={styles.dropdown} onPress={(e) => e.stopPropagation()}>
+        <View style={styles.overlay}>
+          <Pressable
+            style={styles.overlayDismiss}
+            onPress={closeMenu}
+            accessibilityRole="button"
+            accessibilityLabel="Menü schließen"
+          />
+          <View style={styles.dropdown}>
             <View style={styles.dropdownHeader}>
               <View style={styles.dropdownAvatar}>
                 <Text style={styles.dropdownAvatarText}>{initials}</Text>
@@ -180,6 +189,25 @@ export function UserMenu() {
                 </View>
               </View>
             </View>
+
+            {register ? (
+              <View
+                style={styles.registerContainer}
+                accessibilityLabel={`Kasse ${register.name}, ID ${register.id}`}
+              >
+                <View style={styles.registerIcon}>
+                  <Ionicons name="storefront-outline" size={18} color={SoftColors.accentDark} />
+                </View>
+                <View style={styles.registerInfo}>
+                  <Text style={styles.registerName} numberOfLines={1}>
+                    {register.name}
+                  </Text>
+                  <Text style={styles.registerId} numberOfLines={1}>
+                    ID: {shortRegisterId(register.id)}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
 
             <View style={styles.divider} />
 
@@ -216,8 +244,8 @@ export function UserMenu() {
               <Ionicons name="log-out-outline" size={18} color={SoftColors.error} />
               <Text style={styles.logoutText}>{t('auth:logout')}</Text>
             </Pressable>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -277,12 +305,16 @@ const styles = StyleSheet.create({
     paddingTop: SoftSpacing.xl + SoftSpacing.lg,
     paddingRight: SoftSpacing.md,
   },
+  overlayDismiss: {
+    ...StyleSheet.absoluteFillObject,
+  },
   dropdown: {
     backgroundColor: SoftColors.bgCard,
     borderRadius: SoftRadius.lg,
     minWidth: 240,
     maxWidth: 320,
     paddingVertical: SoftSpacing.xs,
+    zIndex: 1,
     ...SoftShadows.md,
   },
   dropdownHeader: {
@@ -334,6 +366,41 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: SoftColors.textSecondary,
+  },
+  registerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SoftSpacing.sm + 2,
+    paddingVertical: SoftSpacing.sm,
+    backgroundColor: SoftColors.bgSecondary,
+    marginHorizontal: SoftSpacing.sm,
+    marginBottom: SoftSpacing.xs,
+    borderRadius: SoftRadius.md,
+  },
+  registerIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: SoftRadius.sm,
+    backgroundColor: SoftColors.accentLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: SoftSpacing.sm,
+  },
+  registerInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  registerName: {
+    ...SoftTypography.label,
+    fontSize: 14,
+    fontWeight: '600',
+    color: SoftColors.textPrimary,
+  },
+  registerId: {
+    ...SoftTypography.caption,
+    fontSize: 11,
+    color: SoftColors.textMuted,
+    marginTop: 1,
   },
   divider: {
     height: StyleSheet.hairlineWidth,

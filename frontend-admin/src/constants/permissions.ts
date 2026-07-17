@@ -59,6 +59,7 @@ export const MENU_PERMISSIONS: Record<string, string | string[] | undefined> = {
 
   // Settings hub & sub-routes
   '/settings': PERMISSIONS.SETTINGS_VIEW,
+  '/settings/password': ANY_AUTHENTICATED_PERMISSION,
   '/settings/company': PERMISSIONS.SETTINGS_MANAGE,
   '/settings/tse': PERMISSIONS.SETTINGS_MANAGE,
   '/settings/finanzonline': PERMISSIONS.SETTINGS_MANAGE,

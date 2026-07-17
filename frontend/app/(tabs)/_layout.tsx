@@ -25,6 +25,7 @@ import { eventEmitter } from '../../utils/eventEmitter';
 import { OFFLINE_CONFIG } from '../../constants/offlineConfig';
 import { MonatsbelegSessionBlockModal } from '../../components/MonatsbelegSessionBlockModal';
 import { StartbelegRequiredBanner } from '../../components/StartbelegRequiredBanner';
+import { TagesabschlussReminder } from '../../components/TagesabschlussReminder';
 import { subscribeOfflineSyncComplete } from '../../services/payment/offlineQueueSyncNotifier';
 import { POS_HEALTH_POLL_MS } from '../../constants/posPollingIntervals';
 import { useConditionalPolling } from '../../hooks/useConditionalPolling';
@@ -210,6 +211,7 @@ function PosTabsInner({
         <TseOfflineRestrictionBanner />
       <MonatsbelegSessionBlockModal />
       <StartbelegRequiredBanner />
+      <TagesabschlussReminder />
       <Tabs
         screenOptions={{
           tabBarActiveTintColor: SoftColors.accent,

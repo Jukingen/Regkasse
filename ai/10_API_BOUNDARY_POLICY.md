@@ -8,7 +8,7 @@
 
 ### Tenant Identification
 
-- Production: subdomain; Development: `X-Tenant-Id: {slug}` veya `?tenant={slug}`.
+- Production (hedef): JWT `tenant_id` on `api.regkasse.at` / `pos.regkasse.at` (`docs/POS_PRODUCTION_ARCHITECTURE.md`); Development: `X-Tenant-Id: {slug}` veya `?tenant={slug}`.
 
 ### Super Admin Endpoints
 
@@ -16,7 +16,7 @@
 
 ## Multi-Tenant Architecture
 
-- Admin ve POS istemcileri kiracı host/slug ile hizalanır.
+- POS: tek UI (`pos.regkasse.at`); FA: `admin.regkasse.at`; API: `api.regkasse.at`.
 - Yeni “global” admin uçları eklemeden önce kiracı filtresi gereksinimini değerlendir.
 - Backend singleton’lar EF için `IServiceScopeFactory` kullanır (`LicenseService`); bkz. `REGKASSE_AI_ONBOARDING.md`.
 

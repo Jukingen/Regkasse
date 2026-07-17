@@ -21,13 +21,17 @@ namespace KasseAPI_Final.Authorization;
 /// <item><description><see cref="AppPermissions.CashRegisterManage"/>, <see cref="AppPermissions.CashRegisterDecommission"/> — Kassenverwaltung (not in <see cref="PosTerminalOperationalWriteStrip"/>)</description></item>
 /// </list>
 /// <para><b>Cashier (whitelist):</b> strict FA menu subset via <see cref="CashierAdminAllowlist"/>.</para>
-/// <para><b>Stripped for admin (write / floor ops only):</b> see <see cref="PosTerminalOperationalWriteStrip"/>.</para>
+/// <para><b>Stripped for admin (write / floor ops only):</b> see <see cref="PosTerminalOperationalWriteStrip"/>
+/// (POS mutations + <see cref="AppPermissions.TseSign"/>). RKSV Sonderbeleg create keys are <b>not</b> stripped —
+/// Mandanten-Admin uses them on FA <c>/rksv/sonderbelege</c>.</para>
 /// </remarks>
 public static class AdminAppPermissionProfile
 {
     /// <summary>
     /// POS floor mutations and register signing — excluded from admin JWT for non-SuperAdmin roles.
     /// Does <b>not</b> include read-only oversight keys (payment.view, sale.view, report.view, cart.view, kitchen.view, …).
+    /// Does <b>not</b> strip RKSV Sonderbeleg create keys (<c>rksv.*.create</c>) — those are FA back-office
+    /// operations on <c>/rksv/sonderbelege</c> (Mandanten-Admin / Manager must retain them).
     /// </summary>
     private static readonly FrozenSet<string> PosTerminalOperationalWriteStrip = new[]
     {
@@ -48,9 +52,6 @@ public static class AdminAppPermissionProfile
         AppPermissions.ReceiptReprint,
         AppPermissions.PriceOverride,
         AppPermissions.DiscountApply,
-        AppPermissions.RksvStartbelegCreate,
-        AppPermissions.RksvMonatsbelegCreate,
-        AppPermissions.RksvJahresbelegCreate,
         AppPermissions.TseSign,
     }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
@@ -102,6 +103,19 @@ public static class AdminAppPermissionProfile
         AppPermissions.CashRegisterView,
         AppPermissions.CashRegisterManage,
         AppPermissions.CashRegisterDecommission,
+    ];
+
+    /// <summary>
+    /// Manager FA Sonderbelege create keys that must survive <see cref="Filter"/> (not POS-terminal strip).
+    /// Contract-tested; mirror in <c>frontend-admin</c> <c>MANAGER_ADMIN_PERMISSIONS</c>.
+    /// </summary>
+    public static readonly IReadOnlyList<string> ManagerRksvSonderbelegCreatePermissions =
+    [
+        AppPermissions.RksvNullbelegCreate,
+        AppPermissions.RksvStartbelegCreate,
+        AppPermissions.RksvMonatsbelegCreate,
+        AppPermissions.RksvJahresbelegCreate,
+        AppPermissions.RksvSchlussbelegCreate,
     ];
 
     /// <summary>

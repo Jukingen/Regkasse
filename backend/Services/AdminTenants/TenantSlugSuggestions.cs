@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services.AdminTenants;
@@ -10,9 +11,10 @@ public static class TenantSlugSuggestions
 {
     private static readonly Regex SlugRegex = new(@"^[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$|^[a-z0-9]$", RegexOptions.Compiled);
 
-    private static readonly HashSet<string> Reserved = new(StringComparer.OrdinalIgnoreCase)
+    /// <summary>Extra reserved labels beyond <see cref="TenantHostNames.IsReservedPlatformHostLabel"/>.</summary>
+    private static readonly HashSet<string> AdditionalReserved = new(StringComparer.OrdinalIgnoreCase)
     {
-        "admin", "www", "api", "mail",
+        "mail",
     };
 
     public static string NormalizeSlug(string raw)
@@ -54,7 +56,8 @@ public static class TenantSlugSuggestions
         !string.IsNullOrWhiteSpace(slug)
         && slug.Length <= 63
         && SlugRegex.IsMatch(slug)
-        && !Reserved.Contains(slug);
+        && !TenantHostNames.IsReservedPlatformHostLabel(slug)
+        && !AdditionalReserved.Contains(slug);
 
     public static IEnumerable<string> BuildCandidates(string? companyName, string? preferredSlug)
     {

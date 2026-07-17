@@ -212,6 +212,13 @@
     "overdue": "Overdue",
     "missing": "Missing"
   },
+  "tagesabschlussReminder": {
+    "title": "Daily closing pending",
+    "cta": "Perform now",
+    "body": "Daily closing for {{register}} has not been performed today yet.",
+    "transactionsWaiting": "{{count}} transactions are waiting for daily closing.",
+    "deadlineHint": "Please complete daily closing before midnight (Europe/Vienna). Automatic closing is not available."
+  },
   "manager": {
     "welcome": "Welcome back, {{name}}!",
     "todaySales": "Today's sales",

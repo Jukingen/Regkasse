@@ -9,11 +9,11 @@
 
 ### Tenant Identification
 
-- **Production:** Kiracı `Host` alt alanından otomatik (`{slug}.regkasse.at`).
+- **Production (hedef):** Shared hosts `api.regkasse.at` / `pos.regkasse.at` — kiracı JWT `tenant_id` (`docs/POS_PRODUCTION_ARCHITECTURE.md`). Eski: `{slug}.regkasse.at` Host slug.
 - **Development:** `X-Tenant-Id: {slug}` — değer kiracı **slug**’ıdır (UUID değil).
 - **Development:** `?tenant={slug}` query parametresi (header ile aynı anlam).
 
-JWT: auth sonrası `tenant_id` claim (Guid) + `TenantContextMiddleware`.
+JWT: auth sonrası `tenant_id` claim (Guid) + `TenantContextMiddleware` (POS için otoriter).
 
 ### Super Admin Endpoints
 

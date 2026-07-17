@@ -288,7 +288,22 @@
     "loadErrorTitle": "Fehler beim Laden der Kassen",
     "loadErrorTooltip": "Kassenliste konnte nicht geladen werden",
     "empty": "Keine Kassen vorhanden",
+    "activeContextLabel": "Aktuelle Kasse",
+    "activeTag": "Aktiv",
     "autoSelectedTag": "Automatisch ausgewählt",
+    "autoSelectedHint": "Diese Kasse wurde automatisch ausgewählt (einzige verfügbare Kasse).",
+    "currentTag": "Ausgewählt",
+    "idLabel": "ID: {{shortId}}",
+    "tsePrefix": "TSE:",
+    "lastActivityLabel": "Letzte Aktivität: {{date}}",
+    "tooltip": {
+      "kasse": "Kasse",
+      "id": "ID",
+      "status": "Status",
+      "tse": "TSE",
+      "balance": "Stand",
+      "unavailable": "—"
+    },
     "mandantHeader": "Mandant: {{name}} ({{slug}})",
     "defaultTag": "Standard"
   }

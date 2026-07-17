@@ -2,8 +2,8 @@
 
 ## Multi-Tenant Architecture
 
-- **Üretim:** API ve admin/POS istemcileri kiracı alt alanına hizalanır (`{slug}.regkasse.at`).
-- **POS:** `tenantStorage` + lisans aktivasyonu; üretimde `apiBaseUrl` bootstrap.
+- **Üretim (hedef):** Tek POS UI — `https://pos.regkasse.at` → API `https://api.regkasse.at`; kiracı **JWT `tenant_id`**. FA: `https://admin.regkasse.at`. Ayrıntı: `docs/POS_PRODUCTION_ARCHITECTURE.md`.
+- **POS:** login sonrası JWT; üretimde sabit API base (per-tenant Host yok).
 - **POS dev:** `EXPO_PUBLIC_DEV_TENANT_ID=dev`, `DevTenantSwitcher`, otomatik `X-Tenant-Id` + `?tenant=` (`services/api/config.ts`).
 - **Admin dev:** header’da `HeaderDevTenantSwitch` (dropdown); `dev` / `cafe` / `bar`.
 - Sunucu izolasyonu nihai otoritedir; istemci yanlış slug ile başka kiracının verisini alamaz.
@@ -15,7 +15,8 @@
 | Header | `curl -H "X-Tenant-Id: dev" http://localhost:5184/api/health` |
 | Query | `?tenant=dev` (Development only) |
 | FA dev | Header dropdown → `localStorage` `dev_tenant_id` |
-| Hosts | `127.0.0.1 dev.regkasse.local` → `http://dev.regkasse.local:5184` |
+| POS | `localhost:8081` + `EXPO_PUBLIC_DEV_TENANT_ID` / switcher |
+| Hosts | `127.0.0.1 admin.regkasse.local` → FA; optional `dev.regkasse.local` → API |
 
 ## POS (`frontend/`)
 - Stack: React Native + Expo Router.

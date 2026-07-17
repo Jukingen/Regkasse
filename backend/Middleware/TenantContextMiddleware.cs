@@ -48,15 +48,40 @@ public sealed class TenantContextMiddleware
         await _next(context).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// True when Development mandant switching should win over JWT.
+    /// Platform slug <c>admin</c> is not a mandant override (FA localhost / admin host).
+    /// </summary>
     public static bool HasDevTenantOverride(HttpContext context)
+    {
+        if (!TryGetRawDevOverrideSlug(context, out var rawSlug))
+        {
+            return false;
+        }
+
+        return !IsPlatformAdminSlug(rawSlug);
+    }
+
+    private static bool TryGetRawDevOverrideSlug(HttpContext context, out string slug)
     {
         if (context.Request.Headers.TryGetValue(SubdomainTenantProvider.DevTenantHeaderName, out var headerTenant)
             && !string.IsNullOrWhiteSpace(headerTenant))
         {
+            slug = headerTenant.ToString().Trim();
             return true;
         }
 
-        return context.Request.Query.TryGetValue(SubdomainTenantProvider.DevTenantQueryName, out var queryTenant)
-               && !string.IsNullOrWhiteSpace(queryTenant);
+        if (context.Request.Query.TryGetValue(SubdomainTenantProvider.DevTenantQueryName, out var queryTenant)
+            && !string.IsNullOrWhiteSpace(queryTenant))
+        {
+            slug = queryTenant.ToString().Trim();
+            return true;
+        }
+
+        slug = string.Empty;
+        return false;
     }
+
+    private static bool IsPlatformAdminSlug(string slug) =>
+        string.Equals(slug, "admin", StringComparison.OrdinalIgnoreCase);
 }

@@ -1149,6 +1149,8 @@ export const InvoiceList: React.FC = () => {
                         rowSelection={{
                             selectedRowKeys,
                             onChange: setSelectedRowKeys,
+                            // Virtual + scroll.x: without a fixed width the selection col grows to fill leftover space
+                            columnWidth: 48,
                         }}
                         columns={columns}
                         dataSource={displayedItems}

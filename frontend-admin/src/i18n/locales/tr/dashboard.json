@@ -212,6 +212,13 @@
     "overdue": "Süresi geçmiş",
     "missing": "Eksik"
   },
+  "tagesabschlussReminder": {
+    "title": "Gün sonu kapanışı bekliyor",
+    "cta": "Şimdi yap",
+    "body": "{{register}} için bugünkü Tagesabschluss henüz yapılmadı.",
+    "transactionsWaiting": "{{count}} işlem kasa kapanışını bekliyor.",
+    "deadlineHint": "Lütfen Tagesabschluss işlemini 00:00 (Europe/Vienna) öncesinde tamamlayın. Otomatik kapanış mümkün değildir."
+  },
   "manager": {
     "welcome": "Tekrar hoş geldiniz, {{name}}!",
     "todaySales": "Bugünkü satışlar",

@@ -212,6 +212,13 @@
     "overdue": "Überfällig",
     "missing": "Fehlt"
   },
+  "tagesabschlussReminder": {
+    "title": "Tagesabschluss steht aus",
+    "cta": "Jetzt durchführen",
+    "body": "Der Tagesabschluss für {{register}} wurde heute noch nicht durchgeführt.",
+    "transactionsWaiting": "{{count}} Transaktionen warten auf Kassenabschluss.",
+    "deadlineHint": "Bitte führen Sie den Tagesabschluss vor 00:00 Uhr (Europe/Vienna) durch. Automatischer Abschluss ist nicht möglich."
+  },
   "manager": {
     "welcome": "Willkommen zurück, {{name}}!",
     "todaySales": "Heutige Umsätze",

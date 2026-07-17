@@ -21,7 +21,7 @@ public class CashRegisterResolutionServiceTests
             .UseInMemoryDatabase($"CashRegRes_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static CashRegisterResolutionService CreateService(AppDbContext ctx) =>
@@ -309,7 +309,8 @@ public class CashRegisterResolutionServiceTests
                 LastBalanceUpdate = DateTime.UtcNow,
                 Status = RegisterStatus.Open,
                 CreatedAt = DateTime.UtcNow,
-                IsActive = true
+                IsActive = true,
+                IsDefaultForTenant = false
             });
         }
 
@@ -328,6 +329,58 @@ public class CashRegisterResolutionServiceTests
         await svc.ApplySoleOpenRegisterAutoAssignmentIfNeededAsync(us, "u1");
 
         Assert.Null(us.CashRegisterId);
+    }
+
+    [Fact]
+    public async Task ApplySoleOpenRegisterAutoAssignmentIfNeeded_AssignsTenantDefaultWhenMultipleOpen()
+    {
+        await using var ctx = CreateContext();
+        var defaultId = Guid.NewGuid();
+        var otherId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Id = otherId,
+            RegisterNumber = "K-OTHER",
+            Location = "Bar",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+            IsDefaultForTenant = false
+        });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Id = defaultId,
+            RegisterNumber = "KASSE-001",
+            Location = "Haupt",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+            IsDefaultForTenant = true
+        });
+
+        var us = new UserSettings
+        {
+            Id = Guid.NewGuid(),
+            UserId = "u1",
+            CashRegisterId = null,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        ctx.UserSettings.Add(us);
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        await svc.ApplySoleOpenRegisterAutoAssignmentIfNeededAsync(us, "u1");
+
+        Assert.Equal(defaultId.ToString(), us.CashRegisterId);
     }
 
     [Fact]

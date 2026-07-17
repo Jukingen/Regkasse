@@ -41,17 +41,18 @@ export function useAdminCashRegisterList(options: UseAdminCashRegisterListOption
     } = options;
 
     const listParams = useMemo((): ListAdminCashRegistersParams | null => {
+        const excludeStatus = excludeDecommissioned ? 'Decommissioned' : undefined;
         if (tenantId) {
-            return { tenantId, page: 1, pageSize };
+            return { tenantId, page: 1, pageSize, excludeStatus };
         }
         if (allowAllTenants) {
-            return { page: 1, pageSize, listScope: 'all' };
+            return { page: 1, pageSize, listScope: 'all', excludeStatus };
         }
         if (allowTenantScopedDefault) {
-            return { page: 1, pageSize, listScope: 'jwt' };
+            return { page: 1, pageSize, listScope: 'jwt', excludeStatus };
         }
         return null;
-    }, [allowAllTenants, allowTenantScopedDefault, pageSize, tenantId]);
+    }, [allowAllTenants, allowTenantScopedDefault, excludeDecommissioned, pageSize, tenantId]);
 
     const query = useQuery({
         queryKey: adminCashRegisterListQueryKey(listParams ?? undefined),

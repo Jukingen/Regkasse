@@ -43,6 +43,7 @@
     "BackupSucceeded": "Yedekleme başarılı",
     "RestoreDrillFailed": "Geri yükleme tatbikatı başarısız",
     "RestoreDrillSucceeded": "Geri yükleme tatbikatı başarılı",
-    "DailyClosingBackdatedCreated": "Gecikmeli gün sonu oluşturuldu"
+    "DailyClosingBackdatedCreated": "Gecikmeli gün sonu oluşturuldu",
+    "DailyClosingPendingReminder": "Gün sonu kapanışı bekliyor"
   }
 }

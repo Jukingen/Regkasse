@@ -270,4 +270,143 @@ public class LoginTenantResolverTests
         Assert.Equal(t1.ToString("D"), snap.TenantId);
         Assert.Equal("First", snap.TenantDisplayName);
     }
+
+    [Fact]
+    public async Task Multiple_Memberships_Prefers_Dev_Over_Older_Legacy_Default_When_Request_Is_Admin()
+    {
+        await using var db = CreateDb();
+        SeedDefaultTenant(db);
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = "manager1",
+            TenantId = LegacyDefaultTenantIds.Primary,
+            IsActive = true,
+            CreatedAtUtc = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = "manager1",
+            TenantId = DemoTenantIds.Dev,
+            IsActive = true,
+            CreatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+        });
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            return;
+        }
+
+        var resolver = CreateResolver(db, requestTenantSlug: "admin", isDevelopment: true);
+        var snap = await resolver.ResolveSnapshotForLoginAsync("manager1");
+
+        Assert.Equal(DemoTenantIds.Dev.ToString("D"), snap.TenantId);
+        Assert.Equal("dev", snap.TenantSlug);
+    }
+
+    [Fact]
+    public async Task Multiple_Memberships_Explicit_Default_Slug_Still_Selects_Legacy_Default()
+    {
+        await using var db = CreateDb();
+        SeedDefaultTenant(db);
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = "manager1",
+            TenantId = LegacyDefaultTenantIds.Primary,
+            IsActive = true,
+            CreatedAtUtc = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = "manager1",
+            TenantId = DemoTenantIds.Dev,
+            IsActive = true,
+            CreatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+        });
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            return;
+        }
+
+        var resolver = CreateResolver(db, requestTenantSlug: "default", isDevelopment: true);
+        var snap = await resolver.ResolveSnapshotForLoginAsync("manager1");
+
+        Assert.Equal(LegacyDefaultTenantIds.Primary.ToString("D"), snap.TenantId);
+        Assert.Equal(LegacyDefaultTenantIds.PrimarySlug, snap.TenantSlug);
+    }
+
+    [Fact]
+    public async Task Multiple_Memberships_Prefers_Dev_Even_When_Ambient_Tenant_Is_Legacy_Default()
+    {
+        await using var db = CreateDbWithAmbientTenant(LegacyDefaultTenantIds.Primary);
+        SeedDefaultTenant(db);
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = "manager1",
+            TenantId = LegacyDefaultTenantIds.Primary,
+            IsActive = true,
+            CreatedAtUtc = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = "manager1",
+            TenantId = DemoTenantIds.Dev,
+            IsActive = true,
+            CreatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+        });
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            return;
+        }
+
+        // FA localhost often stamps ambient = legacy default via X-Tenant-Id:admin before login.
+        var resolver = CreateResolver(db, requestTenantSlug: "admin", isDevelopment: true);
+        var snap = await resolver.ResolveSnapshotForLoginAsync("manager1");
+
+        Assert.Equal(DemoTenantIds.Dev.ToString("D"), snap.TenantId);
+        Assert.Equal("dev", snap.TenantSlug);
+    }
+
+    private static AppDbContext CreateDbWithAmbientTenant(Guid ambientTenantId)
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase($"login_tenant_resolver_{Guid.NewGuid()}")
+            .Options;
+        var accessor = new CurrentTenantAccessor { TenantId = ambientTenantId };
+        return new AppDbContext(options, accessor);
+    }
 }

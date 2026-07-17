@@ -57,6 +57,9 @@ export const LoginForm: FC = () => {
                     const loginUser = loginResponse?.user as
                         | { tenantId?: string | null; tenantSlug?: string | null }
                         | undefined;
+                    // Bootstrap slug is enough for X-Tenant-Id (resolveTenantSlugForApiRequest).
+                    // Do not call writeDevTenantSlug here — it dispatches DEV_TENANT_CHANGED_EVENT,
+                    // which clears the JWT and reloads mid-login.
                     tenantStorage.persistBootstrap({
                         tenantId: loginUser?.tenantId,
                         tenantSlug: loginUser?.tenantSlug,
@@ -100,6 +103,16 @@ export const LoginForm: FC = () => {
                 });
             },
             onError: (error: unknown) => {
+                const err = error as { code?: string; message?: string; name?: string };
+                if (
+                    err.code === 'ERR_CANCELED' ||
+                    err.name === 'CanceledError' ||
+                    err.name === 'AbortError' ||
+                    err.message === 'canceled' ||
+                    err.message === 'Query was cancelled'
+                ) {
+                    return;
+                }
                 message.error(
                     getUserFacingApiErrorMessage(t, error, {
                         logContext: 'LoginForm',

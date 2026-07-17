@@ -158,35 +158,25 @@ export function AdminShellHeader({
                     />
 
                     <Link
-
                         href="/dashboard"
-
                         className="admin-header-logo"
-
                         aria-label={t('adminShell.branding.sidebarExpanded')}
-
                     >
-
                         <Image
-
                             src="/logo.svg"
-
                             alt=""
-
                             width={32}
-
                             height={32}
-
                             className="admin-header-logo-image"
-
                             priority
-
                         />
-
                         <span className="admin-header-logo-text">Regkasse</span>
-
                     </Link>
 
+                    {/* Global selected cash register (name, status, quick switch) */}
+                    <div className="admin-header-register-context" data-testid="admin-header-register-context">
+                        <CashRegisterQuickSwitch isMobile={isMobile} />
+                    </div>
                 </div>
 
 
@@ -224,8 +214,6 @@ export function AdminShellHeader({
 
 
                         <div className="admin-header-utilities">
-
-                            <CashRegisterQuickSwitch isMobile={isMobile} />
 
                             <HeaderThemeQuickSwitch />
 

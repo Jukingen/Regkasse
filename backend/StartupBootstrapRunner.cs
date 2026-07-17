@@ -67,6 +67,16 @@ namespace KasseAPI_Final
             await DemoTenantAdminSeed.SeedAsync(context, userManager, tenantMembershipProvisioner, webEnv);
             await AddDemoData.AddDemoDataAsync(context);
 
+            if (webEnv.IsDevelopment())
+            {
+                var membershipHealLogger = serviceProvider.GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("KasseAPI_Final.Data.UserTenantMembershipHealSeed");
+                await UserTenantMembershipHealSeed.HealLegacyDefaultAlongsideDemoTenantsAsync(
+                    context,
+                    webEnv,
+                    membershipHealLogger);
+            }
+
             context = serviceProvider.GetRequiredService<AppDbContext>();
             await SeedData.SeedProductsAsync(context);
             await CustomerSeedData.SeedGuestCustomerAsync(context);

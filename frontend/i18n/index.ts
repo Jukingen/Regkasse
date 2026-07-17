@@ -1,7 +1,8 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import { saveLanguage } from './languageStorage';
-import { DEFAULT_TEXT_LOCALE, SUPPORTED_TEXT_LOCALES } from './localeUtils';
+import * as Localization from 'expo-localization';
+import { getSavedLanguage, saveLanguage } from './languageStorage';
+import { DEFAULT_TEXT_LOCALE, SUPPORTED_TEXT_LOCALES, normalizeTextLocale } from './localeUtils';
 import 'intl-pluralrules';
 
 // Import translation resources
@@ -158,10 +159,11 @@ export const resources = {
 export const FRONTEND_SUPPORTED_LANGUAGES = SUPPORTED_TEXT_LOCALES;
 const FALLBACK_LNG = DEFAULT_TEXT_LOCALE;
 
-/** Persists German only; ignores requested code so UI cannot switch to en/tr. */
-export const changeLanguage = async (_language: string) => {
-  await saveLanguage(DEFAULT_TEXT_LOCALE);
-  await i18n.changeLanguage(DEFAULT_TEXT_LOCALE);
+/** Persist and apply a supported POS UI language (de | en | tr). */
+export const changeLanguage = async (language: string) => {
+  const normalized = normalizeTextLocale(language);
+  await saveLanguage(normalized);
+  await i18n.changeLanguage(normalized);
 };
 
 const initI18n = async (): Promise<void> => {
@@ -169,7 +171,14 @@ const initI18n = async (): Promise<void> => {
     return;
   }
 
-  const languageToUse = DEFAULT_TEXT_LOCALE;
+  let languageToUse: string;
+  try {
+    const saved = await getSavedLanguage();
+    const deviceLocaleTag = Localization.getLocales()[0]?.languageTag;
+    languageToUse = normalizeTextLocale(saved ?? deviceLocaleTag ?? FALLBACK_LNG);
+  } catch {
+    languageToUse = FALLBACK_LNG;
+  }
 
   i18n.use(initReactI18next).init({
     resources,
@@ -201,6 +210,7 @@ export {
   normalizeTextLocale,
   normalizeFormatLocale,
   getFormattingLocaleForTextLocale,
+  toUserSettingsLanguage,
 } from './localeUtils';
 
 export { formatDateTime, formatDate, formatTime, formatNumber } from './formatting';

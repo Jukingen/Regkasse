@@ -262,8 +262,19 @@ Kasa dönemini TSE ile mühürlemek ve (etkinse) FinanzOnline’a iletmek.
 - `is_backdated`, `late_creation_reason` (zorunlu) ve audit `TagesabschlussBackdatedCreated`.
 - Ayrıntı: [`docs/BACKDATED_TAGESABSCHLUSS.md`](BACKDATED_TAGESABSCHLUSS.md).
 
+### Tagesabschluss sonrası (doğrulanmış RKSV davranış)
+
+| Kural | Uygulama |
+|-------|----------|
+| Kapalı kasada yeni ödeme yok | `RegisterStatus.Closed` → `ValidatePaymentRegister*` → `CASH_REGISTER_CLOSED` → HTTP 400 |
+| Yeni satış için kasa/schicht açılmalı | `TryOpenCashRegisterAsync` → `Open` |
+| Aynı Viyana gününde ikinci Daily closing yok | `CanPerformClosingAsync` + unique index `(CashRegisterId, ClosingDate, ClosingType)` |
+
+**Not:** `IsClosed` alanı yok; durum `CashRegister.Status` enum’udur. Aynı takvim gününde Z-Bericht sonrası yeniden açıp satış almak kodda engellenmez; ikinci kapanış engellenir — operasyonel risk ayrıntısı: [`docs/RKSV_AFTER_TAGESABSCHLUSS.md`](RKSV_AFTER_TAGESABSCHLUSS.md).
+
 ### Eksik / kısmi
 - Aylık/yıllık kapanışta FinanzOnline gönderiminin günlük ile **paralel olmadığı** kod okumasıyla ortaya çıkar; üretim kararı için ek doğrulama önerilir.
+- Aynı Viyana gününde Tagesabschluss sonrası reopen + ödeme için sert engel **yok** (yukarıdaki doğrulama dokümanı).
 
 ---
 

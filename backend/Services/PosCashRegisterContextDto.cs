@@ -5,7 +5,8 @@ namespace KasseAPI_Final.Services;
 /// </summary>
 /// <remarks>
 /// <para><see cref="PreferredRegisterId"/> is an echo of persisted <c>UserSettings.CashRegisterId</c> (preference only).</para>
-/// <para><see cref="EffectiveRegisterId"/> is the register row this readiness pass resolved for UX (settings match, or sole-register fallback).
+/// <para><see cref="EffectiveRegisterId"/> is the register row this readiness pass resolved for UX
+/// (settings match, sole-register fallback, or tenant-default fallback — same preference order as FA auto-select).
 /// It is not a standalone payment authorization; payment POST validates the body id with occupancy and policy rules.</para>
 /// </remarks>
 public sealed class PosCashRegisterContextDto

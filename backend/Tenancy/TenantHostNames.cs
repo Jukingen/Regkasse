@@ -8,6 +8,21 @@ namespace KasseAPI_Final.Tenancy;
 /// </summary>
 public static class TenantHostNames
 {
+    /// <summary>
+    /// Shared platform host labels that must never be treated as mandant slugs
+    /// (<c>pos.regkasse.at</c>, <c>api.regkasse.at</c>, <c>admin.regkasse.at</c>, <c>www</c>).
+    /// </summary>
+    public static bool IsReservedPlatformHostLabel(string? label)
+    {
+        if (string.IsNullOrWhiteSpace(label))
+            return false;
+
+        return string.Equals(label, "admin", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(label, "www", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(label, "pos", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(label, "api", StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <inheritdoc cref="IsLoopbackHost"/>
     public static bool IsLoopbackHost(string? host)
     {
@@ -44,7 +59,8 @@ public static class TenantHostNames
     }
 
     /// <summary>
-    /// First subdomain label when not admin/www; loopback hosts map to <c>admin</c>.
+    /// First subdomain label when not a reserved platform host; loopback and reserved hosts map to <c>admin</c>
+    /// (platform ambient binding — JWT <c>tenant_id</c> is authoritative after login for POS/API).
     /// </summary>
     public static string GetTenantSlugFromHost(string? host)
     {
@@ -55,11 +71,8 @@ public static class TenantHostNames
         if (parts.Length >= 1)
         {
             var first = parts[0];
-            if (!string.Equals(first, "admin", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(first, "www", StringComparison.OrdinalIgnoreCase))
-            {
+            if (!IsReservedPlatformHostLabel(first))
                 return first;
-            }
         }
 
         return "admin";

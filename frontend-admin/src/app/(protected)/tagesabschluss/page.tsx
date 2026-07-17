@@ -25,6 +25,7 @@ import type {
   TagesabschlussResult,
   TagesabschlussStatisticsResponse,
 } from '@/api/generated/model';
+import { SelectedCashRegisterCard } from '@/components/SelectedCashRegisterCard';
 import type { AdminCashRegisterListItem } from '@/features/cash-registers/api/cashRegisters';
 import { useCashRegisterSelection } from '@/hooks/useCashRegisterSelection';
 import { usePermissions } from '@/shared/auth/usePermissions';
@@ -651,28 +652,28 @@ export default function TagesabschlussPage() {
       );
     }
     if (isSingleRegister && registers[0]) {
-      const register = registers[0];
-      const label = formatRegisterDisplayName(register) ?? register.registerNumber;
       return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <Text strong>{t('tagesabschluss.register.fromList')}:</Text>
-          <Text>{label}</Text>
-          <Tag color="blue" variant="filled">
-            {t('cashRegisters.selector.autoSelectedTag')}
-          </Tag>
-        </div>
+        <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+          <Text strong>{t('tagesabschluss.register.fromList')}</Text>
+          <SelectedCashRegisterCard register={registers[0]} showAutoSelectedTag />
+        </Space>
       );
     }
     return (
-      <Form.Item label={t('tagesabschluss.register.fromList')} required style={{ marginBottom: 0 }}>
-        <Select
-          style={{ minWidth: 240 }}
-          value={resolvedRegisterId}
-          onChange={(next) => updateRegisterSelection(next)}
-          placeholder={t('tagesabschluss.register.selectPlaceholder')}
-          options={registerOptions}
-        />
-      </Form.Item>
+      <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+        {selectedRegister ? (
+          <SelectedCashRegisterCard register={selectedRegister} showAutoSelectedTag={false} />
+        ) : null}
+        <Form.Item label={t('tagesabschluss.register.fromList')} required style={{ marginBottom: 0 }}>
+          <Select
+            style={{ minWidth: 240, maxWidth: 420 }}
+            value={resolvedRegisterId}
+            onChange={(next) => updateRegisterSelection(next)}
+            placeholder={t('tagesabschluss.register.selectPlaceholder')}
+            options={registerOptions}
+          />
+        </Form.Item>
+      </Space>
     );
   })();
 

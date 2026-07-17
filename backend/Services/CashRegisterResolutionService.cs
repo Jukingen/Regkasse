@@ -22,10 +22,11 @@ namespace KasseAPI_Final.Services;
 /// they never override another user&apos;s shift (same conflict semantics as <see cref="PosCashRegisterReadinessService"/>, separate code path).
 /// </summary>
 /// <remarks>
-/// <see cref="ApplySoleOpenRegisterAutoAssignmentIfNeededAsync"/> is separate: it persists settings only when POS operational cardinality is
-/// exactly one register (<see cref="CashRegisterPosOperationalCardinality"/>) <em>and</em> that register is already <see cref="RegisterStatus.Open"/>
-/// and the register is not on another user&apos;s shift (<see cref="CashRegister.CurrentUserId"/>).
-/// A closed sole operational register is not auto-assigned here (POS ensure-ready may open it and persist elsewhere).
+/// <see cref="ApplySoleOpenRegisterAutoAssignmentIfNeededAsync"/> is separate: it persists settings when POS operational
+/// cardinality is exactly one register (<see cref="CashRegisterPosOperationalCardinality"/>) <em>or</em> a tenant-default
+/// operational register exists, and that candidate is already <see cref="RegisterStatus.Open"/>
+/// and not on another user&apos;s shift (<see cref="CashRegister.CurrentUserId"/>).
+/// A closed sole/default operational register is not auto-assigned here (POS ensure-ready may open it and persist elsewhere).
 /// </remarks>
 public sealed class CashRegisterResolutionService : ICashRegisterResolutionService
 {
@@ -66,34 +67,50 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
             .ToListAsync(cancellationToken);
 
         var only = CashRegisterPosOperationalCardinality.GetSingleOperationalRegisterOrNull(registers);
-        if (only == null)
+        CashRegister? candidate = only;
+        var assignReason = "sole";
+
+        // When multiple operational registers exist, align with FA: prefer the tenant default if it is Open.
+        if (candidate == null)
+        {
+            candidate = registers.FirstOrDefault(r =>
+                r.IsDefaultForTenant &&
+                CashRegisterPosOperationalCardinality.CountsTowardPosOperationalCardinality(r));
+            assignReason = "tenant_default";
+        }
+
+        if (candidate == null)
             return;
-        if (only.Status != RegisterStatus.Open)
+
+        if (candidate.Status != RegisterStatus.Open)
         {
             _logger.LogInformation(
-                "Sole cash register {RegisterId} is not Open (status {Status}); skipping auto-assignment for user {UserId}",
-                only.Id,
-                only.Status,
+                "{Reason} cash register {RegisterId} is not Open (status {Status}); skipping auto-assignment for user {UserId}",
+                assignReason,
+                candidate.Id,
+                candidate.Status,
                 userId);
             return;
         }
 
-        if (CashRegisterShiftOccupancy.IsHeldByOtherUser(userId, only.CurrentUserId))
+        if (CashRegisterShiftOccupancy.IsHeldByOtherUser(userId, candidate.CurrentUserId))
         {
             _logger.LogInformation(
-                "Sole cash register {RegisterId} is on shift user {ShiftUserId}; skipping auto-assignment for user {UserId}",
-                only.Id,
-                only.CurrentUserId,
+                "{Reason} cash register {RegisterId} is on shift user {ShiftUserId}; skipping auto-assignment for user {UserId}",
+                assignReason,
+                candidate.Id,
+                candidate.CurrentUserId,
                 userId);
             return;
         }
 
-        userSettings.CashRegisterId = only.Id.ToString();
+        userSettings.CashRegisterId = candidate.Id.ToString();
         userSettings.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(cancellationToken);
         _logger.LogInformation(
-            "Auto-assigned sole open cash register {RegisterId} in user settings for user {UserId}",
-            only.Id,
+            "Auto-assigned {Reason} open cash register {RegisterId} in user settings for user {UserId}",
+            assignReason,
+            candidate.Id,
             userId);
     }
 

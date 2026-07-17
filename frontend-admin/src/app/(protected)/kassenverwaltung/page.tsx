@@ -11,8 +11,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CashRegister } from '@/api/generated/model';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
+import { CashRegisterSelector } from '@/components/CashRegisterSelector';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
+import { useCashRegisterSelection } from '@/hooks/useCashRegisterSelection';
 import { useCashRegisterModuleAccess } from '@/features/cash-registers/hooks/useCashRegisterModuleAccess';
 import { useCanAccessPath } from '@/hooks/useCanAccessPath';
 import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
@@ -81,6 +83,16 @@ export default function KassenverwaltungPage() {
     /** Hard delete remains platform-critical (Super Admin). */
     const canHardDelete = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
     const canOpenSonderbelege = useCanAccessPath(RKSV_SONDERBELEGE_PATH);
+
+    const showOperationalSelector = canLoadRegisters && (!isSuperAdminUser || Boolean(tenantId));
+    const {
+        selectedRegisterId,
+        setSelectedRegisterId,
+    } = useCashRegisterSelection({
+        enabled: showOperationalSelector,
+        autoSelect: true,
+        persistSelection: true,
+    });
 
     const [selectedTenantId, setSelectedTenantId] = useState<string>();
     const [showDecommissioned, setShowDecommissioned] = useState(false);
@@ -301,6 +313,20 @@ export default function KassenverwaltungPage() {
         hardDeleteMutation.mutate({ id, confirmPhrase: hardDeleteConfirm.trim() });
     }, [hardDeleteRegister, hardDeleteConfirm, hardDeleteMutation]);
 
+    const resolveRegisterRowClassName = useCallback(
+        (record: CashRegister) => {
+            const classes: string[] = [];
+            if (isDecommissionedRegister(rawRegisterStatus(record))) {
+                classes.push(styles.decommissionedRow);
+            }
+            if (selectedRegisterId && record.id === selectedRegisterId) {
+                classes.push(styles.selectedRow);
+            }
+            return classes.join(' ');
+        },
+        [selectedRegisterId],
+    );
+
     const openCreateModal = useCallback(() => {
         setCreateOpen(true);
     }, []);
@@ -357,6 +383,24 @@ export default function KassenverwaltungPage() {
                     {t('cashRegisters.pageIntro')}
                 </Typography.Paragraph>
             </AdminPageScopeSummary>
+
+            {showOperationalSelector ? (
+                <Card
+                    size="small"
+                    title={t('cashRegisters.selector.activeContextLabel')}
+                    style={{ marginBottom: 16 }}
+                    data-testid="kassenverwaltung-selected-register"
+                >
+                    <CashRegisterSelector
+                        value={selectedRegisterId}
+                        onChange={setSelectedRegisterId}
+                        required
+                        autoSelect
+                        persistSelection
+                        showFormItem={false}
+                    />
+                </Card>
+            ) : null}
 
             <CashRegisterShiftRksvGuide />
 
@@ -457,11 +501,7 @@ export default function KassenverwaltungPage() {
                                         totalRegisterCount={group.registers.length}
                                         canDecommission={canDecommission}
                                         statusLabel={statusLabel}
-                                        rowClassName={(record) =>
-                                            isDecommissionedRegister(rawRegisterStatus(record))
-                                                ? styles.decommissionedRow
-                                                : ''
-                                        }
+                                        rowClassName={resolveRegisterRowClassName}
                                         onEdit={setDetailRegister}
                                         onDecommission={(record) => {
                                             setDecommissionReason('');
@@ -482,11 +522,7 @@ export default function KassenverwaltungPage() {
                         totalRegisterCount={allRegisters.length}
                         canDecommission={canDecommission}
                         statusLabel={statusLabel}
-                        rowClassName={(record) =>
-                            isDecommissionedRegister(rawRegisterStatus(record))
-                                ? styles.decommissionedRow
-                                : ''
-                        }
+                        rowClassName={resolveRegisterRowClassName}
                         onEdit={setDetailRegister}
                         onDecommission={(record) => {
                             setDecommissionReason('');

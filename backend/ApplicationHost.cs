@@ -776,6 +776,8 @@ builder.Services.AddScoped<IAdminShiftManagementService, AdminShiftManagementSer
 builder.Services.AddScoped<IShiftAutoCloseService, ShiftAutoCloseService>();
 builder.Services.Configure<ShiftAutoCloseOptions>(
     builder.Configuration.GetSection(ShiftAutoCloseOptions.SectionName));
+builder.Services.Configure<TagesabschlussReminderOptions>(
+    builder.Configuration.GetSection(TagesabschlussReminderOptions.SectionName));
 builder.Services.AddScoped<IPaymentMethodCatalogService, PaymentMethodCatalogService>();
 builder.Services.AddScoped<IPaymentMethodDefinitionBootstrapService, PaymentMethodDefinitionBootstrapService>();
 builder.Services.AddScoped<IPricingRuleResolver, PricingRuleResolver>();
@@ -954,6 +956,7 @@ builder.Services.Configure<KasseAPI_Final.Configuration.OfflineAlertRules>(
 builder.Services.AddHostedService<KasseAPI_Final.Services.Offline.OfflineAlertService>();
 builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.OfflineOrderCleanupHostedService>();
 builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.ShiftAutoCloseHostedService>();
+builder.Services.AddHostedService<KasseAPI_Final.Services.Reminder.TagesabschlussReminderService>();
 builder.Services.AddSingleton<TseHealthStateStore>();
 builder.Services.AddSingleton<ITseHealthMonitor>(sp => sp.GetRequiredService<TseHealthStateStore>());
 builder.Services.AddSingleton<IOfflineReplayCompletionNotifier, LoggingOfflineReplayCompletionNotifier>();

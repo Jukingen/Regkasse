@@ -2,17 +2,17 @@
 
 ## Multi-Tenant Architecture
 
-- **Tanımlama:** `SubdomainTenantProvider` + `TenantHostNames` — üretimde `{slug}.regkasse.at`; geliştirmede `X-Tenant-Id` / `?tenant=` (slug).
-- **Middleware:** `TenantResolutionMiddleware` (host → `CurrentTenantService` → accessor), ardından auth sonrası `TenantContextMiddleware` (JWT `tenant_id`).
+- **Tanımlama:** Üretim hedefi **Single POS UI** — `pos.regkasse.at` / `api.regkasse.at` / `admin.regkasse.at`; kiracı JWT `tenant_id` (`docs/POS_PRODUCTION_ARCHITECTURE.md`). Eski/geçiş: `{slug}.regkasse.at` + `SubdomainTenantProvider`. Geliştirmede `X-Tenant-Id` / `?tenant=` (slug).
+- **Middleware:** `TenantResolutionMiddleware` (host → `CurrentTenantService` → accessor), ardından auth sonrası `TenantContextMiddleware` (JWT `tenant_id` — POS için otoriter).
 - **Veri:** `AppDbContext` içinde `ITenantEntity` için global query filter; çapraz kiracı kaynak erişimi **404**.
 - **Super Admin:** `Roles.SuperAdmin`, `/api/admin/tenants`, impersonation `POST .../impersonate` — `AdminTenantsController`, `AdminTenantService`.
 - **Testler:** `TenantIsolationTests`, `SubdomainTenantProviderTests`, `SettingsTenantResolverTests`.
 
-**Güvenlik:** çapraz kiracı IDOR → 404; üretimde yalnızca subdomain; JWT↔host zorunlu eşleşme henüz yok (`docs/MULTI_TENANT.md`).
+**Güvenlik:** çapraz kiracı IDOR → 404; Production’da `X-Tenant-Id` yok; reserved hostlar (`pos`/`api`/`admin`/`www`) slug değildir. Ayrıntı: `docs/MULTI_TENANT.md`, `docs/POS_PRODUCTION_ARCHITECTURE.md`.
 
 **Migration:** dalga migration zinciri; `LegacyDefaultTenantIds.Primary` default Guid — `ai/02_DATABASE_CONTRACT.md`, `docs/MULTI_TENANT.md`.
 
-Ayrıntı: `docs/MULTI_TENANT.md`, `REGKASSE_AI_ONBOARDING.md`, `backend/README.md`.
+Ayrıntı: `docs/MULTI_TENANT.md`, `docs/POS_PRODUCTION_ARCHITECTURE.md`, `REGKASSE_AI_ONBOARDING.md`, `backend/README.md`.
 
 ### Scoped service resolution (singleton + DbContext)
 
@@ -31,7 +31,8 @@ Ayrıntı: `docs/MULTI_TENANT.md`, `REGKASSE_AI_ONBOARDING.md`, `backend/README.
 
 ## API Headers
 
-- Production: subdomain → slug → `CurrentTenantService` → accessor Guid.
+- Production (POS/API target): JWT `tenant_id` after login; reserved hosts `pos` / `api` / `admin` are not tenant slugs.
+- Production (legacy slug host): subdomain → slug → `CurrentTenantService` → accessor Guid.
 - Development: `X-Tenant-Id` / `?tenant=` (slug only; `IsDevelopment()`).
 - `/api/admin/tenants`: `[Authorize(Roles = SuperAdmin)]`; global `tenants` table; impersonation for scoped business data.
 
@@ -39,12 +40,12 @@ Ayrıntı: `docs/MULTI_TENANT.md`, `REGKASSE_AI_ONBOARDING.md`, `backend/README.
 
 ### DNS Configuration
 
-- Wildcard A: `*.regkasse.at` → server IP; wildcard TLS; preserve `Host` header at proxy.
+- `pos.regkasse.at`, `admin.regkasse.at`, `api.regkasse.at`; optional `*.regkasse.at` for legacy; preserve `Host` at proxy. See `docs/POS_PRODUCTION_ARCHITECTURE.md`.
 
 ### Environment Variables
 
 - `ASPNETCORE_ENVIRONMENT=Development` → header/query tenant overrides allowed.
-- `Production` / non-Development → subdomain resolution only (`SubdomainTenantProvider`).
+- `Production` / non-Development → no `X-Tenant-Id` / `?tenant=`; POS tenant from JWT.
 
 ## Teknik gerçekler
 - Framework: ASP.NET Core Web API, controller-based yapı.

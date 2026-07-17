@@ -24,6 +24,8 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/dashboard': ANY_AUTHENTICATED_PERMISSION,
   '/403': ANY_AUTHENTICATED_PERMISSION,
   '/profile': ANY_AUTHENTICATED_PERMISSION,
+  /** Self-service password change — any authenticated user (header menu). */
+  '/settings/password': ANY_AUTHENTICATED_PERMISSION,
   '/products': PERMISSIONS.PRODUCT_VIEW,
   '/pricing-rules': PERMISSIONS.PRODUCT_VIEW,
   '/categories': PERMISSIONS.CATEGORY_VIEW,
@@ -127,6 +129,12 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/license': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SETTINGS_MANAGE],
   '/admin/license/test': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/license/debug': PERMISSIONS.SYSTEM_CRITICAL,
+  /**
+   * Platform Super Admin landing (`SuperAdminModeBanner` → Mandant auswählen).
+   * Must be mapped: fail-closed guard returns 403 when a path is missing from this table.
+   * Longer `/admin/*` keys still win via longest-prefix match.
+   */
+  '/admin': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/tenants': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/errors': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/licenses': PERMISSIONS.LICENSE_VIEW,

@@ -99,7 +99,17 @@ describe('CashRegisterQuickSwitch', () => {
     it('renders when registers are available', () => {
         renderSwitch();
         expect(screen.getByTestId('admin-header-cash-register-quick-switch')).toBeInTheDocument();
+        expect(screen.getByTestId('admin-header-cash-register-context')).toBeInTheDocument();
+        expect(screen.getByText('Aktuelle Kasse')).toBeInTheDocument();
         expect(screen.getByText('KASSE-001')).toBeInTheDocument();
+        expect(screen.getByText('Theke')).toBeInTheDocument();
+        expect(screen.getByText('Aktiv')).toBeInTheDocument();
+        expect(
+            document.querySelector('.cash-register-quick-switch-trigger-wrap--active'),
+        ).toBeInTheDocument();
+        expect(
+            document.querySelector('.cash-register-quick-switch-status--open'),
+        ).toBeInTheDocument();
     });
 
     it('hides when user lacks cash register view permission', () => {

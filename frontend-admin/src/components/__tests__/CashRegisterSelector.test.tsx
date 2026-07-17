@@ -12,6 +12,10 @@ vi.mock('@/hooks/useCashRegisterSelection', () => ({
     useCashRegisterSelection: (opts: unknown) => mockUseCashRegisterSelection(opts),
 }));
 
+vi.mock('@/features/license/hooks/useLicense', () => ({
+    useLicense: () => ({ licenseStatus: null }),
+}));
+
 function renderSelector(props: React.ComponentProps<typeof CashRegisterSelector> = {}) {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     return render(
@@ -69,7 +73,7 @@ describe('Operational CashRegisterSelector', () => {
         expect(container.querySelector('.ant-skeleton')).toBeInTheDocument();
     });
 
-    it('renders single register as auto-selected text', () => {
+    it('renders single register as prominent auto-selected card', () => {
         mockUseCashRegisterSelection.mockReturnValue({
             registers: [
                 {
@@ -81,6 +85,13 @@ describe('Operational CashRegisterSelector', () => {
                 },
             ],
             registerOptions: [{ value: 'reg-1', label: 'KASSE-001 — Theke', register: {} as never }],
+            selectedRegister: {
+                id: 'reg-1',
+                tenantId: 'tenant-a',
+                registerNumber: 'KASSE-001',
+                location: 'Theke',
+                status: 1,
+            },
             selectedRegisterId: 'reg-1',
             setSelectedRegisterId: vi.fn(),
             isLoading: false,
@@ -91,12 +102,18 @@ describe('Operational CashRegisterSelector', () => {
 
         renderSelector({ label: 'Kasse' });
 
-        expect(screen.getByText('KASSE-001')).toBeInTheDocument();
+        expect(screen.getByTestId('selected-cash-register-card')).toBeInTheDocument();
+        expect(screen.getByText(/KASSE-001/)).toBeInTheDocument();
+        expect(screen.getByText('Aktuelle Kasse')).toBeInTheDocument();
+        expect(screen.getByText('Aktiv')).toBeInTheDocument();
         expect(screen.getByText('Automatisch ausgewählt')).toBeInTheDocument();
+        expect(
+            screen.getByText(/Diese Kasse wurde automatisch ausgewählt/),
+        ).toBeInTheDocument();
         expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
     });
 
-    it('renders select for multiple registers', async () => {
+    it('renders selected card plus select for multiple registers', async () => {
         mockUseCashRegisterSelection.mockReturnValue({
             registers: [
                 { id: 'reg-1', tenantId: 'tenant-a', registerNumber: 'K1', location: 'A', status: 1 },
@@ -106,6 +123,13 @@ describe('Operational CashRegisterSelector', () => {
                 { value: 'reg-1', label: 'K1 — A', register: {} as never },
                 { value: 'reg-2', label: 'K2 — B', register: {} as never },
             ],
+            selectedRegister: {
+                id: 'reg-1',
+                tenantId: 'tenant-a',
+                registerNumber: 'K1',
+                location: 'A',
+                status: 1,
+            },
             selectedRegisterId: 'reg-1',
             setSelectedRegisterId: vi.fn(),
             isLoading: false,
@@ -116,6 +140,9 @@ describe('Operational CashRegisterSelector', () => {
 
         renderSelector({ showFormItem: false, required: false });
 
+        expect(screen.getByTestId('selected-cash-register-card')).toBeInTheDocument();
+        expect(screen.getByText('Aktiv')).toBeInTheDocument();
+        expect(screen.getByText('Ausgewählt')).toBeInTheDocument();
         await waitFor(() => {
             expect(screen.getByRole('combobox')).toBeInTheDocument();
         });

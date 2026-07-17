@@ -17,6 +17,7 @@ export const ACTIVITY_EVENT_TYPES = [
     'RestoreDrillFailed',
     'RestoreDrillSucceeded',
     'DailyClosingBackdatedCreated',
+    'DailyClosingPendingReminder',
 ] as const;
 
 export type ActivityEventTypeName = (typeof ACTIVITY_EVENT_TYPES)[number];

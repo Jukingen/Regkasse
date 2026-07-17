@@ -55,6 +55,11 @@ export const MANAGER_ADMIN_PERMISSIONS: readonly string[] = [
     PERMISSIONS.CART_VIEW,
     PERMISSIONS.VOUCHER_READ,
     PERMISSIONS.FISCAL_EXPORT_COMPLIANCE,
+    PERMISSIONS.RKSV_NULLBELEG_CREATE,
+    PERMISSIONS.RKSV_STARTBELEG_CREATE,
+    PERMISSIONS.RKSV_MONATSBELEG_CREATE,
+    PERMISSIONS.RKSV_JAHRESBELEG_CREATE,
+    PERMISSIONS.RKSV_SCHLUSSBELEG_CREATE,
 ];
 
 /** Menus Cashier must never see in FA (POS-only or admin-only). */
@@ -166,6 +171,7 @@ export const MANAGER_FORBIDDEN_MENU_KEYS: readonly string[] = [
     '/settings/tse',
     '/settings/finanzonline',
     '/admin/system/time-sync',
+    '/admin',
     '/admin/tenants',
     '/admin/licenses',
     '/admin/cash-registers',

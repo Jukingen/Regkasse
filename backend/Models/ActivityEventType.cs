@@ -29,4 +29,6 @@ public enum ActivityEventType
     SuspiciousSameCardMultiple = 64,
     SuspiciousRapidTransactions = 65,
     DailyClosingBackdatedCreated = 70,
+    /// <summary>Evening reminder: Tagesabschluss still pending (no auto-close).</summary>
+    DailyClosingPendingReminder = 71,
 }

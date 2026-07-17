@@ -34,6 +34,27 @@ public sealed class PosCashRegisterController : ControllerBase
     }
 
     /// <summary>
+    /// Read-only current POS register context (no auto-open / no settings mutation).
+    /// Prefer this for diagnostics; session bootstrap still uses <see cref="EnsureReady"/>.
+    /// </summary>
+    [HttpGet("current")]
+    [HasPermission(AppPermissions.CartView)]
+    [ProducesResponseType(typeof(PosCashRegisterContextDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<PosCashRegisterContextDto>> GetCurrent(CancellationToken cancellationToken)
+    {
+        var userId = User.GetActorUserId();
+        if (string.IsNullOrEmpty(userId))
+        {
+            _logger.LogWarning("GetCurrent: no user id in claims");
+            return Unauthorized(new { message = "User not authenticated" });
+        }
+
+        var dto = await _readiness.GetReadinessSnapshotForPosAsync(userId, User, cancellationToken);
+        return Ok(dto);
+    }
+
+    /// <summary>
     /// Returns session DTO for the POS client; may auto-open when feature flags allow. Does not gate <c>POST /api/pos/payment</c> by itself.
     /// </summary>
     [HttpPost("ensure-ready")]

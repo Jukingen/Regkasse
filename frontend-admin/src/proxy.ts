@@ -1,5 +1,10 @@
 import { NextResponse, NextRequest } from 'next/server';
 
+import {
+    CHANGE_PASSWORD_PATH,
+    VOLUNTARY_CHANGE_PASSWORD_PATH,
+} from '@/features/auth/constants/changePasswordRoute';
+
 /** Same name as client `authStorage` access key so HttpOnly migration stays aligned. */
 const ACCESS_TOKEN_COOKIE = 'rk_admin_access_token';
 
@@ -8,7 +13,8 @@ const PUBLIC_PATHS = new Set([
     '/login/forgot-username',
     '/health',
     '/impersonate-callback',
-    '/force-password-change',
+    /** Mandatory first-login / temporary password change only. */
+    CHANGE_PASSWORD_PATH,
 ]);
 
 const PROTECTED_PREFIXES = ['/admin/', '/dashboard/', '/rksv/', '/settings/', '/staff/', '/users/', '/403'] as const;
@@ -50,11 +56,21 @@ function base64UrlToJson(segment: string): unknown | null {
 }
 
 type JwtDecodeResult =
-    | { ok: true; expired: false }
+    | { ok: true; expired: false; mustChangePassword: boolean }
     | { ok: false; reason: 'format' | 'payload' | 'expired' | 'missing_exp' };
+
+function readMustChangePasswordClaim(payload: object): boolean {
+    const record = payload as Record<string, unknown>;
+    const raw =
+        record.must_change_password ??
+        record.mustChangePasswordOnNextLogin ??
+        record.MustChangePasswordOnNextLogin;
+    return raw === true || raw === 'true' || raw === '1' || raw === 1;
+}
 
 /**
  * Validates JWT shape (3 segments, decodable header/payload) and `exp` without verifying the signature.
+ * Optionally reads must-change-password claims when present (AuthGate remains source of truth via /me).
  */
 function validateJwtStructureAndExpiry(token: string): JwtDecodeResult {
     const parts = token.split('.');
@@ -74,7 +90,11 @@ function validateJwtStructureAndExpiry(token: string): JwtDecodeResult {
     if (exp + EXP_LEEWAY_SEC <= now) {
         return { ok: false, reason: 'expired' };
     }
-    return { ok: true, expired: false };
+    return {
+        ok: true,
+        expired: false,
+        mustChangePassword: readMustChangePasswordClaim(payload),
+    };
 }
 
 function isPublicPath(pathname: string): boolean {
@@ -104,8 +124,13 @@ function withForwardedToken(request: NextRequest, token: string): NextResponse {
     });
 }
 
+function normalizePathname(pathname: string): string {
+    return pathname.replace(/\/$/, '') || '/';
+}
+
 export function proxy(request: NextRequest) {
-    const { pathname } = request.nextUrl;
+    const { pathname: rawPathname } = request.nextUrl;
+    const pathname = normalizePathname(rawPathname);
 
     if (
         pathname.startsWith('/_next/') ||
@@ -118,6 +143,23 @@ export function proxy(request: NextRequest) {
     const rawToken = getRawToken(request);
     const jwtResult = rawToken ? validateJwtStructureAndExpiry(rawToken) : null;
     const authenticated = jwtResult?.ok === true;
+    const userMustChangePassword = jwtResult?.ok === true && jwtResult.mustChangePassword;
+
+    // Forced change (temporary password): only when JWT claim is present.
+    // Client AuthGate still enforces via /me when the claim is absent from the token.
+    if (
+        authenticated &&
+        userMustChangePassword &&
+        pathname !== CHANGE_PASSWORD_PATH &&
+        !isApiPath(pathname)
+    ) {
+        return NextResponse.redirect(new URL(CHANGE_PASSWORD_PATH, request.url));
+    }
+
+    // Voluntary self-service password change — authenticated users without a force flag.
+    if (pathname === VOLUNTARY_CHANGE_PASSWORD_PATH && authenticated && rawToken && !userMustChangePassword) {
+        return withForwardedToken(request, rawToken);
+    }
 
     if (isPublicPath(pathname)) {
         if (authenticated && rawToken) {

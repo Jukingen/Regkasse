@@ -624,6 +624,61 @@ public class PosCashRegisterReadinessServiceTests
     }
 
     [Fact]
+    public async Task MultipleRegisters_TenantDefaultOpen_ResolvesAndAssignsSettings()
+    {
+        await using var ctx = CreateContext();
+        var defaultId = Guid.NewGuid();
+        var otherId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Id = otherId,
+            RegisterNumber = "K-OTHER",
+            Location = "Bar",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+            IsDefaultForTenant = false
+        });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Id = defaultId,
+            RegisterNumber = "KASSE-001",
+            Location = "Haupt",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+            IsDefaultForTenant = true
+        });
+        ctx.UserSettings.Add(new UserSettings
+        {
+            Id = Guid.NewGuid(),
+            UserId = "u1",
+            CashRegisterId = null,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+        await ctx.SaveChangesAsync();
+
+        var shift = new Mock<ICashRegisterShiftService>();
+        var sut = CreateSut(ctx, shift.Object, new PosCashRegisterFeatureOptions { EffectiveDefaultOnPosEntry = true });
+
+        var dto = await sut.EnsureReadyForPosAsync("u1", CashierPrincipal(), CancellationToken.None);
+
+        Assert.Equal("ready", dto.NextAction);
+        Assert.Equal(defaultId.ToString(), dto.EffectiveRegisterId);
+        Assert.Equal("settings", dto.Resolution);
+        Assert.Equal(defaultId.ToString("D"), dto.PreferredRegisterId);
+    }
+
+    [Fact]
     public async Task OnlyNonOperationalRows_ReadinessRequired_LikeEmptyTable()
     {
         await using var ctx = CreateContext();

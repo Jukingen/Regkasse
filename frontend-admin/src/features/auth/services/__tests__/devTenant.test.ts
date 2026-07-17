@@ -55,6 +55,25 @@ describe('devTenant', () => {
     expect(getEffectiveTenantSlug()).toBe('admin');
   });
 
+  it('omits X-Tenant-Id on admin host without mandant override (JWT wins)', () => {
+    process.env.NODE_ENV = 'development';
+    Object.defineProperty(window, 'location', {
+      value: { hostname: 'admin.regkasse.local' },
+      configurable: true,
+    });
+    expect(resolveTenantSlugForApiRequest()).toBe('');
+  });
+
+  it('uses login bootstrap mandant on admin host when localStorage override is empty', () => {
+    process.env.NODE_ENV = 'development';
+    Object.defineProperty(window, 'location', {
+      value: { hostname: 'localhost' },
+      configurable: true,
+    });
+    window.localStorage.setItem('rk_admin_tenant_slug', 'dev');
+    expect(resolveTenantSlugForApiRequest()).toBe('dev');
+  });
+
   it('dispatches DEV_TENANT_CHANGED_EVENT when dev slug changes', () => {
     process.env.NODE_ENV = 'development';
     const handler = vi.fn();

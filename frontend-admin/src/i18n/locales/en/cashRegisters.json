@@ -288,7 +288,22 @@
     "loadErrorTitle": "Failed to load cash registers",
     "loadErrorTooltip": "Could not load cash registers",
     "empty": "No registers available",
+    "activeContextLabel": "Current register",
+    "activeTag": "Active",
     "autoSelectedTag": "Auto-selected",
+    "autoSelectedHint": "This register was selected automatically (only available register).",
+    "currentTag": "Selected",
+    "idLabel": "ID: {{shortId}}",
+    "tsePrefix": "TSE:",
+    "lastActivityLabel": "Last activity: {{date}}",
+    "tooltip": {
+      "kasse": "Register",
+      "id": "ID",
+      "status": "Status",
+      "tse": "TSE",
+      "balance": "Balance",
+      "unavailable": "—"
+    },
     "mandantHeader": "Tenant: {{name}} ({{slug}})",
     "defaultTag": "Default"
   }

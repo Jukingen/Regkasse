@@ -8,6 +8,7 @@ import {
     writeQuickCashRegisterId,
 } from '@/features/cash-registers/constants/quickSwitch';
 import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdminCashRegisterList';
+import { pickOperationalCashRegisterId } from '@/features/cash-registers/utils/pickPreferredCashRegister';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 
 export type CashRegisterSelectOption = {
@@ -36,46 +37,6 @@ export type UseCashRegisterSelectionOptions = {
     persistSelection?: boolean;
 };
 
-function scopeRegistersForTenant(
-    registers: AdminCashRegisterListItem[],
-    tenantId: string | null | undefined,
-): AdminCashRegisterListItem[] {
-    if (!tenantId) {
-        return registers;
-    }
-    return registers.filter((row) => row.tenantId === tenantId);
-}
-
-/**
- * Operational auto-select: valid stored/current id → sole register → default flag → first in list.
- */
-function resolveAutoSelectRegisterId(
-    registers: AdminCashRegisterListItem[],
-    preferredId: string | null | undefined,
-    tenantId: string | null | undefined,
-): string | null {
-    const scoped = scopeRegistersForTenant(registers, tenantId);
-    if (scoped.length === 0) {
-        return null;
-    }
-
-    const normalizedPreferred = preferredId?.trim();
-    if (normalizedPreferred && scoped.some((row) => row.id === normalizedPreferred)) {
-        return normalizedPreferred;
-    }
-
-    if (scoped.length === 1) {
-        return scoped[0]?.id ?? null;
-    }
-
-    const defaultRegister = scoped.find((row) => row.isDefaultForTenant === true);
-    if (defaultRegister?.id) {
-        return defaultRegister.id;
-    }
-
-    return scoped[0]?.id ?? null;
-}
-
 function resolveInitialSelection(
     registers: AdminCashRegisterListItem[],
     options: {
@@ -95,7 +56,7 @@ function resolveInitialSelection(
     }
 
     if (autoSelect) {
-        return resolveAutoSelectRegisterId(
+        return pickOperationalCashRegisterId(
             registers,
             selectedRegisterId ?? storedId,
             tenantId,

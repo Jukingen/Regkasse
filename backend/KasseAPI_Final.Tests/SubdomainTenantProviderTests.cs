@@ -80,4 +80,15 @@ public sealed class SubdomainTenantProviderTests
         var provider = Create(host, isDevelopment: false);
         Assert.Equal(expectedSlug, provider.GetCurrentTenantId());
     }
+
+    [Theory]
+    [InlineData("pos.regkasse.at")]
+    [InlineData("api.regkasse.at")]
+    [InlineData("admin.regkasse.at")]
+    [InlineData("www.regkasse.at")]
+    public void GetCurrentTenantId_Production_ReservedPlatformHosts_ReturnAdmin(string host)
+    {
+        var provider = Create(host, isDevelopment: false);
+        Assert.Equal("admin", provider.GetCurrentTenantId());
+    }
 }

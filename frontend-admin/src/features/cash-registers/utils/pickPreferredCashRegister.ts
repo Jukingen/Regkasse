@@ -1,9 +1,23 @@
 import type { AdminCashRegisterListItem } from '@/features/cash-registers/api/cashRegisters';
+import { REGISTER_STATUS } from '@/features/cash-registers/utils/registerStatus';
 
 export type CashRegisterPickCandidate = Pick<
     AdminCashRegisterListItem,
     'id' | 'tenantId' | 'isDefaultForTenant'
 >;
+
+export type OperationalCashRegisterPickCandidate = CashRegisterPickCandidate &
+    Pick<AdminCashRegisterListItem, 'status'>;
+
+function scopeRegistersForTenant<T extends CashRegisterPickCandidate>(
+    registers: T[],
+    tenantId: string | null | undefined,
+): T[] {
+    if (!tenantId) {
+        return registers;
+    }
+    return registers.filter((row) => row.tenantId === tenantId);
+}
 
 /**
  * Resolves the register id FA should preselect for the current mandant.
@@ -19,9 +33,7 @@ export function pickPreferredCashRegisterId(
         return null;
     }
 
-    const scoped = tenantId
-        ? registers.filter((row) => row.tenantId === tenantId)
-        : registers;
+    const scoped = scopeRegistersForTenant(registers, tenantId);
     if (scoped.length === 0) {
         return null;
     }
@@ -54,4 +66,52 @@ export function pickCashRegisterOnTenantSwitch(
         return scoped[0]?.id ?? null;
     }
     return scoped.find((row) => row.isDefaultForTenant === true)?.id ?? null;
+}
+
+/**
+ * Operational auto-select for Manager dashboard / quick-switch (aligned with POS):
+ * valid stored/current (kept when Open, or when nothing is Open) → sole → Open (+ default among Open) →
+ * tenant default → first in list.
+ */
+export function pickOperationalCashRegisterId(
+    registers: OperationalCashRegisterPickCandidate[],
+    preferredId: string | null | undefined,
+    tenantId: string | null | undefined,
+): string | null {
+    const scoped = scopeRegistersForTenant(registers, tenantId);
+    if (scoped.length === 0) {
+        return null;
+    }
+
+    const open = scoped.filter((row) => row.status === REGISTER_STATUS.open);
+    const normalizedPreferred = preferredId?.trim();
+    if (normalizedPreferred) {
+        const preferred = scoped.find((row) => row.id === normalizedPreferred);
+        if (preferred) {
+            const preferredIsOpen = preferred.status === REGISTER_STATUS.open;
+            if (preferredIsOpen || open.length === 0) {
+                return preferred.id;
+            }
+            // Stale closed/decommissioned preference while POS works on an Open register — follow Open.
+        }
+    }
+
+    if (scoped.length === 1) {
+        return scoped[0]?.id ?? null;
+    }
+
+    if (open.length === 1) {
+        return open[0]?.id ?? null;
+    }
+
+    if (open.length > 1) {
+        return open.find((row) => row.isDefaultForTenant === true)?.id ?? open[0]?.id ?? null;
+    }
+
+    const defaultRegister = scoped.find((row) => row.isDefaultForTenant === true);
+    if (defaultRegister?.id) {
+        return defaultRegister.id;
+    }
+
+    return scoped[0]?.id ?? null;
 }

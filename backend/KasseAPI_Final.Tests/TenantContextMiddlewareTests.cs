@@ -44,6 +44,24 @@ public sealed class TenantContextMiddlewareTests
     }
 
     [Fact]
+    public void HasDevTenantOverride_False_When_Header_Is_Platform_Admin()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Headers[SubdomainTenantProvider.DevTenantHeaderName] = "admin";
+
+        Assert.False(TenantContextMiddleware.HasDevTenantOverride(context));
+    }
+
+    [Fact]
+    public void HasDevTenantOverride_False_When_Query_Is_Platform_Admin()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.QueryString = new QueryString("?tenant=admin");
+
+        Assert.False(TenantContextMiddleware.HasDevTenantOverride(context));
+    }
+
+    [Fact]
     public async Task InvokeAsync_Development_DevHeader_WinsOverJwtTenantId()
     {
         await using var db = CreateContext();
@@ -125,6 +143,48 @@ public sealed class TenantContextMiddlewareTests
         await middleware.InvokeAsync(httpContext, accessor, tenantContextService);
 
         Assert.Equal(LegacyDefaultTenantIds.Primary, accessor.TenantId);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Development_AdminHeader_DoesNotOverrideJwtDevTenant()
+    {
+        await using var db = CreateContext();
+        TenantTestDoubles.EnsureDefaultTenant(db);
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var accessor = new CurrentTenantAccessor { TenantId = LegacyDefaultTenantIds.Primary };
+        var environment = new Mock<IWebHostEnvironment>();
+        environment.SetupGet(e => e.EnvironmentName).Returns(Environments.Development);
+
+        var tenantContextService = new TenantContextService(
+            db,
+            accessor,
+            environment.Object,
+            NullLogger<TenantContextService>.Instance);
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers[SubdomainTenantProvider.DevTenantHeaderName] = "admin";
+        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(
+        [
+            new Claim("tenant_id", DemoTenantIds.Dev.ToString("D")),
+        ],
+        authenticationType: "Test"));
+
+        var middleware = new TenantContextMiddleware(
+            _ => Task.CompletedTask,
+            environment.Object);
+
+        await middleware.InvokeAsync(httpContext, accessor, tenantContextService);
+
+        Assert.Equal(DemoTenantIds.Dev, accessor.TenantId);
     }
 
     private static AppDbContext CreateContext()

@@ -288,7 +288,22 @@
     "loadErrorTitle": "Kasalar yüklenemedi",
     "loadErrorTooltip": "Kasa listesi yüklenemedi",
     "empty": "Kasa yok",
+    "activeContextLabel": "Geçerli kasa",
+    "activeTag": "Aktif",
     "autoSelectedTag": "Otomatik seçildi",
+    "autoSelectedHint": "Bu kasa otomatik seçildi (tek kullanılabilir kasa).",
+    "currentTag": "Seçili",
+    "idLabel": "ID: {{shortId}}",
+    "tsePrefix": "TSE:",
+    "lastActivityLabel": "Son aktivite: {{date}}",
+    "tooltip": {
+      "kasse": "Kasa",
+      "id": "ID",
+      "status": "Durum",
+      "tse": "TSE",
+      "balance": "Bakiye",
+      "unavailable": "—"
+    },
     "mandantHeader": "Kiracı: {{name}} ({{slug}})",
     "defaultTag": "Varsayılan"
   }

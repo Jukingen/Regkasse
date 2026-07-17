@@ -380,17 +380,18 @@ Cannot impersonate deleted, suspended, or inactive tenants.
 
 - **Database-level filtering:** EF Core global query filters on all `ITenantEntity` types (`AppDbContext.CreateTenantQueryFilter`). API clients cannot pass a filter to bypass this.
 - **Cross-tenant IDOR:** Returns **HTTP 404** (not 403) so resource existence does not leak. Verified in `TenantIsolationTests`.
-- **Production tenant resolution:** Subdomain from `Host` via `SubdomainTenantProvider` / `TenantHostNames.GetTenantSlugFromHost`.
+- **Production tenant resolution (POS target):** JWT `tenant_id` on shared hosts `pos.regkasse.at` / `api.regkasse.at` — [`docs/POS_PRODUCTION_ARCHITECTURE.md`](docs/POS_PRODUCTION_ARCHITECTURE.md).
+- **Production tenant resolution (legacy slug host):** Subdomain from `Host` via `SubdomainTenantProvider` / `TenantHostNames.GetTenantSlugFromHost`.
 - **Offline queue:** `offline_transactions.tenant_id` is NOT NULL; stamped on insert from cash register / ambient tenant; preserved on replay.
 
 #### Tenant spoofing prevention
 
-- **Production:** Only subdomain-based resolution; `X-Tenant-Id` and `?tenant=` are ignored unless `IsDevelopment()`.
+- **Production:** No `X-Tenant-Id` / `?tenant=` unless `IsDevelopment()`. POS/API reserved hosts are not tenant slugs.
 - **Super Admin endpoints:** Additional `SuperAdmin` role requirement on `/api/admin/tenants/*`.
 
 #### Known gap (document accurately)
 
-- **JWT vs host:** `TenantContextMiddleware` may set `ICurrentTenantAccessor.TenantId` from JWT `tenant_id` after `TenantResolutionMiddleware` resolved host. Strict validation that JWT tenant matches host subdomain in production is **not** enforced yet. See `docs/MULTI_TENANT.md`.
+- **JWT vs host:** `TenantContextMiddleware` may set `ICurrentTenantAccessor.TenantId` from JWT `tenant_id` after `TenantResolutionMiddleware` resolved host. Strict validation that JWT tenant matches host subdomain in production is **not** enforced yet (less critical when POS uses reserved non-slug hosts). See `docs/MULTI_TENANT.md` and reserved-host checklist in `docs/POS_PRODUCTION_ARCHITECTURE.md`.
 
 ### Tenant resolution in background / startup (no HTTP request)
 
@@ -444,10 +445,9 @@ Full guide: **`docs/MULTI_TENANT.md`**.
 
 #### Production
 
-- POS receives `tenantId`, `tenantSlug`, and `apiBaseUrl` from **license activation** (`POST /api/license/activate` → `tenantStorage.persistBootstrap` in `frontend/api/license.ts`).
-- Values are stored in secure/async storage (`tenant_id`, `tenant_slug`, `api_base_url` keys in `frontend/services/tenant/tenantStorage.ts`).
-- Production API traffic should use the bootstrap URL, typically `https://{tenant}.regkasse.at/api` (or the exact `apiBaseUrl` returned by activation).
-- Axios sends requests to that base URL; tenant slug from bootstrap is used when resolving headers.
+- **Target architecture:** single POS at `https://pos.regkasse.at` calling `https://api.regkasse.at` — tenant from **JWT `tenant_id`** after login. See **`docs/POS_PRODUCTION_ARCHITECTURE.md`**.
+- Optional: license activation may still persist device/bootstrap metadata in `tenantStorage`; do **not** require a per-tenant POS Host or per-tenant API hostname for normal cashier login.
+- Production API base: `https://api.regkasse.at/api` (shared). Axios sends Bearer JWT; EF filters use claim Guid.
 
 #### Development
 
@@ -458,6 +458,7 @@ EXPO_PUBLIC_API_BASE_URL=http://localhost:5184/api
 EXPO_PUBLIC_DEV_TENANT_ID=dev
 ```
 
+- Dev UI: `http://localhost:8081`. FA: `http://admin.regkasse.local:3000`. API: `http://localhost:5184`.
 - In `__DEV__`, effective slug order: **DevTenantSwitcher / `dev_tenant_id` storage override** → **`EXPO_PUBLIC_DEV_TENANT_ID`** (defaults to `dev` if unset) → login/license persisted slug.
 - POS axios (`frontend/services/api/config.ts`) automatically:
   - adds **`X-Tenant-Id: <slug>`** on every request when a slug resolves, and

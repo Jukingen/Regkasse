@@ -34,7 +34,7 @@ import { POS_ENSURE_READY_ON_ENTRY } from '../../constants/posFeatureFlags';
 import { useCart, getCartDisplayTotals } from '../../contexts/CartContext';
 import { usePosRegisterReadiness } from '../../contexts/PosRegisterReadinessContext';
 import { useFavorites } from '../../hooks/useFavorites';
-import { useCashRegister } from '../../hooks/useCashRegister';
+import { useCashRegisterCart } from '../../hooks/useCashRegisterCart';
 import { useProductsUnified } from '../../hooks/useProductsUnified';
 import { useTableOrdersRecoveryOptimized } from '../../hooks/useTableOrdersRecoveryOptimized';
 import { customerService, isWalkInCustomerId } from '../../services/api/customerService';
@@ -286,7 +286,7 @@ export default function CashRegisterScreen() {
   const benefitFetchRef = useRef<string | null>(null);
 
   const { categories } = useProductsUnified();
-  const { toasts, addToast, removeToast } = useCashRegister();
+  const { toasts, addToast, removeToast } = useCashRegisterCart();
   const {
     recoveryData,
     isLoading: recoveryLoading,

@@ -15,4 +15,33 @@ public sealed class TenantHostNamesTests
     {
         Assert.Equal(expected, TenantHostNames.IsTrustedLocalDevCorsHost(new Uri(host).Host));
     }
+
+    [Theory]
+    [InlineData("admin", true)]
+    [InlineData("www", true)]
+    [InlineData("pos", true)]
+    [InlineData("api", true)]
+    [InlineData("POS", true)]
+    [InlineData("Api", true)]
+    [InlineData("dev", false)]
+    [InlineData("cafe", false)]
+    [InlineData(null, false)]
+    [InlineData("", false)]
+    public void IsReservedPlatformHostLabel_MatchesPlatformHosts(string? label, bool expected)
+    {
+        Assert.Equal(expected, TenantHostNames.IsReservedPlatformHostLabel(label));
+    }
+
+    [Theory]
+    [InlineData("pos.regkasse.at", "admin")]
+    [InlineData("api.regkasse.at", "admin")]
+    [InlineData("admin.regkasse.at", "admin")]
+    [InlineData("www.regkasse.at", "admin")]
+    [InlineData("cafe.regkasse.at", "cafe")]
+    [InlineData("dev.regkasse.local", "dev")]
+    [InlineData("localhost", "admin")]
+    public void GetTenantSlugFromHost_ReservedHostsMapToAdmin(string host, string expected)
+    {
+        Assert.Equal(expected, TenantHostNames.GetTenantSlugFromHost(host));
+    }
 }

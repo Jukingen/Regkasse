@@ -12,6 +12,7 @@ import { DashboardMonatsbelegSection } from '@/features/dashboard/components/Das
 import { HospitalityQuickLinksCard } from '@/features/dashboard/components/HospitalityQuickLinksCard';
 import { OfflineQueueDashboardCard } from '@/features/dashboard/components/OfflineQueueDashboardCard';
 import { RksvReminderCard } from '@/features/dashboard/components/RksvReminderCard';
+import { TagesabschlussReminder } from '@/features/dashboard/components/TagesabschlussReminder';
 import { TseHealthCard } from '@/features/dashboard/components/TseHealthCard';
 import { useTodaySales } from '@/features/reports/hooks/useTodaySales';
 import { usePendingMonatsbeleg } from '@/features/rksv/hooks/usePendingMonatsbeleg';
@@ -57,6 +58,9 @@ export function ManagerDashboard() {
     const { hasPermission } = usePermissions();
     const { isAuthorized: canSeeRksvReminder } = useAuthorizationGate({
         requiredPermission: AppPermissions.CashRegisterView,
+    });
+    const { isAuthorized: canSeeTagesabschlussReminder } = useAuthorizationGate({
+        requiredPermission: PERMISSIONS.DAILY_CLOSING_VIEW,
     });
 
     const offlineQueueCardEnabled = hasPermission(PERMISSIONS.PAYMENT_VIEW);
@@ -112,18 +116,23 @@ export function ManagerDashboard() {
                     <p style={{ color: '#64748b', margin: 0 }}>
                         {registerLabel} — {todayLabel}
                     </p>
-                    {hasMultipleRegisters ? (
-                        <CashRegisterSelector
-                            value={selectedRegisterId}
-                            onChange={setSelectedRegisterId}
-                            required
-                            autoSelect
-                            showFormItem={false}
-                            style={{ maxWidth: 360 }}
-                        />
-                    ) : null}
+                    <CashRegisterSelector
+                        value={selectedRegisterId}
+                        onChange={setSelectedRegisterId}
+                        required
+                        autoSelect
+                        showFormItem={false}
+                        style={{ maxWidth: hasMultipleRegisters ? 360 : '100%' }}
+                    />
                 </Space>
             </Card>
+
+            {canSeeTagesabschlussReminder ? (
+                <TagesabschlussReminder
+                    cashRegisterId={selectedRegisterId}
+                    register={selectedRegister}
+                />
+            ) : null}
 
             {pendingMonatsbeleg.length > 0 ? (
                 <Alert

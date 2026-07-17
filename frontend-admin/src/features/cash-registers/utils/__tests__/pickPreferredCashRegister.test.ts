@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { pickPreferredCashRegisterId, pickCashRegisterOnTenantSwitch } from '@/features/cash-registers/utils/pickPreferredCashRegister';
+import { pickPreferredCashRegisterId, pickCashRegisterOnTenantSwitch, pickOperationalCashRegisterId } from '@/features/cash-registers/utils/pickPreferredCashRegister';
+import { REGISTER_STATUS } from '@/features/cash-registers/utils/registerStatus';
 
 const tenantA = 'tenant-a';
 const regDefault = { id: 'reg-default', tenantId: tenantA, isDefaultForTenant: true };
@@ -78,5 +79,62 @@ describe('pickCashRegisterOnTenantSwitch', () => {
                 tenantA,
             ),
         ).toBeNull();
+    });
+});
+
+describe('pickOperationalCashRegisterId', () => {
+    const closed = REGISTER_STATUS.closed;
+    const open = REGISTER_STATUS.open;
+
+    it('keeps an open preferred register', () => {
+        expect(
+            pickOperationalCashRegisterId(
+                [
+                    { id: 'reg-default', tenantId: tenantA, isDefaultForTenant: true, status: closed },
+                    { id: 'reg-open', tenantId: tenantA, isDefaultForTenant: false, status: open },
+                ],
+                'reg-open',
+                tenantA,
+            ),
+        ).toBe('reg-open');
+    });
+
+    it('follows the open POS register when stored preference is closed', () => {
+        expect(
+            pickOperationalCashRegisterId(
+                [
+                    { id: 'reg-default', tenantId: tenantA, isDefaultForTenant: true, status: closed },
+                    { id: 'reg-open', tenantId: tenantA, isDefaultForTenant: false, status: open },
+                ],
+                'reg-default',
+                tenantA,
+            ),
+        ).toBe('reg-open');
+    });
+
+    it('prefers tenant default among multiple open registers', () => {
+        expect(
+            pickOperationalCashRegisterId(
+                [
+                    { id: 'reg-a', tenantId: tenantA, isDefaultForTenant: false, status: open },
+                    { id: 'reg-b', tenantId: tenantA, isDefaultForTenant: true, status: open },
+                ],
+                null,
+                tenantA,
+            ),
+        ).toBe('reg-b');
+    });
+
+    it('falls back to first register when nothing is open and no default exists', () => {
+        expect(
+            pickOperationalCashRegisterId(
+                [
+                    { id: 'reg-1', tenantId: tenantA, isDefaultForTenant: false, status: closed },
+                    { id: 'reg-2', tenantId: tenantA, isDefaultForTenant: false, status: closed },
+                ],
+                null,
+                tenantA,
+            ),
+        ).toBe('reg-1');
     });
 });

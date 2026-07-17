@@ -64,6 +64,11 @@ describe('canAccessPath', () => {
         ).toBe(false);
     });
 
+    it('allows Super Admin platform hub /admin with system.critical (Mandant auswählen)', () => {
+        expect(canAccessPath('/admin', [PERMISSIONS.SYSTEM_CRITICAL])).toBe(true);
+        expect(canAccessPath('/admin', [...MANAGER_ADMIN_PERMISSIONS])).toBe(false);
+    });
+
     it('Cashier admin permissions match required cashier routes only', () => {
         const perms = [...CASHIER_ADMIN_PERMISSIONS];
         expect(canAccessPath('/payments', perms)).toBe(true);

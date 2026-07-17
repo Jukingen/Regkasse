@@ -136,18 +136,39 @@ export function clearDevTenantOverride(): void {
 }
 
 /**
+ * Platform host label — not a mandant. Must not be sent as <c>X-Tenant-Id</c>
+ * (backend maps <c>admin</c> → legacy <c>default</c> and can override JWT).
+ */
+export function isPlatformAdminTenantSlug(slug: string | null | undefined): boolean {
+  return normalizeSlug(slug) === 'admin';
+}
+
+/**
  * Resolves tenant slug for each outgoing API request (never cached on the axios instance).
  * Development: {@link DEV_TENANT_LOCAL_STORAGE_KEY} wins when set (header switcher).
  * Otherwise falls back to {@link getEffectiveTenantSlug} (hosts file, env, production subdomain).
+ * On platform admin host without a mandant override: prefer login bootstrap slug, else omit header
+ * so JWT <c>tenant_id</c> wins (avoids FA → legacy <c>default</c> while POS uses <c>dev</c>).
  */
 export function resolveTenantSlugForApiRequest(): string {
   if (isDevelopment() && typeof window !== 'undefined') {
     const stored = normalizeSlug(window.localStorage.getItem(DEV_TENANT_LOCAL_STORAGE_KEY));
-    if (stored) {
+    if (stored && !isPlatformAdminTenantSlug(stored)) {
       return stored;
     }
   }
-  return getEffectiveTenantSlug();
+
+  const effective = getEffectiveTenantSlug();
+  if (!isPlatformAdminTenantSlug(effective)) {
+    return effective;
+  }
+
+  const bootstrap = normalizeSlug(tenantStorage.getTenantSlug());
+  if (bootstrap && !isPlatformAdminTenantSlug(bootstrap)) {
+    return bootstrap;
+  }
+
+  return '';
 }
 
 /**

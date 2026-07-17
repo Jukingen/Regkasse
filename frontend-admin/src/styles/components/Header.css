@@ -163,21 +163,142 @@
   font-variant-numeric: tabular-nums;
 }
 
+.admin-header-register-context {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  margin-left: 4px;
+}
+
+.cash-register-quick-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cash-register-quick-switch-context-label {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #15803d;
+  white-space: nowrap;
+}
+
 .cash-register-quick-switch-trigger-wrap {
   display: inline-flex;
+  border-radius: 8px;
+  transition: box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.cash-register-quick-switch-trigger-wrap--active {
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.35);
+  background: #f0fdf4;
+}
+
+.cash-register-quick-switch-trigger-wrap--open {
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.55);
+}
+
+.cash-register-quick-switch-trigger-wrap--closed {
+  box-shadow: 0 0 0 2px rgba(185, 28, 28, 0.28);
+  background: #fef2f2;
+}
+
+.cash-register-quick-switch-trigger-wrap--closed .cash-register-quick-switch-trigger.ant-btn {
+  border-color: #dc2626;
+  color: #7f1d1d;
+}
+
+.cash-register-quick-switch-trigger-wrap--closed .cash-register-quick-switch-icon {
+  color: #dc2626;
+}
+
+.cash-register-quick-switch-trigger-wrap--active .cash-register-quick-switch-trigger.ant-btn {
+  border-color: #16a34a;
+  color: #14532d;
+  background: transparent;
+}
+
+.cash-register-quick-switch-trigger-wrap--closed.cash-register-quick-switch-trigger-wrap--active
+  .cash-register-quick-switch-trigger.ant-btn {
+  border-color: #dc2626;
+  color: #7f1d1d;
+  background: transparent;
+}
+
+.cash-register-quick-switch-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cash-register-quick-switch-status--open {
+  background: #16a34a;
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.25);
+}
+
+.cash-register-quick-switch-status--closed {
+  background: #dc2626;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
 }
 
 .cash-register-quick-switch-trigger {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  max-width: 11rem;
+  max-width: 22rem;
+  height: auto !important;
+  min-height: 32px;
+  padding-block: 4px !important;
+}
+
+.cash-register-quick-switch-content {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.cash-register-quick-switch-icon {
+  color: #16a34a;
+  flex-shrink: 0;
+  font-size: 15px;
+}
+
+.cash-register-quick-switch-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  line-height: 1.15;
 }
 
 .cash-register-quick-switch-label {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 12rem;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.cash-register-quick-switch-location {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 12rem;
+  font-size: 11px;
+  opacity: 0.75;
+  font-weight: 400;
+}
+
+.cash-register-quick-switch-active-tag {
+  margin-inline-end: 0 !important;
+  line-height: 18px;
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .admin-header-nav-toggle {

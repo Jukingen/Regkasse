@@ -78,8 +78,8 @@ describe('useCashRegisterSelection', () => {
     it('auto-selects first register when autoSelect is enabled and no default is flagged', async () => {
         mockUseAdminCashRegisterList.mockReturnValue({
             registers: [
-                { ...sampleRegisters[0], isDefaultForTenant: false },
-                { ...sampleRegisters[1], isDefaultForTenant: false },
+                { ...sampleRegisters[0], isDefaultForTenant: false, status: 1 },
+                { ...sampleRegisters[1], isDefaultForTenant: false, status: 1 },
             ],
             isLoading: false,
             isFetching: false,
@@ -96,6 +96,29 @@ describe('useCashRegisterSelection', () => {
             expect(result.current.selectedRegisterId).toBe('reg-1');
         });
         expect(onChange).toHaveBeenCalledWith('reg-1', expect.objectContaining({ id: 'reg-1' }));
+    });
+
+    it('follows an open register when stored preference is closed', async () => {
+        sessionStorage.setItem('fa_quick_cash_register_id:tenant-a', 'reg-1');
+        mockUseAdminCashRegisterList.mockReturnValue({
+            registers: [
+                { ...sampleRegisters[0], isDefaultForTenant: true, status: 1 },
+                { ...sampleRegisters[1], isDefaultForTenant: false, status: 2 },
+            ],
+            isLoading: false,
+            isFetching: false,
+            error: null,
+            refetch: vi.fn(),
+        });
+
+        const onChange = vi.fn();
+        const { result } = renderHook(() =>
+            useCashRegisterSelection({ autoSelect: true, persistSelection: true, onChange }),
+        );
+
+        await waitFor(() => {
+            expect(result.current.selectedRegisterId).toBe('reg-2');
+        });
     });
 
     it('exposes hasRegisters when tenant inventory is non-empty', () => {

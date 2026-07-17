@@ -6,13 +6,14 @@ import type { MenuProps } from 'antd';
 import { IdcardOutlined, KeyOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 
-import { CHANGE_PASSWORD_PATH } from '@/features/auth/constants/changePasswordRoute';
+import { VOLUNTARY_CHANGE_PASSWORD_PATH } from '@/features/auth/constants/changePasswordRoute';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { SelfServiceUsernameModal } from '@/features/user/components/SelfServiceUsernameModal';
 import { useI18n } from '@/i18n';
 import { ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
 import type { AuthUser } from '@/shared/auth/types';
 import { getAdminHeaderPopupContainer } from '@/shared/layout/adminHeaderDropdown';
+
 
 export function buildAdminHeaderUserLabel(
     user: AuthUser | null | undefined,
@@ -74,7 +75,7 @@ export function AdminHeaderUserMenu({
                 key: 'change-password',
                 icon: <KeyOutlined />,
                 label: t(ADMIN_NAV_LABEL_KEYS.changePassword),
-                onClick: () => router.push(CHANGE_PASSWORD_PATH),
+                onClick: () => router.push(VOLUNTARY_CHANGE_PASSWORD_PATH),
             },
             { type: 'divider' as const },
             {
