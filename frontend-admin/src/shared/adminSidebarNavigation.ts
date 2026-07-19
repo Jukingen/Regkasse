@@ -62,6 +62,10 @@ export const ADMIN_SIDEBAR_GROUP_KEYS = {
     backup: 'grp-backup',
     /** Nested under Backup: schedule vs platform settings */
     backupConfig: 'grp-backup-config',
+    /** Nested under Einstellungen: website / digital portal / customer portal */
+    digitalServices: 'grp-digital-services',
+    /** Nested under Lizenzverwaltung: Super Admin digital manage + requests */
+    digitalAdmin: 'grp-digital-admin',
     /** @deprecated Use `settings` — kept for open-keys merge during migration */
     settingsArea: 'grp-settings',
     /** @deprecated Use `rksv` */
@@ -87,6 +91,12 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
         '/admin/billing',
         '/admin/billing/sales',
         '/admin/billing/stats',
+        '/billing/digital',
+        '/admin/digital',
+    ],
+    [ADMIN_SIDEBAR_GROUP_KEYS.digitalAdmin]: [
+        '/admin/digital',
+        '/admin/digital/requests',
     ],
     [ADMIN_SIDEBAR_GROUP_KEYS.operations]: [
         '/operations-center',
@@ -101,6 +111,8 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     ],
     [ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions]: [
         '/receipts',
+        '/orders',
+        '/orders/online',
         '/payments',
         '/payments/trends',
         '/payments/storno-refund-audit',
@@ -144,7 +156,15 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     [ADMIN_SIDEBAR_GROUP_KEYS.settings]: [
         '/settings',
         ...SETTINGS_AREA_ROUTE_PATHS,
+        '/settings/website',
+        '/settings/digital',
+        '/digital/customer-portal',
         '/admin/system/time-sync',
+    ],
+    [ADMIN_SIDEBAR_GROUP_KEYS.digitalServices]: [
+        '/settings/website',
+        '/settings/digital',
+        '/digital/customer-portal',
     ],
     [ADMIN_SIDEBAR_GROUP_KEYS.backup]: [
         ...BACKUP_AREA_ROUTE_PATHS,
@@ -306,9 +326,27 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
         p === '/admin/license' ||
         p === '/admin/licenses' ||
         p === '/admin/billing' ||
-        p.startsWith('/admin/billing/')
+        p.startsWith('/admin/billing/') ||
+        p === '/billing/digital' ||
+        p.startsWith('/billing/digital/') ||
+        p === '/admin/digital' ||
+        p.startsWith('/admin/digital/')
     ) {
         keys.push(ADMIN_SIDEBAR_GROUP_KEYS.license);
+    }
+    if (p === '/admin/digital' || p.startsWith('/admin/digital/')) {
+        keys.push(ADMIN_SIDEBAR_GROUP_KEYS.digitalAdmin);
+    }
+    if (
+        p === '/settings/website' ||
+        p.startsWith('/settings/website/') ||
+        p === '/settings/digital' ||
+        p.startsWith('/settings/digital/') ||
+        p === '/digital/customer-portal' ||
+        p.startsWith('/digital/customer-portal/')
+    ) {
+        keys.push(ADMIN_SIDEBAR_GROUP_KEYS.settings);
+        keys.push(ADMIN_SIDEBAR_GROUP_KEYS.digitalServices);
     }
     if (p === '/tagesabschluss' || p.startsWith('/tagesabschluss/')) {
         keys.push(ADMIN_SIDEBAR_GROUP_KEYS.operations);
@@ -316,6 +354,8 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     if (
         p === '/receipts' ||
         p.startsWith('/receipts/') ||
+        p === '/orders' ||
+        p.startsWith('/orders/') ||
         p === '/payments' ||
         p.startsWith('/payments/') ||
         p === '/vouchers' ||

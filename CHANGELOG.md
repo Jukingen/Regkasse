@@ -12,6 +12,7 @@ Older waves: [`docs/CHANGELOG_RECENT.md`](docs/CHANGELOG_RECENT.md), [`docs/CHAN
 
 ### Added
 
+- **Digital services & online orders (2026-07-19 wave):** website/app generation, Manager preview/requests, non-fiscal online-order status inbox — see [`docs/CHANGELOG.md`](docs/CHANGELOG.md), [`docs/DIGITAL_SERVICES.md`](docs/DIGITAL_SERVICES.md), [`docs/ONLINE_ORDERS.md`](docs/ONLINE_ORDERS.md).
 - **Username-based login:** Users can sign in with either **email** or **username** (`loginIdentifier` on `POST /api/Auth/login`).
 - **Auto-generated usernames:** **Schnell anlegen** (Quick Create) and manual admin user create generate unique login names when `userName` is omitted (`{rolePrefix}{n}`, e.g. `manager1`, `cashier2`).
 - **Username display:** FA success modals show **username**, **email**, and one-time password with per-field copy and **copy all** (`QuickUserSuccessModal`, `UserCreatedSuccessModal`).

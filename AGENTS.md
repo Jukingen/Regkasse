@@ -9,7 +9,7 @@ This repository is a POS monorepo. Prefer safe, incremental improvements over br
 - For medium or large tasks, also read **`REGKASSE_AI_ONBOARDING.md`** and relevant docs under `ai/`.
 - Keep this file valid Markdown (closed code fences, proper headings); broken formatting reduces what agents can parse reliably.
 
-**Last updated:** 2026-07-17
+**Last updated:** 2026-07-19
 
 ## Language Rules
 Follow these language rules strictly:
@@ -86,6 +86,7 @@ For medium or large changes, always provide:
 - `backend/` - ASP.NET Core 10 API (auth, domain logic, fiscal/TSE/RKSV, reporting, OpenAPI)
 - `frontend/` - Mobile POS (Expo SDK 56 + React Native + TypeScript)
 - `frontend-admin/` - Admin panel (Next.js 16 + Ant Design 6 + TanStack Query)
+- `frontend-sites/` - Shared multi-tenant customer websites (Next.js 16; `/[slug]` + public catalog API; optional custom host via `TenantDomain`)
 - `localization/` - Shared i18n import/export/validation tooling
 - `scripts/` - Cross-repo validation and consistency scripts
 - `tools/` - License generator and i18n utility tools
@@ -112,6 +113,7 @@ For medium or large changes, always provide:
 - **Development:** `X-Tenant-Id` header or `?tenant={slug}` query (POS: `EXPO_PUBLIC_DEV_TENANT_ID` + DevTenantSwitcher; FA: header switcher).
 - JWT contains `tenant_id` claim after authentication
 - Super Admin / FA: `admin.regkasse.at`
+- **Custom website domains:** verified `TenantDomain` rows map Host → tenant slug before `TenantHostNames` (`ITenantDomainService`); FA: `/settings/website` (`website.manage`)
 
 ### Tenant Isolation
 - Tenant-scoped tables MUST have non-null `tenant_id` on entities implementing `ITenantEntity`
@@ -125,6 +127,8 @@ For medium or large changes, always provide:
 - Access via `admin.regkasse.at`
 - Can impersonate any tenant via `POST /api/admin/tenants/{id}/impersonate`
 - Tenant CRUD via `/api/admin/tenants/*`
+- **Digital services:** create / publish / edit / delete websites and apps; approve digital requests (`/admin/digital`, `/admin/digital/requests`)
+- **Online orders:** full FA control including optional POS cart bridge (`digital.orders.approve`)
 - **Tenant hard-delete is disabled in production; use soft-delete (archive) for tenant removal.**
 - Cross-tenant SaaS metrics API is not yet a separate surface
 
@@ -243,12 +247,29 @@ Canonical backend role names (database / JWT / API) and Admin UI display labels 
 - **Mandanten-Admin (`Manager`)**: Tenant administrator — users, settings, reports, backup (`backup.manage`) for **their** tenant only; cannot access other tenants.
 - Backend role string remains `"Manager"` for compatibility; only UI labels use **Mandanten-Admin** (see `users.roles.displayNames` in FA i18n).
 
+#### Digital services & online orders (role matrix)
+
+Source of truth: `backend/Authorization/RolePermissionMatrix.cs`, `AppPermissions.cs`. Website/app generation and online orders are **not** POS/RKSV/TSE flows (`online_orders` table; status-only fulfillment).
+
+| Role | Digital services (website / app) | Online orders (website / app) |
+|------|----------------------------------|-------------------------------|
+| **SuperAdmin** | Create, publish, edit, delete, activate, pricing (`digital.create` / `publish` / `edit` / `delete` / `manage` / …) | Full: view, status manage, optional POS cart bridge approve (`digital.orders.view` / `manage` / `approve`) |
+| **Manager** (Mandanten-Admin) | View own services, preview templates, request creation (`digital.view` / `preview` / `request`). **No** create / publish / delete | View + status lifecycle only (`digital.orders.view` / `manage`). **No** POS cart push (`digital.orders.approve`) |
+| **Cashier** (and other POS roles) | **No** digital service permissions by default | **No** `digital.orders.*` by default (POS `order.*` is separate) |
+
+**FA surfaces:** Super Admin `/admin/digital`, `/admin/digital/requests`; Manager `/settings/digital`, `/orders/online` (alias `/online-orders`), `/tenant/{id}/website-preview`, `/tenant/{id}/orders`. Sidebar: nested **Digitale Dienste** under Einstellungen (Manager) and Lizenzverwaltung (Super Admin). i18n: `digital.*`, `nav.digital*`, `tenants.digitalServices.*`, `onlineOrders.*`.
+
 ### User Permissions
 - `users.view` - View user list
 - `users.manage` - Create/edit/delete users
 - `settings.view` - View system settings (includes backup status/history routes)
 - `settings.manage` - Modify broad system settings (license, NTP, execution mode, artifact download — **not** granted to Mandanten-Admin (`Manager`) by default)
 - `backup.manage` - Tenant-scoped backup ops: manual trigger + schedule/retention (`RolePermissionMatrix` Mandanten-Admin default). Narrower than `settings.manage`. See `docs/BACKUP_PERMISSIONS.md`.
+- `website.manage` - Tenant domain / customization (implies digital view/preview/request, not create/publish)
+- `digital.view` / `digital.preview` / `digital.request` - Mandanten digital portal (status, preview, request)
+- `digital.create` / `digital.publish` / `digital.edit` / `digital.delete` / `digital.manage` - Super Admin website/app generators and platform digital control
+- `digital.orders.view` / `digital.orders.manage` - FA online-order inbox (status updates; **not** fiscal POS)
+- `digital.orders.approve` - Super Admin only (optional POS cart bridge on accept)
 - `reports.view` - View reports
 - `reports.export` - Export reports
 - **FA hub:** Verwaltung → Zugriff & Rollen — `/admin/access`, `/admin/users`, `/admin/access/roles`, `/admin/access/matrix` (see `frontend-admin/docs/ACCESS_AND_ROLES_HUB.md`)
@@ -545,6 +566,7 @@ Use `/ai` docs selectively based on the task:
 - **Offline order snapshots (new)** → `ai/modules/offline_orders.md`, `docs/release/OFFLINE_SYSTEMS_SEPARATION.md`
 - Admin API integration work → `ai/10_API_BOUNDARY_POLICY.md`
 - Billing / mandant license sales → `docs/BILLING_TENANT_LICENSE.md`, `ai/modules/billing_license.md`
+- **Digital services / website generator / online orders (non-fiscal)** → [`docs/DIGITAL_SERVICES.md`](docs/DIGITAL_SERVICES.md), [`docs/ONLINE_ORDERS.md`](docs/ONLINE_ORDERS.md), [`docs/PERMISSIONS_MATRIX.md`](docs/PERMISSIONS_MATRIX.md), [`docs/CHANGELOG.md`](docs/CHANGELOG.md); `AGENTS.md` § Roles (Digital services & online orders); `RolePermissionMatrix`; FA `/settings/digital`, `/orders/online`, `/admin/digital`
 - **Backup & Disaster Recovery (hub)** → `docs/BACKUP_AND_DISASTER_RECOVERY.md`, `docs/BACKUP_SYSTEM.md`, `AGENTS.md` § Backup & Disaster Recovery
 - **Backup RBAC / Mandanten-Admin tenant scoping** → `docs/BACKUP_PERMISSIONS.md`, `ai/modules/backup_permissions.md`
 - **Backup content / cost / Tenant vs System strategy** → `docs/BACKUP_CONTENT_POLICY.md`, `BackupStrategyKind`, `IBackupService.CreateTenantBackupAsync` / `CreateSystemBackupAsync`

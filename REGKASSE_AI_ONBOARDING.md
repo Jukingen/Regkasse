@@ -28,6 +28,7 @@ Regkasse is a full-stack Austrian POS / cash register system focused on:
 - Gutschein / voucher management
 - RKSV special receipts
 - Offline replay and operational resilience
+- Tenant digital services (website / app generator) and non-fiscal online orders
 
 ### Target users
 
@@ -307,12 +308,12 @@ In **`__DEV__`**, POS shows `DevTenantSwitcher` in the tab layout (`frontend/src
 | **Accountant** | Buchhaltung | Financial reporting |
 | **ReportViewer** | Berichte (nur Lesen) | Read-only reports |
 
-- **SuperAdmin**: System-wide administrator; tenant CRUD, impersonation, billing, platform backup.
-- **Mandanten-Admin (`Manager`)**: Tenant-level administrator — can manage users, settings, reports, and backup for **their** tenant; cannot access other tenants. Backend/API role string remains `"Manager"`.
-- **Cashier / Waiter / Kitchen**: POS-facing roles.
+- **SuperAdmin**: System-wide administrator; tenant CRUD, impersonation, billing, platform backup; **digital services** create/publish/edit/delete; **online orders** full FA management (including optional POS cart bridge).
+- **Mandanten-Admin (`Manager`)**: Tenant-level administrator — users, settings, reports, backup for **their** tenant; **digital services** view / preview / request only (no create/publish/delete); **online orders** view + status updates only (`digital.orders.view` / `manage` — not POS/TSE). Backend/API role string remains `"Manager"`.
+- **Cashier / Waiter / Kitchen**: POS-facing roles — **no** digital services / `digital.orders.*` by default.
 - **Accountant / ReportViewer**: Reporting-focused roles.
 
-Source of truth for permissions: `backend/Authorization/RolePermissionMatrix.cs`. UI labels: `frontend-admin/src/i18n/locales/*/users.json` → `roles.displayNames`.
+Source of truth for permissions: `backend/Authorization/RolePermissionMatrix.cs`. UI labels: `frontend-admin/src/i18n/locales/*/users.json` → `roles.displayNames`. Online orders API: `PATCH /api/admin/online-orders/{id}/status` (not fiscal).
 
 ### Super Admin
 
@@ -468,6 +469,37 @@ EXPO_PUBLIC_DEV_TENANT_ID=dev
   - can append **`?tenant=<slug>`** to the dev base URL via `hydrateDevTenantApiBaseUrl()`.
 
 Restart Metro after changing `.env`.
+
+---
+
+## Digital Services
+
+### Overview
+
+Regkasse offers **website** and **mobile app** digital services for tenants, managed in **Frontend-Admin (FA)** — not POS. Permissions: `RolePermissionMatrix` / `AppPermissions` (`digital.*`, `digital.orders.*`) — matrix: [`docs/PERMISSIONS_MATRIX.md`](docs/PERMISSIONS_MATRIX.md). Operator guide: [`docs/DIGITAL_SERVICES.md`](docs/DIGITAL_SERVICES.md). Always-applied summary: [`AGENTS.md`](AGENTS.md) § Roles (Digital services & online orders). FA quick ref: [`frontend-admin/README.md`](frontend-admin/README.md) § Digital Services.
+
+### Tenant website
+
+- Generated from tenant / catalog data (products, categories, company settings, customizations).
+- **Shipped templates:** Modern, Classic, Minimal (`WebsiteGeneratorService.GetTemplates()`).
+- i18n also labels Bistro / Gourmet / Street Food for UI catalog expansion — do not assume those generators exist until listed by `/api/admin/website/templates`.
+- **Manager:** preview templates, request creation or template change (`digital.view` / `preview` / `request`). FA: `/settings/digital`, `/tenant/{id}/website-preview`.
+- **Super Admin:** create / publish / edit / delete; approve requests. FA: `/admin/digital`, `/admin/digital/requests`.
+
+### Mobile app
+
+- **PWA** and **Native** (Expo package) generation — Super Admin (`digital.create` / generators under `/api/admin/website/mobile/*`).
+- **Manager:** preview / request only (no generate).
+
+### Online orders
+
+Operator guide: [`docs/ONLINE_ORDERS.md`](docs/ONLINE_ORDERS.md). Wave notes: [`docs/CHANGELOG.md`](docs/CHANGELOG.md).
+
+- Customer orders from website / PWA / native → table `online_orders` (tenant-scoped).
+- **Completely separate from POS:** no TSE signature, no fiscal receipt, no `payment_details` RKSV chain for these rows.
+- **Manager:** view + status lifecycle (`digital.orders.view` / `manage`). FA: `/orders/online`, `/tenant/{id}/orders`.
+- **Status workflow:** `pending` → `accepted` → `preparing` → `ready` → `completed` (or `cancelled` from non-terminal). API: `PATCH /api/admin/online-orders/{id}/status`.
+- Optional POS cart bridge (`POST …/accept`) requires `digital.orders.approve` (Super Admin) — not part of Manager status-only fulfillment.
 
 ---
 
@@ -1336,7 +1368,7 @@ Known or suspected risks:
 - Fiscal export is NOT a legal RKSV proof. Payloads include explicit disclaimer text; when enabled, API calls may also require **`X-Disclaimer-Acknowledged: true`**. Exports are for diagnostics and internal analysis only.
 - The codebase references Epson-style TSE devices and generic providers (e.g., Epson-TSE, fiskaly) through model comments and simulation logic. Runtime signing is provider-based (Fake vs Real) and not tied to a single OEM SDK. Supported vendors are configuration-driven, not defined as a fixed compatibility list.
 - This repository does not define a production deployment architecture. CI uses GitHub Actions with PostgreSQL containers for testing, but production hosting (cloud, on-prem, containers, etc.) is deployment-specific.
-- Canonical roles are defined in `backend/Authorization/Roles.cs`: **SuperAdmin** → full access; **Manager** (UI: **Mandanten-Admin**) → admin + RKSV + voucher + reporting; **Cashier** → POS + payment + TSE signing; **Waiter** → limited POS usage; **Accountant** → reporting + FinanzOnline + RKSV (no Schlussbeleg); **Kitchen** / **ReportViewer** → specialized roles. Always treat `RolePermissionMatrix` as the source of truth.
+- Canonical roles are defined in `backend/Authorization/Roles.cs`: **SuperAdmin** → full access including digital create/publish and online-order approve; **Manager** (UI: **Mandanten-Admin**) → admin + RKSV + voucher + reporting + digital view/preview/request + online-order status manage; **Cashier** → POS + payment + TSE signing (no digital services / online-order inbox by default); **Waiter** → limited POS usage; **Accountant** → reporting + FinanzOnline + RKSV (no Schlussbeleg); **Kitchen** / **ReportViewer** → specialized roles. Always treat `RolePermissionMatrix` as the source of truth. Do not conflate website/app **online orders** with POS carts or fiscal receipts.
 - The system does NOT enforce sales blocking after early Jahresbeleg. This is explicitly treated as a legal/process responsibility, not a hard backend restriction. Duplicate Jahresbeleg creation is prevented, but continued operation is not blocked in code.
 - Backup restore via API is **validation-only** (isolated DB); production recovery is operator/DBA-led. Tenant ZIP packages are not `pg_restore` inputs. Mandanten-Admin must not see System dumps (Identity / all tenants).
 

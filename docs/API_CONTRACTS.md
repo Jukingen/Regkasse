@@ -396,6 +396,74 @@ Mandant SaaS license lifecycle — JWT with **tenant context** required (`ICurre
 
 ---
 
+## Digital services & online orders (non-fiscal)
+
+> **Operator guides:** [`DIGITAL_SERVICES.md`](DIGITAL_SERVICES.md), [`ONLINE_ORDERS.md`](ONLINE_ORDERS.md)  
+> **Permissions:** [`PERMISSIONS_MATRIX.md`](PERMISSIONS_MATRIX.md)  
+> **Not fiscal:** online orders do **not** create TSE signatures or RKSV receipts. Do not conflate with POS offline orders (`/api/pos/offline-orders`).
+
+### Admin — `/api/admin/digital` (`AdminDigitalController`)
+
+| Method | Endpoint | Permission | Description |
+|--------|----------|------------|-------------|
+| GET | `/api/admin/digital/tenants` | `digital.manage` | List tenants with website/app status |
+| GET | `/api/admin/digital/tenants/{tenantId}` | `digital.view` | One tenant status (own tenant unless Super Admin) |
+| POST | `/api/admin/digital/{tenantId}/toggle` | `digital.activate` | Super Admin: platform active flag |
+| POST | `/api/admin/digital/{tenantId}/enable` | `digital.view` | Mandant: own `IsEnabled` preference |
+| PUT | `/api/admin/digital/{tenantId}/price` | `digital.pricing.manage` | Super Admin: custom monthly price |
+| POST | `/api/admin/digital/{tenantId}/request` | `digital.request` | Manager: queue website/app request |
+| GET | `/api/admin/digital/{tenantId}/requests` | `digital.view` | List requests for one tenant |
+| GET | `/api/admin/digital/requests` | `digital.manage` | Super Admin queue (`status`, default Pending) |
+| POST | `/api/admin/digital/requests/{id}/approve` | `digital.manage` | Approve (does **not** auto-generate) |
+| POST | `/api/admin/digital/requests/{id}/reject` | `digital.manage` | Reject pending request |
+
+**Create request body (`CreateDigitalServiceRequestDto`):**
+
+```json
+{ "serviceType": "website", "note": "optional" }
+```
+
+`serviceType`: `website` | `app`. Approve/reject body: `ResolveDigitalServiceRequestDto` `{ "note": "optional" }`.
+
+### Admin — `/api/admin/website` (`AdminWebsiteController`, key routes)
+
+| Method | Endpoint | Permission | Description |
+|--------|----------|------------|-------------|
+| GET | `/api/admin/website/templates` | `digital.view` | Shipped templates (Modern, Classic, Minimal) |
+| GET | `/api/admin/website/pricing` | `digital.view` | Service pricing |
+| GET | `/api/admin/website/my-services` | `digital.view` | Current tenant subscriptions |
+| POST | `/api/admin/website/preview` | `digital.preview` | HTML preview for a template |
+| POST | `/api/admin/website/generate` | `digital.create` | Generate / publish website |
+| POST | `/api/admin/website/menu-sync` | `digital.publish` | Sync catalog into site/app |
+| POST | `/api/admin/website/mobile/generate` | `digital.create` | Mobile app config |
+| POST | `/api/admin/website/mobile/package` | `digital.create` | Download Expo ZIP package |
+
+### Admin — `/api/admin/online-orders` (`AdminOnlineOrdersController`)
+
+| Method | Endpoint | Permission | Description |
+|--------|----------|------------|-------------|
+| GET | `/api/admin/online-orders` | `digital.orders.view` | List (`status`, `take`) |
+| GET | `/api/admin/online-orders/analytics` | `digital.orders.view` | Analytics (`fromUtc`, `toUtc`) |
+| GET | `/api/admin/online-orders/{id}` | `digital.orders.view` | Detail |
+| GET | `/api/admin/online-orders/{id}/timeline` | `digital.orders.view` | Status history |
+| PATCH | `/api/admin/online-orders/{id}/status` | `digital.orders.manage` | Fulfillment status only |
+| POST | `/api/admin/online-orders/{id}/payment-intent` | `digital.orders.manage` | Staff-assisted payment intent |
+| POST | `/api/admin/online-orders/{id}/accept` | `digital.orders.approve` | Optional POS cart bridge (Super Admin) |
+
+**Status update (`UpdateOnlineOrderStatusRequestDto` → `UpdateOnlineOrderStatusResponseDto`):**
+
+```json
+{ "status": "accepted" }
+```
+
+Allowed forward chain: `pending` → `accepted` → `preparing` → `ready` → `completed`.  
+From non-terminal: also `cancelled`. Skip → `ONLINE_ORDER_STATUS_TRANSITION_INVALID`.
+
+**FA routes:** `/settings/digital`, `/orders/online`, `/admin/digital`, `/admin/digital/requests`  
+**Wave changelog:** [`CHANGELOG.md`](CHANGELOG.md)
+
+---
+
 ## Offline orders API (full POS snapshots)
 
 > **Canonical doc:** [`docs/release/OFFLINE_ORDERS_FULL_SNAPSHOT.md`](release/OFFLINE_ORDERS_FULL_SNAPSHOT.md)  
@@ -470,7 +538,10 @@ After backend DTO changes:
 
 - [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md) — operator flows, roles, FA surfaces
 - [`BILLING_TENANT_LICENSE.md`](BILLING_TENANT_LICENSE.md) — billing / mandant license API and services
+- [`DIGITAL_SERVICES.md`](DIGITAL_SERVICES.md) — website / app operator guide
+- [`ONLINE_ORDERS.md`](ONLINE_ORDERS.md) — online-order status workflow (non-fiscal)
+- [`PERMISSIONS_MATRIX.md`](PERMISSIONS_MATRIX.md) — digital / online-order RBAC defaults
 - [`docs/release/OFFLINE_ORDERS_FULL_SNAPSHOT.md`](release/OFFLINE_ORDERS_FULL_SNAPSHOT.md) — full POS order snapshots (2026-06-27)
 - [`REGKASSE_AI_ONBOARDING.md`](../REGKASSE_AI_ONBOARDING.md) — Authentication section
-- [`frontend-admin/README.md`](../frontend-admin/README.md) — Schnell anlegen
+- [`frontend-admin/README.md`](../frontend-admin/README.md) — Schnell anlegen + Digital Services
 - [`frontend/README.md`](../frontend/README.md) — POS login

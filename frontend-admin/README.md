@@ -98,6 +98,28 @@ Code: `src/shared/config/rksvEnvironment.ts`.
 
 Backend role names remain `Manager`, `Cashier`, `SuperAdmin` in API/database; UI labels come from `src/i18n/locales/*/users.json`.
 
+## Digital Services
+
+Website / mobile app generation and **non-fiscal** online orders (separate from POS / TSE). Full guides: [`docs/DIGITAL_SERVICES.md`](../docs/DIGITAL_SERVICES.md), [`docs/ONLINE_ORDERS.md`](../docs/ONLINE_ORDERS.md), [`docs/PERMISSIONS_MATRIX.md`](../docs/PERMISSIONS_MATRIX.md).
+
+### For Mandanten-Admin (Manager)
+
+- View website/app status — `/settings/digital`
+- Preview templates — `/tenant/{id}/website-preview`
+- Request services (Super Admin reviews) — request actions on the digital portal
+- Manage online orders (status only) — `/orders/online`
+
+Permissions: `digital.view` / `preview` / `request`, `digital.orders.view` / `manage`. **No** create / publish / delete / POS cart bridge.
+
+### For Super Admin
+
+- Create websites for tenants — `/admin/digital`, `/tenant/{id}/digital`
+- Create apps for tenants (PWA / Native package)
+- Approve / reject requests — `/admin/digital/requests`
+- Publish services — generators + publish actions (`digital.create` / `publish` / `manage`)
+
+Optional POS cart bridge on an online order requires `digital.orders.approve` (not the Manager happy path).
+
 ## User Management
 
 Users are created directly by administrators (Super Admin or **Mandanten-Admin**). **No email invitations** are sent.

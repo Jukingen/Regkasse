@@ -59,6 +59,7 @@ export type SidebarIconToken =
     | 'SafetyOutlined'
     | 'SettingOutlined'
     | 'ShopOutlined'
+    | 'GlobalOutlined'
     | 'BgColorsOutlined'
     | 'CloudServerOutlined'
     | 'ExperimentOutlined'
@@ -190,6 +191,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/invoices',
         labelKey: 'nav.invoices',
         icon: 'FileDoneOutlined',
+    },
+    onlineOrders: {
+        id: 'onlineOrders',
+        menuKey: '/orders/online',
+        href: '/orders/online',
+        labelKey: 'nav.onlineOrders',
+        icon: 'ShoppingOutlined',
+        permission: [PERMISSIONS.DIGITAL_ORDERS_VIEW, PERMISSIONS.ORDER_VIEW],
     },
     receiptTemplates: {
         id: 'receiptTemplates',
@@ -416,6 +425,44 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         icon: 'ShopOutlined',
         permission: PERMISSIONS.SETTINGS_MANAGE,
     },
+    websiteGenerator: {
+        id: 'websiteGenerator',
+        menuKey: '/settings/website',
+        href: '/settings/website',
+        labelKey: 'nav.websiteGenerator',
+        icon: 'GlobalOutlined',
+        permission: [
+            PERMISSIONS.DIGITAL_VIEW,
+            PERMISSIONS.DIGITAL_PREVIEW,
+            PERMISSIONS.DIGITAL_REQUEST,
+            PERMISSIONS.DIGITAL_CREATE,
+            PERMISSIONS.WEBSITE_MANAGE,
+        ],
+    },
+    digitalPortal: {
+        id: 'digitalPortal',
+        menuKey: '/settings/digital',
+        href: '/settings/digital',
+        labelKey: 'nav.digitalPortal',
+        icon: 'GlobalOutlined',
+        permission: [
+            PERMISSIONS.DIGITAL_VIEW,
+            PERMISSIONS.DIGITAL_REQUEST,
+            PERMISSIONS.WEBSITE_MANAGE,
+        ],
+    },
+    customerPortal: {
+        id: 'customerPortal',
+        menuKey: '/digital/customer-portal',
+        href: '/digital/customer-portal',
+        labelKey: 'nav.customerPortal',
+        icon: 'GlobalOutlined',
+        permission: [
+            PERMISSIONS.DIGITAL_VIEW,
+            PERMISSIONS.DIGITAL_REQUEST,
+            PERMISSIONS.WEBSITE_MANAGE,
+        ],
+    },
     settingsHub: {
         id: 'settingsHub',
         menuKey: '/settings',
@@ -479,6 +526,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/settings/payment-methods',
         labelKey: 'nav.paymentMethods',
         icon: 'CreditCardOutlined',
+    },
+    paymentGateway: {
+        id: 'paymentGateway',
+        menuKey: '/settings/payment',
+        href: '/settings/payment',
+        labelKey: 'nav.paymentGateway',
+        icon: 'CreditCardOutlined',
+        permission: PERMISSIONS.SETTINGS_MANAGE,
     },
     backupDr: {
         id: 'backupDr',
@@ -630,6 +685,35 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         icon: 'BarChartOutlined',
         permission: [PERMISSIONS.SYSTEM_CRITICAL],
         sidebarHidden: true,
+    },
+    billingDigital: {
+        id: 'billingDigital',
+        menuKey: '/billing/digital',
+        href: '/billing/digital',
+        labelKey: 'nav.billingDigital',
+        icon: 'FundOutlined',
+        permission: [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+    },
+    digitalServicesManage: {
+        id: 'digitalServicesManage',
+        menuKey: '/admin/digital',
+        href: '/admin/digital',
+        labelKey: 'nav.digitalServicesManage',
+        icon: 'GlobalOutlined',
+        permission: [
+            PERMISSIONS.DIGITAL_MANAGE,
+            PERMISSIONS.DIGITAL_ACTIVATE,
+            PERMISSIONS.DIGITAL_PRICING_MANAGE,
+            PERMISSIONS.SYSTEM_CRITICAL,
+        ],
+    },
+    digitalServiceRequests: {
+        id: 'digitalServiceRequests',
+        menuKey: '/admin/digital/requests',
+        href: '/admin/digital/requests',
+        labelKey: 'nav.digitalServiceRequests',
+        icon: 'FileSearchOutlined',
+        permission: [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
     },
     rksvTestsDepExport: {
         id: 'rksvTestsDepExport',
@@ -819,7 +903,20 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         blocks: [
             {
                 kind: 'leaves',
-                catalogIds: ['licenseManagement', 'licenseTest', 'superAdminLicenses', 'billingOverview'],
+                catalogIds: [
+                    'licenseManagement',
+                    'licenseTest',
+                    'superAdminLicenses',
+                    'billingOverview',
+                    'billingDigital',
+                ],
+            },
+            {
+                kind: 'nested',
+                menuKey: ADMIN_SIDEBAR_GROUP_KEYS.digitalAdmin,
+                labelKey: 'nav.digital',
+                icon: 'GlobalOutlined',
+                catalogIds: ['digitalServicesManage', 'digitalServiceRequests'],
             },
         ],
     },
@@ -838,6 +935,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
                 icon: 'ShoppingCartOutlined',
                 catalogIds: [
                     'receipts',
+                    'onlineOrders',
                     'payments',
                     'paymentTrends',
                     'cardTransactions',
@@ -935,14 +1033,24 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         blocks: [
             {
                 kind: 'leaves',
+                catalogIds: ['settingsHub', 'companySettings'],
+            },
+            {
+                kind: 'nested',
+                menuKey: ADMIN_SIDEBAR_GROUP_KEYS.digitalServices,
+                labelKey: 'nav.digital',
+                icon: 'GlobalOutlined',
+                catalogIds: ['websiteGenerator', 'digitalPortal', 'customerPortal'],
+            },
+            {
+                kind: 'leaves',
                 catalogIds: [
-                    'settingsHub',
-                    'companySettings',
                     'tseSettings',
                     'finanzonlineSettings',
                     'sessionSettings',
                     'personalization',
                     'paymentMethods',
+                    'paymentGateway',
                 ],
             },
         ],

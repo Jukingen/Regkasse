@@ -32,7 +32,10 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/inventory': PERMISSIONS.INVENTORY_VIEW,
   '/modifier-groups': PERMISSIONS.PRODUCT_VIEW,
   '/invoices': PERMISSIONS.INVOICE_VIEW,
-  '/orders': PERMISSIONS.ORDER_VIEW,
+  '/orders': [PERMISSIONS.DIGITAL_ORDERS_VIEW, PERMISSIONS.ORDER_VIEW],
+  '/orders/online': [PERMISSIONS.DIGITAL_ORDERS_VIEW, PERMISSIONS.ORDER_VIEW],
+  /** Legacy alias → `/orders/online` */
+  '/online-orders': [PERMISSIONS.DIGITAL_ORDERS_VIEW, PERMISSIONS.ORDER_VIEW],
   '/payments': PERMISSIONS.PAYMENT_VIEW,
   '/payments/trends': PERMISSIONS.PAYMENT_VIEW,
   '/payments/card-transactions': PERMISSIONS.PAYMENT_VIEW,
@@ -96,6 +99,23 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/settings': PERMISSIONS.SETTINGS_VIEW,
   /** Super Admin / settings.manage — firm-wide fiscal master data. */
   '/settings/company': PERMISSIONS.SETTINGS_MANAGE,
+  '/settings/website': [
+    PERMISSIONS.DIGITAL_VIEW,
+    PERMISSIONS.DIGITAL_PREVIEW,
+    PERMISSIONS.DIGITAL_REQUEST,
+    PERMISSIONS.DIGITAL_CREATE,
+    PERMISSIONS.WEBSITE_MANAGE,
+  ],
+  '/settings/digital': [
+    PERMISSIONS.DIGITAL_VIEW,
+    PERMISSIONS.DIGITAL_REQUEST,
+    PERMISSIONS.WEBSITE_MANAGE,
+  ],
+  '/digital/customer-portal': [
+    PERMISSIONS.DIGITAL_VIEW,
+    PERMISSIONS.DIGITAL_REQUEST,
+    PERMISSIONS.WEBSITE_MANAGE,
+  ],
   '/settings/session': PERMISSIONS.SETTINGS_VIEW,
   /** Super Admin / settings.manage — offline limits and toggles. */
   '/settings/offline': PERMISSIONS.SETTINGS_MANAGE,
@@ -103,6 +123,8 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   /** Legacy redirect — canonical `/settings/personalization`. */
   '/settings/appearance': PERMISSIONS.SETTINGS_VIEW,
   '/settings/payment-methods': PERMISSIONS.SETTINGS_VIEW,
+  /** Super Admin / settings.manage — Stripe/Mock gateway status + online checkout methods. */
+  '/settings/payment': PERMISSIONS.SETTINGS_MANAGE,
   /** Super Admin / settings.manage — TSE defaults (legacy hub tab; deep-link route). */
   '/settings/tse': PERMISSIONS.SETTINGS_MANAGE,
   /** Super Admin / settings.manage — FinanzOnline credentials (legacy hub tab; deep-link route). */
@@ -140,6 +162,12 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
    */
   '/admin': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/tenants': PERMISSIONS.SYSTEM_CRITICAL,
+  /**
+   * Super Admin tenant tooling (`/tenant/{id}/customize|domain|…`).
+   * Manager-allowed deep links under `/tenant/{id}/…` are resolved via
+   * {@link getTenantScopedRoutePermission} (longest static prefix alone would block them).
+   */
+  '/tenant': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/errors': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/licenses': PERMISSIONS.LICENSE_VIEW,
   /** Cross-tenant platform register list — not tenant `/kassenverwaltung` (cash_register.manage). */
@@ -150,6 +178,14 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/billing/sales/new': [PERMISSIONS.SYSTEM_CRITICAL],
   /** Sale detail (`/admin/billing/sales/{id}`) — longest-prefix match via `/admin/billing/sales`. */
   '/admin/billing/stats': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/billing/digital': [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/digital': [
+    PERMISSIONS.DIGITAL_MANAGE,
+    PERMISSIONS.DIGITAL_ACTIVATE,
+    PERMISSIONS.DIGITAL_PRICING_MANAGE,
+    PERMISSIONS.SYSTEM_CRITICAL,
+  ],
+  '/admin/digital/requests': [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
   '/receipt-templates': PERMISSIONS.RECEIPT_TEMPLATE_VIEW,
   '/receipt-generate': PERMISSIONS.RECEIPT_TEMPLATE_VIEW,
   '/customers': PERMISSIONS.CUSTOMER_VIEW,
@@ -200,12 +236,50 @@ const ROUTE_KEYS_SORTED = (Object.keys(ROUTE_PERMISSIONS) as string[]).sort(
 );
 
 /**
- * Returns required permission(s) for path. Exact match first, then longest prefix match.
+ * `/tenant/{tenantId}/{leaf}` routes Managers may open (ambient or Super Admin tenant context).
+ * Checked before the `/tenant` → system.critical prefix so Mandanten are not blocked.
+ */
+const TENANT_SCOPED_LEAF_PERMISSIONS: Record<string, string | string[]> = {
+  digital: [
+    PERMISSIONS.DIGITAL_VIEW,
+    PERMISSIONS.DIGITAL_PREVIEW,
+    PERMISSIONS.DIGITAL_REQUEST,
+    PERMISSIONS.DIGITAL_CREATE,
+    PERMISSIONS.WEBSITE_MANAGE,
+    PERMISSIONS.SYSTEM_CRITICAL,
+  ],
+  'website-preview': [
+    PERMISSIONS.DIGITAL_VIEW,
+    PERMISSIONS.DIGITAL_PREVIEW,
+    PERMISSIONS.DIGITAL_REQUEST,
+    PERMISSIONS.DIGITAL_CREATE,
+    PERMISSIONS.WEBSITE_MANAGE,
+    PERMISSIONS.SYSTEM_CRITICAL,
+  ],
+  orders: [PERMISSIONS.DIGITAL_ORDERS_VIEW, PERMISSIONS.ORDER_VIEW, PERMISSIONS.SYSTEM_CRITICAL],
+};
+
+/** Match `/tenant/{id}/{leaf}` Manager deep links; otherwise undefined. */
+export function getTenantScopedRoutePermission(
+  pathname: string,
+): string | string[] | undefined {
+  const parts = (pathname.replace(/\/$/, '') || '/').split('/').filter(Boolean);
+  if (parts.length !== 3 || parts[0] !== 'tenant') return undefined;
+  const leaf = parts[2];
+  if (!leaf || !(leaf in TENANT_SCOPED_LEAF_PERMISSIONS)) return undefined;
+  return TENANT_SCOPED_LEAF_PERMISSIONS[leaf];
+}
+
+/**
+ * Returns required permission(s) for path. Exact match first, then tenant-scoped
+ * `/tenant/{id}/…` leaves, then longest prefix match.
  * Protects dynamic segments (e.g. /receipt-templates/[id], /receipts/[receiptId]).
  */
 export function getRequiredPermissionForPath(pathname: string): string | string[] | undefined {
   const normalized = pathname.replace(/\/$/, '') || '/';
   if (ROUTE_PERMISSIONS[normalized] !== undefined) return ROUTE_PERMISSIONS[normalized];
+  const tenantScoped = getTenantScopedRoutePermission(normalized);
+  if (tenantScoped !== undefined) return tenantScoped;
   for (const key of ROUTE_KEYS_SORTED) {
     if (normalized === key || normalized.startsWith(key + '/')) return ROUTE_PERMISSIONS[key];
   }
