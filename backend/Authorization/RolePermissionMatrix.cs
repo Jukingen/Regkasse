@@ -147,6 +147,14 @@ public static class RolePermissionMatrix
                 AppPermissions.AuditView, AppPermissions.AuditExport,
                 AppPermissions.SettingsView,
                 AppPermissions.BackupManage,
+                AppPermissions.WebsiteManage,
+                // Digital services: view / preview / request only (no create/publish/delete).
+                AppPermissions.DigitalView,
+                AppPermissions.DigitalPreview,
+                AppPermissions.DigitalRequest,
+                // Online orders (website/app): status lifecycle only — not POS cart bridge.
+                AppPermissions.DigitalOrdersView,
+                AppPermissions.DigitalOrdersManage,
                 AppPermissions.LicenseManage,
                 AppPermissions.KitchenView, AppPermissions.KitchenUpdate,
                 AppPermissions.VoucherRead,
@@ -172,7 +180,7 @@ public static class RolePermissionMatrix
                 AppPermissions.CustomerView, AppPermissions.CustomerManage,
                 AppPermissions.InvoiceView,
                 AppPermissions.ReportView,
-                AppPermissions.DailyClosingView,
+                AppPermissions.DailyClosingView, AppPermissions.DailyClosingExecute,
                 AppPermissions.LicenseView,
                 AppPermissions.ReceiptReprint,
                 AppPermissions.KitchenView,

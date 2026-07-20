@@ -7,7 +7,8 @@ import { useAntdApp } from '@/hooks/useAntdApp';
 
 import React, { useCallback, useMemo, useState } from 'react';
 import { InfoCircleOutlined } from '@ant-design/icons';
-import { Button, Card, Space, Spin, Table, Tag, Tooltip, Typography } from 'antd';
+import { Button, Card, Space, Table, Tag, Tooltip, Typography } from 'antd';
+import { TableSkeleton } from '@/components/Skeleton';
 import type { ColumnsType } from 'antd/es/table';
 import type { BackupArtifactResponseDto } from '@/api/generated/model';
 import {
@@ -458,7 +459,9 @@ export function BackupArtifactsDownloadCard({
       ) : null}
 
       {loadingArtifacts ? (
-        <Spin style={{ display: 'block', marginBottom: 12 }} />
+        <div style={{ marginBottom: 12 }}>
+          <TableSkeleton rows={4} cols={4} loading />
+        </div>
       ) : null}
 
       {!loadingArtifacts && artifacts.length === 0 ? (

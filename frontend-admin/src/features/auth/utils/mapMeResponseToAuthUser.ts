@@ -99,7 +99,7 @@ function mapSessionPolicy(raw: SessionPolicyResponse | undefined) {
     if (timeout == null && warning == null) return undefined;
     return {
         sessionTimeoutMinutes: timeout ?? 30,
-        warningBeforeTimeoutMinutes: warning ?? 1,
+        warningBeforeTimeoutMinutes: warning ?? 5,
         keepCartAfterTimeout: raw.keepCartAfterTimeout ?? raw.KeepCartAfterTimeout,
         idleTimeoutEnabled: raw.idleTimeoutEnabled ?? raw.IdleTimeoutEnabled ?? true,
     };

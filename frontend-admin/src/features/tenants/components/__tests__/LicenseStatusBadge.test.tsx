@@ -12,13 +12,26 @@ describe('LicenseStatusBadge', () => {
     it('shows grace period state', () => {
         render(
             <LicenseStatusBadge
-                validUntil="2026-05-20T00:00:00Z"
+                validUntil="2026-05-18T00:00:00Z"
                 isInGracePeriod
-                daysRemaining={-11}
-                gracePeriodRemaining={10}
+                daysRemaining={-2}
+                gracePeriodRemaining={5}
             />,
         );
-        expect(screen.getByText(/Grace Period \(11 Tage überfällig\)/)).toBeTruthy();
+        expect(screen.getByText('Grace Period (2 Tage überfällig)')).toBeTruthy();
+    });
+
+    it('does not treat future ValidUntil horizon as overdue during grace', () => {
+        render(
+            <LicenseStatusBadge
+                validUntil="2029-04-13T00:00:00Z"
+                isInGracePeriod
+                daysRemaining={997}
+                gracePeriodRemaining={5}
+            />,
+        );
+        expect(screen.getByText('Grace Period (2 Tage überfällig)')).toBeTruthy();
+        expect(screen.queryByText(/997/)).toBeNull();
     });
 
     it('shows expiring soon within warning window', () => {

@@ -5,8 +5,9 @@
  */
 
 import React, { useMemo } from "react";
-import { Alert, Card, Col, Row, Spin, Statistic, Table, Typography } from "antd";
+import { Alert, Card, Col, Row, Statistic, Table, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
+import { PageSkeleton } from "@/components/Skeleton";
 import { useI18n } from "@/i18n";
 import { useBackupPerformance } from "@/features/backup/hooks/useBackupPerformance";
 import type { BackupPerformanceHistoryRow } from "@/features/backup/logic/backupPerformancePresentation";
@@ -66,7 +67,7 @@ export function BackupPerformanceDashboard() {
     [t],
   );
 
-  if (isLoading) return <Spin />;
+  if (isLoading) return <PageSkeleton widgets={4} />;
 
   if (isError || !stats) {
     return (

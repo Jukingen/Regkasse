@@ -8,7 +8,7 @@ import {
     MinusOutlined,
     ShoppingOutlined,
 } from '@ant-design/icons';
-import { Card, Col, DatePicker, Row, Select, Space, Spin, Statistic, Typography } from 'antd';
+import { Card, Col, DatePicker, Row, Select, Space, Statistic, Typography } from 'antd';
 import type { Dayjs } from 'dayjs';
 import {
     Area,
@@ -30,6 +30,7 @@ import {
 import styles from '@/features/analytics/components/paymentTrendsDashboard.module.css';
 import { usePaymentTrends } from '@/features/analytics/hooks/usePaymentTrends';
 import type { TrendPeriod } from '@/features/payments/types/paymentTrends';
+import { PageSkeleton } from '@/components/Skeleton';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatUserMonthDay, formatUserMonthYear, DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
@@ -81,11 +82,7 @@ export function PaymentTrendsDashboard() {
     const growthNegative = growth < 0;
 
     if (isLoading && !trends) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
-                <Spin size="large" />
-            </div>
-        );
+        return <PageSkeleton widgets={6} />;
     }
 
     if (isError) {

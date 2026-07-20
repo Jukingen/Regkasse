@@ -1,6 +1,6 @@
 import type { LicensePublicStatusDto } from '@/api/manual/adminLicense';
 import type { TenantLicenseOverview } from '@/features/license/api/tenantLicense';
-import { TENANT_GRACE_PERIOD_DAYS } from '@/features/license/constants/licenseGracePeriod';
+import { clampTenantGraceRemaining, TENANT_GRACE_PERIOD_DAYS } from '@/features/license/constants/licenseGracePeriod';
 import { resolveTenantLicenseStatus } from '@/features/license/utils/licenseStatus';
 
 /** Maps Super Admin `GET /api/admin/tenants/{id}/license` to the unified public read model. */
@@ -19,7 +19,7 @@ export function mapTenantLicenseOverviewToPublicStatus(
         resolved.kind === 'grace_write' || resolved.kind === 'grace_readonly';
     const gracePeriodRemaining =
         resolved.kind === 'grace_write'
-            ? Math.max(0, TENANT_GRACE_PERIOD_DAYS - resolved.daysExpired)
+            ? clampTenantGraceRemaining(TENANT_GRACE_PERIOD_DAYS - resolved.daysExpired)
             : 0;
 
     const isExpired = resolved.kind === 'lockdown' || resolved.kind === 'expired';

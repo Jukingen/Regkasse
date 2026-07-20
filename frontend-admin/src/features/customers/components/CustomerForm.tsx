@@ -1,10 +1,19 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Form, Input, Switch, Modal, Row, Col, Alert, Tag } from 'antd';
 import { Customer } from '@/api/generated/model';
 import { useI18n } from '@/i18n';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { isSystemCustomer } from '@/features/customers/constants/walkInCustomer';
+import { createValidationRules } from '@/lib/validation';
+import { FormFieldWithTooltip, AutoSaveStatusIndicator } from '@/components/form';
+import { FieldTooltip } from '@/components/FieldTooltip';
+import {
+    useAutoSave,
+    clearAutoSaveDraft,
+    readAutoSaveDraft,
+    writeAutoSaveDraft,
+} from '@/hooks/useAutoSave';
 
 interface CustomerFormProps {
     visible: boolean;
@@ -16,6 +25,8 @@ interface CustomerFormProps {
     assignedBenefitCount?: number | null;
 }
 
+type CustomerFormDraft = Record<string, unknown>;
+
 export default function CustomerForm({ visible, initialValues, onCancel, onSubmit, loading, assignedBenefitCount }: CustomerFormProps) {
     const { t } = useI18n();
     const { user } = useAuth();
@@ -23,25 +34,52 @@ export default function CustomerForm({ visible, initialValues, onCancel, onSubmi
     const systemCustomer = Boolean(initialValues && isSystemCustomer(initialValues));
     const readOnly = systemCustomer && !superAdmin;
     const [form] = Form.useForm();
+    const rules = useMemo(() => createValidationRules(t), [t]);
+    const [draftValues, setDraftValues] = useState<CustomerFormDraft>({});
+
+    const draftKey = initialValues?.id
+        ? `fa:draft:customer:${initialValues.id}`
+        : 'fa:draft:customer:new';
+
+    const { saving, saved, error: autoSaveError } = useAutoSave(
+        draftValues,
+        async (data) => {
+            writeAutoSaveDraft(draftKey, data);
+        },
+        700,
+        { enabled: visible && !readOnly, skipInitial: true },
+    );
 
     useEffect(() => {
         if (visible) {
             if (initialValues) {
                 form.setFieldsValue(initialValues);
+                setDraftValues(initialValues as unknown as CustomerFormDraft);
             } else {
                 form.resetFields();
-                form.setFieldsValue({
+                const defaults = {
                     isActive: true,
                     isVip: false,
                     loyaltyPoints: 0,
-                });
+                };
+                const draft = readAutoSaveDraft<CustomerFormDraft>(draftKey);
+                if (draft && !draft.id) {
+                    form.setFieldsValue({ ...defaults, ...draft });
+                    setDraftValues({ ...defaults, ...draft });
+                } else {
+                    form.setFieldsValue(defaults);
+                    setDraftValues(defaults);
+                }
             }
+        } else {
+            setDraftValues({});
         }
-    }, [visible, initialValues, form]);
+    }, [visible, initialValues, form, draftKey]);
 
     const handleSubmit = () => {
         if (readOnly) return;
         form.validateFields().then((values) => {
+            clearAutoSaveDraft(draftKey);
             onSubmit({
                 ...initialValues,
                 ...values,
@@ -51,7 +89,14 @@ export default function CustomerForm({ visible, initialValues, onCancel, onSubmi
 
     return (
         <Modal
-            title={initialValues ? t('customers.form.titleEdit') : t('customers.form.titleNew')}
+            title={
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12 }}>
+                    {initialValues ? t('customers.form.titleEdit') : t('customers.form.titleNew')}
+                    {!readOnly && (
+                        <AutoSaveStatusIndicator saving={saving} saved={saved} error={autoSaveError} />
+                    )}
+                </span>
+            }
             open={visible}
             forceRender
             onCancel={onCancel}
@@ -76,13 +121,18 @@ export default function CustomerForm({ visible, initialValues, onCancel, onSubmi
                     description={t('customers.list.systemCustomerProtected')}
                 />
             )}
-            <Form form={form} layout="vertical" disabled={readOnly}>
+            <Form
+                form={form}
+                layout="vertical"
+                disabled={readOnly}
+                onValuesChange={(_, all) => setDraftValues(all as CustomerFormDraft)}
+            >
                 <Row gutter={16}>
                     <Col span={12}>
                         <Form.Item
                             label={t('customers.form.name')}
                             name="name"
-                            rules={[{ required: true, message: t('customers.form.nameRequired') }]}
+                            rules={[rules.required(t('customers.form.name'))]}
                         >
                             <Input placeholder={t('customers.form.namePlaceholder')} />
                         </Form.Item>
@@ -102,7 +152,7 @@ export default function CustomerForm({ visible, initialValues, onCancel, onSubmi
                         <Form.Item
                             label={t('customers.form.email')}
                             name="email"
-                            rules={[{ type: 'email' }]}
+                            rules={[rules.email]}
                         >
                             <Input placeholder={t('customers.form.emailPlaceholder')} />
                         </Form.Item>
@@ -126,12 +176,16 @@ export default function CustomerForm({ visible, initialValues, onCancel, onSubmi
 
                 <Row gutter={16}>
                     <Col span={12}>
-                        <Form.Item
-                            label={t('customers.form.taxNumber')}
+                        <FormFieldWithTooltip
+                            label={
+                                <FieldTooltip title={t('customers.form.taxNumberTooltip')}>
+                                    {t('customers.form.taxNumber')}
+                                </FieldTooltip>
+                            }
                             name="taxNumber"
                         >
                             <Input />
-                        </Form.Item>
+                        </FormFieldWithTooltip>
                     </Col>
                     <Col span={12}>
                         <Form.Item

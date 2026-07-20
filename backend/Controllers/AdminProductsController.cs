@@ -36,6 +36,7 @@ namespace KasseAPI_Final.Controllers
         private readonly IDemoProductImportService _demoProductImportService;
         private readonly ICurrentTenantAccessor _tenantAccessor;
         private readonly IAdminProductListService _productListService;
+        private readonly IProductService _productService;
 
         public AdminProductsController(
             AppDbContext context,
@@ -47,7 +48,8 @@ namespace KasseAPI_Final.Controllers
             ProductImageThumbnailService productImageThumbnailService,
             IDemoProductImportService demoProductImportService,
             ICurrentTenantAccessor tenantAccessor,
-            IAdminProductListService productListService)
+            IAdminProductListService productListService,
+            IProductService productService)
             : base(logger)
         {
             _context = context;
@@ -59,6 +61,7 @@ namespace KasseAPI_Final.Controllers
             _demoProductImportService = demoProductImportService;
             _tenantAccessor = tenantAccessor;
             _productListService = productListService;
+            _productService = productService;
         }
 
         /// <summary>Demo menu catalog for import selection UI. GET api/admin/products/demo/catalog</summary>
@@ -283,6 +286,7 @@ namespace KasseAPI_Final.Controllers
                 product.IsActive = true;
 
                 var createdProduct = await _productRepository.AddAsync(product);
+                await _productService.InvalidateProductsCacheAsync(tenantId, createdProduct.Id);
                 _logger.LogInformation("Admin product created: {Name} (ID: {Id})", product.Name, createdProduct.Id);
                 return SuccessResponse(AdminProductDto.FromProduct(createdProduct), "Product created successfully");
             }
@@ -338,6 +342,7 @@ namespace KasseAPI_Final.Controllers
                 existingProduct.UpdatedBy = User.Identity?.Name ?? "system";
 
                 await _context.SaveChangesAsync();
+                await _productService.InvalidateProductsCacheAsync(existingProduct.TenantId, id);
 
                 _logger.LogInformation("Admin product updated: {Name} (ID: {Id})", existingProduct.Name, id);
                 return SuccessResponse(AdminProductDto.FromProduct(existingProduct), "Product updated successfully");
@@ -539,6 +544,7 @@ namespace KasseAPI_Final.Controllers
                     product.UpdatedBy = User.Identity?.Name ?? "system";
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
+                    await _productService.InvalidateProductsCacheAsync(product.TenantId, id);
                     _logger.LogInformation("Admin product stock updated: {Name} (ID: {Id}) Old: {Old}, New: {New}", product.Name, id, oldStock, request.Quantity);
                     return SuccessResponse(AdminProductDto.FromProduct(product), "Product stock updated successfully");
                 }
@@ -577,6 +583,7 @@ namespace KasseAPI_Final.Controllers
                 entity.UpdatedAt = DateTime.UtcNow;
                 entity.UpdatedBy = User.Identity?.Name ?? "system";
                 await _context.SaveChangesAsync();
+                await _productService.InvalidateProductsCacheAsync(entity.TenantId, id);
                 _logger.LogInformation("Admin product deleted: {Id}", id);
                 return SuccessResponse(new { id }, "Product deleted successfully");
             }

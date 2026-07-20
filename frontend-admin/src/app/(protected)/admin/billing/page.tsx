@@ -36,6 +36,9 @@ export default function BillingOverviewPage() {
                             <Button onClick={() => router.push('/admin/billing/stats')}>
                                 {t('billing.overview.viewStats')}
                             </Button>
+                            <Button onClick={() => router.push('/billing/digital')}>
+                                {t('billing.digital.viewDashboard')}
+                            </Button>
                             <Button
                                 type="primary"
                                 icon={<PlusOutlined />}

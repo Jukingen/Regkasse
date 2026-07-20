@@ -34,7 +34,7 @@ export function SessionSettings() {
         }
     };
 
-    const warningMinutes = Form.useWatch('warningMinutes', form) ?? settings?.warningMinutes ?? 1;
+    const warningMinutes = Form.useWatch('warningMinutes', form) ?? settings?.warningMinutes ?? 5;
     const countdownSeconds = warningMinutes * 60;
 
     return (

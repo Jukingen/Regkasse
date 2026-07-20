@@ -294,18 +294,25 @@
         "message": "Lisansınız {{days}} gün önce sona erdi. Satışların açık kalması için lütfen önümüzdeki {{remaining}} gün içinde lisansı yenileyin."
       },
       "graceWrite": {
-        "title": "Kiracı lisansı – grace dönemi",
-        "adminDescription": "Lisansınız {{daysExpired}} gün önce sona erdi. Kiracı kilitlenmeden önce yenilemek için {{daysRemaining}} gününüz kaldı.",
-        "contactAdminDescription": "Kiracı lisansı {{daysExpired}} gün önce sona erdi. Lütfen yöneticinizle iletişime geçin."
+        "title": "Kiracı lisansı – grace dönemi (7 gün)",
+        "adminDescription": "Lisansınız {{daysExpired}} gün önce sona erdi. POS {{daysRemaining}} gün daha çalışır. POS {{lockDate}} tarihinde kilitlenecek. Lütfen zamanında yenileyin.",
+        "contactAdminDescription": "Kiracı lisansı {{daysExpired}} gün önce sona erdi. POS {{daysRemaining}} gün daha kullanılabilir (kilit: {{lockDate}}). Lütfen yöneticinizle iletişime geçin.",
+        "restrictions": "Grace döneminde: POS kullanılabilir, uyarılar aktif. Grace sonrası: POS kilitli (yalnızca Süper Yönetici açabilir)."
       },
       "lockdown": {
-        "title": "Kiracı lisansı sona erdi – sistem kilitli",
-        "adminDescription": "Lisansınız {{daysExpired}} gün önce sona erdi. Sistem şu anda kilit modunda.",
-        "contactAdminDescription": "Bu kiracı şu anda kilitli. Lütfen yöneticinizle iletişime geçin."
+        "title": "Kiracı lisansı sona erdi – POS kilitli",
+        "adminDescription": "Lisansınız {{daysExpired}} gün önce sona erdi. Grace dönemi bitti. POS kilitli — yalnızca Süper Yönetici kilidi açabilir. Lütfen lisansı yenileyin.",
+        "contactAdminDescription": "Bu kiracı şu anda kilitli (grace dönemi bitti). Yalnızca Süper Yönetici kilidi açabilir. Lütfen yöneticinizle iletişime geçin.",
+        "restrictions": "POS kilitli. Yalnızca Süper Yönetici açabilir. Yenileme gerekli."
       },
       "noLicense": {
         "title": "Kiracı lisansı eksik",
         "adminDescription": "Bu kiracı için lisans tanımlanmamış. Lütfen bir lisans ekleyin."
+      },
+      "details": {
+        "graceRemaining": "Grace dönemi: {{days}} gün kaldı",
+        "lockDate": "POS kilit tarihi: {{date}}",
+        "contactAdmin": "Lütfen yöneticinizle iletişime geçin"
       }
     },
     "deployment": {
@@ -336,7 +343,8 @@
     },
     "actions": {
       "renewTenant": "Kiracı lisansını yenile",
-      "openDeployment": "Sunucu lisansını aç"
+      "openDeployment": "Sunucu lisansını aç",
+      "contact": "Yöneticiye ulaşın"
     }
   },
   "trialDays": "Kalan deneme günü",

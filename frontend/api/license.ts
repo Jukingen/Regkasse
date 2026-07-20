@@ -13,8 +13,13 @@ export type LicensePublicStatusDto = {
   canAccess?: boolean | null;
   canTransact?: boolean | null;
   statusMessage?: string | null;
+  statusMessageKey?: string | null;
   isInGracePeriod?: boolean;
+  isLocked?: boolean;
+  daysOverdue?: number;
   gracePeriodRemaining?: number;
+  lockDate?: string | null;
+  restrictions?: readonly string[];
   requiresRenewal?: boolean;
 };
 
@@ -24,9 +29,14 @@ export type TenantLicenseStatusDto = Pick<
   | 'canAccess'
   | 'canTransact'
   | 'statusMessage'
+  | 'statusMessageKey'
   | 'daysRemaining'
+  | 'daysOverdue'
   | 'isInGracePeriod'
+  | 'isLocked'
   | 'gracePeriodRemaining'
+  | 'lockDate'
+  | 'restrictions'
   | 'validUntil'
 >;
 

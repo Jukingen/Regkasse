@@ -1,5 +1,6 @@
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.License;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
@@ -11,62 +12,83 @@ public sealed class LicenseStatusInfoBuilderTests
     [Fact]
     public void Build_WhenLicenseValid_ReturnsActiveFullAccess()
     {
-        var info = LicenseStatusInfoBuilder.Build(Now.AddDays(30), nowUtc: Now);
+        var info = LicenseStatusInfoBuilder.Build(Now.AddDays(30), nowUtc: Now, language: "en");
 
         Assert.True(info.IsActive);
+        Assert.False(info.IsExpired);
+        Assert.False(info.IsLocked);
         Assert.Equal(30, info.DaysRemaining);
         Assert.Equal(0, info.DaysOverdue);
         Assert.False(info.IsInGracePeriod);
         Assert.True(info.CanAccess);
         Assert.True(info.CanTransact);
+        Assert.Equal(LicenseStatusMessageKeys.Active, info.StatusMessageKey);
+        Assert.Empty(info.Restrictions);
     }
 
     [Fact]
     public void Build_WhenWithinWarningWindow_IncludesExpiryWarningMessage()
     {
-        var info = LicenseStatusInfoBuilder.Build(Now.AddDays(10), nowUtc: Now);
+        var info = LicenseStatusInfoBuilder.Build(Now.AddDays(10), nowUtc: Now, language: "en");
 
         Assert.True(info.IsActive);
         Assert.Equal(10, info.DaysRemaining);
+        Assert.Equal(LicenseStatusMessageKeys.ExpiringSoon, info.StatusMessageKey);
         Assert.Contains("expires in 10 day(s)", info.StatusMessage, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public void Build_WhenInGracePeriod_AllowsTransactions()
+    public void Build_WhenInGracePeriod_AllowsTransactionsAndReportsLockDate()
     {
-        var info = LicenseStatusInfoBuilder.Build(Now.AddDays(-5), nowUtc: Now);
+        var validUntil = Now.AddDays(-5);
+        var info = LicenseStatusInfoBuilder.Build(validUntil, nowUtc: Now, language: "en");
 
         Assert.False(info.IsActive);
+        Assert.True(info.IsExpired);
+        Assert.False(info.IsLocked);
         Assert.Equal(5, info.DaysOverdue);
         Assert.True(info.IsInGracePeriod);
-        Assert.Equal(16, info.GracePeriodRemaining);
+        Assert.Equal(LicenseGracePeriodConfig.GracePeriodDays - 5, info.GracePeriodRemaining);
         Assert.True(info.CanAccess);
         Assert.True(info.CanTransact);
-        Assert.Contains("Grace period: 16 day(s) remaining", info.StatusMessage);
+        Assert.Equal(LicenseStatusMessageKeys.Grace, info.StatusMessageKey);
+        Assert.Equal(validUntil.AddDays(LicenseGracePeriodConfig.GracePeriodDays), info.LockDate);
+        Assert.Contains("POS can still be used", info.StatusMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(LicenseStatusRestrictionCodes.PosOperational, info.Restrictions);
+        Assert.Contains(LicenseStatusRestrictionCodes.LockPending, info.Restrictions);
     }
 
     [Fact]
-    public void Build_WhenGraceExpired_ReturnsBlocked()
+    public void Build_WhenGraceExpired_ReturnsLocked()
     {
-        var info = LicenseStatusInfoBuilder.Build(Now.AddDays(-22), nowUtc: Now);
+        var info = LicenseStatusInfoBuilder.Build(
+            Now.AddDays(-(LicenseGracePeriodConfig.GracePeriodDays + 1)),
+            nowUtc: Now,
+            language: "en");
 
         Assert.False(info.IsActive);
-        Assert.Equal(22, info.DaysOverdue);
+        Assert.True(info.IsExpired);
+        Assert.True(info.IsLocked);
+        Assert.Equal(LicenseGracePeriodConfig.GracePeriodDays + 1, info.DaysOverdue);
         Assert.False(info.IsInGracePeriod);
         Assert.Equal(0, info.GracePeriodRemaining);
         Assert.False(info.CanAccess);
         Assert.False(info.CanTransact);
-        Assert.Contains("Access is blocked", info.StatusMessage);
+        Assert.Equal(LicenseStatusMessageKeys.Locked, info.StatusMessageKey);
+        Assert.Contains("POS is locked", info.StatusMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(LicenseStatusRestrictionCodes.PosLocked, info.Restrictions);
+        Assert.Contains(LicenseStatusRestrictionCodes.SuperAdminUnlockOnly, info.Restrictions);
     }
 
     [Fact]
     public void Build_WhenNoLicense_ReturnsBlocked()
     {
-        var info = LicenseStatusInfoBuilder.Build(null, nowUtc: Now);
+        var info = LicenseStatusInfoBuilder.Build(null, nowUtc: Now, language: "en");
 
         Assert.False(info.IsActive);
         Assert.False(info.CanAccess);
         Assert.False(info.CanTransact);
+        Assert.Equal(LicenseStatusMessageKeys.None, info.StatusMessageKey);
         Assert.Contains("No tenant license", info.StatusMessage);
     }
 
@@ -77,6 +99,7 @@ public sealed class LicenseStatusInfoBuilderTests
 
         Assert.True(info.CanAccess);
         Assert.True(info.CanTransact);
+        Assert.False(info.IsLocked);
     }
 
     [Fact]
@@ -92,5 +115,16 @@ public sealed class LicenseStatusInfoBuilderTests
         Assert.True(lastGraceDay.CanTransact);
         Assert.Equal(0, lastGraceDay.GracePeriodRemaining);
         Assert.False(firstBlockedDay.CanTransact);
+        Assert.True(firstBlockedDay.IsLocked);
+    }
+
+    [Fact]
+    public void Build_GermanGraceMessage_IncludesLockDate()
+    {
+        var info = LicenseStatusInfoBuilder.Build(Now.AddDays(-2), nowUtc: Now, language: "de");
+
+        Assert.Equal(LicenseStatusMessageKeys.Grace, info.StatusMessageKey);
+        Assert.Contains("gesperrt", info.StatusMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Tag", info.StatusMessage, StringComparison.OrdinalIgnoreCase);
     }
 }

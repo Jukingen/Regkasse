@@ -8,6 +8,7 @@ import type { ReceiptTemplate } from '@/api/generated/model';
 import Link from 'next/link';
 import dayjs from 'dayjs';
 import { useI18n } from '@/i18n';
+import { adminTablePaginationDefaults } from '@/components/ui/adminTablePagination';
 
 interface ReceiptTemplateListProps {
     data: ReceiptTemplate[];
@@ -110,7 +111,7 @@ export default function ReceiptTemplateList({
             dataSource={data}
             rowKey="id"
             loading={loading}
-            pagination={false}
+            pagination={{ ...adminTablePaginationDefaults }}
         />
     );
 }

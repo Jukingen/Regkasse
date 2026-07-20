@@ -7,7 +7,6 @@ import {
     Col,
     DatePicker,
     Row,
-    Spin,
     Statistic,
     Table,
     Tag,
@@ -20,6 +19,7 @@ import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { PageSkeleton } from '@/components/Skeleton';
 import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
@@ -165,9 +165,7 @@ export default function OfflineIntentCoveragePage() {
             />
 
             {isLoading ? (
-                <div style={{ textAlign: 'center', padding: 80 }}>
-                    <Spin size="large" />
-                </div>
+                <PageSkeleton widgets={4} />
             ) : error ? (
                 <Alert
                     type="error"

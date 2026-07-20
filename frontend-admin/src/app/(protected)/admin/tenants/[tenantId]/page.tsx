@@ -12,6 +12,8 @@ import {
     ArrowLeftOutlined,
     DeleteOutlined,
     EditOutlined,
+    BgColorsOutlined,
+    GlobalOutlined,
     ImportOutlined,
     LoginOutlined,
     ReloadOutlined,
@@ -26,6 +28,11 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { isDevelopment } from '@/features/auth/services/devTenant';
 import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
+import { useKeyboardShortcutListener } from '@/hooks/useKeyboardShortcutListener';
+import {
+    KEYBOARD_SHORTCUT_EVENTS,
+    type NavigateTabDetail,
+} from '@/shared/keyboardShortcuts';
 import {
     applyTenantImpersonationSession,
     getAdminTenantById,
@@ -42,6 +49,7 @@ import { TenantDetailSettingsTab } from '@/features/super-admin/components/Tenan
 import {
     parseTenantDetailTab,
     TENANT_DETAIL_LEGACY_USERS_TAB,
+    TENANT_DETAIL_TAB_KEYS,
     type TenantDetailTabKey,
 } from '@/features/super-admin/components/TenantDetailTabs';
 import { buildAdminUsersPageHref } from '@/features/users/utils/adminUsersPageUrl';
@@ -136,6 +144,19 @@ export default function SuperAdminTenantDetailPage() {
         [router, tenantId],
     );
 
+    const onNavigateTab = useCallback(
+        (detail: NavigateTabDetail | undefined) => {
+            if (detail?.index == null) return;
+            const tabKey = TENANT_DETAIL_TAB_KEYS[detail.index];
+            if (tabKey) setTab(tabKey);
+        },
+        [setTab],
+    );
+    useKeyboardShortcutListener(KEYBOARD_SHORTCUT_EVENTS.navigateTab, onNavigateTab, canAccess && !!tenantId);
+
+    const closeDemoImport = useCallback(() => setDemoImportOpen(false), []);
+    useKeyboardShortcutListener(KEYBOARD_SHORTCUT_EVENTS.closeModal, closeDemoImport, demoImportOpen);
+
     useEffect(() => {
         if (activeTab === TENANT_DETAIL_LEGACY_USERS_TAB && tenantId) {
             router.replace(buildAdminUsersPageHref(tenantId));
@@ -182,6 +203,7 @@ export default function SuperAdminTenantDetailPage() {
                     <TenantDetailSettingsTab
                         tenant={tenant}
                         onUpdated={invalidateTenant}
+                        saveShortcutEnabled={displayTab === 'settings'}
                         restorePending={restoreMutation.isPending}
                         developmentHardDeletePending={developmentHardDeleteMutation.isPending}
                         onArchiveSuccess={invalidateTenant}
@@ -202,6 +224,7 @@ export default function SuperAdminTenantDetailPage() {
         impersonateMutation.isPending,
         invalidateTenant,
         router,
+        displayTab,
     ]);
 
     if (!canAccess) {
@@ -258,6 +281,26 @@ export default function SuperAdminTenantDetailPage() {
                                 </Button>
                                 <Link href={buildAdminUsersPageHref(tenantId)}>
                                     <Button>{t('tenants.detail.overview.manageUsers')}</Button>
+                                </Link>
+                                <Link href={`/tenant/${tenantId}/digital`}>
+                                    <Button icon={<GlobalOutlined />}>
+                                        {t('tenants.digitalServices.openAction')}
+                                    </Button>
+                                </Link>
+                                <Link href={`/tenant/${tenantId}/domain`}>
+                                    <Button icon={<GlobalOutlined />}>
+                                        {t('tenants.domainManagement.openAction')}
+                                    </Button>
+                                </Link>
+                                <Link href={`/tenant/${tenantId}/customize`}>
+                                    <Button icon={<BgColorsOutlined />}>
+                                        {t('tenants.customization.openAction')}
+                                    </Button>
+                                </Link>
+                                <Link href={`/tenant/${tenantId}/data-management`}>
+                                    <Button>
+                                        {t('dataManagement.openAction')}
+                                    </Button>
                                 </Link>
                                 <Link href={`/admin/tenants/${tenantId}?tab=settings`}>
                                     <Button icon={<EditOutlined />}>{t('tenants.actions.edit')}</Button>

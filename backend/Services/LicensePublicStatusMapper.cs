@@ -1,4 +1,5 @@
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.License;
 
 namespace KasseAPI_Final.Services;
 
@@ -39,23 +40,41 @@ public static class LicensePublicStatusMapper
 
     public static LicensePublicStatusDto ApplyMandantOverlay(
         LicensePublicStatusDto deployment,
-        LicenseStatusInfo mandant)
+        LicenseStatusInfo mandant,
+        string? language = null)
     {
+        var statusMessage = !string.IsNullOrWhiteSpace(mandant.StatusMessageKey)
+            ? LicenseStatusMessages.Format(
+                mandant.StatusMessageKey,
+                language,
+                daysRemaining: Math.Max(0, mandant.DaysRemaining),
+                daysOverdue: mandant.DaysOverdue,
+                gracePeriodRemaining: mandant.GracePeriodRemaining,
+                lockDateUtc: mandant.LockDate)
+            : mandant.StatusMessage;
+
         return new LicensePublicStatusDto
         {
             LicenseType = deployment.LicenseType,
             ValidUntil = mandant.ValidUntil ?? deployment.ValidUntil,
             DaysRemaining = mandant.DaysRemaining,
             Features = deployment.Features,
-            IsExpired = !mandant.CanAccess && mandant.RequiresRenewal,
+            IsExpired = mandant.IsExpired || (!mandant.CanAccess && mandant.RequiresRenewal),
             IsValid = mandant.CanAccess,
             Mode = deployment.Mode,
             IsDevelopmentBypass = deployment.IsDevelopmentBypass,
             CanAccess = mandant.CanAccess,
             CanTransact = mandant.CanTransact,
-            StatusMessage = mandant.StatusMessage,
+            StatusMessage = statusMessage,
+            StatusMessageKey = string.IsNullOrWhiteSpace(mandant.StatusMessageKey)
+                ? null
+                : mandant.StatusMessageKey,
             IsInGracePeriod = mandant.IsInGracePeriod,
+            IsLocked = mandant.IsLocked,
+            DaysOverdue = mandant.DaysOverdue,
             GracePeriodRemaining = mandant.GracePeriodRemaining,
+            LockDate = mandant.LockDate,
+            Restrictions = mandant.Restrictions,
             RequiresRenewal = mandant.RequiresRenewal,
         };
     }

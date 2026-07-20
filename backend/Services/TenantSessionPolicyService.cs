@@ -55,7 +55,7 @@ public sealed class TenantSessionPolicyService : ITenantSessionPolicyService
     private static TenantSessionPolicyDto Defaults() => new()
     {
         SessionTimeoutMinutes = 30,
-        WarningBeforeTimeoutMinutes = 1,
+        WarningBeforeTimeoutMinutes = 5,
         KeepCartAfterTimeout = true,
         IdleTimeoutEnabled = true,
     };

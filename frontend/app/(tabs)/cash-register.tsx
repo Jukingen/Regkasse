@@ -6,6 +6,9 @@
 //     Products without add-on groups add directly. Inline chips (legacy path) still
 //     supported for existing cart lines. State: cart (context), modifierSheetProduct (sheet),
 //     pendingModifiersByProduct (legacy chip state).
+//
+// WORKING HOURS: never gate this screen. Do NOT add a closed-hours early return.
+// Restaurant hours are display-only (Header / WorkingHoursStatus). Cashiers always work.
 // =============================================================================
 
 import { Ionicons } from '@expo/vector-icons';
@@ -270,6 +273,11 @@ function usePOSOrderFlow(
   };
 }
 
+/**
+ * POS cash register — always operational.
+ * No working-hours check, no closed-hours early return, no order intake gate.
+ * (Restaurant schedule is display-only via Header / WorkingHoursStatus.)
+ */
 export default function CashRegisterScreen() {
   const { t } = useTranslation(['checkout', 'common']);
   const router = useRouter();

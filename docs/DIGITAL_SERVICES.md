@@ -5,8 +5,9 @@
 
 **Last updated:** 2026-07-19
 
-**Always-applied rules:** [`AGENTS.md`](../AGENTS.md) § Roles (Digital services & online orders)  
+**Always-applied rules:** [`AGENTS.md`](../AGENTS.md) § Roles (Digital services & online orders) · § Working hours (website/app only)  
 **Online orders guide:** [`ONLINE_ORDERS.md`](ONLINE_ORDERS.md)  
+**Working hours scope:** [`WORKING_HOURS.md`](WORKING_HOURS.md) — online intake only; never POS/FA  
 **Feature changelog:** [`CHANGELOG.md`](CHANGELOG.md)  
 **AI onboarding:** [`REGKASSE_AI_ONBOARDING.md`](../REGKASSE_AI_ONBOARDING.md) § Digital Services  
 **Permissions source of truth:** `backend/Authorization/RolePermissionMatrix.cs`, `AppPermissions.cs` · matrix doc: [`PERMISSIONS_MATRIX.md`](PERMISSIONS_MATRIX.md)
@@ -58,6 +59,7 @@ flowchart TB
 - Table: `online_orders` (+ items / status history).
 - Status API: `PATCH /api/admin/online-orders/{id}/status` (`digital.orders.manage`).
 - Optional POS cart bridge: `POST /api/admin/online-orders/{id}/accept` requires `digital.orders.approve` (**Super Admin**). Manager fulfillment is **status-only**.
+- **Working hours** gate website/app order intake only (`GET /api/sites/{slug}/status`, `POST /api/public/online-orders`) — never POS cart/payment or FA access. Detail: [`WORKING_HOURS.md`](WORKING_HOURS.md).
 
 ---
 

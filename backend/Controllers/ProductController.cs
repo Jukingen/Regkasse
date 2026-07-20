@@ -69,7 +69,9 @@ namespace KasseAPI_Final.Controllers
                 var (validPageNumber, validPageSize) = ValidatePagination(pageNumber, pageSize);
                 var tenantId = await EffectiveTenantIdAsync();
 
-                var query = _context.Products.Where(p => p.IsActive && p.TenantId == tenantId);
+                var query = _context.Products
+                    .AsNoTracking()
+                    .Where(p => p.IsActive && p.TenantId == tenantId);
                 if (categoryId.HasValue)
                     query = query.Where(p => p.CategoryId == categoryId.Value);
                 var totalCount = await query.CountAsync();
@@ -112,6 +114,7 @@ namespace KasseAPI_Final.Controllers
             {
                 var tenantId = await EffectiveTenantIdAsync();
                 var products = await _context.Products
+                    .AsNoTracking()
                     .Where(p => p.IsActive && p.TenantId == tenantId)
                     .OrderBy(p => p.Category)  // kategori adı (string); CategoryId = FK
                     .ThenBy(p => p.Name)
@@ -289,9 +292,23 @@ namespace KasseAPI_Final.Controllers
             {
                 var tenantId = await EffectiveTenantIdAsync();
                 var products = await _context.Products
+                    .AsNoTracking()
                     .Where(p => p.IsActive && p.TenantId == tenantId)
                     .OrderBy(p => p.Category)
                     .ThenBy(p => p.Name)
+                    .Select(p => new
+                    {
+                        p.Id,
+                        p.Name,
+                        p.Description,
+                        p.Price,
+                        p.ImageUrl,
+                        p.StockQuantity,
+                        p.TaxType,
+                        p.TaxRate,
+                        p.IsActive,
+                        p.Category
+                    })
                     .ToListAsync();
 
                 // Kategori bazlı gruplandırma
@@ -336,7 +353,10 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var tenantId = await EffectiveTenantIdAsync();
-                var allProducts = await _context.Products.Where(p => p.TenantId == tenantId).ToListAsync();
+                var allProducts = await _context.Products
+                    .AsNoTracking()
+                    .Where(p => p.TenantId == tenantId)
+                    .ToListAsync();
                 var activeProducts = allProducts.Where(p => p.IsActive).ToList();
                 var inactiveProducts = allProducts.Where(p => !p.IsActive).ToList();
                 
@@ -390,6 +410,7 @@ namespace KasseAPI_Final.Controllers
             {
                 var tenantId = await EffectiveTenantIdAsync();
                 var categories = await _context.Products
+                    .AsNoTracking()
                     .Where(p => p.IsActive && p.TenantId == tenantId)
                     .Select(p => p.Category)
                     .Distinct()
@@ -422,6 +443,7 @@ namespace KasseAPI_Final.Controllers
 
                 var tenantId = await EffectiveTenantIdAsync();
                 var products = await _context.Products
+                    .AsNoTracking()
                     .Where(p => p.TenantId == tenantId && p.Category == categoryName && p.IsActive)
                     .OrderBy(p => p.Name)
                     .Select(p => new
@@ -460,16 +482,19 @@ namespace KasseAPI_Final.Controllers
                 var products = status switch
                 {
                     "in-stock" => await _context.Products
+                        .AsNoTracking()
                         .Where(p => p.TenantId == tenantId && p.StockQuantity > p.MinStockLevel && p.IsActive)
                         .OrderBy(p => p.Name)
                         .ToListAsync(),
                     
                     "out-of-stock" => await _context.Products
+                        .AsNoTracking()
                         .Where(p => p.TenantId == tenantId && p.StockQuantity == 0 && p.IsActive)
                         .OrderBy(p => p.Name)
                         .ToListAsync(),
                     
                     "low-stock" => await _context.Products
+                        .AsNoTracking()
                         .Where(p => p.TenantId == tenantId && p.StockQuantity <= p.MinStockLevel && p.StockQuantity > 0 && p.IsActive)
                         .OrderBy(p => p.Name)
                         .ToListAsync(),
@@ -497,7 +522,7 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var tenantId = await EffectiveTenantIdAsync();
-                var query = _context.Products.Where(p => p.IsActive && p.TenantId == tenantId);
+                var query = _context.Products.AsNoTracking().Where(p => p.IsActive && p.TenantId == tenantId);
 
                 if (!string.IsNullOrWhiteSpace(name))
                 {
@@ -530,11 +555,13 @@ namespace KasseAPI_Final.Controllers
             {
                 var tenantId = await EffectiveTenantIdAsync();
                 var product = await _context.Products
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId);
                 if (product == null)
                     return ErrorResponse("Product not found.", 404);
 
                 var assignmentGroupIds = await _context.ProductModifierGroupAssignments
+                    .AsNoTracking()
                     .Where(a => a.ProductId == id && a.TenantId == tenantId)
                     .OrderBy(a => a.SortOrder)
                     .Select(a => a.ModifierGroupId)
@@ -545,6 +572,7 @@ namespace KasseAPI_Final.Controllers
 
                 // Phase D PR-C: Do not load Modifiers for POS; response uses MapToModifierGroupDtoForPos (Modifiers empty).
                 var groups = await _context.ProductModifierGroups
+                    .AsNoTracking()
                     .Where(g => g.IsActive && g.TenantId == tenantId && assignmentGroupIds.Contains(g.Id))
                     .Include(g => g.AddOnGroupProducts)
                     .ThenInclude(a => a.Product)

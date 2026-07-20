@@ -2,10 +2,11 @@
 
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useCallback, useMemo, useState } from 'react';
-import { Modal, Alert, Button, DatePicker, Form, Input, Space, Spin, Switch, Table, Tabs, Tag, Typography } from 'antd';
+import { Modal, Alert, Button, DatePicker, Form, Input, Space, Switch, Table, Tabs, Tag, Typography } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { type Dayjs } from 'dayjs';
+import { FormSkeleton } from '@/components/Skeleton';
 
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import type { PermissionCatalogItemDto } from '@/features/users/api/roleManagementApi';
@@ -208,9 +209,7 @@ function UserPermissionsModalContent({
             }
           />
         ) : loading ? (
-          <div className="flex justify-center py-12">
-            <Spin />
-          </div>
+          <FormSkeleton fields={6} />
         ) : (
           <Tabs
             activeKey={activeTab ?? tabItems[0]?.key}

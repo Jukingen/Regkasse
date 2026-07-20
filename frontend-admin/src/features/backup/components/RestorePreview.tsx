@@ -9,6 +9,7 @@
 import React, { useEffect, useMemo } from "react";
 import { Alert, Card, Descriptions, Spin, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
+import { TableSkeleton } from "@/components/Skeleton";
 import { useI18n } from "@/i18n";
 import { useRestorePreview } from "@/features/backup/hooks/useRestorePreview";
 import { useRestoreComplianceCheck } from "@/features/backup/hooks/useRestoreComplianceCheck";
@@ -212,7 +213,7 @@ export function RestorePreview({
         </Descriptions.Item>
       </Descriptions>
 
-      {isLoading ? <Spin /> : null}
+      {isLoading ? <TableSkeleton rows={4} cols={3} loading /> : null}
 
       {isError ? (
         <Alert

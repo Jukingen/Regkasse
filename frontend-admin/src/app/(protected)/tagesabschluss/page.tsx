@@ -6,10 +6,11 @@ import { useAntdApp } from '@/hooks/useAntdApp';
  */
 import React, { useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Alert, Button, Card, Col, DatePicker, Descriptions, Empty, Form, Input, Row, Select, Skeleton, Space, Spin, Table, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Col, DatePicker, Descriptions, Empty, Form, Input, Row, Select, Skeleton, Space, Table, Tag, Typography } from 'antd';
 import { CalendarOutlined, FilePdfOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useQueryClient } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
+import { CardSkeleton, TableSkeleton } from '@/components/Skeleton';
 
 import {
   getGetApiTagesabschlussCanCloseCashRegisterIdQueryKey,
@@ -709,7 +710,7 @@ export default function TagesabschlussPage() {
           {registerPicker}
 
           {!registerIdValid ? null : canCloseQuery.isLoading ? (
-            <Spin />
+            <CardSkeleton count={1} loading />
           ) : canCloseQuery.isError ? (
             <Alert
               type="error"
@@ -934,7 +935,7 @@ export default function TagesabschlussPage() {
             {dataBlockedHint ? (
               <Empty description={dataBlockedHint} />
             ) : statsQuery.isLoading ? (
-              <Spin />
+              <CardSkeleton count={1} loading />
             ) : statsQuery.isError ? (
               <Alert
               type="error"
@@ -978,7 +979,7 @@ export default function TagesabschlussPage() {
             {dataBlockedHint ? (
               <Empty description={dataBlockedHint} />
             ) : historyQuery.isLoading ? (
-              <Spin />
+              <TableSkeleton rows={6} cols={5} loading />
             ) : historyQuery.isError ? (
               <Alert
               type="error"

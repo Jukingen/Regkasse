@@ -6,7 +6,7 @@ import { useAntdApp } from '@/hooks/useAntdApp';
  */
 import React, { useCallback, useMemo, useState } from 'react';
 
-import { Modal, Alert, Button, Card, DatePicker, Drawer, Flex, Input, InputNumber, Select, Space, Spin, Table, Tabs, Tag, Typography } from 'antd';
+import { Modal, Alert, Button, Card, DatePicker, Drawer, Flex, Input, InputNumber, Select, Space, Table, Tabs, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -14,6 +14,7 @@ import utc from 'dayjs/plugin/utc';
 import { useQueryClient } from '@tanstack/react-query';
 import { InboxOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { TableSkeleton } from '@/components/Skeleton';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatCurrency } from '@/i18n/formatting';
@@ -503,9 +504,17 @@ export default function InventoryOperationsPage() {
                     style={{ maxWidth: 320 }}
                   />
                 </Flex>
-                <Spin spinning={invQuery.isLoading}>
-                  <Table rowKey="id" columns={overviewCols} dataSource={filtered} pagination={{ pageSize: 15 }} />
-                </Spin>
+                {invQuery.isLoading ? (
+                  <TableSkeleton rows={8} cols={5} />
+                ) : (
+                  <Table
+                    rowKey="id"
+                    columns={overviewCols}
+                    dataSource={filtered}
+                    pagination={{ pageSize: 15 }}
+                    loading={invQuery.isFetching}
+                  />
+                )}
               </Card>
             ),
           },
@@ -532,7 +541,9 @@ export default function InventoryOperationsPage() {
                   />
                   <Button onClick={() => setHistPage(1)}>{t('adminShell.inventory.historyFilterApply')}</Button>
                 </Space>
-                <Spin spinning={histQ.isLoading}>
+                {histQ.isLoading ? (
+                  <TableSkeleton rows={8} cols={5} />
+                ) : (
                   <Table
                     rowKey={(r) => String(r.transactionId)}
                     columns={histCols}
@@ -543,8 +554,9 @@ export default function InventoryOperationsPage() {
                       total: histQ.data?.totalCount ?? 0,
                       onChange: (p) => setHistPage(p),
                     }}
+                    loading={histQ.isFetching}
                   />
-                </Spin>
+                )}
               </Card>
             ),
           },
@@ -553,13 +565,16 @@ export default function InventoryOperationsPage() {
             label: t('adminShell.inventory.tabReorder'),
             children: (
               <Card size="small" title={t('adminShell.inventory.reorderTitle')}>
-                <Spin spinning={reorderQ.isLoading}>
+                {reorderQ.isLoading ? (
+                  <TableSkeleton rows={6} cols={4} />
+                ) : (
                   <Table
                     rowKey="inventoryId"
                     columns={reorderCols}
                     dataSource={(reorderQ.data ?? []) as Record<string, unknown>[]}
+                    loading={reorderQ.isFetching}
                   />
-                </Spin>
+                )}
               </Card>
             ),
           },
@@ -569,17 +584,27 @@ export default function InventoryOperationsPage() {
             children: (
               <Card size="small" title={t('adminShell.inventory.countTitle')}>
                 <Alert type="info" showIcon title={t('adminShell.inventory.countDraftHint')} style={{ marginBottom: 12 }} />
-                <Spin spinning={invQuery.isLoading}>
-                  <Table rowKey="id" columns={countCols} dataSource={filtered} pagination={false} />
-                  <Button
-                    type="primary"
-                    style={{ marginTop: 16 }}
-                    disabled={!canAdjust}
-                    onClick={() => finalizeCount()}
-                  >
-                    {t('adminShell.inventory.finalizeCount')}
-                  </Button>
-                </Spin>
+                {invQuery.isLoading ? (
+                  <TableSkeleton rows={8} cols={4} />
+                ) : (
+                  <>
+                    <Table
+                      rowKey="id"
+                      columns={countCols}
+                      dataSource={filtered}
+                      pagination={false}
+                      loading={invQuery.isFetching}
+                    />
+                    <Button
+                      type="primary"
+                      style={{ marginTop: 16 }}
+                      disabled={!canAdjust}
+                      onClick={() => finalizeCount()}
+                    >
+                      {t('adminShell.inventory.finalizeCount')}
+                    </Button>
+                  </>
+                )}
               </Card>
             ),
           },
@@ -685,7 +710,9 @@ export default function InventoryOperationsPage() {
         onClose={() => setDrawerInvId(null)}
         size={560}
       >
-        <Spin spinning={txQ.isLoading}>
+        {txQ.isLoading ? (
+          <TableSkeleton rows={6} cols={4} />
+        ) : (
           <Table
             size="small"
             rowKey="id"
@@ -705,8 +732,9 @@ export default function InventoryOperationsPage() {
             ]}
             dataSource={txQ.data ?? []}
             pagination={false}
+            loading={txQ.isFetching}
           />
-        </Spin>
+        )}
       </Drawer>
     </div>
   );

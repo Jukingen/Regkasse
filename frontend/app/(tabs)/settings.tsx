@@ -9,6 +9,8 @@ import { usePosRegisterSelection } from '../../hooks/usePosRegisterSelection';
 import { AppUpdateChecker } from '../../components/AppUpdateChecker';
 import { CashRegisterSelector } from '../../components/CashRegisterSelector';
 import { ShiftManager } from '../../components/ShiftManager';
+// Tagesabschluss UI lives in ShiftManager → DailyClosingModal → dailyClosingService
+// (POST /api/pos/shift/daily-closing; requires daily-closing.execute).
 import LanguageSelector from '../../components/LanguageSelector';
 import { LicenseStatusIndicator } from '../../components/LicenseStatusIndicator';
 import { LicenseTransferHelpSection } from '../../components/LicenseTransferHelpSection';

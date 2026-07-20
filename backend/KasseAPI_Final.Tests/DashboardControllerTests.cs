@@ -111,6 +111,19 @@ public sealed class DashboardControllerTests
     }
 
     [Fact]
+    public async Task GetWidgets_SuperAdmin_IncludesSystemMetrics()
+    {
+        await using var db = CreateContext();
+        var controller = CreateController(db, role: Roles.SuperAdmin);
+
+        var result = await controller.GetWidgets(CancellationToken.None);
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var items = Assert.IsAssignableFrom<IReadOnlyList<DashboardWidgetCatalogItemDto>>(ok.Value);
+
+        Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.SystemMetrics);
+    }
+
+    [Fact]
     public async Task GetWidgets_Manager_IncludesBackupAndOfflineWidgets()
     {
         await using var db = CreateContext();
@@ -121,8 +134,10 @@ public sealed class DashboardControllerTests
         var items = Assert.IsAssignableFrom<IReadOnlyList<DashboardWidgetCatalogItemDto>>(ok.Value);
 
         Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.BackupStatus);
+        Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.DataRetention);
         Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.OfflineSystemStatus);
         Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.LicenseExpiry);
+        Assert.DoesNotContain(items, i => i.WidgetId == DashboardWidgetCatalog.SystemMetrics);
     }
 
     [Fact]
@@ -135,7 +150,9 @@ public sealed class DashboardControllerTests
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var items = Assert.IsAssignableFrom<IReadOnlyList<DashboardWidgetCatalogItemDto>>(ok.Value);
 
-        Assert.DoesNotContain(items, i => i.WidgetId == "today-sales");
+        // Cashier admin whitelist may include report/payment views; must not include backup.manage widgets.
+        Assert.DoesNotContain(items, i => i.WidgetId == DashboardWidgetCatalog.DataRetention);
+        Assert.DoesNotContain(items, i => i.WidgetId == DashboardWidgetCatalog.BackupStatus);
         Assert.Contains(items, i => i.WidgetId == "active-cash-registers");
     }
 

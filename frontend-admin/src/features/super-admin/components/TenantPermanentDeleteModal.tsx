@@ -9,7 +9,6 @@ import {
     Input,
     Modal,
     Space,
-    Spin,
     Table,
     Tag,
     Typography,
@@ -17,7 +16,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import { WarningOutlined } from '@ant-design/icons';
 import { useMutation } from '@tanstack/react-query';
-
+import { CardSkeleton } from '@/components/Skeleton';
 import { deleteApiAdminTenantsTenantIdPermanent } from '@/api/generated/admin/admin';
 import type { TenantDeleteDependenciesDto } from '@/api/generated/model';
 import { useAntdApp } from '@/hooks/useAntdApp';
@@ -239,9 +238,7 @@ export function TenantPermanentDeleteModal({
             }
         >
             {dependenciesQuery.isLoading && !dependencies ? (
-                <div style={{ textAlign: 'center', padding: 48 }}>
-                    <Spin />
-                </div>
+                <CardSkeleton count={2} />
             ) : (
                 <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                     <Typography.Text type="secondary">

@@ -3,12 +3,20 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 
-const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'scroll', 'click', 'touchstart'] as const;
+const ACTIVITY_EVENTS = [
+    'mousemove',
+    'mousedown',
+    'keydown',
+    'scroll',
+    'wheel',
+    'click',
+    'touchstart',
+] as const;
 
 export type SessionTimeoutOptions = {
     /** Total idle time before logout (default 30). */
     timeoutMinutes?: number;
-    /** Warning window length before logout (default 1). */
+    /** Warning window length before logout (default 5). */
     warningMinutes?: number;
     onTimeout?: () => void;
     enabled?: boolean;
@@ -22,12 +30,12 @@ export type UseSessionTimeoutResult = {
 
 /**
  * Idle session timer with warning countdown and auto-logout.
- * Resets on common user activity events.
+ * Resets on keyboard / mouse / touch / scroll activity.
  */
 export function useSessionTimeout(options: SessionTimeoutOptions = {}): UseSessionTimeoutResult {
     const {
         timeoutMinutes = 30,
-        warningMinutes = 1,
+        warningMinutes = 5,
         onTimeout,
         enabled = true,
     } = options;

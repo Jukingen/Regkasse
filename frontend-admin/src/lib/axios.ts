@@ -7,7 +7,15 @@ import { getForbiddenMessage, mapRequiredPolicyToReasonCode } from '@/shared/err
 import { getStoredLanguage } from '@/i18n/languageStorage';
 import { isPublicAuthEntryPath } from '@/features/auth/utils/isPublicAuthEntryPath';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
-
+import {
+    applyCsrfHeaders,
+    clearCsrfTokenCache,
+    ensureCsrfToken,
+    isCsrfForbiddenMessage,
+    requestNeedsCsrf,
+    CSRF_HEADER,
+} from '@/lib/csrf';
+import { cookieService } from '@/services/cookieService';
 const isDev = process.env.NODE_ENV === 'development';
 
 function isRequestCanceled(error: unknown): boolean {
@@ -75,26 +83,58 @@ type RefreshTokenResponse = {
     refreshToken?: string;
 };
 
+export type RefreshAccessTokenOptions = {
+    /** When set, backend rebinds session + JWT `tenant_id` (dev tenant switcher). */
+    tenantId?: string | null;
+    /**
+     * When true (default), clear stored tokens if refresh fails (401 recovery).
+     * Set false for tenant switch so a failed rebind does not log the user out.
+     */
+    clearOnFailure?: boolean;
+};
+
 /** Shared in-flight refresh — prevents parallel `/api/Auth/refresh` (reuse detection). */
 let refreshPromise: Promise<string | null> | null = null;
 
-async function performTokenRefresh(): Promise<string | null> {
+/**
+ * Rotates refresh token and persists the new access token.
+ * Optional `tenantId` updates JWT `tenant_id` (Super Admin / membership-gated on API).
+ */
+export async function refreshAccessToken(
+    options?: RefreshAccessTokenOptions,
+): Promise<string | null> {
     const refreshToken = authStorage.getRefreshToken();
+    const clearOnFailure = options?.clearOnFailure !== false;
     if (!refreshToken) {
-        authStorage.removeToken();
+        if (clearOnFailure) {
+            authStorage.removeToken();
+        }
         return null;
     }
 
-    try {
+    const tenantId = options?.tenantId?.trim();
+    const body: { refreshToken: string; tenantId?: string } = { refreshToken };
+    if (tenantId) {
+        body.tenantId = tenantId;
+    }
+
+        try {
         // Raw axios — bypass response interceptor to avoid nested refresh on this call.
+        // Refresh is CSRF-exempt on the API; still send token when cookie is present.
+        const csrfHeaders: Record<string, string> = {
+            'Content-Type': 'application/json',
+            'Accept-Language': getStoredLanguage(),
+        };
+        const cookieToken = cookieService.getCsrfToken();
+        if (cookieToken) {
+            csrfHeaders[CSRF_HEADER] = cookieToken;
+        }
         const refreshResponse = await axios.post<RefreshTokenResponse>(
             `${baseURL}/api/Auth/refresh`,
-            { refreshToken },
+            body,
             {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept-Language': getStoredLanguage(),
-                },
+                withCredentials: true,
+                headers: csrfHeaders,
             },
         );
         const nextAccessToken = refreshResponse.data?.token;
@@ -106,12 +146,20 @@ async function performTokenRefresh(): Promise<string | null> {
             }
             return nextAccessToken;
         }
-        authStorage.removeToken();
+        if (clearOnFailure) {
+            authStorage.removeToken();
+        }
         return null;
     } catch {
-        authStorage.removeToken();
+        if (clearOnFailure) {
+            authStorage.removeToken();
+        }
         return null;
     }
+}
+
+async function performTokenRefresh(): Promise<string | null> {
+    return refreshAccessToken();
 }
 
 function getOrCreateRefreshPromise(): Promise<string | null> {
@@ -135,16 +183,15 @@ function getOrCreateRefreshPromise(): Promise<string | null> {
 const createAxiosInstance = () => {
     const instance = axios.create({
         baseURL: baseURL,
-        // JWT is sent via Authorization header (localStorage); cookies are not used for auth.
-        // false avoids credentialed CORS preflight coupling; matches POS api client.
-        withCredentials: false,
+        // JWT via Authorization; credentials so XSRF-TOKEN cookie is stored/sent with API calls.
+        withCredentials: true,
         headers: {
             'Content-Type': 'application/json',
         },
     });
 
     // Request Interceptor — tenant slug is read fresh from localStorage / host on every request (no instance cache).
-    instance.interceptors.request.use((config) => {
+    instance.interceptors.request.use(async (config) => {
         if (typeof window !== 'undefined') {
             const tenantSlug = resolveTenantSlugForApiRequest();
             if (isDev && config.url) {
@@ -180,6 +227,23 @@ const createAxiosInstance = () => {
                     technicalConsole.devDebug(`[API] Attaching bearer token to ${config.url}`);
                 }
             }
+
+            // CSRF: skip GET/HEAD/OPTIONS; cookieService holds XSRF-TOKEN for header mirror.
+            if (requestNeedsCsrf(config.method, config.url)) {
+                try {
+                    const csrf = await ensureCsrfToken(baseURL);
+                    const bag: Record<string, string> = {};
+                    applyCsrfHeaders(bag, csrf);
+                    for (const [key, value] of Object.entries(bag)) {
+                        config.headers[key] = value;
+                    }
+                    config.withCredentials = true;
+                } catch (csrfError) {
+                    if (isDev) {
+                        technicalConsole.warn('[API] CSRF token bootstrap failed', csrfError);
+                    }
+                }
+            }
         }
         // Dev-only: warn when hitting legacy endpoint prefixes (non-breaking detection).
         if (isDev && config.url && /\/api\/(Payment|Cart)\b/.test(config.url)) {
@@ -193,6 +257,9 @@ const createAxiosInstance = () => {
     // Response Interceptor
     instance.interceptors.response.use(
         (response) => {
+            if (typeof window !== 'undefined') {
+                sessionStorage.removeItem('regkasse_csrf_reload');
+            }
             return response;
         },
         async (error) => {
@@ -210,6 +277,21 @@ const createAxiosInstance = () => {
             const fallbackMessage = error?.message ?? 'Request failed';
 
             const suppressLogin401Noise = status === 401 && isPublicAuthEntryPath();
+
+            // CSRF rejection: clear cache and reload once so a fresh XSRF-TOKEN is issued.
+            if (status === 403 && isCsrfForbiddenMessage(serverMessage)) {
+                clearCsrfTokenCache();
+                if (typeof window !== 'undefined') {
+                    const reloadKey = 'regkasse_csrf_reload';
+                    const alreadyReloaded = sessionStorage.getItem(reloadKey) === '1';
+                    if (!alreadyReloaded) {
+                        sessionStorage.setItem(reloadKey, '1');
+                        window.location.reload();
+                        return Promise.reject(error);
+                    }
+                    sessionStorage.removeItem(reloadKey);
+                }
+            }
 
             if (isDev && !suppressLogin401Noise) {
                 if (status === 401) {
@@ -236,7 +318,7 @@ const createAxiosInstance = () => {
                 }
             }
 
-            if (status === 403) {
+            if (status === 403 && !isCsrfForbiddenMessage(serverMessage)) {
                 const urlStr = String(url);
                 const passwordChangeRequired = data?.code === 'PASSWORD_CHANGE_REQUIRED';
                 const isBackupArtifactBlobDownload =

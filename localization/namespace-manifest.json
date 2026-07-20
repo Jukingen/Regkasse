@@ -74,7 +74,11 @@
         "staff",
         "superadmin",
         "suspiciousAlerts",
-        "tenants"
+        "tenants",
+        "digital",
+        "onlineOrders",
+        "dataManagement",
+        "keyboardShortcuts"
       ]
     }
   }

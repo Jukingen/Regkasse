@@ -8,6 +8,7 @@ import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, Alert, Button, Descriptions, Form, Input, Space, Spin, Typography } from 'antd';
 import { useQueryClient } from '@tanstack/react-query';
+import { CardSkeleton } from '@/components/Skeleton';
 import { useManualRestoreStatusPoll } from '@/features/backup-dr/hooks/useManualRestoreStatusPoll';
 import {
   postManualRestoreApproval,
@@ -167,9 +168,7 @@ export function RestoreApprovalModal({
       destroyOnHidden
     >
       {statusQuery.isLoading && !status ? (
-        <div style={{ textAlign: 'center', padding: 24 }}>
-          <Spin />
-        </div>
+        <CardSkeleton count={1} />
       ) : (
         <Descriptions bordered size="small" column={1}>
           <Descriptions.Item label={t('backupDr.manualRestore.approvalModal.requestedBy')}>

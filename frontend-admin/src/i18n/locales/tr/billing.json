@@ -200,5 +200,24 @@
       "validUntil": "Geçerlilik",
       "daysRemaining": "Kalan gün"
     }
+  },
+  "digital": {
+    "pageTitle": "Dijital hizmetler — Gelir",
+    "pageSubtitle": "Aktif web sitesi ve uygulama aboneliklerinden aylık yinelenen gelir (MRR). Lisans satışları dahil değil.",
+    "totalRevenue": "Toplam MRR",
+    "websites": "Web siteleri",
+    "apps": "Mobil uygulamalar",
+    "subscribers": "Aktif abonelikler",
+    "subscriptionsTitle": "Abonelikler",
+    "empty": "Dijital abonelik yok",
+    "viewDashboard": "Dijital hizmetler",
+    "columns": {
+      "tenant": "Mandant",
+      "service": "Hizmet",
+      "price": "Fiyat",
+      "startDate": "Başlangıç",
+      "nextBilling": "Sonraki fatura",
+      "status": "Durum"
+    }
   }
 }

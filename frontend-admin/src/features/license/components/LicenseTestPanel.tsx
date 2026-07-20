@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
-import { Alert, Button, Card, DatePicker, Descriptions, Form, Select, Space, Spin, Tag } from 'antd';
+import { Alert, Button, Card, DatePicker, Descriptions, Form, Select, Space, Tag } from 'antd';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 
+import { CardSkeleton, FormSkeleton } from '@/components/Skeleton';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { DAYJS_DATETIME_FORMAT, formatGermanDateTime, useI18n } from '@/i18n';
 import { isDevelopment } from '@/features/auth/services/devTenant';
@@ -117,7 +118,7 @@ export function LicenseTestPanel() {
     const deployment = snapshotQuery.data?.deployment;
 
     if (tenantLoading && !contextTenant) {
-        return <Spin tip={t('license.testPanel.loadingTenant')} />;
+        return <FormSkeleton fields={3} loading />;
     }
 
     if (tenantError && !contextTenant) {
@@ -177,7 +178,7 @@ export function LicenseTestPanel() {
             {tenantId ? (
                 <Card title={t('license.testPanel.tenantSection')} size="small" style={{ marginBottom: 16 }}>
                     {snapshotQuery.isLoading ? (
-                        <Spin />
+                        <CardSkeleton count={1} loading />
                     ) : tenant ? (
                         <Descriptions column={1} size="small">
                             <Descriptions.Item label={t('license.testPanel.selectTenant')}>

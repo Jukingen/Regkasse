@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { Alert, Button, Card, Descriptions, InputNumber, Space, Spin, Switch, Typography } from 'antd';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { FormSkeleton } from "@/components/Skeleton";
 import { useI18n } from "@/i18n";
 import { formatDateTime } from "@/i18n/formatting";
 import { BackupSchedulePlanner } from "@/features/backup/components/BackupSchedulePlanner";
@@ -160,7 +161,7 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
       }
     >
       {settingsQuery.isLoading ? (
-        <Spin />
+        <FormSkeleton fields={5} loading />
       ) : (
         <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>

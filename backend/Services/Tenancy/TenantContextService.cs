@@ -17,17 +17,20 @@ public sealed class TenantContextService : ITenantContextService
     private readonly AppDbContext _db;
     private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly IWebHostEnvironment _environment;
+    private readonly ITenantDomainService _tenantDomains;
     private readonly ILogger<TenantContextService> _logger;
 
     public TenantContextService(
         AppDbContext db,
         ICurrentTenantAccessor tenantAccessor,
         IWebHostEnvironment environment,
+        ITenantDomainService tenantDomains,
         ILogger<TenantContextService> logger)
     {
         _db = db;
         _tenantAccessor = tenantAccessor;
         _environment = environment;
+        _tenantDomains = tenantDomains;
         _logger = logger;
     }
 
@@ -61,7 +64,7 @@ public sealed class TenantContextService : ITenantContextService
             }
         }
 
-        var requestSlug = GetHostTenantSlug(httpContext);
+        var requestSlug = await GetHostTenantSlugAsync(httpContext, cancellationToken).ConfigureAwait(false);
         var fromRequest = await ResolveTenantContextFromSlugBindingAsync(requestSlug, cancellationToken)
             .ConfigureAwait(false);
         if (fromRequest != null)
@@ -87,7 +90,7 @@ public sealed class TenantContextService : ITenantContextService
         HttpContext httpContext,
         CancellationToken cancellationToken = default)
     {
-        var slug = GetRequestTenantSlug(httpContext);
+        var slug = await GetRequestTenantSlugAsync(httpContext, cancellationToken).ConfigureAwait(false);
         _tenantAccessor.TenantId = await ResolveTenantIdFromSlugBindingAsync(slug, cancellationToken)
             .ConfigureAwait(false);
     }
@@ -97,7 +100,7 @@ public sealed class TenantContextService : ITenantContextService
         HttpContext httpContext,
         CancellationToken cancellationToken = default)
     {
-        var slug = GetHostTenantSlug(httpContext);
+        var slug = await GetHostTenantSlugAsync(httpContext, cancellationToken).ConfigureAwait(false);
         _tenantAccessor.TenantId = await ResolveTenantIdFromSlugBindingAsync(slug, cancellationToken)
             .ConfigureAwait(false);
     }
@@ -206,7 +209,9 @@ public sealed class TenantContextService : ITenantContextService
         return new TenantContext(row.Id, row.Slug, row.Name);
     }
 
-    private string GetRequestTenantSlug(HttpContext httpContext)
+    private async Task<string> GetRequestTenantSlugAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken)
     {
         if (_environment.IsDevelopment())
         {
@@ -217,11 +222,21 @@ public sealed class TenantContextService : ITenantContextService
             }
         }
 
-        return GetHostTenantSlug(httpContext);
+        return await GetHostTenantSlugAsync(httpContext, cancellationToken).ConfigureAwait(false);
     }
 
-    private static string GetHostTenantSlug(HttpContext httpContext) =>
-        TenantHostNames.GetTenantSlugFromHost(httpContext.Request.Host.Host);
+    private async Task<string> GetHostTenantSlugAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken)
+    {
+        var host = httpContext.Request.Host.Host;
+        var customSlug = await _tenantDomains.TryResolveSlugByHostAsync(host, cancellationToken)
+            .ConfigureAwait(false);
+        if (!string.IsNullOrWhiteSpace(customSlug))
+            return customSlug;
+
+        return TenantHostNames.GetTenantSlugFromHost(host);
+    }
 
     private static bool IsAdminPlatformSlug(string slug) =>
         string.Equals(slug, "admin", StringComparison.OrdinalIgnoreCase);

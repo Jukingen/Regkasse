@@ -60,11 +60,13 @@ const ICON_MAP: Record<SidebarIconToken, React.ComponentType> = {
     SafetyOutlined: Icons.SafetyOutlined,
     SettingOutlined: Icons.SettingOutlined,
     ShopOutlined: Icons.ShopOutlined,
+    GlobalOutlined: Icons.GlobalOutlined,
     BgColorsOutlined: Icons.BgColorsOutlined,
     CloudServerOutlined: Icons.CloudServerOutlined,
     ExperimentOutlined: Icons.ExperimentOutlined,
     WalletOutlined: Icons.WalletOutlined,
     ClockCircleOutlined: Icons.ClockCircleOutlined,
+    LaptopOutlined: Icons.LaptopOutlined,
     CloudDownloadOutlined: Icons.CloudDownloadOutlined,
     CloudSyncOutlined: Icons.CloudSyncOutlined,
     DatabaseOutlined: Icons.DatabaseOutlined,
@@ -73,6 +75,7 @@ const ICON_MAP: Record<SidebarIconToken, React.ComponentType> = {
     ApartmentOutlined: Icons.ApartmentOutlined,
     DisconnectOutlined: Icons.DisconnectOutlined,
     UnorderedListOutlined: Icons.UnorderedListOutlined,
+    BugOutlined: Icons.BugOutlined,
 };
 
 function iconEl(token?: SidebarIconToken): React.ReactNode {

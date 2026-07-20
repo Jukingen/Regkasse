@@ -1,5 +1,9 @@
 import type { ResolvedLicenseStatus } from '@/features/license/utils/licenseStatus';
 import { getLicenseHoursRemaining } from '@/features/license/utils/licenseStatus';
+import {
+    clampTenantGraceRemaining,
+    TENANT_GRACE_PERIOD_DAYS,
+} from '@/features/license/constants/licenseGracePeriod';
 import { formatUserDateTime } from '@/lib/dateFormatter';
 
 export type HeaderLicenseStatusClass = 'valid' | 'warning' | 'expired';
@@ -83,6 +87,10 @@ export function getHeaderLicenseStatusText(
 }
 
 export function getHeaderLicenseTooltipStatusLabel(status: ResolvedLicenseStatus, t: TranslateFn): string {
+    if (isGracePhase(status)) {
+        return t('license.phase.labels.graceWrite');
+    }
+
     if (status.daysRemaining <= 0 || isExpiredStatus(status)) {
         return t('license.phase.labels.expired');
     }
@@ -107,13 +115,28 @@ export function getHeaderLicenseTooltip(
     }
 
     const statusLabel = getHeaderLicenseTooltipStatusLabel(status, t);
-    const hoursRemaining = getLicenseHoursRemaining(context?.validUntilUtc);
-    if (hoursRemaining !== null && hoursRemaining > 0 && hoursRemaining < 24) {
-        return t('license.badge.headerShort.tooltip.ariaSummaryHours', {
+
+    if (isGracePhase(status)) {
+        const graceRemaining = clampTenantGraceRemaining(
+            TENANT_GRACE_PERIOD_DAYS - status.daysExpired,
+        );
+        return t('license.badge.headerShort.tooltip.ariaSummary', {
             dateTime,
-            hours: hoursRemaining,
+            days: graceRemaining,
             status: statusLabel,
         });
+    }
+
+    // Expired / lockdown: never prefer hours-from-ValidUntil (can be a stale future stamp).
+    if (!isExpiredStatus(status)) {
+        const hoursRemaining = getLicenseHoursRemaining(context?.validUntilUtc);
+        if (hoursRemaining !== null && hoursRemaining > 0 && hoursRemaining < 24) {
+            return t('license.badge.headerShort.tooltip.ariaSummaryHours', {
+                dateTime,
+                hours: hoursRemaining,
+                status: statusLabel,
+            });
+        }
     }
 
     const daysRemaining = Math.max(0, status.daysRemaining);

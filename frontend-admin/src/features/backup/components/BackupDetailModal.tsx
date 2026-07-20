@@ -14,7 +14,6 @@ import {
   Modal,
   Progress,
   Space,
-  Spin,
   Table,
   Tabs,
   Timeline,
@@ -22,6 +21,7 @@ import {
 } from "antd";
 import { DownloadOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
+import { CardSkeleton } from "@/components/Skeleton";
 import type {
   BackupArtifactResponseDto,
   BackupVerificationResponseDto,
@@ -468,7 +468,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
       }
     >
       {!runId ? null : isLoading && !run ? (
-        <Spin />
+        <CardSkeleton count={2} loading />
       ) : isError ? (
         <Alert type="error" showIcon title={t("backupDr.errors.runDetailPartial")} />
       ) : !run ? (

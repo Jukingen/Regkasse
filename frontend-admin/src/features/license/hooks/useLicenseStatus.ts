@@ -11,6 +11,7 @@ import {
     resolveTenantRowLicenseStatus,
     type LicenseStatusKind,
 } from '@/features/license/utils/licenseStatus';
+import { TENANT_GRACE_PERIOD_DAYS, clampTenantGraceRemaining } from '@/features/license/constants/licenseGracePeriod';
 import {
     getDeploymentLicenseStatus,
     licenseQueryKeys,
@@ -22,16 +23,40 @@ export interface LicenseStatus {
     kind: LicenseStatusKind;
     daysRemaining: number;
     daysExpired: number;
+    /** Remaining grace days when kind is grace_write; otherwise 0. */
+    daysRemainingInGrace: number;
     canWrite: boolean;
     canManageUsers: boolean;
     canAccess: boolean;
+    /** True when license validity is past (grace or lockdown). */
+    isExpired: boolean;
+    /** True when past grace — POS locked. */
+    isLocked: boolean;
+    /** ISO lock date from API when available. */
+    lockDate: string | null;
     message: string;
+}
+
+function isExpiredKind(kind: LicenseStatusKind): boolean {
+    return (
+        kind === 'grace_write' ||
+        kind === 'grace_readonly' ||
+        kind === 'lockdown' ||
+        kind === 'expired'
+    );
 }
 
 function mapTenantLicenseStatus(
     t: ReturnType<typeof useI18n>['t'],
     currentTenant: ReturnType<typeof useCurrentTenant>,
     remoteStatus: ReturnType<typeof resolveTenantLicenseFromPublicStatus> | null,
+    publicDto?: {
+        lockDate?: string | null;
+        gracePeriodRemaining?: number;
+        isLocked?: boolean;
+        isExpired?: boolean;
+        isInGracePeriod?: boolean;
+    } | null,
 ): LicenseStatus {
     const status =
         remoteStatus ??
@@ -41,8 +66,32 @@ function mapTenantLicenseStatus(
             licenseDaysRemaining: currentTenant.licenseDaysRemaining,
         });
 
+    const isLocked =
+        publicDto?.isLocked === true || status.kind === 'lockdown' || status.kind === 'expired';
+    const isExpired =
+        publicDto?.isExpired === true ||
+        publicDto?.isInGracePeriod === true ||
+        isExpiredKind(status.kind);
+    const daysRemainingInGrace =
+        status.kind === 'grace_write'
+            ? clampTenantGraceRemaining(
+                  typeof publicDto?.gracePeriodRemaining === 'number' &&
+                      Number.isFinite(publicDto.gracePeriodRemaining)
+                      ? publicDto.gracePeriodRemaining
+                      : TENANT_GRACE_PERIOD_DAYS - status.daysExpired,
+              )
+            : 0;
+    const lockDate =
+        typeof publicDto?.lockDate === 'string' && publicDto.lockDate.length > 0
+            ? publicDto.lockDate
+            : null;
+
     return {
         ...status,
+        daysRemainingInGrace,
+        isExpired,
+        isLocked,
+        lockDate,
         message: getLicenseStatusMessage(status, 'tenant', t),
     };
 }
@@ -63,6 +112,7 @@ export const useTenantLicenseStatus = (tenantId?: string): UseQueryResult<Licens
                 t,
                 currentTenant,
                 resolveTenantLicenseFromPublicStatus(query.data),
+                query.data,
             );
         }
 
@@ -75,7 +125,7 @@ export const useTenantLicenseStatus = (tenantId?: string): UseQueryResult<Licens
             return undefined;
         }
 
-        return mapTenantLicenseStatus(t, currentTenant, null);
+        return mapTenantLicenseStatus(t, currentTenant, null, null);
     }, [
         resolvedTenantId,
         currentTenant,
@@ -88,7 +138,7 @@ export const useTenantLicenseStatus = (tenantId?: string): UseQueryResult<Licens
     return {
         ...query,
         data,
-    } as UseQueryResult<LicenseStatus>;
+    } as unknown as UseQueryResult<LicenseStatus>;
 };
 
 export const useDeploymentLicenseStatus = () => {
@@ -101,6 +151,13 @@ export const useDeploymentLicenseStatus = () => {
             const status = resolveDeploymentLicenseStatus(response);
             return {
                 ...status,
+                daysRemainingInGrace:
+                    status.kind === 'grace_write'
+                        ? Math.max(0, 15 - status.daysExpired)
+                        : 0,
+                isExpired: status.kind !== 'active' && status.kind !== 'no_license',
+                isLocked: status.kind === 'lockdown' || status.kind === 'expired',
+                lockDate: null,
                 message: getLicenseStatusMessage(status, 'deployment', t),
             } satisfies LicenseStatus;
         },

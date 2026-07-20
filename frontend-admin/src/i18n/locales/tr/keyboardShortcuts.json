@@ -1,0 +1,19 @@
+{
+  "title": "Klavye kısayolları",
+  "help": "Klavye kısayolları",
+  "search": "Menü aramasını aç",
+  "newTenant": "Yeni mandant oluştur (mandant yönetim sayfaları)",
+  "save": "Aktif formu kaydet",
+  "closeModal": "Modal, çekmece veya aramayı kapat",
+  "logout": "Çıkış yap",
+  "navigate": "Geçerli sayfadaki sekmeler arasında gezin",
+  "inputHint": "Çoğu kısayol giriş alanlarında çalışmaz. Esc ve Ctrl/Cmd+S yazarken de geçerlidir.",
+  "columnShortcut": "Kısayol",
+  "columnAction": "İşlem",
+  "logoutConfirmTitle": "Oturumu kapat?",
+  "logoutConfirmContent": "Bu oturumu sonlandırmak istediğinize emin misiniz?",
+  "logoutConfirmOk": "Çıkış yap",
+  "saveWithShortcut": "Kaydet ({{shortcut}})",
+  "newTenantWithShortcut": "Yeni mandant ({{shortcut}})",
+  "openSearchWithShortcut": "Ara ({{shortcut}})"
+}

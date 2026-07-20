@@ -1,7 +1,9 @@
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.DigitalServices;
 using KasseAPI_Final.Services.License;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,6 +25,8 @@ public sealed class AdminBillingController : ControllerBase
     private readonly IReminderService _reminderService;
     private readonly ILicenseReminderService _licenseReminderService;
     private readonly IBillingBackupService _backupService;
+    private readonly IDigitalServicePricingService _digitalPricing;
+    private readonly ISubscriptionService _subscriptions;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<AdminBillingController> _logger;
 
@@ -34,6 +38,8 @@ public sealed class AdminBillingController : ControllerBase
         IReminderService reminderService,
         ILicenseReminderService licenseReminderService,
         IBillingBackupService backupService,
+        IDigitalServicePricingService digitalPricing,
+        ISubscriptionService subscriptions,
         ICurrentUserService currentUserService,
         ILogger<AdminBillingController> logger)
     {
@@ -44,6 +50,8 @@ public sealed class AdminBillingController : ControllerBase
         _reminderService = reminderService;
         _licenseReminderService = licenseReminderService;
         _backupService = backupService;
+        _digitalPricing = digitalPricing;
+        _subscriptions = subscriptions;
         _currentUserService = currentUserService;
         _logger = logger;
     }
@@ -189,6 +197,141 @@ public sealed class AdminBillingController : ControllerBase
             .ConfigureAwait(false);
         return Ok(result);
     }
+
+    /// <summary>Digital service list prices (website / app). Catalog only — not license_sales.</summary>
+    [HttpGet("digital-pricing")]
+    [ProducesResponseType(typeof(IReadOnlyList<ServicePricingDto>), StatusCodes.Status200OK)]
+    public ActionResult<IReadOnlyList<ServicePricingDto>> GetDigitalPricing([FromQuery] string? type = null)
+    {
+        var items = _digitalPricing.GetPricing(type)
+            .Select(p => new ServicePricingDto
+            {
+                ServiceId = p.ServiceId,
+                Name = p.Name,
+                Type = p.Type,
+                Tier = p.Tier,
+                PriceMonthly = p.PriceMonthly,
+                PriceYearly = p.PriceYearly,
+                Features = p.Features,
+                Currency = p.Currency
+            })
+            .ToList();
+        return Ok(items);
+    }
+
+    /// <summary>
+    /// Cross-tenant digital-service MRR dashboard (active price snapshots). Not license_sales.
+    /// </summary>
+    [HttpGet("digital")]
+    [ProducesResponseType(typeof(DigitalBillingDashboardDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<DigitalBillingDashboardDto>> GetDigitalBillingDashboard(
+        CancellationToken ct)
+    {
+        var dashboard = await _subscriptions.GetDigitalBillingDashboardAsync(ct);
+        return Ok(dashboard);
+    }
+
+    /// <summary>Create a digital-service subscription for a tenant (list price snapshot; no payment capture).</summary>
+    [HttpPost("subscriptions")]
+    [ProducesResponseType(typeof(SubscriptionMutationResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(SubscriptionMutationResponseDto), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(SubscriptionMutationResponseDto), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<SubscriptionMutationResponseDto>> CreateSubscription(
+        [FromBody] CreateSubscriptionRequestDto? body,
+        CancellationToken ct)
+    {
+        if (body is null || string.IsNullOrWhiteSpace(body.ServiceId) || body.TenantId == Guid.Empty)
+        {
+            return BadRequest(new SubscriptionMutationResponseDto
+            {
+                Succeeded = false,
+                Code = "VALIDATION_ERROR",
+                Error = "TenantId and ServiceId are required."
+            });
+        }
+
+        var actor = User.GetActorUserId();
+        var result = await _subscriptions.CreateSubscriptionAsync(
+            body.TenantId,
+            body.ServiceId,
+            actor,
+            ct);
+
+        var dto = MapSubscriptionMutation(result);
+        if (!result.Succeeded)
+        {
+            return result.Code switch
+            {
+                SubscriptionService.TenantNotFoundCode => NotFound(dto),
+                SubscriptionService.ServiceNotFoundCode => BadRequest(dto),
+                SubscriptionService.AlreadyActiveCode => Conflict(dto),
+                _ => BadRequest(dto)
+            };
+        }
+
+        return CreatedAtAction(
+            nameof(ListTenantSubscriptions),
+            new { tenantId = body.TenantId },
+            dto);
+    }
+
+    /// <summary>List digital-service subscriptions for a tenant.</summary>
+    [HttpGet("tenants/{tenantId:guid}/subscriptions")]
+    [ProducesResponseType(typeof(IReadOnlyList<SubscriptionResponseDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<SubscriptionResponseDto>>> ListTenantSubscriptions(
+        [FromRoute] Guid tenantId,
+        CancellationToken ct)
+    {
+        var items = await _subscriptions.ListForTenantAsync(tenantId, ct);
+        return Ok(items.Select(MapSubscription).ToList());
+    }
+
+    /// <summary>Cancel a digital-service subscription.</summary>
+    [HttpPost("subscriptions/{subscriptionId:guid}/cancel")]
+    [ProducesResponseType(typeof(SubscriptionMutationResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(SubscriptionMutationResponseDto), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<SubscriptionMutationResponseDto>> CancelSubscription(
+        [FromRoute] Guid subscriptionId,
+        CancellationToken ct)
+    {
+        var actor = User.GetActorUserId();
+        var result = await _subscriptions.CancelSubscriptionAsync(subscriptionId, actor, ct);
+        var dto = MapSubscriptionMutation(result);
+        if (!result.Succeeded)
+        {
+            return result.Code switch
+            {
+                SubscriptionService.NotFoundCode => NotFound(dto),
+                SubscriptionService.AlreadyCancelledCode => BadRequest(dto),
+                _ => BadRequest(dto)
+            };
+        }
+
+        return Ok(dto);
+    }
+
+    private static SubscriptionMutationResponseDto MapSubscriptionMutation(SubscriptionResult result) =>
+        new()
+        {
+            Succeeded = result.Succeeded,
+            Code = result.Code,
+            Error = result.Error,
+            Subscription = result.Subscription is null ? null : MapSubscription(result.Subscription)
+        };
+
+    private static SubscriptionResponseDto MapSubscription(KasseAPI_Final.Models.Subscription s) =>
+        new()
+        {
+            Id = s.Id,
+            TenantId = s.TenantId,
+            ServiceId = s.ServiceId,
+            Price = s.Price,
+            Currency = s.Currency,
+            Status = s.Status,
+            CreatedAt = s.CreatedAt,
+            NextBillingDate = s.NextBillingDate,
+            CancelledAtUtc = s.CancelledAtUtc
+        };
 
     /// <summary>Get a sale by license key.</summary>
     [HttpGet("license-sales/by-key/{licenseKey}")]

@@ -24,6 +24,13 @@ internal static class ActivityEventSeverityRules
             ActivityEventType.SuspiciousRapidTransactions => ActivitySeverityNames.Warning,
             ActivityEventType.DailyClosingBackdatedCreated => ActivitySeverityNames.Warning,
             ActivityEventType.DailyClosingPendingReminder => ActivitySeverityNames.Warning,
+            ActivityEventType.OnlineOrderPushedToPos => ActivitySeverityNames.Warning,
+            ActivityEventType.OnlineOrderPaid => ActivitySeverityNames.Info,
+            ActivityEventType.OnlineOrderStatusChanged => ActivitySeverityNames.Info,
+            ActivityEventType.OnlineOrderConfirmed => ActivitySeverityNames.Warning,
+            ActivityEventType.DigitalServiceRequested => ActivitySeverityNames.Info,
+            ActivityEventType.DataAccessDeleteRequested => ActivitySeverityNames.Warning,
+            ActivityEventType.DataExportReady => ActivitySeverityNames.Info,
             _ => ActivitySeverityNames.Info,
         };
 

@@ -47,7 +47,27 @@ Resolves the user by **email first**, then **username** (case-insensitive via `N
 
 - The `email` field is **deprecated** for new clients but still supported (`LoginModel.ResolveLoginIdentifier()`).
 - New implementations (FA, POS) should send **`loginIdentifier`**; FA also mirrors the value in `email` for older gateways.
-- **Response shape is unchanged** (access token, refresh token, `user` object, permissions).
+- **Success response** (no 2FA): access token, refresh token, `user`, `requires2FA: false`, optional `isDevelopment`.
+- **SuperAdmin 2FA challenge** (Production): HTTP 200 with `requires2FA: true`, `twoFactorToken`, optional setup fields — **no** access/refresh tokens until verify. See [`AUTH_TWO_FACTOR.md`](AUTH_TWO_FACTOR.md).
+
+### `POST /api/Auth/verify-2fa`
+
+Completes SuperAdmin login after TOTP (or Development bypass codes).
+
+```json
+{
+  "twoFactorToken": "opaque-pending-token-from-login",
+  "code": "123456"
+}
+```
+
+| Result | Notes |
+|--------|--------|
+| 200 | Same shape as successful login (tokens + `user`) |
+| 401 `TWO_FACTOR_INVALID` | Bad TOTP / not SuperAdmin |
+| 401 `TWO_FACTOR_CHALLENGE_EXPIRED` | Pending token missing or expired |
+
+**Implementation:** `AuthController.VerifyTwoFactor`, `ITwoFactorService`, `ITwoFactorChallengeService`. Hub: [`AUTH_TWO_FACTOR.md`](AUTH_TWO_FACTOR.md).
 
 **Example — username login**
 

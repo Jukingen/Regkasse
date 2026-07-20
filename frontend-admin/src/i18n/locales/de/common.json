@@ -1,10 +1,18 @@
 {
   "breadcrumb": {
-    "overview": "Übersicht"
+    "overview": "Übersicht",
+    "admin": "Administration",
+    "tenant": "Mandant",
+    "tenants": "Mandanten",
+    "orders": "Bestellungen",
+    "digital": "Digitale Dienste",
+    "profile": "Profil",
+    "detail": "Details"
   },
   "buttons": {
     "save": "Speichern",
     "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
     "yes": "Ja",
     "no": "Nein",
     "retry": "Erneut versuchen",
@@ -13,6 +21,29 @@
     "delete": "Löschen",
     "edit": "Bearbeiten",
     "reload": "Erneut laden"
+  },
+  "status": {
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "pending": "Ausstehend",
+    "cancelled": "Storniert",
+    "completed": "Abgeschlossen",
+    "expired": "Abgelaufen",
+    "open": "Geöffnet",
+    "closed": "Geschlossen",
+    "success": "Erfolg",
+    "error": "Fehler",
+    "warning": "Warnung",
+    "info": "Info",
+    "suspended": "Gesperrt",
+    "deleted": "Gelöscht"
+  },
+  "confirmDialog": {
+    "defaultTitle": "Bestätigung"
+  },
+  "emptyState": {
+    "defaultTitle": "Keine Daten gefunden",
+    "defaultDescription": "Es wurden noch keine Einträge erstellt."
   },
   "toolbar": {
     "refetchHint": "Daten manuell aktualisieren (Cache kann veraltet sein)."
@@ -217,7 +248,21 @@
   },
   "validation": {
     "fieldRequired": "Bitte dieses Feld ausfuellen.",
-    "numberBetween": "Bitte einen Wert zwischen {{min}} und {{max}} eingeben."
+    "requiredWithField": "{{field}} ist ein Pflichtfeld.",
+    "emailInvalid": "Bitte eine gueltige E-Mail-Adresse eingeben.",
+    "minLength": "Mindestens {{min}} Zeichen erforderlich.",
+    "maxLength": "Hoechstens {{max}} Zeichen erlaubt.",
+    "numberBetween": "Bitte einen Wert zwischen {{min}} und {{max}} eingeben.",
+    "atuTaxNumberRequired": "UID (ATU) ist erforderlich.",
+    "atuTaxNumberPattern": "Format: ATU + 8 Ziffern (z. B. ATU12345678).",
+    "usernameRequired": "Benutzername ist erforderlich.",
+    "usernamePattern": "3–50 Zeichen: a-z, 0-9, Unterstrich oder Bindestrich."
+  },
+  "autoSave": {
+    "saving": "Wird gespeichert …",
+    "saved": "Entwurf gespeichert",
+    "error": "Automatisches Speichern fehlgeschlagen",
+    "draftRestored": "Lokaler Entwurf wiederhergestellt."
   },
   "auth": {
     "appTitle": "Regkasse Admin",
@@ -257,7 +302,18 @@
       "terminated": "Sitzung beendet",
       "terminatedOthers": "{{count}} andere Sitzung(en) beendet",
       "terminateFailed": "Sitzung konnte nicht beendet werden",
-      "cannotTerminateCurrent": "Die aktuelle Sitzung kann hier nicht beendet werden"
+      "cannotTerminateCurrent": "Die aktuelle Sitzung kann hier nicht beendet werden",
+      "colDevice": "Gerät",
+      "colBrowserOs": "Browser / Betriebssystem",
+      "colIp": "IP-Adresse",
+      "colStatus": "Status",
+      "colAction": "Aktion",
+      "unknownDevice": "Unbekannt",
+      "statusActive": "Aktiv",
+      "statusInactive": "Beendet",
+      "revokeConfirmTitle": "Sitzung beenden",
+      "revokeConfirmContent": "Möchten Sie diese Sitzung wirklich beenden?",
+      "revokeOthersConfirmContent": "Alle anderen Geräte-Sitzungen werden beendet. Fortfahren?"
     },
     "logoutSuccess": "Abmeldung erfolgreich.",
     "loginSuccess": "Anmeldung erfolgreich",
@@ -267,6 +323,23 @@
     "loginFailedWithStatus": "Anmeldung fehlgeschlagen ({{status}}): {{details}}",
     "loginInvalidCredentials": "Benutzername oder Passwort ist falsch.",
     "loginFailedGeneric": "Anmeldung fehlgeschlagen. Bitte erneut versuchen.",
+    "twoFactor": {
+      "title": "Zwei-Faktor-Authentifizierung",
+      "verifySubtitle": "Geben Sie den 6-stelligen Code aus Ihrer Authenticator-App ein.",
+      "setupSubtitle": "Richten Sie eine Authenticator-App ein, um fortzufahren.",
+      "setupHint": "Fügen Sie diesen Schlüssel in Google Authenticator, Microsoft Authenticator oder eine ähnliche App ein:",
+      "codeLabel": "Authentifizierungscode",
+      "codePlaceholder": "123456",
+      "codeRequired": "Bitte den Code eingeben.",
+      "codePattern": "Der Code muss aus 6 Ziffern bestehen.",
+      "verify": "Bestätigen",
+      "invalidCode": "Ungültiger oder abgelaufener Code.",
+      "devBypassHint": "Entwicklung: Bypass-Code „{{code}}“ oder „123456“ verwenden.",
+      "devModeTitle": "Development-Modus",
+      "devModeDescription": "2FA ist hier deaktiviert. Echtes 2FA gilt nur in Production.",
+      "devContinue": "Weiter",
+      "backToLogin": "Zurück zur Anmeldung"
+    },
     "forgotUsernameLink": "Benutzername vergessen?",
     "forgotUsername": {
       "title": "Benutzername vergessen",

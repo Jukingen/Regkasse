@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using KasseAPI_Final.Auth;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
@@ -17,6 +18,8 @@ using Microsoft.Extensions.Logging;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Auth;
 using KasseAPI_Final.Services.Email;
+using KasseAPI_Final.Services.Token;
+using KasseAPI_Final.Services.TwoFactor;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Localization;
@@ -57,6 +60,13 @@ namespace KasseAPI_Final.Controllers
         private readonly IApiMessageLocalizer _messages;
         private readonly II18nErrorService _i18nErrorService;
         private readonly IPosShiftService _posShiftService;
+        private readonly IAccountLockoutService _accountLockoutService;
+        private readonly IHostEnvironment _environment;
+        private readonly ITwoFactorChallengeService _twoFactorChallengeService;
+        private readonly ITwoFactorService _twoFactorService;
+        private readonly TwoFactorAuthOptions _twoFactorAuthOptions;
+        private readonly ITokenBlacklistService _tokenBlacklistService;
+        private readonly IAuditLogService _auditLogService;
 
         /// <summary>Throttles diagnostic logs when /me is called without a resolvable user id claim.</summary>
         private static readonly object GetCurrentUserMissingIdLogSync = new();
@@ -81,7 +91,14 @@ namespace KasseAPI_Final.Controllers
             ISessionService sessionService,
             IApiMessageLocalizer messages,
             II18nErrorService i18nErrorService,
-            IPosShiftService posShiftService)
+            IPosShiftService posShiftService,
+            IAccountLockoutService accountLockoutService,
+            IHostEnvironment environment,
+            ITwoFactorChallengeService twoFactorChallengeService,
+            ITwoFactorService twoFactorService,
+            IOptions<TwoFactorAuthOptions> twoFactorAuthOptions,
+            ITokenBlacklistService tokenBlacklistService,
+            IAuditLogService auditLogService)
         {
             _context = context;
             _userManager = userManager;
@@ -102,6 +119,13 @@ namespace KasseAPI_Final.Controllers
             _messages = messages;
             _i18nErrorService = i18nErrorService;
             _posShiftService = posShiftService;
+            _accountLockoutService = accountLockoutService;
+            _environment = environment;
+            _twoFactorChallengeService = twoFactorChallengeService;
+            _twoFactorService = twoFactorService;
+            _twoFactorAuthOptions = twoFactorAuthOptions.Value;
+            _tokenBlacklistService = tokenBlacklistService;
+            _auditLogService = auditLogService;
         }
 
         /// <summary>
@@ -237,6 +261,18 @@ namespace KasseAPI_Final.Controllers
                     MaskLoginIdentifier(loginIdentifier),
                     model.ClientApp ?? "(none)");
 
+                if (_accountLockoutService.IsLockedOut(loginIdentifier))
+                {
+                    _logger.LogWarning(
+                        "Login blocked: account temporarily locked for identifier {LoginMasked}",
+                        MaskLoginIdentifier(loginIdentifier));
+                    return Unauthorized(new ApiErrorResponse
+                    {
+                        Code = "ACCOUNT_LOCKED",
+                        Message = _messages.Get(ApiMessageKeys.AccountTemporarilyLocked),
+                    });
+                }
+
                 if (string.IsNullOrWhiteSpace(model.Password))
                 {
                     return BadRequest(new { message = "Password required" });
@@ -271,6 +307,7 @@ namespace KasseAPI_Final.Controllers
                     loginCancellation);
                 if (user == null)
                 {
+                    _accountLockoutService.RecordFailedAttempt(loginIdentifier);
                     return InvalidLoginCredentials(
                         "User not found",
                         loginMasked: MaskLoginIdentifier(loginIdentifier));
@@ -284,8 +321,11 @@ namespace KasseAPI_Final.Controllers
                 var passwordValid = await _userManager.CheckPasswordAsync(user, model.Password);
                 if (!passwordValid)
                 {
+                    _accountLockoutService.RecordFailedAttempt(loginIdentifier);
                     return InvalidLoginCredentials("Invalid password", userId: user.Id);
                 }
+
+                _accountLockoutService.ResetAttempts(loginIdentifier);
 
                 // --- Role-level app policy check ---
                 var roles = await _userManager.GetRolesAsync(user);
@@ -319,16 +359,6 @@ namespace KasseAPI_Final.Controllers
                     }
                 }
 
-                // Persist last login for audit and UI (Users list / detail).
-                user.LastLoginAt = DateTime.UtcNow;
-                user.LoginCount++;
-                var updateResult = await _userManager.UpdateAsync(user);
-                if (!updateResult.Succeeded)
-                {
-                    _logger.LogWarning("LastLoginAt/LoginCount update failed for user {UserId}, login will continue. Errors: {Errors}",
-                        user.Id, string.Join("; ", updateResult.Errors.Select(e => e.Description)));
-                }
-
                 var tenantAccess = await _authService.ResolveLoginTenantAccessAsync(
                     user.Id,
                     string.Equals(canonicalRole, Roles.SuperAdmin, StringComparison.Ordinal),
@@ -351,70 +381,24 @@ namespace KasseAPI_Final.Controllers
                     });
                 }
 
-                Guid? sessionTenantKey = Guid.TryParse(loginTenantSnapshot.TenantId, out var loginTenantGuid)
-                    ? loginTenantGuid
-                    : null;
-
-                var issuedTokens = await _refreshTokenService.IssueLoginTokensAsync(
-                    user.Id,
-                    resolvedClientApp ?? "legacy",
-                    async (tokenUserId, jti, sessionId, expiresAtUtc, clientApp, persistedSessionTenantId) =>
-                    {
-                        var issuance = await _authTenantSnapshotProvider.ResolveForTokenIssuanceAsync(
-                            persistedSessionTenantId,
-                            user: null,
-                            authCt);
-                        var claims = await _tokenClaimsService.BuildClaimsAsync(
-                            user,
-                            roles,
-                            tenantId: issuance.TenantId,
-                            branchId: issuance.BranchId,
-                            appContext: resolvedClientApp);
-                        return GenerateJwtToken(claims, jti, sessionId, expiresAtUtc);
-                    },
-                    sessionTenantId: sessionTenantKey,
-                    clientMetadata: BuildSessionClientMetadata(),
-                    authCt);
-                var permissions = await GetEffectivePermissionsListAsync(
-                    user.Id,
-                    roles,
-                    user.Role,
-                    sessionTenantKey,
-                    resolvedClientApp,
-                    authCt);
-
-                var response = new
+                // Production SuperAdmin: require TOTP before issuing tokens. Development bypasses 2FA.
+                if (IsSuperAdminTwoFactorRequired(canonicalRole))
                 {
-                    token = issuedTokens.AccessToken,
-                    expiresIn = Math.Max(60, _authOptions.AccessTokenLifetimeMinutes * 60),
-                    refreshToken = issuedTokens.RefreshToken,
-                    refreshTokenExpiresAtUtc = issuedTokens.RefreshTokenExpiresAtUtc,
-                    user = new
-                    {
-                        id = user.Id,
-                        userName = user.UserName,
-                        email = user.Email,
-                        firstName = user.FirstName,
-                        lastName = user.LastName,
-                        role = canonicalRole,
-                        roles = roles,
-                        permissions = permissions,
-                        isDemo = user.IsDemo,
-                        tenantId = loginTenantSnapshot.TenantId,
-                        tenantDisplayName = loginTenantSnapshot.TenantDisplayName,
-                        tenantSlug = loginTenantSnapshot.TenantSlug,
-                        branchId = loginTenantSnapshot.BranchId,
-                        branchDisplayName = loginTenantSnapshot.BranchDisplayName,
-                        mustChangePasswordOnNextLogin = user.MustChangePasswordOnNextLogin,
-                    },
-                    appContext = resolvedClientApp
-                };
+                    return await BuildTwoFactorChallengeResponseAsync(
+                        user,
+                        loginIdentifier,
+                        resolvedClientApp,
+                        authCt).ConfigureAwait(false);
+                }
 
-                _logger.LogInformation(
-                    "Login successful for user: {LoginMasked}, clientApp: {ClientApp}",
-                    MaskLoginIdentifier(loginIdentifier),
-                    resolvedClientApp ?? "legacy");
-                return Ok(response);
+                return await CompleteSuccessfulLoginAsync(
+                    user,
+                    roles,
+                    canonicalRole,
+                    resolvedClientApp,
+                    loginIdentifier,
+                    loginTenantSnapshot,
+                    authCt).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -423,17 +407,289 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        /// <summary>
+        /// Completes SuperAdmin login after TOTP verification (Production only; Development skips 2FA at login).
+        /// </summary>
+        [AllowAnonymous]
+        [HttpPost("verify-2fa")]
+        public async Task<IActionResult> VerifyTwoFactor([FromBody] VerifyTwoFactorModel? model)
+        {
+            if (model is null
+                || string.IsNullOrWhiteSpace(model.TwoFactorToken)
+                || string.IsNullOrWhiteSpace(model.Code))
+            {
+                return BadRequest(new { message = "twoFactorToken and code are required." });
+            }
+
+            if (!_twoFactorChallengeService.TryConsumeChallenge(model.TwoFactorToken.Trim(), out var challenge)
+                || challenge is null)
+            {
+                return Unauthorized(new ApiErrorResponse
+                {
+                    Code = "TWO_FACTOR_CHALLENGE_EXPIRED",
+                    Message = _messages.Get(ApiMessageKeys.TwoFactorChallengeExpired),
+                });
+            }
+
+            var authCt = HttpContext?.RequestAborted ?? CancellationToken.None;
+            var user = await _userManager.FindByIdAsync(challenge.UserId).ConfigureAwait(false);
+            if (user is null || !user.IsActive)
+            {
+                return Unauthorized(new ApiErrorResponse
+                {
+                    Code = "INVALID_CREDENTIALS",
+                    Message = _messages.Get(ApiMessageKeys.InvalidLoginCredentials),
+                });
+            }
+
+            var roles = await _userManager.GetRolesAsync(user).ConfigureAwait(false);
+            var canonicalRoles = TokenClaimsService.CollectCanonicalRoles(roles, user.Role);
+            var primaryRole = TokenClaimsService.ResolvePrimaryRole(canonicalRoles);
+            var canonicalRole = RoleCanonicalization.GetCanonicalRole(primaryRole);
+
+            if (!string.Equals(canonicalRole, Roles.SuperAdmin, StringComparison.Ordinal))
+            {
+                return Unauthorized(new ApiErrorResponse
+                {
+                    Code = "TWO_FACTOR_INVALID",
+                    Message = _messages.Get(ApiMessageKeys.TwoFactorInvalid),
+                });
+            }
+
+            var codeValid = await _twoFactorService
+                .VerifyTwoFactorTokenAsync(user, model.Code, authCt)
+                .ConfigureAwait(false);
+
+            if (!codeValid)
+            {
+                _accountLockoutService.RecordFailedAttempt(challenge.LoginIdentifier);
+                _logger.LogWarning("2FA verification failed for user {UserId}", user.Id);
+                return Unauthorized(new ApiErrorResponse
+                {
+                    Code = "TWO_FACTOR_INVALID",
+                    Message = _messages.Get(ApiMessageKeys.TwoFactorInvalid),
+                });
+            }
+
+            _accountLockoutService.ResetAttempts(challenge.LoginIdentifier);
+
+            if (challenge.SetupRequired || !await _userManager.GetTwoFactorEnabledAsync(user).ConfigureAwait(false))
+            {
+                var enableResult = await _userManager.SetTwoFactorEnabledAsync(user, true).ConfigureAwait(false);
+                if (!enableResult.Succeeded)
+                {
+                    _logger.LogWarning(
+                        "Failed to enable 2FA for user {UserId}: {Errors}",
+                        user.Id,
+                        string.Join("; ", enableResult.Errors.Select(e => e.Description)));
+                    return StatusCode(500, new { message = _messages.Get(ApiMessageKeys.LoginError) });
+                }
+            }
+
+            var tenantAccess = await _authService.ResolveLoginTenantAccessAsync(
+                user.Id,
+                isSuperAdmin: true,
+                authCt).ConfigureAwait(false);
+            if (!tenantAccess.Allowed || tenantAccess.Snapshot is not AuthTenantSnapshot loginTenantSnapshot)
+            {
+                return BadRequest(new
+                {
+                    message = tenantAccess.Message ?? _messages.Get(ApiMessageKeys.TenantMembershipRequired),
+                    code = tenantAccess.Code ?? "TENANT_MEMBERSHIP_REQUIRED",
+                });
+            }
+
+            return await CompleteSuccessfulLoginAsync(
+                user,
+                roles,
+                canonicalRole,
+                challenge.ClientApp,
+                challenge.LoginIdentifier,
+                loginTenantSnapshot,
+                authCt).ConfigureAwait(false);
+        }
+
+        private async Task<IActionResult> BuildTwoFactorChallengeResponseAsync(
+            ApplicationUser user,
+            string loginIdentifier,
+            string? resolvedClientApp,
+            CancellationToken cancellationToken)
+        {
+            _ = cancellationToken;
+            var setupRequired = !await _userManager.GetTwoFactorEnabledAsync(user).ConfigureAwait(false);
+            string? authenticatorKey = null;
+            string? authenticatorUri = null;
+
+            if (setupRequired)
+            {
+                await _userManager.ResetAuthenticatorKeyAsync(user).ConfigureAwait(false);
+                authenticatorKey = await _userManager.GetAuthenticatorKeyAsync(user).ConfigureAwait(false);
+                if (string.IsNullOrWhiteSpace(authenticatorKey))
+                {
+                    _logger.LogError("Failed to create authenticator key for SuperAdmin {UserId}", user.Id);
+                    return StatusCode(500, new { message = _messages.Get(ApiMessageKeys.LoginError) });
+                }
+
+                authenticatorUri = BuildAuthenticatorUri(user, authenticatorKey);
+            }
+
+            var expiresAtUtc = DateTime.UtcNow.AddMinutes(5);
+            var token = _twoFactorChallengeService.CreateChallenge(new TwoFactorChallengePayload(
+                user.Id,
+                resolvedClientApp,
+                loginIdentifier,
+                setupRequired,
+                expiresAtUtc));
+
+            _logger.LogInformation(
+                "2FA challenge issued for SuperAdmin {UserId} (setupRequired={SetupRequired})",
+                user.Id,
+                setupRequired);
+
+            return Ok(new LoginTwoFactorChallengeDto
+            {
+                Requires2FA = true,
+                Requires2FASetup = setupRequired,
+                TwoFactorToken = token,
+                IsDevelopment = _twoFactorService.IsDevelopment,
+                AuthenticatorKey = authenticatorKey,
+                AuthenticatorUri = authenticatorUri,
+                DevelopmentBypassCode = _twoFactorService.GenerateTwoFactorToken(user),
+            });
+        }
+
+        private async Task<IActionResult> CompleteSuccessfulLoginAsync(
+            ApplicationUser user,
+            IList<string> roles,
+            string canonicalRole,
+            string? resolvedClientApp,
+            string loginIdentifier,
+            AuthTenantSnapshot loginTenantSnapshot,
+            CancellationToken authCt)
+        {
+            // Persist last login for audit and UI (Users list / detail).
+            user.LastLoginAt = DateTime.UtcNow;
+            user.LoginCount++;
+            var updateResult = await _userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+            {
+                _logger.LogWarning("LastLoginAt/LoginCount update failed for user {UserId}, login will continue. Errors: {Errors}",
+                    user.Id, string.Join("; ", updateResult.Errors.Select(e => e.Description)));
+            }
+
+            Guid? sessionTenantKey = Guid.TryParse(loginTenantSnapshot.TenantId, out var loginTenantGuid)
+                ? loginTenantGuid
+                : null;
+
+            var issuedTokens = await _refreshTokenService.IssueLoginTokensAsync(
+                user.Id,
+                resolvedClientApp ?? "legacy",
+                async (tokenUserId, jti, sessionId, expiresAtUtc, clientApp, persistedSessionTenantId) =>
+                {
+                    var issuance = await _authTenantSnapshotProvider.ResolveForTokenIssuanceAsync(
+                        persistedSessionTenantId,
+                        user: null,
+                        authCt);
+                    var claims = await _tokenClaimsService.BuildClaimsAsync(
+                        user,
+                        roles,
+                        tenantId: issuance.TenantId,
+                        branchId: issuance.BranchId,
+                        appContext: resolvedClientApp);
+                    return GenerateJwtToken(claims, jti, sessionId, expiresAtUtc);
+                },
+                sessionTenantId: sessionTenantKey,
+                clientMetadata: BuildSessionClientMetadata(),
+                authCt);
+            var permissions = await GetEffectivePermissionsListAsync(
+                user.Id,
+                roles,
+                user.Role,
+                sessionTenantKey,
+                resolvedClientApp,
+                authCt);
+
+            var response = new
+            {
+                token = issuedTokens.AccessToken,
+                expiresIn = Math.Max(60, (int)(issuedTokens.AccessTokenExpiresAtUtc - DateTime.UtcNow).TotalSeconds),
+                expiresAt = issuedTokens.AccessTokenExpiresAtUtc,
+                refreshToken = issuedTokens.RefreshToken,
+                refreshTokenExpiresAtUtc = issuedTokens.RefreshTokenExpiresAtUtc,
+                requires2FA = false,
+                isDevelopment = _environment.IsDevelopment(),
+                user = new
+                {
+                    id = user.Id,
+                    userName = user.UserName,
+                    email = user.Email,
+                    firstName = user.FirstName,
+                    lastName = user.LastName,
+                    role = canonicalRole,
+                    roles = roles,
+                    permissions = permissions,
+                    isDemo = user.IsDemo,
+                    tenantId = loginTenantSnapshot.TenantId,
+                    tenantDisplayName = loginTenantSnapshot.TenantDisplayName,
+                    tenantSlug = loginTenantSnapshot.TenantSlug,
+                    branchId = loginTenantSnapshot.BranchId,
+                    branchDisplayName = loginTenantSnapshot.BranchDisplayName,
+                    mustChangePasswordOnNextLogin = user.MustChangePasswordOnNextLogin,
+                },
+                appContext = resolvedClientApp
+            };
+
+            _logger.LogInformation(
+                "Login successful for user: {LoginMasked}, clientApp: {ClientApp}",
+                MaskLoginIdentifier(loginIdentifier),
+                resolvedClientApp ?? "legacy");
+            return Ok(response);
+        }
+
+        private bool IsSuperAdminTwoFactorRequired(string canonicalRole)
+        {
+            if (!string.Equals(canonicalRole, Roles.SuperAdmin, StringComparison.Ordinal))
+                return false;
+
+            if (!_twoFactorAuthOptions.Enabled)
+                return false;
+
+            // Fail-closed: BypassInDevelopment only applies in Development.
+            if (_environment.IsDevelopment() && _twoFactorAuthOptions.BypassInDevelopment)
+                return false;
+
+            // Legacy Auth:RequireSuperAdminTwoFactor override (unit tests / forced staging).
+            if (_authOptions.RequireSuperAdminTwoFactor is bool forced)
+                return forced;
+
+            // Default: require outside Development (Production / Staging).
+            return !_environment.IsDevelopment();
+        }
+
+        private string BuildAuthenticatorUri(ApplicationUser user, string unformattedKey)
+        {
+            var issuer = Uri.EscapeDataString("Regkasse");
+            var account = Uri.EscapeDataString(
+                user.Email ?? user.UserName ?? user.Id);
+            return $"otpauth://totp/{issuer}:{account}?secret={unformattedKey}&issuer={issuer}&digits=6";
+        }
+
         [Authorize]
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId()
+                    ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "User not authenticated" });
 
                 _logger.LogInformation("Logout requested for user: {UserId}", userId);
+
+                // Immediate access-token revocation (complements session revoke below).
+                BlacklistCurrentAccessToken();
+
                 var sidRaw = User.FindFirst("sid")?.Value;
                 if (Guid.TryParse(sidRaw, out var sessionId))
                 {
@@ -467,12 +723,17 @@ namespace KasseAPI_Final.Controllers
                         userId);
                 }
 
+                // Audit: UserLogout (never log the raw JWT — blacklist stores a digest only).
+                await TryLogLogoutAuditAsync(userId, reason: "logout");
+
                 _logger.LogInformation("Logout successful for user: {UserId}", userId);
-                return Ok(new { message = "Logout successful" });
+                return Ok(new { success = true, message = "Logout successful" });
             }
             catch (Exception ex)
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
+                var userId = User.GetActorUserId()
+                    ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                    ?? "Unknown";
                 _logger.LogError(ex, "Logout error for user: {UserId}. Exception: {ExceptionType}, Message: {ExceptionMessage}", 
                     userId, ex.GetType().Name, ex.Message);
                 
@@ -580,9 +841,13 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // 🔄 REFRESH TOKEN - Token süresi dolduğunda yenileme
+        /// <summary>
+        /// Rotates refresh + access tokens (opaque refresh rotation, reuse detection).
+        /// Used by FA silent proactive refresh (~5 min before JWT <c>exp</c>) and 401 recovery.
+        /// Optional <see cref="RefreshRequest.TenantId"/> rebinds JWT <c>tenant_id</c>.
+        /// </summary>
         [HttpPost("refresh")]
-        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenModel model)
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshRequest model)
         {
             try
             {
@@ -594,6 +859,8 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 var refreshCt = HttpContext?.RequestAborted ?? CancellationToken.None;
+                var tenantOverride = model.TenantId is Guid tid && tid != Guid.Empty ? tid : (Guid?)null;
+
                 var result = await _refreshTokenService.RotateAsync(
                     model.RefreshToken,
                     async (tokenUserId, jti, sessionId, expiresAtUtc, clientApp, persistedSessionTenantId) =>
@@ -613,18 +880,30 @@ namespace KasseAPI_Final.Controllers
                             branchId: issuance.BranchId,
                             appContext: clientApp);
                         return GenerateJwtToken(claims, jti, sessionId, expiresAtUtc);
-                    });
+                    },
+                    sessionTenantIdOverride: tenantOverride,
+                    canAssignTenant: tenantOverride.HasValue
+                        ? (userId, targetTenantId, ct) => CanAssignSessionTenantAsync(userId, targetTenantId, ct)
+                        : null,
+                    cancellationToken: refreshCt);
 
                 if (!result.Success || result.Tokens == null)
                 {
+                    if (string.Equals(result.ErrorCode, "tenant_switch_forbidden", StringComparison.Ordinal))
+                    {
+                        return Unauthorized(new { message = "Refresh failed", code = result.ErrorCode });
+                    }
+
                     var code = result.ReuseDetected ? "refresh_token_reuse_detected" : result.ErrorCode;
                     return Unauthorized(new { message = "Refresh failed", code });
                 }
 
+                var accessExpiresAt = result.Tokens.AccessTokenExpiresAtUtc;
                 return Ok(new
                 {
                     token = result.Tokens.AccessToken,
-                    expiresIn = Math.Max(60, _authOptions.AccessTokenLifetimeMinutes * 60),
+                    expiresIn = Math.Max(60, (int)(accessExpiresAt - DateTime.UtcNow).TotalSeconds),
+                    expiresAt = accessExpiresAt,
                     refreshToken = result.Tokens.RefreshToken,
                     refreshTokenExpiresAtUtc = result.Tokens.RefreshTokenExpiresAtUtc
                 });
@@ -636,6 +915,49 @@ namespace KasseAPI_Final.Controllers
                 
                 return StatusCode(500, new { message = "Error during token refresh" });
             }
+        }
+
+        /// <summary>
+        /// SuperAdmin may bind any active non-deleted tenant; other users need an active membership.
+        /// </summary>
+        private async Task<bool> CanAssignSessionTenantAsync(
+            string userId,
+            Guid targetTenantId,
+            CancellationToken cancellationToken)
+        {
+            var tenantExists = await _context.Tenants.AsNoTracking()
+                .AnyAsync(
+                    t => t.Id == targetTenantId
+                        && t.IsActive
+                        && t.Status != TenantStatuses.Deleted,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (!tenantExists)
+            {
+                return false;
+            }
+
+            var user = await _userManager.FindByIdAsync(userId).ConfigureAwait(false);
+            if (user == null)
+            {
+                return false;
+            }
+
+            var roles = await _userManager.GetRolesAsync(user).ConfigureAwait(false);
+            if (roles.Contains(Roles.SuperAdmin)
+                || string.Equals(user.Role, Roles.SuperAdmin, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            return await _context.UserTenantMemberships.IgnoreQueryFilters()
+                .AsNoTracking()
+                .AnyAsync(
+                    m => m.UserId == userId
+                        && m.TenantId == targetTenantId
+                        && m.IsActive,
+                    cancellationToken)
+                .ConfigureAwait(false);
         }
 
         [HttpPost("register")]
@@ -718,6 +1040,8 @@ namespace KasseAPI_Final.Controllers
             if (string.IsNullOrWhiteSpace(userId))
                 return Unauthorized(new { message = "User not authenticated" });
 
+            BlacklistCurrentAccessToken();
+
             try
             {
                 var actorRole = User.GetActorRole() ?? Roles.FallbackUnknown;
@@ -732,6 +1056,7 @@ namespace KasseAPI_Final.Controllers
             }
 
             await _refreshTokenService.LogoutAllAsync(userId, "logout_all");
+            await TryLogLogoutAuditAsync(userId, reason: "logout_all");
             return Ok(new { message = "All sessions invalidated" });
         }
 
@@ -746,6 +1071,54 @@ namespace KasseAPI_Final.Controllers
             if (!revoked)
                 return NotFound(new { message = "Refresh token not found" });
             return Ok(new { message = "Refresh token revoked" });
+        }
+
+        private void BlacklistCurrentAccessToken()
+        {
+            var authHeader = Request.Headers.Authorization.ToString();
+            if (string.IsNullOrWhiteSpace(authHeader))
+                return;
+
+            var token = authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+                ? authHeader[7..].Trim()
+                : authHeader.Trim();
+            if (string.IsNullOrEmpty(token))
+                return;
+
+            var expiry = DateTime.UtcNow.AddMinutes(Math.Max(1, _authOptions.AccessTokenLifetimeMinutes));
+            var expRaw = User.FindFirst(JwtRegisteredClaimNames.Exp)?.Value
+                ?? User.FindFirst("exp")?.Value;
+            if (long.TryParse(expRaw, out var expUnix))
+            {
+                expiry = DateTimeOffset.FromUnixTimeSeconds(expUnix).UtcDateTime;
+            }
+
+            _tokenBlacklistService.BlacklistToken(token, expiry);
+        }
+
+        private async Task TryLogLogoutAuditAsync(string userId, string reason)
+        {
+            try
+            {
+                Guid? tenantId = null;
+                var tenantRaw = User.FindFirst("tenant_id")?.Value;
+                if (Guid.TryParse(tenantRaw, out var parsedTenant))
+                    tenantId = parsedTenant;
+
+                var actorRole = User.GetActorRole() ?? Roles.FallbackUnknown;
+                await _auditLogService.LogUserLifecycleAsync(
+                    AuditEventType.UserLogout,
+                    userId,
+                    actorRole,
+                    userId,
+                    tenantId,
+                    reason: reason,
+                    description: $"User logout ({reason})");
+            }
+            catch (Exception auditEx)
+            {
+                _logger.LogWarning(auditEx, "Failed to write logout audit for user {UserId}", userId);
+            }
         }
 
         private SessionClientMetadata BuildSessionClientMetadata()

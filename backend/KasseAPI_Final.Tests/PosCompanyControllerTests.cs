@@ -89,6 +89,9 @@ public class PosCompanyControllerTests
         Assert.Equal("Hauptstraße 1, 1010 Wien", dto.CompanyAddress);
         Assert.Equal("ATU12345678", dto.TaxNumber);
         Assert.Equal("Danke für Ihren Besuch!", dto.ReceiptFooter);
-        }
-    }
+        Assert.Equal("Europe/Vienna", dto.TimeZone);
+        Assert.Equal(1, dto.WorkingHours.ReminderHoursBeforeClosing);
+        Assert.False(dto.WorkingHours.Monday.IsClosed);
+        Assert.Equal("22:00", dto.WorkingHours.Monday.CloseTime);
+        }    }
 }

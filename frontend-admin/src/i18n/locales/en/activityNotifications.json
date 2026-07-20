@@ -44,6 +44,10 @@
     "RestoreDrillFailed": "Restore drill failed",
     "RestoreDrillSucceeded": "Restore drill succeeded",
     "DailyClosingBackdatedCreated": "Backdated daily closing created",
-    "DailyClosingPendingReminder": "Daily closing pending"
+    "DailyClosingPendingReminder": "Daily closing pending",
+    "OnlineOrderPushedToPos": "Online order pushed to POS",
+    "OnlineOrderPaid": "Online order paid",
+    "OnlineOrderStatusChanged": "Online order status changed",
+    "OnlineOrderConfirmed": "Online order confirmed"
   }
 }

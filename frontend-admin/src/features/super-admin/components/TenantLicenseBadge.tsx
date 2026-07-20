@@ -5,7 +5,10 @@ import { QuestionCircleOutlined } from '@ant-design/icons';
 import { Tag, Tooltip } from 'antd';
 
 import { LicenseStatusBadge } from '@/features/tenants/components/LicenseStatusBadge';
-import { TENANT_GRACE_PERIOD_DAYS } from '@/features/license/constants/licenseGracePeriod';
+import {
+    clampTenantGraceRemaining,
+    TENANT_GRACE_PERIOD_DAYS,
+} from '@/features/license/constants/licenseGracePeriod';
 import { useTenantLicenseStatus, type LicenseStatus } from '@/features/license/hooks/useLicenseStatus';
 import {
     getLicenseStatusMessage,
@@ -57,7 +60,7 @@ export function TenantLicenseBadge({
             daysRemaining={status.daysRemaining}
             gracePeriodRemaining={
                 status.kind === 'grace_write'
-                    ? Math.max(0, TENANT_GRACE_PERIOD_DAYS - status.daysExpired)
+                    ? clampTenantGraceRemaining(TENANT_GRACE_PERIOD_DAYS - status.daysExpired)
                     : undefined
             }
         />

@@ -6,6 +6,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Loyalty;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -84,6 +85,7 @@ public sealed class CustomerTenantIsolationTests
             repository,
             Mock.Of<IPaymentService>(),
             customerService,
+            Mock.Of<ILoyaltyService>(),
             Mock.Of<ILogger<CustomerController>>());
 
         var identity = new ClaimsIdentity("Test");

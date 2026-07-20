@@ -5,6 +5,7 @@ import { useAntdApp } from '@/hooks/useAntdApp';
 import { useCallback, useMemo, type ReactNode } from 'react';
 
 import { SessionTimeoutWarning } from '@/components/SessionTimeoutWarning';
+import { KeyboardShortcutsProvider } from '@/components/KeyboardShortcutsProvider';
 import { useSessionTimeout } from '@/hooks/useSessionTimeout';
 import { useAuth, AuthStatus } from '@/features/auth/hooks/useAuth';
 import { refreshAuthSession } from '@/features/auth/api/authSessionApi';
@@ -13,7 +14,7 @@ import type { AuthUser } from '@/shared/auth/types';
 
 const DEFAULT_POLICY = {
     sessionTimeoutMinutes: 30,
-    warningBeforeTimeoutMinutes: 1,
+    warningBeforeTimeoutMinutes: 5,
     idleTimeoutEnabled: true,
 };
 
@@ -67,7 +68,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     }, [logout]);
 
     return (
-        <>
+        <KeyboardShortcutsProvider>
             {children}
             <SessionTimeoutWarning
                 open={showWarning}
@@ -76,6 +77,6 @@ export function AppLayout({ children }: AppLayoutProps) {
                 onContinue={handleContinue}
                 onLogout={handleLogout}
             />
-        </>
+        </KeyboardShortcutsProvider>
     );
 }

@@ -1,0 +1,19 @@
+{
+  "title": "Tastenkürzel",
+  "help": "Tastenkürzel",
+  "search": "Menüsuche öffnen",
+  "newTenant": "Neuen Mandanten anlegen (Mandanten-Admin-Seiten)",
+  "save": "Aktives Formular speichern",
+  "closeModal": "Modal, Drawer oder Suche schließen",
+  "logout": "Abmelden",
+  "navigate": "Zwischen Tabs der aktuellen Seite wechseln",
+  "inputHint": "Die meisten Kürzel greifen nicht in Eingabefeldern. Esc und Ctrl/Cmd+S funktionieren weiterhin beim Tippen.",
+  "columnShortcut": "Kürzel",
+  "columnAction": "Aktion",
+  "logoutConfirmTitle": "Abmelden?",
+  "logoutConfirmContent": "Möchten Sie diese Sitzung wirklich beenden?",
+  "logoutConfirmOk": "Abmelden",
+  "saveWithShortcut": "Speichern ({{shortcut}})",
+  "newTenantWithShortcut": "Neuer Mandant ({{shortcut}})",
+  "openSearchWithShortcut": "Suchen ({{shortcut}})"
+}

@@ -20,7 +20,7 @@ type SessionSettingsApiDto = {
 function mapFromApi(dto: SessionSettingsApiDto): SessionSettings {
     return {
         timeoutMinutes: dto.timeoutMinutes ?? dto.TimeoutMinutes ?? 30,
-        warningMinutes: dto.warningMinutes ?? dto.WarningMinutes ?? 1,
+        warningMinutes: dto.warningMinutes ?? dto.WarningMinutes ?? 5,
         enabled: dto.enabled ?? dto.Enabled ?? true,
     };
 }

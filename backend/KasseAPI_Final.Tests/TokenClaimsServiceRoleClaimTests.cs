@@ -104,6 +104,73 @@ public class TokenClaimsServiceRoleClaimTests
     }
 
     [Fact]
+    public async Task BuildClaimsAsync_SuperAdmin_Emits_Only_SystemCritical_Permission()
+    {
+        var fullCatalog = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.SuperAdmin });
+        Assert.True(fullCatalog.Count > 10, "SuperAdmin catalog should be large enough to overflow cookie limits if fully emitted");
+
+        var resolver = new MockEffectivePermissionResolver(fullCatalog);
+        var svc = new TokenClaimsService(resolver);
+        var user = new ApplicationUser
+        {
+            Id = "u1",
+            Email = "admin@admin.com",
+            UserName = "admin@admin.com",
+            FirstName = "Super",
+            LastName = "Admin",
+            Role = Roles.SuperAdmin,
+        };
+
+        var claims = await svc.BuildClaimsAsync(
+            user,
+            new List<string> { Roles.SuperAdmin },
+            appContext: ClientAppPolicy.Admin);
+
+        var permClaims = claims
+            .Where(c => c.Type == PermissionCatalog.PermissionClaimType)
+            .Select(c => c.Value)
+            .ToList();
+
+        Assert.Single(permClaims);
+        Assert.Equal(AppPermissions.SystemCritical, permClaims[0]);
+        Assert.Contains(claims, c => c.Type == "role" && c.Value == Roles.SuperAdmin);
+        Assert.True(
+            PermissionImplication.IsSatisfied(AppPermissions.UserView, permClaims),
+            "Compact system.critical must satisfy catalog permissions via implication");
+    }
+
+    [Fact]
+    public async Task BuildClaimsAsync_Manager_Still_Emits_Filtered_Permission_Catalog()
+    {
+        var managerPerms = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Manager });
+        var resolver = new MockEffectivePermissionResolver(managerPerms);
+        var svc = new TokenClaimsService(resolver);
+        var user = new ApplicationUser
+        {
+            Id = "u2",
+            Email = "manager@example.com",
+            UserName = "manager@example.com",
+            FirstName = "Man",
+            LastName = "Ager",
+            Role = Roles.Manager,
+        };
+
+        var claims = await svc.BuildClaimsAsync(
+            user,
+            new List<string> { Roles.Manager },
+            appContext: ClientAppPolicy.Admin);
+
+        var permClaims = claims
+            .Where(c => c.Type == PermissionCatalog.PermissionClaimType)
+            .Select(c => c.Value)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        Assert.True(permClaims.Count > 1);
+        Assert.DoesNotContain(AppPermissions.SystemCritical, permClaims);
+        Assert.Contains(AppPermissions.UserView, permClaims);
+    }
+
+    [Fact]
     public async Task BuildClaimsAsync_Admin_Cashier_StripsPosPermissionsFromJwt()
     {
         var cashierPerms = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Cashier });

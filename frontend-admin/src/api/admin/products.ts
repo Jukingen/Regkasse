@@ -370,13 +370,14 @@ export async function uploadAdminProductImage(
 export { MAX_PRODUCT_IMAGE_BYTES };
 
 export const adminProductsQueryKeys = {
-  all: (tenantSlug: string) => ['admin', 'products', tenantSlug] as const,
-  lists: (tenantSlug: string) => [...adminProductsQueryKeys.all(tenantSlug), 'list'] as const,
-  list: (tenantSlug: string, params?: AdminProductsListParams) =>
+  all: (tenantSlug: string | null | undefined) => ['admin', 'products', tenantSlug ?? ''] as const,
+  lists: (tenantSlug: string | null | undefined) => [...adminProductsQueryKeys.all(tenantSlug), 'list'] as const,
+  list: (tenantSlug: string | null | undefined, params?: AdminProductsListParams) =>
     [...adminProductsQueryKeys.lists(tenantSlug), params] as const,
-  details: (tenantSlug: string) => [...adminProductsQueryKeys.all(tenantSlug), 'detail'] as const,
-  detail: (tenantSlug: string, id: string) => [...adminProductsQueryKeys.details(tenantSlug), id] as const,
-  search: (tenantSlug: string, params: { name?: string }) =>
+  details: (tenantSlug: string | null | undefined) => [...adminProductsQueryKeys.all(tenantSlug), 'detail'] as const,
+  detail: (tenantSlug: string | null | undefined, id: string) =>
+    [...adminProductsQueryKeys.details(tenantSlug), id] as const,
+  search: (tenantSlug: string | null | undefined, params: { name?: string }) =>
     [...adminProductsQueryKeys.all(tenantSlug), 'search', params] as const,
 };
 

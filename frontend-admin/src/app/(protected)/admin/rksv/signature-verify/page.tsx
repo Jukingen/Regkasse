@@ -1,17 +1,13 @@
 'use client';
 
 import React, { Suspense, useCallback, useState } from 'react';
-import { Spin, Tabs, Typography } from 'antd';
+import { Tabs, Typography } from 'antd';
+import { PageSkeleton } from '@/components/Skeleton';
 import RksvSignatureChainVerification from '@/features/rksv/signature-chain/RksvSignatureChainVerification';
 import { SingleSignatureVerifyCard } from '@/features/rksv/components/SingleSignatureVerifyPage';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
-
-function SignatureVerifyPageFallback() {
-    const { t } = useI18n();
-    return <Spin style={{ display: 'block', margin: '80px auto' }} description={t('common.loading.data')} />;
-}
 
 function SignatureVerifyTabs() {
     const { t } = useI18n();
@@ -53,7 +49,7 @@ function SignatureVerifyTabs() {
 /** Suspense boundary required for useSearchParams in RksvSignatureChainVerification. */
 export default function AdminRksvSignatureVerifyPage() {
     return (
-        <Suspense fallback={<SignatureVerifyPageFallback />}>
+        <Suspense fallback={<PageSkeleton widgets={3} />}>
             <SignatureVerifyTabs />
         </Suspense>
     );

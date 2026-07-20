@@ -11,6 +11,10 @@ public static class ApiMessageCatalog
                 de: "Ungültiger Benutzername oder Passwort",
                 en: "Invalid username or password",
                 tr: "Kullanıcı adı veya şifre geçersiz"),
+            [ApiMessageKeys.AccountTemporarilyLocked] = Msg(
+                de: "Konto ist vorübergehend gesperrt. Bitte versuchen Sie es später erneut.",
+                en: "Account is temporarily locked. Please try again later.",
+                tr: "Hesap geçici olarak kilitlendi. Lütfen daha sonra tekrar deneyin."),
             [ApiMessageKeys.ForgotPasswordGeneric] = Msg(
                 de: "Wenn ein Konto existiert, wird ein Link zum Zurücksetzen des Passworts gesendet.",
                 en: "If an account exists, a password reset link will be sent.",
@@ -39,6 +43,18 @@ public static class ApiMessageCatalog
                 de: "Bei der Anmeldung ist ein Fehler aufgetreten",
                 en: "An error occurred during login",
                 tr: "Giriş işlemi sırasında hata oluştu"),
+            [ApiMessageKeys.TwoFactorRequired] = Msg(
+                de: "Zwei-Faktor-Authentifizierung erforderlich.",
+                en: "Two-factor authentication is required.",
+                tr: "İki faktörlü kimlik doğrulama gerekli."),
+            [ApiMessageKeys.TwoFactorInvalid] = Msg(
+                de: "Ungültiger oder abgelaufener Authentifizierungscode.",
+                en: "Invalid or expired authentication code.",
+                tr: "Geçersiz veya süresi dolmuş doğrulama kodu."),
+            [ApiMessageKeys.TwoFactorChallengeExpired] = Msg(
+                de: "Die Zwei-Faktor-Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.",
+                en: "The two-factor challenge expired. Please sign in again.",
+                tr: "İki faktörlü oturum süresi doldu. Lütfen tekrar giriş yapın."),
             [ApiMessageKeys.UserCreatedSuccess] = Msg(
                 de: "Benutzer erfolgreich erstellt",
                 en: "User created successfully",
@@ -52,9 +68,26 @@ public static class ApiMessageCatalog
                 en: "This tenant has been deactivated.",
                 tr: "Bu kiracı devre dışı bırakıldı."),
             [ApiMessageKeys.TenantLicenseLockdown] = Msg(
-                de: "Dieser Mandant ist wegen abgelaufener Lizenz gesperrt.",
-                en: "This tenant is locked due to an expired license.",
-                tr: "Bu kiracı süresi dolmuş lisans nedeniyle kilitlendi."),
+                de: "Dieser Mandant ist wegen abgelaufener Lizenz gesperrt. POS ist gesperrt — nur Super-Administrator kann entsperren.",
+                en: "This tenant is locked due to an expired license. POS is locked — only Super Admin can unlock.",
+                tr: "Bu kiracı süresi dolmuş lisans nedeniyle kilitlendi. POS kilitli — yalnızca Süper Yönetici kilidi açabilir."),
+
+            [ApiMessageKeys.LicenseStatusActive] = Msg(
+                de: "Lizenz aktiv",
+                en: "License is active",
+                tr: "Lisans aktif"),
+            [ApiMessageKeys.LicenseStatusExpiringSoon] = Msg(
+                de: "Lizenz läuft bald ab. Bitte rechtzeitig verlängern.",
+                en: "License expires soon. Please renew before expiry.",
+                tr: "Lisans yakında sona eriyor. Lütfen zamanında yenileyin."),
+            [ApiMessageKeys.LicenseStatusGrace] = Msg(
+                de: "Mandantenlizenz abgelaufen — Grace-Periode aktiv. POS noch nutzbar, danach Sperre.",
+                en: "Tenant license expired — grace period active. POS still usable, then lock.",
+                tr: "Kiracı lisansı sona erdi — grace dönemi aktif. POS hâlâ kullanılabilir, ardından kilit."),
+            [ApiMessageKeys.LicenseStatusLocked] = Msg(
+                de: "Lizenz abgelaufen! POS ist gesperrt. Nur Super-Administrator kann entsperren.",
+                en: "License expired! POS is locked. Only Super Admin can unlock.",
+                tr: "Lisans süresi doldu! POS kilitli. Yalnızca Süper Yönetici kilidi açabilir."),
 
             [ApiMessageKeys.PasswordChangeValidationFailed] = Msg(
                 de: "Das neue Passwort erfüllt nicht alle Anforderungen.",

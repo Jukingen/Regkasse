@@ -99,6 +99,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/settings': PERMISSIONS.SETTINGS_VIEW,
   /** Super Admin / settings.manage — firm-wide fiscal master data. */
   '/settings/company': PERMISSIONS.SETTINGS_MANAGE,
+  '/settings/working-hours': PERMISSIONS.SETTINGS_VIEW,
   '/settings/website': [
     PERMISSIONS.DIGITAL_VIEW,
     PERMISSIONS.DIGITAL_PREVIEW,
@@ -117,6 +118,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
     PERMISSIONS.WEBSITE_MANAGE,
   ],
   '/settings/session': PERMISSIONS.SETTINGS_VIEW,
+  '/settings/sessions': PERMISSIONS.SETTINGS_VIEW,
   /** Super Admin / settings.manage — offline limits and toggles. */
   '/settings/offline': PERMISSIONS.SETTINGS_MANAGE,
   '/settings/personalization': PERMISSIONS.SETTINGS_VIEW,
@@ -131,6 +133,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/settings/finanzonline': PERMISSIONS.SETTINGS_MANAGE,
   /** Tenant backup schedule/trigger — backup.manage (Manager tenant scope; platform ops gated in UI). */
   '/settings/backup': PERMISSIONS.BACKUP_MANAGE,
+  '/settings/data-management': PERMISSIONS.BACKUP_MANAGE,
   /** Legacy redirect — canonical `/backup/dashboard`. */
   '/settings/backup-dr': PERMISSIONS.SETTINGS_VIEW,
   /** Canonical backup & DR routes */
@@ -162,6 +165,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
    */
   '/admin': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/tenants': PERMISSIONS.SYSTEM_CRITICAL,
+  '/admin/data-management': PERMISSIONS.SYSTEM_CRITICAL,
   /**
    * Super Admin tenant tooling (`/tenant/{id}/customize|domain|…`).
    * Manager-allowed deep links under `/tenant/{id}/…` are resolved via
@@ -257,6 +261,7 @@ const TENANT_SCOPED_LEAF_PERMISSIONS: Record<string, string | string[]> = {
     PERMISSIONS.SYSTEM_CRITICAL,
   ],
   orders: [PERMISSIONS.DIGITAL_ORDERS_VIEW, PERMISSIONS.ORDER_VIEW, PERMISSIONS.SYSTEM_CRITICAL],
+  'data-management': [PERMISSIONS.BACKUP_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
 };
 
 /** Match `/tenant/{id}/{leaf}` Manager deep links; otherwise undefined. */

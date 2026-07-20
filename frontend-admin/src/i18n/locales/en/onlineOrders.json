@@ -1,0 +1,66 @@
+{
+  "pageTitle": "Online orders",
+  "pageSubtitle": "Website and app orders only — status updates do not create POS carts, TSE signatures, or fiscal receipts.",
+  "cardTitle": "Order management",
+  "pendingFilter": "Pending",
+  "statusFilterAll": "All statuses",
+  "empty": "No online orders",
+  "acceptSuccess": "Order accepted and pushed to POS.",
+  "acceptAlreadyPushed": "Order was already pushed to POS.",
+  "statusUpdateSuccess": "Order status updated.",
+  "detailTitle": "Order #{{number}}",
+  "detailTitleFallback": "Order details",
+  "analytics": {
+    "totalOrders": "Orders (30d)",
+    "pending": "Pending",
+    "completed": "Completed",
+    "revenue": "Revenue"
+  },
+  "columns": {
+    "orderNumber": "Order no.",
+    "customer": "Customer",
+    "total": "Total",
+    "status": "Status",
+    "createdAt": "Time",
+    "actions": "Actions"
+  },
+  "actions": {
+    "detail": "Details",
+    "accept": "Accept",
+    "prepare": "Prepare",
+    "markReady": "Ready",
+    "complete": "Complete",
+    "cancel": "Cancel"
+  },
+  "status": {
+    "pending": "Pending",
+    "accepted": "Accepted",
+    "preparing": "Preparing",
+    "ready": "Ready",
+    "completed": "Completed",
+    "cancelled": "Cancelled"
+  },
+  "orderTypes": {
+    "dine-in": "Dine-in",
+    "takeaway": "Takeaway",
+    "delivery": "Delivery"
+  },
+  "detail": {
+    "customer": "Customer",
+    "phone": "Phone",
+    "email": "Email",
+    "orderType": "Type",
+    "table": "Table",
+    "deliveryAddress": "Delivery address",
+    "payment": "Payment",
+    "source": "Channel",
+    "status": "Status",
+    "timeline": "Status history",
+    "posCart": "POS cart",
+    "notes": "Notes",
+    "items": "Items",
+    "subtotal": "Subtotal",
+    "tax": "Tax",
+    "total": "Total"
+  }
+}

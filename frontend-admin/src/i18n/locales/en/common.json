@@ -1,10 +1,18 @@
 {
   "breadcrumb": {
-    "overview": "Overview"
+    "overview": "Overview",
+    "admin": "Administration",
+    "tenant": "Tenant",
+    "tenants": "Tenants",
+    "orders": "Orders",
+    "digital": "Digital services",
+    "profile": "Profile",
+    "detail": "Details"
   },
   "buttons": {
     "save": "Save",
     "cancel": "Cancel",
+    "confirm": "Confirm",
     "yes": "Yes",
     "no": "No",
     "retry": "Retry",
@@ -13,6 +21,29 @@
     "delete": "Delete",
     "edit": "Edit",
     "reload": "Reload"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending",
+    "cancelled": "Cancelled",
+    "completed": "Completed",
+    "expired": "Expired",
+    "open": "Open",
+    "closed": "Closed",
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Info",
+    "suspended": "Suspended",
+    "deleted": "Deleted"
+  },
+  "confirmDialog": {
+    "defaultTitle": "Confirmation"
+  },
+  "emptyState": {
+    "defaultTitle": "No data found",
+    "defaultDescription": "No entries have been created yet."
   },
   "toolbar": {
     "refetchHint": "Refresh data manually (cache may be stale)."
@@ -217,7 +248,21 @@
   },
   "validation": {
     "fieldRequired": "Please fill in this field.",
-    "numberBetween": "Enter a value between {{min}} and {{max}}."
+    "requiredWithField": "{{field}} is required.",
+    "emailInvalid": "Please enter a valid email address.",
+    "minLength": "Must be at least {{min}} characters.",
+    "maxLength": "Must be at most {{max}} characters.",
+    "numberBetween": "Enter a value between {{min}} and {{max}}.",
+    "atuTaxNumberRequired": "UID (ATU) is required.",
+    "atuTaxNumberPattern": "Format: ATU + 8 digits (e.g. ATU12345678).",
+    "usernameRequired": "Username is required.",
+    "usernamePattern": "3–50 characters: a-z, 0-9, underscore, or hyphen."
+  },
+  "autoSave": {
+    "saving": "Saving…",
+    "saved": "Draft saved",
+    "error": "Auto-save failed",
+    "draftRestored": "Local draft restored."
   },
   "auth": {
     "appTitle": "Regkasse Admin",
@@ -257,7 +302,18 @@
       "terminated": "Session ended",
       "terminatedOthers": "Ended {{count}} other session(s)",
       "terminateFailed": "Could not end session",
-      "cannotTerminateCurrent": "You cannot end the current session here"
+      "cannotTerminateCurrent": "You cannot end the current session here",
+      "colDevice": "Device",
+      "colBrowserOs": "Browser / OS",
+      "colIp": "IP address",
+      "colStatus": "Status",
+      "colAction": "Action",
+      "unknownDevice": "Unknown",
+      "statusActive": "Active",
+      "statusInactive": "Ended",
+      "revokeConfirmTitle": "End session",
+      "revokeConfirmContent": "Are you sure you want to end this session?",
+      "revokeOthersConfirmContent": "All other device sessions will be ended. Continue?"
     },
     "logoutSuccess": "Signed out successfully.",
     "loginSuccess": "Login successful",
@@ -267,6 +323,23 @@
     "loginFailedWithStatus": "Login failed ({{status}}): {{details}}",
     "loginInvalidCredentials": "Invalid username or password",
     "loginFailedGeneric": "Login failed. Please try again.",
+    "twoFactor": {
+      "title": "Two-factor authentication",
+      "verifySubtitle": "Enter the 6-digit code from your authenticator app.",
+      "setupSubtitle": "Set up an authenticator app to continue.",
+      "setupHint": "Add this key in Google Authenticator, Microsoft Authenticator, or a similar app:",
+      "codeLabel": "Authentication code",
+      "codePlaceholder": "123456",
+      "codeRequired": "Please enter the code.",
+      "codePattern": "The code must be 6 digits.",
+      "verify": "Verify",
+      "invalidCode": "Invalid or expired code.",
+      "devBypassHint": "Development: use bypass code “{{code}}” or “123456”.",
+      "devModeTitle": "Development mode",
+      "devModeDescription": "2FA is disabled here. Real 2FA runs only in production.",
+      "devContinue": "Continue",
+      "backToLogin": "Back to login"
+    },
     "forgotUsernameLink": "Forgot username?",
     "forgotUsername": {
       "title": "Forgot username",

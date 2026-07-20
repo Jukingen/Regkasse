@@ -160,6 +160,18 @@
       "reportDisclaimer": "RKSV uyumlu günlük kapanış\nKasa Güvenlik Yönetmeliği (RKSV)\nBu günlük kapanış mali olarak geçerlidir."
     }
   },
+  "dailyClosing": {
+    "reminder": {
+      "title": "Günlük kapanış bekleniyor",
+      "body_one": "Lütfen günlük kapanışı yapın. {{count}} saat kaldı ({{deadlineHint}}).",
+      "body_other": "Lütfen günlük kapanışı yapın. {{count}} saat kaldı ({{deadlineHint}}).",
+      "deadlineWorkingHours": "{{time}} saatine kadar (çalışma saatleri)",
+      "deadlineWorkingHoursGeneric": "kapanış saatine kadar",
+      "deadlineMidnight": "00:00 Europe/Vienna’ya kadar",
+      "cta": "Şimdi yap",
+      "countdownA11y": "Geri sayım {{countdown}}"
+    }
+  },
   "registerAssignment": {
     "title": "Yazar Kasa (POS)",
     "intro": "Mali açıdan geçerli ödemeler için açık bir kasa atanmış olmalıdır. Seçim profilde saklanır.",

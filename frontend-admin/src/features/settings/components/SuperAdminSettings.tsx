@@ -3,10 +3,11 @@
 import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Modal, Form, Input, Button, Card, Tabs, Row, Col, InputNumber, Switch, Divider, Spin, Descriptions, Typography, Alert, Empty, Badge } from 'antd';
+import { Modal, Form, Input, Button, Card, Tabs, Row, Col, InputNumber, Switch, Divider, Descriptions, Typography, Alert, Empty, Badge } from 'antd';
 import { SaveOutlined, LockOutlined } from '@ant-design/icons';
 import { useMutation } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { FormSkeleton } from '@/components/Skeleton';
 import {
     useGetApiCompanySettings,
     usePutApiCompanySettings,
@@ -82,14 +83,7 @@ export function SuperAdminSettings() {
             <SpaceWrapper>
                 <Form form={form} style={{ display: 'none' }} preserve />
                 <AdminPageHeader title={t('settings.page.title')} breadcrumbs={[...headerBreadcrumbs]} />
-                <Card>
-                    <div style={{ textAlign: 'center', padding: '48px 24px' }}>
-                        <Spin size="large" />
-                        <Typography.Paragraph type="secondary" style={{ marginTop: 16, marginBottom: 0 }}>
-                            {t('settings.page.loading')}
-                        </Typography.Paragraph>
-                    </div>
-                </Card>
+                <FormSkeleton fields={6} />
             </SpaceWrapper>
         );
     }

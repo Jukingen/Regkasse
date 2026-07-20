@@ -103,7 +103,7 @@ public sealed class TenantIsolationWebApplicationFactory : WebApplicationFactory
         {
             options.UseInMemoryDatabase(databaseName);
             options.ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning));
-        });
+        }, ServiceLifetime.Scoped);
     }
 
     protected override IHost CreateHost(IHostBuilder builder)

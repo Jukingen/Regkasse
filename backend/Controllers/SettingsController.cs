@@ -26,19 +26,22 @@ namespace KasseAPI_Final.Controllers
         private readonly IBackupManualTriggerService _backupManualTrigger;
         private readonly ISettingsTenantResolver _settingsTenantResolver;
         private readonly ICashRegisterSettingsService _cashRegisterSettings;
+        private readonly ICurrentTenantAccessor _currentTenantAccessor;
 
         public SettingsController(
             AppDbContext context,
             ILogger<SettingsController> logger,
             IBackupManualTriggerService backupManualTrigger,
             ISettingsTenantResolver settingsTenantResolver,
-            ICashRegisterSettingsService cashRegisterSettings)
+            ICashRegisterSettingsService cashRegisterSettings,
+            ICurrentTenantAccessor currentTenantAccessor)
         {
             _context = context;
             _logger = logger;
             _backupManualTrigger = backupManualTrigger;
             _settingsTenantResolver = settingsTenantResolver;
             _cashRegisterSettings = cashRegisterSettings;
+            _currentTenantAccessor = currentTenantAccessor;
         }
 
         [HasPermission(AppPermissions.SettingsView)]
@@ -455,6 +458,100 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting cash register settings");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Restaurant working hours (Mon–Sun), special days, online-order cutoff,
+        /// and Tagesabschluss reminder lead time from company settings.
+        /// Cutoff applies to customer website/app intake only — never gates POS or FA.
+        /// </summary>
+        [HasPermission(AppPermissions.SettingsView)]
+        [HttpGet("working-hours")]
+        [ProducesResponseType(typeof(WorkingHoursDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetWorkingHours(CancellationToken ct)
+        {
+            try
+            {
+                if (_currentTenantAccessor.TenantId is not Guid tenantId || tenantId == Guid.Empty)
+                    return NotFound();
+
+                var settings = await _context.CompanySettings
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.TenantId == tenantId, ct)
+                    .ConfigureAwait(false);
+
+                return Ok(WorkingHoursDto.From(settings?.WorkingHours));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting working hours");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Update restaurant working hours (weekly + special days + online-order cutoff).
+        /// POS uses hours for Tagesabschluss reminders / display only (never blocks sales).
+        /// Online-order stop applies to website/app public status only.
+        /// </summary>
+        [HttpPut("working-hours")]
+        [HasPermission(AppPermissions.SettingsView)]
+        [ProducesResponseType(typeof(WorkingHoursDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateWorkingHours(
+            [FromBody] WorkingHoursDto request,
+            CancellationToken ct)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                if (_currentTenantAccessor.TenantId is not Guid tenantId || tenantId == Guid.Empty)
+                    return NotFound();
+
+                var settings = await _context.CompanySettings
+                    .FirstOrDefaultAsync(s => s.TenantId == tenantId, ct)
+                    .ConfigureAwait(false);
+
+                if (settings == null)
+                {
+                    settings = new CompanySettings
+                    {
+                        TenantId = tenantId,
+                        CompanyName = string.Empty,
+                        CompanyAddress = string.Empty,
+                        CompanyTaxNumber = string.Empty,
+                        BusinessHours = new Dictionary<string, string>(),
+                        WorkingHours = WorkingHoursSettings.CreateDefault(),
+                        Currency = "EUR",
+                        Language = "de-DE",
+                        TimeZone = "Europe/Vienna",
+                        DateFormat = "dd.MM.yyyy",
+                        TimeFormat = "HH:mm:ss",
+                        DecimalPlaces = 2,
+                        TaxCalculationMethod = "Standard",
+                        InvoiceNumbering = "Sequential",
+                        ReceiptNumbering = "Sequential",
+                        DefaultPaymentMethod = "Cash",
+                        IsActive = true,
+                    };
+                    _context.CompanySettings.Add(settings);
+                }
+
+                settings.WorkingHours = (request ?? new WorkingHoursDto()).ToSettings();
+                settings.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync(ct).ConfigureAwait(false);
+
+                return Ok(WorkingHoursDto.From(settings.WorkingHours));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating working hours");
                 return StatusCode(500, new { message = "Internal server error" });
             }
         }

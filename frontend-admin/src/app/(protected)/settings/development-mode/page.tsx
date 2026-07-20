@@ -2,10 +2,11 @@
 
 import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useEffect, useMemo } from 'react';
-import { Alert, Button, Card, Form, InputNumber, Select, Space, Spin, Switch, Typography } from 'antd';
+import { Alert, Button, Card, Form, InputNumber, Select, Space, Switch, Typography } from 'antd';
 import { SaveOutlined, UndoOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { FormSkeleton } from '@/components/Skeleton';
 import { adminOverviewCrumb, ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
 import {
@@ -83,11 +84,7 @@ export default function DevelopmentModeSettingsPage() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <AdminPageHeader title={t('developmentMode.page.title')} breadcrumbs={breadcrumbs} />
-        <Card>
-          <div style={{ textAlign: 'center', padding: 48 }}>
-            <Spin size="large" />
-          </div>
-        </Card>
+        <FormSkeleton fields={6} />
       </div>
     );
   }

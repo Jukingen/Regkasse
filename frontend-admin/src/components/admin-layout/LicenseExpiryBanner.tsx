@@ -2,24 +2,32 @@
 
 /**
  * Tenant-first license warning surface for protected admin pages.
- * SuperAdmin: actionable configuration warnings. Other roles: operational grace only.
+ * Mandant grace/lock → {@link LicenseBanner}; SuperAdmin also sees deployment license alerts.
  */
 
 import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Alert, Button, Space } from 'antd';
 
+import { LicenseBanner } from '@/components/LicenseBanner';
 import {
     useDeploymentLicenseStatus,
     useTenantLicenseStatus,
     type LicenseStatus,
 } from '@/features/license/hooks/useLicenseStatus';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
-import { TENANT_GRACE_PERIOD_DAYS } from '@/features/license/constants/licenseGracePeriod';
 import { useI18n } from '@/i18n';
 
-function isAdminConfigurationLicenseIssue(kind: LicenseStatus['kind']): boolean {
-    return kind === 'no_license' || kind === 'lockdown';
+function hasMandantBanner(license: LicenseStatus | undefined, isSuperAdmin: boolean): boolean {
+    if (!license || license.kind === 'active') return false;
+    if (!isSuperAdmin && license.kind === 'no_license') {
+        return false;
+    }
+    return (
+        license.kind === 'grace_write' ||
+        license.kind === 'lockdown' ||
+        license.kind === 'no_license'
+    );
 }
 
 export function LicenseExpiryBanner() {
@@ -34,20 +42,12 @@ export function LicenseExpiryBanner() {
         return null;
     }
 
-    const openTenantLicensePage = () => {
-        router.push('/admin/license');
-    };
+    const showMandant =
+        tenant.isRealTenantSlug && hasMandantBanner(tenantLicense, tenant.isSuperAdminUser);
 
     const openDeploymentLicensePage = () => {
         router.push('/admin/license');
     };
-
-    const renderTenantRenewAction = () =>
-        tenant.tenantId ? (
-            <Button size="small" type="primary" onClick={openTenantLicensePage}>
-                {t('license.banner.actions.renewTenant')}
-            </Button>
-        ) : null;
 
     const renderDeploymentRenewAction = () =>
         tenant.isSuperAdminUser ? (
@@ -62,75 +62,6 @@ export function LicenseExpiryBanner() {
             {action ?? null}
         </Space>
     );
-
-    const renderTenantBanner = (license: LicenseStatus) => {
-        if (!tenant.isSuperAdminUser && isAdminConfigurationLicenseIssue(license.kind)) {
-            return null;
-        }
-
-        switch (license.kind) {
-            case 'grace_write':
-                return (
-                    <Alert
-                        type="warning"
-                        banner
-                        showIcon
-                        style={{ marginBottom: 12 }}
-                        title={t('license.banner.tenant.graceWrite.title')}
-                        description={renderBannerDescription(
-                            tenant.isSuperAdminUser
-                                ? t('license.banner.tenant.graceWrite.adminDescription', {
-                                      daysExpired: license.daysExpired,
-                                      daysRemaining: Math.max(
-                                          0,
-                                          TENANT_GRACE_PERIOD_DAYS - license.daysExpired,
-                                      ),
-                                  })
-                                : t('license.banner.tenant.graceWrite.contactAdminDescription', {
-                                      daysExpired: license.daysExpired,
-                                  }),
-                            renderTenantRenewAction(),
-                        )}
-                    />
-                );
-            case 'grace_readonly':
-                return null;
-            case 'lockdown':
-                return (
-                    <Alert
-                        type="error"
-                        banner
-                        showIcon
-                        style={{ marginBottom: 12 }}
-                        title={t('license.banner.tenant.lockdown.title')}
-                        description={renderBannerDescription(
-                            tenant.isSuperAdminUser
-                                ? t('license.banner.tenant.lockdown.adminDescription', {
-                                      daysExpired: license.daysExpired,
-                                  })
-                                : t('license.banner.tenant.lockdown.contactAdminDescription'),
-                            renderTenantRenewAction(),
-                        )}
-                    />
-                );
-            case 'no_license':
-                return (
-                    <Alert
-                        type="error"
-                        banner
-                        showIcon
-                        style={{ marginBottom: 12 }}
-                        title={t('license.banner.tenant.noLicense.title')}
-                        description={renderBannerDescription(
-                            t('license.banner.tenant.noLicense.adminDescription'),
-                            renderTenantRenewAction(),
-                        )}
-                    />
-                );
-            default:
-                return null;
-        }
-    };
 
     const renderDeploymentBanner = (license: LicenseStatus) => {
         if (!tenant.isSuperAdminUser) {
@@ -149,7 +80,7 @@ export function LicenseExpiryBanner() {
                         description={renderBannerDescription(
                             t('license.banner.deployment.graceWrite.adminDescription', {
                                 daysExpired: license.daysExpired,
-                                daysRemaining: Math.max(0, 15 - license.daysExpired),
+                                daysRemaining: license.daysRemainingInGrace,
                             }),
                             renderDeploymentRenewAction(),
                         )}
@@ -192,19 +123,18 @@ export function LicenseExpiryBanner() {
         }
     };
 
-    if (tenantLicense && tenantLicense.kind !== 'active' && tenant.isRealTenantSlug) {
-        const banner = renderTenantBanner(tenantLicense);
-        if (banner) {
-            return banner;
-        }
-    }
+    const deploymentBanner =
+        !showMandant &&
+        deploymentLicense &&
+        deploymentLicense.kind !== 'active' &&
+        tenant.isSuperAdminUser
+            ? renderDeploymentBanner(deploymentLicense)
+            : null;
 
-    if (deploymentLicense && deploymentLicense.kind !== 'active') {
-        const banner = renderDeploymentBanner(deploymentLicense);
-        if (banner) {
-            return banner;
-        }
-    }
-
-    return null;
+    return (
+        <>
+            {showMandant ? <LicenseBanner /> : null}
+            {deploymentBanner}
+        </>
+    );
 }

@@ -25,6 +25,7 @@
     "phonePlaceholder": "+43 …",
     "address": "Address",
     "taxNumber": "Tax number",
+    "taxNumberTooltip": "Austrian UID in format ATU + 8 digits (e.g. ATU12345678). Leave empty if not applicable.",
     "birthDate": "Birth date",
     "notes": "Notes",
     "active": "Active",

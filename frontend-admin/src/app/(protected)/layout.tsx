@@ -3,6 +3,10 @@
 /**
  * Protected admin shell: sidebar via `AdminSidebar` (registry + permission filter).
  * Route access: `PermissionRouteGuard` + `ROUTE_PERMISSIONS`. Desktop Sider width: `usePersistedAdminSiderWidth`.
+ * Session idle timeout (30 min / 5 min warning / auto-logout) lives in `AppLayout` → `useSessionTimeout`
+ * — do not call `useSessionTimeout()` here or timers will run twice.
+ * Global keyboard shortcuts: `AppLayout` → `KeyboardShortcutsProvider` / `useKeyboardShortcuts`
+ * — do not call `useKeyboardShortcuts()` here. Shortcuts help modal is mounted once below.
  */
 
 import React, { Suspense, useState, useEffect, ReactNode } from 'react';
@@ -20,6 +24,7 @@ import { SuperAdminTenantGate } from '@/components/admin-layout/SuperAdminTenant
 import { VerwaltungTenantContextGate } from '@/components/admin-layout/VerwaltungTenantContextGate';
 import { AdminShellHeader } from '@/components/layout/Header';
 import { CommandPaletteShell } from '@/components/CommandPalette';
+import { KeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp';
 import { AdminLayout } from '@/components/admin-layout/AdminLayout';
 import { AppLayout } from '@/components/AppLayout';
 import { TenantProvider } from '@/features/tenancy/providers/TenantProvider';
@@ -80,6 +85,8 @@ export default function DashboardLayout({
             <TenantProvider>
             <AppLayout>
             <CommandPaletteShell />
+            {/* Single shortcuts help host; header/user menu open via regkasse:openShortcutsHelp */}
+            <KeyboardShortcutsHelp showTrigger={false} />
                 <Suspense fallback={null}>
                     <PageLoader />
                 </Suspense>

@@ -8,8 +8,10 @@ export const DASHBOARD_WIDGET_IDS = {
     finanzOnlineStatus: 'finanzonline-status',
     offlineSystemStatus: 'offline-system-status',
     backupStatus: 'backup-status',
+    dataRetention: 'data-retention',
     topSellingProducts: 'top-selling-products',
     paymentTrends: 'payment-trends',
+    systemMetrics: 'system-metrics',
 } as const;
 
 export type DashboardWidgetId = (typeof DASHBOARD_WIDGET_IDS)[keyof typeof DASHBOARD_WIDGET_IDS];

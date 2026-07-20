@@ -74,7 +74,7 @@ function CategoryProducts({ categoryId }: { categoryId: string }) {
                 size="small"
                 dataSource={products}
                 rowKey="id"
-                pagination={false}
+                pagination={{ pageSize: 10, showSizeChanger: true, hideOnSinglePage: true }}
                 columns={[
                     { title: t('common.categories.table.product'), dataIndex: 'name', key: 'name', ellipsis: true },
                     {

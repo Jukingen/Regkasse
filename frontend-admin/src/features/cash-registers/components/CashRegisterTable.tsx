@@ -11,13 +11,15 @@ import {
     ShopOutlined,
     UserOutlined,
 } from '@ant-design/icons';
-import { Button, Empty, Space, Table, Tag, Tooltip, Typography } from 'antd';
+import { Button, Empty, Space, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { CashRegister } from '@/api/generated/model';
 import { FORMAT_EMPTY_DISPLAY, formatCurrency, formatDateTime, useI18n } from '@/i18n';
 import { CashRegisterActions, type CashRegisterActionKey } from '@/features/cash-registers/components/CashRegisterActions';
 import { CashRegisterStatusBadge } from '@/features/cash-registers/components/CashRegisterStatusBadge';
 import { TseHealthBadge } from '@/features/cash-registers/components/TseHealthBadge';
+import { VirtualTable } from '@/components/VirtualTable';
+import { adminTablePaginationDefaults } from '@/components/ui/adminTablePagination';
 import type { EnhancedCashRegister } from '@/features/cash-registers/types/enhancedCashRegister';
 import { formatRelativeTime } from '@/features/cash-registers/utils/formatRelativeTime';
 import {
@@ -326,7 +328,7 @@ export function CashRegisterTable({
     }
 
     return (
-        <Table<CashRegister>
+        <VirtualTable<CashRegister>
             rowKey={(r) => r.id ?? r.registerNumber}
             loading={loading}
             columns={columns}
@@ -340,7 +342,7 @@ export function CashRegisterTable({
                       }
                     : undefined
             }
-            pagination={{ pageSize: 20, showSizeChanger: true }}
+            pagination={{ ...adminTablePaginationDefaults }}
             scroll={{ x: showBalanceColumn || canManageRegisters ? 1400 : 1200 }}
             locale={{
                 emptyText: <Empty description={emptyDescription} />,

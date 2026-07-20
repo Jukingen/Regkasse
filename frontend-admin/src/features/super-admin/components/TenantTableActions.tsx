@@ -1,11 +1,14 @@
 'use client';
 
 import React, { useCallback, useState } from 'react';
-import { Button, Dropdown, Popconfirm, Space } from 'antd';
+import { Button, Dropdown, Space } from 'antd';
 import type { MenuProps } from 'antd';
 import {
+    BgColorsOutlined,
+    DatabaseOutlined,
     DeleteOutlined,
     EyeOutlined,
+    GlobalOutlined,
     LoginOutlined,
     MoreOutlined,
     PauseCircleOutlined,
@@ -16,6 +19,7 @@ import {
 } from '@ant-design/icons';
 import Link from 'next/link';
 
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { AdminTenantListItem } from '@/features/super-admin/api/adminTenants';
 import { TenantArchiveConfirmModal } from '@/features/super-admin/components/TenantArchiveConfirmModal';
 import { TenantPermanentDeleteModal } from '@/features/super-admin/components/TenantPermanentDeleteModal';
@@ -51,9 +55,11 @@ export function TenantTableActions({
     const { t } = useI18n();
     const [archiveOpen, setArchiveOpen] = useState(false);
     const [permanentDeleteOpen, setPermanentDeleteOpen] = useState(false);
+    const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
 
     const closeArchiveModal = useCallback(() => setArchiveOpen(false), []);
     const closePermanentDeleteModal = useCallback(() => setPermanentDeleteOpen(false), []);
+    const closeRestoreConfirm = useCallback(() => setRestoreConfirmOpen(false), []);
 
     if (tenant.status === 'deleted') {
         return (
@@ -63,17 +69,14 @@ export function TenantTableActions({
                         {t('tenants.actions.view')}
                     </Button>
                 </Link>
-                <Popconfirm
-                    title={t('tenants.confirmRestore.title')}
-                    description={t('tenants.confirmRestore.body')}
-                    onConfirm={() => onRestore(tenant.id)}
-                    okText={t('common.yes', { defaultValue: 'Ja' })}
-                    cancelText={t('common.no', { defaultValue: 'Nein' })}
+                <Button
+                    size="small"
+                    icon={<UndoOutlined />}
+                    loading={restorePending}
+                    onClick={() => setRestoreConfirmOpen(true)}
                 >
-                    <Button size="small" icon={<UndoOutlined />} loading={restorePending}>
-                        {t('tenants.actions.restore')}
-                    </Button>
-                </Popconfirm>
+                    {t('tenants.actions.restore')}
+                </Button>
                 <Link href={buildTenantDeletePreparationHref(tenant.id)}>
                     <Button size="small">{t('tenants.deleteDependencies.checkDependencies')}</Button>
                 </Link>
@@ -85,6 +88,19 @@ export function TenantTableActions({
                 >
                     {t('tenants.actions.hardDelete')}
                 </Button>
+                <ConfirmDialog
+                    open={restoreConfirmOpen}
+                    title={t('tenants.confirmRestore.title')}
+                    message={t('tenants.confirmRestore.body')}
+                    type="warning"
+                    confirmText={t('tenants.actions.restore')}
+                    loading={restorePending}
+                    onConfirm={() => {
+                        onRestore(tenant.id);
+                        setRestoreConfirmOpen(false);
+                    }}
+                    onCancel={closeRestoreConfirm}
+                />
                 <TenantPermanentDeleteModal
                     open={permanentDeleteOpen}
                     tenantId={tenant.id}
@@ -118,6 +134,42 @@ export function TenantTableActions({
             label: (
                 <Link href={`/admin/tenants/${tenant.id}?tab=license`}>
                     {t('tenants.actions.manageLicense')}
+                </Link>
+            ),
+        },
+        {
+            key: 'digital',
+            icon: <GlobalOutlined />,
+            label: (
+                <Link href={`/tenant/${tenant.id}/digital`}>
+                    {t('tenants.digitalServices.openAction')}
+                </Link>
+            ),
+        },
+        {
+            key: 'domain',
+            icon: <GlobalOutlined />,
+            label: (
+                <Link href={`/tenant/${tenant.id}/domain`}>
+                    {t('tenants.domainManagement.openAction')}
+                </Link>
+            ),
+        },
+        {
+            key: 'customize',
+            icon: <BgColorsOutlined />,
+            label: (
+                <Link href={`/tenant/${tenant.id}/customize`}>
+                    {t('tenants.customization.openAction')}
+                </Link>
+            ),
+        },
+        {
+            key: 'data-management',
+            icon: <DatabaseOutlined />,
+            label: (
+                <Link href={`/tenant/${tenant.id}/data-management`}>
+                    {t('dataManagement.openAction')}
                 </Link>
             ),
         },

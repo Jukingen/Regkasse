@@ -1,6 +1,7 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -52,6 +53,10 @@ public sealed class PosCompanyController : ControllerBase
             ReceiptFooter = string.IsNullOrWhiteSpace(settings.CompanyDescription)
                 ? null
                 : settings.CompanyDescription,
+            TimeZone = string.IsNullOrWhiteSpace(settings.TimeZone)
+                ? "Europe/Vienna"
+                : settings.TimeZone,
+            WorkingHours = WorkingHoursDto.From(settings.WorkingHours),
         });
     }
 }

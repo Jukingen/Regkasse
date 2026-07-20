@@ -2,7 +2,8 @@
 
 import React, { useMemo } from 'react';
 import Link from 'next/link';
-import { Button, Card, List, Space, Spin, Tag, Typography } from 'antd';
+import { Button, Card, List, Space, Tag, Typography } from 'antd';
+import { CardSkeleton } from '@/components/Skeleton';
 import { useMonatsbelegStatus } from '@/features/rksv/hooks/useMonatsbeleg';
 import { aggregateMissingMonatsbelegeForCompliance } from '@/features/rksv/utils/monatsbelegMissingMonths';
 import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
@@ -26,13 +27,7 @@ export function RksvComplianceWidget({ enabled = true }: RksvComplianceWidgetPro
     if (!enabled) return null;
 
     if (isLoading) {
-        return (
-            <Card style={{ marginBottom: 16, borderColor: '#eab308' }}>
-                <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
-                    <Spin />
-                </div>
-            </Card>
-        );
+        return <CardSkeleton count={1} />;
     }
 
     if (missingMonths.length === 0) return null;

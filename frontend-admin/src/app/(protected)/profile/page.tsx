@@ -10,11 +10,11 @@ import {
   Form,
   Input,
   Space,
-  Spin,
 } from 'antd';
 import { IdcardOutlined, MailOutlined, UserOutlined } from '@ant-design/icons';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { FormSkeleton } from '@/components/Skeleton';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { ProfileUsernamePolicyAlert } from '@/features/user/components/ProfileUsernamePolicyAlert';
 import { SelfServiceUsernameModal } from '@/features/user/components/SelfServiceUsernameModal';
@@ -88,9 +88,7 @@ export default function ProfilePage() {
     return (
       <>
         <Form form={form} style={{ display: 'none' }} preserve />
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
-          <Spin size="large" description={t('profile.loading')} />
-        </div>
+        <FormSkeleton fields={5} />
       </>
     );
   }

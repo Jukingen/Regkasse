@@ -294,18 +294,25 @@
         "message": "Ihre Lizenz ist seit {{days}} Tagen abgelaufen. Bitte verlängern Sie die Lizenz in den nächsten {{remaining}} Tagen, um weiterhin Verkäufe durchführen zu können."
       },
       "graceWrite": {
-        "title": "Mandantenlizenz – Grace-Periode",
-        "adminDescription": "Ihre Lizenz ist seit {{daysExpired}} Tagen abgelaufen. Sie haben noch {{daysRemaining}} Tage Zeit, um die Lizenz zu verlängern. Danach wird der Mandant gesperrt.",
-        "contactAdminDescription": "Die Mandantenlizenz ist seit {{daysExpired}} Tagen abgelaufen. Bitte wenden Sie sich an Ihren Administrator."
+        "title": "Mandantenlizenz – Grace-Periode (7 Tage)",
+        "adminDescription": "Ihre Lizenz ist seit {{daysExpired}} Tagen abgelaufen. POS funktioniert noch {{daysRemaining}} Tage. Am {{lockDate}} wird POS gesperrt. Bitte rechtzeitig verlängern.",
+        "contactAdminDescription": "Die Mandantenlizenz ist seit {{daysExpired}} Tagen abgelaufen. POS kann noch {{daysRemaining}} Tage genutzt werden (Sperre am {{lockDate}}). Bitte wenden Sie sich an Ihren Administrator.",
+        "restrictions": "Während der Grace-Periode: POS nutzbar, Warnungen aktiv. Nach Ablauf: POS gesperrt (nur Super-Administrator kann entsperren)."
       },
       "lockdown": {
-        "title": "Mandantenlizenz abgelaufen – System gesperrt",
-        "adminDescription": "Ihre Lizenz ist seit {{daysExpired}} Tagen abgelaufen. Das System ist jetzt im Lockdown-Modus.",
-        "contactAdminDescription": "Der Mandant ist derzeit gesperrt. Bitte wenden Sie sich an Ihren Administrator."
+        "title": "Mandantenlizenz abgelaufen – POS gesperrt",
+        "adminDescription": "Ihre Lizenz ist seit {{daysExpired}} Tagen abgelaufen. Die Grace-Periode ist beendet. POS ist gesperrt — nur Super-Administrator kann entsperren. Bitte Lizenz erneuern.",
+        "contactAdminDescription": "Der Mandant ist derzeit gesperrt (Grace-Periode abgelaufen). Nur Super-Administrator kann entsperren. Bitte wenden Sie sich an Ihren Administrator.",
+        "restrictions": "POS gesperrt. Nur Super-Administrator kann freischalten. Verlängerung erforderlich."
       },
       "noLicense": {
         "title": "Mandantenlizenz fehlt",
         "adminDescription": "Für diesen Mandanten ist keine Lizenz hinterlegt. Bitte hinterlegen Sie eine Lizenz."
+      },
+      "details": {
+        "graceRemaining": "Grace-Periode: noch {{days}} Tag(e)",
+        "lockDate": "POS-Sperre am: {{date}}",
+        "contactAdmin": "Bitte kontaktieren Sie den Administrator"
       }
     },
     "deployment": {
@@ -336,7 +343,8 @@
     },
     "actions": {
       "renewTenant": "Lizenz jetzt verlängern",
-      "openDeployment": "Server-Lizenz öffnen"
+      "openDeployment": "Server-Lizenz öffnen",
+      "contact": "Administrator kontaktieren"
     }
   },
   "trialDays": "Verbleibende Testtage",

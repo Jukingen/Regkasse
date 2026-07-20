@@ -25,6 +25,7 @@ const t = (key: string, params?: Record<string, string | number>) => {
         'license.badge.headerShort.tooltip.hoursRemaining': 'Verbleibende Stunden',
         'license.badge.headerShort.tooltip.status': 'Status',
         'license.phase.labels.expired': 'Abgelaufen',
+        'license.phase.labels.graceWrite': 'Grace-Phase: Schreiben erlaubt',
         'license.badge.headerShort.daysRemaining': `${params?.days ?? 0} Tage`,
         'license.badge.headerShort.licensed': 'Lizenziert',
         'license.badge.headerShort.mandantTooltip': `Mandantenlizenz: ${params?.status ?? ''}`,
@@ -80,7 +81,10 @@ describe('headerLicenseStatus', () => {
             canAccess: true,
         });
         expect(getHeaderLicenseStatusClass(license)).toBe('warning');
-        expect(getHeaderLicenseStatusText(license, t, { validUntilUtc: VALID_UNTIL })).toBe('Läuft ab in 5 Tagen');
+        // Far-future ValidUntil so hours-preference does not override day copy.
+        expect(
+            getHeaderLicenseStatusText(license, t, { validUntilUtc: '2026-08-01T12:00:00.000Z' }),
+        ).toBe('Läuft ab in 5 Tagen');
     });
 
     it('shows hours remaining when less than one day left', () => {
@@ -152,8 +156,27 @@ describe('headerLicenseStatus', () => {
     it('shows expired status in detailed tooltip summary', () => {
         const license = status({ kind: 'expired', daysRemaining: -5, daysExpired: 5 });
         expect(getHeaderLicenseTooltipStatusLabel(license, t)).toBe('Abgelaufen');
-        const tooltip = getHeaderLicenseTooltip(license, t, { validUntilUtc: VALID_UNTIL });
+        const tooltip = getHeaderLicenseTooltip(license, t, {
+            validUntilUtc: '2026-07-01T00:00:00.000Z',
+        });
         expect(tooltip).toContain('Verbleibende Tage: 0');
         expect(tooltip).toContain('Status: Abgelaufen');
+    });
+
+    it('uses grace remaining (not ValidUntil horizon) in grace tooltip', () => {
+        const license = status({
+            kind: 'grace_write',
+            daysRemaining: 997,
+            daysExpired: 2,
+            canWrite: true,
+            canManageUsers: true,
+            canAccess: true,
+        });
+        expect(getHeaderLicenseTooltipStatusLabel(license, t)).toBe('Grace-Phase: Schreiben erlaubt');
+        const tooltip = getHeaderLicenseTooltip(license, t, {
+            validUntilUtc: '2029-04-13T00:00:00Z',
+        });
+        expect(tooltip).toContain('Verbleibende Tage: 5');
+        expect(tooltip).not.toContain('997');
     });
 });

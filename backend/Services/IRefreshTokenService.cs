@@ -28,9 +28,18 @@ public interface IRefreshTokenService
         SessionClientMetadata? clientMetadata = null,
         CancellationToken cancellationToken = default);
 
+    /// <param name="sessionTenantIdOverride">
+    /// When set (after caller authorization), updates <c>auth_sessions.tenant_id</c> before issuing the new access token.
+    /// </param>
+    /// <param name="canAssignTenant">
+    /// Optional gate for <paramref name="sessionTenantIdOverride"/>; runs before the refresh token is consumed.
+    /// Return false → <c>tenant_switch_forbidden</c> without consuming the token.
+    /// </param>
     Task<RefreshResult> RotateAsync(
         string refreshToken,
         Func<string, string, Guid, DateTime, string, string?, Task<string>> buildAccessToken,
+        Guid? sessionTenantIdOverride = null,
+        Func<string, Guid, CancellationToken, Task<bool>>? canAssignTenant = null,
         CancellationToken cancellationToken = default);
 
     Task<bool> RevokeRefreshTokenAsync(string refreshToken, string reason, CancellationToken cancellationToken = default);

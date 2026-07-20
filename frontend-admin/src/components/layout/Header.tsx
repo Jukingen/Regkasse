@@ -4,9 +4,9 @@
 
 import { Button, Layout } from 'antd';
 
-import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
+import { MenuFoldOutlined, MenuUnfoldOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 
-import Image from 'next/image';
+import { OptimizedImage } from '@/components/OptimizedImage';
 
 import Link from 'next/link';
 
@@ -33,7 +33,8 @@ import { AlertBell } from '@/components/AlertBell';
 import { MonatsbelegGlobalBadge } from '@/features/dashboard/components/MonatsbelegGlobalBadge';
 
 import { AdminHeaderUserMenu } from '@/components/layout/AdminHeaderUserMenu';
-import { GlobalSearch } from '@/components/admin-layout/GlobalSearch';
+import { SearchBar } from '@/components/SearchBar';
+import { openKeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp';
 
 import type { AuthUser } from '@/shared/auth/types';
 
@@ -162,13 +163,14 @@ export function AdminShellHeader({
                         className="admin-header-logo"
                         aria-label={t('adminShell.branding.sidebarExpanded')}
                     >
-                        <Image
+                        <OptimizedImage
                             src="/logo.svg"
                             alt=""
                             width={32}
                             height={32}
                             className="admin-header-logo-image"
                             priority
+                            loading="eager"
                         />
                         <span className="admin-header-logo-text">Regkasse</span>
                     </Link>
@@ -219,6 +221,16 @@ export function AdminShellHeader({
 
                             <HeaderLanguageQuickSwitch />
 
+                            <Button
+                                type="default"
+                                size="small"
+                                icon={<QuestionCircleOutlined />}
+                                className="admin-header-tool-btn"
+                                onClick={() => openKeyboardShortcutsHelp()}
+                                aria-label={t('keyboardShortcuts.help')}
+                                title={t('keyboardShortcuts.help')}
+                            />
+
                             <AlertBell />
 
                             <ActivityNotificationsBell />
@@ -231,7 +243,7 @@ export function AdminShellHeader({
 
 
 
-                    <GlobalSearch isMobile={isMobile} />
+                    <SearchBar isMobile={isMobile} />
 
                     <AdminHeaderUserMenu
 

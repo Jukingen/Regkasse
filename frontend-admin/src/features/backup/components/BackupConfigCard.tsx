@@ -6,7 +6,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Alert, Button, Card, Descriptions, Space, Spin, Typography } from "antd";
+import { Alert, Button, Card, Descriptions, Skeleton, Space, Typography } from "antd";
 import { SettingOutlined } from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
 import { useI18n } from "@/i18n";
@@ -67,7 +67,7 @@ export function BackupConfigCard() {
             title={t("backupDr.overview.configCard.readOnlyHint")}
           />
         ) : settingsQuery.isLoading && !settingsQuery.data ? (
-          <Spin />
+          <Skeleton active paragraph={{ rows: 3 }} />
         ) : settingsQuery.isError ? (
           <Alert type="error" showIcon title={t("backupDr.errors.loadFailed")} />
         ) : (

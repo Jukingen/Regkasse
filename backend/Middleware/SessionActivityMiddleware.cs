@@ -4,8 +4,10 @@ using Microsoft.Extensions.Caching.Memory;
 namespace KasseAPI_Final.Middleware;
 
 /// <summary>
-/// Throttled updates to <c>auth_sessions.last_activity_at_utc</c> for the current JWT session (<c>sid</c> claim).
-/// Skips static assets and endpoints that already touch activity explicitly.
+/// Records API activity on <c>auth_sessions.last_activity_at_utc</c> for the JWT <c>sid</c> claim.
+/// Idle logout (default 30 minutes) and the pre-timeout warning (default 5 minutes) are enforced
+/// in the Admin UI via activity listeners; this middleware keeps server-side last-active accurate
+/// for device/session management. Touches are throttled to once per minute per session.
 /// </summary>
 public sealed class SessionActivityMiddleware
 {
@@ -38,7 +40,7 @@ public sealed class SessionActivityMiddleware
                     }
                     catch
                     {
-                        /* non-fatal */
+                        /* non-fatal — idle timeout must not break API calls */
                     }
                 }
             }

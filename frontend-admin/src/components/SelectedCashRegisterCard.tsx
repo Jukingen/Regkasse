@@ -19,7 +19,7 @@ export type SelectedCashRegisterCardProps = {
     className?: string;
 };
 
-function formatLastActivity(value: string | undefined, locale: string): string | null {
+function formatLastActivity(value: string | null | undefined, locale: string): string | null {
     if (!value?.trim()) {
         return null;
     }

@@ -14,7 +14,6 @@ import {
     Segmented,
     Select,
     Space,
-    Spin,
     Tag,
     Typography,
 } from 'antd';
@@ -25,6 +24,7 @@ import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { CardSkeleton } from '@/components/Skeleton';
 import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n/I18nProvider';
 import { usePermissions } from '@/shared/auth/usePermissions';
@@ -328,9 +328,7 @@ export default function FiscalExportDiagnosticsPage() {
             <Alert type="info" showIcon style={{ marginBottom: 16 }} title={t('rksvHub.fiscalExportPage.profileHelp')} />
 
             {cashLoading ? (
-                <div style={{ textAlign: 'center', padding: 80 }}>
-                    <Spin size="large" />
-                </div>
+                <CardSkeleton count={1} />
             ) : null}
 
             {exportError ? (

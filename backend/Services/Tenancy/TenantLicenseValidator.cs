@@ -6,8 +6,12 @@ public enum TenantLicenseStatus
 {
     Active,
     GraceWrite,
+    /// <summary>Reserved when <see cref="LicenseGracePeriodConfig.BlockAfterGraceDays"/> &gt; 0.</summary>
     GraceReadOnly,
+    /// <summary>Locked phase: days overdue after grace through <see cref="LicenseGracePeriodConfig.ArchiveAfterDays"/>.</summary>
     Lockdown,
+    /// <summary>Archived phase: days overdue &gt; <see cref="LicenseGracePeriodConfig.ArchiveAfterDays"/>.</summary>
+    Archived,
     NoLicense,
 }
 
@@ -20,9 +24,12 @@ public sealed class TenantLicenseValidator
 {
     public static int GraceDaysWrite => LicenseGracePeriodConfig.GracePeriodDays;
 
-    /// <summary>First day (inclusive) after grace when lockdown applies.</summary>
+    /// <summary>First day (inclusive) after grace when lockdown (Locked) applies.</summary>
     public static int LockdownStartsAfterDaysExpired =>
         LicenseGracePeriodConfig.GracePeriodDays + LicenseGracePeriodConfig.BlockAfterGraceDays;
+
+    /// <summary>Inclusive last day of Locked; the next day is Archived.</summary>
+    public static int ArchiveStartsAfterDaysExpired => LicenseGracePeriodConfig.ArchiveAfterDays;
 
     public TenantLicenseStatus GetStatus(DateTime? validUntilUtc, DateTime? nowUtc = null)
     {
@@ -39,7 +46,10 @@ public sealed class TenantLicenseValidator
         if (daysExpired <= GraceDaysWrite)
             return TenantLicenseStatus.GraceWrite;
 
-        return TenantLicenseStatus.Lockdown;
+        if (daysExpired <= ArchiveStartsAfterDaysExpired)
+            return TenantLicenseStatus.Lockdown;
+
+        return TenantLicenseStatus.Archived;
     }
 
     public TenantLicensePermissions GetPermissions(
@@ -55,7 +65,10 @@ public sealed class TenantLicenseValidator
             TenantLicenseStatus.Active => new TenantLicensePermissions(true, true, true),
             TenantLicenseStatus.GraceWrite => new TenantLicensePermissions(true, true, true),
             TenantLicenseStatus.GraceReadOnly => new TenantLicensePermissions(false, true, true),
+            // Locked / Archived: POS blocked via LicenseMiddleware + CanAccess=false;
+            // FA read-only is allowed by middleware despite CanAccess=false (GET + reports).
             TenantLicenseStatus.Lockdown => new TenantLicensePermissions(false, false, false),
+            TenantLicenseStatus.Archived => new TenantLicensePermissions(false, false, false),
             TenantLicenseStatus.NoLicense => new TenantLicensePermissions(false, false, false),
             _ => new TenantLicensePermissions(false, false, false),
         };

@@ -7,7 +7,6 @@ import {
     Button,
     Card,
     Space,
-    Spin,
     Table,
     Tag,
     Tooltip,
@@ -15,6 +14,7 @@ import {
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { DeleteOutlined, LinkOutlined, ReloadOutlined } from '@ant-design/icons';
+import { CardSkeleton } from '@/components/Skeleton';
 
 import type { TenantDeleteDependenciesDto } from '@/api/generated/model';
 import { TenantArchiveConfirmModal } from '@/features/super-admin/components/TenantArchiveConfirmModal';
@@ -256,11 +256,7 @@ export function TenantDeletePreparationPanel(props: TenantDeletePreparationPanel
     const query = useTenantDeleteDependencies(props.tenantId);
 
     if (query.isLoading) {
-        return (
-            <div style={{ textAlign: 'center', padding: 48 }}>
-                <Spin />
-            </div>
-        );
+        return <CardSkeleton count={2} />;
     }
 
     if (query.isError || !query.data) {

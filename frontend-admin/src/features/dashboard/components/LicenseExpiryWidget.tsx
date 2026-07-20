@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Alert, Button, Descriptions, Space, Spin, Tag } from 'antd';
+import { Alert, Button, Descriptions, Skeleton, Space, Tag } from 'antd';
 import { SafetyCertificateOutlined } from '@ant-design/icons';
 
 import { LicenseExtendModal } from '@/features/license/components/LicenseExtendModal';
@@ -87,7 +87,7 @@ export function LicenseExpiryWidget({ title, dragHandleProps }: Props) {
     if ((licenseQuery.isLoading || statusQuery.isLoading) && !resolvedStatus) {
         return (
             <WidgetShell title={title} dragHandleProps={dragHandleProps}>
-                <Spin />
+                <Skeleton active paragraph={{ rows: 3 }} />
             </WidgetShell>
         );
     }
@@ -95,8 +95,15 @@ export function LicenseExpiryWidget({ title, dragHandleProps }: Props) {
     const statusLabel = getLicenseStatusLabel(kind, t);
     const showExpiryWarning =
         kind === 'active' && daysRemaining > 0 && daysRemaining <= 30;
-    const displayDaysRemaining = Math.max(0, daysRemaining);
-    const hoursRemaining = getLicenseHoursRemaining(validUntil) ?? 0;
+    // Grace: show remaining grace days (≤7), never ValidUntil horizon.
+    const displayDaysRemaining =
+        kind === 'grace_write' || kind === 'grace_readonly'
+            ? (resolvedStatus?.daysRemainingInGrace ?? 0)
+            : Math.max(0, daysRemaining);
+    const hoursRemaining =
+        kind === 'grace_write' || kind === 'grace_readonly'
+            ? 0
+            : (getLicenseHoursRemaining(validUntil) ?? 0);
     const isValid = resolvedStatus != null && isLicenseValidForWidget(kind, daysRemaining);
     const detailStatusLabel =
         resolvedStatus != null ? getHeaderLicenseTooltipStatusLabel(resolvedStatus, t) : statusLabel;

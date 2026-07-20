@@ -5,6 +5,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
@@ -12,12 +13,16 @@ using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Auth;
 using KasseAPI_Final.Services.Email;
+using KasseAPI_Final.Services.Token;
+using KasseAPI_Final.Services.TwoFactor;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -75,7 +80,20 @@ public class AuthControllerTests
 
         TrackUser(userByEmail);
         TrackUser(userByName);
-        mgr.SetupGet(m => m.Users).Returns(loginUsers.AsQueryable());
+
+        var usersDb = new AppDbContext(
+            new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase($"AuthMockUsers_{Guid.NewGuid():N}")
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+                .Options,
+            NullCurrentTenantAccessor.Instance);
+        if (loginUsers.Count > 0)
+        {
+            usersDb.Users.AddRange(loginUsers);
+            usersDb.SaveChanges();
+        }
+
+        mgr.SetupGet(m => m.Users).Returns(usersDb.Users);
         mgr.Setup(m => m.NormalizeName(It.IsAny<string>()))
             .Returns((string? name) => name == null ? null : keyNormalizer.NormalizeName(name));
 
@@ -253,7 +271,8 @@ public class AuthControllerTests
         ApplicationUser? userByName = null,
         UserManager<ApplicationUser>? userManagerOverride = null,
         AppDbContext? appDbOverride = null,
-        Mock<ISessionService>? sessionServiceMock = null)
+        Mock<ISessionService>? sessionServiceMock = null,
+        IAccountLockoutService? accountLockoutService = null)
     {
         var userManager = userManagerOverride
             ?? CreateMockUserManager(userByEmail, passwordValid, roles, userByName);
@@ -268,6 +287,7 @@ public class AuthControllerTests
         {
             AllowLegacyLoginWithoutClientApp = allowLegacy,
             RequireTenantMembershipForLogin = requireTenantMembershipForLogin,
+            RequireSuperAdminTwoFactor = false,
         });
         var refreshTokenService = new Mock<IRefreshTokenService>();
         refreshTokenService.Setup(x => x.IssueLoginTokensAsync(
@@ -296,6 +316,8 @@ public class AuthControllerTests
         var forgotPasswordEmail = CreateForgotPasswordEmailMock();
 
         var sessionService = sessionServiceMock ?? new Mock<ISessionService>();
+        var environment = new Mock<IHostEnvironment>();
+        environment.SetupGet(e => e.EnvironmentName).Returns(Environments.Development);
 
         var controller = new AuthController(
             appDb,
@@ -316,12 +338,57 @@ public class AuthControllerTests
             sessionService.Object,
             LocalizationTestDoubles.ApiMessageLocalizer(),
             LocalizationTestDoubles.I18nErrorService(),
-            Mock.Of<IPosShiftService>());
+            Mock.Of<IPosShiftService>(),
+            accountLockoutService ?? CreateAccountLockoutService(),
+            environment.Object,
+            new TwoFactorChallengeService(new MemoryCache(new MemoryCacheOptions())),
+            CreateTwoFactorServiceMock(environment.Object),
+            Options.Create(new TwoFactorAuthOptions { Enabled = true, BypassInDevelopment = true }),
+            Mock.Of<ITokenBlacklistService>(),
+            Mock.Of<IAuditLogService>());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext(),
         };
         return controller;
+    }
+
+    private static ITwoFactorService CreateTwoFactorServiceMock(IHostEnvironment environment)
+    {
+        var mock = new Mock<ITwoFactorService>();
+        mock.SetupGet(s => s.IsDevelopment).Returns(environment.IsDevelopment());
+        mock.SetupGet(s => s.IsBypassActive).Returns(environment.IsDevelopment());
+        mock.Setup(s => s.GenerateTwoFactorToken(It.IsAny<ApplicationUser>()))
+            .Returns((ApplicationUser _) =>
+                environment.IsDevelopment() ? ITwoFactorService.DevelopmentBypassToken : null);
+        mock.Setup(s => s.VerifyTwoFactorTokenAsync(
+                It.IsAny<ApplicationUser>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        return mock.Object;
+    }
+
+    private static IAccountLockoutService CreateAccountLockoutService(
+        int maxAttempts = 5,
+        int lockoutMinutes = 15,
+        bool enabled = true)
+    {
+        var options = new OptionsMonitorStub<AccountLockoutOptions>(new AccountLockoutOptions
+        {
+            Enabled = enabled,
+            MaxAttempts = maxAttempts,
+            LockoutMinutes = lockoutMinutes,
+        });
+        return new AccountLockoutService(new MemoryCache(new MemoryCacheOptions()), options);
+    }
+
+    private sealed class OptionsMonitorStub<T> : IOptionsMonitor<T>
+    {
+        public OptionsMonitorStub(T current) => CurrentValue = current;
+        public T CurrentValue { get; }
+        public T Get(string? name) => CurrentValue;
+        public IDisposable? OnChange(Action<T, string?> listener) => null;
     }
 
     private static Mock<IForgotUsernameEmailService> CreateForgotUsernameEmailMock()
@@ -445,6 +512,26 @@ public class AuthControllerTests
         var body = Assert.IsType<ApiErrorResponse>(unauthorized.Value);
         Assert.Equal("INVALID_CREDENTIALS", body.Code);
         Assert.Equal("Ungültiger Benutzername oder Passwort", body.Message);
+    }
+
+    [Fact]
+    public async Task Login_AfterMaxFailedAttempts_ReturnsAccountLocked()
+    {
+        var user = ActiveUser();
+        var lockout = CreateAccountLockoutService(maxAttempts: 3, lockoutMinutes: 15);
+        var controller = CreateController(user, passwordValid: false, allowLegacy: true, accountLockoutService: lockout);
+
+        for (var i = 0; i < 3; i++)
+        {
+            var fail = await controller.Login(new LoginModel { Email = user.Email, Password = "wrong" });
+            Assert.IsType<UnauthorizedObjectResult>(fail);
+        }
+
+        var locked = await controller.Login(new LoginModel { Email = user.Email, Password = "wrong" });
+        var unauthorized = Assert.IsType<UnauthorizedObjectResult>(locked);
+        var body = Assert.IsType<ApiErrorResponse>(unauthorized.Value);
+        Assert.Equal("ACCOUNT_LOCKED", body.Code);
+        Assert.Equal("Konto ist vorübergehend gesperrt. Bitte versuchen Sie es später erneut.", body.Message);
     }
 
     [Fact]
@@ -1012,7 +1099,7 @@ public class AuthControllerTests
         sessionPolicy.Setup(s => s.GetPolicyAsync(It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new TenantSessionPolicyDto());
 
-        return new AuthController(
+        var controller = new AuthController(
             new AppDbContext(
                 new DbContextOptionsBuilder<AppDbContext>()
                     .UseInMemoryDatabase($"AuthForgotPwd_{Guid.NewGuid():N}")
@@ -1024,7 +1111,7 @@ public class AuthControllerTests
             new Mock<ILogger<AuthController>>().Object,
             CreateTokenClaimsMock().Object,
             CreateEffectivePermissionResolverMock().Object,
-            Options.Create(new AuthOptions()),
+            Options.Create(new AuthOptions { RequireSuperAdminTwoFactor = false }),
             new Mock<IRefreshTokenService>().Object,
             CreateAuthTenantSnapshotMock().Object,
             CreateLoginTenantResolverMock().Object,
@@ -1036,7 +1123,20 @@ public class AuthControllerTests
             new Mock<ISessionService>().Object,
             LocalizationTestDoubles.ApiMessageLocalizer(),
             LocalizationTestDoubles.I18nErrorService(),
-            Mock.Of<IPosShiftService>());
+            Mock.Of<IPosShiftService>(),
+            CreateAccountLockoutService(),
+            Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
+            new TwoFactorChallengeService(new MemoryCache(new MemoryCacheOptions())),
+            CreateTwoFactorServiceMock(
+                Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development)),
+            Options.Create(new TwoFactorAuthOptions { Enabled = true, BypassInDevelopment = true }),
+            Mock.Of<ITokenBlacklistService>(),
+            Mock.Of<IAuditLogService>());
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = CreateHttpContextWithEmptyServices(),
+        };
+        return controller;
     }
 
     private static AuthController CreateForgotUsernameController(
@@ -1049,7 +1149,7 @@ public class AuthControllerTests
         sessionPolicy.Setup(s => s.GetPolicyAsync(It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new TenantSessionPolicyDto());
 
-        return new AuthController(
+        var controller = new AuthController(
             new AppDbContext(
                 new DbContextOptionsBuilder<AppDbContext>()
                     .UseInMemoryDatabase($"AuthForgot_{Guid.NewGuid():N}")
@@ -1061,7 +1161,7 @@ public class AuthControllerTests
             new Mock<ILogger<AuthController>>().Object,
             CreateTokenClaimsMock().Object,
             CreateEffectivePermissionResolverMock().Object,
-            Options.Create(new AuthOptions()),
+            Options.Create(new AuthOptions { RequireSuperAdminTwoFactor = false }),
             new Mock<IRefreshTokenService>().Object,
             CreateAuthTenantSnapshotMock().Object,
             CreateLoginTenantResolverMock().Object,
@@ -1073,7 +1173,27 @@ public class AuthControllerTests
             new Mock<ISessionService>().Object,
             LocalizationTestDoubles.ApiMessageLocalizer(),
             LocalizationTestDoubles.I18nErrorService(),
-            Mock.Of<IPosShiftService>());
+            Mock.Of<IPosShiftService>(),
+            CreateAccountLockoutService(),
+            Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
+            new TwoFactorChallengeService(new MemoryCache(new MemoryCacheOptions())),
+            CreateTwoFactorServiceMock(
+                Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development)),
+            Options.Create(new TwoFactorAuthOptions { Enabled = true, BypassInDevelopment = true }),
+            Mock.Of<ITokenBlacklistService>(),
+            Mock.Of<IAuditLogService>());
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = CreateHttpContextWithEmptyServices(),
+        };
+        return controller;
+    }
+
+    private static Microsoft.AspNetCore.Http.DefaultHttpContext CreateHttpContextWithEmptyServices()
+    {
+        var http = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        http.RequestServices = Mock.Of<IServiceProvider>();
+        return http;
     }
 
     [Fact]

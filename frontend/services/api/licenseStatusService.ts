@@ -21,14 +21,19 @@ export async function checkLicenseStatus(tenantId: string): Promise<boolean> {
     } = data;
 
     if (canAccess === false) {
-      showToast('Lizenz', statusMessage ?? 'Mandantenlizenz ungültig. Bitte verlängern.');
+      showToast(
+        'Lizenz',
+        statusMessage ??
+          'Lizenz abgelaufen! POS ist gesperrt. Nur Super-Administrator kann entsperren.',
+      );
       return false;
     }
 
     if (isInGracePeriod) {
       showToast(
         'Lizenz',
-        `Lizenz abgelaufen. Grace Period: noch ${gracePeriodRemaining} Tage. Bitte verlängern.`,
+        statusMessage ??
+          `Lizenz abgelaufen. Grace Period: noch ${gracePeriodRemaining} Tage. Bitte verlängern.`,
       );
     } else if (daysRemaining <= EXPIRY_WARNING_DAYS && daysRemaining > 0) {
       const remainingLabel =

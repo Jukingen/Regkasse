@@ -1,0 +1,19 @@
+{
+  "title": "Keyboard shortcuts",
+  "help": "Keyboard shortcuts",
+  "search": "Open menu search",
+  "newTenant": "Create new tenant (tenant admin pages)",
+  "save": "Save the active form",
+  "closeModal": "Close modal, drawer, or search",
+  "logout": "Log out",
+  "navigate": "Switch tabs on the current page",
+  "inputHint": "Most shortcuts are ignored in input fields. Esc and Ctrl/Cmd+S still work while typing.",
+  "columnShortcut": "Shortcut",
+  "columnAction": "Action",
+  "logoutConfirmTitle": "Log out?",
+  "logoutConfirmContent": "Are you sure you want to end this session?",
+  "logoutConfirmOk": "Log out",
+  "saveWithShortcut": "Save ({{shortcut}})",
+  "newTenantWithShortcut": "New tenant ({{shortcut}})",
+  "openSearchWithShortcut": "Search ({{shortcut}})"
+}

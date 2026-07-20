@@ -6,7 +6,8 @@
 
 import React, { useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Alert, Col, Row, Space, Spin, Typography } from "antd";
+import { Alert, Col, Row, Space, Typography } from "antd";
+import { PageSkeleton } from "@/components/Skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useI18n } from "@/i18n";
 import { formatDateTime } from "@/i18n/formatting";
@@ -102,7 +103,7 @@ export function BackupDashboard() {
   }, [queryClient]);
 
   if (statsQuery.isLoading && !stats) {
-    return <Spin />;
+    return <PageSkeleton widgets={6} />;
   }
 
   if (statsQuery.isError) {

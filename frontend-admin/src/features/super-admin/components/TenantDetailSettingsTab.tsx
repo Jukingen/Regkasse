@@ -1,7 +1,7 @@
 'use client';
 
 import { useAntdApp } from '@/hooks/useAntdApp';
-import { Button, Card, Form, Input, Select, Space } from 'antd';
+import { Card, Form, Input, Select, Space } from 'antd';
 import { useMutation } from '@tanstack/react-query';
 
 import {
@@ -10,11 +10,14 @@ import {
 } from '@/features/super-admin/api/adminTenants';
 import { TenantDetailDangerZone } from '@/features/super-admin/components/TenantDetailDangerZone';
 import { useCanManageTenantDeletion } from '@/features/super-admin/hooks/useCanManageTenantDeletion';
+import { SaveButton } from '@/components/SaveButton';
 import { useI18n } from '@/i18n';
 
 export type TenantDetailSettingsTabProps = {
     tenant: AdminTenantDetail;
     onUpdated: () => void;
+    /** When false, Ctrl+S does not submit (e.g. another tab is active). Default true. */
+    saveShortcutEnabled?: boolean;
     restorePending?: boolean;
     developmentHardDeletePending?: boolean;
     onArchiveSuccess?: () => void;
@@ -34,6 +37,7 @@ type SettingsFormValues = {
 export function TenantDetailSettingsTab({
     tenant,
     onUpdated,
+    saveShortcutEnabled = true,
     restorePending,
     developmentHardDeletePending,
     onArchiveSuccess,
@@ -105,9 +109,14 @@ export function TenantDetailSettingsTab({
                         </Form.Item>
                     ) : null}
                     {tenant.status !== 'deleted' ? (
-                        <Button type="primary" htmlType="submit" loading={saveMutation.isPending}>
+                        <SaveButton
+                            htmlType="submit"
+                            loading={saveMutation.isPending}
+                            shortcutEnabled={saveShortcutEnabled}
+                            showShortcutInLabel={false}
+                        >
                             {t('tenants.detail.settings.save')}
-                        </Button>
+                        </SaveButton>
                     ) : null}
                 </Form>
             </Card>

@@ -8,7 +8,7 @@ import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { Alert, Button, Card, Col, Row, Segmented, Space, Spin, Typography } from 'antd';
+import { Alert, Button, Card, Col, Row, Segmented, Skeleton, Space, Typography } from 'antd';
 import { DownloadOutlined, KeyOutlined, PlusOutlined } from '@ant-design/icons';
 import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
 import dayjs from 'dayjs';
@@ -32,11 +32,7 @@ const LicenseDashboardBarChart = dynamic(
     () => import('./LicenseDashboardBarChart'),
     {
         ssr: false,
-        loading: () => (
-            <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Spin />
-            </div>
-        ),
+        loading: () => <Skeleton active paragraph={{ rows: 6 }} />,
     },
 );
 
@@ -122,9 +118,7 @@ export function LicenseDashboardSection() {
                                 }
                             >
                                 {seriesQuery.isLoading ? (
-                                    <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <Spin />
-                                    </div>
+                                    <Skeleton active paragraph={{ rows: 6 }} />
                                 ) : chartData.length === 0 ? (
                                     <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
                                         {t('license.dashboard.chartEmpty')}

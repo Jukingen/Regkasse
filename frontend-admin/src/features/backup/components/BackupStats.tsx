@@ -5,8 +5,9 @@
  */
 
 import React from "react";
-import { Alert, Col, Row, Spin } from "antd";
+import { Alert, Col, Row } from "antd";
 import { useQuery } from "@tanstack/react-query";
+import { SkeletonWrapper } from "@/components/Skeleton";
 import { useI18n } from "@/i18n";
 import { formatDateTime } from "@/i18n/formatting";
 import { MetricCard } from "@/features/backup/components/MetricCard";
@@ -28,7 +29,7 @@ export function BackupStats() {
   });
 
   if (statsQuery.isLoading && !statsQuery.data) {
-    return <Spin />;
+    return <SkeletonWrapper type="widget" loading count={4}>{null}</SkeletonWrapper>;
   }
 
   if (statsQuery.isError) {

@@ -38,5 +38,70 @@
   "cancel_message": "Bu siparişi iptal etmek istediğinize emin misiniz?",
   "cancel_confirm": "Siparişi İptal Et",
   "table": "Masa",
-  "more_items": "ürün daha"
+  "more_items": "ürün daha",
+  "tracker": {
+    "title": "Sipariş takibi",
+    "subtitle": "Durumu görmek için mandant kısaltması ve sipariş numarasını girin.",
+    "tenantPlaceholder": "Mandant kısaltması (örn. cafe-example)",
+    "orderNumberPlaceholder": "Sipariş no (örn. ORD-001)",
+    "phonePlaceholder": "Telefon (isteğe bağlı, doğrulama)",
+    "search": "Durumu getir",
+    "notFound": "Sipariş bulunamadı.",
+    "fetchFailed": "Durum yüklenemedi.",
+    "missingParams": "Lütfen mandant ve sipariş numarası girin.",
+    "total": "Toplam",
+    "customer": "Müşteri",
+    "steps": {
+      "pending": "Alındı",
+      "accepted": "Kabul edildi",
+      "preparing": "Hazırlanıyor",
+      "ready": "Hazır",
+      "completed": "Tamamlandı"
+    },
+    "status": {
+      "pending": "Beklemede",
+      "accepted": "Kabul edildi",
+      "preparing": "Hazırlanıyor",
+      "ready": "Hazır",
+      "completed": "Tamamlandı",
+      "cancelled": "İptal"
+    }
+  },
+  "dashboard": {
+    "title": "Müşteri portalı",
+    "subtitle": "Mandant kısaltması ve telefon ile sipariş geçmişi ve sadakat puanlarını görün.",
+    "tenantPlaceholder": "Mandant kısaltması (örn. cafe-example)",
+    "phonePlaceholder": "Telefon numarası",
+    "search": "Portalı aç",
+    "reset": "Başka numara ara",
+    "notFound": "Müşteri hesabı veya sipariş bulunamadı.",
+    "fetchFailed": "Müşteri portalı yüklenemedi.",
+    "missingParams": "Lütfen mandant ve telefon numarası girin.",
+    "phoneTooShort": "Telefon numarası en az 6 rakam içermelidir.",
+    "greeting": "Merhaba, {{name}}",
+    "totalOrders": "Siparişler",
+    "loyaltyPoints": "Puanlarım",
+    "totalSpent": "Toplam harcama",
+    "orderHistory": "Sipariş geçmişi",
+    "noOrders": "Henüz online sipariş yok.",
+    "loyaltyTitle": "Sadakat programı",
+    "loyaltyMessage": "{{points}} puanınız var!",
+    "loyaltyRedeemable": "{{euro}} indirim kazanabilirsiniz.",
+    "redeemButton": "Puanları kullan",
+    "redeemTitle": "Puanları kullan",
+    "redeemHint": "Puanlar kasada kullanılır. Lütfen telefon numaranızı personele gösterin."
+  },
+  "customerApp": {
+    "selectTitle": "Restoran seçin",
+    "selectSubtitle": "Mandant kısaltmasını girin veya QR / bağlantı metnini yapıştırın.",
+    "slugPlaceholder": "Kısaltma veya bağlantı (örn. cafe-demo)",
+    "continue": "Devam",
+    "notFound": "Restoran bulunamadı.",
+    "loadFailed": "Restoran yüklenemedi.",
+    "menu": "Menü",
+    "menuEmpty": "Şu an ürün yok.",
+    "orderStatus": "Sipariş durumu",
+    "myPortal": "Müşteri portalım",
+    "changeRestaurant": "Başka restoran seç"
+  }
 }

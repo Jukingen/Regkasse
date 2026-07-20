@@ -6,6 +6,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Loyalty;
 using Microsoft.AspNetCore.Authorization;
 using KasseAPI_Final.Controllers.Base;
 using KasseAPI_Final.Data.Repositories;
@@ -24,18 +25,21 @@ namespace KasseAPI_Final.Controllers
         private readonly IGenericRepository<Customer> _customerRepository;
         private readonly IPaymentService _paymentService;
         private readonly ICustomerService _customerService;
+        private readonly ILoyaltyService _loyaltyService;
 
         public CustomerController(
             AppDbContext context,
             IGenericRepository<Customer> customerRepository,
             IPaymentService paymentService,
             ICustomerService customerService,
+            ILoyaltyService loyaltyService,
             ILogger<CustomerController> logger) : base(customerRepository, logger)
         {
             _context = context;
             _customerRepository = customerRepository;
             _paymentService = paymentService;
             _customerService = customerService;
+            _loyaltyService = loyaltyService;
         }
 
         private bool IsCurrentUserSuperAdmin() => HasRole(Roles.SuperAdmin);
@@ -450,6 +454,70 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 return HandleException(ex, "Search Customers");
+            }
+        }
+
+        /// <summary>Current loyalty point balance for a customer.</summary>
+        [HttpGet("{id:guid}/loyalty")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetLoyaltyBalance(Guid id, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var balance = await _loyaltyService.GetBalanceAsync(id, cancellationToken);
+                if (balance is null)
+                    return ErrorResponse($"Customer with ID {id} not found", 404);
+
+                return SuccessResponse(
+                    new LoyaltyBalanceDto { CustomerId = id, LoyaltyPoints = balance.Value },
+                    "Loyalty balance retrieved");
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, $"GetLoyaltyBalance for customer {id}");
+            }
+        }
+
+        /// <summary>
+        /// Redeem loyalty points for an EUR discount (100 points = 1 EUR). Not a fiscal payment.
+        /// </summary>
+        [HttpPost("{id:guid}/loyalty/redeem")]
+        [HasPermission(AppPermissions.CustomerManage)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> RedeemLoyaltyPoints(
+            Guid id,
+            [FromBody] RedeemLoyaltyPointsRequest request,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var systemGuard = await RejectSystemCustomerMutationAsync(id);
+                if (systemGuard != null)
+                    return systemGuard;
+
+                var result = await _loyaltyService.RedeemPointsAsync(id, request.Points, cancellationToken);
+                if (!result.Succeeded)
+                {
+                    var status = result.Code == LoyaltyService.NotFoundCode ? 404 : 400;
+                    return ErrorResponse(result.Message ?? "Loyalty redeem failed", status, new List<string> { result.Code ?? "LOYALTY_ERROR" });
+                }
+
+                return SuccessResponse(
+                    new RedeemLoyaltyPointsResponse
+                    {
+                        CustomerId = id,
+                        PointsRedeemed = request.Points,
+                        DiscountEuro = result.Value,
+                        LoyaltyPointsBalance = result.Balance
+                    },
+                    "Loyalty points redeemed");
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, $"RedeemLoyaltyPoints for customer {id}");
             }
         }
     }

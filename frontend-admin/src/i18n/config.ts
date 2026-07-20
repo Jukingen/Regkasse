@@ -38,6 +38,10 @@ import deActivity from './locales/de/activity.json';
 import deActivityNotifications from './locales/de/activityNotifications.json';
 import deSuspiciousAlerts from './locales/de/suspiciousAlerts.json';
 import deQuickActions from './locales/de/quickActions.json';
+import deOnlineOrders from './locales/de/onlineOrders.json';
+import deDigital from './locales/de/digital.json';
+import deDataManagement from './locales/de/dataManagement.json';
+import deKeyboardShortcuts from './locales/de/keyboardShortcuts.json';
 import enAccess from './locales/en/access.json';
 import enAdminShell from './locales/en/admin-shell.json';
 import enCommon from './locales/en/common.json';
@@ -78,6 +82,10 @@ import enActivity from './locales/en/activity.json';
 import enActivityNotifications from './locales/en/activityNotifications.json';
 import enSuspiciousAlerts from './locales/en/suspiciousAlerts.json';
 import enQuickActions from './locales/en/quickActions.json';
+import enOnlineOrders from './locales/en/onlineOrders.json';
+import enDigital from './locales/en/digital.json';
+import enDataManagement from './locales/en/dataManagement.json';
+import enKeyboardShortcuts from './locales/en/keyboardShortcuts.json';
 import trAccess from './locales/tr/access.json';
 import trAdminShell from './locales/tr/admin-shell.json';
 import trCommon from './locales/tr/common.json';
@@ -118,6 +126,10 @@ import trActivity from './locales/tr/activity.json';
 import trActivityNotifications from './locales/tr/activityNotifications.json';
 import trSuspiciousAlerts from './locales/tr/suspiciousAlerts.json';
 import trQuickActions from './locales/tr/quickActions.json';
+import trOnlineOrders from './locales/tr/onlineOrders.json';
+import trDigital from './locales/tr/digital.json';
+import trDataManagement from './locales/tr/dataManagement.json';
+import trKeyboardShortcuts from './locales/tr/keyboardShortcuts.json';
 
 export const SUPPORTED_TEXT_LOCALES = ['de', 'en', 'tr'] as const;
 export type TextLocale = (typeof SUPPORTED_TEXT_LOCALES)[number];
@@ -172,6 +184,10 @@ const catalogs = {
     activityNotifications: deActivityNotifications,
     suspiciousAlerts: deSuspiciousAlerts,
     quickActions: deQuickActions,
+    onlineOrders: deOnlineOrders,
+    digital: deDigital,
+    dataManagement: deDataManagement,
+    keyboardShortcuts: deKeyboardShortcuts,
   },
   en: {
     access: enAccess,
@@ -214,6 +230,10 @@ const catalogs = {
     activityNotifications: enActivityNotifications,
     suspiciousAlerts: enSuspiciousAlerts,
     quickActions: enQuickActions,
+    onlineOrders: enOnlineOrders,
+    digital: enDigital,
+    dataManagement: enDataManagement,
+    keyboardShortcuts: enKeyboardShortcuts,
   },
   tr: {
     access: trAccess,
@@ -256,6 +276,10 @@ const catalogs = {
     activityNotifications: trActivityNotifications,
     suspiciousAlerts: trSuspiciousAlerts,
     quickActions: trQuickActions,
+    onlineOrders: trOnlineOrders,
+    digital: trDigital,
+    dataManagement: trDataManagement,
+    keyboardShortcuts: trKeyboardShortcuts,
   },
 } as const;
 

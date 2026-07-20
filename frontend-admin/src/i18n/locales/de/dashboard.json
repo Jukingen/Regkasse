@@ -130,6 +130,34 @@
     "view_details": "Backup-Übersicht öffnen",
     "load_failed": "Backup-Status konnte nicht geladen werden."
   },
+  "metricsWidget": {
+    "operational": "Betriebsbereit",
+    "requests": "Anfragen",
+    "requestsSuffix": "Anfr.",
+    "avgResponse": "Ø Antwortzeit",
+    "errorRate": "Fehlerrate",
+    "activeUsers": "Registrierte Benutzer",
+    "uptime": "Betriebszeit",
+    "uptimeValue": "{{days}}T {{hours}}Std {{minutes}}Min",
+    "cacheHit": "Cache-Treffer: {{percent}}%",
+    "activeOrders": "Aktive Bestellungen: {{count}}",
+    "tenants": "Mandanten: {{count}}",
+    "loadFailed": "System-Metriken konnten nicht geladen werden."
+  },
+  "dataRetentionWidget": {
+    "viewAll": "Alle anzeigen",
+    "loadFailed": "Datenaufbewahrung konnte nicht geladen werden.",
+    "totalTenants": "Mandanten gesamt",
+    "thisTenant": "Dieser Mandant",
+    "inGrace": "Kulanzzeit",
+    "locked": "Gesperrt / abgelaufen",
+    "deletionRequests": "Löschanfragen",
+    "tagActive": "Aktiv: {{count}}",
+    "tagGrace": "Kulanz: {{count}}",
+    "tagLocked": "Gesperrt: {{count}}",
+    "rksvNote": "RKSV-Daten mindestens 7 Jahre aufbewahren",
+    "oldestRksv": "Älteste RKSV-Zahlung: {{date}}"
+  },
   "widgetShell": {
     "refresh": "Aktualisieren",
     "drag_widget": "Widget verschieben"

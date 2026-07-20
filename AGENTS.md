@@ -9,7 +9,7 @@ This repository is a POS monorepo. Prefer safe, incremental improvements over br
 - For medium or large tasks, also read **`REGKASSE_AI_ONBOARDING.md`** and relevant docs under `ai/`.
 - Keep this file valid Markdown (closed code fences, proper headings); broken formatting reduces what agents can parse reliably.
 
-**Last updated:** 2026-07-19
+**Last updated:** 2026-07-20
 
 ## Language Rules
 Follow these language rules strictly:
@@ -222,6 +222,19 @@ curl http://localhost:5184/api/health?tenant=dev
 - Generated on user creation (displayed once, never stored in plain text)
 - Force change on first login when configured
 
+### SuperAdmin two-factor authentication (2FA)
+
+**Hub:** [`docs/AUTH_TWO_FACTOR.md`](docs/AUTH_TWO_FACTOR.md)
+
+| Environment | SuperAdmin | Others |
+|-------------|------------|--------|
+| Development (`TwoFactorAuth:BypassInDevelopment=true`) | No 2FA challenge | Unchanged |
+| Production (`TwoFactorAuth:Enabled=true`) | TOTP after password (`POST /api/Auth/verify-2fa`) | Unchanged |
+
+- Config section: `TwoFactorAuth` (`Enabled`, `BypassInDevelopment`, `TestToken`). Bypass codes (`DEV-2FA-BYPASS` / `TestToken`) work **only** in Development.
+- FA: `TwoFactorAuth.tsx` — Dev Alert + Continue; Production authenticator form.
+- Not SMS; Identity authenticator TOTP. Not applied to Mandanten-Admin / Cashier by default.
+
 ### Username Change Requirements
 - MUST log `AuditEventType.UserNameChanged`
 - MUST store both `old_username` and `new_username` in audit
@@ -259,12 +272,64 @@ Source of truth: `backend/Authorization/RolePermissionMatrix.cs`, `AppPermission
 
 **FA surfaces:** Super Admin `/admin/digital`, `/admin/digital/requests`; Manager `/settings/digital`, `/orders/online` (alias `/online-orders`), `/tenant/{id}/website-preview`, `/tenant/{id}/orders`. Sidebar: nested **Digitale Dienste** under Einstellungen (Manager) and Lizenzverwaltung (Super Admin). i18n: `digital.*`, `nav.digital*`, `tenants.digitalServices.*`, `onlineOrders.*`.
 
+#### Working hours (website/app only)
+
+**Hub:** [`docs/WORKING_HOURS.md`](docs/WORKING_HOURS.md)
+
+Working hours (`CompanySettings.WorkingHours` JSON) restrict **customer online-order intake only**. They must **never** gate POS, FA, or authenticated POS/admin APIs.
+
+| Applies to | Does **not** apply to |
+|------------|------------------------|
+| Tenant websites / PWAs / native apps (display + order CTAs) | POS FE — always open for cart / payment / register |
+| `GET /api/sites/{tenantSlug}/status` (website status) | FA — full schedule management (`/settings/working-hours`) |
+| `POST /api/public/online-orders` when `!canOrder` → `ONLINE_ORDERS_CLOSED` | Authenticated `/api/pos/*`, `/api/admin/*`, Auth, fiscal flows |
+
+- **Server gate:** `OnlineOrderIntakeService` → `WorkingHoursSettings.EvaluateWebsiteStatus` / `CanOrder` (stop-before-close cutoff included).
+- **POS:** `app/(tabs)/cash-register.tsx` never checks hours; `useWorkingHours` / `posOperationsAllowed` is **always** `true` — schedule is display + Tagesabschluss reminder only.
+- **FA:** configures hours; protection note in i18n (`settings.workingHours.protectionNote`); never access-gated by open/closed.
+- **Contract tests:** `WorkingHoursPosFaNonGatingContractTests`, POS `workingHoursStatus` tests, FA `workingHoursNonGating.contract.test.ts`.
+
+#### Expired license — customer data management (RKSV)
+
+| State | Days overdue | POS | FA | Data |
+|-------|--------------|-----|----|------|
+| **Active** | ≤0 | Full | Full | Full |
+| **Grace** | 1–7 | Full (warnings) | Full | Full |
+| **Locked** | 8–30 | Blocked | Read-only | Read-only |
+| **Archived** | &gt;30 | Blocked | Read-only | Read-only |
+| **ExportRequest** | overlay | Blocked | Limited | Export + deletion request |
+| **Deleted** | purge done | Blocked | Limited | RKSV-only retained |
+
+##### GDPR data request types
+
+| Type | Description | Approval | Processing time |
+|------|-------------|----------|-----------------|
+| **View** | View all data (inventory summary) | Auto | Instant |
+| **Export** | Download all data (ZIP artifact) | Auto | &lt; 24 hours |
+| **Delete** | Delete all non-RKSV data | Manual + 7 days | 7 days |
+
+- Entity: `TenantDataRightsRequest` (`tenant_data_rights_requests`); services: `IDataAccessService` (access control), `ICustomerDataRightsService` (fulfillment).
+- Access control (`DataAccessService.ProcessRequestAsync`): **View/Export** auto-approved then processed; **Delete** → `pending_approval` + Super Admin notify (`DataAccessDeleteRequested` activity + email) before Manager confirm / 7-day purge.
+- API: `GET …/data-management/request-types`, `GET/POST …/requests` (returns `DataAccessResult`; Delete → HTTP 202), `GET …/requests/{id}/download`, `POST …/requests/{id}/confirm|execute` (`backup.manage`; execute Super Admin only).
+- Legacy sync routes (`GET …/export`, `POST …/deletion-request*`) remain; they create/link typed rights requests where applicable.
+- Export flow (`DataExportService.CreateExportAsync(requestId)`): collect → ZIP → `App_Data/data-exports/` → opaque download token (7 days) → notify requester (`DataExportReady` + email). Public download: `GET /data/download/{token}` (`DataExport:PublicApiBaseUrl`, default `https://api.regkasse.at`). Retry via `DataRightsExportProcessorService` (15 min).
+- Export JSON shape (`data-export.json` in ZIP, `regkasse.tenant-data-export.v2`): `{ tenant: { name, slug, exportedAt }, data: { products, categories, customers, payments, receipts, invoices, orders, vouchers, settings }, rksv: { note, retentionUntil } }`. RKSV rows (`payments` / `receipts` / `invoices`) are **masked** (TSE/JWS/QR secrets → `***`); Identity credentials excluded.
+- Delete links to `TenantDataDeletionRequest` + `DataDeletionService` (RKSV retention unchanged).
+
+- Thresholds: `LicenseGracePeriodConfig` (`GracePeriodDays=7`, `ArchiveAfterDays=30`); resolver: `ILicenseLifecycleResolver`.
+- POS lockdown: `LicenseMiddleware` blocks `IsPosOperation`; FA writes gated by `TenantOperationalGateMiddleware` (data-management routes allowed).
+- FA page: `/tenant/[id]/data-management` — GDPR request types, inventory, ZIP export, deletion request/confirm, RKSV 7-year note.
+- API: `GET/POST …/data-management*` (`backup.manage`); Super Admin `POST …/execute`; services: `DataExportService`, `DataDeletionService`, `CustomerDataRightsService`.
+- Deletion flow: **Archived only** → request → FA confirm (Manager + Super Admin CC email) → **7-day wait** → auto-purge (`AutoPurgeService`, daily) or Super Admin execute.
+- Purge deletes: products, categories, customers, company settings, customizations, non-fiscal invoices (`SourcePaymentId` null); soft-removes memberships + deactivates users.
+- Purge **keeps**: payments, receipts, fiscal invoices, audit, TSE, online orders, vouchers. Irreversible (`CustomerDataPurgedAtUtc`); restore from backup only.
+
 ### User Permissions
 - `users.view` - View user list
 - `users.manage` - Create/edit/delete users
 - `settings.view` - View system settings (includes backup status/history routes)
 - `settings.manage` - Modify broad system settings (license, NTP, execution mode, artifact download — **not** granted to Mandanten-Admin (`Manager`) by default)
-- `backup.manage` - Tenant-scoped backup ops: manual trigger + schedule/retention (`RolePermissionMatrix` Mandanten-Admin default). Narrower than `settings.manage`. See `docs/BACKUP_PERMISSIONS.md`.
+- `backup.manage` - Tenant-scoped backup ops: manual trigger + schedule/retention (`RolePermissionMatrix` Mandanten-Admin default). Narrower than `settings.manage`. See `docs/BACKUP_PERMISSIONS.md`. Also covers expired-license **data management** export / deletion request.
 - `website.manage` - Tenant domain / customization (implies digital view/preview/request, not create/publish)
 - `digital.view` / `digital.preview` / `digital.request` - Mandanten digital portal (status, preview, request)
 - `digital.create` / `digital.publish` / `digital.edit` / `digital.delete` / `digital.manage` - Super Admin website/app generators and platform digital control
@@ -504,6 +569,19 @@ externalArchiveRoot: "/backup/archive"  # Super Admin only
 
 ## Security Rules
 
+### CSRF (double-submit)
+
+**Hub config:** `Security:Csrf` (`Enabled`, `BypassInDevelopment`). Middleware: `CsrfMiddleware`. Token API: `GET /api/csrf/token`.
+
+| When enabled | Behavior |
+|--------------|----------|
+| POST / PUT / PATCH / DELETE | Require `X-XSRF-TOKEN` header matching `XSRF-TOKEN` cookie (or `X-CSRF-COOKIE` mirror for native clients) + server cache entry |
+| GET / HEAD / OPTIONS | Not checked |
+| Exempt | `/api/Auth/login`, `/api/Auth/refresh`, `/health`, `/api/health`, `/swagger`, `/metrics`, `/api/webhooks/*`, `/api/csrf/token` |
+| Development | Skipped when `BypassInDevelopment=true` (Development env only) |
+
+Defaults: Development `Enabled=false` + bypass; Production `Enabled=true` + no bypass. Clients: fetch token once, send header on mutations. Auth remains JWT Bearer.
+
 ### Input Validation
 - ALL user inputs MUST be validated on backend
 - Client-side validation is UX-only and is NOT a security boundary
@@ -567,6 +645,9 @@ Use `/ai` docs selectively based on the task:
 - Admin API integration work → `ai/10_API_BOUNDARY_POLICY.md`
 - Billing / mandant license sales → `docs/BILLING_TENANT_LICENSE.md`, `ai/modules/billing_license.md`
 - **Digital services / website generator / online orders (non-fiscal)** → [`docs/DIGITAL_SERVICES.md`](docs/DIGITAL_SERVICES.md), [`docs/ONLINE_ORDERS.md`](docs/ONLINE_ORDERS.md), [`docs/PERMISSIONS_MATRIX.md`](docs/PERMISSIONS_MATRIX.md), [`docs/CHANGELOG.md`](docs/CHANGELOG.md); `AGENTS.md` § Roles (Digital services & online orders); `RolePermissionMatrix`; FA `/settings/digital`, `/orders/online`, `/admin/digital`
+- **Expired license data management / GDPR data rights (RKSV retention)** → `AGENTS.md` § Expired license — customer data management; `CustomerDataRightsService` (View/Export/Delete), `DataExportService`, `DataDeletionService`, `ILicenseLifecycleResolver`, FA `/tenant/[id]/data-management`
+- **Working hours (website/app only — never POS/FA)** → [`docs/WORKING_HOURS.md`](docs/WORKING_HOURS.md); `AGENTS.md` § Working hours; `WebsiteStatusController`; `OnlineOrderIntakeService`; POS `useWorkingHours` (`posOperationsAllowed` always true)
+- **SuperAdmin 2FA (TOTP; Dev bypass)** → [`docs/AUTH_TWO_FACTOR.md`](docs/AUTH_TWO_FACTOR.md); `TwoFactorAuthOptions`; `ITwoFactorService`; FA `TwoFactorAuth.tsx`
 - **Backup & Disaster Recovery (hub)** → `docs/BACKUP_AND_DISASTER_RECOVERY.md`, `docs/BACKUP_SYSTEM.md`, `AGENTS.md` § Backup & Disaster Recovery
 - **Backup RBAC / Mandanten-Admin tenant scoping** → `docs/BACKUP_PERMISSIONS.md`, `ai/modules/backup_permissions.md`
 - **Backup content / cost / Tenant vs System strategy** → `docs/BACKUP_CONTENT_POLICY.md`, `BackupStrategyKind`, `IBackupService.CreateTenantBackupAsync` / `CreateSystemBackupAsync`

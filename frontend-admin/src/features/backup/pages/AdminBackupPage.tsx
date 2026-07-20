@@ -6,7 +6,8 @@
  */
 
 import React, { useCallback, useMemo } from "react";
-import { Alert, Card, Col, Collapse, Row, Space, Spin, Typography } from "antd";
+import { Alert, Card, Col, Collapse, Row, Space, Typography } from "antd";
+import { PageSkeleton } from "@/components/Skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n";
@@ -115,7 +116,7 @@ export function AdminBackupPage() {
   }, [queryClient]);
 
   if (statsQuery.isLoading && !stats) {
-    return <Spin />;
+    return <PageSkeleton widgets={6} />;
   }
 
   if (statsQuery.isError) {

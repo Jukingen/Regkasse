@@ -1,6 +1,7 @@
 @import '../styles/breakpoints.css';
 @import '../styles/theme-tokens.css';
 @import '../styles/personalization.css';
+@import '../styles/skeleton.css';
 @import '../styles/components/header-variables.css';
 @import '../styles/components/Header.css';
 @import '../styles/components/LanguageSwitcher.css';
@@ -8,3 +9,4 @@
 @import '../styles/components/TenantSwitcher.css';
 @import '../styles/components/TenantsTable.css';
 @import '../styles/components/LicenseBadge.css';
+@import '../styles/shortcuts.css';

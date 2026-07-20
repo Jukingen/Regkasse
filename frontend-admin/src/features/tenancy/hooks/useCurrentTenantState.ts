@@ -210,7 +210,7 @@ export function useCurrentTenantState(
             licenseKey,
             licenseDaysRemaining,
             resolvedTenant: resolvedRow,
-            displayLabel: tenantName ?? (tenantSlug !== 'admin' ? tenantSlug : null),
+            displayLabel: tenantName ?? (tenantSlug && tenantSlug !== 'admin' ? tenantSlug : null),
             hasAuthToken: ctx.hasAuthToken,
             isImpersonating: ctx.isImpersonating,
             isDevTenantOverride: ctx.isDevTenantOverride,

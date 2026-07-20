@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import Link from 'next/link';
-import { Button, Empty, Space, Table, Tag } from 'antd';
+import { Button, Empty, Space, Tag } from 'antd';
 import type { ColumnsType, TableProps } from 'antd/es/table';
 import {
     CheckCircleOutlined,
@@ -18,6 +18,8 @@ import { useI18n } from '@/i18n';
 import { formatDateTime } from '@/i18n/formatting';
 import type { UsersPolicy } from '@/shared/auth/usersPolicy';
 import { isPlatformUserRole } from '@/features/users/utils/userScope';
+import { VirtualTable } from '@/components/VirtualTable';
+import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 
 function displayName(record: UserInfo): string {
     const name = `${record.firstName ?? ''} ${record.lastName ?? ''}`.trim();
@@ -208,14 +210,18 @@ export function UsersTable({
         ],
     );
 
+    const rowCount = users.length;
+    const useVirtual = virtual ?? shouldUseAdminTableVirtual(rowCount);
+    const resolvedScroll = scroll ?? adminTableScrollXy(1100, rowCount);
+
     return (
-        <Table
+        <VirtualTable
             rowKey={(r) => r.id ?? ''}
             loading={loading && !isPlaceholderData}
             dataSource={users}
             columns={columns}
-            virtual={virtual}
-            scroll={scroll}
+            forceVirtual={useVirtual}
+            scroll={resolvedScroll}
             pagination={pagination}
             style={{
                 opacity: isPlaceholderData ? 0.6 : 1,

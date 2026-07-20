@@ -18,5 +18,73 @@
   "tenantCreate": {
     "slugExample": "cafe-example",
     "urlPreviewHint": "Tam adres, kısa ad ve alan adından oluşturulur."
+  },
+  "digital": {
+    "pageTitle": "Dijital hizmetler — Yönetim",
+    "pageSubtitle": "SuperAdmin: Mandant bazında web sitesi ve uygulama hizmetlerini etkinleştirin, kapatın ve fiyatları özelleştirin.",
+    "requestsPageTitle": "Dijital hizmet talepleri",
+    "requestsPageSubtitle": "Oluşturma taleplerini onaylayın veya reddedin. Onay otomatik oluşturmaz — hizmeti mandant dijital sayfasından oluşturun.",
+    "requestsTitle": "Bekleyen oluşturma talepleri",
+    "requestsHint": "Yalnızca bekleyen talepler. Onay hizmeti otomatik oluşturmaz.",
+    "requestsViewAll": "Tüm talepler",
+    "requestsEmpty": "Talep yok",
+    "requestsLoadFailed": "Talepler yüklenemedi.",
+    "requestApprove": "Onayla",
+    "requestReject": "Reddet",
+    "requestApproved": "Talep onaylandı. Hizmeti şimdi oluşturabilirsiniz.",
+    "requestRejected": "Talep reddedildi",
+    "requestResolveFailed": "Talep işlenemedi",
+    "requestFilter": {
+      "pending": "Beklemede",
+      "approved": "Onaylandı",
+      "rejected": "Reddedildi",
+      "all": "Tümü"
+    },
+    "requestStatus": {
+      "pending": "Beklemede",
+      "approved": "Onaylandı",
+      "rejected": "Reddedildi",
+      "cancelled": "İptal"
+    },
+    "requestColumns": {
+      "tenant": "Kiracı",
+      "service": "Hizmet",
+      "requestedAt": "Talep tarihi",
+      "note": "Not",
+      "status": "Durum",
+      "actions": "İşlemler"
+    },
+    "accessDenied": "Dijital hizmetleri yönetme yetkiniz yok.",
+    "loadFailed": "Dijital hizmetler yüklenemedi.",
+    "empty": "Mandant bulunamadı",
+    "active": "Aktif",
+    "inactive": "Pasif",
+    "websiteStatus": "Web: {{status}}",
+    "appStatus": "Uygulama: {{status}}",
+    "customPriceTag": "Özel",
+    "editPrice": "Fiyatı düzenle",
+    "toggleActivated": "Hizmet etkinleştirildi",
+    "toggleDeactivated": "Hizmet kapatıldı",
+    "toggleFailed": "Durum değiştirilemedi",
+    "deactivateConfirmTitle": "Hizmeti Devre Dışı Bırak",
+    "deactivateConfirmBody": "{{tenant}} için „{{service}}“ hizmetini devre dışı bırakmak istediğinize emin misiniz?",
+    "deactivateConfirmOk": "Devre dışı bırak",
+    "deactivateReasonPlaceholder": "İsteğe bağlı neden (denetim kaydına yazılır)",
+    "priceUpdated": "Fiyat güncellendi",
+    "priceUpdateFailed": "Fiyat güncellenemedi",
+    "priceModalTitle": "Fiyat güncelle",
+    "priceModalLabel": "Aylık fiyat (€)",
+    "priceModalSave": "Kaydet",
+    "priceModalHint": "{{tenant}} — {{service}}. Liste fiyatı: {{listPrice}}. Liste fiyatıyla aynı değer özelleştirmeyi kaldırır.",
+    "priceRequired": "Fiyat gerekli",
+    "resetToListPrice": "Liste fiyatına sıfırla",
+    "columns": {
+      "tenant": "Mandant",
+      "website": "Web sitesi",
+      "app": "Mobil uygulama",
+      "websitePrice": "Fiyat (web)",
+      "appPrice": "Fiyat (uygulama)",
+      "status": "Durum"
+    }
   }
 }

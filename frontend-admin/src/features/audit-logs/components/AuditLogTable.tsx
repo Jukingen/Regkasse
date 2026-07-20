@@ -1,12 +1,13 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Empty, Space, Table, Tag, Tooltip, Typography } from 'antd';
+import { Empty, Space, Tag, Tooltip, Typography } from 'antd';
 import { formatDateTime, formatNumber } from '@/i18n/formatting';
 
 import type { AuditLogEntryDto } from '@/api/generated/model';
 import { AuditLogDetailsCell } from '@/features/audit-logs/components/AuditLogDetailsCell';
-import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
+import { VirtualTable } from '@/components/VirtualTable';
+import { adminTablePaginationDefaults } from '@/components/ui/adminTablePagination';
 import { getAuditActionLabelKey, getAuditActionTagColor } from '@/features/audit-logs/utils/auditActionLabels';
 import { formatAuditLogReason } from '@/features/audit-logs/utils/formatAuditLogDescription';
 import { viewAuditLogStatusPresentation } from '@/shared/verificationsAuditView';
@@ -174,11 +175,10 @@ export function AuditLogTable({
     const emptyList = !loading && rows.length === 0;
 
     return (
-        <Table<AuditLogEntryDto>
+        <VirtualTable<AuditLogEntryDto>
             columns={columns}
             dataSource={rows}
             loading={loading && !isPlaceholderData}
-            virtual={shouldUseAdminTableVirtual(rows.length)}
             rowKey={(r) => r.id ?? `${r.timestamp ?? ''}-${r.action ?? ''}`}
             onRow={
                 onRowClick
@@ -189,17 +189,17 @@ export function AuditLogTable({
                     : undefined
             }
             size="middle"
-            scroll={adminTableScrollXy(1400, rows.length)}
+            scroll={{ x: 1400 }}
             style={{
                 opacity: isPlaceholderData ? 0.6 : 1,
                 transition: 'opacity 0.2s',
             }}
             pagination={{
+                ...adminTablePaginationDefaults,
                 current: page,
                 pageSize,
                 total,
-                showSizeChanger: true,
-                pageSizeOptions: ['10', '25', '50', '100'],
+                pageSizeOptions: [10, 25, 50, 100],
                 showTotal: (totalCount, range) => {
                     if (totalCount <= 0) return t('common.auditLogs.paginationZero');
                     return t('common.auditLogs.paginationRangeOfTotal', {
@@ -208,7 +208,6 @@ export function AuditLogTable({
                         total: formatNumber(totalCount, formatLocale, { maximumFractionDigits: 0 }),
                     });
                 },
-                hideOnSinglePage: false,
                 showQuickJumper: false,
                 onChange: (p, s) => onPageChange(p, s ?? pageSize),
             }}

@@ -12,12 +12,12 @@ import {
     Input,
     Select,
     Space,
-    Spin,
     Tag,
     Typography,
 } from 'antd';
 import { usePutApiAdminCashRegistersId } from '@/api/generated/admin/admin';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { CardSkeleton } from '@/components/Skeleton';
 import { ChangeMyPasswordForm } from '@/features/settings/components/ChangeMyPasswordForm';
 import { LanguageSelector } from '@/features/settings/components/LanguageSelector';
 import { useTenantSettings } from '@/features/settings/hooks/useTenantSettings';
@@ -87,14 +87,7 @@ export function ManagerSettings() {
             <PageShell>
                 <Form form={registerForm} style={{ display: 'none' }} preserve />
                 <AdminPageHeader title={pageTitle} breadcrumbs={breadcrumbs} />
-                <Card>
-                    <div style={{ textAlign: 'center', padding: '48px 24px' }}>
-                        <Spin size="large" />
-                        <Typography.Paragraph type="secondary" style={{ marginTop: 16, marginBottom: 0 }}>
-                            {t('settings.page.loading')}
-                        </Typography.Paragraph>
-                    </div>
-                </Card>
+                <CardSkeleton count={2} />
             </PageShell>
         );
     }

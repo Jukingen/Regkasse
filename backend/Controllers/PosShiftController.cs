@@ -218,7 +218,7 @@ public sealed class PosShiftController : ControllerBase
 
     /// <summary>Readiness for fiscal Tagesabschluss on the active shift register.</summary>
     [HttpGet("daily-closing/status")]
-    [HasPermission(AppPermissions.TseSign)]
+    [HasPermission(AppPermissions.DailyClosingExecute)]
     [ProducesResponseType(typeof(PosDailyClosingStatusDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<PosDailyClosingStatusDto>> GetDailyClosingStatus(CancellationToken cancellationToken)
     {
@@ -234,7 +234,7 @@ public sealed class PosShiftController : ControllerBase
     /// Fiscal daily closing (Tagesabschluss) for the active shift register; records cash count on the shift row.
     /// </summary>
     [HttpPost("daily-closing")]
-    [HasPermission(AppPermissions.TseSign)]
+    [HasPermission(AppPermissions.DailyClosingExecute)]
     [ProducesResponseType(typeof(PosDailyClosingResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -298,7 +298,7 @@ public sealed class PosShiftController : ControllerBase
 
     /// <summary>Localized PDF report for a completed daily closing linked to the caller's shift.</summary>
     [HttpGet("daily-closing/{dailyClosingId:guid}/report.pdf")]
-    [HasPermission(AppPermissions.TseSign)]
+    [HasPermission(AppPermissions.DailyClosingExecute)]
     [Produces("application/pdf")]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

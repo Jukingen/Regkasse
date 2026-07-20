@@ -7,9 +7,10 @@ import { useAntdApp } from '@/hooks/useAntdApp';
  */
 
 import React, { useState } from 'react';
-import { Modal, Button, Form, Input, InputNumber, Switch, Collapse, Tabs, Select, Popconfirm, Space, Card, Spin, Typography } from 'antd';
+import { Modal, Button, Form, Input, InputNumber, Switch, Collapse, Tabs, Select, Popconfirm, Space, Typography } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { CardSkeleton } from '@/components/Skeleton';
 import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -264,14 +265,7 @@ export default function ModifierGroupsPage() {
       </AdminPageHeader>
 
       {isLoading ? (
-        <Card>
-          <div style={{ textAlign: 'center', padding: '48px 24px' }}>
-            <Spin size="large" />
-            <Typography.Paragraph type="secondary" style={{ marginTop: 16, marginBottom: 0 }}>
-              {t('modifierGroups.page.loading')}
-            </Typography.Paragraph>
-          </div>
-        </Card>
+        <CardSkeleton count={2} />
       ) : (
         <Collapse items={items} defaultActiveKey={groups.map((g) => g.id)} />
       )}

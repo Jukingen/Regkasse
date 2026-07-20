@@ -33,4 +33,18 @@ export const API_PATHS = {
         /** GET - RKSV §8 company header for receipts (tenant-scoped; alias: /pos/company-profile) */
         INFO: '/pos/company',
     },
+    PUBLIC_ONLINE_ORDERS: {
+        /** GET - Anonymous order status (?tenant=&orderNumber=&phone=) */
+        STATUS: '/public/online-orders/status',
+    },
+    PUBLIC_CUSTOMER: {
+        /** GET - Customer portal dashboard (?tenant=&phone=) */
+        DASHBOARD: '/public/customer/dashboard',
+    },
+    PUBLIC_TENANTS: {
+        /** GET - Public tenant profile by slug */
+        BY_SLUG: (slug: string) => `/public/tenants/${encodeURIComponent(slug)}`,
+        /** GET - Live menu for website / customer app */
+        MENU: (slug: string) => `/public/tenants/${encodeURIComponent(slug)}/menu`,
+    },
 } as const;

@@ -1,12 +1,13 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { Alert, Button, Card, Descriptions, Space, Spin, Typography } from 'antd';
+import { Alert, Button, Card, Descriptions, Space, Typography } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { useGetApiAdminPaymentsId } from '@/api/generated/admin/admin';
 import type { AdminPaymentDetailDto } from '@/api/generated/model';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { CardSkeleton } from '@/components/Skeleton';
 import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { ReprintButton } from '@/features/payments/components/ReprintButton';
 import { useI18n } from '@/i18n';
@@ -54,7 +55,7 @@ export default function AdminPaymentStandaloneDetailPage() {
   }
 
   if (isLoading) {
-    return <Spin style={{ display: 'block', margin: '80px auto' }} description={t('payments.standaloneDetail.loading')} />;
+    return <CardSkeleton count={2} />;
   }
 
   if (isError && isNotFoundError(error)) {

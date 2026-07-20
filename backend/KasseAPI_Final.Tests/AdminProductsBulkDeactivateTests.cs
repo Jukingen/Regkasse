@@ -43,7 +43,8 @@ public sealed class AdminProductsBulkDeactivateTests
                 NullLogger<ProductImageThumbnailService>.Instance),
             Mock.Of<IDemoProductImportService>(),
             NullCurrentTenantAccessor.Instance,
-            new AdminProductListService(ctx, TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary)));
+            new AdminProductListService(ctx, TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary)),
+            Mock.Of<IProductService>());
 
     [Fact]
     public async Task BulkDeactivateProducts_SoftDeletesActiveOnly()

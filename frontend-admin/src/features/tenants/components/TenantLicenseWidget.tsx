@@ -1,14 +1,17 @@
 'use client';
 
 import React from 'react';
-import { Alert, Descriptions, Spin, Typography } from 'antd';
+import { Alert, Descriptions, Skeleton, Typography } from 'antd';
 import Link from 'next/link';
 
 import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
 import { getAdminTenantLicense } from '@/features/super-admin/api/adminTenantLicense';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { LicenseStatusBadge } from '@/features/tenants/components/LicenseStatusBadge';
-import { TENANT_GRACE_PERIOD_DAYS } from '@/features/license/constants/licenseGracePeriod';
+import {
+    clampTenantGraceRemaining,
+    TENANT_GRACE_PERIOD_DAYS,
+} from '@/features/license/constants/licenseGracePeriod';
 import { resolveTenantLicenseStatus } from '@/features/license/utils/licenseStatus';
 import type { WidgetShellProps } from '@/features/dashboard/components/WidgetShell';
 import { WidgetShell } from '@/features/dashboard/components/WidgetShell';
@@ -65,11 +68,7 @@ export function TenantLicenseWidget({
         }
 
         if (query.isLoading) {
-            return (
-                <div style={{ textAlign: 'center', padding: 24 }}>
-                    <Spin />
-                </div>
-            );
+            return <Skeleton active paragraph={{ rows: 3 }} />;
         }
 
         if (query.isError || !query.data) {
@@ -95,7 +94,9 @@ export function TenantLicenseWidget({
                     daysRemaining={status.daysRemaining}
                     gracePeriodRemaining={
                         status.kind === 'grace_write'
-                            ? Math.max(0, TENANT_GRACE_PERIOD_DAYS - status.daysExpired)
+                            ? clampTenantGraceRemaining(
+                                  TENANT_GRACE_PERIOD_DAYS - status.daysExpired,
+                              )
                             : undefined
                     }
                 />

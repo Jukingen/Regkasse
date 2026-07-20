@@ -97,6 +97,23 @@ describe('canAccessPath', () => {
         expect(canAccessPath('/staff/edit/abc', perms)).toBe(true);
     });
 
+    it('Manager can access tenant-scoped digital preview and orders deep links', () => {
+        const perms = [...MANAGER_ADMIN_PERMISSIONS];
+        const tenantId = '11111111-1111-1111-1111-111111111111';
+        expect(canAccessPath(`/tenant/${tenantId}/website-preview`, perms)).toBe(true);
+        expect(canAccessPath(`/tenant/${tenantId}/orders`, perms)).toBe(true);
+        expect(canAccessPath(`/tenant/${tenantId}/digital`, perms)).toBe(true);
+        expect(canAccessPath(`/tenant/${tenantId}/data-management`, perms)).toBe(true);
+        expect(canAccessPath('/settings/data-management', perms)).toBe(true);
+        expect(canAccessPath(`/tenant/${tenantId}/customize`, perms)).toBe(false);
+        expect(canAccessPath(`/tenant/${tenantId}/domain`, perms)).toBe(false);
+    });
+
+    it('Super Admin data-management overview requires system.critical', () => {
+        expect(canAccessPath('/admin/data-management', [PERMISSIONS.SYSTEM_CRITICAL])).toBe(true);
+        expect(canAccessPath('/admin/data-management', [...MANAGER_ADMIN_PERMISSIONS])).toBe(false);
+    });
+
     it('staff list requires user.view only', () => {
         expect(canAccessPath('/staff/list', [PERMISSIONS.USER_VIEW])).toBe(true);
         expect(canAccessPath('/staff/list', [PERMISSIONS.REPORT_VIEW])).toBe(false);

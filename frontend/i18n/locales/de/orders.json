@@ -38,5 +38,70 @@
   "cancel_message": "Bestellung wirklich stornieren?",
   "cancel_confirm": "Stornieren",
   "table": "Tisch",
-  "more_items": "weitere Artikel"
+  "more_items": "weitere Artikel",
+  "tracker": {
+    "title": "Bestellstatus",
+    "subtitle": "Geben Sie Mandanten-Kürzel und Bestellnummer ein, um den Status zu sehen.",
+    "tenantPlaceholder": "Mandanten-Kürzel (z. B. cafe-example)",
+    "orderNumberPlaceholder": "Bestellnummer (z. B. ORD-001)",
+    "phonePlaceholder": "Telefon (optional, zur Bestätigung)",
+    "search": "Status abrufen",
+    "notFound": "Bestellung nicht gefunden.",
+    "fetchFailed": "Status konnte nicht geladen werden.",
+    "missingParams": "Bitte Mandant und Bestellnummer eingeben.",
+    "total": "Gesamt",
+    "customer": "Kunde",
+    "steps": {
+      "pending": "Eingegangen",
+      "accepted": "Angenommen",
+      "preparing": "In Zubereitung",
+      "ready": "Bereit",
+      "completed": "Abgeschlossen"
+    },
+    "status": {
+      "pending": "Ausstehend",
+      "accepted": "Angenommen",
+      "preparing": "In Zubereitung",
+      "ready": "Bereit",
+      "completed": "Abgeschlossen",
+      "cancelled": "Storniert"
+    }
+  },
+  "dashboard": {
+    "title": "Kundenportal",
+    "subtitle": "Mit Mandanten-Kürzel und Telefonnummer Bestellhistorie und Treuepunkte anzeigen.",
+    "tenantPlaceholder": "Mandanten-Kürzel (z. B. cafe-example)",
+    "phonePlaceholder": "Telefonnummer",
+    "search": "Portal öffnen",
+    "reset": "Andere Nummer suchen",
+    "notFound": "Kein Kundenkonto oder Bestellungen gefunden.",
+    "fetchFailed": "Kundenportal konnte nicht geladen werden.",
+    "missingParams": "Bitte Mandant und Telefonnummer eingeben.",
+    "phoneTooShort": "Telefonnummer muss mindestens 6 Ziffern enthalten.",
+    "greeting": "Hallo, {{name}}",
+    "totalOrders": "Bestellungen",
+    "loyaltyPoints": "Meine Punkte",
+    "totalSpent": "Gesamtausgaben",
+    "orderHistory": "Bestellhistorie",
+    "noOrders": "Noch keine Online-Bestellungen.",
+    "loyaltyTitle": "Treueprogramm",
+    "loyaltyMessage": "Sie haben {{points}} Punkte!",
+    "loyaltyRedeemable": "Damit können Sie {{euro}} Rabatt einlösen.",
+    "redeemButton": "Punkte einlösen",
+    "redeemTitle": "Punkte einlösen",
+    "redeemHint": "Punkte werden an der Kasse eingelöst. Zeigen Sie bitte Ihre Telefonnummer dem Personal."
+  },
+  "customerApp": {
+    "selectTitle": "Restaurant wählen",
+    "selectSubtitle": "Geben Sie das Mandanten-Kürzel ein oder fügen Sie einen QR-/Link-Text ein.",
+    "slugPlaceholder": "Kürzel oder Link (z. B. cafe-demo)",
+    "continue": "Weiter",
+    "notFound": "Restaurant nicht gefunden.",
+    "loadFailed": "Restaurant konnte nicht geladen werden.",
+    "menu": "Speisekarte",
+    "menuEmpty": "Aktuell keine Speisen verfügbar.",
+    "orderStatus": "Bestellstatus",
+    "myPortal": "Mein Kundenportal",
+    "changeRestaurant": "Anderes Restaurant wählen"
+  }
 }

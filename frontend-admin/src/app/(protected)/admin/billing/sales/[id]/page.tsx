@@ -1,12 +1,13 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { Card, Descriptions, Tag, Button, Space, Spin, Form, Input, Modal } from 'antd';
+import { Card, Descriptions, Tag, Button, Space, Form, Input, Modal } from 'antd';
 import { FilePdfOutlined, DeleteOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { useState } from 'react';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useBillingSale, useCancelLicenseSale } from '@/features/billing/hooks';
 import { BillingAccessGate } from '@/features/billing/components/BillingAccessGate';
+import { CardSkeleton } from '@/components/Skeleton';
 import { formatGermanDateTime } from '@/lib/dateFormatter';
 import { downloadLicenseSaleInvoicePdf } from '@/features/billing/utils/downloadInvoicePdf';
 import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
@@ -69,9 +70,7 @@ export default function BillingSaleDetailPage() {
     if (isLoading) {
         return (
             <BillingAccessGate>
-                <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
-                    <Spin size="large" />
-                </div>
+                <CardSkeleton count={2} />
             </BillingAccessGate>
         );
     }

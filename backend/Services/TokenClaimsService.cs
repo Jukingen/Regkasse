@@ -9,6 +9,10 @@ namespace KasseAPI_Final.Services;
 /// Builds JWT/cookie claims: user id (<c>userId</c>, NameIdentifier, <c>user_id</c>, maps to <c>sub</c> in JWT), name, role (canonical), permission claims, optional tenant_id/branch_id.
 /// Deterministic model: system roles => RolePermissionMatrix; custom roles => AspNetRoleClaims (via IRolePermissionResolver).
 /// Each assigned role is emitted as a <c>role</c> claim so <see cref="Microsoft.AspNetCore.Authorization.AuthorizeAttribute"/> role checks see every role (not only the primary).
+/// <para>
+/// SuperAdmin JWTs emit only <see cref="AppPermissions.SystemCritical"/> (not the full catalog) so browser cookies stay under ~4KB;
+/// <see cref="PermissionImplication"/> and role-matrix fallback treat that claim as full access. Login/me still return the full permission list from the resolver for UI.
+/// </para>
 /// </summary>
 public sealed class TokenClaimsService : ITokenClaimsService
 {
@@ -89,32 +93,43 @@ public sealed class TokenClaimsService : ITokenClaimsService
         foreach (var role in canonicalRoles)
             list.Add(new Claim("roles", role));
 
-        var roleNamesForResolver = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var hasIdentityRoles = false;
-        if (roles != null)
+        var isSuperAdmin = canonicalRoles.Any(r =>
+            string.Equals(r, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase));
+
+        if (isSuperAdmin)
         {
-            foreach (var r in roles)
-            {
-                if (string.IsNullOrWhiteSpace(r))
-                    continue;
-                hasIdentityRoles = true;
-                roleNamesForResolver.Add(r.Trim());
-            }
+            // Compact token: full catalog (~137 claims) exceeds typical browser cookie limits (~4KB).
+            list.Add(new Claim(PermissionCatalog.PermissionClaimType, AppPermissions.SystemCritical));
         }
+        else
+        {
+            var roleNamesForResolver = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var hasIdentityRoles = false;
+            if (roles != null)
+            {
+                foreach (var r in roles)
+                {
+                    if (string.IsNullOrWhiteSpace(r))
+                        continue;
+                    hasIdentityRoles = true;
+                    roleNamesForResolver.Add(r.Trim());
+                }
+            }
 
-        if (!hasIdentityRoles && !string.IsNullOrWhiteSpace(user.Role))
-            roleNamesForResolver.Add(user.Role.Trim());
+            if (!hasIdentityRoles && !string.IsNullOrWhiteSpace(user.Role))
+                roleNamesForResolver.Add(user.Role.Trim());
 
-        Guid? tenantGuid = Guid.TryParse(tenantId, out var parsedTenantId) ? parsedTenantId : null;
-        var effectivePermissions = await _effectivePermissionResolver.GetEffectivePermissionsAsync(
-            user.Id,
-            roleNamesForResolver,
-            tenantGuid,
-            cancellationToken);
-        // Admin login/me: strip POS write ops; Manager keeps oversight reads (payment.view, sale.view, report.*).
-        var permissions = AdminAppPermissionProfile.Filter(appContext, canonicalRoles, effectivePermissions);
-        foreach (var p in permissions)
-            list.Add(new Claim(PermissionCatalog.PermissionClaimType, p));
+            Guid? tenantGuid = Guid.TryParse(tenantId, out var parsedTenantId) ? parsedTenantId : null;
+            var effectivePermissions = await _effectivePermissionResolver.GetEffectivePermissionsAsync(
+                user.Id,
+                roleNamesForResolver,
+                tenantGuid,
+                cancellationToken);
+            // Admin login/me: strip POS write ops; Manager keeps oversight reads (payment.view, sale.view, report.*).
+            var permissions = AdminAppPermissionProfile.Filter(appContext, canonicalRoles, effectivePermissions);
+            foreach (var p in permissions)
+                list.Add(new Claim(PermissionCatalog.PermissionClaimType, p));
+        }
 
         if (!string.IsNullOrEmpty(tenantId))
             list.Add(new Claim(ScopeCheckService.TenantIdClaim, tenantId));

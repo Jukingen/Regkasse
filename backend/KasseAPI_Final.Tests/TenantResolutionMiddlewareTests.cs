@@ -39,6 +39,7 @@ public sealed class TenantResolutionMiddlewareTests
             db,
             accessor,
             environment.Object,
+            Mock.Of<KasseAPI_Final.Services.Tenancy.ITenantDomainService>(),
             NullLogger<TenantContextService>.Instance);
 
         var httpContextAccessor = new HttpContextAccessor();
@@ -69,6 +70,7 @@ public sealed class TenantResolutionMiddlewareTests
             db,
             accessor,
             environment.Object,
+            Mock.Of<KasseAPI_Final.Services.Tenancy.ITenantDomainService>(),
             NullLogger<TenantContextService>.Instance);
 
         var httpContextAccessor = new HttpContextAccessor();

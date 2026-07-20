@@ -1,21 +1,13 @@
 'use client';
 
 import { useAntdApp } from '@/hooks/useAntdApp';
-import { useCallback } from 'react';
 import { Button, Card, Space, Tag, Typography } from 'antd';
 import { SimpleList as List } from '@/components/ui/SimpleList';
 import dayjs from 'dayjs';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-import {
-    fetchMySessions,
-    terminateAllOtherSessions,
-    terminateSession,
-    type ActiveSession,
-} from '@/features/auth/api/sessionsApi';
+import { useSessions } from '@/features/auth/hooks/useSessions';
+import type { ActiveSession } from '@/features/auth/api/sessionsApi';
 import { useI18n } from '@/i18n';
-
-const SESSIONS_KEY = ['user', 'sessions'] as const;
 
 function formatClientApp(app: string): string {
     if (app === 'admin') return 'Admin';
@@ -23,20 +15,11 @@ function formatClientApp(app: string): string {
     return app;
 }
 
+/** Compact session list (e.g. profile). Full table: `/settings/sessions`. */
 export function SessionManager() {
-  const { message } = useAntdApp();
-
+    const { message } = useAntdApp();
     const { t } = useI18n();
-    const queryClient = useQueryClient();
-
-    const { data: sessions = [], isLoading, refetch } = useQuery({
-        queryKey: SESSIONS_KEY,
-        queryFn: fetchMySessions,
-    });
-
-    const invalidate = useCallback(() => {
-        void queryClient.invalidateQueries({ queryKey: SESSIONS_KEY });
-    }, [queryClient]);
+    const { sessions, isLoading, refetch, revoke, revokeOthers, isRevoking } = useSessions();
 
     const handleTerminate = async (session: ActiveSession) => {
         if (session.isCurrent) {
@@ -44,9 +27,8 @@ export function SessionManager() {
             return;
         }
         try {
-            await terminateSession(session.id);
+            await revoke(session.id);
             message.success(t('common.auth.sessions.terminated'));
-            invalidate();
         } catch {
             message.error(t('common.auth.sessions.terminateFailed'));
         }
@@ -54,9 +36,8 @@ export function SessionManager() {
 
     const handleTerminateOthers = async () => {
         try {
-            const count = await terminateAllOtherSessions();
+            const count = await revokeOthers();
             message.success(t('common.auth.sessions.terminatedOthers', { count: String(count) }));
-            invalidate();
         } catch {
             message.error(t('common.auth.sessions.terminateFailed'));
         }
@@ -66,7 +47,7 @@ export function SessionManager() {
         <Card
             title={t('common.auth.sessions.title')}
             extra={
-                <Button size="small" onClick={() => refetch()} loading={isLoading}>
+                <Button size="small" onClick={() => void refetch()} loading={isLoading}>
                     {t('common.buttons.refresh')}
                 </Button>
             }
@@ -75,7 +56,11 @@ export function SessionManager() {
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
                     {t('common.auth.sessions.description')}
                 </Typography.Paragraph>
-                <Button onClick={handleTerminateOthers} disabled={sessions.filter((s) => !s.isCurrent).length === 0}>
+                <Button
+                    onClick={() => void handleTerminateOthers()}
+                    disabled={sessions.filter((s) => !s.isCurrent).length === 0}
+                    loading={isRevoking}
+                >
                     {t('common.auth.sessions.terminateAllOthers')}
                 </Button>
                 <List
@@ -93,7 +78,8 @@ export function SessionManager() {
                                               type="link"
                                               danger
                                               size="small"
-                                              onClick={() => handleTerminate(item)}
+                                              loading={isRevoking}
+                                              onClick={() => void handleTerminate(item)}
                                           >
                                               {t('common.auth.sessions.endSession')}
                                           </Button>,
@@ -102,8 +88,8 @@ export function SessionManager() {
                         >
                             <List.Item.Meta
                                 title={
-                                    <Space>
-                                        {formatClientApp(item.clientApp)}
+                                    <Space wrap>
+                                        {item.deviceName || formatClientApp(item.clientApp)}
                                         {item.isCurrent ? (
                                             <Tag color="blue">{t('common.auth.sessions.thisDevice')}</Tag>
                                         ) : null}
@@ -111,8 +97,14 @@ export function SessionManager() {
                                 }
                                 description={
                                     <>
-                                        {item.ipAddress ? `${item.ipAddress} · ` : ''}
-                                        {item.deviceId ?? '—'}
+                                        {[
+                                            item.browser,
+                                            item.os,
+                                            item.ipAddress,
+                                            formatClientApp(item.clientApp),
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' · ') || '—'}
                                         <br />
                                         {t('common.auth.sessions.lastActivity')}:{' '}
                                         {dayjs(item.lastActivityAtUtc).format('DD.MM.YYYY HH:mm')}

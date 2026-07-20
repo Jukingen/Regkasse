@@ -56,7 +56,10 @@ public partial class AdminProductsController
             }
 
             if (deactivated > 0)
+            {
                 await _context.SaveChangesAsync();
+                await _productService.InvalidateProductsCacheAsync(tenantId);
+            }
 
             _logger.LogInformation(
                 "Admin bulk product deactivate: tenant={TenantId} deactivated={Deactivated} alreadyInactive={AlreadyInactive} notFound={NotFound}",

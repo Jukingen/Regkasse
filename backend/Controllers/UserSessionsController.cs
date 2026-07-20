@@ -2,6 +2,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Session;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,16 +14,19 @@ namespace KasseAPI_Final.Controllers;
 [Produces("application/json")]
 public class UserSessionsController : ControllerBase
 {
-    private readonly ISessionService _sessions;
+    private readonly Services.ISessionService _sessions;
+    private readonly IDeviceSessionService _deviceSessions;
     private readonly ITenantSessionPolicyService _policy;
     private readonly ILogger<UserSessionsController> _logger;
 
     public UserSessionsController(
-        ISessionService sessions,
+        Services.ISessionService sessions,
+        IDeviceSessionService deviceSessions,
         ITenantSessionPolicyService policy,
         ILogger<UserSessionsController> logger)
     {
         _sessions = sessions;
+        _deviceSessions = deviceSessions;
         _policy = policy;
         _logger = logger;
     }
@@ -36,6 +40,20 @@ public class UserSessionsController : ControllerBase
 
         var currentSessionId = TryGetCurrentSessionId();
         var list = await _sessions.GetMyActiveSessionsAsync(userId, currentSessionId, cancellationToken).ConfigureAwait(false);
+        return Ok(list);
+    }
+
+    /// <summary>Sketch-aligned DTO shape (device name / browser / OS / last active).</summary>
+    [HttpGet("devices")]
+    public async Task<ActionResult<IReadOnlyList<UserSessionDto>>> ListDevices(CancellationToken cancellationToken)
+    {
+        var userId = User.GetActorUserId();
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        var list = await _deviceSessions
+            .GetActiveSessionsAsync(userId, TryGetCurrentSessionId(), cancellationToken)
+            .ConfigureAwait(false);
         return Ok(list);
     }
 
@@ -57,7 +75,8 @@ public class UserSessionsController : ControllerBase
         if (!currentSessionId.HasValue)
             return BadRequest(new { message = "Current session id not found in token.", code = "SESSION_ID_MISSING" });
 
-        var count = await _sessions.TerminateAllOtherSessionsAsync(userId, currentSessionId.Value, cancellationToken)
+        var count = await _deviceSessions
+            .RevokeOtherSessionsAsync(userId, currentSessionId.Value, cancellationToken)
             .ConfigureAwait(false);
         _logger.LogInformation("User {UserId} terminated {Count} other sessions", userId, count);
         return Ok(new { terminatedCount = count });
@@ -70,7 +89,19 @@ public class UserSessionsController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
-        var ok = await _sessions.TerminateSessionAsync(userId, id, cancellationToken).ConfigureAwait(false);
+        var currentSessionId = TryGetCurrentSessionId();
+        var accessToken = DeviceSessionService.TryGetBearerToken(Request.Headers.Authorization.ToString());
+        var expiry = DeviceSessionService.TryGetAccessTokenExpiry(User);
+
+        var ok = await _deviceSessions
+            .RevokeSessionAsync(
+                userId,
+                id,
+                currentSessionId,
+                accessToken,
+                expiry,
+                cancellationToken)
+            .ConfigureAwait(false);
         if (!ok)
             return NotFound();
         return NoContent();

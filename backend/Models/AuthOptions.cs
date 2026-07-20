@@ -11,7 +11,8 @@ public class AuthOptions
     /// </summary>
     public bool AllowLegacyLoginWithoutClientApp { get; set; } = false;
 
-    public int AccessTokenLifetimeMinutes { get; set; } = 15;
+    /// <summary>Access JWT lifetime. Default 24 hours (matches AGENTS.md / JwtSettings.ExpirationHours).</summary>
+    public int AccessTokenLifetimeMinutes { get; set; } = 24 * 60;
 
     public int RefreshTokenLifetimeDays { get; set; } = 14;
 
@@ -22,4 +23,11 @@ public class AuthOptions
     /// Default false: legacy default-tenant snapshot is still used when membership is missing.
     /// </summary>
     public bool RequireTenantMembershipForLogin { get; set; } = false;
+
+    /// <summary>
+    /// Legacy override for SuperAdmin 2FA. Prefer <c>TwoFactorAuth</c> section.
+    /// When null (default): use <c>TwoFactorAuth:Enabled</c> + <c>BypassInDevelopment</c>.
+    /// When true/false: force that challenge policy (tests / staging) if <c>TwoFactorAuth:Enabled</c> is true.
+    /// </summary>
+    public bool? RequireSuperAdminTwoFactor { get; set; }
 }

@@ -14,6 +14,7 @@ import { useCreateUser } from '@/features/users/hooks/useCreateUser';
 import { getApiAdminTenantsQueryKey } from '@/features/tenancy/api/getApiAdminTenants';
 import type { TenantListItemForSwitcher } from '@/features/tenancy/hooks/useTenantListForSwitcher';
 import { switchDevTenantContext } from '@/features/tenancy/services/setTenantAndRefresh';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useI18n } from '@/i18n';
 
 export type TenantSwitcherNoAdminFlowProps = {
@@ -32,6 +33,7 @@ export function TenantSwitcherNoAdminFlow({
   const { message } = App.useApp();
 
     const { t } = useI18n();
+    const { refreshToken } = useAuth();
     const queryClient = useQueryClient();
     const [createOpen, setCreateOpen] = useState(false);
     const [impersonationRedirecting, setImpersonationRedirecting] = useState(false);
@@ -73,21 +75,33 @@ export function TenantSwitcherNoAdminFlow({
         },
     });
 
+    const switchWithJwtRefresh = useCallback(
+        async (target: TenantListItemForSwitcher) => {
+            const tokenOk = await refreshToken(target.id);
+            if (!tokenOk) {
+                message.error(t('adminShell.tenant.devSwitcher.refreshFailed'));
+                return;
+            }
+            await switchDevTenantContext({ slug: target.slug, id: target.id });
+        },
+        [message, refreshToken, t],
+    );
+
     const handleCreateComplete = useCallback(async () => {
         setCreateOpen(false);
         closeAll();
         onCompleted?.();
         if (tenant) {
-            await switchDevTenantContext({ slug: tenant.slug, id: tenant.id });
+            await switchWithJwtRefresh(tenant);
         }
-    }, [closeAll, onCompleted, tenant]);
+    }, [closeAll, onCompleted, switchWithJwtRefresh, tenant]);
 
     const handleSwitchDev = useCallback(async () => {
         if (!tenant) return;
         closeAll();
         onCompleted?.();
-        await switchDevTenantContext({ slug: tenant.slug, id: tenant.id });
-    }, [tenant, closeAll, onCompleted]);
+        await switchWithJwtRefresh(tenant);
+    }, [tenant, closeAll, onCompleted, switchWithJwtRefresh]);
 
     return (
         <>

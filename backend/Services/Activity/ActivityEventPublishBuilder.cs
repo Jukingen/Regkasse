@@ -86,6 +86,13 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.RestoreDrillSucceeded => "Restore drill succeeded",
             ActivityEventType.DailyClosingBackdatedCreated => "Backdated daily closing created",
             ActivityEventType.DailyClosingPendingReminder => "Daily closing pending reminder",
+            ActivityEventType.OnlineOrderPushedToPos => "Online order pushed to POS",
+            ActivityEventType.OnlineOrderPaid => "Online order paid",
+            ActivityEventType.OnlineOrderStatusChanged => "Online order status changed",
+            ActivityEventType.OnlineOrderConfirmed => "Online order confirmed",
+            ActivityEventType.DigitalServiceRequested => "Digital service creation requested",
+            ActivityEventType.DataAccessDeleteRequested => "Data deletion request (GDPR)",
+            ActivityEventType.DataExportReady => "Data export ready",
             _ => type.ToString(),
         };
 
@@ -109,10 +116,65 @@ internal static class ActivityEventPublishBuilder
                 TryFormatBackup(metadata),
             ActivityEventType.LicenseExpiringSoon or ActivityEventType.LicenseExpired =>
                 TryFormatLicense(metadata),
+            ActivityEventType.OnlineOrderPushedToPos =>
+                TryFormatOnlineOrder(metadata),
+            ActivityEventType.OnlineOrderPaid =>
+                TryFormatOnlineOrderPaid(metadata),
+            ActivityEventType.OnlineOrderStatusChanged =>
+                TryFormatOnlineOrderStatusChanged(metadata),
+            ActivityEventType.OnlineOrderConfirmed =>
+                TryFormatOnlineOrder(metadata),
+            ActivityEventType.DigitalServiceRequested =>
+                TryGetString(metadata, "Message")
+                ?? TryFormatDigitalServiceRequest(metadata),
+            ActivityEventType.DataAccessDeleteRequested =>
+                TryGetString(metadata, "Message")
+                ?? TryGetString(metadata, "Subject"),
+            ActivityEventType.DataExportReady =>
+                TryGetString(metadata, "Message")
+                ?? TryGetString(metadata, "Subject"),
             _ => TryGetString(metadata, "ErrorMessage")
                 ?? TryGetString(metadata, "Message")
                 ?? TryGetString(metadata, "Description"),
         };
+    }
+
+    private static string? TryFormatDigitalServiceRequest(IReadOnlyDictionary<string, object> metadata)
+    {
+        var tenantName = TryGetString(metadata, "TenantName");
+        var serviceType = TryGetString(metadata, "ServiceType");
+        if (tenantName == null || serviceType == null)
+            return null;
+        return $"{tenantName} requested {serviceType} creation.";
+    }
+
+    private static string? TryFormatOnlineOrderPaid(IReadOnlyDictionary<string, object> metadata)
+    {
+        var orderNumber = TryGetString(metadata, "OrderNumber");
+        var total = TryGetString(metadata, "Total");
+        if (orderNumber == null)
+            return null;
+        return total == null ? orderNumber : $"{orderNumber} — {total}";
+    }
+
+    private static string? TryFormatOnlineOrderStatusChanged(IReadOnlyDictionary<string, object> metadata)
+    {
+        var orderNumber = TryGetString(metadata, "OrderNumber");
+        var status = TryGetString(metadata, "OrderStatus") ?? TryGetString(metadata, "NewStatus");
+        if (orderNumber == null)
+            return null;
+        return status == null ? orderNumber : $"{orderNumber} → {status}";
+    }
+
+    private static string? TryFormatOnlineOrder(IReadOnlyDictionary<string, object> metadata)
+    {
+        var orderNumber = TryGetString(metadata, "OrderNumber");
+        var customer = TryGetString(metadata, "CustomerName");
+        if (orderNumber == null && customer == null)
+            return null;
+        if (orderNumber != null && customer != null)
+            return $"{orderNumber} — {customer}";
+        return orderNumber ?? customer;
     }
 
     private static string? TryFormatUserCreated(IReadOnlyDictionary<string, object> metadata)
@@ -168,6 +230,20 @@ internal static class ActivityEventPublishBuilder
                 => ("DailyClosing", TryGetString(metadata, "ClosingId")),
             ActivityEventType.DailyClosingPendingReminder
                 => ("cash_register", TryGetString(metadata, "cashRegisterId")),
+            ActivityEventType.OnlineOrderPushedToPos
+                => ("online_order", TryGetString(metadata, "OnlineOrderId")),
+            ActivityEventType.OnlineOrderPaid
+                => ("online_order", TryGetString(metadata, "OnlineOrderId")),
+            ActivityEventType.OnlineOrderStatusChanged
+                => ("online_order", TryGetString(metadata, "OnlineOrderId")),
+            ActivityEventType.OnlineOrderConfirmed
+                => ("online_order", TryGetString(metadata, "OnlineOrderId")),
+            ActivityEventType.DigitalServiceRequested
+                => ("digital_service_request", TryGetString(metadata, "RequestId")),
+            ActivityEventType.DataAccessDeleteRequested
+                => ("tenant_data_rights_request", TryGetString(metadata, "RequestId")),
+            ActivityEventType.DataExportReady
+                => ("tenant_data_rights_request", TryGetString(metadata, "RequestId")),
             _ => (null, null),
         };
     }

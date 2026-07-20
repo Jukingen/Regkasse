@@ -12,6 +12,7 @@ import ExtraZutatenSection from './ExtraZutatenSection';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 import { useI18n } from '@/i18n';
 import { uploadAdminProductImage, MAX_PRODUCT_IMAGE_BYTES } from '@/api/admin/products';
+import { OptimizedImage } from '@/components/OptimizedImage';
 
 export type ProductFormSubmitValues = Product & { modifierGroupIds?: string[]; categoryId?: string };
 
@@ -51,6 +52,7 @@ function ProductFormContent({
 
     const { t } = useI18n();
     const [form] = Form.useForm();
+    const watchedImageUrl = Form.useWatch('imageUrl', form) as string | undefined;
     const [modifierGroups, setModifierGroups] = useState<ModifierGroupDto[]>([]);
     const [selectedModifierGroupIds, setSelectedModifierGroupIds] = useState<string[]>([]);
     const [modifierGroupsLoading, setModifierGroupsLoading] = useState(false);
@@ -408,6 +410,18 @@ function ProductFormContent({
                         placeholder={t('products.form.imageUrlPlaceholder')}
                     />
                 </Form.Item>
+
+                {typeof watchedImageUrl === 'string' && watchedImageUrl.trim() ? (
+                    <div style={{ marginBottom: 16 }}>
+                        <OptimizedImage
+                            src={watchedImageUrl.trim()}
+                            alt=""
+                            width={120}
+                            height={120}
+                            style={{ objectFit: 'contain', borderRadius: 8 }}
+                        />
+                    </div>
+                ) : null}
 
                 <Form.Item label={t('products.form.imageUploadLabel')} extra={t('products.form.imageUploadExtra')}>
                     <Upload

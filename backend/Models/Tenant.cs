@@ -69,4 +69,11 @@ public class Tenant : BaseEntity
     [MaxLength(450)]
     [Column("deleted_by_user_id")]
     public string? DeletedByUserId { get; set; }
+
+    /// <summary>
+    /// When set, non-RKSV customer/business data was purged after a deletion request.
+    /// Fiscal/RKSV rows (receipts, payments, DEP-related) remain for legal retention.
+    /// </summary>
+    [Column("customer_data_purged_at_utc")]
+    public DateTime? CustomerDataPurgedAtUtc { get; set; }
 }

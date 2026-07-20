@@ -65,6 +65,7 @@ export type SidebarIconToken =
     | 'ExperimentOutlined'
     | 'WalletOutlined'
     | 'ClockCircleOutlined'
+    | 'LaptopOutlined'
     | 'CloudDownloadOutlined'
     | 'CloudSyncOutlined'
     | 'DatabaseOutlined'
@@ -72,7 +73,8 @@ export type SidebarIconToken =
     | 'KeyOutlined'
     | 'ApartmentOutlined'
     | 'DisconnectOutlined'
-    | 'UnorderedListOutlined';
+    | 'UnorderedListOutlined'
+    | 'BugOutlined';
 
 export type SidebarNavCatalogItem = {
     /** Stable id for tests and layout references */
@@ -425,6 +427,13 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         icon: 'ShopOutlined',
         permission: PERMISSIONS.SETTINGS_MANAGE,
     },
+    workingHours: {
+        id: 'workingHours',
+        menuKey: '/settings/working-hours',
+        href: '/settings/working-hours',
+        labelKey: 'nav.workingHours',
+        icon: 'CalendarOutlined',
+    },
     websiteGenerator: {
         id: 'websiteGenerator',
         menuKey: '/settings/website',
@@ -497,12 +506,28 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         permission: PERMISSIONS.BACKUP_MANAGE,
         sidebarHidden: true,
     },
+    settingsDataManagement: {
+        id: 'settingsDataManagement',
+        menuKey: '/settings/data-management',
+        href: '/settings/data-management',
+        labelKey: 'nav.dataManagement',
+        icon: 'DatabaseOutlined',
+        permission: PERMISSIONS.BACKUP_MANAGE,
+    },
     sessionSettings: {
         id: 'sessionSettings',
         menuKey: '/settings/session',
         href: '/settings/session',
         labelKey: 'nav.sessionInactivity',
         icon: 'ClockCircleOutlined',
+    },
+    activeSessions: {
+        id: 'activeSessions',
+        menuKey: '/settings/sessions',
+        href: '/settings/sessions',
+        labelKey: 'nav.activeSessions',
+        icon: 'LaptopOutlined',
+        permission: PERMISSIONS.SETTINGS_VIEW,
     },
     offlineSettings: {
         id: 'offlineSettings',
@@ -624,6 +649,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/admin/tenants',
         labelKey: 'nav.tenants',
         icon: 'ApartmentOutlined',
+        permission: PERMISSIONS.SYSTEM_CRITICAL,
+    },
+    superAdminDataManagement: {
+        id: 'superAdminDataManagement',
+        menuKey: '/admin/data-management',
+        href: '/admin/data-management',
+        labelKey: 'nav.dataManagement',
+        icon: 'DatabaseOutlined',
         permission: PERMISSIONS.SYSTEM_CRITICAL,
     },
     elmahErrors: {
@@ -1033,7 +1066,12 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         blocks: [
             {
                 kind: 'leaves',
-                catalogIds: ['settingsHub', 'companySettings'],
+                catalogIds: [
+                    'settingsHub',
+                    'companySettings',
+                    'workingHours',
+                    'settingsDataManagement',
+                ],
             },
             {
                 kind: 'nested',
@@ -1048,6 +1086,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
                     'tseSettings',
                     'finanzonlineSettings',
                     'sessionSettings',
+                    'activeSessions',
                     'personalization',
                     'paymentMethods',
                     'paymentGateway',
@@ -1066,7 +1105,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
                 icon: 'KeyOutlined',
                 catalogIds: ['accessOverview', 'users', 'accessRoles', 'accessMatrix'],
             },
-            { kind: 'leaves', catalogIds: ['superAdminTenants', 'superAdminCashRegisters', 'elmahErrors'] },
+            { kind: 'leaves', catalogIds: ['superAdminTenants', 'superAdminDataManagement', 'superAdminCashRegisters', 'elmahErrors'] },
         ],
     },
 ];

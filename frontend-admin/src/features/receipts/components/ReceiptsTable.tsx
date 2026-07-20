@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Table, Button, Tag, Typography, Space } from 'antd';
+import { Button, Tag, Typography, Space } from 'antd';
 import { EyeOutlined, PrinterOutlined } from '@ant-design/icons';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
@@ -18,7 +18,8 @@ import { StoredReportPdfButton } from '@/features/reports/components/StoredRepor
 import { reportPdfTypeFromSpecialReceiptKind } from '@/features/reports/api/reportPdfApi';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
-import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
+import { VirtualTable } from '@/components/VirtualTable';
+import { adminTablePaginationDefaults } from '@/components/ui/adminTablePagination';
 
 interface ReceiptsTableProps {
     data: ReceiptListItemDto[];
@@ -263,31 +264,28 @@ export default function ReceiptsTable({
     });
 
     const scrollX = 1230 + (reprintEnabled ? 180 : 0) + (showPdfReprintColumn ? 170 : 0) + (showStoredPdfColumn ? 120 : 0);
-    const useVirtual = shouldUseAdminTableVirtual(data.length);
 
     return (
-        <Table<ReceiptListItemDto>
+        <VirtualTable<ReceiptListItemDto>
             columns={columnsWithSort}
             dataSource={data}
             rowKey="receiptId"
             loading={loading && !isPlaceholderData}
-            virtual={useVirtual}
             onChange={onTableChange}
             pagination={{
+                ...adminTablePaginationDefaults,
                 current: pagination.current,
                 pageSize: pagination.pageSize,
                 total: pagination.total,
-                showSizeChanger: true,
-                pageSizeOptions: ['10', '25', '50', '100'],
+                pageSizeOptions: [10, 25, 50, 100],
                 showTotal: (total, range) =>
                     t('receipts.table.paginationTotal', {
                         from: formatNumber(range[0] ?? 0, formatLocale, { maximumFractionDigits: 0 }),
                         to: formatNumber(range[1] ?? 0, formatLocale, { maximumFractionDigits: 0 }),
                         total: formatNumber(total, formatLocale, { maximumFractionDigits: 0 }),
                     }),
-                hideOnSinglePage: false,
             }}
-            scroll={adminTableScrollXy(scrollX, data.length)}
+            scroll={{ x: scrollX }}
             locale={emptyText ? { emptyText } : undefined}
             style={{
                 opacity: isPlaceholderData ? 0.6 : 1,

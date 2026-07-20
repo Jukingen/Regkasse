@@ -160,6 +160,18 @@
       "reportDisclaimer": "RKSV-konformer Tagesabschluss\nRegistrierkassensicherheitsverordnung (RKSV)\nDieser Tagesabschluss ist fiskalisch gültig."
     }
   },
+  "dailyClosing": {
+    "reminder": {
+      "title": "Tagesabschluss steht aus",
+      "body_one": "Bitte führen Sie den Tagesabschluss durch. Noch {{count}} Stunde verbleibend ({{deadlineHint}}).",
+      "body_other": "Bitte führen Sie den Tagesabschluss durch. Noch {{count}} Stunden verbleibend ({{deadlineHint}}).",
+      "deadlineWorkingHours": "bis {{time}} (Öffnungszeiten)",
+      "deadlineWorkingHoursGeneric": "bis zur Schließzeit",
+      "deadlineMidnight": "bis 00:00 Europe/Vienna",
+      "cta": "Jetzt durchführen",
+      "countdownA11y": "Countdown {{countdown}}"
+    }
+  },
   "registerAssignment": {
     "title": "Registrierkasse (POS)",
     "intro": "Für fiskal gültige Zahlungen muss eine geöffnete Kasse zugewiesen sein. Die Auswahl wird im Profil gespeichert.",

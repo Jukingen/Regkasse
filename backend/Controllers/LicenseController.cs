@@ -2,6 +2,7 @@ using System.Security.Claims;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Billing;
@@ -79,7 +80,11 @@ public partial class LicenseController : ControllerBase
             var mandant = await _licenseService
                 .GetLicenseStatusAsync(effectiveTenantId, cancellationToken)
                 .ConfigureAwait(false);
-            dto = LicensePublicStatusMapper.ApplyMandantOverlay(dto, mandant);
+            var language = HttpContext.Items.TryGetValue(LanguageMiddleware.LanguageItemKey, out var langObj)
+                && langObj is string lang
+                ? lang
+                : LanguageMiddleware.DefaultLanguage;
+            dto = LicensePublicStatusMapper.ApplyMandantOverlay(dto, mandant, language);
         }
 
         return Ok(dto);

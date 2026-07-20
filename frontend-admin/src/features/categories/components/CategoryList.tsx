@@ -3,6 +3,7 @@ import { Table, Space, Button, Popconfirm, Tag } from 'antd';
 import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Category } from '@/api/generated/model';
 import { useI18n } from '@/i18n';
+import { adminTablePaginationDefaults } from '@/components/ui/adminTablePagination';
 
 interface CategoryListProps {
     data: Category[];
@@ -82,7 +83,7 @@ export default function CategoryList({ data, loading, onEdit, onDelete }: Catego
             columns={columns}
             rowKey="id"
             loading={loading}
-            pagination={false}
+            pagination={{ ...adminTablePaginationDefaults, pageSize: 10 }}
         />
     );
 }

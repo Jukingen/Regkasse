@@ -1,10 +1,11 @@
 'use client';
 
-import { Button, Card, Descriptions, Popconfirm, Space, Spin, Tag, Typography } from 'antd';
+import { Button, Card, Descriptions, Popconfirm, Space, Tag, Typography } from 'antd';
 import { CreditCardOutlined, FilePdfOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { SkeletonWrapper } from '@/components/Skeleton';
 import type { AdminTenantDetail } from '@/features/super-admin/api/adminTenants';
 import { useBillingAccess } from '@/features/billing/hooks/useBillingAccess';
 import { useBillingTenantLicense } from '@/features/billing/hooks';
@@ -101,7 +102,7 @@ export function TenantDetailOverviewTab({
 
             {canAccessBilling ? (
                 <Card title={t('license.tenantDetail.license')} size="small">
-                    <Spin spinning={licenseLoading}>
+                    <SkeletonWrapper type="form" loading={licenseLoading} count={4}>
                         <Descriptions column={{ xs: 1, sm: 2 }} size="small">
                             <Descriptions.Item label={t('license.tenantDetail.status')}>
                                 <Tag color={licenseStatus?.isValid ? 'green' : 'red'}>
@@ -154,7 +155,7 @@ export function TenantDetailOverviewTab({
                                 {t('license.tenantDetail.viewSales')}
                             </Button>
                         </Space>
-                    </Spin>
+                    </SkeletonWrapper>
                 </Card>
             ) : null}
 

@@ -106,6 +106,14 @@ namespace KasseAPI_Final.Models
         [Column(TypeName = "jsonb")]
         public Dictionary<string, string> BusinessHours { get; set; } = new();
 
+        /// <summary>
+        /// Structured restaurant working hours (Mon–Sun open/close/isClosed) plus
+        /// Tagesabschluss reminder lead time. JSONB; defaults when null/empty.
+        /// </summary>
+        [Required]
+        [Column("working_hours", TypeName = "jsonb")]
+        public WorkingHoursSettings WorkingHours { get; set; } = WorkingHoursSettings.CreateDefault();
+
         [MaxLength(100)]
         public string? ContactPerson { get; set; }
 

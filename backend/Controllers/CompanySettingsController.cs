@@ -493,6 +493,7 @@ namespace KasseAPI_Final.Controllers
             CompanyAddress = string.Empty,
             CompanyTaxNumber = string.Empty,
             BusinessHours = new Dictionary<string, string>(),
+            WorkingHours = WorkingHoursSettings.CreateDefault(),
             Currency = "EUR",
             Language = "de-DE",
             TimeZone = "Europe/Vienna",

@@ -4,7 +4,10 @@ import React from 'react';
 import { CheckCircleOutlined, CloseCircleOutlined, StopOutlined, WarningOutlined } from '@ant-design/icons';
 import { Tag, Tooltip } from 'antd';
 
-import { TENANT_WARNING_DAYS_BEFORE_EXPIRY } from '@/features/license/constants/licenseGracePeriod';
+import {
+    TENANT_WARNING_DAYS_BEFORE_EXPIRY,
+    resolveTenantGraceDays,
+} from '@/features/license/constants/licenseGracePeriod';
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
@@ -36,20 +39,16 @@ export function LicenseStatusBadge({
             : Math.ceil((expiryDate.getTime() - today.getTime()) / DAY_MS);
 
     if (isInGracePeriod) {
-        const overdueDays = Math.abs(daysLeft);
-        const graceLeft =
-            typeof gracePeriodRemaining === 'number' && Number.isFinite(gracePeriodRemaining)
-                ? Math.max(0, gracePeriodRemaining)
-                : undefined;
+        // Never use Math.abs of a future ValidUntil horizon (e.g. 997 days).
+        const { daysExpired, graceRemaining } = resolveTenantGraceDays({
+            daysRemaining,
+            gracePeriodRemaining,
+            validUntilUtc: validUntil,
+        });
+        const overdueDays = daysExpired > 0 ? daysExpired : 1;
 
         return (
-            <Tooltip
-                title={
-                    graceLeft != null
-                        ? `Grace Period: noch ${graceLeft} Tage`
-                        : 'Grace Period: Lizenz abgelaufen, Verlängerung empfohlen'
-                }
-            >
+            <Tooltip title={`Grace Period: noch ${graceRemaining} Tage`}>
                 <Tag color="orange" icon={<WarningOutlined />}>
                     Grace Period ({overdueDays} Tage überfällig)
                 </Tag>

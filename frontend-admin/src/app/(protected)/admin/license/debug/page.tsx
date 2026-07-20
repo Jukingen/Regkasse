@@ -9,7 +9,6 @@ import {
     Descriptions,
     Select,
     Space,
-    Spin,
     Table,
     Tag,
     Typography,
@@ -18,6 +17,7 @@ import { BugOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { TableSkeleton } from '@/components/Skeleton';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import {
     getDeploymentLicenseStatus,
@@ -194,7 +194,7 @@ export default function LicenseDebugPage() {
             <AdminPageHeader
                 title={t('license.debug.title')}
                 breadcrumbs={breadcrumbs}
-                extra={
+                actions={
                     <Button icon={<ReloadOutlined />} onClick={() => void refreshAll()}>
                         {t('license.debug.refresh')}
                     </Button>
@@ -247,9 +247,7 @@ export default function LicenseDebugPage() {
             </Card>
 
             {isLoading && !unifiedQuery.data ? (
-                <div style={{ textAlign: 'center', padding: 48 }}>
-                    <Spin size="large" />
-                </div>
+                <TableSkeleton rows={5} cols={6} />
             ) : (
                 <>
                     <Card title={t('license.debug.comparisonTitle')}>

@@ -41,6 +41,7 @@ import {
 } from '@/features/tenancy/hooks/useTenantListForSwitcher';
 import { formatTenantDisplay } from '@/features/super-admin/utils/tenantHeaderSwitcher';
 import { useI18n } from '@/i18n';
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { getAdminHeaderPopupContainer } from '@/shared/layout/adminHeaderDropdown';
 
 function dedupeSwitcherItems(items: TenantListItemForSwitcher[]): TenantListItemForSwitcher[] {
@@ -140,8 +141,9 @@ export type HeaderDevTenantSwitchProps = {
 
 export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitchProps) {
     const { t } = useI18n();
+    const { message } = useAntdApp();
     const router = useRouter();
-    const { user } = useAuth();
+    const { user, refreshToken } = useAuth();
     const { tenantId: currentTenantId } = useCurrentTenant();
     const { tenant: apiTenant, refresh: refreshTenantContext } = useTenant();
     const { open, setOpen } = useHeaderTenantSwitcher();
@@ -170,7 +172,7 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
     const normalizedCurrentId =
         (apiTenant?.id ?? currentTenantId)?.trim().toLowerCase() ?? '';
 
-    /** Persists `dev_tenant_id` + tenant bootstrap id, then reloads via {@link DEV_TENANT_CHANGED_EVENT}. */
+    /** Persists `dev_tenant_id`, refreshes JWT `tenant_id`, then reloads via {@link DEV_TENANT_CHANGED_EVENT}. */
     const handleTenantChange = useCallback(
         async (tenant: TenantListItemForSwitcher) => {
             if (isSuperAdminUser && tenantNeedsNoAdminWarning(tenant)) {
@@ -181,10 +183,15 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
             }
             setOpen(false);
             setSearch('');
+            const tokenOk = await refreshToken(tenant.id);
+            if (!tokenOk) {
+                message.error(t('adminShell.tenant.devSwitcher.refreshFailed'));
+                return;
+            }
             refreshTenantContext();
             await switchDevTenantContext({ slug: tenant.slug, id: tenant.id });
         },
-        [isSuperAdminUser, refreshTenantContext, setOpen],
+        [isSuperAdminUser, message, refreshTenantContext, refreshToken, setOpen, t],
     );
 
     const handleOpenChange = useCallback(

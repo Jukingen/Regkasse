@@ -6,12 +6,13 @@
  */
 
 import React, { useMemo } from 'react';
-import { Alert, Card, Descriptions, Space, Spin, Tag, Typography } from 'antd';
+import { Alert, Card, Descriptions, Space, Tag, Typography } from 'antd';
 import type { BackupArtifactPipelinePolicyResponseDto, BackupRunResponseDto } from '@/api/generated/model';
 import {
   useGetApiAdminBackupRunsId,
   useGetApiAdminBackupStatusLatest,
 } from '@/api/generated/admin-backup/admin-backup';
+import { CardSkeleton } from '@/components/Skeleton';
 import { BackupPipelineStepper } from '@/features/backup-dr/components/BackupPipelineStepper';
 import {
   formatRunDurationMs,
@@ -202,7 +203,7 @@ export function BackupLatestRunCardPresentation({
             <Alert type="warning" showIcon style={{ marginBottom: 12 }} title={t('backupDr.errors.runDetailPartial')} />
           )}
           {loadingDetail && latest.id ? (
-            <Spin description={t('backupDr.externalCopy.loading')} />
+            <CardSkeleton count={1} />
           ) : (
             <BackupPipelineStepper steps={steps} t={t} />
           )}

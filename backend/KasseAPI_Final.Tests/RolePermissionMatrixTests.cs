@@ -318,6 +318,70 @@ public class RolePermissionMatrixTests
     }
 
     [Fact]
+    public void RoleHasPermission_Manager_Has_WebsiteManage()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.WebsiteManage));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Cashier_DoesNotHave_DigitalWebOrApp()
+    {
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.DigitalView));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.DigitalPreview));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.DigitalRequest));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.DigitalCreate));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.DigitalWebView));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.DigitalWebUse));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.DigitalAppView));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.DigitalAppUse));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.DigitalManage));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.DigitalActivate));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Manager_Has_Digital_ViewPreviewRequest()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.DigitalView));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.DigitalPreview));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.DigitalRequest));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.DigitalOrdersView));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.DigitalOrdersManage));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.DigitalOrdersApprove));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.DigitalCreate));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.DigitalPublish));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.DigitalEdit));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.DigitalDelete));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.DigitalWebUse));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.DigitalAppUse));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.DigitalWebCreate));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.DigitalAppCreate));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Manager_DoesNotHave_DigitalManage_Pricing_Activate()
+    {
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.DigitalManage));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.DigitalPricingManage));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.DigitalActivate));
+    }
+
+    [Fact]
+    public void RoleHasPermission_SuperAdmin_Has_DigitalManage_Pricing_Activate()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.DigitalManage));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.DigitalPricingManage));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.DigitalActivate));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.DigitalWebUse));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.DigitalAppUse));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.DigitalCreate));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.DigitalPublish));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.DigitalEdit));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.DigitalDelete));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.DigitalWebCreate));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.DigitalAppCreate));
+    }
+
+    [Fact]
     public void RoleHasPermission_SuperAdmin_Has_BackupManage()
     {
         Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.BackupManage));
@@ -451,5 +515,17 @@ public class RolePermissionMatrixTests
         Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.ShiftOpen));
         Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.ShiftClose));
         Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.TseSign));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.DailyClosingView));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.DailyClosingExecute));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Cashier_Has_PosDailyClosingPermissions()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.DailyClosingView));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.DailyClosingExecute));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.TseSign));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.ShiftOpen));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.ShiftClose));
     }
 }

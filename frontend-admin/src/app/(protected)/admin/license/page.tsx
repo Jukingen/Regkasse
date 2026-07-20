@@ -8,7 +8,7 @@ import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useSearchParams } from 'next/navigation';
-import { Modal, Alert, Button, Card, Col, Collapse, Descriptions, Dropdown, Form, Input, InputNumber, Row, Space, Spin, Table, Tabs, Tag, Typography } from 'antd';
+import { Modal, Alert, Button, Card, Col, Collapse, Descriptions, Dropdown, Form, Input, InputNumber, Row, Space, Table, Tabs, Tag, Typography } from 'antd';
 import type { MenuProps } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -24,6 +24,7 @@ import {
 } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient, type UseMutationResult, type UseQueryResult } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { SkeletonWrapper } from '@/components/Skeleton';
 import { adminOverviewCrumb, ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
 import { useI18n, formatGermanDateTime } from '@/i18n';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -575,27 +576,29 @@ function IssuedLicensesTableCard() {
                 {listQuery.isError ? (
                     <Alert type="error" showIcon title={t('license.issued.loadError')} />
                 ) : (
-                    <Table<IssuedLicenseListItemDto>
-                        rowKey="id"
-                        size="small"
-                        loading={listQuery.isFetching}
-                        columns={columns}
-                        dataSource={listQuery.data?.items ?? []}
-                        locale={{ emptyText: t('license.issued.empty') }}
-                        scroll={{ x: 1540 }}
-                        pagination={{
-                            current: pageNumber,
-                            pageSize,
-                            total: listQuery.data?.total ?? 0,
-                            showSizeChanger: true,
-                            pageSizeOptions: [25, 50, 100, 200],
-                            showTotal: (total) => `${total}`,
-                            onChange: (p, ps) => {
-                                setPageNumber(p);
-                                setPageSize(ps);
-                            },
-                        }}
-                    />
+                    <SkeletonWrapper type="table" loading={listQuery.isLoading} count={5}>
+                        <Table<IssuedLicenseListItemDto>
+                            rowKey="id"
+                            size="small"
+                            loading={listQuery.isFetching && !listQuery.isLoading}
+                            columns={columns}
+                            dataSource={listQuery.data?.items ?? []}
+                            locale={{ emptyText: t('license.issued.empty') }}
+                            scroll={{ x: 1540 }}
+                            pagination={{
+                                current: pageNumber,
+                                pageSize,
+                                total: listQuery.data?.total ?? 0,
+                                showSizeChanger: true,
+                                pageSizeOptions: [25, 50, 100, 200],
+                                showTotal: (total) => `${total}`,
+                                onChange: (p, ps) => {
+                                    setPageNumber(p);
+                                    setPageSize(ps);
+                                },
+                            }}
+                        />
+                    </SkeletonWrapper>
                 )}
             </Space>
 
@@ -840,9 +843,9 @@ function IssuedLicensesTableCard() {
                 onCancel={() => setDetailsLicenseId(null)}
             >
                 {detailsQuery.isFetching ? (
-                    <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
-                        <Spin />
-                    </div>
+                    <SkeletonWrapper type="form" loading count={4}>
+                        {null}
+                    </SkeletonWrapper>
                 ) : detailsQuery.isError ? (
                     <Alert type="error" showIcon title={t('license.issued.super.detailsLoadError')} />
                 ) : detailsQuery.data ? (
@@ -1126,174 +1129,174 @@ function DeploymentLicensePanel({
                     {t('license.server.subtitle')}
                 </Typography.Paragraph>
             </div>
-            <Card title={t('license.simpleUi.titlePublic')}>
-                <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
-                    {t('license.simpleUi.subtitlePublic')}
-                </Typography.Paragraph>
-                {publicStatusQuery.isLoading ? (
-                    <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
-                        <Spin />
-                    </div>
-                ) : publicStatusQuery.isError ? (
-                    <Alert type="warning" showIcon title={t('license.publicStatus.loadError')} />
-                ) : publicStatusQuery.data ? (
-                    <Descriptions bordered column={1} size="small">
-                        <Descriptions.Item label={t('license.simpleUi.status')}>
-                            <Tag
-                                color={
-                                    publicStatusQuery.data.licenseType === 'Licensed' ||
-                                    publicStatusQuery.data.licenseType === 'Paid'
-                                        ? 'green'
-                                        : publicStatusQuery.data.licenseType === 'Trial' ||
-                                            publicStatusQuery.data.licenseType === 'Demo'
-                                          ? 'blue'
-                                          : 'red'
-                                }
-                            >
-                                {publicStatusQuery.data.licenseType}
-                            </Tag>
-                        </Descriptions.Item>
-                        <Descriptions.Item label={t('license.simpleUi.validUntil')}>
-                            {publicStatusQuery.data.validUntil
-                                ? formatGermanDateTime(publicStatusQuery.data.validUntil)
-                                : '—'}
-                        </Descriptions.Item>
-                        <Descriptions.Item label={t('license.simpleUi.daysRemaining')}>
-                            {publicStatusQuery.data.daysRemaining}
-                        </Descriptions.Item>
-                    </Descriptions>
-                ) : null}
-            </Card>
-
-            <Card>
-                <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
-                    {t('license.supportNotice')}
-                </Typography.Paragraph>
-
-                {statusQuery.isLoading ? (
-                    <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
-                        <Spin />
-                    </div>
-                ) : statusQuery.isError ? (
-                    <Alert type="error" showIcon title={t('common.messages.unknownError')} />
-                ) : (
-                    <Row gutter={[16, 16]}>
-                        <Col xs={24} lg={14}>
-                            <Typography.Title level={5} style={{ marginTop: 0, marginBottom: 12 }}>
-                                {t('license.simpleUi.titleServer')}
-                            </Typography.Title>
+            <SkeletonWrapper
+                type="card"
+                loading={publicStatusQuery.isLoading || statusQuery.isLoading}
+                count={2}
+            >
+                <>
+                    <Card title={t('license.simpleUi.titlePublic')}>
+                        <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
+                            {t('license.simpleUi.subtitlePublic')}
+                        </Typography.Paragraph>
+                        {publicStatusQuery.isError ? (
+                            <Alert type="warning" showIcon title={t('license.publicStatus.loadError')} />
+                        ) : publicStatusQuery.data ? (
                             <Descriptions bordered column={1} size="small">
                                 <Descriptions.Item label={t('license.simpleUi.status')}>
-                                    <Tag color={getLicenseStatusTagColor(resolvedStatus?.kind ?? 'no_license')}>
-                                        {getLicenseStatusLabel(resolvedStatus?.kind ?? 'no_license', t)}
+                                    <Tag
+                                        color={
+                                            publicStatusQuery.data.licenseType === 'Licensed' ||
+                                            publicStatusQuery.data.licenseType === 'Paid'
+                                                ? 'green'
+                                                : publicStatusQuery.data.licenseType === 'Trial' ||
+                                                    publicStatusQuery.data.licenseType === 'Demo'
+                                                  ? 'blue'
+                                                  : 'red'
+                                        }
+                                    >
+                                        {publicStatusQuery.data.licenseType}
                                     </Tag>
                                 </Descriptions.Item>
                                 <Descriptions.Item label={t('license.simpleUi.validUntil')}>
-                                    {s?.expiryDate
-                                        ? formatGermanDateTime(s.expiryDate)
+                                    {publicStatusQuery.data.validUntil
+                                        ? formatGermanDateTime(publicStatusQuery.data.validUntil)
                                         : '—'}
                                 </Descriptions.Item>
                                 <Descriptions.Item label={t('license.simpleUi.daysRemaining')}>
-                                    {resolvedStatus ? getLicenseStatusDayText(resolvedStatus, t) ?? '—' : '—'}
-                                </Descriptions.Item>
-                                <Descriptions.Item label={t('license.phase.capabilities.write')}>
-                                    <Tag color={resolvedStatus?.canWrite ? 'green' : 'red'}>
-                                        {t(resolvedStatus?.canWrite ? 'common.buttons.yes' : 'common.buttons.no')}
-                                    </Tag>
-                                </Descriptions.Item>
-                                <Descriptions.Item label={t('license.phase.capabilities.access')}>
-                                    <Tag color={resolvedStatus?.canAccess ? 'green' : 'red'}>
-                                        {t(resolvedStatus?.canAccess ? 'common.buttons.yes' : 'common.buttons.no')}
-                                    </Tag>
+                                    {publicStatusQuery.data.daysRemaining}
                                 </Descriptions.Item>
                             </Descriptions>
-                            {resolvedStatus ? (
-                                <Alert
-                                    style={{ marginTop: 12 }}
-                                    type={
-                                        resolvedStatus.kind === 'active'
-                                            ? 'success'
-                                            : resolvedStatus.kind === 'grace_write'
-                                              ? 'warning'
-                                              : 'error'
-                                    }
-                                    showIcon
-                                    title={getLicenseStatusMessage(resolvedStatus, 'deployment', t)}
-                                />
-                            ) : null}
-                            {machineHash ? (
-                                <Collapse
-                                    ghost
-                                    style={{ marginTop: 12 }}
-                                    items={[
-                                        {
-                                            key: 'tech',
-                                            label: t('license.simpleUi.technicalPanel'),
-                                            children: (
-                                                <Typography.Paragraph
-                                                    copyable={{ text: machineHash }}
-                                                    style={{
-                                                        marginBottom: 0,
-                                                        wordBreak: 'break-all',
-                                                        fontFamily: 'ui-monospace, monospace',
+                        ) : null}
+                    </Card>
+
+                    <Card>
+                        <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
+                            {t('license.supportNotice')}
+                        </Typography.Paragraph>
+
+                        {statusQuery.isError ? (
+                            <Alert type="error" showIcon title={t('common.messages.unknownError')} />
+                        ) : (
+                            <Row gutter={[16, 16]}>
+                                <Col xs={24} lg={14}>
+                                    <Typography.Title level={5} style={{ marginTop: 0, marginBottom: 12 }}>
+                                        {t('license.simpleUi.titleServer')}
+                                    </Typography.Title>
+                                    <Descriptions bordered column={1} size="small">
+                                        <Descriptions.Item label={t('license.simpleUi.status')}>
+                                            <Tag color={getLicenseStatusTagColor(resolvedStatus?.kind ?? 'no_license')}>
+                                                {getLicenseStatusLabel(resolvedStatus?.kind ?? 'no_license', t)}
+                                            </Tag>
+                                        </Descriptions.Item>
+                                        <Descriptions.Item label={t('license.simpleUi.validUntil')}>
+                                            {s?.expiryDate
+                                                ? formatGermanDateTime(s.expiryDate)
+                                                : '—'}
+                                        </Descriptions.Item>
+                                        <Descriptions.Item label={t('license.simpleUi.daysRemaining')}>
+                                            {resolvedStatus ? getLicenseStatusDayText(resolvedStatus, t) ?? '—' : '—'}
+                                        </Descriptions.Item>
+                                        <Descriptions.Item label={t('license.phase.capabilities.write')}>
+                                            <Tag color={resolvedStatus?.canWrite ? 'green' : 'red'}>
+                                                {t(resolvedStatus?.canWrite ? 'common.buttons.yes' : 'common.buttons.no')}
+                                            </Tag>
+                                        </Descriptions.Item>
+                                        <Descriptions.Item label={t('license.phase.capabilities.access')}>
+                                            <Tag color={resolvedStatus?.canAccess ? 'green' : 'red'}>
+                                                {t(resolvedStatus?.canAccess ? 'common.buttons.yes' : 'common.buttons.no')}
+                                            </Tag>
+                                        </Descriptions.Item>
+                                    </Descriptions>
+                                    {resolvedStatus ? (
+                                        <Alert
+                                            style={{ marginTop: 12 }}
+                                            type={
+                                                resolvedStatus.kind === 'active'
+                                                    ? 'success'
+                                                    : resolvedStatus.kind === 'grace_write'
+                                                      ? 'warning'
+                                                      : 'error'
+                                            }
+                                            showIcon
+                                            title={getLicenseStatusMessage(resolvedStatus, 'deployment', t)}
+                                        />
+                                    ) : null}
+                                    {machineHash ? (
+                                        <Collapse
+                                            ghost
+                                            style={{ marginTop: 12 }}
+                                            items={[
+                                                {
+                                                    key: 'tech',
+                                                    label: t('license.simpleUi.technicalPanel'),
+                                                    children: (
+                                                        <Typography.Paragraph
+                                                            copyable={{ text: machineHash }}
+                                                            style={{
+                                                                marginBottom: 0,
+                                                                wordBreak: 'break-all',
+                                                                fontFamily: 'ui-monospace, monospace',
+                                                            }}
+                                                        >
+                                                            <Typography.Text type="secondary">
+                                                                {t('license.simpleUi.machineFingerprint')}
+                                                            </Typography.Text>
+                                                            <br />
+                                                            {machineHash}
+                                                        </Typography.Paragraph>
+                                                    ),
+                                                },
+                                            ]}
+                                        />
+                                    ) : null}
+                                </Col>
+                                {showDeploymentActivation ? (
+                                    <Col xs={24} lg={10}>
+                                        <Card type="inner" title={t('license.activation.title')}>
+                                            {!canActivate ? (
+                                                <Alert type="info" showIcon title={t('license.activation.noPermission')} />
+                                            ) : (
+                                                <Form
+                                                    form={form}
+                                                    layout="vertical"
+                                                    onFinish={(values) => {
+                                                        const licenseKey = values.licenseKey?.trim() ?? '';
+                                                        if (!licenseKey) {
+                                                            message.warning(t('license.activation.licenseKey'));
+                                                            return;
+                                                        }
+                                                        activateMutation.mutate({ licenseKey });
                                                     }}
                                                 >
-                                                    <Typography.Text type="secondary">
-                                                        {t('license.simpleUi.machineFingerprint')}
-                                                    </Typography.Text>
-                                                    <br />
-                                                    {machineHash}
-                                                </Typography.Paragraph>
-                                            ),
-                                        },
-                                    ]}
-                                />
-                            ) : null}
-                        </Col>
-                        {showDeploymentActivation ? (
-                            <Col xs={24} lg={10}>
-                                <Card type="inner" title={t('license.activation.title')}>
-                                    {!canActivate ? (
-                                        <Alert type="info" showIcon title={t('license.activation.noPermission')} />
-                                    ) : (
-                                        <Form
-                                            form={form}
-                                            layout="vertical"
-                                            onFinish={(values) => {
-                                                const licenseKey = values.licenseKey?.trim() ?? '';
-                                                if (!licenseKey) {
-                                                    message.warning(t('license.activation.licenseKey'));
-                                                    return;
-                                                }
-                                                activateMutation.mutate({ licenseKey });
-                                            }}
-                                        >
-                                            <Form.Item
-                                                name="licenseKey"
-                                                label={t('license.activation.licenseKey')}
-                                                rules={[
-                                                    { required: true, message: t('common.validation.fieldRequired') },
-                                                ]}
-                                            >
-                                                <Input placeholder="REGK-XXXXX-XXXXX-XXXXX" autoComplete="off" />
-                                            </Form.Item>
-                                            <Form.Item>
-                                                <Button
-                                                    type="primary"
-                                                    htmlType="submit"
-                                                    loading={activateMutation.isPending}
-                                                >
-                                                    {t('license.activation.activate')}
-                                                </Button>
-                                            </Form.Item>
-                                        </Form>
-                                    )}
-                                </Card>
-                            </Col>
-                        ) : null}
-                    </Row>
-                )}
-            </Card>
+                                                    <Form.Item
+                                                        name="licenseKey"
+                                                        label={t('license.activation.licenseKey')}
+                                                        rules={[
+                                                            { required: true, message: t('common.validation.fieldRequired') },
+                                                        ]}
+                                                    >
+                                                        <Input placeholder="REGK-XXXXX-XXXXX-XXXXX" autoComplete="off" />
+                                                    </Form.Item>
+                                                    <Form.Item>
+                                                        <Button
+                                                            type="primary"
+                                                            htmlType="submit"
+                                                            loading={activateMutation.isPending}
+                                                        >
+                                                            {t('license.activation.activate')}
+                                                        </Button>
+                                                    </Form.Item>
+                                                </Form>
+                                            )}
+                                        </Card>
+                                    </Col>
+                                ) : null}
+                            </Row>
+                        )}
+                    </Card>
+                </>
+            </SkeletonWrapper>
 
             {canActivate ? (
                 <Tabs

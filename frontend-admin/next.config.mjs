@@ -42,6 +42,13 @@ const nextConfig = {
     allowedDevOrigins: ['admin.regkasse.local', '*.regkasse.local'],
     transpilePackages: ['antd', '@ant-design/icons', 'rc-util', 'rc-pagination', 'rc-picker', 'rc-notification', 'rc-tooltip'],
     reactStrictMode: true,
+    images: {
+        remotePatterns: [
+            { protocol: 'http', hostname: 'localhost', port: '5184', pathname: '/**' },
+            { protocol: 'http', hostname: '127.0.0.1', port: '5184', pathname: '/**' },
+            { protocol: 'https', hostname: 'api.regkasse.at', pathname: '/**' },
+        ],
+    },
     turbopack: {
         root: path.join(__dirname, '..'),
     },

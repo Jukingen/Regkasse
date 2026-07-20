@@ -7,7 +7,8 @@ import { useAntdApp } from '@/hooks/useAntdApp';
  */
 
 import React, { useCallback, useMemo, useState } from 'react';
-import { Card, Table, Tag, Statistic, Row, Col, Spin, Alert, Button, Space, Select, DatePicker, Typography, Tooltip, Descriptions, Collapse, Divider } from 'antd';
+import { Card, Table, Tag, Statistic, Row, Col, Alert, Button, Space, Select, DatePicker, Typography, Tooltip, Descriptions, Collapse, Divider } from 'antd';
+import { TableSkeleton } from '@/components/Skeleton';
 import { ReloadOutlined, SyncOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
@@ -948,9 +949,7 @@ export default function FinanzOnlineReconciliationPage() {
 
             <Card title={t('finanzOnlineReconciliation.queuePage.table.cardTitle', { count: items.length })} size="small">
                 {isLoading && !listData ? (
-                    <div style={{ textAlign: 'center', padding: 48 }}>
-                        <Spin size="large" />
-                    </div>
+                    <TableSkeleton rows={8} cols={5} />
                 ) : items.length === 0 ? (
                     <Alert
                         type="info"

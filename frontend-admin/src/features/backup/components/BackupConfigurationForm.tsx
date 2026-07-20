@@ -7,7 +7,8 @@ import { useAntdApp } from '@/hooks/useAntdApp';
 
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { Alert, Button, Col, Divider, Form, Input, InputNumber, Row, Select, Spin, Typography } from 'antd';
+import { Alert, Button, Col, Divider, Form, Input, InputNumber, Row, Select, Typography } from 'antd';
+import { FormSkeleton } from '@/components/Skeleton';
 import { useQuery } from "@tanstack/react-query";
 import { useI18n } from "@/i18n";
 import { useBackupPermissions } from "@/features/backup/hooks/useBackupPermissions";
@@ -167,7 +168,7 @@ export function BackupConfigurationForm() {
     return (
       <>
         <Form form={form} style={{ display: 'none' }} preserve />
-        <Spin />
+        <FormSkeleton fields={4} />
       </>
     );
   }

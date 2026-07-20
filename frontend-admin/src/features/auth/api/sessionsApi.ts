@@ -5,9 +5,14 @@ export type ActiveSession = {
     userId: string;
     clientApp: string;
     deviceId?: string | null;
+    deviceName?: string | null;
+    browser?: string | null;
+    os?: string | null;
     ipAddress?: string | null;
+    userAgent?: string | null;
     startedAtUtc: string;
     lastActivityAtUtc: string;
+    expiresAtUtc?: string | null;
     isActive: boolean;
     isCurrent: boolean;
 };

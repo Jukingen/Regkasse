@@ -28,7 +28,7 @@ public sealed class TenantLicenseStatusMapperTests
             Id = DemoTenantIds.Prod,
             Slug = "prod",
             Name = "Test Bar",
-            LicenseValidUntilUtc = now.AddDays(-10),
+            LicenseValidUntilUtc = now.AddDays(-3),
             LicenseKey = "TENANT-KEY",
         };
 
@@ -51,7 +51,7 @@ public sealed class TenantLicenseStatusMapperTests
             Id = DemoTenantIds.Prod,
             Slug = "prod",
             Name = "Test Bar",
-            LicenseValidUntilUtc = now.AddDays(-22),
+            LicenseValidUntilUtc = now.AddDays(-15),
         };
 
         var status = TenantLicenseStatusMapper.TryMapToLicenseStatus(tenant, "machine-hash", now);
@@ -59,5 +59,14 @@ public sealed class TenantLicenseStatusMapperTests
         Assert.NotNull(status);
         Assert.True(status.IsExpired);
         Assert.Equal(0, status.DaysRemaining);
+    }
+
+    [Fact]
+    public void ComputeKindAndDays_Archived_ReturnsArchivedKind()
+    {
+        var now = new DateTime(2026, 5, 22, 12, 0, 0, DateTimeKind.Utc);
+        var (days, kind) = TenantLicenseStatusMapper.ComputeKindAndDays(now.AddDays(-40), "KEY", now);
+        Assert.Equal("archived", kind);
+        Assert.True(days < 0);
     }
 }

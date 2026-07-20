@@ -2,11 +2,12 @@
 
 import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useMemo, useState } from 'react';
-import { Alert, Button, Card, Col, Descriptions, Input, Row, Space, Spin, Statistic, Table, Tag, Tooltip, Typography } from 'antd';
+import { Alert, Button, Card, Col, Descriptions, Input, Row, Space, Statistic, Table, Tag, Tooltip, Typography } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import Link from 'next/link';
+import { CardSkeleton, TableSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
@@ -137,7 +138,7 @@ export default function FinanzOnlineOperationsPage() {
         <Col xs={24} lg={12}>
           <Card title={t('rksvHub.finanzOnlineOpsPage.detailedStatusCard')} size="small">
             {statusQuery.isLoading ? (
-              <Spin />
+              <CardSkeleton count={1} loading />
             ) : statusQuery.isError ? (
               <Alert
                 type="error"
@@ -228,7 +229,7 @@ export default function FinanzOnlineOperationsPage() {
             }
           >
             {configQuery.isLoading ? (
-              <Spin />
+              <CardSkeleton count={1} loading />
             ) : configQuery.isError ? (
               <Alert
                 type="error"
@@ -334,7 +335,7 @@ export default function FinanzOnlineOperationsPage() {
           <Alert type="info" showIcon style={{ marginBottom: 12 }} title={errorsPayload.diagnosticWarning} />
         ) : null}
         {errorsQuery.isLoading ? (
-          <Spin />
+          <TableSkeleton rows={5} cols={4} loading />
         ) : errorsQuery.isError ? (
           <Alert
             type="error"
@@ -394,7 +395,7 @@ export default function FinanzOnlineOperationsPage() {
         {!canRunHistory ? (
           <Alert type="info" title={t('rksvHub.finanzOnlineOpsPage.enterInvoiceIdHint')} />
         ) : historyQuery.isLoading ? (
-          <Spin />
+          <TableSkeleton rows={5} cols={4} loading />
         ) : historyQuery.isError ? (
           <Alert
             type="error"

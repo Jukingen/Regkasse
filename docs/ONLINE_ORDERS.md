@@ -5,13 +5,15 @@
 
 **Last updated:** 2026-07-19
 
-**Related:** [`docs/DIGITAL_SERVICES.md`](DIGITAL_SERVICES.md) · [`docs/PERMISSIONS_MATRIX.md`](PERMISSIONS_MATRIX.md) · [`AGENTS.md`](../AGENTS.md) § Roles (Digital services & online orders) · [`REGKASSE_AI_ONBOARDING.md`](../REGKASSE_AI_ONBOARDING.md) § Online orders
+**Related:** [`docs/DIGITAL_SERVICES.md`](DIGITAL_SERVICES.md) · [`docs/WORKING_HOURS.md`](WORKING_HOURS.md) · [`docs/PERMISSIONS_MATRIX.md`](PERMISSIONS_MATRIX.md) · [`AGENTS.md`](../AGENTS.md) § Roles (Digital services & online orders) · § Working hours · [`REGKASSE_AI_ONBOARDING.md`](../REGKASSE_AI_ONBOARDING.md) § Online orders
 
 ---
 
 ## Overview
 
 Online orders are placed by customers on the mandant’s **website or mobile app**. Operators handle them in **Frontend-Admin (FA)** — not on the POS terminal.
+
+**Working hours:** Placement is rejected when the restaurant is closed or past the online-order cutoff (`ONLINE_ORDERS_CLOSED`). This gate applies **only** to customer website/app intake — POS and FA remain fully operational. See [`WORKING_HOURS.md`](WORKING_HOURS.md).
 
 | | Online orders | POS / fiscal |
 |--|---------------|--------------|
@@ -105,6 +107,11 @@ FA routes also accept legacy `order.view` where still wired for list access.
 
 Public customer placement / tracking uses `/api/public/*` online-order endpoints (separate from FA admin inbox).
 
+| Public action | Method / path | Notes |
+|---------------|---------------|-------|
+| Website open / can-order status | `GET /api/sites/{tenantSlug}/status` | Display + CTA gate for sites/apps only |
+| Place online order | `POST /api/public/online-orders` | 409 + `ONLINE_ORDERS_CLOSED` when hours deny intake |
+
 ---
 
 ## Important notes
@@ -114,6 +121,7 @@ Public customer placement / tracking uses `/api/public/*` online-order endpoints
 3. **Separate from POS** — Manager must not rely on POS to “complete” a website order for kitchen fulfillment.
 4. **No skipped steps** — e.g. `pending` → `ready` is rejected.
 5. **Tenant isolation** — EF tenant filters + ambient JWT; cross-tenant → 404.
+6. **Working hours** — customer place-order only (`OnlineOrderIntakeService`); never blocks POS payments or FA management.
 
 ---
 
@@ -124,8 +132,13 @@ Public customer placement / tracking uses `/api/public/*` online-order endpoints
 | Model | `backend/Models/OnlineOrder.cs`, status history |
 | Status engine | `OnlineOrderStatusService` |
 | Admin API | `AdminOnlineOrdersController` |
+| Public intake + hours gate | `PublicOnlineOrdersController`, `OnlineOrderIntakeService` |
+| Website status | `Sites/Controllers/WebsiteStatusController.cs` |
+| Hours model | `Models/WorkingHours.cs` (`EvaluateWebsiteStatus`) |
 | FA UI | `frontend-admin/.../features/orders/` (`OrderManagement`, `OrderDetail`) |
+| Sites UI | `frontend-sites` (`OnlineOrderPanel`, `MenuDisplay`) |
 | Routes | `/orders/online`, `/tenant/[id]/orders` |
+| Hours scope doc | [`WORKING_HOURS.md`](WORKING_HOURS.md) |
 
 ---
 

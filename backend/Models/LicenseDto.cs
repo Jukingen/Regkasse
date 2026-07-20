@@ -29,14 +29,29 @@ public sealed class LicensePublicStatusDto
     /// <summary>Mandant transaction flag when tenant context is resolved; otherwise null.</summary>
     public bool? CanTransact { get; init; }
 
-    /// <summary>German mandant status copy when tenant context is resolved.</summary>
+    /// <summary>German mandant status copy when tenant context is resolved (localized when Accept-Language is set).</summary>
     public string? StatusMessage { get; init; }
+
+    /// <summary>Stable message key for clients (<c>license.status.*</c>).</summary>
+    public string? StatusMessageKey { get; init; }
 
     /// <summary>True when mandant license is expired but still within the grace window.</summary>
     public bool IsInGracePeriod { get; init; }
 
+    /// <summary>True when mandant license is past grace (POS locked).</summary>
+    public bool IsLocked { get; init; }
+
+    /// <summary>Elapsed whole days since expiry when expired; otherwise 0.</summary>
+    public int DaysOverdue { get; init; }
+
     /// <summary>Remaining mandant grace days when <see cref="IsInGracePeriod"/> is true.</summary>
     public int GracePeriodRemaining { get; init; }
+
+    /// <summary>UTC instant when POS lock starts (expiry + grace); null when not expired.</summary>
+    public DateTime? LockDate { get; init; }
+
+    /// <summary>Restriction codes (e.g. <c>POS_LOCKED</c>, <c>SUPERADMIN_UNLOCK_ONLY</c>).</summary>
+    public IReadOnlyList<string> Restrictions { get; init; } = Array.Empty<string>();
 
     /// <summary>True when mandant license requires renewal (lockdown).</summary>
     public bool RequiresRenewal { get; init; }

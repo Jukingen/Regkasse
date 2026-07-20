@@ -8,6 +8,7 @@ namespace KasseAPI_Final.Authorization;
 
 /// <summary>
 /// Evaluates <see cref="PermissionRequirement"/> for policies registered via <see cref="HasPermissionAttribute"/>.
+/// 0. SuperAdmin role short-circuit (compact JWT emits only <c>system.critical</c>).
 /// 1. JWT <c>permission</c> claims + <see cref="PermissionImplication"/> (fast path).
 /// 2. <see cref="IPermissionService.HasPermissionAsync"/> (roles + user overrides from DB).
 /// 3. Role claims + <see cref="RolePermissionMatrix"/> fallback (unit tests / legacy tokens without permission claims).
@@ -29,6 +30,14 @@ public sealed class PermissionAuthorizationHandler : AuthorizationHandler<Permis
         PermissionRequirement requirement)
     {
         var user = context.User;
+
+        // SuperAdmin: full access (compact JWT + role-only principals) without expanding the catalog.
+        if (IsSuperAdmin(user))
+        {
+            context.Succeed(requirement);
+            return;
+        }
+
         var permissionClaims = user.Claims
             .Where(c => string.Equals(c.Type, PermissionCatalog.PermissionClaimType, StringComparison.OrdinalIgnoreCase))
             .Select(c => c.Value)
@@ -67,6 +76,20 @@ public sealed class PermissionAuthorizationHandler : AuthorizationHandler<Permis
         var permissions = RolePermissionMatrix.GetPermissionsForRoles(roles);
         if (PermissionImplication.IsSatisfied(requirement.Permission, permissions))
             context.Succeed(requirement);
+    }
+
+    private static bool IsSuperAdmin(ClaimsPrincipal user)
+    {
+        if (user.IsInRole(Roles.SuperAdmin))
+            return true;
+
+        foreach (var role in GetRolesFromContext(user))
+        {
+            if (string.Equals(role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
     }
 
     private static IReadOnlyList<string> GetRolesFromContext(ClaimsPrincipal user)

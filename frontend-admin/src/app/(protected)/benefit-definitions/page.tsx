@@ -2,7 +2,7 @@
 
 import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useState } from 'react';
-import { Modal, Button, Table, Space, Popconfirm, Tooltip, Empty, Alert, Form, Input, InputNumber, Select, Switch } from 'antd';
+import { Modal, Button, Table, Space, Popconfirm, Tooltip, Alert, Form, Input, InputNumber, Select, Switch } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnType } from 'antd/es/table';
 import {
@@ -18,6 +18,7 @@ import {
 import { useAdminCategoriesList } from '@/api/admin/categories';
 import { useQueryClient } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { EmptyState } from '@/components/EmptyState';
 import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
@@ -223,7 +224,7 @@ export default function BenefitDefinitionsPage() {
         rowKey="id"
         loading={listQuery.isLoading}
         pagination={{ pageSize: 10, showSizeChanger: true }}
-        locale={{ emptyText: <Empty description={t('benefits.definitions.emptyList')} /> }}
+        locale={{ emptyText: <EmptyState title={t('benefits.definitions.emptyList')} /> }}
       />
 
       <Modal

@@ -101,6 +101,14 @@ namespace KasseAPI_Final.Data
         public DbSet<CompanySettings> CompanySettings { get; set; }
         public DbSet<LocalizationSettings> LocalizationSettings { get; set; }
         public DbSet<Tenant> Tenants { get; set; }
+        public DbSet<TenantDomain> TenantDomains { get; set; }
+        public DbSet<TenantCustomization> TenantCustomizations { get; set; }
+        public DbSet<TenantServiceStatus> TenantServiceStatuses { get; set; }
+        public DbSet<TenantDataDeletionRequest> TenantDataDeletionRequests { get; set; }
+        public DbSet<TenantDataRightsRequest> TenantDataRightsRequests { get; set; }
+        public DbSet<RksvColdArchiveRun> RksvColdArchiveRuns { get; set; }
+        public DbSet<RksvColdArchiveItem> RksvColdArchiveItems { get; set; }
+        public DbSet<DigitalServiceRequest> DigitalServiceRequests { get; set; }
         public DbSet<ReceiptTemplate> ReceiptTemplates { get; set; }
         public DbSet<GeneratedReceipt> GeneratedReceipts { get; set; }
         public DbSet<TseDevice> TseDevices { get; set; }
@@ -205,6 +213,16 @@ namespace KasseAPI_Final.Data
         public DbSet<LicenseActivationAttempt> LicenseActivationAttempts { get; set; }
 
         public DbSet<LicenseSale> LicenseSales { get; set; }
+
+        public DbSet<Subscription> Subscriptions { get; set; }
+
+        public DbSet<OnlineOrder> OnlineOrders { get; set; }
+
+        public DbSet<OnlineOrderItem> OnlineOrderItems { get; set; }
+
+        public DbSet<OnlineOrderItemModifier> OnlineOrderItemModifiers { get; set; }
+
+        public DbSet<OnlineOrderStatusChange> OnlineOrderStatusChanges { get; set; }
 
         public DbSet<BillingAuditLog> BillingAuditLogs { get; set; }
 
@@ -402,6 +420,9 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.TaxType);
                 entity.HasIndex(e => e.CategoryId);
                 entity.HasIndex(e => e.TenantId);
+                // Tenant-scoped name lookup (CategoryId+TenantId already covered by composite FK index).
+                entity.HasIndex(e => new { e.TenantId, e.Name })
+                    .HasDatabaseName("idx_products_tenant_name");
                 entity.HasIndex(e => new { e.TenantId, e.Barcode })
                     .IsUnique()
                     .HasFilter("barcode IS NOT NULL AND barcode <> ''");
@@ -1093,6 +1114,8 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.SyncedAtUtc).HasColumnName("synced_at_utc");
                 entity.Property(e => e.ErrorMessage).HasColumnName("error_message");
                 entity.HasIndex(e => e.Status).HasDatabaseName("idx_offline_orders_status");
+                entity.HasIndex(e => new { e.TenantId, e.Status })
+                    .HasDatabaseName("idx_offline_orders_tenant_status");
                 entity.HasIndex(e => e.ExpiresAtUtc).HasDatabaseName("idx_offline_orders_expires");
                 entity.HasIndex(e => e.CreatedAtUtc).HasDatabaseName("idx_offline_orders_created");
             });
@@ -1168,6 +1191,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.LicenseActivationCount).HasDefaultValue(0);
                 entity.Property(e => e.DeletedAtUtc);
                 entity.Property(e => e.DeletedByUserId).HasMaxLength(450);
+                entity.Property(e => e.CustomerDataPurgedAtUtc);
                 entity.HasIndex(e => e.CurrentLicenseSaleId)
                     .HasDatabaseName("idx_tenants_current_license_sale_id");
                 entity.HasOne(e => e.CurrentLicenseSale)
@@ -1178,6 +1202,191 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.Status);
                 entity.HasIndex(e => e.LicenseValidUntilUtc)
                     .HasDatabaseName("IX_tenants_license_valid_until");
+            });
+
+            builder.Entity<TenantDataDeletionRequest>(entity =>
+            {
+                entity.ToTable("tenant_data_deletion_requests");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(24);
+                entity.Property(e => e.RequestedByUserId).HasMaxLength(450);
+                entity.Property(e => e.Reason).HasMaxLength(500);
+                entity.Property(e => e.ConfirmedByUserId).HasMaxLength(450);
+                entity.Property(e => e.CompletedByUserId).HasMaxLength(450);
+                entity.Property(e => e.ExecutedVia).HasMaxLength(16);
+                entity.Property(e => e.RequestedAtUtc).IsRequired();
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_tenant_data_deletion_requests_tenant_id");
+                entity.HasIndex(e => new { e.TenantId, e.Status })
+                    .HasDatabaseName("idx_tenant_data_deletion_requests_tenant_status");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<TenantDataRightsRequest>(entity =>
+            {
+                entity.ToTable("tenant_data_rights_requests");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.RequestType).IsRequired().HasMaxLength(16);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(24);
+                entity.Property(e => e.ApprovalMode).IsRequired().HasMaxLength(16);
+                entity.Property(e => e.RequestedByUserId).HasMaxLength(450);
+                entity.Property(e => e.Reason).HasMaxLength(500);
+                entity.Property(e => e.CompletedByUserId).HasMaxLength(450);
+                entity.Property(e => e.ArtifactRelativePath).HasMaxLength(1024);
+                entity.Property(e => e.ArtifactFileName).HasMaxLength(260);
+                entity.Property(e => e.DownloadToken).HasMaxLength(64);
+                entity.Property(e => e.ErrorMessage).HasMaxLength(1000);
+                entity.Property(e => e.RequestedAtUtc).IsRequired();
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_tenant_data_rights_requests_tenant_id");
+                entity.HasIndex(e => new { e.TenantId, e.RequestType, e.Status })
+                    .HasDatabaseName("idx_tenant_data_rights_requests_tenant_type_status");
+                entity.HasIndex(e => e.LinkedDeletionRequestId)
+                    .HasDatabaseName("idx_tenant_data_rights_requests_linked_deletion");
+                entity.HasIndex(e => e.DownloadToken)
+                    .IsUnique()
+                    .HasDatabaseName("idx_tenant_data_rights_requests_download_token")
+                    .HasFilter("download_token IS NOT NULL");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.LinkedDeletionRequest)
+                    .WithMany()
+                    .HasForeignKey(e => e.LinkedDeletionRequestId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            builder.Entity<RksvColdArchiveRun>(entity =>
+            {
+                entity.ToTable("rksv_cold_archive_runs");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ArchivePath).IsRequired().HasMaxLength(1024);
+                entity.Property(e => e.Sha256).HasMaxLength(64);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(24);
+                entity.Property(e => e.ErrorMessage).HasMaxLength(1000);
+                entity.HasIndex(e => e.CreatedAtUtc).HasDatabaseName("idx_rksv_cold_archive_runs_created_at");
+            });
+
+            builder.Entity<RksvColdArchiveItem>(entity =>
+            {
+                entity.ToTable("rksv_cold_archive_items");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.PaymentDetailId)
+                    .IsUnique()
+                    .HasDatabaseName("idx_rksv_cold_archive_items_payment_detail_id");
+                entity.HasIndex(e => e.ArchiveRunId)
+                    .HasDatabaseName("idx_rksv_cold_archive_items_archive_run_id");
+                entity.HasIndex(e => e.TenantId)
+                    .HasDatabaseName("idx_rksv_cold_archive_items_tenant_id");
+                entity.HasOne(e => e.ArchiveRun)
+                    .WithMany(r => r.Items)
+                    .HasForeignKey(e => e.ArchiveRunId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<TenantDomain>(entity =>
+            {
+                entity.ToTable("tenant_domains");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Domain).IsRequired().HasMaxLength(253);
+                entity.Property(e => e.Subdomain).IsRequired().HasMaxLength(64);
+                entity.Property(e => e.VerificationToken).IsRequired().HasMaxLength(128);
+                entity.Property(e => e.IsVerified).IsRequired();
+                entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
+                entity.Property(e => e.IsPrimary).IsRequired().HasDefaultValue(false);
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_tenant_domains_tenant_id");
+                entity.HasIndex(e => e.Domain).IsUnique().HasDatabaseName("ux_tenant_domains_domain");
+                entity.HasIndex(e => new { e.Domain, e.IsVerified, e.IsActive })
+                    .HasDatabaseName("idx_tenant_domains_host_lookup");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<TenantCustomization>(entity =>
+            {
+                entity.ToTable("tenant_customizations");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Surface).IsRequired().HasMaxLength(16).HasColumnName("surface");
+                entity.Property(e => e.PrimaryColor).HasMaxLength(32);
+                entity.Property(e => e.SecondaryColor).HasMaxLength(32);
+                entity.Property(e => e.BackgroundColor).HasMaxLength(32);
+                entity.Property(e => e.TextColor).HasMaxLength(32);
+                entity.Property(e => e.FontFamily).HasMaxLength(128);
+                entity.Property(e => e.LogoUrl).HasMaxLength(2048);
+                entity.Property(e => e.FaviconUrl).HasMaxLength(2048);
+                entity.Property(e => e.PagesJson).IsRequired().HasColumnName("pages_json");
+                entity.Property(e => e.FeaturesJson).IsRequired().HasColumnName("features_json");
+                entity.Property(e => e.CustomCss).HasColumnName("custom_css");
+                entity.Property(e => e.CustomJs).HasColumnName("custom_js");
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.Property(e => e.UpdatedAt).IsRequired();
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_tenant_customizations_tenant_id");
+                entity.HasIndex(e => new { e.TenantId, e.Surface })
+                    .IsUnique()
+                    .HasDatabaseName("ux_tenant_customizations_tenant_surface");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<TenantServiceStatus>(entity =>
+            {
+                entity.ToTable("tenant_service_statuses");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ServiceType).IsRequired().HasMaxLength(16);
+                entity.Property(e => e.IsEnabled).IsRequired().HasDefaultValue(true);
+                entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(16).HasDefaultValue(TenantDigitalServiceStatuses.None);
+                entity.Property(e => e.Url).HasMaxLength(2048);
+                entity.Property(e => e.TemplateId).HasMaxLength(64);
+                entity.Property(e => e.Customization);
+                entity.Property(e => e.CustomPrice).HasColumnType("decimal(10,2)");
+                entity.Property(e => e.DeactivatedByUserId).HasMaxLength(450);
+                entity.Property(e => e.DeactivationReason).HasMaxLength(500);
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_tenant_service_statuses_tenant_id");
+                entity.HasIndex(e => new { e.TenantId, e.ServiceType })
+                    .IsUnique()
+                    .HasDatabaseName("ux_tenant_service_statuses_tenant_type");
+                entity.HasIndex(e => new { e.IsActive, e.IsEnabled })
+                    .HasDatabaseName("idx_tenant_service_statuses_active_enabled");
+                entity.HasIndex(e => e.Status).HasDatabaseName("idx_tenant_service_statuses_status");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<DigitalServiceRequest>(entity =>
+            {
+                entity.ToTable("digital_service_requests");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ServiceType).IsRequired().HasMaxLength(16);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(16);
+                entity.Property(e => e.RequestedByUserId).HasMaxLength(450);
+                entity.Property(e => e.RequestedAt).IsRequired();
+                entity.Property(e => e.Note).HasMaxLength(500);
+                entity.Property(e => e.ResolvedByUserId).HasMaxLength(450);
+                entity.Property(e => e.ResolutionNote).HasMaxLength(500);
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_digital_service_requests_tenant_id");
+                entity.HasIndex(e => new { e.TenantId, e.ServiceType })
+                    .IsUnique()
+                    .HasDatabaseName("ux_digital_service_requests_pending_tenant_type")
+                    .HasFilter("status = 'Pending'");
+                entity.HasIndex(e => new { e.Status, e.RequestedAt })
+                    .HasDatabaseName("idx_digital_service_requests_status_requested");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             builder.Entity<SystemTimeSyncLog>(entity =>
@@ -1275,6 +1484,134 @@ namespace KasseAPI_Final.Data
                     .WithMany()
                     .HasForeignKey(e => e.TenantId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            builder.Entity<Subscription>(entity =>
+            {
+                entity.ToTable("digital_service_subscriptions");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_digital_service_subscriptions_tenant_id");
+                entity.HasIndex(e => e.Status).HasDatabaseName("idx_digital_service_subscriptions_status");
+                entity.HasIndex(e => e.NextBillingDate).HasDatabaseName("idx_digital_service_subscriptions_next_billing");
+                entity.HasIndex(e => new { e.TenantId, e.ServiceId, e.Status })
+                    .HasDatabaseName("idx_digital_service_subscriptions_tenant_service_status");
+
+                entity.Property(e => e.ServiceId).HasMaxLength(64).IsRequired();
+                entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue(SubscriptionStatuses.Active).IsRequired();
+                entity.Property(e => e.Currency).HasMaxLength(3).HasDefaultValue("EUR").IsRequired();
+                entity.Property(e => e.Price).HasColumnType("decimal(10,2)").IsRequired();
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.Property(e => e.NextBillingDate).IsRequired();
+                entity.Property(e => e.CreatedByUserId).HasMaxLength(450);
+                entity.Property(e => e.CancelledByUserId).HasMaxLength(450);
+
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            builder.Entity<OnlineOrder>(entity =>
+            {
+                entity.ToTable("online_orders");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_online_orders_tenant_id");
+                entity.HasIndex(e => e.OrderStatus).HasDatabaseName("idx_online_orders_order_status");
+                entity.HasIndex(e => e.PaymentStatus).HasDatabaseName("idx_online_orders_payment_status");
+                entity.HasIndex(e => e.CreatedAt).HasDatabaseName("idx_online_orders_created_at");
+                entity.HasIndex(e => new { e.TenantId, e.OrderNumber })
+                    .IsUnique()
+                    .HasDatabaseName("idx_online_orders_tenant_order_number");
+                entity.HasIndex(e => new { e.TenantId, e.OrderStatus, e.CreatedAt })
+                    .HasDatabaseName("idx_online_orders_tenant_status_created");
+
+                entity.Property(e => e.OrderNumber).HasMaxLength(32).IsRequired();
+                entity.Property(e => e.CustomerName).HasMaxLength(200).IsRequired();
+                entity.Property(e => e.CustomerPhone).HasMaxLength(40).IsRequired();
+                entity.Property(e => e.CustomerEmail).HasMaxLength(256);
+                entity.Property(e => e.CustomerDeviceToken).HasMaxLength(512);
+                entity.Property(e => e.OrderType).HasMaxLength(20).IsRequired();
+                entity.Property(e => e.TableNumber).HasMaxLength(40);
+                entity.Property(e => e.DeliveryAddress).HasMaxLength(500);
+                entity.Property(e => e.Subtotal).HasColumnType("decimal(18,2)").IsRequired();
+                entity.Property(e => e.Tax).HasColumnType("decimal(18,2)").IsRequired();
+                entity.Property(e => e.Total).HasColumnType("decimal(18,2)").IsRequired();
+                entity.Property(e => e.PaymentMethod).HasMaxLength(20).IsRequired();
+                entity.Property(e => e.PaymentStatus).HasMaxLength(20)
+                    .HasDefaultValue(OnlineOrderPaymentStatuses.Pending).IsRequired();
+                entity.Property(e => e.OrderStatus).HasMaxLength(20)
+                    .HasDefaultValue(OnlineOrderStatuses.Pending).IsRequired();
+                entity.Property(e => e.Notes).HasMaxLength(1000);
+                entity.Property(e => e.Source).HasMaxLength(20)
+                    .HasDefaultValue(OnlineOrderSources.Web).IsRequired();
+                entity.Property(e => e.PosCartId).HasMaxLength(50);
+                entity.Property(e => e.StripePaymentIntentId).HasMaxLength(128);
+                entity.Property(e => e.CreatedAt).IsRequired();
+
+                entity.HasIndex(e => e.PosCartId).HasDatabaseName("idx_online_orders_pos_cart_id");
+                entity.HasIndex(e => e.StripePaymentIntentId)
+                    .HasDatabaseName("idx_online_orders_stripe_payment_intent_id");
+                entity.HasIndex(e => e.CustomerId).HasDatabaseName("idx_online_orders_customer_id");
+
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasMany(e => e.Items)
+                    .WithOne(i => i.OnlineOrder)
+                    .HasForeignKey(i => i.OnlineOrderId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasMany(e => e.StatusChanges)
+                    .WithOne(c => c.OnlineOrder)
+                    .HasForeignKey(c => c.OnlineOrderId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<OnlineOrderStatusChange>(entity =>
+            {
+                entity.ToTable("online_order_status_changes");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_online_order_status_changes_tenant_id");
+                entity.HasIndex(e => e.OnlineOrderId).HasDatabaseName("idx_online_order_status_changes_order_id");
+                entity.HasIndex(e => new { e.OnlineOrderId, e.ChangedAt })
+                    .HasDatabaseName("idx_online_order_status_changes_order_changed");
+                entity.Property(e => e.FromStatus).HasMaxLength(20).IsRequired();
+                entity.Property(e => e.ToStatus).HasMaxLength(20).IsRequired();
+                entity.Property(e => e.ActorUserId).HasMaxLength(450);
+                entity.Property(e => e.Reason).HasMaxLength(200);
+                entity.Property(e => e.ChangedAt).IsRequired();
+            });
+
+            builder.Entity<OnlineOrderItem>(entity =>
+            {
+                entity.ToTable("online_order_items");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.OnlineOrderId).HasDatabaseName("idx_online_order_items_order_id");
+                entity.HasIndex(e => e.ProductId).HasDatabaseName("idx_online_order_items_product_id");
+
+                entity.Property(e => e.ProductName).HasMaxLength(200).IsRequired();
+                entity.Property(e => e.Quantity).IsRequired();
+                entity.Property(e => e.Price).HasColumnType("decimal(18,2)").IsRequired();
+                entity.Property(e => e.Total).HasColumnType("decimal(18,2)").IsRequired();
+
+                entity.HasMany(e => e.Modifiers)
+                    .WithOne(m => m.OnlineOrderItem)
+                    .HasForeignKey(m => m.OnlineOrderItemId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<OnlineOrderItemModifier>(entity =>
+            {
+                entity.ToTable("online_order_item_modifiers");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.OnlineOrderItemId)
+                    .HasDatabaseName("idx_online_order_item_modifiers_item_id");
+
+                entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+                entity.Property(e => e.Price).HasColumnType("decimal(18,2)").IsRequired();
+                entity.Property(e => e.Quantity).IsRequired().HasDefaultValue(1);
             });
 
             builder.Entity<BillingAuditLog>(entity =>
@@ -1452,6 +1789,9 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.SessionWarningBeforeTimeoutMinutes).HasColumnName("session_warning_before_timeout_minutes").IsRequired();
                 entity.Property(e => e.KeepCartAfterTimeout).HasColumnName("keep_cart_after_timeout").IsRequired();
                 entity.Property(e => e.SessionIdleTimeoutEnabled).HasColumnName("session_idle_timeout_enabled").IsRequired();
+                entity.Property(e => e.OnlineCheckoutPaymentMethods)
+                    .HasColumnName("online_checkout_payment_methods")
+                    .HasMaxLength(100);
                 
                 entity.HasIndex(e => new { e.TenantId, e.CompanyTaxNumber }).IsUnique();
             });
@@ -1566,6 +1906,13 @@ namespace KasseAPI_Final.Data
                     .HasConversion(
                         v => JsonSerializer.Serialize(v),
                         v => string.IsNullOrEmpty(v) ? new Dictionary<string, string>() : JsonSerializer.Deserialize<Dictionary<string, string>>(v)!);
+                entity.Property(e => e.WorkingHours)
+                    .HasColumnName("working_hours")
+                    .HasColumnType("jsonb")
+                    .HasConversion(
+                        v => JsonSerializer.Serialize(v ?? WorkingHoursSettings.CreateDefault()),
+                        v => DeserializeWorkingHours(v))
+                    .HasDefaultValueSql("'{}'::jsonb");
                 entity.Property(e => e.ContactPerson).HasMaxLength(100);
                 entity.Property(e => e.ContactPhone).HasMaxLength(20);
                 entity.Property(e => e.ContactEmail).HasMaxLength(100);
@@ -1953,6 +2300,9 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.FinanzOnlineStatus).HasMaxLength(20);
                 entity.Property(e => e.FinanzOnlineError).HasMaxLength(500);
                 entity.Property(e => e.FinanzOnlineReferenceId).HasMaxLength(100);
+                // Tenant-scoped closing history / range queries by register and date.
+                entity.HasIndex(e => new { e.TenantId, e.CashRegisterId, e.ClosingDate })
+                    .HasDatabaseName("idx_daily_closings_tenant_register_date");
                 entity.HasIndex(e => new { e.CashRegisterId, e.ClosingDate, e.ClosingType })
                     .IsUnique()
                     .HasFilter("\"Status\" = 'Completed'");
@@ -3178,6 +3528,17 @@ namespace KasseAPI_Final.Data
             ReceiptTaxLine line => line.ReceiptId,
             _ => null
         };
+
+        private static WorkingHoursSettings DeserializeWorkingHours(string? json)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+                return WorkingHoursSettings.CreateDefault();
+
+            var parsed = JsonSerializer.Deserialize<WorkingHoursSettings>(json)
+                         ?? WorkingHoursSettings.CreateDefault();
+            parsed.Normalize();
+            return parsed;
+        }
 
         /// <summary>Invariant 1–2: Reject any UPDATE to AuditLog; records are immutable after insert.</summary>
         private void EnforceAuditLogAppendOnly()

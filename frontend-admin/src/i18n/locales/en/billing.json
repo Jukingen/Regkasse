@@ -200,5 +200,24 @@
       "validUntil": "Valid until",
       "daysRemaining": "Days left"
     }
+  },
+  "digital": {
+    "pageTitle": "Digital services — Revenue",
+    "pageSubtitle": "Monthly recurring revenue (MRR) from active website and app subscriptions. Not license sales.",
+    "totalRevenue": "Total MRR",
+    "websites": "Websites",
+    "apps": "Mobile apps",
+    "subscribers": "Active subscriptions",
+    "subscriptionsTitle": "Subscriptions",
+    "empty": "No digital subscriptions",
+    "viewDashboard": "Digital services",
+    "columns": {
+      "tenant": "Tenant",
+      "service": "Service",
+      "price": "Price",
+      "startDate": "Start",
+      "nextBilling": "Next billing",
+      "status": "Status"
+    }
   }
 }

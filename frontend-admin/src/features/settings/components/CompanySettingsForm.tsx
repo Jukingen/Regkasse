@@ -1,8 +1,8 @@
 'use client';
 
-import { Alert, Button, Card, Form, Input, Space, Spin, Typography } from 'antd';
+import { Alert, Button, Card, Form, Input, Space, Typography } from 'antd';
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
@@ -13,8 +13,18 @@ import {
     mapCompanySettingsToFormValues,
     type CompanySettingsFormValues,
 } from '@/features/settings/types/companySettingsForm';
+import { createValidationRules } from '@/lib/validation';
+import { FormFieldWithTooltip, AutoSaveStatusIndicator } from '@/components/form';
+import { FieldTooltip } from '@/components/FieldTooltip';
+import {
+    useAutoSave,
+    clearAutoSaveDraft,
+    readAutoSaveDraft,
+    writeAutoSaveDraft,
+} from '@/hooks/useAutoSave';
+import { FormSkeleton } from '@/components/Skeleton';
 
-const ATU_REGEX = /^ATU\d{8}$/;
+const COMPANY_DRAFT_KEY = 'fa:draft:company-settings';
 
 function getLoadErrorDescription(err: unknown, translate: (key: string) => string): string {
     if (err instanceof Error && err.message.trim()) return err.message.trim();
@@ -35,17 +45,42 @@ export function CompanySettingsForm() {
     const reloadSettings = () =>
         queryClient.invalidateQueries({ queryKey: getGetApiCompanySettingsQueryKey() });
     const { updateSettings, isLoading: isUpdating } = useUpdateCompanySettings();
+    const rules = useMemo(() => createValidationRules(t), [t]);
+    const [watchedValues, setWatchedValues] = useState<Partial<CompanySettingsFormValues>>({});
+
+    const { saving, saved, error: autoSaveError } = useAutoSave(
+        watchedValues,
+        async (data) => {
+            writeAutoSaveDraft(COMPANY_DRAFT_KEY, data);
+        },
+        900,
+        { enabled: Boolean(settings) && !isLoading, skipInitial: true },
+    );
+
+    const hydratedRef = useRef(false);
 
     useEffect(() => {
-        if (settings) {
-            form.setFieldsValue(mapCompanySettingsToFormValues(settings));
+        if (!settings || hydratedRef.current) return;
+        hydratedRef.current = true;
+        const mapped = mapCompanySettingsToFormValues(settings);
+        const draft = readAutoSaveDraft<Partial<CompanySettingsFormValues>>(COMPANY_DRAFT_KEY);
+        const hasDraft = draft && JSON.stringify(draft) !== JSON.stringify(mapped);
+        if (hasDraft) {
+            form.setFieldsValue(draft);
+            setWatchedValues(draft);
+            message.info(t('common.autoSave.draftRestored'));
+        } else {
+            form.setFieldsValue(mapped);
+            setWatchedValues(mapped);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate once per mount when settings arrive
     }, [settings, form]);
 
     const onFinish = async (values: CompanySettingsFormValues) => {
         try {
             const payload = mapCompanyFormToUpdateRequest(values, settings);
             await updateSettings(payload);
+            clearAutoSaveDraft(COMPANY_DRAFT_KEY);
             message.success(t('settings.companyPage.saveSuccess'));
             await reloadSettings();
         } catch {
@@ -57,14 +92,7 @@ export function CompanySettingsForm() {
         return (
             <>
                 <Form form={form} style={{ display: 'none' }} preserve />
-                <Card>
-                    <div style={{ textAlign: 'center', padding: '48px 24px' }}>
-                        <Spin size="large" />
-                        <Typography.Paragraph type="secondary" style={{ marginTop: 16, marginBottom: 0 }}>
-                            {t('settings.page.loading')}
-                        </Typography.Paragraph>
-                    </div>
-                </Card>
+                <FormSkeleton fields={6} loading />
             </>
         );
     }
@@ -106,7 +134,14 @@ export function CompanySettingsForm() {
     const c = (key: string) => t(`settings.companyPage.${key}`);
 
     return (
-        <Card title={c('cardTitle')}>
+        <Card
+            title={
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12 }}>
+                    {c('cardTitle')}
+                    <AutoSaveStatusIndicator saving={saving} saved={saved} error={autoSaveError} />
+                </span>
+            }
+        >
             <Alert
                 type="info"
                 showIcon
@@ -115,7 +150,12 @@ export function CompanySettingsForm() {
                 style={{ marginBottom: 24 }}
             />
 
-            <Form form={form} layout="vertical" onFinish={onFinish}>
+            <Form
+                form={form}
+                layout="vertical"
+                onFinish={onFinish}
+                onValuesChange={(_, all) => setWatchedValues(all)}
+            >
                 <Alert
                     type="warning"
                     showIcon
@@ -127,7 +167,7 @@ export function CompanySettingsForm() {
                 <Form.Item
                     name="companyName"
                     label={g('companyName')}
-                    rules={[{ required: true, message: g('companyNameRequired') }]}
+                    rules={[rules.required(g('companyName'))]}
                 >
                     <Input placeholder={c('placeholderCompanyName')} />
                 </Form.Item>
@@ -135,21 +175,22 @@ export function CompanySettingsForm() {
                 <Form.Item
                     name="companyAddress"
                     label={g('companyAddress')}
-                    rules={[{ required: true, message: g('companyAddressRequired') }]}
+                    rules={[rules.required(g('companyAddress'))]}
                 >
                     <Input.TextArea rows={3} placeholder={c('placeholderAddress')} />
                 </Form.Item>
 
-                <Form.Item
+                <FormFieldWithTooltip
                     name="companyTaxNumber"
-                    label={g('companyTaxNumber')}
-                    rules={[
-                        { required: true, message: g('companyTaxNumberRequired') },
-                        { pattern: ATU_REGEX, message: g('companyTaxNumberPattern') },
-                    ]}
+                    label={
+                        <FieldTooltip title={g('companyTaxNumberTooltip')}>
+                            {g('companyTaxNumber')}
+                        </FieldTooltip>
+                    }
+                    rules={rules.atuTaxNumber(true)}
                 >
                     <Input placeholder={g('placeholderAtu')} />
-                </Form.Item>
+                </FormFieldWithTooltip>
 
                 <Typography.Title level={5} style={{ marginTop: 8, marginBottom: 16 }}>
                     {c('optionalSectionTitle')}
@@ -162,7 +203,7 @@ export function CompanySettingsForm() {
                 <Form.Item
                     name="companyEmail"
                     label={c('email')}
-                    rules={[{ type: 'email', message: g('contactEmailInvalid') }]}
+                    rules={[rules.email]}
                 >
                     <Input type="email" placeholder={c('placeholderEmail')} />
                 </Form.Item>
@@ -180,7 +221,14 @@ export function CompanySettingsForm() {
                         <Button type="primary" htmlType="submit" loading={isUpdating}>
                             {t('settings.page.saveChanges')}
                         </Button>
-                        <Button onClick={() => form.setFieldsValue(mapCompanySettingsToFormValues(settings))}>
+                        <Button
+                            onClick={() => {
+                                const mapped = mapCompanySettingsToFormValues(settings);
+                                form.setFieldsValue(mapped);
+                                setWatchedValues(mapped);
+                                clearAutoSaveDraft(COMPANY_DRAFT_KEY);
+                            }}
+                        >
                             {c('reset')}
                         </Button>
                     </Space>

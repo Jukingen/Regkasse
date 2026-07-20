@@ -10,7 +10,8 @@ import Link from 'next/link';
 import type { TablePaginationConfig, TableProps } from 'antd/es/table';
 import type { SorterResult } from 'antd/es/table/interface';
 import { useDebounce } from '@/hooks/useDebounce';
-import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
+import { VirtualTable } from '@/components/VirtualTable';
+import { adminTablePaginationDefaults } from '@/components/ui/adminTablePagination';
 import { normalizeFromDate, normalizeToDate, validateDateRange } from '../utils/dateUtils';
 
 // Orval-generated hooks and types
@@ -1145,7 +1146,7 @@ export const InvoiceList: React.FC = () => {
                     ) : null}
 
                     {/* Table */}
-                    <Table<InvoiceListItemDto>
+                    <VirtualTable<InvoiceListItemDto>
                         rowSelection={{
                             selectedRowKeys,
                             onChange: setSelectedRowKeys,
@@ -1154,9 +1155,9 @@ export const InvoiceList: React.FC = () => {
                         }}
                         columns={columns}
                         dataSource={displayedItems}
-                        virtual={shouldUseAdminTableVirtual(displayedItems.length)}
                         rowKey="id"
                         pagination={{
+                            ...adminTablePaginationDefaults,
                             ...pagination,
                             total: data?.totalCount || 0,
                             showTotal: (total, range) => {
@@ -1179,7 +1180,7 @@ export const InvoiceList: React.FC = () => {
                         }
                         onChange={handleTableChange}
                         size="middle"
-                        scroll={adminTableScrollXy(1100, displayedItems.length)}
+                        scroll={{ x: 1100 }}
                         locale={{
                             emptyText: tableEmptyText,
                         }}

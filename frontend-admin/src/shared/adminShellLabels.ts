@@ -4,9 +4,24 @@ export const ADMIN_OVERVIEW_HREF = '/dashboard' as const;
 /** i18n key for overview breadcrumb title (`common.breadcrumb.overview`). */
 export const ADMIN_OVERVIEW_BREADCRUMB_KEY = 'common.breadcrumb.overview' as const;
 
+export type AdminBreadcrumbItem = { title: string; href?: string };
+
 /** Build overview breadcrumb with active locale (preferred over hardcoded German). */
-export function adminOverviewCrumb(t: (key: string) => string) {
-    return { title: t(ADMIN_OVERVIEW_BREADCRUMB_KEY), href: ADMIN_OVERVIEW_HREF } as const;
+export function adminOverviewCrumb(t: (key: string) => string): AdminBreadcrumbItem {
+    return { title: t(ADMIN_OVERVIEW_BREADCRUMB_KEY), href: ADMIN_OVERVIEW_HREF };
+}
+
+/**
+ * Build a page breadcrumb trail that always starts with Übersicht (unless disabled).
+ * Use with {@link AdminPageHeader} `breadcrumbs` prop.
+ */
+export function buildAdminBreadcrumbs(
+    t: (key: string) => string,
+    items: AdminBreadcrumbItem[],
+    options?: { includeOverview?: boolean },
+): AdminBreadcrumbItem[] {
+    const includeOverview = options?.includeOverview !== false;
+    return includeOverview ? [adminOverviewCrumb(t), ...items] : [...items];
 }
 
 /** Backward-compatible default (de) overview breadcrumb for pages not yet wired to `t`. */
@@ -75,11 +90,14 @@ export const ADMIN_NAV_LABEL_KEYS = {
     settingsHub: 'nav.settingsHub',
     /** Firma, FinanzOnline, TSE – Route /settings */
     companySettings: 'nav.companySettings',
+    workingHours: 'nav.workingHours',
     sessionSettings: 'nav.sessionSettings',
+    activeSessions: 'nav.activeSessions',
     offlineSettings: 'nav.offlineSettings',
     personalization: 'nav.personalization',
     settings: 'nav.settings',
     paymentMethods: 'nav.paymentMethods',
+    paymentGateway: 'nav.paymentGateway',
     backupDr: 'nav.backupDr',
     developmentMode: 'nav.developmentMode',
     timeSync: 'nav.timeSync',
@@ -133,8 +151,10 @@ export const ADMIN_NAV_LABELS = {
     users: 'Benutzer',
     settingsHub: 'Einstellungen',
     companySettings: 'Firma & Fiskal',
+    workingHours: 'Öffnungszeiten',
     settings: 'Einstellungen',
     paymentMethods: 'Zahlungsarten',
+    paymentGateway: 'Zahlungs-Gateway',
     backupDr: 'Backup & DR',
     developmentMode: 'Entwicklungsmodus',
     myProfile: 'Mein Profil',

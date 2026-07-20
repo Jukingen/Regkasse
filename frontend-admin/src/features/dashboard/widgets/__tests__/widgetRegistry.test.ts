@@ -20,4 +20,18 @@ describe('renderDashboardWidget', () => {
         });
         expect(node).not.toBeNull();
     });
+
+    it('renders data-retention widget', () => {
+        const node = renderDashboardWidget(DASHBOARD_WIDGET_IDS.dataRetention, {
+            title: 'Datenaufbewahrung',
+        });
+        expect(node).not.toBeNull();
+    });
+
+    it('renders system-metrics widget', () => {
+        const node = renderDashboardWidget(DASHBOARD_WIDGET_IDS.systemMetrics, {
+            title: 'System-Metriken',
+        });
+        expect(node).not.toBeNull();
+    });
 });

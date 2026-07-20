@@ -14,6 +14,7 @@ import {
 import {
   applyDevNetworkDelayIfConfigured,
 } from '../../src/config/devFlags';
+import { applyCsrfHeaders, ensureCsrfToken, requestNeedsCsrf } from './csrf';
 const isDev = __DEV__;
 
 // Platform-aware API URL from main config
@@ -167,7 +168,8 @@ const axiosInstance = axios.create({
         'Content-Type': 'application/json',
     },
     timeout: 30000, // ✅ YENİ: 30 saniye timeout - RKSV işlemleri için optimize edildi
-    withCredentials: false, // CORS hatası için false yapıldı
+    // Credentials so web builds can store the CSRF cookie; native uses X-CSRF-COOKIE mirror.
+    withCredentials: true,
 });
 
 const REFRESH_HEADER = 'x-auth-refresh-retry';
@@ -185,6 +187,8 @@ function isAnonymousAuthPath(url: string | undefined): boolean {
         path.includes('/auth/login') ||
         path.includes('/auth/refresh') ||
         path.includes('/license/activate') ||
+        path.includes('/public/online-orders') ||
+        path.includes('/webhooks/stripe') ||
         isLivenessHealth
     );
 }
@@ -235,6 +239,26 @@ axiosInstance.interceptors.request.use(
 
         config.headers = config.headers ?? {};
         config.headers['Accept-Language'] = 'de';
+
+        if (requestNeedsCsrf(config.method, config.url)) {
+            try {
+                const base =
+                    typeof config.baseURL === 'string' && config.baseURL.length > 0
+                        ? config.baseURL
+                        : API_BASE_URL;
+                const csrf = await ensureCsrfToken(base);
+                const bag: Record<string, string> = {};
+                applyCsrfHeaders(bag, csrf);
+                for (const [key, value] of Object.entries(bag)) {
+                    config.headers[key] = value;
+                }
+                config.withCredentials = true;
+            } catch (csrfError) {
+                if (isDev) {
+                    console.warn('[API] CSRF token bootstrap failed', csrfError);
+                }
+            }
+        }
 
         // Skip auth for public endpoints (stale JWT must never be sent).
         if (isAnonymousAuthPath(config.url)) {

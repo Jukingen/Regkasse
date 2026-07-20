@@ -25,6 +25,7 @@
     "phonePlaceholder": "+43 …",
     "address": "Adres",
     "taxNumber": "Vergi numarasi",
+    "taxNumberTooltip": "Avusturya UID formati: ATU + 8 rakam (orn. ATU12345678). Yoksa bos birakin.",
     "birthDate": "Dogum tarihi",
     "notes": "Notlar",
     "active": "Aktif",

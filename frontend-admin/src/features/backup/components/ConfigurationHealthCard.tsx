@@ -10,7 +10,7 @@ import {
   Badge,
   Button,
   Card,
-  Spin,
+  Skeleton,
   Tag,
   Typography,
 } from "antd";
@@ -94,7 +94,7 @@ export function ConfigurationHealthCard({
   if (isLoading && !health) {
     return (
       <Card title={t("backupDr.monitoring.configHealth.title")} size="small">
-        <Spin />
+        <Skeleton active paragraph={{ rows: 3 }} />
       </Card>
     );
   }

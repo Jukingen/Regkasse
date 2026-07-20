@@ -200,5 +200,24 @@
       "validUntil": "Gültig bis",
       "daysRemaining": "Tage verbleibend"
     }
+  },
+  "digital": {
+    "pageTitle": "Digitale Dienste — Umsatz",
+    "pageSubtitle": "Monatliche wiederkehrende Umsätze (MRR) aus aktiven Website- und App-Abonnements. Keine Lizenzverkäufe.",
+    "totalRevenue": "Gesamt-MRR",
+    "websites": "Websites",
+    "apps": "Mobile Apps",
+    "subscribers": "Aktive Abonnements",
+    "subscriptionsTitle": "Abonnements",
+    "empty": "Keine digitalen Abonnements",
+    "viewDashboard": "Digitale Dienste",
+    "columns": {
+      "tenant": "Mandant",
+      "service": "Dienst",
+      "price": "Preis",
+      "startDate": "Beginn",
+      "nextBilling": "Nächste Abrechnung",
+      "status": "Status"
+    }
   }
 }

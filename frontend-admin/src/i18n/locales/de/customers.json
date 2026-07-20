@@ -25,6 +25,7 @@
     "phonePlaceholder": "+43 …",
     "address": "Adresse",
     "taxNumber": "Steuernummer",
+    "taxNumberTooltip": "Oesterreichische UID im Format ATU + 8 Ziffern (z. B. ATU12345678). Leer lassen, wenn nicht vorhanden.",
     "birthDate": "Geburtsdatum",
     "notes": "Notizen",
     "active": "Aktiv",

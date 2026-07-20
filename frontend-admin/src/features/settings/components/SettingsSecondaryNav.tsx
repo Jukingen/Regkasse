@@ -17,10 +17,12 @@ import {
     CreditCardOutlined,
     ExperimentOutlined,
     ClockCircleOutlined,
+    LaptopOutlined,
     DisconnectOutlined,
     SafetyCertificateOutlined,
     BankOutlined,
     SettingOutlined,
+    CalendarOutlined,
 } from '@ant-design/icons';
 import { useI18n } from '@/i18n/I18nProvider';
 import { ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
@@ -37,12 +39,18 @@ const SETTINGS_TAB_META: Record<
 > = {
     '/settings': { labelKey: ADMIN_NAV_LABEL_KEYS.settingsHub, Icon: SettingOutlined },
     '/settings/company': { labelKey: ADMIN_NAV_LABEL_KEYS.companySettings, Icon: ShopOutlined },
+    '/settings/working-hours': {
+        labelKey: ADMIN_NAV_LABEL_KEYS.workingHours,
+        Icon: CalendarOutlined,
+    },
     '/settings/tse': { labelKey: 'settings.tabs.tse', Icon: SafetyCertificateOutlined },
     '/settings/finanzonline': { labelKey: 'settings.tabs.finanzOnline', Icon: BankOutlined },
     '/settings/session': { labelKey: ADMIN_NAV_LABEL_KEYS.sessionSettings, Icon: ClockCircleOutlined },
+    '/settings/sessions': { labelKey: ADMIN_NAV_LABEL_KEYS.activeSessions, Icon: LaptopOutlined },
     '/settings/offline': { labelKey: ADMIN_NAV_LABEL_KEYS.offlineSettings, Icon: DisconnectOutlined },
     '/settings/personalization': { labelKey: ADMIN_NAV_LABEL_KEYS.personalization, Icon: BgColorsOutlined },
     '/settings/payment-methods': { labelKey: ADMIN_NAV_LABEL_KEYS.paymentMethods, Icon: CreditCardOutlined },
+    '/settings/payment': { labelKey: ADMIN_NAV_LABEL_KEYS.paymentGateway, Icon: CreditCardOutlined },
     '/settings/development-mode': { labelKey: ADMIN_NAV_LABEL_KEYS.developmentMode, Icon: ExperimentOutlined },
 };
 

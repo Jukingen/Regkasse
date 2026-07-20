@@ -16,6 +16,7 @@ public class TenantValidationMiddleware
         "/api/auth/login",
         "/api/auth/refresh",
         "/api/health",
+        "/api/public",
         "/swagger",
         "/swagger/index.html",
     };

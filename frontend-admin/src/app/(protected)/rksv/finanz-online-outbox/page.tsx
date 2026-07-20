@@ -18,7 +18,6 @@ import {
     Input,
     Select,
     Space,
-    Spin,
     Table,
     Tag,
     Tooltip,
@@ -32,6 +31,7 @@ import utc from 'dayjs/plugin/utc';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { CardSkeleton, FormSkeleton, TableSkeleton } from '@/components/Skeleton';
 import {
     getApiAdminFinanzonlineOutbox,
     getApiAdminFinanzonlineOutboxId,
@@ -476,8 +476,9 @@ export default function FinanzOnlineOutboxPage() {
                 <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
                     {t('finanzOnlineOutbox.readiness.cardSubtitle')}
                 </Typography.Paragraph>
-                <Spin spinning={readinessLoading || readinessFetching}>
-                    {readinessError ? (
+                {readinessLoading && !readiness && !readinessError ? (
+                    <CardSkeleton count={1} />
+                ) : readinessError ? (
                         <Alert
                             type="error"
                             showIcon
@@ -592,7 +593,6 @@ export default function FinanzOnlineOutboxPage() {
                     ) : (
                         <Empty />
                     )}
-                </Spin>
             </Card>
 
             <Card size="small" style={{ marginBottom: 16 }}>
@@ -687,29 +687,29 @@ export default function FinanzOnlineOutboxPage() {
                 />
             ) : null}
 
-            <Spin spinning={isLoading || isFetching}>
-                {items.length === 0 && !isLoading && !isFetching ? (
-                    <Empty description={t('finanzOnlineOutbox.empty.noRows')} />
-                ) : (
-                    <Table<FinanzOnlineOutboxItemDto>
-                        size="small"
-                        rowKey={(r) => r.outboxId ?? `${r.businessKey}-${r.createdAtUtc}`}
-                        columns={columns}
-                        dataSource={items}
-                        loading={isLoading || isFetching}
-                        scroll={{ x: 2000 }}
-                        pagination={{
-                            pageSize: 50,
-                            showSizeChanger: true,
-                            showTotal: () => t('finanzOnlineOutbox.pagination.showTotal', { total, shown: items.length }),
-                        }}
-                        onRow={(record) => ({
-                            onClick: () => openDrawer(record),
-                            style: { cursor: 'pointer' },
-                        })}
-                    />
-                )}
-            </Spin>
+            {isLoading && items.length === 0 ? (
+                <TableSkeleton rows={8} cols={6} />
+            ) : items.length === 0 && !isLoading && !isFetching ? (
+                <Empty description={t('finanzOnlineOutbox.empty.noRows')} />
+            ) : (
+                <Table<FinanzOnlineOutboxItemDto>
+                    size="small"
+                    rowKey={(r) => r.outboxId ?? `${r.businessKey}-${r.createdAtUtc}`}
+                    columns={columns}
+                    dataSource={items}
+                    loading={isFetching}
+                    scroll={{ x: 2000 }}
+                    pagination={{
+                        pageSize: 50,
+                        showSizeChanger: true,
+                        showTotal: () => t('finanzOnlineOutbox.pagination.showTotal', { total, shown: items.length }),
+                    }}
+                    onRow={(record) => ({
+                        onClick: () => openDrawer(record),
+                        style: { cursor: 'pointer' },
+                    })}
+                />
+            )}
 
             <Drawer
                 title={t('finanzOnlineOutbox.drawer.title')}
@@ -719,7 +719,7 @@ export default function FinanzOnlineOutboxPage() {
                 destroyOnHidden
             >
                 {detailLoading && !displayRow ? (
-                    <Spin />
+                    <FormSkeleton fields={8} />
                 ) : displayRow ? (
                     <>
                     <Descriptions bordered size="small" column={1}>

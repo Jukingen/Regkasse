@@ -7,7 +7,7 @@ import '@testing-library/jest-dom';
 import { render, screen, within, waitFor, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { I18nProvider } from '@/i18n';
-import UsersPage from '../page';
+import UsersPage from '@/features/users/components/UsersPageContent';
 import type { UserInfo } from '@/features/users/api/usersGateway';
 import type { UsersListResponse } from '@/features/users/api/usersApi';
 

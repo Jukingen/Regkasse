@@ -14,8 +14,10 @@ public static class DashboardWidgetCatalog
     public const string FinanzOnlineStatus = "finanzonline-status";
     public const string OfflineSystemStatus = "offline-system-status";
     public const string BackupStatus = "backup-status";
+    public const string DataRetention = "data-retention";
     public const string TopSellingProducts = "top-selling-products";
     public const string PaymentTrends = "payment-trends";
+    public const string SystemMetrics = "system-metrics";
 
     private static readonly IReadOnlyList<DashboardWidgetDefinition> All =
     [
@@ -29,6 +31,8 @@ public static class DashboardWidgetCatalog
         new(FinanzOnlineStatus, "FinanzOnline", "Ausstehende oder fehlgeschlagene Übermittlungen", AppPermissions.FinanzOnlineView, 7, true, true),
         new(OfflineSystemStatus, "Offline-System", "Offline-Bestellungen, Sync-Gesundheit und Rückstau", AppPermissions.PaymentView, 8, true, true),
         new(BackupStatus, "Backup-Status", "Letztes Backup, Erfolgsrate und Konfigurationszustand", AppPermissions.SettingsView, 9, true, true),
+        new(DataRetention, "Datenaufbewahrung", "Lizenz-Lebenszyklus, Grace/Lock und Löschanfragen (RKSV 7 Jahre)", AppPermissions.BackupManage, 10, true, true),
+        new(SystemMetrics, "System-Metriken", "API-Leistung, Cache, Uptime und aktive Mandanten", AppPermissions.SystemCritical, 11, true, true),
     ];
 
     public static IReadOnlyList<DashboardWidgetDefinition> GetAll() => All;

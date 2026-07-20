@@ -7,7 +7,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Button, Checkbox, Modal, Space, Spin, Typography } from 'antd';
+import { Alert, Button, Checkbox, Modal, Space, Typography } from 'antd';
+import { CardSkeleton } from '@/components/Skeleton';
 import { getApiAdminFiscalExportDisclaimer } from '@/api/generated/admin/admin';
 import { useI18n } from '@/i18n/I18nProvider';
 
@@ -72,9 +73,7 @@ export function FiscalExportDisclaimerModal({ open, onCancel, onConfirm }: Fisca
         >
             <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                 {disclaimerQuery.isLoading ? (
-                    <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
-                        <Spin />
-                    </div>
+                    <CardSkeleton count={1} />
                 ) : (
                     <Alert
                         type="warning"

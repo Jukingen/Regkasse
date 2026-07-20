@@ -18,6 +18,11 @@ export const ACTIVITY_EVENT_TYPES = [
     'RestoreDrillSucceeded',
     'DailyClosingBackdatedCreated',
     'DailyClosingPendingReminder',
+    'OnlineOrderPushedToPos',
+    'OnlineOrderPaid',
+    'OnlineOrderStatusChanged',
+    'OnlineOrderConfirmed',
+    'DigitalServiceRequested',
 ] as const;
 
 export type ActivityEventTypeName = (typeof ACTIVITY_EVENT_TYPES)[number];

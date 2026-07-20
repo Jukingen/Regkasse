@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Button, Card, Spin, Typography } from 'antd';
+import { Alert, Button, Card, Skeleton, Typography } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import { MonatsbelegComplianceTable } from '@/features/dashboard/components/MonatsbelegComplianceTable';
 import { useMonatsbelegDashboard } from '@/features/rksv/hooks/useMonatsbelegStatus';
@@ -90,9 +90,7 @@ export function MonatsbelegWidget({ enabled = true }: MonatsbelegWidgetProps) {
     if (isLoading) {
         return (
             <Card title={cardTitle} variant="borderless" style={{ marginBottom: 24 }}>
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 128 }}>
-                    <Spin description={t('dashboard.monatsbeleg.loading')} />
-                </div>
+                <Skeleton active paragraph={{ rows: 4 }} />
             </Card>
         );
     }

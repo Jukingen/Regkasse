@@ -18,5 +18,73 @@
   "tenantCreate": {
     "slugExample": "cafe-example",
     "urlPreviewHint": "Die vollständige Adresse wird aus Kürzel und Domain gebildet."
+  },
+  "digital": {
+    "pageTitle": "Digitale Dienste — Verwaltung",
+    "pageSubtitle": "Super-Admin: Website- und App-Dienste je Mandant aktivieren, deaktivieren und Preise überschreiben.",
+    "requestsPageTitle": "Digitale Dienst-Anfragen",
+    "requestsPageSubtitle": "Erstellungsanfragen genehmigen oder ablehnen. Genehmigung erzeugt den Dienst nicht automatisch — Erstellung erfolgt auf der Mandanten-Seite.",
+    "requestsTitle": "Offene Erstellungsanfragen",
+    "requestsHint": "Nur ausstehende Anfragen. Genehmigung erzeugt den Dienst nicht automatisch.",
+    "requestsViewAll": "Alle Anfragen",
+    "requestsEmpty": "Keine Anfragen",
+    "requestsLoadFailed": "Anfragen konnten nicht geladen werden.",
+    "requestApprove": "Genehmigen",
+    "requestReject": "Ablehnen",
+    "requestApproved": "Anfrage genehmigt. Dienst kann jetzt erstellt werden.",
+    "requestRejected": "Anfrage abgelehnt",
+    "requestResolveFailed": "Anfrage konnte nicht bearbeitet werden",
+    "requestFilter": {
+      "pending": "Ausstehend",
+      "approved": "Genehmigt",
+      "rejected": "Abgelehnt",
+      "all": "Alle"
+    },
+    "requestStatus": {
+      "pending": "Ausstehend",
+      "approved": "Genehmigt",
+      "rejected": "Abgelehnt",
+      "cancelled": "Storniert"
+    },
+    "requestColumns": {
+      "tenant": "Mandant",
+      "service": "Dienst",
+      "requestedAt": "Angefragt am",
+      "note": "Hinweis",
+      "status": "Status",
+      "actions": "Aktionen"
+    },
+    "accessDenied": "Keine Berechtigung für die Verwaltung digitaler Dienste.",
+    "loadFailed": "Digitale Dienste konnten nicht geladen werden.",
+    "empty": "Keine Mandanten gefunden",
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "websiteStatus": "Web: {{status}}",
+    "appStatus": "App: {{status}}",
+    "customPriceTag": "Individuell",
+    "editPrice": "Preis bearbeiten",
+    "toggleActivated": "Dienst aktiviert",
+    "toggleDeactivated": "Dienst deaktiviert",
+    "toggleFailed": "Status konnte nicht geändert werden",
+    "deactivateConfirmTitle": "Dienst deaktivieren",
+    "deactivateConfirmBody": "Möchten Sie den Dienst „{{service}}“ für {{tenant}} wirklich deaktivieren?",
+    "deactivateConfirmOk": "Deaktivieren",
+    "deactivateReasonPlaceholder": "Optionaler Grund (wird protokolliert)",
+    "priceUpdated": "Preis aktualisiert",
+    "priceUpdateFailed": "Preis konnte nicht aktualisiert werden",
+    "priceModalTitle": "Preis aktualisieren",
+    "priceModalLabel": "Monatlicher Preis (€)",
+    "priceModalSave": "Speichern",
+    "priceModalHint": "{{tenant}} — {{service}}. Listenpreis: {{listPrice}}. Gleicher Wert wie Listenpreis entfernt die Überschreibung.",
+    "priceRequired": "Preis ist erforderlich",
+    "resetToListPrice": "Auf Listenpreis zurücksetzen",
+    "columns": {
+      "tenant": "Mandant",
+      "website": "Website",
+      "app": "Mobile App",
+      "websitePrice": "Preis (Web)",
+      "appPrice": "Preis (App)",
+      "status": "Status"
+    }
   }
 }

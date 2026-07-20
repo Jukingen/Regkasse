@@ -2,11 +2,12 @@
 
 import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useEffect } from 'react';
-import { Badge, Button, Card, Col, Descriptions, Form, InputNumber, Row, Space, Spin, Switch, Table, Tag, Typography } from 'antd';
+import { Badge, Button, Card, Col, Descriptions, Form, InputNumber, Row, Space, Switch, Table, Tag, Typography } from 'antd';
 import { ReloadOutlined, SaveOutlined, SyncOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { PageSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb, ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n/I18nProvider';
@@ -128,7 +129,7 @@ export default function AdminTimeSyncPage() {
             </AdminPageHeader>
 
             {statusQuery.isLoading ? (
-                <Spin />
+                <PageSkeleton widgets={4} />
             ) : s ? (
                 <Row gutter={[16, 16]}>
                     <Col xs={24} lg={14}>

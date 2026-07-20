@@ -1,10 +1,11 @@
 'use client';
 
-import { Button, Empty, Spin, Tag } from 'antd';
+import { Button, Empty, Tag } from 'antd';
 import { SimpleList as List } from '@/components/ui/SimpleList';
 import { CheckOutlined } from '@ant-design/icons';
 
 import type { ActivityDto, ActivitySeverity } from '@/api/manual/activityEvents';
+import { ListSkeleton } from '@/components/Skeleton';
 import { formatRelativeTime } from '@/features/cash-registers/utils/formatRelativeTime';
 import { NotificationIcon } from '@/features/activity-notifications/components/NotificationIcon';
 import styles from '@/features/activity-notifications/components/activityNotifications.module.css';
@@ -34,11 +35,7 @@ export function ActivityNotificationList({ items, loading, emptyLabel, onMarkRea
     const { t, formatLocale } = useI18n();
 
     if (loading) {
-        return (
-            <div style={{ padding: 48, textAlign: 'center' }}>
-                <Spin />
-            </div>
-        );
+        return <ListSkeleton count={5} />;
     }
 
     if (items.length === 0) {

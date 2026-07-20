@@ -131,11 +131,70 @@ describe('licenseStatus', () => {
             canAccess: true,
             canTransact: true,
             isInGracePeriod: true,
-            gracePeriodRemaining: 16,
+            gracePeriodRemaining: 2,
         });
 
         expect(status.kind).toBe('grace_write');
         expect(status.canWrite).toBe(true);
+        expect(status.daysExpired).toBe(5);
+    });
+
+    it('ignores positive ValidUntil horizon daysRemaining while in grace', () => {
+        const status = resolveTenantLicenseFromPublicStatus(
+            {
+                licenseType: 'Licensed',
+                validUntil: '2029-04-13T00:00:00Z',
+                daysRemaining: 997,
+                features: [],
+                isExpired: true,
+                isValid: true,
+                canAccess: true,
+                canTransact: true,
+                isInGracePeriod: true,
+                gracePeriodRemaining: 5,
+            },
+            nowMs,
+        );
+
+        expect(status.kind).toBe('grace_write');
+        expect(status.daysRemaining).toBeLessThan(0);
+        expect(status.daysExpired).toBe(2);
+        expect(status.daysRemaining).not.toBe(997);
+    });
+
+    it('normalizes explicit grace_write with future ValidUntil horizon', () => {
+        const status = resolveTenantLicenseStatus(
+            {
+                kind: 'grace_write',
+                licenseKey: 'REGK-KEY',
+                validUntilUtc: '2029-04-13T00:00:00Z',
+                daysRemaining: 997,
+            },
+            nowMs,
+        );
+
+        expect(status.kind).toBe('grace_write');
+        expect(status.daysRemaining).toBeLessThan(0);
+        expect(status.daysRemaining).not.toBe(997);
+    });
+
+    it('shows overdue text for grace instead of ValidUntil remaining days', () => {
+        const text = getLicenseStatusRemainingText(
+            {
+                kind: 'grace_write',
+                daysRemaining: 997,
+                daysExpired: 2,
+                canWrite: true,
+                canManageUsers: true,
+                canAccess: true,
+            },
+            t,
+            '2029-04-13T00:00:00Z',
+            nowMs,
+        );
+
+        expect(text).toBe('Seit 2 Tagen abgelaufen');
+        expect(text).not.toContain('997');
     });
 
     it('maps public status to tenant license display fields for Manager UI', () => {

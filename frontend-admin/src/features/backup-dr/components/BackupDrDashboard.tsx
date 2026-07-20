@@ -16,7 +16,6 @@ import {
   Divider,
   Row,
   Space,
-  Spin,
   Statistic,
   Tag,
   Tooltip,
@@ -24,6 +23,7 @@ import {
 } from "antd";
 import { ReloadOutlined } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { CardSkeleton, PageSkeleton } from "@/components/Skeleton";
 import { useI18n } from "@/i18n";
 import { formatDateTime } from "@/i18n/formatting";
 import { useBackupPermissions } from "@/features/backup/hooks/useBackupPermissions";
@@ -527,7 +527,7 @@ export function BackupDrDashboard({
       </div>
 
       {loading && !statusQuery.data ? (
-        <Spin />
+        <PageSkeleton widgets={6} />
       ) : (
         <>
           <Space orientation="vertical" size={12} style={{ width: "100%" }}>
@@ -978,7 +978,7 @@ export function BackupDrDashboard({
                     {t("backupDr.externalCopy.scopeFromLatestRun")}
                   </Typography.Paragraph>
                   {runDetailQuery.isLoading && latest?.id ? (
-                    <Spin description={t("backupDr.externalCopy.loading")} />
+                    <CardSkeleton count={1} loading />
                   ) : (
                     <Alert
                       type={mapExternalCopyVariantToAlertType(

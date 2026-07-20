@@ -4,6 +4,7 @@ import {
     DEPLOYMENT_GRACE_WRITE_DAYS,
     DEPLOYMENT_LOCKDOWN_DAYS,
     TENANT_GRACE_PERIOD_DAYS,
+    resolveTenantGraceDays,
 } from '@/features/license/constants/licenseGracePeriod';
 
 type TranslateFn = (key: string, params?: Record<string, string | number>) => string;
@@ -174,12 +175,22 @@ export function resolveTenantLicenseStatus(
         return buildStatus('no_license', 0, getTenantPermissions('no_license'));
     }
 
-    const daysRemaining = getSignedDaysRemaining(input?.validUntilUtc, input?.daysRemaining, nowMs);
+    let daysRemaining = getSignedDaysRemaining(input?.validUntilUtc, input?.daysRemaining, nowMs);
     const explicitKind = normalizeLicenseKind(input?.kind);
     const kind =
         explicitKind === 'no_license' && input?.validUntilUtc?.trim()
             ? resolveTenantKind(daysRemaining, null)
             : explicitKind ?? resolveTenantKind(daysRemaining, null);
+
+    // Grace UI must never keep a future ValidUntil horizon (e.g. 997 days until 2029).
+    if ((kind === 'grace_write' || kind === 'grace_readonly') && daysRemaining >= 0) {
+        const { daysExpired } = resolveTenantGraceDays({
+            daysRemaining: null,
+            validUntilUtc: input?.validUntilUtc,
+            nowMs,
+        });
+        daysRemaining = daysExpired > 0 ? -daysExpired : -1;
+    }
 
     return buildStatus(kind, daysRemaining, getTenantPermissions(kind));
 }
@@ -237,14 +248,18 @@ export function resolveTenantLicenseFromPublicStatus(
         }
 
         if (dto.isInGracePeriod) {
-            const graceRemaining = isFiniteNumber(dto.gracePeriodRemaining)
-                ? Math.max(0, Math.trunc(dto.gracePeriodRemaining))
-                : 0;
-            const daysExpired = Math.max(0, TENANT_GRACE_PERIOD_DAYS - graceRemaining);
-            const daysRemaining = isFiniteNumber(dto.daysRemaining)
-                ? Math.trunc(dto.daysRemaining)
-                : -daysExpired;
-            return buildStatus('grace_write', daysRemaining, getTenantPermissions('grace_write'));
+            const { daysExpired, graceRemaining } = resolveTenantGraceDays({
+                daysRemaining: dto.daysRemaining,
+                gracePeriodRemaining: dto.gracePeriodRemaining,
+                validUntilUtc: dto.validUntil,
+                nowMs,
+            });
+            // Prefer signed overdue; never keep a positive ValidUntil-horizon daysRemaining.
+            const overdue =
+                daysExpired > 0
+                    ? daysExpired
+                    : Math.max(1, TENANT_GRACE_PERIOD_DAYS - graceRemaining);
+            return buildStatus('grace_write', -overdue, getTenantPermissions('grace_write'));
         }
 
         return resolveTenantLicenseStatus(
@@ -370,6 +385,10 @@ export function getLicenseStatusDayText(
     status: ResolvedLicenseStatus,
     t: TranslateFn,
 ): string | null {
+    if (status.kind === 'grace_write' || status.kind === 'grace_readonly') {
+        return t('license.phase.daysExpired', { days: status.daysExpired });
+    }
+
     if (status.daysExpired > 0) {
         return t('license.phase.daysExpired', { days: status.daysExpired });
     }
@@ -415,6 +434,11 @@ export function getLicenseStatusRemainingText(
     validUntilUtc?: string | null,
     nowMs = Date.now(),
 ): string | null {
+    // Grace: show overdue days only — never ValidUntil horizon ("997 Tage").
+    if (status.kind === 'grace_write' || status.kind === 'grace_readonly') {
+        return t('license.phase.daysExpired', { days: status.daysExpired });
+    }
+
     if (status.daysExpired > 0) {
         return t('license.phase.daysExpired', { days: status.daysExpired });
     }

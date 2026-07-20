@@ -109,7 +109,7 @@ export default function SuperAdminCreateTenantPage() {
                 switchToTenantLoading={impersonateMutation.isPending}
             />
 
-            <ImpersonationRedirectOverlay open={impersonationRedirecting} />
+            {impersonationRedirecting ? <ImpersonationRedirectOverlay /> : null}
         </AdminPageShell>
     );
 }

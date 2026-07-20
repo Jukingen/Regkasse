@@ -7,6 +7,7 @@ import { useLicenseStatus } from '../hooks/useLicenseStatus';
 import { areLicenseChecksBypassedInDevelopment } from '../utils/licenseCriticalActionGuard';
 import { openLicenseExtension } from '../utils/openAdmin';
 import { formatLicenseRemainingDe } from '../utils/licenseExpiryRemaining';
+import { formatUserDate } from '../utils/dateFormatter';
 
 /**
  * Mandant (tenant) license warning band with optional renew action (German POS copy).
@@ -26,10 +27,16 @@ export function LicenseWarningBanner() {
 
   if (shouldShowGrace) {
     const remaining = state.gracePeriodRemaining;
+    const daysExpired = state.daysOverdue;
+    const lockLabel =
+      (state.lockDate && formatUserDate(state.lockDate)) ||
+      formatLockDateFromRemaining(remaining);
     return (
       <View style={[styles.banner, styles.warningBanner]} accessibilityRole="alert">
         <Text style={styles.warningText}>
-          Lizenz abgelaufen! Grace Period: noch {remaining} Tag{remaining === 1 ? '' : 'e'} verbleibend.
+          Lizenz seit {daysExpired} Tag{daysExpired === 1 ? '' : 'en'} abgelaufen. POS noch{' '}
+          {remaining} Tag{remaining === 1 ? '' : 'e'} nutzbar
+          {lockLabel ? ` — Sperre am ${lockLabel}` : ''}. Danach nur Super-Administrator.
         </Text>
         <Pressable
           accessibilityRole="button"
@@ -63,6 +70,13 @@ export function LicenseWarningBanner() {
   }
 
   return null;
+}
+
+function formatLockDateFromRemaining(graceRemaining: number): string | null {
+  if (!Number.isFinite(graceRemaining) || graceRemaining < 0) return null;
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + Math.max(0, Math.trunc(graceRemaining)));
+  return formatUserDate(d.toISOString()) || null;
 }
 
 const styles = StyleSheet.create({

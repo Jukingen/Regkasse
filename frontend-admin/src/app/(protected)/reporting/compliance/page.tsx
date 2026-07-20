@@ -5,7 +5,7 @@ import { useAntdApp } from '@/hooks/useAntdApp';
  * Compliance- und Betriebsberichte: Mutabakat, TSE-Kette, Offline-Wiederherstellung, Peak-Hours, Warenbewegung.
  */
 import React, { useMemo, useState } from 'react';
-import { Alert, Button, Card, Col, DatePicker, Row, Select, Space, Spin, Statistic, Table, Dropdown, Tabs, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Col, DatePicker, Row, Select, Space, Statistic, Table, Dropdown, Tabs, Tag, Typography } from 'antd';
 import type { MenuProps } from 'antd';
 import { CalendarOutlined, DownloadOutlined, SettingOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
@@ -13,6 +13,7 @@ import dayjs from 'dayjs';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { CardSkeleton, TableSkeleton } from '@/components/Skeleton';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatCurrency, formatDateTime } from '@/i18n/formatting';

@@ -7,11 +7,12 @@ import { useAntdApp } from '@/hooks/useAntdApp';
  */
 
 import React, { useCallback, useMemo, useState } from 'react';
-import { Card, Table, Tag, Statistic, Row, Col, Spin, Alert, Button, Space, Select, InputNumber, Typography, Tabs } from 'antd';
+import { Card, Table, Tag, Statistic, Row, Col, Alert, Button, Space, Select, InputNumber, Typography, Tabs } from 'antd';
 import { ReloadOutlined, DownloadOutlined, ToolOutlined, SafetyOutlined } from '@ant-design/icons';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { PageSkeleton } from '@/components/Skeleton';
 import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
 import { formatDateTime } from '@/i18n/formatting';
@@ -323,9 +324,7 @@ export default function PayloadHashConflictsPage() {
                   </Button>
                 </Space>
                 {isLoading && !result ? (
-                  <Card>
-                    <Spin description={t('rksvHub.payloadHashConflictsPage.spinAnalyzing')} size="large" />
-                  </Card>
+                  <PageSkeleton widgets={4} />
                 ) : result ? (
                   <>
                     <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>

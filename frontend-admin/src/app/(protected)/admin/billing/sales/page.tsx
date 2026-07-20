@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Table, Input, Select, DatePicker, Button, Space, Tag, Tooltip } from 'antd';
+import { Table, Input, Select, DatePicker, Button, Space, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { ReloadOutlined, FilePdfOutlined, PlusOutlined } from '@ant-design/icons';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -9,6 +9,8 @@ import { type Dayjs } from 'dayjs';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useBillingSalesList } from '@/features/billing/hooks';
 import { BillingAccessGate } from '@/features/billing/components/BillingAccessGate';
+import { EmptyState } from '@/components/EmptyState';
+import { StatusBadge, resolveStatusType } from '@/components/StatusBadge';
 import { formatGermanDateTime } from '@/lib/dateFormatter';
 import { downloadLicenseSaleInvoicePdf } from '@/features/billing/utils/downloadInvoicePdf';
 import type { LicenseSaleResponse } from '@/api/generated/model';
@@ -142,18 +144,20 @@ export default function BillingSalesPage() {
             dataIndex: 'status',
             key: 'status',
             render: (status: string | null | undefined) => {
-                const colorMap: Record<string, string> = {
-                    active: 'green',
-                    cancelled: 'red',
-                    refunded: 'orange',
-                };
+                const key = (status ?? '').toLowerCase();
                 const labelMap: Record<string, string> = {
-                    active: 'Aktiv',
-                    cancelled: 'Storniert',
-                    refunded: 'Rückerstattet',
+                    active: t('billing.sales.statusActive'),
+                    cancelled: t('billing.sales.statusCancelled'),
+                    refunded: t('billing.sales.statusRefunded'),
                 };
-                const key = status ?? '';
-                return <Tag color={colorMap[key] || 'default'}>{labelMap[key] || status || '—'}</Tag>;
+                const resolved = resolveStatusType(key);
+                if (resolved) {
+                    return <StatusBadge status={resolved} label={labelMap[key]} />;
+                }
+                if (key === 'refunded') {
+                    return <StatusBadge status="warning" label={labelMap.refunded} />;
+                }
+                return <StatusBadge status="info" label={status || '—'} />;
             },
         },
         {
@@ -238,7 +242,15 @@ export default function BillingSalesPage() {
                             setFilters((prev) => ({ ...prev, page, pageSize: pageSize ?? prev.pageSize }));
                         },
                     }}
-                    locale={{ emptyText: 'Keine Verkäufe gefunden' }}
+                    locale={{
+                        emptyText: (
+                            <EmptyState
+                                title={t('billing.sales.noResults')}
+                                actionText={t('billing.sales.newSale')}
+                                onAction={() => router.push('/admin/billing/sales/new')}
+                            />
+                        ),
+                    }}
                 />
             </div>
         </BillingAccessGate>

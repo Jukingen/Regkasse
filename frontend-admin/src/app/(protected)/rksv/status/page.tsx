@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
-import { Card, Row, Col, Tag, Spin, Alert, Typography, Button, Space, Divider, Tooltip } from 'antd';
+import { Card, Row, Col, Tag, Alert, Typography, Button, Space, Divider, Tooltip } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { PageSkeleton } from '@/components/Skeleton';
 import { ADMIN_NAV_GROUP_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { useGetApiTseStatus } from '@/features/rksv/useTseStatusCompat';
 import { useGetApiFinanzOnlineStatus } from '@/api/generated/finanz-online/finanz-online';
@@ -149,9 +150,7 @@ export default function RksvStatusPage() {
                 {t('rksvHub.rksvStatusPage.sectionDiagnosticsTitle')}
             </Typography.Text>
             {diagnosticsLoading ? (
-                <div style={{ textAlign: 'center', padding: 48 }}>
-                    <Spin size="large" />
-                </div>
+                <PageSkeleton widgets={2} />
             ) : (
             <Row gutter={[16, 16]}>
                 <Col xs={24} md={12}>

@@ -38,5 +38,70 @@
   "cancel_message": "Are you sure you want to cancel this order?",
   "cancel_confirm": "Cancel Order",
   "table": "Table",
-  "more_items": "more items"
+  "more_items": "more items",
+  "tracker": {
+    "title": "Order status",
+    "subtitle": "Enter tenant slug and order number to view status.",
+    "tenantPlaceholder": "Tenant slug (e.g. cafe-example)",
+    "orderNumberPlaceholder": "Order number (e.g. ORD-001)",
+    "phonePlaceholder": "Phone (optional, for verification)",
+    "search": "Check status",
+    "notFound": "Order not found.",
+    "fetchFailed": "Could not load status.",
+    "missingParams": "Please enter tenant and order number.",
+    "total": "Total",
+    "customer": "Customer",
+    "steps": {
+      "pending": "Received",
+      "accepted": "Accepted",
+      "preparing": "Preparing",
+      "ready": "Ready",
+      "completed": "Completed"
+    },
+    "status": {
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "preparing": "Preparing",
+      "ready": "Ready",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    }
+  },
+  "dashboard": {
+    "title": "Customer portal",
+    "subtitle": "View order history and loyalty points with tenant slug and phone number.",
+    "tenantPlaceholder": "Tenant slug (e.g. cafe-example)",
+    "phonePlaceholder": "Phone number",
+    "search": "Open portal",
+    "reset": "Search another number",
+    "notFound": "No customer account or orders found.",
+    "fetchFailed": "Could not load customer portal.",
+    "missingParams": "Please enter tenant and phone number.",
+    "phoneTooShort": "Phone number must contain at least 6 digits.",
+    "greeting": "Hello, {{name}}",
+    "totalOrders": "Orders",
+    "loyaltyPoints": "My points",
+    "totalSpent": "Total spent",
+    "orderHistory": "Order history",
+    "noOrders": "No online orders yet.",
+    "loyaltyTitle": "Loyalty program",
+    "loyaltyMessage": "You have {{points}} points!",
+    "loyaltyRedeemable": "You can redeem {{euro}} discount.",
+    "redeemButton": "Redeem points",
+    "redeemTitle": "Redeem points",
+    "redeemHint": "Points are redeemed at the counter. Please show your phone number to staff."
+  },
+  "customerApp": {
+    "selectTitle": "Choose restaurant",
+    "selectSubtitle": "Enter the tenant slug or paste a QR / deep-link payload.",
+    "slugPlaceholder": "Slug or link (e.g. cafe-demo)",
+    "continue": "Continue",
+    "notFound": "Restaurant not found.",
+    "loadFailed": "Could not load restaurant.",
+    "menu": "Menu",
+    "menuEmpty": "No dishes available right now.",
+    "orderStatus": "Order status",
+    "myPortal": "My customer portal",
+    "changeRestaurant": "Choose another restaurant"
+  }
 }

@@ -1,0 +1,66 @@
+{
+  "pageTitle": "Online-Bestellungen",
+  "pageSubtitle": "Nur Website- und App-Bestellungen — Statusänderungen erzeugen keine POS-Warenkörbe, TSE-Signaturen oder Fiskalbelege.",
+  "cardTitle": "Bestellverwaltung",
+  "pendingFilter": "Ausstehend",
+  "statusFilterAll": "Alle Statuswerte",
+  "empty": "Keine Online-Bestellungen",
+  "acceptSuccess": "Bestellung angenommen und an die Kasse übergeben.",
+  "acceptAlreadyPushed": "Bestellung war bereits an die Kasse übergeben.",
+  "statusUpdateSuccess": "Bestellstatus aktualisiert.",
+  "detailTitle": "Bestellung #{{number}}",
+  "detailTitleFallback": "Bestelldetails",
+  "analytics": {
+    "totalOrders": "Bestellungen (30T)",
+    "pending": "Ausstehend",
+    "completed": "Abgeschlossen",
+    "revenue": "Umsatz"
+  },
+  "columns": {
+    "orderNumber": "Bestellnr.",
+    "customer": "Kunde",
+    "total": "Betrag",
+    "status": "Status",
+    "createdAt": "Zeit",
+    "actions": "Aktionen"
+  },
+  "actions": {
+    "detail": "Details",
+    "accept": "Annehmen",
+    "prepare": "Zubereiten",
+    "markReady": "Bereit",
+    "complete": "Abschließen",
+    "cancel": "Stornieren"
+  },
+  "status": {
+    "pending": "Ausstehend",
+    "accepted": "Angenommen",
+    "preparing": "In Zubereitung",
+    "ready": "Bereit",
+    "completed": "Abgeschlossen",
+    "cancelled": "Storniert"
+  },
+  "orderTypes": {
+    "dine-in": "Vor Ort",
+    "takeaway": "Abholung",
+    "delivery": "Lieferung"
+  },
+  "detail": {
+    "customer": "Kunde",
+    "phone": "Telefon",
+    "email": "E-Mail",
+    "orderType": "Art",
+    "table": "Tisch",
+    "deliveryAddress": "Lieferadresse",
+    "payment": "Zahlung",
+    "source": "Kanal",
+    "status": "Status",
+    "timeline": "Statusverlauf",
+    "posCart": "POS-Warenkorb",
+    "notes": "Notiz",
+    "items": "Positionen",
+    "subtotal": "Zwischensumme",
+    "tax": "Steuer",
+    "total": "Gesamt"
+  }
+}

@@ -1,7 +1,9 @@
 using System.Net.Mime;
 using System.Text.Json;
 using KasseAPI_Final;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Localization;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
@@ -14,6 +16,8 @@ namespace KasseAPI_Final.Middleware
     /// <summary>
     /// Adds license visibility headers and enforces deployment + mandant license policy for authenticated traffic.
     /// Runs after <c>UseAuthentication</c> so JWT <c>app_context</c> is available.
+    /// Mandant lockdown blocks POS operations (<c>LICENSE_LOCKED</c>); FA renewal paths stay available.
+    /// Grace period allows POS with <c>X-License-Grace</c> warning headers.
     /// </summary>
     public sealed class LicenseMiddleware
     {
@@ -21,6 +25,8 @@ namespace KasseAPI_Final.Middleware
         public const string LicenseWarningHeaderName = "X-License-Warning";
         public const string LicenseDaysRemainingHeaderName = "X-License-Days-Remaining";
         public const string LicenseGraceRemainingHeaderName = "X-License-Grace-Remaining";
+        public const string LicenseGraceHeaderName = "X-License-Grace";
+        public const string LicenseLockedCode = "LICENSE_LOCKED";
 
         private readonly RequestDelegate _next;
 
@@ -103,34 +109,102 @@ namespace KasseAPI_Final.Middleware
                 .GetLicenseStatusAsync(tenantId, context.RequestAborted)
                 .ConfigureAwait(false);
 
-            if (!licenseStatus.CanAccess)
+            var isLocked = licenseStatus.IsLocked || (!licenseStatus.CanAccess && licenseStatus.RequiresRenewal);
+            var isGrace = licenseStatus.IsInGracePeriod && !isLocked;
+
+            // SuperAdmin may always operate (unlock / renew / support).
+            if (IsSuperAdmin(context))
             {
+                ApplyMandantLicenseHeaders(context, licenseStatus, isGrace);
+                return true;
+            }
+
+            // POS operations blocked when mandant license is past grace.
+            if (isLocked && IsPosOperation(context))
+            {
+                var language = context.Items.TryGetValue(LanguageMiddleware.LanguageItemKey, out var langObj)
+                    && langObj is string lang
+                    ? lang
+                    : LanguageMiddleware.DefaultLanguage;
+                var message = !string.IsNullOrWhiteSpace(licenseStatus.StatusMessage)
+                    ? licenseStatus.StatusMessage
+                    : ApiMessageCatalog.Get(ApiMessageKeys.LicenseStatusLocked, language);
+
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 await context.Response.WriteAsJsonAsync(
                     new
                     {
-                        error = "License Expired",
-                        message = "Ihre Lizenz ist abgelaufen. Bitte kontaktieren Sie Ihren Administrator.",
+                        success = false,
+                        code = LicenseLockedCode,
+                        message,
+                        messageKey = string.IsNullOrWhiteSpace(licenseStatus.StatusMessageKey)
+                            ? ApiMessageKeys.LicenseStatusLocked
+                            : licenseStatus.StatusMessageKey,
                         status = StatusCodes.Status403Forbidden,
                         licenseStatus = new
                         {
                             expired = true,
+                            isLocked = true,
+                            isGracePeriod = false,
                             validUntil = licenseStatus.ValidUntil,
                             daysOverdue = licenseStatus.DaysOverdue,
+                            lockDate = licenseStatus.LockDate,
+                            restrictions = licenseStatus.Restrictions,
                         },
                     },
                     context.RequestAborted).ConfigureAwait(false);
                 return false;
             }
 
-            if (context.Response.HasStarted)
-                return true;
-
-            context.Response.Headers[LicenseStatusHeaderName] = licenseStatus.StatusMessage;
-            context.Response.Headers[LicenseDaysRemainingHeaderName] = licenseStatus.DaysRemaining.ToString();
-            context.Response.Headers[LicenseGraceRemainingHeaderName] = licenseStatus.GracePeriodRemaining.ToString();
+            // Grace period (and FA during lockdown): allow, surface warning headers.
+            ApplyMandantLicenseHeaders(context, licenseStatus, isGrace);
             return true;
         }
+
+        private static void ApplyMandantLicenseHeaders(
+            HttpContext context,
+            LicenseStatusInfo licenseStatus,
+            bool isGrace)
+        {
+            if (context.Response.HasStarted)
+                return;
+
+            context.Response.Headers[LicenseStatusHeaderName] = licenseStatus.StatusMessage ?? string.Empty;
+            context.Response.Headers[LicenseGraceRemainingHeaderName] =
+                licenseStatus.GracePeriodRemaining.ToString();
+
+            if (isGrace)
+            {
+                context.Response.Headers[LicenseGraceHeaderName] = "true";
+                // During grace, Days-Remaining means remaining grace days (POS lock countdown).
+                context.Response.Headers[LicenseDaysRemainingHeaderName] =
+                    licenseStatus.GracePeriodRemaining.ToString();
+            }
+            else
+            {
+                context.Response.Headers[LicenseDaysRemainingHeaderName] =
+                    licenseStatus.DaysRemaining.ToString();
+            }
+        }
+
+        /// <summary>
+        /// POS cash-register / fiscal traffic: <c>app_context=pos</c>, <c>/api/pos/*</c>, or fiscal POS paths.
+        /// </summary>
+        public static bool IsPosOperation(HttpContext context)
+        {
+            var appContext = LicensePathFeatureEvaluator.ReadAppContext(context);
+            if (string.Equals(appContext, ClientAppPolicy.Pos, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            var path = context.Request.Path;
+            if (path.StartsWithSegments("/api/pos", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            return LicensePathFeatureEvaluator.IsPosOperationalPath(path);
+        }
+
+        private static bool IsSuperAdmin(HttpContext context) =>
+            context.User?.IsInRole(Roles.SuperAdmin) == true;
 
         private static bool IsTenantLicensePublicPath(string path)
         {

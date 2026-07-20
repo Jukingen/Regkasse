@@ -84,6 +84,7 @@ public sealed class TenantContextMiddlewareTests
             db,
             accessor,
             environment.Object,
+            Mock.Of<KasseAPI_Final.Services.Tenancy.ITenantDomainService>(),
             NullLogger<TenantContextService>.Instance);
 
         var httpContext = new DefaultHttpContext();
@@ -126,6 +127,7 @@ public sealed class TenantContextMiddlewareTests
             db,
             accessor,
             environment.Object,
+            Mock.Of<KasseAPI_Final.Services.Tenancy.ITenantDomainService>(),
             NullLogger<TenantContextService>.Instance);
 
         var httpContext = new DefaultHttpContext();
@@ -168,6 +170,7 @@ public sealed class TenantContextMiddlewareTests
             db,
             accessor,
             environment.Object,
+            Mock.Of<KasseAPI_Final.Services.Tenancy.ITenantDomainService>(),
             NullLogger<TenantContextService>.Instance);
 
         var httpContext = new DefaultHttpContext();

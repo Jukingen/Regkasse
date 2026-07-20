@@ -160,6 +160,18 @@
       "reportDisclaimer": "RKSV-compliant daily closing\nCash Register Security Ordinance (RKSV)\nThis daily closing is fiscally valid."
     }
   },
+  "dailyClosing": {
+    "reminder": {
+      "title": "Daily closing pending",
+      "body_one": "Please perform the daily closing. {{count}} hour remaining ({{deadlineHint}}).",
+      "body_other": "Please perform the daily closing. {{count}} hours remaining ({{deadlineHint}}).",
+      "deadlineWorkingHours": "until {{time}} (opening hours)",
+      "deadlineWorkingHoursGeneric": "until closing time",
+      "deadlineMidnight": "until 00:00 Europe/Vienna",
+      "cta": "Perform now",
+      "countdownA11y": "Countdown {{countdown}}"
+    }
+  },
   "registerAssignment": {
     "title": "Cash Register (POS)",
     "intro": "A currently open register must be assigned for fiscally valid payments. The selection is saved in the profile.",

@@ -109,6 +109,103 @@ public static class AppPermissions
     /// granted to Manager for own-tenant backups. Execution-mode, artifact download and restore stay on <see cref="SettingsManage"/>.
     /// </summary>
     public const string BackupManage = "backup.manage";
+
+    /// <summary>
+    /// Tenant domain / customization management (FA).
+    /// Narrower than <see cref="SettingsManage"/>; granted to Manager for own tenant.
+    /// Implies <see cref="DigitalView"/> / <see cref="DigitalPreview"/> / <see cref="DigitalRequest"/> —
+    /// not create/publish/delete.
+    /// </summary>
+    public const string WebsiteManage = "website.manage";
+
+    // --- Digital services (simplified surface + legacy web/app keys) ---
+    /// <summary>View own digital services (website + app status, templates, URLs).</summary>
+    public const string DigitalView = "digital.view";
+
+    /// <summary>Preview own website/app (non-destructive).</summary>
+    public const string DigitalPreview = "digital.preview";
+
+    /// <summary>Request website/app creation (Super Admin approval queue).</summary>
+    public const string DigitalRequest = "digital.request";
+
+    /// <summary>Create / generate websites and apps (Super Admin).</summary>
+    public const string DigitalCreate = "digital.create";
+
+    /// <summary>Publish / re-publish websites and apps (Super Admin).</summary>
+    public const string DigitalPublish = "digital.publish";
+
+    /// <summary>Edit digital service configuration (Super Admin).</summary>
+    public const string DigitalEdit = "digital.edit";
+
+    /// <summary>Delete digital service artifacts (Super Admin; catalog reserved).</summary>
+    public const string DigitalDelete = "digital.delete";
+
+    /// <summary>Legacy: view website only — prefer <see cref="DigitalView"/>.</summary>
+    public const string DigitalWebView = "digital.web.view";
+
+    /// <summary>Legacy: preview website — prefer <see cref="DigitalPreview"/>.</summary>
+    public const string DigitalWebPreview = "digital.web.preview";
+
+    /// <summary>Legacy: request website — prefer <see cref="DigitalRequest"/>.</summary>
+    public const string DigitalWebRequest = "digital.web.request";
+
+    /// <summary>Legacy: create website — prefer <see cref="DigitalCreate"/>.</summary>
+    public const string DigitalWebCreate = "digital.web.create";
+
+    /// <summary>Legacy: publish website — prefer <see cref="DigitalPublish"/>.</summary>
+    public const string DigitalWebPublish = "digital.web.publish";
+
+    /// <summary>Legacy: delete website — prefer <see cref="DigitalDelete"/>.</summary>
+    public const string DigitalWebDelete = "digital.web.delete";
+
+    /// <summary>Legacy generate key — prefer <see cref="DigitalCreate"/>.</summary>
+    public const string DigitalWebUse = "digital.web.use";
+
+    /// <summary>Legacy: view app — prefer <see cref="DigitalView"/>.</summary>
+    public const string DigitalAppView = "digital.app.view";
+
+    /// <summary>Legacy: preview app — prefer <see cref="DigitalPreview"/>.</summary>
+    public const string DigitalAppPreview = "digital.app.preview";
+
+    /// <summary>Legacy: request app — prefer <see cref="DigitalRequest"/>.</summary>
+    public const string DigitalAppRequest = "digital.app.request";
+
+    /// <summary>Legacy: create app — prefer <see cref="DigitalCreate"/>.</summary>
+    public const string DigitalAppCreate = "digital.app.create";
+
+    /// <summary>Legacy: publish app — prefer <see cref="DigitalPublish"/>.</summary>
+    public const string DigitalAppPublish = "digital.app.publish";
+
+    /// <summary>Legacy: delete app — prefer <see cref="DigitalDelete"/>.</summary>
+    public const string DigitalAppDelete = "digital.app.delete";
+
+    /// <summary>Legacy generate key — prefer <see cref="DigitalCreate"/>.</summary>
+    public const string DigitalAppUse = "digital.app.use";
+
+    /// <summary>
+    /// Full digital-services control (SuperAdmin). Implies simplified + legacy web/app keys,
+    /// pricing.manage, and activate.
+    /// </summary>
+    public const string DigitalManage = "digital.manage";
+
+    /// <summary>Change digital-service list prices (SuperAdmin via catalog).</summary>
+    public const string DigitalPricingManage = "digital.pricing.manage";
+
+    /// <summary>Activate / deactivate digital-service subscriptions for tenants (SuperAdmin via catalog).</summary>
+    public const string DigitalActivate = "digital.activate";
+
+    /// <summary>View website/app online orders (Manager FA inbox; not POS/fiscal).</summary>
+    public const string DigitalOrdersView = "digital.orders.view";
+
+    /// <summary>Update online-order status lifecycle (Manager; not POS push / TSE).</summary>
+    public const string DigitalOrdersManage = "digital.orders.manage";
+
+    /// <summary>
+    /// Approve/override online orders including optional POS cart bridge (Super Admin).
+    /// Not granted to Manager — Manager uses status-only <see cref="DigitalOrdersManage"/>.
+    /// </summary>
+    public const string DigitalOrdersApprove = "digital.orders.approve";
+
     public const string LocalizationView = "localization.view";
     public const string LocalizationManage = "localization.manage";
     public const string ReceiptTemplateView = "receipttemplate.view";

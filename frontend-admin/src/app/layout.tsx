@@ -1,5 +1,7 @@
 import React, { ReactNode } from 'react';
 import { AppProviders } from '@/providers/AppProviders';
+import { TokenRefreshListener } from '@/components/TokenRefreshListener';
+import { CsrfTokenBootstrap } from '@/components/CsrfTokenBootstrap';
 import StyledComponentsRegistry from '@/lib/AntdRegistry';
 import { THEME_BOOTSTRAP_SCRIPT } from '@/lib/personalization/themeBootstrapScript';
 
@@ -22,6 +24,10 @@ export default function RootLayout({
             </head>
             <body style={{ margin: 0, padding: 0 }} suppressHydrationWarning>
                 <AppProviders>
+                    {/* Auto-refresh access token ~5 min before JWT expiry (silent). */}
+                    <TokenRefreshListener />
+                    {/* Issue CSRF token on load (cookie + API cache) for mutation requests. */}
+                    <CsrfTokenBootstrap />
                     <StyledComponentsRegistry>{children}</StyledComponentsRegistry>
                 </AppProviders>
             </body>

@@ -76,7 +76,11 @@ public sealed class LicenseOptions
     /// <summary>Maximum cashiers for POS; <c>-1</c> means unlimited.</summary>
     public int LicenseFeatureMaxCashiers { get; set; } = -1;
 
-    /// <summary>Mandant grace period length in days after <c>license_valid_until_utc</c>.</summary>
+    /// <summary>
+    /// Mandant grace period length in days after <c>license_valid_until_utc</c>.
+    /// Must stay at the production policy value (7). Do not use large Development sentinels
+    /// (e.g. 999) — remaining grace is <c>GracePeriodDays - daysOverdue</c> and would show as ~997 Tage.
+    /// </summary>
     public int GracePeriodDays { get; set; } = LicenseGracePeriodConfig.DefaultGracePeriodDays;
 
     /// <summary>Days before mandant expiry when pre-expiry warnings begin.</summary>
@@ -84,4 +88,10 @@ public sealed class LicenseOptions
 
     /// <summary>Additional days after grace before lockdown; zero blocks immediately when grace ends.</summary>
     public int BlockAfterGraceDays { get; set; } = LicenseGracePeriodConfig.DefaultBlockAfterGraceDays;
+
+    /// <summary>
+    /// Days overdue after which Locked becomes Archived (POS blocked, FA read-only).
+    /// Must be greater than <see cref="GracePeriodDays"/>.
+    /// </summary>
+    public int ArchiveAfterDays { get; set; } = LicenseGracePeriodConfig.DefaultArchiveAfterDays;
 }

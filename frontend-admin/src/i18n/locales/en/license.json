@@ -294,18 +294,25 @@
         "message": "Your license expired {{days}} day(s) ago. Please renew it within the next {{remaining}} day(s) to keep sales enabled."
       },
       "graceWrite": {
-        "title": "Tenant license – grace period",
-        "adminDescription": "Your license expired {{daysExpired}} day(s) ago. You have {{daysRemaining}} day(s) left to renew before the tenant is locked.",
-        "contactAdminDescription": "The tenant license expired {{daysExpired}} day(s) ago. Please contact your administrator."
+        "title": "Tenant license – grace period (7 days)",
+        "adminDescription": "Your license expired {{daysExpired}} day(s) ago. POS still works for {{daysRemaining}} more day(s). POS will lock on {{lockDate}}. Please renew in time.",
+        "contactAdminDescription": "The tenant license expired {{daysExpired}} day(s) ago. POS can still be used for {{daysRemaining}} day(s) (locks on {{lockDate}}). Please contact your administrator.",
+        "restrictions": "During grace: POS usable with warnings. After grace: POS locked (only Super Admin can unlock)."
       },
       "lockdown": {
-        "title": "Tenant license expired – system locked",
-        "adminDescription": "Your license expired {{daysExpired}} day(s) ago. The system is now in lockdown mode.",
-        "contactAdminDescription": "This tenant is currently locked. Please contact your administrator."
+        "title": "Tenant license expired – POS locked",
+        "adminDescription": "Your license expired {{daysExpired}} day(s) ago. The grace period has ended. POS is locked — only Super Admin can unlock. Please renew the license.",
+        "contactAdminDescription": "This tenant is currently locked (grace period ended). Only Super Admin can unlock. Please contact your administrator.",
+        "restrictions": "POS locked. Only Super Admin can unlock. Renewal required."
       },
       "noLicense": {
         "title": "Tenant license missing",
         "adminDescription": "No license is configured for this tenant. Please add a license."
+      },
+      "details": {
+        "graceRemaining": "Grace period: {{days}} day(s) remaining",
+        "lockDate": "POS locks on: {{date}}",
+        "contactAdmin": "Please contact your administrator"
       }
     },
     "deployment": {
@@ -336,7 +343,8 @@
     },
     "actions": {
       "renewTenant": "Renew tenant license",
-      "openDeployment": "Open server license"
+      "openDeployment": "Open server license",
+      "contact": "Contact administrator"
     }
   },
   "trialDays": "Trial days remaining",

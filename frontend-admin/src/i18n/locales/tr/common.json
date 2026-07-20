@@ -1,10 +1,18 @@
 {
   "breadcrumb": {
-    "overview": "Genel bakış"
+    "overview": "Genel bakış",
+    "admin": "Yönetim",
+    "tenant": "Kiracı",
+    "tenants": "Kiracılar",
+    "orders": "Siparişler",
+    "digital": "Dijital hizmetler",
+    "profile": "Profil",
+    "detail": "Detay"
   },
   "buttons": {
     "save": "Kaydet",
     "cancel": "İptal",
+    "confirm": "Onayla",
     "yes": "Evet",
     "no": "Hayır",
     "retry": "Tekrar dene",
@@ -13,6 +21,29 @@
     "delete": "Sil",
     "edit": "Düzenle",
     "reload": "Yeniden yukle"
+  },
+  "status": {
+    "active": "Aktif",
+    "inactive": "Pasif",
+    "pending": "Beklemede",
+    "cancelled": "İptal",
+    "completed": "Tamamlandı",
+    "expired": "Süresi dolmuş",
+    "open": "Açık",
+    "closed": "Kapalı",
+    "success": "Başarılı",
+    "error": "Hata",
+    "warning": "Uyarı",
+    "info": "Bilgi",
+    "suspended": "Askıya alındı",
+    "deleted": "Silindi"
+  },
+  "confirmDialog": {
+    "defaultTitle": "Onay"
+  },
+  "emptyState": {
+    "defaultTitle": "Veri bulunamadı",
+    "defaultDescription": "Henüz kayıt oluşturulmadı."
   },
   "toolbar": {
     "refetchHint": "Verileri manuel yenileyin (onbellek eski olabilir)."
@@ -217,7 +248,21 @@
   },
   "validation": {
     "fieldRequired": "Lutfen bu alani doldurun.",
-    "numberBetween": "Lutfen {{min}} ile {{max}} arasinda bir deger girin."
+    "requiredWithField": "{{field}} alani zorunludur.",
+    "emailInvalid": "Gecerli bir e-posta adresi giriniz.",
+    "minLength": "En az {{min}} karakter olmalidir.",
+    "maxLength": "En fazla {{max}} karakter olmalidir.",
+    "numberBetween": "Lutfen {{min}} ile {{max}} arasinda bir deger girin.",
+    "atuTaxNumberRequired": "UID (ATU) zorunludur.",
+    "atuTaxNumberPattern": "Format: ATU + 8 rakam (orn. ATU12345678).",
+    "usernameRequired": "Kullanici adi zorunludur.",
+    "usernamePattern": "3–50 karakter: a-z, 0-9, alt cizgi veya tire."
+  },
+  "autoSave": {
+    "saving": "Kaydediliyor…",
+    "saved": "Taslak kaydedildi",
+    "error": "Otomatik kayit basarisiz",
+    "draftRestored": "Yerel taslak geri yuklendi."
   },
   "auth": {
     "appTitle": "Regkasse Admin",
@@ -257,7 +302,18 @@
       "terminated": "Oturum sonlandirildi",
       "terminatedOthers": "{{count}} diger oturum sonlandirildi",
       "terminateFailed": "Oturum sonlandirilamadi",
-      "cannotTerminateCurrent": "Mevcut oturum buradan sonlandirilamaz"
+      "cannotTerminateCurrent": "Mevcut oturum buradan sonlandirilamaz",
+      "colDevice": "Cihaz",
+      "colBrowserOs": "Tarayici / Isletim sistemi",
+      "colIp": "IP adresi",
+      "colStatus": "Durum",
+      "colAction": "Aksiyon",
+      "unknownDevice": "Bilinmiyor",
+      "statusActive": "Aktif",
+      "statusInactive": "Kapali",
+      "revokeConfirmTitle": "Oturumu sonlandir",
+      "revokeConfirmContent": "Bu oturumu sonlandırmak istediginize emin misiniz?",
+      "revokeOthersConfirmContent": "Diger tum cihaz oturumlari sonlandirilacak. Devam edilsin mi?"
     },
     "logoutSuccess": "Çıkış başarılı.",
     "loginSuccess": "Giriş başarılı",
@@ -267,6 +323,23 @@
     "loginFailedWithStatus": "Giris basarisiz ({{status}}): {{details}}",
     "loginInvalidCredentials": "Kullanıcı adı veya şifre geçersiz",
     "loginFailedGeneric": "Giriş başarısız. Lütfen tekrar deneyin.",
+    "twoFactor": {
+      "title": "İki faktörlü kimlik doğrulama",
+      "verifySubtitle": "Authenticator uygulamasındaki 6 haneli kodu girin.",
+      "setupSubtitle": "Devam etmek için bir authenticator uygulaması kurun.",
+      "setupHint": "Bu anahtarı Google Authenticator, Microsoft Authenticator veya benzer bir uygulamaya ekleyin:",
+      "codeLabel": "Doğrulama kodu",
+      "codePlaceholder": "123456",
+      "codeRequired": "Lütfen kodu girin.",
+      "codePattern": "Kod 6 haneli olmalıdır.",
+      "verify": "Doğrula",
+      "invalidCode": "Geçersiz veya süresi dolmuş kod.",
+      "devBypassHint": "Geliştirme: bypass kodu “{{code}}” veya “123456” kullanın.",
+      "devModeTitle": "Development modu",
+      "devModeDescription": "2FA burada kapalı. Gerçek 2FA yalnızca production’da çalışır.",
+      "devContinue": "Devam Et",
+      "backToLogin": "Girişe dön"
+    },
     "forgotUsernameLink": "Kullanıcı adını mı unuttunuz?",
     "forgotUsername": {
       "title": "Kullanici adini unuttum",

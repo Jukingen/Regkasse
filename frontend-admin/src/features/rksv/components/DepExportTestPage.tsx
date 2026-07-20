@@ -14,7 +14,6 @@ import {
     Modal,
     Select,
     Space,
-    Spin,
     Table,
     Tabs,
     Input,
@@ -25,6 +24,7 @@ import type { ColumnsType } from 'antd/es/table';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import Link from 'next/link';
+import { PageSkeleton, TableSkeleton } from '@/components/Skeleton';
 import {
     CopyOutlined,
     DownloadOutlined,
@@ -208,7 +208,7 @@ function DepExportSchedulesTab({
                     </Form.Item>
                 </Form>
                 {schedulesLoading ? (
-                    <Spin />
+                    <TableSkeleton rows={4} cols={4} />
                 ) : schedules?.length ? (
                     <Table rowKey="id" size="small" pagination={false} dataSource={schedules} columns={scheduleColumns} />
                 ) : (
@@ -629,9 +629,7 @@ export function DepExportTestPage() {
     const historyTab = (
         <Card size="small">
             {historyLoading ? (
-                <div style={{ textAlign: 'center', padding: 40 }}>
-                    <Spin />
-                </div>
+                <TableSkeleton rows={6} cols={5} />
             ) : historyData?.items.length ? (
                 <Table
                     rowKey="id"
@@ -707,9 +705,7 @@ export function DepExportTestPage() {
             />
 
             {registersLoading ? (
-                <div style={{ textAlign: 'center', padding: 80 }}>
-                    <Spin size="large" />
-                </div>
+                <PageSkeleton widgets={3} />
             ) : (
                 <>
                     <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />

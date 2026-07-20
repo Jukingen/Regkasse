@@ -79,6 +79,8 @@ public sealed class RefreshTokenService : IRefreshTokenService, IUserSessionInva
     public async Task<RefreshResult> RotateAsync(
         string refreshToken,
         Func<string, string, Guid, DateTime, string, string?, Task<string>> buildAccessToken,
+        Guid? sessionTenantIdOverride = null,
+        Func<string, Guid, CancellationToken, Task<bool>>? canAssignTenant = null,
         CancellationToken cancellationToken = default)
     {
         var tokenHash = HashToken(refreshToken);
@@ -106,6 +108,17 @@ public sealed class RefreshTokenService : IRefreshTokenService, IUserSessionInva
                 token.UserId,
                 token.SessionId);
             return new RefreshResult(false, false, null, "refresh_token_already_used");
+        }
+
+        if (sessionTenantIdOverride is Guid overrideTenantId && overrideTenantId != Guid.Empty)
+        {
+            if (canAssignTenant == null
+                || !await canAssignTenant(token.UserId, overrideTenantId, cancellationToken).ConfigureAwait(false))
+            {
+                return new RefreshResult(false, false, null, "tenant_switch_forbidden");
+            }
+
+            session.TenantId = overrideTenantId;
         }
 
         var consumedAt = DateTime.UtcNow;

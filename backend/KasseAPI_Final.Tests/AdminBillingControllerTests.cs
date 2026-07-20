@@ -4,6 +4,7 @@ using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.DigitalServices;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -182,6 +183,8 @@ public sealed class AdminBillingControllerTests
                 BillingTestDoubles.NoOpReminder,
                 BillingTestDoubles.NoOpLicenseReminder,
                 BillingTestDoubles.NoOpBackup,
+                new DigitalServicePricingService(),
+                Mock.Of<ISubscriptionService>(),
                 NullCurrentUserService.Instance,
                 NullLogger<AdminBillingController>.Instance)
             {

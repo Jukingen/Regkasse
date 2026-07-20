@@ -12,13 +12,13 @@ import {
   Descriptions,
   Modal,
   Space,
-  Spin,
   Table,
   Tag,
   Typography,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { FileTextOutlined } from "@ant-design/icons";
+import { CardSkeleton } from "@/components/Skeleton";
 import { useI18n } from "@/i18n";
 import { useAntdApp } from "@/hooks/useAntdApp";
 import { useBackupPermissions } from "@/features/backup/hooks/useBackupPermissions";
@@ -204,7 +204,7 @@ export function RestoreHistoryView() {
         width={720}
         destroyOnHidden
       >
-        {reportLoading ? <Spin /> : null}
+        {reportLoading ? <CardSkeleton count={1} /> : null}
         {report ? (
           <Descriptions bordered size="small" column={1}>
             <Descriptions.Item label={t("backupDr.restoreHistory.report.restoreId")}>

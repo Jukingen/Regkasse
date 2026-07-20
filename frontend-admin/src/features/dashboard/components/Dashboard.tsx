@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Button, Spin } from 'antd';
+import { Alert, Button } from 'antd';
 import { SettingOutlined } from '@ant-design/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
-import {
+import { PageSkeleton } from '@/components/Skeleton';
+import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';import {
     dashboardPreferencesQueryKeys,
     fetchDashboardPreferences,
     fetchDashboardWidgetCatalog,
@@ -129,11 +129,7 @@ export function Dashboard({ headerSlot }: DashboardProps) {
 
             {headerSlot}
 
-            {loading ? (
-                <div style={{ textAlign: 'center', padding: 48 }}>
-                    <Spin size="large" />
-                </div>
-            ) : null}
+            {loading ? <PageSkeleton widgets={6} /> : null}
 
             {error ? (
                 <Alert

@@ -10,7 +10,10 @@ export type CashRegisterDeviceInfo = {
 
 /** Admin list projection with operational telemetry from GET /api/admin/cash-registers. */
 export type EnhancedCashRegister = CashRegister & {
-    tenantId?: string | null;
+    /** Admin list rows always have a stable register id. */
+    id: string;
+    /** Admin list rows always carry the owning mandant id. */
+    tenantId: string;
     tenantName?: string | null;
     tenantSlug?: string | null;
     lastMonatsbelegUtc?: string | null;

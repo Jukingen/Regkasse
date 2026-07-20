@@ -5,7 +5,7 @@ import { useAntdApp } from '@/hooks/useAntdApp';
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
-import { customInstance } from '@/lib/axios';
+import { customInstance, refreshAccessToken } from '@/lib/axios';
 import { usePostApiAuthLogout } from '@/api/generated/auth/auth';
 
 import { authStorage } from '@/features/auth/services/authStorage';
@@ -152,6 +152,22 @@ export const useAuth = () => {
         }
     }, [logoutMutation, queryClient, router, message, t]);
 
+    /**
+     * Rotates the refresh token. Pass `tenantId` after a header tenant switch so JWT `tenant_id` matches.
+     * @returns true when a new access token was stored.
+     */
+    const refreshToken = useCallback(async (tenantId?: string | null): Promise<boolean> => {
+        const next = await refreshAccessToken({
+            tenantId,
+            clearOnFailure: tenantId == null || tenantId.trim() === '',
+        });
+        if (!next) {
+            return false;
+        }
+        await queryClient.invalidateQueries({ queryKey: AUTH_KEYS.user });
+        return true;
+    }, [queryClient]);
+
     let authStatus: AuthStatus = AuthStatus.Loading;
 
     const meInFlightWithCredentials =
@@ -209,6 +225,7 @@ export const useAuth = () => {
         error,
         logout,
         changePassword,
+        refreshToken,
         refetchMe: refetch,
     };
 };

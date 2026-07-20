@@ -207,7 +207,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const inactivityTimerRef = React.useRef<NodeJS.Timeout | null>(null); // legacy timer ref (logout paths)
     const [sessionPolicy, setSessionPolicy] = useState<TenantSessionPolicy>({
         sessionTimeoutMinutes: 30,
-        warningBeforeTimeoutMinutes: 1,
+        warningBeforeTimeoutMinutes: 5,
         keepCartAfterTimeout: true,
     });
     const [idleWarningVisible, setIdleWarningVisible] = useState(false);

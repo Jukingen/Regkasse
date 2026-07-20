@@ -14,12 +14,12 @@ public sealed class PrometheusBackupOrchestratorMetrics : IBackupOrchestratorMet
 
     public PrometheusBackupOrchestratorMetrics()
     {
-        _gateOutcomes = Metrics.CreateCounter(
+        _gateOutcomes = global::Prometheus.Metrics.CreateCounter(
             "backup_orchestrator_distributed_gate_total",
             "Backup worker distributed gate attempts (PostgreSQL advisory lock or bypass). HTTP layer excluded.",
             new CounterConfiguration { LabelNames = new[] { "outcome" } });
 
-        _lockHoldSeconds = Metrics.CreateHistogram(
+        _lockHoldSeconds = global::Prometheus.Metrics.CreateHistogram(
             "backup_orchestrator_advisory_lock_hold_seconds",
             "Time the non-pooled advisory lock connection was held (covers dequeue + backup + verification).",
             new HistogramConfiguration
@@ -27,12 +27,12 @@ public sealed class PrometheusBackupOrchestratorMetrics : IBackupOrchestratorMet
                 Buckets = Histogram.ExponentialBuckets(1, 2, 20)
             });
 
-        _runTotal = Metrics.CreateCounter(
+        _runTotal = global::Prometheus.Metrics.CreateCounter(
             "backup_run_total",
             "Terminal backup runs after dequeue (one row processed per counter increment).",
             new CounterConfiguration { LabelNames = new[] { "status", "trigger_source" } });
 
-        _runDurationSeconds = Metrics.CreateHistogram(
+        _runDurationSeconds = global::Prometheus.Metrics.CreateHistogram(
             "backup_run_duration_seconds",
             "Wall time from StartedAt to CompletedAt (or now if CompletedAt missing) for terminal backup runs.",
             new HistogramConfiguration

@@ -17,7 +17,7 @@ public sealed class TenantLicenseValidatorTests
 
     [Theory]
     [InlineData(1)]
-    [InlineData(21)]
+    [InlineData(7)]
     public void GetStatus_WhenExpiredWithinGracePeriod_ReturnsGraceWrite(int daysExpired)
     {
         var status = _sut.GetStatus(Now.AddDays(-daysExpired), Now);
@@ -25,16 +25,34 @@ public sealed class TenantLicenseValidatorTests
     }
 
     [Theory]
-    [InlineData(22)]
-    [InlineData(90)]
-    public void GetStatus_WhenExpiredBeyondGracePeriod_ReturnsLockdown(int daysExpired)
+    [InlineData(8)]
+    [InlineData(30)]
+    public void GetStatus_WhenExpiredInLockedWindow_ReturnsLockdown(int daysExpired)
     {
         var status = _sut.GetStatus(Now.AddDays(-daysExpired), Now);
         Assert.Equal(TenantLicenseStatus.Lockdown, status);
     }
 
+    [Theory]
+    [InlineData(31)]
+    [InlineData(90)]
+    public void GetStatus_WhenExpiredBeyondArchiveThreshold_ReturnsArchived(int daysExpired)
+    {
+        var status = _sut.GetStatus(Now.AddDays(-daysExpired), Now);
+        Assert.Equal(TenantLicenseStatus.Archived, status);
+    }
+
     [Fact]
-    public void GetPermissions_WhenLockdown_DeniesAllAccessForNormalUsers()
+    public void GetPermissions_WhenLockdown_DeniesWriteAndPosAccess()
+    {
+        var permissions = _sut.GetPermissions(Now.AddDays(-15), isSuperAdmin: false, Now);
+        Assert.False(permissions.CanWrite);
+        Assert.False(permissions.CanManageUsers);
+        Assert.False(permissions.CanAccess);
+    }
+
+    [Fact]
+    public void GetPermissions_WhenArchived_DeniesWriteAndPosAccess()
     {
         var permissions = _sut.GetPermissions(Now.AddDays(-45), isSuperAdmin: false, Now);
         Assert.False(permissions.CanWrite);

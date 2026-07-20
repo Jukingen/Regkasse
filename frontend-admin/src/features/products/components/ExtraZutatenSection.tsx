@@ -7,8 +7,9 @@
  */
 
 import React from 'react';
-import { Alert, Checkbox, Collapse, Spin, Typography } from 'antd';
+import { Alert, Checkbox, Collapse, Typography } from 'antd';
 import type { ModifierGroupDto, AddOnGroupProductItemDto } from '@/lib/api/modifierGroups';
+import { ListSkeleton } from '@/components/Skeleton';
 import { useI18n } from '@/i18n';
 
 const { Text } = Typography;
@@ -101,7 +102,7 @@ export default function ExtraZutatenSection({
   if (loading) {
     return (
       <div style={{ padding: '12px 0' }}>
-        <Spin description={t('products.addonGroups.loading')} />
+        <ListSkeleton count={3} loading />
       </div>
     );
   }

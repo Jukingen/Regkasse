@@ -310,6 +310,7 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
         p.startsWith('/admin/users/') ||
         p === '/admin/tenants' ||
         p.startsWith('/admin/tenants/') ||
+        p === '/admin/data-management' ||
         p === '/admin/errors'
     ) {
         keys.push(ADMIN_SIDEBAR_GROUP_KEYS.admin);

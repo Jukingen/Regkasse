@@ -2,10 +2,11 @@
 
 import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Card, Button, Space, Spin, Alert, Typography } from 'antd';
+import { Card, Button, Space, Alert, Typography } from 'antd';
 import { ArrowLeftOutlined, LinkOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import dayjs from 'dayjs';
+import { PageSkeleton } from '@/components/Skeleton';
 import { useReceiptDetailQuery } from '@/features/receipts/hooks/useReceiptDetailQuery';
 import ReceiptDetailCard from '@/features/receipts/components/ReceiptDetailCard';
 import ReceiptItemsTable from '@/features/receipts/components/ReceiptItemsTable';
@@ -51,7 +52,7 @@ export default function ReceiptDetailPage() {
     };
 
     if (isLoading) {
-        return <Spin style={{ display: 'block', margin: '80px auto' }} description={t('receipts.detail.loadingTip')} />;
+        return <PageSkeleton widgets={3} />;
     }
 
     if (isError && isNotFoundError(error)) {

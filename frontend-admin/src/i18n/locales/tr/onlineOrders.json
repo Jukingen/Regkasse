@@ -1,0 +1,66 @@
+{
+  "pageTitle": "Online siparişler",
+  "pageSubtitle": "Yalnızca web sitesi ve uygulama siparişleri — durum güncellemesi POS sepeti, TSE imzası veya mali fiş oluşturmaz.",
+  "cardTitle": "Sipariş yönetimi",
+  "pendingFilter": "Bekleyen",
+  "statusFilterAll": "Tüm durumlar",
+  "empty": "Online sipariş yok",
+  "acceptSuccess": "Sipariş kabul edildi ve kasaya iletildi.",
+  "acceptAlreadyPushed": "Sipariş zaten kasaya iletilmişti.",
+  "statusUpdateSuccess": "Sipariş durumu güncellendi.",
+  "detailTitle": "Sipariş #{{number}}",
+  "detailTitleFallback": "Sipariş detayı",
+  "analytics": {
+    "totalOrders": "Siparişler (30g)",
+    "pending": "Bekleyen",
+    "completed": "Tamamlanan",
+    "revenue": "Ciro"
+  },
+  "columns": {
+    "orderNumber": "Sipariş no",
+    "customer": "Müşteri",
+    "total": "Tutar",
+    "status": "Durum",
+    "createdAt": "Zaman",
+    "actions": "Aksiyon"
+  },
+  "actions": {
+    "detail": "Detay",
+    "accept": "Kabul et",
+    "prepare": "Hazırla",
+    "markReady": "Hazır",
+    "complete": "Tamamla",
+    "cancel": "İptal"
+  },
+  "status": {
+    "pending": "Bekleyen",
+    "accepted": "Kabul edildi",
+    "preparing": "Hazırlanıyor",
+    "ready": "Hazır",
+    "completed": "Tamamlandı",
+    "cancelled": "İptal"
+  },
+  "orderTypes": {
+    "dine-in": "Masada",
+    "takeaway": "Gel-al",
+    "delivery": "Teslimat"
+  },
+  "detail": {
+    "customer": "Müşteri",
+    "phone": "Telefon",
+    "email": "E-posta",
+    "orderType": "Tür",
+    "table": "Masa",
+    "deliveryAddress": "Teslimat adresi",
+    "payment": "Ödeme",
+    "source": "Kanal",
+    "status": "Durum",
+    "timeline": "Durum geçmişi",
+    "posCart": "POS sepeti",
+    "notes": "Not",
+    "items": "Kalemler",
+    "subtotal": "Ara toplam",
+    "tax": "Vergi",
+    "total": "Toplam"
+  }
+}

@@ -41,7 +41,8 @@ public sealed class PosStatusService : IPosStatusService
         var mandantStatus = await mandantTask.ConfigureAwait(false);
         var licenseDto = LicensePublicStatusMapper.ApplyMandantOverlay(
             LicensePublicStatusMapper.MapDeploymentStatus(deployment),
-            mandantStatus);
+            mandantStatus,
+            language: "de");
 
         var healthSnapshot = _licenseService.GetStatus();
         var healthLicense = BuildHealthLicenseSnapshot(healthSnapshot, licenseDto);

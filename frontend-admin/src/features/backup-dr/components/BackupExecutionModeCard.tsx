@@ -6,7 +6,7 @@ import { useAntdApp } from '@/hooks/useAntdApp';
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Card, Checkbox, Descriptions, Radio, Space, Spin, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Checkbox, Descriptions, Radio, Skeleton, Space, Tag, Typography } from 'antd';
 import { SimpleList as List } from '@/components/ui/SimpleList';
 import axios from 'axios';
 import {
@@ -159,7 +159,7 @@ export function BackupExecutionModeCard({ canManage, t, onModeSaved }: BackupExe
   return (
     <Card title={t('backupDr.executionMode.title')} size="small">
       {loading ? (
-        <Spin />
+        <Skeleton active paragraph={{ rows: 4 }} />
       ) : (
         <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
           {error && (

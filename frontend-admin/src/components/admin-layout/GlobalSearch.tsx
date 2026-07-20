@@ -4,7 +4,7 @@ import React, { useEffect, useId, useMemo, useRef } from 'react';
 import { Empty, Input, Popover, Spin } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import { useI18n } from '@/i18n';
-import { useGlobalSearch } from '@/hooks/useGlobalSearch';
+import { useGlobalSearch, type UseGlobalSearchResult } from '@/hooks/useGlobalSearch';
 import { getAdminHeaderPopupContainer } from '@/shared/layout/adminHeaderDropdown';
 import { getGlobalSearchOptionId, getGlobalSearchShortcutLabel } from '@/shared/globalSearchA11y';
 import { splitSearchHighlight } from '@/shared/searchUtils';
@@ -12,6 +12,10 @@ import type { GlobalSearchResultItem } from '@/components/admin-layout/GlobalSea
 
 export type GlobalSearchProps = {
     isMobile?: boolean;
+};
+
+export type GlobalSearchViewProps = GlobalSearchProps & {
+    search: UseGlobalSearchResult;
 };
 
 function HighlightedLabel({ label, query }: { label: string; query: string }) {
@@ -70,8 +74,8 @@ function GlobalSearchResultRow({
     );
 }
 
-/** Header menu search with dropdown results (registry-backed, i18n labels). */
-export function GlobalSearch({ isMobile = false }: GlobalSearchProps) {
+/** Presentational header search UI (state + shortcut binding owned by `SearchBar`). */
+export function GlobalSearchView({ isMobile = false, search }: GlobalSearchViewProps) {
     const { t } = useI18n();
     const baseId = useId().replace(/:/g, '');
     const inputId = `${baseId}-input`;
@@ -92,7 +96,7 @@ export function GlobalSearch({ isMobile = false }: GlobalSearchProps) {
         inputRef,
         selectItem,
         onInputKeyDown,
-    } = useGlobalSearch();
+    } = search;
 
     const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
     const shortcutLabel = getGlobalSearchShortcutLabel();
@@ -122,6 +126,13 @@ export function GlobalSearch({ isMobile = false }: GlobalSearchProps) {
             {!query.trim() ? (
                 <div id={hintId} className="admin-header-nav-search-hint">
                     {t('adminShell.search.hint')}
+                    <div className="admin-header-nav-search-shortcut-hint">
+                        <kbd>{shortcutLabel}</kbd>
+                        <span>{t('adminShell.search.shortcutOpenSuffix')}</span>
+                        <span aria-hidden>·</span>
+                        <kbd>Esc</kbd>
+                        <span>{t('adminShell.search.shortcutCloseSuffix')}</span>
+                    </div>
                 </div>
             ) : null}
 
@@ -207,4 +218,14 @@ export function GlobalSearch({ isMobile = false }: GlobalSearchProps) {
             </Popover>
         </div>
     );
+}
+
+/**
+ * @deprecated Prefer `SearchBar` from `@/components/SearchBar` (owns shortcut listeners).
+ * Kept for existing imports; wires the same UI without duplicate shortcut binding when
+ * used alone — prefer `SearchBar` in the protected shell.
+ */
+export function GlobalSearch(props: GlobalSearchProps) {
+    const search = useGlobalSearch();
+    return <GlobalSearchView {...props} search={search} />;
 }

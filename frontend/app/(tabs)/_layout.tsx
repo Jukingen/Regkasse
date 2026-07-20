@@ -18,6 +18,7 @@ import { TimeSyncBanner } from '../../components/TimeSyncBanner';
 import { TimeSyncStatusProvider } from '../../hooks/useTimeSyncStatus';
 import { TseOfflineRestrictionBanner, TseStatusBanner } from '../../components/TseStatusBanner';
 import { OfflineStatusChip } from '../../components/OfflineStatusChip';
+import { Header as WorkingHoursStatus } from '../../components/Header';
 import { MonatsbelegHeaderBadge } from '../../components/MonatsbelegHeaderBadge';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { ToastContainer } from '../../components/ToastNotification';
@@ -197,6 +198,7 @@ function PosTabsInner({
         <View style={styles.licenseStatusBar}>
           <View style={styles.headerStatusLeft}>
             <TseStatusBanner />
+            <WorkingHoursStatus />
             <OfflineStatusChip />
             <MonatsbelegHeaderBadge />
           </View>

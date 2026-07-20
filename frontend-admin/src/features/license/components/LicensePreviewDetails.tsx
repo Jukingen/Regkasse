@@ -1,8 +1,9 @@
 'use client';
 
 import { FileTextOutlined } from '@ant-design/icons';
-import { Alert, Card, Descriptions, Flex, Space, Spin, Tag, Typography } from 'antd';
+import { Alert, Card, Descriptions, Space, Tag, Typography } from 'antd';
 
+import { FormSkeleton } from '@/components/Skeleton';
 import { formatGermanDateTime } from '@/i18n';
 import type {
     ExtendTenantLicenseResult,
@@ -34,7 +35,7 @@ export function LicensePreviewDetails({
     t,
     formatLocale,
 }: LicensePreviewDetailsProps) {
-    const showSpinner = uiState === 'loading' || uiState === 'confirming';
+    const isPreviewLoading = uiState === 'loading' || uiState === 'confirming';
 
     return (
         <Card
@@ -47,11 +48,7 @@ export function LicensePreviewDetails({
                 </Space>
             }
         >
-            {showSpinner ? (
-                <Flex justify="center" align="center" style={{ minHeight: 120 }}>
-                    <Spin tip={t('license.extendModal.previewLoading')} />
-                </Flex>
-            ) : null}
+            {isPreviewLoading ? <FormSkeleton fields={4} loading /> : null}
 
             {uiState === 'success' && extendResult ? (
                 <>
@@ -83,7 +80,7 @@ export function LicensePreviewDetails({
                 </>
             ) : null}
 
-            {!showSpinner && uiState === 'invalid' && preview ? (
+            {!isPreviewLoading && uiState === 'invalid' && preview ? (
                 <Alert
                     type="error"
                     showIcon
@@ -92,7 +89,7 @@ export function LicensePreviewDetails({
                 />
             ) : null}
 
-            {!showSpinner && (uiState === 'valid' || uiState === 'invalid') && preview ? (
+            {!isPreviewLoading && (uiState === 'valid' || uiState === 'invalid') && preview ? (
                 <>
                     {preview.licenseKey || preview.validFromUtc || preview.validUntilUtc ? (
                         <Descriptions column={1} size="small" style={{ textAlign: 'left' }}>

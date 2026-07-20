@@ -74,7 +74,11 @@
     "billingOverview": "Overview",
     "billingSales": "License sales",
     "billingStats": "Statistics",
-    "billingNew": "New sale"
+    "billingNew": "New sale",
+    "digital": "Digital services",
+    "digitalRequests": "Digital requests",
+    "onlineOrders": "Online orders",
+    "websitePreview": "Website preview"
   },
   "elmah": {
     "columns": {
@@ -163,6 +167,7 @@
       "createAdmin": "Create administrator",
       "switchAnywayDev": "Switch anyway (dev)",
       "retryLoad": "Retry",
+      "refreshFailed": "Could not refresh the session token. Tenant was not switched.",
       "tenantCount": "{count} tenants",
       "adminLine": "Admin: {email}",
       "noAdmin": "No admin assigned",
@@ -554,6 +559,8 @@
     "helpText": "Arrow keys to navigate, Enter to select, Escape to close.",
     "noResults": "No results",
     "hint": "Type to filter menu entries.",
+    "shortcutOpenSuffix": "to open",
+    "shortcutCloseSuffix": "to close",
     "searching": "Searching…",
     "resultsAria": "Search results"
   },

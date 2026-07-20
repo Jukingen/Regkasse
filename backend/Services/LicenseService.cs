@@ -11,6 +11,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Activity;
+using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -85,15 +86,26 @@ public enum LicenseAccessLevel
 public sealed class LicenseStatusInfo
 {
     public bool IsActive { get; set; }
+    /// <summary>True when <see cref="ValidUntil"/> is in the past (includes grace and lockdown).</summary>
+    public bool IsExpired { get; set; }
     public DateTime? ValidUntil { get; set; }
     public int DaysRemaining { get; set; }
     /// <summary>Positive when <see cref="ValidUntil"/> is in the past.</summary>
     public int DaysOverdue { get; set; }
     public bool IsInGracePeriod { get; set; }
+    /// <summary>True when expired past the grace window (POS locked; Super Admin unlock only).</summary>
+    public bool IsLocked { get; set; }
     public int GracePeriodRemaining { get; set; }
+    /// <summary>UTC date when POS lock starts (expiry + grace days); null when not expired.</summary>
+    public DateTime? LockDate { get; set; }
     public bool CanAccess { get; set; }
     public bool CanTransact { get; set; }
+    /// <summary>Stable key for clients (<see cref="LicenseStatusMessageKeys"/>).</summary>
+    public string StatusMessageKey { get; set; } = string.Empty;
+    /// <summary>Localized status copy (default language de when built without Accept-Language).</summary>
     public string StatusMessage { get; set; } = string.Empty;
+    /// <summary>Restriction codes (<see cref="LicenseStatusRestrictionCodes"/>).</summary>
+    public IReadOnlyList<string> Restrictions { get; set; } = Array.Empty<string>();
     public bool RequiresRenewal { get; set; }
 }
 
@@ -105,7 +117,8 @@ public static class LicenseStatusInfoBuilder
     public static LicenseStatusInfo Build(
         DateTime? validUntilUtc,
         bool isSuperAdmin = false,
-        DateTime? nowUtc = null)
+        DateTime? nowUtc = null,
+        string? language = null)
     {
         var now = nowUtc ?? DateTime.UtcNow;
         if (!validUntilUtc.HasValue)
@@ -113,14 +126,20 @@ public static class LicenseStatusInfoBuilder
             return new LicenseStatusInfo
             {
                 IsActive = false,
+                IsExpired = true,
                 ValidUntil = null,
                 DaysRemaining = 0,
                 DaysOverdue = 0,
                 IsInGracePeriod = false,
+                IsLocked = !isSuperAdmin,
                 GracePeriodRemaining = 0,
+                LockDate = null,
                 CanAccess = isSuperAdmin,
                 CanTransact = isSuperAdmin,
-                StatusMessage = "No tenant license configured.",
+                StatusMessageKey = LicenseStatusMessageKeys.None,
+                StatusMessage = LicenseStatusMessages.Format(LicenseStatusMessageKeys.None, language),
+                Restrictions = LicenseStatusMessages.GetRestrictions(isExpired: true, isGracePeriod: false, isLocked: !isSuperAdmin),
+                RequiresRenewal = true,
             };
         }
 
@@ -130,27 +149,68 @@ public static class LicenseStatusInfoBuilder
             ? Math.Max(0, (int)Math.Ceiling((until - now).TotalDays))
             : 0;
         var isActive = daysOverdue == 0;
+        var isExpired = !isActive;
         var tenantStatus = Validator.GetStatus(until, now);
         var permissions = Validator.GetPermissions(until, isSuperAdmin, now);
         var accessLevel = MapAccessLevel(tenantStatus, isSuperAdmin);
         var isInGrace = tenantStatus == TenantLicenseStatus.GraceWrite;
+        var isLocked = tenantStatus is (TenantLicenseStatus.Lockdown or TenantLicenseStatus.Archived)
+            && !isSuperAdmin;
         var graceRemaining = isInGrace
             ? Math.Max(0, LicenseGracePeriodConfig.GracePeriodDays - daysOverdue)
             : 0;
+        var lockDate = LicenseStatusMessages.ComputeLockDate(until, isExpired);
+        var messageKey = ResolveMessageKey(accessLevel, daysRemaining, daysOverdue, isInGrace, isLocked);
+        var restrictions = LicenseStatusMessages.GetRestrictions(isExpired, isInGrace, isLocked);
 
         return new LicenseStatusInfo
         {
             IsActive = isActive,
+            IsExpired = isExpired,
             ValidUntil = until,
             DaysRemaining = daysRemaining,
             DaysOverdue = daysOverdue,
             IsInGracePeriod = isInGrace,
+            IsLocked = isLocked,
             GracePeriodRemaining = graceRemaining,
+            LockDate = lockDate,
             CanAccess = permissions.CanAccess,
             CanTransact = permissions.CanWrite,
-            StatusMessage = BuildStatusMessage(accessLevel, daysRemaining, daysOverdue, graceRemaining),
-            RequiresRenewal = tenantStatus == TenantLicenseStatus.Lockdown,
+            StatusMessageKey = messageKey,
+            StatusMessage = LicenseStatusMessages.Format(
+                messageKey,
+                language,
+                daysRemaining,
+                daysOverdue,
+                graceRemaining,
+                lockDate),
+            Restrictions = restrictions,
+            RequiresRenewal = tenantStatus is TenantLicenseStatus.Lockdown or TenantLicenseStatus.Archived,
         };
+    }
+
+    private static string ResolveMessageKey(
+        LicenseAccessLevel accessLevel,
+        int daysRemaining,
+        int daysOverdue,
+        bool isInGrace,
+        bool isLocked)
+    {
+        if (isLocked || accessLevel == LicenseAccessLevel.Blocked)
+            return daysOverdue > 0 ? LicenseStatusMessageKeys.Locked : LicenseStatusMessageKeys.None;
+
+        if (isInGrace || (accessLevel == LicenseAccessLevel.FullAccess && daysOverdue > 0))
+            return LicenseStatusMessageKeys.Grace;
+
+        if (accessLevel == LicenseAccessLevel.FullAccess
+            && daysOverdue == 0
+            && daysRemaining <= LicenseGracePeriodConfig.WarningDaysBeforeExpiry)
+            return LicenseStatusMessageKeys.ExpiringSoon;
+
+        if (accessLevel == LicenseAccessLevel.ReadOnly)
+            return LicenseStatusMessageKeys.Locked;
+
+        return LicenseStatusMessageKeys.Active;
     }
 
     private static LicenseAccessLevel MapAccessLevel(
@@ -165,31 +225,9 @@ public static class LicenseStatusInfoBuilder
             TenantLicenseStatus.Active or TenantLicenseStatus.GraceWrite
                 => LicenseAccessLevel.FullAccess,
             TenantLicenseStatus.GraceReadOnly => LicenseAccessLevel.ReadOnly,
-            TenantLicenseStatus.Lockdown or TenantLicenseStatus.NoLicense
+            TenantLicenseStatus.Lockdown or TenantLicenseStatus.Archived or TenantLicenseStatus.NoLicense
                 => LicenseAccessLevel.Blocked,
             _ => LicenseAccessLevel.Blocked,
-        };
-    }
-
-    private static string BuildStatusMessage(
-        LicenseAccessLevel accessLevel,
-        int daysRemaining,
-        int daysOverdue,
-        int graceRemaining)
-    {
-        return accessLevel switch
-        {
-            LicenseAccessLevel.FullAccess when daysOverdue == 0 && daysRemaining <= LicenseGracePeriodConfig.WarningDaysBeforeExpiry =>
-                $"License expires in {daysRemaining} day(s). Renew before expiry to avoid service interruption.",
-            LicenseAccessLevel.FullAccess when daysOverdue == 0 =>
-                "License is active.",
-            LicenseAccessLevel.FullAccess =>
-                $"License expired {daysOverdue} day(s) ago. Grace period: {graceRemaining} day(s) remaining.",
-            LicenseAccessLevel.ReadOnly =>
-                $"Grace period ended {daysOverdue - LicenseGracePeriodConfig.GracePeriodDays} day(s) ago. Read-only access; transactions are blocked.",
-            LicenseAccessLevel.Blocked when daysOverdue > 0 =>
-                $"License expired {daysOverdue} day(s) ago. Access is blocked; renew to restore service.",
-            _ => "No valid tenant license.",
         };
     }
 }
@@ -587,14 +625,19 @@ public sealed class LicenseService : ILicenseService
         new()
         {
             IsActive = true,
+            IsExpired = false,
             CanAccess = true,
             CanTransact = true,
             DaysRemaining = 999,
             DaysOverdue = 0,
             IsInGracePeriod = false,
+            IsLocked = false,
             GracePeriodRemaining = 0,
+            LockDate = null,
             RequiresRenewal = false,
+            StatusMessageKey = LicenseStatusMessageKeys.Active,
             StatusMessage = statusMessage,
+            Restrictions = Array.Empty<string>(),
         };
 
     /// <summary>
@@ -602,20 +645,32 @@ public sealed class LicenseService : ILicenseService
     /// Preserves full <see cref="Tenant.LicenseValidUntilUtc"/> (no UTC-midnight truncation)
     /// and uses ceiling day math for remaining time (same as <see cref="Tenancy.TenantLicenseStatusMapper"/>).
     /// </summary>
-    internal static LicenseStatusInfo BuildTenantLicenseStatusInfo(Tenant tenant, DateTime? nowUtc = null)
+    internal static LicenseStatusInfo BuildTenantLicenseStatusInfo(
+        Tenant tenant,
+        DateTime? nowUtc = null,
+        string? language = null)
     {
         var now = nowUtc ?? DateTime.UtcNow;
+        var lang = language ?? "de";
 
         if (!tenant.LicenseValidUntilUtc.HasValue)
         {
             return new LicenseStatusInfo
             {
                 IsActive = tenant.IsActive,
+                IsExpired = false,
                 CanAccess = true,
                 CanTransact = true,
                 DaysRemaining = 999,
+                DaysOverdue = 0,
                 IsInGracePeriod = false,
-                StatusMessage = "Aktive Lizenz",
+                IsLocked = false,
+                GracePeriodRemaining = 0,
+                LockDate = null,
+                StatusMessageKey = LicenseStatusMessageKeys.Active,
+                StatusMessage = LicenseStatusMessages.Format(LicenseStatusMessageKeys.Active, lang),
+                Restrictions = Array.Empty<string>(),
+                RequiresRenewal = false,
             };
         }
 
@@ -638,38 +693,52 @@ public sealed class LicenseService : ILicenseService
         }
 
         var isInGracePeriod = isExpired && daysOverdue <= GracePeriodDays;
+        var isLocked = isExpired && daysOverdue > GracePeriodDays;
         var gracePeriodRemaining = isInGracePeriod ? GracePeriodDays - daysOverdue : 0;
         var canAccess = !isExpired || isInGracePeriod;
         var canTransact = canAccess;
+        var lockDate = LicenseStatusMessages.ComputeLockDate(validUntil, isExpired);
+        var restrictions = LicenseStatusMessages.GetRestrictions(isExpired, isInGracePeriod, isLocked);
 
-        string statusMessage;
+        string messageKey;
         if (!isExpired)
         {
-            statusMessage = daysRemaining <= WarningDaysBeforeExpiry
-                ? $"Lizenz läuft in {daysRemaining} Tagen ab"
-                : $"Lizenz gültig bis {validUntil:dd.MM.yyyy}";
+            messageKey = daysRemaining <= WarningDaysBeforeExpiry
+                ? LicenseStatusMessageKeys.ExpiringSoon
+                : LicenseStatusMessageKeys.Active;
         }
         else if (isInGracePeriod)
         {
-            statusMessage = $"Lizenz abgelaufen. Grace Period: noch {gracePeriodRemaining} Tage";
+            messageKey = LicenseStatusMessageKeys.Grace;
         }
         else
         {
-            statusMessage = "Lizenz abgelaufen. Zugang gesperrt. Bitte Lizenz erneuern.";
+            messageKey = LicenseStatusMessageKeys.Locked;
         }
 
         return new LicenseStatusInfo
         {
-            IsActive = tenant.IsActive,
+            IsActive = tenant.IsActive && !isExpired,
+            IsExpired = isExpired,
             ValidUntil = validUntil,
             DaysRemaining = daysRemaining,
             DaysOverdue = daysOverdue,
             IsInGracePeriod = isInGracePeriod,
+            IsLocked = isLocked,
             GracePeriodRemaining = gracePeriodRemaining,
+            LockDate = lockDate,
             CanAccess = canAccess,
             CanTransact = canTransact,
-            StatusMessage = statusMessage,
-            RequiresRenewal = isExpired && !isInGracePeriod,
+            StatusMessageKey = messageKey,
+            StatusMessage = LicenseStatusMessages.Format(
+                messageKey,
+                lang,
+                daysRemaining: Math.Max(0, daysRemaining),
+                daysOverdue: daysOverdue,
+                gracePeriodRemaining: gracePeriodRemaining,
+                lockDateUtc: lockDate),
+            Restrictions = restrictions,
+            RequiresRenewal = isLocked,
         };
     }
 

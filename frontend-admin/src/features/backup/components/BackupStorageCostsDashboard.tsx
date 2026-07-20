@@ -12,12 +12,12 @@ import {
   List,
   Progress,
   Row,
-  Spin,
   Statistic,
   Table,
   Tag,
   Typography,
 } from "antd";
+import { PageSkeleton } from "@/components/Skeleton";
 import { CheckCircleOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useI18n } from "@/i18n";
@@ -121,7 +121,7 @@ export function BackupStorageCostsDashboard() {
     [t],
   );
 
-  if (isLoading) return <Spin />;
+  if (isLoading) return <PageSkeleton widgets={4} />;
 
   if (isError) {
     return (

@@ -47,19 +47,19 @@ public sealed class CoreMetrics : ICoreMetrics
 
     public CoreMetrics()
     {
-        _replayTotal = Metrics.CreateCounter(
+        _replayTotal = global::Prometheus.Metrics.CreateCounter(
             "replay_total",
             "Total number of offline replay items attempted (per item).");
 
-        _replayFailedTotal = Metrics.CreateCounter(
+        _replayFailedTotal = global::Prometheus.Metrics.CreateCounter(
             "replay_failed_total",
             "Total number of offline replay items that ended in failed state.");
 
-        _replayDuplicateTotal = Metrics.CreateCounter(
+        _replayDuplicateTotal = global::Prometheus.Metrics.CreateCounter(
             "replay_duplicate_total",
             "Total number of offline replay items that were already synced (idempotent duplicate).");
 
-        _advisoryLockWaitSeconds = Metrics.CreateHistogram(
+        _advisoryLockWaitSeconds = global::Prometheus.Metrics.CreateHistogram(
             "advisory_lock_wait_seconds",
             "Time spent waiting to acquire offline replay advisory lock (seconds).",
             new HistogramConfiguration
@@ -67,34 +67,34 @@ public sealed class CoreMetrics : ICoreMetrics
                 Buckets = Histogram.ExponentialBuckets(0.001, 2, 14) // 1ms to ~8s
             });
 
-        _payloadHashMismatchTotal = Metrics.CreateCounter(
+        _payloadHashMismatchTotal = global::Prometheus.Metrics.CreateCounter(
             "payload_hash_mismatch_total",
             "Total number of payload_hash mismatches detected and aligned (lazy repair on replay or maintenance).");
 
-        _structuralFallbackResolvedTotal = Metrics.CreateCounter(
+        _structuralFallbackResolvedTotal = global::Prometheus.Metrics.CreateCounter(
             "structural_fallback_resolved_total",
             "Number of offline replay items resolved via structural payload match (hash path did not match).");
-        _structuralFallbackAmbiguousTotal = Metrics.CreateCounter(
+        _structuralFallbackAmbiguousTotal = global::Prometheus.Metrics.CreateCounter(
             "structural_fallback_ambiguous_total",
             "Number of times structural fallback found multiple matches and skipped resolution.");
 
-        _payloadHashRepairConflictTotal = Metrics.CreateCounter(
+        _payloadHashRepairConflictTotal = global::Prometheus.Metrics.CreateCounter(
             "payload_hash_repair_conflicts_total",
             "Number of rows skipped during repair due to (CashRegisterId, canonicalHash) conflict (report only).");
-        _payloadHashCompletionPercent = Metrics.CreateGauge(
+        _payloadHashCompletionPercent = global::Prometheus.Metrics.CreateGauge(
             "payload_hash_completion_percent",
             "Percentage of offline_transactions with aligned payload_hash (0-100). From last repair/analyze cycle.");
 
-        _finanzonlineSubmitTotal = Metrics.CreateCounter(
+        _finanzonlineSubmitTotal = global::Prometheus.Metrics.CreateCounter(
             "finanzonline_submit_total",
             "Total number of FinanzOnline submission attempts.");
 
-        _finanzonlineSubmitFailedTotal = Metrics.CreateCounter(
+        _finanzonlineSubmitFailedTotal = global::Prometheus.Metrics.CreateCounter(
             "finanzonline_submit_failed_total",
             "Total number of FinanzOnline submission failures.",
             new CounterConfiguration { LabelNames = ["failure_kind"] });
 
-        _legacyRouteHitsTotal = Metrics.CreateCounter(
+        _legacyRouteHitsTotal = global::Prometheus.Metrics.CreateCounter(
             "legacy_route_hits_total",
             "Total number of requests hitting deprecated legacy API aliases (/api/Payment, /api/Cart, /api/Product).",
             new CounterConfiguration { LabelNames = ["legacy_family", "route_pattern", "http_method"] });

@@ -14,7 +14,6 @@ import {
     Form,
     Select,
     Space,
-    Spin,
     Table,
     Tag,
     Typography,
@@ -22,6 +21,7 @@ import {
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import { RedoOutlined, SyncOutlined } from '@ant-design/icons';
 import { useQueryClient } from '@tanstack/react-query';
+import { TableSkeleton } from '@/components/Skeleton';
 import {
     getGetApiAdminOfflineOrdersQueryKey,
     useGetApiAdminOfflineOrders,
@@ -391,7 +391,9 @@ export default function OfflineOrdersPage() {
                 </Form>
             </Card>
 
-            <Spin spinning={isLoading}>
+            {isLoading ? (
+                <TableSkeleton rows={8} cols={6} />
+            ) : (
                 <Table<AdminOfflineOrderRowDto>
                     rowKey="id"
                     columns={columns}
@@ -399,7 +401,7 @@ export default function OfflineOrdersPage() {
                     pagination={pagination}
                     scroll={{ x: true }}
                 />
-            </Spin>
+            )}
         </Space>
     );
 }

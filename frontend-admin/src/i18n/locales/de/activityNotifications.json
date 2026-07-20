@@ -44,6 +44,10 @@
     "RestoreDrillFailed": "Restore-Übung fehlgeschlagen",
     "RestoreDrillSucceeded": "Restore-Übung erfolgreich",
     "DailyClosingBackdatedCreated": "Tagesabschluss nachträglich erstellt",
-    "DailyClosingPendingReminder": "Tagesabschluss steht aus"
+    "DailyClosingPendingReminder": "Tagesabschluss steht aus",
+    "OnlineOrderPushedToPos": "Online-Bestellung an Kasse übergeben",
+    "OnlineOrderPaid": "Online-Bestellung bezahlt",
+    "OnlineOrderStatusChanged": "Online-Bestellstatus geändert",
+    "OnlineOrderConfirmed": "Online-Bestellung bestätigt"
   }
 }

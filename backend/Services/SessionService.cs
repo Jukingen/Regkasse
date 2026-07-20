@@ -48,10 +48,34 @@ public sealed class SessionService : ISessionService
         UserId = dto.UserId,
         ClientApp = dto.ClientApp,
         DeviceId = dto.DeviceId,
+        DeviceName = dto.DeviceName,
+        Browser = dto.Browser,
+        OS = dto.OS,
         IpAddress = dto.IpAddress,
+        UserAgent = dto.UserAgent,
         StartedAtUtc = dto.StartedAtUtc,
         LastActivityAtUtc = dto.LastActivityAtUtc,
+        ExpiresAtUtc = dto.ExpiresAtUtc,
         IsActive = dto.IsActive,
         IsCurrent = dto.IsCurrent,
+    };
+
+    /// <summary>Maps to the product <see cref="UserSession"/> shape (CreatedAt / LastActiveAt naming).</summary>
+    public static UserSession ToUserSession(ActiveSession session) => new()
+    {
+        Id = session.Id,
+        UserId = session.UserId,
+        ClientApp = session.ClientApp,
+        DeviceId = session.DeviceId,
+        DeviceName = session.DeviceName,
+        Browser = session.Browser,
+        OS = session.OS,
+        IPAddress = session.IpAddress,
+        UserAgent = session.UserAgent,
+        CreatedAt = session.StartedAtUtc,
+        LastActiveAt = session.LastActivityAtUtc,
+        ExpiresAt = session.ExpiresAtUtc,
+        IsActive = session.IsActive,
+        IsCurrent = session.IsCurrent,
     };
 }

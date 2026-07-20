@@ -37,6 +37,7 @@ public sealed class TenantContextServiceTests
             db,
             accessor,
             environment.Object,
+            Mock.Of<KasseAPI_Final.Services.Tenancy.ITenantDomainService>(),
             NullLogger<TenantContextService>.Instance);
     }
 

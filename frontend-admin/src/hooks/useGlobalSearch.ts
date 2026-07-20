@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { InputRef } from 'antd';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
 import { useMenuSearchIndex } from '@/hooks/useMenuSearchIndex';
 import type { GlobalSearchResultItem } from '@/components/admin-layout/GlobalSearch.types';
 import { filterGlobalSearchItems } from '@/shared/searchUtils';
@@ -23,7 +22,7 @@ export type UseGlobalSearchResult = {
     setSelectedIndex: React.Dispatch<React.SetStateAction<number>>;
     inputRef: React.RefObject<InputRef | null>;
     openSearch: () => void;
-    closeSearch: () => void;
+    closeSearch: (options?: { restoreFocus?: boolean }) => void;
     selectItem: (item: GlobalSearchResultItem) => void;
     onInputKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
 };
@@ -88,11 +87,6 @@ export function useGlobalSearch(): UseGlobalSearchResult {
         },
         [],
     );
-
-    useKeyboardShortcut('k', {
-        metaOrCtrl: true,
-        onTrigger: openSearch,
-    });
 
     useEffect(() => {
         if (!open) return;

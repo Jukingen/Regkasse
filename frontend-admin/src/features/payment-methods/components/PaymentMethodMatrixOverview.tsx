@@ -7,7 +7,6 @@ import {
   Flex,
   Popover,
   Space,
-  Spin,
   Table,
   Tag,
   Tooltip,
@@ -24,6 +23,7 @@ import {
 
 import type { PaymentMethodDefinitionAdmin } from '@/api/admin/payment-method-definitions';
 import type { AdminCashRegisterListItem } from '@/features/cash-registers/api/cashRegisters';
+import { TableSkeleton } from '@/components/Skeleton';
 import { useI18n } from '@/i18n';
 import {
   buildPaymentMethodMatrix,
@@ -235,11 +235,7 @@ export function PaymentMethodMatrixOverview({
   }, [registers, canManage, onManageRegister, onEditDefinition, onToggleActive, t]);
 
   if (loading) {
-    return (
-      <Flex justify="center" style={{ padding: 48 }}>
-        <Spin />
-      </Flex>
-    );
+    return <TableSkeleton rows={6} />;
   }
 
   return (

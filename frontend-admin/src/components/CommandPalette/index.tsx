@@ -5,7 +5,8 @@ import { CommandPalette } from '@/components/CommandPalette/CommandPalette';
 
 /**
  * Global command palette modal (entity search, actions).
- * Menu search shortcut (Ctrl+K / Cmd+K) is owned by `GlobalSearch` in the shell header.
+ * Menu search shortcut (Ctrl+K / Cmd+K) is owned by `SearchBar`
+ * → `regkasse:openSearch` / `regkasse:closeModal` via `useKeyboardShortcuts`.
  * Mount once in `(protected)/layout.tsx`.
  */
 export function CommandPaletteShell() {

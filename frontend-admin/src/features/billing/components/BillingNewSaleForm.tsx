@@ -16,13 +16,13 @@ import {
     Row,
     Select,
     Space,
-    Spin,
     Tag,
 } from 'antd';
 import { CheckCircleOutlined, FilePdfOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
+import { CardSkeleton } from '@/components/Skeleton';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n, formatCurrency, formatGermanDateTime } from '@/i18n';
@@ -360,9 +360,7 @@ export function BillingNewSaleForm({ initialTenantId }: { initialTenantId?: stri
                 <Col xs={24} lg={12}>
                     <Card title={t('billing.new.previewTitle')} variant="borderless">
                         {previewMutation.isPending ? (
-                            <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
-                                <Spin tip={t('billing.new.previewLoading')} />
-                            </div>
+                            <CardSkeleton count={1} />
                         ) : preview ? (
                             <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                                 <Descriptions column={1} size="small" bordered>

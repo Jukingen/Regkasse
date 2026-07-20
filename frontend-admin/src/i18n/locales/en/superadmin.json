@@ -18,5 +18,73 @@
   "tenantCreate": {
     "slugExample": "cafe-example",
     "urlPreviewHint": "The full URL is built from the slug and domain."
+  },
+  "digital": {
+    "pageTitle": "Digital services — Management",
+    "pageSubtitle": "Super Admin: activate, deactivate, and override prices for website and app services per tenant.",
+    "requestsPageTitle": "Digital service requests",
+    "requestsPageSubtitle": "Approve or reject creation requests. Approval does not auto-generate — create the service on the tenant digital page.",
+    "requestsTitle": "Pending creation requests",
+    "requestsHint": "Pending requests only. Approval does not create the service automatically.",
+    "requestsViewAll": "All requests",
+    "requestsEmpty": "No requests",
+    "requestsLoadFailed": "Could not load requests.",
+    "requestApprove": "Approve",
+    "requestReject": "Reject",
+    "requestApproved": "Request approved. You can create the service now.",
+    "requestRejected": "Request rejected",
+    "requestResolveFailed": "Could not resolve request",
+    "requestFilter": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "all": "All"
+    },
+    "requestStatus": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
+    },
+    "requestColumns": {
+      "tenant": "Tenant",
+      "service": "Service",
+      "requestedAt": "Requested at",
+      "note": "Note",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "accessDenied": "You do not have permission to manage digital services.",
+    "loadFailed": "Could not load digital services.",
+    "empty": "No tenants found",
+    "active": "Active",
+    "inactive": "Inactive",
+    "websiteStatus": "Web: {{status}}",
+    "appStatus": "App: {{status}}",
+    "customPriceTag": "Custom",
+    "editPrice": "Edit price",
+    "toggleActivated": "Service activated",
+    "toggleDeactivated": "Service deactivated",
+    "toggleFailed": "Could not change status",
+    "deactivateConfirmTitle": "Deactivate service",
+    "deactivateConfirmBody": "Are you sure you want to deactivate „{{service}}“ for {{tenant}}?",
+    "deactivateConfirmOk": "Deactivate",
+    "deactivateReasonPlaceholder": "Optional reason (logged in audit)",
+    "priceUpdated": "Price updated",
+    "priceUpdateFailed": "Could not update price",
+    "priceModalTitle": "Update price",
+    "priceModalLabel": "Monthly price (€)",
+    "priceModalSave": "Save",
+    "priceModalHint": "{{tenant}} — {{service}}. List price: {{listPrice}}. Matching the list price clears the override.",
+    "priceRequired": "Price is required",
+    "resetToListPrice": "Reset to list price",
+    "columns": {
+      "tenant": "Tenant",
+      "website": "Website",
+      "app": "Mobile app",
+      "websitePrice": "Price (web)",
+      "appPrice": "Price (app)",
+      "status": "Status"
+    }
   }
 }

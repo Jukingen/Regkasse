@@ -254,6 +254,24 @@ public class PermissionAuthorizationHandlerTests
     }
 
     [Fact]
+    public async Task PermissionPolicy_SuperAdmin_JwtRoleClaim_ShortCircuits_Any_Permission()
+    {
+        // Mirrors issued tokens: RoleClaimType "role" (not only ClaimTypes.Role).
+        var identity = new ClaimsIdentity("Test");
+        identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, "user-id"));
+        identity.AddClaim(new Claim("role", Roles.SuperAdmin));
+        identity.AddClaim(new Claim(PermissionCatalog.PermissionClaimType, AppPermissions.SystemCritical));
+        var user = new ClaimsPrincipal(identity);
+
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.UserManage));
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
     public async Task PermissionPolicy_SystemCritical_Denies_Manager_Role()
     {
         var provider = BuildAuthorizationServices();

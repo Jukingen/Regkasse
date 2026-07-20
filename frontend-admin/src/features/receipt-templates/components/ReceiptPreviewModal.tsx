@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Modal, Spin, Alert, Typography } from 'antd';
+import { Modal, Alert, Typography } from 'antd';
+import { CardSkeleton } from '@/components/Skeleton';
 import { useReceiptTemplates } from '../hooks/useReceiptTemplates';
 import { useI18n } from '@/i18n';
 
@@ -39,7 +40,7 @@ export default function ReceiptPreviewModal({ templateId, onClose }: ReceiptPrev
             footer={null}
             width={700}
         >
-            {isLoading && <Spin description={t('receiptTemplates.preview.loading')} />}
+            {isLoading && <CardSkeleton count={1} />}
             {isError && (
                 <Alert
                     type="error"

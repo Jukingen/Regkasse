@@ -42,6 +42,7 @@ export const MENU_PERMISSIONS: Record<string, string | string[] | undefined> = {
 
   // Tenant management (Super Admin)
   '/admin/tenants': PERMISSIONS.SYSTEM_CRITICAL,
+  '/tenant': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/licenses': PERMISSIONS.LICENSE_VIEW,
   '/admin/cash-registers': PERMISSIONS.SYSTEM_CRITICAL,
 
@@ -61,10 +62,37 @@ export const MENU_PERMISSIONS: Record<string, string | string[] | undefined> = {
   '/settings': PERMISSIONS.SETTINGS_VIEW,
   '/settings/password': ANY_AUTHENTICATED_PERMISSION,
   '/settings/company': PERMISSIONS.SETTINGS_MANAGE,
+  '/settings/working-hours': PERMISSIONS.SETTINGS_VIEW,
+  '/settings/website': [
+    PERMISSIONS.DIGITAL_VIEW,
+    PERMISSIONS.DIGITAL_PREVIEW,
+    PERMISSIONS.DIGITAL_REQUEST,
+    PERMISSIONS.DIGITAL_CREATE,
+    PERMISSIONS.WEBSITE_MANAGE,
+  ],
+  '/settings/digital': [
+    PERMISSIONS.DIGITAL_VIEW,
+    PERMISSIONS.DIGITAL_REQUEST,
+    PERMISSIONS.WEBSITE_MANAGE,
+  ],
+  '/digital/customer-portal': [
+    PERMISSIONS.DIGITAL_VIEW,
+    PERMISSIONS.DIGITAL_REQUEST,
+    PERMISSIONS.WEBSITE_MANAGE,
+  ],
+  '/billing/digital': [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/digital': [
+    PERMISSIONS.DIGITAL_MANAGE,
+    PERMISSIONS.DIGITAL_ACTIVATE,
+    PERMISSIONS.DIGITAL_PRICING_MANAGE,
+    PERMISSIONS.SYSTEM_CRITICAL,
+  ],
+  '/admin/digital/requests': [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
   '/settings/tse': PERMISSIONS.SETTINGS_MANAGE,
   '/settings/finanzonline': PERMISSIONS.SETTINGS_MANAGE,
   '/settings/backup': PERMISSIONS.BACKUP_MANAGE,
   '/settings/session': PERMISSIONS.SETTINGS_VIEW,
+  '/settings/sessions': PERMISSIONS.SETTINGS_VIEW,
   '/settings/offline': PERMISSIONS.SETTINGS_MANAGE,
   '/settings/personalization': PERMISSIONS.SETTINGS_VIEW,
   '/settings/appearance': PERMISSIONS.SETTINGS_VIEW,

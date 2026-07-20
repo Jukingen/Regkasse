@@ -5,9 +5,10 @@
  */
 
 import React, { useCallback, useMemo, useState } from "react";
-import { App, Alert, Button, Space, Spin, Table, Tag, Tooltip, Typography, Upload } from "antd";
+import { App, Alert, Button, Space, Table, Tag, Tooltip, Typography, Upload } from "antd";
 import { DownloadOutlined, FileOutlined, InboxOutlined, UploadOutlined, RollbackOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
+import { TableSkeleton } from "@/components/Skeleton";
 import { useI18n } from "@/i18n";
 import { formatBytes, formatDateTime } from "@/i18n/formatting";
 import { useBackupPermissions } from "@/features/backup/hooks/useBackupPermissions";
@@ -450,7 +451,7 @@ export function BackupList({
   const showImport = canDownloadBackup && !compact;
 
   if (listQuery.isLoading && !listQuery.data) {
-    return <Spin />;
+    return <TableSkeleton rows={6} cols={5} loading />;
   }
 
   return (

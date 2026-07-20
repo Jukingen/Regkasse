@@ -23,7 +23,7 @@ import {
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { useURLFilters } from '@/hooks/useURLFilters';
 
-export function createProductKeys(tenantSlug: string) {
+export function createProductKeys(tenantSlug: string | null | undefined) {
     return {
         all: adminProductsQueryKeys.all(tenantSlug),
         lists: () => adminProductsQueryKeys.lists(tenantSlug),

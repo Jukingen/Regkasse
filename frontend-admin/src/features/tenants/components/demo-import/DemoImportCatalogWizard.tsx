@@ -2,8 +2,9 @@
 
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Button, Checkbox, Collapse, InputNumber, Select, Space, Spin, Steps, Table, Tag, Typography } from 'antd';
+import { Alert, Button, Checkbox, Collapse, InputNumber, Select, Space, Steps, Table, Tag, Typography } from 'antd';
 import { CheckSquareOutlined } from '@ant-design/icons';
+import { CardSkeleton } from '@/components/Skeleton';
 
 import type { DemoImportCatalog } from '@/api/admin/products';
 import { DemoImportProfileBar } from '@/features/tenants/components/demo-import/DemoImportProfileBar';
@@ -218,11 +219,7 @@ export function DemoImportCatalogWizard({
     const invalidTaxCount = taxValidation.invalidProductIds.size;
 
     if (isLoading) {
-        return (
-            <div style={{ textAlign: 'center', padding: 32 }}>
-                <Spin />
-            </div>
-        );
+        return <CardSkeleton count={2} />;
     }
 
     if (isError) {

@@ -130,6 +130,34 @@
     "view_details": "Yedekleme özetini aç",
     "load_failed": "Yedekleme durumu yüklenemedi."
   },
+  "metricsWidget": {
+    "operational": "Çalışıyor",
+    "requests": "İstekler",
+    "requestsSuffix": "istek",
+    "avgResponse": "Ort. yanıt",
+    "errorRate": "Hata oranı",
+    "activeUsers": "Kayıtlı kullanıcılar",
+    "uptime": "Çalışma süresi",
+    "uptimeValue": "{{days}}g {{hours}}s {{minutes}}dk",
+    "cacheHit": "Önbellek isabeti: %{{percent}}",
+    "activeOrders": "Aktif siparişler: {{count}}",
+    "tenants": "Kiracılar: {{count}}",
+    "loadFailed": "Sistem metrikleri yüklenemedi."
+  },
+  "dataRetentionWidget": {
+    "viewAll": "Tümünü gör",
+    "loadFailed": "Veri saklama durumu yüklenemedi.",
+    "totalTenants": "Toplam kiracı",
+    "thisTenant": "Bu kiracı",
+    "inGrace": "Grace dönemi",
+    "locked": "Kilitli / süresi dolan",
+    "deletionRequests": "Silme talepleri",
+    "tagActive": "Aktif: {{count}}",
+    "tagGrace": "Grace: {{count}}",
+    "tagLocked": "Kilitli: {{count}}",
+    "rksvNote": "RKSV verileri en az 7 yıl saklanır",
+    "oldestRksv": "En eski RKSV ödemesi: {{date}}"
+  },
   "widgetShell": {
     "refresh": "Yenile",
     "drag_widget": "Widget taşı"

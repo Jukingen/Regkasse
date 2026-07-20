@@ -18,12 +18,22 @@ export type LicensePublicStatusDto = {
     canAccess?: boolean | null;
     /** Mandant transaction flag when tenant context is resolved. */
     canTransact?: boolean | null;
-    /** German mandant status copy when tenant context is resolved. */
+    /** German mandant status copy when tenant context is resolved (localized when Accept-Language is set). */
     statusMessage?: string | null;
+    /** Stable message key for clients (`license.status.*`). */
+    statusMessageKey?: string | null;
     /** True when mandant license is expired but still within the grace window. */
     isInGracePeriod?: boolean;
+    /** True when mandant license is past grace (POS locked). */
+    isLocked?: boolean;
+    /** Elapsed whole days since expiry when expired; otherwise 0. */
+    daysOverdue?: number;
     /** Remaining mandant grace days when <c>isInGracePeriod</c> is true. */
     gracePeriodRemaining?: number;
+    /** ISO 8601 UTC when POS lock starts (expiry + grace); null when not expired. */
+    lockDate?: string | null;
+    /** Restriction codes (e.g. POS_LOCKED, SUPERADMIN_UNLOCK_ONLY). */
+    restrictions?: string[];
     /** True when mandant license requires renewal (lockdown). */
     requiresRenewal?: boolean;
 };

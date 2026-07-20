@@ -678,6 +678,7 @@ public sealed class TenantIsolationTests : IClassFixture<TenantIsolationWebAppli
             db,
             accessor,
             environment.Object,
+            Mock.Of<KasseAPI_Final.Services.Tenancy.ITenantDomainService>(),
             NullLogger<TenantContextService>.Instance);
 
         var httpContextAccessor = new Mock<IHttpContextAccessor>();

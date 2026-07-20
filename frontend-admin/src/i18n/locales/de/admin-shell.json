@@ -74,7 +74,11 @@
     "billingOverview": "Übersicht",
     "billingSales": "Lizenzverkäufe",
     "billingStats": "Statistiken",
-    "billingNew": "Neuer Verkauf"
+    "billingNew": "Neuer Verkauf",
+    "digital": "Digitale Dienste",
+    "digitalRequests": "Digitale Anfragen",
+    "onlineOrders": "Online-Bestellungen",
+    "websitePreview": "Website-Vorschau"
   },
   "elmah": {
     "columns": {
@@ -163,6 +167,7 @@
       "createAdmin": "Administrator anlegen",
       "switchAnywayDev": "Trotzdem wechseln (Dev)",
       "retryLoad": "Erneut laden",
+      "refreshFailed": "Token konnte nicht aktualisiert werden. Mandant wurde nicht gewechselt.",
       "tenantCount": "{count} Mandanten",
       "adminLine": "Admin: {email}",
       "noAdmin": "⚠️ Kein Admin zugewiesen",
@@ -554,6 +559,8 @@
     "helpText": "Pfeiltasten zum Navigieren, Eingabetaste zum Auswählen, Escape zum Schließen.",
     "noResults": "Keine Ergebnisse",
     "hint": "Tippen Sie, um Menüeinträge zu filtern.",
+    "shortcutOpenSuffix": "zum Öffnen",
+    "shortcutCloseSuffix": "zum Schließen",
     "searching": "Suchen…",
     "resultsAria": "Suchergebnisse"
   },

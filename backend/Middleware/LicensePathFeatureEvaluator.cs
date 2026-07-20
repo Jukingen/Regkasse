@@ -79,6 +79,13 @@ public static class LicensePathFeatureEvaluator
     public static string? ReadAppContext(HttpContext context) =>
         context.User.FindFirst(ClientAppPolicy.AppContextClaimType)?.Value;
 
+    /// <summary>
+    /// True for POS cash-register and fiscal paths (payments, receipts, cart, TSE, etc.).
+    /// Used by mandant license lockdown to block POS while FA renewal remains available.
+    /// </summary>
+    public static bool IsPosOperationalPath(PathString path) =>
+        path.HasValue && IsPosFiscalPath(path.Value!);
+
     private static bool IsPosFiscalPath(string v)
     {
         if (v.StartsWith("/api/pos/", StringComparison.OrdinalIgnoreCase))

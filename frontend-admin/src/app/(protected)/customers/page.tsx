@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button, Space, Input } from 'antd';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { ADMIN_NAV_LABEL_KEYS, buildAdminBreadcrumbs } from '@/shared/adminShellLabels';
 import { AdminDataList } from '@/components/admin-layout/AdminDataList';
 import CustomerList from '@/features/customers/components/CustomerList';
 import CustomerForm from '@/features/customers/components/CustomerForm';
@@ -130,8 +130,8 @@ export default function CustomersPage() {
     return (
         <Space orientation="vertical" size="large" style={{ width: '100%' }}>
             <AdminPageHeader
-                title={ADMIN_NAV_LABELS.customers}
-                breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.customers }]}
+                title={t(ADMIN_NAV_LABEL_KEYS.customers)}
+                breadcrumbs={buildAdminBreadcrumbs(t, [{ title: t(ADMIN_NAV_LABEL_KEYS.customers) }])}
                 actions={
                     <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
                         {t('customers.page.newCustomer')}

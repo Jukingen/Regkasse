@@ -6,12 +6,13 @@ import { useAntdApp } from '@/hooks/useAntdApp';
  */
 
 import React, { useState } from 'react';
-import { Alert, Button, Card, DatePicker, Descriptions, Form, Space, Spin, Switch, Typography } from 'antd';
+import { Alert, Button, Card, DatePicker, Descriptions, Form, Space, Switch, Typography } from 'antd';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
+import { FormSkeleton } from '@/components/Skeleton';
 import {
     downloadLicenseExportFile,
     getLicenseReportSummary,
@@ -179,9 +180,7 @@ export function LicenseReportsCard({ enabledLicenseFeatures }: Props) {
 
             <Card title={t('license.reports.summaryTitle')}>
                 {summaryQuery.isLoading ? (
-                    <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
-                        <Spin />
-                    </div>
+                    <FormSkeleton fields={6} loading />
                 ) : summaryQuery.isError ? (
                     <Typography.Text type="danger">{t('license.reports.summaryLoadError')}</Typography.Text>
                 ) : s ? (

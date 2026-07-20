@@ -1,6 +1,6 @@
 'use client';
 
-import { Alert, Card, Descriptions, Spin, Tag, Typography } from 'antd';
+import { Alert, Card, Descriptions, Skeleton, Tag, Typography } from 'antd';
 
 import type { Tenant } from '@/features/tenancy/providers/TenantProvider';
 import { formatGermanDateTime, useI18n } from '@/i18n';
@@ -30,9 +30,7 @@ export function FirmenInfo({
     if (loading) {
         return (
             <Card title={t('common.tenant.companyInfo')}>
-                <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
-                    <Spin aria-label={t('common.dataList.loadingTip')} />
-                </div>
+                <Skeleton active paragraph={{ rows: 4 }} aria-label={t('common.dataList.loadingTip')} />
             </Card>
         );
     }

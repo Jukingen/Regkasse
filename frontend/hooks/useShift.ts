@@ -7,14 +7,16 @@ import {
   DailyClosingApiError,
   endShiftApi,
   fetchCurrentShift,
-  fetchDailyClosingStatus,
-  performDailyClosingApi,
   startShiftApi,
   type CashierShiftDto,
   type EndShiftResponse,
   type PosDailyClosingResult,
   type PosDailyClosingStatusDto,
 } from '../services/api/shiftService';
+import {
+  getDailyClosingStatus,
+  performDailyClosing as performDailyClosingRequest,
+} from '../services/dailyClosingService';
 import { isValidPosCashRegisterId } from '../utils/posCashRegister';
 
 function readApiErrorMessage(error: unknown): string {
@@ -68,7 +70,7 @@ export function useShift(explicitRegisterId?: string | null) {
     dailyClosingRefreshInFlightRef.current = true;
     try {
       const [status, shiftRes] = await Promise.all([
-        fetchDailyClosingStatus(),
+        getDailyClosingStatus(),
         fetchCurrentShift(),
       ]);
       setDailyClosingStatus(status);
@@ -158,7 +160,7 @@ export function useShift(explicitRegisterId?: string | null) {
       setIsLoading(true);
       setError(null);
       try {
-        const result = await performDailyClosingApi(cashCount, notes);
+        const result = await performDailyClosingRequest({ cashCount, notes });
         setActiveShift(null);
         setDailyClosingStatus(null);
         await posReadiness.refreshAsync();

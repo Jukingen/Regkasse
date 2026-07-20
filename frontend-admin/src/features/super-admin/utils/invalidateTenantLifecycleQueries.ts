@@ -8,9 +8,11 @@ export const ADMIN_TENANTS_QUERY_KEY = ['admin', 'tenants'] as const;
 /** Refetch tenant detail, dependency summary, and tenant list after archive/restore/delete. */
 export function invalidateTenantLifecycleQueries(
     queryClient: QueryClient,
-    tenantId: string,
+    tenantId?: string,
 ): void {
-    void queryClient.invalidateQueries({ queryKey: [...TENANT_DETAIL_QUERY_KEY, tenantId] });
-    void queryClient.invalidateQueries({ queryKey: tenantDeleteDependenciesQueryKey(tenantId) });
+    if (tenantId) {
+        void queryClient.invalidateQueries({ queryKey: [...TENANT_DETAIL_QUERY_KEY, tenantId] });
+        void queryClient.invalidateQueries({ queryKey: tenantDeleteDependenciesQueryKey(tenantId) });
+    }
     void queryClient.invalidateQueries({ queryKey: ADMIN_TENANTS_QUERY_KEY });
 }

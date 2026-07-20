@@ -6,9 +6,30 @@ Technical documentation (English). Do not commit real secrets; `appsettings.json
 
 | Setting | JSON path | Environment variable (override) | Notes |
 |--------|------------|-----------------------------------|--------|
-| PostgreSQL | `ConnectionStrings:DefaultConnection` | `ConnectionStrings__DefaultConnection` | Npgsql connection string; never log unmasked. |
+| PostgreSQL | `ConnectionStrings:DefaultConnection` | `ConnectionStrings__DefaultConnection` | Npgsql connection string; never log unmasked. Production should include `Pooling=true;Minimum Pool Size=5;Maximum Pool Size=20;Connection Lifetime=300;` (ApplicationHost also applies these defaults in Production when omitted). |
 | JWT signing key | `JwtSettings:SecretKey` | `JwtSettings__SecretKey` | Minimum 32 characters; rotate if ever exposed. |
 | JWT issuer / audience | `JwtSettings:Issuer`, `JwtSettings:Audience` | `JwtSettings__Issuer`, `JwtSettings__Audience` | Non-secret values may live in example config. |
+| Redis (distributed cache) | `Redis:ConnectionString` | `Redis__ConnectionString` | Default `localhost:6379`. Used by `ICacheService` (`RedisCacheService`). Process-local `IMemoryCache` remains for lockout/rate-limit/QR. |
+| Redis key prefix | `Redis:InstanceName` | `Redis__InstanceName` | e.g. `Regkasse_Dev` / `Regkasse_Prod`. Prefixed onto all cache keys so environments can share one Redis safely. |
+
+**Local Redis (Windows):** Docker/WSL optional. Portable build under `tools/redis` (gitignored). Start with:
+
+```powershell
+.\scripts\start-redis-dev.ps1
+.\scripts\start-redis-dev.ps1 -PingOnly
+```
+
+### SuperAdmin two-factor authentication (`TwoFactorAuth`)
+
+Hub: [`docs/AUTH_TWO_FACTOR.md`](../docs/AUTH_TWO_FACTOR.md).
+
+| Setting | JSON path | Environment variable | Notes |
+|--------|------------|----------------------|--------|
+| Master switch | `TwoFactorAuth:Enabled` | `TwoFactorAuth__Enabled` | Production: `true`. Local Dev template may use `false`. |
+| Dev login bypass | `TwoFactorAuth:BypassInDevelopment` | `TwoFactorAuth__BypassInDevelopment` | Only honored when `ASPNETCORE_ENVIRONMENT=Development`. |
+| Dev test code | `TwoFactorAuth:TestToken` | `TwoFactorAuth__TestToken` | Accepted only in Development (with `DEV-2FA-BYPASS`). Leave empty in Production. |
+
+Legacy override: `Auth:RequireSuperAdminTwoFactor` (`null` = follow `TwoFactorAuth` rules). Prefer the `TwoFactorAuth` section for new config.
 
 FinanzOnline **user/password** for SOAP are expected from **company settings in the database** (or optional `FinanzOnline:Session` binding in non-tracked config). Do not put production FinanzOnline credentials in tracked files.
 
@@ -88,7 +109,8 @@ Production must **not** use `ProductionStub` or `Fake`. Set real PostgreSQL logi
 
 ```bash
 # PostgreSQL (required for pg_dump; use a least-privilege backup role in production)
-ConnectionStrings__DefaultConnection="Host=...;Port=5432;Database=...;Username=...;Password=..."
+# Pooling: Min 5 / Max 20 / Connection Lifetime 300s (ApplicationHost also applies these in Production if omitted)
+ConnectionStrings__DefaultConnection="Host=...;Port=5432;Database=...;Username=...;Password=...;Pooling=true;Minimum Pool Size=5;Maximum Pool Size=20;Connection Lifetime=300;"
 
 # Real pg_dump adapter (mandatory in production)
 Backup__ExecutionAdapterKind=PgDump
@@ -161,6 +183,41 @@ cd backend && dotnet run
 ```
 
 See [`docs/EMAIL_CONFIGURATION.md`](../docs/EMAIL_CONFIGURATION.md) for all settings, verification steps, and production setup.
+
+## CSRF protection (optional)
+
+Section `Security:Csrf` (`Security__Csrf__*` env vars). Middleware: `CsrfMiddleware`. Token endpoint: `GET /api/csrf/token` (anonymous).
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `Enabled` | `false` | When `true`, state-changing methods require a valid CSRF token (unless Development bypass applies). |
+| `BypassInDevelopment` | `true` | When `true` **and** `ASPNETCORE_ENVIRONMENT=Development`, skip CSRF validation. Ignored outside Development. |
+| `HeaderName` | `X-XSRF-TOKEN` | Request header carrying the token from `GET /api/csrf/token`. |
+| `CookieName` | `XSRF-TOKEN` | Cookie set by the token endpoint (not HttpOnly — FA reads via `document.cookie` and sends `X-XSRF-TOKEN`). |
+| `TokenLifetimeHours` | `24` | Cache + cookie lifetime (clamped 1–168). |
+
+**Templates:** Development example disables CSRF + bypass; Production example enables CSRF with `BypassInDevelopment=false`. Copy into local `appsettings.Development.json` / `appsettings.Production.json` (gitignored).
+
+**Exempt paths:** `/api/Auth/login`, `/api/Auth/refresh`, health, swagger, metrics, `/api/webhooks/*`, `/api/csrf/token`. Native clients without a cookie jar may send the same value in `X-CSRF-COOKIE`. Response on failure: HTTP 403 with message to refresh the page.
+
+Enable in Production only after FA/POS/sites attach the token on mutations.
+
+## RKSV cold-archive cleanup (optional)
+
+Section `RksvDataCleanup` (`RksvDataCleanup__*` env vars). Hosted service: `RksvDataCleanupHostedService`.
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `Enabled` | `false` | When `false`, the daily sweep is a no-op. |
+| `RetentionYears` | `7` | Payments older than this are eligible for cold-archive ZIP copies. |
+| `ExtraArchiveYears` | `3` | After retention+extra years, old archive **files** may be pruned from disk. |
+| `HardDeleteEnabled` | `false` | Even when `true`, **live** fiscal payment rows are **not** deleted (TSE/RKSV signature-chain integrity). |
+| `ArchiveRootRelativeDirectory` | `App_Data/rksv-cold-archives` | ZIP output directory (relative to content root unless rooted). |
+| `MaxBatchSize` | `500` | Max payments archived per sweep. |
+| `IntervalHours` | `24` | Delay between sweeps. |
+| `StartupGraceMinutes` | `5` | Boot delay before the first sweep. |
+
+Tracking tables: `rksv_cold_archive_runs`, `rksv_cold_archive_items`. Live `payment_details` rows remain in the database after archive.
 
 ## Logging
 

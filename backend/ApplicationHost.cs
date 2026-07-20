@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -13,6 +14,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.SignalR;
+using Npgsql;
 using KasseAPI_Final.Hubs;
 using KasseAPI_Final.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -48,13 +50,26 @@ using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using KasseAPI_Final.Services.LegalExportCompleteness;
 using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Services.Backup.PgDump;
+using KasseAPI_Final.Services.DataDeletion;
+using KasseAPI_Final.Services.DataExport;
+using KasseAPI_Final.Services.DataRetention;
+using KasseAPI_Final.Services.App;
+using KasseAPI_Final.Services.DigitalServices;
+using KasseAPI_Final.Services.Website;
+using KasseAPI_Final.Sites;
 using KasseAPI_Final.Services.RestoreVerification;
 using KasseAPI_Final.Services.OperationalRuns;
 using KasseAPI_Final.Services.AdminProducts;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.Order;
+using KasseAPI_Final.Services.Loyalty;
 using KasseAPI_Final.Services.LicenseTest;
 using KasseAPI_Final.Services.Hosted;
+using KasseAPI_Final.Services.Cache;
+using KasseAPI_Final.Services.Security;
+using KasseAPI_Final.Services.Metrics;
+using StackExchange.Redis;
 using IAdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.ITenantLicenseService;
 using AdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.TenantLicenseService;
 using IBillingTenantLicenseService = KasseAPI_Final.Services.Billing.ITenantLicenseService;
@@ -119,16 +134,58 @@ internal static class ApplicationHost
         return defaultPort;
     }
 
+    /// <summary>
+    /// Production Npgsql pool defaults. Explicit connection-string values win; missing keys get safe defaults.
+    /// (Npgsql pools by default; this sets Min/Max/Lifetime for predictable production capacity.)
+    /// </summary>
+    private static string ApplyProductionNpgsqlPooling(string connectionString)
+    {
+        var builder = new NpgsqlConnectionStringBuilder(connectionString)
+        {
+            Pooling = true
+        };
+
+        // Apply only when the operator did not set the key (keyword absent from the raw string).
+        if (!ContainsConnectionKeyword(connectionString, "Minimum Pool Size")
+            && !ContainsConnectionKeyword(connectionString, "MinPoolSize"))
+            builder.MinPoolSize = 5;
+
+        if (!ContainsConnectionKeyword(connectionString, "Maximum Pool Size")
+            && !ContainsConnectionKeyword(connectionString, "MaxPoolSize"))
+            builder.MaxPoolSize = 20;
+
+        if (!ContainsConnectionKeyword(connectionString, "Connection Lifetime")
+            && !ContainsConnectionKeyword(connectionString, "ConnectionLifetime"))
+            builder.ConnectionLifetime = 300;
+
+        return builder.ConnectionString;
+    }
+
+    private static bool ContainsConnectionKeyword(string connectionString, string keyword) =>
+        connectionString.Contains(keyword + "=", StringComparison.OrdinalIgnoreCase)
+        || connectionString.Contains(keyword + " =", StringComparison.OrdinalIgnoreCase);
+
     private static void ConfigureAppDbContextOptions(
         DbContextOptionsBuilder options,
         string connectionString,
-        bool isDevelopment)
+        bool isDevelopment,
+        DbQueryDurationInterceptor? dbQueryDurationInterceptor = null,
+        DbConnectionMetricsInterceptor? dbConnectionMetricsInterceptor = null)
     {
+        void AddDbMetricsInterceptors()
+        {
+            if (dbQueryDurationInterceptor is not null)
+                options.AddInterceptors(dbQueryDurationInterceptor);
+            if (dbConnectionMetricsInterceptor is not null)
+                options.AddInterceptors(dbConnectionMetricsInterceptor);
+        }
+
         var inMemoryDatabaseName = Environment.GetEnvironmentVariable(OpenApiExportMode.IntegrationTestInMemoryDatabaseEnvironmentVariable);
         if (!string.IsNullOrWhiteSpace(inMemoryDatabaseName))
         {
             options.UseInMemoryDatabase(inMemoryDatabaseName);
             options.ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning));
+            AddDbMetricsInterceptors();
             if (isDevelopment)
             {
                 options.EnableSensitiveDataLogging();
@@ -141,6 +198,7 @@ internal static class ApplicationHost
         options.UseNpgsql(connectionString);
         options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
         options.AddInterceptors(NpgsqlTimestamptzUtcParameterInterceptor.Instance);
+        AddDbMetricsInterceptors();
         if (isDevelopment)
         {
             options.EnableSensitiveDataLogging();
@@ -178,6 +236,26 @@ internal static class ApplicationHost
 // Configuration Binding
 builder.Services.AddScoped<ICompanyProfileProvider, CompanyProfileProvider>();
 builder.Services.Configure<ProductMediaOptions>(builder.Configuration.GetSection(ProductMediaOptions.SectionName));
+builder.Services.Configure<WebsiteGeneratorOptions>(builder.Configuration.GetSection(WebsiteGeneratorOptions.SectionName));
+builder.Services.Configure<RateLimitingOptions>(builder.Configuration.GetSection(RateLimitingOptions.SectionName));
+builder.Services.Configure<MonitoringOptions>(builder.Configuration.GetSection(MonitoringOptions.SectionName));
+builder.Services.Configure<CsrfOptions>(builder.Configuration.GetSection(CsrfOptions.SectionName));
+// CSRF double-submit tokens (cache-backed; IMemoryCache is singleton — Scoped service is fine).
+builder.Services.AddScoped<ICsrfTokenService, CsrfTokenService>();
+builder.Services.AddScoped<WebsiteGeneratorService>();
+builder.Services.AddScoped<IWebsiteGeneratorService>(sp => sp.GetRequiredService<WebsiteGeneratorService>());
+builder.Services.AddScoped<ITenantWebsiteGenerator, TenantWebsiteGenerator>();
+builder.Services.AddHttpClient(nameof(TenantWebsiteGenerator));
+builder.Services.AddScoped<ITenantCustomizationService, TenantCustomizationService>();
+builder.Services.AddScoped<AppGeneratorService>();
+builder.Services.AddScoped<IAppGeneratorService>(sp => sp.GetRequiredService<AppGeneratorService>());
+builder.Services.AddScoped<ITenantAppGenerator, TenantAppGenerator>();
+builder.Services.AddScoped<IPublicTenantCatalogService, PublicTenantCatalogService>();
+builder.Services.AddScoped<ITenantWebsiteService, TenantWebsiteService>();
+builder.Services.AddScoped<ITenantDomainService, TenantDomainService>();
+builder.Services.AddSingleton<IDigitalServicePricingService, DigitalServicePricingService>();
+builder.Services.AddScoped<ITenantServiceStatusService, TenantServiceStatusService>();
+builder.Services.AddScoped<IDigitalServiceRequestService, DigitalServiceRequestService>();
 builder.Services.AddScoped<ProductImageThumbnailService>();
 builder.Services.AddScoped<ICashRegisterSettingsService, CashRegisterSettingsService>();
 builder.Services.Configure<CashRegisterComplianceOptions>(
@@ -190,6 +268,12 @@ builder.Services.Configure<RksvOptions>(builder.Configuration.GetSection(RksvOpt
 builder.Services.AddScoped<IRksvEnvironmentService, RksvEnvironmentService>();
 builder.Services.Configure<FiskalyOptions>(builder.Configuration.GetSection(FiskalyOptions.SectionName));
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.SectionName));
+builder.Services.Configure<TwoFactorAuthOptions>(builder.Configuration.GetSection(TwoFactorAuthOptions.SectionName));
+builder.Services.Configure<AccountLockoutOptions>(builder.Configuration.GetSection(AccountLockoutOptions.SectionName));
+builder.Services.AddSingleton<IAccountLockoutService, AccountLockoutService>();
+builder.Services.AddSingleton<KasseAPI_Final.Services.Token.ITokenBlacklistService, KasseAPI_Final.Services.Token.TokenBlacklistService>();
+builder.Services.AddSingleton<ITwoFactorChallengeService, TwoFactorChallengeService>();
+builder.Services.AddScoped<KasseAPI_Final.Services.TwoFactor.ITwoFactorService, KasseAPI_Final.Services.TwoFactor.TwoFactorService>();
 builder.Services.Configure<AuditRetentionOptions>(builder.Configuration.GetSection(AuditRetentionOptions.SectionName));
 builder.Services.Configure<FinanzOnlineConnectivityOptions>(builder.Configuration.GetSection(FinanzOnlineConnectivityOptions.SectionName));
 builder.Services.Configure<FinanzOnlineSessionOptions>(builder.Configuration.GetSection(FinanzOnlineSessionOptions.SectionName));
@@ -307,13 +391,31 @@ if (string.IsNullOrWhiteSpace(defaultConnection))
         "OpenAPI export: DefaultConnection missing — OpenApiExportConfiguration should supply in-memory defaults.");
 }
 
-builder.Services.AddDbContext<AppDbContext>((_, options) =>
-    ConfigureAppDbContextOptions(options, defaultConnection, isDevelopment),
-    ServiceLifetime.Scoped,
-    ServiceLifetime.Singleton);
+// Production: ensure Npgsql connection pooling knobs (env CS often omits them).
+if (builder.Environment.IsProduction())
+    defaultConnection = ApplyProductionNpgsqlPooling(defaultConnection);
 
-builder.Services.AddDbContextFactory<AppDbContext>((_, options) =>
-    ConfigureAppDbContextOptions(options, defaultConnection, isDevelopment));
+// AppDbContext depends on scoped ICurrentTenantAccessor. Keep context + options + factory
+// all Scoped so bootstrap (CreateScope) and request paths can resolve them; a Singleton
+// factory cannot resolve ICurrentTenantAccessor from the root provider (HTTP 500).
+builder.Services.AddDbContext<AppDbContext>((sp, options) =>
+    ConfigureAppDbContextOptions(
+        options,
+        defaultConnection,
+        isDevelopment,
+        sp.GetRequiredService<DbQueryDurationInterceptor>(),
+        sp.GetRequiredService<DbConnectionMetricsInterceptor>()),
+    ServiceLifetime.Scoped,
+    ServiceLifetime.Scoped);
+
+builder.Services.AddDbContextFactory<AppDbContext>((sp, options) =>
+    ConfigureAppDbContextOptions(
+        options,
+        defaultConnection,
+        isDevelopment,
+        sp.GetRequiredService<DbQueryDurationInterceptor>(),
+        sp.GetRequiredService<DbConnectionMetricsInterceptor>()),
+    ServiceLifetime.Scoped);
 
 if (!isDevelopment && !OpenApiExportMode.IsEnabled)
 {
@@ -338,7 +440,7 @@ builder.Services.AddDataProtection();
 // Identity servisleri
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
-    // Şifre gereksinimleri
+    // Şifre gereksinimleri (enforced by RegkassePasswordValidator; options remain the source of truth)
     options.Password.RequireDigit = true;
     options.Password.RequireLowercase = true;
     options.Password.RequireUppercase = true;
@@ -350,7 +452,11 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     options.SignIn.RequireConfirmedEmail = false;
 })
 .AddEntityFrameworkStores<AppDbContext>()
-.AddDefaultTokenProviders();
+.AddDefaultTokenProviders()
+.AddPasswordValidator<KasseAPI_Final.Validators.RegkassePasswordValidator<ApplicationUser>>();
+
+// Replace default Identity PasswordValidator so rules are not evaluated twice.
+ReplaceDefaultPasswordValidator(builder.Services);
 
 // JWT Authentication
 var secretKey = RequireMandatoryNonEmpty(builder.Configuration, "JwtSettings:SecretKey", minLength: 32);
@@ -404,6 +510,7 @@ builder.Services.AddAuthentication(options =>
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
             var correlationId = context.HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
             var userId = context.Principal?.GetActorUserId();
+
             var sidRaw = context.Principal?.FindFirst("sid")?.Value;
             if (!string.IsNullOrWhiteSpace(userId) && Guid.TryParse(sidRaw, out var sessionId))
             {
@@ -472,6 +579,24 @@ builder.Services.AddScoped<ITokenClaimsService, TokenClaimsService>();
 builder.Services.AddScoped<IJwtAccessTokenIssuer, JwtAccessTokenIssuer>();
 builder.Services.AddScoped<ITenantHardDeletePolicy, TenantHardDeletePolicy>();
 builder.Services.AddScoped<ITenantDeletionService, TenantDeletionService>();
+builder.Services.AddScoped<ILicenseLifecycleResolver, LicenseLifecycleResolver>();
+builder.Services.Configure<KasseAPI_Final.Configuration.DataExportOptions>(
+    builder.Configuration.GetSection(KasseAPI_Final.Configuration.DataExportOptions.SectionName));
+builder.Services.AddScoped<IDataExportService, DataExportService>();
+builder.Services.AddScoped<ITenantDataDeletionRequestService, TenantDataDeletionRequestService>();
+builder.Services.AddScoped<IDataDeletionNotificationSender, DataDeletionNotificationSender>();
+builder.Services.AddScoped<IDataDeletionService, DataDeletionService>();
+builder.Services.AddSingleton<KasseAPI_Final.Services.DataRights.IDataRightsArtifactStore, KasseAPI_Final.Services.DataRights.DataRightsArtifactStore>();
+builder.Services.AddScoped<KasseAPI_Final.Services.DataRights.ICustomerDataRightsService, KasseAPI_Final.Services.DataRights.CustomerDataRightsService>();
+builder.Services.AddScoped<KasseAPI_Final.Services.DataAccess.IDataAccessNotificationService, KasseAPI_Final.Services.DataAccess.DataAccessNotificationService>();
+builder.Services.AddScoped<KasseAPI_Final.Services.DataAccess.IDataAccessService, KasseAPI_Final.Services.DataAccess.DataAccessService>();
+builder.Services.AddHostedService<KasseAPI_Final.Services.DataRights.DataRightsExportProcessorService>();
+builder.Services.AddScoped<IRksvDataRetentionService, RksvDataRetentionService>();
+builder.Services.AddScoped<ITenantDataManagementOverviewService, TenantDataManagementOverviewService>();
+builder.Services.Configure<KasseAPI_Final.Configuration.RksvDataCleanupOptions>(
+    builder.Configuration.GetSection(KasseAPI_Final.Configuration.RksvDataCleanupOptions.SectionName));
+builder.Services.AddScoped<IRksvDataCleanupService, RksvDataCleanupService>();
+builder.Services.AddHostedService<RksvDataCleanupHostedService>();
 builder.Services.AddScoped<ITenantService, TenantService>();
 builder.Services.AddScoped<IAdminTenantService, AdminTenantService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -481,6 +606,7 @@ builder.Services.AddSingleton<ITenantLicenseExtensionRateLimiter, TenantLicenseE
 
 // Billing services (scoped — injected AppDbContext is request-scoped; do not use Singleton)
 builder.Services.AddScoped<IBillingService, BillingService>();
+builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IBillingTenantLicenseService, BillingTenantLicenseService>();
 builder.Services.AddScoped<IBillingAuditService, BillingAuditService>();
 builder.Services.AddScoped<IReminderService, ReminderService>();
@@ -510,6 +636,7 @@ builder.Services.AddScoped<ICategoryDemoResetService, CategoryDemoResetService>(
 builder.Services.AddScoped<ITenantProvisioningService, TenantProvisioningService>();
 builder.Services.AddScoped<ITenantOnboardingService, TenantOnboardingService>();
 builder.Services.AddScoped<IWelcomeEmailService, WelcomeEmailService>();
+builder.Services.AddScoped<IOnlineOrderCustomerEmailService, OnlineOrderCustomerEmailService>();
 builder.Services.AddScoped<IUsernameChangeEmailService, UsernameChangeEmailService>();
 builder.Services.AddScoped<ForgotUsernameEmailService>();
 builder.Services.AddScoped<ForgotPasswordEmailService>();
@@ -571,8 +698,20 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Memory cache for QR image
+// Memory cache for QR image, lockout, rate limits (process-local; not ICacheService)
 builder.Services.AddMemoryCache();
+
+// Redis connection for distributed ICacheService read-through caching
+builder.Services.Configure<RedisOptions>(builder.Configuration.GetSection(RedisOptions.SectionName));
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var options = sp.GetRequiredService<IOptions<RedisOptions>>().Value;
+    var connectionString = string.IsNullOrWhiteSpace(options.ConnectionString)
+        ? "localhost:6379"
+        : options.ConnectionString;
+    return ConnectionMultiplexer.Connect(connectionString);
+});
+builder.Services.AddScoped<ICacheService, RedisCacheService>();
 
 // API servisleri
 builder.Services.AddControllers()
@@ -582,6 +721,21 @@ builder.Services.AddControllers()
     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
     options.JsonSerializerOptions.WriteIndented = true;
 });
+
+// Response compression (non-breaking): Gzip + Brotli for JSON/API payloads over HTTPS.
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<GzipCompressionProvider>();
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+    [
+        "application/json",
+        "text/json",
+        "application/problem+json"
+    ]);
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -802,6 +956,7 @@ builder.Services.AddScoped<IAdminPaymentListService, AdminPaymentListService>();
 builder.Services.AddScoped<IAdminSuspiciousAlertService, AdminSuspiciousAlertService>();
 builder.Services.AddScoped<IPaymentTrendAnalysisService, PaymentTrendAnalysisService>();
 builder.Services.AddScoped<IAdminProductListService, AdminProductListService>();
+builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IRksvSpecialReceiptFinanzOnlineSubmissionTracker, RksvSpecialReceiptFinanzOnlineSubmissionTracker>();
 builder.Services.AddScoped<IRksvSpecialReceiptService, RksvSpecialReceiptService>();
 builder.Services.AddScoped<IRksvStartbelegPolicy, RksvStartbelegPolicy>();
@@ -813,6 +968,17 @@ builder.Services.AddScoped<IRksvComplianceReportService, RksvComplianceReportSer
 builder.Services.AddScoped<IRksvEvidenceBundleService, RksvEvidenceBundleService>();
 builder.Services.AddScoped<IQrImageService, QrImageService>();
 builder.Services.AddScoped<TableOrderService>(); // Masa siparişleri persistence servisi
+builder.Services.AddScoped<IOrderIntegrationService, OrderIntegrationService>();
+builder.Services.AddScoped<IOnlineOrderQueryService, OnlineOrderQueryService>();
+builder.Services.AddScoped<IOnlineOrderNotificationService, OnlineOrderNotificationService>();
+builder.Services.AddScoped<IOnlineOrderPushSender, LoggingOnlineOrderPushSender>();
+builder.Services.AddScoped<ILoyaltyService, LoyaltyService>();
+builder.Services.AddScoped<IOnlineOrderLoyaltyService, OnlineOrderLoyaltyService>();
+builder.Services.AddScoped<IOnlineOrderTrackingService, OnlineOrderTrackingService>();
+builder.Services.AddScoped<IOnlineOrderStatusService, OnlineOrderStatusService>();
+builder.Services.AddScoped<IOnlineOrderPaymentService, OnlineOrderPaymentService>();
+builder.Services.AddScoped<IOnlineOrderIntakeService, OnlineOrderIntakeService>();
+builder.Services.AddScoped<IPublicCustomerDashboardService, PublicCustomerDashboardService>();
 builder.Services.AddScoped<LegacyRouteDeprecationFilter>();
 
 // Register repositories
@@ -826,6 +992,14 @@ builder.Services.AddScoped<IGenericRepository<PaymentDetails>, GenericRepository
 
 // Core metrics (Prometheus) for Grafana dashboards
 builder.Services.AddSingleton<ICoreMetrics, CoreMetrics>();
+builder.Services.AddSingleton<ICacheMetricsService, CacheMetricsService>();
+builder.Services.AddSingleton<IDbMetricsService, DbMetricsService>();
+builder.Services.AddSingleton<IBusinessMetricsService, BusinessMetricsService>();
+builder.Services.AddSingleton<ApiRequestMetricsAccumulator>();
+builder.Services.AddSingleton<DbQueryDurationInterceptor>();
+builder.Services.AddSingleton<DbConnectionMetricsInterceptor>();
+if (!OpenApiExportMode.IsEnabled)
+    builder.Services.AddHostedService<BusinessMetricsRefreshHostedService>();
 
 // FinanzOnline retry job + metrics + alert sink
 builder.Services.Configure<KasseAPI_Final.Configuration.FinanzOnlineRetryJobOptions>(
@@ -845,6 +1019,7 @@ builder.Services.AddScoped<CartLifecycleService>();
 builder.Services.AddScoped<ITenantSessionPolicyService, TenantSessionPolicyService>();
 builder.Services.AddScoped<IUserSessionService, UserSessionService>();
 builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<KasseAPI_Final.Services.Session.IDeviceSessionService, KasseAPI_Final.Services.Session.DeviceSessionService>();
 builder.Services.AddScoped<IUserActivityReportService, UserActivityReportService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IAuditExportService, AuditExportService>();
@@ -977,6 +1152,7 @@ builder.Services.Configure<KasseAPI_Final.Configuration.OfflineAlertRules>(
     builder.Configuration.GetSection(KasseAPI_Final.Configuration.OfflineAlertRules.SectionName));
 builder.Services.AddHostedService<KasseAPI_Final.Services.Offline.OfflineAlertService>();
 builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.OfflineOrderCleanupHostedService>();
+builder.Services.AddHostedService<KasseAPI_Final.Services.DataDeletion.AutoPurgeService>();
 builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.ShiftAutoCloseHostedService>();
 builder.Services.AddHostedService<KasseAPI_Final.Services.Reminder.TagesabschlussReminderService>();
 builder.Services.AddSingleton<TseHealthStateStore>();
@@ -1046,6 +1222,21 @@ builder.Services.AddHttpContextAccessor();
         return value.Trim();
     }
 
+    /// <summary>
+    /// <see cref="IdentityBuilder"/> registers <see cref="PasswordValidator{TUser}"/> via TryAdd;
+    /// remove it so only <see cref="Validators.RegkassePasswordValidator{TUser}"/> runs (no duplicate errors).
+    /// </summary>
+    private static void ReplaceDefaultPasswordValidator(IServiceCollection services)
+    {
+        var defaults = services
+            .Where(d =>
+                d.ServiceType == typeof(IPasswordValidator<ApplicationUser>)
+                && d.ImplementationType == typeof(PasswordValidator<ApplicationUser>))
+            .ToList();
+        foreach (var descriptor in defaults)
+            services.Remove(descriptor);
+    }
+
     public static async Task RunAsync(WebApplication app)
     {
 FinanzOnlineTransportStartupDiagnostics.LogTransportModesAtStartup(app.Services);
@@ -1105,22 +1296,44 @@ if (!app.Environment.IsDevelopment())
         ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
     });
 
-    app.UseHsts();
+    // HSTS is set by SecurityHeadersMiddleware (Production only; skipped in Staging).
     app.UseHttpsRedirection();
-
-    app.Use(async (context, next) =>
-    {
-        context.Response.Headers["X-Content-Type-Options"] = "nosniff";
-        context.Response.Headers["X-Frame-Options"] = "DENY";
-        context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
-        await next();
-    });
 }
+
+// Compress JSON/API responses when the client sends Accept-Encoding (before body-writing middleware).
+// No explicit UseRouting() in this host (ASP.NET Core 6+ endpoint routing); place early in the pipeline.
+app.UseResponseCompression();
+
+// Security headers on every response (HSTS only outside Development/Staging).
+app.UseMiddleware<KasseAPI_Final.Middleware.SecurityHeadersMiddleware>();
 app.UseCors("AllowAll");
+
+// API request metrics (Prometheus): early so duration/active include most of the pipeline.
+// Skips /metrics, health, and swagger to keep scrape/liveness noise out of api_* series.
+var monitoringOptions = app.Configuration.GetSection(MonitoringOptions.SectionName).Get<MonitoringOptions>()
+    ?? new MonitoringOptions();
+var prometheusEnabled = monitoringOptions.Enabled && monitoringOptions.Prometheus.Enabled;
+if (monitoringOptions.Enabled)
+    app.UseMiddleware<KasseAPI_Final.Middleware.MetricsMiddleware>();
+if (prometheusEnabled)
+{
+    var metricsPath = string.IsNullOrWhiteSpace(monitoringOptions.MetricsEndpoint)
+        ? "/metrics"
+        : monitoringOptions.MetricsEndpoint.Trim();
+    app.UseMetricServer(url: metricsPath);
+}
 
 app.UseMiddleware<KasseAPI_Final.Middleware.LanguageMiddleware>();
 // CorrelationId: propagate from request (X-Correlation-Id) or generate; required for audit traceability
 app.UseMiddleware<KasseAPI_Final.Middleware.CorrelationIdMiddleware>();
+
+// Global rate limiting (non-breaking): Production-only when RateLimiting:Enabled; skips health/swagger/metrics.
+// Placed before auth/tenant work so excess traffic is rejected early (after ForwardedHeaders for real client IP).
+app.UseMiddleware<KasseAPI_Final.Middleware.RateLimitingMiddleware>();
+
+// CSRF (double-submit XSRF-TOKEN / X-XSRF-TOKEN): registered before authentication.
+// When Security:Csrf:Enabled, validates state-changing requests (Dev bypass via BypassInDevelopment).
+app.UseMiddleware<CsrfMiddleware>();
 
 // Subdomain → tenant slug → Guid on ICurrentTenantAccessor (before auth; JWT may override later).
 app.UseMiddleware<KasseAPI_Final.Middleware.TenantResolutionMiddleware>();
@@ -1146,7 +1359,27 @@ app.UseStaticFiles(new StaticFileOptions
     }
 });
 
+// Public GET for one-click generated tenant websites / PWAs (anonymous; slug-scoped paths).
+var websiteOpts = app.Services.GetRequiredService<IOptions<WebsiteGeneratorOptions>>().Value;
+var websiteRoot = Path.Combine(webHostEnv.ContentRootPath, websiteOpts.RootRelativeDirectory);
+Directory.CreateDirectory(websiteRoot);
+var websiteRequestPath = websiteOpts.PublicUrlPathPrefix.TrimEnd('/');
+var normalizedWebsiteRequestPath = websiteRequestPath.StartsWith('/')
+    ? websiteRequestPath
+    : "/" + websiteRequestPath;
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(websiteRoot),
+    RequestPath = normalizedWebsiteRequestPath,
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.CacheControl = "public,max-age=300";
+    }
+});
+
 // Authentication ve Authorization middleware
+// Revoked access tokens (logout blacklist) — before JWT principal is established.
+app.UseMiddleware<KasseAPI_Final.Middleware.TokenValidationMiddleware>();
 app.UseAuthentication();
 app.UseMiddleware<KasseAPI_Final.Middleware.TenantContextMiddleware>();
 // Fail-closed: tenant-scoped API paths return 404 when ICurrentTenantAccessor.TenantId is unset.
@@ -1175,7 +1408,10 @@ else
     app.MapHub<DemoImportProgressHub>("/hubs/demo-import-progress");
 
     // Prometheus /metrics endpoint for scraping (Grafana dashboards)
-    app.MapMetrics();
+    if (prometheusEnabled)
+        app.MapMetrics(string.IsNullOrWhiteSpace(monitoringOptions.MetricsEndpoint)
+            ? "/metrics"
+            : monitoringOptions.MetricsEndpoint.Trim());
 
     // Test endpoint
     app.MapGet("/", () => "Kasse API is running!");

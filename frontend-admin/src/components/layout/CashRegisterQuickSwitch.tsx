@@ -79,7 +79,7 @@ export function CashRegisterQuickSwitch({ isMobile = false }: CashRegisterQuickS
     );
 
     const menuItems: MenuProps['items'] = useMemo(() => {
-        const rows: MenuProps['items'] = registers.map((register) => ({
+        const rows: NonNullable<MenuProps['items']> = registers.map((register) => ({
             key: register.id,
             label: (
                 <div

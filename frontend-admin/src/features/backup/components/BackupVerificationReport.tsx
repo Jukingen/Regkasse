@@ -2,7 +2,7 @@
 
 import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useCallback, useMemo } from 'react';
-import { Modal, Alert, Button, Col, Progress, Row, Space, Spin, Statistic, Table, Tag } from 'antd';
+import { Modal, Alert, Button, Col, Progress, Row, Space, Statistic, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
   CheckCircleOutlined,
@@ -11,6 +11,7 @@ import {
   SafetyCertificateOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
+import { CardSkeleton } from '@/components/Skeleton';
 import { useI18n } from '@/i18n';
 import { formatDateTime } from '@/i18n/formatting';
 import { useBackupVerificationReport } from '@/features/backup/hooks/useBackupVerificationReport';
@@ -162,9 +163,7 @@ export function BackupVerificationReport({
       ]}
     >
       {isLoading ? (
-        <div style={{ textAlign: 'center', padding: 32 }}>
-          <Spin />
-        </div>
+        <CardSkeleton count={2} loading />
       ) : isError || !report ? (
         <Alert type="error" showIcon title={t('backupDr.verificationReport.noReport')} />
       ) : (

@@ -16,7 +16,6 @@ import {
     Table,
     Typography,
     Alert,
-    Spin,
     Collapse,
     Timeline,
     Tooltip,
@@ -27,6 +26,7 @@ import { SearchOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { CardSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { FORMAT_EMPTY_DISPLAY, formatCurrency, formatDateTime, useI18n } from '@/i18n';
@@ -544,11 +544,7 @@ export default function IncidentInvestigationPage() {
                 />
             )}
 
-            {isLoading && (
-                <Card>
-                    <Spin description={t('common.loading.incidentAggregate')} />
-                </Card>
-            )}
+            {isLoading && <CardSkeleton count={2} loading />}
 
             {hasBatch && batch && !incidentLoading && (
                 <>

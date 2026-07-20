@@ -10,8 +10,10 @@ import { LicenseExpiryWidget } from '@/features/dashboard/widgets/LicenseExpiryW
 import { FinanzOnlineStatusWidget } from '@/features/dashboard/widgets/FinanzOnlineStatusWidget';
 import { OfflineStatusWidget } from '@/features/dashboard/components/OfflineStatusWidget';
 import { BackupStatusWidget } from '@/features/dashboard/widgets/BackupStatusWidget';
+import { DataRetentionWidget } from '@/features/dashboard/components/DataRetentionWidget';
 import { TopSellingProductsWidget } from '@/features/dashboard/widgets/TopSellingProductsWidget';
 import { PaymentTrendWidget, parsePaymentTrendPeriod } from '@/features/dashboard/widgets/PaymentTrendWidget';
+import { MetricsWidget } from '@/features/dashboard/components/MetricsWidget';
 import type { WidgetShellProps } from '@/features/dashboard/components/WidgetShell';
 
 export type DashboardWidgetRenderProps = {
@@ -47,6 +49,8 @@ export function renderDashboardWidget(
             return <OfflineStatusWidget {...common} />;
         case DASHBOARD_WIDGET_IDS.backupStatus:
             return <BackupStatusWidget {...common} />;
+        case DASHBOARD_WIDGET_IDS.dataRetention:
+            return <DataRetentionWidget {...common} />;
         case DASHBOARD_WIDGET_IDS.topSellingProducts: {
             const period =
                 props.settings?.period === 'week' ? ('week' as const) : ('today' as const);
@@ -68,6 +72,8 @@ export function renderDashboardWidget(
                 />
             );
         }
+        case DASHBOARD_WIDGET_IDS.systemMetrics:
+            return <MetricsWidget {...common} />;
         default:
             return null;
     }

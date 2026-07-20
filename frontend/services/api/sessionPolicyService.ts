@@ -8,7 +8,7 @@ export type TenantSessionPolicy = {
 
 const DEFAULT_POLICY: TenantSessionPolicy = {
     sessionTimeoutMinutes: 30,
-    warningBeforeTimeoutMinutes: 1,
+    warningBeforeTimeoutMinutes: 5,
     keepCartAfterTimeout: true,
 };
 

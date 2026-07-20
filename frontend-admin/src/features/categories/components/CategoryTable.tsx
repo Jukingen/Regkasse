@@ -8,6 +8,7 @@ import type { ColumnType } from 'antd/es/table';
 import type { AdminCategory, RksvProductCategoryValue } from '../types';
 import EditableCell from './EditableCell';
 import { useI18n } from '@/i18n';
+import { adminTablePaginationDefaults } from '@/components/ui/adminTablePagination';
 
 interface CategoryTableProps {
   data: AdminCategory[];
@@ -167,7 +168,7 @@ export default function CategoryTable({
       dataSource={data}
       rowKey="id"
       loading={loading}
-      pagination={{ pageSize: 10, showSizeChanger: true }}
+      pagination={{ ...adminTablePaginationDefaults, pageSize: 10 }}
       expandable={expandable}
       locale={{ emptyText: <Empty description={t('common.categories.emptyCategories')} /> }}
     />

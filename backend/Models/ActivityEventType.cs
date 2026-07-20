@@ -31,4 +31,18 @@ public enum ActivityEventType
     DailyClosingBackdatedCreated = 70,
     /// <summary>Evening reminder: Tagesabschluss still pending (no auto-close).</summary>
     DailyClosingPendingReminder = 71,
+    /// <summary>Online order materialized into a POS cart (FA / kitchen alert).</summary>
+    OnlineOrderPushedToPos = 80,
+    /// <summary>Online order payment succeeded (Stripe / mock gateway).</summary>
+    OnlineOrderPaid = 81,
+    /// <summary>Online order lifecycle status changed (accepted / preparing / ready / …).</summary>
+    OnlineOrderStatusChanged = 82,
+    /// <summary>Customer confirmation dispatched (email/push) and staff inbox alert.</summary>
+    OnlineOrderConfirmed = 83,
+    /// <summary>Mandanten-Admin requested website or app creation (Super Admin queue).</summary>
+    DigitalServiceRequested = 90,
+    /// <summary>Mandanten-Admin requested GDPR non-RKSV data deletion (Super Admin notify).</summary>
+    DataAccessDeleteRequested = 91,
+    /// <summary>GDPR data export ZIP is ready; download link issued (7-day expiry).</summary>
+    DataExportReady = 92,
 }

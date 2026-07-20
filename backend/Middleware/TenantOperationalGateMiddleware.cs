@@ -127,6 +127,7 @@ public sealed class TenantOperationalGateMiddleware
         if (!permissions.CanWrite
             && isWriteOperation
             && !isReportPath
+            && !IsDataManagementPath(path)
             && !(isUserManagementPath && permissions.CanManageUsers))
         {
             logger.LogWarning(
@@ -145,7 +146,7 @@ public sealed class TenantOperationalGateMiddleware
             return;
         }
 
-        if (!permissions.CanAccess && !isReadOnlyOperation && !isReportPath)
+        if (!permissions.CanAccess && !isReadOnlyOperation && !isReportPath && !IsDataManagementPath(path))
         {
             logger.LogWarning(
                 "Tenant non-read request blocked by tenant license lockdown. TenantId={TenantId}, Path={Path}, Method={Method}",
@@ -184,6 +185,13 @@ public sealed class TenantOperationalGateMiddleware
         var value = path.Value ?? string.Empty;
         return value.Contains("/api/reports", StringComparison.OrdinalIgnoreCase)
             || value.Contains("/api/receipts", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Expired-license data export / deletion-request endpoints remain writable.</summary>
+    private static bool IsDataManagementPath(PathString path)
+    {
+        var value = path.Value ?? string.Empty;
+        return value.Contains("/data-management", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsUserManagementPath(PathString path)

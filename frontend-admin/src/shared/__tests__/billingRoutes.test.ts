@@ -24,14 +24,26 @@ describe('billing App Router registration', () => {
         }
     });
 
-    it('maps visible sidebar billing leaves to SYSTEM_CRITICAL', () => {
-        const billingSidebarLeaves = ADMIN_SIDEBAR_NON_RKSV_LEAF_ROUTE_KEYS.filter((key) =>
-            key.startsWith('/admin/billing'),
+    it('maps visible sidebar billing leaves to SYSTEM_CRITICAL (digital also allows DIGITAL_MANAGE)', () => {
+        const billingSidebarLeaves = ADMIN_SIDEBAR_NON_RKSV_LEAF_ROUTE_KEYS.filter(
+            (key) => key.startsWith('/admin/billing') || key === '/billing/digital',
         );
-        expect(billingSidebarLeaves.sort()).toEqual(['/admin/billing']);
-        for (const route of billingSidebarLeaves) {
-            expect(getRequiredPermissionForPath(route)).toEqual([PERMISSIONS.SYSTEM_CRITICAL]);
-        }
+        expect(billingSidebarLeaves.sort()).toEqual(['/admin/billing', '/billing/digital']);
+        expect(getRequiredPermissionForPath('/admin/billing')).toEqual([PERMISSIONS.SYSTEM_CRITICAL]);
+        expect(getRequiredPermissionForPath('/billing/digital')).toEqual([
+            PERMISSIONS.DIGITAL_MANAGE,
+            PERMISSIONS.SYSTEM_CRITICAL,
+        ]);
+    });
+
+    it('registers digital billing page module', () => {
+        expect(
+            existsSync(join(process.cwd(), 'src/app/(protected)/billing/digital/page.tsx')),
+        ).toBe(true);
+        expect(getRequiredPermissionForPath('/billing/digital')).toEqual([
+            PERMISSIONS.DIGITAL_MANAGE,
+            PERMISSIONS.SYSTEM_CRITICAL,
+        ]);
     });
 
     it('guards deep links without sidebar leaves', () => {

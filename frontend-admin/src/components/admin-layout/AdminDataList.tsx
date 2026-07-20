@@ -1,7 +1,8 @@
 'use client';
 
 import React, { ReactNode } from 'react';
-import { Card, Spin, Alert, Empty } from 'antd';
+import { Card, Alert, Empty } from 'antd';
+import { TableSkeleton } from '@/components/Skeleton';
 import { useI18n } from '@/i18n';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 
@@ -31,9 +32,7 @@ export function AdminDataList({
     if (isLoading) {
         return (
             <Card>
-                <div style={{ textAlign: 'center', padding: '50px 0' }}>
-                    <Spin size="large" description={t('common.dataList.loadingTip')} />
-                </div>
+                <TableSkeleton rows={8} cols={4} loading />
             </Card>
         );
     }

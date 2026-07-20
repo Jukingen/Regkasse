@@ -9,7 +9,6 @@ import {
     Card,
     Descriptions,
     Space,
-    Spin,
     Tag,
     Typography,
 } from 'antd';
@@ -18,6 +17,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
+import { CardSkeleton } from '@/components/Skeleton';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
 import { formatDateTime } from '@/i18n/formatting';
@@ -112,7 +112,7 @@ export function AdminUserDetailPage() {
             />
 
             {userQuery.isLoading ? (
-                <Spin />
+                <CardSkeleton count={1} />
             ) : null}
 
             {userQuery.isError && isNotFoundError(userQuery.error) ? (

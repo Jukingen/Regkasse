@@ -130,6 +130,34 @@
     "view_details": "Open backup overview",
     "load_failed": "Could not load backup status."
   },
+  "metricsWidget": {
+    "operational": "Operational",
+    "requests": "Requests",
+    "requestsSuffix": "req",
+    "avgResponse": "Avg response",
+    "errorRate": "Error rate",
+    "activeUsers": "Registered users",
+    "uptime": "Uptime",
+    "uptimeValue": "{{days}}d {{hours}}h {{minutes}}m",
+    "cacheHit": "Cache hit: {{percent}}%",
+    "activeOrders": "Active orders: {{count}}",
+    "tenants": "Tenants: {{count}}",
+    "loadFailed": "Could not load system metrics."
+  },
+  "dataRetentionWidget": {
+    "viewAll": "View all",
+    "loadFailed": "Could not load data retention status.",
+    "totalTenants": "Total tenants",
+    "thisTenant": "This tenant",
+    "inGrace": "Grace period",
+    "locked": "Locked / expired",
+    "deletionRequests": "Deletion requests",
+    "tagActive": "Active: {{count}}",
+    "tagGrace": "Grace: {{count}}",
+    "tagLocked": "Locked: {{count}}",
+    "rksvNote": "RKSV data retained for at least 7 years",
+    "oldestRksv": "Oldest RKSV payment: {{date}}"
+  },
   "widgetShell": {
     "refresh": "Refresh",
     "drag_widget": "Move widget"

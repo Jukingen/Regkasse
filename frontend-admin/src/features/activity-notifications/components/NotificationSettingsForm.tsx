@@ -2,9 +2,10 @@
 
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useEffect } from 'react';
-import { Alert, Button, Checkbox, Divider, Form, Input, Select, Space, Spin, Switch } from 'antd';
+import { Alert, Button, Checkbox, Divider, Form, Input, Select, Space, Switch } from 'antd';
 
 import type { NotificationConfig } from '@/api/manual/activityEvents';
+import { FormSkeleton } from '@/components/Skeleton';
 import {
     ACTIVITY_EVENT_TYPES,
     ACTIVITY_SEVERITIES,
@@ -77,9 +78,7 @@ export function NotificationSettingsForm() {
         return (
             <>
                 <Form form={form} style={{ display: 'none' }} preserve />
-                <div style={{ padding: 48, textAlign: 'center' }}>
-                    <Spin />
-                </div>
+                <FormSkeleton fields={6} />
             </>
         );
     }

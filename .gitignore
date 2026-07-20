@@ -153,6 +153,7 @@ backend/**/appsettings.*.json
 # Tracked templates (negate after generic ignore rules)
 !backend/appsettings.example.json
 !backend/appsettings.Development.example.json
+!backend/appsettings.Production.example.json
 backend/**/appsettings.Development.json
 backend/**/App_Data/
 scripts/dev-mail.local.env
@@ -191,6 +192,9 @@ backend/**/ntp-bypass-build/
 backend/**/TestResults/
 backend/**/coverage/
 backend/**/coverage.*.json
+
+# Local dotnet publish output (never commit — includes DLLs, appsettings copies, test extracts)
+backend/publish/
 
 # Publish / MSBuild artifacts outside bin/ and obj/
 backend/**/*.deps.json

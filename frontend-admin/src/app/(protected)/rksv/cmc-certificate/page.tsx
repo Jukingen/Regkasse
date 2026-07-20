@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useCallback } from 'react';
-import { Alert, Button, Card, Descriptions, Divider, Spin, Space, Typography } from 'antd';
+import { Alert, Button, Card, Descriptions, Divider, Space, Typography } from 'antd';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { PageSkeleton } from '@/components/Skeleton';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { FORMAT_EMPTY_DISPLAY, useI18n } from '@/i18n';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
@@ -23,11 +24,7 @@ export default function RksvCmcCertificatePage() {
     const isLoading = statusLoading || devicesLoading;
 
     if (isLoading) {
-        return (
-            <div style={{ textAlign: 'center', padding: 80 }}>
-                <Spin size="large" />
-            </div>
-        );
+        return <PageSkeleton widgets={3} />;
     }
 
     return (

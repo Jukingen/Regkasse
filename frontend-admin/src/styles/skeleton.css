@@ -1,0 +1,42 @@
+/* Skeleton animations */
+.ant-skeleton {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+
+/* Skeleton card */
+.skeleton-card {
+    border-radius: 8px;
+    background: #f1f5f9;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+/* Skeleton table row */
+.skeleton-row {
+    display: flex;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.skeleton-col {
+    flex: 1;
+    height: 20px;
+    background: #e2e8f0;
+    border-radius: 4px;
+}
+
+.skeleton-col:nth-child(1) { width: 20%; }
+.skeleton-col:nth-child(2) { width: 30%; }
+.skeleton-col:nth-child(3) { width: 20%; }
+.skeleton-col:nth-child(4) { width: 15%; }
+.skeleton-col:nth-child(5) { width: 15%; }

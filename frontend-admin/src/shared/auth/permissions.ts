@@ -46,6 +46,62 @@ export const PERMISSIONS = {
   SETTINGS_MANAGE: 'settings.manage',
   /** Tenant-scoped backup management (trigger + schedule); narrower than settings.manage. Backend: AppPermissions.BackupManage. */
   BACKUP_MANAGE: 'backup.manage',
+  /** Domain / website customization. Backend: AppPermissions.WebsiteManage. */
+  WEBSITE_MANAGE: 'website.manage',
+  /** View digital services. Backend: AppPermissions.DigitalView. */
+  DIGITAL_VIEW: 'digital.view',
+  /** Preview digital services. Backend: AppPermissions.DigitalPreview. */
+  DIGITAL_PREVIEW: 'digital.preview',
+  /** Request digital service creation. Backend: AppPermissions.DigitalRequest. */
+  DIGITAL_REQUEST: 'digital.request',
+  /** Create websites/apps (Super Admin). Backend: AppPermissions.DigitalCreate. */
+  DIGITAL_CREATE: 'digital.create',
+  /** Publish websites/apps (Super Admin). Backend: AppPermissions.DigitalPublish. */
+  DIGITAL_PUBLISH: 'digital.publish',
+  /** Edit digital services (Super Admin). Backend: AppPermissions.DigitalEdit. */
+  DIGITAL_EDIT: 'digital.edit',
+  /** Delete digital services (Super Admin). Backend: AppPermissions.DigitalDelete. */
+  DIGITAL_DELETE: 'digital.delete',
+  /** Legacy view website. Backend: AppPermissions.DigitalWebView. */
+  DIGITAL_WEB_VIEW: 'digital.web.view',
+  /** Legacy preview website. Backend: AppPermissions.DigitalWebPreview. */
+  DIGITAL_WEB_PREVIEW: 'digital.web.preview',
+  /** Legacy request website. Backend: AppPermissions.DigitalWebRequest. */
+  DIGITAL_WEB_REQUEST: 'digital.web.request',
+  /** Legacy create website. Backend: AppPermissions.DigitalWebCreate. */
+  DIGITAL_WEB_CREATE: 'digital.web.create',
+  /** Legacy publish website. Backend: AppPermissions.DigitalWebPublish. */
+  DIGITAL_WEB_PUBLISH: 'digital.web.publish',
+  /** Legacy delete website. Backend: AppPermissions.DigitalWebDelete. */
+  DIGITAL_WEB_DELETE: 'digital.web.delete',
+  /** Legacy generate website. Backend: AppPermissions.DigitalWebUse. */
+  DIGITAL_WEB_USE: 'digital.web.use',
+  /** Legacy view app. Backend: AppPermissions.DigitalAppView. */
+  DIGITAL_APP_VIEW: 'digital.app.view',
+  /** Legacy preview app. Backend: AppPermissions.DigitalAppPreview. */
+  DIGITAL_APP_PREVIEW: 'digital.app.preview',
+  /** Legacy request app. Backend: AppPermissions.DigitalAppRequest. */
+  DIGITAL_APP_REQUEST: 'digital.app.request',
+  /** Legacy create app. Backend: AppPermissions.DigitalAppCreate. */
+  DIGITAL_APP_CREATE: 'digital.app.create',
+  /** Legacy publish app. Backend: AppPermissions.DigitalAppPublish. */
+  DIGITAL_APP_PUBLISH: 'digital.app.publish',
+  /** Legacy delete app. Backend: AppPermissions.DigitalAppDelete. */
+  DIGITAL_APP_DELETE: 'digital.app.delete',
+  /** Legacy generate app / PWA. Backend: AppPermissions.DigitalAppUse. */
+  DIGITAL_APP_USE: 'digital.app.use',
+  /** Full digital services control (Super Admin). Backend: AppPermissions.DigitalManage. */
+  DIGITAL_MANAGE: 'digital.manage',
+  /** Change digital service pricing (Super Admin). Backend: AppPermissions.DigitalPricingManage. */
+  DIGITAL_PRICING_MANAGE: 'digital.pricing.manage',
+  /** Activate/deactivate digital services for tenants (Super Admin). Backend: AppPermissions.DigitalActivate. */
+  DIGITAL_ACTIVATE: 'digital.activate',
+  /** View website/app online orders. Backend: AppPermissions.DigitalOrdersView. */
+  DIGITAL_ORDERS_VIEW: 'digital.orders.view',
+  /** Update online-order status (not POS). Backend: AppPermissions.DigitalOrdersManage. */
+  DIGITAL_ORDERS_MANAGE: 'digital.orders.manage',
+  /** Approve online orders / POS bridge (Super Admin). Backend: AppPermissions.DigitalOrdersApprove. */
+  DIGITAL_ORDERS_APPROVE: 'digital.orders.approve',
   LICENSE_VIEW: AppPermissions.LicenseView,
   /** Mandant (tenant) license view/update for own tenant — align with backend `AppPermissions.LicenseManage`. */
   LICENSE_MANAGE: 'license.manage',

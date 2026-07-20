@@ -7,6 +7,7 @@ import { Alert, Card, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { adminTablePaginationDefaults } from '@/components/ui/adminTablePagination';
 import { useI18n } from '@/i18n/I18nProvider';
 import { useGetApiTable } from '@/api/generated/table/table';
 import type { TableInfo } from '@/api/generated/model';
@@ -64,7 +65,7 @@ export default function TablesAdminPage() {
             loading={isLoading}
             columns={columns}
             dataSource={data ?? []}
-            pagination={false}
+            pagination={{ ...adminTablePaginationDefaults }}
           />
         </Card>
       )}

@@ -3,6 +3,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Activity;
+using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -36,7 +37,8 @@ public sealed class LicenseServiceGetLicenseStatusTests
         Assert.True(info.CanAccess);
         Assert.True(info.CanTransact);
         Assert.Equal(999, info.DaysRemaining);
-        Assert.Equal("Aktive Lizenz", info.StatusMessage);
+        Assert.Equal("Lizenz aktiv", info.StatusMessage);
+        Assert.Equal(LicenseStatusMessageKeys.Active, info.StatusMessageKey);
         Assert.False(info.RequiresRenewal);
     }
 
@@ -49,7 +51,8 @@ public sealed class LicenseServiceGetLicenseStatusTests
 
         Assert.Equal(10, info.DaysRemaining);
         Assert.Equal(validUntil, info.ValidUntil);
-        Assert.Contains("läuft in 10 Tagen ab", info.StatusMessage);
+        Assert.Contains("läuft in 10 Tag", info.StatusMessage);
+        Assert.Equal(LicenseStatusMessageKeys.ExpiringSoon, info.StatusMessageKey);
         Assert.False(info.RequiresRenewal);
     }
 
@@ -88,12 +91,42 @@ public sealed class LicenseServiceGetLicenseStatusTests
         var info = LicenseService.BuildTenantLicenseStatusInfo(CreateTenant(validUntil));
 
         Assert.True(info.IsInGracePeriod);
+        Assert.True(info.IsExpired);
+        Assert.False(info.IsLocked);
         Assert.Equal(5, info.DaysOverdue);
-        Assert.Equal(16, info.GracePeriodRemaining);
+        Assert.Equal(LicenseGracePeriodConfig.GracePeriodDays - 5, info.GracePeriodRemaining);
         Assert.True(info.CanAccess);
         Assert.True(info.CanTransact);
         Assert.False(info.RequiresRenewal);
-        Assert.Contains("Grace Period", info.StatusMessage);
+        Assert.Equal(LicenseStatusMessageKeys.Grace, info.StatusMessageKey);
+        Assert.NotNull(info.LockDate);
+        Assert.Contains("gesperrt", info.StatusMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(LicenseStatusRestrictionCodes.PosOperational, info.Restrictions);
+    }
+
+    [Fact]
+    public void BuildTenantLicenseStatusInfo_GraceRemaining_IsSevenMinusDaysOverdue_NotValidUntilHorizon()
+    {
+        // Regression: GracePeriodDays must be 7 (not a huge Dev sentinel like 999),
+        // otherwise messages show e.g. "997 Tage" (= 999 - 2) instead of "5 Tage".
+        LicenseGracePeriodConfig.ApplyFrom(new LicenseOptions
+        {
+            GracePeriodDays = LicenseGracePeriodConfig.DefaultGracePeriodDays,
+            WarningDaysBeforeExpiry = LicenseGracePeriodConfig.DefaultWarningDaysBeforeExpiry,
+            ArchiveAfterDays = LicenseGracePeriodConfig.DefaultArchiveAfterDays,
+        });
+        Assert.Equal(7, LicenseGracePeriodConfig.GracePeriodDays);
+
+        var now = new DateTime(2026, 7, 20, 12, 0, 0, DateTimeKind.Utc);
+        var validUntil = now.AddDays(-2);
+        var info = LicenseService.BuildTenantLicenseStatusInfo(CreateTenant(validUntil), now, "de");
+
+        Assert.True(info.IsInGracePeriod);
+        Assert.Equal(2, info.DaysOverdue);
+        Assert.Equal(5, info.GracePeriodRemaining);
+        Assert.Equal(validUntil.AddDays(7), info.LockDate);
+        Assert.Contains("noch 5 Tag", info.StatusMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("997", info.StatusMessage, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -104,8 +137,11 @@ public sealed class LicenseServiceGetLicenseStatusTests
 
         Assert.False(info.CanAccess);
         Assert.False(info.CanTransact);
+        Assert.True(info.IsLocked);
         Assert.True(info.RequiresRenewal);
-        Assert.Contains("Zugang gesperrt", info.StatusMessage);
+        Assert.Equal(LicenseStatusMessageKeys.Locked, info.StatusMessageKey);
+        Assert.Contains("gesperrt", info.StatusMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(LicenseStatusRestrictionCodes.SuperAdminUnlockOnly, info.Restrictions);
     }
 
     [Fact]
@@ -170,7 +206,7 @@ public sealed class LicenseServiceGetLicenseStatusTests
 
         Assert.Equal(1, info.DaysRemaining);
         Assert.True(info.CanAccess);
-        Assert.Contains("läuft in 1 Tagen ab", info.StatusMessage);
+        Assert.Contains("läuft in 1 Tag", info.StatusMessage);
         Assert.NotEqual(999, info.DaysRemaining);
     }
 
@@ -222,6 +258,7 @@ public sealed class LicenseServiceGetLicenseStatusTests
 
         Assert.False(info.CanAccess);
         Assert.True(info.RequiresRenewal);
-        Assert.Contains("Zugang gesperrt", info.StatusMessage);
+        Assert.True(info.IsLocked);
+        Assert.Contains("gesperrt", info.StatusMessage, StringComparison.OrdinalIgnoreCase);
     }
 }

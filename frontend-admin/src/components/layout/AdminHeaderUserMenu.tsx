@@ -3,12 +3,19 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Avatar, Button, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
-import { IdcardOutlined, KeyOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons';
+import {
+    IdcardOutlined,
+    KeyOutlined,
+    LogoutOutlined,
+    QuestionCircleOutlined,
+    UserOutlined,
+} from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 
 import { VOLUNTARY_CHANGE_PASSWORD_PATH } from '@/features/auth/constants/changePasswordRoute';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { SelfServiceUsernameModal } from '@/features/user/components/SelfServiceUsernameModal';
+import { openKeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp';
 import { useI18n } from '@/i18n';
 import { ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
 import type { AuthUser } from '@/shared/auth/types';
@@ -76,6 +83,12 @@ export function AdminHeaderUserMenu({
                 icon: <KeyOutlined />,
                 label: t(ADMIN_NAV_LABEL_KEYS.changePassword),
                 onClick: () => router.push(VOLUNTARY_CHANGE_PASSWORD_PATH),
+            },
+            {
+                key: 'keyboard-shortcuts',
+                icon: <QuestionCircleOutlined />,
+                label: t('keyboardShortcuts.help'),
+                onClick: () => openKeyboardShortcutsHelp(),
             },
             { type: 'divider' as const },
             {

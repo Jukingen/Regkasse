@@ -501,6 +501,14 @@ Operator guide: [`docs/ONLINE_ORDERS.md`](docs/ONLINE_ORDERS.md). Wave notes: [`
 - **Status workflow:** `pending` → `accepted` → `preparing` → `ready` → `completed` (or `cancelled` from non-terminal). API: `PATCH /api/admin/online-orders/{id}/status`.
 - Optional POS cart bridge (`POST …/accept`) requires `digital.orders.approve` (Super Admin) — not part of Manager status-only fulfillment.
 
+### Working hours (website/app only)
+
+Hub: [`docs/WORKING_HOURS.md`](docs/WORKING_HOURS.md). Always-applied: [`AGENTS.md`](AGENTS.md) § Working hours (website/app only).
+
+- Restricts **customer online-order intake** on tenant websites / apps (`WebsiteStatusController`, `OnlineOrderIntakeService`).
+- **Never** gates POS FE (cart/payment), FA access, or authenticated POS/admin APIs.
+- POS may show schedule / Tagesabschluss reminders; `posOperationsAllowed` is always `true`.
+
 ---
 
 ## Backup Strategy
@@ -1021,7 +1029,16 @@ Usernames are **case-insensitive** for login and uniqueness:
 - Can log in as: `mustafa`, `MUSTAFA`, `MuStAfA`
 - Cannot create another user with username `mustafa` (or `MUSTAFA`)
 
-Contract supplements: `docs/API_CONTRACTS.md` (Authentication).
+Contract supplements: `docs/API_CONTRACTS.md` (Authentication). SuperAdmin TOTP 2FA (Production) and Development bypass: [`docs/AUTH_TWO_FACTOR.md`](docs/AUTH_TWO_FACTOR.md).
+
+### SuperAdmin two-factor authentication (2FA)
+
+| Environment | Behavior |
+|-------------|----------|
+| **Development** | Default: no 2FA challenge (`TwoFactorAuth:BypassInDevelopment=true` / `Enabled=false` in Dev templates). |
+| **Production** | SuperAdmin must complete TOTP after password (`requires2FA` → `POST /api/Auth/verify-2fa`). |
+
+Config: `TwoFactorAuth` (`Enabled`, `BypassInDevelopment`, `TestToken`). FA UI: `frontend-admin/src/features/auth/components/TwoFactorAuth.tsx` (Dev Alert + Continue; Production authenticator form). Details: [`docs/AUTH_TWO_FACTOR.md`](docs/AUTH_TWO_FACTOR.md).
 
 ---
 

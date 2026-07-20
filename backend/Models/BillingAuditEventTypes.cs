@@ -9,6 +9,13 @@ public static class BillingAuditEventTypes
     public const string LicenseActivated = "LICENSE_ACTIVATED";
     public const string LicenseExtended = "LICENSE_EXTENDED";
     public const string LicenseReminderSent = "LICENSE_REMINDER_SENT";
+    public const string SubscriptionCreated = "SUBSCRIPTION_CREATED";
+    public const string SubscriptionCancelled = "SUBSCRIPTION_CANCELLED";
+    public const string DigitalServiceActivated = "DIGITAL_SERVICE_ACTIVATED";
+    public const string DigitalServiceDeactivated = "DIGITAL_SERVICE_DEACTIVATED";
+    public const string DigitalServiceEnabled = "DIGITAL_SERVICE_ENABLED";
+    public const string DigitalServiceDisabled = "DIGITAL_SERVICE_DISABLED";
+    public const string DigitalServicePriceUpdated = "DIGITAL_SERVICE_PRICE_UPDATED";
 
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
     {
@@ -18,5 +25,12 @@ public static class BillingAuditEventTypes
         LicenseActivated,
         LicenseExtended,
         LicenseReminderSent,
+        SubscriptionCreated,
+        SubscriptionCancelled,
+        DigitalServiceActivated,
+        DigitalServiceDeactivated,
+        DigitalServiceEnabled,
+        DigitalServiceDisabled,
+        DigitalServicePriceUpdated,
     };
 }

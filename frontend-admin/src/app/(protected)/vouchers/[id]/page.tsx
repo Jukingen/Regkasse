@@ -2,11 +2,12 @@
 
 import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useState } from 'react';
-import { Modal, Alert, Button, Card, Descriptions, Form, Input, Space, Spin, Tag, Typography } from 'antd';
+import { Modal, Alert, Button, Card, Descriptions, Form, Input, Space, Tag, Typography } from 'antd';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
+import { CardSkeleton } from '@/components/Skeleton';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
 import { usePermissions } from '@/shared/auth/usePermissions';
@@ -170,7 +171,7 @@ function AdminVoucherDetailContent({ id }: { id: string }) {
       />
 
       {detailQuery.isLoading ? (
-        <Spin />
+        <CardSkeleton count={2} />
       ) : detailQuery.isError || !d ? (
         <Alert type="error" title={t('vouchers.errors.loadFailed')} showIcon />
       ) : (

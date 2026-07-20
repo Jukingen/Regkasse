@@ -95,7 +95,8 @@ public sealed class LicenseMiddlewareTests
     [Fact]
     public async Task InvokeAsync_DeploymentGraceReadOnly_BlocksWriteRoutes()
     {
-        var snapshot = new LicenseStatusResponse(false, false, true, 0, Now.AddDays(-20), "machine");
+        // 20 days expired → deployment GraceReadOnly (write 15d, lockdown 60d); use UtcNow so wall-clock drift does not flake.
+        var snapshot = new LicenseStatusResponse(false, false, true, 0, DateTime.UtcNow.AddDays(-20), "machine");
         var licenseService = CreateLicenseService(snapshot);
         var context = CreateContext("/api/admin/products", HttpMethods.Post);
         var nextCalled = false;
@@ -116,7 +117,7 @@ public sealed class LicenseMiddlewareTests
     [Fact]
     public async Task InvokeAsync_DeploymentGraceReadOnly_AllowsAuthWrites()
     {
-        var snapshot = new LicenseStatusResponse(false, false, true, 0, Now.AddDays(-20), "machine");
+        var snapshot = new LicenseStatusResponse(false, false, true, 0, DateTime.UtcNow.AddDays(-20), "machine");
         var licenseService = CreateLicenseService(snapshot);
         var context = CreateContext("/api/auth/login", HttpMethods.Post);
         var nextCalled = false;
@@ -181,18 +182,21 @@ public sealed class LicenseMiddlewareTests
     }
 
     [Fact]
-    public async Task InvokeAsync_TenantLicenseBlocked_Returns403WithGermanMessage()
+    public async Task InvokeAsync_TenantLicenseLocked_BlocksPosWithLicenseLockedCode()
     {
         var snapshot = new LicenseStatusResponse(true, false, false, 90, Now.AddDays(90), "machine");
         var tenantStatus = new LicenseStatusInfo
         {
             CanAccess = false,
+            IsLocked = true,
+            RequiresRenewal = true,
             ValidUntil = Now.AddDays(-30),
             DaysOverdue = 30,
-            StatusMessage = "Lizenz abgelaufen. Zugang gesperrt. Bitte Lizenz erneuern.",
+            StatusMessage = "Lizenz abgelaufen! POS ist gesperrt. Nur Super-Administrator kann entsperren.",
+            StatusMessageKey = "license.status.locked",
         };
         var licenseService = CreateLicenseService(snapshot, tenantStatus);
-        var context = CreateContext("/api/admin/products", HttpMethods.Get);
+        var context = CreateContext("/api/pos/cart", HttpMethods.Post);
         var nextCalled = false;
         var sut = new LicenseMiddleware(_ =>
         {
@@ -205,23 +209,23 @@ public sealed class LicenseMiddlewareTests
         var body = await ReadBodyAsync(context);
         Assert.False(nextCalled);
         Assert.Equal(StatusCodes.Status403Forbidden, context.Response.StatusCode);
-        Assert.Contains("License Expired", body, StringComparison.Ordinal);
-        Assert.Contains("Ihre Lizenz ist abgelaufen", body, StringComparison.Ordinal);
+        Assert.Contains(LicenseMiddleware.LicenseLockedCode, body, StringComparison.Ordinal);
+        Assert.Contains("\"success\":false", body, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("POS ist gesperrt", body, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task InvokeAsync_TenantInGracePeriod_AddsLicenseHeaders()
+    public async Task InvokeAsync_TenantLicenseLocked_AllowsAdminRenewalPaths()
     {
         var snapshot = new LicenseStatusResponse(true, false, false, 90, Now.AddDays(90), "machine");
         var tenantStatus = new LicenseStatusInfo
         {
-            CanAccess = true,
-            CanTransact = true,
-            DaysRemaining = -5,
-            DaysOverdue = 5,
-            GracePeriodRemaining = 16,
-            IsInGracePeriod = true,
-            StatusMessage = "Lizenz abgelaufen. Grace Period: noch 16 Tage",
+            CanAccess = false,
+            IsLocked = true,
+            RequiresRenewal = true,
+            ValidUntil = Now.AddDays(-30),
+            DaysOverdue = 30,
+            StatusMessage = "Lizenz abgelaufen! POS ist gesperrt.",
         };
         var licenseService = CreateLicenseService(snapshot, tenantStatus);
         var context = CreateContext("/api/admin/products", HttpMethods.Get);
@@ -235,9 +239,40 @@ public sealed class LicenseMiddlewareTests
         await InvokeMiddlewareAsync(sut, context, licenseService);
 
         Assert.True(nextCalled);
+        Assert.NotEqual(StatusCodes.Status403Forbidden, context.Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_TenantInGracePeriod_AddsLicenseHeaders()
+    {
+        var graceRemaining = Math.Max(0, LicenseGracePeriodConfig.GracePeriodDays - 5);
+        var snapshot = new LicenseStatusResponse(true, false, false, 90, Now.AddDays(90), "machine");
+        var tenantStatus = new LicenseStatusInfo
+        {
+            CanAccess = true,
+            CanTransact = true,
+            DaysRemaining = -5,
+            DaysOverdue = 5,
+            GracePeriodRemaining = graceRemaining,
+            IsInGracePeriod = true,
+            StatusMessage = $"Mandantenlizenz seit 5 Tag(en) abgelaufen. POS kann noch {graceRemaining} Tag(e) genutzt werden.",
+        };
+        var licenseService = CreateLicenseService(snapshot, tenantStatus);
+        var context = CreateContext("/api/pos/cart", HttpMethods.Post);
+        var nextCalled = false;
+        var sut = new LicenseMiddleware(_ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+
+        await InvokeMiddlewareAsync(sut, context, licenseService);
+
+        Assert.True(nextCalled);
         Assert.Equal(tenantStatus.StatusMessage, context.Response.Headers[LicenseMiddleware.LicenseStatusHeaderName].ToString());
-        Assert.Equal("-5", context.Response.Headers[LicenseMiddleware.LicenseDaysRemainingHeaderName].ToString());
-        Assert.Equal("16", context.Response.Headers[LicenseMiddleware.LicenseGraceRemainingHeaderName].ToString());
+        Assert.Equal("true", context.Response.Headers[LicenseMiddleware.LicenseGraceHeaderName].ToString());
+        Assert.Equal(graceRemaining.ToString(), context.Response.Headers[LicenseMiddleware.LicenseDaysRemainingHeaderName].ToString());
+        Assert.Equal(graceRemaining.ToString(), context.Response.Headers[LicenseMiddleware.LicenseGraceRemainingHeaderName].ToString());
     }
 
     [Fact]

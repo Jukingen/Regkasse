@@ -44,6 +44,10 @@
     "RestoreDrillFailed": "Geri yükleme tatbikatı başarısız",
     "RestoreDrillSucceeded": "Geri yükleme tatbikatı başarılı",
     "DailyClosingBackdatedCreated": "Gecikmeli gün sonu oluşturuldu",
-    "DailyClosingPendingReminder": "Gün sonu kapanışı bekliyor"
+    "DailyClosingPendingReminder": "Gün sonu kapanışı bekliyor",
+    "OnlineOrderPushedToPos": "Online sipariş kasaya iletildi",
+    "OnlineOrderPaid": "Online sipariş ödendi",
+    "OnlineOrderStatusChanged": "Online sipariş durumu değişti",
+    "OnlineOrderConfirmed": "Online sipariş onaylandı"
   }
 }

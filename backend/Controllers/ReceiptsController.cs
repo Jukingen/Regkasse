@@ -5,6 +5,7 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Tse;
 using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Models;
 using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Controllers

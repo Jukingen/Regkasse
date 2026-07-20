@@ -74,7 +74,11 @@
     "billingOverview": "Genel bakış",
     "billingSales": "Lisans satışları",
     "billingStats": "İstatistikler",
-    "billingNew": "Yeni satış"
+    "billingNew": "Yeni satış",
+    "digital": "Dijital hizmetler",
+    "digitalRequests": "Dijital talepler",
+    "onlineOrders": "Online siparişler",
+    "websitePreview": "Web sitesi önizleme"
   },
   "elmah": {
     "columns": {
@@ -163,6 +167,7 @@
       "createAdmin": "Yönetici oluştur",
       "switchAnywayDev": "Yine de değiştir (dev)",
       "retryLoad": "Yeniden dene",
+      "refreshFailed": "Oturum jetonu yenilenemedi. Kiracı değiştirilmedi.",
       "tenantCount": "{count} kiracı",
       "adminLine": "Admin: {email}",
       "noAdmin": "Admin atanmadı",
@@ -554,6 +559,8 @@
     "helpText": "Gezinmek için ok tuslari, secmek icin Enter, kapatmak icin Escape.",
     "noResults": "Sonuç yok",
     "hint": "Menü girdilerini filtrelemek için yazın.",
+    "shortcutOpenSuffix": "açmak için",
+    "shortcutCloseSuffix": "kapatmak için",
     "searching": "Aranıyor…",
     "resultsAria": "Arama sonuçları"
   },

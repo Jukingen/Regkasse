@@ -1,0 +1,71 @@
+using System;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
+using KasseAPI_Final.Data;
+
+#nullable disable
+
+namespace KasseAPI_Final.Migrations;
+
+/// <inheritdoc />
+[DbContext(typeof(AppDbContext))]
+[Migration("20260719220000_AddTenantDataManagement")]
+public partial class AddTenantDataManagement : Migration
+{
+    /// <inheritdoc />
+    protected override void Up(MigrationBuilder migrationBuilder)
+    {
+        migrationBuilder.AddColumn<DateTime>(
+            name: "customer_data_purged_at_utc",
+            table: "tenants",
+            type: "timestamp with time zone",
+            nullable: true);
+
+        migrationBuilder.CreateTable(
+            name: "tenant_data_deletion_requests",
+            columns: table => new
+            {
+                id = table.Column<Guid>(type: "uuid", nullable: false),
+                tenant_id = table.Column<Guid>(type: "uuid", nullable: false),
+                status = table.Column<string>(type: "character varying(24)", maxLength: 24, nullable: false),
+                requested_by_user_id = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: true),
+                requested_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                reason = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                export_completed_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                completed_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                completed_by_user_id = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: true),
+                created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                updated_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+            },
+            constraints: table =>
+            {
+                table.PrimaryKey("PK_tenant_data_deletion_requests", x => x.id);
+                table.ForeignKey(
+                    name: "FK_tenant_data_deletion_requests_tenants_tenant_id",
+                    column: x => x.tenant_id,
+                    principalTable: "tenants",
+                    principalColumn: "id",
+                    onDelete: ReferentialAction.Cascade);
+            });
+
+        migrationBuilder.CreateIndex(
+            name: "idx_tenant_data_deletion_requests_tenant_id",
+            table: "tenant_data_deletion_requests",
+            column: "tenant_id");
+
+        migrationBuilder.CreateIndex(
+            name: "idx_tenant_data_deletion_requests_tenant_status",
+            table: "tenant_data_deletion_requests",
+            columns: new[] { "tenant_id", "status" });
+    }
+
+    /// <inheritdoc />
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
+        migrationBuilder.DropTable(name: "tenant_data_deletion_requests");
+
+        migrationBuilder.DropColumn(
+            name: "customer_data_purged_at_utc",
+            table: "tenants");
+    }
+}

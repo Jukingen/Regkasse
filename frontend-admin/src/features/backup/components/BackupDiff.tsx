@@ -12,11 +12,11 @@ import {
   Descriptions,
   Select,
   Space,
-  Spin,
   Table,
   Typography,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
+import { CardSkeleton } from "@/components/Skeleton";
 import { useI18n } from "@/i18n";
 import { formatBackupBytes } from "@/features/backup-dr/logic/backupFormat";
 import { useBackupDiff } from "@/features/backup/hooks/useBackupDiff";
@@ -152,7 +152,7 @@ export function BackupDiff({
         <Typography.Text type="secondary">{t("backupDr.backupDiff.pickTwo")}</Typography.Text>
       ) : null}
 
-      {isLoading ? <Spin /> : null}
+      {isLoading ? <CardSkeleton count={1} loading /> : null}
 
       {isError ? (
         <Alert type="error" showIcon title={t("backupDr.backupDiff.loadFailed")} />

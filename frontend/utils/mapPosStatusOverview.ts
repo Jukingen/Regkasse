@@ -78,10 +78,18 @@ export function mapOverviewToMandantWarning(
 
   return {
     daysRemaining,
+    daysOverdue:
+      typeof license.daysOverdue === 'number' && Number.isFinite(license.daysOverdue)
+        ? Math.max(0, Math.trunc(license.daysOverdue))
+        : 0,
     gracePeriodRemaining,
     isInGracePeriod: license.isInGracePeriod === true,
+    isLocked: license.isLocked === true,
     canAccess: license.canAccess !== false,
     statusMessage: license.statusMessage ?? null,
+    lockDate:
+      typeof license.lockDate === 'string' && license.lockDate.length > 0 ? license.lockDate : null,
+    restrictions: Array.isArray(license.restrictions) ? [...license.restrictions] : [],
     validUntil:
       typeof license.validUntil === 'string' && license.validUntil.length > 0
         ? license.validUntil

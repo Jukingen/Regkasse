@@ -12,7 +12,7 @@ import {
   Collapse,
   Descriptions,
   Divider,
-  Spin,
+  Skeleton,
   Tag,
   Typography,
 } from "antd";
@@ -134,7 +134,7 @@ export function RecoverabilitySummaryCard({
         />
       ) : null}
       {loading && !summary ? (
-        <Spin />
+        <Skeleton active paragraph={{ rows: 4 }} />
       ) : !summary ? (
         <Typography.Text type="secondary">
           {t("backupDr.summary.unknown")}

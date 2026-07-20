@@ -5,6 +5,7 @@ public static class ApiMessageKeys
 {
     // Auth
     public const string InvalidLoginCredentials = "auth.invalid_login_credentials";
+    public const string AccountTemporarilyLocked = "auth.account_temporarily_locked";
     public const string ForgotPasswordGeneric = "auth.forgot_password_generic";
     public const string RegistrationFailed = "auth.registration_failed";
     public const string UserNotFound = "auth.user_not_found";
@@ -14,10 +15,17 @@ public static class ApiMessageKeys
     public const string AccountNotActive = "auth.account_not_active";
     public const string NotAuthorizedForApp = "auth.not_authorized_for_app";
     public const string LoginError = "auth.login_error";
+    public const string TwoFactorRequired = "auth.two_factor_required";
+    public const string TwoFactorInvalid = "auth.two_factor_invalid";
+    public const string TwoFactorChallengeExpired = "auth.two_factor_challenge_expired";
     public const string UserCreatedSuccess = "auth.user_created_success";
     public const string TenantMembershipRequired = "auth.tenant_membership_required";
     public const string TenantDisabled = "auth.tenant_disabled";
     public const string TenantLicenseLockdown = "auth.tenant_license_lockdown";
+    public const string LicenseStatusActive = "license.status.active";
+    public const string LicenseStatusExpiringSoon = "license.status.expiring_soon";
+    public const string LicenseStatusGrace = "license.status.grace";
+    public const string LicenseStatusLocked = "license.status.locked";
 
     // Password change / Identity validation
     public const string PasswordChangeValidationFailed = "password.change_validation_failed";

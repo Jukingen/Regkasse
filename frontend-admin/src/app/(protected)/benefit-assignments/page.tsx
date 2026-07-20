@@ -2,7 +2,7 @@
 
 import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useState, useMemo } from 'react';
-import { Modal, Button, Table, Space, Popconfirm, Tooltip, Empty, Alert, Form, InputNumber, Select, Switch, DatePicker } from 'antd';
+import { Modal, Button, Table, Space, Popconfirm, Tooltip, Alert, Form, InputNumber, Select, Switch, DatePicker } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, FilterOutlined } from '@ant-design/icons';
 import type { ColumnType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -19,6 +19,7 @@ import { useAdminBenefitDefinitionsList } from '@/api/admin/benefit-definitions'
 import { useGetApiCustomer } from '@/api/generated/customer/customer';
 import { useQueryClient } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { EmptyState } from '@/components/EmptyState';
 import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
@@ -245,7 +246,7 @@ export default function BenefitAssignmentsPage() {
         rowKey="id"
         loading={listQuery.isLoading}
         pagination={{ pageSize: 10, showSizeChanger: true }}
-        locale={{ emptyText: <Empty description={t('benefits.assignments.emptyList')} /> }}
+        locale={{ emptyText: <EmptyState title={t('benefits.assignments.emptyList')} /> }}
       />
 
       <Modal

@@ -1,15 +1,14 @@
 import React, { useCallback, useState } from 'react';
 import {
   Alert,
-  Modal,
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import { DailyClosingModal } from './DailyClosingModal';
 import {
   downloadDailyClosingReportPdf,
 } from '../services/api/shiftService';
@@ -103,6 +102,31 @@ export function ShiftManager() {
     setDailyClosingNotes('');
     setDailyClosingError(null);
   }, []);
+
+  /** Opens the Tagesabschluss modal (settings → ShiftManager button). */
+  const openDailyClosingModal = useCallback(() => {
+    const canRun = Boolean(activeShift && dailyClosingStatus?.canClose && !isLoading);
+    if (__DEV__) {
+      console.log('🔄 Tagesabschluss button clicked', {
+        canRunDailyClosing: canRun,
+        hasActiveShift: Boolean(activeShift),
+        canClose: dailyClosingStatus?.canClose ?? null,
+        blockReason: dailyClosingStatus?.blockReason ?? null,
+        isLoading,
+      });
+    }
+    if (!canRun) {
+      if (__DEV__) {
+        console.log('⚠️ Tagesabschluss modal not opened (button gated)');
+      }
+      return;
+    }
+    setDailyClosingError(null);
+    setShowDailyClosingModal(true);
+    if (__DEV__) {
+      console.log('✅ setShowDailyClosingModal(true)');
+    }
+  }, [activeShift, dailyClosingStatus, isLoading]);
 
   const handleDailyClosing = useCallback(async () => {
     const amount = parseMoneyInput(cashCount);
@@ -214,11 +238,9 @@ export function ShiftManager() {
           ) : null}
           <Pressable
             style={[styles.primaryBtn, styles.closingBtn, !canRunDailyClosing && styles.btnDisabled]}
-            onPress={() => {
-              setDailyClosingError(null);
-              setShowDailyClosingModal(true);
-            }}
-            disabled={!canRunDailyClosing}
+            onPress={openDailyClosingModal}
+            // Keep pressable while gated so __DEV__ click logs still fire (disabled swallows onPress).
+            accessibilityState={{ disabled: !canRunDailyClosing }}
             accessibilityRole="button"
             accessibilityLabel={t('settings:shift.dailyClosing.button')}
           >
@@ -227,56 +249,17 @@ export function ShiftManager() {
         </View>
       ) : null}
 
-      <Modal
+      <DailyClosingModal
         visible={showDailyClosingModal}
-        transparent
-        animationType="slide"
-        onRequestClose={closeDailyClosingModal}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{t('settings:shift.dailyClosing.modalTitle')}</Text>
-            <Text style={styles.modalHint}>{t('settings:shift.dailyClosing.modalHint')}</Text>
-            {dailyClosingError ? (
-              <View style={styles.modalErrorBox} accessibilityRole="alert">
-                <Text style={styles.modalErrorText}>{dailyClosingError}</Text>
-              </View>
-            ) : null}
-            <Text style={styles.modalLabel}>{t('settings:shift.dailyClosing.cashCountLabel')}</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="decimal-pad"
-              value={cashCount}
-              onChangeText={setCashCount}
-              placeholder="0,00"
-              placeholderTextColor="#999"
-            />
-            <Text style={styles.modalLabel}>{t('settings:shift.dailyClosing.notesLabel')}</Text>
-            <TextInput
-              style={[styles.input, styles.notesInput]}
-              value={dailyClosingNotes}
-              onChangeText={setDailyClosingNotes}
-              placeholder={t('settings:shift.notesPlaceholder')}
-              placeholderTextColor="#999"
-              multiline
-            />
-            <View style={styles.modalActions}>
-              <Pressable style={styles.secondaryBtn} onPress={closeDailyClosingModal}>
-                <Text style={styles.secondaryBtnText}>{t('common:cancel')}</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.primaryBtn, styles.closingBtn, isLoading && styles.btnDisabled]}
-                onPress={() => void handleDailyClosing()}
-                disabled={isLoading}
-              >
-                <Text style={styles.primaryBtnText}>
-                  {isLoading ? t('settings:shift.working') : t('settings:shift.dailyClosing.confirm')}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        onClose={closeDailyClosingModal}
+        onConfirm={() => void handleDailyClosing()}
+        cashCount={cashCount}
+        onCashCountChange={setCashCount}
+        notes={dailyClosingNotes}
+        onNotesChange={setDailyClosingNotes}
+        error={dailyClosingError}
+        isLoading={isLoading}
+      />
     </View>
   );
 }
@@ -360,72 +343,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 15,
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  modalCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 8,
-  },
-  modalHint: {
-    fontSize: 14,
-    color: '#64748b',
-    marginBottom: 12,
-    lineHeight: 20,
-  },
-  modalErrorBox: {
-    backgroundColor: '#fee2e2',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-  },
-  modalErrorText: {
-    color: '#dc2626',
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  modalLabel: {
-    fontSize: 14,
-    color: '#555',
-    marginBottom: 6,
-    marginTop: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: '#333',
-  },
-  notesInput: {
-    minHeight: 72,
-    textAlignVertical: 'top',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 10,
-    marginTop: 16,
-  },
-  secondaryBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
-  secondaryBtnText: {
-    color: '#666',
-    fontWeight: '600',
   },
 });
