@@ -2,10 +2,57 @@
   "name": "regkasse",
   "private": true,
   "type": "module",
-  "description": "Regkasse monorepo tooling (validation scripts, dev seed)",
+  "description": "Regkasse monorepo — npm workspaces + root orchestration",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "backend",
+    "frontend",
+    "frontend-admin",
+    "frontend-sites",
+    "localization"
+  ],
   "scripts": {
+    "dev": "node scripts/dev-workspaces.mjs",
+    "dev:workspaces": "npm run dev --workspaces --if-present",
+    "dev:backend": "npm run dev -w @regkasse/backend",
+    "dev:admin": "npm run dev -w registrierkasse-admin",
+    "dev:pos": "npm run dev -w cash-register",
+    "dev:sites": "npm run dev -w regkasse-sites",
+    "build": "npm run build --workspaces --if-present",
+    "build:backend": "npm run build -w @regkasse/backend",
+    "build:admin": "npm run build -w registrierkasse-admin",
+    "build:pos": "npm run build -w cash-register",
+    "build:sites": "npm run build -w regkasse-sites",
+    "test": "npm run test --workspaces --if-present",
+    "test:backend": "npm run test -w @regkasse/backend",
+    "test:admin": "npm run test -w registrierkasse-admin",
+    "test:pos": "npm run test -w cash-register",
+    "test:sites": "npm run test -w regkasse-sites",
+    "lint": "npm run lint --workspaces --if-present",
+    "lint:admin": "npm run lint -w registrierkasse-admin",
+    "lint:pos": "npm run lint -w cash-register",
+    "lint:sites": "npm run lint -w regkasse-sites",
+    "typecheck:admin": "npm run typecheck -w registrierkasse-admin",
+    "typecheck:pos": "npm run typecheck -w cash-register",
+    "typecheck:sites": "npm run typecheck -w regkasse-sites",
+    "typecheck": "npm run typecheck -w registrierkasse-admin --if-present && npm run typecheck -w cash-register --if-present && npm run typecheck -w regkasse-sites --if-present",
     "seed:test-data": "node scripts/seed-test-data.mjs",
     "verify:api-client": "node scripts/verify-api-client.mjs",
-    "install:git-hooks": "node scripts/install-git-hooks.mjs"
+    "verify:openapi": "node scripts/validate-critical-openapi-paths.mjs",
+    "precommit": "node scripts/git-hooks/pre-commit.mjs",
+    "prepare": "node scripts/install-git-hooks.mjs",
+    "install:git-hooks": "node scripts/install-git-hooks.mjs",
+    "generate:api": "npm run generate:api -w registrierkasse-admin",
+    "i18n:validate": "npm run validate -w @regkasse/localization",
+    "i18n:ci": "npm run ci -w @regkasse/localization",
+    "i18n:ci:admin": "npm run i18n:ci -w registrierkasse-admin",
+    "i18n:ci:pos": "npm run i18n:ci -w cash-register",
+    "testsprite:validate": "node testsprite/validate-specs.mjs",
+    "testsprite:smoke": "node testsprite/run-api-smoke.mjs"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
   }
 }
