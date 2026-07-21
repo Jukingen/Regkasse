@@ -4,7 +4,8 @@ export const rksvAdminQueryKeys = {
   cashRegisters: ['admin', 'rksv', 'cash-registers'] as const,
   finanzOnline: {
     base: ['admin', 'rksv', 'finanzonline-reconciliation'] as const,
-    list: (params: unknown) => ['admin', 'rksv', 'finanzonline-reconciliation', 'list', params] as const,
+    list: (params: unknown) =>
+      ['admin', 'rksv', 'finanzonline-reconciliation', 'list', params] as const,
     metrics: ['admin', 'rksv', 'finanzonline-reconciliation', 'metrics'] as const,
   },
   finanzOnlineOutbox: {
@@ -18,22 +19,27 @@ export const rksvAdminQueryKeys = {
     status: ['admin', 'rksv', 'finanzonline-ops', 'status'] as const,
     config: ['admin', 'rksv', 'finanzonline-ops', 'config'] as const,
     errors: ['admin', 'rksv', 'finanzonline-ops', 'errors'] as const,
-    history: (invoiceId: string) => ['admin', 'rksv', 'finanzonline-ops', 'history', invoiceId] as const,
+    history: (invoiceId: string) =>
+      ['admin', 'rksv', 'finanzonline-ops', 'history', invoiceId] as const,
   },
   incident: (correlationId: string) => ['admin', 'rksv', 'incident', correlationId] as const,
   replayBatch: (correlationId: string) => ['admin', 'rksv', 'replay-batch', correlationId] as const,
   integrity: (params: unknown) => ['admin', 'rksv', 'integrity', params] as const,
   complianceReport: (params: unknown) => ['admin', 'rksv', 'compliance-report', params] as const,
   offlineIntentCoverage: {
-    summary: (params: unknown) => ['admin', 'rksv', 'offline-intent-coverage', 'summary', params] as const,
-    topRisk: (params: unknown) => ['admin', 'rksv', 'offline-intent-coverage', 'top-risk', params] as const,
+    summary: (params: unknown) =>
+      ['admin', 'rksv', 'offline-intent-coverage', 'summary', params] as const,
+    topRisk: (params: unknown) =>
+      ['admin', 'rksv', 'offline-intent-coverage', 'top-risk', params] as const,
   },
   offlinePayloadHash: {
-    analyze: (params: unknown) => ['admin', 'rksv', 'offline-payload-hash', 'analyze', params] as const,
+    analyze: (params: unknown) =>
+      ['admin', 'rksv', 'offline-payload-hash', 'analyze', params] as const,
   },
   operations: {
     reminderOverview: ['rksv-reminder-overview'] as const,
-    payloadAnalyzeQuick: (maxRows: number) => ['rksv-operations', 'payload-analyze', maxRows] as const,
+    payloadAnalyzeQuick: (maxRows: number) =>
+      ['rksv-operations', 'payload-analyze', maxRows] as const,
     foMetrics: ['rksv-operations', 'fo-metrics'] as const,
     coverageSummary: (params: unknown) => ['rksv-operations', 'coverage', params] as const,
     summary: (params: unknown) => ['rksv-operations', 'summary', params] as const,

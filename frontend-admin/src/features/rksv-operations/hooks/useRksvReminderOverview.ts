@@ -1,8 +1,11 @@
+import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
+import type {
+  RksvReminderRegisterStatusItemDto,
+  RksvReminderStatusDto,
+} from '@/api/generated/model';
+import { getApiRksvReminderStatusOverview } from '@/api/generated/rksv/rksv';
 import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
 import { AppPermissions } from '@/shared/auth/permissions';
-import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
-import { getApiRksvReminderStatusOverview } from '@/api/generated/rksv/rksv';
-import type { RksvReminderRegisterStatusItemDto, RksvReminderStatusDto } from '@/api/generated/model';
 
 export interface RksvReminderOverview {
   totalRegisters: number;
@@ -22,7 +25,9 @@ export interface RksvReminderOverview {
   }>;
 }
 
-function toMonatsbelegStatus(status: RksvReminderStatusDto | undefined): 'ok' | 'missing' | 'overdue' {
+function toMonatsbelegStatus(
+  status: RksvReminderStatusDto | undefined
+): 'ok' | 'missing' | 'overdue' {
   const monatsbeleg = status?.monatsbeleg;
   if (!monatsbeleg) return 'missing';
   if (monatsbeleg.status === 'overdue') return 'overdue';
@@ -31,7 +36,7 @@ function toMonatsbelegStatus(status: RksvReminderStatusDto | undefined): 'ok' | 
 }
 
 function toJahresbelegStatus(
-  status: RksvReminderStatusDto | undefined,
+  status: RksvReminderStatusDto | undefined
 ): 'ok' | 'missing' | 'overdue' | 'not_applicable' {
   const jahresbeleg = status?.jahresbeleg;
   if (!jahresbeleg) return 'not_applicable';
@@ -43,12 +48,20 @@ function toJahresbelegStatus(
 
 function getDaysRemaining(status: RksvReminderStatusDto | undefined): number | undefined {
   const jahresbeleg = status?.jahresbeleg;
-  if (jahresbeleg?.isRequired && jahresbeleg.status !== 'overdue' && jahresbeleg.daysUntilDeadline != null) {
+  if (
+    jahresbeleg?.isRequired &&
+    jahresbeleg.status !== 'overdue' &&
+    jahresbeleg.daysUntilDeadline != null
+  ) {
     return jahresbeleg.daysUntilDeadline;
   }
 
   const monatsbeleg = status?.monatsbeleg;
-  if (monatsbeleg?.isRequired && monatsbeleg.status !== 'overdue' && monatsbeleg.daysUntilDeadline != null) {
+  if (
+    monatsbeleg?.isRequired &&
+    monatsbeleg.status !== 'overdue' &&
+    monatsbeleg.daysUntilDeadline != null
+  ) {
     return monatsbeleg.daysUntilDeadline;
   }
 
@@ -56,7 +69,7 @@ function getDaysRemaining(status: RksvReminderStatusDto | undefined): number | u
 }
 
 function buildOverviewFromStatusItems(
-  reminderItems: RksvReminderRegisterStatusItemDto[],
+  reminderItems: RksvReminderRegisterStatusItemDto[]
 ): RksvReminderOverview {
   const reminders = reminderItems
     .map((item) => {

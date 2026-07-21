@@ -1,5 +1,5 @@
 import { apiClient } from './config';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { sessionManager } from '../session/sessionManager';
 
 // Türkçe Açıklama: Sepet işlemleri için kapsamlı API servisi. Ürün ekleme, çıkarma, güncelleme, sepet görüntüleme ve yönetim işlevleri sağlar.
 
@@ -68,7 +68,7 @@ export interface CartHistoryItem {
 
 export class CartService {
   private static instance: CartService;
-  private tableCarts: Map<number, string> = new Map(); // Masa bazlı sepet ID'leri
+  private readonly tableCarts: Map<number, string> = new Map(); // Masa bazlı sepet ID'leri
 
   static getInstance(): CartService {
     if (!CartService.instance) {
@@ -80,18 +80,18 @@ export class CartService {
   // 🧹 Token expire kontrolü
   private async isTokenExpired(): Promise<boolean> {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await sessionManager.getAccessToken();
       if (!token) return true;
 
       // JWT token'ı decode et ve expire kontrolü yap
       const payload = JSON.parse(atob(token.split('.')[1]));
       const currentTime = Math.floor(Date.now() / 1000);
-      
+
       if (payload.exp && payload.exp < currentTime) {
         console.log('⚠️ Token expired in CartService');
         return true;
       }
-      
+
       return false;
     } catch (error) {
       console.error('Token expire check error in CartService:', error);
@@ -119,20 +119,20 @@ export class CartService {
     try {
       console.log('🛒 Masa', tableNumber, 'sepeti getiriliyor...');
       console.log('🔍 API endpoint: /cart/current?tableNumber=' + tableNumber);
-      
+
       const response = await apiClient.get<any>(`/pos/cart/current?tableNumber=${tableNumber}`);
-      
+
       // Debouncing kontrolü - null response handle et
       if (response === null) {
         console.log('⚠️ API response null (debouncing), throwing error for retry...');
         throw new Error('API response is null due to debouncing');
       }
-      
+
       // Response format kontrolü
       if (!response || typeof response !== 'object') {
         throw new Error(`Invalid response format: ${JSON.stringify(response)}`);
       }
-      
+
       // Backend response'unu frontend interface'ine uygun hale getir
       const mappedCart: Cart = {
         cartId: response.CartId || response.cartId,
@@ -153,14 +153,14 @@ export class CartService {
           totalPrice: item.TotalPrice || item.totalPrice,
           notes: item.Notes || item.notes,
           taxType: item.TaxType || item.taxType || 'standard',
-          taxRate: item.TaxRate || item.taxRate || 0.20
+          taxRate: item.TaxRate || item.taxRate || 0.2,
         })),
         totalItems: response.TotalItems || response.totalItems || 0,
         subtotalGross: response.SubtotalGross ?? response.subtotalGross ?? 0,
         includedTaxTotal: response.IncludedTaxTotal ?? response.includedTaxTotal ?? 0,
-        grandTotalGross: response.GrandTotalGross ?? response.grandTotalGross ?? 0
+        grandTotalGross: response.GrandTotalGross ?? response.grandTotalGross ?? 0,
       };
-      
+
       console.log('📦 Mapped Cart:', {
         cartId: mappedCart.cartId,
         tableNumber: mappedCart.tableNumber,
@@ -168,12 +168,12 @@ export class CartService {
         itemsCount: mappedCart.items?.length ?? 0,
         subtotalGross: mappedCart.subtotalGross,
         includedTaxTotal: mappedCart.includedTaxTotal,
-        grandTotalGross: mappedCart.grandTotalGross
+        grandTotalGross: mappedCart.grandTotalGross,
       });
-      
+
       // Masa bazlı sepet ID'sini sakla
       this.tableCarts.set(tableNumber, mappedCart.cartId);
-      
+
       console.log('✅ Masa', tableNumber, 'sepeti başarıyla getirildi:', mappedCart.cartId);
       return mappedCart;
     } catch (error) {
@@ -206,11 +206,14 @@ export class CartService {
 
     try {
       console.log('🛒 Yeni sepet oluşturuluyor:', request);
-      const response = await apiClient.post<{ cartId: string; expiresAt: string }>('/pos/cart', request);
-      
+      const response = await apiClient.post<{ cartId: string; expiresAt: string }>(
+        '/pos/cart',
+        request
+      );
+
       // Masa bazlı sepet ID'sini sakla
       this.tableCarts.set(request.tableNumber, response.cartId);
-      
+
       console.log('✅ Sepet başarıyla oluşturuldu:', response.cartId);
       return response;
     } catch (error: any) {
@@ -237,8 +240,11 @@ export class CartService {
 
     try {
       console.log('🛒 Sepete ürün ekleniyor:', request);
-      const response = await apiClient.post<{ message: string; cart: any }>('/pos/cart/add-item', request);
-      
+      const response = await apiClient.post<{ message: string; cart: any }>(
+        '/pos/cart/add-item',
+        request
+      );
+
       // Backend response'unu frontend interface'ine uygun hale getir
       const mappedCart: Cart = {
         cartId: response.cart.CartId || response.cart.cartId,
@@ -259,17 +265,17 @@ export class CartService {
           totalPrice: item.TotalPrice || item.totalPrice,
           notes: item.Notes || item.notes,
           taxType: item.TaxType || item.taxType || 'standard',
-          taxRate: item.TaxRate || item.taxRate || 0.20
+          taxRate: item.TaxRate || item.taxRate || 0.2,
         })),
         totalItems: response.cart.TotalItems || response.cart.totalItems || 0,
         subtotalGross: response.cart.SubtotalGross ?? response.cart.subtotalGross ?? 0,
         includedTaxTotal: response.cart.IncludedTaxTotal ?? response.cart.includedTaxTotal ?? 0,
-        grandTotalGross: response.cart.GrandTotalGross ?? response.cart.grandTotalGross ?? 0
+        grandTotalGross: response.cart.GrandTotalGross ?? response.cart.grandTotalGross ?? 0,
       };
-      
+
       // Masa bazlı sepet ID'sini güncelle
       this.tableCarts.set(request.tableNumber, mappedCart.cartId);
-      
+
       console.log('✅ Ürün başarıyla sepete eklendi, mapped cart:', mappedCart);
       return { message: response.message, cart: mappedCart };
     } catch (error) {
@@ -279,13 +285,19 @@ export class CartService {
   }
 
   // Belirli bir sepete ürün ekle
-  async addItemToSpecificCart(cartId: string, request: AddItemToCartRequest): Promise<{ message: string }> {
+  async addItemToSpecificCart(
+    cartId: string,
+    request: AddItemToCartRequest
+  ): Promise<{ message: string }> {
     // 🔒 Güvenlik kontrolü
     await this.checkSecurity();
 
     try {
       console.log('🛒 Belirli sepete ürün ekleniyor:', { cartId, request });
-      const response = await apiClient.post<{ message: string }>(`/pos/cart/${cartId}/items`, request);
+      const response = await apiClient.post<{ message: string }>(
+        `/pos/cart/${cartId}/items`,
+        request
+      );
       console.log('✅ Ürün başarıyla sepete eklendi');
       return response;
     } catch (error) {
@@ -295,13 +307,19 @@ export class CartService {
   }
 
   // Sepet ürününü güncelle
-  async updateCartItem(itemId: string, request: UpdateCartItemRequest): Promise<{ success: boolean; message: string }> {
+  async updateCartItem(
+    itemId: string,
+    request: UpdateCartItemRequest
+  ): Promise<{ success: boolean; message: string }> {
     // 🔒 Güvenlik kontrolü
     await this.checkSecurity();
 
     try {
       console.log('🛒 Sepet ürünü güncelleniyor:', { itemId, request });
-      const response = await apiClient.put<{ message: string }>(`/pos/cart/items/${itemId}`, request);
+      const response = await apiClient.put<{ message: string }>(
+        `/pos/cart/items/${itemId}`,
+        request
+      );
       console.log('✅ Sepet ürünü başarıyla güncellendi');
       return { success: true, message: response.message };
     } catch (error) {
@@ -343,30 +361,36 @@ export class CartService {
   }
 
   // Ödeme sonrası sepeti sıfırla ve yeni sipariş durumunu güncelle
-  async resetCartAfterPayment(cartId: string, notes?: string): Promise<{ 
-    message: string; 
-    oldCartId: string; 
-    newCartId: string; 
-    tableNumber: number; 
-    status: string 
+  async resetCartAfterPayment(
+    cartId: string,
+    notes?: string
+  ): Promise<{
+    message: string;
+    oldCartId: string;
+    newCartId: string;
+    tableNumber: number;
+    status: string;
   }> {
     // 🔒 Güvenlik kontrolü
     await this.checkSecurity();
 
     try {
       console.log('🛒 Ödeme sonrası sepet sıfırlanıyor:', cartId);
-      const response = await apiClient.post<{ 
-        message: string; 
-        oldCartId: string; 
-        newCartId: string; 
-        tableNumber: number; 
-        status: string 
+      const response = await apiClient.post<{
+        message: string;
+        oldCartId: string;
+        newCartId: string;
+        tableNumber: number;
+        status: string;
       }>(`/pos/cart/${cartId}/reset-after-payment`, { notes });
-      
+
       // Yeni sepet ID'sini güncelle
       this.tableCarts.set(response.tableNumber, response.newCartId);
-      
-      console.log('✅ Ödeme sonrası sepet başarıyla sıfırlandı, yeni sepet ID:', response.newCartId);
+
+      console.log(
+        '✅ Ödeme sonrası sepet başarıyla sıfırlandı, yeni sepet ID:',
+        response.newCartId
+      );
       return response;
     } catch (error) {
       console.error('❌ Ödeme sonrası sepet sıfırlama hatası:', error);
@@ -382,7 +406,7 @@ export class CartService {
     try {
       console.log('🛒 Sepet siliniyor:', cartId);
       const response = await apiClient.delete<{ message: string }>(`/pos/cart/${cartId}`);
-      
+
       // Masa bazlı sepet ID'sini temizle
       for (const [tableNumber, cartIdValue] of this.tableCarts.entries()) {
         if (cartIdValue === cartId) {
@@ -390,7 +414,7 @@ export class CartService {
           break;
         }
       }
-      
+
       console.log('✅ Sepet başarıyla silindi');
       return response;
     } catch (error) {
@@ -400,14 +424,22 @@ export class CartService {
   }
 
   // Sepeti tamamla (siparişe dönüştür)
-  async completeCart(cartId: string, notes?: string): Promise<{ message: string; cartId: string; totalItems: number; totalAmount: number }> {
+  async completeCart(
+    cartId: string,
+    notes?: string
+  ): Promise<{ message: string; cartId: string; totalItems: number; totalAmount: number }> {
     // 🔒 Güvenlik kontrolü
     await this.checkSecurity();
 
     try {
       console.log('🛒 Sepet tamamlanıyor:', cartId);
-      const response = await apiClient.post<{ message: string; cartId: string; totalItems: number; totalAmount: number }>(`/pos/cart/${cartId}/complete`, { notes });
-      
+      const response = await apiClient.post<{
+        message: string;
+        cartId: string;
+        totalItems: number;
+        totalAmount: number;
+      }>(`/pos/cart/${cartId}/complete`, { notes });
+
       // Masa bazlı sepet ID'sini temizle
       for (const [tableNumber, cartIdValue] of this.tableCarts.entries()) {
         if (cartIdValue === cartId) {
@@ -415,7 +447,7 @@ export class CartService {
           break;
         }
       }
-      
+
       console.log('✅ Sepet başarıyla tamamlandı');
       return response;
     } catch (error) {
@@ -441,9 +473,15 @@ export class CartService {
   }
 
   // Tüm masaların sepetlerini temizle
-  async clearAllCarts(): Promise<{ success: boolean; message: string; clearedCarts: number; clearedItems: number; affectedTables: number[] }> {
+  async clearAllCarts(): Promise<{
+    success: boolean;
+    message: string;
+    clearedCarts: number;
+    clearedItems: number;
+    affectedTables: number[];
+  }> {
     console.log('🚀 cartService.clearAllCarts() method called');
-    
+
     // 🔒 Güvenlik kontrolü
     console.log('🔒 Checking security...');
     await this.checkSecurity();
@@ -453,46 +491,46 @@ export class CartService {
       console.log('🧹 TÜM MASALAR temizleniyor (DANGEROUS OPERATION)...');
       console.log('🔍 API Call: POST /cart/clear-all');
       console.log('🌐 Making HTTP request to API...');
-      
-      const response = await apiClient.post<{ 
-        message: string; 
-        clearedCarts: number; 
-        clearedItems: number; 
+
+      const response = await apiClient.post<{
+        message: string;
+        clearedCarts: number;
+        clearedItems: number;
         affectedTables: number[];
         clearedTablesDetails: any[];
         userId: string;
         clearedAt: string;
       }>('/pos/cart/clear-all');
-      
+
       console.log('🎯 HTTP request completed, response received:', response);
-      
+
       console.log('📦 Clear All Carts Response:', {
         message: response.message,
         clearedCarts: response.clearedCarts,
         clearedItems: response.clearedItems,
         affectedTables: response.affectedTables,
-        tablesCount: response.affectedTables.length
+        tablesCount: response.affectedTables.length,
       });
-      
+
       // Tüm masa bazlı sepet ID'lerini temizle
       this.tableCarts.clear();
-      
+
       console.log('✅ TÜM MASALAR başarıyla temizlendi');
-      return { 
-        success: true, 
+      return {
+        success: true,
         message: response.message,
         clearedCarts: response.clearedCarts,
         clearedItems: response.clearedItems,
-        affectedTables: response.affectedTables
+        affectedTables: response.affectedTables,
       };
     } catch (error) {
       console.error('❌ TÜM MASALAR temizleme hatası:', error);
-      return { 
-        success: false, 
+      return {
+        success: false,
         message: 'Tüm masalar temizlenemedi',
         clearedCarts: 0,
         clearedItems: 0,
-        affectedTables: []
+        affectedTables: [],
       };
     }
   }
@@ -500,36 +538,40 @@ export class CartService {
   // Masa bazlı sepeti temizle
   async clearCart(tableNumber: number): Promise<{ success: boolean; message: string }> {
     console.log('🚀 cartService.clearCart() method called for table:', tableNumber);
-    
+
     // 🔒 Güvenlik kontrolü
     console.log('🔒 Checking security for clear cart...');
     await this.checkSecurity();
     console.log('✅ Security check passed for clear cart');
 
     try {
-      console.log('🧹 SADECE Masa', tableNumber, 'sepeti temizleniyor (diğer masalar etkilenmeyecek)...');
+      console.log(
+        '🧹 SADECE Masa',
+        tableNumber,
+        'sepeti temizleniyor (diğer masalar etkilenmeyecek)...'
+      );
       console.log('🔍 API Call: POST /cart/clear?tableNumber=' + tableNumber);
       console.log('🌐 Making HTTP request to clear single table...');
-      
-      const response = await apiClient.post<{ 
-        message: string; 
-        clearedCarts: number; 
-        clearedItems: number; 
-        tableNumber: number 
+
+      const response = await apiClient.post<{
+        message: string;
+        clearedCarts: number;
+        clearedItems: number;
+        tableNumber: number;
       }>('/pos/cart/clear', null, { params: { tableNumber } });
-      
+
       console.log('🎯 HTTP request completed for clear cart, response received:', response);
-      
+
       console.log('📦 Clear Cart Response:', {
         message: response.message,
         clearedCarts: response.clearedCarts,
         clearedItems: response.clearedItems,
-        tableNumber: response.tableNumber
+        tableNumber: response.tableNumber,
       });
-      
+
       // Masa bazlı sepet ID'sini temizle
       this.tableCarts.delete(tableNumber);
-      
+
       console.log('✅ Masa', tableNumber, 'sepeti başarıyla temizlendi');
       return { success: true, message: response.message };
     } catch (error) {
@@ -570,4 +612,4 @@ export class CartService {
 }
 
 // Singleton instance'ı export et
-export const cartService = CartService.getInstance(); 
+export const cartService = CartService.getInstance();

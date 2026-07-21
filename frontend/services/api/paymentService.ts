@@ -1,6 +1,13 @@
 import { Buffer } from 'buffer';
+
 import { apiClient, API_BASE_URL, resolveTenantFetchHeaders } from './config';
-import { sessionManager } from '../session/sessionManager';
+import {
+  isRecord,
+  normalizeToPosPaymentMethods,
+  type NormalizedPosPaymentMethod,
+  unwrapApiResponseLayer,
+} from './normalizePosPaymentMethods';
+import { fetchPaymentHistory, parsePaymentHistoryResponse } from './paymentHistoryService';
 import {
   POS_PAYMENT_API_PREFIX,
   posPaymentMethodsPath,
@@ -8,14 +15,12 @@ import {
   posPaymentByIdPath,
   posPaymentQrPngAbsoluteUrl,
 } from './posPaymentPaths';
-import {
-  isRecord,
-  normalizeToPosPaymentMethods,
-  type NormalizedPosPaymentMethod,
-  unwrapApiResponseLayer,
-} from './normalizePosPaymentMethods';
 import { normalizePaymentError } from '../../features/payment/paymentErrors';
+import type { CustomerKind } from '../../types/customerKind';
+import { debugPosPaymentTrace } from '../../utils/debugPosPaymentTrace';
+import { isPaymentTransportFailure } from '../../utils/isPaymentTransportFailure';
 import { normalizePosPaymentItemsForRequest } from '../../utils/paymentTaxType';
+import { getDevelopmentModeClientSnapshot } from '../developmentModeClientCache';
 import {
   enqueuePendingPayment,
   syncPendingPaymentQueue as flushPendingPaymentQueue,
@@ -25,15 +30,10 @@ import {
   VOUCHER_OFFLINE_NOT_ALLOWED_MESSAGE_DE,
   type PendingPaymentPayload,
 } from '../payment/pendingPaymentQueue';
-import { debugPosPaymentTrace } from '../../utils/debugPosPaymentTrace';
-import type { CustomerKind } from '../../types/customerKind';
-import { getDevelopmentModeClientSnapshot } from '../developmentModeClientCache';
-import {
-  fetchPaymentHistory,
-  parsePaymentHistoryResponse,
-} from './paymentHistoryService';
+import { sessionManager } from '../session/sessionManager';
 
 export type { PendingPaymentEntry } from '../payment/pendingPaymentQueue';
+export { isPaymentTransportFailure } from '../../utils/isPaymentTransportFailure';
 
 /** Same row shape as `normalizeToPosPaymentMethods` — single source of truth. */
 export type PaymentMethod = NormalizedPosPaymentMethod;
@@ -118,10 +118,7 @@ export interface PaymentTseInfo {
 
 /** FISCAL_COMPLETE = server confirmed; NON_FISCAL_PENDING = queued locally; SERVER_OFFLINE_QUEUED = server-side intent when TSE offline; FAILED = server error response or replay failure. */
 export type FiscalPaymentStatus =
-  | 'FISCAL_COMPLETE'
-  | 'NON_FISCAL_PENDING'
-  | 'SERVER_OFFLINE_QUEUED'
-  | 'FAILED';
+  'FISCAL_COMPLETE' | 'NON_FISCAL_PENDING' | 'SERVER_OFFLINE_QUEUED' | 'FAILED';
 
 export interface PaymentResponse {
   success: boolean;
@@ -142,21 +139,6 @@ export interface PaymentResponse {
   tse?: PaymentTseInfo;
   /** When false, payment succeeded but invoice was not persisted — operator attention required. */
   invoicePersisted?: boolean;
-}
-
-function isTransportFailure(error: unknown): boolean {
-  const err = error as {
-    response?: unknown;
-    message?: string;
-    code?: string;
-  };
-  const msg = typeof err?.message === 'string' ? err.message : '';
-  if (msg.includes('Token expired')) return false;
-  if (err?.response != null) return false;
-  if (err?.code === 'ECONNABORTED' || err?.code === 'ERR_NETWORK') return true;
-  if (msg === 'Network Error' || /network/i.test(msg)) return true;
-  if (/aborted|timeout/i.test(msg)) return true;
-  return false;
 }
 
 export interface Receipt {
@@ -243,7 +225,7 @@ class PaymentService {
     if (list.length === 0 && raw != null) {
       console.warn('[paymentService] No payment methods parsed from response:', raw);
     }
-    return list as PaymentMethod[];
+    return list;
   }
 
   // Payment processing - Backend endpoint compatible
@@ -307,7 +289,7 @@ class PaymentService {
       }
       return normalized;
     } catch (error: unknown) {
-      if (isTransportFailure(error)) {
+      if (isPaymentTransportFailure(error)) {
         debugPosPaymentTrace('payment_api_transport_failure_queue', {
           message: error instanceof Error ? error.message : String(error),
         });
@@ -344,8 +326,7 @@ class PaymentService {
           pendingQueueId,
           paymentId: '',
           error: 'NON_FISCAL_PENDING',
-          message:
-            'Not fiscal: no server confirmation. Payment stored in pending queue only.',
+          message: 'Not fiscal: no server confirmation. Payment stored in pending queue only.',
           invoicePersisted: false,
         };
       }
@@ -400,9 +381,9 @@ class PaymentService {
     };
     const paymentId =
       tryExtractPaymentId(raw) ||
-      tryExtractPaymentId((raw as any)?.Value) ||
-      tryExtractPaymentId((raw as any)?.data) ||
-      tryExtractPaymentId((raw as any)?.Data) ||
+      tryExtractPaymentId(raw?.Value) ||
+      tryExtractPaymentId(raw?.data) ||
+      tryExtractPaymentId(raw?.Data) ||
       '';
 
     // 4. Normalize Message
@@ -413,8 +394,7 @@ class PaymentService {
       (success ? 'Payment successful' : 'Payment failed');
 
     const details = (raw?.details ?? raw?.Details ?? raw?.data?.details ?? raw?.data?.Details) as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     const diagnosticCode =
       (typeof details?.diagnosticCode === 'string' ? details.diagnosticCode : undefined) ??
       (typeof details?.code === 'string' ? details.code : undefined) ??
@@ -440,7 +420,7 @@ class PaymentService {
           qrPayload: rawTse.qrPayload ?? rawTse.QrPayload,
           isDemoFiscal: rawTse.isDemoFiscal ?? rawTse.IsDemoFiscal,
           provider: rawTse.provider ?? rawTse.Provider,
-          receiptNumber: rawTse.receiptNumber ?? rawTse.ReceiptNumber
+          receiptNumber: rawTse.receiptNumber ?? rawTse.ReceiptNumber,
         }
       : undefined;
 
@@ -492,17 +472,23 @@ class PaymentService {
         receiptId?: string;
         receiptNumber?: string;
         paymentId?: string;
-        items?: Array<{ name?: string; quantity?: number; unitPrice?: number; taxType?: string; totalPrice?: number }>;
+        items?: {
+          name?: string;
+          quantity?: number;
+          unitPrice?: number;
+          taxType?: string;
+          totalPrice?: number;
+        }[];
         subTotal?: number;
         taxAmount?: number;
         grandTotal?: number;
-        payments?: Array<{ method?: string }>;
+        payments?: { method?: string }[];
         date?: string;
         cashierId?: string;
         CashierId?: string;
         cashierDisplayName?: string;
         CashierDisplayName?: string;
-        taxRates?: Array<{ taxAmount?: number; rate?: number }>;
+        taxRates?: { taxAmount?: number; rate?: number }[];
       }>(`/Receipts/by-payment/${paymentId}`);
 
       const std = d.taxRates?.find((t) => t.rate === 20 || t.rate === 20.0)?.taxAmount ?? 0;
@@ -517,7 +503,7 @@ class PaymentService {
           quantity: i.quantity ?? 0,
           price: i.unitPrice ?? 0,
           taxType: String(i.taxType ?? ''),
-          totalPrice: i.totalPrice ?? 0
+          totalPrice: i.totalPrice ?? 0,
         })),
         subtotal: d.subTotal ?? 0,
         taxStandard: std,
@@ -526,10 +512,7 @@ class PaymentService {
         total: d.grandTotal ?? 0,
         paymentMethod: d.payments?.[0]?.method ?? 'cash',
         timestamp: d.date ?? new Date().toISOString(),
-        cashierId:
-          d.cashierId ??
-          d.CashierId ??
-          ''
+        cashierId: d.cashierId ?? d.CashierId ?? '',
       };
     } catch (e) {
       console.error('[Receipt] Persisted receipt not available:', e);
@@ -549,9 +532,7 @@ class PaymentService {
       const token = await sessionManager.getAccessToken();
       const url = posPaymentQrPngAbsoluteUrl(API_BASE_URL, paymentId);
       const res = await fetch(url, {
-        headers: await resolveTenantFetchHeaders(
-          token ? { Authorization: `Bearer ${token}` } : {},
-        ),
+        headers: await resolveTenantFetchHeaders(token ? { Authorization: `Bearer ${token}` } : {}),
       });
       if (!res.ok) {
         console.warn('[PaymentService] QR fetch failed:', res.status, res.statusText);
@@ -613,14 +594,12 @@ class PaymentService {
   async cancelPayment(paymentId: string, reason?: string): Promise<any> {
     try {
       const response = await apiClient.post<any>(posPaymentByIdPath(paymentId, 'cancel'), {
-        reason: reason || 'Kasiyer tarafından iptal edildi'
+        reason: reason || 'Kasiyer tarafından iptal edildi',
       });
       return response;
     } catch (error) {
       console.error('Payment cancellation failed:', error);
-      throw new Error(
-        'Storno erfordert Serververbindung (RKSV). Bitte online erneut versuchen.'
-      );
+      throw new Error('Storno erfordert Serververbindung (RKSV). Bitte online erneut versuchen.');
     }
   }
 
@@ -629,7 +608,7 @@ class PaymentService {
     try {
       const response = await apiClient.post<PaymentResponse>(posPaymentByIdPath(id, 'refund'), {
         amount,
-        reason
+        reason,
       });
       return response;
     } catch (error) {
@@ -679,9 +658,7 @@ class PaymentService {
       };
     } catch (error) {
       console.error('Payment statistics failed:', error);
-      throw new Error(
-        'Statistik nicht verfügbar (keine Serververbindung oder Fehler).'
-      );
+      throw new Error('Statistik nicht verfügbar (keine Serververbindung oder Fehler).');
     }
   }
 
@@ -701,14 +678,14 @@ class PaymentService {
 
   /** Expose full sync result for UI/logging. */
   async syncPendingPaymentQueue(): Promise<{ processed: number; failed: number }> {
-    return flushPendingPaymentQueue();
+    return await flushPendingPaymentQueue();
   }
 
   /** NON_FISCAL rows waiting for server POST /api/pos/payment (isSynced false). */
   async listPendingNonFiscalPayments() {
-    return getPendingPaymentQueue();
+    return await getPendingPaymentQueue();
   }
 }
 
 export const paymentService = new PaymentService();
-export default paymentService; 
+export default paymentService;

@@ -7,6 +7,6 @@ import { useTokenRefresh } from '@/hooks/useTokenRefresh';
  * Mounted from `app/layout.tsx` (Server Component cannot call hooks directly).
  */
 export function TokenRefreshListener(): null {
-    useTokenRefresh();
-    return null;
+  useTokenRefresh();
+  return null;
 }

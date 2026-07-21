@@ -1,10 +1,18 @@
 // Compact POS cart display - optimized for speed and minimal space
 import React, { useMemo } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftState, SoftTypography } from '../constants/SoftTheme';
-import { getCartDisplayTotals } from '../contexts/CartContext';
+import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
+
 import { CartItemRow } from './CartItemRow';
+import {
+  SoftColors,
+  SoftRadius,
+  SoftShadows,
+  SoftSpacing,
+  SoftState,
+  SoftTypography,
+} from '../constants/SoftTheme';
+import { getCartDisplayTotals } from '../contexts/CartContext';
 
 interface CartItem {
   itemId?: string;
@@ -29,7 +37,10 @@ interface CartDisplayProps {
   onQuantityUpdate: (itemId: string, action: 'increment' | 'decrement') => void;
   onItemRemove: (itemId: string) => void;
   onClearCart: () => void;
-  onRemoveModifier?: (itemId: string, modifier: { id: string; name: string; price: number; quantity?: number }) => void;
+  onRemoveModifier?: (
+    itemId: string,
+    modifier: { id: string; name: string; price: number; quantity?: number }
+  ) => void;
   onIncrementModifier?: (itemId: string, modifierId: string) => void;
   onDecrementModifier?: (itemId: string, modifierId: string) => void;
 }
@@ -67,7 +78,7 @@ export const CartDisplay: React.FC<CartDisplayProps> = ({
   // Do not render raw API/context errors in cart area (use toast/silent recovery elsewhere)
 
   // Empty state
-  if (!cart || !cart.items || cart.items.length === 0) {
+  if (!cart?.items || cart.items.length === 0) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
@@ -81,17 +92,20 @@ export const CartDisplay: React.FC<CartDisplayProps> = ({
   return (
     <View style={styles.container}>
       {/* Compact header with summary */}
-        <View style={styles.header}>
+      <View style={styles.header}>
         <Text style={styles.headerTitle}>{tableTitle}</Text>
         <View style={styles.headerRight}>
           <Text style={styles.itemCount}>{t('cart:display.itemCount', { count: itemCount })}</Text>
           <Pressable
             onPress={onClearCart}
-            style={({ pressed, focused }) => [styles.clearBtn, pressed && SoftState.pressed, focused && SoftState.focusVisible]}
+            style={(state) => [
+              styles.clearBtn,
+              state.pressed && SoftState.pressed,
+              (state as { focused?: boolean }).focused && SoftState.focusVisible,
+            ]}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             accessibilityLabel={t('cart:display.clearCartA11y')}
-            accessibilityRole="button"
-          >
+            accessibilityRole="button">
             <Text style={styles.clearBtnLabel}>{t('cart:display.clearLabel')}</Text>
             <Text style={styles.clearBtnText}>×</Text>
           </Pressable>
@@ -99,23 +113,45 @@ export const CartDisplay: React.FC<CartDisplayProps> = ({
       </View>
 
       {/* Scrollable item list with professional CartItemRow */}
-      <ScrollView
-        style={styles.itemList}
-        showsVerticalScrollIndicator={true}
-        nestedScrollEnabled={true}
-      >
+      <ScrollView style={styles.itemList} showsVerticalScrollIndicator nestedScrollEnabled>
         {cart.items.map((item: CartItem) => {
-          const modifierKey = (item.modifiers ?? []).map((m: { id: string }) => m.id).sort().join(',');
-          const safeId = item.itemId ?? item.clientId ?? `${item.productId}-${modifierKey || 'base'}`;
+          const modifierKey = (item.modifiers ?? [])
+            .map((m: { id: string }) => m.id)
+            .sort()
+            .join(',');
+          const safeId =
+            item.itemId ?? item.clientId ?? `${item.productId}-${modifierKey || 'base'}`;
           return (
             <CartItemRow
               key={safeId}
               item={item}
-              onIncrease={async () => onQuantityUpdate(safeId, 'increment')}
-              onDecrease={async () => onQuantityUpdate(safeId, 'decrement')}
-              onRemoveModifier={onRemoveModifier ? (m) => onRemoveModifier(safeId, m) : undefined}
-              onIncrementModifier={onIncrementModifier ? (modId) => onIncrementModifier(safeId, modId) : undefined}
-              onDecrementModifier={onDecrementModifier ? (modId) => onDecrementModifier(safeId, modId) : undefined}
+              onIncrease={async () => {
+                onQuantityUpdate(safeId, 'increment');
+              }}
+              onDecrease={async () => {
+                onQuantityUpdate(safeId, 'decrement');
+              }}
+              onRemoveModifier={
+                onRemoveModifier
+                  ? (m) => {
+                      onRemoveModifier(safeId, m);
+                    }
+                  : undefined
+              }
+              onIncrementModifier={
+                onIncrementModifier
+                  ? (modId) => {
+                      onIncrementModifier(safeId, modId);
+                    }
+                  : undefined
+              }
+              onDecrementModifier={
+                onDecrementModifier
+                  ? (modId) => {
+                      onDecrementModifier(safeId, modId);
+                    }
+                  : undefined
+              }
             />
           );
         })}

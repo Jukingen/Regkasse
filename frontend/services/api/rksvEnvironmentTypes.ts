@@ -7,7 +7,9 @@ export type RksvEnvironmentStatusDto = {
   environmentDisplayName: string;
 };
 
-export function isRksvDemoEnvironment(status: RksvEnvironmentStatusDto | null | undefined): boolean {
+export function isRksvDemoEnvironment(
+  status: RksvEnvironmentStatusDto | null | undefined
+): boolean {
   if (!status) return false;
   return status.isSimulated;
 }

@@ -3,10 +3,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
-  fetchOfflineSettings,
-  updateOfflineSettings,
   type OfflineSettings,
   type UpdateOfflineSettingsPayload,
+  fetchOfflineSettings,
+  updateOfflineSettings,
 } from '@/features/settings/api/offlineSettingsApi';
 
 export const OFFLINE_SETTINGS_KEYS = {

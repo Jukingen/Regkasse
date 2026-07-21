@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
+import React, { useState, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -11,13 +11,15 @@ import {
   Alert,
   RefreshControl,
   Modal,
+  Platform,
 } from 'react-native';
 
-import { useTranslation } from 'react-i18next';
 import * as InvoiceService from '../../services/api/invoiceService';
 import type { PosInvoiceView } from '../../services/api/invoiceService';
-import { formatUserDate, formatUserTime } from '../../utils/dateFormatter';
 import { WaveLoader } from '../../src/components/common/WaveLoader';
+import { formatUserDate, formatUserTime } from '../../utils/dateFormatter';
+import { writeBase64ToDocumentFile } from '../../utils/documentFile';
+import { isShareUnavailable, shareDocumentAsync } from '../../utils/expoPrintShare';
 
 export default function InvoicesScreen() {
   const { t } = useTranslation(['invoices', 'common']);
@@ -33,7 +35,10 @@ export default function InvoicesScreen() {
     const totalInvoices = invoices.length;
     const totalRevenue = invoices.reduce((sum, i) => sum + (i.totalAmount || 0), 0);
     const pendingInvoices = invoices.filter(
-      (i) => !String(i.status || '').toLowerCase().includes('paid')
+      (i) =>
+        !String(i.status || '')
+          .toLowerCase()
+          .includes('paid')
     ).length;
     return { totalInvoices, totalRevenue, pendingInvoices };
   }, [invoices]);
@@ -49,11 +54,20 @@ export default function InvoicesScreen() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
-  useEffect(() => {
-    loadInvoices();
-  }, [loadInvoices]);
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      void (async () => {
+        await loadInvoices();
+        if (cancelled) return;
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [loadInvoices])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -81,18 +95,28 @@ export default function InvoicesScreen() {
   const handleDownloadPdf = async (id: string) => {
     try {
       const blob = await InvoiceService.downloadInvoicePdf(id);
-      const fileUri = FileSystem.documentDirectory + `invoice_${id}.pdf`;
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank', 'noopener,noreferrer');
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+        }, 120_000);
+        return;
+      }
       const base64 = await blobToBase64(blob);
-      await FileSystem.writeAsStringAsync(fileUri, base64, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      await Sharing.shareAsync(fileUri, {
+      const fileUri = writeBase64ToDocumentFile(`invoice_${id}.pdf`, base64);
+      await shareDocumentAsync(fileUri, {
         mimeType: 'application/pdf',
         dialogTitle: t('invoices:pdfDialogTitle'),
+        UTI: 'com.adobe.pdf',
       });
     } catch (error) {
       console.error('Invoice PDF download failed:', error);
-      Alert.alert(t('common:error'), t('invoices:errors.downloadPdf'));
+      if (isShareUnavailable(error)) {
+        Alert.alert(t('common:error'), t('invoices:errors.shareUnavailable'));
+      } else {
+        Alert.alert(t('common:error'), t('invoices:errors.downloadPdf'));
+      }
     }
   };
 
@@ -163,8 +187,7 @@ export default function InvoicesScreen() {
 
       <ScrollView
         style={styles.scrollView}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
         {invoices.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="document-outline" size={64} color="#ccc" />
@@ -175,11 +198,11 @@ export default function InvoicesScreen() {
             <TouchableOpacity
               key={invoice.id}
               style={styles.invoiceCard}
-              onPress={() => openInvoiceDetail(invoice)}
-            >
+              onPress={() => openInvoiceDetail(invoice)}>
               <View style={styles.invoiceHeader}>
                 <Text style={styles.invoiceNumber}>{invoice.receiptNumber}</Text>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(invoice.status) }]}>
+                <View
+                  style={[styles.statusBadge, { backgroundColor: getStatusColor(invoice.status) }]}>
                   <Text style={styles.statusText}>{getStatusLabel(invoice.status)}</Text>
                 </View>
               </View>
@@ -188,9 +211,7 @@ export default function InvoicesScreen() {
                 <Text style={styles.customerName}>
                   {invoice.customer?.firstName} {invoice.customer?.lastName}
                 </Text>
-                <Text style={styles.invoiceDate}>
-                  {formatUserDate(invoice.invoiceDate)}
-                </Text>
+                <Text style={styles.invoiceDate}>{formatUserDate(invoice.invoiceDate)}</Text>
                 <Text style={styles.invoiceAmount}>€{invoice.totalAmount?.toFixed(2)}</Text>
               </View>
             </TouchableOpacity>
@@ -202,13 +223,17 @@ export default function InvoicesScreen() {
         visible={modalVisible}
         animationType="slide"
         transparent
-        onRequestClose={() => setModalVisible(false)}
-      >
+        onRequestClose={() => {
+          setModalVisible(false);
+        }}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('invoices:detailTitle')}</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <TouchableOpacity
+                onPress={() => {
+                  setModalVisible(false);
+                }}>
                 <Ionicons name="close" size={24} color="#000" />
               </TouchableOpacity>
             </View>
@@ -264,8 +289,16 @@ export default function InvoicesScreen() {
                   {selectedInvoice.isPrinted ? t('invoices:yes') : t('invoices:no')}
                 </Text>
 
-                <Text style={[styles.detailLabel, { marginTop: 16 }]}>{t('invoices:products')}:</Text>
-                <View style={{ borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 8, marginBottom: 12 }}>
+                <Text style={[styles.detailLabel, { marginTop: 16 }]}>
+                  {t('invoices:products')}:
+                </Text>
+                <View
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#e0e0e0',
+                    borderRadius: 8,
+                    marginBottom: 12,
+                  }}>
                   <View style={{ flexDirection: 'row', backgroundColor: '#f1f1f1', padding: 6 }}>
                     <Text style={{ flex: 2, fontWeight: 'bold' }}>{t('invoices:item')}</Text>
                     <Text style={{ flex: 1, fontWeight: 'bold', textAlign: 'right' }}>
@@ -282,8 +315,12 @@ export default function InvoicesScreen() {
                     <View key={idx} style={{ flexDirection: 'row', padding: 6 }}>
                       <Text style={{ flex: 2 }}>{item.productName}</Text>
                       <Text style={{ flex: 1, textAlign: 'right' }}>{item.quantity}</Text>
-                      <Text style={{ flex: 1, textAlign: 'right' }}>€{item.unitPrice?.toFixed(2)}</Text>
-                      <Text style={{ flex: 1, textAlign: 'right' }}>€{item.totalAmount?.toFixed(2)}</Text>
+                      <Text style={{ flex: 1, textAlign: 'right' }}>
+                        €{item.unitPrice?.toFixed(2)}
+                      </Text>
+                      <Text style={{ flex: 1, textAlign: 'right' }}>
+                        €{item.totalAmount?.toFixed(2)}
+                      </Text>
                     </View>
                   ))}
                 </View>
@@ -296,8 +333,7 @@ export default function InvoicesScreen() {
 
                 <TouchableOpacity
                   style={[styles.modalButton, styles.primaryButton, { marginTop: 16 }]}
-                  onPress={() => handleDownloadPdf(selectedInvoice.id)}
-                >
+                  onPress={() => handleDownloadPdf(selectedInvoice.id)}>
                   <Ionicons name="download-outline" size={18} color="#fff" />
                   <Text style={styles.buttonText}>{t('invoices:actions.downloadPdf')}</Text>
                 </TouchableOpacity>

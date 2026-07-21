@@ -14,8 +14,8 @@ export interface AppState {
   // Success states
   globalSuccess: string | null;
 
-  // Modal states
-  showGlobalLoading: boolean;
+  // Modal visibility (boolean; action that opens it is showGlobalLoadingModal)
+  isGlobalLoadingVisible: boolean;
   showErrorModal: boolean;
   showSuccessModal: boolean;
 
@@ -81,16 +81,16 @@ const initialState: AppState = {
   globalError: null,
   networkError: null,
   globalSuccess: null,
-  showGlobalLoading: false,
+  isGlobalLoadingVisible: false,
   showErrorModal: false,
   showSuccessModal: false,
   notifications: [],
   isOffline: false,
   isAppReady: false,
-  isInitialized: false
+  isInitialized: false,
 };
 
-const AppStateContext = createContext<AppState & AppStateActions | undefined>(undefined);
+const AppStateContext = createContext<(AppState & AppStateActions) | undefined>(undefined);
 
 export const AppStateProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { t } = useTranslation();
@@ -98,114 +98,117 @@ export const AppStateProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   // Loading actions
   const setGlobalLoading = useCallback((loading: boolean) => {
-    setState(prev => ({ ...prev, globalLoading: loading }));
+    setState((prev) => ({ ...prev, globalLoading: loading }));
   }, []);
 
   const setNetworkLoading = useCallback((loading: boolean) => {
-    setState(prev => ({ ...prev, networkLoading: loading }));
+    setState((prev) => ({ ...prev, networkLoading: loading }));
   }, []);
 
   const showGlobalLoading = useCallback(() => {
-    setState(prev => ({ ...prev, showGlobalLoading: true }));
+    setState((prev) => ({ ...prev, isGlobalLoadingVisible: true }));
   }, []);
 
   const hideGlobalLoading = useCallback(() => {
-    setState(prev => ({ ...prev, showGlobalLoading: false }));
+    setState((prev) => ({ ...prev, isGlobalLoadingVisible: false }));
   }, []);
 
   // Error actions
   const setGlobalError = useCallback((error: string | null) => {
-    setState(prev => ({ ...prev, globalError: error }));
+    setState((prev) => ({ ...prev, globalError: error }));
   }, []);
 
   const setNetworkError = useCallback((error: string | null) => {
-    setState(prev => ({ ...prev, networkError: error }));
+    setState((prev) => ({ ...prev, networkError: error }));
   }, []);
 
   const showError = useCallback((error: string, title: string = 'Error') => {
-    setState(prev => ({ ...prev, globalError: error }));
+    setState((prev) => ({ ...prev, globalError: error }));
     Alert.alert(title, error, [{ text: 'OK' }]);
   }, []);
 
   const clearError = useCallback(() => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       globalError: null,
       networkError: null,
-      showErrorModal: false
+      showErrorModal: false,
     }));
   }, []);
 
   // Success actions
   const setGlobalSuccess = useCallback((message: string | null) => {
-    setState(prev => ({ ...prev, globalSuccess: message }));
+    setState((prev) => ({ ...prev, globalSuccess: message }));
   }, []);
 
   const showSuccess = useCallback((message: string, title: string = 'Success') => {
-    setState(prev => ({ ...prev, globalSuccess: message }));
+    setState((prev) => ({ ...prev, globalSuccess: message }));
     Alert.alert(title, message, [{ text: 'OK' }]);
   }, []);
 
   const clearSuccess = useCallback(() => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       globalSuccess: null,
-      showSuccessModal: false
+      showSuccessModal: false,
     }));
   }, []);
 
   // Modal actions
   const setShowErrorModal = useCallback((show: boolean) => {
-    setState(prev => ({ ...prev, showErrorModal: show }));
+    setState((prev) => ({ ...prev, showErrorModal: show }));
   }, []);
 
   const setShowSuccessModal = useCallback((show: boolean) => {
-    setState(prev => ({ ...prev, showSuccessModal: show }));
+    setState((prev) => ({ ...prev, showSuccessModal: show }));
   }, []);
 
   // Notification actions
-  const addNotification = useCallback((notification: Omit<NotificationItem, 'id' | 'timestamp'>) => {
-    const newNotification: NotificationItem = {
-      ...notification,
-      id: Date.now().toString(),
-      timestamp: new Date()
-    };
+  const addNotification = useCallback(
+    (notification: Omit<NotificationItem, 'id' | 'timestamp'>) => {
+      const newNotification: NotificationItem = {
+        ...notification,
+        id: Date.now().toString(),
+        timestamp: new Date(),
+      };
 
-    setState(prev => ({
-      ...prev,
-      notifications: [...prev.notifications, newNotification]
-    }));
+      setState((prev) => ({
+        ...prev,
+        notifications: [...prev.notifications, newNotification],
+      }));
 
-    // Auto-remove notification after duration
-    if (notification.duration) {
-      setTimeout(() => {
-        removeNotification(newNotification.id);
-      }, notification.duration);
-    }
-  }, []);
+      // Auto-remove notification after duration
+      if (notification.duration) {
+        setTimeout(() => {
+          removeNotification(newNotification.id);
+        }, notification.duration);
+      }
+    },
+    []
+  );
 
   const removeNotification = useCallback((id: string) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
-      notifications: prev.notifications.filter(n => n.id !== id)
+      notifications: prev.notifications.filter((n) => n.id !== id),
     }));
   }, []);
 
   const clearNotifications = useCallback(() => {
-    setState(prev => ({ ...prev, notifications: [] }));
+    setState((prev) => ({ ...prev, notifications: [] }));
   }, []);
 
   // App state actions
   const setOffline = useCallback((offline: boolean) => {
-    setState(prev => ({ ...prev, isOffline: offline }));
+    setState((prev) => ({ ...prev, isOffline: offline }));
   }, []);
 
   const setAppReady = useCallback((ready: boolean) => {
-    setState(prev => ({ ...prev, isAppReady: ready }));
+    setState((prev) => ({ ...prev, isAppReady: ready }));
   }, []);
 
   const setInitialized = useCallback((initialized: boolean) => {
-    setState(prev => ({ ...prev, isInitialized: initialized }));
+    setState((prev) => ({ ...prev, isInitialized: initialized }));
   }, []);
 
   // Utility actions
@@ -234,16 +237,12 @@ export const AppStateProvider: React.FC<{ children: ReactNode }> = ({ children }
     setOffline,
     setAppReady,
     setInitialized,
-    reset
+    reset,
   };
 
   console.log('📱 APP STATE PROVIDER: Rendering children...');
 
-  return (
-    <AppStateContext.Provider value={contextValue}>
-      {children}
-    </AppStateContext.Provider>
-  );
+  return <AppStateContext.Provider value={contextValue}>{children}</AppStateContext.Provider>;
 };
 
 export const useAppState = () => {
@@ -252,4 +251,4 @@ export const useAppState = () => {
     throw new Error('useAppState must be used within an AppStateProvider');
   }
   return context;
-}; 
+};

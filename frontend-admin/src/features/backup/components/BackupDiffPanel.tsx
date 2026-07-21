@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
 /**
  * BackupDiff with recent succeeded runs as Select options (Super Admin / runs hub).
  */
+import React, { useMemo } from 'react';
 
-import React, { useMemo } from "react";
-import { useI18n } from "@/i18n";
-import { formatDateTime } from "@/i18n/formatting";
-import { useBackupRuns } from "@/features/backup/hooks/useBackupRuns";
-import { BackupDiff } from "@/features/backup/components/BackupDiff";
-import { isBackupRunSucceeded } from "@/features/backup/logic/backupRunDetailPresentation";
+import { BackupDiff } from '@/features/backup/components/BackupDiff';
+import { useBackupRuns } from '@/features/backup/hooks/useBackupRuns';
+import { isBackupRunSucceeded } from '@/features/backup/logic/backupRunDetailPresentation';
+import { useI18n } from '@/i18n';
+import { formatDateTime } from '@/i18n/formatting';
 
 export function BackupDiffPanel() {
   const { formatLocale } = useI18n();
@@ -27,7 +27,7 @@ export function BackupDiffPanel() {
           r.totalSizeFormatted || null,
         ]
           .filter(Boolean)
-          .join(" · ");
+          .join(' · ');
         return { value: r.id!, label };
       });
   }, [formatLocale, runsQuery.data?.items]);

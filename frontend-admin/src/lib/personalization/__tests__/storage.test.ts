@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+
 import {
-  normalizePersonalization,
   PERSONALIZATION_STORAGE_KEY,
+  normalizePersonalization,
   readStoredPersonalization,
   writeStoredPersonalization,
 } from '../storage';
@@ -13,8 +14,12 @@ describe('personalization storage', () => {
 
   it('normalizes invalid payloads to defaults', () => {
     expect(normalizePersonalization(null).themeMode).toBe('system');
-    expect(normalizePersonalization({ themeMode: 'neon', density: 'huge' }).density).toBe('standard');
-    expect(normalizePersonalization({ defaultLandingPath: '/unknown' }).defaultLandingPath).toBe('/dashboard');
+    expect(normalizePersonalization({ themeMode: 'neon', density: 'huge' }).density).toBe(
+      'standard'
+    );
+    expect(normalizePersonalization({ defaultLandingPath: '/unknown' }).defaultLandingPath).toBe(
+      '/dashboard'
+    );
   });
 
   it('round-trips preferences in localStorage', () => {

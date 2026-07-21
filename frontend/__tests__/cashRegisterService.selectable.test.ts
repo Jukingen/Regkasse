@@ -1,16 +1,16 @@
 import { describe, expect, it, jest, beforeEach } from '@jest/globals';
 
+import {
+  POS_SELECTABLE_REGISTERS_PATH,
+  fetchPosSelectableRegisters,
+} from '../services/api/cashRegisterService';
+import { apiClient } from '../services/api/config';
+
 jest.mock('../services/api/config', () => ({
   apiClient: {
     get: jest.fn(),
   },
 }));
-
-import { apiClient } from '../services/api/config';
-import {
-  POS_SELECTABLE_REGISTERS_PATH,
-  fetchPosSelectableRegisters,
-} from '../services/api/cashRegisterService';
 
 describe('fetchPosSelectableRegisters (POS selectable abstraction)', () => {
   beforeEach(() => {

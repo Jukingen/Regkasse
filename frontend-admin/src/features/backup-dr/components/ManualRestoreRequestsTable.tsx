@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Button, Card, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useQuery } from '@tanstack/react-query';
+import React, { useMemo, useState } from 'react';
+
 import {
   MANUAL_RESTORE_HISTORY_PATH,
-  getManualRestoreHistory,
   type RestoreRequestStatusDto,
+  getManualRestoreHistory,
 } from '@/features/backup-dr/logic/manualRestoreApi';
 import { manualRestoreStatusTagColor } from '@/features/backup-dr/logic/manualRestorePresentation';
 
@@ -76,7 +77,7 @@ export function ManualRestoreRequestsTable({
           ),
       },
     ],
-    [formatDt, formatLocale, onApprove, t],
+    [formatDt, formatLocale, onApprove, t]
   );
 
   if (!canApprove) return null;

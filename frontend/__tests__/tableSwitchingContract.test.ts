@@ -7,12 +7,12 @@
  * - Can switch back to table 1; table 1's cart is unchanged.
  */
 
+import type { CartsByTable, Cart } from '../contexts/CartContext';
 import {
   getCartForTableNumber,
   isValidTableNumber,
   VALID_TABLE_NUMBERS,
 } from '../utils/tableCartUtils';
-import type { CartsByTable, Cart } from '../contexts/CartContext';
 
 describe('Table switching contract (regression)', () => {
   const cartTable1WithItem: Cart = {
@@ -84,7 +84,9 @@ describe('Table switching contract (regression)', () => {
 
   describe('isValidTableNumber', () => {
     it('accepts 1..10', () => {
-      VALID_TABLE_NUMBERS.forEach((n) => expect(isValidTableNumber(n)).toBe(true));
+      VALID_TABLE_NUMBERS.forEach((n) => {
+        expect(isValidTableNumber(n)).toBe(true);
+      });
     });
 
     it('rejects 0, 11, non-integers', () => {

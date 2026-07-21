@@ -1,8 +1,9 @@
 'use client';
 
-import { Button, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
+import { Button, Dropdown } from 'antd';
 import { useMemo } from 'react';
+
 import { useI18n } from '@/i18n';
 import { usePersonalization } from '@/lib/personalization/PersonalizationProvider';
 import type { ThemeMode } from '@/lib/personalization/types';
@@ -21,7 +22,7 @@ export function HeaderThemeQuickSwitch() {
         label: t(`settings.personalization.theme.${mode}`),
         onClick: () => setThemeMode(mode),
       })),
-    [setThemeMode, t],
+    [setThemeMode, t]
   );
 
   const currentLabel = t(`settings.personalization.theme.${preferences.themeMode}`);

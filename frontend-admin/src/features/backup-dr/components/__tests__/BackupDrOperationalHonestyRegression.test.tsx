@@ -3,19 +3,45 @@
  * Fake adaptör + simüle çalıştırma asla üretim pg_dump kanıtı olarak sunulmamalı; PgDump gerçek yolunda Fake dil kullanılmamalı.
  * Bileşen + pano entegrasyonu: yalnızca saf yardımcı fonksiyon testi değil.
  */
-
-import React from 'react';
-import '@testing-library/jest-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import '@testing-library/jest-dom';
 import { render, screen, within } from '@testing-library/react';
-import type { BackupRecoverabilitySummaryResponseDto } from '@/api/generated/model';
+import React from 'react';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  useGetApiAdminBackupRecoverabilitySummary,
+  useGetApiAdminBackupRuns,
+  useGetApiAdminBackupRunsId,
+  useGetApiAdminBackupStatusLatest,
+  useGetApiAdminBackupVerificationLatest,
+  usePostApiAdminBackupTrigger,
+} from '@/api/generated/admin-backup/admin-backup';
+import {
+  useGetApiAdminRestoreVerificationReadiness,
+  useGetApiAdminRestoreVerificationRuns,
+  useGetApiAdminRestoreVerificationRunsLatest,
+  usePostApiAdminRestoreVerificationTrigger,
+} from '@/api/generated/admin-restore-verification/admin-restore-verification';
+import type {
+  BackupRecoverabilitySummaryResponseDto,
+  BackupRunResponseDto,
+} from '@/api/generated/model';
 import { RestoreVerificationRunResponseDtoStatus } from '@/api/generated/model';
-import { FAKE_ADAPTER_STUB_NOT_PG_RESTORE_FORMAT } from '@/features/backup-dr/logic/restoreVerificationFailurePresentation';
+import { BackupArtifactResponseDtoArtifactType } from '@/api/generated/model/backupArtifactResponseDtoArtifactType';
+import { BackupArtifactsDownloadCard } from '@/features/backup-dr/components/BackupArtifactsDownloadCard';
+import { BackupDrDashboard } from '@/features/backup-dr/components/BackupDrDashboard';
+import { BackupLatestRunCardPresentation } from '@/features/backup-dr/components/BackupStatusCard';
+import { RecoverabilitySummaryCard } from '@/features/backup-dr/components/RecoverabilitySummaryCard';
+import { RestoreVerificationCard } from '@/features/backup-dr/components/RestoreVerificationCard';
 import { mapDumpInspectionTriState } from '@/features/backup-dr/logic/backupDrMappers';
+import { FAKE_ADAPTER_STUB_NOT_PG_RESTORE_FORMAT } from '@/features/backup-dr/logic/restoreVerificationFailurePresentation';
 
 vi.mock('@/lib/axios', () => ({
-  AXIOS_INSTANCE: { get: vi.fn(), interceptors: { request: { use: vi.fn() }, response: { use: vi.fn() } } },
+  AXIOS_INSTANCE: {
+    get: vi.fn(),
+    interceptors: { request: { use: vi.fn() }, response: { use: vi.fn() } },
+  },
   customInstance: vi.fn(),
 }));
 
@@ -41,33 +67,11 @@ vi.mock('@/features/backup-dr/logic/backupExecutionModeApi', async () => {
         realModeBlockingDiagnostics: [],
         selectableModes: [],
         effectiveConfigurationHealth: {},
-      }),
+      })
     ),
     putBackupExecutionMode: vi.fn(),
   };
 });
-
-import {
-  useGetApiAdminBackupRecoverabilitySummary,
-  useGetApiAdminBackupRuns,
-  useGetApiAdminBackupRunsId,
-  useGetApiAdminBackupStatusLatest,
-  useGetApiAdminBackupVerificationLatest,
-  usePostApiAdminBackupTrigger,
-} from '@/api/generated/admin-backup/admin-backup';
-import {
-  useGetApiAdminRestoreVerificationReadiness,
-  useGetApiAdminRestoreVerificationRuns,
-  useGetApiAdminRestoreVerificationRunsLatest,
-  usePostApiAdminRestoreVerificationTrigger,
-} from '@/api/generated/admin-restore-verification/admin-restore-verification';
-import { BackupDrDashboard } from '@/features/backup-dr/components/BackupDrDashboard';
-import { BackupArtifactsDownloadCard } from '@/features/backup-dr/components/BackupArtifactsDownloadCard';
-import { BackupLatestRunCardPresentation } from '@/features/backup-dr/components/BackupStatusCard';
-import { RecoverabilitySummaryCard } from '@/features/backup-dr/components/RecoverabilitySummaryCard';
-import { RestoreVerificationCard } from '@/features/backup-dr/components/RestoreVerificationCard';
-import type { BackupRunResponseDto } from '@/api/generated/model';
-import { BackupArtifactResponseDtoArtifactType } from '@/api/generated/model/backupArtifactResponseDtoArtifactType';
 
 const t = (k: string) => k;
 
@@ -89,11 +93,13 @@ vi.mock('@/features/backup-dr/logic/backupPipelineEnv', () => ({
 }));
 
 vi.mock('@/api/generated/admin-backup/admin-backup', () => ({
-  getGetApiAdminBackupRecoverabilitySummaryQueryKey: () => ['/api/admin/backup/recoverability-summary'] as const,
+  getGetApiAdminBackupRecoverabilitySummaryQueryKey: () =>
+    ['/api/admin/backup/recoverability-summary'] as const,
   getGetApiAdminBackupRunsIdQueryKey: (id: string) => [`/api/admin/backup/runs/${id}`] as const,
   getGetApiAdminBackupRunsQueryKey: (params?: { page?: number; pageSize?: number }) =>
     ['/api/admin/backup/runs', ...(params ? [params] : [])] as const,
-  getGetApiAdminBackupVerificationLatestQueryKey: () => ['/api/admin/backup/verification/latest'] as const,
+  getGetApiAdminBackupVerificationLatestQueryKey: () =>
+    ['/api/admin/backup/verification/latest'] as const,
   useGetApiAdminBackupStatusLatest: vi.fn(),
   useGetApiAdminBackupRuns: vi.fn(),
   useGetApiAdminBackupVerificationLatest: vi.fn(),
@@ -103,8 +109,10 @@ vi.mock('@/api/generated/admin-backup/admin-backup', () => ({
 }));
 
 vi.mock('@/api/generated/admin-restore-verification/admin-restore-verification', () => ({
-  getGetApiAdminRestoreVerificationReadinessQueryKey: () => ['/api/admin/restore-verification/readiness'] as const,
-  getGetApiAdminRestoreVerificationRunsLatestQueryKey: () => ['/api/admin/restore-verification/runs/latest'] as const,
+  getGetApiAdminRestoreVerificationReadinessQueryKey: () =>
+    ['/api/admin/restore-verification/readiness'] as const,
+  getGetApiAdminRestoreVerificationRunsLatestQueryKey: () =>
+    ['/api/admin/restore-verification/runs/latest'] as const,
   getGetApiAdminRestoreVerificationRunsQueryKey: (params?: { page?: number; pageSize?: number }) =>
     ['/api/admin/restore-verification/runs', ...(params ? [params] : [])] as const,
   useGetApiAdminRestoreVerificationReadiness: vi.fn(),
@@ -140,8 +148,14 @@ beforeAll(() => {
 const formatDt = (iso: string | undefined | null) => String(iso ?? '');
 
 function mockPostTriggers() {
-  vi.mocked(usePostApiAdminBackupTrigger).mockReturnValue({ mutate: vi.fn(), isPending: false } as never);
-  vi.mocked(usePostApiAdminRestoreVerificationTrigger).mockReturnValue({ mutate: vi.fn(), isPending: false } as never);
+  vi.mocked(usePostApiAdminBackupTrigger).mockReturnValue({
+    mutate: vi.fn(),
+    isPending: false,
+  } as never);
+  vi.mocked(usePostApiAdminRestoreVerificationTrigger).mockReturnValue({
+    mutate: vi.fn(),
+    isPending: false,
+  } as never);
 }
 
 function baseFakeStatusLatest(over: Record<string, unknown> = {}) {
@@ -227,15 +241,25 @@ describe('RestoreVerificationCard — PG_RESTORE_LIST_FAILED', () => {
         dumpInspectionTriState={mapDumpInspectionTriState}
         isSimulatedBackupPipeline
         t={t}
-      />,
+      />
     );
 
-    expect(screen.getByText('backupDr.restoreVerification.fakePipeline.sectionContext')).toBeInTheDocument();
-    expect(screen.getByText('backupDr.restoreVerification.fakePipeline.drillOutcomeTitle')).toBeInTheDocument();
-    expect(screen.getByText('backupDr.restoreVerification.fakePipeline.pgRestoreListExplainer')).toBeInTheDocument();
-    expect(screen.getByText('backupDr.triState.dumpInspectionNotApplicableStub')).toBeInTheDocument();
+    expect(
+      screen.getByText('backupDr.restoreVerification.fakePipeline.sectionContext')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('backupDr.restoreVerification.fakePipeline.drillOutcomeTitle')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('backupDr.restoreVerification.fakePipeline.pgRestoreListExplainer')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('backupDr.triState.dumpInspectionNotApplicableStub')
+    ).toBeInTheDocument();
     expect(screen.getByText('backupDr.restoreStatus.drillStubExpected')).toBeInTheDocument();
-    expect(screen.queryByText('backupDr.restoreVerification.drillFailedProminent')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('backupDr.restoreVerification.drillFailedProminent')
+    ).not.toBeInTheDocument();
   });
 
   it('non-simulated pipeline: pg_restore rejected file — real archive risk copy (not stub explainer)', () => {
@@ -253,12 +277,18 @@ describe('RestoreVerificationCard — PG_RESTORE_LIST_FAILED', () => {
         dumpInspectionTriState={mapDumpInspectionTriState}
         isSimulatedBackupPipeline={false}
         t={t}
-      />,
+      />
     );
 
-    expect(screen.getByText('backupDr.restoreVerification.realPipeline.listFailedFormatRejectedTitle')).toBeInTheDocument();
-    expect(screen.queryByText('backupDr.restoreVerification.drillFailedProminent')).not.toBeInTheDocument();
-    expect(screen.queryByText('backupDr.restoreVerification.fakePipeline.drillOutcomeTitle')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('backupDr.restoreVerification.realPipeline.listFailedFormatRejectedTitle')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('backupDr.restoreVerification.drillFailedProminent')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('backupDr.restoreVerification.fakePipeline.drillOutcomeTitle')
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -289,14 +319,20 @@ describe('BackupArtifactsDownloadCard — stub meaning on rows', () => {
         realPostgreSqlLogicalDumpConfigured={false}
         simulatedOperationalMode
         t={tArtifact}
-      />,
+      />
     );
 
     expect(screen.getByText('backupDr.download.stubZoneAlertTitle')).toBeInTheDocument();
     expect(screen.getByText('[stub-logical-row]')).toBeInTheDocument();
-    expect(screen.getByText('backupDr.download.recoverabilityUse.short.not_dr_evidence_simulated')).toBeInTheDocument();
-    expect(screen.getByText('backupDr.download.contentExpectSummary.stubLogicalDumpFakeAdapter')).toBeInTheDocument();
-    expect(screen.queryByText('backupDr.download.types.logicalDumpOperational')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('backupDr.download.recoverabilityUse.short.not_dr_evidence_simulated')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('backupDr.download.contentExpectSummary.stubLogicalDumpFakeAdapter')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('backupDr.download.types.logicalDumpOperational')
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -325,12 +361,14 @@ describe('RecoverabilitySummaryCard — real pg_dump path visible', () => {
         restoreStatusLabel={(s) => `r-${s}`}
         simulatedOperationalMode={false}
         t={t}
-      />,
+      />
     );
 
     const card = screen.getByText('backupDr.recoverability.title').closest('.ant-card');
     expect(card).toBeTruthy();
-    expect(within(card as HTMLElement).getByText('backupDr.recoverability.realPgDumpConfigured')).toBeInTheDocument();
+    expect(
+      within(card as HTMLElement).getByText('backupDr.recoverability.realPgDumpConfigured')
+    ).toBeInTheDocument();
     expect(within(card as HTMLElement).getByText('common.buttons.no')).toBeInTheDocument();
   });
 });
@@ -361,7 +399,7 @@ describe('BackupLatestRunCardPresentation — technical success vs simulated vs 
         simulatedOperationalMode
         omitFakeOperationalNotice
         t={t}
-      />,
+      />
     );
 
     expect(screen.getByText('backupDr.backupStatus.simulatedSuccess')).toBeInTheDocument();
@@ -388,7 +426,7 @@ describe('BackupLatestRunCardPresentation — technical success vs simulated vs 
         operatorRunTruth={{ technicalSuccess: true, simulatedEvidence: false }}
         simulatedOperationalMode={false}
         t={t}
-      />,
+      />
     );
 
     expect(screen.getByText('backupDr.backupStatus.3')).toBeInTheDocument();
@@ -407,7 +445,12 @@ describe('BackupDrDashboard — integration: Fake vs PgDump wording separation',
       isFetching: false,
     } as never);
     vi.mocked(useGetApiAdminBackupVerificationLatest).mockReturnValue({
-      data: { status: 1, backupRunId: 'run-fake-1', completedAt: '2026-01-10T10:06:00Z', verifierSource: 'test' },
+      data: {
+        status: 1,
+        backupRunId: 'run-fake-1',
+        completedAt: '2026-01-10T10:06:00Z',
+        verifierSource: 'test',
+      },
       isLoading: false,
       isError: false,
     } as never);
@@ -451,7 +494,9 @@ describe('BackupDrDashboard — integration: Fake vs PgDump wording separation',
 
   it('Fake + no real pg_dump: never implies production backup; shows stub validity + simulated success + pg_dump no', () => {
     vi.mocked(useGetApiAdminBackupStatusLatest).mockReturnValue(baseFakeStatusLatest() as never);
-    vi.mocked(useGetApiAdminBackupRecoverabilitySummary).mockReturnValue(baseRecoverabilityFake() as never);
+    vi.mocked(useGetApiAdminBackupRecoverabilitySummary).mockReturnValue(
+      baseRecoverabilityFake() as never
+    );
     vi.mocked(useGetApiAdminRestoreVerificationRunsLatest).mockReturnValue({
       data: null,
       isLoading: false,
@@ -561,13 +606,17 @@ describe('BackupDrDashboard — integration: Fake vs PgDump wording separation',
     expect(screen.queryByText('backupDr.fakeMode.bannerTitle')).not.toBeInTheDocument();
     expect(screen.queryByText('backupDr.summary.backupHealthFootnoteFake')).not.toBeInTheDocument();
     expect(screen.queryByText('backupDr.download.titleLatestSuccessFake')).not.toBeInTheDocument();
-    expect(screen.queryByText('backupDr.operatorValidity.stubDataPlaneTitle')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('backupDr.operatorValidity.stubDataPlaneTitle')
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('backupDr.devRealPgDump.title')).not.toBeInTheDocument();
     expect(screen.getByText('backupDr.realDumpMode.bannerTitle')).toBeInTheDocument();
     expect(screen.getByText('backupDr.download.titleLatestSuccess')).toBeInTheDocument();
     expect(screen.getByText(/backupDr\.health\.realPgDumpYes/)).toBeInTheDocument();
     expect(screen.queryByText('backupDr.backupStatus.simulatedSuccess')).not.toBeInTheDocument();
-    expect(screen.queryByText('backupDr.progress.finishedSimulatedOkDetail')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('backupDr.progress.finishedSimulatedOkDetail')
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('backupDr.download.scopeLatestSuccessFake')).not.toBeInTheDocument();
     expect(screen.queryByText('backupDr.fakeMode.bannerRealBackupPrereq')).not.toBeInTheDocument();
     expect(screen.queryByText('backupDr.download.reality.stub')).not.toBeInTheDocument();
@@ -576,7 +625,7 @@ describe('BackupDrDashboard — integration: Fake vs PgDump wording separation',
   it('Fake + PG_RESTORE_LIST_FAILED latest drill: stub explainer on dashboard — not prominent mystery failure', () => {
     vi.mocked(useGetApiAdminBackupStatusLatest).mockReturnValue(baseFakeStatusLatest() as never);
     vi.mocked(useGetApiAdminBackupRecoverabilitySummary).mockReturnValue(
-      baseRecoverabilityFake({ lastSuccessfulRestoreProofAt: null }) as never,
+      baseRecoverabilityFake({ lastSuccessfulRestoreProofAt: null }) as never
     );
     vi.mocked(useGetApiAdminRestoreVerificationRunsLatest).mockReturnValue({
       data: {
@@ -597,15 +646,21 @@ describe('BackupDrDashboard — integration: Fake vs PgDump wording separation',
 
     render(wrap(<BackupDrDashboard />));
 
-    expect(screen.getByText('backupDr.restoreVerification.fakePipeline.drillOutcomeTitle')).toBeInTheDocument();
-    expect(screen.queryByText('backupDr.restoreVerification.drillFailedProminent')).not.toBeInTheDocument();
-    expect(screen.getByText('backupDr.banner.restoreDrillStubListFailedExpected')).toBeInTheDocument();
+    expect(
+      screen.getByText('backupDr.restoreVerification.fakePipeline.drillOutcomeTitle')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('backupDr.restoreVerification.drillFailedProminent')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText('backupDr.banner.restoreDrillStubListFailedExpected')
+    ).toBeInTheDocument();
   });
 
   it('operator-visible surfaces separate technical success, recoverability proof gap, and drill outcome', () => {
     vi.mocked(useGetApiAdminBackupStatusLatest).mockReturnValue(baseFakeStatusLatest() as never);
     vi.mocked(useGetApiAdminBackupRecoverabilitySummary).mockReturnValue(
-      baseRecoverabilityFake({ lastSuccessfulRestoreProofAt: null }) as never,
+      baseRecoverabilityFake({ lastSuccessfulRestoreProofAt: null }) as never
     );
     vi.mocked(useGetApiAdminRestoreVerificationRunsLatest).mockReturnValue({
       data: {
@@ -627,7 +682,9 @@ describe('BackupDrDashboard — integration: Fake vs PgDump wording separation',
     expect(screen.getByText('backupDr.backupStatus.simulatedSuccess')).toBeInTheDocument();
     expect(screen.getByText('backupDr.scan.proofTimestampsIncomplete')).toBeInTheDocument();
     expect(screen.getByText('backupDr.recoverability.proofBlock.backupStub')).toBeInTheDocument();
-    expect(screen.getByText('backupDr.restoreVerification.fakePipeline.drillOutcomeTitle')).toBeInTheDocument();
+    expect(
+      screen.getByText('backupDr.restoreVerification.fakePipeline.drillOutcomeTitle')
+    ).toBeInTheDocument();
   });
 
   it('Fake dashboard: configuration health lists setup diagnostic codes from API (machine-actionable prerequisites)', () => {
@@ -647,9 +704,11 @@ describe('BackupDrDashboard — integration: Fake vs PgDump wording separation',
             },
           ],
         },
-      }) as never,
+      }) as never
     );
-    vi.mocked(useGetApiAdminBackupRecoverabilitySummary).mockReturnValue(baseRecoverabilityFake() as never);
+    vi.mocked(useGetApiAdminBackupRecoverabilitySummary).mockReturnValue(
+      baseRecoverabilityFake() as never
+    );
     vi.mocked(useGetApiAdminRestoreVerificationRunsLatest).mockReturnValue({
       data: null,
       isLoading: false,
@@ -702,7 +761,7 @@ describe('BackupDrDashboard — integration: Fake vs PgDump wording separation',
         lastSuccessfulBackupRunId: 'run-pg-missing-cs',
         lastSuccessfulBackupRunIsSimulatedExecution: false,
         realPostgreSqlLogicalDumpConfigured: false,
-      }) as never,
+      }) as never
     );
 
     vi.mocked(useGetApiAdminBackupRunsId).mockReturnValue({

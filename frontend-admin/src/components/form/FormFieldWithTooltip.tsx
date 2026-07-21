@@ -1,14 +1,14 @@
 'use client';
 
-import type { ReactNode } from 'react';
 import { Form } from 'antd';
 import type { FormItemProps } from 'antd/es/form';
+import type { ReactNode } from 'react';
 
 export type FormFieldWithTooltipProps = FormItemProps & {
-    /** Tooltip shown next to the label (Ant Design Form.Item tooltip). */
-    tooltip?: ReactNode;
-    /** Always-visible hint below the control (Form.Item extra). */
-    hint?: ReactNode;
+  /** Tooltip shown next to the label (Ant Design Form.Item tooltip). */
+  tooltip?: ReactNode;
+  /** Always-visible hint below the control (Form.Item extra). */
+  hint?: ReactNode;
 };
 
 /**
@@ -16,19 +16,15 @@ export type FormFieldWithTooltipProps = FormItemProps & {
  * Prefer this over scattering QuestionCircle icons ad hoc.
  */
 export function FormFieldWithTooltip({
-    tooltip,
-    hint,
-    children,
-    extra,
-    ...formItemProps
+  tooltip,
+  hint,
+  children,
+  extra,
+  ...formItemProps
 }: FormFieldWithTooltipProps) {
-    return (
-        <Form.Item
-            {...formItemProps}
-            tooltip={tooltip}
-            extra={hint ?? extra}
-        >
-            {children}
-        </Form.Item>
-    );
+  return (
+    <Form.Item {...formItemProps} tooltip={tooltip} extra={hint ?? extra}>
+      {children}
+    </Form.Item>
+  );
 }

@@ -1,9 +1,10 @@
-"use client";
+'use client';
 
-import React from "react";
-import { BackupPageShell } from "@/features/backup/components/BackupPageShell";
-import { RestoreHistoryView } from "@/features/backup/components/RestoreHistoryView";
-import { BACKUP_RESTORE_HISTORY_PATH } from "@/shared/backupAreaRoutes";
+import React from 'react';
+
+import { BackupPageShell } from '@/features/backup/components/BackupPageShell';
+import { RestoreHistoryView } from '@/features/backup/components/RestoreHistoryView';
+import { BACKUP_RESTORE_HISTORY_PATH } from '@/shared/backupAreaRoutes';
 
 export default function RestoreHistoryPage() {
   return (

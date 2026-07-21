@@ -3,8 +3,10 @@
  * Backend: user.view (list + lifecycle audit), report.view (compliance report), user.manage (CRUD).
  */
 import { useMemo } from 'react';
-import { PERMISSIONS, hasPermission, type UserWithPermissions } from './permissions';
+
 import { useAuth } from '@/features/auth/hooks/useAuth';
+
+import { PERMISSIONS, type UserWithPermissions, hasPermission } from './permissions';
 
 export interface StaffPolicy {
   /** Staff list / detail read (staff.view → user.view). */

@@ -1,10 +1,10 @@
 'use client';
 
-import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
-import { Dropdown, Tag } from 'antd';
-import type { MenuProps } from 'antd';
 import { SettingOutlined } from '@ant-design/icons';
+import { useQuery } from '@tanstack/react-query';
+import type { MenuProps } from 'antd';
+import { Dropdown, Tag } from 'antd';
+import Link from 'next/link';
 
 import {
   fetchPublicDevelopmentModeSettings,
@@ -78,7 +78,7 @@ export function EnvironmentBadge() {
       menu={{ items }}
       trigger={['click']}
       placement="bottomRight"
-      classNames={{ root: "admin-header-dropdown" }}
+      classNames={{ root: 'admin-header-dropdown' }}
       getPopupContainer={getAdminHeaderPopupContainer}
     >
       <Tag color="orange" style={{ cursor: 'pointer', marginInlineEnd: 0 }}>

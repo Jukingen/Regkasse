@@ -5,7 +5,7 @@ export const CHANGE_PASSWORD_PATH = '/force-password-change';
 export const VOLUNTARY_CHANGE_PASSWORD_PATH = '/settings/password';
 
 export function isChangePasswordPath(pathname: string | null | undefined): boolean {
-    if (!pathname) return false;
-    const normalized = pathname.replace(/\/$/, '') || '/';
-    return normalized === CHANGE_PASSWORD_PATH;
+  if (!pathname) return false;
+  const normalized = pathname.replace(/\/$/, '') || '/';
+  return normalized === CHANGE_PASSWORD_PATH;
 }

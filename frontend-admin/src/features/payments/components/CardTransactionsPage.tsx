@@ -1,17 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Card, Select, DatePicker, Space, Button } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
+import { Button, Card, DatePicker, Select, Space } from 'antd';
 import type { Dayjs } from 'dayjs';
+import React, { useState } from 'react';
+
+import { CashRegisterSelector } from '@/components/CashRegisterSelector';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
-import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
-import { CashRegisterSelector } from '@/components/CashRegisterSelector';
 import { CardTransactionsTable } from '@/features/payments/components/CardTransactionsTable';
 import { useCardTransactions } from '@/features/payments/hooks/useCardTransactions';
 import { useI18n } from '@/i18n';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
+import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 
 export function CardTransactionsPage() {
   const { t } = useI18n();
@@ -63,12 +64,17 @@ export function CardTransactionsPage() {
     <>
       <AdminPageHeader
         title={ts('title')}
-        breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.payments }, { title: ts('title') }]}
+        breadcrumbs={[
+          ADMIN_OVERVIEW_CRUMB,
+          { title: ADMIN_NAV_LABELS.payments },
+          { title: ts('title') },
+        ]}
       />
       <AdminPageShell>
         <Card>
           <Space wrap style={{ marginBottom: 16 }}>
-            <DatePicker.RangePicker format={DAYJS_DATE_FORMAT}
+            <DatePicker.RangePicker
+              format={DAYJS_DATE_FORMAT}
               value={dateRange}
               onChange={(v) => applyFilters({ dateRange: v })}
               allowEmpty={[true, true]}
@@ -79,10 +85,12 @@ export function CardTransactionsPage() {
               style={{ minWidth: 160 }}
               value={status}
               onChange={(v) => applyFilters({ status: v })}
-              options={['Created', 'Pending', 'Succeeded', 'Failed', 'Cancelled', 'Refunded'].map((s) => ({
-                value: s,
-                label: ts(`status.${s}`, s),
-              }))}
+              options={['Created', 'Pending', 'Succeeded', 'Failed', 'Cancelled', 'Refunded'].map(
+                (s) => ({
+                  value: s,
+                  label: ts(`status.${s}`, s),
+                })
+              )}
             />
             <CashRegisterSelector
               value={registerId}
@@ -98,7 +106,11 @@ export function CardTransactionsPage() {
             </Button>
           </Space>
 
-          <CardTransactionsTable transactions={data} loading={isLoading} emptyText={ts('empty')} pagination={{
+          <CardTransactionsTable
+            transactions={data}
+            loading={isLoading}
+            emptyText={ts('empty')}
+            pagination={{
               current: pageNumber,
               pageSize,
               total: totalCount,

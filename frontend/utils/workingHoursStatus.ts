@@ -88,7 +88,7 @@ function parseHhMm(value: string): { hours: number; minutes: number } | null {
 
 function getZonedParts(
   now: Date,
-  timeZone: string,
+  timeZone: string
 ): {
   year: number;
   month: number;
@@ -139,7 +139,7 @@ function zonedLocalToUtc(
   hour: number,
   minute: number,
   second: number,
-  timeZone: string,
+  timeZone: string
 ): Date {
   const utcGuess = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
   const parts = getZonedParts(utcGuess, timeZone);
@@ -149,7 +149,7 @@ function zonedLocalToUtc(
     parts.day,
     parts.hour,
     parts.minute,
-    parts.second,
+    parts.second
   );
   const offsetMs = asUtcLike - utcGuess.getTime();
   return new Date(utcGuess.getTime() - offsetMs);
@@ -159,7 +159,7 @@ function addCalendarDays(
   year: number,
   month: number,
   day: number,
-  delta: number,
+  delta: number
 ): { year: number; month: number; day: number } {
   const base = new Date(Date.UTC(year, month - 1, day + delta));
   return {
@@ -177,7 +177,7 @@ function weekdayForDate(year: number, month: number, day: number): DayKey {
 
 function findSpecialDay(
   specialDays: PosWorkingHoursSpecialDay[] | undefined,
-  dateKey: string,
+  dateKey: string
 ): PosWorkingHoursSpecialDay | null {
   if (!specialDays?.length) return null;
   return specialDays.find((s) => s.date === dateKey) ?? null;
@@ -190,7 +190,7 @@ export function resolveEffectiveWorkingHoursDay(
   workingHours: PosWorkingHoursExtended,
   year: number,
   month: number,
-  day: number,
+  day: number
 ): { day: PosWorkingHoursDay; isSpecialDay: boolean } {
   const dateKey = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   const special = findSpecialDay(workingHours.specialDays, dateKey);
@@ -223,7 +223,7 @@ export function resolveEffectiveWorkingHoursDay(
 function isWithinOpenWindow(
   nowMinutes: number,
   openMinutes: number,
-  closeMinutes: number,
+  closeMinutes: number
 ): boolean {
   if (closeMinutes > openMinutes) {
     return nowMinutes >= openMinutes && nowMinutes < closeMinutes;
@@ -233,23 +233,18 @@ function isWithinOpenWindow(
 }
 
 function minutesUntil(from: Date, to: Date): number {
-  return Math.max(0, (to.getTime() - from.getTime()) / (60_000));
+  return Math.max(0, (to.getTime() - from.getTime()) / 60_000);
 }
 
 function findNextOpeningAt(
   workingHours: PosWorkingHoursExtended,
   timeZone: string,
   fromLocal: { year: number; month: number; day: number; hour: number; minute: number },
-  now: Date,
+  now: Date
 ): Date | null {
   for (let offset = 0; offset < 8; offset += 1) {
     const date = addCalendarDays(fromLocal.year, fromLocal.month, fromLocal.day, offset);
-    const { day } = resolveEffectiveWorkingHoursDay(
-      workingHours,
-      date.year,
-      date.month,
-      date.day,
-    );
+    const { day } = resolveEffectiveWorkingHoursDay(workingHours, date.year, date.month, date.day);
     if (day.isClosed) continue;
 
     const open = parseHhMm(day.openTime);
@@ -273,7 +268,7 @@ function findNextOpeningAt(
             open.hours,
             open.minutes,
             0,
-            timeZone,
+            timeZone
           );
         }
         continue; // after close today
@@ -287,21 +282,13 @@ function findNextOpeningAt(
           open.hours,
           open.minutes,
           0,
-          timeZone,
+          timeZone
         );
       }
       continue;
     }
 
-    return zonedLocalToUtc(
-      date.year,
-      date.month,
-      date.day,
-      open.hours,
-      open.minutes,
-      0,
-      timeZone,
-    );
+    return zonedLocalToUtc(date.year, date.month, date.day, open.hours, open.minutes, 0, timeZone);
   }
   return null;
 }
@@ -333,7 +320,7 @@ export function computePosWorkingHoursStatus(options: {
       | 'showReminder'
       | 'preferClosingPrompt'
       | 'stopOnlineOrdersMinutesBeforeClose'
-    > & { restaurantIsOpen: boolean; isClosingSoon: boolean },
+    > & { restaurantIsOpen: boolean; isClosingSoon: boolean }
   ): PosWorkingHoursStatus => ({
     posOperationsAllowed: true,
     restaurantIsOpen: partial.restaurantIsOpen,
@@ -370,7 +357,7 @@ export function computePosWorkingHoursStatus(options: {
     hours,
     local.year,
     local.month,
-    local.day,
+    local.day
   );
 
   if (todayHours.isClosed) {

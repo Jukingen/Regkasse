@@ -14,7 +14,7 @@ describe('resolvePosMonatsbelegTarget', () => {
           { year: 2026, month: 5, isOverdue: false },
           { year: 2026, month: 4, isOverdue: true },
         ],
-      }),
+      })
     ).toEqual({ year: 2026, month: 4 });
   });
 
@@ -23,7 +23,7 @@ describe('resolvePosMonatsbelegTarget', () => {
       resolvePosMonatsbelegTarget({
         nextRequiredMonth: '2026-06',
         missingMonths: [{ year: 2026, month: 6, isOverdue: false }],
-      }),
+      })
     ).toEqual({ year: 2026, month: 6 });
   });
 
@@ -32,7 +32,7 @@ describe('resolvePosMonatsbelegTarget', () => {
       resolvePosMonatsbelegTarget({
         nextRequiredMonth: '2025-12',
         missingMonths: [],
-      }),
+      })
     ).toEqual({ year: 2025, month: 12 });
   });
 

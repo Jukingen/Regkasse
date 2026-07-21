@@ -42,12 +42,7 @@ const PrinterSettings: React.FC<PrinterSettingsProps> = ({
   const [settings, setSettings] = useState<PrinterConfig>(currentSettings);
   const [isConnecting, setIsConnecting] = useState(false);
 
-  const printerModels = [
-    'EPSON TM-T88VI',
-    'Star TSP 700',
-    'Citizen CT-S310II',
-    'Custom Printer',
-  ];
+  const printerModels = ['EPSON TM-T88VI', 'Star TSP 700', 'Citizen CT-S310II', 'Custom Printer'];
 
   const paperSizes = ['80mm', '58mm', '112mm'];
 
@@ -55,10 +50,16 @@ const PrinterSettings: React.FC<PrinterSettingsProps> = ({
     setIsConnecting(true);
     try {
       // Simulate printer connection
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      Alert.alert(t('printer.success', 'Success'), t('printer.connected', 'Printer connected successfully!'));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      Alert.alert(
+        t('printer.success', 'Success'),
+        t('printer.connected', 'Printer connected successfully!')
+      );
     } catch (error) {
-      Alert.alert(t('printer.error', 'Error'), t('printer.connectFailed', 'Failed to connect to printer. Please check the connection.'));
+      Alert.alert(
+        t('printer.error', 'Error'),
+        t('printer.connectFailed', 'Failed to connect to printer. Please check the connection.')
+      );
     } finally {
       setIsConnecting(false);
     }
@@ -67,11 +68,17 @@ const PrinterSettings: React.FC<PrinterSettingsProps> = ({
   const handleSave = () => {
     onSave(settings);
     onClose();
-    Alert.alert(t('printer.success', 'Success'), t('printer.saved', 'Printer settings saved successfully!'));
+    Alert.alert(
+      t('printer.success', 'Success'),
+      t('printer.saved', 'Printer settings saved successfully!')
+    );
   };
 
   const handleTestPrint = () => {
-    Alert.alert(t('printer.testPrint', 'Test Print'), t('printer.testPrintMsg', 'Test receipt will be printed. Please check your printer.'));
+    Alert.alert(
+      t('printer.testPrint', 'Test Print'),
+      t('printer.testPrintMsg', 'Test receipt will be printed. Please check your printer.')
+    );
   };
 
   return (
@@ -79,8 +86,7 @@ const PrinterSettings: React.FC<PrinterSettingsProps> = ({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
+      onRequestClose={onClose}>
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>{t('printer.title', 'Printer Settings')}</Text>
@@ -92,25 +98,30 @@ const PrinterSettings: React.FC<PrinterSettingsProps> = ({
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Connection Status */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('printer.connectionStatus', 'Connection Status')}</Text>
+            <Text style={styles.sectionTitle}>
+              {t('printer.connectionStatus', 'Connection Status')}
+            </Text>
             <View style={styles.statusCard}>
               <View style={styles.statusInfo}>
-                <Ionicons 
-                  name={settings.enabled ? "checkmark-circle" : "close-circle"} 
-                  size={24} 
-                  color={settings.enabled ? Colors.light.success : Colors.light.error} 
+                <Ionicons
+                  name={settings.enabled ? 'checkmark-circle' : 'close-circle'}
+                  size={24}
+                  color={settings.enabled ? Colors.light.success : Colors.light.error}
                 />
                 <Text style={styles.statusText}>
-                  {settings.enabled ? t('printer.connected', 'Connected') : t('printer.disconnected', 'Disconnected')}
+                  {settings.enabled
+                    ? t('printer.connected', 'Connected')
+                    : t('printer.disconnected', 'Disconnected')}
                 </Text>
               </View>
               <TouchableOpacity
                 style={[styles.connectButton, isConnecting && styles.connectButtonDisabled]}
                 onPress={handleConnect}
-                disabled={isConnecting}
-              >
+                disabled={isConnecting}>
                 <Text style={styles.connectButtonText}>
-                  {isConnecting ? t('printer.connecting', 'Connecting...') : t('printer.connect', 'Connect')}
+                  {isConnecting
+                    ? t('printer.connecting', 'Connecting...')
+                    : t('printer.connect', 'Connect')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -119,12 +130,14 @@ const PrinterSettings: React.FC<PrinterSettingsProps> = ({
           {/* Printer Configuration */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('printer.config', 'Printer Configuration')}</Text>
-            
+
             <View style={styles.settingItem}>
               <Text style={styles.settingLabel}>{t('printer.enable', 'Enable Printer')}</Text>
               <Switch
                 value={settings.enabled}
-                onValueChange={(value) => setSettings({ ...settings, enabled: value })}
+                onValueChange={(value) => {
+                  setSettings({ ...settings, enabled: value });
+                }}
               />
             </View>
 
@@ -148,28 +161,38 @@ const PrinterSettings: React.FC<PrinterSettingsProps> = ({
               <Text style={styles.settingLabel}>{t('printer.autoCut', 'Auto Cut')}</Text>
               <Switch
                 value={settings.autoCut}
-                onValueChange={(value) => setSettings({ ...settings, autoCut: value })}
+                onValueChange={(value) => {
+                  setSettings({ ...settings, autoCut: value });
+                }}
               />
             </View>
           </View>
 
           {/* Receipt Settings */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('printer.receiptSettings', 'Receipt Settings')}</Text>
-            
+            <Text style={styles.sectionTitle}>
+              {t('printer.receiptSettings', 'Receipt Settings')}
+            </Text>
+
             <View style={styles.settingItem}>
               <Text style={styles.settingLabel}>{t('printer.printLogo', 'Print Logo')}</Text>
               <Switch
                 value={settings.printLogo}
-                onValueChange={(value) => setSettings({ ...settings, printLogo: value })}
+                onValueChange={(value) => {
+                  setSettings({ ...settings, printLogo: value });
+                }}
               />
             </View>
 
             <View style={styles.settingItem}>
-              <Text style={styles.settingLabel}>{t('printer.printTaxDetails', 'Print Tax Details')}</Text>
+              <Text style={styles.settingLabel}>
+                {t('printer.printTaxDetails', 'Print Tax Details')}
+              </Text>
               <Switch
                 value={settings.printTaxDetails}
-                onValueChange={(value) => setSettings({ ...settings, printTaxDetails: value })}
+                onValueChange={(value) => {
+                  setSettings({ ...settings, printTaxDetails: value });
+                }}
               />
             </View>
 
@@ -178,7 +201,9 @@ const PrinterSettings: React.FC<PrinterSettingsProps> = ({
               <TextInput
                 style={styles.textInput}
                 value={settings.footerText}
-                onChangeText={(text) => setSettings({ ...settings, footerText: text })}
+                onChangeText={(text) => {
+                  setSettings({ ...settings, footerText: text });
+                }}
                 placeholder={t('printer.footerTextPlaceholder', 'Enter footer text...')}
                 multiline
                 numberOfLines={2}
@@ -342,4 +367,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default PrinterSettings; 
+export default PrinterSettings;

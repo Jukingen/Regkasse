@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
+
+import type { TenantDataManagementOverview } from '@/features/data-management/api/adminDataManagement';
+import type { TenantDataManagementSummary } from '@/features/data-management/api/tenantDataManagement';
 import {
   mapPlatformOverviewToStats,
   mapTenantSummaryToStats,
 } from '@/features/data-management/logic/dataRetentionStats';
-import type { TenantDataManagementOverview } from '@/features/data-management/api/adminDataManagement';
-import type { TenantDataManagementSummary } from '@/features/data-management/api/tenantDataManagement';
 
 describe('dataRetentionStats mappers', () => {
   it('maps platform overview metrics', () => {

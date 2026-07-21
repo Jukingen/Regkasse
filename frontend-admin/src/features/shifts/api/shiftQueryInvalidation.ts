@@ -7,7 +7,7 @@ import { invalidateAdminShiftOverviewQueries } from '@/features/shifts/api/shift
 /** Invalidate shift status, overview, and cash-register queries after open/close mutations. */
 export async function invalidateShiftRelatedQueries(
   queryClient: QueryClient,
-  registerId?: string,
+  registerId?: string
 ): Promise<void> {
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: ['shift', 'status'] }),

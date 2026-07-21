@@ -1,50 +1,27 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { normalizeTextLocale } from './localeUtils';
+import { storage } from '../utils/storage';
 
 const LANGUAGE_KEY = 'user-language';
 
 /**
- * Web'de window/localStorage, SSR veya native ortamda tanımlı olmayabilir.
- * Sadece gerçekten mevcutsa localStorage kullan.
- */
-function hasLocalStorage(): boolean {
-  if (typeof globalThis === 'undefined') return false;
-  try {
-    const w = globalThis as unknown as { window?: Window; localStorage?: Storage };
-    return typeof w.window !== 'undefined' && typeof w.localStorage !== 'undefined';
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Seçilen dili saklar.
- * Web'de localStorage, native/test/SSR'da AsyncStorage kullanır.
+ * Persist selected UI language (non-sensitive preference).
+ * Uses {@link storage} (localStorage on web, AsyncStorage on native).
  */
 export async function saveLanguage(language: string): Promise<void> {
   const safeLanguage = normalizeTextLocale(language);
   try {
-    if (hasLocalStorage()) {
-      (globalThis as unknown as { localStorage: Storage }).localStorage.setItem(LANGUAGE_KEY, safeLanguage);
-    } else {
-      await AsyncStorage.setItem(LANGUAGE_KEY, safeLanguage);
-    }
+    await storage.setItem(LANGUAGE_KEY, safeLanguage);
   } catch (error) {
     console.error('Failed to save language:', error);
   }
 }
 
 /**
- * Saklanan dili okur.
- * Web'de localStorage, native/test/SSR'da AsyncStorage kullanır.
- * @returns Kayıtlı dil kodu veya yoksa null.
+ * Read persisted UI language.
  */
 export async function getSavedLanguage(): Promise<string | null> {
   try {
-    if (hasLocalStorage()) {
-      return (globalThis as unknown as { localStorage: Storage }).localStorage.getItem(LANGUAGE_KEY);
-    }
-    return await AsyncStorage.getItem(LANGUAGE_KEY);
+    return await storage.getItem(LANGUAGE_KEY);
   } catch (error) {
     console.error('Failed to get saved language:', error);
     return null;

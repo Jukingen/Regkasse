@@ -1,6 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import { OFFLINE_CONFIG } from '@/constants/offlineConfig';
+import { storage } from '@/utils/storage';
 
 export interface SyncHistoryEntry {
   id: string;
@@ -96,14 +95,12 @@ export class OfflineSyncHistory {
   }
 
   async clear(): Promise<void> {
-    await AsyncStorage.removeItem(STORAGE_KEY);
+    await storage.removeItem(STORAGE_KEY);
   }
 
   private async readAll(): Promise<StoredSyncHistoryEntry[]> {
     try {
-      const raw = await AsyncStorage.getItem(STORAGE_KEY);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw) as unknown;
+      const parsed = await storage.getJson<unknown>(STORAGE_KEY);
       return Array.isArray(parsed) ? (parsed as StoredSyncHistoryEntry[]) : [];
     } catch {
       return [];
@@ -111,7 +108,7 @@ export class OfflineSyncHistory {
   }
 
   private async writeAll(entries: StoredSyncHistoryEntry[]): Promise<void> {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    await storage.setJson(STORAGE_KEY, entries);
   }
 
   static resetForTests(): void {

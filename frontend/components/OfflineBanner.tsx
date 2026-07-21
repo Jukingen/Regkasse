@@ -1,9 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
@@ -108,13 +104,9 @@ export function OfflineBanner() {
 
   return (
     <View
-      style={[
-        styles.container,
-        { bottom: TAB_BAR_HEIGHT + insets.bottom + SoftSpacing.sm },
-      ]}
+      style={[styles.container, { bottom: TAB_BAR_HEIGHT + insets.bottom + SoftSpacing.sm }]}
       accessibilityRole="summary"
-      pointerEvents="box-none"
-    >
+      pointerEvents="box-none">
       {!status.isOnline ? (
         <View style={[styles.banner, styles.offlineBanner]} accessibilityRole="alert">
           <Text style={styles.icon} accessibilityElementsHidden>

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { buildAntdTheme } from '@/theme/buildAntdTheme';
 
 describe('buildAntdTheme density overrides', () => {

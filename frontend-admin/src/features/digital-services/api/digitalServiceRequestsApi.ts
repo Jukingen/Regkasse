@@ -1,5 +1,5 @@
-import { customInstance } from '@/lib/axios';
 import type { DigitalServiceType } from '@/features/digital-services/api/tenantDigitalServicesApi';
+import { customInstance } from '@/lib/axios';
 
 export type DigitalServiceRequestStatus = 'Pending' | 'Approved' | 'Rejected' | 'Cancelled';
 
@@ -81,7 +81,7 @@ function mapRequest(dto: RequestApi): DigitalServiceRequest | null {
 export async function requestDigitalService(
   tenantId: string,
   serviceType: DigitalServiceType,
-  note?: string,
+  note?: string
 ): Promise<DigitalServiceRequest> {
   const res = await customInstance<MutationApi>({
     url: `/api/admin/digital/${tenantId}/request`,
@@ -98,7 +98,7 @@ export async function requestDigitalService(
 
 export async function fetchTenantDigitalServiceRequests(
   tenantId: string,
-  status?: string,
+  status?: string
 ): Promise<DigitalServiceRequest[]> {
   const res = await customInstance<RequestApi[]>({
     url: `/api/admin/digital/${tenantId}/requests`,
@@ -110,7 +110,7 @@ export async function fetchTenantDigitalServiceRequests(
 }
 
 export async function fetchDigitalServiceRequests(
-  status: string | null | undefined = 'Pending',
+  status: string | null | undefined = 'Pending'
 ): Promise<DigitalServiceRequest[]> {
   const res = await customInstance<RequestApi[]>({
     url: '/api/admin/digital/requests',
@@ -123,7 +123,7 @@ export async function fetchDigitalServiceRequests(
 
 export async function approveDigitalServiceRequest(
   id: string,
-  note?: string,
+  note?: string
 ): Promise<DigitalServiceRequest> {
   const res = await customInstance<MutationApi>({
     url: `/api/admin/digital/requests/${id}/approve`,
@@ -140,7 +140,7 @@ export async function approveDigitalServiceRequest(
 
 export async function rejectDigitalServiceRequest(
   id: string,
-  note?: string,
+  note?: string
 ): Promise<DigitalServiceRequest> {
   const res = await customInstance<MutationApi>({
     url: `/api/admin/digital/requests/${id}/reject`,

@@ -15,10 +15,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../../constants/SoftTheme';
 import { useCart } from '../../contexts/CartContext';
-import { splitService, type SplitItemDto, type SplitSessionDto } from '../../services/api/splitService';
+import {
+  splitService,
+  type SplitItemDto,
+  type SplitSessionDto,
+} from '../../services/api/splitService';
 import { WaveLoader } from '../../src/components/common/WaveLoader';
-import { VALID_TABLE_NUMBERS } from '../../utils/tableCartUtils';
 import { requestMergeSheet } from '../../utils/pendingPosNav';
+import { VALID_TABLE_NUMBERS } from '../../utils/tableCartUtils';
 
 type Seat = {
   id: number;
@@ -83,7 +87,12 @@ export function SplitScreenContent({ cartRowId, tableNumber, onComplete }: Split
       } catch {
         if (!cancelled) {
           Alert.alert('Fehler', 'Rechnung konnte nicht zum Teilen vorbereitet werden.', [
-            { text: 'OK', onPress: () => router.back() },
+            {
+              text: 'OK',
+              onPress: () => {
+                router.back();
+              },
+            },
           ]);
         }
       } finally {
@@ -109,8 +118,7 @@ export function SplitScreenContent({ cartRowId, tableNumber, onComplete }: Split
   }, [session?.items]);
 
   const calculateSeatTotal = useCallback(
-    (seat: Seat) =>
-      seat.itemIds.reduce((sum, id) => sum + (itemById.get(id)?.lineTotal ?? 0), 0),
+    (seat: Seat) => seat.itemIds.reduce((sum, id) => sum + (itemById.get(id)?.lineTotal ?? 0), 0),
     [itemById]
   );
 
@@ -139,11 +147,11 @@ export function SplitScreenContent({ cartRowId, tableNumber, onComplete }: Split
       const seat = seats.find((s) => s.id === seatId);
       if (!seat?.itemIds.length) return;
       const trimmed = name.trim() || seatLabel(seatId);
-      void Promise.all(
-        seat.itemIds.map((itemId) => syncAssign(itemId, trimmed, seatId))
-      ).catch(() => {
-        Alert.alert('Fehler', 'Kundenname konnte nicht gespeichert werden.');
-      });
+      void Promise.all(seat.itemIds.map((itemId) => syncAssign(itemId, trimmed, seatId))).catch(
+        () => {
+          Alert.alert('Fehler', 'Kundenname konnte nicht gespeichert werden.');
+        }
+      );
     },
     [session, seats, syncAssign]
   );
@@ -160,7 +168,11 @@ export function SplitScreenContent({ cartRowId, tableNumber, onComplete }: Split
           prev.map((s) => {
             const without = s.itemIds.filter((id) => id !== item.id);
             if (s.id === seatId) {
-              return { ...s, customerName: s.customerName.trim() || customerName, itemIds: [...without, item.id] };
+              return {
+                ...s,
+                customerName: s.customerName.trim() || customerName,
+                itemIds: [...without, item.id],
+              };
             }
             return { ...s, itemIds: without };
           })
@@ -197,7 +209,7 @@ export function SplitScreenContent({ cartRowId, tableNumber, onComplete }: Split
   );
 
   const refreshAllTables = useCallback(async () => {
-    await Promise.all(VALID_TABLE_NUMBERS.map((n) => fetchTableCart(n, true)));
+    await Promise.all(VALID_TABLE_NUMBERS.map((n) => fetchTableCart(n)));
   }, [fetchTableCart]);
 
   const handleCompleteSplit = useCallback(async () => {
@@ -237,7 +249,11 @@ export function SplitScreenContent({ cartRowId, tableNumber, onComplete }: Split
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.iconBtn}>
+        <Pressable
+          onPress={() => {
+            router.back();
+          }}
+          style={styles.iconBtn}>
           <Ionicons name="arrow-back" size={24} color={SoftColors.textPrimary} />
         </Pressable>
         <View style={styles.headerText}>
@@ -247,20 +263,26 @@ export function SplitScreenContent({ cartRowId, tableNumber, onComplete }: Split
       </View>
 
       <View style={styles.seatList}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.seatScroll}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.seatScroll}>
           {seats.map((seat) => (
             <Pressable
               key={seat.id}
               style={[styles.seatCard, selectedSeat === seat.id && styles.selectedSeat]}
-              onPress={() => setSelectedSeat(seat.id)}
-            >
+              onPress={() => {
+                setSelectedSeat(seat.id);
+              }}>
               <Text style={styles.seatTitle}>Platz {seat.id}</Text>
               <TextInput
                 style={styles.seatInput}
                 placeholder="Kundenname"
                 placeholderTextColor={SoftColors.textMuted}
                 value={seat.customerName}
-                onChangeText={(text) => updateSeatName(seat.id, text)}
+                onChangeText={(text) => {
+                  updateSeatName(seat.id, text);
+                }}
               />
               <Text style={styles.seatMeta}>{seat.itemIds.length} Positionen</Text>
               <Text style={styles.seatTotal}>{formatEuro(calculateSeatTotal(seat))}</Text>
@@ -273,8 +295,7 @@ export function SplitScreenContent({ cartRowId, tableNumber, onComplete }: Split
                       <Pressable
                         key={itemId}
                         style={styles.seatItemRow}
-                        onPress={() => void removeItemFromSeat(itemId, seat.id)}
-                      >
+                        onPress={() => void removeItemFromSeat(itemId, seat.id)}>
                         <Text style={styles.seatItemText} numberOfLines={1}>
                           {item.productName} ×{item.quantity}
                         </Text>
@@ -299,9 +320,7 @@ export function SplitScreenContent({ cartRowId, tableNumber, onComplete }: Split
           data={unassignedItems}
           keyExtractor={(item) => item.id}
           style={styles.list}
-          ListEmptyComponent={
-            <Text style={styles.empty}>Alle Positionen sind zugewiesen.</Text>
-          }
+          ListEmptyComponent={<Text style={styles.empty}>Alle Positionen sind zugewiesen.</Text>}
           renderItem={({ item }) => (
             <View style={styles.itemRow}>
               <View style={styles.itemInfo}>
@@ -313,8 +332,7 @@ export function SplitScreenContent({ cartRowId, tableNumber, onComplete }: Split
               <Pressable
                 style={[styles.assignBtn, busy && styles.assignBtnDisabled]}
                 onPress={() => void moveItemToSeat(item, selectedSeat)}
-                disabled={busy}
-              >
+                disabled={busy}>
                 <Text style={styles.assignBtnText}>→ Platz {selectedSeat}</Text>
               </Pressable>
             </View>
@@ -330,8 +348,7 @@ export function SplitScreenContent({ cartRowId, tableNumber, onComplete }: Split
         <Pressable
           style={[styles.splitButton, busy && styles.splitButtonDisabled]}
           onPress={() => void handleCompleteSplit()}
-          disabled={busy}
-        >
+          disabled={busy}>
           {busy ? (
             <WaveLoader size={20} color={SoftColors.textInverse} />
           ) : (
@@ -364,7 +381,7 @@ export default function SplitScreenRoute() {
       }
       setHydrating(true);
       try {
-        await fetchTableCart(tableNumber, true);
+        await fetchTableCart(tableNumber);
       } finally {
         if (!cancelled) setHydrating(false);
       }
@@ -376,7 +393,7 @@ export default function SplitScreenRoute() {
 
   if (hydrating) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.centered}>
           <WaveLoader size={32} color={SoftColors.accent} />
         </View>
@@ -389,10 +406,14 @@ export default function SplitScreenRoute() {
 
   if (!resolvedCartRowId || resolvedCart.items.length === 0) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.centered}>
           <Text style={styles.errorText}>Kein aktiver Warenkorb für Tisch {tableNumber}.</Text>
-          <Pressable style={styles.backBtn} onPress={() => router.back()}>
+          <Pressable
+            style={styles.backBtn}
+            onPress={() => {
+              router.back();
+            }}>
             <Text style={styles.backBtnText}>Zurück</Text>
           </Pressable>
         </View>
@@ -401,7 +422,7 @@ export default function SplitScreenRoute() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <SplitScreenContent cartRowId={resolvedCartRowId} tableNumber={tableNumber} />
     </SafeAreaView>
   );
@@ -421,7 +442,12 @@ const styles = StyleSheet.create({
     backgroundColor: SoftColors.accent,
   },
   backBtnText: { color: SoftColors.textInverse, fontWeight: '600' },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: SoftSpacing.md, gap: SoftSpacing.sm },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SoftSpacing.md,
+    gap: SoftSpacing.sm,
+  },
   iconBtn: { padding: SoftSpacing.xs },
   headerText: { flex: 1 },
   title: { ...SoftTypography.h2, color: SoftColors.textPrimary },

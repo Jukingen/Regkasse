@@ -35,7 +35,7 @@ function right(text: string, width: number) {
 // Fiş şablonu oluşturucu
 export function generateReceiptText(data: ReceiptData, width: number = 42): string {
   // Başlık
-  let lines: string[] = [];
+  const lines: string[] = [];
   lines.push(center('*** KASSENBELEG ***', width));
   lines.push(center('Registrierkasse GmbH', width));
   lines.push(center('www.registrierkasse.at', width));
@@ -48,7 +48,7 @@ export function generateReceiptText(data: ReceiptData, width: number = 42): stri
   lines.push('Menge  Artikel                Einzel  Gesamt');
   lines.push('-'.repeat(width));
   // Ürünler
-  data.items.forEach(item => {
+  data.items.forEach((item) => {
     const name = item.name.length > 18 ? item.name.slice(0, 18) + '.' : item.name;
     const qty = right(item.quantity.toString(), 2);
     const price = right(item.price.toFixed(2), 6);
@@ -68,4 +68,4 @@ export function generateReceiptText(data: ReceiptData, width: number = 42): stri
   lines.push('-'.repeat(width));
   lines.push(center('Vielen Dank für Ihren Einkauf!', width));
   return lines.join('\n');
-} 
+}

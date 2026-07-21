@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Alert, Button, Checkbox, Input, Modal, Space, Steps, Typography } from 'antd';
-import { useAntdApp } from '@/hooks/useAntdApp';
-import { useI18n } from '@/i18n';
+import { useEffect, useState } from 'react';
+
 import {
   useConfirmTenantDataDeletion,
   useRequestTenantDataDeletion,
 } from '@/features/data-management/hooks/useTenantDataManagement';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { useI18n } from '@/i18n';
 
 type Props = {
   tenantId: string;
@@ -21,12 +22,7 @@ type Props = {
  * Multi-step data-deletion request wizard (RKSV acknowledgements → submit → success).
  * Submit calls request then confirm so the 7-day purge wait starts (matches backend email flow).
  */
-export function DataDeletionRequestModal({
-  tenantId,
-  open,
-  onClose,
-  initialReason = '',
-}: Props) {
+export function DataDeletionRequestModal({ tenantId, open, onClose, initialReason = '' }: Props) {
   const { t } = useI18n();
   const { message } = useAntdApp();
   const requestMutation = useRequestTenantDataDeletion(tenantId);

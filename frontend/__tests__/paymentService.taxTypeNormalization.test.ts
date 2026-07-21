@@ -2,10 +2,17 @@
  * Ensures paymentService.processPayment normalizes item.taxType before HTTP and before offline enqueue.
  */
 import { jest, describe, it, expect, beforeEach } from '@jest/globals';
-import type { PaymentRequest } from '../services/api/paymentService';
 
-const mockPost = jest.fn() as jest.MockedFunction<(url: string, body?: unknown) => Promise<unknown>>;
-const mockEnqueuePendingPayment = jest.fn() as jest.MockedFunction<(payload: unknown) => Promise<string>>;
+import type { PaymentRequest } from '../services/api/paymentService';
+import paymentService from '../services/api/paymentService';
+import { paymentPayloadContainsVoucherSecrets } from '../services/payment/pendingPaymentQueue';
+
+const mockPost = jest.fn() as jest.MockedFunction<
+  (url: string, body?: unknown) => Promise<unknown>
+>;
+const mockEnqueuePendingPayment = jest.fn() as jest.MockedFunction<
+  (payload: unknown) => Promise<string>
+>;
 mockEnqueuePendingPayment.mockResolvedValue('pending-queue-id');
 
 jest.mock('../services/api/config', () => ({
@@ -17,9 +24,10 @@ jest.mock('../services/api/config', () => ({
 }));
 
 jest.mock('../services/payment/pendingPaymentQueue', () => {
-  const actual = jest.requireActual(
-    '../services/payment/pendingPaymentQueue'
-  ) as typeof import('../services/payment/pendingPaymentQueue');
+  const actual = jest.requireActual('../services/payment/pendingPaymentQueue') as Record<
+    string,
+    unknown
+  >;
   return {
     ...actual,
     enqueuePendingPayment: (payload: unknown) => mockEnqueuePendingPayment(payload),
@@ -41,9 +49,6 @@ jest.mock('../utils/storage', () => ({
 jest.mock('../features/payment/paymentErrors', () => ({
   normalizePaymentError: (err: unknown) => err,
 }));
-
-import paymentService from '../services/api/paymentService';
-import { paymentPayloadContainsVoucherSecrets } from '../services/payment/pendingPaymentQueue';
 
 function baseRequest(overrides: Partial<PaymentRequest> = {}): PaymentRequest {
   return {
@@ -185,8 +190,8 @@ describe('paymentPayloadContainsVoucherSecrets', () => {
   });
 
   it('is false for cash', () => {
-    expect(paymentPayloadContainsVoucherSecrets({ method: 'cash', tseRequired: false, amount: 1 })).toBe(
-      false
-    );
+    expect(
+      paymentPayloadContainsVoucherSecrets({ method: 'cash', tseRequired: false, amount: 1 })
+    ).toBe(false);
   });
 });

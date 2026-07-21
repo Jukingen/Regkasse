@@ -51,4 +51,4 @@ export function useFetch<T = any>(url: string, options?: FetchOptions) {
   );
 
   return { data, error, loading, fetchData };
-} 
+}

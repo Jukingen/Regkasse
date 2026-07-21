@@ -41,8 +41,7 @@ export function useAdminPermissions(): AdminPermission {
         isManager ||
         hasPermission(permissions, 'user.view') ||
         hasPermission(permissions, 'user.manage'),
-      canViewReports:
-        isSuperAdmin || isManager || hasPermission(permissions, 'report.view'),
+      canViewReports: isSuperAdmin || isManager || hasPermission(permissions, 'report.view'),
       canManageRksv:
         isSuperAdmin ||
         isManager ||

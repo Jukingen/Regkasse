@@ -20,13 +20,13 @@
 
 ## Files
 
-| File | Purpose |
-|------|--------|
-| `components/RoleManagementDrawer.tsx` | Role list + permissions panel; `presentation="page"` on `/admin/access/roles`. |
-| `features/access/components/RoleMatrixOverview.tsx` | Read-only matrix on `/admin/access/matrix`. |
-| `docs/ACCESS_AND_ROLES_HUB.md` | Hub routes, nav IA, permission split, contract tests. |
-| `constants/copy.ts` | German strings: `systemRoleProtectedNoDelete`, `roleDeleteBlockedReassignFirst`, `badgeSystemRole`, `badgeCustomRole`, `roleDisplayName`, `ROLE_DISPLAY_NAMES`. |
-| `api/roleManagementApi.ts` | `RoleWithPermissionsDto` includes optional `canDelete`, `canEditPermissions`. |
+| File                                                | Purpose                                                                                                                                                         |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `components/RoleManagementDrawer.tsx`               | Role list + permissions panel; `presentation="page"` on `/admin/access/roles`.                                                                                  |
+| `features/access/components/RoleMatrixOverview.tsx` | Read-only matrix on `/admin/access/matrix`.                                                                                                                     |
+| `docs/ACCESS_AND_ROLES_HUB.md`                      | Hub routes, nav IA, permission split, contract tests.                                                                                                           |
+| `constants/copy.ts`                                 | German strings: `systemRoleProtectedNoDelete`, `roleDeleteBlockedReassignFirst`, `badgeSystemRole`, `badgeCustomRole`, `roleDisplayName`, `ROLE_DISPLAY_NAMES`. |
+| `api/roleManagementApi.ts`                          | `RoleWithPermissionsDto` includes optional `canDelete`, `canEditPermissions`.                                                                                   |
 
 ## UI behavior changes (governance alignment)
 

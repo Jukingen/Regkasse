@@ -3,12 +3,16 @@
 /**
  * Korrektur-Kette / Versions-Timeline für formale Berichte (API: GET /api/reports/history/{type}/{id}).
  */
-import React from 'react';
-import { Drawer, Spin, Timeline, Typography, Tag, Empty } from 'antd';
 import { useQuery } from '@tanstack/react-query';
-import { AXIOS_INSTANCE } from '@/lib/axios';
+import { Drawer, Empty, Spin, Tag, Timeline, Typography } from 'antd';
+import React from 'react';
+
+import {
+  ReportDocumentBadge,
+  ReportSubmissionBadge,
+} from '@/components/reporting/ReportWorkspaceBadges';
 import { useI18n } from '@/i18n/I18nProvider';
-import { ReportDocumentBadge, ReportSubmissionBadge } from '@/components/reporting/ReportWorkspaceBadges';
+import { AXIOS_INSTANCE } from '@/lib/axios';
 
 export type FormalReportTypeKey = 'tagesbericht' | 'monatsbericht' | 'jahresbericht';
 
@@ -43,7 +47,9 @@ export function ReportChainTimelineDrawer(props: {
   const q = useQuery({
     queryKey: ['report-history', reportType, reportId],
     queryFn: async () => {
-      const { data } = await AXIOS_INSTANCE.get<TimelineDto>(`/api/reports/history/${reportType}/${reportId}`);
+      const { data } = await AXIOS_INSTANCE.get<TimelineDto>(
+        `/api/reports/history/${reportType}/${reportId}`
+      );
       return data;
     },
     enabled: open && !!reportId,
@@ -71,7 +77,9 @@ export function ReportChainTimelineDrawer(props: {
                 <div>
                   <div style={{ marginBottom: 6 }}>
                     <Typography.Text strong>
-                      {t('adminShell.reporting.reportCenter.chainVersion', { n: String(it.reportVersion) })}
+                      {t('adminShell.reporting.reportCenter.chainVersion', {
+                        n: String(it.reportVersion),
+                      })}
                     </Typography.Text>{' '}
                     {it.isCurrentActiveVersion ? (
                       <Tag color="blue">{t('adminShell.reporting.reportCenter.chainCurrent')}</Tag>

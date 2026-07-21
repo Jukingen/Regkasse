@@ -1,5 +1,5 @@
-import { fetchTenantSwitcherList } from '@/services/tenant/tenantSwitcherApi';
 import { apiClient } from '@/services/api/config';
+import { fetchTenantSwitcherList } from '@/services/tenant/tenantSwitcherApi';
 
 jest.mock('@/services/api/config', () => ({
   apiClient: {

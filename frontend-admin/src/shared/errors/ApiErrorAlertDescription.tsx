@@ -4,14 +4,20 @@
  * Alert body: short localized summary plus copyable raw API text when needed (single parse path).
  * Technical logging runs only in an effect (no re-render spam).
  */
-import { useEffect } from 'react';
 import { Space, Typography } from 'antd';
+import { useEffect } from 'react';
+
 import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
+
 import { extractRawApiErrorMessage } from './extractRawApiErrorMessage';
 import { normalizeApiError } from './normalizedApiError';
 import { buildTechnicalApiErrorPayload } from './technicalApiErrorLog';
-import { getUserFacingApiErrorMessage, type TranslateFn, type UserFacingApiErrorOptions } from './userFacingApiError';
+import {
+  type TranslateFn,
+  type UserFacingApiErrorOptions,
+  getUserFacingApiErrorMessage,
+} from './userFacingApiError';
 
 type Props = {
   t: TranslateFn;
@@ -20,7 +26,10 @@ type Props = {
 
 export function ApiErrorAlertDescription({ t, error, ...options }: Props) {
   useEffect(() => {
-    technicalConsole.error(`[API Error] ${options.logContext}`, buildTechnicalApiErrorPayload(normalizeApiError(error)));
+    technicalConsole.error(
+      `[API Error] ${options.logContext}`,
+      buildTechnicalApiErrorPayload(normalizeApiError(error))
+    );
   }, [error, options.logContext]);
 
   return (
@@ -28,7 +37,10 @@ export function ApiErrorAlertDescription({ t, error, ...options }: Props) {
       <Typography.Text>
         {getUserFacingApiErrorMessage(t, error, { ...options, skipLog: true })}
       </Typography.Text>
-      <BackendRawTextBlock introKey="common.backend.serverHintIntro" body={extractRawApiErrorMessage(error)} />
+      <BackendRawTextBlock
+        introKey="common.backend.serverHintIntro"
+        body={extractRawApiErrorMessage(error)}
+      />
     </Space>
   );
 }

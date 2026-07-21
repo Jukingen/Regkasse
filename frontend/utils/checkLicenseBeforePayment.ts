@@ -1,13 +1,13 @@
-import { Alert } from 'react-native';
 import type { TFunction } from 'i18next';
+import { Alert } from 'react-native';
 
-import { refreshPosStatusOverview } from '../services/pos/posStatusOverviewRefreshBridge';
-import { getCachedLicenseStatus } from '../services/license/licenseStatusCache';
 import {
   areLicenseChecksBypassedInDevelopment,
   ensureLicenseAllowsCriticalAction,
   isLicenseExpiredForCriticalActions,
 } from './licenseCriticalActionGuard';
+import { getCachedLicenseStatus } from '../services/license/licenseStatusCache';
+import { refreshPosStatusOverview } from '../services/pos/posStatusOverviewRefreshBridge';
 
 /**
  * Fresh license gate for payment: refreshes overview once, then runs critical-action guards.
@@ -25,5 +25,5 @@ export async function checkLicenseBeforePayment(t: TFunction): Promise<boolean> 
     return false;
   }
 
-  return ensureLicenseAllowsCriticalAction(status, t, 'payment');
+  return await ensureLicenseAllowsCriticalAction(status, t, 'payment');
 }

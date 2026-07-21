@@ -30,19 +30,13 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 type LocaleName = 'en' | 'de' | 'tr';
 
 function readLocale(locale: LocaleName): unknown {
-  const file = path.join(
-    process.cwd(),
-    'src',
-    'i18n',
-    'locales',
-    locale,
-    'backupDr.json',
-  );
+  const file = path.join(process.cwd(), 'src', 'i18n', 'locales', locale, 'backupDr.json');
   return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 
@@ -450,9 +444,10 @@ describe('backupDr critical warning copy parity', () => {
 
   it('CRITICAL_INTENT_ROWS anahtarları tekil (aynı key iki kez tanımlanmasın)', () => {
     const keys = CRITICAL_INTENT_ROWS.map((r) => r.key);
-    expect(new Set(keys).size, `yinelenen key: ${keys.filter((k, i) => keys.indexOf(k) !== i).join(', ')}`).toBe(
-      keys.length,
-    );
+    expect(
+      new Set(keys).size,
+      `yinelenen key: ${keys.filter((k, i) => keys.indexOf(k) !== i).join(', ')}`
+    ).toBe(keys.length);
   });
 
   it('tüm kritik anahtarlar en/de/tr içinde dolu', () => {
@@ -475,7 +470,7 @@ describe('backupDr critical warning copy parity', () => {
         const ok = patterns.some((re) => re.test(value));
         expect(
           ok,
-          `[${row.family}] ${locale} ${row.key}: niyet eşleşmedi. Not: ${row.note}\nMetin: ${value.slice(0, 280)}`,
+          `[${row.family}] ${locale} ${row.key}: niyet eşleşmedi. Not: ${row.note}\nMetin: ${value.slice(0, 280)}`
         ).toBe(true);
       }
     }
@@ -494,9 +489,7 @@ describe('backupDr critical warning copy parity', () => {
         expect(raw).toBeTruthy();
         const value = raw as string;
         for (const re of forbidden) {
-          expect(re.test(value), `[${row.key}] ${locale}: yasak iyimser ifade: ${re}`).toBe(
-            false,
-          );
+          expect(re.test(value), `[${row.key}] ${locale}: yasak iyimser ifade: ${re}`).toBe(false);
         }
       }
     }

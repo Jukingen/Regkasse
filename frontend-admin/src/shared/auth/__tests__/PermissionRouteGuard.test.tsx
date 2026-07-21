@@ -2,12 +2,14 @@
  * PermissionRouteGuard: fail-closed when no permissions or insufficient permission for route.
  */
 import '@testing-library/jest-dom';
-import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
+import React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { AuthStatus } from '@/features/auth/hooks/useAuth';
-import { PermissionRouteGuard } from '../PermissionRouteGuard';
 import { MANAGER_ADMIN_PERMISSIONS } from '@/shared/__tests__/fixtures/adminAppPermissionFixtures';
+
+import { PermissionRouteGuard } from '../PermissionRouteGuard';
 
 let mockPathname = '/rksv/sonderbelege';
 

@@ -1,8 +1,15 @@
 // Compact POS header: title + sticky table/recovery bar (no large hero)
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from '../constants/SoftTheme';
 import { useTranslation } from 'react-i18next';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+
+import {
+  SoftColors,
+  SoftSpacing,
+  SoftRadius,
+  SoftTypography,
+  SoftShadows,
+} from '../constants/SoftTheme';
 
 interface CashRegisterHeaderProps {
   selectedTable: number;
@@ -21,23 +28,34 @@ export const CashRegisterHeader: React.FC<CashRegisterHeaderProps> = ({
   const { t } = useTranslation(['checkout', 'common', 'paymentHistory']);
 
   return (
-    <View style={styles.wrapper} accessibilityRole="header" accessibilityLabel={t('checkout:title')}>
+    <View
+      style={styles.wrapper}
+      accessibilityRole="header"
+      accessibilityLabel={t('checkout:title')}>
       <View style={styles.headerRow}>
         <Text style={styles.headerEmoji}>☕</Text>
         <Text style={styles.headerTitle}>{t('checkout:title')}</Text>
         {selectedTable > 0 && (
           <View style={styles.tableBadge}>
-            <Text style={styles.tableBadgeText}>{t('common:table')} {selectedTable}</Text>
+            <Text style={styles.tableBadgeText}>
+              {t('common:table')} {selectedTable}
+            </Text>
           </View>
         )}
         {recoveryLoading && (
           <View style={styles.recoveryBadge} accessibilityLabel={t('common:tableRestoring')}>
-            <Text style={styles.recoveryText} accessibilityElementsHidden>🔄</Text>
+            <Text style={styles.recoveryText} accessibilityElementsHidden>
+              🔄
+            </Text>
           </View>
         )}
         {provisioningMessage && !recoveryLoading && (
-          <View style={[styles.recoveryBadge, styles.provisioningBadge]} accessibilityLabel={provisioningMessage}>
-            <Text style={styles.provisioningText} accessibilityElementsHidden>ℹ️</Text>
+          <View
+            style={[styles.recoveryBadge, styles.provisioningBadge]}
+            accessibilityLabel={provisioningMessage}>
+            <Text style={styles.provisioningText} accessibilityElementsHidden>
+              ℹ️
+            </Text>
           </View>
         )}
         {onOpenPaymentHistory ? (
@@ -46,8 +64,7 @@ export const CashRegisterHeader: React.FC<CashRegisterHeaderProps> = ({
             style={({ pressed }) => [styles.historyButton, pressed && styles.historyButtonPressed]}
             accessibilityRole="button"
             accessibilityLabel={t('paymentHistory:quickAccess')}
-            hitSlop={6}
-          >
+            hitSlop={6}>
             <Text style={styles.historyButtonEmoji} accessibilityElementsHidden>
               💰
             </Text>

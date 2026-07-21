@@ -4,28 +4,29 @@
  * Uses modifierSelectionUtils for radio/checkbox, toggling, validation, and disabled state.
  */
 import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, Modal, Pressable, ScrollView, StyleSheet } from 'react-native';
+
 import {
-  View,
-  Text,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-} from 'react-native';
+  SoftColors,
+  SoftRadius,
+  SoftShadows,
+  SoftSpacing,
+  SoftState,
+  SoftTypography,
+} from '../constants/SoftTheme';
 import {
   getProductModifierGroups,
   type ModifierGroupDto,
   type AddOnGroupProductItemDto,
   type AddOnSelection,
 } from '../services/api/productModifiersService';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 import {
   getGroupControlType,
   toggleSelectionInGroup,
   isOptionDisabled,
   validateAllGroups,
 } from '../utils/modifierSelectionUtils';
-import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftState, SoftTypography } from '../constants/SoftTheme';
-import { WaveLoader } from '../src/components/common/WaveLoader';
 
 export interface SelectedModifier {
   id: string;
@@ -48,7 +49,10 @@ interface ModifierSelectionBottomSheetProps {
   /** Primary: add-on product selection – each becomes a separate cart line (flat cart). */
   onApplyAddOns?: (addOns: AddOnSelection[]) => void;
   /** Single callback: base + add-ons; one cart line per item (addItemWithAddOns). */
-  onApplyWithBase?: (base: { productId: string; productName: string; price: number }, addOns: AddOnSelection[]) => void;
+  onApplyWithBase?: (
+    base: { productId: string; productName: string; price: number },
+    addOns: AddOnSelection[]
+  ) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -84,11 +88,8 @@ function ModifierOptionRow({
       onPress={onPress}
       disabled={disabled}
       accessibilityRole={isRadio ? 'radio' : 'checkbox'}
-      accessibilityState={{ checked, disabled }}
-    >
-      <View style={controlStyle}>
-        {checked && <Text style={styles.checkmark}>✓</Text>}
-      </View>
+      accessibilityState={{ checked, disabled }}>
+      <View style={controlStyle}>{checked && <Text style={styles.checkmark}>✓</Text>}</View>
       <Text style={[styles.optionName, disabled && styles.optionNameDisabled]} numberOfLines={2}>
         {productName}
       </Text>
@@ -134,7 +135,9 @@ function ModifierGroupSection({ group, selectedIds, onToggle }: ModifierGroupSec
           checked={selectedIds.has(p.productId)}
           disabled={isOptionDisabled(group, selectedIds, p.productId)}
           isRadio={isRadio}
-          onPress={() => onToggle(p.productId)}
+          onPress={() => {
+            onToggle(p.productId);
+          }}
         />
       ))}
     </View>
@@ -242,20 +245,30 @@ export function ModifierSelectionBottomSheet({
     if (addOns.length > 0 && onApplyAddOns) onApplyAddOns(addOns);
     if (onApply) onApply([]);
     onClose();
-  }, [productId, productName, productPrice, groupsWithProducts, selectedIds, getSelectedAddOns, onApplyWithBase, onApplyAddOns, onApply, onClose]);
+  }, [
+    productId,
+    productName,
+    productPrice,
+    groupsWithProducts,
+    selectedIds,
+    getSelectedAddOns,
+    onApplyWithBase,
+    onApplyAddOns,
+    onApply,
+    onClose,
+  ]);
 
   const extrasTotal = getSelectedAddOns().reduce((s, a) => s + a.price, 0);
   const lineTotal = productPrice + extrasTotal;
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+        <Pressable
+          style={styles.sheet}
+          onPress={(e) => {
+            e.stopPropagation();
+          }}>
           <View style={styles.handle} />
           <View style={styles.header}>
             <Text style={styles.productName} numberOfLines={2}>
@@ -284,23 +297,22 @@ export function ModifierSelectionBottomSheet({
               style={styles.scroll}
               contentContainerStyle={styles.scrollContent}
               keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
+              showsVerticalScrollIndicator={false}>
               {groupsWithProducts.map((group) => (
                 <ModifierGroupSection
                   key={group.id}
                   group={group}
                   selectedIds={selectedIds}
-                  onToggle={(optionId) => toggleOption(group, optionId)}
+                  onToggle={(optionId) => {
+                    toggleOption(group, optionId);
+                  }}
                 />
               ))}
             </ScrollView>
           )}
 
           <View style={styles.footer}>
-            {validationError ? (
-              <Text style={styles.validationError}>{validationError}</Text>
-            ) : null}
+            {validationError ? <Text style={styles.validationError}>{validationError}</Text> : null}
             {selectedIds.size > 0 && !validationError ? (
               <Text style={styles.totalLine}>
                 + Extras: €{extrasTotal.toFixed(2)} → Gesamt: €{lineTotal.toFixed(2)}
@@ -308,21 +320,27 @@ export function ModifierSelectionBottomSheet({
             ) : null}
             <View style={styles.buttons}>
               <Pressable
-                style={({ pressed, focused }) => [styles.cancelBtn, pressed && styles.cancelBtnPressed, focused && SoftState.focusVisible]}
+                style={(state) => [
+                  styles.cancelBtn,
+                  state.pressed && styles.cancelBtnPressed,
+                  (state as { focused?: boolean }).focused && SoftState.focusVisible,
+                ]}
                 onPress={onClose}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 accessibilityLabel="Abbrechen"
-                accessibilityRole="button"
-              >
+                accessibilityRole="button">
                 <Text style={styles.cancelBtnText}>Abbrechen</Text>
               </Pressable>
               <Pressable
-                style={({ pressed, focused }) => [styles.applyBtn, pressed && styles.applyBtnPressed, focused && SoftState.focusVisible]}
+                style={(state) => [
+                  styles.applyBtn,
+                  state.pressed && styles.applyBtnPressed,
+                  (state as { focused?: boolean }).focused && SoftState.focusVisible,
+                ]}
                 onPress={handleApply}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 accessibilityLabel="Fertig"
-                accessibilityRole="button"
-              >
+                accessibilityRole="button">
                 <Text style={styles.applyBtnText}>Fertig</Text>
               </Pressable>
             </View>

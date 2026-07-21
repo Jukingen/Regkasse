@@ -1,11 +1,12 @@
-"use client";
+'use client';
 
-import { useMemo } from "react";
-import { useBackupVerificationReport } from "@/features/backup/hooks/useBackupVerificationReport";
+import { useMemo } from 'react';
+
+import { useBackupVerificationReport } from '@/features/backup/hooks/useBackupVerificationReport';
 import {
-  mapVerificationReportToRestorePreview,
   type RestorePreviewViewModel,
-} from "@/features/backup/logic/restorePreviewPresentation";
+  mapVerificationReportToRestorePreview,
+} from '@/features/backup/logic/restorePreviewPresentation';
 
 export type UseRestorePreviewOptions = {
   enabled?: boolean;
@@ -17,14 +18,14 @@ export type UseRestorePreviewOptions = {
  */
 export function useRestorePreview(
   backupRunId: string | null | undefined,
-  options?: UseRestorePreviewOptions,
+  options?: UseRestorePreviewOptions
 ) {
   const enabled = options?.enabled !== false && Boolean(backupRunId?.trim());
   const reportQuery = useBackupVerificationReport(backupRunId ?? null, enabled);
 
   const data: RestorePreviewViewModel | null = useMemo(
     () => mapVerificationReportToRestorePreview(reportQuery.data),
-    [reportQuery.data],
+    [reportQuery.data]
   );
 
   return {

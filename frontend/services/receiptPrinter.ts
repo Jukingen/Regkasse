@@ -1,16 +1,17 @@
 import { Platform } from 'react-native';
-import * as Print from 'expo-print';
-import { paymentService } from './api/paymentService';
+
 import printerService from './PrinterService';
-import { ReceiptDTO } from '../types/ReceiptDTO';
+import { paymentService } from './api/paymentService';
 import { formatReceiptHtml } from './receiptFormatter';
-import { formatUserDate } from '../utils/dateFormatter';
-import { normalizeReceiptDto } from '../utils/normalizeReceiptDto';
 import {
   formatRefundReceiptHtml,
   formatStornoReceiptHtml,
   type ReversalReceiptSnapshot,
 } from './reversalReceiptFormatter';
+import { ReceiptDTO } from '../types/ReceiptDTO';
+import { formatUserDate } from '../utils/dateFormatter';
+import { printHtmlAsync } from '../utils/expoPrintShare';
+import { normalizeReceiptDto } from '../utils/normalizeReceiptDto';
 
 export type { ReversalReceiptSnapshot } from './reversalReceiptFormatter';
 
@@ -29,7 +30,7 @@ class ReceiptPrinter {
    */
   async print(paymentId: string, options?: ReceiptPrintOptions): Promise<void> {
     try {
-      const receiptData = await paymentService.getReceipt(paymentId) as ReceiptDTO;
+      const receiptData = (await paymentService.getReceipt(paymentId)) as ReceiptDTO;
 
       if (!receiptData) {
         throw new Error('Failed to fetch receipt data');
@@ -53,7 +54,7 @@ class ReceiptPrinter {
       if (Platform.OS === 'web') {
         await this.printWeb(html);
       } else {
-        await this.printNative(normalizedData, html);
+        await this.printNative(html);
       }
     } catch (error) {
       console.error('Receipt print failed:', error);
@@ -107,10 +108,7 @@ class ReceiptPrinter {
       await this.printWeb(html);
       return;
     }
-    await Print.printAsync({
-      html,
-      width: 300,
-    });
+    await printHtmlAsync(html);
   }
 
   /**
@@ -131,19 +129,19 @@ class ReceiptPrinter {
         date: formatUserDate(receiptData.date),
         time: new Date(receiptData.date).toLocaleTimeString('de-AT'),
         cashier:
-          (receiptData.cashierDisplayName && receiptData.cashierDisplayName.trim()) ||
+          receiptData.cashierDisplayName?.trim() ||
           (receiptData.cashierId && receiptData.cashierId.trim()) ||
           '—',
         paymentMethod: receiptData.payments[0]?.method || 'cash',
-        items: receiptData.items.map(item => ({
+        items: receiptData.items.map((item) => ({
           name: item.name,
           quantity: item.quantity,
           price: item.unitPrice,
-          total: item.totalPrice
+          total: item.totalPrice,
         })),
         subtotal: receiptData.subtotal,
         tax: receiptData.taxAmount,
-        total: receiptData.grandTotal
+        total: receiptData.grandTotal,
       });
     } catch (error) {
       console.error('Bondrucker print failed:', error);
@@ -152,13 +150,10 @@ class ReceiptPrinter {
   }
 
   /**
-   * Helper to safely format currency
-   */
-  /**
    * Print on web using iframe
    */
   private async printWeb(html: string): Promise<void> {
-    return new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       try {
         const iframe = document.createElement('iframe');
         iframe.style.display = 'none';
@@ -175,7 +170,8 @@ class ReceiptPrinter {
 
         // Wait for content (and images like QR) to load
         iframe.onload = () => {
-          setTimeout(() => { // Extra delay for QR image rendering
+          setTimeout(() => {
+            // Extra delay for QR image rendering
             try {
               iframe.contentWindow?.focus();
               iframe.contentWindow?.print();
@@ -202,24 +198,16 @@ class ReceiptPrinter {
   }
 
   /**
-   * Print on native using Expo Print
+   * Print on native using Expo Print (preview + thermal width; PDF fallback on failure).
    */
-  private async printNative(data: ReceiptDTO, html: string): Promise<void> {
-    try {
-      await Print.printAsync({
-        html,
-        width: 300, // Thermal printer width
-      });
-    } catch (error) {
-      console.error('Native print failed:', error);
-      throw error;
-    }
+  private async printNative(html: string): Promise<void> {
+    await printHtmlAsync(html);
   }
 }
 
 /** QR PNG as base64 data URL from GET /api/pos/payment/{id}/qr.png (print template embed). */
 export async function fetchQrAsBase64(paymentId: string): Promise<string | null> {
-  return paymentService.getQrPngAsBase64(paymentId);
+  return await paymentService.getQrPngAsBase64(paymentId);
 }
 
 export const receiptPrinter = new ReceiptPrinter();
@@ -231,7 +219,7 @@ export async function printStornoReceipt(
   originalPayment: ReversalReceiptSnapshot,
   options?: ReceiptPrintOptions
 ): Promise<void> {
-  return receiptPrinter.printStornoReceipt(stornoPayment, originalPayment, options);
+  await receiptPrinter.printStornoReceipt(stornoPayment, originalPayment, options);
 }
 
 export async function printRefundReceipt(
@@ -239,5 +227,5 @@ export async function printRefundReceipt(
   originalPayment: ReversalReceiptSnapshot,
   options?: ReceiptPrintOptions
 ): Promise<void> {
-  return receiptPrinter.printRefundReceipt(refundPayment, originalPayment, options);
+  await receiptPrinter.printRefundReceipt(refundPayment, originalPayment, options);
 }

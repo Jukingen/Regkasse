@@ -1,12 +1,13 @@
 'use client';
 
-import { useMemo } from 'react';
 import { Alert, Card, Col, Row, Space, Statistic, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import Link from 'next/link';
-import { useI18n, formatDate } from '@/i18n';
-import { useDataManagementOverview } from '@/features/data-management/hooks/useDataManagementOverview';
+import { useMemo } from 'react';
+
 import type { TenantDataManagementOverviewItem } from '@/features/data-management/api/adminDataManagement';
+import { useDataManagementOverview } from '@/features/data-management/hooks/useDataManagementOverview';
+import { formatDate, useI18n } from '@/i18n';
 
 function lifecycleColor(state: string): string {
   switch (state) {
@@ -131,7 +132,7 @@ export function SuperAdminDataManagementDashboard() {
         ),
       },
     ],
-    [t, formatLocale],
+    [t, formatLocale]
   );
 
   if (overviewQuery.isError) {

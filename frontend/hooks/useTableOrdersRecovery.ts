@@ -5,9 +5,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
+import { useApiManager } from './useApiManager'; // ✅ YENİ: API Manager entegrasyonu
 import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../services/api/config';
-import { useApiManager } from './useApiManager'; // ✅ YENİ: API Manager entegrasyonu
 
 export interface TableOrderRecoveryItem {
   productId: string;
@@ -72,80 +72,84 @@ export const useTableOrdersRecovery = () => {
    * RKSV uyumlu - yalnızca kullanıcının kendi siparişleri
    * OPTIMIZATION: Sadece gerekli durumlarda fetch yapar
    */
-  const fetchTableOrdersRecovery = useCallback(async (): Promise<TableOrdersRecoveryData | null> => {
-    if (!user) {
-      console.warn('User not authenticated for table orders recovery');
-      return null;
-    }
-
-    // OPTIMIZATION: Eğer zaten fetch edildiyse ve data varsa, tekrar fetch yapma
-    if (recoveryState.isInitialized && recoveryState.recoveryData) {
-      console.log('🔄 Table orders already fetched, returning cached data');
-      return recoveryState.recoveryData;
-    }
-
-    // OPTIMIZATION: Eğer fetch işlemi devam ediyorsa, duplicate call'ı önle
-    if (recoveryState.isLoading) {
-      console.log('🔄 Table orders fetch already in progress, preventing duplicate call');
-      return null;
-    }
-
-    setRecoveryState(prev => ({ ...prev, isLoading: true, error: null }));
-
-    try {
-      console.log('🔄 Fetching table orders for recovery...');
-      
-      const response = await apiClient.get('/pos/cart/table-orders-recovery');
-      
-      // Response format kontrolü
-      if (!response || typeof response !== 'object') {
-        throw new Error(`Invalid response format: ${JSON.stringify(response)}`);
+  const fetchTableOrdersRecovery =
+    useCallback(async (): Promise<TableOrdersRecoveryData | null> => {
+      if (!user) {
+        console.warn('User not authenticated for table orders recovery');
+        return null;
       }
-      
-      const recoveryData = response as TableOrdersRecoveryData;
 
-      if (recoveryData.success) {
-        console.log(`✅ Recovery completed: ${recoveryData.totalActiveTables} active table orders found`);
-        
+      // OPTIMIZATION: Eğer zaten fetch edildiyse ve data varsa, tekrar fetch yapma
+      if (recoveryState.isInitialized && recoveryState.recoveryData) {
+        console.log('🔄 Table orders already fetched, returning cached data');
+        return recoveryState.recoveryData;
+      }
+
+      // OPTIMIZATION: Eğer fetch işlemi devam ediyorsa, duplicate call'ı önle
+      if (recoveryState.isLoading) {
+        console.log('🔄 Table orders fetch already in progress, preventing duplicate call');
+        return null;
+      }
+
+      setRecoveryState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+      try {
+        console.log('🔄 Fetching table orders for recovery...');
+
+        const response = await apiClient.get('/pos/cart/table-orders-recovery');
+
+        // Response format kontrolü
+        if (!response || typeof response !== 'object') {
+          throw new Error(`Invalid response format: ${JSON.stringify(response)}`);
+        }
+
+        const recoveryData = response as TableOrdersRecoveryData;
+
+        if (recoveryData.success) {
+          console.log(
+            `✅ Recovery completed: ${recoveryData.totalActiveTables} active table orders found`
+          );
+
+          setRecoveryState({
+            isLoading: false,
+            error: null,
+            recoveryData,
+            isRecoveryCompleted: true,
+            isInitialized: true, // Yeni: Fetch tamamlandı olarak işaretle
+          });
+
+          return recoveryData;
+        } else {
+          throw new Error(recoveryData.message || 'Failed to retrieve table orders');
+        }
+      } catch (error: any) {
+        const errorMessage =
+          error?.response?.data?.message ?? error.message ?? 'Unknown error during recovery';
+        console.error('❌ Table orders recovery failed:', errorMessage);
+
         setRecoveryState({
           isLoading: false,
-          error: null,
-          recoveryData,
-          isRecoveryCompleted: true,
-          isInitialized: true, // Yeni: Fetch tamamlandı olarak işaretle
+          error: errorMessage,
+          recoveryData: null,
+          isRecoveryCompleted: false,
+          isInitialized: false, // Hata durumunda false bırak
         });
 
-        return recoveryData;
-      } else {
-        throw new Error(recoveryData.message || 'Failed to retrieve table orders');
+        return null;
       }
-    } catch (error: any) {
-      const errorMessage = error?.response?.data?.message ?? error.message ?? 'Unknown error during recovery';
-      console.error('❌ Table orders recovery failed:', errorMessage);
-      
-      setRecoveryState({
-        isLoading: false,
-        error: errorMessage,
-        recoveryData: null,
-        isRecoveryCompleted: false,
-        isInitialized: false, // Hata durumunda false bırak
-      });
-
-      return null;
-    }
-  }, [user]); // Sadece user dependency'si - state dependency'leri kaldırıldı
+    }, [user]); // Sadece user dependency'si - state dependency'leri kaldırıldı
 
   /**
    * Manuel refresh için - sadece gerektiğinde kullanılır
    */
   const refreshTableOrders = useCallback(async (): Promise<TableOrdersRecoveryData | null> => {
     if (!user) return null;
-    
+
     console.log('🔄 Manual refresh of table orders...');
-    
+
     // Reset initialization flag to force fresh fetch
-    setRecoveryState(prev => ({ ...prev, isInitialized: false }));
-    
+    setRecoveryState((prev) => ({ ...prev, isInitialized: false }));
+
     return await fetchTableOrdersRecovery();
   }, [user, fetchTableOrdersRecovery]);
 
@@ -154,10 +158,11 @@ export const useTableOrdersRecovery = () => {
    */
   const getOrderForTable = useCallback((tableNumber: number): TableOrderRecovery | null => {
     if (!recoveryState.recoveryData) return null;
-    
-    return recoveryState.recoveryData.tableOrders.find(
-      order => order.tableNumber === tableNumber
-    ) || null;
+
+    return (
+      recoveryState.recoveryData.tableOrders.find((order) => order.tableNumber === tableNumber) ||
+      null
+    );
   }, []); // State dependency'si kaldırıldı - fonksiyon her zaman güncel state'i kullanır
 
   /**
@@ -165,9 +170,9 @@ export const useTableOrdersRecovery = () => {
    */
   const getActiveTableNumbers = useCallback((): number[] => {
     if (!recoveryState.recoveryData) return [];
-    
+
     return recoveryState.recoveryData.tableOrders
-      .map(order => order.tableNumber)
+      .map((order) => order.tableNumber)
       .filter((tableNumber): tableNumber is number => tableNumber !== undefined)
       .sort((a, b) => a - b);
   }, []); // State dependency'si kaldırıldı - fonksiyon her zaman güncel state'i kullanır
@@ -195,9 +200,9 @@ export const useTableOrdersRecovery = () => {
     const performRecovery = async () => {
       // Sadece user varsa ve henüz initialize edilmemişse çalış
       if (!user || recoveryState.isInitialized) {
-        console.log('🔄 Recovery skipped:', { 
-          hasUser: !!user, 
-          isInitialized: recoveryState.isInitialized
+        console.log('🔄 Recovery skipped:', {
+          hasUser: !!user,
+          isInitialized: recoveryState.isInitialized,
         });
         return;
       }
@@ -223,14 +228,14 @@ export const useTableOrdersRecovery = () => {
     recoveryData: recoveryState.recoveryData,
     isRecoveryCompleted: recoveryState.isRecoveryCompleted,
     isInitialized: recoveryState.isInitialized, // Yeni: Initialization status
-    
+
     // Actions
     fetchTableOrdersRecovery,
     refreshTableOrders, // Yeni: Manuel refresh fonksiyonu
     getOrderForTable,
     getActiveTableNumbers,
     resetRecovery,
-    
+
     // Helper properties
     hasActiveOrders: (recoveryState.recoveryData?.totalActiveTables ?? 0) > 0,
     totalActiveTables: recoveryState.recoveryData?.totalActiveTables ?? 0,

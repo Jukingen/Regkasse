@@ -1,10 +1,11 @@
 'use client';
 
+import { Typography } from 'antd';
+
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { DigitalServiceAccess } from '@/features/digital/components/DigitalServiceAccess';
 import { useI18n } from '@/i18n';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { Typography } from 'antd';
 
 const { Paragraph } = Typography;
 

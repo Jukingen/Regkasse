@@ -1,9 +1,9 @@
-import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
 import { DASHBOARD_AUTO_REFRESH_MS } from '@/features/dashboard/types';
 import {
-  fetchOfflineMonitoringStatus,
   OFFLINE_MONITORING_QUERY_KEY,
+  fetchOfflineMonitoringStatus,
 } from '@/features/offline/api/offlineMonitoringApi';
+import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
 export function useOfflineMonitoring() {

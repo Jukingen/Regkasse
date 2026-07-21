@@ -1,21 +1,24 @@
 /**
  * Backup Confidence Dashboard: üst şerit ciddiyeti, stub etiketleri, "not proven" yüzeyleri — yeşil yanıltma yok.
  */
-
-import React from 'react';
 import '@testing-library/jest-dom';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { render, within } from '@testing-library/react';
-import type { BackupRecoverabilitySummaryResponseDto, RestoreVerificationRunResponseDto } from '@/api/generated/model';
+import React from 'react';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+
+import type {
+  BackupRecoverabilitySummaryResponseDto,
+  BackupVerificationResponseDto,
+  RestoreVerificationRunResponseDto,
+} from '@/api/generated/model';
 import {
   BackupArtifactResponseDtoArtifactType,
   BackupRunResponseDtoStatus,
   RestoreVerificationRunResponseDtoStatus,
 } from '@/api/generated/model';
-import type { BackupVerificationResponseDto } from '@/api/generated/model';
 import { BackupConfidenceDashboard } from '@/features/backup-dr/components/BackupConfidenceDashboard';
-import { buildDrProofPresentationModel } from '@/features/backup-dr/logic/drProofLevelPresentation';
 import type { BackupOperatorTruthModel } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
+import { buildDrProofPresentationModel } from '@/features/backup-dr/logic/drProofLevelPresentation';
 
 const t = (key: string) => key;
 
@@ -35,7 +38,12 @@ beforeAll(() => {
   });
 });
 
-function mkTruth(p: { simulated?: boolean; realPg?: boolean; hasProofGaps?: boolean; latestDrillFailed?: boolean }): BackupOperatorTruthModel {
+function mkTruth(p: {
+  simulated?: boolean;
+  realPg?: boolean;
+  hasProofGaps?: boolean;
+  latestDrillFailed?: boolean;
+}): BackupOperatorTruthModel {
   return {
     run: {
       simulatedEvidence: p.simulated ?? false,
@@ -54,7 +62,9 @@ describe('BackupConfidenceDashboard — label / UI honesty', () => {
       detailForPipeline: undefined,
       verification: undefined,
       recoverability: {},
-      restoreLatest: { status: RestoreVerificationRunResponseDtoStatus.NUMBER_3 } as RestoreVerificationRunResponseDto,
+      restoreLatest: {
+        status: RestoreVerificationRunResponseDtoStatus.NUMBER_3,
+      } as RestoreVerificationRunResponseDto,
       restoreExtended: {},
     });
     const { container } = render(
@@ -64,27 +74,42 @@ describe('BackupConfidenceDashboard — label / UI honesty', () => {
         formatDt={(x) => String(x ?? '—')}
         formatLocale="de-DE"
         recoverability={undefined}
-        restoreLatest={{ status: RestoreVerificationRunResponseDtoStatus.NUMBER_3 } as RestoreVerificationRunResponseDto}
-      />,
+        restoreLatest={
+          {
+            status: RestoreVerificationRunResponseDtoStatus.NUMBER_3,
+          } as RestoreVerificationRunResponseDto
+        }
+      />
     );
     expect(container.querySelector('.ant-alert-error')).toBeTruthy();
     expect(container.querySelector('.ant-alert-success')).toBeNull();
-    expect(within(container).getByText('backupDr.confidenceDashboard.strip.drillFailedTitle')).toBeInTheDocument();
+    expect(
+      within(container).getByText('backupDr.confidenceDashboard.strip.drillFailedTitle')
+    ).toBeInTheDocument();
   });
 
   it('stub mode: warning strip + stub layer detail keys visible', () => {
     const latest = {
       id: 's',
       status: BackupRunResponseDtoStatus.NUMBER_3,
-      artifacts: [{ artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0, isFilePresentForDownload: true }],
+      artifacts: [
+        {
+          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+          isFilePresentForDownload: true,
+        },
+      ],
     };
     const model = buildDrProofPresentationModel({
       truth: mkTruth({ simulated: true, realPg: true }),
       latest,
       detailForPipeline: latest,
       verification: { status: 1, backupRunId: 's' } as BackupVerificationResponseDto,
-      recoverability: { lastSuccessfulBackupAt: '2026-01-01T00:00:00Z' } as BackupRecoverabilitySummaryResponseDto,
-      restoreLatest: { status: RestoreVerificationRunResponseDtoStatus.NUMBER_2 } as RestoreVerificationRunResponseDto,
+      recoverability: {
+        lastSuccessfulBackupAt: '2026-01-01T00:00:00Z',
+      } as BackupRecoverabilitySummaryResponseDto,
+      restoreLatest: {
+        status: RestoreVerificationRunResponseDtoStatus.NUMBER_2,
+      } as RestoreVerificationRunResponseDto,
       restoreExtended: {},
     });
     const { container } = render(
@@ -93,13 +118,21 @@ describe('BackupConfidenceDashboard — label / UI honesty', () => {
         t={t}
         formatDt={(x) => String(x ?? '—')}
         formatLocale="de-DE"
-        recoverability={{ lastSuccessfulBackupAt: '2026-01-01T00:00:00Z' } as BackupRecoverabilitySummaryResponseDto}
+        recoverability={
+          {
+            lastSuccessfulBackupAt: '2026-01-01T00:00:00Z',
+          } as BackupRecoverabilitySummaryResponseDto
+        }
         restoreLatest={undefined}
-      />,
+      />
     );
     expect(container.querySelector('.ant-alert-warning')).toBeTruthy();
-    expect(within(container).getByText('backupDr.confidenceDashboard.strip.stubTitle')).toBeInTheDocument();
-    expect(within(container).getByText('backupDr.confidenceDashboard.layers.L1.detailStub')).toBeInTheDocument();
+    expect(
+      within(container).getByText('backupDr.confidenceDashboard.strip.stubTitle')
+    ).toBeInTheDocument();
+    expect(
+      within(container).getByText('backupDr.confidenceDashboard.layers.L1.detailStub')
+    ).toBeInTheDocument();
   });
 
   it('app recovery and external: notProven keys always rendered for current API', () => {
@@ -120,17 +153,26 @@ describe('BackupConfidenceDashboard — label / UI honesty', () => {
         formatLocale="de-DE"
         recoverability={undefined}
         restoreLatest={undefined}
-      />,
+      />
     );
-    expect(within(container).getByText('backupDr.confidenceDashboard.appRecovery.notProven')).toBeInTheDocument();
-    expect(within(container).getByText('backupDr.confidenceDashboard.external.notProven')).toBeInTheDocument();
+    expect(
+      within(container).getByText('backupDr.confidenceDashboard.appRecovery.notProven')
+    ).toBeInTheDocument();
+    expect(
+      within(container).getByText('backupDr.confidenceDashboard.external.notProven')
+    ).toBeInTheDocument();
   });
 
   it('does not surface generic healthy string in strip keys', () => {
     const latest = {
       id: 'r',
       status: BackupRunResponseDtoStatus.NUMBER_3,
-      artifacts: [{ artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0, isFilePresentForDownload: true }],
+      artifacts: [
+        {
+          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+          isFilePresentForDownload: true,
+        },
+      ],
     };
     const restore: RestoreVerificationRunResponseDto = {
       status: RestoreVerificationRunResponseDtoStatus.NUMBER_2,
@@ -147,7 +189,10 @@ describe('BackupConfidenceDashboard — label / UI honesty', () => {
       verification: { status: 1, backupRunId: 'r' } as BackupVerificationResponseDto,
       recoverability: {} as BackupRecoverabilitySummaryResponseDto,
       restoreLatest: restore,
-      restoreExtended: { postRestoreContinuityChecksExecuted: true, postRestoreContinuityChecksPassed: true },
+      restoreExtended: {
+        postRestoreContinuityChecksExecuted: true,
+        postRestoreContinuityChecksPassed: true,
+      },
     });
     const { container } = render(
       <BackupConfidenceDashboard
@@ -157,9 +202,11 @@ describe('BackupConfidenceDashboard — label / UI honesty', () => {
         formatLocale="de-DE"
         recoverability={{} as BackupRecoverabilitySummaryResponseDto}
         restoreLatest={restore}
-      />,
+      />
     );
-    expect(within(container).getByText('backupDr.confidenceDashboard.strip.strongWithinApiTitle')).toBeInTheDocument();
+    expect(
+      within(container).getByText('backupDr.confidenceDashboard.strip.strongWithinApiTitle')
+    ).toBeInTheDocument();
     expect(container.textContent?.toLowerCase().includes('healthy')).toBe(false);
   });
 });

@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 /** Canonical Super Admin entry: `/tenant/[id]/customize`. */
 export default function AdminTenantCustomizeRedirectPage() {

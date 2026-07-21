@@ -1,173 +1,168 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/features/auth/hooks/useAuth';
-import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
-import {
-    canManageUsers,
-    canShowRksvMenu,
-    canShowPlatformAdminMenu,
-    canViewUsers,
-    isSuperAdmin,
-} from '@/features/auth/constants/roles';
-import { PERMISSIONS } from '@/shared/auth/permissions';
-import { useI18n } from '@/i18n';
+import { useCallback, useMemo, useState } from 'react';
+
 import { useCommandRegistry } from '@/components/CommandPalette/commandRegistry';
-import { fuseSearchCommandItems, sortCommandItems } from '@/features/command-palette/commandPaletteSearch';
-import { recreateDynamicCommandItem } from '@/features/command-palette/recreateDynamicCommand';
-import {
-    readRecentCommandSnapshots,
-    resolveRecentCommandItems,
-    storeRecentCommand,
-} from '@/features/command-palette/recentCommands';
-import { useCommandPaletteUserSearch } from '@/features/command-palette/useCommandPaletteUserSearch';
-import { useCommandPaletteRegisterSearch } from '@/features/command-palette/useCommandPaletteRegisterSearch';
-import { useCommandPaletteReceiptSearch } from '@/features/command-palette/useCommandPaletteReceiptSearch';
 import type { CommandItem } from '@/components/CommandPalette/types';
+import {
+  canManageUsers,
+  canShowPlatformAdminMenu,
+  canShowRksvMenu,
+  canViewUsers,
+  isSuperAdmin,
+} from '@/features/auth/constants/roles';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import {
+  fuseSearchCommandItems,
+  sortCommandItems,
+} from '@/features/command-palette/commandPaletteSearch';
+import {
+  readRecentCommandSnapshots,
+  resolveRecentCommandItems,
+  storeRecentCommand,
+} from '@/features/command-palette/recentCommands';
+import { recreateDynamicCommandItem } from '@/features/command-palette/recreateDynamicCommand';
+import { useCommandPaletteReceiptSearch } from '@/features/command-palette/useCommandPaletteReceiptSearch';
+import { useCommandPaletteRegisterSearch } from '@/features/command-palette/useCommandPaletteRegisterSearch';
+import { useCommandPaletteUserSearch } from '@/features/command-palette/useCommandPaletteUserSearch';
+import { useI18n } from '@/i18n';
+import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
+import { PERMISSIONS } from '@/shared/auth/permissions';
 
 const EMPTY_PERMISSIONS: string[] = [];
 const MIN_API_SEARCH_LEN = 2;
 
 export type UseCommandsParams = {
-    open: boolean;
-    searchTerm: string;
-    onClose: () => void;
+  open: boolean;
+  searchTerm: string;
+  onClose: () => void;
 };
 
 export function useCommands({ open, searchTerm, onClose }: UseCommandsParams) {
-    const { t } = useI18n();
-    const router = useRouter();
-    const { user } = useAuth();
-    const [recentTick, setRecentTick] = useState(0);
+  const { t } = useI18n();
+  const router = useRouter();
+  const { user } = useAuth();
+  const [recentTick, setRecentTick] = useState(0);
 
-    const permissions = user?.permissions ?? EMPTY_PERMISSIONS;
-    const usePermissionFirst = permissions.length > 0;
-    const userRole = user?.role ?? '';
-    const superAdmin = isSuperAdmin(userRole);
+  const permissions = user?.permissions ?? EMPTY_PERMISSIONS;
+  const usePermissionFirst = permissions.length > 0;
+  const userRole = user?.role ?? '';
+  const superAdmin = isSuperAdmin(userRole);
 
-    const permissionCtx = useMemo(
-        () => ({
-            usePermissionFirst,
-            permissions,
-            userRole,
-            isMenuItemAllowed,
-            canViewUsers,
-            canManageUsers,
-            canShowRksvMenu,
-            canShowPlatformAdminMenu,
-        }),
-        [usePermissionFirst, permissions, userRole],
+  const permissionCtx = useMemo(
+    () => ({
+      usePermissionFirst,
+      permissions,
+      userRole,
+      isMenuItemAllowed,
+      canViewUsers,
+      canManageUsers,
+      canShowRksvMenu,
+      canShowPlatformAdminMenu,
+    }),
+    [usePermissionFirst, permissions, userRole]
+  );
+
+  const staticCommands = useCommandRegistry({
+    t,
+    closePalette: onClose,
+    permissionCtx,
+  });
+
+  const commandById = useMemo(
+    () => new Map(staticCommands.map((item) => [item.id, item])),
+    [staticCommands]
+  );
+
+  const recentCommands = useMemo(() => {
+    void recentTick;
+    return resolveRecentCommandItems(readRecentCommandSnapshots(), commandById, (snapshot) =>
+      recreateDynamicCommandItem(snapshot, router, onClose)
     );
+  }, [recentTick, commandById, router, onClose]);
 
-    const staticCommands = useCommandRegistry({
-        t,
-        closePalette: onClose,
-        permissionCtx,
-    });
+  const canSearchUsers = useMemo(() => {
+    if (usePermissionFirst) {
+      return permissions.includes(PERMISSIONS.USER_VIEW);
+    }
+    return canViewUsers(userRole);
+  }, [usePermissionFirst, permissions, userRole]);
 
-    const commandById = useMemo(
-        () => new Map(staticCommands.map((item) => [item.id, item])),
-        [staticCommands],
-    );
+  const canSearchRegisters = useMemo(() => {
+    if (usePermissionFirst) {
+      return isMenuItemAllowed('/kassenverwaltung', permissions);
+    }
+    return true;
+  }, [usePermissionFirst, permissions]);
 
-    const recentCommands = useMemo(() => {
-        void recentTick;
-        return resolveRecentCommandItems(
-            readRecentCommandSnapshots(),
-            commandById,
-            (snapshot) => recreateDynamicCommandItem(snapshot, router, onClose),
-        );
-    }, [recentTick, commandById, router, onClose]);
+  const canSearchReceipts = useMemo(() => {
+    if (usePermissionFirst) {
+      return isMenuItemAllowed('/receipts', permissions);
+    }
+    return true;
+  }, [usePermissionFirst, permissions]);
 
-    const canSearchUsers = useMemo(() => {
-        if (usePermissionFirst) {
-            return permissions.includes(PERMISSIONS.USER_VIEW);
-        }
-        return canViewUsers(userRole);
-    }, [usePermissionFirst, permissions, userRole]);
+  const apiSearchEnabled = open && searchTerm.trim().length >= MIN_API_SEARCH_LEN;
 
-    const canSearchRegisters = useMemo(() => {
-        if (usePermissionFirst) {
-            return isMenuItemAllowed('/kassenverwaltung', permissions);
-        }
-        return true;
-    }, [usePermissionFirst, permissions]);
+  const { items: userResults, isLoading: usersLoading } = useCommandPaletteUserSearch(searchTerm, {
+    enabled: apiSearchEnabled && canSearchUsers,
+    isSuperAdmin: superAdmin,
+    closePalette: onClose,
+  });
 
-    const canSearchReceipts = useMemo(() => {
-        if (usePermissionFirst) {
-            return isMenuItemAllowed('/receipts', permissions);
-        }
-        return true;
-    }, [usePermissionFirst, permissions]);
+  const { items: registerResults, isLoading: registersLoading } = useCommandPaletteRegisterSearch(
+    searchTerm,
+    {
+      enabled: apiSearchEnabled && canSearchRegisters,
+      isSuperAdmin: superAdmin,
+      closePalette: onClose,
+    }
+  );
 
-    const apiSearchEnabled = open && searchTerm.trim().length >= MIN_API_SEARCH_LEN;
+  const { items: receiptResults, isLoading: receiptsLoading } = useCommandPaletteReceiptSearch(
+    searchTerm,
+    {
+      enabled: apiSearchEnabled && canSearchReceipts,
+      closePalette: onClose,
+    }
+  );
 
-    const { items: userResults, isLoading: usersLoading } = useCommandPaletteUserSearch(searchTerm, {
-        enabled: apiSearchEnabled && canSearchUsers,
-        isSuperAdmin: superAdmin,
-        closePalette: onClose,
-    });
+  const trimmedSearch = searchTerm.trim();
 
-    const { items: registerResults, isLoading: registersLoading } = useCommandPaletteRegisterSearch(
-        searchTerm,
-        {
-            enabled: apiSearchEnabled && canSearchRegisters,
-            isSuperAdmin: superAdmin,
-            closePalette: onClose,
-        },
-    );
+  const results: CommandItem[] = useMemo(() => {
+    if (!trimmedSearch) {
+      return recentCommands;
+    }
+    const staticMatches = fuseSearchCommandItems(staticCommands, trimmedSearch);
+    const dynamic = [...userResults, ...receiptResults, ...registerResults];
+    return sortCommandItems([...dynamic, ...staticMatches]);
+  }, [trimmedSearch, recentCommands, staticCommands, userResults, receiptResults, registerResults]);
 
-    const { items: receiptResults, isLoading: receiptsLoading } = useCommandPaletteReceiptSearch(
-        searchTerm,
-        {
-            enabled: apiSearchEnabled && canSearchReceipts,
-            closePalette: onClose,
-        },
-    );
+  const isLoading =
+    apiSearchEnabled &&
+    ((usersLoading && canSearchUsers) ||
+      (registersLoading && canSearchRegisters) ||
+      (receiptsLoading && canSearchReceipts));
 
-    const trimmedSearch = searchTerm.trim();
+  const refreshRecent = useCallback(() => {
+    setRecentTick((v) => v + 1);
+  }, []);
 
-    const results: CommandItem[] = useMemo(() => {
-        if (!trimmedSearch) {
-            return recentCommands;
-        }
-        const staticMatches = fuseSearchCommandItems(staticCommands, trimmedSearch);
-        const dynamic = [...userResults, ...receiptResults, ...registerResults];
-        return sortCommandItems([...dynamic, ...staticMatches]);
-    }, [
-        trimmedSearch,
-        recentCommands,
-        staticCommands,
-        userResults,
-        receiptResults,
-        registerResults,
-    ]);
+  const runCommand = useCallback(
+    (item: CommandItem) => {
+      if (item.dynamic) return;
+      storeRecentCommand(item);
+      refreshRecent();
+      item.action();
+    },
+    [refreshRecent]
+  );
 
-    const isLoading =
-        apiSearchEnabled &&
-        ((usersLoading && canSearchUsers) ||
-            (registersLoading && canSearchRegisters) ||
-            (receiptsLoading && canSearchReceipts));
-
-    const refreshRecent = useCallback(() => {
-        setRecentTick((v) => v + 1);
-    }, []);
-
-    const runCommand = useCallback(
-        (item: CommandItem) => {
-            if (item.dynamic) return;
-            storeRecentCommand(item);
-            refreshRecent();
-            item.action();
-        },
-        [refreshRecent],
-    );
-
-    return {
-        results: results.filter((item) => !item.dynamic),
-        isLoading,
-        runCommand,
-        refreshRecent,
-    };
+  return {
+    results: results.filter((item) => !item.dynamic),
+    isLoading,
+    runCommand,
+    refreshRecent,
+  };
 }

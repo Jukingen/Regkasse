@@ -15,10 +15,7 @@ export default function PaymentSettingsPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      <AdminPageHeader
-        title={t('settings.paymentGateway.pageTitle')}
-        breadcrumbs={breadcrumbs}
-      />
+      <AdminPageHeader title={t('settings.paymentGateway.pageTitle')} breadcrumbs={breadcrumbs} />
       <PaymentGatewaySettingsForm />
     </div>
   );

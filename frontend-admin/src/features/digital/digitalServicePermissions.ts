@@ -1,5 +1,5 @@
-import { PERMISSIONS, hasAnyPermission, type UserWithPermissions } from '@/shared/auth/permissions';
 import type { TenantDigitalServiceRow } from '@/features/digital-services/api/tenantDigitalServicesApi';
+import { PERMISSIONS, type UserWithPermissions, hasAnyPermission } from '@/shared/auth/permissions';
 
 /** Permissions that unlock Mandanten digital-service portal (view). */
 export const DIGITAL_SERVICE_VIEW_PERMISSIONS = [
@@ -38,7 +38,7 @@ export const DIGITAL_REQUEST_PERMISSIONS = [
 
 export function canAccessDigitalServices(
   user: UserWithPermissions | null | undefined,
-  isSuperAdmin: boolean,
+  isSuperAdmin: boolean
 ): boolean {
   if (isSuperAdmin) return true;
   return hasAnyPermission(user, [...DIGITAL_SERVICE_VIEW_PERMISSIONS]);
@@ -47,7 +47,7 @@ export function canAccessDigitalServices(
 /** @deprecated Prefer canCreateDigitalWeb — generate is SuperAdmin-only. */
 export function canUseDigitalWeb(
   user: UserWithPermissions | null | undefined,
-  isSuperAdmin: boolean,
+  isSuperAdmin: boolean
 ): boolean {
   return canCreateDigitalWeb(user, isSuperAdmin);
 }
@@ -55,14 +55,14 @@ export function canUseDigitalWeb(
 /** @deprecated Prefer canCreateDigitalApp — generate is SuperAdmin-only. */
 export function canUseDigitalApp(
   user: UserWithPermissions | null | undefined,
-  isSuperAdmin: boolean,
+  isSuperAdmin: boolean
 ): boolean {
   return canCreateDigitalApp(user, isSuperAdmin);
 }
 
 export function canCreateDigitalWeb(
   user: UserWithPermissions | null | undefined,
-  isSuperAdmin: boolean,
+  isSuperAdmin: boolean
 ): boolean {
   if (isSuperAdmin) return true;
   return hasAnyPermission(user, [...DIGITAL_CREATE_PERMISSIONS]);
@@ -70,7 +70,7 @@ export function canCreateDigitalWeb(
 
 export function canCreateDigitalApp(
   user: UserWithPermissions | null | undefined,
-  isSuperAdmin: boolean,
+  isSuperAdmin: boolean
 ): boolean {
   if (isSuperAdmin) return true;
   return hasAnyPermission(user, [...DIGITAL_CREATE_PERMISSIONS]);
@@ -78,7 +78,7 @@ export function canCreateDigitalApp(
 
 export function canPreviewDigitalWeb(
   user: UserWithPermissions | null | undefined,
-  isSuperAdmin: boolean,
+  isSuperAdmin: boolean
 ): boolean {
   if (isSuperAdmin) return true;
   return hasAnyPermission(user, [...DIGITAL_PREVIEW_PERMISSIONS]);
@@ -86,7 +86,7 @@ export function canPreviewDigitalWeb(
 
 export function canPreviewDigitalApp(
   user: UserWithPermissions | null | undefined,
-  isSuperAdmin: boolean,
+  isSuperAdmin: boolean
 ): boolean {
   if (isSuperAdmin) return true;
   return hasAnyPermission(user, [...DIGITAL_PREVIEW_PERMISSIONS]);
@@ -94,7 +94,7 @@ export function canPreviewDigitalApp(
 
 export function canRequestDigitalWeb(
   user: UserWithPermissions | null | undefined,
-  isSuperAdmin: boolean,
+  isSuperAdmin: boolean
 ): boolean {
   if (isSuperAdmin) return true;
   return hasAnyPermission(user, [...DIGITAL_REQUEST_PERMISSIONS]);
@@ -102,7 +102,7 @@ export function canRequestDigitalWeb(
 
 export function canRequestDigitalApp(
   user: UserWithPermissions | null | undefined,
-  isSuperAdmin: boolean,
+  isSuperAdmin: boolean
 ): boolean {
   if (isSuperAdmin) return true;
   return hasAnyPermission(user, [...DIGITAL_REQUEST_PERMISSIONS]);
@@ -114,7 +114,7 @@ export function canRequestDigitalApp(
  * (optimistic) so Super Admin / loading paths do not hard-block.
  */
 export function isAnyDigitalServiceAvailable(
-  row: TenantDigitalServiceRow | null | undefined,
+  row: TenantDigitalServiceRow | null | undefined
 ): boolean {
   if (!row) return true;
   return Boolean(row.website?.isAvailable || row.app?.isAvailable);
@@ -124,7 +124,7 @@ export function isAnyDigitalServiceAvailable(
 export function canGenerateDigitalWebsite(
   user: UserWithPermissions | null | undefined,
   isSuperAdmin: boolean,
-  row: TenantDigitalServiceRow | null | undefined,
+  row: TenantDigitalServiceRow | null | undefined
 ): boolean {
   if (!canCreateDigitalWeb(user, isSuperAdmin)) return false;
   if (!row) return true;
@@ -135,7 +135,7 @@ export function canGenerateDigitalWebsite(
 export function canGenerateDigitalApp(
   user: UserWithPermissions | null | undefined,
   isSuperAdmin: boolean,
-  row: TenantDigitalServiceRow | null | undefined,
+  row: TenantDigitalServiceRow | null | undefined
 ): boolean {
   if (!canCreateDigitalApp(user, isSuperAdmin)) return false;
   if (!row) return true;

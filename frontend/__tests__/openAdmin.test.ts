@@ -5,21 +5,23 @@ import { getCurrentTenantSlug } from '@/services/tenant/tenantStorage';
 
 jest.mock('../utils/openLink', () => ({
   openHttpOrHttpsUrl: jest.fn(),
+  openMailtoUrl: jest.fn(),
 }));
 
 jest.mock('@/services/tenant/tenantStorage', () => ({
   getCurrentTenantSlug: jest.fn(),
 }));
 
-const alertMock = jest.fn();
-const openUrlMock = jest.fn();
+const mockAlert = jest.fn();
 
+// Minimal RN stub — do not jest.requireActual('react-native') (pulls TurboModule DevMenu).
 jest.mock('react-native', () => ({
   Alert: {
-    alert: (...args: unknown[]) => alertMock(...args),
+    alert: (...args: unknown[]) => mockAlert(...args),
   },
-  Linking: {
-    openURL: (...args: unknown[]) => openUrlMock(...args),
+  Platform: {
+    OS: 'ios',
+    select: (spec: Record<string, unknown>) => spec.ios ?? spec.default,
   },
 }));
 
@@ -28,47 +30,45 @@ describe('openAdmin', () => {
     jest.clearAllMocks();
     (getCurrentTenantSlug as jest.Mock).mockResolvedValue('dev');
     (openLink.openHttpOrHttpsUrl as jest.Mock).mockResolvedValue(true);
-    openUrlMock.mockResolvedValue(undefined);
+    (openLink.openMailtoUrl as jest.Mock).mockResolvedValue(true);
   });
 
   test('opens admin target when tenant context is available', async () => {
     await expect(
-      openAdmin('licenseExtend', { machineHash: 'abc123', intent: 'extend' }),
+      openAdmin('licenseExtend', { machineHash: 'abc123', intent: 'extend' })
     ).resolves.toBe(true);
 
     expect(openLink.openHttpOrHttpsUrl).toHaveBeenCalledWith(
       'http://admin.regkasse.local:3000/admin/license?intent=extend&machineHash=abc123',
-      { forceWebBrowser: undefined },
+      { forceWebBrowser: undefined }
     );
   });
 
   test('blocks platform-only restricted target without tenant', async () => {
     (getCurrentTenantSlug as jest.Mock).mockResolvedValue(null);
-    alertMock.mockImplementation(
+    mockAlert.mockImplementation(
       (_title: string, _message: string, buttons?: { onPress?: () => void }[]) => {
         buttons?.[0]?.onPress?.();
-      },
+      }
     );
 
     const result = await openAdmin('cashRegisters');
 
     expect(result).toBe(false);
-    expect(alertMock).toHaveBeenCalledWith(
+    expect(mockAlert).toHaveBeenCalledWith(
       'Mandant erforderlich',
       'Diese Aktion erfordert einen ausgewählten Mandanten. Möchten Sie trotzdem fortfahren?',
-      expect.any(Array),
+      expect.any(Array)
     );
   });
 
   test('opens support mail when browser launch fails and fallback is enabled', async () => {
     (openLink.openHttpOrHttpsUrl as jest.Mock).mockResolvedValue(false);
 
-    await expect(
-      openLicenseExtension('abc123'),
-    ).resolves.toBe(true);
+    await expect(openLicenseExtension('abc123')).resolves.toBe(true);
 
-    expect(openUrlMock).toHaveBeenCalledWith(
-      'mailto:support@regkasse.at?subject=Lizenzverl%C3%A4ngerung&body=Bitte%20verl%C3%A4ngern%20Sie%20meine%20Lizenz.%0A%0AMaschinen-Fingerprint%3A%20abc123%0A%0AVielen%20Dank.',
+    expect(openLink.openMailtoUrl).toHaveBeenCalledWith(
+      'mailto:support@regkasse.at?subject=Lizenzverl%C3%A4ngerung&body=Bitte%20verl%C3%A4ngern%20Sie%20meine%20Lizenz.%0A%0AMaschinen-Fingerprint%3A%20abc123%0A%0AVielen%20Dank.'
     );
   });
 });

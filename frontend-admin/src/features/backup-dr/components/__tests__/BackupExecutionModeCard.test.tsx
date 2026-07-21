@@ -1,9 +1,11 @@
-import React from 'react';
 import '@testing-library/jest-dom';
-import axios from 'axios';
-import { Modal } from 'antd';
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { Modal } from 'antd';
+import axios from 'axios';
+import React from 'react';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { BackupExecutionModeCard } from '@/features/backup-dr/components/BackupExecutionModeCard';
 
 beforeAll(() => {
   Object.defineProperty(window, 'matchMedia', {
@@ -21,7 +23,6 @@ beforeAll(() => {
     })),
   });
 });
-import { BackupExecutionModeCard } from '@/features/backup-dr/components/BackupExecutionModeCard';
 
 const getMock = vi.fn();
 const putMock = vi.fn();
@@ -43,7 +44,8 @@ const baseDto = {
   effectiveUserFacingMode: 'Fake',
   recommendedFallbackUserFacingMode: null,
   adapterKindIfConfigurationDefaultOnly: 'Fake',
-  effectiveModeResolutionSummaryEnglish: 'Requested=UseConfigurationDefault, effective=Fake, runnable=true.',
+  effectiveModeResolutionSummaryEnglish:
+    'Requested=UseConfigurationDefault, effective=Fake, runnable=true.',
   configurationExecutionAdapterKind: 'Fake',
   effectiveExecutionAdapterKind: 'Fake',
   effectiveModeRunnable: true,
@@ -51,7 +53,11 @@ const baseDto = {
   blockers: [],
   realModeBlockingDiagnostics: [],
   selectableModes: [
-    { userFacingMode: 'UseConfigurationDefault', internalMode: 'InheritFromConfiguration', selectable: true },
+    {
+      userFacingMode: 'UseConfigurationDefault',
+      internalMode: 'InheritFromConfiguration',
+      selectable: true,
+    },
     { userFacingMode: 'Fake', internalMode: 'SimulatedFake', selectable: true, blockReason: null },
     { userFacingMode: 'RealPgDump', internalMode: 'PostgreSqlPgDump', selectable: true },
   ],
@@ -175,7 +181,9 @@ describe('BackupExecutionModeCard', () => {
     putMock.mockResolvedValue({ ...baseDto });
 
     render(<BackupExecutionModeCard canManage t={t} />);
-    await waitFor(() => expect(screen.getByRole('radio', { name: /Inherit/i })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole('radio', { name: /Inherit/i })).toBeInTheDocument()
+    );
 
     fireEvent.click(screen.getByRole('radio', { name: /Fake opt/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -195,10 +203,16 @@ describe('BackupExecutionModeCard', () => {
   });
 
   it('authorized user can select Real and save uses confirm copy for Real (effective target PgDump)', async () => {
-    putMock.mockResolvedValue({ ...baseDto, requestedUserFacingMode: 'RealPgDump', storedMode: 'PostgreSqlPgDump' });
+    putMock.mockResolvedValue({
+      ...baseDto,
+      requestedUserFacingMode: 'RealPgDump',
+      storedMode: 'PostgreSqlPgDump',
+    });
 
     render(<BackupExecutionModeCard canManage t={t} />);
-    await waitFor(() => expect(screen.getByRole('radio', { name: /PgDump opt/i })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole('radio', { name: /PgDump opt/i })).toBeInTheDocument()
+    );
 
     fireEvent.click(screen.getByRole('radio', { name: /PgDump opt/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -235,7 +249,11 @@ describe('BackupExecutionModeCard', () => {
     getMock.mockResolvedValue({
       ...baseDto,
       selectableModes: [
-        { userFacingMode: 'UseConfigurationDefault', internalMode: 'InheritFromConfiguration', selectable: true },
+        {
+          userFacingMode: 'UseConfigurationDefault',
+          internalMode: 'InheritFromConfiguration',
+          selectable: true,
+        },
         { userFacingMode: 'Fake', internalMode: 'SimulatedFake', selectable: true },
         {
           userFacingMode: 'RealPgDump',
@@ -296,7 +314,9 @@ describe('BackupExecutionModeCard', () => {
     });
 
     render(<BackupExecutionModeCard canManage t={t} />);
-    await waitFor(() => expect(screen.getByRole('radio', { name: /Fake opt/i })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole('radio', { name: /Fake opt/i })).toBeInTheDocument()
+    );
 
     fireEvent.click(screen.getByRole('radio', { name: /Fake opt/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));

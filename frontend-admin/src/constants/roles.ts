@@ -22,7 +22,5 @@ export const ROLE_HIERARCHY: Record<Role, number> = {
 
 export const hasMinRole = (userRole: string | undefined, minRole: string): boolean => {
   if (!userRole) return false;
-  return (
-    (ROLE_HIERARCHY[userRole as Role] ?? 0) >= (ROLE_HIERARCHY[minRole as Role] ?? 0)
-  );
+  return (ROLE_HIERARCHY[userRole as Role] ?? 0) >= (ROLE_HIERARCHY[minRole as Role] ?? 0);
 };

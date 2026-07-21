@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import { storage } from '../../utils/storage';
 
 const ASYNC_STORAGE_KEY = '@regkasse/offline_orders_storage_v1';
 const IDB_NAME = 'regkasse_offline_orders';
@@ -43,18 +44,12 @@ function sortByCreatedAt(orders: OfflineOrder[]): OfflineOrder[] {
 }
 
 async function readAllFromAsyncStorage(): Promise<OfflineOrder[]> {
-  const raw = await AsyncStorage.getItem(ASYNC_STORAGE_KEY);
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    return Array.isArray(parsed) ? (parsed as OfflineOrder[]) : [];
-  } catch {
-    return [];
-  }
+  const parsed = await storage.getJson<unknown>(ASYNC_STORAGE_KEY);
+  return Array.isArray(parsed) ? (parsed as OfflineOrder[]) : [];
 }
 
 async function writeAllToAsyncStorage(orders: OfflineOrder[]): Promise<void> {
-  await AsyncStorage.setItem(ASYNC_STORAGE_KEY, JSON.stringify(orders));
+  await storage.setJson(ASYNC_STORAGE_KEY, orders);
 }
 
 /** Mobile / native: persist offline orders in AsyncStorage (single JSON document). */
@@ -114,27 +109,37 @@ function openIndexedDb(): Promise<IDBDatabase> {
       }
     };
 
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () =>
+    request.onsuccess = () => {
+      resolve(request.result);
+    };
+    request.onerror = () => {
       reject(request.error ?? new Error('IndexedDB open failed.'));
+    };
   });
 }
 
 function idbRequest<T>(request: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () =>
+    request.onsuccess = () => {
+      resolve(request.result);
+    };
+    request.onerror = () => {
       reject(request.error ?? new Error('IndexedDB request failed.'));
+    };
   });
 }
 
 function idbTransactionComplete(transaction: IDBTransaction): Promise<void> {
   return new Promise((resolve, reject) => {
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () =>
+    transaction.oncomplete = () => {
+      resolve();
+    };
+    transaction.onerror = () => {
       reject(transaction.error ?? new Error('IndexedDB transaction failed.'));
-    transaction.onabort = () =>
+    };
+    transaction.onabort = () => {
       reject(transaction.error ?? new Error('IndexedDB transaction aborted.'));
+    };
   });
 }
 
@@ -163,7 +168,7 @@ export class IndexedDBStorageAdapter implements IOfflineStorage {
   }
 
   async getPendingOrders(): Promise<OfflineOrder[]> {
-    return this.withStore('readonly', async (store) => {
+    return await this.withStore('readonly', async (store) => {
       const index = store.index('status');
       const rows = await idbRequest(index.getAll('pending'));
       return sortByCreatedAt(rows as OfflineOrder[]);
@@ -171,7 +176,7 @@ export class IndexedDBStorageAdapter implements IOfflineStorage {
   }
 
   async getOrder(id: string): Promise<OfflineOrder | null> {
-    return this.withStore('readonly', async (store) => {
+    return await this.withStore('readonly', async (store) => {
       const row = await idbRequest(store.get(id));
       return (row as OfflineOrder | undefined) ?? null;
     });
@@ -204,9 +209,7 @@ export class IndexedDBStorageAdapter implements IOfflineStorage {
 
 /** Platform-aware offline order storage (IndexedDB on web, AsyncStorage on native). */
 export function createOfflineStorage(): IOfflineStorage {
-  return Platform.OS === 'web'
-    ? new IndexedDBStorageAdapter()
-    : new AsyncStorageAdapter();
+  return Platform.OS === 'web' ? new IndexedDBStorageAdapter() : new AsyncStorageAdapter();
 }
 
 /** Shared singleton for queue managers and sync workers. */

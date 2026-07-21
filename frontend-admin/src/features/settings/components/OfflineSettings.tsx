@@ -67,7 +67,12 @@ export function OfflineSettings() {
           label={t('settings.offline.maxOfflineTransactionsLabel')}
           rules={[
             { required: true, message: t('settings.offline.maxOfflineTransactionsRequired') },
-            { type: 'number', min: 1, max: 100, message: t('settings.offline.maxOfflineTransactionsRange') },
+            {
+              type: 'number',
+              min: 1,
+              max: 100,
+              message: t('settings.offline.maxOfflineTransactionsRange'),
+            },
           ]}
         >
           <InputNumber min={1} max={100} style={{ width: 160 }} />
@@ -78,7 +83,12 @@ export function OfflineSettings() {
           label={t('settings.offline.maxOfflineOrdersLabel')}
           rules={[
             { required: true, message: t('settings.offline.maxOfflineOrdersRequired') },
-            { type: 'number', min: 1, max: 200, message: t('settings.offline.maxOfflineOrdersRange') },
+            {
+              type: 'number',
+              min: 1,
+              max: 200,
+              message: t('settings.offline.maxOfflineOrdersRange'),
+            },
           ]}
         >
           <InputNumber min={1} max={200} style={{ width: 160 }} />
@@ -89,7 +99,12 @@ export function OfflineSettings() {
           label={t('settings.offline.offlineExpiryHoursLabel')}
           rules={[
             { required: true, message: t('settings.offline.offlineExpiryHoursRequired') },
-            { type: 'number', min: 1, max: 168, message: t('settings.offline.offlineExpiryHoursRange') },
+            {
+              type: 'number',
+              min: 1,
+              max: 168,
+              message: t('settings.offline.offlineExpiryHoursRange'),
+            },
           ]}
           extra={t('settings.offline.offlineExpiryHoursHint')}
         >
@@ -106,7 +121,12 @@ export function OfflineSettings() {
           label={t('settings.offline.tokenExpiryHoursLabel')}
           rules={[
             { required: true, message: t('settings.offline.tokenExpiryHoursRequired') },
-            { type: 'number', min: 1, max: 720, message: t('settings.offline.tokenExpiryHoursRange') },
+            {
+              type: 'number',
+              min: 1,
+              max: 720,
+              message: t('settings.offline.tokenExpiryHoursRange'),
+            },
           ]}
         >
           <InputNumber

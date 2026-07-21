@@ -1,8 +1,8 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { useState, useEffect } from 'react';
 
 import { apiClient } from '../services/api/config';
+import { sessionManager } from '../services/session/sessionManager';
 
 // Basit ürün tipi
 export interface SimpleProduct {
@@ -27,16 +27,16 @@ export function useProductOperations() {
 
     try {
       // Token kontrolü
-      const token = await AsyncStorage.getItem('token');
+      const token = await sessionManager.getAccessToken();
       if (!token) {
         console.log('❌ Token bulunamadı, login sayfasına yönlendiriliyor...');
-        router.replace('/login');
+        router.replace('/(auth)/login');
         return;
       }
 
       console.log('🔄 Ürünler yükleniyor...');
       console.log('🔧 API URL:', apiClient.get.toString());
-      
+
       const response = await apiClient.get('/products');
       console.log('✅ API Response:', response);
 
@@ -44,7 +44,7 @@ export function useProductOperations() {
       if (response) {
         let productsData: SimpleProduct[] = [];
         const responseAny = response as any;
-        
+
         // Farklı response formatlarını destekle
         if (Array.isArray(responseAny)) {
           // Direkt array: [{...}, {...}]
@@ -52,14 +52,14 @@ export function useProductOperations() {
         } else if (responseAny.items && Array.isArray(responseAny.items)) {
           // { items: [...] } formatı
           productsData = responseAny.items;
-        } else if (responseAny.data && responseAny.data.items && Array.isArray(responseAny.data.items)) {
+        } else if (responseAny.data?.items && Array.isArray(responseAny.data.items)) {
           // { data: { items: [...] } } formatı
           productsData = responseAny.data.items;
         } else {
           console.warn('⚠️ Beklenmeyen response formatı:', responseAny);
           throw new Error('Unexpected API response format');
         }
-        
+
         console.log(`✅ ${productsData.length} ürün başarıyla yüklendi`);
         setProducts(productsData);
       } else {
@@ -67,7 +67,7 @@ export function useProductOperations() {
       }
     } catch (error: any) {
       console.error('❌ Ürün yükleme hatası:', error);
-      
+
       // Daha detaylı error mesajları
       let errorMessage = 'Ürünler yüklenemedi';
       if (error.response) {
@@ -80,7 +80,7 @@ export function useProductOperations() {
         // Other error
         errorMessage = error.message;
       }
-      
+
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -111,6 +111,6 @@ export function useProductOperations() {
     loading,
     error,
     refreshProducts,
-    forceRefreshProducts
+    forceRefreshProducts,
   };
-} 
+}

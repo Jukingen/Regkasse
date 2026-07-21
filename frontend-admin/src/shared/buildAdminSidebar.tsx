@@ -4,260 +4,265 @@
  * Builds Ant Design `Menu` items from `adminSidebarRegistry` + composed RKSV groups.
  * Layout stays a thin shell: call `buildAdminSidebarMenuItems` and pass to `filterSidebarMenuItems`.
  */
-
-import React from 'react';
-import { Tag, Tooltip, type MenuProps } from 'antd';
 import * as Icons from '@ant-design/icons';
+import { type MenuProps, Tag, Tooltip } from 'antd';
+import React from 'react';
+
 import { AdminSidebarLeafLink } from '@/components/admin-layout/AdminSidebarLeafLink';
-import type { RksvMenuGroup } from '@/shared/rksvMenuModel';
+import sidebarStyles from '@/components/admin-layout/adminSidebarFiscal.module.css';
 import {
-    SIDEBAR_GROUP_META,
-    SIDEBAR_LAYOUT_ROWS,
-    SIDEBAR_NAV_ITEM_CATALOG,
-    composeAdminSidebarData,
-    type SidebarCatalogId,
-    type SidebarIconToken,
-    type SidebarLayoutBlock,
+  SIDEBAR_GROUP_META,
+  SIDEBAR_LAYOUT_ROWS,
+  SIDEBAR_NAV_ITEM_CATALOG,
+  type SidebarCatalogId,
+  type SidebarIconToken,
+  type SidebarLayoutBlock,
+  composeAdminSidebarData,
 } from '@/shared/adminSidebarRegistry';
 import { filterCatalogIdsForInventoryNav } from '@/shared/config/adminInventoryNavUi';
 import {
-    FISCAL_RKSV_CLOSING_SIDEBAR_LEAVES,
-    fiscalRksvClosingBadgeLabel,
+  FISCAL_RKSV_CLOSING_SIDEBAR_LEAVES,
+  fiscalRksvClosingBadgeLabel,
 } from '@/shared/fiscalRksvClosingSidebar';
-import sidebarStyles from '@/components/admin-layout/adminSidebarFiscal.module.css';
+import type { RksvMenuGroup } from '@/shared/rksvMenuModel';
 
 const ICON_MAP: Record<SidebarIconToken, React.ComponentType> = {
-    ThunderboltOutlined: Icons.ThunderboltOutlined,
-    ShoppingCartOutlined: Icons.ShoppingCartOutlined,
-    AppstoreOutlined: Icons.AppstoreOutlined,
-    UsergroupAddOutlined: Icons.UsergroupAddOutlined,
-    LineChartOutlined: Icons.LineChartOutlined,
-    AuditOutlined: Icons.AuditOutlined,
-    ToolOutlined: Icons.ToolOutlined,
-    DashboardOutlined: Icons.DashboardOutlined,
-    PieChartOutlined: Icons.PieChartOutlined,
-    FundOutlined: Icons.FundOutlined,
-    TeamOutlined: Icons.TeamOutlined,
-    FileTextOutlined: Icons.FileTextOutlined,
-    FileDoneOutlined: Icons.FileDoneOutlined,
-    BarChartOutlined: Icons.BarChartOutlined,
-    AreaChartOutlined: Icons.AreaChartOutlined,
-    ControlOutlined: Icons.ControlOutlined,
-    TableOutlined: Icons.TableOutlined,
-    CalendarOutlined: Icons.CalendarOutlined,
-    FileSearchOutlined: Icons.FileSearchOutlined,
-    CreditCardOutlined: Icons.CreditCardOutlined,
-    SnippetsOutlined: Icons.SnippetsOutlined,
-    EyeOutlined: Icons.EyeOutlined,
-    ShoppingOutlined: Icons.ShoppingOutlined,
-    FolderOutlined: Icons.FolderOutlined,
-    GroupOutlined: Icons.GroupOutlined,
-    TagOutlined: Icons.TagOutlined,
-    InboxOutlined: Icons.InboxOutlined,
-    UserOutlined: Icons.UserOutlined,
-    GiftOutlined: Icons.GiftOutlined,
-    SafetyCertificateOutlined: Icons.SafetyCertificateOutlined,
-    SafetyOutlined: Icons.SafetyOutlined,
-    SettingOutlined: Icons.SettingOutlined,
-    ShopOutlined: Icons.ShopOutlined,
-    GlobalOutlined: Icons.GlobalOutlined,
-    BgColorsOutlined: Icons.BgColorsOutlined,
-    CloudServerOutlined: Icons.CloudServerOutlined,
-    ExperimentOutlined: Icons.ExperimentOutlined,
-    WalletOutlined: Icons.WalletOutlined,
-    ClockCircleOutlined: Icons.ClockCircleOutlined,
-    LaptopOutlined: Icons.LaptopOutlined,
-    CloudDownloadOutlined: Icons.CloudDownloadOutlined,
-    CloudSyncOutlined: Icons.CloudSyncOutlined,
-    DatabaseOutlined: Icons.DatabaseOutlined,
-    HistoryOutlined: Icons.HistoryOutlined,
-    KeyOutlined: Icons.KeyOutlined,
-    ApartmentOutlined: Icons.ApartmentOutlined,
-    DisconnectOutlined: Icons.DisconnectOutlined,
-    UnorderedListOutlined: Icons.UnorderedListOutlined,
-    BugOutlined: Icons.BugOutlined,
+  ThunderboltOutlined: Icons.ThunderboltOutlined,
+  ShoppingCartOutlined: Icons.ShoppingCartOutlined,
+  AppstoreOutlined: Icons.AppstoreOutlined,
+  UsergroupAddOutlined: Icons.UsergroupAddOutlined,
+  LineChartOutlined: Icons.LineChartOutlined,
+  AuditOutlined: Icons.AuditOutlined,
+  ToolOutlined: Icons.ToolOutlined,
+  DashboardOutlined: Icons.DashboardOutlined,
+  PieChartOutlined: Icons.PieChartOutlined,
+  FundOutlined: Icons.FundOutlined,
+  TeamOutlined: Icons.TeamOutlined,
+  FileTextOutlined: Icons.FileTextOutlined,
+  FileDoneOutlined: Icons.FileDoneOutlined,
+  BarChartOutlined: Icons.BarChartOutlined,
+  AreaChartOutlined: Icons.AreaChartOutlined,
+  ControlOutlined: Icons.ControlOutlined,
+  TableOutlined: Icons.TableOutlined,
+  CalendarOutlined: Icons.CalendarOutlined,
+  FileSearchOutlined: Icons.FileSearchOutlined,
+  CreditCardOutlined: Icons.CreditCardOutlined,
+  SnippetsOutlined: Icons.SnippetsOutlined,
+  EyeOutlined: Icons.EyeOutlined,
+  ShoppingOutlined: Icons.ShoppingOutlined,
+  FolderOutlined: Icons.FolderOutlined,
+  GroupOutlined: Icons.GroupOutlined,
+  TagOutlined: Icons.TagOutlined,
+  InboxOutlined: Icons.InboxOutlined,
+  UserOutlined: Icons.UserOutlined,
+  GiftOutlined: Icons.GiftOutlined,
+  SafetyCertificateOutlined: Icons.SafetyCertificateOutlined,
+  SafetyOutlined: Icons.SafetyOutlined,
+  SettingOutlined: Icons.SettingOutlined,
+  ShopOutlined: Icons.ShopOutlined,
+  GlobalOutlined: Icons.GlobalOutlined,
+  BgColorsOutlined: Icons.BgColorsOutlined,
+  CloudServerOutlined: Icons.CloudServerOutlined,
+  ExperimentOutlined: Icons.ExperimentOutlined,
+  WalletOutlined: Icons.WalletOutlined,
+  ClockCircleOutlined: Icons.ClockCircleOutlined,
+  LaptopOutlined: Icons.LaptopOutlined,
+  CloudDownloadOutlined: Icons.CloudDownloadOutlined,
+  CloudSyncOutlined: Icons.CloudSyncOutlined,
+  DatabaseOutlined: Icons.DatabaseOutlined,
+  HistoryOutlined: Icons.HistoryOutlined,
+  KeyOutlined: Icons.KeyOutlined,
+  ApartmentOutlined: Icons.ApartmentOutlined,
+  DisconnectOutlined: Icons.DisconnectOutlined,
+  UnorderedListOutlined: Icons.UnorderedListOutlined,
+  BugOutlined: Icons.BugOutlined,
 };
 
 function iconEl(token?: SidebarIconToken): React.ReactNode {
-    if (!token) return undefined;
-    const C = ICON_MAP[token];
-    if (!C) return undefined;
-    return <C />;
+  if (!token) return undefined;
+  const C = ICON_MAP[token];
+  if (!C) return undefined;
+  return <C />;
 }
 
 function visibleCatalogIds(catalogIds: readonly SidebarCatalogId[]): SidebarCatalogId[] {
-    return catalogIds.filter((id) => {
-        const item = SIDEBAR_NAV_ITEM_CATALOG[id];
-        if (item.sidebarHidden) return false;
-        if (item.developmentOnly && process.env.NODE_ENV !== 'development') return false;
-        return true;
-    });
+  return catalogIds.filter((id) => {
+    const item = SIDEBAR_NAV_ITEM_CATALOG[id];
+    if (item.sidebarHidden) return false;
+    if (item.developmentOnly && process.env.NODE_ENV !== 'development') return false;
+    return true;
+  });
 }
 
 function buildNestedSidebarGroup(
-    t: (key: string) => string,
-    block: { menuKey: string; labelKey: string; icon: SidebarIconToken; catalogIds: SidebarCatalogId[] },
+  t: (key: string) => string,
+  block: {
+    menuKey: string;
+    labelKey: string;
+    icon: SidebarIconToken;
+    catalogIds: SidebarCatalogId[];
+  }
 ): NonNullable<MenuProps['items']>[number] {
-    const text = t(block.labelKey);
-    const nestedIds = filterCatalogIdsForInventoryNav(visibleCatalogIds(block.catalogIds));
+  const text = t(block.labelKey);
+  const nestedIds = filterCatalogIdsForInventoryNav(visibleCatalogIds(block.catalogIds));
+  return {
+    key: block.menuKey,
+    icon: iconEl(block.icon),
+    label: text,
+    title: text,
+    children: nestedIds.map((id) => catalogLeaf(t, id)),
+  };
+}
+
+function catalogLeaf(
+  t: (key: string) => string,
+  catalogId: keyof typeof SIDEBAR_NAV_ITEM_CATALOG
+): NonNullable<MenuProps['items']>[number] {
+  const def = SIDEBAR_NAV_ITEM_CATALOG[catalogId];
+  const text = t(def.labelKey);
+  return {
+    key: def.menuKey,
+    icon: iconEl(def.icon),
+    title: text,
+    label: <AdminSidebarLeafLink href={def.href}>{text}</AdminSidebarLeafLink>,
+  };
+}
+
+function fiscalRksvClosingLeaves(t: (key: string) => string): NonNullable<MenuProps['items']> {
+  return FISCAL_RKSV_CLOSING_SIDEBAR_LEAVES.map((item) => {
+    const text = t(item.labelKey);
+    const badgeText = fiscalRksvClosingBadgeLabel(item.badge);
+    const titleCollapsed = `${text} (${badgeText})`;
     return {
+      key: item.menuKey,
+      title: titleCollapsed,
+      className: sidebarStyles.fiscalClosingMenuItem,
+      label: (
+        <Tooltip title={item.tooltipTr} placement="right">
+          <span
+            className={sidebarStyles.fiscalClosingLeafRow}
+            style={{ borderLeft: `3px solid ${item.accentColor}` }}
+          >
+            <span className={sidebarStyles.fiscalClosingEmoji} aria-hidden>
+              {item.emoji}
+            </span>
+            <AdminSidebarLeafLink href={item.href}>
+              <span className={sidebarStyles.fiscalClosingLeafLinkInner}>
+                <span className={sidebarStyles.fiscalClosingLeafText}>{text}</span>
+                <Tag className={sidebarStyles.fiscalClosingBadge} variant="filled">
+                  {badgeText}
+                </Tag>
+              </span>
+            </AdminSidebarLeafLink>
+          </span>
+        </Tooltip>
+      ),
+    };
+  });
+}
+
+function buildDomainBlocks(
+  t: (key: string) => string,
+  blocks: SidebarLayoutBlock[],
+  rksvMenuGroups: RksvMenuGroup[]
+): MenuProps['items'] {
+  const out: MenuProps['items'] = [];
+  for (const block of blocks) {
+    if (block.kind === 'leaves') {
+      const leafIds = filterCatalogIdsForInventoryNav(visibleCatalogIds(block.catalogIds));
+      for (const id of leafIds) {
+        out.push(catalogLeaf(t, id));
+      }
+      continue;
+    }
+    if (block.kind === 'nested') {
+      out.push(buildNestedSidebarGroup(t, block));
+      continue;
+    }
+    if (block.kind === 'fiscalRksvClosing') {
+      const text = t(block.labelKey);
+      out.push({
         key: block.menuKey,
         icon: iconEl(block.icon),
         label: text,
         title: text,
-        children: nestedIds.map((id) => catalogLeaf(t, id)),
-    };
-}
-
-function catalogLeaf(
-    t: (key: string) => string,
-    catalogId: keyof typeof SIDEBAR_NAV_ITEM_CATALOG,
-): NonNullable<MenuProps['items']>[number] {
-    const def = SIDEBAR_NAV_ITEM_CATALOG[catalogId];
-    const text = t(def.labelKey);
-    return {
-        key: def.menuKey,
-        icon: iconEl(def.icon),
-        title: text,
-        label: <AdminSidebarLeafLink href={def.href}>{text}</AdminSidebarLeafLink>,
-    };
-}
-
-function fiscalRksvClosingLeaves(t: (key: string) => string): NonNullable<MenuProps['items']> {
-    return FISCAL_RKSV_CLOSING_SIDEBAR_LEAVES.map((item) => {
-        const text = t(item.labelKey);
-        const badgeText = fiscalRksvClosingBadgeLabel(item.badge);
-        const titleCollapsed = `${text} (${badgeText})`;
-        return {
-            key: item.menuKey,
-            title: titleCollapsed,
-            className: sidebarStyles.fiscalClosingMenuItem,
-            label: (
-                <Tooltip title={item.tooltipTr} placement="right">
-                    <span
-                        className={sidebarStyles.fiscalClosingLeafRow}
-                        style={{ borderLeft: `3px solid ${item.accentColor}` }}
-                    >
-                        <span className={sidebarStyles.fiscalClosingEmoji} aria-hidden>
-                            {item.emoji}
-                        </span>
-                        <AdminSidebarLeafLink href={item.href}>
-                            <span className={sidebarStyles.fiscalClosingLeafLinkInner}>
-                                <span className={sidebarStyles.fiscalClosingLeafText}>{text}</span>
-                                <Tag className={sidebarStyles.fiscalClosingBadge} variant="filled">
-                                    {badgeText}
-                                </Tag>
-                            </span>
-                        </AdminSidebarLeafLink>
-                    </span>
-                </Tooltip>
-            ),
-        };
-    });
-}
-
-function buildDomainBlocks(
-    t: (key: string) => string,
-    blocks: SidebarLayoutBlock[],
-    rksvMenuGroups: RksvMenuGroup[],
-): MenuProps['items'] {
-    const out: MenuProps['items'] = [];
-    for (const block of blocks) {
-        if (block.kind === 'leaves') {
-            const leafIds = filterCatalogIdsForInventoryNav(visibleCatalogIds(block.catalogIds));
-            for (const id of leafIds) {
-                out.push(catalogLeaf(t, id));
-            }
-            continue;
-        }
-        if (block.kind === 'nested') {
-            out.push(buildNestedSidebarGroup(t, block));
-            continue;
-        }
-        if (block.kind === 'fiscalRksvClosing') {
-            const text = t(block.labelKey);
-            out.push({
-                key: block.menuKey,
-                icon: iconEl(block.icon),
-                label: text,
-                title: text,
-                children: fiscalRksvClosingLeaves(t),
-            });
-            continue;
-        }
-        if (block.kind === 'rksvHub') {
-            const hubText = t(block.labelKey);
-            const rksvSubtree = rksvMenuGroups.map((g) => ({
-                key: `rksv-grp-${g.id}`,
-                label: g.groupLabel,
-                title: g.groupLabel,
-                children: g.items.map((item) => ({
-                    key: item.key,
-                    title: item.label,
-                    label: <AdminSidebarLeafLink href={item.href}>{item.label}</AdminSidebarLeafLink>,
-                })),
-            }));
-            out.push({
-                key: block.menuKey,
-                icon: iconEl(block.icon),
-                label: hubText,
-                title: hubText,
-                children: rksvSubtree,
-            });
-        }
+        children: fiscalRksvClosingLeaves(t),
+      });
+      continue;
     }
-    return out;
+    if (block.kind === 'rksvHub') {
+      const hubText = t(block.labelKey);
+      const rksvSubtree = rksvMenuGroups.map((g) => ({
+        key: `rksv-grp-${g.id}`,
+        label: g.groupLabel,
+        title: g.groupLabel,
+        children: g.items.map((item) => ({
+          key: item.key,
+          title: item.label,
+          label: <AdminSidebarLeafLink href={item.href}>{item.label}</AdminSidebarLeafLink>,
+        })),
+      }));
+      out.push({
+        key: block.menuKey,
+        icon: iconEl(block.icon),
+        label: hubText,
+        title: hubText,
+        children: rksvSubtree,
+      });
+    }
+  }
+  return out;
 }
 
 export type BuildAdminSidebarMenuItemsResult = {
-    menuItems: MenuProps['items'];
-    rksvMenuGroups: RksvMenuGroup[];
+  menuItems: MenuProps['items'];
+  rksvMenuGroups: RksvMenuGroup[];
 };
 
 /**
  * Full pipeline: compose RKSV plugin + build Ant Design menu tree from registry layout.
  */
 export function buildAdminSidebarMenuItems(params: {
-    t: (key: string) => string;
-    verificationNavLabel: string;
+  t: (key: string) => string;
+  verificationNavLabel: string;
 }): BuildAdminSidebarMenuItemsResult {
-    const composed = composeAdminSidebarData(params.t, params.verificationNavLabel);
-    const { rksvMenuGroups } = composed;
-    const { t } = params;
+  const composed = composeAdminSidebarData(params.t, params.verificationNavLabel);
+  const { rksvMenuGroups } = composed;
+  const { t } = params;
 
-    const menuItems: MenuProps['items'] = [];
+  const menuItems: MenuProps['items'] = [];
 
-    for (const row of SIDEBAR_LAYOUT_ROWS) {
-        if (row.kind === 'divider') {
-            menuItems.push({ type: 'divider', key: row.key });
-            continue;
-        }
-
-        if (row.kind === 'leaves') {
-            const leafIds = filterCatalogIdsForInventoryNav(visibleCatalogIds(row.catalogIds));
-            for (const id of leafIds) {
-                menuItems.push(catalogLeaf(t, id));
-            }
-            continue;
-        }
-
-        if (row.kind === 'nested') {
-            menuItems.push(buildNestedSidebarGroup(t, row));
-            continue;
-        }
-
-        if (row.kind !== 'group') continue;
-
-        const meta = SIDEBAR_GROUP_META[row.group];
-        const groupLabel = t(meta.labelKey);
-        menuItems.push({
-            key: meta.menuKey,
-            icon: iconEl(meta.icon),
-            label: groupLabel,
-            title: groupLabel,
-            children: buildDomainBlocks(t, row.blocks, rksvMenuGroups),
-        });
+  for (const row of SIDEBAR_LAYOUT_ROWS) {
+    if (row.kind === 'divider') {
+      menuItems.push({ type: 'divider', key: row.key });
+      continue;
     }
 
-    return { menuItems, rksvMenuGroups };
+    if (row.kind === 'leaves') {
+      const leafIds = filterCatalogIdsForInventoryNav(visibleCatalogIds(row.catalogIds));
+      for (const id of leafIds) {
+        menuItems.push(catalogLeaf(t, id));
+      }
+      continue;
+    }
+
+    if (row.kind === 'nested') {
+      menuItems.push(buildNestedSidebarGroup(t, row));
+      continue;
+    }
+
+    if (row.kind !== 'group') continue;
+
+    const meta = SIDEBAR_GROUP_META[row.group];
+    const groupLabel = t(meta.labelKey);
+    menuItems.push({
+      key: meta.menuKey,
+      icon: iconEl(meta.icon),
+      label: groupLabel,
+      title: groupLabel,
+      children: buildDomainBlocks(t, row.blocks, rksvMenuGroups),
+    });
+  }
+
+  return { menuItems, rksvMenuGroups };
 }

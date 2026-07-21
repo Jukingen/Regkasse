@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { freshnessTagColor, proofAgeFreshnessTier } from '@/features/backup-dr/logic/recoverabilityPresentation';
+
+import {
+  freshnessTagColor,
+  proofAgeFreshnessTier,
+} from '@/features/backup-dr/logic/recoverabilityPresentation';
 
 describe('proofAgeFreshnessTier', () => {
   it('unknown for null', () => {

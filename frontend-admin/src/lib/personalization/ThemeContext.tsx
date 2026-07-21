@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext } from 'react';
+
 import type { ResolvedTheme, ThemeMode } from './types';
 
 export type ThemeContextValue = {

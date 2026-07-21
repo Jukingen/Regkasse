@@ -3,21 +3,23 @@
 /**
  * User detail drawer – Details + Activity; bilgi hiyerarşisi: Status/Rolle → Identität → Mandant → Sonstiges.
  */
-import React, { useEffect, useMemo, useState } from 'react';
-import { Drawer, Tabs, Descriptions, Tag, Typography, Button, Space } from 'antd';
-import type { TabsProps } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
-import type { UserInfo } from '@/api/generated/model';
-import { EditUsernameModal } from './EditUsernameModal';
-import { UserActivityTimeline } from './UserActivityTimeline';
+import type { TabsProps } from 'antd';
+import { Button, Descriptions, Drawer, Space, Tabs, Tag, Typography } from 'antd';
 import Link from 'next/link';
-import { UserActivityReportPanel } from './UserActivityReportPanel';
-import { UserTenantSummary } from './UserTenantSummary';
+import React, { useEffect, useMemo, useState } from 'react';
+
+import type { UserInfo } from '@/api/generated/model';
+import type { UpdateAdminUsernameResponse } from '@/features/users/api/users';
 import { useAdminUserTenants } from '@/features/users/hooks/useAdminUserTenants';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatDateTime } from '@/i18n/formatting';
-import type { UpdateAdminUsernameResponse } from '@/features/users/api/users';
 import { useStaffPolicy } from '@/shared/auth/staffPolicy';
+
+import { EditUsernameModal } from './EditUsernameModal';
+import { UserActivityReportPanel } from './UserActivityReportPanel';
+import { UserActivityTimeline } from './UserActivityTimeline';
+import { UserTenantSummary } from './UserTenantSummary';
 
 const { Text } = Typography;
 
@@ -43,7 +45,7 @@ type Props = {
 function resolveDefaultTab(
   context: DrawerContext,
   canViewActivityReport: boolean,
-  canViewActivity: boolean,
+  canViewActivity: boolean
 ): string {
   if (context === 'staff') {
     if (canViewActivity) return 'activity';
@@ -73,17 +75,13 @@ export function UserDetailDrawer({
   const canViewTenantMemberships = staffPolicy.canViewTenantMemberships;
   const { data: memberships = [], isLoading: tenantsLoading } = useAdminUserTenants(
     userId,
-    open && !!userId && canViewTenantMemberships,
+    open && !!userId && canViewTenantMemberships
   );
 
   const defaultTab = useMemo(
     () =>
-      resolveDefaultTab(
-        context,
-        staffPolicy.canViewActivityReport,
-        staffPolicy.canViewActivity,
-      ),
-    [context, staffPolicy.canViewActivity, staffPolicy.canViewActivityReport],
+      resolveDefaultTab(context, staffPolicy.canViewActivityReport, staffPolicy.canViewActivity),
+    [context, staffPolicy.canViewActivity, staffPolicy.canViewActivityReport]
   );
 
   useEffect(() => {
@@ -123,9 +121,7 @@ export function UserDetailDrawer({
       items.push({
         key: 'activity',
         label: t('users.activity.tabLabel'),
-        children: (
-          <UserActivityTimeline userId={user.id ?? ''} userName={fullName(user)} />
-        ),
+        children: <UserActivityTimeline userId={user.id ?? ''} userName={fullName(user)} />,
       });
     }
 
@@ -167,7 +163,9 @@ export function UserDetailDrawer({
                 ) : null}
               </Space>
             </Descriptions.Item>
-            <Descriptions.Item label={t('users.list.columnEmail')}>{user.email ?? na}</Descriptions.Item>
+            <Descriptions.Item label={t('users.list.columnEmail')}>
+              {user.email ?? na}
+            </Descriptions.Item>
           </Descriptions>
           <Descriptions column={1} size="small" bordered>
             <Descriptions.Item label={t('users.form.employeeNumber')}>

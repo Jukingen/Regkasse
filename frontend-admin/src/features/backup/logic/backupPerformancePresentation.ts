@@ -1,10 +1,9 @@
 /**
  * Maps dashboard stats into the backup performance page view-model.
  */
-
-import { formatDateTime } from "@/i18n/formatting";
-import { resolveBackupRunStatusUiKey } from "@/features/backup/logic/backupRunTablePresentation";
-import type { BackupDashboardStatsResponseDto } from "@/features/backup/logic/backupDashboardStatsApi";
+import type { BackupDashboardStatsResponseDto } from '@/features/backup/logic/backupDashboardStatsApi';
+import { resolveBackupRunStatusUiKey } from '@/features/backup/logic/backupRunTablePresentation';
+import { formatDateTime } from '@/i18n/formatting';
 
 export type BackupPerformanceHistoryRow = {
   key: string;
@@ -35,7 +34,7 @@ function bytesToMb(bytes: number | null | undefined): number | null {
 export function mapDashboardStatsToPerformance(
   stats: BackupDashboardStatsResponseDto | null | undefined,
   formatLocale: string,
-  t: (key: string, options?: Record<string, string | number>) => string,
+  t: (key: string, options?: Record<string, string | number>) => string
 ): BackupPerformanceViewModel | null {
   if (!stats) return null;
 
@@ -45,17 +44,17 @@ export function mapDashboardStatsToPerformance(
     .map((p) => {
       const uiKey = resolveBackupRunStatusUiKey(p.status);
       const statusLabel =
-        uiKey === "unknown"
-          ? t("backupDr.summary.unknown")
+        uiKey === 'unknown'
+          ? t('backupDr.summary.unknown')
           : t(`backupDr.runsTable.statusLabels.${uiKey}`);
       return {
         key: p.runId,
         runId: p.runId,
         date: formatDateTime(p.completedAtUtc, formatLocale),
-        duration: t("backupDr.performance.durationSeconds", {
+        duration: t('backupDr.performance.durationSeconds', {
           s: Math.round(p.durationSeconds),
         }),
-        size: "—",
+        size: '—',
         status: statusLabel,
         statusUiKey: uiKey,
       };

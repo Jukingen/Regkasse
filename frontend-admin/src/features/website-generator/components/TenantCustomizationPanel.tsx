@@ -15,6 +15,7 @@ import {
   Typography,
 } from 'antd';
 import { useEffect, useRef, useState } from 'react';
+
 import { CardSkeleton } from '@/components/Skeleton';
 import { useTenantCustomization } from '@/features/tenant/hooks/useTenantCustomization';
 import {
@@ -151,13 +152,8 @@ export function TenantCustomizationPanel({
         try {
           let nextUrl: string;
           if (surface === 'app') {
-            const html = buildAppPreviewHtml(
-              formValues,
-              t('tenants.customization.appTitle'),
-            );
-            nextUrl = URL.createObjectURL(
-              new Blob([html], { type: 'text/html;charset=utf-8' }),
-            );
+            const html = buildAppPreviewHtml(formValues, t('tenants.customization.appTitle'));
+            nextUrl = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
           } else {
             const response = await previewWebsite({
               tenantId,
@@ -177,11 +173,7 @@ export function TenantCustomizationPanel({
             if (!response.succeeded || !response.html || !response.css) {
               throw new Error(response.error || response.code || 'PREVIEW_FAILED');
             }
-            nextUrl = buildWebsitePreviewBlobUrl(
-              response.html,
-              response.css,
-              response.js ?? '',
-            );
+            nextUrl = buildWebsitePreviewBlobUrl(response.html, response.css, response.js ?? '');
           }
 
           if (cancelled) {

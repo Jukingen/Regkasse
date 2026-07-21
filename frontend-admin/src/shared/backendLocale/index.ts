@@ -1,27 +1,27 @@
 export {
-  pickDualLocaleMessage,
-  pickDeOnlyBackendText,
-  joinDeOnlyBackendList,
-  formatRejectionReasonForDisplay,
-} from './selectBackendLocalizedText';
-export {
-  resolveFiscalReportBackendText,
-  joinFiscalReportRemediationHints,
-  resolveFiscalExportProfileRow,
-  resolveLegalExportCompletenessIssueMessage,
+  type FiscalExportProfileBackendRow,
+  type FiscalReportContentLang,
   fiscalReportFieldTooltip,
   type FiscalReportResolvedText,
-  type FiscalReportContentLang,
-  type FiscalExportProfileBackendRow,
+  joinFiscalReportRemediationHints,
   type LegalExportCompletenessIssueText,
   type ReportContentLanguage,
+  resolveFiscalExportProfileRow,
+  resolveFiscalReportBackendText,
+  resolveLegalExportCompletenessIssueMessage,
 } from './fiscalReportTextPolicy';
+export {
+  formatRejectionReasonForDisplay,
+  joinDeOnlyBackendList,
+  pickDeOnlyBackendText,
+  pickDualLocaleMessage,
+} from './selectBackendLocalizedText';
 /** Prefer `@/shared/reporting/formalReportContentResolver` for new reporting code — same policy, explicit names. */
 export {
   FORMAL_REPORT_CONTENT_POLICY_VERSION,
-  resolveFormalReportContentFromDualFields,
+  formalReportBackendFieldTooltip,
   joinFormalReportRemediationHints,
+  resolveFormalReportContentFromDualFields,
   resolveFormalReportExportProfileRow,
   resolveFormalReportLegalExportIssueMessage,
-  formalReportBackendFieldTooltip,
 } from '../reporting/formalReportContentResolver';

@@ -67,10 +67,7 @@ function ensureAppInAntdImport(code) {
   if (antdImport) {
     const inner = antdImport[1];
     if (/\bApp\b/.test(inner)) return code;
-    return code.replace(
-      antdImport[0],
-      `import { App, ${inner.trim()} } from 'antd';`,
-    );
+    return code.replace(antdImport[0], `import { App, ${inner.trim()} } from 'antd';`);
   }
 
   const useClient = code.match(/^['"]use client['"];\s*\n/m);
@@ -82,7 +79,7 @@ function ensureAppInAntdImport(code) {
 }
 
 function transform(code, filePath) {
-  if (!code.includes("@/lib/antdApp")) return null;
+  if (!code.includes('@/lib/antdApp')) return null;
 
   const rel = path.relative(srcRoot, filePath).replace(/\\/g, '/');
 
@@ -110,7 +107,7 @@ for (const file of walk(srcRoot)) {
   const code = fs.readFileSync(file, 'utf8');
   const out = transform(code, file);
   if (!out) continue;
-  if (out.includes("@/lib/antdApp") && usesStaticMessage(out)) {
+  if (out.includes('@/lib/antdApp') && usesStaticMessage(out)) {
     skipped.push(path.relative(srcRoot, file));
   }
   fs.writeFileSync(file, out);

@@ -1,4 +1,4 @@
-import { customInstance, AXIOS_INSTANCE } from '@/lib/axios';
+import { AXIOS_INSTANCE, customInstance } from '@/lib/axios';
 
 export type TenantDomain = {
   id: string;
@@ -107,7 +107,7 @@ export async function addTenantDomain(domain: string, tenantId?: string): Promis
 export async function verifyTenantDomain(
   id: string,
   token: string,
-  tenantId?: string,
+  tenantId?: string
 ): Promise<TenantDomain> {
   const res = await customInstance<DomainApi>({
     url: `/api/admin/tenant-domains/${id}/verify`,
@@ -121,7 +121,7 @@ export async function verifyTenantDomain(
 export async function setTenantDomainWebsiteEnabled(
   id: string,
   enabled: boolean,
-  tenantId?: string,
+  tenantId?: string
 ): Promise<TenantDomain> {
   const res = await customInstance<DomainApi>({
     url: `/api/admin/tenant-domains/${id}/website-enabled`,
@@ -143,7 +143,7 @@ export async function removeTenantDomain(id: string, tenantId?: string): Promise
 
 export async function publishTenantSite(
   templateId?: string,
-  tenantId?: string,
+  tenantId?: string
 ): Promise<TenantDomainPublishResult> {
   const res = await customInstance<PublishApi>({
     url: '/api/admin/tenant-domains/publish',
@@ -166,7 +166,7 @@ export async function downloadTenantWebsitePackage(opts?: {
       templateId: opts?.templateId ?? 'modern',
       ...withTenantId(opts?.tenantId),
     },
-    { responseType: 'blob' },
+    { responseType: 'blob' }
   );
 
   const disposition = res.headers['content-disposition'] as string | undefined;

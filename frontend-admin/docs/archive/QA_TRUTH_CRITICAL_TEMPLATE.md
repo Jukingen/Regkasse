@@ -12,19 +12,19 @@ Derived from the discipline used in **`ROLE_MANAGEMENT_QA_CHECKLIST.md`** (users
 
 ## Section order (mirror roles style)
 
-| Section | Purpose |
-|---------|---------|
-| **Automated coverage** | Pointers to tests; avoid duplicating generic “unit tests exist”. |
-| **Backend (API)** | Endpoint, expected status, role/capability; matrix of success + failure codes. |
-| **Frontend — &lt;Route&gt;** | One subsection per page or drawer. |
-| **Initial render & states** | Loading, error alert, empty table/message, success with data. |
-| **Mutations / actions** | Save, delete, retry — success toast + `invalidateQueries` expectations where relevant. |
-| **Permissions / visibility** | What non-admin users must not see (if applicable). |
-| **Deep links & URL discipline** | Query/path params, rejected invalid UUIDs, context params that do **not** filter API. |
-| **Provenance & lineage** | `AdminTruthBadge` (API / Anzeige / Verknüpft / Diagnose / Ohne Link); no single merged “truth”. |
-| **Row-level failure** | Expandable row, FO error text, retry button gating — no invented retryability. |
-| **Stale / refetch** | Toolbar “Aktualisieren”, mutation success → list/detail refresh. |
-| **Quick smoke** | 3–6 numbered steps for release train. |
+| Section                         | Purpose                                                                                         |
+| ------------------------------- | ----------------------------------------------------------------------------------------------- |
+| **Automated coverage**          | Pointers to tests; avoid duplicating generic “unit tests exist”.                                |
+| **Backend (API)**               | Endpoint, expected status, role/capability; matrix of success + failure codes.                  |
+| **Frontend — &lt;Route&gt;**    | One subsection per page or drawer.                                                              |
+| **Initial render & states**     | Loading, error alert, empty table/message, success with data.                                   |
+| **Mutations / actions**         | Save, delete, retry — success toast + `invalidateQueries` expectations where relevant.          |
+| **Permissions / visibility**    | What non-admin users must not see (if applicable).                                              |
+| **Deep links & URL discipline** | Query/path params, rejected invalid UUIDs, context params that do **not** filter API.           |
+| **Provenance & lineage**        | `AdminTruthBadge` (API / Anzeige / Verknüpft / Diagnose / Ohne Link); no single merged “truth”. |
+| **Row-level failure**           | Expandable row, FO error text, retry button gating — no invented retryability.                  |
+| **Stale / refetch**             | Toolbar “Aktualisieren”, mutation success → list/detail refresh.                                |
+| **Quick smoke**                 | 3–6 numbered steps for release train.                                                           |
 
 ## Truth-specific additions (not in generic QA)
 

@@ -1,10 +1,18 @@
 // Soft minimal category filter – backend'den gelen kategoriler; "Alle" sadece UI.
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
-import { SoftColors, SoftShadows, SoftSpacing, SoftRadius, SoftState, SoftTypography } from '../constants/SoftTheme';
+
+import {
+  SoftColors,
+  SoftShadows,
+  SoftSpacing,
+  SoftRadius,
+  SoftState,
+  SoftTypography,
+} from '../constants/SoftTheme';
 import type { CatalogCategory } from '../hooks/useProductsUnified';
 
 type CategoryFilterProps = {
@@ -45,18 +53,22 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={[styles.container, { paddingRight: Math.max(SoftSpacing.md, insets.right) }]}
-    >
+      contentContainerStyle={[
+        styles.container,
+        { paddingRight: Math.max(SoftSpacing.md, insets.right) },
+      ]}>
       {/* "Alle" sadece UI konsepti – backend'de kategori yok */}
       <Pressable
         key="__all__"
-        style={({ pressed, focused }) => [
+        style={(state) => [
           styles.chip,
           selectedCategoryId === null && styles.chipSelected,
-          pressed && styles.chipPressed,
-          focused && SoftState.focusVisible,
+          state.pressed && styles.chipPressed,
+          (state as { focused?: boolean }).focused && SoftState.focusVisible,
         ]}
-        onPress={() => onCategoryChange(null)}
+        onPress={() => {
+          onCategoryChange(null);
+        }}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         accessibilityLabel={
           selectedCategoryId === null
@@ -64,14 +76,16 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
             : t('products:all')
         }
         accessibilityRole="button"
-        accessibilityState={{ selected: selectedCategoryId === null }}
-      >
+        accessibilityState={{ selected: selectedCategoryId === null }}>
         <Ionicons
           name="grid-outline"
           size={16}
           color={selectedCategoryId === null ? SoftColors.textInverse : SoftColors.textPrimary}
         />
-        <Text style={[styles.chipText, selectedCategoryId === null && styles.chipTextSelected]} numberOfLines={1} ellipsizeMode="tail">
+        <Text
+          style={[styles.chipText, selectedCategoryId === null && styles.chipTextSelected]}
+          numberOfLines={1}
+          ellipsizeMode="tail">
           {t('products:all')}
         </Text>
       </Pressable>
@@ -80,24 +94,30 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
         return (
           <Pressable
             key={cat.id}
-            style={({ pressed, focused }) => [
+            style={(state) => [
               styles.chip,
               isSelected && styles.chipSelected,
-              pressed && styles.chipPressed,
-              focused && SoftState.focusVisible,
+              state.pressed && styles.chipPressed,
+              (state as { focused?: boolean }).focused && SoftState.focusVisible,
             ]}
-            onPress={() => onCategoryChange(cat.id)}
+            onPress={() => {
+              onCategoryChange(cat.id);
+            }}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            accessibilityLabel={isSelected ? `${cat.name}, ${t('products:a11y.selected')}` : cat.name}
+            accessibilityLabel={
+              isSelected ? `${cat.name}, ${t('products:a11y.selected')}` : cat.name
+            }
             accessibilityRole="button"
-            accessibilityState={{ selected: isSelected }}
-          >
+            accessibilityState={{ selected: isSelected }}>
             <Ionicons
               name={getIcon(cat.name)}
               size={16}
               color={isSelected ? SoftColors.textInverse : SoftColors.textPrimary}
             />
-            <Text style={[styles.chipText, isSelected && styles.chipTextSelected]} numberOfLines={1} ellipsizeMode="tail">
+            <Text
+              style={[styles.chipText, isSelected && styles.chipTextSelected]}
+              numberOfLines={1}
+              ellipsizeMode="tail">
               {cat.name}
             </Text>
           </Pressable>
@@ -144,4 +164,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CategoryFilter; 
+export default CategoryFilter;

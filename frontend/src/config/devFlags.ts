@@ -65,7 +65,6 @@ export async function applyDevNetworkDelayIfConfigured(): Promise<void> {
 }
 
 if (isDevelopmentSimulationEnvironment() && typeof globalThis !== 'undefined') {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const g = globalThis as any;
   g.__toggleOfflineSimulation = () => {
     console.warn('⚠️ DEV: Offline simulation is disabled in this app build (ignored).');

@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 
 import { Colors, Spacing, BorderRadius } from '../constants/Colors';
-import { productService, Product } from '../services/api/productService';
+import { getAllCategories, getProducts, type Product } from '../services/api/productService';
 import { WaveLoader } from '../src/components/common/WaveLoader';
 
 interface ProductSelectionModalProps {
@@ -51,16 +51,18 @@ export default function ProductSelectionModal({
     try {
       setLoading(true);
       const [productsData, categoriesData] = await Promise.all([
-        productService.getProducts(),
-        productService.getCategories()
+        getProducts(),
+        getAllCategories(),
       ]);
-      
-      let filteredProducts = productsData.filter(p => p.isActive);
-      
+
+      let filteredProducts = productsData.filter((p: Product) => p.isActive);
+
       if (showLowStock) {
-        filteredProducts = filteredProducts.filter(p => p.stockQuantity <= p.minStockLevel);
+        filteredProducts = filteredProducts.filter(
+          (p: Product) => p.stockQuantity <= p.minStockLevel
+        );
       }
-      
+
       setProducts(filteredProducts);
       setCategories(categoriesData);
     } catch (error) {
@@ -75,17 +77,17 @@ export default function ProductSelectionModal({
 
     // Kategori filtresi
     if (selectedCategory !== 'All') {
-      filtered = filtered.filter(p => p.category === selectedCategory);
+      filtered = filtered.filter((p) => p.category === selectedCategory);
     }
 
     // Arama filtresi
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(p =>
-        p.name.toLowerCase().includes(query) ||
-        p.description.toLowerCase().includes(query) ||
-
-        p.category.toLowerCase().includes(query)
+      filtered = filtered.filter(
+        (p) =>
+          p.name.toLowerCase().includes(query) ||
+          (p.description?.toLowerCase().includes(query) ?? false) ||
+          p.category.toLowerCase().includes(query)
       );
     }
 
@@ -115,13 +117,11 @@ export default function ProductSelectionModal({
 
   const renderProductItem = ({ item }: { item: Product }) => (
     <TouchableOpacity
-      style={[
-        styles.productItem,
-        item.stockQuantity <= 0 && styles.outOfStockItem
-      ]}
-      onPress={() => handleProductSelect(item)}
-      disabled={item.stockQuantity <= 0}
-    >
+      style={[styles.productItem, item.stockQuantity <= 0 && styles.outOfStockItem]}
+      onPress={() => {
+        handleProductSelect(item);
+      }}
+      disabled={item.stockQuantity <= 0}>
       <View style={styles.productInfo}>
         <View style={styles.productHeader}>
           <Text style={styles.productName}>{item.name}</Text>
@@ -129,33 +129,34 @@ export default function ProductSelectionModal({
             <Text style={styles.stockText}>{getStockStatusText(item)}</Text>
           </View>
         </View>
-        
+
         <Text style={styles.productDescription} numberOfLines={2}>
           {item.description}
         </Text>
-        
+
         <View style={styles.productDetails}>
           <View style={styles.priceContainer}>
             <Ionicons name="pricetag" size={16} color={Colors.light.primary} />
             <Text style={styles.productPrice}>€{item.price.toFixed(2)}</Text>
           </View>
-          
+
           <View style={styles.stockContainer}>
             <Ionicons name="cube" size={16} color={Colors.light.textSecondary} />
-            <Text style={styles.stockQuantity}>{item.stockQuantity} {item.unit}</Text>
+            <Text style={styles.stockQuantity}>
+              {item.stockQuantity} {item.unit}
+            </Text>
           </View>
         </View>
-        
+
         <View style={styles.productMeta}>
           <Text style={styles.productCategory}>{item.category}</Text>
-  
         </View>
       </View>
-      
-      <Ionicons 
-        name="chevron-forward" 
-        size={20} 
-        color={item.stockQuantity <= 0 ? Colors.light.textSecondary : Colors.light.text} 
+
+      <Ionicons
+        name="chevron-forward"
+        size={20}
+        color={item.stockQuantity <= 0 ? Colors.light.textSecondary : Colors.light.text}
       />
     </TouchableOpacity>
   );
@@ -168,14 +169,16 @@ export default function ProductSelectionModal({
         <TouchableOpacity
           style={[
             styles.categoryFilterButton,
-            selectedCategory === item && styles.categoryFilterButtonActive
+            selectedCategory === item && styles.categoryFilterButtonActive,
           ]}
-          onPress={() => setSelectedCategory(item)}
-        >
-          <Text style={[
-            styles.categoryFilterText,
-            selectedCategory === item && styles.categoryFilterTextActive
-          ]}>
+          onPress={() => {
+            setSelectedCategory(item);
+          }}>
+          <Text
+            style={[
+              styles.categoryFilterText,
+              selectedCategory === item && styles.categoryFilterTextActive,
+            ]}>
             {item}
           </Text>
         </TouchableOpacity>
@@ -187,20 +190,14 @@ export default function ProductSelectionModal({
   );
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-    >
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Ionicons name="close" size={24} color={Colors.light.text} />
           </TouchableOpacity>
-          <Text style={styles.title}>
-            {showLowStock ? 'Low Stock Products' : 'Select Product'}
-          </Text>
+          <Text style={styles.title}>{showLowStock ? 'Low Stock Products' : 'Select Product'}</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -215,7 +212,10 @@ export default function ProductSelectionModal({
             placeholderTextColor={Colors.light.textSecondary}
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <TouchableOpacity
+              onPress={() => {
+                setSearchQuery('');
+              }}>
               <Ionicons name="close-circle" size={20} color={Colors.light.textSecondary} />
             </TouchableOpacity>
           )}
@@ -433,4 +433,4 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     textAlign: 'center',
   },
-}); 
+});

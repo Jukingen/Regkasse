@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { useConditionalPolling } from './useConditionalPolling';
 import { POS_DEVELOPMENT_MODE_POLL_MS } from '../constants/posPollingIntervals';
 import { useAuth } from '../contexts/AuthContext';
-import { useConditionalPolling } from './useConditionalPolling';
 import { apiClient } from '../services/api/config';
 import {
   setDevelopmentModeClientSnapshot,
@@ -18,9 +18,7 @@ export function useDevelopmentMode() {
   // Public endpoint, but only poll after auth bootstrap and never while password change is required.
   // Skip while unauthenticated to avoid attaching stale JWTs from storage (ASP.NET challenge → 401).
   const pollingEnabled =
-    isAuthReady &&
-    isAuthenticated &&
-    user?.mustChangePasswordOnNextLogin !== true;
+    isAuthReady && isAuthenticated && user?.mustChangePasswordOnNextLogin !== true;
 
   const refetch = useCallback(async () => {
     try {
@@ -41,9 +39,13 @@ export function useDevelopmentMode() {
     }
   }, [pollingEnabled]);
 
-  useConditionalPolling(() => {
-    void refetch();
-  }, POS_DEVELOPMENT_MODE_POLL_MS, pollingEnabled);
+  useConditionalPolling(
+    () => {
+      void refetch();
+    },
+    POS_DEVELOPMENT_MODE_POLL_MS,
+    pollingEnabled
+  );
 
   return { settings, isLoading, refetch };
 }

@@ -28,32 +28,38 @@ export async function createCardPaymentIntent(params: {
   cashRegisterId: string;
   receiptNumber?: string;
 }): Promise<CardPaymentIntentResponse> {
-  const res = await apiClient.post<CardPaymentIntentResponse>('/api/pos/card-payment/intent', params);
-  return res.data;
+  return await apiClient.post<CardPaymentIntentResponse>(
+    '/api/pos/card-payment/intent',
+    params
+  );
 }
 
 export async function confirmCardPayment(params: {
   paymentIntentId: string;
   paymentMethodId?: string;
 }): Promise<CardPaymentConfirmResponse> {
-  const res = await apiClient.post<CardPaymentConfirmResponse>('/api/pos/card-payment/confirm', params);
-  return res.data;
+  return await apiClient.post<CardPaymentConfirmResponse>(
+    '/api/pos/card-payment/confirm',
+    params
+  );
 }
 
 export async function confirmCardPaymentIntent(
   intentId: string,
-  paymentMethodId: string,
+  paymentMethodId: string
 ): Promise<CardPaymentIntentResponse> {
-  const res = await apiClient.post<CardPaymentIntentResponse>(
+  return await apiClient.post<CardPaymentIntentResponse>(
     `/api/pos/payment/card/${intentId}/confirm`,
-    { paymentMethodId },
+    { paymentMethodId }
   );
-  return res.data;
 }
 
-export async function cancelCardPaymentIntent(intentId: string): Promise<CardPaymentIntentResponse> {
-  const res = await apiClient.post<CardPaymentIntentResponse>(`/api/pos/payment/card/${intentId}/cancel`);
-  return res.data;
+export async function cancelCardPaymentIntent(
+  intentId: string
+): Promise<CardPaymentIntentResponse> {
+  return await apiClient.post<CardPaymentIntentResponse>(
+    `/api/pos/payment/card/${intentId}/cancel`
+  );
 }
 
 /** Stripe-style test card simulation: create + confirm in one step. */

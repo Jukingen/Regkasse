@@ -51,9 +51,9 @@ export class TableOrdersRecoveryService {
   public async getAllActiveTableOrders(): Promise<TableOrdersRecoveryResponse> {
     try {
       console.log('🔄 Requesting table orders recovery from backend...');
-      
+
       const response = await apiClient.get('/pos/cart/table-orders-recovery');
-      
+
       // Backend'den gelen response'u doğrula
       if (!response || typeof response !== 'object') {
         throw new Error('Invalid response format from backend');
@@ -70,17 +70,19 @@ export class TableOrdersRecoveryService {
         throw new Error('Invalid table orders data structure');
       }
 
-      console.log(`✅ Table orders recovery successful: ${recoveryData.totalActiveTables} active orders`);
-      
+      console.log(
+        `✅ Table orders recovery successful: ${recoveryData.totalActiveTables} active orders`
+      );
+
       return recoveryData;
     } catch (error: any) {
       console.error('❌ Table orders recovery service error:', error);
-      
+
       // API error'ları için detaylı bilgi
       if (error?.response) {
         const status = error.response.status;
         const message = error.response.data?.message || 'Unknown API error';
-        
+
         if (status === 401) {
           throw new Error('Authentication required for table orders recovery');
         } else if (status === 403) {
@@ -91,7 +93,7 @@ export class TableOrdersRecoveryService {
           throw new Error(`API error (${status}): ${message}`);
         }
       }
-      
+
       // Network veya diğer hatalar
       throw new Error(`Table orders recovery failed: ${error.message || 'Unknown error'}`);
     }
@@ -101,16 +103,14 @@ export class TableOrdersRecoveryService {
    * Belirli bir masa için sipariş detaylarını filtreleyerek döndürür
    */
   public getOrderForTable(
-    recoveryData: TableOrdersRecoveryResponse, 
+    recoveryData: TableOrdersRecoveryResponse,
     tableNumber: number
   ): TableOrderRecovery | null {
     if (!recoveryData?.tableOrders || !Array.isArray(recoveryData.tableOrders)) {
       return null;
     }
 
-    return recoveryData.tableOrders.find(
-      order => order.tableNumber === tableNumber
-    ) || null;
+    return recoveryData.tableOrders.find((order) => order.tableNumber === tableNumber) || null;
   }
 
   /**
@@ -122,9 +122,9 @@ export class TableOrdersRecoveryService {
     }
 
     return recoveryData.tableOrders
-      .map(order => order.tableNumber)
-      .filter((tableNumber): tableNumber is number => 
-        typeof tableNumber === 'number' && tableNumber > 0
+      .map((order) => order.tableNumber)
+      .filter(
+        (tableNumber): tableNumber is number => typeof tableNumber === 'number' && tableNumber > 0
       )
       .sort((a, b) => a - b);
   }
@@ -142,12 +142,13 @@ export class TableOrdersRecoveryService {
     if (typeof data.retrievedAt !== 'string') return false;
 
     // Her table order'ın geçerliliğini kontrol et
-    return data.tableOrders.every((order: any) => 
-      typeof order.cartId === 'string' &&
-      typeof order.itemCount === 'number' &&
-      typeof order.totalAmount === 'number' &&
-      typeof order.status === 'string' &&
-      Array.isArray(order.items)
+    return data.tableOrders.every(
+      (order: any) =>
+        typeof order.cartId === 'string' &&
+        typeof order.itemCount === 'number' &&
+        typeof order.totalAmount === 'number' &&
+        typeof order.status === 'string' &&
+        Array.isArray(order.items)
     );
   }
 
@@ -159,8 +160,8 @@ export class TableOrdersRecoveryService {
       const retrievedTime = new Date(retrievedAt).getTime();
       const now = Date.now();
       const fiveMinutesInMs = 5 * 60 * 1000;
-      
-      return (now - retrievedTime) < fiveMinutesInMs;
+
+      return now - retrievedTime < fiveMinutesInMs;
     } catch {
       return false;
     }

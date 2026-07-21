@@ -5,8 +5,8 @@ import type {
 import { BackupScheduleFrequency as BackupScheduleFrequencyEnum } from '@/api/generated/model';
 import {
   BACKUP_SCHEDULE_PRESET_CRONS,
-  normalizeCronWhitespace,
   isPlausibleStandardCron,
+  normalizeCronWhitespace,
 } from '@/features/backup-dr/logic/backupScheduleSettingsApi';
 
 export type { BackupScheduleFrequency };
@@ -127,7 +127,7 @@ export function parseCronToSchedule(cron: string): BackupSchedulePlannerState {
 }
 
 export function plannerStateToPutSchedule(
-  state: BackupSchedulePlannerState,
+  state: BackupSchedulePlannerState
 ): BackupScheduleConfigurationDto {
   return {
     frequency: FREQUENCY_TO_API[state.frequency],
@@ -143,7 +143,8 @@ export function isPlannerStateValid(state: BackupSchedulePlannerState): boolean 
   if (state.hourUtc < 0 || state.hourUtc > 23) return false;
   if (state.minuteUtc < 0 || state.minuteUtc > 59) return false;
   if (state.frequency === 'Weekly' && (state.dayOfWeek < 0 || state.dayOfWeek > 6)) return false;
-  if (state.frequency === 'Monthly' && (state.dayOfMonth < 1 || state.dayOfMonth > 31)) return false;
+  if (state.frequency === 'Monthly' && (state.dayOfMonth < 1 || state.dayOfMonth > 31))
+    return false;
   if (state.frequency === 'Custom') return isPlausibleStandardCron(state.customCron);
   return true;
 }
@@ -160,7 +161,7 @@ export function buildCronFromPlannerState(state: BackupSchedulePlannerState): st
 }
 
 function normalizeApiFrequency(
-  frequency: BackupScheduleConfigurationDto['frequency'] | undefined,
+  frequency: BackupScheduleConfigurationDto['frequency'] | undefined
 ): BackupScheduleFrequencyKey {
   if (frequency === undefined) return 'Custom';
   return FREQUENCY_FROM_API[frequency] ?? 'Custom';
@@ -169,7 +170,7 @@ function normalizeApiFrequency(
 /** Map API schedule DTO to planner state. */
 export function apiScheduleToPlannerState(
   schedule: BackupScheduleConfigurationDto | null | undefined,
-  fallbackCron: string,
+  fallbackCron: string
 ): BackupSchedulePlannerState {
   if (!schedule) return parseCronToSchedule(fallbackCron);
 

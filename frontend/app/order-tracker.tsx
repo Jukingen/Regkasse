@@ -3,7 +3,9 @@
  * Expo route: /order-tracker — React Native UI (not Ant Design).
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   ScrollView,
@@ -13,8 +15,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useTranslation } from 'react-i18next';
+
 import { useOrderStatus } from '@/hooks/useOrderStatus';
+import { normalizeCustomerTenantSlug } from '@/services/customerApp/customerTenantSlug';
 import { getEnvDevTenantSlug } from '@/services/tenant/devTenant';
 
 const STEP_KEYS = ['pending', 'accepted', 'preparing', 'ready', 'completed'] as const;
@@ -44,26 +47,52 @@ function stepIndex(status: string): number {
   return idx >= 0 ? idx : 0;
 }
 
+function firstParam(value: string | string[] | undefined): string {
+  if (Array.isArray(value)) return value[0]?.trim() ?? '';
+  return value?.trim() ?? '';
+}
+
 export default function OrderTrackerPage() {
   const { t } = useTranslation('orders');
+  const params = useLocalSearchParams<{
+    tenant?: string | string[];
+    order?: string | string[];
+    orderNumber?: string | string[];
+    phone?: string | string[];
+  }>();
   const { order, isLoading, error, notFound, fetchOrder } = useOrderStatus();
   const [tenant, setTenant] = useState('');
   const [orderNumber, setOrderNumber] = useState('');
   const [phone, setPhone] = useState('');
+  const autoFetched = useRef(false);
 
   useEffect(() => {
-    const envSlug = getEnvDevTenantSlug();
-    if (envSlug) setTenant(envSlug);
-  }, []);
+    const fromDeepLink =
+      normalizeCustomerTenantSlug(firstParam(params.tenant)) ?? getEnvDevTenantSlug();
+    if (fromDeepLink) setTenant(fromDeepLink);
+
+    const fromOrder = firstParam(params.order) || firstParam(params.orderNumber);
+    if (fromOrder) setOrderNumber(fromOrder);
+
+    const fromPhone = firstParam(params.phone);
+    if (fromPhone) setPhone(fromPhone);
+  }, [params.tenant, params.order, params.orderNumber, params.phone]);
 
   const onSearch = useCallback(() => {
     void fetchOrder(tenant, orderNumber, phone || undefined);
   }, [fetchOrder, tenant, orderNumber, phone]);
 
-  const currentStep = useMemo(
-    () => (order ? stepIndex(order.orderStatus) : -1),
-    [order],
-  );
+  // Deep link / email: auto-fetch when tenant + order are present.
+  useEffect(() => {
+    if (autoFetched.current) return;
+    const tSlug = normalizeCustomerTenantSlug(firstParam(params.tenant));
+    const oNum = firstParam(params.order) || firstParam(params.orderNumber);
+    if (!tSlug || !oNum) return;
+    autoFetched.current = true;
+    void fetchOrder(tSlug, oNum, firstParam(params.phone) || undefined);
+  }, [params.tenant, params.order, params.orderNumber, params.phone, fetchOrder]);
+
+  const currentStep = useMemo(() => (order ? stepIndex(order.orderStatus) : -1), [order]);
 
   const money = (value: number, currency: string) => {
     try {
@@ -112,8 +141,7 @@ export default function OrderTrackerPage() {
           onPress={onSearch}
           disabled={isLoading}
           accessibilityRole="button"
-          accessibilityLabel={t('tracker.search')}
-        >
+          accessibilityLabel={t('tracker.search')}>
           {isLoading ? (
             <ActivityIndicator color="#fff" />
           ) : (
@@ -191,21 +219,14 @@ export default function OrderTrackerPage() {
                           styles.stepCircle,
                           completed && styles.stepCompleted,
                           current && styles.stepCurrent,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.stepNumber,
-                            completed && styles.stepNumberCompleted,
-                          ]}
-                        >
+                        ]}>
+                        <Text style={[styles.stepNumber, completed && styles.stepNumberCompleted]}>
                           {completed ? '✓' : String(index + 1)}
                         </Text>
                       </View>
                       <Text
                         style={[styles.stepLabel, completed && styles.stepLabelCompleted]}
-                        numberOfLines={2}
-                      >
+                        numberOfLines={2}>
                         {stepLabel(step)}
                       </Text>
                     </View>
@@ -226,8 +247,7 @@ export default function OrderTrackerPage() {
               style={[
                 styles.statusBadge,
                 { backgroundColor: statusColor('cancelled'), alignSelf: 'flex-start' },
-              ]}
-            >
+              ]}>
               <Text style={styles.statusBadgeText}>{statusLabel('cancelled')}</Text>
             </View>
           )}

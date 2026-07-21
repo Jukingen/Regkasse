@@ -15,14 +15,12 @@ import {
 
 import { licenseApi } from '../../../api/license';
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../../../constants/SoftTheme';
-import {
-  handleLicenseRenewal,
-  LICENSE_SUPPORT_EMAIL,
-} from '../../../constants/licenseRenewal';
+import { handleLicenseRenewal, LICENSE_SUPPORT_EMAIL } from '../../../constants/licenseRenewal';
 import { useLicenseStatus } from '../../../hooks/useLicenseStatus';
-import { adminRedirector } from '@/src/features/admin-navigation/openAdmin';
 import { formatUserDateTime } from '../../../utils/dateFormatter';
 import { preferLicenseHoursRemaining } from '../../../utils/licenseExpiryRemaining';
+
+import { adminRedirector } from '@/src/features/admin-navigation/openAdmin';
 
 const LICENSE_KEY_PATTERN = /^REGK-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$/i;
 
@@ -54,7 +52,9 @@ export default function LicenseActivationScreen() {
 
   const [licenseKey, setLicenseKey] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; text: string } | null>(
+    null
+  );
 
   const unlimitedPaid =
     !!status && status.isValid && !status.isTrial && !status.isExpired && !status.expiryDate;
@@ -120,14 +120,20 @@ export default function LicenseActivationScreen() {
       setFeedback({ kind: 'error', text: t('license:activationFailed') });
     } catch (err: unknown) {
       const st =
-        err && typeof err === 'object' && 'status' in err && typeof (err as ApiErrorShape).status === 'number'
+        err &&
+        typeof err === 'object' &&
+        'status' in err &&
+        typeof (err as ApiErrorShape).status === 'number'
           ? (err as ApiErrorShape).status
           : undefined;
       const serverMsg = readApiErrorMessage(err);
       const noResponse = st === undefined;
       setFeedback({
         kind: 'error',
-        text: noResponse && !serverMsg ? t('license:activationNetwork') : mapActivationFailureToGerman(serverMsg, t),
+        text:
+          noResponse && !serverMsg
+            ? t('license:activationNetwork')
+            : mapActivationFailureToGerman(serverMsg, t),
       });
     } finally {
       setSubmitting(false);
@@ -137,7 +143,12 @@ export default function LicenseActivationScreen() {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} accessibilityRole="button">
+        <TouchableOpacity
+          onPress={() => {
+            router.back();
+          }}
+          style={styles.backBtn}
+          accessibilityRole="button">
           <Text style={styles.backText}>← {t('common:back')}</Text>
         </TouchableOpacity>
         <Text style={styles.title}>{t('license:activationScreenTitle')}</Text>
@@ -173,15 +184,21 @@ export default function LicenseActivationScreen() {
 
           {feedback ? (
             <View
-              style={[styles.feedbackBox, feedback.kind === 'success' ? styles.feedbackOk : styles.feedbackErr]}
-              accessibilityLiveRegion="polite"
-            >
+              style={[
+                styles.feedbackBox,
+                feedback.kind === 'success' ? styles.feedbackOk : styles.feedbackErr,
+              ]}
+              accessibilityLiveRegion="polite">
               <Ionicons
                 name={feedback.kind === 'success' ? 'checkmark-circle' : 'alert-circle'}
                 size={18}
                 color={feedback.kind === 'success' ? '#1b5e20' : '#b71c1c'}
               />
-              <Text style={[styles.feedbackText, feedback.kind === 'success' ? styles.feedbackTextOk : styles.feedbackTextErr]}>
+              <Text
+                style={[
+                  styles.feedbackText,
+                  feedback.kind === 'success' ? styles.feedbackTextOk : styles.feedbackTextErr,
+                ]}>
                 {feedback.text}
               </Text>
             </View>
@@ -192,8 +209,7 @@ export default function LicenseActivationScreen() {
             onPress={() => void onActivate()}
             disabled={submitting}
             accessibilityRole="button"
-            accessibilityLabel={t('license:activationSubmit')}
-          >
+            accessibilityLabel={t('license:activationSubmit')}>
             {submitting ? (
               <ActivityIndicator color={SoftColors.textInverse} />
             ) : (
@@ -204,8 +220,13 @@ export default function LicenseActivationScreen() {
 
         <View style={styles.card}>
           <Text style={styles.sectionLabel}>{t('license:activationExtendSection')}</Text>
-          <Text style={styles.extendBody}>{t('license:activationExtendBody', { email: LICENSE_SUPPORT_EMAIL })}</Text>
-          <TouchableOpacity style={styles.secondaryBtn} onPress={() => void openRenewPrimary()} accessibilityRole="button">
+          <Text style={styles.extendBody}>
+            {t('license:activationExtendBody', { email: LICENSE_SUPPORT_EMAIL })}
+          </Text>
+          <TouchableOpacity
+            style={styles.secondaryBtn}
+            onPress={() => void openRenewPrimary()}
+            accessibilityRole="button">
             <Ionicons
               name={hasConfiguredExtensionUrl ? 'open-outline' : 'mail-outline'}
               size={18}
@@ -221,19 +242,22 @@ export default function LicenseActivationScreen() {
 
 function mapActivationFailureToGerman(
   serverMsg: string | undefined,
-  t: (key: string, opts?: Record<string, string>) => string,
+  t: (key: string, opts?: Record<string, string>) => string
 ): string {
   if (!serverMsg) return t('license:activationFailed');
   const m = serverMsg.trim();
   if (m.includes('Invalid license key format')) return t('license:activationInvalidFormat');
   if (m.includes('LicenseKey is required')) return t('license:activationKeyRequired');
-  if (m.includes('Machine fingerprint does not match')) return t('license:activationFingerprintMismatch');
+  if (m.includes('Machine fingerprint does not match'))
+    return t('license:activationFingerprintMismatch');
   if (m.includes('transferred or revoked')) return t('license:activationRevokedOrTransferred');
   if (m.includes('Remote license server')) return t('license:activationRemoteRejected');
   if (m.includes('OpenAPI export mode')) return t('license:activationDisabledExport');
-  if (m.includes('could not be recorded in the database')) return t('license:activationDbRecordFailed');
+  if (m.includes('could not be recorded in the database'))
+    return t('license:activationDbRecordFailed');
   if (m.includes('internal error')) return t('license:activationInternalError');
-  if (m.includes('OfflineVerificationPublicKeyPem is not configured')) return t('license:activationOfflinePemMissing');
+  if (m.includes('OfflineVerificationPublicKeyPem is not configured'))
+    return t('license:activationOfflinePemMissing');
   return t('license:activationFailed');
 }
 

@@ -1,18 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
 import {
+  RKSV_ENV_I18N_KEYS,
+  RKSV_PUBLIC_ENV_VAR_NAME,
+  type RksvEnvCanonical,
+  type RksvEnvironmentAlertType,
+  type RksvEnvironmentBadgeColor,
+  type RksvEnvironmentDisplayLabelKey,
+  RksvPublicEnvironmentState,
+  type StrictParsedRksvPublicEnvironment,
   getRksvEnvironmentAlertType,
   getRksvEnvironmentBadgeColor,
   getRksvEnvironmentDisplayLabelKey,
   parseStrictRksvPublicEnvironment,
-  RKSV_ENV_I18N_KEYS,
-  RKSV_PUBLIC_ENV_VAR_NAME,
-  RksvPublicEnvironmentState,
   sanitizeRksvEnvironmentRawForDisplay,
-  type RksvEnvironmentAlertType,
-  type RksvEnvironmentBadgeColor,
-  type RksvEnvironmentDisplayLabelKey,
-  type RksvEnvCanonical,
-  type StrictParsedRksvPublicEnvironment,
 } from '../rksvEnvironment';
 
 /** Kanonik ortam: yalnızca geçerli TEST/PROD; aksi halde null (INVALID / UNCONFIGURED). */
@@ -42,12 +43,19 @@ function normalizedCanonical(parsed: StrictParsedRksvPublicEnvironment): Normali
 function assertRksvParse(raw: string, exp: RksvParseExpectation): void {
   const parsed = parseStrictRksvPublicEnvironment(raw);
   expect(parsed.state, `state for input ${JSON.stringify(raw)}`).toBe(exp.state);
-  expect(normalizedCanonical(parsed), `normalized for input ${JSON.stringify(raw)}`).toBe(exp.normalized);
-  expect(getRksvEnvironmentDisplayLabelKey(parsed), `label key for input ${JSON.stringify(raw)}`).toBe(
-    exp.displayLabelKey
+  expect(normalizedCanonical(parsed), `normalized for input ${JSON.stringify(raw)}`).toBe(
+    exp.normalized
   );
-  expect(getRksvEnvironmentAlertType(parsed), `alert for input ${JSON.stringify(raw)}`).toBe(exp.alertType);
-  expect(getRksvEnvironmentBadgeColor(parsed), `badge for input ${JSON.stringify(raw)}`).toBe(exp.badgeColor);
+  expect(
+    getRksvEnvironmentDisplayLabelKey(parsed),
+    `label key for input ${JSON.stringify(raw)}`
+  ).toBe(exp.displayLabelKey);
+  expect(getRksvEnvironmentAlertType(parsed), `alert for input ${JSON.stringify(raw)}`).toBe(
+    exp.alertType
+  );
+  expect(getRksvEnvironmentBadgeColor(parsed), `badge for input ${JSON.stringify(raw)}`).toBe(
+    exp.badgeColor
+  );
   if (exp.state === RksvPublicEnvironmentState.INVALID) {
     expect(parsed.state).toBe(RksvPublicEnvironmentState.INVALID);
     if (parsed.state === RksvPublicEnvironmentState.INVALID) {
@@ -165,7 +173,9 @@ describe('parseStrictRksvPublicEnvironment — process.env tanımsız (undefined
     const parsed = parseStrictRksvPublicEnvironment();
     expect(parsed).toEqual({ state: RksvPublicEnvironmentState.UNCONFIGURED });
     expect(normalizedCanonical(parsed)).toBeNull();
-    expect(getRksvEnvironmentDisplayLabelKey(parsed)).toBe(RKSV_ENV_I18N_KEYS.displayLabel.unconfigured);
+    expect(getRksvEnvironmentDisplayLabelKey(parsed)).toBe(
+      RKSV_ENV_I18N_KEYS.displayLabel.unconfigured
+    );
     expect(getRksvEnvironmentAlertType(parsed)).toBe('warning');
     expect(getRksvEnvironmentBadgeColor(parsed)).toBe('warning');
   });

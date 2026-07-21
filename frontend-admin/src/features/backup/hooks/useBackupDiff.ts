@@ -1,15 +1,16 @@
-"use client";
+'use client';
 
-import { useMemo } from "react";
-import { useQueries } from "@tanstack/react-query";
+import { useQueries } from '@tanstack/react-query';
+import { useMemo } from 'react';
+
+import {
+  type BackupDiffViewModel,
+  buildBackupDiffViewModel,
+} from '@/features/backup/logic/backupDiffPresentation';
 import {
   getBackupVerificationReport,
   getBackupVerificationReportQueryKey,
-} from "@/features/backup/logic/backupVerificationReportApi";
-import {
-  buildBackupDiffViewModel,
-  type BackupDiffViewModel,
-} from "@/features/backup/logic/backupDiffPresentation";
+} from '@/features/backup/logic/backupVerificationReportApi';
 
 export type UseBackupDiffOptions = {
   enabled?: boolean;
@@ -18,10 +19,10 @@ export type UseBackupDiffOptions = {
 export function useBackupDiff(
   backup1Id: string | null | undefined,
   backup2Id: string | null | undefined,
-  options?: UseBackupDiffOptions,
+  options?: UseBackupDiffOptions
 ) {
-  const id1 = backup1Id?.trim() || "";
-  const id2 = backup2Id?.trim() || "";
+  const id1 = backup1Id?.trim() || '';
+  const id2 = backup2Id?.trim() || '';
   const bothSet = Boolean(id1 && id2 && id1 !== id2);
   const enabled = options?.enabled !== false && bothSet;
 
@@ -30,7 +31,7 @@ export function useBackupDiff(
       {
         queryKey: id1
           ? getBackupVerificationReportQueryKey(id1)
-          : ["backup-verification-report", "idle", "diff-a"],
+          : ['backup-verification-report', 'idle', 'diff-a'],
         queryFn: () => getBackupVerificationReport(id1),
         enabled: enabled && Boolean(id1),
         staleTime: 60_000,
@@ -38,7 +39,7 @@ export function useBackupDiff(
       {
         queryKey: id2
           ? getBackupVerificationReportQueryKey(id2)
-          : ["backup-verification-report", "idle", "diff-b"],
+          : ['backup-verification-report', 'idle', 'diff-b'],
         queryFn: () => getBackupVerificationReport(id2),
         enabled: enabled && Boolean(id2),
         staleTime: 60_000,

@@ -31,6 +31,7 @@ frontend/i18n/
 ## 🏗️ Kategori Yapısı
 
 ### 1. Common (Genel)
+
 ```json
 {
   "common": {
@@ -55,6 +56,7 @@ frontend/i18n/
 ```
 
 ### 2. Auth (Kimlik Doğrulama)
+
 ```json
 {
   "auth": {
@@ -72,6 +74,7 @@ frontend/i18n/
 ```
 
 ### 3. Cash Register (Kasa)
+
 ```json
 {
   "cashRegister": {
@@ -95,6 +98,7 @@ frontend/i18n/
 ```
 
 ### 4. Payment (Ödeme)
+
 ```json
 {
   "payment": {
@@ -105,7 +109,7 @@ frontend/i18n/
     "tseVerification": "TSE-Verifizierung",
     "confirmation": "Bestätigung",
     "receipt": "Beleg",
-    
+
     "stepTitles": { ... },
     "customer": { ... },
     "methods": { ... },
@@ -121,6 +125,7 @@ frontend/i18n/
 ```
 
 ### 5. Settings (Ayarlar)
+
 ```json
 {
   "settings": {
@@ -147,10 +152,8 @@ import { useTranslation } from 'react-i18next';
 
 const MyComponent = () => {
   const { t } = useTranslation();
-  
-  return (
-    <Text>{t('common.loading')}</Text>
-  );
+
+  return <Text>{t('common.loading')}</Text>;
 };
 ```
 
@@ -161,18 +164,16 @@ import { useI18n } from '../i18n/helpers';
 
 const MyComponent = () => {
   const { t, getCurrentLanguage, changeLanguage } = useI18n();
-  
+
   const handleLanguageChange = async (lang: string) => {
     await changeLanguage(lang);
   };
-  
+
   return (
     <View>
       <Text>Mevcut Dil: {getCurrentLanguage()}</Text>
       <Text>{t('common.appName')}</Text>
-      <Button onPress={() => handleLanguageChange('en')}>
-        İngilizce'ye Geç
-      </Button>
+      <Button onPress={() => handleLanguageChange('en')}>İngilizce'ye Geç</Button>
     </View>
   );
 };
@@ -185,16 +186,15 @@ import { I18N_KEYS } from '../i18n/helpers';
 
 const MyComponent = () => {
   const { t } = useTranslation();
-  
-  return (
-    <Text>{t(I18N_KEYS.COMMON.APP_NAME)}</Text>
-  );
+
+  return <Text>{t(I18N_KEYS.COMMON.APP_NAME)}</Text>;
 };
 ```
 
 ## 🔧 Yapılandırma
 
 ### Varsayılan Dil
+
 ```typescript
 // frontend/i18n/index.ts
 i18n.init({
@@ -206,6 +206,7 @@ i18n.init({
 ```
 
 ### Dil Değiştirme
+
 ```typescript
 import { setLanguage } from '../i18n';
 
@@ -216,6 +217,7 @@ await setLanguage('en');
 ## 📝 Yeni Çeviri Ekleme
 
 ### 1. Dil Dosyalarına Ekle
+
 ```json
 // frontend/i18n/locales/de.json
 {
@@ -240,17 +242,19 @@ await setLanguage('en');
 ```
 
 ### 2. Sabitlere Ekle
+
 ```typescript
 // frontend/i18n/helpers.ts
 export const I18N_KEYS = {
   // ... mevcut kategoriler
   NEW_CATEGORY: {
-    NEW_KEY: 'newCategory.newKey'
-  }
+    NEW_KEY: 'newCategory.newKey',
+  },
 };
 ```
 
 ### 3. Kullan
+
 ```tsx
 const { t } = useTranslation();
 <Text>{t('newCategory.newKey')}</Text>
@@ -261,6 +265,7 @@ const { t } = useTranslation();
 ## 🧪 Test
 
 ### Çeviri Kontrolü
+
 ```typescript
 import { useI18n } from '../i18n/helpers';
 
@@ -286,11 +291,13 @@ const text = getTranslation('unknown.key', 'Varsayılan Metin');
 ## 🔍 Sorun Giderme
 
 ### Çeviri Görünmüyor
+
 1. Dil dosyasında anahtarın mevcut olduğunu kontrol edin
 2. JSON syntax'ını kontrol edin
 3. Dosya import'larını kontrol edin
 
 ### Dil Değişmiyor
+
 1. AsyncStorage izinlerini kontrol edin
 2. i18n.changeLanguage çağrısını kontrol edin
 3. Console hatalarını kontrol edin

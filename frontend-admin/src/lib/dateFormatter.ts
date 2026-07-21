@@ -57,7 +57,7 @@ export function formatUserMonthYear(input: string | number | Date | null | undef
 /** `01.12.2025 10:30` or with seconds when requested. */
 export function formatUserDateTime(
   input: string | number | Date | null | undefined,
-  options?: FormatUserDateTimeOptions,
+  options?: FormatUserDateTimeOptions
 ): string {
   const d = parseInput(input);
   if (!d) return '';
@@ -76,7 +76,7 @@ export const formatDateTime = formatUserDateTime;
 /** `10:30` or `10:30:45`. */
 export function formatUserTime(
   input: string | number | Date | null | undefined,
-  options?: { includeSeconds?: boolean },
+  options?: { includeSeconds?: boolean }
 ): string {
   const d = parseInput(input);
   if (!d) return '';

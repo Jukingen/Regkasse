@@ -19,11 +19,14 @@ export function normalizeRksvEnvironmentStatus(raw: unknown): RksvEnvironmentSta
     isSimulated: readBool(body.isSimulated ?? body.IsSimulated),
     showDemoLabel: readBool(body.showDemoLabel ?? body.ShowDemoLabel),
     tseStatusDisplay: readString(
-      body.tseStatusDisplay ?? body.TseStatusDisplay ?? body.tseStatus ?? body.TseStatus,
+      body.tseStatusDisplay ?? body.TseStatusDisplay ?? body.tseStatus ?? body.TseStatus
     ),
     tseStatusBadge: readString(body.tseStatusBadge ?? body.TseStatusBadge),
     environmentDisplayName: readString(
-      body.environmentDisplayName ?? body.EnvironmentDisplayName ?? body.displayName ?? body.DisplayName,
+      body.environmentDisplayName ??
+        body.EnvironmentDisplayName ??
+        body.displayName ??
+        body.DisplayName
     ),
   };
 }

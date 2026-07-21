@@ -1,20 +1,21 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import { HistoryOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { Alert, Button, Card, Input, Space, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import Link from 'next/link';
-import { HistoryOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import React, { useMemo, useState } from 'react';
+
+import type { AdminVoucherListItemDto } from '@/api/admin/vouchers';
+import { useAdminVouchersList } from '@/api/admin/vouchers';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { useI18n } from '@/i18n';
-import { usePermissions } from '@/shared/auth/usePermissions';
-import { PERMISSIONS } from '@/shared/auth/permissions';
-import { useAdminVouchersList } from '@/api/admin/vouchers';
-import type { AdminVoucherListItemDto } from '@/api/admin/vouchers';
 import { VoucherHistory } from '@/features/vouchers/components/VoucherHistory';
+import { useI18n } from '@/i18n';
 import { formatCurrency, formatDateTime } from '@/i18n/formatting';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { PERMISSIONS } from '@/shared/auth/permissions';
+import { usePermissions } from '@/shared/auth/usePermissions';
 
 function statusColor(status: string): string {
   switch (status) {
@@ -41,10 +42,9 @@ function creatorFallback(userId?: string | null): string {
 }
 
 function formatCreator(value: AdminVoucherListItemDto): string {
-  const parts = [
-    value.createdByDisplayName?.trim(),
-    value.createdByEmail?.trim(),
-  ].filter((x): x is string => !!x);
+  const parts = [value.createdByDisplayName?.trim(), value.createdByEmail?.trim()].filter(
+    (x): x is string => !!x
+  );
   const roleText = (value.createdByRoles ?? []).filter(Boolean).join(', ');
   if (parts.length > 0 && roleText) return `${parts.join(' · ')} (${roleText})`;
   if (parts.length > 0) return parts.join(' · ');
@@ -65,10 +65,7 @@ export default function AdminVouchersListPage() {
   const [q, setQ] = useState('');
   const [historyVoucherId, setHistoryVoucherId] = useState<string | null>(null);
 
-  const listQuery = useAdminVouchersList(
-    { page, pageSize, q },
-    { enabled: canRead }
-  );
+  const listQuery = useAdminVouchersList({ page, pageSize, q }, { enabled: canRead });
 
   const columns: ColumnsType<AdminVoucherListItemDto> = useMemo(
     () => [
@@ -77,15 +74,22 @@ export default function AdminVouchersListPage() {
         title: t('vouchers.list.columns.initialAmount'),
         dataIndex: 'initialAmount',
         key: 'initialAmount',
-        render: (v: number, r) => formatCurrency(v, formatLocale, { currency: r.currency || 'EUR' }),
+        render: (v: number, r) =>
+          formatCurrency(v, formatLocale, { currency: r.currency || 'EUR' }),
       },
       {
         title: t('vouchers.list.columns.remainingAmount'),
         dataIndex: 'remainingAmount',
         key: 'remainingAmount',
-        render: (v: number, r) => formatCurrency(v, formatLocale, { currency: r.currency || 'EUR' }),
+        render: (v: number, r) =>
+          formatCurrency(v, formatLocale, { currency: r.currency || 'EUR' }),
       },
-      { title: t('vouchers.list.columns.currency'), dataIndex: 'currency', key: 'currency', width: 90 },
+      {
+        title: t('vouchers.list.columns.currency'),
+        dataIndex: 'currency',
+        key: 'currency',
+        width: 90,
+      },
       {
         title: t('vouchers.list.columns.status'),
         dataIndex: 'status',
@@ -175,7 +179,12 @@ export default function AdminVouchersListPage() {
         }
       />
       {listQuery.isError ? (
-        <Alert type="error" title={t('vouchers.errors.loadFailed')} showIcon style={{ marginBottom: 16 }} />
+        <Alert
+          type="error"
+          title={t('vouchers.errors.loadFailed')}
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
       ) : null}
       <Card>
         <Space wrap style={{ marginBottom: 16 }}>

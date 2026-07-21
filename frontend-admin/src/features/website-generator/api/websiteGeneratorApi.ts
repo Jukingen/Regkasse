@@ -1,4 +1,4 @@
-import { customInstance, AXIOS_INSTANCE } from '@/lib/axios';
+import { AXIOS_INSTANCE, customInstance } from '@/lib/axios';
 
 export type WebsiteTemplate = {
   id: string;
@@ -170,11 +170,11 @@ function mapPreview(dto: PreviewWebsiteApi): PreviewWebsiteResponse {
 export function buildWebsitePreviewBlobUrl(html: string, css: string, js: string): string {
   const withCss = html.replace(
     /<link\s+rel=["']stylesheet["']\s+href=["']styles\.css["']\s*\/?>/i,
-    `<style>${css}</style>`,
+    `<style>${css}</style>`
   );
   const withJs = withCss.replace(
     /<script\s+src=["']app\.js["'][^>]*>\s*<\/script>/i,
-    `<script>${js}</script>`,
+    `<script>${js}</script>`
   );
   return URL.createObjectURL(new Blob([withJs], { type: 'text/html;charset=utf-8' }));
 }
@@ -212,7 +212,7 @@ export async function fetchWebsiteTemplates(): Promise<WebsiteTemplate[]> {
 
 export async function generateWebsite(
   templateId: string,
-  tenantId?: string,
+  tenantId?: string
 ): Promise<GenerateWebsiteResponse> {
   const res = await customInstance<GenerateWebsiteApi>({
     url: '/api/admin/website/generate',
@@ -227,7 +227,7 @@ export async function generateWebsite(
 
 export async function generateMobileApp(
   appType: 'Pwa' | 'Native',
-  tenantId?: string,
+  tenantId?: string
 ): Promise<GenerateMobileAppResponse> {
   const res = await customInstance<GenerateMobileApi>({
     url: '/api/admin/website/mobile/generate',
@@ -251,7 +251,7 @@ export async function downloadTenantAppPackage(opts?: {
       appType: opts?.appType ?? 'Native',
       ...(opts?.tenantId ? { tenantId: opts.tenantId } : {}),
     },
-    { responseType: 'blob' },
+    { responseType: 'blob' }
   );
 
   const disposition = res.headers['content-disposition'] as string | undefined;

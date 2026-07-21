@@ -3,13 +3,12 @@
  * yanlış okumasına yol açmasın — anlamsal ton `backupDrOperatorTruthModel` ve kanıt merdiveninde kalır,
  * yalnızca görsel öncelik nötrleştirilir.
  */
-
 import type { EvidenceHeadlineTone } from '@/features/backup-dr/logic/backupDrEvidenceLadder';
 import type { ExternalCopyVariant } from '@/features/backup-dr/logic/backupDrMappers';
 
 /** Üst operatör doğruluk şeridi: “güçlü sinyaller” bile yeşil tamamlanma gibi görünmesin. */
 export function mapOperatorValidityStripToAlertType(
-  severity: 'warning' | 'info' | 'success',
+  severity: 'warning' | 'info' | 'success'
 ): 'warning' | 'info' {
   if (severity === 'warning') return 'warning';
   if (severity === 'success') return 'info';
@@ -30,7 +29,10 @@ export const REAL_DUMP_PATH_BANNER_ALERT_TYPE: 'info' = 'info';
  * Harici arşiv kartı: `externalLifecycleOk` yalnızca metadata / yaşam döngüsü — “tamamlandı” gibi okunmasın;
  * başarısız veya karışık ile aynı uyarı tonu (içerik metni zaten sınırlayıcı).
  */
-export function mapExternalCopyVariantToAlertType(variant: ExternalCopyVariant): 'warning' | 'info' {
-  if (variant === 'failed' || variant === 'mixed' || variant === 'externalLifecycleOk') return 'warning';
+export function mapExternalCopyVariantToAlertType(
+  variant: ExternalCopyVariant
+): 'warning' | 'info' {
+  if (variant === 'failed' || variant === 'mixed' || variant === 'externalLifecycleOk')
+    return 'warning';
   return 'info';
 }

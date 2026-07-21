@@ -54,7 +54,7 @@ type DayKey = (typeof DAY_KEYS)[number];
  */
 export function resolveTodayWorkingHoursDay(
   workingHours: PosWorkingHours | Record<number, PosWorkingHoursDay> | null | undefined,
-  now: Date = new Date(),
+  now: Date = new Date()
 ): PosWorkingHoursDay | null {
   if (!workingHours) return null;
 
@@ -72,13 +72,17 @@ export function resolveTodayWorkingHoursDay(
 /**
  * Parse reminder threshold from settings (API + sketch aliases).
  */
-export function resolveReminderHoursBeforeClose(settings: {
-  workingHours?: PosWorkingHours | null;
-  reminderHoursBeforeClose?: number;
-  reminderHoursBeforeClosing?: number;
-} | null | undefined): number {
-  const fromRoot =
-    settings?.reminderHoursBeforeClose ?? settings?.reminderHoursBeforeClosing;
+export function resolveReminderHoursBeforeClose(
+  settings:
+    | {
+        workingHours?: PosWorkingHours | null;
+        reminderHoursBeforeClose?: number;
+        reminderHoursBeforeClosing?: number;
+      }
+    | null
+    | undefined
+): number {
+  const fromRoot = settings?.reminderHoursBeforeClose ?? settings?.reminderHoursBeforeClosing;
   if (typeof fromRoot === 'number' && Number.isFinite(fromRoot)) {
     return Math.max(0, Math.min(12, fromRoot));
   }
@@ -97,8 +101,16 @@ function parseHhMm(value: string): { hours: number; minutes: number } | null {
 
 function getZonedParts(
   now: Date,
-  timeZone: string,
-): { year: number; month: number; day: number; hour: number; minute: number; second: number; weekday: DayKey } {
+  timeZone: string
+): {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  second: number;
+  weekday: DayKey;
+} {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone,
     year: 'numeric',
@@ -138,11 +150,18 @@ function zonedLocalToUtc(
   hour: number,
   minute: number,
   second: number,
-  timeZone: string,
+  timeZone: string
 ): Date {
   const utcGuess = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
   const parts = getZonedParts(utcGuess, timeZone);
-  const asUtcLike = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
+  const asUtcLike = Date.UTC(
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    parts.hour,
+    parts.minute,
+    parts.second
+  );
   const offsetMs = asUtcLike - utcGuess.getTime();
   return new Date(utcGuess.getTime() - offsetMs);
 }
@@ -151,7 +170,7 @@ function addCalendarDays(
   year: number,
   month: number,
   day: number,
-  delta: number,
+  delta: number
 ): { year: number; month: number; day: number } {
   const base = new Date(Date.UTC(year, month - 1, day + delta));
   return {
@@ -168,7 +187,7 @@ function addCalendarDays(
 export function computeWorkingHoursClosingAt(
   now: Date,
   timeZone: string,
-  workingHours: PosWorkingHours,
+  workingHours: PosWorkingHours
 ): Date | null {
   const local = getZonedParts(now, timeZone);
   const day = workingHours[local.weekday];
@@ -206,7 +225,7 @@ export function computeWorkingHoursClosingAt(
     close.hours,
     close.minutes,
     0,
-    timeZone,
+    timeZone
   );
 }
 
@@ -263,10 +282,7 @@ export function computeSmartTagesabschlussReminder(options: {
   if (hoursConfig) {
     const closingAt = computeWorkingHoursClosingAt(now, timeZone, hoursConfig);
     if (closingAt) {
-      const reminderHours = Math.max(
-        0,
-        Math.min(12, hoursConfig.reminderHoursBeforeClosing ?? 1),
-      );
+      const reminderHours = Math.max(0, Math.min(12, hoursConfig.reminderHoursBeforeClosing ?? 1));
       const reminderStartMs = closingAt.getTime() - reminderHours * 3600_000;
       const secondsRemaining = Math.max(0, Math.ceil((closingAt.getTime() - now.getTime()) / 1000));
       const shouldShow = now.getTime() >= reminderStartMs;
@@ -310,8 +326,6 @@ export function computeSmartTagesabschlussReminder(options: {
  * Remind when today's closing is still allowed and there is time left in the Vienna day.
  * @deprecated Prefer {@link computeSmartTagesabschlussReminder}.
  */
-export function computePosTagesabschlussClosingRequired(options: {
-  canClose: boolean;
-}): boolean {
+export function computePosTagesabschlussClosingRequired(options: { canClose: boolean }): boolean {
   return options.canClose === true;
 }

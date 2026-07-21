@@ -1,33 +1,28 @@
 /**
  * TaskMaster Tab Screen - AI destekli görev yönetimi ekranı
- * 
+ *
  * Bu ekran, task-master-ai entegrasyonu ile gelişmiş görev yönetimi sunar.
  * RKSV kurallarına uygun olarak tasarlanmış, Almanca UI ile çok dilli destek içerir.
- * 
+ *
  * Özellikler:
  * - Task-Master-AI dashboard entegrasyonu
  * - Responsive mobil tasarım
  * - Offline çalışma desteği
  * - RKSV compliance tracking
  * - AI destekli görev analizi
- * 
+ *
  * @author Frontend Team
  * @version 1.0.0
  * @since 2025-01-10
  */
 
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  SafeAreaView,
-  Alert
-} from 'react-native';
-import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Stack } from 'expo-router';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import TaskMasterDashboard from '../../components/TaskMasterDashboard';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -68,35 +63,35 @@ export default function TaskMasterScreen() {
       title: t('taskmaster.quick_rksv', 'RKSV Compliance Prüfung'),
       description: t('taskmaster.quick_rksv_desc', 'TSE Signatur und Compliance überprüfen'),
       icon: 'shield-checkmark-outline',
-      color: '#FF5722'
+      color: '#FF5722',
     },
     {
       title: t('taskmaster.quick_tse', 'TSE Integration'),
       description: t('taskmaster.quick_tse_desc', 'TSE Gerät Verbindung testen'),
       icon: 'hardware-chip-outline',
-      color: '#FF9800'
+      color: '#FF9800',
     },
     {
       title: t('taskmaster.quick_invoice', 'Rechnungsmanagement'),
       description: t('taskmaster.quick_invoice_desc', 'Rechnungen verwalten und prüfen'),
       icon: 'document-outline',
-      color: '#2196F3'
+      color: '#2196F3',
     },
     {
       title: t('taskmaster.quick_payment', 'Zahlungsabwicklung'),
       description: t('taskmaster.quick_payment_desc', 'Payment Gateway testen'),
       icon: 'card-outline',
-      color: '#4CAF50'
-    }
+      color: '#4CAF50',
+    },
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <Stack.Screen
         options={{
           title: t('taskmaster.title', 'Task Master AI'),
           headerStyle: { backgroundColor: '#f8f9fa' },
-          headerTitleStyle: { fontWeight: 'bold' }
+          headerTitleStyle: { fontWeight: 'bold' },
         }}
       />
 
@@ -110,15 +105,15 @@ export default function TaskMasterScreen() {
             {t('taskmaster.welcome_title', 'AI-powered Task Management')}
           </Text>
           <Text style={styles.headerSubtitle}>
-            {t('taskmaster.welcome_subtitle', 'Optimieren Sie Ihren Arbeitsablauf mit künstlicher Intelligenz')}
+            {t(
+              'taskmaster.welcome_subtitle',
+              'Optimieren Sie Ihren Arbeitsablauf mit künstlicher Intelligenz'
+            )}
           </Text>
         </View>
 
         {/* Main Dashboard Button */}
-        <TouchableOpacity 
-          style={styles.mainButton}
-          onPress={handleOpenDashboard}
-        >
+        <TouchableOpacity style={styles.mainButton} onPress={handleOpenDashboard}>
           <View style={styles.mainButtonContent}>
             <Ionicons name="grid-outline" size={24} color="white" />
             <Text style={styles.mainButtonText}>
@@ -139,26 +134,15 @@ export default function TaskMasterScreen() {
               <TouchableOpacity
                 key={index}
                 style={[styles.featureCard, { borderLeftColor: feature.color }]}
-                onPress={handleOpenDashboard}
-              >
+                onPress={handleOpenDashboard}>
                 <View style={styles.featureIconContainer}>
-                  <Ionicons 
-                    name={feature.icon as any} 
-                    size={24} 
-                    color={feature.color} 
-                  />
+                  <Ionicons name={feature.icon as any} size={24} color={feature.color} />
                 </View>
                 <View style={styles.featureContent}>
                   <Text style={styles.featureTitle}>{feature.title}</Text>
-                  <Text style={styles.featureDescription}>
-                    {feature.description}
-                  </Text>
+                  <Text style={styles.featureDescription}>{feature.description}</Text>
                 </View>
-                <Ionicons 
-                  name="chevron-forward" 
-                  size={16} 
-                  color="#999" 
-                />
+                <Ionicons name="chevron-forward" size={16} color="#999" />
               </TouchableOpacity>
             ))}
           </View>
@@ -169,7 +153,10 @@ export default function TaskMasterScreen() {
           <View style={styles.infoCard}>
             <Ionicons name="information-circle-outline" size={20} color="#2196F3" />
             <Text style={styles.infoText}>
-              {t('taskmaster.info_text', 'Task Master AI hilft Ihnen bei der effizienten Verwaltung Ihrer Aufgaben mit KI-Unterstützung und RKSV-Compliance.')}
+              {t(
+                'taskmaster.info_text',
+                'Task Master AI hilft Ihnen bei der effizienten Verwaltung Ihrer Aufgaben mit KI-Unterstützung und RKSV-Compliance.'
+              )}
             </Text>
           </View>
         </View>
@@ -188,10 +175,7 @@ export default function TaskMasterScreen() {
       </View>
 
       {/* TaskMaster Dashboard Modal */}
-      <TaskMasterDashboard
-        visible={showDashboard}
-        onClose={handleCloseDashboard}
-      />
+      <TaskMasterDashboard visible={showDashboard} onClose={handleCloseDashboard} />
     </SafeAreaView>
   );
 }

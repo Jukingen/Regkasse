@@ -1,6 +1,8 @@
 'use client';
 
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import React, {
+  type ReactNode,
   createContext,
   useCallback,
   useContext,
@@ -8,14 +10,16 @@ import React, {
   useMemo,
   useRef,
   useState,
-  type ReactNode,
 } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+import { authStorage } from '@/features/auth/services/authStorage';
 import { useUserPreferences } from '@/features/user/hooks/useUserPreferences';
-import { applyReducedAnimations } from './applyDocumentTheme';
-import { resolveFormatLocaleForDateFormat } from './formatLocale';
+import { useI18n } from '@/i18n';
+
 import { useDensityContext } from './DensityContext';
 import { useThemeContext } from './ThemeContext';
+import { applyReducedAnimations } from './applyDocumentTheme';
+import { resolveFormatLocaleForDateFormat } from './formatLocale';
 import {
   patchStoredPersonalization,
   readStoredPersonalization,
@@ -36,8 +40,6 @@ import {
   saveUserPreferences,
   userPreferencesQueryKey,
 } from './userPreferencesApi';
-import { useI18n } from '@/i18n';
-import { authStorage } from '@/features/auth/services/authStorage';
 
 type PersonalizationContextValue = {
   preferences: PersonalizationPreferences;
@@ -119,7 +121,7 @@ function PersonalizationStateBridge({ children }: { children: ReactNode }) {
       density: densityMode,
       ...userPrefs,
     }),
-    [themeMode, densityMode, userPrefs],
+    [themeMode, densityMode, userPrefs]
   );
 
   const persistUserFields = useCallback(
@@ -138,27 +140,27 @@ function PersonalizationStateBridge({ children }: { children: ReactNode }) {
       }
       return full;
     },
-    [userPrefs, themeMode, densityMode, saveMutation],
+    [userPrefs, themeMode, densityMode, saveMutation]
   );
 
   const setDefaultLandingPath = useCallback(
     (defaultLandingPath: DefaultLandingPath) => persistUserFields({ defaultLandingPath }),
-    [persistUserFields],
+    [persistUserFields]
   );
 
   const setDateFormat = useCallback(
     (dateFormat: DateFormatPattern) => persistUserFields({ dateFormat }),
-    [persistUserFields],
+    [persistUserFields]
   );
 
   const setTimeFormat = useCallback(
     (timeFormat: TimeFormatPreference) => persistUserFields({ timeFormat }),
-    [persistUserFields],
+    [persistUserFields]
   );
 
   const setReducedAnimations = useCallback(
     (reducedAnimations: boolean) => persistUserFields({ reducedAnimations }),
-    [persistUserFields],
+    [persistUserFields]
   );
 
   const replacePreferences = useCallback(
@@ -178,7 +180,7 @@ function PersonalizationStateBridge({ children }: { children: ReactNode }) {
         saveMutation.mutate(mapPersonalizationToApi(next));
       }
     },
-    [setThemeMode, setDensityMode, saveMutation],
+    [setThemeMode, setDensityMode, saveMutation]
   );
 
   const value = useMemo<PersonalizationContextValue>(
@@ -206,7 +208,7 @@ function PersonalizationStateBridge({ children }: { children: ReactNode }) {
       setTimeFormat,
       setReducedAnimations,
       replacePreferences,
-    ],
+    ]
   );
 
   return (

@@ -37,7 +37,7 @@ function formatRegisterName(registerNumber: string, location?: string): string {
 function resolveRegisterId(
   preferred?: string | null,
   effective?: string | null,
-  settingsId?: string | null,
+  settingsId?: string | null
 ): string | null {
   for (const id of [settingsId, preferred, effective]) {
     if (isValidPosCashRegisterId(id)) return id!.trim();
@@ -47,7 +47,7 @@ function resolveRegisterId(
 
 function toCurrentRegister(
   id: string,
-  row: CashRegisterSelectableRow | undefined,
+  row: CashRegisterSelectableRow | undefined
 ): CurrentCashRegister {
   if (row) {
     return {
@@ -79,17 +79,17 @@ export function useCashRegister(options: UseCashRegisterOptions = {}): UseCashRe
       resolveRegisterId(
         overviewRegister?.preferredRegisterId,
         overviewRegister?.effectiveRegisterId,
-        settingsCashRegisterId,
+        settingsCashRegisterId
       ),
     [
       overviewRegister?.preferredRegisterId,
       overviewRegister?.effectiveRegisterId,
       settingsCashRegisterId,
-    ],
+    ]
   );
 
   const [register, setRegister] = useState<CurrentCashRegister | null>(() =>
-    overviewId ? toCurrentRegister(overviewId, undefined) : null,
+    overviewId ? toCurrentRegister(overviewId, undefined) : null
   );
   const [isLoading, setIsLoading] = useState(false);
 
@@ -98,7 +98,9 @@ export function useCashRegister(options: UseCashRegisterOptions = {}): UseCashRe
       setRegister(null);
       return;
     }
-    setRegister((prev) => (prev?.id === overviewId ? prev : toCurrentRegister(overviewId, undefined)));
+    setRegister((prev) =>
+      prev?.id === overviewId ? prev : toCurrentRegister(overviewId, undefined)
+    );
   }, [overviewId]);
 
   useEffect(() => {
@@ -122,7 +124,7 @@ export function useCashRegister(options: UseCashRegisterOptions = {}): UseCashRe
         const id = resolveRegisterId(
           current?.preferredRegisterId,
           current?.effectiveRegisterId,
-          settingsCashRegisterId ?? overviewId,
+          settingsCashRegisterId ?? overviewId
         );
 
         if (!id) {

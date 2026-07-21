@@ -1,24 +1,36 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
-import React, { useState } from 'react';
-import { Modal, Alert, Button, Card, Descriptions, Form, Input, Space, Tag, Typography } from 'antd';
+import {
+  Alert,
+  Button,
+  Card,
+  Descriptions,
+  Form,
+  Input,
+  Modal,
+  Space,
+  Tag,
+  Typography,
+} from 'antd';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
-import { CardSkeleton } from '@/components/Skeleton';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { useI18n } from '@/i18n';
-import { usePermissions } from '@/shared/auth/usePermissions';
-import { PERMISSIONS } from '@/shared/auth/permissions';
+import React, { useState } from 'react';
+
 import {
   useAdminVoucherDetail,
   useCancelAdminVoucher,
   useVerifyAdminVoucherCode,
 } from '@/api/admin/vouchers';
-import { formatCurrency, formatDateTime } from '@/i18n/formatting';
+import { CardSkeleton } from '@/components/Skeleton';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { VoucherHistory } from '@/features/vouchers/components/VoucherHistory';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { useI18n } from '@/i18n';
+import { formatCurrency, formatDateTime } from '@/i18n/formatting';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { PERMISSIONS } from '@/shared/auth/permissions';
+import { usePermissions } from '@/shared/auth/usePermissions';
 
 function shortId(value: string): string {
   if (!value) return '—';
@@ -114,11 +126,7 @@ function AdminVoucherDetailContent({ id }: { id: string }) {
   };
 
   const showCancel =
-    canCancel &&
-    d &&
-    d.remainingAmount > 0 &&
-    d.status !== 'Cancelled' &&
-    d.status !== 'Redeemed';
+    canCancel && d && d.remainingAmount > 0 && d.status !== 'Cancelled' && d.status !== 'Redeemed';
 
   const submitCancel = async () => {
     const values = await cancelForm.validateFields();
@@ -280,7 +288,12 @@ function AdminVoucherDetailContent({ id }: { id: string }) {
             label={t('vouchers.cancel.reasonLabel')}
             rules={[{ required: true, min: 5, message: t('vouchers.cancel.reasonPlaceholder') }]}
           >
-            <Input.TextArea rows={4} maxLength={500} showCount placeholder={t('vouchers.cancel.reasonPlaceholder')} />
+            <Input.TextArea
+              rows={4}
+              maxLength={500}
+              showCount
+              placeholder={t('vouchers.cancel.reasonPlaceholder')}
+            />
           </Form.Item>
         </Form>
       </Modal>

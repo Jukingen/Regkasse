@@ -1,9 +1,16 @@
 /**
  * Admin benefit assignments API – /api/admin/benefit-assignments.
  */
+import type {
+  UseMutationOptions,
+  UseMutationResult,
+  UseQueryOptions,
+  UseQueryResult,
+} from '@tanstack/react-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { UseMutationOptions, UseQueryOptions, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
+
 import { customInstance } from '@/lib/axios';
+
 import type { BenefitDefinition } from './benefit-definitions';
 
 const BASE = '/api/admin/benefit-assignments';
@@ -50,8 +57,8 @@ export function getAdminBenefitAssignments(
   options?: SecondParameter<typeof customInstance>,
   signal?: AbortSignal
 ): Promise<BenefitAssignment[]> {
-  return customInstance<BenefitAssignment[]>({ url: BASE, method: 'GET', signal }, options).then((res) =>
-    unwrapData<BenefitAssignment[]>(res)
+  return customInstance<BenefitAssignment[]>({ url: BASE, method: 'GET', signal }, options).then(
+    (res) => unwrapData<BenefitAssignment[]>(res)
   );
 }
 
@@ -60,26 +67,37 @@ export function getAdminBenefitAssignmentById(
   options?: SecondParameter<typeof customInstance>,
   signal?: AbortSignal
 ): Promise<BenefitAssignment> {
-  return customInstance<BenefitAssignment>({ url: `${BASE}/${id}`, method: 'GET', signal }, options).then((res) =>
-    unwrapData<BenefitAssignment>(res)
-  );
+  return customInstance<BenefitAssignment>(
+    { url: `${BASE}/${id}`, method: 'GET', signal },
+    options
+  ).then((res) => unwrapData<BenefitAssignment>(res));
 }
 
-export function createAdminBenefitAssignment(data: CreateBenefitAssignmentRequest, options?: SecondParameter<typeof customInstance>) {
+export function createAdminBenefitAssignment(
+  data: CreateBenefitAssignmentRequest,
+  options?: SecondParameter<typeof customInstance>
+) {
   return customInstance<BenefitAssignment>(
     { url: BASE, method: 'POST', headers: { 'Content-Type': 'application/json' }, data },
     options
   ).then((res) => unwrapData<BenefitAssignment>(res));
 }
 
-export function updateAdminBenefitAssignment(id: string, data: UpdateBenefitAssignmentRequest, options?: SecondParameter<typeof customInstance>) {
+export function updateAdminBenefitAssignment(
+  id: string,
+  data: UpdateBenefitAssignmentRequest,
+  options?: SecondParameter<typeof customInstance>
+) {
   return customInstance<BenefitAssignment>(
     { url: `${BASE}/${id}`, method: 'PUT', headers: { 'Content-Type': 'application/json' }, data },
     options
   ).then((res) => unwrapData<BenefitAssignment>(res));
 }
 
-export function deleteAdminBenefitAssignment(id: string, options?: SecondParameter<typeof customInstance>) {
+export function deleteAdminBenefitAssignment(
+  id: string,
+  options?: SecondParameter<typeof customInstance>
+) {
   return customInstance<void>({ url: `${BASE}/${id}`, method: 'DELETE' }, options);
 }
 
@@ -124,8 +142,16 @@ export function useCreateAdminBenefitAssignment(
 }
 
 export function useUpdateAdminBenefitAssignment(
-  opts?: UseMutationOptions<BenefitAssignment, Error, { id: string; data: UpdateBenefitAssignmentRequest }>
-): UseMutationResult<BenefitAssignment, Error, { id: string; data: UpdateBenefitAssignmentRequest }> {
+  opts?: UseMutationOptions<
+    BenefitAssignment,
+    Error,
+    { id: string; data: UpdateBenefitAssignmentRequest }
+  >
+): UseMutationResult<
+  BenefitAssignment,
+  Error,
+  { id: string; data: UpdateBenefitAssignmentRequest }
+> {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }) => updateAdminBenefitAssignment(id, data),
@@ -137,7 +163,9 @@ export function useUpdateAdminBenefitAssignment(
   });
 }
 
-export function useDeleteAdminBenefitAssignment(opts?: UseMutationOptions<void, Error, { id: string }>): UseMutationResult<void, Error, { id: string }> {
+export function useDeleteAdminBenefitAssignment(
+  opts?: UseMutationOptions<void, Error, { id: string }>
+): UseMutationResult<void, Error, { id: string }> {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id }) => deleteAdminBenefitAssignment(id),

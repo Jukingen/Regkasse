@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Regkasse Admin">
+  <!-- Brand tile (Ant primary #1677ff) with centered register glyph -->
+  <rect width="512" height="512" rx="96" fill="#1677ff"/>
+  <g
+    fill="none"
+    stroke="#ffffff"
+    stroke-width="2.25"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    transform="translate(112 128) scale(12)"
+  >
+    <rect x="2" y="4" width="20" height="16" rx="2"/>
+    <path d="M6 8h12"/>
+    <path d="M6 12h12"/>
+    <path d="M6 16h8"/>
+  </g>
+</svg>

@@ -1,14 +1,15 @@
 'use client';
 
 import type { ReactNode } from 'react';
+
 import { AccessDenied } from '@/components/AccessDenied';
 import { PageSkeleton } from '@/components/Skeleton';
+import { useTenantDigitalService } from '@/features/digital-services/hooks/useTenantDigitalServices';
 import { DigitalServices } from '@/features/digital/components/DigitalServices';
 import {
   canAccessDigitalServices,
   isAnyDigitalServiceAvailable,
 } from '@/features/digital/digitalServicePermissions';
-import { useTenantDigitalService } from '@/features/digital-services/hooks/useTenantDigitalServices';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
@@ -54,7 +55,8 @@ export function DigitalServiceAccess({
     hasPermission(PERMISSIONS.DIGITAL_MANAGE) ||
     hasPermission(PERMISSIONS.WEBSITE_MANAGE);
 
-  const shouldLoadStatus = canView && Boolean(effectiveTenantId) && blockWhenDisabled && !isSuperAdmin;
+  const shouldLoadStatus =
+    canView && Boolean(effectiveTenantId) && blockWhenDisabled && !isSuperAdmin;
 
   const {
     data: serviceStatus,

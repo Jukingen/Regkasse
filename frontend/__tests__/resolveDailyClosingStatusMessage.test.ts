@@ -1,11 +1,11 @@
 import { describe, expect, it } from '@jest/globals';
 
+import type { PosDailyClosingStatusDto } from '../services/api/shiftService';
+import { formatUserDate, formatUserDateTime } from '../utils/dateFormatter';
 import {
   resolveAlreadyClosedDailyMessage,
   resolveDailyClosingStatusMessage,
 } from '../utils/resolveDailyClosingStatusMessage';
-import type { PosDailyClosingStatusDto } from '../services/api/shiftService';
-import { formatUserDate, formatUserDateTime } from '../utils/dateFormatter';
 
 const t = (key: string, options?: Record<string, unknown>) => {
   if (key === 'settings:shift.dailyClosing.statusCanClose') return 'CAN_CLOSE';
@@ -19,7 +19,8 @@ const t = (key: string, options?: Record<string, unknown>) => {
   if (key === 'settings:shift.dailyClosing.statusPaymentsWithoutInvoice') {
     return `PAYMENTS_${options?.count}`;
   }
-  if (key === 'settings:shift.dailyClosing.statusRegisterUnavailable') return 'REGISTER_UNAVAILABLE';
+  if (key === 'settings:shift.dailyClosing.statusRegisterUnavailable')
+    return 'REGISTER_UNAVAILABLE';
   if (key === 'settings:shift.dailyClosing.statusNoActiveShift') return 'NO_ACTIVE_SHIFT';
   return 'BLOCKED';
 };

@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
+
+import type { DailyClosingSummaryDto } from '@/api/generated/model';
 import {
   convertDailyClosingSummaryToCsv,
   dailyClosingSummaryToCsvRow,
 } from '@/features/reporting/daily-closing/exportDailyClosingSummaryCsv';
-import type { DailyClosingSummaryDto } from '@/api/generated/model';
 
 const labels = {
   date: 'Date',
@@ -26,7 +27,7 @@ describe('dailyClosingSummary CSV', () => {
       dailyClosingSummaryToCsvRow(data, {
         dateParam: '2026-05-18',
         registerLabel: 'K1',
-      }),
+      })
     ).toEqual({
       date: '2026-05-18',
       register: 'K1',
@@ -42,11 +43,11 @@ describe('dailyClosingSummary CSV', () => {
     const csv = convertDailyClosingSummaryToCsv(
       { totalSales: 100, totalCash: 30 },
       { dateParam: '2026-05-18', registerLabel: 'All' },
-      labels,
+      labels
     );
     const lines = csv.split('\n');
     expect(lines[0]).toBe(
-      'Date,Register,Opening Balance,Closing Balance,Total Sales,Cash Count,Difference',
+      'Date,Register,Opening Balance,Closing Balance,Total Sales,Cash Count,Difference'
     );
     expect(lines[1]).toBe('2026-05-18,All,,,100,30,');
   });
@@ -55,7 +56,7 @@ describe('dailyClosingSummary CSV', () => {
     const csv = convertDailyClosingSummaryToCsv(
       { totalSales: 1, totalCash: 1 },
       { dateParam: '2026-05-18', registerLabel: 'Kasse A, West' },
-      labels,
+      labels
     );
     expect(csv).toContain('"Kasse A, West"');
   });

@@ -1,23 +1,20 @@
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 interface SecurityIndicatorProps {
   isSecure: boolean;
   message?: string;
 }
 
-export const SecurityIndicator: React.FC<SecurityIndicatorProps> = ({
-  isSecure,
-  message
-}) => {
+export const SecurityIndicator: React.FC<SecurityIndicatorProps> = ({ isSecure, message }) => {
   return (
     <View style={styles.container}>
       <View style={[styles.indicator, isSecure ? styles.secure : styles.insecure]}>
-        <Ionicons 
-          name={isSecure ? "shield-checkmark" : "warning"} 
-          size={16} 
-          color={isSecure ? "#34C759" : "#FF9500"} 
+        <Ionicons
+          name={isSecure ? 'shield-checkmark' : 'warning'}
+          size={16}
+          color={isSecure ? '#34C759' : '#FF9500'}
         />
       </View>
       <Text style={[styles.text, isSecure ? styles.secureText : styles.insecureText]}>

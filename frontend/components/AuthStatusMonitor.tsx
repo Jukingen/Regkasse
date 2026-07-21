@@ -3,6 +3,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
+
 import { useAuth } from '../contexts/AuthContext';
 
 interface AuthLog {
@@ -19,7 +20,7 @@ export const AuthStatusMonitor: React.FC = () => {
 
   // Her render'da sayacı artır
   useEffect(() => {
-    setRenderCount(prev => prev + 1);
+    setRenderCount((prev) => prev + 1);
   });
 
   // Auth durumu değişikliklerini izle
@@ -28,10 +29,10 @@ export const AuthStatusMonitor: React.FC = () => {
       timestamp: new Date(),
       action: 'Auth State Changed',
       details: `isAuthenticated: ${isAuthenticated}, hasUser: ${!!user}, isLoading: ${isLoading}`,
-      userState: user ? { id: user.id, email: user.email, role: user.role } : null
+      userState: user ? { id: user.id, email: user.email, role: user.role } : null,
     };
 
-    setAuthLogs(prev => [log, ...prev.slice(0, 19)]); // Son 20 log'u tut
+    setAuthLogs((prev) => [log, ...prev.slice(0, 19)]); // Son 20 log'u tut
   }, [isAuthenticated, user, isLoading]);
 
   // Sadece development modunda göster
@@ -54,7 +55,7 @@ export const AuthStatusMonitor: React.FC = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>🔍 Auth Status Monitor</Text>
-      
+
       {/* Current Status */}
       <View style={[styles.statusSection, { borderLeftColor: getStatusColor() }]}>
         <Text style={styles.statusTitle}>Current Status</Text>
@@ -71,9 +72,7 @@ export const AuthStatusMonitor: React.FC = () => {
         <ScrollView style={styles.logsContainer} showsVerticalScrollIndicator={false}>
           {authLogs.map((log, index) => (
             <View key={index} style={styles.logItem}>
-              <Text style={styles.logTimestamp}>
-                {log.timestamp.toLocaleTimeString()}
-              </Text>
+              <Text style={styles.logTimestamp}>{log.timestamp.toLocaleTimeString()}</Text>
               <Text style={styles.logAction}>{log.action}</Text>
               <Text style={styles.logDetails}>{log.details}</Text>
               {log.userState && (
@@ -88,9 +87,7 @@ export const AuthStatusMonitor: React.FC = () => {
 
       {/* Warning */}
       <View style={styles.warningSection}>
-        <Text style={styles.warningText}>
-          ⚠️ Bu monitor sadece development modunda görünür
-        </Text>
+        <Text style={styles.warningText}>⚠️ Bu monitor sadece development modunda görünür</Text>
         <Text style={styles.warningText}>
           Otomatik logout sorununu izlemek için auth logları takip edin
         </Text>

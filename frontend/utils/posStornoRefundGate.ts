@@ -9,7 +9,9 @@ export type PosStornoRefundGateUser = {
   permissions?: string[];
 };
 
-export function canShowPosStornoRefundButton(user: PosStornoRefundGateUser | null | undefined): boolean {
+export function canShowPosStornoRefundButton(
+  user: PosStornoRefundGateUser | null | undefined
+): boolean {
   if (!user) return false;
   if (user.role === 'SuperAdmin') return true;
   const roles = user.roles ?? [];

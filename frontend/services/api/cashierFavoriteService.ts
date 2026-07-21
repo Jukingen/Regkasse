@@ -39,7 +39,7 @@ function toEntry(dto: CashierFavoriteDto): CashierFavoriteEntry {
 }
 
 class CashierFavoriteService {
-  private baseUrl = '/pos/favorites';
+  private readonly baseUrl = '/pos/favorites';
 
   async listDtos(): Promise<CashierFavoriteDto[]> {
     const rows = await apiClient.get<unknown[]>(this.baseUrl);

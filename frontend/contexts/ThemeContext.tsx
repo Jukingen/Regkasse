@@ -1,8 +1,8 @@
-import { storage } from '../utils/storage';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 
 import { lightTheme, darkTheme, Theme } from '../constants/Colors';
+import { storage } from '../utils/storage';
 
 type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -44,9 +44,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const isDark = themeMode === 'system'
-    ? systemColorScheme === 'dark'
-    : themeMode === 'dark';
+  const isDark = themeMode === 'system' ? systemColorScheme === 'dark' : themeMode === 'dark';
 
   const theme = isDark ? darkTheme : lightTheme;
 
@@ -57,8 +55,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         themeMode,
         setThemeMode: handleThemeModeChange,
         isDark,
-      }}
-    >
+      }}>
       {children}
     </ThemeContext.Provider>
   );
@@ -70,4 +67,4 @@ export const useTheme = () => {
     throw new Error('useTheme must be used within a ThemeProvider');
   }
   return context;
-}; 
+};

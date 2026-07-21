@@ -1,14 +1,14 @@
+import { normalizeLicenseDaysRemaining } from './licenseExpiryRemaining';
+import { normalizeRksvEnvironmentStatus } from './normalizeRksvEnvironment';
+import { parsePosCashRegisterContextDto } from './posCashRegisterReadinessParse';
 import type { LicensePublicStatusDto } from '../api/license';
 import { TENANT_WARNING_DAYS_BEFORE_EXPIRY } from '../constants/licenseGracePeriod';
-import type { MandantLicenseWarningState } from '../types/mandantLicenseWarning';
-import type { LicenseStatus } from '../services/license/licenseStatusCache';
 import type {
   PosStatusLicenseHealthDto,
   PosStatusOverviewDto,
 } from '../services/api/posStatusOverviewTypes';
-import { parsePosCashRegisterContextDto } from './posCashRegisterReadinessParse';
-import { normalizeRksvEnvironmentStatus } from './normalizeRksvEnvironment';
-import { normalizeLicenseDaysRemaining } from './licenseExpiryRemaining';
+import type { LicenseStatus } from '../services/license/licenseStatusCache';
+import type { MandantLicenseWarningState } from '../types/mandantLicenseWarning';
 
 function inferTrialFromPublic(p: LicensePublicStatusDto): boolean {
   const lt = (p.licenseType ?? '').trim().toLowerCase();
@@ -26,7 +26,7 @@ function inferPaidFromPublic(p: LicensePublicStatusDto): boolean {
 
 export function mapOverviewLicenseToStatus(
   license: LicensePublicStatusDto,
-  health: PosStatusLicenseHealthDto,
+  health: PosStatusLicenseHealthDto
 ): LicenseStatus {
   const publicPaid = inferPaidFromPublic(license);
   const mergedTrial = publicPaid ? false : inferTrialFromPublic(license);
@@ -61,7 +61,7 @@ export function mapOverviewLicenseToStatus(
 }
 
 export function mapOverviewToMandantWarning(
-  license: LicensePublicStatusDto,
+  license: LicensePublicStatusDto
 ): MandantLicenseWarningState | null {
   if (license.canAccess == null && license.isInGracePeriod !== true) {
     return null;
@@ -72,7 +72,8 @@ export function mapOverviewToMandantWarning(
       ? Math.max(0, normalizeLicenseDaysRemaining(license.daysRemaining))
       : 0;
   const gracePeriodRemaining =
-    typeof license.gracePeriodRemaining === 'number' && Number.isFinite(license.gracePeriodRemaining)
+    typeof license.gracePeriodRemaining === 'number' &&
+    Number.isFinite(license.gracePeriodRemaining)
       ? Math.max(0, normalizeLicenseDaysRemaining(license.gracePeriodRemaining))
       : 0;
 
@@ -147,12 +148,12 @@ export function normalizePosStatusOverview(raw: unknown): PosStatusOverviewDto {
           settingsVersion: Number(
             (settingsRaw as Record<string, unknown>).settingsVersion ??
               (settingsRaw as Record<string, unknown>).SettingsVersion ??
-              0,
+              0
           ),
           updatedAtUtc: String(
             (settingsRaw as Record<string, unknown>).updatedAtUtc ??
               (settingsRaw as Record<string, unknown>).UpdatedAtUtc ??
-              '',
+              ''
           ),
         }
       : { cashRegisterId: null, settingsVersion: 0, updatedAtUtc: '' };

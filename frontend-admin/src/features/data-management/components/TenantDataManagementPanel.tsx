@@ -1,6 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import {
+  CheckCircleOutlined,
+  DeleteOutlined,
+  DownloadOutlined,
+  InfoCircleOutlined,
+  ThunderboltOutlined,
+} from '@ant-design/icons';
 import {
   Alert,
   Button,
@@ -15,25 +21,20 @@ import {
   Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import {
-  DownloadOutlined,
-  DeleteOutlined,
-  InfoCircleOutlined,
-  CheckCircleOutlined,
-  ThunderboltOutlined,
-} from '@ant-design/icons';
-import { useAntdApp } from '@/hooks/useAntdApp';
-import { useI18n, formatDate } from '@/i18n';
-import { usePermissions } from '@/hooks/usePermissions';
+import { useMemo, useState } from 'react';
+
+import type { TenantDataTypeSummary } from '@/features/data-management/api/tenantDataManagement';
+import { DataDeletionRequestModal } from '@/features/data-management/components/DataDeletionRequestModal';
+import { DataRightsRequestPanel } from '@/features/data-management/components/DataRightsRequestPanel';
 import {
   useConfirmTenantDataDeletion,
   useExecuteTenantDataPurge,
   useExportTenantData,
   useTenantDataManagementSummary,
 } from '@/features/data-management/hooks/useTenantDataManagement';
-import { DataDeletionRequestModal } from '@/features/data-management/components/DataDeletionRequestModal';
-import { DataRightsRequestPanel } from '@/features/data-management/components/DataRightsRequestPanel';
-import type { TenantDataTypeSummary } from '@/features/data-management/api/tenantDataManagement';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { usePermissions } from '@/hooks/usePermissions';
+import { formatDate, useI18n } from '@/i18n';
 
 type Props = { tenantId: string };
 
@@ -109,7 +110,7 @@ export function TenantDataManagementPanel({ tenantId }: Props) {
           ),
       },
     ],
-    [t],
+    [t]
   );
 
   const summary = summaryQuery.data;
@@ -195,9 +196,7 @@ export function TenantDataManagementPanel({ tenantId }: Props) {
                 })}
               </Tag>
             ) : null}
-            {summary?.isLocked ? (
-              <Tag color="orange">{t('dataManagement.lockStatus')}</Tag>
-            ) : null}
+            {summary?.isLocked ? <Tag color="orange">{t('dataManagement.lockStatus')}</Tag> : null}
             {summary && summary.daysOverdue > 0 ? (
               <Typography.Text type="secondary">
                 {t('dataManagement.daysOverdue', { days: summary.daysOverdue })}
@@ -270,7 +269,7 @@ export function TenantDataManagementPanel({ tenantId }: Props) {
                       status: summary.latestDeletionRequest.status,
                       eligibleAt: formatDate(
                         summary.latestDeletionRequest.purgeEligibleAtUtc,
-                        formatLocale,
+                        formatLocale
                       ),
                     })
                   : t('dataManagement.pendingRequestBody', {
@@ -288,10 +287,7 @@ export function TenantDataManagementPanel({ tenantId }: Props) {
         onClose={() => setDeletionWizardOpen(false)}
       />
 
-      <Card
-        title={t('dataManagement.retentionCardTitle')}
-        loading={summaryQuery.isLoading}
-      >
+      <Card title={t('dataManagement.retentionCardTitle')} loading={summaryQuery.isLoading}>
         <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
           <Col xs={12} sm={8}>
             <Statistic

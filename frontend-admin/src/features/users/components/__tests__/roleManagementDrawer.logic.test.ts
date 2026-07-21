@@ -2,8 +2,7 @@
  * Role management drawer logic – next selection after delete, dirty-state, system role delete disabled.
  * Mirrors the behavior in RoleManagementDrawer (no Ant Design render).
  */
-
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 /** Same logic as in RoleManagementDrawer handleDelete onOk: remaining[0]?.roleName ?? null */
 function getNextRoleAfterDelete(
@@ -15,10 +14,7 @@ function getNextRoleAfterDelete(
 }
 
 /** Dirty when draft set differs from saved set (same logic as drawer). */
-function isDirty(
-  draftPermissions: Set<string>,
-  savedPermissions: Set<string>
-): boolean {
+function isDirty(draftPermissions: Set<string>, savedPermissions: Set<string>): boolean {
   if (draftPermissions.size !== savedPermissions.size) return true;
   const draftArr = Array.from(draftPermissions);
   const savedArr = Array.from(savedPermissions);
@@ -31,11 +27,7 @@ function isDirty(
 describe('RoleManagementDrawer logic', () => {
   describe('delete next selection', () => {
     it('returns first remaining role in sorted order after delete', () => {
-      const roles = [
-        { roleName: 'SuperAdmin' },
-        { roleName: 'Custom' },
-        { roleName: 'Manager' },
-      ];
+      const roles = [{ roleName: 'SuperAdmin' }, { roleName: 'Custom' }, { roleName: 'Manager' }];
       expect(getNextRoleAfterDelete(roles, 'Custom')).toBe('SuperAdmin');
     });
 

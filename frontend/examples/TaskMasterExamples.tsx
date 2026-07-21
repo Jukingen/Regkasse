@@ -1,31 +1,25 @@
 /**
  * TaskMaster Usage Examples - Task-Master-AI kullanım örnekleri
- * 
+ *
  * Bu dosya, task-master-ai paketinin projedeki kullanım örneklerini gösterir.
  * RKSV kurallarına uygun görev yönetimi için hazırlanmış template'ler içerir.
- * 
+ *
  * Özellikler:
  * - RKSV Compliance görevleri
  * - TSE entegrasyon görevleri
  * - AI destekli görev analizi örnekleri
  * - Çok dilli görev şablonları
- * 
+ *
  * @author Frontend Team
  * @version 1.0.0
  * @since 2025-01-10
  */
 
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Alert
-} from 'react-native';
-import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
+import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+
 import useTaskMaster from '../hooks/useTaskMaster';
 import { TaskCategory, TaskPriority, TaskStatus } from '../services/TaskMasterService';
 
@@ -40,7 +34,7 @@ const TaskMasterExamples: React.FC = () => {
     generateTaskSuggestions,
     getRksvComplianceTasks,
     getTseRequiredTasks,
-    getCriticalTasks
+    getCriticalTasks,
   } = useTaskMaster();
 
   const [showResults, setShowResults] = useState(false);
@@ -51,21 +45,18 @@ const TaskMasterExamples: React.FC = () => {
   const createRksvComplianceTask = async () => {
     const taskData = {
       title: 'RKSV Compliance Prüfung',
-      description: 'Tägliche Überprüfung der RKSV-Konformität:\n- TSE-Signatur validieren\n- Belegformat kontrollieren\n- Steuernummer prüfen\n- Audit-Log überprüfen',
+      description:
+        'Tägliche Überprüfung der RKSV-Konformität:\n- TSE-Signatur validieren\n- Belegformat kontrollieren\n- Steuernummer prüfen\n- Audit-Log überprüfen',
       category: TaskCategory.RKSV_COMPLIANCE,
       priority: TaskPriority.HIGH,
       status: TaskStatus.PENDING,
       tseRequired: true,
-      tags: ['rksv', 'compliance', 'daily-check', 'audit']
+      tags: ['rksv', 'compliance', 'daily-check', 'audit'],
     };
 
     const result = await createTask(taskData);
     if (result) {
-      Alert.alert(
-        'Erfolg',
-        'RKSV Compliance Aufgabe wurde erstellt',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Erfolg', 'RKSV Compliance Aufgabe wurde erstellt', [{ text: 'OK' }]);
     }
   };
 
@@ -75,21 +66,18 @@ const TaskMasterExamples: React.FC = () => {
   const createTseIntegrationTask = async () => {
     const taskData = {
       title: 'TSE Gerät Verbindung testen',
-      description: 'Epson-TSE Cihazı entegrasyonu:\n- USB bağlantısını kontrol et\n- Signatur üretimini test et\n- Tagesabschluss işlemini kontrol et\n- Backup durumunu kontrol et',
+      description:
+        'Epson-TSE Cihazı entegrasyonu:\n- USB bağlantısını kontrol et\n- Signatur üretimini test et\n- Tagesabschluss işlemini kontrol et\n- Backup durumunu kontrol et',
       category: TaskCategory.TSE_INTEGRATION,
       priority: TaskPriority.CRITICAL,
       status: TaskStatus.PENDING,
       tseRequired: true,
-      tags: ['tse', 'epson', 'integration', 'test']
+      tags: ['tse', 'epson', 'integration', 'test'],
     };
 
     const result = await createTask(taskData);
     if (result) {
-      Alert.alert(
-        'Erfolg',
-        'TSE Integration Aufgabe wurde erstellt',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Erfolg', 'TSE Integration Aufgabe wurde erstellt', [{ text: 'OK' }]);
     }
   };
 
@@ -99,21 +87,18 @@ const TaskMasterExamples: React.FC = () => {
   const createInvoiceManagementTask = async () => {
     const taskData = {
       title: 'Rechnungsvorlage aktualisieren',
-      description: 'Rechnungsvorlage RKSV-Anforderungen anpassen:\n- Pflichtfelder hinzufügen\n- TSE-Signatur Feld integrieren\n- Steuerberechnung validieren\n- PDF Export testen',
+      description:
+        'Rechnungsvorlage RKSV-Anforderungen anpassen:\n- Pflichtfelder hinzufügen\n- TSE-Signatur Feld integrieren\n- Steuerberechnung validieren\n- PDF Export testen',
       category: TaskCategory.INVOICE_MANAGEMENT,
       priority: TaskPriority.MEDIUM,
       status: TaskStatus.PENDING,
       tseRequired: false,
-      tags: ['invoice', 'template', 'pdf', 'validation']
+      tags: ['invoice', 'template', 'pdf', 'validation'],
     };
 
     const result = await createTask(taskData);
     if (result) {
-      Alert.alert(
-        'Erfolg',
-        'Invoice Management Aufgabe wurde erstellt',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Erfolg', 'Invoice Management Aufgabe wurde erstellt', [{ text: 'OK' }]);
     }
   };
 
@@ -123,21 +108,18 @@ const TaskMasterExamples: React.FC = () => {
   const createPaymentProcessingTask = async () => {
     const taskData = {
       title: 'Payment Gateway testen',
-      description: 'Ödeme sistemi entegrasyonu test etme:\n- Kartenzahlung workflow\n- Bargeld işlemleri\n- Transaction logs\n- Error handling',
+      description:
+        'Ödeme sistemi entegrasyonu test etme:\n- Kartenzahlung workflow\n- Bargeld işlemleri\n- Transaction logs\n- Error handling',
       category: TaskCategory.PAYMENT_PROCESSING,
       priority: TaskPriority.HIGH,
       status: TaskStatus.PENDING,
       tseRequired: true,
-      tags: ['payment', 'gateway', 'test', 'transaction']
+      tags: ['payment', 'gateway', 'test', 'transaction'],
     };
 
     const result = await createTask(taskData);
     if (result) {
-      Alert.alert(
-        'Erfolg',
-        'Payment Processing Aufgabe wurde erstellt',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Erfolg', 'Payment Processing Aufgabe wurde erstellt', [{ text: 'OK' }]);
     }
   };
 
@@ -147,17 +129,13 @@ const TaskMasterExamples: React.FC = () => {
   const runAiAnalysisExample = async () => {
     const criticalTasks = getCriticalTasks();
     if (criticalTasks.length === 0) {
-      Alert.alert(
-        'Info',
-        'Önce kritik görev oluşturun, sonra AI analizi yapın',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Info', 'Önce kritik görev oluşturun, sonra AI analizi yapın', [{ text: 'OK' }]);
       return;
     }
 
     const taskToAnalyze = criticalTasks[0];
     const analysis = await analyzeTask(taskToAnalyze.id);
-    
+
     if (analysis) {
       Alert.alert(
         'AI Analyse Ergebnis',
@@ -200,35 +178,33 @@ const TaskMasterExamples: React.FC = () => {
       title: 'RKSV Compliance',
       description: 'Österreichische Kassensicherheitsverordnung',
       color: '#FF5722',
-      action: createRksvComplianceTask
+      action: createRksvComplianceTask,
     },
     {
       title: 'TSE Integration',
       description: 'Technische Sicherheitseinrichtung',
       color: '#FF9800',
-      action: createTseIntegrationTask
+      action: createTseIntegrationTask,
     },
     {
       title: 'Invoice Management',
       description: 'Rechnungsmanagement und PDF Export',
       color: '#2196F3',
-      action: createInvoiceManagementTask
+      action: createInvoiceManagementTask,
     },
     {
       title: 'Payment Processing',
       description: 'Zahlungsabwicklung und Gateway Tests',
       color: '#4CAF50',
-      action: createPaymentProcessingTask
-    }
+      action: createPaymentProcessingTask,
+    },
   ];
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>TaskMaster AI Examples</Text>
-        <Text style={styles.subtitle}>
-          RKSV-konforme Aufgabenverwaltung mit KI-Unterstützung
-        </Text>
+        <Text style={styles.subtitle}>RKSV-konforme Aufgabenverwaltung mit KI-Unterstützung</Text>
       </View>
 
       {/* Task Creation Examples */}
@@ -239,8 +215,7 @@ const TaskMasterExamples: React.FC = () => {
             key={index}
             style={[styles.exampleCard, { borderLeftColor: category.color }]}
             onPress={category.action}
-            disabled={loading}
-          >
+            disabled={loading}>
             <View style={styles.cardContent}>
               <Text style={styles.cardTitle}>{category.title}</Text>
               <Text style={styles.cardDescription}>{category.description}</Text>
@@ -253,46 +228,37 @@ const TaskMasterExamples: React.FC = () => {
       {/* AI Features Examples */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>KI-Funktionen</Text>
-        
+
         <TouchableOpacity
           style={styles.aiFeatureCard}
           onPress={runAiAnalysisExample}
-          disabled={loading}
-        >
+          disabled={loading}>
           <Ionicons name="analytics-outline" size={24} color="#2196F3" />
           <View style={styles.featureContent}>
             <Text style={styles.featureTitle}>AI Aufgaben-Analyse</Text>
-            <Text style={styles.featureDescription}>
-              Kritische Aufgaben mit KI analysieren
-            </Text>
+            <Text style={styles.featureDescription}>Kritische Aufgaben mit KI analysieren</Text>
           </View>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.aiFeatureCard}
           onPress={() => generateSuggestions(TaskCategory.RKSV_COMPLIANCE)}
-          disabled={loading}
-        >
+          disabled={loading}>
           <Ionicons name="bulb-outline" size={24} color="#FF9800" />
           <View style={styles.featureContent}>
             <Text style={styles.featureTitle}>RKSV Vorschläge</Text>
-            <Text style={styles.featureDescription}>
-              KI-generierte RKSV Aufgaben-Vorschläge
-            </Text>
+            <Text style={styles.featureDescription}>KI-generierte RKSV Aufgaben-Vorschläge</Text>
           </View>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.aiFeatureCard}
           onPress={showTaskStatistics}
-          disabled={loading}
-        >
+          disabled={loading}>
           <Ionicons name="bar-chart-outline" size={24} color="#4CAF50" />
           <View style={styles.featureContent}>
             <Text style={styles.featureTitle}>Statistiken anzeigen</Text>
-            <Text style={styles.featureDescription}>
-              Aktuelle Aufgaben-Statistiken
-            </Text>
+            <Text style={styles.featureDescription}>Aktuelle Aufgaben-Statistiken</Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -307,18 +273,10 @@ const TaskMasterExamples: React.FC = () => {
 
       <View style={styles.statusCard}>
         <Text style={styles.statusTitle}>System Status</Text>
-        <Text style={styles.statusText}>
-          Aufgaben geladen: {tasks.length}
-        </Text>
-        <Text style={styles.statusText}>
-          RKSV Aufgaben: {getRksvComplianceTasks().length}
-        </Text>
-        <Text style={styles.statusText}>
-          TSE Aufgaben: {getTseRequiredTasks().length}
-        </Text>
-        <Text style={styles.statusText}>
-          Kritische Aufgaben: {getCriticalTasks().length}
-        </Text>
+        <Text style={styles.statusText}>Aufgaben geladen: {tasks.length}</Text>
+        <Text style={styles.statusText}>RKSV Aufgaben: {getRksvComplianceTasks().length}</Text>
+        <Text style={styles.statusText}>TSE Aufgaben: {getTseRequiredTasks().length}</Text>
+        <Text style={styles.statusText}>Kritische Aufgaben: {getCriticalTasks().length}</Text>
       </View>
     </ScrollView>
   );

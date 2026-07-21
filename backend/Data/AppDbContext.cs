@@ -109,6 +109,7 @@ namespace KasseAPI_Final.Data
         public DbSet<RksvColdArchiveRun> RksvColdArchiveRuns { get; set; }
         public DbSet<RksvColdArchiveItem> RksvColdArchiveItems { get; set; }
         public DbSet<DigitalServiceRequest> DigitalServiceRequests { get; set; }
+        public DbSet<AdminUserFeedback> AdminUserFeedback { get; set; }
         public DbSet<ReceiptTemplate> ReceiptTemplates { get; set; }
         public DbSet<GeneratedReceipt> GeneratedReceipts { get; set; }
         public DbSet<TseDevice> TseDevices { get; set; }
@@ -1383,6 +1384,31 @@ namespace KasseAPI_Final.Data
                     .HasFilter("status = 'Pending'");
                 entity.HasIndex(e => new { e.Status, e.RequestedAt })
                     .HasDatabaseName("idx_digital_service_requests_status_requested");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<AdminUserFeedback>(entity =>
+            {
+                entity.ToTable("admin_user_feedback");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Category).IsRequired().HasMaxLength(32);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(32);
+                entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Message).IsRequired().HasMaxLength(4000);
+                entity.Property(e => e.PagePath).HasMaxLength(500);
+                entity.Property(e => e.SubmittedByUserId).IsRequired().HasMaxLength(450);
+                entity.Property(e => e.SubmittedByDisplayName).HasMaxLength(200);
+                entity.Property(e => e.CreatedAtUtc).IsRequired();
+                entity.Property(e => e.UpdatedAtUtc).IsRequired();
+                entity.Property(e => e.ReviewedByUserId).HasMaxLength(450);
+                entity.Property(e => e.ReviewerNote).HasMaxLength(1000);
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_admin_user_feedback_tenant_id");
+                entity.HasIndex(e => e.SubmittedByUserId).HasDatabaseName("idx_admin_user_feedback_submitted_by");
+                entity.HasIndex(e => new { e.Status, e.CreatedAtUtc })
+                    .HasDatabaseName("idx_admin_user_feedback_status_created");
                 entity.HasOne(e => e.Tenant)
                     .WithMany()
                     .HasForeignKey(e => e.TenantId)

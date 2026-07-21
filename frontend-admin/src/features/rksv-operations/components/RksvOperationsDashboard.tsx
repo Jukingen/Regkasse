@@ -4,8 +4,8 @@
  * RKSV / FinanzOnline operational hub: health cards, workflow links, and task groups.
  * Read-only investigation tiles; POST payload analyze is snapshot-only (no repair mutations here).
  */
-
-import { useCallback, useMemo, useState } from 'react';
+import { LinkOutlined, ReloadOutlined } from '@ant-design/icons';
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
   Button,
@@ -21,20 +21,31 @@ import {
   Typography,
   theme,
 } from 'antd';
-import { SimpleList as List } from '@/components/ui/SimpleList';
-import { ReloadOutlined, LinkOutlined } from '@ant-design/icons';
-import Link from 'next/link';
 import dayjs from 'dayjs';
-import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import Link from 'next/link';
+import { useCallback, useMemo, useState } from 'react';
+
+import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import {
   getApiAdminFinanzonlineReconciliationMetrics,
   getApiAdminOfflineIntentCoverage,
-  postApiAdminOfflinePayloadHashAnalyze,
   getApiAdminOperationsSummary,
+  postApiAdminOfflinePayloadHashAnalyze,
 } from '@/api/generated/admin/admin';
-import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
+import type {
+  GetApiAdminOfflineIntentCoverageParams,
+  GetApiAdminOperationsSummaryParams,
+} from '@/api/generated/model';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { SimpleList as List } from '@/components/ui/SimpleList';
+import {
+  RksvDeploymentEnvironmentAlert,
+  RksvDeploymentEnvironmentBadge,
+} from '@/features/rksv/components/RksvDeploymentEnvironmentStatus';
+import { useI18n } from '@/i18n/I18nProvider';
+import { formatDateTime } from '@/i18n/formatting';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+
 import {
   healthTagColor,
   mapCoverageSummaryToHealth,
@@ -44,27 +55,20 @@ import {
   mapReplaySummaryToHealth,
 } from '../normalizers';
 import {
+  type RksvHubTranslate,
   getCoverageHealthCopy,
   getExportRiskHealthCopy,
   getFinanzOnlineHealthCopy,
   getPayloadHealthCopy,
   getReplayHealthCopy,
-  type RksvHubTranslate,
 } from '../rksvHubHealthCopy';
 import { RKSV_HUB_GROUPS } from '../rksvHubNavigation';
+import type { OpsHealthLevel } from '../types';
 import {
   RksvFinanzOnlineEnvironmentAlert,
   RksvFinanzOnlineEnvironmentBadge,
   useRksvFinanzOnlineEnvironment,
 } from './RksvFinanzOnlineEnvironmentStatus';
-import {
-  RksvDeploymentEnvironmentAlert,
-  RksvDeploymentEnvironmentBadge,
-} from '@/features/rksv/components/RksvDeploymentEnvironmentStatus';
-import type { OpsHealthLevel } from '../types';
-import type { GetApiAdminOfflineIntentCoverageParams, GetApiAdminOperationsSummaryParams } from '@/api/generated/model';
-import { useI18n } from '@/i18n/I18nProvider';
-import { formatDateTime } from '@/i18n/formatting';
 
 const PAYLOAD_QUICK_MAX_ROWS = 5000;
 
@@ -136,7 +140,11 @@ function OpsHealthCard(props: {
   }
 
   return (
-    <Card size="small" style={{ height: '100%' }} styles={{ body: { minHeight: 168, position: 'relative' } }}>
+    <Card
+      size="small"
+      style={{ height: '100%' }}
+      styles={{ body: { minHeight: 168, position: 'relative' } }}
+    >
       {refetching ? (
         <Tooltip title={refetchAriaLabel}>
           <span
@@ -209,7 +217,10 @@ function OpsHealthCard(props: {
             ) : null}
           </Space>
           {footnote ? (
-            <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM, lineHeight: token.lineHeightSM }}>
+            <Typography.Text
+              type="secondary"
+              style={{ fontSize: token.fontSizeSM, lineHeight: token.lineHeightSM }}
+            >
               {footnote}
             </Typography.Text>
           ) : null}
@@ -224,7 +235,8 @@ export function RksvOperationsDashboard() {
   const { t, formatLocale } = useI18n();
   const hubT: RksvHubTranslate = (key, options) => t(key, options);
   const queryClient = useQueryClient();
-  const { parsed: rksvEnvParsed, devParseDebug: rksvEnvDevDebug } = useRksvFinanzOnlineEnvironment();
+  const { parsed: rksvEnvParsed, devParseDebug: rksvEnvDevDebug } =
+    useRksvFinanzOnlineEnvironment();
 
   const coverageParams = useMemo<GetApiAdminOfflineIntentCoverageParams>(
     () => ({
@@ -240,7 +252,10 @@ export function RksvOperationsDashboard() {
 
   const [refreshedAt, setRefreshedAt] = useState(() => new Date());
   const [headerRefreshBusy, setHeaderRefreshBusy] = useState(false);
-  const operationsSummaryParams = useMemo<GetApiAdminOperationsSummaryParams>(() => ({ windowHours: 24 }), []);
+  const operationsSummaryParams = useMemo<GetApiAdminOperationsSummaryParams>(
+    () => ({ windowHours: 24 }),
+    []
+  );
 
   const payloadQuery = useQuery({
     queryKey: rksvAdminQueryKeys.operations.payloadAnalyzeQuick(PAYLOAD_QUICK_MAX_ROWS),
@@ -286,7 +301,9 @@ export function RksvOperationsDashboard() {
   const coverageLevel = coverageQuery.isError
     ? ('unavailable' as const)
     : mapCoverageSummaryToHealth(coverageSummary);
-  const foLevel = foQuery.isError ? ('unavailable' as const) : mapFinanzOnlineMetricsToHealth(foQuery.data);
+  const foLevel = foQuery.isError
+    ? ('unavailable' as const)
+    : mapFinanzOnlineMetricsToHealth(foQuery.data);
   const replayLevel = opsSummaryQuery.isError
     ? ('unavailable' as const)
     : mapReplaySummaryToHealth(opsSummaryQuery.data);
@@ -316,7 +333,7 @@ export function RksvOperationsDashboard() {
 
   const refreshedLabel = useMemo(
     () => formatDateTime(refreshedAt, formatLocale),
-    [refreshedAt, formatLocale],
+    [refreshedAt, formatLocale]
   );
 
   const moreToolLinks = useMemo(
@@ -350,7 +367,10 @@ export function RksvOperationsDashboard() {
         breadcrumbs={[adminOverviewCrumb(t), { title: t('nav.rksvOperationsOverview') }]}
         actions={
           <Space>
-            <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM, lineHeight: token.lineHeightSM }}>
+            <Typography.Text
+              type="secondary"
+              style={{ fontSize: token.fontSizeSM, lineHeight: token.lineHeightSM }}
+            >
               {t('rksvHub.refresh.refreshedAt', { time: refreshedLabel })}
             </Typography.Text>
             <Button
@@ -391,7 +411,10 @@ export function RksvOperationsDashboard() {
         />
       ) : null}
 
-      <Typography.Paragraph type="secondary" style={{ marginBottom: token.margin, lineHeight: token.lineHeightLG }}>
+      <Typography.Paragraph
+        type="secondary"
+        style={{ marginBottom: token.margin, lineHeight: token.lineHeightLG }}
+      >
         <Typography.Text strong style={{ color: 'inherit' }}>
           {t('rksvHub.intro.lead')}
         </Typography.Text>{' '}
@@ -406,7 +429,12 @@ export function RksvOperationsDashboard() {
       >
         <Typography.Paragraph
           type="secondary"
-          style={{ marginTop: 0, marginBottom: token.margin, fontSize: token.fontSize, lineHeight: token.lineHeightLG }}
+          style={{
+            marginTop: 0,
+            marginBottom: token.margin,
+            fontSize: token.fontSize,
+            lineHeight: token.lineHeightLG,
+          }}
         >
           <Typography.Text strong style={{ color: 'inherit' }}>
             {t('rksvHub.sections.workByTaskIntro')}
@@ -476,7 +504,9 @@ export function RksvOperationsDashboard() {
             <Typography.Title level={5} style={{ marginTop: 0 }}>
               {t('rksvHub.workflow.step1Title')}
             </Typography.Title>
-            <Typography.Paragraph type="secondary">{t('rksvHub.workflow.step1Hint')}</Typography.Paragraph>
+            <Typography.Paragraph type="secondary">
+              {t('rksvHub.workflow.step1Hint')}
+            </Typography.Paragraph>
             <Link href="/rksv/incident" passHref legacyBehavior>
               <Button type="primary" block icon={<LinkOutlined aria-hidden />}>
                 {t('rksvHub.workflow.step1Cta')}
@@ -489,7 +519,9 @@ export function RksvOperationsDashboard() {
             <Typography.Title level={5} style={{ marginTop: 0 }}>
               {t('rksvHub.workflow.step2Title')}
             </Typography.Title>
-            <Typography.Paragraph type="secondary">{t('rksvHub.workflow.step2Hint')}</Typography.Paragraph>
+            <Typography.Paragraph type="secondary">
+              {t('rksvHub.workflow.step2Hint')}
+            </Typography.Paragraph>
             <Link href="/rksv/replay-batch" passHref legacyBehavior>
               <Button type="primary" block icon={<LinkOutlined aria-hidden />}>
                 {t('rksvHub.workflow.step2Cta')}
@@ -502,7 +534,9 @@ export function RksvOperationsDashboard() {
             <Typography.Title level={5} style={{ marginTop: 0 }}>
               {t('rksvHub.workflow.step3Title')}
             </Typography.Title>
-            <Typography.Paragraph type="secondary">{t('rksvHub.workflow.step3Hint')}</Typography.Paragraph>
+            <Typography.Paragraph type="secondary">
+              {t('rksvHub.workflow.step3Hint')}
+            </Typography.Paragraph>
             <Link href="/rksv/finanz-online-outbox" passHref legacyBehavior>
               <Button type="primary" block icon={<LinkOutlined aria-hidden />}>
                 {t('rksvHub.workflow.step3Cta')}
@@ -532,7 +566,9 @@ export function RksvOperationsDashboard() {
             detailLines={payloadCopy.detailLines}
             primaryHref="/rksv/payload-hash-conflicts"
             primaryLabel={t('rksvHub.health.cta.payload')}
-            footnote={t('rksvHub.health.cardFootnote.payloadSample', { maxRows: PAYLOAD_QUICK_MAX_ROWS })}
+            footnote={t('rksvHub.health.cardFootnote.payloadSample', {
+              maxRows: PAYLOAD_QUICK_MAX_ROWS,
+            })}
             pendingAriaLabel={pendingAria}
             refetchAriaLabel={refetchAria}
             unavailableTooltip={unavailableTip}

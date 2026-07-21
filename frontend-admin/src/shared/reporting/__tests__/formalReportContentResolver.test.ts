@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  joinFormalReportRemediationHints,
-  resolveFormalReportContentFromDualFields,
-  resolveFormalReportExportProfileRow,
-  resolveFormalReportLegalExportIssueMessage,
-} from '../formalReportContentResolver';
+
 import {
   joinFiscalReportRemediationHints,
   resolveFiscalExportProfileRow,
@@ -12,12 +7,21 @@ import {
   resolveLegalExportCompletenessIssueMessage,
 } from '@/shared/backendLocale/fiscalReportTextPolicy';
 
+import {
+  joinFormalReportRemediationHints,
+  resolveFormalReportContentFromDualFields,
+  resolveFormalReportExportProfileRow,
+  resolveFormalReportLegalExportIssueMessage,
+} from '../formalReportContentResolver';
+
 describe('formalReportContentResolver re-exports', () => {
   it('aliases point to the same functions as fiscalReportTextPolicy', () => {
     expect(resolveFormalReportContentFromDualFields).toBe(resolveFiscalReportBackendText);
     expect(joinFormalReportRemediationHints).toBe(joinFiscalReportRemediationHints);
     expect(resolveFormalReportExportProfileRow).toBe(resolveFiscalExportProfileRow);
-    expect(resolveFormalReportLegalExportIssueMessage).toBe(resolveLegalExportCompletenessIssueMessage);
+    expect(resolveFormalReportLegalExportIssueMessage).toBe(
+      resolveLegalExportCompletenessIssueMessage
+    );
   });
 });
 
@@ -30,13 +34,25 @@ describe('resolveFormalReportContentFromDualFields (policy matrix)', () => {
   });
 
   it('UI en → English when present, else German', () => {
-    expect(resolveFormalReportContentFromDualFields('DE', 'en', 'EN')).toEqual({ text: 'EN', contentLang: 'en' });
-    expect(resolveFormalReportContentFromDualFields('DE', 'en', undefined)).toEqual({ text: 'DE', contentLang: 'de' });
+    expect(resolveFormalReportContentFromDualFields('DE', 'en', 'EN')).toEqual({
+      text: 'EN',
+      contentLang: 'en',
+    });
+    expect(resolveFormalReportContentFromDualFields('DE', 'en', undefined)).toEqual({
+      text: 'DE',
+      contentLang: 'de',
+    });
   });
 
   it('UI tr → never tr; German first, then English', () => {
-    expect(resolveFormalReportContentFromDualFields('DE', 'tr', 'EN')).toEqual({ text: 'DE', contentLang: 'de' });
-    expect(resolveFormalReportContentFromDualFields('', 'tr', 'EN')).toEqual({ text: 'EN', contentLang: 'en' });
+    expect(resolveFormalReportContentFromDualFields('DE', 'tr', 'EN')).toEqual({
+      text: 'DE',
+      contentLang: 'de',
+    });
+    expect(resolveFormalReportContentFromDualFields('', 'tr', 'EN')).toEqual({
+      text: 'EN',
+      contentLang: 'en',
+    });
   });
 });
 

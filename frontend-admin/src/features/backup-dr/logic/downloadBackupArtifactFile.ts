@@ -2,8 +2,8 @@
  * Başarılı yedek çalıştırması artefaktı için blob indirme; Fake/stub ortamında gövde küçük yer tutucu olabilir (UI bunu ayrı etiketler).
  * Content-Disposition dosya adını okur (Orval customInstance başlıkları düşürdüğü için doğrudan axios örneği).
  */
-
 import axios from 'axios';
+
 import { AXIOS_INSTANCE } from '@/lib/axios';
 
 export type BackupArtifactDownloadFailureCode =
@@ -23,7 +23,7 @@ export type BackupArtifactDownloadFailureCode =
 export class BackupArtifactDownloadError extends Error {
   constructor(
     public readonly code: BackupArtifactDownloadFailureCode,
-    message?: string,
+    message?: string
   ) {
     super(message ?? code);
     this.name = 'BackupArtifactDownloadError';
@@ -57,7 +57,9 @@ async function readJsonCodeFromBlob(blob: Blob): Promise<string | undefined> {
   }
 }
 
-function mapApiCodeToFailure(code: string | undefined): BackupArtifactDownloadFailureCode | undefined {
+function mapApiCodeToFailure(
+  code: string | undefined
+): BackupArtifactDownloadFailureCode | undefined {
   if (code === undefined) return undefined;
   if (code === 'BACKUP_ARTIFACT_FILE_MISSING') return 'file_missing';
   if (code === 'BACKUP_RUN_NOT_FOUND') return 'run_not_found';
@@ -74,7 +76,7 @@ const downloadPath = (runId: string, artifactId: string) =>
 export async function downloadBackupArtifactFile(
   runId: string,
   artifactId: string,
-  fallbackFilename: string,
+  fallbackFilename: string
 ): Promise<void> {
   try {
     const res = await AXIOS_INSTANCE.get(downloadPath(runId, artifactId), {
@@ -93,7 +95,7 @@ export async function downloadBackupArtifactFile(
     }
     const name = parseFilenameFromContentDisposition(
       res.headers['content-disposition'] as string | undefined,
-      fallbackFilename,
+      fallbackFilename
     );
     const url = URL.createObjectURL(blob);
     try {

@@ -1,4 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
+
 import { AUTH_KEYS, fetchAuthUser } from '@/features/auth/hooks/useAuth';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 

@@ -1,6 +1,5 @@
 /// <reference types="jest" />
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { jest } from '@jest/globals';
 
 // Mock CartService
@@ -27,7 +26,7 @@ describe('Payment Integration - Cart Reset and Order Status Update', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Default mock implementations
     (mockCartService.setCartIdForTable as any).mockResolvedValue(undefined);
     (mockCartService.getCartIdForTable as any).mockResolvedValue(mockCartId);

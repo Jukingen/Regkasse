@@ -2,12 +2,12 @@ import React, { useCallback } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { SoftColors, SoftRadius, SoftSpacing } from '../constants/SoftTheme';
-import { useMandantLicenseWarning } from '../hooks/useMandantLicenseWarning';
 import { useLicenseStatus } from '../hooks/useLicenseStatus';
-import { areLicenseChecksBypassedInDevelopment } from '../utils/licenseCriticalActionGuard';
-import { openLicenseExtension } from '../utils/openAdmin';
-import { formatLicenseRemainingDe } from '../utils/licenseExpiryRemaining';
+import { useMandantLicenseWarning } from '../hooks/useMandantLicenseWarning';
 import { formatUserDate } from '../utils/dateFormatter';
+import { areLicenseChecksBypassedInDevelopment } from '../utils/licenseCriticalActionGuard';
+import { formatLicenseRemainingDe } from '../utils/licenseExpiryRemaining';
+import { openLicenseExtension } from '../utils/openAdmin';
 
 /**
  * Mandant (tenant) license warning band with optional renew action (German POS copy).
@@ -29,8 +29,7 @@ export function LicenseWarningBanner() {
     const remaining = state.gracePeriodRemaining;
     const daysExpired = state.daysOverdue;
     const lockLabel =
-      (state.lockDate && formatUserDate(state.lockDate)) ||
-      formatLockDateFromRemaining(remaining);
+      (state.lockDate && formatUserDate(state.lockDate)) || formatLockDateFromRemaining(remaining);
     return (
       <View style={[styles.banner, styles.warningBanner]} accessibilityRole="alert">
         <Text style={styles.warningText}>
@@ -42,8 +41,11 @@ export function LicenseWarningBanner() {
           accessibilityRole="button"
           accessibilityLabel="Lizenz verlängern"
           onPress={onRenew}
-          style={({ pressed }) => [styles.renewButton, styles.warningRenewButton, pressed && styles.pressed]}
-        >
+          style={({ pressed }) => [
+            styles.renewButton,
+            styles.warningRenewButton,
+            pressed && styles.pressed,
+          ]}>
           <Text style={styles.warningRenewLabel}>Lizenz verlängern</Text>
         </Pressable>
       </View>
@@ -61,8 +63,11 @@ export function LicenseWarningBanner() {
           accessibilityRole="button"
           accessibilityLabel="Jetzt verlängern"
           onPress={onRenew}
-          style={({ pressed }) => [styles.renewButton, styles.infoRenewButton, pressed && styles.pressed]}
-        >
+          style={({ pressed }) => [
+            styles.renewButton,
+            styles.infoRenewButton,
+            pressed && styles.pressed,
+          ]}>
           <Text style={styles.infoRenewLabel}>Jetzt verlängern</Text>
         </Pressable>
       </View>

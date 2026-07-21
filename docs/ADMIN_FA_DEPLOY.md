@@ -44,10 +44,15 @@ Opens webpack bundle reports in the browser (`ANALYZE=true` + `NEXT_PUBLIC_RKSV_
 
 ## CI reference
 
-- Admin production build: `.github/workflows/api-client-alignment.yml` (`NEXT_PUBLIC_RKSV_ENVIRONMENT`, `npm run build`).
+- **Quality gate:** `.github/workflows/frontend-admin-ci.yml` — `lint`, `typecheck`, `test`, `build`, `test:e2e` (with `node_modules` / Next cache).
+- **Deploy:** `.github/workflows/frontend-admin-deploy.yml` — GHCR image; staging on `main`; production via `workflow_dispatch` + GitHub Environment approval.
+- **OpenAPI smoke:** `.github/workflows/api-client-alignment.yml` (`NEXT_PUBLIC_RKSV_ENVIRONMENT`, `npm run build`).
+- Full FA pipeline docs: `frontend-admin/docs/CI_CD.md`.
 - Commit updated `backend/swagger.json` whenever API routes/DTOs change (regenerate; do not hand-edit).
 
 ## Related docs
 
-- `frontend-admin/docs/DEPLOYMENT_BUILD_TIME_ENV.md` — `NEXT_PUBLIC_*` at image/CI build time
+- `frontend-admin/docs/CI_CD.md` — CI/CD process (caching, staging/prod, Slack)
+- `frontend-admin/docs/DEPLOYMENT_BUILD_TIME_ENV.md` — `NEXT_PUBLIC_*` at image/CI/Vercel build time
+- `frontend-admin/README.md` — Docker, Vercel (`vercel.json`), Nginx (`nginx.conf`), CI/CD summary
 - `docs/MULTI_TENANT.md` — tenant host / `X-Tenant-Id` (Development only)

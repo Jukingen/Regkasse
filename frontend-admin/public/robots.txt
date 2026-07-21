@@ -1,0 +1,4 @@
+# Regkasse Admin (FA) — private operator UI. Do not crawl or index.
+# Canonical source is also `src/app/robots.ts` (App Router). Keep these in sync.
+User-agent: *
+Disallow: /

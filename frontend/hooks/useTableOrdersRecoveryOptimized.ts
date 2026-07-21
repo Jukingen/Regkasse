@@ -2,6 +2,7 @@
 // TABLE_ORDERS_MISSING (503) durumunda retry YAPILMAZ, kullanıcıya bilgi mesajı gösterilir
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+
 import { useApiManager } from './useApiManager';
 import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../services/api/config';
@@ -14,7 +15,7 @@ export interface TableOrderRecoveryItem {
   price: number;
   total: number;
   notes?: string;
-  selectedModifiers?: Array<{ id: string; name: string; price: number }>;
+  selectedModifiers?: { id: string; name: string; price: number }[];
 }
 
 export interface TableOrderRecovery {
@@ -75,7 +76,7 @@ export const useTableOrdersRecoveryOptimized = () => {
   const recoveryStateRef = useRef(recoveryState);
 
   const updateRecoveryState = useCallback((updates: Partial<RecoveryState>) => {
-    setRecoveryState(prev => {
+    setRecoveryState((prev) => {
       const newState = { ...prev, ...updates };
       recoveryStateRef.current = newState;
       return newState;
@@ -86,125 +87,129 @@ export const useTableOrdersRecoveryOptimized = () => {
    * Backend'den tüm aktif masa siparişlerini getir - apiClient direkt kullanım (retry YOK)
    * 503/TABLE_ORDERS_MISSING geldiğinde retry yapılmaz.
    */
-  const fetchTableOrdersRecovery = useCallback(async (): Promise<TableOrdersRecoveryData | null> => {
-    if (!user) {
-      console.warn('User not authenticated for table orders recovery');
-      return null;
-    }
-
-    // Session guard: Başka instance zaten fetch ettiyse modül cache'inden dön
-    if (sessionStore.lastFetchedUserId === user.id && sessionStore.cachedData) {
-      updateRecoveryState({
-        recoveryData: sessionStore.cachedData,
-        isRecoveryCompleted: true,
-        isInitialized: true,
-      });
-      return sessionStore.cachedData;
-    }
-
-    if (recoveryStateRef.current.isLoading || sessionStore.fetchInProgress) {
-      return null;
-    }
-
-    const userCacheKey = `table-orders-recovery:${user.id}`;
-    const cachedData = getCachedData<TableOrdersRecoveryData>(userCacheKey);
-    if (cachedData) {
-      sessionStore.lastFetchedUserId = user.id;
-      sessionStore.cachedData = cachedData;
-      updateRecoveryState({
-        isLoading: false,
-        error: null,
-        recoveryData: cachedData,
-        isRecoveryCompleted: true,
-        isInitialized: true,
-        provisioningMessage: null,
-      });
-      return cachedData;
-    }
-
-    updateRecoveryState({ isLoading: true, error: null, provisioningMessage: null });
-    sessionStore.lastFetchedUserId = user.id;
-    sessionStore.fetchInProgress = true;
-
-    try {
-      console.log('🔄 Fetching table orders for recovery (single call)...');
-
-      // Direkt apiClient - useApiManager.apiCall KULLANILMAZ (503'te retry yapmasın)
-      const response = await apiClient.get('/pos/cart/table-orders-recovery');
-
-      if (!response || typeof response !== 'object') {
-        throw new Error(`Invalid response format: ${JSON.stringify(response)}`);
+  const fetchTableOrdersRecovery =
+    useCallback(async (): Promise<TableOrdersRecoveryData | null> => {
+      if (!user) {
+        console.warn('User not authenticated for table orders recovery');
+        return null;
       }
 
-      const recoveryData = response as TableOrdersRecoveryData;
-
-      if (!recoveryData.success) {
-        throw new Error(recoveryData.message || 'Failed to retrieve table orders');
+      // Session guard: Başka instance zaten fetch ettiyse modül cache'inden dön
+      if (sessionStore.lastFetchedUserId === user.id && sessionStore.cachedData) {
+        updateRecoveryState({
+          recoveryData: sessionStore.cachedData,
+          isRecoveryCompleted: true,
+          isInitialized: true,
+        });
+        return sessionStore.cachedData;
       }
 
-      console.log(`✅ Recovery completed: ${recoveryData.totalActiveTables} active table orders found`);
+      if (recoveryStateRef.current.isLoading || sessionStore.fetchInProgress) {
+        return null;
+      }
 
-      updateRecoveryState({
-        isLoading: false,
-        error: null,
-        recoveryData,
-        isRecoveryCompleted: true,
-        isInitialized: true,
-        provisioningMessage: null,
-      });
-
-      sessionStore.cachedData = recoveryData;
-      sessionStore.fetchInProgress = false;
-      setCachedData(userCacheKey, recoveryData, 5);
-      return recoveryData;
-    } catch (error: any) {
-      sessionStore.fetchInProgress = false;
-      const errorMessage = error?.response?.data?.message ?? error.message ?? 'Unknown error during recovery';
-      const errorCode = error?.response?.data?.errorCode;
-      const status = error?.response?.status;
-      const is503orTableMissing = errorCode === 'TABLE_ORDERS_MISSING' || status === 503;
-
-      console.error('❌ Table orders recovery failed:', errorMessage);
-
-      // 503 / TABLE_ORDERS_MISSING: RETRY YOK, fallback + kullanıcı bilgi mesajı
-      if (is503orTableMissing) {
-        console.warn('⚠️ TABLE_ORDERS_MISSING/503: No retry, falling back to empty recovery.');
-
-        const fallbackData: TableOrdersRecoveryData = {
-          success: true,
-          message: 'Fallback recovery mode activated',
-          userId: user.id,
-          tableOrders: [],
-          totalActiveTables: 0,
-          retrievedAt: new Date().toISOString(),
-        };
-
-        sessionStore.cachedData = fallbackData;
+      const userCacheKey = `table-orders-recovery:${user.id}`;
+      const cachedData = getCachedData<TableOrdersRecoveryData>(userCacheKey);
+      if (cachedData) {
+        sessionStore.lastFetchedUserId = user.id;
+        sessionStore.cachedData = cachedData;
         updateRecoveryState({
           isLoading: false,
           error: null,
-          recoveryData: fallbackData,
+          recoveryData: cachedData,
           isRecoveryCompleted: true,
           isInitialized: true,
-          provisioningMessage: 'System wird vorbereitet. Tische werden synchronisiert.',
+          provisioningMessage: null,
         });
-
-        return fallbackData;
+        return cachedData;
       }
 
-      // Diğer hatalar (network, 500 vs): Hata göster, retry yok (tek çağrı kuralı)
-      updateRecoveryState({
-        isLoading: false,
-        error: errorMessage,
-        recoveryData: null,
-        isRecoveryCompleted: true,
-        isInitialized: true,
-        provisioningMessage: null,
-      });
+      updateRecoveryState({ isLoading: true, error: null, provisioningMessage: null });
+      sessionStore.lastFetchedUserId = user.id;
+      sessionStore.fetchInProgress = true;
 
-      return null;
-    }
-  }, [user, getCachedData, setCachedData, updateRecoveryState]);
+      try {
+        console.log('🔄 Fetching table orders for recovery (single call)...');
+
+        // Direkt apiClient - useApiManager.apiCall KULLANILMAZ (503'te retry yapmasın)
+        const response = await apiClient.get('/pos/cart/table-orders-recovery');
+
+        if (!response || typeof response !== 'object') {
+          throw new Error(`Invalid response format: ${JSON.stringify(response)}`);
+        }
+
+        const recoveryData = response as TableOrdersRecoveryData;
+
+        if (!recoveryData.success) {
+          throw new Error(recoveryData.message || 'Failed to retrieve table orders');
+        }
+
+        console.log(
+          `✅ Recovery completed: ${recoveryData.totalActiveTables} active table orders found`
+        );
+
+        updateRecoveryState({
+          isLoading: false,
+          error: null,
+          recoveryData,
+          isRecoveryCompleted: true,
+          isInitialized: true,
+          provisioningMessage: null,
+        });
+
+        sessionStore.cachedData = recoveryData;
+        sessionStore.fetchInProgress = false;
+        setCachedData(userCacheKey, recoveryData, 5);
+        return recoveryData;
+      } catch (error: any) {
+        sessionStore.fetchInProgress = false;
+        const errorMessage =
+          error?.response?.data?.message ?? error.message ?? 'Unknown error during recovery';
+        const errorCode = error?.response?.data?.errorCode;
+        const status = error?.response?.status;
+        const is503orTableMissing = errorCode === 'TABLE_ORDERS_MISSING' || status === 503;
+
+        console.error('❌ Table orders recovery failed:', errorMessage);
+
+        // 503 / TABLE_ORDERS_MISSING: RETRY YOK, fallback + kullanıcı bilgi mesajı
+        if (is503orTableMissing) {
+          console.warn('⚠️ TABLE_ORDERS_MISSING/503: No retry, falling back to empty recovery.');
+
+          const fallbackData: TableOrdersRecoveryData = {
+            success: true,
+            message: 'Fallback recovery mode activated',
+            userId: user.id,
+            tableOrders: [],
+            totalActiveTables: 0,
+            retrievedAt: new Date().toISOString(),
+          };
+
+          sessionStore.cachedData = fallbackData;
+          updateRecoveryState({
+            isLoading: false,
+            error: null,
+            recoveryData: fallbackData,
+            isRecoveryCompleted: true,
+            isInitialized: true,
+            provisioningMessage: 'System wird vorbereitet. Tische werden synchronisiert.',
+          });
+
+          return fallbackData;
+        }
+
+        // Diğer hatalar (network, 500 vs): Hata göster, retry yok (tek çağrı kuralı)
+        updateRecoveryState({
+          isLoading: false,
+          error: errorMessage,
+          recoveryData: null,
+          isRecoveryCompleted: true,
+          isInitialized: true,
+          provisioningMessage: null,
+        });
+
+        return null;
+      }
+    }, [user, getCachedData, setCachedData, updateRecoveryState]);
 
   const refreshTableOrders = useCallback(async (): Promise<TableOrdersRecoveryData | null> => {
     if (!user) return null;
@@ -222,15 +227,17 @@ export const useTableOrdersRecoveryOptimized = () => {
 
   const getOrderForTable = useCallback((tableNumber: number): TableOrderRecovery | null => {
     if (!recoveryStateRef.current.recoveryData) return null;
-    return recoveryStateRef.current.recoveryData.tableOrders.find(
-      order => order.tableNumber === tableNumber
-    ) ?? null;
+    return (
+      recoveryStateRef.current.recoveryData.tableOrders.find(
+        (order) => order.tableNumber === tableNumber
+      ) ?? null
+    );
   }, []);
 
   const getActiveTableNumbers = useCallback((): number[] => {
     if (!recoveryStateRef.current.recoveryData) return [];
     return recoveryStateRef.current.recoveryData.tableOrders
-      .map(order => order.tableNumber)
+      .map((order) => order.tableNumber)
       .filter((tableNumber): tableNumber is number => tableNumber !== undefined)
       .sort((a, b) => a - b);
   }, []);
@@ -240,7 +247,11 @@ export const useTableOrdersRecoveryOptimized = () => {
     sessionStore.cachedData = null;
     sessionStore.fetchInProgress = false;
     if (user?.id) {
-      setCachedData(`table-orders-recovery:${user.id}`, null as unknown as TableOrdersRecoveryData, 0);
+      setCachedData(
+        `table-orders-recovery:${user.id}`,
+        null as unknown as TableOrdersRecoveryData,
+        0
+      );
     }
     updateRecoveryState({
       isLoading: false,

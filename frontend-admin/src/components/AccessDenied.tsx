@@ -1,6 +1,7 @@
 'use client';
 
 import { Alert } from 'antd';
+
 import { useI18n } from '@/i18n';
 
 type AccessDeniedProps = {

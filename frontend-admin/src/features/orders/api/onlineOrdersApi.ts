@@ -323,7 +323,7 @@ type StatusUpdateApi = {
 
 export async function updateOnlineOrderStatus(
   id: string,
-  status: string,
+  status: string
 ): Promise<UpdateOnlineOrderStatusResult> {
   const res = await customInstance<StatusUpdateApi>({
     url: `/api/admin/online-orders/${id}/status`,
@@ -380,8 +380,7 @@ export async function fetchOnlineOrderAnalytics(): Promise<OnlineOrderAnalytics>
     cancelled: res?.cancelled ?? res?.Cancelled ?? 0,
     revenue: res?.revenue ?? res?.Revenue ?? 0,
     averageOrderValue: res?.averageOrderValue ?? res?.AverageOrderValue ?? 0,
-    avgAcceptToReadyMinutes:
-      res?.avgAcceptToReadyMinutes ?? res?.AvgAcceptToReadyMinutes ?? null,
+    avgAcceptToReadyMinutes: res?.avgAcceptToReadyMinutes ?? res?.AvgAcceptToReadyMinutes ?? null,
     byStatus: res?.byStatus ?? res?.ByStatus ?? {},
     bySource: res?.bySource ?? res?.BySource ?? {},
     byOrderType: res?.byOrderType ?? res?.ByOrderType ?? {},

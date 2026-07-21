@@ -2,6 +2,7 @@ import { Alert } from 'react-native';
 
 import { postCreateMonatsbeleg } from '../services/api/rksvSpecialReceiptsService';
 import { receiptPrinter } from '../services/receiptPrinter';
+import { isPrintCancelled } from '../utils/expoPrintShare';
 
 export type CreatePosMonatsbelegParams = {
   cashRegisterId: string;
@@ -18,24 +19,25 @@ export type CreatePosMonatsbelegResult = {
 
 /** POST special-receipt Monatsbeleg (December → Jahresbeleg semantics) and best-effort print. */
 export async function createPosMonatsbelegAndPrint(
-  params: CreatePosMonatsbelegParams,
+  params: CreatePosMonatsbelegParams
 ): Promise<CreatePosMonatsbelegResult> {
   const isDecemberAnnual = params.month === 12;
   const created = await postCreateMonatsbeleg({
     cashRegisterId: params.cashRegisterId,
     year: params.year,
     month: params.month,
-    reason:
-      params.reason ??
-      (isDecemberAnnual ? 'POS Jahresbeleg (Dezember)' : 'POS Monatsbeleg'),
+    reason: params.reason ?? (isDecemberAnnual ? 'POS Jahresbeleg (Dezember)' : 'POS Monatsbeleg'),
   });
 
   let printed = false;
   try {
     await receiptPrinter.print(String(created.paymentId));
     printed = true;
-  } catch {
-    /* best-effort print */
+  } catch (err) {
+    // Preview dismissed without printing — treat as soft success for messaging
+    if (isPrintCancelled(err)) {
+      printed = true;
+    }
   }
 
   return { paymentId: String(created.paymentId), printed, isDecemberAnnual };

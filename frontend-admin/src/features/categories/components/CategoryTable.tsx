@@ -1,14 +1,16 @@
 'use client';
 
-import React, { useMemo } from 'react';
-import { Button, Popconfirm, Space, Table, Tag, Empty } from 'antd';
-import type { TableProps } from 'antd';
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
+import type { TableProps } from 'antd';
+import { Button, Empty, Popconfirm, Space, Table, Tag } from 'antd';
 import type { ColumnType } from 'antd/es/table';
+import React, { useMemo } from 'react';
+
+import { adminTablePaginationDefaults } from '@/components/ui/adminTablePagination';
+import { useI18n } from '@/i18n';
+
 import type { AdminCategory, RksvProductCategoryValue } from '../types';
 import EditableCell from './EditableCell';
-import { useI18n } from '@/i18n';
-import { adminTablePaginationDefaults } from '@/components/ui/adminTablePagination';
 
 interface CategoryTableProps {
   data: AdminCategory[];
@@ -21,7 +23,13 @@ interface CategoryTableProps {
   expandable?: TableProps<AdminCategory>['expandable'];
 }
 
-function FiscalCategoryTag({ value, t }: { value: RksvProductCategoryValue | undefined; t: (key: string) => string }) {
+function FiscalCategoryTag({
+  value,
+  t,
+}: {
+  value: RksvProductCategoryValue | undefined;
+  t: (key: string) => string;
+}) {
   switch (value) {
     case 1:
       return <Tag color="green">{t('common.categories.table.fiscalFood')}</Tag>;
@@ -48,9 +56,8 @@ export default function CategoryTable({
 }: CategoryTableProps) {
   const { t } = useI18n();
 
-  const columns: ColumnType<AdminCategory>[] = useMemo(
-    () => {
-      const cols: ColumnType<AdminCategory>[] = [
+  const columns: ColumnType<AdminCategory>[] = useMemo(() => {
+    const cols: ColumnType<AdminCategory>[] = [
       {
         title: t('common.categories.table.icon'),
         dataIndex: 'icon',
@@ -96,7 +103,9 @@ export default function CategoryTable({
         dataIndex: 'fiscalCategory',
         key: 'fiscalCategory',
         width: 140,
-        render: (cat: RksvProductCategoryValue | undefined) => <FiscalCategoryTag value={cat} t={t} />,
+        render: (cat: RksvProductCategoryValue | undefined) => (
+          <FiscalCategoryTag value={cat} t={t} />
+        ),
       },
       {
         title: t('common.categories.table.productCount'),
@@ -115,10 +124,10 @@ export default function CategoryTable({
         align: 'right',
         sorter: (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
       },
-      ];
+    ];
 
-      if (canManage) {
-        cols.push({
+    if (canManage) {
+      cols.push({
         title: t('common.categories.table.actions'),
         key: 'actions',
         width: 220,
@@ -155,12 +164,10 @@ export default function CategoryTable({
           </Space>
         ),
       });
-      }
+    }
 
-      return cols;
-    },
-    [t, onEdit, onDelete, onUpdateName, deleteLoadingId, canManage],
-  );
+    return cols;
+  }, [t, onEdit, onDelete, onUpdateName, deleteLoadingId, canManage]);
 
   return (
     <Table<AdminCategory>

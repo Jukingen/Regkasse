@@ -70,8 +70,7 @@ export function WorkingHoursStatus() {
       accessibilityLabel={`Öffnungszeiten nur Hinweis. ${infoLine}. POS ist immer bereit.`}
       // Explicit: this chip never disables POS interaction
       pointerEvents="none"
-      importantForAccessibility="no-hide-descendants"
-    >
+      importantForAccessibility="no-hide-descendants">
       <View style={styles.row}>
         <View style={[styles.dot, { backgroundColor: color }]} />
         <Text style={styles.info} numberOfLines={1}>

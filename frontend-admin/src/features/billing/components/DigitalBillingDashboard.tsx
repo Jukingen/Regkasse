@@ -2,10 +2,9 @@
 
 import { Card, Col, Row, Space, Statistic, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+
+import { type DigitalBillingSubscriptionRow } from '@/features/billing/api/digitalBillingApi';
 import { BillingAccessGate } from '@/features/billing/components/BillingAccessGate';
-import {
-  type DigitalBillingSubscriptionRow,
-} from '@/features/billing/api/digitalBillingApi';
 import { useDigitalBilling } from '@/features/billing/hooks/useDigitalBilling';
 import { useI18n } from '@/i18n';
 
@@ -28,7 +27,7 @@ const KNOWN_STATUSES = new Set(['active', 'cancelled', 'past_due']);
 
 function statusLabel(
   t: (key: string, options?: Record<string, string | number>) => string,
-  status: string,
+  status: string
 ): string {
   const normalized = status.toLowerCase();
   if (KNOWN_STATUSES.has(normalized)) {
@@ -70,23 +69,19 @@ export function DigitalBillingDashboard() {
       title: t('billing.digital.columns.startDate'),
       dataIndex: 'startDate',
       key: 'startDate',
-      render: (value: string) =>
-        value ? new Date(value).toLocaleDateString(formatLocale) : '—',
+      render: (value: string) => (value ? new Date(value).toLocaleDateString(formatLocale) : '—'),
     },
     {
       title: t('billing.digital.columns.nextBilling'),
       dataIndex: 'nextBilling',
       key: 'nextBilling',
-      render: (value: string) =>
-        value ? new Date(value).toLocaleDateString(formatLocale) : '—',
+      render: (value: string) => (value ? new Date(value).toLocaleDateString(formatLocale) : '—'),
     },
     {
       title: t('billing.digital.columns.status'),
       dataIndex: 'status',
       key: 'status',
-      render: (status: string) => (
-        <Tag color={statusColor(status)}>{statusLabel(t, status)}</Tag>
-      ),
+      render: (status: string) => <Tag color={statusColor(status)}>{statusLabel(t, status)}</Tag>,
     },
   ];
 
@@ -146,9 +141,7 @@ export function DigitalBillingDashboard() {
             columns={columns}
             pagination={{ pageSize: 20 }}
             locale={{
-              emptyText: isError
-                ? t('common.errors.http500')
-                : t('billing.digital.empty'),
+              emptyText: isError ? t('common.errors.http500') : t('billing.digital.empty'),
             }}
           />
         </Card>

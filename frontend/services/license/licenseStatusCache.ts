@@ -1,8 +1,8 @@
 import { licenseApi, type LicensePublicStatusDto } from '../../api/license';
-import { apiClient } from '../api/config';
-import { applyPersistedLicenseOverride } from '../../utils/posLicenseLocalOverride';
 import { POS_LICENSE_CACHE_MS } from '../../constants/posPollingIntervals';
 import { normalizeLicenseDaysRemaining } from '../../utils/licenseExpiryRemaining';
+import { applyPersistedLicenseOverride } from '../../utils/posLicenseLocalOverride';
+import { apiClient } from '../api/config';
 
 /** Deployment license snapshot (health + public status merge). */
 export type LicenseStatus = {
@@ -61,7 +61,10 @@ function inferPaidFromPublic(p: LicensePublicStatusDto): boolean {
   return false;
 }
 
-function mergePublic(base: LicenseStatus | null, pub: LicensePublicStatusDto): LicenseStatus | null {
+function mergePublic(
+  base: LicenseStatus | null,
+  pub: LicensePublicStatusDto
+): LicenseStatus | null {
   const publicDays =
     typeof pub.daysRemaining === 'number' && Number.isFinite(pub.daysRemaining)
       ? Math.max(0, normalizeLicenseDaysRemaining(pub.daysRemaining))
@@ -108,14 +111,13 @@ function mergePublic(base: LicenseStatus | null, pub: LicensePublicStatusDto): L
         ? pub.validUntil
         : base.expiryDate,
     enabledFeatures:
-      pub.features && pub.features.length > 0 ? [...pub.features] : base.enabledFeatures ?? null,
+      pub.features && pub.features.length > 0 ? [...pub.features] : (base.enabledFeatures ?? null),
   };
 }
 
 export function isLicenseStatusCacheFresh(now = Date.now()): boolean {
   return (
-    licenseStatusCache.data != null &&
-    now - licenseStatusCache.timestamp < POS_LICENSE_CACHE_MS
+    licenseStatusCache.data != null && now - licenseStatusCache.timestamp < POS_LICENSE_CACHE_MS
   );
 }
 
@@ -145,7 +147,7 @@ async function fetchLicenseStatusFromNetwork(): Promise<LicenseStatus | null> {
     merged = null;
   }
 
-  return applyPersistedLicenseOverride(merged);
+  return await applyPersistedLicenseOverride(merged);
 }
 
 /**
@@ -154,7 +156,7 @@ async function fetchLicenseStatusFromNetwork(): Promise<LicenseStatus | null> {
 export async function resolveLicenseStatus(force = false): Promise<LicenseStatus | null> {
   const now = Date.now();
   if (!force && isLicenseStatusCacheFresh(now)) {
-    return applyPersistedLicenseOverride(licenseStatusCache.data);
+    return await applyPersistedLicenseOverride(licenseStatusCache.data);
   }
 
   try {
@@ -164,7 +166,7 @@ export async function resolveLicenseStatus(force = false): Promise<LicenseStatus
     return merged;
   } catch {
     if (licenseStatusCache.data) {
-      return applyPersistedLicenseOverride(licenseStatusCache.data);
+      return await applyPersistedLicenseOverride(licenseStatusCache.data);
     }
     return null;
   }

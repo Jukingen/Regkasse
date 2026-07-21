@@ -1,12 +1,14 @@
 // Bu component, optimize edilmiş data fetching hook'larının nasıl kullanılacağını gösterir
 // Sürekli API çağrısı yerine akıllı ve cache-based fetching kullanır
 
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
-import { useOptimizedTableOrdersRecovery } from '../hooks/useOptimizedDataFetching';
-import { useOptimizedPaymentMethods } from '../hooks/useOptimizedDataFetching';
+import {
+  useOptimizedTableOrdersRecovery,
+  useOptimizedPaymentMethods,
+} from '../hooks/useOptimizedDataFetching';
 
 export const OptimizedDataExample: React.FC = () => {
   // Table orders recovery - optimize edilmiş
@@ -16,7 +18,7 @@ export const OptimizedDataExample: React.FC = () => {
     error: tableOrdersError,
     refresh: refreshTableOrders,
     isStale: tableOrdersStale,
-    lastFetch: tableOrdersLastFetch
+    lastFetch: tableOrdersLastFetch,
   } = useOptimizedTableOrdersRecovery();
 
   // Payment methods - optimize edilmiş
@@ -26,7 +28,7 @@ export const OptimizedDataExample: React.FC = () => {
     error: paymentMethodsError,
     refresh: refreshPaymentMethods,
     isStale: paymentMethodsStale,
-    lastFetch: paymentMethodsLastFetch
+    lastFetch: paymentMethodsLastFetch,
   } = useOptimizedPaymentMethods();
 
   // Manuel refresh fonksiyonları
@@ -51,17 +53,17 @@ export const OptimizedDataExample: React.FC = () => {
   // Son güncelleme zamanını formatla
   const formatLastFetch = (timestamp: number) => {
     if (!timestamp) return 'Henüz yüklenmedi';
-    
+
     const now = Date.now();
     const diff = now - timestamp;
     const minutes = Math.floor(diff / (1000 * 60));
-    
+
     if (minutes < 1) return 'Az önce';
     if (minutes < 60) return `${minutes} dakika önce`;
-    
+
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours} saat önce`;
-    
+
     const days = Math.floor(hours / 24);
     return `${days} gün önce`;
   };
@@ -69,7 +71,7 @@ export const OptimizedDataExample: React.FC = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>🚀 Optimize Edilmiş Data Fetching</Text>
-      
+
       {/* Table Orders Section */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
@@ -77,37 +79,28 @@ export const OptimizedDataExample: React.FC = () => {
           <TouchableOpacity
             onPress={handleRefreshTableOrders}
             disabled={tableOrdersLoading}
-            style={[styles.refreshButton, tableOrdersLoading && styles.refreshButtonDisabled]}
-          >
-            <Ionicons 
-              name="refresh" 
-              size={16} 
-              color={tableOrdersLoading ? '#ccc' : '#007AFF'} 
-            />
+            style={[styles.refreshButton, tableOrdersLoading && styles.refreshButtonDisabled]}>
+            <Ionicons name="refresh" size={16} color={tableOrdersLoading ? '#ccc' : '#007AFF'} />
           </TouchableOpacity>
         </View>
-        
+
         {tableOrdersStale && (
           <View style={styles.staleWarning}>
             <Ionicons name="warning" size={16} color="#FF9800" />
-            <Text style={styles.staleText}>
-              Veriler güncel değil, yenilemek için tıklayın
-            </Text>
+            <Text style={styles.staleText}>Veriler güncel değil, yenilemek için tıklayın</Text>
           </View>
         )}
-        
+
         <Text style={styles.statusText}>
           Durum: {tableOrdersLoading ? 'Yükleniyor...' : 'Hazır'}
         </Text>
-        
-        {tableOrdersError && (
-          <Text style={styles.errorText}>Hata: {tableOrdersError}</Text>
-        )}
-        
+
+        {tableOrdersError && <Text style={styles.errorText}>Hata: {tableOrdersError}</Text>}
+
         <Text style={styles.lastFetchText}>
           Son güncelleme: {formatLastFetch(tableOrdersLastFetch)}
         </Text>
-        
+
         {tableOrders && (
           <Text style={styles.dataText}>
             Aktif masa sayısı: {tableOrders.totalActiveTables || 0}
@@ -122,59 +115,40 @@ export const OptimizedDataExample: React.FC = () => {
           <TouchableOpacity
             onPress={handleRefreshPaymentMethods}
             disabled={paymentMethodsLoading}
-            style={[styles.refreshButton, paymentMethodsLoading && styles.refreshButtonDisabled]}
-          >
-            <Ionicons 
-              name="refresh" 
-              size={16} 
-              color={paymentMethodsLoading ? '#ccc' : '#007AFF'} 
-            />
+            style={[styles.refreshButton, paymentMethodsLoading && styles.refreshButtonDisabled]}>
+            <Ionicons name="refresh" size={16} color={paymentMethodsLoading ? '#ccc' : '#007AFF'} />
           </TouchableOpacity>
         </View>
-        
+
         {paymentMethodsStale && (
           <View style={styles.staleWarning}>
             <Ionicons name="warning" size={16} color="#FF9800" />
-            <Text style={styles.staleText}>
-              Veriler güncel değil, yenilemek için tıklayın
-            </Text>
+            <Text style={styles.staleText}>Veriler güncel değil, yenilemek için tıklayın</Text>
           </View>
         )}
-        
+
         <Text style={styles.statusText}>
           Durum: {paymentMethodsLoading ? 'Yükleniyor...' : 'Hazır'}
         </Text>
-        
-        {paymentMethodsError && (
-          <Text style={styles.errorText}>Hata: {paymentMethodsError}</Text>
-        )}
-        
+
+        {paymentMethodsError && <Text style={styles.errorText}>Hata: {paymentMethodsError}</Text>}
+
         <Text style={styles.lastFetchText}>
           Son güncelleme: {formatLastFetch(paymentMethodsLastFetch)}
         </Text>
-        
+
         {paymentMethods && Array.isArray(paymentMethods) && (
-          <Text style={styles.dataText}>
-            Ödeme yöntemi sayısı: {paymentMethods.length}
-          </Text>
+          <Text style={styles.dataText}>Ödeme yöntemi sayısı: {paymentMethods.length}</Text>
         )}
       </View>
 
       {/* Performance Info */}
       <View style={styles.performanceSection}>
         <Text style={styles.performanceTitle}>📊 Performans Bilgileri</Text>
-        <Text style={styles.performanceText}>
-          • Table Orders Cache: 2 dakika
-        </Text>
-        <Text style={styles.performanceText}>
-          • Payment Methods Cache: 10 dakika
-        </Text>
-        <Text style={styles.performanceText}>
-          • API çağrıları %80-90 azaldı
-        </Text>
-        <Text style={styles.performanceText}>
-          • Battery life iyileşti
-        </Text>
+        <Text style={styles.performanceText}>• Table Orders Cache: 2 dakika</Text>
+        <Text style={styles.performanceText}>• Payment Methods Cache: 10 dakika</Text>
+        <Text style={styles.performanceText}>• API çağrıları %80-90 azaldı</Text>
+        <Text style={styles.performanceText}>• Battery life iyileşti</Text>
       </View>
     </View>
   );

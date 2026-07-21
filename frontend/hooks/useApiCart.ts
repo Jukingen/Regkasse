@@ -1,11 +1,12 @@
 // Bu hook, sepet işlemlerini sadece backend API ile yapar, local state tutmaz.
 // ✅ YENİ: useApiManager ile optimize edildi
 import { useEffect, useState } from 'react';
-import { apiClient } from '../services/api/config';
-import { cartService } from '../services/api/cartService';
-import { useApiManager } from './useApiManager'; // ✅ YENİ: API Manager entegrasyonu
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
+
+import { useApiManager } from './useApiManager'; // ✅ YENİ: API Manager entegrasyonu
+import { cartService } from '../services/api/cartService';
+import { apiClient } from '../services/api/config';
+import { storage } from '../utils/storage';
 
 export interface CartItem {
   id: string;
@@ -28,7 +29,7 @@ export interface Cart {
 export function useApiCart() {
   // ✅ YENİ: useApiManager entegrasyonu
   const { apiCall, getCachedData, setCachedData } = useApiManager();
-  
+
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(false);
   const [currentCartId, setCurrentCartId] = useState<string | null>(null);
@@ -40,21 +41,25 @@ export function useApiCart() {
   const showSnackbarMsg = (msg: string) => {
     setSnackbarMsg(msg);
     setShowSnackbar(true);
-    setTimeout(() => setShowSnackbar(false), 2000);
+    setTimeout(() => {
+      setShowSnackbar(false);
+    }, 2000);
   };
 
   // Modüler hata ve başarı bildirim fonksiyonları
-  const handleSuccess = (msg: string) => showSnackbarMsg(msg);
+  const handleSuccess = (msg: string) => {
+    showSnackbarMsg(msg);
+  };
   const handleError = (msg: string, alertMsg?: string) => {
     showSnackbarMsg(msg);
     if (alertMsg) Alert.alert('Hata', alertMsg);
   };
 
-  // Sayfa açıldığında mevcut cartId'yi AsyncStorage'dan oku ve sepeti getir
+  // Sayfa açıldığında mevcut cartId'yi storage'dan oku ve sepeti getir
   useEffect(() => {
     (async () => {
       try {
-        const savedCartId = await AsyncStorage.getItem('currentCartId');
+        const savedCartId = await storage.getItem('currentCartId');
         if (savedCartId) {
           setCurrentCartId(savedCartId);
           setLoading(true);
@@ -108,12 +113,12 @@ export function useApiCart() {
         const res = await apiClient.post('/pos/cart', {
           TableNumber: '1',
           WaiterName: 'Kasiyer',
-          initialItem: { productId, quantity }
+          initialItem: { productId, quantity },
         });
         const cartId = (res as any).cartId || (res as any).CartId || (res as any).id;
         setCurrentCartId(cartId as string);
         await fetchCart();
-        await AsyncStorage.setItem('currentCartId', String(cartId));
+        await storage.setItem('currentCartId', String(cartId));
       } else {
         // Var olan cart'a ürün ekle
         await apiClient.post(`/pos/cart/${currentCartId}/items`, { productId, quantity });
@@ -181,7 +186,10 @@ export function useApiCart() {
     } catch (err: any) {
       setError('Fehler beim Ändern der Menge.');
       setTechError('Failed to update item quantity: ' + (err?.message || err));
-      handleError('Ürün miktarı güncellenemedi', 'Ürün miktarı güncellenemedi. Lütfen tekrar deneyin.');
+      handleError(
+        'Ürün miktarı güncellenemedi',
+        'Ürün miktarı güncellenemedi. Lütfen tekrar deneyin.'
+      );
     } finally {
       setLoading(false);
     }
@@ -202,15 +210,15 @@ export function useApiCart() {
       Alert.alert('Sepet zaten boş', 'Temizlenecek ürün bulunamadı.');
       return;
     }
-    if (!cart || !cart.items || cart.items.length === 0) {
+    if (!cart?.items || cart.items.length === 0) {
       setLoading(false);
       handleError('Sepet zaten boş');
       Alert.alert('Sepet zaten boş', 'Temizlenecek ürün bulunamadı.');
       return;
     }
     try {
-      if (cartService && cartService.clearCart) {
-        await cartService.clearCart(cartId);
+      if (cartService && cartService.clearCartItems) {
+        await cartService.clearCartItems(cartId);
       } else {
         await apiClient.delete(`/pos/cart/${cartId}`);
       }
@@ -219,7 +227,10 @@ export function useApiCart() {
     } catch (err: any) {
       setError('Fehler beim Leeren des Warenkorbs.');
       setTechError('Failed to clear cart: ' + (err?.message || err));
-      handleError('Sepet temizlenemedi', 'Sepet temizlenirken bir hata oluştu. Lütfen tekrar deneyin.');
+      handleError(
+        'Sepet temizlenemedi',
+        'Sepet temizlenirken bir hata oluştu. Lütfen tekrar deneyin.'
+      );
     } finally {
       setLoading(false);
     }
@@ -240,7 +251,9 @@ export function useApiCart() {
       return;
     }
     try {
-      await cartService.applyCoupon(cartId, { couponCode });
+      await (cartService as unknown as {
+        applyCoupon: (id: string, body: { couponCode: string }) => Promise<unknown>;
+      }).applyCoupon(cartId, { couponCode });
       await fetchCart();
       handleSuccess('Kupon başarıyla uygulandı');
     } catch (err: any) {
@@ -266,7 +279,9 @@ export function useApiCart() {
       return;
     }
     try {
-      await cartService.removeCoupon(cartId);
+      await (cartService as unknown as {
+        removeCoupon: (id: string) => Promise<unknown>;
+      }).removeCoupon(cartId);
       await fetchCart();
       handleSuccess('Kupon kaldırıldı');
     } catch (err: any) {
@@ -281,14 +296,18 @@ export function useApiCart() {
   /**
    * Sepeti/siparişi tamamla (ödeme alındı, satış bitti)
    */
-  const completeCart = async (paymentMethod: string = 'cash', amountPaid: number = 0, notes?: string) => {
+  const completeCart = async (
+    paymentMethod: string = 'cash',
+    amountPaid: number = 0,
+    notes?: string
+  ) => {
     setLoading(true);
     setError(null);
     setTechError(null);
     const cartId = cart?.id || currentCartId;
     if (!cartId) return;
     try {
-              await apiClient.post(`/pos/cart/${cartId}/complete`, {
+      await apiClient.post(`/pos/cart/${cartId}/complete`, {
         paymentMethod,
         amountPaid,
         notes,
@@ -307,8 +326,8 @@ export function useApiCart() {
   return {
     cart,
     loading,
-    error,      // UI'da Almanca göster
-    techError,  // Teknik log için
+    error, // UI'da Almanca göster
+    techError, // Teknik log için
     fetchCart,
     addItem,
     removeItem,
@@ -321,4 +340,4 @@ export function useApiCart() {
     showSnackbarMsg,
     completeCart, // <-- yeni eklenen fonksiyon
   };
-} 
+}

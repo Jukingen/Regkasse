@@ -1,4 +1,5 @@
 import { describe, it, expect, jest } from '@jest/globals';
+
 import { AuthAppError } from '../features/auth/authErrors';
 import {
   createLoginFailedError,
@@ -19,8 +20,7 @@ jest.mock('../i18n', () => ({
           'Verbindung zum Server fehlgeschlagen. Bitte überprüfen Sie Ihre Internetverbindung.',
         'auth:errors.tooManyAttempts':
           'Zu viele fehlgeschlagene Login-Versuche. Bitte warten Sie eine Minute.',
-        'auth:errors.serverError':
-          'Serverfehler. Bitte versuchen Sie es später erneut.',
+        'auth:errors.serverError': 'Serverfehler. Bitte versuchen Sie es später erneut.',
       };
       return messages[key] ?? key;
     },
@@ -30,11 +30,11 @@ jest.mock('../i18n', () => ({
 describe('handleLoginError', () => {
   it('returns German POS unauthorized message for 403 role denial', () => {
     const result = handleLoginError(
-      new AuthAppError('POS_UNAUTHORIZED_USER', 403, 'Bu kullanıcı bu uygulama için yetkili değil.'),
+      new AuthAppError('POS_UNAUTHORIZED_USER', 403, 'Bu kullanıcı bu uygulama için yetkili değil.')
     );
 
     expect(result.userMessage).toBe(
-      'Sie haben keine Berechtigung für die POS-App. Bitte kontaktieren Sie Ihren Administrator.',
+      'Sie haben keine Berechtigung für die POS-App. Bitte kontaktieren Sie Ihren Administrator.'
     );
     expect(result.technicalMessage).toBe('Bu kullanıcı bu uygulama için yetkili değil.');
     expect(result.userMessage).not.toContain('at ');
@@ -55,7 +55,7 @@ describe('handleLoginError', () => {
     const result = handleLoginError(new Error('Network Error\n    at normalizeLoginError'));
 
     expect(result.userMessage).toBe(
-      'Verbindung zum Server fehlgeschlagen. Bitte überprüfen Sie Ihre Internetverbindung.',
+      'Verbindung zum Server fehlgeschlagen. Bitte überprüfen Sie Ihre Internetverbindung.'
     );
     expect(result.userMessage).not.toContain('normalizeLoginError');
     expect(result.errorCode).toBe('NETWORK_ERROR');
@@ -67,7 +67,7 @@ describe('handleLoginError', () => {
     });
 
     expect(result.userMessage).toBe(
-      'Zu viele fehlgeschlagene Login-Versuche. Bitte warten Sie eine Minute.',
+      'Zu viele fehlgeschlagene Login-Versuche. Bitte warten Sie eine Minute.'
     );
     expect(result.technicalMessage).toBe('Too many requests');
   });

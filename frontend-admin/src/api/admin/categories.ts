@@ -1,11 +1,21 @@
 /**
  * Admin categories API – all calls use /api/admin/categories.
  */
+import type {
+  UseMutationOptions,
+  UseMutationResult,
+  UseQueryOptions,
+  UseQueryResult,
+} from '@tanstack/react-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { UseMutationOptions, UseQueryOptions, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
-import { customInstance } from '@/lib/axios';
+
 import type { Product } from '@/api/generated/model';
-import type { AdminCategory, AdminCategoryCreatePayload, AdminCategoryUpdatePayload } from '@/features/categories/types';
+import type {
+  AdminCategory,
+  AdminCategoryCreatePayload,
+  AdminCategoryUpdatePayload,
+} from '@/features/categories/types';
+import { customInstance } from '@/lib/axios';
 
 const ADMIN_CATEGORIES = '/api/admin/categories';
 
@@ -20,9 +30,10 @@ export function getAdminCategories(
   options?: SecondParameter<typeof customInstance>,
   signal?: AbortSignal
 ): Promise<AdminCategory[]> {
-  return customInstance<AdminCategory[]>({ url: ADMIN_CATEGORIES, method: 'GET', signal }, options).then((res) =>
-    unwrapData<AdminCategory[]>(res)
-  );
+  return customInstance<AdminCategory[]>(
+    { url: ADMIN_CATEGORIES, method: 'GET', signal },
+    options
+  ).then((res) => unwrapData<AdminCategory[]>(res));
 }
 
 export function getAdminCategoryById(
@@ -30,9 +41,10 @@ export function getAdminCategoryById(
   options?: SecondParameter<typeof customInstance>,
   signal?: AbortSignal
 ): Promise<AdminCategory> {
-  return customInstance<AdminCategory>({ url: `${ADMIN_CATEGORIES}/${id}`, method: 'GET', signal }, options).then((res) =>
-    unwrapData<AdminCategory>(res)
-  );
+  return customInstance<AdminCategory>(
+    { url: `${ADMIN_CATEGORIES}/${id}`, method: 'GET', signal },
+    options
+  ).then((res) => unwrapData<AdminCategory>(res));
 }
 
 export function createAdminCategory(
@@ -40,13 +52,30 @@ export function createAdminCategory(
   options?: SecondParameter<typeof customInstance>
 ): Promise<AdminCategory> {
   return customInstance<AdminCategory>(
-    { url: ADMIN_CATEGORIES, method: 'POST', headers: { 'Content-Type': 'application/json' }, data },
+    {
+      url: ADMIN_CATEGORIES,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data,
+    },
     options
   ).then((res) => unwrapData<AdminCategory>(res));
 }
 
-export function updateAdminCategory(id: string, data: AdminCategoryUpdatePayload, options?: SecondParameter<typeof customInstance>) {
-  return customInstance<void>({ url: `${ADMIN_CATEGORIES}/${id}`, method: 'PUT', headers: { 'Content-Type': 'application/json' }, data }, options);
+export function updateAdminCategory(
+  id: string,
+  data: AdminCategoryUpdatePayload,
+  options?: SecondParameter<typeof customInstance>
+) {
+  return customInstance<void>(
+    {
+      url: `${ADMIN_CATEGORIES}/${id}`,
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      data,
+    },
+    options
+  );
 }
 
 export function deleteAdminCategory(id: string, options?: SecondParameter<typeof customInstance>) {
@@ -58,9 +87,10 @@ export function getAdminCategoryProducts(
   options?: SecondParameter<typeof customInstance>,
   signal?: AbortSignal
 ): Promise<Product[]> {
-  return customInstance<Product[]>({ url: `${ADMIN_CATEGORIES}/${id}/products`, method: 'GET', signal }, options).then((res) =>
-    unwrapData<Product[]>(res)
-  );
+  return customInstance<Product[]>(
+    { url: `${ADMIN_CATEGORIES}/${id}/products`, method: 'GET', signal },
+    options
+  ).then((res) => unwrapData<Product[]>(res));
 }
 
 export function searchAdminCategories(
@@ -68,9 +98,10 @@ export function searchAdminCategories(
   options?: SecondParameter<typeof customInstance>,
   signal?: AbortSignal
 ): Promise<AdminCategory[]> {
-  return customInstance<AdminCategory[]>({ url: `${ADMIN_CATEGORIES}/search`, method: 'GET', params: { query }, signal }, options).then((res) =>
-    unwrapData<AdminCategory[]>(res)
-  );
+  return customInstance<AdminCategory[]>(
+    { url: `${ADMIN_CATEGORIES}/search`, method: 'GET', params: { query }, signal },
+    options
+  ).then((res) => unwrapData<AdminCategory[]>(res));
 }
 
 export type CategoryDemoResetResult = {
@@ -79,7 +110,9 @@ export type CategoryDemoResetResult = {
   totalCategories: number;
 };
 
-export function resetDemoCategoryNames(options?: SecondParameter<typeof customInstance>): Promise<CategoryDemoResetResult> {
+export function resetDemoCategoryNames(
+  options?: SecondParameter<typeof customInstance>
+): Promise<CategoryDemoResetResult> {
   return customInstance<CategoryDemoResetResult>(
     { url: `${ADMIN_CATEGORIES}/reset-demo-names`, method: 'POST' },
     options
@@ -166,7 +199,9 @@ export function useUpdateAdminCategory(
   });
 }
 
-export function useDeleteAdminCategory(opts?: UseMutationOptions<void, Error, { id: string }>): UseMutationResult<void, Error, { id: string }> {
+export function useDeleteAdminCategory(
+  opts?: UseMutationOptions<void, Error, { id: string }>
+): UseMutationResult<void, Error, { id: string }> {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id }) => deleteAdminCategory(id),

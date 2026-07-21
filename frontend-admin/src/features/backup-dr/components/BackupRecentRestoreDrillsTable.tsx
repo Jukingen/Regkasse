@@ -1,25 +1,29 @@
-"use client";
+'use client';
 
-import React, { useCallback, useMemo, useState } from "react";
-import { Tag, Tooltip } from "antd";
-import type { ColumnsType } from "antd/es/table";
-import { useGetApiAdminRestoreVerificationRuns } from "@/api/generated/admin-restore-verification/admin-restore-verification";
+import { Tag, Tooltip } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import React, { useCallback, useMemo, useState } from 'react';
+
+import { useGetApiAdminRestoreVerificationRuns } from '@/api/generated/admin-restore-verification/admin-restore-verification';
 import {
-  RestoreVerificationRunResponseDtoStatus,
   type RestoreVerificationRunResponseDto,
-} from "@/api/generated/model";
-import { RecentRestoreDrillsTable } from "@/features/backup-dr/components/RecentRestoreDrillsTable";
+  RestoreVerificationRunResponseDtoStatus,
+} from '@/api/generated/model';
+import { RecentRestoreDrillsTable } from '@/features/backup-dr/components/RecentRestoreDrillsTable';
 import {
   BACKUP_RESTORE_HISTORY_PAGE_SIZE,
   usePollRestoreVerificationDashboardInterval,
-} from "@/features/backup-dr/logic/backupDashboardQueryTiming";
-import { mapDumpInspectionTriState, mapRestoreVerificationStatusAntdColor } from "@/features/backup-dr/logic/backupDrMappers";
+} from '@/features/backup-dr/logic/backupDashboardQueryTiming';
+import {
+  mapDumpInspectionTriState,
+  mapRestoreVerificationStatusAntdColor,
+} from '@/features/backup-dr/logic/backupDrMappers';
 import {
   PG_RESTORE_LIST_FAILED,
   interpretPgRestoreListFailure,
   pgRestoreListFailureKindToStatusLabelKey,
   pgRestoreListFailureKindToTagColor,
-} from "@/features/backup-dr/logic/restoreVerificationFailurePresentation";
+} from '@/features/backup-dr/logic/restoreVerificationFailurePresentation';
 
 export interface BackupRecentRestoreDrillsTableProps {
   formatDt: (iso: string | undefined | null, locale: string) => string;
@@ -49,25 +53,22 @@ export function BackupRecentRestoreDrillsTable({
         refetchInterval: pollRestore,
         refetchOnWindowFocus: true,
       },
-    },
+    }
   );
 
   const restoreHistoryColumns: ColumnsType<RestoreVerificationRunResponseDto> = useMemo(
     () => [
       {
-        title: t("backupDr.latestRun.requested"),
-        dataIndex: "requestedAt",
-        key: "requestedAt",
+        title: t('backupDr.latestRun.requested'),
+        dataIndex: 'requestedAt',
+        key: 'requestedAt',
         render: (x: string) => formatDt(x, formatLocale),
       },
       {
-        title: t("backupDr.table.status"),
-        dataIndex: "status",
-        key: "status",
-        render: (
-          s: number | undefined,
-          row: RestoreVerificationRunResponseDto,
-        ) => {
+        title: t('backupDr.table.status'),
+        dataIndex: 'status',
+        key: 'status',
+        render: (s: number | undefined, row: RestoreVerificationRunResponseDto) => {
           const listInterp =
             s === RestoreVerificationRunResponseDtoStatus.NUMBER_3 &&
             row.failureCode === PG_RESTORE_LIST_FAILED
@@ -88,12 +89,12 @@ export function BackupRecentRestoreDrillsTable({
         },
       },
       {
-        title: t("backupDr.table.dumpInspection"),
-        key: "dump",
+        title: t('backupDr.table.dumpInspection'),
+        key: 'dump',
         render: (_: unknown, row: RestoreVerificationRunResponseDto) => {
           const p = mapDumpInspectionTriState(row);
-          if (p === undefined) return "—";
-          if (p) return t("backupDr.triState.ok");
+          if (p === undefined) return '—';
+          if (p) return t('backupDr.triState.ok');
           const listInterp =
             row.failureCode === PG_RESTORE_LIST_FAILED
               ? interpretPgRestoreListFailure({
@@ -101,38 +102,37 @@ export function BackupRecentRestoreDrillsTable({
                   isSimulatedPipelineHeuristic: isSimulatedAdapterEnvironment,
                 })
               : null;
-          if (listInterp?.kind === "fake_stub_expected")
-            return t("backupDr.triState.dumpInspectionNotApplicableStub");
-          return t("backupDr.triState.fail");
+          if (listInterp?.kind === 'fake_stub_expected')
+            return t('backupDr.triState.dumpInspectionNotApplicableStub');
+          return t('backupDr.triState.fail');
         },
       },
       {
-        title: t("backupDr.table.restoreAttempt"),
-        key: "attempt",
+        title: t('backupDr.table.restoreAttempt'),
+        key: 'attempt',
         render: (_: unknown, row) => {
-          if (!row.restoreAttemptExecuted) return t("backupDr.restoreAttempt.notRun");
-          if (row.restoreAttemptPassed === true) return t("backupDr.triState.ok");
-          if (row.restoreAttemptPassed === false) return t("backupDr.triState.fail");
-          return "—";
+          if (!row.restoreAttemptExecuted) return t('backupDr.restoreAttempt.notRun');
+          if (row.restoreAttemptPassed === true) return t('backupDr.triState.ok');
+          if (row.restoreAttemptPassed === false) return t('backupDr.triState.fail');
+          return '—';
         },
       },
       {
-        title: t("backupDr.table.failure"),
-        dataIndex: "failureCode",
-        key: "failureCode",
-        render: (
-          c: string | null | undefined,
-          row: RestoreVerificationRunResponseDto,
-        ) => {
-          const code = c ?? "—";
+        title: t('backupDr.table.failure'),
+        dataIndex: 'failureCode',
+        key: 'failureCode',
+        render: (c: string | null | undefined, row: RestoreVerificationRunResponseDto) => {
+          const code = c ?? '—';
           if (row.failureCode === PG_RESTORE_LIST_FAILED) {
             const listInterp = interpretPgRestoreListFailure({
               run: row,
               isSimulatedPipelineHeuristic: isSimulatedAdapterEnvironment,
             });
-            if (listInterp?.kind === "fake_stub_expected") {
+            if (listInterp?.kind === 'fake_stub_expected') {
               return (
-                <Tooltip title={t("backupDr.restoreVerification.fakePipeline.pgRestoreListTooltip")}>
+                <Tooltip
+                  title={t('backupDr.restoreVerification.fakePipeline.pgRestoreListTooltip')}
+                >
                   <span>{code}</span>
                 </Tooltip>
               );
@@ -153,7 +153,7 @@ export function BackupRecentRestoreDrillsTable({
         },
       },
     ],
-    [formatDt, formatLocale, isSimulatedAdapterEnvironment, restoreStatusLabel, t],
+    [formatDt, formatLocale, isSimulatedAdapterEnvironment, restoreStatusLabel, t]
   );
 
   const totalCount = restoreHistoryQuery.data?.totalCount ?? 0;
@@ -162,13 +162,13 @@ export function BackupRecentRestoreDrillsTable({
 
   return (
     <RecentRestoreDrillsTable
-      title={t("backupDr.restoreHistory.title")}
+      title={t('backupDr.restoreHistory.title')}
       rowKey="id"
       dataSource={restoreHistoryQuery.data?.items ?? []}
       columns={restoreHistoryColumns}
       loading={restoreHistoryQuery.isFetching}
       queryError={restoreHistoryQuery.isError}
-      emptyText={t("backupDr.restoreHistory.empty")}
+      emptyText={t('backupDr.restoreHistory.empty')}
       t={t}
       onRetry={onRetry}
       pagination={{

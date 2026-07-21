@@ -1,11 +1,12 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+
 import { getRksvBackendEnvironment } from '@/api/admin-rksv/client';
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import {
-  isRksvBackendDemo,
   type RksvBackendEnvironmentStatus,
+  isRksvBackendDemo,
 } from '@/features/rksv/types/rksvBackendEnvironment';
 
 const RKSV_ENVIRONMENT_STALE_MS = 5 * 60 * 1000;

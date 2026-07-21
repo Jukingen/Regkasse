@@ -64,19 +64,23 @@ export function buildLicenseRenewalMailtoUrl(snapshot: LicenseRenewalMailtoConte
   if (snapshot != null) {
     lines.push('');
     lines.push(`Restlaufzeit (Tage): ${snapshot.daysRemaining}`);
-    lines.push(`Modus: ${snapshot.isTrial ? 'Testversion' : snapshot.isExpired ? 'abgelaufen' : 'Vollversion'}`);
+    lines.push(
+      `Modus: ${snapshot.isTrial ? 'Testversion' : snapshot.isExpired ? 'abgelaufen' : 'Vollversion'}`
+    );
   }
   const body = encodeURIComponent(lines.join('\n'));
   return `mailto:${LICENSE_SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
 }
 
-export async function handleLicenseRenewal(snapshot?: LicenseRenewalMailtoContext): Promise<boolean> {
+export async function handleLicenseRenewal(
+  snapshot?: LicenseRenewalMailtoContext
+): Promise<boolean> {
   const currentSnapshot = snapshot ?? (await getLicenseRenewalStatus());
   const machineHash = currentSnapshot?.machineHash?.trim();
 
   if (machineHash) {
-    return openLicenseExtension(machineHash);
+    return await openLicenseExtension(machineHash);
   }
 
-  return openMailtoUrl(buildLicenseRenewalMailtoUrl(currentSnapshot));
+  return await openMailtoUrl(buildLicenseRenewalMailtoUrl(currentSnapshot));
 }

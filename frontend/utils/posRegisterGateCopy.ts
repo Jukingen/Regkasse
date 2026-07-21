@@ -4,14 +4,16 @@
  */
 
 import type { PosCashRegisterContextDto } from './posCashRegisterReadinessParse';
-import type { PosSelectableEmptyReason } from '../services/api/cashRegisterService';
 import type { RegisterListFailureKind } from './registerListError';
+import type { PosSelectableEmptyReason } from '../services/api/cashRegisterService';
 
 /** Hard stop copy when RKSV Schlussbeleg decommissioned the register (POS German UI). */
 export const POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE =
   'Fiskalisierung abgeschlossen – keine Verkäufe mehr möglich';
 
-export function isReadinessRegisterDecommissioned(d: PosCashRegisterContextDto | null | undefined): boolean {
+export function isReadinessRegisterDecommissioned(
+  d: PosCashRegisterContextDto | null | undefined
+): boolean {
   if (!d) return false;
   const st = (d.registerStatus ?? '').trim().toLowerCase();
   if (st === 'decommissioned') return true;
@@ -29,7 +31,8 @@ export function isReadinessStartbelegGateActive(
   return (
     !!opts.ensureReadyEnabled &&
     !!d &&
-    (d.nextAction === 'startbeleg_required' || d.messageCode === POS_READINESS_MESSAGE_CODES.STARTBELEG_REQUIRED)
+    (d.nextAction === 'startbeleg_required' ||
+      d.messageCode === POS_READINESS_MESSAGE_CODES.STARTBELEG_REQUIRED)
   );
 }
 
@@ -40,7 +43,8 @@ export function isReadinessMonatsbelegGateActive(
   return (
     !!opts.ensureReadyEnabled &&
     !!d &&
-    (d.nextAction === 'monatsbeleg_required' || d.messageCode === POS_READINESS_MESSAGE_CODES.MONATSBELEG_REQUIRED)
+    (d.nextAction === 'monatsbeleg_required' ||
+      d.messageCode === POS_READINESS_MESSAGE_CODES.MONATSBELEG_REQUIRED)
   );
 }
 
@@ -186,7 +190,10 @@ export function registerGateBannerTitle(ctx: PosRegisterGateContext): string {
   ) {
     return 'Kasse ist geschlossen';
   }
-  if (ctx.posReadinessNextAction === 'none' && ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.REQUIRED) {
+  if (
+    ctx.posReadinessNextAction === 'none' &&
+    ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.REQUIRED
+  ) {
     return 'Keine Kasse im System';
   }
   if (ctx.posReadinessNextAction === 'select_register' && ctx.registerPicklistCount === 0) {
@@ -225,7 +232,10 @@ export function registerGateBannerTitle(ctx: PosRegisterGateContext): string {
   ) {
     return 'Keine freie Kasse';
   }
-  if (ctx.registerListFailureKind === 'forbidden' || ctx.registerListFailureKind === 'unauthorized') {
+  if (
+    ctx.registerListFailureKind === 'forbidden' ||
+    ctx.registerListFailureKind === 'unauthorized'
+  ) {
     return 'Zahlung derzeit nicht möglich';
   }
   if (ctx.registerListFailureKind === 'network' || ctx.registerListFailureKind === 'unknown') {
@@ -280,14 +290,23 @@ export function registerGateBannerDetail(ctx: PosRegisterGateContext): string {
   if (ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.ACTOR_ALREADY_OPEN) {
     return 'Sie haben bereits eine andere Kasse geöffnet. Schließen Sie diese zuerst in der Kassenverwaltung, oder nutzen Sie dieselbe Kasse weiter.';
   }
-  if (ctx.posReadinessNextAction === 'open_register' && ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.CLOSED) {
+  if (
+    ctx.posReadinessNextAction === 'open_register' &&
+    ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.CLOSED
+  ) {
     return 'Die Kasse ist geschlossen. Bitte in der Kassenverwaltung öffnen (Schicht starten), sofern Ihre Rolle das erlaubt — oder wenden Sie sich an eine berechtigte Person.';
   }
-  if (ctx.posReadinessNextAction === 'open_register' && ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.FORBIDDEN) {
+  if (
+    ctx.posReadinessNextAction === 'open_register' &&
+    ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.FORBIDDEN
+  ) {
     return 'Automatisches oder manuelles Öffnen ist für Ihre Rolle nicht möglich oder deaktiviert. Bitte Administrator oder eine Rolle mit Schicht-/Kassenrechten.';
   }
   if (ctx.posReadinessNextAction === 'select_register' && ctx.registerPicklistCount === 0) {
-    if (ctx.registerListFailureKind === 'forbidden' || ctx.registerListFailureKind === 'unauthorized') {
+    if (
+      ctx.registerListFailureKind === 'forbidden' ||
+      ctx.registerListFailureKind === 'unauthorized'
+    ) {
       return 'Mehrere Kassen sind angelegt, aber hier keine Liste wählbar. Bitte in den Einstellungen zuweisen (falls möglich) oder den Administrator um Zuweisung / Berechtigung „Kassenansicht“ bitten.';
     }
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'no_registers') {
@@ -392,13 +411,17 @@ export function registerGateFooterHint(ctx: PosRegisterGateContext): string {
     }
     return '„Zahlen“ ist deaktiviert: Kasse in den Einstellungen zuweisen oder Administrator informieren.';
   }
-  if (ctx.registerListLoading) return 'Kasse wird geladen… „Zahlen“ ist danach freigeschaltet, sobald eine Kasse feststeht.';
-  if (ctx.registerPicklistCount > 1) return 'Bitte zuerst eine Kasse wählen — dann wird „Zahlen“ aktiv.';
-  if (ctx.registerPicklistCount === 1) return 'Eine Kasse wird zugewiesen — gleich wird „Zahlen“ freigeschaltet.';
+  if (ctx.registerListLoading)
+    return 'Kasse wird geladen… „Zahlen“ ist danach freigeschaltet, sobald eine Kasse feststeht.';
+  if (ctx.registerPicklistCount > 1)
+    return 'Bitte zuerst eine Kasse wählen — dann wird „Zahlen“ aktiv.';
+  if (ctx.registerPicklistCount === 1)
+    return 'Eine Kasse wird zugewiesen — gleich wird „Zahlen“ freigeschaltet.';
   if (ctx.registerListFailureKind === 'forbidden') {
     return '„Zahlen“ ist deaktiviert: keine wählbare Kasse — Administrator kann zuweisen oder Berechtigung erteilen.';
   }
-  if (ctx.registerListFailureKind === 'unauthorized') return '„Zahlen“ ist deaktiviert: bitte erneut anmelden.';
+  if (ctx.registerListFailureKind === 'unauthorized')
+    return '„Zahlen“ ist deaktiviert: bitte erneut anmelden.';
   if (ctx.registerListFailureKind === 'network' || ctx.registerListFailureKind === 'unknown') {
     return '„Zahlen“ ist deaktiviert: Kassenliste fehlt — „Erneut laden“ oder Administrator.';
   }

@@ -4,30 +4,29 @@
  * Sezgisel çıkarımların merkezi özeti ve gelecekteki backend alan önerileri: `backupDrTruthExtensionPoints.ts`.
  * @see buildBackupOperatorTruthProvenance
  */
-
-import type { BackupArtifactResponseDto, RestoreVerificationRunResponseDto } from '@/api/generated/model';
+import type {
+  BackupArtifactResponseDto,
+  RestoreVerificationRunResponseDto,
+} from '@/api/generated/model';
 import type { BackupArtifactResponseDtoLifecycleState } from '@/api/generated/model/backupArtifactResponseDtoLifecycleState';
 
 export type ConfigurationHealthUiKind = 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
 
 /** lifecycleState meta — `externalLifecycleOk` ayrı “doğrulandı” anlamına gelmez (bkz. backupDrOperatorTruth). */
-export type ExternalCopyVariant = 'unknown' | 'externalLifecycleOk' | 'failed' | 'staging' | 'mixed';
+export type ExternalCopyVariant =
+  'unknown' | 'externalLifecycleOk' | 'failed' | 'staging' | 'mixed';
 
 /** Ant Design Tag `color` prop değerleri (RecentRunsTable / kartlar). */
 export type BackupRunAntdTagColor =
-  | 'success'
-  | 'error'
-  | 'processing'
-  | 'default'
-  | 'warning'
-  | 'cyan'
-  | 'blue';
+  'success' | 'error' | 'processing' | 'default' | 'warning' | 'cyan' | 'blue';
 
 export function normalizeHealthLevelString(level: string | undefined | null): string {
   return (level ?? '').trim().toLowerCase();
 }
 
-export function mapConfigurationHealthLevel(level: string | undefined | null): ConfigurationHealthUiKind {
+export function mapConfigurationHealthLevel(
+  level: string | undefined | null
+): ConfigurationHealthUiKind {
   if (!level?.trim()) return 'unknown';
   const n = normalizeHealthLevelString(level);
   if (n === 'unhealthy') return 'unhealthy';
@@ -37,7 +36,9 @@ export function mapConfigurationHealthLevel(level: string | undefined | null): C
 }
 
 /** Summary Statistic value color — avoid implying “all green” when readiness is capped in UI. */
-export function healthStatisticValueStyle(kind: ConfigurationHealthUiKind): { color: string } | undefined {
+export function healthStatisticValueStyle(
+  kind: ConfigurationHealthUiKind
+): { color: string } | undefined {
   if (kind === 'healthy') return { color: '#1677ff' };
   if (kind === 'degraded') return { color: '#faad14' };
   if (kind === 'unhealthy') return { color: '#ff4d4f' };
@@ -47,7 +48,9 @@ export function healthStatisticValueStyle(kind: ConfigurationHealthUiKind): { co
 /**
  * Restore verification readiness özeti — “sağlıklı” bile uçtan uca DR değildir; yeşil yerine mavi ton.
  */
-export function restoreReadinessStatisticValueStyle(kind: ConfigurationHealthUiKind): { color: string } | undefined {
+export function restoreReadinessStatisticValueStyle(
+  kind: ConfigurationHealthUiKind
+): { color: string } | undefined {
   if (kind === 'healthy') return { color: '#1677ff' };
   if (kind === 'degraded') return { color: '#faad14' };
   if (kind === 'unhealthy') return { color: '#ff4d4f' };
@@ -132,7 +135,9 @@ export function mapBackupRunStatusAntdColor(status: number | undefined): BackupR
 }
 
 /** Restore drill “Succeeded” yeşil üretim başarısı gibi okunmasın — teknik tamamlanma (API). */
-export function mapRestoreVerificationStatusAntdColor(status: number | undefined): BackupRunAntdTagColor {
+export function mapRestoreVerificationStatusAntdColor(
+  status: number | undefined
+): BackupRunAntdTagColor {
   const s = status ?? 0;
   if (s === 2) return 'cyan';
   if (s === 3) return 'error';
@@ -145,7 +150,7 @@ export function mapRestoreVerificationStatusAntdColor(status: number | undefined
  * Gelecek: run veya artefakt özetinde `externalArchiveProofKind` (`truthProvenance.externalArchiveProofStrength`).
  */
 export function mapArtifactsToExternalCopyVariant(
-  artifacts: BackupArtifactResponseDto[] | undefined | null,
+  artifacts: BackupArtifactResponseDto[] | undefined | null
 ): ExternalCopyVariant {
   if (!artifacts?.length) return 'unknown';
   const stateList = artifacts
@@ -197,17 +202,18 @@ export interface RestoreVerificationPhaseMap {
  * Eski `pgRestoreListPassed` alanı spec’ten kaldırıldı; burada yeniden tanımlanmaz.
  */
 export function mapDumpInspectionTriState(
-  rr: RestoreVerificationRunResponseDto | undefined | null,
+  rr: RestoreVerificationRunResponseDto | undefined | null
 ): boolean | undefined {
   if (!rr) return undefined;
-  if (rr.dumpInspectionPassed !== undefined && rr.dumpInspectionPassed !== null) return rr.dumpInspectionPassed;
+  if (rr.dumpInspectionPassed !== undefined && rr.dumpInspectionPassed !== null)
+    return rr.dumpInspectionPassed;
   const exit = rr.pgRestoreListExitCode;
   if (exit === undefined || exit === null) return undefined;
   return exit === 0;
 }
 
 export function mapRestoreVerificationPhases(
-  rr: RestoreVerificationRunResponseDto | undefined | null,
+  rr: RestoreVerificationRunResponseDto | undefined | null
 ): RestoreVerificationPhaseMap {
   if (!rr) {
     return {
@@ -219,7 +225,8 @@ export function mapRestoreVerificationPhases(
   }
 
   const d = mapDumpInspectionTriState(rr);
-  const dumpInspection: RestoreDumpInspection = d === true ? 'ok' : d === false ? 'fail' : 'unknown';
+  const dumpInspection: RestoreDumpInspection =
+    d === true ? 'ok' : d === false ? 'fail' : 'unknown';
 
   let restoreAttempt: RestoreAttemptPhase = 'unknown';
   if (!rr.restoreAttemptExecuted) restoreAttempt = 'not_run';

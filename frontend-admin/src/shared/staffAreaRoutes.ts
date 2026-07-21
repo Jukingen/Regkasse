@@ -3,10 +3,10 @@
  * Permissions: existing keys only — user.view, report.view, shift.view (no staff.* catalog).
  */
 export const STAFF_AREA_ROUTE_PATHS = [
-    '/staff',
-    '/staff/list',
-    '/staff/performance',
-    '/staff/shifts',
+  '/staff',
+  '/staff/list',
+  '/staff/performance',
+  '/staff/shifts',
 ] as const;
 
 export type StaffAreaRoutePath = (typeof STAFF_AREA_ROUTE_PATHS)[number];

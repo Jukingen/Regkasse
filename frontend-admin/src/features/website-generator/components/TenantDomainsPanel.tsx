@@ -3,10 +3,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Card, Input, Space, Switch, Table, Typography } from 'antd';
 import { useState } from 'react';
+
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
+
 import {
+  type TenantDomain,
   addTenantDomain,
   downloadTenantWebsitePackage,
   fetchTenantDomains,
@@ -14,7 +17,6 @@ import {
   removeTenantDomain,
   setTenantDomainWebsiteEnabled,
   verifyTenantDomain,
-  type TenantDomain,
 } from '../api/tenantDomainsApi';
 
 const { Paragraph, Text } = Typography;
@@ -214,7 +216,11 @@ export function TenantDomainsPanel() {
         message={t('settings.websiteGenerator.publishHint')}
       />
       <Space style={{ marginTop: 12 }} wrap>
-        <Button type="default" loading={publishMutation.isPending} onClick={() => publishMutation.mutate()}>
+        <Button
+          type="default"
+          loading={publishMutation.isPending}
+          onClick={() => publishMutation.mutate()}
+        >
           {t('settings.websiteGenerator.publishLive')}
         </Button>
         <Button

@@ -3,16 +3,24 @@
  * Memoized: re-renders only when product.id or selected modifiers (ids+prices) change.
  */
 import React, { memo, useEffect, useMemo, useState } from 'react';
+import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
+
+import { ModifierOptionChips } from './ModifierOptionChips';
+import {
+  SoftColors,
+  SoftShadows,
+  SoftSpacing,
+  SoftRadius,
+  SoftState,
+  SoftTypography,
+} from '../constants/SoftTheme';
 import { useProductDisplayLocale } from '../hooks/useProductDisplayLocale';
+import type { AddOnSelection } from '../services/api/productModifiersService';
+import { Product } from '../services/api/productService';
 import {
   resolveProductDisplayDescription,
   resolveProductDisplayName,
 } from '../utils/productLocalization';
-import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
-import { Product } from '../services/api/productService';
-import type { AddOnSelection } from '../services/api/productModifiersService';
-import { ModifierOptionChips } from './ModifierOptionChips';
-import { SoftColors, SoftShadows, SoftSpacing, SoftRadius, SoftState, SoftTypography } from '../constants/SoftTheme';
 
 export interface ModifierChipItem {
   id: string;
@@ -70,11 +78,11 @@ function ProductRowInner({
   const displayLocale = useProductDisplayLocale();
   const displayName = useMemo(
     () => resolveProductDisplayName(product, displayLocale),
-    [product, displayLocale],
+    [product, displayLocale]
   );
   const displayDescription = useMemo(
     () => resolveProductDisplayDescription(product, displayLocale),
-    [product, displayLocale],
+    [product, displayLocale]
   );
 
   const groups = product.modifierGroups ?? [];
@@ -102,8 +110,13 @@ function ProductRowInner({
     <Pressable
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
       onPress={handleRowPress}
-      onLongPress={onLongPressProduct ? () => onLongPressProduct(product) : undefined}
-    >
+      onLongPress={
+        onLongPressProduct
+          ? () => {
+              onLongPressProduct(product);
+            }
+          : undefined
+      }>
       <View style={styles.mainRow}>
         <View style={styles.thumbnail}>
           {showHttpsImage && !imageFailed ? (
@@ -111,17 +124,25 @@ function ProductRowInner({
               source={{ uri: trimmedImageUrl }}
               style={styles.thumbnailImage}
               resizeMode="cover"
-              onError={() => setImageFailed(true)}
+              onError={() => {
+                setImageFailed(true);
+              }}
             />
           ) : (
-            <Text style={styles.emoji}>{getCategoryEmoji(product.productCategory || product.category)}</Text>
+            <Text style={styles.emoji}>
+              {getCategoryEmoji(product.productCategory || product.category)}
+            </Text>
           )}
         </View>
 
         <View style={styles.info}>
-          <Text style={styles.name} numberOfLines={1}>{displayName}</Text>
+          <Text style={styles.name} numberOfLines={1}>
+            {displayName}
+          </Text>
           {displayDescription ? (
-            <Text style={styles.description} numberOfLines={1}>{displayDescription}</Text>
+            <Text style={styles.description} numberOfLines={1}>
+              {displayDescription}
+            </Text>
           ) : null}
           <View style={styles.meta}>
             <View style={styles.priceBadge}>
@@ -129,21 +150,25 @@ function ProductRowInner({
             </View>
           </View>
 
-          {hasAddOnProducts && onAddAddOn && groupsWithProducts.map((group) => (
-            <ModifierOptionChips
-              key={group.id}
-              label={group.name}
-              modifiers={(group.products ?? []).map((p) => ({
-                id: p.productId,
-                name: resolveProductDisplayName(p, displayLocale),
-                price: p.price,
-              }))}
-              selectedModifiers={[]}
-              onAdd={(m) => onAddAddOn({ productId: m.id, productName: m.name, price: m.price })}
-              hideQuantityStepper
-              loading={false}
-            />
-          ))}
+          {hasAddOnProducts &&
+            onAddAddOn &&
+            groupsWithProducts.map((group) => (
+              <ModifierOptionChips
+                key={group.id}
+                label={group.name}
+                modifiers={(group.products ?? []).map((p) => ({
+                  id: p.productId,
+                  name: resolveProductDisplayName(p, displayLocale),
+                  price: p.price,
+                }))}
+                selectedModifiers={[]}
+                onAdd={(m) => {
+                  onAddAddOn({ productId: m.id, productName: m.name, price: m.price });
+                }}
+                hideQuantityStepper
+                loading={false}
+              />
+            ))}
         </View>
       </View>
     </Pressable>

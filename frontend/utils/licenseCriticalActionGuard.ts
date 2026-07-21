@@ -1,10 +1,13 @@
-import { Alert } from 'react-native';
 import type { TFunction } from 'i18next';
+import { Alert } from 'react-native';
 
+import { deploymentLicenseAllows, LICENSE_DEPLOYMENT_FEATURE } from './licenseDeploymentFeatures';
+import {
+  normalizeLicenseDaysRemaining,
+  preferLicenseHoursRemaining,
+} from './licenseExpiryRemaining';
 import type { LicenseStatus } from '../hooks/useLicenseStatus';
 import { isDevelopmentSimulationEnvironment } from '../src/config/devFlags';
-import { deploymentLicenseAllows, LICENSE_DEPLOYMENT_FEATURE } from './licenseDeploymentFeatures';
-import { normalizeLicenseDaysRemaining, preferLicenseHoursRemaining } from './licenseExpiryRemaining';
 
 let loggedDevLicenseBypass = false;
 
@@ -38,7 +41,9 @@ export function isTrialLikeLicenseStatus(status: LicenseStatus | null | undefine
 /**
  * Returns true when payments / fiscal actions should be blocked before contacting support.
  */
-export function isLicenseExpiredForCriticalActions(status: LicenseStatus | null | undefined): boolean {
+export function isLicenseExpiredForCriticalActions(
+  status: LicenseStatus | null | undefined
+): boolean {
   if (areLicenseChecksBypassedInDevelopment()) return false;
   if (!status) return false;
   if (status.isExpired) return true;
@@ -75,11 +80,14 @@ export function ensureLicenseAllowsCriticalAction(
 
   if (isLicenseExpiredForCriticalActions(status)) {
     return new Promise((resolve) => {
-      Alert.alert(
-        t('criticalGuard.expiredTitle'),
-        t('criticalGuard.expiredBody'),
-        [{ text: t('criticalGuard.ok'), onPress: () => resolve(false) }]
-      );
+      Alert.alert(t('criticalGuard.expiredTitle'), t('criticalGuard.expiredBody'), [
+        {
+          text: t('criticalGuard.ok'),
+          onPress: () => {
+            resolve(false);
+          },
+        },
+      ]);
     });
   }
 
@@ -93,7 +101,14 @@ export function ensureLicenseAllowsCriticalAction(
       Alert.alert(
         t('criticalGuard.featureDeniedTitle'),
         t('criticalGuard.featureDeniedBody', { featureId: LICENSE_DEPLOYMENT_FEATURE.PosFiscal }),
-        [{ text: t('criticalGuard.ok'), onPress: () => resolve(false) }]
+        [
+          {
+            text: t('criticalGuard.ok'),
+            onPress: () => {
+              resolve(false);
+            },
+          },
+        ]
       );
     });
   }
@@ -110,10 +125,26 @@ export function ensureLicenseAllowsCriticalAction(
         t('criticalGuard.trialSoonTitle'),
         body,
         [
-          { text: t('criticalGuard.cancel'), style: 'cancel', onPress: () => resolve(false) },
-          { text: t('criticalGuard.proceed'), onPress: () => resolve(true) },
+          {
+            text: t('criticalGuard.cancel'),
+            style: 'cancel',
+            onPress: () => {
+              resolve(false);
+            },
+          },
+          {
+            text: t('criticalGuard.proceed'),
+            onPress: () => {
+              resolve(true);
+            },
+          },
         ],
-        { cancelable: true, onDismiss: () => resolve(false) }
+        {
+          cancelable: true,
+          onDismiss: () => {
+            resolve(false);
+          },
+        }
       );
     });
   }

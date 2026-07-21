@@ -1,11 +1,13 @@
 'use client';
 
-import { Alert, Button, Space } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
+import { Alert, Button, Space } from 'antd';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
+import { useTenantDigitalService } from '@/features/digital-services/hooks/useTenantDigitalServices';
 import { DigitalServiceAccess } from '@/features/digital/components/DigitalServiceAccess';
 import { ManagerDigitalRequestPanel } from '@/features/digital/components/ManagerDigitalRequestPanel';
 import { TenantDigitalServiceStatusPanel } from '@/features/digital/components/TenantDigitalServiceStatusPanel';
@@ -13,7 +15,6 @@ import {
   canGenerateDigitalApp,
   canGenerateDigitalWebsite,
 } from '@/features/digital/digitalServicePermissions';
-import { useTenantDigitalService } from '@/features/digital-services/hooks/useTenantDigitalServices';
 import { DigitalServicesPanel } from '@/features/website-generator/components/DigitalServicesPanel';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';

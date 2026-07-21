@@ -44,19 +44,20 @@
 
 ## Files modified
 
-| File | Change |
-|------|--------|
-| `src/features/products/hooks/useProducts.ts` | Single `useList(AdminProductsListParams)`; removed `useSearch`; added `useSetModifierGroups`; `invalidateList` only invalidates admin products list; `useProductFilters` type uses string keys for URL. |
-| `src/app/(protected)/products/page.tsx` | Single list query with debounced name + categoryId; error Alert + retry; Empty state; stock column + “Adjust stock” modal; create/update use `useSetModifierGroups`; removed direct `setProductModifierGroups` import. |
-| `src/features/products/components/ProductForm.tsx` | Comments only: Turkish → English (dropdown options, category, modifier groups load). |
-| `src/features/products/components/ExtraZutatenSection.tsx` | JSDoc/props: Turkish → English (selectedGroupIds, onChange, loading, getGroupId). |
-| `src/features/products/utils/productMapper.ts` | JSDoc and inline comments translated to English (mapApiProductToUi, mapUiProductToApi, taxType). |
-| `src/lib/api/modifierGroups.ts` | Top-level and `setProductModifierGroups` comments: Turkish → English. |
-| `docs/ADMIN_PRODUCTS_DOMAIN_DELIVERABLE.md` | New: this deliverable. |
+| File                                                       | Change                                                                                                                                                                                                                 |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/features/products/hooks/useProducts.ts`               | Single `useList(AdminProductsListParams)`; removed `useSearch`; added `useSetModifierGroups`; `invalidateList` only invalidates admin products list; `useProductFilters` type uses string keys for URL.                |
+| `src/app/(protected)/products/page.tsx`                    | Single list query with debounced name + categoryId; error Alert + retry; Empty state; stock column + “Adjust stock” modal; create/update use `useSetModifierGroups`; removed direct `setProductModifierGroups` import. |
+| `src/features/products/components/ProductForm.tsx`         | Comments only: Turkish → English (dropdown options, category, modifier groups load).                                                                                                                                   |
+| `src/features/products/components/ExtraZutatenSection.tsx` | JSDoc/props: Turkish → English (selectedGroupIds, onChange, loading, getGroupId).                                                                                                                                      |
+| `src/features/products/utils/productMapper.ts`             | JSDoc and inline comments translated to English (mapApiProductToUi, mapUiProductToApi, taxType).                                                                                                                       |
+| `src/lib/api/modifierGroups.ts`                            | Top-level and `setProductModifierGroups` comments: Turkish → English.                                                                                                                                                  |
+| `docs/ADMIN_PRODUCTS_DOMAIN_DELIVERABLE.md`                | New: this deliverable.                                                                                                                                                                                                 |
 
-**Not modified (by design)**  
-- `src/api/admin/products.ts` – no changes; already the stable boundary.  
-- `src/features/products/components/ProductList.tsx` – presentational component; not used by the current products page (table is inlined). Kept for potential reuse.  
+**Not modified (by design)**
+
+- `src/api/admin/products.ts` – no changes; already the stable boundary.
+- `src/features/products/components/ProductList.tsx` – presentational component; not used by the current products page (table is inlined). Kept for potential reuse.
 - Backend contracts – no changes.
 
 ---

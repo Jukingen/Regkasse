@@ -7,32 +7,37 @@
  */
 import { Select } from 'antd';
 import type { CSSProperties } from 'react';
-import { useI18n, type TextLocale } from '@/i18n';
+
+import { type TextLocale, useI18n } from '@/i18n';
 
 const LANGUAGE_OPTIONS: ReadonlyArray<{ value: TextLocale; label: string }> = [
-    { value: 'de', label: 'Deutsch' },
-    { value: 'en', label: 'English' },
-    { value: 'tr', label: 'Türkçe' },
+  { value: 'de', label: 'Deutsch' },
+  { value: 'en', label: 'English' },
+  { value: 'tr', label: 'Türkçe' },
 ];
 
 export type LanguageSwitcherProps = {
-    className?: string;
-    style?: CSSProperties;
-    'data-testid'?: string;
+  className?: string;
+  style?: CSSProperties;
+  'data-testid'?: string;
 };
 
-export function LanguageSwitcher({ className, style, 'data-testid': dataTestId }: LanguageSwitcherProps) {
-    const { textLocale, setTextLocale, t } = useI18n();
+export function LanguageSwitcher({
+  className,
+  style,
+  'data-testid': dataTestId,
+}: LanguageSwitcherProps) {
+  const { textLocale, setTextLocale, t } = useI18n();
 
-    return (
-        <Select<TextLocale>
-            className={className}
-            style={{ width: 140, ...style }}
-            value={textLocale}
-            onChange={(lang) => setTextLocale(lang)}
-            options={[...LANGUAGE_OPTIONS]}
-            aria-label={t('adminShell.header.languageSelectAria')}
-            data-testid={dataTestId ?? 'language-switcher'}
-        />
-    );
+  return (
+    <Select<TextLocale>
+      className={className}
+      style={{ width: 140, ...style }}
+      value={textLocale}
+      onChange={(lang) => setTextLocale(lang)}
+      options={[...LANGUAGE_OPTIONS]}
+      aria-label={t('adminShell.header.languageSelectAria')}
+      data-testid={dataTestId ?? 'language-switcher'}
+    />
+  );
 }

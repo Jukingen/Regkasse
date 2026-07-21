@@ -2,11 +2,12 @@
 
 import { Alert, Button, Col, Row, Space, Statistic, Tag, Typography } from 'antd';
 import Link from 'next/link';
-import { useI18n, formatDate } from '@/i18n';
-import { usePermissions } from '@/hooks/usePermissions';
-import { useDataRetentionStats } from '@/features/data-management/hooks/useDataRetentionStats';
+
 import type { WidgetShellProps } from '@/features/dashboard/components/WidgetShell';
 import { WidgetShell } from '@/features/dashboard/components/WidgetShell';
+import { useDataRetentionStats } from '@/features/data-management/hooks/useDataRetentionStats';
+import { usePermissions } from '@/hooks/usePermissions';
+import { formatDate, useI18n } from '@/i18n';
 
 type Props = Pick<WidgetShellProps, 'title' | 'dragHandleProps' | 'onRefresh'>;
 
@@ -87,9 +88,7 @@ export function DataRetentionWidget({ title, dragHandleProps, onRefresh }: Props
           <Statistic
             title={t('dashboard.dataRetentionWidget.deletionRequests')}
             value={stats.pendingDeletionRequestCount}
-            valueStyle={
-              stats.pendingDeletionRequestCount > 0 ? { color: '#f59e0b' } : undefined
-            }
+            valueStyle={stats.pendingDeletionRequestCount > 0 ? { color: '#f59e0b' } : undefined}
           />
         </Col>
       </Row>

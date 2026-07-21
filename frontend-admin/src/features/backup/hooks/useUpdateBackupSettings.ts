@@ -1,1 +1,1 @@
-export { useUpdateBackupSettings } from "@/features/backup/api/backupHooks";
+export { useUpdateBackupSettings } from '@/features/backup/api/backupHooks';

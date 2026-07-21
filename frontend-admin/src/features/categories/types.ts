@@ -60,7 +60,7 @@ export function categoryTaxRate(category: AdminCategory): number {
 
 export function buildCategoryUpdatePayload(
   category: AdminCategory,
-  patch: Partial<AdminCategoryUpdatePayload>,
+  patch: Partial<AdminCategoryUpdatePayload>
 ): AdminCategoryUpdatePayload {
   return {
     name: patch.name ?? category.name,

@@ -2,7 +2,6 @@
  * Sunucu `pipeline` snapshot’ı geçerliyse tek doğruluk kaynağı odur.
  * İstemci türetimi yalnızca `isBackupPipelineClientFallbackEnabled()` ile açıkça etkinleştirildiğinde kullanılmalıdır.
  */
-
 import type {
   BackupArtifactPipelinePolicyResponseDto,
   BackupArtifactResponseDto,
@@ -13,7 +12,8 @@ import type {
 import { BackupArtifactResponseDtoArtifactType } from '@/api/generated/model/backupArtifactResponseDtoArtifactType';
 import { BackupArtifactResponseDtoLifecycleState } from '@/api/generated/model/backupArtifactResponseDtoLifecycleState';
 
-export type DerivedPipelineStepState = 'pending' | 'running' | 'success' | 'failed' | 'skipped' | 'degraded';
+export type DerivedPipelineStepState =
+  'pending' | 'running' | 'success' | 'failed' | 'skipped' | 'degraded';
 
 export type DerivedPipelineStepId =
   | 'queued'
@@ -65,7 +65,9 @@ function isDerivedPipelineStepId(key: string | undefined): key is DerivedPipelin
 }
 
 /** API `not_required` → stepper’da skipped (policy dışı adım). */
-export function mapServerPipelineStatus(status: string | null | undefined): DerivedPipelineStepState {
+export function mapServerPipelineStatus(
+  status: string | null | undefined
+): DerivedPipelineStepState {
   if (status === 'not_required') return 'skipped';
   if (
     status === 'pending' ||
@@ -85,7 +87,7 @@ export function mapServerPipelineStatus(status: string | null | undefined): Deri
  * Eski API veya eksik adım: null döner, caller `deriveBackupPipelineSteps` kullanır.
  */
 export function pipelineSnapshotToDerivedSteps(
-  snapshot: BackupPipelineSnapshotDto | undefined | null,
+  snapshot: BackupPipelineSnapshotDto | undefined | null
 ): DerivedPipelineStep[] | null {
   if (!snapshot?.steps?.length || snapshot.steps.length !== SERVER_PIPELINE_STEP_COUNT) return null;
   const out: DerivedPipelineStep[] = [];
@@ -111,13 +113,16 @@ const RUN_FAILED = 4;
 const RUN_VERIFY_FAILED = 5;
 const RUN_CANCELLED = 6;
 
-function artifactByType(artifacts: BackupArtifactResponseDto[] | null | undefined, type: number): BackupArtifactResponseDto | undefined {
+function artifactByType(
+  artifacts: BackupArtifactResponseDto[] | null | undefined,
+  type: number
+): BackupArtifactResponseDto | undefined {
   return artifacts?.find((a) => a.artifactType === type);
 }
 
 function pickPrimaryVerification(
   runId: string | undefined,
-  list: BackupVerificationResponseDto[] | null | undefined,
+  list: BackupVerificationResponseDto[] | null | undefined
 ): BackupVerificationResponseDto | undefined {
   if (!list?.length) return undefined;
   const forRun = runId ? list.filter((v) => !v.backupRunId || v.backupRunId === runId) : list;
@@ -129,8 +134,13 @@ function pickPrimaryVerification(
   })[0];
 }
 
-function externalPipelineExpected(policy: BackupArtifactPipelinePolicyResponseDto | undefined): boolean {
-  return Boolean(policy?.willRunExternalArchiveAfterStagingVerificationWhenEligible && policy?.externalArchiveRootConfigured);
+function externalPipelineExpected(
+  policy: BackupArtifactPipelinePolicyResponseDto | undefined
+): boolean {
+  return Boolean(
+    policy?.willRunExternalArchiveAfterStagingVerificationWhenEligible &&
+    policy?.externalArchiveRootConfigured
+  );
 }
 
 /**
@@ -140,7 +150,7 @@ function externalPipelineExpected(policy: BackupArtifactPipelinePolicyResponseDt
 export function deriveBackupPipelineSteps(
   run: BackupRunResponseDto | undefined | null,
   detail: BackupRunResponseDto | undefined | null,
-  policy: BackupArtifactPipelinePolicyResponseDto | undefined,
+  policy: BackupArtifactPipelinePolicyResponseDto | undefined
 ): DerivedPipelineStep[] {
   if (!run?.id) {
     return [];
@@ -159,7 +169,10 @@ export function deriveBackupPipelineSteps(
   const terminalOk = st === RUN_SUCCEEDED;
   const cancelled = st === RUN_CANCELLED;
 
-  const step = (id: DerivedPipelineStepId, state: DerivedPipelineStepState): DerivedPipelineStep => ({
+  const step = (
+    id: DerivedPipelineStepId,
+    state: DerivedPipelineStepState
+  ): DerivedPipelineStep => ({
     id,
     state,
     titleKey: `backupDr.pipelineSteps.${id}.title`,
@@ -267,7 +280,10 @@ export function deriveBackupPipelineSteps(
   ];
 }
 
-export function formatRunDurationMs(requestedAt?: string, completedAt?: string | null): number | undefined {
+export function formatRunDurationMs(
+  requestedAt?: string,
+  completedAt?: string | null
+): number | undefined {
   if (!requestedAt || !completedAt) return undefined;
   const a = Date.parse(requestedAt);
   const b = Date.parse(completedAt);
@@ -275,15 +291,20 @@ export function formatRunDurationMs(requestedAt?: string, completedAt?: string |
   return b - a;
 }
 
-export function sumLogicalDumpBytes(artifacts: BackupArtifactResponseDto[] | null | undefined): number | undefined {
-  const d = artifacts?.find((a) => a.artifactType === BackupArtifactResponseDtoArtifactType.NUMBER_0);
+export function sumLogicalDumpBytes(
+  artifacts: BackupArtifactResponseDto[] | null | undefined
+): number | undefined {
+  const d = artifacts?.find(
+    (a) => a.artifactType === BackupArtifactResponseDtoArtifactType.NUMBER_0
+  );
   const n = d?.byteSize;
   if (n === undefined || n === null) return undefined;
   return n;
 }
 
 /** Sunucu snapshot’ı geçerliyse onu; aksi halde (izin varsa) istemci türetmesi. */
-export type BackupPipelineUiSource = 'server_projection' | 'client_fallback' | 'client_fallback_blocked';
+export type BackupPipelineUiSource =
+  'server_projection' | 'client_fallback' | 'client_fallback_blocked';
 
 export interface ResolvedBackupPipelineUi {
   steps: DerivedPipelineStep[];
@@ -296,7 +317,7 @@ export function resolveBackupPipelineStepsForUi(
   latest: BackupRunResponseDto | null | undefined,
   detail: BackupRunResponseDto | null | undefined,
   policy: BackupArtifactPipelinePolicyResponseDto | undefined,
-  options: { allowClientFallback: boolean },
+  options: { allowClientFallback: boolean }
 ): ResolvedBackupPipelineUi {
   const snap = detail?.pipeline ?? latest?.pipeline;
   const parsed = pipelineSnapshotToDerivedSteps(snap);

@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Alert,
@@ -8,7 +9,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useTranslation } from 'react-i18next';
 
 import {
   AppUpdateError,
@@ -86,10 +86,7 @@ export const AppUpdateChecker: React.FC = () => {
           : err instanceof Error
             ? err.message
             : String(err);
-      Alert.alert(
-        tx('installFailedTitle', 'Installation fehlgeschlagen'),
-        message,
-      );
+      Alert.alert(tx('installFailedTitle', 'Installation fehlgeschlagen'), message);
     }
   }, [downloadedFileUri, tx]);
 
@@ -108,7 +105,7 @@ export const AppUpdateChecker: React.FC = () => {
       <Text style={styles.description}>
         {tx(
           'description',
-          'Prüft, ob eine neuere Version der Regkasse POS App verfügbar ist, lädt die APK herunter und öffnet die Installation.',
+          'Prüft, ob eine neuere Version der Regkasse POS App verfügbar ist, lädt die APK herunter und öffnet die Installation.'
         )}
       </Text>
 
@@ -130,7 +127,7 @@ export const AppUpdateChecker: React.FC = () => {
             <Text style={styles.blocked}>
               {tx(
                 'blocked',
-                'Diese Version wird nicht mehr unterstützt. Bitte aktualisieren Sie die App, bevor Sie sie weiter verwenden.',
+                'Diese Version wird nicht mehr unterstützt. Bitte aktualisieren Sie die App, bevor Sie sie weiter verwenden.'
               )}
             </Text>
           ) : result.mandatory ? (
@@ -170,8 +167,7 @@ export const AppUpdateChecker: React.FC = () => {
         <TouchableOpacity
           style={[styles.button, phase === 'checking' && styles.buttonDisabled]}
           disabled={phase === 'checking' || phase === 'downloading'}
-          onPress={runCheck}
-        >
+          onPress={runCheck}>
           <Text style={styles.buttonText}>{tx('check', 'Auf Updates prüfen')}</Text>
         </TouchableOpacity>
 
@@ -183,8 +179,7 @@ export const AppUpdateChecker: React.FC = () => {
               phase === 'downloading' && styles.buttonDisabled,
             ]}
             disabled={phase === 'downloading'}
-            onPress={runDownload}
-          >
+            onPress={runDownload}>
             <Text style={[styles.buttonText, styles.buttonTextPrimary]}>
               {tx('download', 'Jetzt herunterladen')}
             </Text>
@@ -192,10 +187,7 @@ export const AppUpdateChecker: React.FC = () => {
         ) : null}
 
         {phase === 'ready_to_install' && downloadedFileUri ? (
-          <TouchableOpacity
-            style={[styles.button, styles.buttonPrimary]}
-            onPress={runInstall}
-          >
+          <TouchableOpacity style={[styles.button, styles.buttonPrimary]} onPress={runInstall}>
             <Text style={[styles.buttonText, styles.buttonTextPrimary]}>
               {tx('install', 'Installation starten')}
             </Text>
@@ -206,7 +198,7 @@ export const AppUpdateChecker: React.FC = () => {
       <Text style={styles.note}>
         {tx(
           'unknownSourcesNote',
-          'Hinweis: Auf dem Tablet muss „Installation aus unbekannten Quellen" für die Datei-/Share-App erlaubt sein.',
+          'Hinweis: Auf dem Tablet muss „Installation aus unbekannten Quellen" für die Datei-/Share-App erlaubt sein.'
         )}
       </Text>
     </View>

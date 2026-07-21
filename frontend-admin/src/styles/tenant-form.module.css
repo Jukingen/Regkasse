@@ -1,181 +1,181 @@
 .hint {
-    font-size: 12px;
-    color: #666;
-    margin-top: 4px;
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
 }
 
 .example {
-    font-size: 12px;
-    background: #f5f5f5;
-    padding: 8px;
-    border-radius: 4px;
-    margin-top: 8px;
+  font-size: 12px;
+  background: #f5f5f5;
+  padding: 8px;
+  border-radius: 4px;
+  margin-top: 8px;
 }
 
 .exampleLine {
-    margin: 0;
-    line-height: 1.5;
+  margin: 0;
+  line-height: 1.5;
 }
 
 .exampleLine + .exampleLine {
-    margin-top: 4px;
+  margin-top: 4px;
 }
 
 .subtext {
-    font-size: 12px;
-    color: #888;
-    margin-left: 24px;
-    display: block;
-    margin-top: 4px;
-    font-weight: normal;
+  font-size: 12px;
+  color: #888;
+  margin-left: 24px;
+  display: block;
+  margin-top: 4px;
+  font-weight: normal;
 }
 
 .error {
-    color: #ff4d4f;
-    font-size: 12px;
-    margin-top: 4px;
+  color: #ff4d4f;
+  font-size: 12px;
+  margin-top: 4px;
 }
 
 .success {
-    color: #52c41a;
-    font-size: 12px;
-    margin-top: 4px;
+  color: #52c41a;
+  font-size: 12px;
+  margin-top: 4px;
 }
 
 .preview {
-    font-size: 12px;
-    color: #666;
-    margin-top: 8px;
-    margin-bottom: 0;
-    line-height: 1.5;
+  font-size: 12px;
+  color: #666;
+  margin-top: 8px;
+  margin-bottom: 0;
+  line-height: 1.5;
 }
 
 .availability {
-    font-size: 12px;
-    margin-top: 6px;
-    line-height: 1.4;
+  font-size: 12px;
+  margin-top: 6px;
+  line-height: 1.4;
 }
 
 .availabilityChecking {
-    color: #666;
+  color: #666;
 }
 
 .availabilityAvailable {
-    color: #52c41a;
+  color: #52c41a;
 }
 
 .availabilityTaken {
-    color: #ff4d4f;
+  color: #ff4d4f;
 }
 
 .processingRoot {
-    padding: 4px 0 8px;
+  padding: 4px 0 8px;
 }
 
 .processingList {
-    list-style: none;
-    margin: 0;
-    padding: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .processingItem {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    margin-bottom: 12px;
-    line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+  line-height: 1.5;
 }
 
 .processingIconDone {
-    color: #52c41a;
-    font-size: 16px;
-    margin-top: 2px;
+  color: #52c41a;
+  font-size: 16px;
+  margin-top: 2px;
 }
 
 .processingIconError {
-    color: #ff4d4f;
-    font-size: 16px;
-    margin-top: 2px;
+  color: #ff4d4f;
+  font-size: 16px;
+  margin-top: 2px;
 }
 
 .processingIconActive {
-    color: #1677ff;
-    font-size: 16px;
-    margin-top: 2px;
+  color: #1677ff;
+  font-size: 16px;
+  margin-top: 2px;
 }
 
 .processingIconPending {
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    border: 2px solid #d9d9d9;
-    border-radius: 50%;
-    margin-top: 3px;
-    flex-shrink: 0;
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #d9d9d9;
+  border-radius: 50%;
+  margin-top: 3px;
+  flex-shrink: 0;
 }
 
 .processingTextDone {
-    color: rgba(0, 0, 0, 0.88);
+  color: rgba(0, 0, 0, 0.88);
 }
 
 .processingTextActive {
-    color: rgba(0, 0, 0, 0.88);
-    font-weight: 500;
+  color: rgba(0, 0, 0, 0.88);
+  font-weight: 500;
 }
 
 .processingTextPending {
-    color: rgba(0, 0, 0, 0.45);
+  color: rgba(0, 0, 0, 0.45);
 }
 
 .processingTextError {
-    color: #ff4d4f;
-    font-weight: 500;
+  color: #ff4d4f;
+  font-weight: 500;
 }
 
 .successSectionTitle {
-    margin-top: 0 !important;
-    margin-bottom: 10px !important;
-    text-transform: none;
-    letter-spacing: 0.02em;
+  margin-top: 0 !important;
+  margin-bottom: 10px !important;
+  text-transform: none;
+  letter-spacing: 0.02em;
 }
 
 .successPanel {
-    border: 1px solid #d9d9d9;
-    border-radius: 8px;
-    padding: 14px 16px;
-    background: #fafafa;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  padding: 14px 16px;
+  background: #fafafa;
 }
 
 .successCredentialRow {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 .successCredentialRow:last-child {
-    margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 .successStepsList {
-    margin: 0;
-    padding: 14px 16px 14px 32px;
-    border: 1px solid #d9d9d9;
-    border-radius: 8px;
-    background: #fafafa;
-    line-height: 1.6;
+  margin: 0;
+  padding: 14px 16px 14px 32px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  background: #fafafa;
+  line-height: 1.6;
 }
 
 .successStepsList li + li {
-    margin-top: 6px;
+  margin-top: 6px;
 }
 
 .successEmailNote {
-    color: rgba(0, 0, 0, 0.65);
+  color: rgba(0, 0, 0, 0.65);
 }
 
 .onboardingErrorIcon {
-    color: #ff4d4f;
-    margin-right: 6px;
+  color: #ff4d4f;
+  margin-right: 6px;
 }

@@ -1,12 +1,19 @@
 // Cached POST /api/pos/cash-register/ensure-ready: effective register, nextAction, optional auto-open. Not invoked by payment POST.
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-
-import { POS_ENSURE_READY_ON_ENTRY } from '../constants/posFeatureFlags';
-import { postEnsurePosCashRegisterReady } from '../services/api/posCashRegisterReadinessService';
-import type { PosCashRegisterContextDto } from '../utils/posCashRegisterReadinessParse';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import { useAuth } from './AuthContext';
 import { usePosStatusOverview } from './PosStatusOverviewContext';
+import { POS_ENSURE_READY_ON_ENTRY } from '../constants/posFeatureFlags';
+import { postEnsurePosCashRegisterReady } from '../services/api/posCashRegisterReadinessService';
+import type { PosCashRegisterContextDto } from '../utils/posCashRegisterReadinessParse';
 
 export type PosRegisterReadinessContextValue = {
   data: PosCashRegisterContextDto | null;
@@ -72,7 +79,9 @@ export function PosRegisterReadinessProvider({ children }: { children: React.Rea
       setError(null);
       const waiters = refreshWaitersRef.current;
       refreshWaitersRef.current = [];
-      waiters.forEach((w) => w());
+      waiters.forEach((w) => {
+        w();
+      });
       return;
     }
 
@@ -100,7 +109,9 @@ export function PosRegisterReadinessProvider({ children }: { children: React.Rea
         if (!cancelled) {
           const waiters = refreshWaitersRef.current;
           refreshWaitersRef.current = [];
-          waiters.forEach((w) => w());
+          waiters.forEach((w) => {
+            w();
+          });
         }
       }
     })();
@@ -123,6 +134,8 @@ export function PosRegisterReadinessProvider({ children }: { children: React.Rea
   );
 
   return (
-    <PosRegisterReadinessContext.Provider value={value}>{children}</PosRegisterReadinessContext.Provider>
+    <PosRegisterReadinessContext.Provider value={value}>
+      {children}
+    </PosRegisterReadinessContext.Provider>
   );
 }

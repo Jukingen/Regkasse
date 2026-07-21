@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {
+  ROOT,
   createValidators,
   flattenObject,
   parseArgs,
@@ -211,8 +212,8 @@ for (const appId of appIds) {
 
   // 9) Runtime config <-> file system mismatch
   const runtimeNamespacesRaw = app.id === 'frontend'
-    ? await extractFrontendRuntimeNamespaces(process.cwd())
-    : await extractAdminRuntimeNamespaces(process.cwd());
+    ? await extractFrontendRuntimeNamespaces(ROOT)
+    : await extractAdminRuntimeNamespaces(ROOT);
   const runtimeNamespacesNormalized = runtimeNamespacesRaw.map((ns) => toKebabCase(ns));
   const manifestSet = new Set(app.namespaces);
   const fsSet = new Set([...fsNamespaces]);
@@ -425,7 +426,7 @@ if (sortedFailures.length > 0) {
 console.log('\nTranslation validation passed.');
 
 async function writeTextReport(payload) {
-  const reportDir = path.join(process.cwd(), 'localization', 'out', 'reports');
+  const reportDir = path.join(ROOT, 'localization', 'out', 'reports');
   await fs.mkdir(reportDir, { recursive: true });
   const filePath = path.join(reportDir, `validate-report.${args.app ?? 'all'}.txt`);
   const lines = [];

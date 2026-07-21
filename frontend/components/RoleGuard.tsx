@@ -14,12 +14,8 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({ role, children, fallback }
       <>{fallback}</>
     ) : (
       <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-        <p className="text-red-800 font-medium">
-          Sie haben keine Berechtigung für diese Aktion.
-        </p>
-        <p className="text-red-600 text-sm mt-1">
-          Erforderliche Rolle: {role}
-        </p>
+        <p className="text-red-800 font-medium">Sie haben keine Berechtigung für diese Aktion.</p>
+        <p className="text-red-600 text-sm mt-1">Erforderliche Rolle: {role}</p>
       </div>
     );
   }
@@ -66,7 +62,9 @@ export const AdminOnly: React.FC<{ children: React.ReactNode; fallback?: React.R
   const { hasRole } = usePermission();
   const isAdmin = hasRole(ROLES.SuperAdmin);
   if (!isAdmin) {
-    return fallback ? <>{fallback}</> : (
+    return fallback ? (
+      <>{fallback}</>
+    ) : (
       <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
         <p className="text-red-800 font-medium">Sie haben keine Berechtigung für diese Aktion.</p>
         <p className="text-red-600 text-sm mt-1">Erforderliche Rolle: SuperAdmin</p>
@@ -79,10 +77,10 @@ export const AdminOnly: React.FC<{ children: React.ReactNode; fallback?: React.R
 /**
  * Kasiyer erişim kontrol bileşeni - Kasiyer ve üstü kullanıcılar için içerik gösterir
  */
-export const CashierOrHigher: React.FC<{ children: React.ReactNode; fallback?: React.ReactNode }> = ({ 
-  children, 
-  fallback 
-}) => {
+export const CashierOrHigher: React.FC<{
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+}> = ({ children, fallback }) => {
   const { isCashier, isAdmin, isManager } = usePermission();
 
   if (!isCashier && !isAdmin && !isManager) {
@@ -98,4 +96,4 @@ export const CashierOrHigher: React.FC<{ children: React.ReactNode; fallback?: R
   }
 
   return <>{children}</>;
-}; 
+};

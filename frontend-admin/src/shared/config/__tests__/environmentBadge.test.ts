@@ -30,13 +30,13 @@ describe('environment badge config', () => {
         isDevelopment: false,
         isTest: false,
         isProduction: true,
-      }),
+      })
     ).toBeNull();
   });
 
   it('readEnvironmentSnapshot respects overrides', () => {
     expect(
-      readEnvironmentSnapshot({ isDevelopment: true, isTest: true, isProduction: false }),
+      readEnvironmentSnapshot({ isDevelopment: true, isTest: true, isProduction: false })
     ).toEqual({ isDevelopment: true, isTest: true, isProduction: false });
   });
 });

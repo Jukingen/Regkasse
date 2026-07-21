@@ -36,7 +36,7 @@ describe('RksvDeploymentEnvironmentBadge', () => {
           environmentDisplayName: '🧪 DEMO / TEST',
         }}
         isDemo
-      />,
+      />
     );
 
     expect(screen.getByText('🧪 DEMO')).toBeInTheDocument();
@@ -55,7 +55,7 @@ describe('RksvDeploymentEnvironmentBadge', () => {
           environmentDisplayName: '🚀 PRODUCTION',
         }}
         isDemo={false}
-      />,
+      />
     );
 
     expect(screen.getByText('🚀 Production')).toBeInTheDocument();

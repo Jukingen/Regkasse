@@ -23,14 +23,20 @@ function stampFromReport(report: RksvComplianceReport): string {
 
 export function exportComplianceReportJson(report: RksvComplianceReport) {
   const json = JSON.stringify(report, null, 2);
-  downloadTextFile(json, `rksv-compliance-report_${stampFromReport(report)}_UTC.json`, 'application/json');
+  downloadTextFile(
+    json,
+    `rksv-compliance-report_${stampFromReport(report)}_UTC.json`,
+    'application/json'
+  );
 }
 
 /**
  * Flat CSV for audit handoff: one section per check with a `section` column.
  */
 export function exportComplianceReportCsv(report: RksvComplianceReport) {
-  const rows: string[][] = [['section', 'cashRegisterId', 'registerNumber', 'receiptNumber', 'status', 'detail']];
+  const rows: string[][] = [
+    ['section', 'cashRegisterId', 'registerNumber', 'receiptNumber', 'status', 'detail'],
+  ];
 
   for (const s of report.specialReceipts ?? []) {
     rows.push([
@@ -90,5 +96,9 @@ export function exportComplianceReportCsv(report: RksvComplianceReport) {
   }
 
   const csv = rows.map((r) => r.map(escapeCsvCell).join(',')).join('\n');
-  downloadTextFile(csv, `rksv-compliance-report_${stampFromReport(report)}_UTC.csv`, 'text/csv;charset=utf-8');
+  downloadTextFile(
+    csv,
+    `rksv-compliance-report_${stampFromReport(report)}_UTC.csv`,
+    'text/csv;charset=utf-8'
+  );
 }

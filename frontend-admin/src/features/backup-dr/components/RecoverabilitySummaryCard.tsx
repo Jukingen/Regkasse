@@ -1,10 +1,8 @@
-"use client";
+'use client';
 
 /**
  * Kurtarılabilirlik: kanıt (son bilinen iyi) ile son istek durumu görsel ve anlamsal ayrılmıştır; yaş/tazelik etiketli.
  */
-
-import React from "react";
 import {
   Alert,
   Button,
@@ -15,18 +13,20 @@ import {
   Skeleton,
   Tag,
   Typography,
-} from "antd";
-import type { BackupRecoverabilitySummaryResponseDto } from "@/api/generated/model";
-import { BackupRecoverabilitySummaryResponseDtoLatestRestoreRunStatus } from "@/api/generated/model";
+} from 'antd';
+import React from 'react';
+
+import type { BackupRecoverabilitySummaryResponseDto } from '@/api/generated/model';
+import { BackupRecoverabilitySummaryResponseDtoLatestRestoreRunStatus } from '@/api/generated/model';
 import {
   formatRecoverabilityTimestampOrProofGap,
   hasRecoverabilityProofGaps,
-} from "@/features/backup-dr/logic/backupDrOperatorTruth";
+} from '@/features/backup-dr/logic/backupDrOperatorTruth';
 import {
+  type ProofAgeFreshnessTier,
   freshnessTagColor,
   proofAgeFreshnessTier,
-  type ProofAgeFreshnessTier,
-} from "@/features/backup-dr/logic/recoverabilityPresentation";
+} from '@/features/backup-dr/logic/recoverabilityPresentation';
 
 export interface RecoverabilitySummaryCardProps {
   summary: BackupRecoverabilitySummaryResponseDto | undefined;
@@ -35,14 +35,8 @@ export interface RecoverabilitySummaryCardProps {
   onRetry?: () => void;
   formatDt: (iso: string | undefined | null, locale: string) => string;
   formatLocale: string;
-  backupStatusLabel: (
-    status: number | undefined,
-    t: (k: string) => string,
-  ) => string;
-  restoreStatusLabel: (
-    status: number | undefined,
-    t: (k: string) => string,
-  ) => string;
+  backupStatusLabel: (status: number | undefined, t: (k: string) => string) => string;
+  restoreStatusLabel: (status: number | undefined, t: (k: string) => string) => string;
   /** Fake/Stub adaptör veya simüle çalıştırma — kanıt bloklarında dil sıkılaştırılır. */
   simulatedOperationalMode?: boolean;
   /**
@@ -60,30 +54,21 @@ export interface RecoverabilitySummaryCardProps {
 }
 
 function formatAgeSeconds(sec: number | null | undefined): string {
-  if (sec == null || Number.isNaN(sec)) return "—";
+  if (sec == null || Number.isNaN(sec)) return '—';
   return `${sec} s`;
 }
 
-function FreshnessFootnote({
-  tier,
-  t,
-}: {
-  tier: ProofAgeFreshnessTier;
-  t: (k: string) => string;
-}) {
+function FreshnessFootnote({ tier, t }: { tier: ProofAgeFreshnessTier; t: (k: string) => string }) {
   const key =
-    tier === "recent"
-      ? "backupDr.recoverability.freshnessFootnote.recent"
-      : tier === "aging"
-        ? "backupDr.recoverability.freshnessFootnote.aging"
-        : tier === "stale"
-          ? "backupDr.recoverability.freshnessFootnote.stale"
-          : "backupDr.recoverability.freshnessFootnote.unknown";
+    tier === 'recent'
+      ? 'backupDr.recoverability.freshnessFootnote.recent'
+      : tier === 'aging'
+        ? 'backupDr.recoverability.freshnessFootnote.aging'
+        : tier === 'stale'
+          ? 'backupDr.recoverability.freshnessFootnote.stale'
+          : 'backupDr.recoverability.freshnessFootnote.unknown';
   return (
-    <Typography.Text
-      type="secondary"
-      style={{ fontSize: 12, display: "block", marginTop: 4 }}
-    >
+    <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
       {t(key)}
     </Typography.Text>
   );
@@ -104,30 +89,26 @@ export function RecoverabilitySummaryCard({
   omitProofGapCaveat = false,
   t,
 }: RecoverabilitySummaryCardProps) {
-  const simulatedLkg =
-    summary?.lastSuccessfulBackupRunIsSimulatedExecution === true;
+  const simulatedLkg = summary?.lastSuccessfulBackupRunIsSimulatedExecution === true;
   /** Banner + özet satırlar zaten “pg_dump yok / sahte” anlatıyorsa büyük sarı kutuyu tekrarlama. */
   const compactSimulatedProof =
     simulatedLkg && summary?.realPostgreSqlLogicalDumpConfigured === false;
 
   return (
-    <Card title={t("backupDr.recoverability.title")} size="small">
-      <Typography.Paragraph
-        type="secondary"
-        style={{ marginTop: 0, marginBottom: 12 }}
-      >
-        {t("backupDr.recoverability.subtitle")}
+    <Card title={t('backupDr.recoverability.title')} size="small">
+      <Typography.Paragraph type="secondary" style={{ marginTop: 0, marginBottom: 12 }}>
+        {t('backupDr.recoverability.subtitle')}
       </Typography.Paragraph>
       {queryError ? (
         <Alert
           type="error"
           showIcon
           style={{ marginBottom: 12 }}
-          title={t("backupDr.errors.recoverabilityLoadFailed")}
+          title={t('backupDr.errors.recoverabilityLoadFailed')}
           action={
             onRetry ? (
               <Button size="small" onClick={onRetry}>
-                {t("backupDr.actions.refresh")}
+                {t('backupDr.actions.refresh')}
               </Button>
             ) : undefined
           }
@@ -136,27 +117,23 @@ export function RecoverabilitySummaryCard({
       {loading && !summary ? (
         <Skeleton active paragraph={{ rows: 4 }} />
       ) : !summary ? (
-        <Typography.Text type="secondary">
-          {t("backupDr.summary.unknown")}
-        </Typography.Text>
+        <Typography.Text type="secondary">{t('backupDr.summary.unknown')}</Typography.Text>
       ) : (
         <>
           {(() => {
             const caveats: string[] = [];
             if (hasRecoverabilityProofGaps(summary) && !omitProofGapCaveat) {
-              caveats.push(t("backupDr.operatorTruth.recoverabilityProofGap"));
+              caveats.push(t('backupDr.operatorTruth.recoverabilityProofGap'));
             }
             if (
               summary.latestRestoreRunStatus ===
                 BackupRecoverabilitySummaryResponseDtoLatestRestoreRunStatus.NUMBER_3 &&
               summary.lastSuccessfulRestoreProofAt
             ) {
-              caveats.push(
-                t("backupDr.recoverability.latestDrillFailedVsProofTimestamps"),
-              );
+              caveats.push(t('backupDr.recoverability.latestDrillFailedVsProofTimestamps'));
             }
             if (simulatedOperationalMode && !omitSimulatedEnvironmentStrip) {
-              caveats.push(t("backupDr.recoverability.simulatedEnvironmentStrip"));
+              caveats.push(t('backupDr.recoverability.simulatedEnvironmentStrip'));
             }
             if (caveats.length === 0) return null;
             return (
@@ -164,18 +141,16 @@ export function RecoverabilitySummaryCard({
                 ghost
                 size="small"
                 style={{ marginBottom: 12 }}
-                defaultActiveKey={["caveats"]}
+                defaultActiveKey={['caveats']}
                 items={[
                   {
-                    key: "caveats",
-                    label: t("backupDr.recoverability.caveatsTitle"),
+                    key: 'caveats',
+                    label: t('backupDr.recoverability.caveatsTitle'),
                     children: (
                       <ul style={{ margin: 0, paddingLeft: 18 }}>
                         {caveats.map((line, i) => (
                           <li key={i}>
-                            <Typography.Text style={{ fontSize: 13 }}>
-                              {line}
-                            </Typography.Text>
+                            <Typography.Text style={{ fontSize: 13 }}>{line}</Typography.Text>
                           </li>
                         ))}
                       </ul>
@@ -188,34 +163,36 @@ export function RecoverabilitySummaryCard({
 
           <div
             style={{
-              borderLeft: "4px solid #1677ff",
+              borderLeft: '4px solid #1677ff',
               padding: 12,
               marginBottom: 16,
               borderRadius: 4,
-              background: "#f0f5ff",
+              background: '#f0f5ff',
             }}
           >
             <Typography.Title level={5} style={{ marginTop: 0 }}>
-              {t("backupDr.recoverability.proofSectionTitle")}
+              {t('backupDr.recoverability.proofSectionTitle')}
             </Typography.Title>
             <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
-              {t("backupDr.recoverability.proofSectionIntro")}
+              {t('backupDr.recoverability.proofSectionIntro')}
             </Typography.Paragraph>
 
             {simulatedLkg && compactSimulatedProof ? (
-              <Typography.Paragraph
-                type="secondary"
-                style={{ marginBottom: 12 }}
-              >
-                {t("backupDr.recoverability.simulatedProofCompact")}
+              <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
+                {t('backupDr.recoverability.simulatedProofCompact')}
               </Typography.Paragraph>
             ) : null}
             {simulatedLkg && !compactSimulatedProof ? (
               <Typography.Paragraph
                 type="warning"
-                style={{ marginBottom: 12, padding: "8px 10px", background: "#fffbe6", borderRadius: 4 }}
+                style={{
+                  marginBottom: 12,
+                  padding: '8px 10px',
+                  background: '#fffbe6',
+                  borderRadius: 4,
+                }}
               >
-                {t("backupDr.recoverability.lastGoodBackupSimulatedWarning")}
+                {t('backupDr.recoverability.lastGoodBackupSimulatedWarning')}
               </Typography.Paragraph>
             ) : null}
 
@@ -224,8 +201,8 @@ export function RecoverabilitySummaryCard({
                 <Descriptions.Item
                   label={t(
                     simulatedLkg
-                      ? "backupDr.recoverability.proofBlock.backupStub"
-                      : "backupDr.recoverability.proofBlock.backup",
+                      ? 'backupDr.recoverability.proofBlock.backupStub'
+                      : 'backupDr.recoverability.proofBlock.backup'
                   )}
                   span={{ xs: 1, sm: 2 }}
                 >
@@ -234,42 +211,34 @@ export function RecoverabilitySummaryCard({
                       summary.lastSuccessfulBackupAt,
                       formatDt,
                       formatLocale,
-                      t,
+                      t
                     )}
                   </Typography.Text>
                   {summary.lastSuccessfulBackupRunId ? (
-                    <Typography.Text
-                      type="secondary"
-                      style={{ marginLeft: 8 }}
-                      copyable
-                    >
+                    <Typography.Text type="secondary" style={{ marginLeft: 8 }} copyable>
                       {summary.lastSuccessfulBackupRunId}
                     </Typography.Text>
                   ) : null}
                   <div style={{ marginTop: 8 }}>
                     <Typography.Text type="secondary">
-                      {t("backupDr.recoverability.backupProofAge")}:{" "}
+                      {t('backupDr.recoverability.backupProofAge')}:{' '}
                     </Typography.Text>
                     <Tag
                       color={freshnessTagColor(
-                        proofAgeFreshnessTier(summary.backupProofAgeSeconds),
+                        proofAgeFreshnessTier(summary.backupProofAgeSeconds)
                       )}
                     >
                       {formatAgeSeconds(summary.backupProofAgeSeconds)}
                     </Tag>
                     <FreshnessFootnote
-                      tier={proofAgeFreshnessTier(
-                        summary.backupProofAgeSeconds,
-                      )}
+                      tier={proofAgeFreshnessTier(summary.backupProofAgeSeconds)}
                       t={t}
                     />
                   </div>
                 </Descriptions.Item>
 
                 <Descriptions.Item
-                  label={t(
-                    "backupDr.recoverability.proofBlock.artifactVerification",
-                  )}
+                  label={t('backupDr.recoverability.proofBlock.artifactVerification')}
                   span={{ xs: 1, sm: 2 }}
                 >
                   <Typography.Text strong>
@@ -277,21 +246,16 @@ export function RecoverabilitySummaryCard({
                       summary.lastSuccessfulArtifactVerificationAt,
                       formatDt,
                       formatLocale,
-                      t,
+                      t
                     )}
                   </Typography.Text>
-                  <Typography.Paragraph
-                    type="secondary"
-                    style={{ marginTop: 8, marginBottom: 0 }}
-                  >
-                    {t(
-                      "backupDr.recoverability.proofBlock.artifactVerificationScope",
-                    )}
+                  <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
+                    {t('backupDr.recoverability.proofBlock.artifactVerificationScope')}
                   </Typography.Paragraph>
                 </Descriptions.Item>
 
                 <Descriptions.Item
-                  label={t("backupDr.recoverability.proofBlock.restoreDrill")}
+                  label={t('backupDr.recoverability.proofBlock.restoreDrill')}
                   span={{ xs: 1, sm: 2 }}
                 >
                   <Typography.Text strong>
@@ -299,33 +263,27 @@ export function RecoverabilitySummaryCard({
                       summary.lastSuccessfulRestoreProofAt,
                       formatDt,
                       formatLocale,
-                      t,
+                      t
                     )}
                   </Typography.Text>
                   {summary.lastSuccessfulRestoreProofRunId ? (
-                    <Typography.Text
-                      type="secondary"
-                      style={{ marginLeft: 8 }}
-                      copyable
-                    >
+                    <Typography.Text type="secondary" style={{ marginLeft: 8 }} copyable>
                       {summary.lastSuccessfulRestoreProofRunId}
                     </Typography.Text>
                   ) : null}
                   <div style={{ marginTop: 8 }}>
                     <Typography.Text type="secondary">
-                      {t("backupDr.recoverability.restoreProofAge")}:{" "}
+                      {t('backupDr.recoverability.restoreProofAge')}:{' '}
                     </Typography.Text>
                     <Tag
                       color={freshnessTagColor(
-                        proofAgeFreshnessTier(summary.restoreProofAgeSeconds),
+                        proofAgeFreshnessTier(summary.restoreProofAgeSeconds)
                       )}
                     >
                       {formatAgeSeconds(summary.restoreProofAgeSeconds)}
                     </Tag>
                     <FreshnessFootnote
-                      tier={proofAgeFreshnessTier(
-                        summary.restoreProofAgeSeconds,
-                      )}
+                      tier={proofAgeFreshnessTier(summary.restoreProofAgeSeconds)}
                       t={t}
                     />
                   </div>
@@ -333,40 +291,35 @@ export function RecoverabilitySummaryCard({
               </Descriptions>
             ) : null}
 
-            <Divider style={{ margin: "12px 0" }} />
+            <Divider style={{ margin: '12px 0' }} />
 
             <Descriptions column={{ xs: 1, sm: 2 }} size="small" bordered>
               <Descriptions.Item
-                label={t("backupDr.recoverability.executionProfile")}
+                label={t('backupDr.recoverability.executionProfile')}
                 span={{ xs: 1, sm: 2 }}
               >
-                <Typography.Text code>
-                  {summary.backupExecutionReality ?? "—"}
-                </Typography.Text>
+                <Typography.Text code>{summary.backupExecutionReality ?? '—'}</Typography.Text>
               </Descriptions.Item>
               <Descriptions.Item
-                label={t("backupDr.recoverability.realPgDumpConfigured")}
+                label={t('backupDr.recoverability.realPgDumpConfigured')}
                 span={{ xs: 1, sm: 2 }}
               >
                 {summary.realPostgreSqlLogicalDumpConfigured
-                  ? t("common.buttons.yes")
-                  : t("common.buttons.no")}
+                  ? t('common.buttons.yes')
+                  : t('common.buttons.no')}
               </Descriptions.Item>
               <Descriptions.Item
-                label={t("backupDr.recoverability.readinessLevel")}
+                label={t('backupDr.recoverability.readinessLevel')}
                 span={{ xs: 1, sm: 2 }}
               >
-                {summary.backupReadinessLevel ?? "—"}
+                {summary.backupReadinessLevel ?? '—'}
               </Descriptions.Item>
               <Descriptions.Item
-                label={t("backupDr.recoverability.serverNarrative")}
+                label={t('backupDr.recoverability.serverNarrative')}
                 span={{ xs: 1, sm: 2 }}
               >
-                <Typography.Text
-                  type="secondary"
-                  style={{ whiteSpace: "pre-wrap" }}
-                >
-                  {summary.backupReadinessNarrative?.trim() || "—"}
+                <Typography.Text type="secondary" style={{ whiteSpace: 'pre-wrap' }}>
+                  {summary.backupReadinessNarrative?.trim() || '—'}
                 </Typography.Text>
               </Descriptions.Item>
             </Descriptions>
@@ -374,53 +327,45 @@ export function RecoverabilitySummaryCard({
 
           <div
             style={{
-              border: "1px solid #d9d9d9",
+              border: '1px solid #d9d9d9',
               borderRadius: 4,
               padding: 12,
-              background: "#fafafa",
+              background: '#fafafa',
             }}
           >
             <Typography.Title level={5} style={{ marginTop: 0 }}>
-              {t("backupDr.recoverability.requestsSectionTitle")}
+              {t('backupDr.recoverability.requestsSectionTitle')}
             </Typography.Title>
             <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
-              {t("backupDr.recoverability.requestsSectionIntro")}
+              {t('backupDr.recoverability.requestsSectionIntro')}
             </Typography.Paragraph>
             <Descriptions column={{ xs: 1, sm: 2 }} size="small" bordered>
               <Descriptions.Item
-                label={t("backupDr.recoverability.latestBackupRequest")}
+                label={t('backupDr.recoverability.latestBackupRequest')}
                 span={{ xs: 1, sm: 2 }}
               >
-                {formatDt(summary.latestRunAt, formatLocale)}{" "}
-                {summary.latestRunStatus !== undefined &&
-                summary.latestRunStatus !== null ? (
-                  <Tag color="default">
-                    {backupStatusLabel(summary.latestRunStatus, t)}
-                  </Tag>
+                {formatDt(summary.latestRunAt, formatLocale)}{' '}
+                {summary.latestRunStatus !== undefined && summary.latestRunStatus !== null ? (
+                  <Tag color="default">{backupStatusLabel(summary.latestRunStatus, t)}</Tag>
                 ) : (
-                  "—"
+                  '—'
                 )}
               </Descriptions.Item>
               <Descriptions.Item
-                label={t("backupDr.recoverability.latestRestoreRequest")}
+                label={t('backupDr.recoverability.latestRestoreRequest')}
                 span={{ xs: 1, sm: 2 }}
               >
-                {formatDt(summary.latestRestoreRunAt, formatLocale)}{" "}
+                {formatDt(summary.latestRestoreRunAt, formatLocale)}{' '}
                 {summary.latestRestoreRunStatus !== undefined &&
                 summary.latestRestoreRunStatus !== null ? (
-                  <Tag color="default">
-                    {restoreStatusLabel(summary.latestRestoreRunStatus, t)}
-                  </Tag>
+                  <Tag color="default">{restoreStatusLabel(summary.latestRestoreRunStatus, t)}</Tag>
                 ) : (
-                  "—"
+                  '—'
                 )}
               </Descriptions.Item>
             </Descriptions>
-            <Typography.Paragraph
-              type="secondary"
-              style={{ marginTop: 12, marginBottom: 0 }}
-            >
-              {t("backupDr.recoverability.latestRequestVsProofHint")}
+            <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
+              {t('backupDr.recoverability.latestRequestVsProofHint')}
             </Typography.Paragraph>
           </div>
         </>

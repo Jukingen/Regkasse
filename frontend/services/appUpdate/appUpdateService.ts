@@ -1,9 +1,9 @@
-import { Platform } from 'react-native';
 import { File, Paths } from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
+import { Platform } from 'react-native';
 
-import { getLatestAppVersion, type AppVersionResponse } from '../api/appVersionService';
 import { APP_VERSION_CODE, APP_VERSION_NAME } from './currentAppVersion';
+import { shareDocumentAsync, ShareUnavailableError } from '../../utils/expoPrintShare';
+import { getLatestAppVersion, type AppVersionResponse } from '../api/appVersionService';
 
 /**
  * Mevcut versiyon ile backend'in raporladığı en son versiyon arasındaki kararı kapsayan
@@ -26,8 +26,10 @@ export interface AppUpdateCheckResult {
 
 /** İndirme/install kapsamlı tip ile tek tip hata atmak için yardımcı sınıf. */
 export class AppUpdateError extends Error {
-  // eslint-disable-next-line no-useless-constructor
-  constructor(public readonly code: AppUpdateErrorCode, message: string) {
+  constructor(
+    public readonly code: AppUpdateErrorCode,
+    message: string
+  ) {
     super(message);
     this.name = 'AppUpdateError';
   }
@@ -64,8 +66,8 @@ export async function checkForAppUpdate(): Promise<AppUpdateCheckResult> {
 
 /**
  * APK'yı yerel cache klasörüne indirir. Permission gerektirmez (cache directory app-private).
- * `react-native-fs` yerine zaten kurulu olan `expo-file-system@19` kullanılır; modern API
- * `File.downloadFileAsync(url, destination)` ile dosyayı stream eder.
+ * Uses the Expo SDK 56+ `expo-file-system` modern API
+ * (`File.downloadFileAsync(url, destination)` into `Paths.cache`).
  *
  * Dönen değer indirilen dosyanın URI'si (`file://…`); `launchApkInstaller`'a doğrudan
  * geçirilebilir. URI string döndürerek `File` sınıfı / DOM `File` arasındaki tip
@@ -113,20 +115,18 @@ export async function launchApkInstaller(fileUri: string): Promise<void> {
     throw new AppUpdateError('install_failed', 'No downloaded APK URI to install.');
   }
 
-  const available = await Sharing.isAvailableAsync();
-  if (!available) {
-    throw new AppUpdateError(
-      'sharing_unavailable',
-      'System sharing is not available on this device.'
-    );
-  }
-
   try {
-    await Sharing.shareAsync(fileUri, {
+    await shareDocumentAsync(fileUri, {
       mimeType: 'application/vnd.android.package-archive',
       dialogTitle: 'Regkasse POS aktualisieren',
     });
   } catch (err) {
+    if (err instanceof ShareUnavailableError) {
+      throw new AppUpdateError(
+        'sharing_unavailable',
+        'System sharing is not available on this device.'
+      );
+    }
     const message = err instanceof Error ? err.message : 'Unknown installer error.';
     throw new AppUpdateError('install_failed', `Failed to launch installer: ${message}`);
   }
@@ -136,7 +136,7 @@ function deriveFileNameFromUrl(url: string): string {
   try {
     const path = new URL(url).pathname;
     const last = path.split('/').pop();
-    if (last && last.toLowerCase().endsWith('.apk')) return last;
+    if (last?.toLowerCase().endsWith('.apk')) return last;
   } catch {
     // not a parseable URL; fall through
   }
@@ -145,7 +145,10 @@ function deriveFileNameFromUrl(url: string): string {
 
 function sanitizeFileName(name: string): string {
   // path traversal ve sürpriz karakterleri eler; .apk uzantısı garanti
-  const trimmed = name.replace(/[\\/:*?"<>|\s]+/g, '_').replace(/^\.+/, '').slice(0, 96);
+  const trimmed = name
+    .replace(/[\\/:*?"<>|\s]+/g, '_')
+    .replace(/^\.+/, '')
+    .slice(0, 96);
   if (!trimmed) return 'regkasse-update.apk';
   return trimmed.toLowerCase().endsWith('.apk') ? trimmed : `${trimmed}.apk`;
 }

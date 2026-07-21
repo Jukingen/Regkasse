@@ -2,13 +2,19 @@
 import React, { useCallback, useMemo } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import {
+  SoftColors,
+  SoftRadius,
+  SoftShadows,
+  SoftSpacing,
+  SoftTypography,
+} from '../constants/SoftTheme';
 import { POS_ENSURE_READY_ON_ENTRY } from '../constants/posFeatureFlags';
-import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
 import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
 import { usePosMonatsbelegCreate } from '../hooks/usePosMonatsbelegCreate';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 import { isReadinessMonatsbelegGateActive } from '../utils/posRegisterGateCopy';
 import { getViennaYearMonth } from '../utils/resolvePosMonatsbelegTarget';
-import { WaveLoader } from '../src/components/common/WaveLoader';
 
 export function MonatsbelegSessionBlockModal() {
   const { data, loading, error } = usePosRegisterReadiness();
@@ -31,7 +37,11 @@ export function MonatsbelegSessionBlockModal() {
   }, [registerId, requestCreate, year, month]);
 
   return (
-    <Modal visible={visible} animationType="fade" presentationStyle="fullScreen" onRequestClose={() => {}}>
+    <Modal
+      visible={visible}
+      animationType="fade"
+      presentationStyle="fullScreen"
+      onRequestClose={() => {}}>
       <View style={styles.root}>
         <Text style={styles.title}>Monatsbeleg erforderlich</Text>
         <Text style={styles.body}>
@@ -42,14 +52,21 @@ export function MonatsbelegSessionBlockModal() {
         <Pressable
           onPress={onCreate}
           disabled={busy}
-          style={({ pressed }) => [styles.btn, pressed && !busy && styles.btnPressed, busy && styles.btnDisabled]}
+          style={({ pressed }) => [
+            styles.btn,
+            pressed && !busy && styles.btnPressed,
+            busy && styles.btnDisabled,
+          ]}
           accessibilityRole="button"
-          accessibilityLabel={isDecemberAnnual ? 'Jahresbeleg jetzt erstellen' : 'Monatsbeleg jetzt erstellen'}
-        >
+          accessibilityLabel={
+            isDecemberAnnual ? 'Jahresbeleg jetzt erstellen' : 'Monatsbeleg jetzt erstellen'
+          }>
           {busy ? (
             <WaveLoader size={20} color={SoftColors.textInverse} />
           ) : (
-            <Text style={styles.btnText}>{isDecemberAnnual ? 'Jahresbeleg erstellen' : 'Monatsbeleg erstellen'}</Text>
+            <Text style={styles.btnText}>
+              {isDecemberAnnual ? 'Jahresbeleg erstellen' : 'Monatsbeleg erstellen'}
+            </Text>
           )}
         </Pressable>
       </View>

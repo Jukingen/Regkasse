@@ -1,6 +1,16 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, Animated, Pressable } from 'react-native';
-import { SoftColors, SoftMotion, SoftRadius, SoftShadows, SoftSpacing, SoftState, SoftTypography, Space8 } from '../constants/SoftTheme';
+
+import {
+  SoftColors,
+  SoftMotion,
+  SoftRadius,
+  SoftShadows,
+  SoftSpacing,
+  SoftState,
+  SoftTypography,
+  Space8,
+} from '../constants/SoftTheme';
 
 // Toast notification interface
 interface ToastNotification {
@@ -18,8 +28,8 @@ interface ToastNotificationProps {
 
 // Toast notification component
 export const ToastNotification: React.FC<ToastNotificationProps> = ({ toast, onRemove }) => {
-  const fadeAnim = new Animated.Value(0);
-  const slideAnim = new Animated.Value(-100);
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const slideAnim = React.useRef(new Animated.Value(-100)).current;
 
   useEffect(() => {
     // Animate in (micro duration for snappy feel)
@@ -41,8 +51,10 @@ export const ToastNotification: React.FC<ToastNotificationProps> = ({ toast, onR
       animateOut();
     }, toast.duration || 5000);
 
-    return () => clearTimeout(timer);
-  }, []);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [toast.id]);
 
   const animateOut = () => {
     Animated.parallel([
@@ -102,19 +114,21 @@ export const ToastNotification: React.FC<ToastNotificationProps> = ({ toast, onR
         },
       ]}
       accessibilityRole="alert"
-      accessibilityLabel={toast.message}
-    >
+      accessibilityLabel={toast.message}>
       <View style={styles.content} accessibilityElementsHidden>
         <Text style={styles.icon}>{getIcon()}</Text>
         <Text style={styles.message}>{toast.message}</Text>
       </View>
       <Pressable
         onPress={animateOut}
-        style={({ pressed, focused }) => [styles.closeButton, pressed && SoftState.pressed, focused && SoftState.focusVisible]}
+        style={(state) => [
+          styles.closeButton,
+          state.pressed && SoftState.pressed,
+          (state as { focused?: boolean }).focused && SoftState.focusVisible,
+        ]}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         accessibilityLabel="Nachricht schließen"
-        accessibilityRole="button"
-      >
+        accessibilityRole="button">
         <Text style={styles.closeText}>×</Text>
       </Pressable>
     </Animated.View>
@@ -131,11 +145,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onRemove
   return (
     <View style={styles.containerWrapper}>
       {toasts.map((toast) => (
-        <ToastNotification
-          key={toast.id}
-          toast={toast}
-          onRemove={onRemove}
-        />
+        <ToastNotification key={toast.id} toast={toast} onRemove={onRemove} />
       ))}
     </View>
   );

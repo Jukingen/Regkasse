@@ -1,0 +1,64 @@
+{
+  "fabLabel": "Feedback",
+  "fabAria": "Open feedback form",
+  "drawerTitle": "Send feedback",
+  "drawerSubtitle": "Tell us about ease of use, performance, ideas, or bugs. We review submissions weekly.",
+  "tabs": {
+    "submit": "New feedback",
+    "mine": "My feedback"
+  },
+  "form": {
+    "category": "Category",
+    "categoryRequired": "Please select a category",
+    "title": "Title",
+    "titleRequired": "Please enter a short title",
+    "message": "Details",
+    "messageRequired": "Please describe your feedback (at least 10 characters)",
+    "rating": "Rating (optional)",
+    "ratingHelp": "1 = poor, 5 = excellent (ease of use / performance)",
+    "includePage": "Include current page",
+    "submit": "Submit",
+    "success": "Thank you — your feedback was submitted.",
+    "error": "Could not submit feedback. Try again."
+  },
+  "categories": {
+    "EaseOfUse": "Ease of use",
+    "Performance": "Performance",
+    "FeatureRequest": "Feature request",
+    "Bug": "Bug"
+  },
+  "statuses": {
+    "UnderReview": "Under review",
+    "InProgress": "In progress",
+    "Implemented": "Implemented",
+    "Declined": "Declined",
+    "Duplicate": "Duplicate"
+  },
+  "mine": {
+    "empty": "You have not submitted feedback yet.",
+    "loadError": "Could not load your feedback.",
+    "reviewerNote": "Team note",
+    "updated": "Updated"
+  },
+  "inbox": {
+    "pageTitle": "User feedback",
+    "pageSubtitle": "Weekly review inbox — update status so submitters see progress in the feedback widget.",
+    "filterStatus": "Status",
+    "filterCategory": "Category",
+    "all": "All",
+    "tenant": "Tenant",
+    "submitter": "Submitter",
+    "created": "Created",
+    "actions": "Actions",
+    "updateStatus": "Update status",
+    "note": "Reviewer note (visible to submitter)",
+    "save": "Save",
+    "saved": "Status updated.",
+    "loadError": "Could not load feedback inbox.",
+    "empty": "No feedback yet."
+  },
+  "process": {
+    "weeklyTitle": "Weekly feedback review",
+    "weeklyHint": "Every Monday: triage Under Review items, set In Progress / Implemented / Declined, and keep notes short for operators."
+  }
+}

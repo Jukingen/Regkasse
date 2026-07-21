@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -7,7 +8,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useTranslation } from 'react-i18next';
 
 import { API_BASE_URL } from '../config';
 import { useLicenseStatus } from '../hooks/useLicenseStatus';
@@ -27,7 +27,9 @@ function formatDeDateTime(iso: string | null | undefined): string {
   return formatUserDateTime(iso, { includeSeconds: true }) || '—';
 }
 
-async function fetchTransferRequestInfo(licenseKey: string): Promise<LicenseTransferRequestInfoDto> {
+async function fetchTransferRequestInfo(
+  licenseKey: string
+): Promise<LicenseTransferRequestInfoDto> {
   const base = API_BASE_URL.replace(/\/$/, '');
   const url = `${base}/admin/license/transfer-request/${encodeURIComponent(licenseKey.trim())}`;
   const res = await fetch(url, { method: 'GET', headers: { Accept: 'application/json' } });
@@ -71,7 +73,10 @@ export function LicenseTransferHelpSection() {
       const dto = await fetchTransferRequestInfo(key);
       setInfo(dto);
     } catch (e) {
-      const code = typeof e === 'object' && e !== null && 'code' in e ? String((e as { code?: string }).code) : '';
+      const code =
+        typeof e === 'object' && e !== null && 'code' in e
+          ? String((e as { code?: string }).code)
+          : '';
       if (code === 'NOT_FOUND') setErrorKey('transferErrorNotFound');
       else setErrorKey('transferErrorGeneric');
     } finally {
@@ -112,7 +117,11 @@ export function LicenseTransferHelpSection() {
         autoCorrect={false}
       />
       <TouchableOpacity style={styles.button} onPress={() => void onCheck()} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t('transferCheckCta')}</Text>}
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>{t('transferCheckCta')}</Text>
+        )}
       </TouchableOpacity>
 
       <Text style={styles.machineLabel}>{t('transferMachineLabel')}</Text>
@@ -123,12 +132,7 @@ export function LicenseTransferHelpSection() {
       {errorKey ? <Text style={styles.errorText}>{t(errorKey)}</Text> : null}
 
       {info ? (
-        <View
-          style={[
-            styles.resultBox,
-            info.eligible ? styles.resultOk : styles.resultWarn,
-          ]}
-        >
+        <View style={[styles.resultBox, info.eligible ? styles.resultOk : styles.resultWarn]}>
           <Text style={styles.resultTitle}>
             {info.eligible ? t('transferEligibleTitle') : t('transferNotEligibleTitle')}
           </Text>

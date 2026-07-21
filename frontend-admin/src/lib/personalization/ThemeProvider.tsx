@@ -1,36 +1,42 @@
 'use client';
 
+import { App, ConfigProvider } from 'antd';
 import React, {
+  type ReactNode,
   useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
-  type ReactNode,
 } from 'react';
+
+import { authStorage } from '@/features/auth/services/authStorage';
 import { useUserPreferences } from '@/features/user/hooks/useUserPreferences';
-import { App, ConfigProvider } from 'antd';
 import { AntdAppBridgeRegistrar } from '@/lib/AntdAppBridgeRegistrar';
-import { applyDocumentDensity, applyDocumentTheme, applyReducedAnimations } from './applyDocumentTheme';
-import { antdComponentSizeForDensity } from './density';
+import { buildAntdTheme } from '@/theme/buildAntdTheme';
+
 import { DensityProvider } from './DensityProvider';
+import { ThemeContext } from './ThemeContext';
 import {
+  applyDocumentDensity,
+  applyDocumentTheme,
+  applyReducedAnimations,
+} from './applyDocumentTheme';
+import { antdComponentSizeForDensity } from './density';
+import {
+  THEME_MODE_STORAGE_KEY,
   patchStoredPersonalization,
   readStoredPersonalization,
   writeStoredPersonalization,
-  THEME_MODE_STORAGE_KEY,
 } from './storage';
 import { resolveEffectiveTheme } from './theme';
-import { ThemeContext } from './ThemeContext';
 import type { DensityMode, ResolvedTheme, ThemeMode } from './types';
 import {
   mapApiToPersonalization,
   mapPersonalizationToApi,
   saveUserPreferences,
 } from './userPreferencesApi';
-import { buildAntdTheme } from '@/theme/buildAntdTheme';
-import { authStorage } from '@/features/auth/services/authStorage';
 
 function applyAppearance(themeMode: ThemeMode, densityMode: DensityMode): ResolvedTheme {
   const resolved = applyDocumentTheme(themeMode);
@@ -55,7 +61,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   const [themeMode, setThemeModeState] = useState<ThemeMode>(storedOnInit.themeMode);
   const [densityMode, setDensityModeState] = useState<DensityMode>(storedOnInit.density);
   const [effectiveTheme, setEffectiveTheme] = useState<ResolvedTheme>(() =>
-    resolveEffectiveTheme(storedOnInit.themeMode),
+    resolveEffectiveTheme(storedOnInit.themeMode)
   );
   const hydrated = useRef(false);
   const skipRemoteApply = useRef(false);
@@ -130,12 +136,12 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
   const themeContextValue = useMemo(
     () => ({ themeMode, setThemeMode, effectiveTheme }),
-    [themeMode, setThemeMode, effectiveTheme],
+    [themeMode, setThemeMode, effectiveTheme]
   );
 
   const antdTheme = useMemo(
     () => buildAntdTheme(effectiveTheme, densityMode),
-    [effectiveTheme, densityMode],
+    [effectiveTheme, densityMode]
   );
 
   const componentSize = antdComponentSizeForDensity(densityMode);

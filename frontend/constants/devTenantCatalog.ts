@@ -29,7 +29,7 @@ export function canonicalDevTenantSlug(slug: string): string {
 }
 
 const DISPLAY_NAME_BY_CANONICAL = new Map<string, string>(
-  DEV_TENANT_PRESETS.map((row) => [canonicalDevTenantSlug(row.slug), row.name]),
+  DEV_TENANT_PRESETS.map((row) => [canonicalDevTenantSlug(row.slug), row.name])
 );
 
 export function getDevTenantPresetName(slug: string): string | null {
@@ -43,11 +43,13 @@ export const getDevTenantPresetLabel = getDevTenantPresetName;
 export function formatDisplaySlug(slug: string): string {
   const canonical = canonicalDevTenantSlug(slug).toLowerCase();
   const preset = DEV_TENANT_PRESETS.find(
-    (row) => canonicalDevTenantSlug(row.slug).toLowerCase() === canonical,
+    (row) => canonicalDevTenantSlug(row.slug).toLowerCase() === canonical
   );
   return preset?.slug ?? slug.trim().replace(/_/g, '-');
 }
 
 export function isSameDevTenantPreset(slugA: string, slugB: string): boolean {
-  return canonicalDevTenantSlug(slugA).toLowerCase() === canonicalDevTenantSlug(slugB).toLowerCase();
+  return (
+    canonicalDevTenantSlug(slugA).toLowerCase() === canonicalDevTenantSlug(slugB).toLowerCase()
+  );
 }

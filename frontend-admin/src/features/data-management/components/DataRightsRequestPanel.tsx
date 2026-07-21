@@ -1,19 +1,5 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
-import {
-  Alert,
-  Button,
-  Card,
-  Col,
-  Modal,
-  Row,
-  Space,
-  Table,
-  Tag,
-  Typography,
-} from 'antd';
-import type { ColumnsType } from 'antd/es/table';
 import {
   CheckCircleOutlined,
   DeleteOutlined,
@@ -22,9 +8,14 @@ import {
   SafetyCertificateOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons';
-import { useAntdApp } from '@/hooks/useAntdApp';
-import { useI18n, formatDate } from '@/i18n';
-import { usePermissions } from '@/hooks/usePermissions';
+import { Alert, Button, Card, Col, Modal, Row, Space, Table, Tag, Typography } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import { type ReactNode, useMemo, useState } from 'react';
+
+import type {
+  DataRightsRequestType,
+  TenantDataRightsRequest,
+} from '@/features/data-management/api/tenantDataManagement';
 import {
   useConfirmDataRightsDelete,
   useCreateDataRightsRequest,
@@ -33,10 +24,9 @@ import {
   useExecuteDataRightsDelete,
   useTenantDataManagementSummary,
 } from '@/features/data-management/hooks/useTenantDataManagement';
-import type {
-  DataRightsRequestType,
-  TenantDataRightsRequest,
-} from '@/features/data-management/api/tenantDataManagement';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { usePermissions } from '@/hooks/usePermissions';
+import { formatDate, useI18n } from '@/i18n';
 
 type Props = { tenantId: string };
 
@@ -245,7 +235,7 @@ export function DataRightsRequestPanel({ tenantId }: Props) {
       downloadMutation.isPending,
       confirmMutation.isPending,
       executeMutation.isPending,
-    ],
+    ]
   );
 
   const isTypeDisabled = (type: DataRightsRequestType): boolean => {
@@ -290,7 +280,7 @@ export function DataRightsRequestPanel({ tenantId }: Props) {
       message.error(
         type === 'delete'
           ? t('dataManagement.deleteFailed')
-          : t('dataManagement.rights.requestFailed'),
+          : t('dataManagement.rights.requestFailed')
       );
     }
   };

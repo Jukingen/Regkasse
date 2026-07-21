@@ -2,8 +2,8 @@
  * Controlled offline transaction queue (NON_FISCAL_PENDING -> Synced/Failed/Unknown).
  * Invariant: offline entries never contain receipt number / signature, or plaintext Gutschein codes.
  */
-import { apiClient } from '../api/config';
 import { storage } from '../../utils/storage';
+import { apiClient } from '../api/config';
 
 const STORAGE_KEY = '@regkasse/offline_transactions_v1';
 const LEGACY_STORAGE_KEY = '@regkasse/pending_payments_v1';
@@ -39,7 +39,8 @@ export function paymentPayloadContainsVoucherSecrets(
 ): boolean {
   if (!payment) return false;
   if (typeof payment.voucherCode === 'string' && payment.voucherCode.trim().length > 0) return true;
-  if (!Array.isArray(payment.voucherRedemptions) || payment.voucherRedemptions.length === 0) return false;
+  if (!Array.isArray(payment.voucherRedemptions) || payment.voucherRedemptions.length === 0)
+    return false;
   return payment.voucherRedemptions.some(
     (r) => typeof r?.code === 'string' && r.code.trim().length > 0
   );
@@ -144,14 +145,12 @@ async function readQueue(): Promise<PendingPaymentEntry[]> {
     if (!Array.isArray(parsed)) return [];
 
     // Legacy entries are only "unsynced pending" in practice.
-    return (parsed as any[]).map((e) => ({
+    return parsed.map((e) => ({
       queueId: String(e.queueId ?? ''),
       createdAt: String(e.createdAt ?? new Date().toISOString()),
-      cashRegisterId: String(
-        e.paymentRequest?.cashRegisterId ?? e.cashRegisterId ?? ''
-      ),
+      cashRegisterId: String(e.paymentRequest?.cashRegisterId ?? e.cashRegisterId ?? ''),
       paymentRequest: e.paymentRequest as PendingPaymentPayload,
-      status: 'Pending' as OfflineTransactionStatus,
+      status: 'Pending',
       syncedPaymentId: null,
       isSynced: false,
       deviceId: undefined,
@@ -179,7 +178,7 @@ function normalizeEntry(e: PendingPaymentEntry): PendingPaymentEntry {
   return {
     ...e,
     status: e.status ?? (e.isSynced ? 'Synced' : 'Pending'),
-    isSynced: e.isSynced ?? (e.status === 'Synced'),
+    isSynced: e.isSynced ?? e.status === 'Synced',
     syncedPaymentId: e.syncedPaymentId ?? null,
     cashRegisterId: e.cashRegisterId ?? e.paymentRequest.cashRegisterId,
     deviceId: e.deviceId ?? null,
@@ -233,8 +232,7 @@ export async function enqueuePendingPayment(
 
   if (idem) {
     const existing = q.find(
-      (e) =>
-        e.status === 'Pending' && e.paymentRequest.idempotencyKey === idem
+      (e) => e.status === 'Pending' && e.paymentRequest.idempotencyKey === idem
     );
     if (existing) return existing.queueId;
   }
@@ -269,9 +267,7 @@ export async function getPendingPaymentQueue(): Promise<PendingPaymentEntry[]> {
  */
 export async function getAllQueueEntries(): Promise<PendingPaymentEntry[]> {
   const q = (await readQueue()).map(normalizeEntry);
-  return q.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  return q.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 export async function removePendingByQueueId(queueId: string): Promise<void> {
@@ -282,12 +278,14 @@ export async function removePendingByQueueId(queueId: string): Promise<void> {
 export async function removePendingByIdempotencyKey(key: string): Promise<void> {
   if (!key?.trim()) return;
   const q = (await readQueue()).map(normalizeEntry);
-  await writeQueue(
-    q.filter((e) => e.paymentRequest.idempotencyKey !== key)
-  );
+  await writeQueue(q.filter((e) => e.paymentRequest.idempotencyKey !== key));
 }
 
-async function touchAttempt(queueId: string, err: string, status?: OfflineTransactionStatus): Promise<void> {
+async function touchAttempt(
+  queueId: string,
+  err: string,
+  status?: OfflineTransactionStatus
+): Promise<void> {
   const q = (await readQueue()).map(normalizeEntry);
   const e = q.find((x) => x.queueId === queueId);
   if (e) {
@@ -333,14 +331,9 @@ export async function syncPendingPaymentQueue(): Promise<{
       req
     );
 
-    const items =
-      (raw as ReplayOfflineTransactionsResponse)?.data ??
-      (raw as any)?.Value?.data ??
-      [];
+    const items = raw?.data ?? (raw as any)?.Value?.data ?? [];
     const batchCorrelationId =
-      (raw as ReplayOfflineTransactionsResponse)?.replayBatchCorrelationId ??
-      (raw as any)?.replayBatchCorrelationId ??
-      null;
+      raw?.replayBatchCorrelationId ?? (raw as any)?.replayBatchCorrelationId ?? null;
     const batchIdStr = batchCorrelationId != null ? String(batchCorrelationId) : null;
 
     const q = (await readQueue()).map(normalizeEntry);
@@ -395,8 +388,7 @@ export async function syncPendingPaymentQueue(): Promise<{
         e.isSynced = false;
         e.syncedPaymentId = null;
         const code = it?.errorCode ? String(it.errorCode) : '';
-        const msg =
-          it?.lastErrorMessageSafe ?? it?.error ?? 'offline_sync_failed';
+        const msg = it?.lastErrorMessageSafe ?? it?.error ?? 'offline_sync_failed';
         const hint = it?.exponentialBackoffHintSeconds
           ? ` (Retry hint: ${it.exponentialBackoffHintSeconds}s)`
           : '';
@@ -406,8 +398,7 @@ export async function syncPendingPaymentQueue(): Promise<{
         e.isSynced = false;
         e.syncedPaymentId = null;
         const code = it?.errorCode ? String(it.errorCode) : '';
-        const msg =
-          it?.lastErrorMessageSafe ?? it?.error ?? 'offline_sync_failed';
+        const msg = it?.lastErrorMessageSafe ?? it?.error ?? 'offline_sync_failed';
         e.lastError = code ? `[${code}] ${msg}` : msg;
         failed++;
       }
@@ -473,16 +464,13 @@ export async function retrySinglePending(queueId: string): Promise<{
       '/offline-transactions/replay',
       req
     );
-    const items =
-      (raw as ReplayOfflineTransactionsResponse)?.data ?? (raw as any)?.Value?.data ?? [];
+    const items = raw?.data ?? (raw as any)?.Value?.data ?? [];
     const rawIt = (items as ReplayOfflineTransactionsResponseItem[] | undefined)?.find(
       (x: ReplayOfflineTransactionsResponseItem) =>
         String(x.requestedOfflineTransactionId ?? '').trim() === queueId
     );
     const batchCorrelationId =
-      (raw as ReplayOfflineTransactionsResponse)?.replayBatchCorrelationId ??
-      (raw as any)?.replayBatchCorrelationId ??
-      null;
+      raw?.replayBatchCorrelationId ?? (raw as any)?.replayBatchCorrelationId ?? null;
     const q = (await readQueue()).map(normalizeEntry);
     const e = q.find((x) => x.queueId === queueId);
     if (!e) return { processed: 0, failed: 0 };

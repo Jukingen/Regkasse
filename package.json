@@ -4,6 +4,8 @@
   "type": "module",
   "description": "Regkasse monorepo tooling (validation scripts, dev seed)",
   "scripts": {
-    "seed:test-data": "node scripts/seed-test-data.mjs"
+    "seed:test-data": "node scripts/seed-test-data.mjs",
+    "verify:api-client": "node scripts/verify-api-client.mjs",
+    "install:git-hooks": "node scripts/install-git-hooks.mjs"
   }
 }

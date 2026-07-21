@@ -1,6 +1,68 @@
 {
   "version": 1,
   "apps": {
+    "frontend": [
+      {
+        "id": "paymentHistory.filters",
+        "description": "PaymentHistoryScreen filter chips",
+        "staticPrefix": "paymentHistory:filters",
+        "suffixes": ["all", "storno", "refund", "noResults"]
+      },
+      {
+        "id": "orders.tracker.steps",
+        "description": "Order tracker step labels",
+        "staticPrefix": "tracker.steps",
+        "suffixes": ["pending", "accepted", "preparing", "ready", "completed"]
+      },
+      {
+        "id": "common.tax",
+        "description": "Product tax type labels",
+        "staticPrefix": "tax",
+        "suffixes": ["standard", "reduced", "special", "exempt"]
+      },
+      {
+        "id": "settings.appUpdate",
+        "description": "AppUpdateChecker settings:appUpdate.* keys",
+        "staticPrefix": "settings:appUpdate",
+        "suffixes": [
+          "title",
+          "description",
+          "androidOnly",
+          "currentVersion",
+          "latestVersion",
+          "available",
+          "upToDate",
+          "mandatory",
+          "blocked",
+          "checking",
+          "downloading",
+          "check",
+          "download",
+          "install",
+          "installFailedTitle",
+          "error",
+          "unknownSourcesNote"
+        ]
+      },
+      {
+        "id": "orders.status",
+        "description": "OrderManager status badges",
+        "staticPrefix": "orders:status",
+        "suffixes": ["pending", "preparing", "ready", "served", "cancelled"]
+      },
+      {
+        "id": "payment.methods",
+        "description": "PaymentSection method labels",
+        "staticPrefix": "payment:methods",
+        "suffixes": ["cash", "card", "voucher", "transfer", "contactless"]
+      },
+      {
+        "id": "checkout.posFlow.stornoRefund.reasons",
+        "description": "StornoRefundSelection reason codes",
+        "staticPrefix": "checkout:posFlow.stornoRefund.reasons",
+        "suffixes": ["FalscherBetrag", "KundeStorniert", "TechnischerFehler", "Anderes"]
+      }
+    ],
     "frontend-admin": [
       {
         "id": "adminShell.reporting.reportCenter.labelKey",
@@ -43,6 +105,295 @@
           "Kitchen",
           "ReportViewer",
           "Accountant"
+        ]
+      },
+      {
+        "id": "users.roles.badgeLabels",
+        "description": "Users table / badges — badgeLabels",
+        "staticPrefix": "users.roles.badgeLabels",
+        "suffixes": [
+          "SuperAdmin",
+          "Manager",
+          "Cashier",
+          "Accountant",
+          "Waiter",
+          "Kitchen",
+          "ReportViewer"
+        ]
+      },
+      {
+        "id": "users.create.roleOptions",
+        "description": "CreateUserModal role option labels",
+        "staticPrefix": "users.create.roleOptions",
+        "suffixes": ["Manager", "Cashier", "Accountant", "Waiter", "Kitchen"]
+      },
+      {
+        "id": "users.roleDrawer.groups",
+        "description": "RoleManagementDrawer permission groups",
+        "staticPrefix": "users.roleDrawer.groups",
+        "suffixes": [
+          "user_role",
+          "product",
+          "order_sale",
+          "payment",
+          "cash_shift",
+          "inventory",
+          "customer",
+          "invoice",
+          "settings",
+          "audit_report",
+          "finanzonline",
+          "kitchen",
+          "tse",
+          "system",
+          "sonstige",
+          "other"
+        ]
+      },
+      {
+        "id": "users.roleDrawer.summary",
+        "description": "RoleManagementDrawer capability summary chips",
+        "staticPrefix": "users.roleDrawer.summary",
+        "suffixes": [
+          "posLogin",
+          "adminLogin",
+          "reports",
+          "cashShift",
+          "customer",
+          "catalog",
+          "settingsAdmin"
+        ]
+      },
+      {
+        "id": "onlineOrders.status",
+        "description": "Online order status labels",
+        "staticPrefix": "onlineOrders.status",
+        "suffixes": [
+          "pending",
+          "accepted",
+          "preparing",
+          "ready",
+          "completed",
+          "cancelled"
+        ]
+      },
+      {
+        "id": "onlineOrders.orderTypes",
+        "description": "Online order type labels",
+        "staticPrefix": "onlineOrders.orderTypes",
+        "suffixes": ["dine_in", "takeaway", "delivery"]
+      },
+      {
+        "id": "backupDr.runsTable.statusLabels",
+        "description": "Backup run status badges",
+        "staticPrefix": "backupDr.runsTable.statusLabels",
+        "suffixes": [
+          "queued",
+          "running",
+          "awaitingVerification",
+          "succeeded",
+          "failed",
+          "verificationFailed",
+          "cancelled"
+        ]
+      },
+      {
+        "id": "backupDr.verificationStatus",
+        "description": "Backup verification status codes",
+        "staticPrefix": "backupDr.verificationStatus",
+        "suffixes": ["0", "1", "2"]
+      },
+      {
+        "id": "backupDr.evidence.status",
+        "description": "Backup evidence ladder statuses",
+        "staticPrefix": "backupDr.evidence.status",
+        "suffixes": ["pass", "fail", "unknown", "na", "limited"]
+      },
+      {
+        "id": "backupDr.pipelineSteps.state",
+        "description": "Backup pipeline step states",
+        "staticPrefix": "backupDr.pipelineSteps.state",
+        "suffixes": ["pending", "running", "success", "failed", "skipped", "degraded"]
+      },
+      {
+        "id": "backupDr.scheduleSettings.weekday",
+        "description": "Backup schedule weekdays",
+        "staticPrefix": "backupDr.scheduleSettings.weekday",
+        "suffixes": ["0", "1", "2", "3", "4", "5", "6"]
+      },
+      {
+        "id": "backupDr.manualRestore.restorePreview.changeKind",
+        "description": "Restore preview change kinds",
+        "staticPrefix": "backupDr.manualRestore.restorePreview.changeKind",
+        "suffixes": [
+          "inDump",
+          "missingFromDump",
+          "mismatch",
+          "mismatchWithDiff",
+          "aligned"
+        ]
+      },
+      {
+        "id": "backupDr.executionMode.realReadiness.category",
+        "description": "Backup real-readiness categories",
+        "staticPrefix": "backupDr.executionMode.realReadiness.category",
+        "suffixes": [
+          "staging",
+          "connection",
+          "pgDump",
+          "pgRestore",
+          "archive",
+          "policy",
+          "environment",
+          "schedule",
+          "orchestrator",
+          "other"
+        ]
+      },
+      {
+        "id": "cashRegisters.tseHealth",
+        "description": "TSE health badge states",
+        "staticPrefix": "cashRegisters.tseHealth",
+        "suffixes": ["healthy", "degraded", "offline", "notConfigured", "lastCheck"]
+      },
+      {
+        "id": "cashRegisters.shiftGuidance.closedReasons",
+        "description": "Cash register closed reason labels",
+        "staticPrefix": "cashRegisters.shiftGuidance.closedReasons",
+        "suffixes": [
+          "endOfShift",
+          "tagesabschluss",
+          "adminAction",
+          "neverOpened",
+          "decommissionPrep"
+        ]
+      },
+      {
+        "id": "cashRegisters.shiftGuidance.openPrerequisites",
+        "description": "Cash register open prerequisites",
+        "staticPrefix": "cashRegisters.shiftGuidance.openPrerequisites",
+        "suffixes": [
+          "startbelegFirstOpen",
+          "noStartbelegOnReopen",
+          "monatsbelegProduction",
+          "singleCashier"
+        ]
+      },
+      {
+        "id": "billing.stats.cards",
+        "description": "Billing dashboard stat cards",
+        "staticPrefix": "billing.stats.cards",
+        "suffixes": [
+          "totalSales",
+          "totalRevenueGross",
+          "totalRevenueNet",
+          "totalVat",
+          "activeLicenses",
+          "expiringSoon",
+          "expiredLicenses",
+          "cancelledSales",
+          "tenantsWithLicense",
+          "averagePriceNet"
+        ]
+      },
+      {
+        "id": "payments.cancellationModal.risk",
+        "description": "Payment cancellation risk levels",
+        "staticPrefix": "payments.cancellationModal.risk",
+        "suffixes": ["low", "medium", "high"]
+      },
+      {
+        "id": "payments.cancellationModal.reasons",
+        "description": "Payment cancellation reason codes",
+        "staticPrefix": "payments.cancellationModal.reasons",
+        "suffixes": ["1", "2", "3", "4", "5", "99"]
+      },
+      {
+        "id": "payments.trends.period",
+        "description": "Payment trends period labels",
+        "staticPrefix": "payments.trends.period",
+        "suffixes": ["Daily", "Weekly", "Monthly"]
+      },
+      {
+        "id": "products.filters.stockStatus",
+        "description": "Product stock status filter",
+        "staticPrefix": "products.filters.stockStatus",
+        "suffixes": ["InStock", "OutOfStock", "LowStock", "Overstock"]
+      },
+      {
+        "id": "tenants.digitalServices.status",
+        "description": "Digital service subscription status",
+        "staticPrefix": "tenants.digitalServices.status",
+        "suffixes": ["active", "cancelled", "past_due"]
+      },
+      {
+        "id": "tenants.detail.license.tiers",
+        "description": "Tenant license tier labels",
+        "staticPrefix": "tenants.detail.license.tiers",
+        "suffixes": ["basic", "standard", "premium"]
+      },
+      {
+        "id": "tenants.create.wizard.steps",
+        "description": "Tenant create wizard steps",
+        "staticPrefix": "tenants.create.wizard.steps",
+        "suffixes": [
+          "tenantInfo",
+          "adminUser",
+          "registerLicense",
+          "summary",
+          "result"
+        ]
+      },
+      {
+        "id": "settings.personalization.theme",
+        "description": "Theme preference labels",
+        "staticPrefix": "settings.personalization.theme",
+        "suffixes": [
+          "cardTitle",
+          "description",
+          "light",
+          "dark",
+          "system",
+          "quickSwitchAria"
+        ]
+      },
+      {
+        "id": "settings.paymentGateway.methods",
+        "description": "Payment gateway method labels",
+        "staticPrefix": "settings.paymentGateway.methods",
+        "suffixes": ["card", "paypal", "bank", "cash", "online"]
+      },
+      {
+        "id": "fiscalExportAudit.exportType",
+        "description": "Fiscal export audit type filter",
+        "staticPrefix": "fiscalExportAudit.exportType",
+        "suffixes": ["all", "pdf", "json", "csv"]
+      },
+      {
+        "id": "activityNotifications.eventTypes",
+        "description": "Activity notification event type labels",
+        "staticPrefix": "activityNotifications.eventTypes",
+        "suffixes": [
+          "UserCreated",
+          "UserUpdated",
+          "UserDeleted",
+          "CashRegisterOpened",
+          "CashRegisterClosed",
+          "CashRegisterDecommissioned",
+          "LicenseExpiringSoon",
+          "LicenseExpired",
+          "OfflineQueueGrowing",
+          "FinanzOnlineSubmissionFailed",
+          "BackupFailed",
+          "BackupSucceeded",
+          "RestoreDrillFailed",
+          "RestoreDrillSucceeded",
+          "DailyClosingBackdatedCreated",
+          "DailyClosingPendingReminder",
+          "OnlineOrderPushedToPos",
+          "OnlineOrderPaid",
+          "OnlineOrderStatusChanged",
+          "OnlineOrderConfirmed"
         ]
       }
     ]

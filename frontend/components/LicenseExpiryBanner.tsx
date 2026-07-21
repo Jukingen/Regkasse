@@ -2,10 +2,10 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { SoftColors, SoftSpacing } from '../constants/SoftTheme';
-import { useLicenseStatus } from '../hooks/useLicenseStatus';
-import { areLicenseChecksBypassedInDevelopment } from '../utils/licenseCriticalActionGuard';
 import { TENANT_WARNING_DAYS_BEFORE_EXPIRY } from '../constants/licenseGracePeriod';
+import { useLicenseStatus } from '../hooks/useLicenseStatus';
 import { formatUserDateTime } from '../utils/dateFormatter';
+import { areLicenseChecksBypassedInDevelopment } from '../utils/licenseCriticalActionGuard';
 import { formatLicenseRemainingDe } from '../utils/licenseExpiryRemaining';
 
 const WARNING_THRESHOLD_DAYS = TENANT_WARNING_DAYS_BEFORE_EXPIRY;
@@ -43,7 +43,8 @@ export function LicenseExpiryBanner() {
 
   if (daysRemaining > 0 && daysRemaining <= WARNING_THRESHOLD_DAYS) {
     const dateLabel = formatExpiryDateTimeDe(expiryDate);
-    const remainingLabel = formatLicenseRemainingDe(daysRemaining, expiryDate) ?? `${daysRemaining} Tag(e)`;
+    const remainingLabel =
+      formatLicenseRemainingDe(daysRemaining, expiryDate) ?? `${daysRemaining} Tag(e)`;
     return (
       <View style={[styles.banner, styles.warning]} accessibilityRole="alert">
         <Text style={styles.warningText} numberOfLines={2}>

@@ -41,7 +41,7 @@ export type EventMap = {
 type EventListener<T> = (data: T) => void;
 
 class EventEmitter {
-  private listeners = new Map<string, Set<EventListener<EventMap[keyof EventMap]>>>();
+  private readonly listeners = new Map<string, Set<EventListener<EventMap[keyof EventMap]>>>();
 
   on<T extends keyof EventMap>(event: T, listener: EventListener<EventMap[T]>): void {
     const bucket = this.listeners.get(event) ?? new Set<EventListener<EventMap[keyof EventMap]>>();
@@ -59,7 +59,7 @@ class EventEmitter {
     const [event, data] = args;
     this.listeners.get(event)?.forEach((listener) => {
       try {
-        listener(data as EventMap[typeof event]);
+        listener(data);
       } catch (error) {
         console.error(`Error in event listener for ${String(event)}:`, error);
       }

@@ -136,6 +136,8 @@
   "billingDigital": "Digital services (revenue)",
   "digitalServicesManage": "Digital services (management)",
   "digitalServiceRequests": "Digital service requests",
+  "adminFeedback": "User feedback",
+  "adminMonitoring": "Monitoring",
   "platformAdminHub": "Platform administration",
   "myProfile": "My profile",
   "changeUsername": "Change username",

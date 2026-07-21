@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
+
+import type { RksvComplianceReport } from '@/features/rksv/compliance/types';
 import {
   computeSignatureChainOutcome,
   filterReportForRegister,
   formatSignaturePreview,
   prevSignatureMatches,
 } from '@/features/rksv/signature-chain/signatureChainUtils';
-import type { RksvComplianceReport } from '@/features/rksv/compliance/types';
 
 describe('signatureChainUtils', () => {
   it('formats long signature prefixes for display', () => {
@@ -29,15 +30,9 @@ describe('signatureChainUtils', () => {
 
   it('classifies outcome: intact, review, broken', () => {
     expect(computeSignatureChainOutcome([], [], [])).toBe('intact');
-    expect(
-      computeSignatureChainOutcome([{ status: 'Warn' } as never], [], []),
-    ).toBe('review');
-    expect(
-      computeSignatureChainOutcome([{ status: 'Fail' } as never], [], []),
-    ).toBe('broken');
-    expect(computeSignatureChainOutcome([], [{ expectedSequence: 1 } as never], [])).toBe(
-      'broken',
-    );
+    expect(computeSignatureChainOutcome([{ status: 'Warn' } as never], [], [])).toBe('review');
+    expect(computeSignatureChainOutcome([{ status: 'Fail' } as never], [], [])).toBe('broken');
+    expect(computeSignatureChainOutcome([], [{ expectedSequence: 1 } as never], [])).toBe('broken');
   });
 
   it('prevSignatureMatches is true only for Pass', () => {

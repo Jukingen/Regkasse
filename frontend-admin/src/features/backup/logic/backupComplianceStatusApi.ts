@@ -1,11 +1,9 @@
 /**
  * Backup compliance-status API — GET /api/admin/backup/compliance-status
  */
+import { customInstance } from '@/lib/axios';
 
-import { customInstance } from "@/lib/axios";
-
-export const BACKUP_COMPLIANCE_STATUS_PATH =
-  "/api/admin/backup/compliance-status" as const;
+export const BACKUP_COMPLIANCE_STATUS_PATH = '/api/admin/backup/compliance-status' as const;
 
 export function getBackupComplianceStatusQueryKey() {
   return [BACKUP_COMPLIANCE_STATUS_PATH] as const;
@@ -38,6 +36,6 @@ export type BackupComplianceStatusResponseDto = {
 export async function getBackupComplianceStatus(): Promise<BackupComplianceStatusResponseDto> {
   return customInstance<BackupComplianceStatusResponseDto>({
     url: BACKUP_COMPLIANCE_STATUS_PATH,
-    method: "GET",
+    method: 'GET',
   });
 }

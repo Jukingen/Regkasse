@@ -15,8 +15,6 @@ import {
 
 import { Colors, Spacing, BorderRadius, Typography } from '../constants/Colors';
 
-
-
 interface QuickAccessPanelProps {
   onQuickAction: (action: string) => void;
   pendingOrders?: number;
@@ -42,23 +40,21 @@ const QuickAccessPanel: React.FC<QuickAccessPanelProps> = ({
 }) => {
   const { t } = useTranslation();
   const [activeAction, setActiveAction] = useState<string | null>(null);
-  
+
   // Animasyon değerleri
   const collapseAnimation = useRef(new Animated.Value(isCollapsed ? 0 : 1)).current;
   const pulseAnimation = useRef(new Animated.Value(1)).current;
   const actionAnimations = useRef<{ [key: string]: Animated.Value }>({}).current;
 
-
-
   const handleActionPress = (actionId: string) => {
     // Haptic feedback - Kısaltıldı
     Vibration.vibrate(25); // 50ms -> 25ms
-    
+
     // Animasyon başlat - Hızlandırıldı
     if (!actionAnimations[actionId]) {
       actionAnimations[actionId] = new Animated.Value(1);
     }
-    
+
     Animated.sequence([
       Animated.timing(actionAnimations[actionId], {
         toValue: 0.9, // 0.8 -> 0.9 (daha az belirgin)
@@ -74,9 +70,11 @@ const QuickAccessPanel: React.FC<QuickAccessPanelProps> = ({
 
     setActiveAction(actionId);
     onQuickAction(actionId);
-    
+
     // 1 saniye sonra active state'i temizle - Hızlandırıldı
-    setTimeout(() => setActiveAction(null), 1000); // 2000ms -> 1000ms
+    setTimeout(() => {
+      setActiveAction(null);
+    }, 1000); // 2000ms -> 1000ms
   };
 
   const handleToggleCollapse = () => {
@@ -110,43 +108,43 @@ const QuickAccessPanel: React.FC<QuickAccessPanelProps> = ({
         ])
       );
       pulse.start();
-      
-      return () => pulse.stop();
+
+      return () => {
+        pulse.stop();
+      };
     }
   }, [pendingOrders, lowStockItems]);
 
   if (isCollapsed) {
     return (
-      <Animated.View 
+      <Animated.View
         style={[
           styles.collapsedContainer,
           {
-            transform: [{
-              translateX: collapseAnimation.interpolate({
-                inputRange: [0, 1],
-                outputRange: [-100, 0],
-              })
-            }],
+            transform: [
+              {
+                translateX: collapseAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-100, 0],
+                }),
+              },
+            ],
             opacity: collapseAnimation.interpolate({
               inputRange: [0, 1],
               outputRange: [0, 1],
             }),
-          }
-        ]}
-      >
-        <TouchableOpacity
-          style={styles.expandButton}
-          onPress={handleToggleCollapse}
-        >
+          },
+        ]}>
+        <TouchableOpacity style={styles.expandButton} onPress={handleToggleCollapse}>
           <Ionicons name="chevron-forward" size={24} color={Colors.light.primary} />
         </TouchableOpacity>
-        
+
         {/* Mini özet - Sadece siparişler */}
         <View style={styles.miniSummary}>
           <Text style={styles.miniSummaryText}>{pendingOrders}</Text>
           <Text style={styles.miniSummaryLabel}>Bestellungen</Text>
         </View>
-        
+
         {/* Mini favori sayısı */}
         {favoriteProducts.length > 0 && (
           <View style={styles.miniFavorites}>
@@ -159,76 +157,69 @@ const QuickAccessPanel: React.FC<QuickAccessPanelProps> = ({
   }
 
   return (
-    <Animated.View 
+    <Animated.View
       style={[
         styles.container,
         {
-          transform: [{
-            translateX: collapseAnimation.interpolate({
-              inputRange: [0, 1],
-              outputRange: [-screenWidth, 0],
-            })
-          }],
+          transform: [
+            {
+              translateX: collapseAnimation.interpolate({
+                inputRange: [0, 1],
+                outputRange: [-screenWidth, 0],
+              }),
+            },
+          ],
           opacity: collapseAnimation,
-        }
-      ]}
-    >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.titleSmall}>{t('quickAccess.title')}</Text>
-          <TouchableOpacity
-            style={styles.collapseButton}
-            onPress={handleToggleCollapse}
-          >
-            <Ionicons name="chevron-back" size={20} color={Colors.light.textSecondary} />
-          </TouchableOpacity>
+        },
+      ]}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.titleSmall}>{t('quickAccess.title')}</Text>
+        <TouchableOpacity style={styles.collapseButton} onPress={handleToggleCollapse}>
+          <Ionicons name="chevron-back" size={20} color={Colors.light.textSecondary} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Günlük Özet - Sadece Siparişler */}
+      <View style={styles.summaryContainer}>
+        <View style={styles.summaryItem}>
+          <Animated.View style={{ transform: [{ scale: pulseAnimation }] }}>
+            <Ionicons name="time-outline" size={24} color={Colors.light.warning} />
+          </Animated.View>
+          <Text style={styles.summaryValue}>{pendingOrders}</Text>
+          <Text style={styles.summaryLabel}>{t('quickAccess.pendingOrders')}</Text>
         </View>
-        
-        {/* Günlük Özet - Sadece Siparişler */}
-        <View style={styles.summaryContainer}>
-          <View style={styles.summaryItem}>
-            <Animated.View style={{ transform: [{ scale: pulseAnimation }] }}>
-              <Ionicons name="time-outline" size={24} color={Colors.light.warning} />
-            </Animated.View>
-            <Text style={styles.summaryValue}>{pendingOrders}</Text>
-            <Text style={styles.summaryLabel}>{t('quickAccess.pendingOrders')}</Text>
-          </View>
+      </View>
+
+      {/* Favori Ürünler - Hızlı Erişim */}
+      {favoriteProducts.length > 0 && (
+        <View style={styles.favoritesSection}>
+          <Text style={styles.favoritesTitle}>
+            <Ionicons name="heart" size={16} color={Colors.light.primary} />{' '}
+            {t('quickAccess.favoriteProducts')} ({favoriteProducts.length})
+          </Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.favoritesContainer}>
+              {favoriteProducts.slice(0, 6).map((product) => (
+                <TouchableOpacity
+                  key={product.id}
+                  style={styles.favoriteProductCard}
+                  onPress={() => onFavoriteProductPress?.(product)}
+                  activeOpacity={0.8}>
+                  <View style={styles.favoriteProductIcon}>
+                    <Ionicons name="add-circle" size={20} color={Colors.light.primary} />
+                  </View>
+                  <Text style={styles.favoriteProductName} numberOfLines={2}>
+                    {product.name}
+                  </Text>
+                  <Text style={styles.favoriteProductPrice}>€{product.price.toFixed(2)}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
         </View>
-
-        {/* Favori Ürünler - Hızlı Erişim */}
-        {favoriteProducts.length > 0 && (
-          <View style={styles.favoritesSection}>
-            <Text style={styles.favoritesTitle}>
-              <Ionicons name="heart" size={16} color={Colors.light.primary} />
-              {' '}{t('quickAccess.favoriteProducts')} ({favoriteProducts.length})
-            </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.favoritesContainer}>
-                {favoriteProducts.slice(0, 6).map((product) => (
-                  <TouchableOpacity
-                    key={product.id}
-                    style={styles.favoriteProductCard}
-                    onPress={() => onFavoriteProductPress?.(product)}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.favoriteProductIcon}>
-                      <Ionicons name="add-circle" size={20} color={Colors.light.primary} />
-                    </View>
-                    <Text style={styles.favoriteProductName} numberOfLines={2}>
-                      {product.name}
-                    </Text>
-                    <Text style={styles.favoriteProductPrice}>
-                      €{product.price.toFixed(2)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
-        )}
-
-
-      </Animated.View>
+      )}
+    </Animated.View>
   );
 };
 
@@ -379,7 +370,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginTop: Spacing.xs,
   },
-
 });
 
-export default QuickAccessPanel; 
+export default QuickAccessPanel;

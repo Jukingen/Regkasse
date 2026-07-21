@@ -1,29 +1,26 @@
-"use client";
+'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Tag } from "antd";
-import { useSearchParams } from "next/navigation";
-import { useI18n } from "@/i18n";
-import { BackupDrDashboard } from "@/features/backup-dr/components/BackupDrDashboard";
-import { BackupConfigurationTab } from "@/features/backup-management/components/BackupConfigurationTab";
-import { BackupActivityLogPanel } from "@/features/backup-management/components/BackupActivityLogPanel";
-import { BackupDetailModal } from "@/features/backup/components/BackupDetailModal";
-import { useBackupManagementAccess } from "@/features/backup-management/hooks/useBackupManagementAccess";
-import { useGetApiAdminBackupStatusLatest } from "@/api/generated/admin-backup/admin-backup";
-import type { BackupRunResponseDto } from "@/api/generated/model";
-import { resolveBackupTabFromSearch } from "@/shared/backupAreaRoutes";
+import { Alert, Tag } from 'antd';
+import { useSearchParams } from 'next/navigation';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-export type BackupManagementTabKey =
-  | "operations"
-  | "monitoring"
-  | "configuration"
-  | "log";
+import { useGetApiAdminBackupStatusLatest } from '@/api/generated/admin-backup/admin-backup';
+import type { BackupRunResponseDto } from '@/api/generated/model';
+import { BackupDrDashboard } from '@/features/backup-dr/components/BackupDrDashboard';
+import { BackupActivityLogPanel } from '@/features/backup-management/components/BackupActivityLogPanel';
+import { BackupConfigurationTab } from '@/features/backup-management/components/BackupConfigurationTab';
+import { useBackupManagementAccess } from '@/features/backup-management/hooks/useBackupManagementAccess';
+import { BackupDetailModal } from '@/features/backup/components/BackupDetailModal';
+import { useI18n } from '@/i18n';
+import { resolveBackupTabFromSearch } from '@/shared/backupAreaRoutes';
+
+export type BackupManagementTabKey = 'operations' | 'monitoring' | 'configuration' | 'log';
 
 export interface BackupManagementPanelProps {
   defaultTab?: BackupManagementTabKey;
 }
 
-export function BackupManagementPanel({ defaultTab = "operations" }: BackupManagementPanelProps) {
+export function BackupManagementPanel({ defaultTab = 'operations' }: BackupManagementPanelProps) {
   const { t } = useI18n();
   const searchParams = useSearchParams();
   const access = useBackupManagementAccess();
@@ -32,11 +29,11 @@ export function BackupManagementPanel({ defaultTab = "operations" }: BackupManag
 
   const activeTab = useMemo(
     () => resolveBackupTabFromSearch(searchParams?.toString()),
-    [searchParams],
+    [searchParams]
   );
 
   useEffect(() => {
-    const runId = searchParams.get("runId")?.trim();
+    const runId = searchParams.get('runId')?.trim();
     if (!runId) return;
     setSelectedRunId(runId);
     setDetailModalOpen(true);
@@ -53,26 +50,22 @@ export function BackupManagementPanel({ defaultTab = "operations" }: BackupManag
   }, []);
 
   const roleTag = access.isSuperAdmin
-    ? t("backupDr.management.role.superAdmin")
+    ? t('backupDr.management.role.superAdmin')
     : access.canManageBackup
-      ? t("backupDr.management.role.tenantAdmin")
-      : t("backupDr.management.role.readOnly");
+      ? t('backupDr.management.role.tenantAdmin')
+      : t('backupDr.management.role.readOnly');
 
   const tabContent = useMemo(() => {
     switch (activeTab) {
-      case "configuration":
+      case 'configuration':
         return <BackupConfigurationTab />;
-      case "log":
+      case 'log':
         return <BackupActivityLogPanel />;
-      case "monitoring":
-      case "operations":
+      case 'monitoring':
+      case 'operations':
       default:
         return (
-          <BackupDrDashboard
-            embedded
-            hideScheduleSettings
-            onSelectBackupRun={openRunDetail}
-          />
+          <BackupDrDashboard embedded hideScheduleSettings onSelectBackupRun={openRunDetail} />
         );
     }
   }, [activeTab, openRunDetail]);
@@ -80,31 +73,26 @@ export function BackupManagementPanel({ defaultTab = "operations" }: BackupManag
   return (
     <>
       <Alert
-        type={access.isReadOnly ? "info" : "success"}
+        type={access.isReadOnly ? 'info' : 'success'}
         showIcon
         style={{ marginBottom: 8 }}
         title={
           <>
-            {t("backupDr.management.accessBanner", { role: roleTag })}{" "}
-            <Tag>{roleTag}</Tag>
+            {t('backupDr.management.accessBanner', { role: roleTag })} <Tag>{roleTag}</Tag>
           </>
         }
         description={
           access.isReadOnly
-            ? t("backupDr.management.accessReadOnlyHint")
+            ? t('backupDr.management.accessReadOnlyHint')
             : access.isSuperAdmin
-              ? t("backupDr.management.accessSuperAdminHint")
-              : t("backupDr.management.accessManageHint")
+              ? t('backupDr.management.accessSuperAdminHint')
+              : t('backupDr.management.accessManageHint')
         }
       />
 
       {tabContent}
 
-      <BackupDetailModal
-        runId={selectedRunId}
-        open={detailModalOpen}
-        onClose={closeRunDetail}
-      />
+      <BackupDetailModal runId={selectedRunId} open={detailModalOpen} onClose={closeRunDetail} />
     </>
   );
 }

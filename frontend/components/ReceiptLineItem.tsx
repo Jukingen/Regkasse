@@ -4,9 +4,10 @@
  */
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { formatPrice } from '../utils/formatPrice';
-import type { ReceiptItemDTO } from '../types/ReceiptDTO';
+
 import { SoftColors, SoftSpacing } from '../constants/SoftTheme';
+import type { ReceiptItemDTO } from '../types/ReceiptDTO';
+import { formatPrice } from '../utils/formatPrice';
 
 export interface ReceiptLineItemProps {
   /** Ana ürün satırı */
@@ -24,7 +25,9 @@ export function ReceiptLineItem({ main, modifiers = [], compact }: ReceiptLineIt
     <View style={styles.wrapper}>
       <View style={[styles.mainRow, compact && styles.mainRowCompact]}>
         <View style={styles.nameQty}>
-          <Text style={[styles.productName, compact && styles.productNameCompact]} numberOfLines={2}>
+          <Text
+            style={[styles.productName, compact && styles.productNameCompact]}
+            numberOfLines={2}>
             {main.name}
           </Text>
           <Text style={[styles.qty, compact && styles.qtyCompact]}>

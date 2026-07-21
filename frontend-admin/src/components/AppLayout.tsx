@@ -1,36 +1,35 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
+import { type ReactNode, useCallback, useMemo } from 'react';
 
-import { useCallback, useMemo, type ReactNode } from 'react';
-
-import { SessionTimeoutWarning } from '@/components/SessionTimeoutWarning';
 import { KeyboardShortcutsProvider } from '@/components/KeyboardShortcutsProvider';
-import { useSessionTimeout } from '@/hooks/useSessionTimeout';
-import { useAuth, AuthStatus } from '@/features/auth/hooks/useAuth';
+import { SessionTimeoutWarning } from '@/components/SessionTimeoutWarning';
 import { refreshAuthSession } from '@/features/auth/api/authSessionApi';
+import { AuthStatus, useAuth } from '@/features/auth/hooks/useAuth';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { useSessionTimeout } from '@/hooks/useSessionTimeout';
 import { useI18n } from '@/i18n';
 import type { AuthUser } from '@/shared/auth/types';
 
 const DEFAULT_POLICY = {
-    sessionTimeoutMinutes: 30,
-    warningBeforeTimeoutMinutes: 5,
-    idleTimeoutEnabled: true,
+  sessionTimeoutMinutes: 30,
+  warningBeforeTimeoutMinutes: 5,
+  idleTimeoutEnabled: true,
 };
 
 function readPolicyFromUser(user: AuthUser | undefined) {
-    const p = user?.sessionPolicy;
-    if (!p) return DEFAULT_POLICY;
-    return {
-        sessionTimeoutMinutes: p.sessionTimeoutMinutes ?? DEFAULT_POLICY.sessionTimeoutMinutes,
-        warningBeforeTimeoutMinutes:
-            p.warningBeforeTimeoutMinutes ?? DEFAULT_POLICY.warningBeforeTimeoutMinutes,
-        idleTimeoutEnabled: p.idleTimeoutEnabled ?? DEFAULT_POLICY.idleTimeoutEnabled,
-    };
+  const p = user?.sessionPolicy;
+  if (!p) return DEFAULT_POLICY;
+  return {
+    sessionTimeoutMinutes: p.sessionTimeoutMinutes ?? DEFAULT_POLICY.sessionTimeoutMinutes,
+    warningBeforeTimeoutMinutes:
+      p.warningBeforeTimeoutMinutes ?? DEFAULT_POLICY.warningBeforeTimeoutMinutes,
+    idleTimeoutEnabled: p.idleTimeoutEnabled ?? DEFAULT_POLICY.idleTimeoutEnabled,
+  };
 }
 
 type AppLayoutProps = {
-    children: ReactNode;
+  children: ReactNode;
 };
 
 /**
@@ -40,43 +39,42 @@ type AppLayoutProps = {
 export function AppLayout({ children }: AppLayoutProps) {
   const { message } = useAntdApp();
 
-    const { t } = useI18n();
-    const { authStatus, logout, user } = useAuth();
+  const { t } = useI18n();
+  const { authStatus, logout, user } = useAuth();
 
-    const policy = useMemo(() => readPolicyFromUser(user), [user]);
-    const warningTotalSeconds = Math.max(1, policy.warningBeforeTimeoutMinutes * 60);
+  const policy = useMemo(() => readPolicyFromUser(user), [user]);
+  const warningTotalSeconds = Math.max(1, policy.warningBeforeTimeoutMinutes * 60);
 
-    const { showWarning, secondsRemaining, resetTimers } = useSessionTimeout({
-        timeoutMinutes: policy.sessionTimeoutMinutes,
-        warningMinutes: policy.warningBeforeTimeoutMinutes,
-        enabled:
-            authStatus === AuthStatus.Authenticated && policy.idleTimeoutEnabled,
-        onTimeout: () => {
-            message.warning(t('common.auth.sessionTimeout.loggedOutInactivity'));
-        },
+  const { showWarning, secondsRemaining, resetTimers } = useSessionTimeout({
+    timeoutMinutes: policy.sessionTimeoutMinutes,
+    warningMinutes: policy.warningBeforeTimeoutMinutes,
+    enabled: authStatus === AuthStatus.Authenticated && policy.idleTimeoutEnabled,
+    onTimeout: () => {
+      message.warning(t('common.auth.sessionTimeout.loggedOutInactivity'));
+    },
+  });
+
+  const handleContinue = useCallback(() => {
+    resetTimers();
+    void refreshAuthSession().catch(() => {
+      /* best effort */
     });
+  }, [resetTimers]);
 
-    const handleContinue = useCallback(() => {
-        resetTimers();
-        void refreshAuthSession().catch(() => {
-            /* best effort */
-        });
-    }, [resetTimers]);
+  const handleLogout = useCallback(() => {
+    void logout();
+  }, [logout]);
 
-    const handleLogout = useCallback(() => {
-        void logout();
-    }, [logout]);
-
-    return (
-        <KeyboardShortcutsProvider>
-            {children}
-            <SessionTimeoutWarning
-                open={showWarning}
-                secondsRemaining={secondsRemaining}
-                warningTotalSeconds={warningTotalSeconds}
-                onContinue={handleContinue}
-                onLogout={handleLogout}
-            />
-        </KeyboardShortcutsProvider>
-    );
+  return (
+    <KeyboardShortcutsProvider>
+      {children}
+      <SessionTimeoutWarning
+        open={showWarning}
+        secondsRemaining={secondsRemaining}
+        warningTotalSeconds={warningTotalSeconds}
+        onContinue={handleContinue}
+        onLogout={handleLogout}
+      />
+    </KeyboardShortcutsProvider>
+  );
 }

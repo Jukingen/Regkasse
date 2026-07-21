@@ -17,9 +17,8 @@
  * `BackupExecutionModeCard` şu an React Query kullanmıyor (yerel state + imperatif yükleme);
  * pano `BackupDrDashboard` execution-mode için `useQuery` kullanır — query key `backupExecutionModeQueryKeys` üzerinden.
  */
-
-import { customInstance } from '@/lib/axios';
 import { BACKUP_EXECUTION_MODE_API_PATH } from '@/features/backup-dr/logic/backupExecutionModeQueryKeys';
+import { customInstance } from '@/lib/axios';
 
 export {
   BACKUP_EXECUTION_MODE_API_PATH,

@@ -6,10 +6,8 @@ import { OfflineConfigService } from '@/services/config/offlineConfigService';
 import { OfflineOrderManager } from '@/services/offline/offlineOrderManager';
 import { OfflineSyncService } from '@/services/offline/offlineSyncService';
 import { eventEmitter } from '@/utils/eventEmitter';
-import {
-  resolveOfflineUiLevel,
-  type OfflineUiLevel,
-} from '@/utils/offlineStatusLevel';
+import { fetchIsNetworkOnline } from '@/utils/isNetworkOnline';
+import { resolveOfflineUiLevel, type OfflineUiLevel } from '@/utils/offlineStatusLevel';
 
 export interface OfflineStatus {
   isOnline: boolean;
@@ -31,18 +29,6 @@ export interface OfflineStatus {
   tokenExpiryHours: number;
   isExpiringSoon: boolean;
   lastSyncAt: Date | null;
-}
-
-async function resolveIsOnline(): Promise<boolean> {
-  try {
-    const state = await NetInfo.fetch();
-    return state.isConnected === true && state.isInternetReachable !== false;
-  } catch {
-    if (typeof navigator !== 'undefined' && 'onLine' in navigator) {
-      return navigator.onLine;
-    }
-    return true;
-  }
 }
 
 /**
@@ -84,13 +70,13 @@ export function useOfflineStatus(): OfflineStatus & {
       const syncStatus = syncService.getSyncStatus();
       const tokenRemainingHours = sessionManager.getRemainingOfflineHours();
       const tokenValid = sessionManager.canWorkOffline();
-      const isOnline = await resolveIsOnline();
+      const isOnline = await fetchIsNetworkOnline();
       const warningHours = config.get('OFFLINE_WARNING_HOURS');
       const limit = config.get('MAX_OFFLINE_TRANSACTIONS');
       const fallbackHours = config.get('OFFLINE_EXPIRY_HOURS');
 
       let pendingCount = syncStatus.pendingOrders;
-      let hoursRemaining = fallbackHours;
+      let hoursRemaining: number = fallbackHours;
 
       try {
         pendingCount = await orderManager.getPendingCount();
@@ -140,7 +126,9 @@ export function useOfflineStatus(): OfflineStatus & {
   useEffect(() => {
     refresh();
 
-    const updateStatus = () => refresh();
+    const updateStatus = () => {
+      refresh();
+    };
 
     eventEmitter.on('sync:status', updateStatus);
     eventEmitter.on('sync:online', updateStatus);

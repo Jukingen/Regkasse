@@ -1,38 +1,29 @@
-"use client";
+'use client';
 
 /**
  * Super Admin restore request history + RKSV report viewer.
  * Source: GET /api/admin/restore/history and .../request/{id}/report.
  */
+import { FileTextOutlined } from '@ant-design/icons';
+import { Alert, Button, Descriptions, Modal, Space, Table, Tag, Typography } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import React, { useCallback, useMemo, useState } from 'react';
 
-import React, { useCallback, useMemo, useState } from "react";
+import { CardSkeleton } from '@/components/Skeleton';
 import {
-  Alert,
-  Button,
-  Descriptions,
-  Modal,
-  Space,
-  Table,
-  Tag,
-  Typography,
-} from "antd";
-import type { ColumnsType } from "antd/es/table";
-import { FileTextOutlined } from "@ant-design/icons";
-import { CardSkeleton } from "@/components/Skeleton";
-import { useI18n } from "@/i18n";
-import { useAntdApp } from "@/hooks/useAntdApp";
-import { useBackupPermissions } from "@/features/backup/hooks/useBackupPermissions";
-import { useRestoreHistory } from "@/features/backup/hooks/useRestoreHistory";
-import {
-  getManualRestoreReport,
   type RestoreReportResponseDto,
   type RestoreRequestStatusDto,
-} from "@/features/backup-dr/logic/manualRestoreApi";
-import { manualRestoreStatusTagColor } from "@/features/backup-dr/logic/manualRestorePresentation";
+  getManualRestoreReport,
+} from '@/features/backup-dr/logic/manualRestoreApi';
+import { manualRestoreStatusTagColor } from '@/features/backup-dr/logic/manualRestorePresentation';
+import { useBackupPermissions } from '@/features/backup/hooks/useBackupPermissions';
+import { useRestoreHistory } from '@/features/backup/hooks/useRestoreHistory';
 import {
   restoreHistoryDisplayDate,
   restoreHistoryStatusLabelKey,
-} from "@/features/backup/logic/restoreHistoryPresentation";
+} from '@/features/backup/logic/restoreHistoryPresentation';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { useI18n } from '@/i18n';
 
 export function RestoreHistoryView() {
   const { t, formatLocale } = useI18n();
@@ -53,12 +44,12 @@ export function RestoreHistoryView() {
 
   const formatDt = useCallback(
     (iso: string | null | undefined) => {
-      if (!iso) return "—";
+      if (!iso) return '—';
       const d = new Date(iso);
-      if (Number.isNaN(d.getTime())) return "—";
+      if (Number.isNaN(d.getTime())) return '—';
       return d.toLocaleString(formatLocale);
     },
-    [formatLocale],
+    [formatLocale]
   );
 
   const openReport = useCallback(
@@ -70,25 +61,25 @@ export function RestoreHistoryView() {
         const data = await getManualRestoreReport(requestId);
         setReport(data);
       } catch {
-        message.error(t("backupDr.restoreHistory.report.loadFailed"));
+        message.error(t('backupDr.restoreHistory.report.loadFailed'));
         setReportOpen(false);
       } finally {
         setReportLoading(false);
       }
     },
-    [message, t],
+    [message, t]
   );
 
   const columns: ColumnsType<RestoreRequestStatusDto> = useMemo(
     () => [
       {
-        title: t("backupDr.restoreHistory.columns.date"),
-        key: "date",
+        title: t('backupDr.restoreHistory.columns.date'),
+        key: 'date',
         render: (_: unknown, row) => formatDt(restoreHistoryDisplayDate(row)),
       },
       {
-        title: t("backupDr.restoreHistory.columns.backupRun"),
-        dataIndex: "backupRunId",
+        title: t('backupDr.restoreHistory.columns.backupRun'),
+        dataIndex: 'backupRunId',
         ellipsis: true,
         render: (id: string) => (
           <Typography.Text copyable={{ text: id }} style={{ fontSize: 12 }}>
@@ -97,19 +88,19 @@ export function RestoreHistoryView() {
         ),
       },
       {
-        title: t("backupDr.restoreHistory.columns.targetDatabase"),
-        dataIndex: "targetDatabaseName",
+        title: t('backupDr.restoreHistory.columns.targetDatabase'),
+        dataIndex: 'targetDatabaseName',
         ellipsis: true,
       },
       {
-        title: t("backupDr.restoreHistory.columns.requestedBy"),
-        dataIndex: "requestedByEmail",
+        title: t('backupDr.restoreHistory.columns.requestedBy'),
+        dataIndex: 'requestedByEmail',
         ellipsis: true,
-        render: (v: string | null | undefined) => v || "—",
+        render: (v: string | null | undefined) => v || '—',
       },
       {
-        title: t("backupDr.restoreHistory.columns.status"),
-        dataIndex: "status",
+        title: t('backupDr.restoreHistory.columns.status'),
+        dataIndex: 'status',
         render: (status: string) => {
           const key = restoreHistoryStatusLabelKey(status);
           const label = t(key) === key ? status : t(key);
@@ -117,19 +108,19 @@ export function RestoreHistoryView() {
         },
       },
       {
-        title: t("backupDr.restoreHistory.columns.validationOnly"),
-        dataIndex: "validationOnly",
+        title: t('backupDr.restoreHistory.columns.validationOnly'),
+        dataIndex: 'validationOnly',
         width: 110,
         render: (v: boolean) =>
           v ? (
-            <Tag color="blue">{t("backupDr.restoreHistory.values.validationOnly")}</Tag>
+            <Tag color="blue">{t('backupDr.restoreHistory.values.validationOnly')}</Tag>
           ) : (
-            <Tag color="error">{t("backupDr.restoreHistory.values.notValidationOnly")}</Tag>
+            <Tag color="error">{t('backupDr.restoreHistory.values.notValidationOnly')}</Tag>
           ),
       },
       {
-        title: t("backupDr.restoreHistory.columns.actions"),
-        key: "actions",
+        title: t('backupDr.restoreHistory.columns.actions'),
+        key: 'actions',
         width: 140,
         render: (_: unknown, row) => (
           <Space>
@@ -138,13 +129,13 @@ export function RestoreHistoryView() {
               icon={<FileTextOutlined />}
               onClick={() => void openReport(row.requestId)}
             >
-              {t("backupDr.restoreHistory.actions.report")}
+              {t('backupDr.restoreHistory.actions.report')}
             </Button>
           </Space>
         ),
       },
     ],
-    [formatDt, openReport, t],
+    [formatDt, openReport, t]
   );
 
   if (!canRestore) {
@@ -152,8 +143,8 @@ export function RestoreHistoryView() {
       <Alert
         type="warning"
         showIcon
-        title={t("backupDr.restoreHistory.forbiddenTitle")}
-        description={t("backupDr.restoreHistory.forbiddenDescription")}
+        title={t('backupDr.restoreHistory.forbiddenTitle')}
+        description={t('backupDr.restoreHistory.forbiddenDescription')}
       />
     );
   }
@@ -164,8 +155,8 @@ export function RestoreHistoryView() {
         type="info"
         showIcon
         style={{ marginBottom: 16 }}
-        title={t("backupDr.restoreHistory.infoTitle")}
-        description={t("backupDr.restoreHistory.infoDescription")}
+        title={t('backupDr.restoreHistory.infoTitle')}
+        description={t('backupDr.restoreHistory.infoDescription')}
       />
 
       {history.isError ? (
@@ -173,7 +164,7 @@ export function RestoreHistoryView() {
           type="error"
           showIcon
           style={{ marginBottom: 16 }}
-          title={t("backupDr.restoreHistory.loadFailed")}
+          title={t('backupDr.restoreHistory.loadFailed')}
         />
       ) : null}
 
@@ -189,16 +180,16 @@ export function RestoreHistoryView() {
           onChange: setPage,
           showSizeChanger: false,
         }}
-        locale={{ emptyText: t("backupDr.restoreHistory.empty") }}
+        locale={{ emptyText: t('backupDr.restoreHistory.empty') }}
       />
 
       <Modal
-        title={t("backupDr.restoreHistory.report.title")}
+        title={t('backupDr.restoreHistory.report.title')}
         open={reportOpen}
         onCancel={() => setReportOpen(false)}
         footer={
           <Button onClick={() => setReportOpen(false)}>
-            {t("backupDr.manualRestore.actions.close")}
+            {t('backupDr.manualRestore.actions.close')}
           </Button>
         }
         width={720}
@@ -207,43 +198,45 @@ export function RestoreHistoryView() {
         {reportLoading ? <CardSkeleton count={1} /> : null}
         {report ? (
           <Descriptions bordered size="small" column={1}>
-            <Descriptions.Item label={t("backupDr.restoreHistory.report.restoreId")}>
+            <Descriptions.Item label={t('backupDr.restoreHistory.report.restoreId')}>
               {report.restoreId}
             </Descriptions.Item>
-            <Descriptions.Item label={t("backupDr.restoreHistory.report.tenant")}>
-              {report.tenantName || report.tenantId || t("backupDr.manualRestore.fields.sharedDump")}
+            <Descriptions.Item label={t('backupDr.restoreHistory.report.tenant')}>
+              {report.tenantName ||
+                report.tenantId ||
+                t('backupDr.manualRestore.fields.sharedDump')}
             </Descriptions.Item>
-            <Descriptions.Item label={t("backupDr.restoreHistory.report.restoredAt")}>
+            <Descriptions.Item label={t('backupDr.restoreHistory.report.restoredAt')}>
               {formatDt(report.restoredAt)}
             </Descriptions.Item>
-            <Descriptions.Item label={t("backupDr.restoreHistory.report.backupDate")}>
+            <Descriptions.Item label={t('backupDr.restoreHistory.report.backupDate')}>
               {formatDt(report.backupDate)}
             </Descriptions.Item>
-            <Descriptions.Item label={t("backupDr.restoreHistory.report.tables")}>
+            <Descriptions.Item label={t('backupDr.restoreHistory.report.tables')}>
               {report.tablesRestored != null
                 ? report.tablesRestored.toLocaleString(formatLocale)
-                : "—"}
+                : '—'}
             </Descriptions.Item>
-            <Descriptions.Item label={t("backupDr.restoreHistory.report.records")}>
+            <Descriptions.Item label={t('backupDr.restoreHistory.report.records')}>
               {report.recordsRestored != null
                 ? report.recordsRestored.toLocaleString(formatLocale)
-                : t("backupDr.restoreHistory.report.recordsUnknown")}
+                : t('backupDr.restoreHistory.report.recordsUnknown')}
             </Descriptions.Item>
-            <Descriptions.Item label={t("backupDr.restoreHistory.report.status")}>
+            <Descriptions.Item label={t('backupDr.restoreHistory.report.status')}>
               {report.status}
             </Descriptions.Item>
-            <Descriptions.Item label={t("backupDr.restoreHistory.report.rksv")}>
+            <Descriptions.Item label={t('backupDr.restoreHistory.report.rksv')}>
               {report.rksvCompliant ? (
-                <Tag color="success">{t("backupDr.restoreHistory.report.compliant")}</Tag>
+                <Tag color="success">{t('backupDr.restoreHistory.report.compliant')}</Tag>
               ) : (
-                <Tag color="error">{t("backupDr.restoreHistory.report.notCompliant")}</Tag>
+                <Tag color="error">{t('backupDr.restoreHistory.report.notCompliant')}</Tag>
               )}
             </Descriptions.Item>
-            <Descriptions.Item label={t("backupDr.restoreHistory.report.targetDatabase")}>
+            <Descriptions.Item label={t('backupDr.restoreHistory.report.targetDatabase')}>
               {report.targetDatabaseName}
             </Descriptions.Item>
             {report.complianceFindings?.length ? (
-              <Descriptions.Item label={t("backupDr.restoreHistory.report.findings")}>
+              <Descriptions.Item label={t('backupDr.restoreHistory.report.findings')}>
                 <ul style={{ margin: 0, paddingLeft: 18 }}>
                   {report.complianceFindings.map((f) => (
                     <li key={f}>

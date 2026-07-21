@@ -41,7 +41,7 @@ export async function ensureCsrfToken(baseURL: string): Promise<CachedCsrf> {
     return cache;
   }
   if (inflight) {
-    return inflight;
+    return await inflight;
   }
 
   inflight = (async () => {
@@ -60,9 +60,7 @@ export async function ensureCsrfToken(baseURL: string): Promise<CachedCsrf> {
       throw new Error('CSRF token response missing token');
     }
     const hours =
-      typeof data.expiresInHours === 'number' && data.expiresInHours > 0
-        ? data.expiresInHours
-        : 24;
+      typeof data.expiresInHours === 'number' && data.expiresInHours > 0 ? data.expiresInHours : 24;
     cache = {
       token,
       headerName: data.headerName?.trim() || CSRF_HEADER,
@@ -73,12 +71,12 @@ export async function ensureCsrfToken(baseURL: string): Promise<CachedCsrf> {
     inflight = null;
   });
 
-  return inflight;
+  return await inflight;
 }
 
 export function applyCsrfHeaders(
   headers: Record<string, string>,
-  csrf: CachedCsrf,
+  csrf: CachedCsrf
 ): Record<string, string> {
   headers[csrf.headerName] = csrf.token;
   headers[CSRF_COOKIE_MIRROR_HEADER] = csrf.token;

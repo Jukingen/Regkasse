@@ -2,7 +2,6 @@
  * Double-submit CSRF helper for FA → API.
  * Cookie mirror via {@link cookieService}; token must be issued by GET /api/csrf/token.
  */
-
 import { cookieService } from '@/services/cookieService';
 
 export const CSRF_HEADER = 'X-XSRF-TOKEN';
@@ -73,9 +72,7 @@ export async function ensureCsrfToken(baseURL: string): Promise<CachedCsrf> {
       throw new Error('CSRF token response missing token');
     }
     const hours =
-      typeof data.expiresInHours === 'number' && data.expiresInHours > 0
-        ? data.expiresInHours
-        : 24;
+      typeof data.expiresInHours === 'number' && data.expiresInHours > 0 ? data.expiresInHours : 24;
 
     // Mirror server-issued token into FA document.cookie for the axios interceptor.
     cookieService.setCsrfToken(token);
@@ -107,7 +104,7 @@ export function isCsrfForbiddenMessage(message: string | null | undefined): bool
 /** Apply CSRF headers onto a mutable headers bag (axios / fetch). */
 export function applyCsrfHeaders(
   headers: Record<string, string>,
-  csrf: CachedCsrf,
+  csrf: CachedCsrf
 ): Record<string, string> {
   headers[csrf.headerName] = csrf.token;
   headers[CSRF_COOKIE_MIRROR_HEADER] = csrf.token;

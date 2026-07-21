@@ -4,28 +4,31 @@
  * Son yedek özeti: API durumu + pipeline adımları; storageLocator/path gösterilmez.
  * `BackupStatusCard`: GET status/latest + run-by-id with legacy polling timings.
  */
-
-import React, { useMemo } from 'react';
 import { Alert, Card, Descriptions, Space, Tag, Typography } from 'antd';
-import type { BackupArtifactPipelinePolicyResponseDto, BackupRunResponseDto } from '@/api/generated/model';
+import React, { useMemo } from 'react';
+
 import {
   useGetApiAdminBackupRunsId,
   useGetApiAdminBackupStatusLatest,
 } from '@/api/generated/admin-backup/admin-backup';
+import type {
+  BackupArtifactPipelinePolicyResponseDto,
+  BackupRunResponseDto,
+} from '@/api/generated/model';
 import { CardSkeleton } from '@/components/Skeleton';
 import { BackupPipelineStepper } from '@/features/backup-dr/components/BackupPipelineStepper';
-import {
-  formatRunDurationMs,
-  resolveBackupPipelineStepsForUi,
-  sumLogicalDumpBytes,
-} from '@/features/backup-dr/logic/backupPipelineDerived';
-import type { RunTruth } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
-import { isSimulatedBackupAdapterKind } from '@/features/backup-dr/logic/backupDrMappers';
 import {
   usePollBackupLatestDashboardInterval,
   usePollRunDetailDashboardInterval,
 } from '@/features/backup-dr/logic/backupDashboardQueryTiming';
 import { apiNullableToUndefined } from '@/features/backup-dr/logic/backupDrDtoNormalize';
+import { isSimulatedBackupAdapterKind } from '@/features/backup-dr/logic/backupDrMappers';
+import type { RunTruth } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
+import {
+  formatRunDurationMs,
+  resolveBackupPipelineStepsForUi,
+  sumLogicalDumpBytes,
+} from '@/features/backup-dr/logic/backupPipelineDerived';
 
 export interface BackupLatestRunCardPresentationProps {
   latest: BackupRunResponseDto | undefined | null;
@@ -61,7 +64,10 @@ export type BackupStatusCardOrchestrationProps = Omit<
   'latest' | 'detail' | 'policy' | 'loadingDetail' | 'detailError'
 >;
 
-function formatDurationMs(ms: number | undefined, t: (key: string, options?: Record<string, string | number>) => string): string {
+function formatDurationMs(
+  ms: number | undefined,
+  t: (key: string, options?: Record<string, string | number>) => string
+): string {
   if (ms === undefined) return '—';
   if (ms < 1000) return t('backupDr.latestRun.durationMs', { ms: String(Math.round(ms)) });
   const s = Math.round(ms / 1000);
@@ -71,7 +77,10 @@ function formatDurationMs(ms: number | undefined, t: (key: string, options?: Rec
   return t('backupDr.latestRun.durationMin', { m: String(m), s: String(rs) });
 }
 
-function formatBytes(n: number | undefined, t: (key: string, options?: Record<string, string | number>) => string): string {
+function formatBytes(
+  n: number | undefined,
+  t: (key: string, options?: Record<string, string | number>) => string
+): string {
   if (n === undefined) return '—';
   if (n < 1024) return t('backupDr.latestRun.bytesB', { n: String(n) });
   const kb = n / 1024;
@@ -103,7 +112,7 @@ export function BackupLatestRunCardPresentation({
       resolveBackupPipelineStepsForUi(latest, detail, policy, {
         allowClientFallback: allowFb,
       }),
-    [latest, detail, policy, allowFb],
+    [latest, detail, policy, allowFb]
   );
   const { steps, source, projectionVersionMismatch } = resolved;
   const durationMs = formatRunDurationMs(latest?.requestedAt, latest?.completedAt);
@@ -130,9 +139,19 @@ export function BackupLatestRunCardPresentation({
               {t('backupDr.latestRun.distinctFromRecoverability')}
             </Typography.Paragraph>
           ) : null}
-          <Alert type="info" showIcon title={t('backupDr.latestRun.orchestrationHint')} style={{ marginBottom: 12 }} />
+          <Alert
+            type="info"
+            showIcon
+            title={t('backupDr.latestRun.orchestrationHint')}
+            style={{ marginBottom: 12 }}
+          />
           {simulatedOperationalMode && !omitFakeOperationalNotice ? (
-            <Alert type="info" showIcon style={{ marginBottom: 12 }} title={t('backupDr.latestRun.fakeModeOperationalNotice')} />
+            <Alert
+              type="info"
+              showIcon
+              style={{ marginBottom: 12 }}
+              title={t('backupDr.latestRun.fakeModeOperationalNotice')}
+            />
           ) : null}
           <Descriptions column={1} size="small" bordered style={{ marginBottom: 16 }}>
             <Descriptions.Item label={t('backupDr.latestRun.id')}>{latest.id}</Descriptions.Item>
@@ -144,9 +163,19 @@ export function BackupLatestRunCardPresentation({
                 ) : null}
               </Space>
             </Descriptions.Item>
-            <Descriptions.Item label={t('backupDr.latestRun.adapter')}>{latest.adapterKind}</Descriptions.Item>
-            <Descriptions.Item label={t('backupDr.latestRun.duration')}>{formatDurationMs(durationMs, t)}</Descriptions.Item>
-            <Descriptions.Item label={t(succeededSimulated ? 'backupDr.latestRun.dumpSizeStub' : 'backupDr.latestRun.dumpSize')}>
+            <Descriptions.Item label={t('backupDr.latestRun.adapter')}>
+              {latest.adapterKind}
+            </Descriptions.Item>
+            <Descriptions.Item label={t('backupDr.latestRun.duration')}>
+              {formatDurationMs(durationMs, t)}
+            </Descriptions.Item>
+            <Descriptions.Item
+              label={t(
+                succeededSimulated
+                  ? 'backupDr.latestRun.dumpSizeStub'
+                  : 'backupDr.latestRun.dumpSize'
+              )}
+            >
               {formatBytes(bytes, t)}
             </Descriptions.Item>
             <Descriptions.Item label={t('backupDr.latestRun.requested')}>
@@ -200,7 +229,12 @@ export function BackupLatestRunCardPresentation({
             />
           )}
           {detailError && (
-            <Alert type="warning" showIcon style={{ marginBottom: 12 }} title={t('backupDr.errors.runDetailPartial')} />
+            <Alert
+              type="warning"
+              showIcon
+              style={{ marginBottom: 12 }}
+              title={t('backupDr.errors.runDetailPartial')}
+            />
           )}
           {loadingDetail && latest.id ? (
             <CardSkeleton count={1} />

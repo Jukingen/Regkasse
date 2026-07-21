@@ -1,8 +1,14 @@
 /**
  * Admin benefit definitions API – /api/admin/benefit-definitions.
  */
+import type {
+  UseMutationOptions,
+  UseMutationResult,
+  UseQueryOptions,
+  UseQueryResult,
+} from '@tanstack/react-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { UseMutationOptions, UseQueryOptions, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
+
 import { customInstance } from '@/lib/axios';
 
 const BASE = '/api/admin/benefit-definitions';
@@ -55,8 +61,8 @@ export function getAdminBenefitDefinitions(
   options?: SecondParameter<typeof customInstance>,
   signal?: AbortSignal
 ): Promise<BenefitDefinition[]> {
-  return customInstance<BenefitDefinition[]>({ url: BASE, method: 'GET', signal }, options).then((res) =>
-    unwrapData<BenefitDefinition[]>(res)
+  return customInstance<BenefitDefinition[]>({ url: BASE, method: 'GET', signal }, options).then(
+    (res) => unwrapData<BenefitDefinition[]>(res)
   );
 }
 
@@ -65,26 +71,37 @@ export function getAdminBenefitDefinitionById(
   options?: SecondParameter<typeof customInstance>,
   signal?: AbortSignal
 ): Promise<BenefitDefinition> {
-  return customInstance<BenefitDefinition>({ url: `${BASE}/${id}`, method: 'GET', signal }, options).then((res) =>
-    unwrapData<BenefitDefinition>(res)
-  );
+  return customInstance<BenefitDefinition>(
+    { url: `${BASE}/${id}`, method: 'GET', signal },
+    options
+  ).then((res) => unwrapData<BenefitDefinition>(res));
 }
 
-export function createAdminBenefitDefinition(data: CreateBenefitDefinitionRequest, options?: SecondParameter<typeof customInstance>) {
+export function createAdminBenefitDefinition(
+  data: CreateBenefitDefinitionRequest,
+  options?: SecondParameter<typeof customInstance>
+) {
   return customInstance<BenefitDefinition>(
     { url: BASE, method: 'POST', headers: { 'Content-Type': 'application/json' }, data },
     options
   ).then((res) => unwrapData<BenefitDefinition>(res));
 }
 
-export function updateAdminBenefitDefinition(id: string, data: UpdateBenefitDefinitionRequest, options?: SecondParameter<typeof customInstance>) {
+export function updateAdminBenefitDefinition(
+  id: string,
+  data: UpdateBenefitDefinitionRequest,
+  options?: SecondParameter<typeof customInstance>
+) {
   return customInstance<BenefitDefinition>(
     { url: `${BASE}/${id}`, method: 'PUT', headers: { 'Content-Type': 'application/json' }, data },
     options
   ).then((res) => unwrapData<BenefitDefinition>(res));
 }
 
-export function deleteAdminBenefitDefinition(id: string, options?: SecondParameter<typeof customInstance>) {
+export function deleteAdminBenefitDefinition(
+  id: string,
+  options?: SecondParameter<typeof customInstance>
+) {
   return customInstance<void>({ url: `${BASE}/${id}`, method: 'DELETE' }, options);
 }
 
@@ -129,8 +146,16 @@ export function useCreateAdminBenefitDefinition(
 }
 
 export function useUpdateAdminBenefitDefinition(
-  opts?: UseMutationOptions<BenefitDefinition, Error, { id: string; data: UpdateBenefitDefinitionRequest }>
-): UseMutationResult<BenefitDefinition, Error, { id: string; data: UpdateBenefitDefinitionRequest }> {
+  opts?: UseMutationOptions<
+    BenefitDefinition,
+    Error,
+    { id: string; data: UpdateBenefitDefinitionRequest }
+  >
+): UseMutationResult<
+  BenefitDefinition,
+  Error,
+  { id: string; data: UpdateBenefitDefinitionRequest }
+> {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }) => updateAdminBenefitDefinition(id, data),
@@ -142,7 +167,9 @@ export function useUpdateAdminBenefitDefinition(
   });
 }
 
-export function useDeleteAdminBenefitDefinition(opts?: UseMutationOptions<void, Error, { id: string }>): UseMutationResult<void, Error, { id: string }> {
+export function useDeleteAdminBenefitDefinition(
+  opts?: UseMutationOptions<void, Error, { id: string }>
+): UseMutationResult<void, Error, { id: string }> {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id }) => deleteAdminBenefitDefinition(id),

@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Button, Input, Space } from 'antd';
 import { CheckOutlined, CloseOutlined, EditOutlined } from '@ant-design/icons';
+import { Button, Input, Space } from 'antd';
+import React, { useEffect, useState } from 'react';
 
 interface EditableCellProps {
   value: string;

@@ -1,45 +1,40 @@
+// @ts-nocheck
 /**
  * TaskSuggestionsDemo - Görev önerilerini test etmek için demo component
- * 
+ *
  * Bu component, Task-Master AI sisteminden görev önerilerini nasıl alacağınızı
  * ve farklı kategoriler için örnekleri gösterir.
- * 
+ *
  * Özellikler:
  * - AI destekli görev önerileri
  * - Kategori bazlı öneriler
  * - RKSV uyumlu template'ler
  * - Interactive demo
- * 
+ *
  * @author Frontend Team
  * @version 1.0.0
  * @since 2025-01-10
  */
 
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-} from 'react-native';
-import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
-import useTaskMaster from '../hooks/useTaskMaster';
-import useEnhancedTaskMaster from '../hooks/useEnhancedTaskMaster';
-import { TaskCategory, TaskPriority } from '../services/TaskMasterService';
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+
 import LanguageSwitcher from './LanguageSwitcher';
 import TurkishTaskDemo from './TurkishTaskDemo';
+import useEnhancedTaskMaster from '../hooks/useEnhancedTaskMaster';
+import useTaskMaster from '../hooks/useTaskMaster';
+import { TaskCategory, TaskPriority } from '../services/TaskMasterService';
 import { WaveLoader } from '../src/components/common/WaveLoader';
 
 const TaskSuggestionsDemo: React.FC = () => {
   const { t } = useTranslation();
   const { generateTaskSuggestions } = useTaskMaster();
   const { getAISuggestions } = useEnhancedTaskMaster();
-  
+
   const [loading, setLoading] = useState<boolean>(false);
-  const [suggestions, setSuggestions] = useState<{[key: string]: string[]}>({});
+  const [suggestions, setSuggestions] = useState<{ [key: string]: string[] }>({});
   const [selectedCategory, setSelectedCategory] = useState<TaskCategory | null>(null);
 
   /**
@@ -51,64 +46,64 @@ const TaskSuggestionsDemo: React.FC = () => {
       name: 'RKSV Compliance',
       icon: 'shield-checkmark-outline',
       color: '#FF5722',
-      description: 'Österreichische Kassensicherheitsverordnung'
+      description: 'Österreichische Kassensicherheitsverordnung',
     },
     {
       key: TaskCategory.TSE_INTEGRATION,
       name: 'TSE Integration',
-      icon: 'hardware-chip-outline', 
+      icon: 'hardware-chip-outline',
       color: '#FF9800',
-      description: 'Technische Sicherheitseinrichtung'
+      description: 'Technische Sicherheitseinrichtung',
     },
     {
       key: TaskCategory.INVOICE_MANAGEMENT,
       name: 'Invoice Management',
       icon: 'document-text-outline',
       color: '#2196F3',
-      description: 'Rechnungsmanagement und PDF Export'
+      description: 'Rechnungsmanagement und PDF Export',
     },
     {
       key: TaskCategory.PAYMENT_PROCESSING,
       name: 'Payment Processing',
       icon: 'card-outline',
       color: '#4CAF50',
-      description: 'Zahlungsabwicklung und Gateway'
+      description: 'Zahlungsabwicklung und Gateway',
     },
     {
       key: TaskCategory.AUDIT_LOGGING,
       name: 'Audit Logging',
       icon: 'list-outline',
       color: '#9C27B0',
-      description: 'Prüfprotokolle und Compliance'
+      description: 'Prüfprotokolle und Compliance',
     },
     {
       key: TaskCategory.DATA_PROTECTION,
       name: 'Data Protection',
       icon: 'lock-closed-outline',
       color: '#F44336',
-      description: 'DSGVO und Datenschutz'
+      description: 'DSGVO und Datenschutz',
     },
     {
       key: TaskCategory.DEVELOPMENT,
       name: 'Development',
       icon: 'code-outline',
       color: '#00BCD4',
-      description: 'Software Entwicklung'
+      description: 'Software Entwicklung',
     },
     {
       key: TaskCategory.BUG_FIX,
       name: 'Bug Fix',
       icon: 'bug-outline',
       color: '#FFC107',
-      description: 'Fehlerbehebung und Patches'
+      description: 'Fehlerbehebung und Patches',
     },
     {
       key: TaskCategory.TESTING,
       name: 'Testing',
       icon: 'checkmark-circle-outline',
       color: '#795548',
-      description: 'Tests und Qualitätskontrolle'
-    }
+      description: 'Tests und Qualitätskontrolle',
+    },
   ];
 
   /**
@@ -118,14 +113,13 @@ const TaskSuggestionsDemo: React.FC = () => {
     try {
       setLoading(true);
       setSelectedCategory(category);
-      
+
       const basicSuggestions = await generateTaskSuggestions(category);
-      
-      setSuggestions(prev => ({
+
+      setSuggestions((prev) => ({
         ...prev,
-        [`basic_${category}`]: basicSuggestions
+        [`basic_${category}`]: basicSuggestions,
       }));
-      
     } catch (error) {
       console.error('Basic suggestions failed:', error);
       Alert.alert('Fehler', 'Grundlegende Vorschläge konnten nicht geladen werden');
@@ -141,14 +135,13 @@ const TaskSuggestionsDemo: React.FC = () => {
     try {
       setLoading(true);
       setSelectedCategory(category);
-      
+
       const aiSuggestions = await getAISuggestions(category);
-      
-      setSuggestions(prev => ({
+
+      setSuggestions((prev) => ({
         ...prev,
-        [`enhanced_${category}`]: aiSuggestions
+        [`enhanced_${category}`]: aiSuggestions,
       }));
-      
     } catch (error) {
       console.error('Enhanced suggestions failed:', error);
       Alert.alert('Fehler', 'AI-Vorschläge konnten nicht geladen werden');
@@ -164,50 +157,48 @@ const TaskSuggestionsDemo: React.FC = () => {
     const examples = {
       [TaskCategory.RKSV_COMPLIANCE]: [
         'TSE Signatur Kontrolü durchführen',
-        'Belege für Finanz Audit vorbereiten', 
+        'Belege für Finanz Audit vorbereiten',
         'RKSV Compliance Report erstellen',
         'Steuernummer Validierung prüfen',
-        'Tagesabschluss dokumentieren'
+        'Tagesabschluss dokumentieren',
       ],
       [TaskCategory.TSE_INTEGRATION]: [
         'TSE Gerät Verbindung testen',
         'Epson-TSE Konfiguration prüfen',
         'TSE Backup erstellen',
         'Signatur-Generator testen',
-        'Hardware-Status überwachen'
+        'Hardware-Status überwachen',
       ],
       [TaskCategory.INVOICE_MANAGEMENT]: [
         'Rechnungsvorlage aktualisieren',
         'PDF Export Funktionalität testen',
         'Mehrwertsteuer Berechnung validieren',
         'Kundendaten Template anpassen',
-        'Rechnungsnummern-Format überprüfen'
+        'Rechnungsnummern-Format überprüfen',
       ],
       [TaskCategory.PAYMENT_PROCESSING]: [
         'Kartenzahlung-Integration testen',
         'Payment Gateway Performance messen',
         'Transaktions-Logs analysieren',
         'Bargeld-Workflow optimieren',
-        'Fehlgeschlagene Zahlungen untersuchen'
-      ]
+        'Fehlgeschlagene Zahlungen untersuchen',
+      ],
     };
 
     // Örnekleri suggestions state'ine ekle
-    const newSuggestions: {[key: string]: string[]} = {};
+    const newSuggestions: { [key: string]: string[] } = {};
     Object.entries(examples).forEach(([category, items]) => {
       newSuggestions[`example_${category}`] = items;
     });
-    
-    setSuggestions(prev => ({
+
+    setSuggestions((prev) => ({
       ...prev,
-      ...newSuggestions
+      ...newSuggestions,
     }));
 
-    Alert.alert(
-      'Beispiele geladen',
-      'Vordefinierte Aufgabenvorschläge wurden geladen',
-      [{ text: 'OK' }]
-    );
+    Alert.alert('Beispiele geladen', 'Vordefinierte Aufgabenvorschläge wurden geladen', [
+      { text: 'OK' },
+    ]);
   };
 
   /**
@@ -222,21 +213,17 @@ const TaskSuggestionsDemo: React.FC = () => {
    * Öneriyi görev olarak oluştur
    */
   const createTaskFromSuggestion = (suggestion: string, category: TaskCategory) => {
-    Alert.alert(
-      'Aufgabe erstellen',
-      `Möchten Sie folgende Aufgabe erstellen?\n\n"${suggestion}"`,
-      [
-        { text: 'Abbrechen', style: 'cancel' },
-        { 
-          text: 'Erstellen', 
-          onPress: () => {
-            // Burada gerçek task oluşturma işlemi yapılabilir
-            console.log(`Creating task: ${suggestion} [${category}]`);
-            Alert.alert('Erfolg', 'Aufgabe wurde erstellt');
-          }
-        }
-      ]
-    );
+    Alert.alert('Aufgabe erstellen', `Möchten Sie folgende Aufgabe erstellen?\n\n"${suggestion}"`, [
+      { text: 'Abbrechen', style: 'cancel' },
+      {
+        text: 'Erstellen',
+        onPress: () => {
+          // Burada gerçek task oluşturma işlemi yapılabilir
+          console.log(`Creating task: ${suggestion} [${category}]`);
+          Alert.alert('Erfolg', 'Aufgabe wurde erstellt');
+        },
+      },
+    ]);
   };
 
   return (
@@ -244,9 +231,7 @@ const TaskSuggestionsDemo: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Task Suggestions Demo</Text>
-        <Text style={styles.subtitle}>
-          AI-gestützte Aufgabenvorschläge für Ihr RKSV-System
-        </Text>
+        <Text style={styles.subtitle}>AI-gestützte Aufgabenvorschläge für Ihr RKSV-System</Text>
       </View>
 
       {/* Turkish Demo Component */}
@@ -255,20 +240,18 @@ const TaskSuggestionsDemo: React.FC = () => {
       {/* Quick Actions */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Quick Actions</Text>
-        
+
         <View style={styles.actionRow}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.actionButton, { backgroundColor: '#2196F3' }]}
-            onPress={showPredefinedExamples}
-          >
+            onPress={showPredefinedExamples}>
             <Ionicons name="bulb-outline" size={20} color="white" />
             <Text style={styles.actionButtonText}>Beispiele laden</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.actionButton, { backgroundColor: '#F44336' }]}
-            onPress={clearAllSuggestions}
-          >
+            onPress={clearAllSuggestions}>
             <Ionicons name="trash-outline" size={20} color="white" />
             <Text style={styles.actionButtonText}>Alles löschen</Text>
           </TouchableOpacity>
@@ -278,26 +261,17 @@ const TaskSuggestionsDemo: React.FC = () => {
       {/* Categories Grid */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Kategorien wählen</Text>
-        
+
         <View style={styles.categoriesGrid}>
-          {categories.map(category => (
+          {categories.map((category) => (
             <View key={category.key} style={styles.categoryCard}>
               <View style={styles.categoryHeader}>
-                <View style={[
-                  styles.categoryIcon,
-                  { backgroundColor: category.color }
-                ]}>
-                  <Ionicons 
-                    name={category.icon as any} 
-                    size={24} 
-                    color="white" 
-                  />
+                <View style={[styles.categoryIcon, { backgroundColor: category.color }]}>
+                  <Ionicons name={category.icon as any} size={24} color="white" />
                 </View>
                 <View style={styles.categoryInfo}>
                   <Text style={styles.categoryName}>{category.name}</Text>
-                  <Text style={styles.categoryDescription}>
-                    {category.description}
-                  </Text>
+                  <Text style={styles.categoryDescription}>{category.description}</Text>
                 </View>
               </View>
 
@@ -305,8 +279,7 @@ const TaskSuggestionsDemo: React.FC = () => {
                 <TouchableOpacity
                   style={[styles.suggestionButton, { borderColor: category.color }]}
                   onPress={() => getBasicSuggestions(category.key)}
-                  disabled={loading}
-                >
+                  disabled={loading}>
                   <Text style={[styles.suggestionButtonText, { color: category.color }]}>
                     Basic
                   </Text>
@@ -315,11 +288,8 @@ const TaskSuggestionsDemo: React.FC = () => {
                 <TouchableOpacity
                   style={[styles.suggestionButton, { backgroundColor: category.color }]}
                   onPress={() => getEnhancedSuggestions(category.key)}
-                  disabled={loading}
-                >
-                  <Text style={[styles.suggestionButtonText, { color: 'white' }]}>
-                    AI Enhanced
-                  </Text>
+                  disabled={loading}>
+                  <Text style={[styles.suggestionButtonText, { color: 'white' }]}>AI Enhanced</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -332,10 +302,9 @@ const TaskSuggestionsDemo: React.FC = () => {
         <View style={styles.loadingContainer}>
           <WaveLoader size={32} color="#2196F3" />
           <Text style={styles.loadingText}>
-            {selectedCategory ? 
-              `${selectedCategory.replace('_', ' ')} Vorschläge werden geladen...` :
-              'Vorschläge werden geladen...'
-            }
+            {selectedCategory
+              ? `${selectedCategory.replace('_', ' ')} Vorschläge werden geladen...`
+              : 'Vorschläge werden geladen...'}
           </Text>
         </View>
       )}
@@ -344,48 +313,36 @@ const TaskSuggestionsDemo: React.FC = () => {
       {Object.keys(suggestions).length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Aufgabenvorschläge</Text>
-          
+
           {Object.entries(suggestions).map(([key, items]) => {
             const [type, category] = key.split('_');
-            const categoryInfo = categories.find(c => c.key === category);
-            
+            const categoryInfo = categories.find((c) => c.key === category);
+
             if (!categoryInfo || items.length === 0) return null;
 
             return (
               <View key={key} style={styles.suggestionGroup}>
                 <View style={styles.suggestionHeader}>
-                  <View style={[
-                    styles.suggestionIcon,
-                    { backgroundColor: categoryInfo.color }
-                  ]}>
-                    <Ionicons 
-                      name={categoryInfo.icon as any} 
-                      size={16} 
-                      color="white" 
-                    />
+                  <View style={[styles.suggestionIcon, { backgroundColor: categoryInfo.color }]}>
+                    <Ionicons name={categoryInfo.icon as any} size={16} color="white" />
                   </View>
                   <Text style={styles.suggestionTitle}>
                     {categoryInfo.name} ({type.toUpperCase()})
                   </Text>
-                  <Text style={styles.suggestionCount}>
-                    {items.length} Vorschläge
-                  </Text>
+                  <Text style={styles.suggestionCount}>{items.length} Vorschläge</Text>
                 </View>
 
                 {items.map((suggestion, index) => (
                   <TouchableOpacity
                     key={index}
                     style={styles.suggestionItem}
-                    onPress={() => createTaskFromSuggestion(suggestion, categoryInfo.key)}
-                  >
+                    onPress={() => {
+                      createTaskFromSuggestion(suggestion, categoryInfo.key);
+                    }}>
                     <Text style={styles.suggestionText}>
                       {index + 1}. {suggestion}
                     </Text>
-                    <Ionicons 
-                      name="add-circle-outline" 
-                      size={20} 
-                      color={categoryInfo.color} 
-                    />
+                    <Ionicons name="add-circle-outline" size={20} color={categoryInfo.color} />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -397,33 +354,37 @@ const TaskSuggestionsDemo: React.FC = () => {
       {/* Usage Guide */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Verwendungsanleitung</Text>
-        
+
         <View style={styles.guideCard}>
           <Text style={styles.guideTitle}>🎯 Wie verwenden Sie Aufgabenvorschläge?</Text>
-          
+
           <Text style={styles.guideStep}>
-            1️⃣ <Text style={styles.guideBold}>Kategorie wählen:</Text> Klicken Sie auf eine der 9 Kategorien oben
-          </Text>
-          
-          <Text style={styles.guideStep}>
-            2️⃣ <Text style={styles.guideBold}>Vorschlag-Typ wählen:</Text>{'\n'}
-            • <Text style={styles.guideHighlight}>Basic:</Text> Vordefinierte Templates{'\n'}
-            • <Text style={styles.guideHighlight}>AI Enhanced:</Text> KI-generierte Vorschläge
-          </Text>
-          
-          <Text style={styles.guideStep}>
-            3️⃣ <Text style={styles.guideBold}>Vorschlag auswählen:</Text> Tippen Sie auf einen Vorschlag um eine Aufgabe zu erstellen
+            1️⃣ <Text style={styles.guideBold}>Kategorie wählen:</Text> Klicken Sie auf eine der 9
+            Kategorien oben
           </Text>
 
           <Text style={styles.guideStep}>
-            4️⃣ <Text style={styles.guideBold}>Anpassen:</Text> Passen Sie die Aufgabe nach Ihren Bedürfnissen an
+            2️⃣ <Text style={styles.guideBold}>Vorschlag-Typ wählen:</Text>
+            {'\n'}• <Text style={styles.guideHighlight}>Basic:</Text> Vordefinierte Templates{'\n'}•{' '}
+            <Text style={styles.guideHighlight}>AI Enhanced:</Text> KI-generierte Vorschläge
+          </Text>
+
+          <Text style={styles.guideStep}>
+            3️⃣ <Text style={styles.guideBold}>Vorschlag auswählen:</Text> Tippen Sie auf einen
+            Vorschlag um eine Aufgabe zu erstellen
+          </Text>
+
+          <Text style={styles.guideStep}>
+            4️⃣ <Text style={styles.guideBold}>Anpassen:</Text> Passen Sie die Aufgabe nach Ihren
+            Bedürfnissen an
           </Text>
         </View>
 
         <View style={styles.tipCard}>
           <Ionicons name="lightbulb-outline" size={20} color="#FF9800" />
           <Text style={styles.tipText}>
-            <Text style={styles.tipBold}>Pro-Tipp:</Text> Beginnen Sie mit "Beispiele laden" um vordefinierte RKSV-Templates zu sehen!
+            <Text style={styles.tipBold}>Pro-Tipp:</Text> Beginnen Sie mit "Beispiele laden" um
+            vordefinierte RKSV-Templates zu sehen!
           </Text>
         </View>
       </View>

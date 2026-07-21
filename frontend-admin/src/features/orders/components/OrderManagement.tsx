@@ -1,23 +1,14 @@
 'use client';
 
 import { ShoppingOutlined } from '@ant-design/icons';
-import {
-  Badge,
-  Button,
-  Card,
-  Col,
-  Modal,
-  Row,
-  Space,
-  Statistic,
-  Tag,
-} from 'antd';
+import { Badge, Button, Card, Col, Modal, Row, Space, Statistic, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useEffect, useState } from 'react';
-import type { OnlineOrder } from '@/features/orders/api/onlineOrdersApi';
-import { OrderDetail } from '@/features/orders/components/OrderDetail';
+
 import { VirtualTable } from '@/components/VirtualTable';
 import { adminTablePaginationDefaults } from '@/components/ui/adminTablePagination';
+import type { OnlineOrder } from '@/features/orders/api/onlineOrdersApi';
+import { OrderDetail } from '@/features/orders/components/OrderDetail';
 import {
   getNextOnlineOrderStatus,
   useOnlineOrderAnalytics,
@@ -29,13 +20,7 @@ import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 
-const STATUS_FILTER_BADGES = [
-  'pending',
-  'accepted',
-  'preparing',
-  'ready',
-  'completed',
-] as const;
+const STATUS_FILTER_BADGES = ['pending', 'accepted', 'preparing', 'ready', 'completed'] as const;
 
 const KNOWN_STATUSES = new Set([
   'pending',
@@ -98,7 +83,7 @@ export function OrderManagement() {
   const money = (value: number) => {
     try {
       return new Intl.NumberFormat(formatLocale, { style: 'currency', currency: 'EUR' }).format(
-        value,
+        value
       );
     } catch {
       return `€ ${value.toFixed(2)}`;
@@ -145,7 +130,7 @@ export function OrderManagement() {
         },
         onError: (err) =>
           openApiErrorMessage(message.open, t, err, { logContext: 'OrderManagement.updateStatus' }),
-      },
+      }
     );
   };
 
@@ -170,16 +155,13 @@ export function OrderManagement() {
       title: t('onlineOrders.columns.status'),
       dataIndex: 'orderStatus',
       key: 'orderStatus',
-      render: (status: string) => (
-        <Tag color={statusColor(status)}>{statusLabel(status)}</Tag>
-      ),
+      render: (status: string) => <Tag color={statusColor(status)}>{statusLabel(status)}</Tag>,
     },
     {
       title: t('onlineOrders.columns.createdAt'),
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (date: string) =>
-        date ? new Date(date).toLocaleString(formatLocale) : '—',
+      render: (date: string) => (date ? new Date(date).toLocaleString(formatLocale) : '—'),
     },
     {
       title: t('onlineOrders.columns.actions'),
@@ -266,9 +248,7 @@ export function OrderManagement() {
               <Badge key={status} count={badgeCounts[status] ?? 0} overflowCount={99}>
                 <Button
                   type={statusFilter === status ? 'primary' : 'default'}
-                  onClick={() =>
-                    setStatusFilter((prev) => (prev === status ? undefined : status))
-                  }
+                  onClick={() => setStatusFilter((prev) => (prev === status ? undefined : status))}
                 >
                   {t(`onlineOrders.status.${status}`)}
                 </Button>
@@ -305,10 +285,7 @@ export function OrderManagement() {
         destroyOnHidden
       >
         {selectedOrder ? (
-          <OrderDetail
-            order={selectedOrder}
-            onOrderUpdated={(order) => setSelectedOrder(order)}
-          />
+          <OrderDetail order={selectedOrder} onOrderUpdated={(order) => setSelectedOrder(order)} />
         ) : null}
       </Modal>
     </Space>

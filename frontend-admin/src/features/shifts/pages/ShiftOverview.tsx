@@ -1,27 +1,27 @@
 'use client';
 
-import React, { useCallback, useMemo, useState } from 'react';
+import { ReloadOutlined } from '@ant-design/icons';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Card, DatePicker, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { ReloadOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import Link from 'next/link';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useCallback, useMemo, useState } from 'react';
 
 import { CashRegisterSelector } from '@/components/CashRegisterSelector';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { invalidateShiftRelatedQueries } from '@/features/shifts/api/shiftQueryInvalidation';
 import {
-  forceCloseAdminShiftRegister,
   type AdminDailyClosingOverviewRow,
   type AdminShiftRow,
+  forceCloseAdminShiftRegister,
 } from '@/features/shifts/api/shiftsOverview';
 import { useAdminShiftOverview } from '@/features/shifts/hooks/useAdminShiftOverview';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { usePermissions } from '@/hooks/usePermissions';
 import { FORMAT_EMPTY_DISPLAY, formatCurrency, formatDateTime, useI18n } from '@/i18n';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { AppPermissions, PERMISSIONS } from '@/shared/auth/permissions';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
 
@@ -64,7 +64,7 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
       toUtc: toDay ? toDay.add(1, 'day').startOf('day').toISOString() : undefined,
       limit: 200,
     }),
-    [fromDay, registerId, toDay],
+    [fromDay, registerId, toDay]
   );
 
   const overviewQ = useAdminShiftOverview(queryParams);
@@ -85,7 +85,7 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
         getUserFacingApiErrorMessage(t, err, {
           logContext: 'ShiftOverview.forceClose',
           fallbackKey: 'shifts:actions.forceCloseFailed',
-        }),
+        })
       );
     },
   });
@@ -100,12 +100,12 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
         onOk: () => forceCloseMutation.mutateAsync(row),
       });
     },
-    [forceCloseMutation, modal, ts],
+    [forceCloseMutation, modal, ts]
   );
 
   const activeShifts = overviewQ.data?.activeShifts ?? [];
   const staleActiveShifts = activeShifts.filter(
-    (row) => (row.openDurationHours ?? 0) >= STALE_SHIFT_WARNING_HOURS,
+    (row) => (row.openDurationHours ?? 0) >= STALE_SHIFT_WARNING_HOURS
   );
 
   const formatDt = useCallback(
@@ -113,12 +113,12 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
       value
         ? formatDateTime(value, formatLocale, { dateStyle: 'short', timeStyle: 'short' })
         : FORMAT_EMPTY_DISPLAY,
-    [formatLocale],
+    [formatLocale]
   );
 
   const formatMoney = useCallback(
     (value?: number | null) => formatCurrency(value ?? 0, formatLocale),
-    [formatLocale],
+    [formatLocale]
   );
 
   const renderStatus = useCallback(
@@ -133,7 +133,7 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
         ) : null}
       </Space>
     ),
-    [ts],
+    [ts]
   );
 
   const shiftColumns: ColumnsType<AdminShiftRow> = useMemo(() => {
@@ -191,7 +191,8 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
         dataIndex: 'cashCount',
         key: 'cashCount',
         align: 'right',
-        render: (v: number | null | undefined) => (v == null ? FORMAT_EMPTY_DISPLAY : formatMoney(v)),
+        render: (v: number | null | undefined) =>
+          v == null ? FORMAT_EMPTY_DISPLAY : formatMoney(v),
       },
       {
         title: ts('columns.difference'),
@@ -255,9 +256,9 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
         align: 'right',
         render: formatMoney,
       },
-      ...shiftColumns.slice(4, - (canForceClose ? 1 : 0)),
+      ...shiftColumns.slice(4, -(canForceClose ? 1 : 0)),
     ],
-    [canForceClose, formatMoney, shiftColumns, ts],
+    [canForceClose, formatMoney, shiftColumns, ts]
   );
 
   const closingColumns: ColumnsType<AdminDailyClosingOverviewRow> = useMemo(
@@ -294,7 +295,8 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
         dataIndex: 'cashCount',
         key: 'cashCount',
         align: 'right',
-        render: (v: number | null | undefined) => (v == null ? FORMAT_EMPTY_DISPLAY : formatMoney(v)),
+        render: (v: number | null | undefined) =>
+          v == null ? FORMAT_EMPTY_DISPLAY : formatMoney(v),
       },
       {
         title: ts('columns.difference'),
@@ -335,7 +337,7 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
         ),
       },
     ],
-    [formatDt, formatMoney, ts],
+    [formatDt, formatMoney, ts]
   );
 
   const loadError = overviewQ.isError
@@ -379,12 +381,7 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
               style={{ minWidth: 220 }}
             />
             <span>{ts('filters.from')}</span>
-            <DatePicker
-              value={fromDay}
-              onChange={setFromDay}
-              format="DD.MM.YYYY"
-              allowClear
-            />
+            <DatePicker value={fromDay} onChange={setFromDay} format="DD.MM.YYYY" allowClear />
             <span>{ts('filters.to')}</span>
             <DatePicker value={toDay} onChange={setToDay} format="DD.MM.YYYY" allowClear />
             <Button
@@ -398,7 +395,9 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
             <Link href="/kassenverwaltung">{t('nav.kassenverwaltung')}</Link>
           </Space>
 
-          {loadError ? <Alert type="error" showIcon title={loadError} style={{ marginBottom: 16 }} /> : null}
+          {loadError ? (
+            <Alert type="error" showIcon title={loadError} style={{ marginBottom: 16 }} />
+          ) : null}
 
           {staleActiveShifts.length > 0 ? (
             <Alert

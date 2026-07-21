@@ -1,25 +1,38 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
-import { useCallback, useMemo, useState } from 'react';
-import { Modal, Alert, Button, DatePicker, Form, Input, Space, Switch, Table, Tabs, Tag, Typography } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
+import {
+  Alert,
+  Button,
+  DatePicker,
+  Form,
+  Input,
+  Modal,
+  Space,
+  Switch,
+  Table,
+  Tabs,
+  Tag,
+  Typography,
+} from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { type Dayjs } from 'dayjs';
-import { FormSkeleton } from '@/components/Skeleton';
+import { useCallback, useMemo, useState } from 'react';
 
+import { FormSkeleton } from '@/components/Skeleton';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import type { PermissionCatalogItemDto } from '@/features/users/api/roleManagementApi';
 import type { UserPermissionOverrideDto } from '@/features/users/api/userPermissionOverridesApi';
+import { usePermissionsCatalog } from '@/features/users/hooks/usePermissionsCatalog';
 import {
   useUserEffectivePermissions,
   useUserPermissionOverrideMutations,
 } from '@/features/users/hooks/useUserEffectivePermissions';
-import { usePermissionsCatalog } from '@/features/users/hooks/usePermissionsCatalog';
 import { permissionCatalogGroupToSlug } from '@/features/users/utils/permissionCatalogGroup';
 import { resolvePermissionDisplayLabel } from '@/features/users/utils/permissionDisplayLabel';
-import { formatDate } from '@/i18n/formatting';
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
+import { formatDate } from '@/i18n/formatting';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 import { permissionImplied } from '@/shared/auth/permissionImplication';
 
@@ -36,7 +49,9 @@ type OverrideFormValues = {
   expiresAt?: Dayjs | null;
 };
 
-function groupCatalogByGroup(catalog: PermissionCatalogItemDto[]): Map<string, PermissionCatalogItemDto[]> {
+function groupCatalogByGroup(
+  catalog: PermissionCatalogItemDto[]
+): Map<string, PermissionCatalogItemDto[]> {
   const map = new Map<string, PermissionCatalogItemDto[]>();
   for (const item of catalog) {
     const slug = permissionCatalogGroupToSlug(item.group?.trim() || 'Other');
@@ -62,7 +77,10 @@ function UserPermissionsModalContent({
 
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<string>();
-  const [pendingToggle, setPendingToggle] = useState<{ permission: string; isGranted: boolean } | null>(null);
+  const [pendingToggle, setPendingToggle] = useState<{
+    permission: string;
+    isGranted: boolean;
+  } | null>(null);
 
   const targetIsSuperAdmin = isSuperAdmin(userRole ?? undefined);
   const readOnly = targetIsSuperAdmin;
@@ -92,12 +110,12 @@ function UserPermissionsModalContent({
         message.error(t('users.permissionsModal.updateError'));
       }
     },
-    [deleteMutation, t],
+    [deleteMutation, t]
   );
 
   const groupedCatalog = useMemo(
     () => groupCatalogByGroup(catalogQuery.data ?? []),
-    [catalogQuery.data],
+    [catalogQuery.data]
   );
 
   const tabItems = useMemo(() => {
@@ -160,7 +178,7 @@ function UserPermissionsModalContent({
         message.error(t('users.permissionsModal.updateError'));
       }
     },
-    [pendingToggle, upsertMutation, t, message],
+    [pendingToggle, upsertMutation, t, message]
   );
 
   const loading = effectiveQuery.isLoading || catalogQuery.isLoading;
@@ -254,7 +272,9 @@ function PermissionOverrideConfirmModal({
     void form
       .validateFields()
       .then((values) => onConfirm(values))
-      .catch(() => { /* validation shown on form */ });
+      .catch(() => {
+        /* validation shown on form */
+      });
   };
 
   const handleCancel = () => {
@@ -415,7 +435,9 @@ function OverridesTable({ overrides, readOnly, loading, onDelete, t }: Overrides
       dataIndex: 'isGranted',
       width: 120,
       render: (granted: boolean) =>
-        granted ? t('users.permissionsModal.statusGranted') : t('users.permissionsModal.statusDenied'),
+        granted
+          ? t('users.permissionsModal.statusGranted')
+          : t('users.permissionsModal.statusDenied'),
     },
     {
       title: t('users.permissionsModal.reasonLabel'),

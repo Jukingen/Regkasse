@@ -9,7 +9,7 @@ import { formatUserDate, formatUserDateTime, formatUserTime } from '../utils/dat
 export function formatDateTime(
   input: string | number | Date | null | undefined,
   _formatLocale: string,
-  options?: { includeSeconds?: boolean },
+  options?: { includeSeconds?: boolean }
 ): string {
   if (input == null || input === '') return '';
   return formatUserDateTime(input, { includeSeconds: options?.includeSeconds ?? true });
@@ -17,7 +17,7 @@ export function formatDateTime(
 
 export function formatDate(
   input: string | number | Date | null | undefined,
-  _formatLocale?: string,
+  _formatLocale?: string
 ): string {
   if (input == null || input === '') return '';
   return formatUserDate(input);
@@ -26,12 +26,16 @@ export function formatDate(
 export function formatTime(
   input: string | number | Date | null | undefined,
   _formatLocale: string,
-  options?: { includeSeconds?: boolean },
+  options?: { includeSeconds?: boolean }
 ): string {
   if (input == null || input === '') return '';
   return formatUserTime(input, { includeSeconds: options?.includeSeconds });
 }
 
-export function formatNumber(value: number, formatLocale: string, options?: Intl.NumberFormatOptions): string {
+export function formatNumber(
+  value: number,
+  formatLocale: string,
+  options?: Intl.NumberFormatOptions
+): string {
   return new Intl.NumberFormat(formatLocale, options).format(value);
 }

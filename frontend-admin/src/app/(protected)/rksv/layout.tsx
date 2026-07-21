@@ -7,5 +7,5 @@ import React, { ReactNode } from 'react';
  * Do not add a separate SuperAdmin-only gate here — it hid the shell on deny and blocked Manager.
  */
 export default function RksvLayout({ children }: { children: ReactNode }) {
-    return <>{children}</>;
+  return <>{children}</>;
 }

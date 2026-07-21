@@ -1,11 +1,16 @@
-import type { BackupRecoverabilitySummaryResponseDto } from '@/api/generated/model';
-import type { BackupRunResponseDto } from '@/api/generated/model';
-import type { RestoreVerificationRunResponseDto } from '@/api/generated/model';
+import type {
+  BackupRecoverabilitySummaryResponseDto,
+  BackupRunResponseDto,
+  RestoreVerificationRunResponseDto,
+} from '@/api/generated/model';
 import {
   mapBackupRunToMetricStatus,
   mapRestoreDrillToMetricStatus,
 } from '@/features/backup-dr/logic/backupMonitoringMetrics';
-import type { BackupDashboardHistoryPointDto, BackupDashboardStatsResponseDto } from '@/features/backup/logic/backupDashboardStatsApi';
+import type {
+  BackupDashboardHistoryPointDto,
+  BackupDashboardStatsResponseDto,
+} from '@/features/backup/logic/backupDashboardStatsApi';
 import { formatUserMonthDay } from '@/lib/dateFormatter';
 
 export interface BackupHistoryChartRow {
@@ -19,7 +24,7 @@ export interface BackupHistoryChartRow {
 
 export function mapDashboardHistoryToChartRows(
   points: BackupDashboardHistoryPointDto[] | null | undefined,
-  formatLocale: string,
+  formatLocale: string
 ): BackupHistoryChartRow[] {
   return (points ?? []).map((p) => ({
     key: p.runId,
@@ -36,19 +41,20 @@ function formatChartDate(iso: string, _formatLocale: string): string {
 }
 
 export function statsToRecoverabilitySummary(
-  stats: BackupDashboardStatsResponseDto,
+  stats: BackupDashboardStatsResponseDto
 ): BackupRecoverabilitySummaryResponseDto {
   return {
     lastSuccessfulBackupAt:
       stats.lastSuccessfulBackupAtUtc ?? stats.lastVerifiedBackupAtUtc ?? undefined,
     lastSuccessfulRestoreProofAt: stats.lastSuccessfulRestoreDrillAtUtc ?? undefined,
     lastSuccessfulArtifactVerificationAt: stats.lastVerifiedBackupAtUtc ?? undefined,
-    latestRestoreRunStatus: stats.latestRestoreDrillStatus as BackupRecoverabilitySummaryResponseDto['latestRestoreRunStatus'],
+    latestRestoreRunStatus:
+      stats.latestRestoreDrillStatus as BackupRecoverabilitySummaryResponseDto['latestRestoreRunStatus'],
   };
 }
 
 export function buildSyntheticLatestRun(
-  stats: BackupDashboardStatsResponseDto,
+  stats: BackupDashboardStatsResponseDto
 ): BackupRunResponseDto | undefined {
   if (!stats.lastBackupRunId && stats.lastBackupAtUtc == null) return undefined;
   return {
@@ -60,7 +66,7 @@ export function buildSyntheticLatestRun(
 }
 
 export function buildSyntheticRestoreLatest(
-  stats: BackupDashboardStatsResponseDto,
+  stats: BackupDashboardStatsResponseDto
 ): RestoreVerificationRunResponseDto | undefined {
   if (stats.latestRestoreDrillStatus === undefined) return undefined;
   return {

@@ -1,30 +1,30 @@
-"use client";
+'use client';
 
 /**
  * Yedek kanıt basamakları: teknik başarı ile gerçek pg_dump / tatbikat kanıtını ayırır.
  */
+import { Alert, Card, Space, Tag, Typography } from 'antd';
+import React from 'react';
 
-import React from "react";
-import { Alert, Card, Space, Tag, Typography } from "antd";
-import { SimpleList as List } from "@/components/ui/SimpleList";
+import { SimpleList as List } from '@/components/ui/SimpleList';
 import type {
   BackupEvidenceLadderModel,
   EvidenceStepStatus,
-} from "@/features/backup-dr/logic/backupDrEvidenceLadder";
-import { mapEvidenceHeadlineToneToAlertType } from "@/features/backup-dr/logic/backupDrGlancePresentation";
+} from '@/features/backup-dr/logic/backupDrEvidenceLadder';
+import { mapEvidenceHeadlineToneToAlertType } from '@/features/backup-dr/logic/backupDrGlancePresentation';
 
 function tagColor(s: EvidenceStepStatus): string {
   switch (s) {
-    case "pass":
-      return "success";
-    case "fail":
-      return "error";
-    case "limited":
-      return "warning";
-    case "na":
-      return "default";
+    case 'pass':
+      return 'success';
+    case 'fail':
+      return 'error';
+    case 'limited':
+      return 'warning';
+    case 'na':
+      return 'default';
     default:
-      return "processing";
+      return 'processing';
   }
 }
 
@@ -34,20 +34,12 @@ export interface BackupEvidenceLadderContentProps {
 }
 
 /** Kart çerçevesi olmadan — birleşik kanıt yüzeyinde yeniden kullanım. */
-export function BackupEvidenceLadderContent({
-  model,
-  t,
-}: BackupEvidenceLadderContentProps) {
+export function BackupEvidenceLadderContent({ model, t }: BackupEvidenceLadderContentProps) {
   const alertType = mapEvidenceHeadlineToneToAlertType(model.headlineTone);
 
   return (
     <>
-      <Alert
-        type={alertType}
-        showIcon
-        style={{ marginBottom: 16 }}
-        title={t(model.headlineKey)}
-      />
+      <Alert type={alertType} showIcon style={{ marginBottom: 16 }} title={t(model.headlineKey)} />
       <List
         size="small"
         dataSource={model.steps}
@@ -59,10 +51,7 @@ export function BackupEvidenceLadderContent({
               </Tag>
               <div>
                 <Typography.Text strong>{t(item.labelKey)}</Typography.Text>
-                <Typography.Paragraph
-                  type="secondary"
-                  style={{ marginBottom: 0, marginTop: 4 }}
-                >
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 0, marginTop: 4 }}>
                   {t(item.detailKey)}
                 </Typography.Paragraph>
               </div>
@@ -71,7 +60,7 @@ export function BackupEvidenceLadderContent({
         )}
       />
       <Typography.Title level={5} style={{ marginTop: 16, marginBottom: 8 }}>
-        {t("backupDr.evidence.backendGapsTitle")}
+        {t('backupDr.evidence.backendGapsTitle')}
       </Typography.Title>
       <ul style={{ marginBottom: 8, paddingLeft: 20 }}>
         {model.backendSignalGaps.map((k) => (
@@ -80,11 +69,8 @@ export function BackupEvidenceLadderContent({
           </li>
         ))}
       </ul>
-      <Typography.Paragraph
-        type="secondary"
-        style={{ marginBottom: 0, fontSize: 12 }}
-      >
-        {t("backupDr.evidence.footer")}
+      <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
+        {t('backupDr.evidence.footer')}
       </Typography.Paragraph>
     </>
   );
@@ -95,12 +81,9 @@ export interface BackupEvidenceLadderCardProps {
   t: (k: string) => string;
 }
 
-export function BackupEvidenceLadderCard({
-  model,
-  t,
-}: BackupEvidenceLadderCardProps) {
+export function BackupEvidenceLadderCard({ model, t }: BackupEvidenceLadderCardProps) {
   return (
-    <Card title={t("backupDr.evidence.title")} size="small">
+    <Card title={t('backupDr.evidence.title')} size="small">
       <BackupEvidenceLadderContent model={model} t={t} />
     </Card>
   );

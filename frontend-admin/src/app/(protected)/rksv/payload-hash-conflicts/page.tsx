@@ -1,40 +1,54 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
+import { DownloadOutlined, ReloadOutlined, SafetyOutlined, ToolOutlined } from '@ant-design/icons';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import {
+  Alert,
+  Button,
+  Card,
+  Col,
+  InputNumber,
+  Row,
+  Select,
+  Space,
+  Statistic,
+  Table,
+  Tabs,
+  Tag,
+  Typography,
+} from 'antd';
+import dayjs from 'dayjs';
 /**
  * Payload-Hash conflicts — mixed surface: Tabs separate read-only investigation (analyze, export, tables)
  * from the Eingriff (repair dry-run / apply). Permissions unchanged; repair requires elevated rights on the API.
  */
-
 import React, { useCallback, useMemo, useState } from 'react';
-import { Card, Table, Tag, Statistic, Row, Col, Alert, Button, Space, Select, InputNumber, Typography, Tabs } from 'antd';
-import { ReloadOutlined, DownloadOutlined, ToolOutlined, SafetyOutlined } from '@ant-design/icons';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import dayjs from 'dayjs';
-import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { PageSkeleton } from '@/components/Skeleton';
-import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { useI18n } from '@/i18n';
-import { formatDateTime } from '@/i18n/formatting';
-import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
-import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
+
+import {
+  downloadOfflinePayloadHashExportCsv,
+  getAdminCashRegisters,
+} from '@/api/admin-rksv/client';
+import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import {
   postApiAdminOfflinePayloadHashAnalyze,
   postApiAdminOfflinePayloadHashRepair,
 } from '@/api/generated/admin/admin';
-import {
-  getAdminCashRegisters,
-  downloadOfflinePayloadHashExportCsv,
-} from '@/api/admin-rksv/client';
-import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import type {
   OfflinePayloadHashAnalyzeResult,
   OfflinePayloadHashRepairResult,
   PayloadHashConflictGroup,
   PayloadHashRepairableItem,
 } from '@/api/generated/model';
+import { PageSkeleton } from '@/components/Skeleton';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { useI18n } from '@/i18n';
+import { formatDateTime } from '@/i18n/formatting';
+import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
+import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 
 function severityColor(severity: string): string {
   if (severity === 'High') return 'red';
@@ -50,7 +64,9 @@ export default function PayloadHashConflictsPage() {
   const canRepair = hasPermission(user, PERMISSIONS.SYSTEM_CRITICAL);
   const [maxRows, setMaxRows] = useState(10_000);
   const [cashRegisterId, setCashRegisterId] = useState<string | undefined>();
-  const [lastRepairResult, setLastRepairResult] = useState<OfflinePayloadHashRepairResult | null>(null);
+  const [lastRepairResult, setLastRepairResult] = useState<OfflinePayloadHashRepairResult | null>(
+    null
+  );
   const [activeTab, setActiveTab] = useState('investigation');
 
   const analyzeParams = useMemo(
@@ -99,7 +115,8 @@ export default function PayloadHashConflictsPage() {
       setLastRepairResult(res);
       message.success(t('rksvHub.payloadHashConflictsPage.dryRunDone'));
     },
-    onError: (e: Error) => message.error(e?.message ?? t('rksvHub.payloadHashConflictsPage.dryRunFailed')),
+    onError: (e: Error) =>
+      message.error(e?.message ?? t('rksvHub.payloadHashConflictsPage.dryRunFailed')),
   });
 
   const applyMutation = useMutation({
@@ -111,7 +128,9 @@ export default function PayloadHashConflictsPage() {
       }),
     onSuccess: async (res) => {
       setLastRepairResult(res);
-      message.success(t('rksvHub.payloadHashConflictsPage.repairApplied', { updated: res.updated ?? 0 }));
+      message.success(
+        t('rksvHub.payloadHashConflictsPage.repairApplied', { updated: res.updated ?? 0 })
+      );
       await refetch();
     },
     onError: (e: unknown) =>
@@ -128,7 +147,11 @@ export default function PayloadHashConflictsPage() {
         dataIndex: 'cashRegisterId',
         key: 'cashRegisterId',
         width: 120,
-        render: (v: string) => <Typography.Text code copyable>{v?.slice(0, 8)}…</Typography.Text>,
+        render: (v: string) => (
+          <Typography.Text code copyable>
+            {v?.slice(0, 8)}…
+          </Typography.Text>
+        ),
       },
       {
         title: t('rksvHub.payloadHashConflictsPage.colCanonicalHash'),
@@ -136,7 +159,11 @@ export default function PayloadHashConflictsPage() {
         key: 'canonicalHash',
         width: 120,
         ellipsis: true,
-        render: (v: string) => <Typography.Text code copyable>{v?.slice(0, 12)}…</Typography.Text>,
+        render: (v: string) => (
+          <Typography.Text code copyable>
+            {v?.slice(0, 12)}…
+          </Typography.Text>
+        ),
       },
       {
         title: t('rksvHub.payloadHashConflictsPage.colSkipReason'),
@@ -184,7 +211,7 @@ export default function PayloadHashConflictsPage() {
           ),
       },
     ],
-    [t],
+    [t]
   );
 
   const repairableColumns = useMemo(
@@ -194,7 +221,11 @@ export default function PayloadHashConflictsPage() {
         dataIndex: 'cashRegisterId',
         key: 'cashRegisterId',
         width: 120,
-        render: (v: string) => <Typography.Text code copyable>{v?.slice(0, 8)}…</Typography.Text>,
+        render: (v: string) => (
+          <Typography.Text code copyable>
+            {v?.slice(0, 8)}…
+          </Typography.Text>
+        ),
       },
       {
         title: t('rksvHub.payloadHashConflictsPage.colCanonicalHash'),
@@ -202,14 +233,22 @@ export default function PayloadHashConflictsPage() {
         key: 'canonicalHash',
         width: 120,
         ellipsis: true,
-        render: (v: string) => <Typography.Text code copyable>{v?.slice(0, 12)}…</Typography.Text>,
+        render: (v: string) => (
+          <Typography.Text code copyable>
+            {v?.slice(0, 12)}…
+          </Typography.Text>
+        ),
       },
       {
         title: t('rksvHub.payloadHashConflictsPage.colRowId'),
         dataIndex: 'rowId',
         key: 'rowId',
         width: 120,
-        render: (v: string) => <Typography.Text code copyable>{v}</Typography.Text>,
+        render: (v: string) => (
+          <Typography.Text code copyable>
+            {v}
+          </Typography.Text>
+        ),
       },
       {
         title: t('rksvHub.payloadHashConflictsPage.colCreatedAtUtc'),
@@ -219,7 +258,7 @@ export default function PayloadHashConflictsPage() {
         render: (v: string | null) => (v ? formatDateTime(v, '') : '—'),
       },
     ],
-    [t],
+    [t]
   );
 
   const confirmApplyRepair = useCallback(() => {
@@ -272,7 +311,9 @@ export default function PayloadHashConflictsPage() {
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space wrap size="middle">
           <Space>
-            <Typography.Text strong>{t('rksvHub.payloadHashConflictsPage.maxRowsLabel')}</Typography.Text>
+            <Typography.Text strong>
+              {t('rksvHub.payloadHashConflictsPage.maxRowsLabel')}
+            </Typography.Text>
             <InputNumber
               min={1}
               max={100_000}
@@ -281,7 +322,9 @@ export default function PayloadHashConflictsPage() {
             />
           </Space>
           <Space>
-            <Typography.Text strong>{t('rksvHub.payloadHashConflictsPage.registerLabel')}</Typography.Text>
+            <Typography.Text strong>
+              {t('rksvHub.payloadHashConflictsPage.registerLabel')}
+            </Typography.Text>
             <Select
               placeholder={t('rksvHub.payloadHashConflictsPage.registerPlaceholderAll')}
               allowClear
@@ -292,7 +335,9 @@ export default function PayloadHashConflictsPage() {
                 .filter((r) => typeof r.id === 'string' && r.id.length > 0)
                 .map((r) => ({
                   value: r.id as string,
-                  label: r.registerNumber ? `${r.registerNumber} (${(r.id as string).slice(0, 8)}…)` : (r.id as string),
+                  label: r.registerNumber
+                    ? `${r.registerNumber} (${(r.id as string).slice(0, 8)}…)`
+                    : (r.id as string),
                 }))}
             />
           </Space>
@@ -330,12 +375,18 @@ export default function PayloadHashConflictsPage() {
                     <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                       <Col xs={24} sm={12} md={6}>
                         <Card size="small">
-                          <Statistic title={t('rksvHub.payloadHashConflictsPage.statScanned')} value={result.scanned} />
+                          <Statistic
+                            title={t('rksvHub.payloadHashConflictsPage.statScanned')}
+                            value={result.scanned}
+                          />
                         </Card>
                       </Col>
                       <Col xs={24} sm={12} md={6}>
                         <Card size="small">
-                          <Statistic title={t('rksvHub.payloadHashConflictsPage.statMismatch')} value={result.runtimeMismatchCount} />
+                          <Statistic
+                            title={t('rksvHub.payloadHashConflictsPage.statMismatch')}
+                            value={result.runtimeMismatchCount}
+                          />
                         </Card>
                       </Col>
                       <Col xs={24} sm={12} md={6}>
@@ -368,11 +419,15 @@ export default function PayloadHashConflictsPage() {
 
                     <Card
                       size="small"
-                      title={t('rksvHub.payloadHashConflictsPage.conflictGroupsTitle', { count: conflictGroups.length })}
+                      title={t('rksvHub.payloadHashConflictsPage.conflictGroupsTitle', {
+                        count: conflictGroups.length,
+                      })}
                       style={{ marginBottom: 16 }}
                     >
                       {conflictGroups.length === 0 ? (
-                        <Typography.Text type="secondary">{t('rksvHub.payloadHashConflictsPage.noConflictsInScope')}</Typography.Text>
+                        <Typography.Text type="secondary">
+                          {t('rksvHub.payloadHashConflictsPage.noConflictsInScope')}
+                        </Typography.Text>
                       ) : (
                         <Table
                           columns={conflictColumns}
@@ -380,7 +435,8 @@ export default function PayloadHashConflictsPage() {
                           rowKey={(r) => `${r.cashRegisterId}-${r.canonicalHash}-${r.skipReason}`}
                           pagination={{
                             pageSize: 20,
-                            showTotal: (tot) => t('rksvHub.payloadHashConflictsPage.paginationTotal', { total: tot }),
+                            showTotal: (tot) =>
+                              t('rksvHub.payloadHashConflictsPage.paginationTotal', { total: tot }),
                           }}
                           size="small"
                           scroll={{ x: 900 }}
@@ -388,9 +444,16 @@ export default function PayloadHashConflictsPage() {
                       )}
                     </Card>
 
-                    <Card size="small" title={t('rksvHub.payloadHashConflictsPage.repairableTitle', { count: repairableItems.length })}>
+                    <Card
+                      size="small"
+                      title={t('rksvHub.payloadHashConflictsPage.repairableTitle', {
+                        count: repairableItems.length,
+                      })}
+                    >
                       {repairableItems.length === 0 ? (
-                        <Typography.Text type="secondary">{t('rksvHub.payloadHashConflictsPage.noRepairableInScope')}</Typography.Text>
+                        <Typography.Text type="secondary">
+                          {t('rksvHub.payloadHashConflictsPage.noRepairableInScope')}
+                        </Typography.Text>
                       ) : (
                         <Table
                           columns={repairableColumns}
@@ -398,7 +461,8 @@ export default function PayloadHashConflictsPage() {
                           rowKey="rowId"
                           pagination={{
                             pageSize: 20,
-                            showTotal: (tot) => t('rksvHub.payloadHashConflictsPage.paginationTotal', { total: tot }),
+                            showTotal: (tot) =>
+                              t('rksvHub.payloadHashConflictsPage.paginationTotal', { total: tot }),
                           }}
                           size="small"
                           scroll={{ x: 600 }}
@@ -415,7 +479,9 @@ export default function PayloadHashConflictsPage() {
                     />
                   </>
                 ) : (
-                  <Typography.Text type="secondary">{t('rksvHub.payloadHashConflictsPage.runAnalysisHint')}</Typography.Text>
+                  <Typography.Text type="secondary">
+                    {t('rksvHub.payloadHashConflictsPage.runAnalysisHint')}
+                  </Typography.Text>
                 )}
               </>
             ),
@@ -472,10 +538,16 @@ export default function PayloadHashConflictsPage() {
                   >
                     <Row gutter={[16, 16]}>
                       <Col xs={24} sm={12} md={4}>
-                        <Statistic title={t('rksvHub.payloadHashConflictsPage.resultScanned')} value={lastRepairResult.scanned} />
+                        <Statistic
+                          title={t('rksvHub.payloadHashConflictsPage.resultScanned')}
+                          value={lastRepairResult.scanned}
+                        />
                       </Col>
                       <Col xs={24} sm={12} md={4}>
-                        <Statistic title={t('rksvHub.payloadHashConflictsPage.resultUpdated')} value={lastRepairResult.updated} />
+                        <Statistic
+                          title={t('rksvHub.payloadHashConflictsPage.resultUpdated')}
+                          value={lastRepairResult.updated}
+                        />
                       </Col>
                       <Col xs={24} sm={12} md={4}>
                         <Statistic

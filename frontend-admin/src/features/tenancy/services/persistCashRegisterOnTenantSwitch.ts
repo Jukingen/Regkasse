@@ -8,24 +8,24 @@ import { pickCashRegisterOnTenantSwitch } from '@/features/cash-registers/utils/
  * otherwise clears the stale selection so the user picks manually.
  */
 export async function persistCashRegisterOnTenantSwitch(tenantId: string): Promise<string | null> {
-    const normalizedTenantId = tenantId.trim();
-    if (!normalizedTenantId) {
-        writeQuickCashRegisterId(null, normalizedTenantId);
-        return null;
-    }
+  const normalizedTenantId = tenantId.trim();
+  if (!normalizedTenantId) {
+    writeQuickCashRegisterId(null, normalizedTenantId);
+    return null;
+  }
 
-    try {
-        const page = await listAdminCashRegisters({
-            tenantId: normalizedTenantId,
-            pageSize: 100,
-            excludeStatus: 'Decommissioned',
-        });
-        const active = page.items.filter((row) => row.isActive !== false);
-        const registerId = pickCashRegisterOnTenantSwitch(active, normalizedTenantId);
-        writeQuickCashRegisterId(registerId, normalizedTenantId);
-        return registerId;
-    } catch {
-        writeQuickCashRegisterId(null, normalizedTenantId);
-        return null;
-    }
+  try {
+    const page = await listAdminCashRegisters({
+      tenantId: normalizedTenantId,
+      pageSize: 100,
+      excludeStatus: 'Decommissioned',
+    });
+    const active = page.items.filter((row) => row.isActive !== false);
+    const registerId = pickCashRegisterOnTenantSwitch(active, normalizedTenantId);
+    writeQuickCashRegisterId(registerId, normalizedTenantId);
+    return registerId;
+  } catch {
+    writeQuickCashRegisterId(null, normalizedTenantId);
+    return null;
+  }
 }

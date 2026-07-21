@@ -1,24 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import {
-  Avatar,
-  Button,
-  Card,
-  Descriptions,
-  Divider,
-  Form,
-  Input,
-  Space,
-} from 'antd';
 import { IdcardOutlined, MailOutlined, UserOutlined } from '@ant-design/icons';
+import { Avatar, Button, Card, Descriptions, Divider, Form, Input, Space } from 'antd';
+import { useEffect, useMemo, useState } from 'react';
 
-import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { FormSkeleton } from '@/components/Skeleton';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { ProfileUsernamePolicyAlert } from '@/features/user/components/ProfileUsernamePolicyAlert';
 import { SelfServiceUsernameModal } from '@/features/user/components/SelfServiceUsernameModal';
-import { useUpdateProfile, useProfile } from '@/features/user/hooks/useProfile';
+import { useProfile, useUpdateProfile } from '@/features/user/hooks/useProfile';
 import { useUsernameChangePolicy } from '@/features/user/hooks/useUsernameChangePolicy';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
@@ -54,7 +45,7 @@ export default function ProfilePage() {
 
   const breadcrumbs = useMemo(
     () => [adminOverviewCrumb(t), { title: t('profile.pageTitle') }],
-    [t],
+    [t]
   );
 
   useEffect(() => {
@@ -122,18 +113,14 @@ export default function ProfilePage() {
               <MailOutlined /> {displayValue(profile.email, t('profile.notProvided'))}
             </p>
             <p style={{ margin: '4px 0 0' }}>
-              <IdcardOutlined />{' '}
-              {displayValue(profile.employeeNumber, t('profile.notProvided'))}
+              <IdcardOutlined /> {displayValue(profile.employeeNumber, t('profile.notProvided'))}
             </p>
           </div>
         </div>
 
         <Divider />
 
-        <ProfileUsernamePolicyAlert
-          policy={usernamePolicy}
-          isLoading={isUsernamePolicyLoading}
-        />
+        <ProfileUsernamePolicyAlert policy={usernamePolicy} isLoading={isUsernamePolicyLoading} />
 
         <Descriptions bordered column={{ xs: 1, sm: 2 }} style={{ marginBottom: 24 }}>
           <Descriptions.Item label={t('profile.fields.userName')}>

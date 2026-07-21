@@ -5,11 +5,10 @@
 export {
   getApiAdminBackupSettings as getBackupScheduleSettings,
   getGetApiAdminBackupSettingsQueryKey as getBackupScheduleSettingsQueryKey,
-  putApiAdminBackupSettings as putBackupScheduleSettings,
   getApiAdminBackupScheduleStatus as getBackupScheduleStatus,
   getGetApiAdminBackupScheduleStatusQueryKey as getBackupScheduleStatusQueryKey,
+  putApiAdminBackupSettings as putBackupScheduleSettings,
 } from '@/api/generated/admin/admin';
-
 export type {
   BackupScheduleConfigurationDto,
   BackupScheduleFrequency,

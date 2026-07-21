@@ -15,9 +15,13 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return v != null && typeof v === 'object' && !Array.isArray(v);
 }
 
-function pickString(r: Record<string, unknown>, camel: string, pascal: string): string | null | undefined {
+function pickString(
+  r: Record<string, unknown>,
+  camel: string,
+  pascal: string
+): string | null | undefined {
   const v = r[camel] ?? r[pascal];
-  if (v == null) return v as undefined;
+  if (v == null) return v;
   const s = String(v).trim();
   return s.length ? s : null;
 }

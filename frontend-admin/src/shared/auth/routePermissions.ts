@@ -8,7 +8,7 @@
  * matching backend multi-`[HasPermission]` attributes.
  * Fail-closed: no permissions in token → deny unless migration flag is set.
  */
-import { AppPermissions, PERMISSIONS, ANY_AUTHENTICATED_PERMISSION } from './permissions';
+import { ANY_AUTHENTICATED_PERMISSION, AppPermissions, PERMISSIONS } from './permissions';
 
 /**
  * Routes whose permission arrays are AND (backend requires all).
@@ -190,6 +190,8 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
     PERMISSIONS.SYSTEM_CRITICAL,
   ],
   '/admin/digital/requests': [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/feedback': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/monitoring': [PERMISSIONS.SYSTEM_CRITICAL],
   '/receipt-templates': PERMISSIONS.RECEIPT_TEMPLATE_VIEW,
   '/receipt-generate': PERMISSIONS.RECEIPT_TEMPLATE_VIEW,
   '/customers': PERMISSIONS.CUSTOMER_VIEW,
@@ -265,9 +267,7 @@ const TENANT_SCOPED_LEAF_PERMISSIONS: Record<string, string | string[]> = {
 };
 
 /** Match `/tenant/{id}/{leaf}` Manager deep links; otherwise undefined. */
-export function getTenantScopedRoutePermission(
-  pathname: string,
-): string | string[] | undefined {
+export function getTenantScopedRoutePermission(pathname: string): string | string[] | undefined {
   const parts = (pathname.replace(/\/$/, '') || '/').split('/').filter(Boolean);
   if (parts.length !== 3 || parts[0] !== 'tenant') return undefined;
   const leaf = parts[2];
@@ -305,7 +305,7 @@ export function pathRequiresAllPermissions(pathname: string): boolean {
 export function permissionsSatisfyRoute(
   pathname: string,
   permissions: string[],
-  required: string | string[],
+  required: string | string[]
 ): boolean {
   const arr = Array.isArray(required) ? required : [required];
   if (arr.length === 0) return permissions.length > 0;

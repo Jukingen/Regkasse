@@ -4,7 +4,13 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, StyleSheet, Text, Vibration, View } from 'react-native';
 
-import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
+import {
+  SoftColors,
+  SoftRadius,
+  SoftShadows,
+  SoftSpacing,
+  SoftTypography,
+} from '../constants/SoftTheme';
 import { useAuth } from '../contexts/AuthContext';
 import { useCashRegister } from '../hooks/useCashRegister';
 import { useAdminPermissions } from '../utils/adminPermissions';
@@ -50,7 +56,7 @@ function resolveAvatarInitials(
     lastName?: string;
     email?: string;
   },
-  displayName: string,
+  displayName: string
 ): string {
   const first = user.firstName?.trim()?.charAt(0);
   const last = user.lastName?.trim()?.charAt(0);
@@ -94,12 +100,9 @@ export function UserMenu() {
   const displayName = useMemo(() => (user ? resolveDisplayName(user) : ''), [user]);
   const initials = useMemo(
     () => (user ? resolveAvatarInitials(user, displayName || '?') : '?'),
-    [user, displayName],
+    [user, displayName]
   );
-  const roleLabel = useMemo(
-    () => (user ? resolveRoleLabel(user.role, user.roles) : ''),
-    [user],
-  );
+  const roleLabel = useMemo(() => (user ? resolveRoleLabel(user.role, user.roles) : ''), [user]);
 
   const canAccessAdmin =
     adminPermissions.canViewLicense ||
@@ -111,7 +114,9 @@ export function UserMenu() {
 
   if (!user) return null;
 
-  const closeMenu = () => setShowMenu(false);
+  const closeMenu = () => {
+    setShowMenu(false);
+  };
 
   const handleLogout = () => {
     Vibration.vibrate(10);
@@ -135,12 +140,13 @@ export function UserMenu() {
     <View style={styles.container}>
       <Pressable
         style={({ pressed }) => [styles.userButton, pressed && styles.userButtonPressed]}
-        onPress={() => setShowMenu(true)}
+        onPress={() => {
+          setShowMenu(true);
+        }}
         accessibilityRole="button"
         accessibilityLabel={`${displayName}, ${roleLabel}`}
         accessibilityHint={t('auth:logout')}
-        hitSlop={6}
-      >
+        hitSlop={6}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{initials}</Text>
         </View>
@@ -155,12 +161,7 @@ export function UserMenu() {
         <Ionicons name="chevron-down" size={14} color={SoftColors.textSecondary} />
       </Pressable>
 
-      <Modal
-        transparent
-        visible={showMenu}
-        animationType="fade"
-        onRequestClose={closeMenu}
-      >
+      <Modal transparent visible={showMenu} animationType="fade" onRequestClose={closeMenu}>
         <View style={styles.overlay}>
           <Pressable
             style={styles.overlayDismiss}
@@ -193,8 +194,7 @@ export function UserMenu() {
             {register ? (
               <View
                 style={styles.registerContainer}
-                accessibilityLabel={`Kasse ${register.name}, ID ${register.id}`}
-              >
+                accessibilityLabel={`Kasse ${register.name}, ID ${register.id}`}>
                 <View style={styles.registerIcon}>
                   <Ionicons name="storefront-outline" size={18} color={SoftColors.accentDark} />
                 </View>
@@ -215,8 +215,7 @@ export function UserMenu() {
               style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
               onPress={handleOpenSettings}
               accessibilityRole="button"
-              accessibilityLabel={t('navigation:settings')}
-            >
+              accessibilityLabel={t('navigation:settings')}>
               <Ionicons name="settings-outline" size={18} color={SoftColors.textPrimary} />
               <Text style={styles.menuItemText}>{t('navigation:settings')}</Text>
             </Pressable>
@@ -226,9 +225,12 @@ export function UserMenu() {
                 style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
                 onPress={handleOpenAdmin}
                 accessibilityRole="button"
-                accessibilityLabel="Admin"
-              >
-                <Ionicons name="shield-checkmark-outline" size={18} color={SoftColors.textPrimary} />
+                accessibilityLabel="Admin">
+                <Ionicons
+                  name="shield-checkmark-outline"
+                  size={18}
+                  color={SoftColors.textPrimary}
+                />
                 <Text style={styles.menuItemText}>Admin</Text>
               </Pressable>
             ) : null}
@@ -239,8 +241,7 @@ export function UserMenu() {
               style={({ pressed }) => [styles.menuItem, pressed && styles.logoutItemPressed]}
               onPress={handleLogout}
               accessibilityRole="button"
-              accessibilityLabel={t('auth:logout')}
-            >
+              accessibilityLabel={t('auth:logout')}>
               <Ionicons name="log-out-outline" size={18} color={SoftColors.error} />
               <Text style={styles.logoutText}>{t('auth:logout')}</Text>
             </Pressable>
@@ -306,7 +307,7 @@ const styles = StyleSheet.create({
     paddingRight: SoftSpacing.md,
   },
   overlayDismiss: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   dropdown: {
     backgroundColor: SoftColors.bgCard,

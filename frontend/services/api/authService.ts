@@ -1,8 +1,9 @@
 import axios from 'axios';
+
 import { apiClient } from './config';
+import { buildLoginPayload, type LoginRequest } from './loginPayload';
 import { normalizeLoginError } from '../../features/auth/authErrors';
 import { sessionManager } from '../session/sessionManager';
-import { buildLoginPayload, type LoginRequest } from './loginPayload';
 
 export { buildLoginPayload, type LoginRequest } from './loginPayload';
 const isDev = __DEV__;
@@ -56,7 +57,9 @@ export interface User {
 }
 
 /** Prefer backend `userName`; keep both fields in sync for POS UI. */
-export function normalizeAuthUser<T extends { username?: string; userName?: string }>(raw: T): T & {
+export function normalizeAuthUser<T extends { username?: string; userName?: string }>(
+  raw: T
+): T & {
   username?: string;
   userName?: string;
 } {
@@ -120,7 +123,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
       return null;
     }
     if (isDev) {
-        console.log('Retrieved user from storage');
+      console.log('Retrieved user from storage');
     }
     return user;
   } catch (error) {
@@ -148,7 +151,9 @@ export const validateToken = async (): Promise<User | null> => {
 
   if (currentTime - lastCallTime < DEBOUNCE_MS) {
     if (isDev) {
-      console.log(`🚫 validateToken debouncing: ${currentTime - lastCallTime}ms < ${DEBOUNCE_MS}ms`);
+      console.log(
+        `🚫 validateToken debouncing: ${currentTime - lastCallTime}ms < ${DEBOUNCE_MS}ms`
+      );
     }
     return null;
   }
@@ -162,7 +167,7 @@ export const validateToken = async (): Promise<User | null> => {
       console.log('🔐 Backend token validation başlatılıyor...');
     }
 
-    // Token'ı AsyncStorage'dan al
+    // Token'ı SecureStore'dan al
     const token = await sessionManager.getAccessToken();
     if (!token) {
       if (isDev) {
@@ -172,7 +177,7 @@ export const validateToken = async (): Promise<User | null> => {
     }
 
     if (isDev) {
-      console.log('🔑 Token bulundu, backend\'e gönderiliyor...');
+      console.log("🔑 Token bulundu, backend'e gönderiliyor...");
     }
 
     // Backend'den kullanıcı bilgisini al
@@ -185,7 +190,7 @@ export const validateToken = async (): Promise<User | null> => {
 
       const normalized = normalizeAuthUser(response);
 
-      // AsyncStorage'daki user bilgisini güncelle
+      // SecureStore'daki user bilgisini güncelle
       await sessionManager.persistSession({ token, user: normalized });
 
       return normalized;
@@ -225,7 +230,7 @@ export const validateToken = async (): Promise<User | null> => {
 // Token'ı yenile
 export const refreshToken = async (): Promise<string | null> => {
   try {
-    return sessionManager.refreshAccessToken((refreshToken) =>
+    return await sessionManager.refreshAccessToken((refreshToken) =>
       apiClient.post<{ token: string }>('/auth/refresh', { refreshToken })
     );
   } catch (error) {
@@ -239,7 +244,7 @@ export const refreshToken = async (): Promise<string | null> => {
 
 export async function changeMyPassword(
   currentPassword: string,
-  newPassword: string,
+  newPassword: string
 ): Promise<void> {
   await apiClient.put('/UserManagement/me/password', {
     currentPassword,
@@ -253,4 +258,4 @@ export const loginWithDemoUser = async (): Promise<LoginResponse> => {
     throw new Error('Demo login is disabled outside development.');
   }
   return await login(buildLoginPayload('cashier@demo.com', 'Cashier123!', 'pos'));
-}; 
+};

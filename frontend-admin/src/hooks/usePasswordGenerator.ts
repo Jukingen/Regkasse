@@ -8,7 +8,7 @@ import { generateCompliantPassword } from '@/features/super-admin/lib/generateCo
  * Secure password generator for Super Admin onboarding / credential handoff.
  */
 export function usePasswordGenerator() {
-    const generatePassword = useCallback((length = 16) => generateCompliantPassword(length), []);
+  const generatePassword = useCallback((length = 16) => generateCompliantPassword(length), []);
 
-    return { generatePassword };
+  return { generatePassword };
 }

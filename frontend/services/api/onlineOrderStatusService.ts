@@ -1,5 +1,5 @@
-import { apiClient } from './config';
 import { API_PATHS } from './apiPaths';
+import { apiClient } from './config';
 
 export type PublicOnlineOrderStatus = {
   orderNumber: string;

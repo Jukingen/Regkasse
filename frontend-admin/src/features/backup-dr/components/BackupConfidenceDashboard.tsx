@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
 /**
  * Geriye dönük: testler ve tek kompozit; üretim panosu aynı parçaları BackupDrDashboard içinde sıralar.
  */
+import { Space } from 'antd';
+import React from 'react';
 
-import React from "react";
-import { Space } from "antd";
 import type {
   BackupRecoverabilitySummaryResponseDto,
   BackupRunResponseDto,
   RestoreVerificationRunResponseDto,
-} from "@/api/generated/model";
-import type { DrProofPresentationModel } from "@/features/backup-dr/logic/drProofLevelPresentation";
-import { BackupDrDecisionStrip } from "@/features/backup-dr/components/BackupDrDecisionStrip";
-import { BackupDrProofSummaryLayers } from "@/features/backup-dr/components/BackupDrProofSummaryLayers";
-import { BackupDrRecentEvidenceGrid } from "@/features/backup-dr/components/BackupDrRecentEvidenceGrid";
+} from '@/api/generated/model';
+import { BackupDrDecisionStrip } from '@/features/backup-dr/components/BackupDrDecisionStrip';
+import { BackupDrProofSummaryLayers } from '@/features/backup-dr/components/BackupDrProofSummaryLayers';
+import { BackupDrRecentEvidenceGrid } from '@/features/backup-dr/components/BackupDrRecentEvidenceGrid';
+import type { DrProofPresentationModel } from '@/features/backup-dr/logic/drProofLevelPresentation';
 
 export interface BackupConfidenceDashboardProps {
   model: DrProofPresentationModel;
@@ -37,11 +37,11 @@ export function BackupConfidenceDashboard({
   recoverability,
   restoreLatest,
   latestRun,
-  backupStatusLabel = () => "—",
-  restoreStatusLabel = () => "—",
+  backupStatusLabel = () => '—',
+  restoreStatusLabel = () => '—',
 }: BackupConfidenceDashboardProps) {
   return (
-    <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
+    <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
       <BackupDrDecisionStrip model={model} t={t} />
       <BackupDrProofSummaryLayers model={model} t={t} />
       <BackupDrRecentEvidenceGrid

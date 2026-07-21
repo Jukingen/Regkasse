@@ -1,8 +1,9 @@
 // Bu ekran, kasiyerin tek tuşla gün sonu (Tagesende) raporu almasını ve eski raporları görmesini sağlar. Rol bazlı erişim uygulanır.
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert } from 'react-native';
-import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert } from 'react-native';
+
+import { useAuth } from '../../contexts/AuthContext';
 
 // Örnek rapor tipi
 interface DailyReport {
@@ -81,17 +82,29 @@ const ReportsScreen = () => {
       {item.downloadLinks && (
         <View style={styles.downloadRow}>
           {item.downloadLinks.csv && (
-            <TouchableOpacity style={styles.downloadBtn} onPress={() => Alert.alert(t('csvDownload'))}>
+            <TouchableOpacity
+              style={styles.downloadBtn}
+              onPress={() => {
+                Alert.alert(t('csvDownload'));
+              }}>
               <Text style={styles.downloadText}>{t('csv')}</Text>
             </TouchableOpacity>
           )}
           {item.downloadLinks.pdf && (
-            <TouchableOpacity style={styles.downloadBtn} onPress={() => Alert.alert(t('pdfDownload'))}>
+            <TouchableOpacity
+              style={styles.downloadBtn}
+              onPress={() => {
+                Alert.alert(t('pdfDownload'));
+              }}>
               <Text style={styles.downloadText}>{t('pdf')}</Text>
             </TouchableOpacity>
           )}
           {item.downloadLinks.json && (
-            <TouchableOpacity style={styles.downloadBtn} onPress={() => Alert.alert(t('jsonDownload'))}>
+            <TouchableOpacity
+              style={styles.downloadBtn}
+              onPress={() => {
+                Alert.alert(t('jsonDownload'));
+              }}>
               <Text style={styles.downloadText}>{t('json')}</Text>
             </TouchableOpacity>
           )}
@@ -114,17 +127,13 @@ const ReportsScreen = () => {
       <Text style={styles.title}>{t('dailyClosingTitle')}</Text>
       <Text style={styles.infoMsg}>{infoMsg}</Text>
       {!isDemo && (
-        <TouchableOpacity
-          style={styles.createBtn}
-          onPress={handleCreateReport}
-          disabled={creating}
-        >
+        <TouchableOpacity style={styles.createBtn} onPress={handleCreateReport} disabled={creating}>
           <Text style={styles.createBtnText}>{creating ? t('creating') : t('createBtn')}</Text>
         </TouchableOpacity>
       )}
       <FlatList
         data={reports}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id}
         renderItem={renderReport}
         style={styles.list}
         refreshing={loading}
@@ -209,4 +218,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ReportsScreen; 
+export default ReportsScreen;

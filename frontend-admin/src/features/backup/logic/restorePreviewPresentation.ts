@@ -3,11 +3,10 @@
  * Row counts are live/source estimates for tables present in the dump TOC —
  * custom-format dumps do not embed per-table row counts without a restore.
  */
+import type { BackupVerificationReport } from '@/features/backup/logic/backupVerificationReportApi';
+import { getBackupVerificationRowDiff } from '@/features/backup/logic/backupVerificationReportPresentation';
 
-import type { BackupVerificationReport } from "@/features/backup/logic/backupVerificationReportApi";
-import { getBackupVerificationRowDiff } from "@/features/backup/logic/backupVerificationReportPresentation";
-
-export type RestorePreviewChangeKind = "inDump" | "missingFromDump" | "mismatch" | "aligned";
+export type RestorePreviewChangeKind = 'inDump' | 'missingFromDump' | 'mismatch' | 'aligned';
 
 export type RestorePreviewChangeRow = {
   key: string;
@@ -32,16 +31,16 @@ export type RestorePreviewViewModel = {
 function changeKindFor(
   presentInDump: boolean,
   mismatched: boolean,
-  missingSource: boolean,
+  missingSource: boolean
 ): RestorePreviewChangeKind {
-  if (!presentInDump) return "missingFromDump";
-  if (missingSource) return "inDump";
-  if (mismatched) return "mismatch";
-  return "aligned";
+  if (!presentInDump) return 'missingFromDump';
+  if (missingSource) return 'inDump';
+  if (mismatched) return 'mismatch';
+  return 'aligned';
 }
 
 export function mapVerificationReportToRestorePreview(
-  report: BackupVerificationReport | null | undefined,
+  report: BackupVerificationReport | null | undefined
 ): RestorePreviewViewModel | null {
   if (!report?.backupRunId) return null;
 
@@ -50,18 +49,12 @@ export function mapVerificationReportToRestorePreview(
 
   const changes: RestorePreviewChangeRow[] = scope.map((row) => {
     const diff = getBackupVerificationRowDiff(report, row);
-    const tableLabel = row.schemaName
-      ? `${row.schemaName}.${row.tableName}`
-      : row.tableName;
+    const tableLabel = row.schemaName ? `${row.schemaName}.${row.tableName}` : row.tableName;
     return {
       key: tableLabel,
       table: tableLabel,
       count: row.rowCount,
-      changeKind: changeKindFor(
-        row.presentInLogicalDump,
-        diff.mismatched,
-        diff.missingSource,
-      ),
+      changeKind: changeKindFor(row.presentInLogicalDump, diff.mismatched, diff.missingSource),
       diff: diff.missingSource ? null : diff.diff,
     };
   });
@@ -73,7 +66,7 @@ export function mapVerificationReportToRestorePreview(
     tables: scope.length,
     records,
     sizeBytes: report.totalSizeBytes ?? 0,
-    sizeFormatted: report.totalSizeFormatted || "—",
+    sizeFormatted: report.totalSizeFormatted || '—',
     logicalDumpAnalyzed: report.logicalDumpAnalyzed,
     analysisMessage: report.logicalDumpAnalysisMessage,
     changes,

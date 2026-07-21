@@ -1,18 +1,22 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
+
 import { useI18n } from '@/i18n';
 import {
+  type FiscalExportProfileBackendRow,
+  type FiscalReportResolvedText,
+  type LegalExportCompletenessIssueText,
   formalReportBackendFieldTooltip,
   joinFormalReportRemediationHints,
   resolveFormalReportContentFromDualFields,
   resolveFormalReportExportProfileRow,
   resolveFormalReportLegalExportIssueMessage,
-  type FiscalExportProfileBackendRow,
-  type FiscalReportResolvedText,
-  type LegalExportCompletenessIssueText,
 } from '@/shared/reporting/formalReportContentResolver';
-import { preferredReportContentLanguage, type ReportContentLanguage } from '@/shared/reporting/reportContentLanguagePolicy';
+import {
+  type ReportContentLanguage,
+  preferredReportContentLanguage,
+} from '@/shared/reporting/reportContentLanguagePolicy';
 
 /**
  * Binds `TextLocale` from `useI18n` to formal report content resolution (`ReportContentLanguage`: de | en only).
@@ -23,34 +27,35 @@ export function useFiscalReportText() {
 
   const reportContentLanguage = useMemo(
     (): ReportContentLanguage => preferredReportContentLanguage(textLocale),
-    [textLocale],
+    [textLocale]
   );
 
   const fiscalTooltip = useCallback(
     (contentLang: ReportContentLanguage) => formalReportBackendFieldTooltip(t, contentLang),
-    [t],
+    [t]
   );
 
   const resolveFiscal = useCallback(
     (textDe?: string | null, textEn?: string | null): FiscalReportResolvedText | undefined =>
       resolveFormalReportContentFromDualFields(textDe, textLocale, textEn),
-    [textLocale],
+    [textLocale]
   );
 
   const joinRemediationHints = useCallback(
     (hints: readonly string[] | null | undefined, separator?: string) =>
       joinFormalReportRemediationHints(hints, textLocale, separator),
-    [textLocale],
+    [textLocale]
   );
 
   const resolveExportProfileRow = useCallback(
     (p: FiscalExportProfileBackendRow) => resolveFormalReportExportProfileRow(p, textLocale),
-    [textLocale],
+    [textLocale]
   );
 
   const resolveLegalExportCompletenessIssue = useCallback(
-    (issue: LegalExportCompletenessIssueText) => resolveFormalReportLegalExportIssueMessage(issue, textLocale),
-    [textLocale],
+    (issue: LegalExportCompletenessIssueText) =>
+      resolveFormalReportLegalExportIssueMessage(issue, textLocale),
+    [textLocale]
   );
 
   return {

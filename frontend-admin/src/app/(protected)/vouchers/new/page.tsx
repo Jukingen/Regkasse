@@ -1,20 +1,35 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
-import React, { useState } from 'react';
-import { Modal, Alert, Button, Card, DatePicker, Form, Input, InputNumber, Radio, Select, Space, Typography } from 'antd';
+import {
+  Alert,
+  Button,
+  Card,
+  DatePicker,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Radio,
+  Select,
+  Space,
+  Typography,
+} from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
+
+import { type CreateAdminVoucherResponse, useCreateAdminVoucher } from '@/api/admin/vouchers';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
-import { usePermissions } from '@/shared/auth/usePermissions';
-import { PERMISSIONS } from '@/shared/auth/permissions';
-import { useCreateAdminVoucher, type CreateAdminVoucherResponse } from '@/api/admin/vouchers';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { PERMISSIONS } from '@/shared/auth/permissions';
+import { usePermissions } from '@/shared/auth/usePermissions';
+
 dayjs.extend(utc);
 
 export default function AdminVoucherCreatePage() {
@@ -49,9 +64,7 @@ function VoucherCreateForm() {
       let expiresAtUtc: string | null | undefined;
       if (mode === 'Custom') {
         const d = values.expiresAt as Dayjs;
-        expiresAtUtc = dayjs
-          .utc(`${d.format('YYYY-MM-DD')}T23:59:59.000Z`)
-          .toISOString();
+        expiresAtUtc = dayjs.utc(`${d.format('YYYY-MM-DD')}T23:59:59.000Z`).toISOString();
       }
       const res = await createMutation.mutateAsync({
         initialAmount: Number(values.initialAmount),
@@ -94,13 +107,18 @@ function VoucherCreateForm() {
           >
             <InputNumber min={0.01} step={0.01} style={{ width: '100%', maxWidth: 320 }} />
           </Form.Item>
-          <Form.Item name="currency" label={t('vouchers.create.currency')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
-            <Select
-              options={[{ value: 'EUR', label: 'EUR' }]}
-              style={{ maxWidth: 200 }}
-            />
+          <Form.Item
+            name="currency"
+            label={t('vouchers.create.currency')}
+            rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
+          >
+            <Select options={[{ value: 'EUR', label: 'EUR' }]} style={{ maxWidth: 200 }} />
           </Form.Item>
-          <Form.Item name="expiryMode" label={t('vouchers.create.expiryMode')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
+          <Form.Item
+            name="expiryMode"
+            label={t('vouchers.create.expiryMode')}
+            rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
+          >
             <Radio.Group>
               <Radio value="DefaultOneYear">{t('vouchers.create.expiryDefaultYear')}</Radio>
               <Radio value="Custom">{t('vouchers.create.expiryCustom')}</Radio>

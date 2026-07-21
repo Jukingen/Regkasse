@@ -1,6 +1,6 @@
 import {
-  postManualRestoreRequest,
   type RestoreRequestStatusDto,
+  postManualRestoreRequest,
 } from '@/features/backup-dr/logic/manualRestoreApi';
 import { defaultValidationDatabaseName } from '@/features/backup-dr/logic/manualRestorePresentation';
 import type { RestorePointValidationResult } from '@/features/backup/logic/backupPitrApi';
@@ -8,7 +8,7 @@ import type { RestorePointValidationResult } from '@/features/backup/logic/backu
 export class PitrRestoreApprovalError extends Error {
   constructor(
     public readonly code: 'MISSING_BASE_BACKUP' | 'INVALID_VALIDATION',
-    message: string,
+    message: string
   ) {
     super(message);
     this.name = 'PitrRestoreApprovalError';
@@ -43,7 +43,10 @@ export async function triggerPitrRestoreWithApproval(params: {
 
   const backupRunId = params.validation.baseBackupId?.trim();
   if (!backupRunId) {
-    throw new PitrRestoreApprovalError('MISSING_BASE_BACKUP', 'No base backup run for this restore point.');
+    throw new PitrRestoreApprovalError(
+      'MISSING_BASE_BACKUP',
+      'No base backup run for this restore point.'
+    );
   }
 
   return postManualRestoreRequest({

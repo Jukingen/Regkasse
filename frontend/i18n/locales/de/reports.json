@@ -23,5 +23,15 @@
   "createBtn": "Tagesabschluss starten",
   "export": "Exportieren",
   "print": "Drucken",
-  "dateRange": "Datumsbereich"
+  "dateRange": "Datumsbereich",
+  "startDate": "Von",
+  "endDate": "Bis",
+  "today": "Heute",
+  "yesterday": "Gestern",
+  "lastWeek": "Letzte 7 Tage",
+  "lastMonth": "Letzte 30 Tage",
+  "searchPlaceholder": "Suchen…",
+  "advancedFilters": "Erweiterte Filter",
+  "apply": "Anwenden",
+  "reset": "Zurücksetzen"
 }

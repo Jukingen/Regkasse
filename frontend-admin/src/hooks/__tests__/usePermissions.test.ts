@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { usePermissions } from '@/hooks/usePermissions';
 import { AppPermissions, PERMISSIONS } from '@/shared/auth/permissions';
 
@@ -77,10 +78,10 @@ describe('usePermissions', () => {
     const { result } = renderHook(() => usePermissions());
 
     expect(result.current.hasAnyPermission([PERMISSIONS.REPORT_VIEW, PERMISSIONS.USER_VIEW])).toBe(
-      true,
+      true
     );
     expect(result.current.hasAllPermissions([PERMISSIONS.REPORT_VIEW, PERMISSIONS.USER_VIEW])).toBe(
-      false,
+      false
     );
   });
 

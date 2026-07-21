@@ -1,25 +1,19 @@
 /**
  * Task Suggestions Code Examples - Görev önerileri kod örnekleri
- * 
+ *
  * Bu dosya, Task-Master AI sisteminden görev önerilerini nasıl alacağınıza
  * dair pratik kod örnekleri içerir.
- * 
+ *
  * @author Frontend Team
  * @version 1.0.0
  * @since 2025-01-10
  */
 
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Alert
-} from 'react-native';
-import useTaskMaster from '../hooks/useTaskMaster';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+
 import useEnhancedTaskMaster from '../hooks/useEnhancedTaskMaster';
+import useTaskMaster from '../hooks/useTaskMaster';
 import { TaskCategory, TaskPriority } from '../services/TaskMasterService';
 
 const TaskSuggestionsCodeExamples: React.FC = () => {
@@ -31,7 +25,7 @@ const TaskSuggestionsCodeExamples: React.FC = () => {
   // ==========================================
   // 1. TEMEL GÖREV ÖNERİLERİ ALMA
   // ==========================================
-  
+
   /**
    * ÖRNEK 1: Basit görev önerileri alma
    */
@@ -39,7 +33,7 @@ const TaskSuggestionsCodeExamples: React.FC = () => {
     try {
       // RKSV kategorisi için basit öneriler al
       const rksvSuggestions = await generateTaskSuggestions(TaskCategory.RKSV_COMPLIANCE);
-      
+
       console.log('🎯 RKSV Önerileri:', rksvSuggestions);
       // Çıktı: [
       //   'TSE Signatur Kontrolü',
@@ -47,10 +41,9 @@ const TaskSuggestionsCodeExamples: React.FC = () => {
       //   'RKSV Compliance Report erstellen',
       //   'Steuernummer Validierung prüfen'
       // ]
-      
+
       setSuggestions(rksvSuggestions);
       Alert.alert('Basit Öneriler', `${rksvSuggestions.length} öneri alındı`);
-      
     } catch (error) {
       console.error('Basit öneriler hatası:', error);
     }
@@ -63,7 +56,7 @@ const TaskSuggestionsCodeExamples: React.FC = () => {
     try {
       // TSE kategorisi için AI önerileri al
       const aiSuggestions = await getAISuggestions(TaskCategory.TSE_INTEGRATION);
-      
+
       console.log('🤖 AI TSE Önerileri:', aiSuggestions);
       // Çıktı: [
       //   'Smart: TSE Health Monitoring System',
@@ -71,10 +64,9 @@ const TaskSuggestionsCodeExamples: React.FC = () => {
       //   'Predictive: TSE Failure Prevention',
       //   'Advanced: Multi-TSE Load Balancing'
       // ]
-      
+
       setSuggestions(aiSuggestions);
       Alert.alert('AI Öneriler', `${aiSuggestions.length} gelişmiş öneri alındı`);
-      
     } catch (error) {
       console.error('AI öneriler hatası:', error);
     }
@@ -89,33 +81,33 @@ const TaskSuggestionsCodeExamples: React.FC = () => {
    */
   const example3_AllCategorySuggestions = async () => {
     try {
-      const allSuggestions: {[key: string]: string[]} = {};
-      
+      const allSuggestions: { [key: string]: string[] } = {};
+
       // Tüm kategoriler için döngü
       const categories = [
         TaskCategory.RKSV_COMPLIANCE,
         TaskCategory.TSE_INTEGRATION,
         TaskCategory.INVOICE_MANAGEMENT,
         TaskCategory.PAYMENT_PROCESSING,
-        TaskCategory.AUDIT_LOGGING
+        TaskCategory.AUDIT_LOGGING,
       ];
-      
+
       for (const category of categories) {
         const categorySuggestions = await generateTaskSuggestions(category);
         allSuggestions[category] = categorySuggestions;
-        
+
         console.log(`📋 ${category}:`, categorySuggestions);
       }
-      
+
       // En çok öneri olan kategoriyi bul
-      const mostSuggestions = Object.entries(allSuggestions)
-        .sort(([,a], [,b]) => b.length - a.length)[0];
-      
+      const mostSuggestions = Object.entries(allSuggestions).sort(
+        ([, a], [, b]) => b.length - a.length
+      )[0];
+
       Alert.alert(
-        'Tüm Kategoriler', 
+        'Tüm Kategoriler',
         `En çok öneri: ${mostSuggestions[0]} (${mostSuggestions[1].length} öneri)`
       );
-      
     } catch (error) {
       console.error('Kategori önerileri hatası:', error);
     }
@@ -128,33 +120,32 @@ const TaskSuggestionsCodeExamples: React.FC = () => {
     try {
       // RKSV önerileri al
       const rksvSuggestions = await generateTaskSuggestions(TaskCategory.RKSV_COMPLIANCE);
-      
+
       // TSE önerileri al
       const tseSuggestions = await generateTaskSuggestions(TaskCategory.TSE_INTEGRATION);
-      
+
       // Günlük kontrol listesi oluştur
       const dailyChecklist = [
         ...rksvSuggestions.slice(0, 3), // İlk 3 RKSV görevi
-        ...tseSuggestions.slice(0, 2),  // İlk 2 TSE görevi
+        ...tseSuggestions.slice(0, 2), // İlk 2 TSE görevi
         'System Backup Status kontrol et',
-        'Compliance Log Review yap'
+        'Compliance Log Review yap',
       ];
-      
+
       console.log('📅 Günlük RKSV Kontrol Listesi:', dailyChecklist);
-      
+
       // Liste'yi Alert ile göster
       Alert.alert(
         'Günlük RKSV Checklist',
         dailyChecklist.map((item, index) => `${index + 1}. ${item}`).join('\n'),
         [
           { text: 'İptal', style: 'cancel' },
-          { 
-            text: 'Görev Olarak Oluştur', 
-            onPress: () => createDailyTasks(dailyChecklist)
-          }
+          {
+            text: 'Görev Olarak Oluştur',
+            onPress: () => createDailyTasks(dailyChecklist),
+          },
         ]
       );
-      
     } catch (error) {
       console.error('Günlük checklist hatası:', error);
     }
@@ -171,10 +162,10 @@ const TaskSuggestionsCodeExamples: React.FC = () => {
     try {
       // Önce öneri al
       const suggestions = await generateTaskSuggestions(TaskCategory.RKSV_COMPLIANCE);
-      
+
       if (suggestions.length > 0) {
         const selectedSuggestion = suggestions[0]; // İlk öneriyi seç
-        
+
         // Görev olarak oluştur
         const newTask = await createTask({
           title: selectedSuggestion,
@@ -182,13 +173,12 @@ const TaskSuggestionsCodeExamples: React.FC = () => {
           category: TaskCategory.RKSV_COMPLIANCE,
           priority: TaskPriority.HIGH,
           status: 'pending' as any,
-          tags: ['ai-suggestion', 'rksv', 'auto-generated']
+          tags: ['ai-suggestion', 'rksv', 'auto-generated'],
         });
-        
+
         console.log('✅ Öneri görev olarak oluşturuldu:', newTask);
         Alert.alert('Başarılı', `"${selectedSuggestion}" görevi oluşturuldu`);
       }
-      
     } catch (error) {
       console.error('Görev oluşturma hatası:', error);
     }
@@ -201,10 +191,10 @@ const TaskSuggestionsCodeExamples: React.FC = () => {
     try {
       // AI önerisi al
       const aiSuggestions = await getAISuggestions(TaskCategory.TSE_INTEGRATION);
-      
+
       if (aiSuggestions.length > 0) {
         const selectedSuggestion = aiSuggestions[0];
-        
+
         // Enhanced görev oluştur
         const enhancedTask = await createEnhancedTask({
           title: selectedSuggestion,
@@ -214,13 +204,12 @@ const TaskSuggestionsCodeExamples: React.FC = () => {
           status: 'pending' as any,
           tseRequired: true,
           dependencies: [],
-          tags: ['ai-enhanced', 'tse', 'critical']
+          tags: ['ai-enhanced', 'tse', 'critical'],
         });
-        
+
         console.log('🚀 Enhanced görev oluşturuldu:', enhancedTask);
         Alert.alert('Enhanced Task', `"${selectedSuggestion}" enhanced görev olarak oluşturuldu`);
       }
-      
     } catch (error) {
       console.error('Enhanced görev hatası:', error);
     }
@@ -236,13 +225,13 @@ const TaskSuggestionsCodeExamples: React.FC = () => {
   const createDailyTasks = async (checklist: string[]) => {
     try {
       const createdTasks = [];
-      
+
       for (const [index, taskTitle] of checklist.entries()) {
         // Kategori belirleme
         let category = TaskCategory.RKSV_COMPLIANCE;
         let priority = TaskPriority.MEDIUM;
         let tseRequired = false;
-        
+
         if (taskTitle.toLowerCase().includes('tse')) {
           category = TaskCategory.TSE_INTEGRATION;
           priority = TaskPriority.HIGH;
@@ -251,7 +240,7 @@ const TaskSuggestionsCodeExamples: React.FC = () => {
           category = TaskCategory.AUDIT_LOGGING;
           priority = TaskPriority.HIGH;
         }
-        
+
         // Görev oluştur
         const task = await createTask({
           title: `${index + 1}. ${taskTitle}`,
@@ -260,15 +249,14 @@ const TaskSuggestionsCodeExamples: React.FC = () => {
           priority,
           status: 'pending' as any,
           tseRequired,
-          tags: ['daily-checklist', 'auto-generated']
+          tags: ['daily-checklist', 'auto-generated'],
         });
-        
+
         createdTasks.push(task);
       }
-      
+
       console.log('📅 Günlük görevler oluşturuldu:', createdTasks);
       Alert.alert('Başarılı', `${createdTasks.length} günlük görev oluşturuldu`);
-      
     } catch (error) {
       console.error('Batch görev oluşturma hatası:', error);
     }
@@ -287,30 +275,29 @@ const TaskSuggestionsCodeExamples: React.FC = () => {
       const allSuggestions = await Promise.all([
         generateTaskSuggestions(TaskCategory.RKSV_COMPLIANCE),
         generateTaskSuggestions(TaskCategory.TSE_INTEGRATION),
-        generateTaskSuggestions(TaskCategory.PAYMENT_PROCESSING)
+        generateTaskSuggestions(TaskCategory.PAYMENT_PROCESSING),
       ]);
-      
+
       // Tüm önerileri birleştir
       const flatSuggestions = allSuggestions.flat();
-      
+
       // 'kontrol' kelimesi içeren önerileri filtrele
-      const controlSuggestions = flatSuggestions.filter(suggestion =>
+      const controlSuggestions = flatSuggestions.filter((suggestion) =>
         suggestion.toLowerCase().includes('kontrol')
       );
-      
+
       // 'test' kelimesi içeren önerileri filtrele
-      const testSuggestions = flatSuggestions.filter(suggestion =>
+      const testSuggestions = flatSuggestions.filter((suggestion) =>
         suggestion.toLowerCase().includes('test')
       );
-      
+
       console.log('🔍 Kontrol görevleri:', controlSuggestions);
       console.log('🔍 Test görevleri:', testSuggestions);
-      
+
       Alert.alert(
         'Filtrelenmiş Öneriler',
         `Kontrol: ${controlSuggestions.length}\nTest: ${testSuggestions.length}\nToplam: ${flatSuggestions.length}`
       );
-      
     } catch (error) {
       console.error('Filtreleme hatası:', error);
     }
@@ -328,7 +315,7 @@ const TaskSuggestionsCodeExamples: React.FC = () => {
       {/* Basic Examples */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>🎯 Temel Örnekler</Text>
-        
+
         <TouchableOpacity style={styles.exampleButton} onPress={example1_BasicSuggestions}>
           <Text style={styles.exampleButtonText}>1. Basit Görev Önerileri</Text>
         </TouchableOpacity>
@@ -345,7 +332,7 @@ const TaskSuggestionsCodeExamples: React.FC = () => {
       {/* Advanced Examples */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>🚀 Gelişmiş Örnekler</Text>
-        
+
         <TouchableOpacity style={styles.exampleButton} onPress={example4_DailyRKSVChecklist}>
           <Text style={styles.exampleButtonText}>4. Günlük RKSV Checklist</Text>
         </TouchableOpacity>
@@ -354,11 +341,15 @@ const TaskSuggestionsCodeExamples: React.FC = () => {
           <Text style={styles.exampleButtonText}>5. Öneri → Görev</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.exampleButton} onPress={example6_CreateEnhancedTaskFromSuggestion}>
+        <TouchableOpacity
+          style={styles.exampleButton}
+          onPress={example6_CreateEnhancedTaskFromSuggestion}>
           <Text style={styles.exampleButtonText}>6. Enhanced Görev Oluştur</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.exampleButton} onPress={example7_FilterAndSearchSuggestions}>
+        <TouchableOpacity
+          style={styles.exampleButton}
+          onPress={example7_FilterAndSearchSuggestions}>
           <Text style={styles.exampleButtonText}>7. Filtreleme & Arama</Text>
         </TouchableOpacity>
       </View>
@@ -380,11 +371,11 @@ const TaskSuggestionsCodeExamples: React.FC = () => {
       {/* Code Snippets */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>💻 Kod Snippet'leri</Text>
-        
+
         <View style={styles.codeBlock}>
           <Text style={styles.codeTitle}>Basit Öneri Alma:</Text>
           <Text style={styles.codeText}>
-{`const suggestions = await generateTaskSuggestions(
+            {`const suggestions = await generateTaskSuggestions(
   TaskCategory.RKSV_COMPLIANCE
 );
 console.log(suggestions);`}
@@ -394,7 +385,7 @@ console.log(suggestions);`}
         <View style={styles.codeBlock}>
           <Text style={styles.codeTitle}>AI Öneri Alma:</Text>
           <Text style={styles.codeText}>
-{`const aiSuggestions = await getAISuggestions(
+            {`const aiSuggestions = await getAISuggestions(
   TaskCategory.TSE_INTEGRATION
 );
 console.log(aiSuggestions);`}
@@ -404,7 +395,7 @@ console.log(aiSuggestions);`}
         <View style={styles.codeBlock}>
           <Text style={styles.codeTitle}>Görev Oluşturma:</Text>
           <Text style={styles.codeText}>
-{`const task = await createTask({
+            {`const task = await createTask({
   title: suggestions[0],
   category: TaskCategory.RKSV_COMPLIANCE,
   priority: TaskPriority.HIGH,

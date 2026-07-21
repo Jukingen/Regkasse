@@ -29,7 +29,9 @@ describe('isCashRegisterAssignmentRejectedByBackend', () => {
   });
 
   it('treats generic 400 as rejection for this endpoint', () => {
-    expect(isCashRegisterAssignmentRejectedByBackend({ status: 400, data: { message: 'bad' } })).toBe(true);
+    expect(
+      isCashRegisterAssignmentRejectedByBackend({ status: 400, data: { message: 'bad' } })
+    ).toBe(true);
   });
 
   it('does not treat 500 as policy rejection', () => {

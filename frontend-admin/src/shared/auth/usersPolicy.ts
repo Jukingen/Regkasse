@@ -3,22 +3,23 @@
  * Backend: user.view (list), user.manage (create/edit/deactivate/reactivate/reset), role.create (SuperAdmin only).
  */
 import { useMemo } from 'react';
-import { PERMISSIONS } from './permissions';
-import { hasPermission } from './permissions';
-import { permissionImplied } from './permissionImplication';
+
 import {
-  canViewUsers,
   canManageUsers,
+  canProvisionTenantCredentials,
+  canViewUsers,
+  isManager,
+  isSuperAdmin,
   canCreateRole as roleCanCreateRole,
   canDeleteRole as roleCanDeleteRole,
   canEditRolePermissions as roleCanEditRolePermissions,
   canResetPassword as roleCanResetPassword,
-  canProvisionTenantCredentials,
-  isManager,
-  isSuperAdmin,
 } from '@/features/auth/constants/roles';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+
+import { permissionImplied } from './permissionImplication';
 import type { UserWithPermissions } from './permissions';
+import { PERMISSIONS, hasPermission } from './permissions';
 
 export type UsersAction =
   | 'view'
@@ -52,10 +53,7 @@ export interface UsersPolicy {
 /**
  * Permission-first when JWT lists permissions; canonical Manager/SuperAdmin still grant user.view via role fallback.
  */
-function resolveCanViewUsers(
-  role: string | undefined | null,
-  permissions?: string[],
-): boolean {
+function resolveCanViewUsers(role: string | undefined | null, permissions?: string[]): boolean {
   if (permissions?.length) {
     const holder: UserWithPermissions = { permissions };
     if (hasPermission(holder, PERMISSIONS.USER_VIEW)) return true;
@@ -77,13 +75,27 @@ export function getUsersPolicy(
 
   return {
     canView: resolveCanViewUsers(role, permissions),
-    canCreate: usePerms ? hasPermission(userWithPerms, PERMISSIONS.USER_MANAGE) : canManageUsers(role),
-    canEdit: usePerms ? hasPermission(userWithPerms, PERMISSIONS.USER_MANAGE) : canManageUsers(role),
-    canDeactivate: usePerms ? hasPermission(userWithPerms, PERMISSIONS.USER_MANAGE) : canManageUsers(role),
-    canReactivate: usePerms ? hasPermission(userWithPerms, PERMISSIONS.USER_MANAGE) : canManageUsers(role),
-    canCreateRole: usePerms ? hasPermission(userWithPerms, PERMISSIONS.ROLE_MANAGE) : roleCanCreateRole(role),
-    canDeleteRole: usePerms ? hasPermission(userWithPerms, PERMISSIONS.ROLE_MANAGE) : roleCanDeleteRole(role),
-    canEditRolePermissions: usePerms ? hasPermission(userWithPerms, PERMISSIONS.ROLE_MANAGE) : roleCanEditRolePermissions(role),
+    canCreate: usePerms
+      ? hasPermission(userWithPerms, PERMISSIONS.USER_MANAGE)
+      : canManageUsers(role),
+    canEdit: usePerms
+      ? hasPermission(userWithPerms, PERMISSIONS.USER_MANAGE)
+      : canManageUsers(role),
+    canDeactivate: usePerms
+      ? hasPermission(userWithPerms, PERMISSIONS.USER_MANAGE)
+      : canManageUsers(role),
+    canReactivate: usePerms
+      ? hasPermission(userWithPerms, PERMISSIONS.USER_MANAGE)
+      : canManageUsers(role),
+    canCreateRole: usePerms
+      ? hasPermission(userWithPerms, PERMISSIONS.ROLE_MANAGE)
+      : roleCanCreateRole(role),
+    canDeleteRole: usePerms
+      ? hasPermission(userWithPerms, PERMISSIONS.ROLE_MANAGE)
+      : roleCanDeleteRole(role),
+    canEditRolePermissions: usePerms
+      ? hasPermission(userWithPerms, PERMISSIONS.ROLE_MANAGE)
+      : roleCanEditRolePermissions(role),
     canResetPassword: (targetRole: string | undefined | null) => {
       const target = targetRole ?? '';
       if (usePerms) {
@@ -149,8 +161,5 @@ export function useUsersPolicy(): UsersPolicy {
   const { user } = useAuth();
   const permissions = (user as { permissions?: string[] } | undefined)?.permissions;
   const actorRole = user?.role ?? user?.roles?.[0] ?? null;
-  return useMemo(
-    () => getUsersPolicy(actorRole, permissions),
-    [actorRole, permissions],
-  );
+  return useMemo(() => getUsersPolicy(actorRole, permissions), [actorRole, permissions]);
 }

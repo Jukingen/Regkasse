@@ -35,6 +35,7 @@ jobs:
         working-directory: frontend-admin
         run: npm ci
 
+      # Local: npm run verify:api-client | fast lint: npm run lint:api-contract (--openapi-only)
       - name: Verify OpenAPI JSON + Orval output (no drift)
         run: node scripts/verify-api-client.mjs
 

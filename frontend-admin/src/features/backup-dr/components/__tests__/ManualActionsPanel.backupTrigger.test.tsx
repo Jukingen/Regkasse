@@ -1,11 +1,11 @@
 /**
  * Manuel yedek tetikleme: admin API mutation imzası ve onay akışı.
  */
-
-import React from 'react';
 import '@testing-library/jest-dom';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import React from 'react';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+
 import { ManualActionsPanel } from '@/features/backup-dr/components/ManualActionsPanel';
 
 beforeAll(() => {
@@ -34,7 +34,7 @@ describe('ManualActionsPanel — backup trigger', () => {
         backupTrigger={{ isPending: false, mutate }}
         restoreTrigger={{ isPending: false, mutate: vi.fn() }}
         t={(k) => k}
-      />,
+      />
     );
 
     fireEvent.click(screen.getByRole('button', { name: /backupDr\.actions\.enqueueBackup/ }));
@@ -59,7 +59,7 @@ describe('ManualActionsPanel — backup trigger', () => {
         backupTrigger={{ isPending: false, mutate }}
         restoreTrigger={{ isPending: false, mutate: vi.fn() }}
         t={(k) => k}
-      />,
+      />
     );
 
     const btn = screen.getByRole('button', { name: /backupDr\.actions\.enqueueBackup/ });
@@ -86,7 +86,7 @@ describe('ManualActionsPanel — mode-aware confirmations', () => {
           cardAlert: { severity: 'warning', message: 'CARD_ALERT_MODE' },
         }}
         t={(k) => k}
-      />,
+      />
     );
 
     expect(screen.getByText('MODE_BANNER')).toBeInTheDocument();
@@ -120,7 +120,7 @@ describe('ManualActionsPanel — mode-aware confirmations', () => {
           cardAlert: null,
         }}
         t={(k) => k}
-      />,
+      />
     );
 
     fireEvent.click(screen.getByRole('button', { name: /backupDr\.actions\.enqueueRestoreDrill/ }));
@@ -145,7 +145,7 @@ describe('ManualActionsPanel — restore drill trigger', () => {
         backupTrigger={{ isPending: false, mutate: vi.fn() }}
         restoreTrigger={{ isPending: false, mutate }}
         t={(k) => k}
-      />,
+      />
     );
 
     fireEvent.click(screen.getByRole('button', { name: /backupDr\.actions\.enqueueRestoreDrill/ }));
@@ -170,7 +170,7 @@ describe('ManualActionsPanel — restore drill trigger', () => {
         backupTrigger={{ isPending: false, mutate: vi.fn() }}
         restoreTrigger={{ isPending: false, mutate }}
         t={(k) => k}
-      />,
+      />
     );
 
     const btn = screen.getByRole('button', { name: /backupDr\.actions\.enqueueRestoreDrill/ });

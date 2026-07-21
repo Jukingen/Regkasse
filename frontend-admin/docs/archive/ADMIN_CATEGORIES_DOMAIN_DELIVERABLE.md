@@ -49,17 +49,18 @@
 
 ## Files modified
 
-| File | Change |
-|------|--------|
-| `src/features/categories/hooks/useCategories.ts` | JSDoc; `invalidateList` invalidates `adminCategoriesQueryKeys.all`; added `useDetail`; `useList(options?)`, `useSearch(query, options?)`; removed duplicate `queryKey` overrides; export `categoryKeys.search`. |
-| `src/app/(protected)/categories/page.tsx` | Debounced search (400 ms) with server-side search when term non-empty; list when empty; error Alert + Retry; Empty state for table; CategoryProducts section with Alert + Retry and “Products in this category” title; `placeholderData: keepPreviousData`; table pagination `showSizeChanger: true`; action buttons `type="text"` for consistency. |
-| `docs/ADMIN_CATEGORIES_DOMAIN_DELIVERABLE.md` | New: this deliverable. |
+| File                                             | Change                                                                                                                                                                                                                                                                                                                                              |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/features/categories/hooks/useCategories.ts` | JSDoc; `invalidateList` invalidates `adminCategoriesQueryKeys.all`; added `useDetail`; `useList(options?)`, `useSearch(query, options?)`; removed duplicate `queryKey` overrides; export `categoryKeys.search`.                                                                                                                                     |
+| `src/app/(protected)/categories/page.tsx`        | Debounced search (400 ms) with server-side search when term non-empty; list when empty; error Alert + Retry; Empty state for table; CategoryProducts section with Alert + Retry and “Products in this category” title; `placeholderData: keepPreviousData`; table pagination `showSizeChanger: true`; action buttons `type="text"` for consistency. |
+| `docs/ADMIN_CATEGORIES_DOMAIN_DELIVERABLE.md`    | New: this deliverable.                                                                                                                                                                                                                                                                                                                              |
 
-**Not modified (by design)**  
-- `src/api/admin/categories.ts` – no changes; already the stable boundary.  
-- `src/features/categories/components/CategoryForm.tsx` – no changes.  
-- `src/features/categories/components/CategoryList.tsx` – presentational component; not used by the categories page (table is inlined). Kept for potential reuse.  
-- `src/features/categories/types.ts` – no changes.  
+**Not modified (by design)**
+
+- `src/api/admin/categories.ts` – no changes; already the stable boundary.
+- `src/features/categories/components/CategoryForm.tsx` – no changes.
+- `src/features/categories/components/CategoryList.tsx` – presentational component; not used by the categories page (table is inlined). Kept for potential reuse.
+- `src/features/categories/types.ts` – no changes.
 - Backend – no changes.
 
 ---

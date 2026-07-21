@@ -1,11 +1,11 @@
 /**
  * DR panosundaki pipeline sözleşmesi: geçerli sunucu projection varken uyarı yok; fallback görünür etiketlidir.
  */
-
-import React from 'react';
 import '@testing-library/jest-dom';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import React from 'react';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+
 import type { BackupPipelineSnapshotDto, BackupRunResponseDto } from '@/api/generated/model';
 import { BackupLatestRunCardPresentation } from '@/features/backup-dr/components/BackupStatusCard';
 import { SERVER_PIPELINE_PROJECTION_VERSION } from '@/features/backup-dr/logic/backupPipelineDerived';
@@ -69,12 +69,20 @@ describe('BackupLatestRunCardPresentation — dashboard pipeline projection pref
         backupStatusLabel={() => 'ok'}
         allowClientPipelineFallback
         t={(k) => k}
-      />,
+      />
     );
-    expect(screen.queryByText('backupDr.pipelineSteps.sourceNotice.clientDerived')).not.toBeInTheDocument();
-    expect(screen.queryByText('backupDr.pipelineSteps.sourceNotice.fallbackDisabled')).not.toBeInTheDocument();
-    expect(screen.getByText('backupDr.pipelineSteps.sourceBadge.serverProjection')).toBeInTheDocument();
-    expect(screen.queryByText('backupDr.pipelineSteps.sourceBadge.clientDerived')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('backupDr.pipelineSteps.sourceNotice.clientDerived')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('backupDr.pipelineSteps.sourceNotice.fallbackDisabled')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText('backupDr.pipelineSteps.sourceBadge.serverProjection')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('backupDr.pipelineSteps.sourceBadge.clientDerived')
+    ).not.toBeInTheDocument();
   });
 
   it('shows explicit notice when using client-derived steps', () => {
@@ -91,10 +99,14 @@ describe('BackupLatestRunCardPresentation — dashboard pipeline projection pref
         backupStatusLabel={() => 'ok'}
         allowClientPipelineFallback
         t={(k) => k}
-      />,
+      />
     );
-    expect(screen.getByText('backupDr.pipelineSteps.sourceNotice.clientDerived')).toBeInTheDocument();
-    expect(screen.getByText('backupDr.pipelineSteps.sourceBadge.clientDerived')).toBeInTheDocument();
+    expect(
+      screen.getByText('backupDr.pipelineSteps.sourceNotice.clientDerived')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('backupDr.pipelineSteps.sourceBadge.clientDerived')
+    ).toBeInTheDocument();
   });
 
   it('shows disabled notice and no stepper when client fallback is off and snapshot missing', () => {
@@ -111,9 +123,11 @@ describe('BackupLatestRunCardPresentation — dashboard pipeline projection pref
         backupStatusLabel={() => 'ok'}
         allowClientPipelineFallback={false}
         t={(k) => k}
-      />,
+      />
     );
-    expect(screen.getByText('backupDr.pipelineSteps.sourceNotice.fallbackDisabled')).toBeInTheDocument();
+    expect(
+      screen.getByText('backupDr.pipelineSteps.sourceNotice.fallbackDisabled')
+    ).toBeInTheDocument();
     expect(screen.getByText('backupDr.pipelineSteps.sourceBadge.noProjection')).toBeInTheDocument();
   });
 
@@ -134,9 +148,11 @@ describe('BackupLatestRunCardPresentation — dashboard pipeline projection pref
         backupStatusLabel={() => 'ok'}
         allowClientPipelineFallback={false}
         t={(k) => k}
-      />,
+      />
     );
-    expect(screen.getByText('backupDr.pipelineSteps.sourceNotice.projectionVersionBlocked')).toBeInTheDocument();
+    expect(
+      screen.getByText('backupDr.pipelineSteps.sourceNotice.projectionVersionBlocked')
+    ).toBeInTheDocument();
     expect(screen.getByText('backupDr.pipelineSteps.sourceBadge.noProjection')).toBeInTheDocument();
   });
 });

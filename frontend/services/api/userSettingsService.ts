@@ -1,5 +1,4 @@
 import { apiClient, TokenManager } from './config'; // ✅ YENİ: TokenManager import
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   readCashRegisterIdFromSettingsPayload,
   resolveUserSettingsRecord,
@@ -12,13 +11,13 @@ const isDev = __DEV__;
 export interface UserSettings {
   id: string;
   userId: string;
-  
+
   // Dil ve lokalizasyon ayarları
   language: 'de-DE' | 'en' | 'tr';
   currency: 'EUR' | 'USD' | 'TRY';
   dateFormat: 'DD.MM.YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
   timeFormat: '24h' | '12h';
-  
+
   // Kasa konfigürasyonu
   cashRegisterId?: string;
   defaultTaxRate: number; // Varsayılan vergi oranı (%)
@@ -27,32 +26,32 @@ export interface UserSettings {
   autoPrintReceipts: boolean; // Otomatik fiş yazdırma
   receiptHeader?: string; // Fiş başlığı
   receiptFooter?: string; // Fiş alt bilgisi
-  
+
   // TSE ve FinanzOnline ayarları
   tseDeviceId?: string;
   finanzOnlineEnabled: boolean;
   finanzOnlineUsername?: string;
-  
+
   // Güvenlik ayarları
   sessionTimeout: number; // Dakika cinsinden oturum süresi
   requirePinForRefunds: boolean; // İade için PIN gerekli mi?
   maxDiscountPercentage: number; // Maksimum indirim yüzdesi
-  
+
   // Görünüm ayarları
   theme: 'light' | 'dark' | 'auto';
   compactMode: boolean; // Kompakt görünüm
   showProductImages: boolean; // Ürün resimleri gösterilsin mi?
-  
+
   // Bildirim ayarları
   enableNotifications: boolean;
   lowStockAlert: boolean; // Düşük stok uyarısı
   dailyReportEmail?: string; // Günlük rapor email'i
-  
+
   // Varsayılan değerler
   defaultPaymentMethod: 'cash' | 'card' | 'mixed' | 'voucher' | 'transfer';
   defaultTableNumber?: string;
   defaultWaiterName?: string;
-  
+
   createdAt: string;
   updatedAt: string;
 }
@@ -69,7 +68,7 @@ export const getUserSettings = async (): Promise<UserSettings> => {
       console.log('User settings API response (dev): keys loaded');
     }
     const source = resolveUserSettingsRecord(raw);
-    const flat = source as Record<string, unknown>;
+    const flat = source;
     debugPosPaymentTrace('settings_values', {
       cashRegisterId: flat.cashRegisterId ?? flat.CashRegisterId ?? null,
       userId: flat.userId ?? flat.UserId ?? null,
@@ -78,7 +77,7 @@ export const getUserSettings = async (): Promise<UserSettings> => {
     });
     const id = readCashRegisterIdFromSettingsPayload(source);
     const invalid = !id || id === '00000000-0000-0000-0000-000000000000';
-    return { ...(source as UserSettings), cashRegisterId: invalid ? undefined : id };
+    return { ...(source as unknown as UserSettings), cashRegisterId: invalid ? undefined : id };
   } catch (error) {
     if (isDev) {
       console.error('Error fetching user settings:', error);
@@ -97,14 +96,14 @@ export const getUserSettings = async (): Promise<UserSettings> => {
 export const bootstrapUserSettings = async (): Promise<UserSettings> => {
   const raw = await apiClient.post<unknown>('/user/settings/bootstrap', {});
   const source = resolveUserSettingsRecord(raw);
-  const flat = source as Record<string, unknown>;
+  const flat = source;
   debugPosPaymentTrace('settings_bootstrap_values', {
     cashRegisterId: flat.cashRegisterId ?? flat.CashRegisterId ?? null,
     userId: flat.userId ?? flat.UserId ?? null,
   });
   const id = readCashRegisterIdFromSettingsPayload(source);
   const invalid = !id || id === '00000000-0000-0000-0000-000000000000';
-  return { ...(source as UserSettings), cashRegisterId: invalid ? undefined : id };
+  return { ...(source as unknown as UserSettings), cashRegisterId: invalid ? undefined : id };
 };
 
 /**
@@ -117,12 +116,14 @@ export const getUserSettingsAfterLogin = async (): Promise<UserSettings> => {
     if (isDev) {
       console.warn('[userSettings] bootstrap failed, falling back to GET /user/settings', error);
     }
-    return getUserSettings();
+    return await getUserSettings();
   }
 };
 
 // Kullanıcı ayarlarını güncelle
-export const updateUserSettings = async (settings: Partial<UserSettings>): Promise<UserSettings> => {
+export const updateUserSettings = async (
+  settings: Partial<UserSettings>
+): Promise<UserSettings> => {
   try {
     const response = await apiClient.put<UserSettings>('/user/settings', settings);
     return response;
@@ -135,7 +136,9 @@ export const updateUserSettings = async (settings: Partial<UserSettings>): Promi
 };
 
 // Kullanıcı dilini güncelle
-export const updateUserLanguage = async (language: 'de-DE' | 'en' | 'tr'): Promise<UserSettings> => {
+export const updateUserLanguage = async (
+  language: 'de-DE' | 'en' | 'tr'
+): Promise<UserSettings> => {
   try {
     const response = await apiClient.put<UserSettings>('/user/settings/language', { language });
     return response;
@@ -162,7 +165,7 @@ export const updateCashRegisterConfig = async (config: {
     const source = resolveUserSettingsRecord(raw);
     const id = readCashRegisterIdFromSettingsPayload(source);
     const invalid = !id || id === '00000000-0000-0000-0000-000000000000';
-    return { ...(source as UserSettings), cashRegisterId: invalid ? undefined : id };
+    return { ...(source as unknown as UserSettings), cashRegisterId: invalid ? undefined : id };
   } catch (error) {
     if (isDev) {
       console.error('Error updating cash register config:', error);
@@ -214,13 +217,13 @@ const getDefaultUserSettings = (): UserSettings => {
   return {
     id: 'default',
     userId: 'default',
-    
+
     // Varsayılan dil ve lokalizasyon (Avusturya için)
     language: 'de-DE',
     currency: 'EUR',
     dateFormat: 'DD.MM.YYYY',
     timeFormat: '24h',
-    
+
     // Varsayılan kasa ayarları
     defaultTaxRate: 20, // Avusturya standart vergi oranı
     enableDiscounts: true,
@@ -228,29 +231,29 @@ const getDefaultUserSettings = (): UserSettings => {
     autoPrintReceipts: false,
     receiptHeader: 'Registrierkasse - Kassenbeleg',
     receiptFooter: 'Vielen Dank für Ihren Einkauf!',
-    
+
     // TSE ayarları
     finanzOnlineEnabled: false,
-    
+
     // Güvenlik ayarları
     sessionTimeout: 30, // 30 dakika
     requirePinForRefunds: true,
     maxDiscountPercentage: 50,
-    
+
     // Görünüm ayarları
     theme: 'light',
     compactMode: false,
     showProductImages: true,
-    
+
     // Bildirim ayarları
     enableNotifications: true,
     lowStockAlert: true,
-    
+
     // Varsayılan değerler
     defaultPaymentMethod: 'mixed',
     defaultTableNumber: '1',
     defaultWaiterName: 'Kasiyer',
-    
+
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

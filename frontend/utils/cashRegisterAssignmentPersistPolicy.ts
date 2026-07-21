@@ -63,8 +63,10 @@ export function shouldRetainOptimisticCashRegisterAfterPersistFailure(
 }
 
 const ASSIGNMENT_REJECT_DE: Partial<Record<string, string>> = {
-  [POS_CASH_REGISTER_CODES.CLOSED]: 'Diese Kasse ist nicht geöffnet und kann nicht zugewiesen werden.',
-  [POS_CASH_REGISTER_CODES.FORBIDDEN]: 'Diese Kasse ist nicht berechtigt oder wird bereits verwendet.',
+  [POS_CASH_REGISTER_CODES.CLOSED]:
+    'Diese Kasse ist nicht geöffnet und kann nicht zugewiesen werden.',
+  [POS_CASH_REGISTER_CODES.FORBIDDEN]:
+    'Diese Kasse ist nicht berechtigt oder wird bereits verwendet.',
   [POS_CASH_REGISTER_CODES.INVALID]: 'Ungültige Kassen-ID.',
   [POS_CASH_REGISTER_CODES.NOT_FOUND]: 'Kasse wurde nicht gefunden.',
   [POS_CASH_REGISTER_CODES.REQUIRED]: 'Keine gültige Kasse angegeben.',

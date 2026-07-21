@@ -1,60 +1,58 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-
-import type { CreateUserFormValues } from '@/features/users/components/CreateUserModal';
 import {
-    adminUsersQueryKeys,
-    createUser,
-    type CreateUserRequest,
+  type CreateUserRequest,
+  adminUsersQueryKeys,
+  createUser,
 } from '@/features/users/api/users';
+import type { CreateUserFormValues } from '@/features/users/components/CreateUserModal';
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 
 export type UseCreateUserOptions = {
-    /** When set, always creates under this mandant (tenant detail). */
-    fixedTenantId?: string;
-    onSuccess?: () => void;
-    onError?: () => void;
+  /** When set, always creates under this mandant (tenant detail). */
+  fixedTenantId?: string;
+  onSuccess?: () => void;
+  onError?: () => void;
 };
 
 function toCreateUserRequest(
-    values: CreateUserFormValues,
-    fixedTenantId?: string,
+  values: CreateUserFormValues,
+  fixedTenantId?: string
 ): CreateUserRequest {
-    const tenantId = fixedTenantId ?? values.tenantId;
-    return {
-        email: values.email.trim(),
-        firstName: values.firstName,
-        lastName: values.lastName,
-        role: values.role,
-        isOwner: values.isOwner,
-        ...(tenantId ? { tenantId } : {}),
-    };
+  const tenantId = fixedTenantId ?? values.tenantId;
+  return {
+    email: values.email.trim(),
+    firstName: values.firstName,
+    lastName: values.lastName,
+    role: values.role,
+    isOwner: values.isOwner,
+    ...(tenantId ? { tenantId } : {}),
+  };
 }
 
 export function useCreateUser(options: UseCreateUserOptions = {}) {
   const { message } = useAntdApp();
 
-    const { t } = useI18n();
-    const queryClient = useQueryClient();
-    const { fixedTenantId, onSuccess, onError } = options;
+  const { t } = useI18n();
+  const queryClient = useQueryClient();
+  const { fixedTenantId, onSuccess, onError } = options;
 
-    return useMutation({
-        mutationFn: (values: CreateUserFormValues) =>
-            createUser(toCreateUserRequest(values, fixedTenantId)),
-        onSuccess: () => {
-            void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
-            void queryClient.invalidateQueries({ queryKey: adminUsersQueryKeys.tenant() });
-            void queryClient.invalidateQueries({ queryKey: adminUsersQueryKeys.platform() });
-            message.success(t('users.create.success'));
-            onSuccess?.();
-        },
-        onError: () => {
-            message.error(t('tenants.users.create.messages.failed'));
-            onError?.();
-        },
-    });
+  return useMutation({
+    mutationFn: (values: CreateUserFormValues) =>
+      createUser(toCreateUserRequest(values, fixedTenantId)),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      void queryClient.invalidateQueries({ queryKey: adminUsersQueryKeys.tenant() });
+      void queryClient.invalidateQueries({ queryKey: adminUsersQueryKeys.platform() });
+      message.success(t('users.create.success'));
+      onSuccess?.();
+    },
+    onError: () => {
+      message.error(t('tenants.users.create.messages.failed'));
+      onError?.();
+    },
+  });
 }

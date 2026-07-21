@@ -4,9 +4,9 @@
  * Son restore doğrulama (drill) özeti — yedek pipeline’ından ayrı blok.
  * PG_RESTORE_LIST_FAILED: Fake stub beklenen davranış ile gerçek pg_dump hattı riski ayrı anlatılır.
  */
-
-import React, { useMemo } from 'react';
 import { Alert, Card, Descriptions, Tag, Typography } from 'antd';
+import React, { useMemo } from 'react';
+
 import type { RestoreVerificationRunResponseDto } from '@/api/generated/model';
 import { RestoreVerificationRunResponseDtoStatus } from '@/api/generated/model';
 import {
@@ -23,7 +23,9 @@ export interface RestoreVerificationCardProps {
   formatLocale: string;
   restoreStatusTagColor: (status: number) => string;
   restoreStatusLabel: (status: number | undefined, t: (k: string) => string) => string;
-  dumpInspectionTriState: (rr: RestoreVerificationRunResponseDto | undefined | null) => boolean | undefined;
+  dumpInspectionTriState: (
+    rr: RestoreVerificationRunResponseDto | undefined | null
+  ) => boolean | undefined;
   /** Yapılandırma Fake/simüle ise DetailsJson olmadan da stub açıklaması gösterilebilir. */
   isSimulatedBackupPipeline: boolean;
   /** execution-mode: worker PgDump hedefliyor ama profil şu an runnable değil — drill yorumu için bağlam. */
@@ -89,7 +91,9 @@ export function RestoreVerificationCard({
 
   return (
     <Card title={t('backupDr.restoreVerification.title')} size="small">
-      <Typography.Paragraph type="secondary">{t('backupDr.restoreVerification.explanation')}</Typography.Paragraph>
+      <Typography.Paragraph type="secondary">
+        {t('backupDr.restoreVerification.explanation')}
+      </Typography.Paragraph>
       {backupWorkerRealProfileBlocked ? (
         <Alert
           type="warning"
@@ -112,7 +116,8 @@ export function RestoreVerificationCard({
             listFailureInterp ? (
               (() => {
                 const card = pgRestoreListFailureKindToCardAlertKeys(listFailureInterp.kind);
-                const alertType = card.tone === 'error' ? 'error' : card.tone === 'warning' ? 'warning' : 'info';
+                const alertType =
+                  card.tone === 'error' ? 'error' : card.tone === 'warning' ? 'warning' : 'info';
                 return (
                   <Alert
                     type={alertType}
@@ -127,9 +132,14 @@ export function RestoreVerificationCard({
                         >
                           {t(card.bodyKey)}
                         </Typography.Paragraph>
-                        <Typography.Text type="secondary" style={{ fontSize: 12, whiteSpace: 'pre-wrap' }}>
+                        <Typography.Text
+                          type="secondary"
+                          style={{ fontSize: 12, whiteSpace: 'pre-wrap' }}
+                        >
                           {t('backupDr.restoreVerification.fakePipeline.technicalDetailLabel')}:{' '}
-                          {[run.failureCode, (run.failureDetail ?? '').trim()].filter(Boolean).join(' — ') || '—'}
+                          {[run.failureCode, (run.failureDetail ?? '').trim()]
+                            .filter(Boolean)
+                            .join(' — ') || '—'}
                         </Typography.Text>
                       </div>
                     }
@@ -144,7 +154,9 @@ export function RestoreVerificationCard({
                 title={t('backupDr.restoreVerification.drillFailedProminent')}
                 description={
                   <Typography.Text type="danger" style={{ whiteSpace: 'pre-wrap' }}>
-                    {[run.failureCode, (run.failureDetail ?? '').trim()].filter(Boolean).join(' — ') || '—'}
+                    {[run.failureCode, (run.failureDetail ?? '').trim()]
+                      .filter(Boolean)
+                      .join(' — ') || '—'}
                   </Typography.Text>
                 }
               />
@@ -157,7 +169,9 @@ export function RestoreVerificationCard({
             {run.failureCode || run.failureDetail ? (
               <>
                 <Descriptions.Item label={t('backupDr.restoreVerification.failureCode')}>
-                  <Typography.Text type={failureTypography.code}>{run.failureCode ?? '—'}</Typography.Text>
+                  <Typography.Text type={failureTypography.code}>
+                    {run.failureCode ?? '—'}
+                  </Typography.Text>
                 </Descriptions.Item>
                 <Descriptions.Item label={t('backupDr.restoreVerification.failureDetail')} span={1}>
                   <Typography.Text

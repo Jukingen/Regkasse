@@ -4,6 +4,7 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { DigitalServiceAccess } from '@/features/digital/components/DigitalServiceAccess';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
@@ -81,7 +82,7 @@ describe('DigitalServiceAccess', () => {
 
     expect(screen.getByText('Access Denied')).toBeInTheDocument();
     expect(
-      screen.getByText('You do not have permission to access digital services.'),
+      screen.getByText('You do not have permission to access digital services.')
     ).toBeInTheDocument();
   });
 

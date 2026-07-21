@@ -11,32 +11,32 @@ import { useCashRegisterSelection } from '@/hooks/useCashRegisterSelection';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
 export type TagesabschlussReminderRegister = {
-    id: string;
-    /** Operator-facing label (register number + location). */
-    name: string;
+  id: string;
+  /** Operator-facing label (register number + location). */
+  name: string;
 };
 
 export type UseTagesabschlussStatusOptions = {
-    enabled?: boolean;
-    /** When set (e.g. from ManagerDashboard), reuse parent selection — avoid a second list query. */
-    cashRegisterId?: string | null;
-    register?: AdminCashRegisterListItem | null;
+  enabled?: boolean;
+  /** When set (e.g. from ManagerDashboard), reuse parent selection — avoid a second list query. */
+  cashRegisterId?: string | null;
+  register?: AdminCashRegisterListItem | null;
 };
 
 export type TagesabschlussStatus = {
-    isClosingRequired: boolean;
-    register: TagesabschlussReminderRegister | null;
-    transactionCount: number;
-    canClose: boolean;
-    isLoading: boolean;
-    isError: boolean;
+  isClosingRequired: boolean;
+  register: TagesabschlussReminderRegister | null;
+  transactionCount: number;
+  canClose: boolean;
+  isLoading: boolean;
+  isError: boolean;
 };
 
 function formatRegisterName(register: AdminCashRegisterListItem): string {
-    const number = register.registerNumber?.trim();
-    const location = register.location?.trim();
-    if (number && location) return `${number} — ${location}`;
-    return number || location || register.id;
+  const number = register.registerNumber?.trim();
+  const location = register.location?.trim();
+  if (number && location) return `${number} — ${location}`;
+  return number || location || register.id;
 }
 
 /**
@@ -44,10 +44,10 @@ function formatRegisterName(register: AdminCashRegisterListItem): string {
  * and there are fiscal transactions waiting (no automatic closing).
  */
 export function computeIsClosingRequired(options: {
-    canClose: boolean;
-    transactionCount: number;
+  canClose: boolean;
+  transactionCount: number;
 }): boolean {
-    return options.canClose && options.transactionCount > 0;
+  return options.canClose && options.transactionCount > 0;
 }
 
 /**
@@ -55,63 +55,62 @@ export function computeIsClosingRequired(options: {
  * Uses GET /api/Tagesabschluss/can-close/{id} + today's operational sales count.
  */
 export function useTagesabschlussStatus(
-    options: UseTagesabschlussStatusOptions = {},
+  options: UseTagesabschlussStatusOptions = {}
 ): TagesabschlussStatus {
-    const { enabled = true, cashRegisterId: externalRegisterId, register: externalRegister } =
-        options;
+  const {
+    enabled = true,
+    cashRegisterId: externalRegisterId,
+    register: externalRegister,
+  } = options;
 
-    const { isAuthorized: canViewClosing } = useAuthorizationGate({
-        requiredPermission: PERMISSIONS.DAILY_CLOSING_VIEW,
-    });
+  const { isAuthorized: canViewClosing } = useAuthorizationGate({
+    requiredPermission: PERMISSIONS.DAILY_CLOSING_VIEW,
+  });
 
-    const useExternalSelection = Boolean(externalRegisterId?.trim());
+  const useExternalSelection = Boolean(externalRegisterId?.trim());
 
-    const selection = useCashRegisterSelection({
-        autoSelect: true,
-        persistSelection: true,
-        enabled: enabled && canViewClosing && !useExternalSelection,
-    });
+  const selection = useCashRegisterSelection({
+    autoSelect: true,
+    persistSelection: true,
+    enabled: enabled && canViewClosing && !useExternalSelection,
+  });
 
-    const selectedRegister = externalRegister ?? selection.selectedRegister;
-    const registerId = externalRegisterId?.trim() || selection.selectedRegisterId?.trim() || '';
+  const selectedRegister = externalRegister ?? selection.selectedRegister;
+  const registerId = externalRegisterId?.trim() || selection.selectedRegisterId?.trim() || '';
 
-    const queryEnabled = enabled && canViewClosing && registerId.length > 0;
+  const queryEnabled = enabled && canViewClosing && registerId.length > 0;
 
-    const canCloseQuery = useGetApiTagesabschlussCanCloseCashRegisterId(
-        registerId,
-        undefined,
-        {
-            query: {
-                enabled: queryEnabled,
-                staleTime: DASHBOARD_AUTO_REFRESH_MS / 2,
-                refetchInterval: DASHBOARD_AUTO_REFRESH_MS,
-                refetchIntervalInBackground: false,
-                refetchOnWindowFocus: true,
-            },
-        },
-    );
+  const canCloseQuery = useGetApiTagesabschlussCanCloseCashRegisterId(registerId, undefined, {
+    query: {
+      enabled: queryEnabled,
+      staleTime: DASHBOARD_AUTO_REFRESH_MS / 2,
+      refetchInterval: DASHBOARD_AUTO_REFRESH_MS,
+      refetchIntervalInBackground: false,
+      refetchOnWindowFocus: true,
+    },
+  });
 
-    const sales = useTodaySales(queryEnabled ? registerId : undefined);
+  const sales = useTodaySales(queryEnabled ? registerId : undefined);
 
-    const canClose = canCloseQuery.data?.canClose === true;
-    const transactionCount = sales.data?.count ?? 0;
+  const canClose = canCloseQuery.data?.canClose === true;
+  const transactionCount = sales.data?.count ?? 0;
 
-    const register = useMemo((): TagesabschlussReminderRegister | null => {
-        if (!selectedRegister?.id) return null;
-        return {
-            id: selectedRegister.id,
-            name: formatRegisterName(selectedRegister),
-        };
-    }, [selectedRegister]);
-
-    const isClosingRequired = computeIsClosingRequired({ canClose, transactionCount });
-
+  const register = useMemo((): TagesabschlussReminderRegister | null => {
+    if (!selectedRegister?.id) return null;
     return {
-        isClosingRequired: queryEnabled ? isClosingRequired : false,
-        register,
-        transactionCount,
-        canClose,
-        isLoading: queryEnabled && (canCloseQuery.isLoading || sales.isLoading),
-        isError: queryEnabled && (canCloseQuery.isError || sales.isError),
+      id: selectedRegister.id,
+      name: formatRegisterName(selectedRegister),
     };
+  }, [selectedRegister]);
+
+  const isClosingRequired = computeIsClosingRequired({ canClose, transactionCount });
+
+  return {
+    isClosingRequired: queryEnabled ? isClosingRequired : false,
+    register,
+    transactionCount,
+    canClose,
+    isLoading: queryEnabled && (canCloseQuery.isLoading || sales.isLoading),
+    isError: queryEnabled && (canCloseQuery.isError || sales.isError),
+  };
 }

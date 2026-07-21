@@ -1,0 +1,83 @@
+# Frontend Admin E2E (Playwright) — manual / reusable
+#
+# Primary PR/main gate runs E2E inside `.github/workflows/frontend-admin-ci.yml`
+# (avoids duplicate billed minutes). Use this workflow for:
+# - Manual re-runs (`workflow_dispatch`)
+# - Reuse via `workflow_call` from other pipelines
+
+name: Frontend Admin E2E (Playwright)
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+concurrency:
+  group: frontend-admin-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: Playwright (mocked API)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: frontend-admin
+    env:
+      CI: 'true'
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_RKSV_ENVIRONMENT: TEST
+      NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:5184
+      E2E_PORT: '3000'
+      NODE_VERSION: '22'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend-admin/package-lock.json
+
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: frontend-admin/node_modules
+          key: ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-nm-${{ hashFiles('frontend-admin/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-nm-
+
+      - name: Cache Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: frontend-admin/.next/cache
+          key: ${{ runner.os }}-next-${{ hashFiles('frontend-admin/package-lock.json') }}-${{ hashFiles('frontend-admin/next.config.mjs') }}
+          restore-keys: |
+            ${{ runner.os }}-next-
+
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build Next.js admin
+        run: npm run build
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend-admin/playwright-report
+            frontend-admin/test-results
+          retention-days: 7

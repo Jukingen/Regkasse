@@ -1,13 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  ScrollView,
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  Image,
-  Alert,
-} from 'react-native';
+import { View, ScrollView, TouchableOpacity, Text, StyleSheet, Image, Alert } from 'react-native';
 
 import { apiClient } from '../services/api/config';
 import { WaveLoader } from '../src/components/common/WaveLoader';
@@ -39,14 +31,14 @@ export interface OpenCart {
 
 interface TableOrdersRecoveryApiResponse {
   success: boolean;
-  tableOrders: Array<{
+  tableOrders: {
     cartId: string;
     tableNumber?: number;
     customerName?: string;
     totalAmount: number;
     itemCount: number;
     createdAt: string;
-  }>;
+  }[];
 }
 
 interface QuickSwitchBarProps {
@@ -71,8 +63,9 @@ const QuickSwitchBar: React.FC<QuickSwitchBarProps> = ({
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchWaiters(), fetchTables(), fetchOpenCarts()])
-      .finally(() => setLoading(false));
+    Promise.all([fetchWaiters(), fetchTables(), fetchOpenCarts()]).finally(() => {
+      setLoading(false);
+    });
   }, []);
 
   const fetchWaiters = async () => {
@@ -95,7 +88,9 @@ const QuickSwitchBar: React.FC<QuickSwitchBarProps> = ({
 
   const fetchOpenCarts = async () => {
     try {
-      const response = await apiClient.get<TableOrdersRecoveryApiResponse>('/pos/cart/table-orders-recovery');
+      const response = await apiClient.get<TableOrdersRecoveryApiResponse>(
+        '/pos/cart/table-orders-recovery'
+      );
       const mapped: OpenCart[] = (response.tableOrders ?? []).map((order) => ({
         cartId: order.cartId,
         tableNumber: String(order.tableNumber ?? ''),
@@ -118,7 +113,10 @@ const QuickSwitchBar: React.FC<QuickSwitchBarProps> = ({
   const handleTableSelect = (table: Table) => {
     onSelectTable(table);
     if (table.status === 'occupied') {
-      Alert.alert('Masa Seçildi', `Masa ${table.number} seçildi (${table.currentTotal?.toFixed(2)} €)`);
+      Alert.alert(
+        'Masa Seçildi',
+        `Masa ${table.number} seçildi (${table.currentTotal?.toFixed(2)} €)`
+      );
     } else {
       Alert.alert('Masa Seçildi', `Masa ${table.number} seçildi (Boş)`);
     }
@@ -126,7 +124,10 @@ const QuickSwitchBar: React.FC<QuickSwitchBarProps> = ({
 
   const handleCartSelect = (cart: OpenCart) => {
     onSelectCart(cart);
-    Alert.alert('Sepet Seçildi', `Sepet ${cart.cartId.slice(-4)} seçildi (${cart.totalAmount.toFixed(2)} €)`);
+    Alert.alert(
+      'Sepet Seçildi',
+      `Sepet ${cart.cartId.slice(-4)} seçildi (${cart.totalAmount.toFixed(2)} €)`
+    );
   };
 
   if (loading) {
@@ -144,15 +145,13 @@ const QuickSwitchBar: React.FC<QuickSwitchBarProps> = ({
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Garsonlar</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollView}>
-          {waiters.map(waiter => (
+          {waiters.map((waiter) => (
             <TouchableOpacity
               key={waiter.id}
-              style={[
-                styles.waiterButton,
-                selectedWaiterId === waiter.id && styles.selectedItem
-              ]}
-              onPress={() => handleWaiterSelect(waiter)}
-            >
+              style={[styles.waiterButton, selectedWaiterId === waiter.id && styles.selectedItem]}
+              onPress={() => {
+                handleWaiterSelect(waiter);
+              }}>
               {waiter.avatar ? (
                 <Image source={{ uri: waiter.avatar }} style={styles.waiterAvatar} />
               ) : (
@@ -169,24 +168,30 @@ const QuickSwitchBar: React.FC<QuickSwitchBarProps> = ({
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Masalar</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollView}>
-          {tables.map(table => (
+          {tables.map((table) => (
             <TouchableOpacity
               key={table.id}
               style={[
                 styles.tableButton,
                 table.status === 'occupied' && styles.occupiedTable,
                 table.status === 'reserved' && styles.reservedTable,
-                selectedTableId === table.id && styles.selectedItem
+                selectedTableId === table.id && styles.selectedItem,
               ]}
-              onPress={() => handleTableSelect(table)}
-            >
+              onPress={() => {
+                handleTableSelect(table);
+              }}>
               <Text style={styles.tableNumber}>Masa {table.number}</Text>
-              <Text style={[
-                styles.tableStatus,
-                table.status === 'occupied' && styles.occupiedStatus,
-                table.status === 'reserved' && styles.reservedStatus
-              ]}>
-                {table.status === 'empty' ? 'Boş' : table.status === 'occupied' ? 'Dolu' : 'Rezerve'}
+              <Text
+                style={[
+                  styles.tableStatus,
+                  table.status === 'occupied' && styles.occupiedStatus,
+                  table.status === 'reserved' && styles.reservedStatus,
+                ]}>
+                {table.status === 'empty'
+                  ? 'Boş'
+                  : table.status === 'occupied'
+                    ? 'Dolu'
+                    : 'Rezerve'}
               </Text>
               {table.currentTotal && (
                 <Text style={styles.tableTotal}>{table.currentTotal.toFixed(2)} €</Text>
@@ -199,24 +204,21 @@ const QuickSwitchBar: React.FC<QuickSwitchBarProps> = ({
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Açık Sepetler ({openCarts.length})</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollView}>
-          {openCarts.map(cart => (
+          {openCarts.map((cart) => (
             <TouchableOpacity
               key={cart.cartId}
               style={styles.cartButton}
-              onPress={() => handleCartSelect(cart)}
-            >
+              onPress={() => {
+                handleCartSelect(cart);
+              }}>
               <Text style={styles.cartId}>Sepet {cart.cartId.slice(-4)}</Text>
               <Text style={styles.cartTable}>Masa {cart.tableNumber}</Text>
               <Text style={styles.cartTotal}>{cart.totalAmount.toFixed(2)} €</Text>
               <Text style={styles.cartItems}>{cart.itemCount} ürün</Text>
-              {cart.waiterName && (
-                <Text style={styles.cartWaiter}>{cart.waiterName}</Text>
-              )}
+              {cart.waiterName && <Text style={styles.cartWaiter}>{cart.waiterName}</Text>}
             </TouchableOpacity>
           ))}
-          {openCarts.length === 0 && (
-            <Text style={styles.emptyText}>Açık sepet yok</Text>
-          )}
+          {openCarts.length === 0 && <Text style={styles.emptyText}>Açık sepet yok</Text>}
         </ScrollView>
       </View>
     </View>
@@ -228,13 +230,37 @@ const styles = StyleSheet.create({
   section: { marginBottom: 16 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 8 },
   scrollView: { flexDirection: 'row' },
-  waiterButton: { alignItems: 'center', marginRight: 12, padding: 8, borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee' },
+  waiterButton: {
+    alignItems: 'center',
+    marginRight: 12,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
   selectedItem: { borderColor: '#007AFF', borderWidth: 2 },
   waiterAvatar: { width: 40, height: 40, borderRadius: 20, marginBottom: 4 },
-  waiterAvatarPlaceholder: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#eee', alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  waiterAvatarPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#eee',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
   waiterInitial: { fontSize: 18, color: '#888' },
   waiterName: { fontSize: 14 },
-  tableButton: { alignItems: 'center', marginRight: 12, padding: 8, borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee' },
+  tableButton: {
+    alignItems: 'center',
+    marginRight: 12,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
   occupiedTable: { backgroundColor: '#ffe0e0' },
   reservedTable: { backgroundColor: '#e0e0ff' },
   tableNumber: { fontSize: 16, fontWeight: 'bold' },
@@ -242,7 +268,15 @@ const styles = StyleSheet.create({
   occupiedStatus: { color: '#e74c3c' },
   reservedStatus: { color: '#2980b9' },
   tableTotal: { fontSize: 14, color: '#27ae60' },
-  cartButton: { alignItems: 'center', marginRight: 12, padding: 8, borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee' },
+  cartButton: {
+    alignItems: 'center',
+    marginRight: 12,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
   cartId: { fontSize: 14, fontWeight: 'bold' },
   cartTable: { fontSize: 12 },
   cartTotal: { fontSize: 14, color: '#27ae60' },
@@ -253,4 +287,4 @@ const styles = StyleSheet.create({
   loadingText: { marginTop: 12, fontSize: 16 },
 });
 
-export default QuickSwitchBar; 
+export default QuickSwitchBar;

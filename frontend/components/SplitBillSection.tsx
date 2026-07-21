@@ -35,22 +35,25 @@ const SplitBillSection: React.FC<SplitBillSectionProps> = ({ totalAmount, onSpli
 
   // Bölüm ekle
   const addSplit = () => {
-    setSplits(prev => [
+    setSplits((prev) => [
       ...prev,
-      { id: (prev.length + 1).toString(), name: `Person ${prev.length + 1}`, amount: '', method: 'cash' },
+      {
+        id: (prev.length + 1).toString(),
+        name: `Person ${prev.length + 1}`,
+        amount: '',
+        method: 'cash',
+      },
     ]);
   };
 
   // Bölüm sil
   const removeSplit = (id: string) => {
-    setSplits(prev => prev.length > 1 ? prev.filter(s => s.id !== id) : prev);
+    setSplits((prev) => (prev.length > 1 ? prev.filter((s) => s.id !== id) : prev));
   };
 
   // Bölümde değişiklik
   const updateSplit = (id: string, field: keyof SplitEntry, value: string) => {
-    setSplits(prev =>
-      prev.map(s => (s.id === id ? { ...s, [field]: value } : s))
-    );
+    setSplits((prev) => prev.map((s) => (s.id === id ? { ...s, [field]: value } : s)));
   };
 
   // Her değişiklikte parent'a bildir
@@ -63,39 +66,45 @@ const SplitBillSection: React.FC<SplitBillSectionProps> = ({ totalAmount, onSpli
       <Text style={styles.title}>Rechnung teilen</Text>
       <FlatList
         data={splits}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.splitRow}>
             <TextInput
               style={styles.nameInput}
               value={item.name}
-              onChangeText={val => updateSplit(item.id, 'name', val)}
+              onChangeText={(val) => {
+                updateSplit(item.id, 'name', val);
+              }}
             />
             <TextInput
               style={styles.amountInput}
               keyboardType="decimal-pad"
               placeholder="0.00"
               value={item.amount}
-              onChangeText={val => updateSplit(item.id, 'amount', val.replace(',', '.'))}
+              onChangeText={(val) => {
+                updateSplit(item.id, 'amount', val.replace(',', '.'));
+              }}
             />
             <Text style={styles.euro}>€</Text>
             <View style={styles.methodBox}>
-              {PAYMENT_METHODS.map(m => (
+              {PAYMENT_METHODS.map((m) => (
                 <TouchableOpacity
                   key={m.key}
-                  style={[
-                    styles.methodBtn,
-                    item.method === m.key && styles.methodBtnActive,
-                  ]}
-                  onPress={() => updateSplit(item.id, 'method', m.key)}
-                >
+                  style={[styles.methodBtn, item.method === m.key && styles.methodBtnActive]}
+                  onPress={() => {
+                    updateSplit(item.id, 'method', m.key);
+                  }}>
                   <Text style={item.method === m.key ? styles.methodTextActive : styles.methodText}>
                     {m.label}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
-            <TouchableOpacity onPress={() => removeSplit(item.id)} style={styles.removeBtn}>
+            <TouchableOpacity
+              onPress={() => {
+                removeSplit(item.id);
+              }}
+              style={styles.removeBtn}>
               <Text style={{ color: '#d32f2f', fontWeight: 'bold' }}>✕</Text>
             </TouchableOpacity>
           </View>
@@ -119,20 +128,50 @@ const styles = StyleSheet.create({
   container: { backgroundColor: '#f7f7f7', borderRadius: 10, padding: 10, marginBottom: 8 },
   title: { fontSize: 15, fontWeight: 'bold', marginBottom: 6 },
   splitRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  nameInput: { width: 70, borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 4, fontSize: 13, marginRight: 4 },
-  amountInput: { width: 60, borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 4, fontSize: 13, textAlign: 'right', marginRight: 2 },
+  nameInput: {
+    width: 70,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 6,
+    padding: 4,
+    fontSize: 13,
+    marginRight: 4,
+  },
+  amountInput: {
+    width: 60,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 6,
+    padding: 4,
+    fontSize: 13,
+    textAlign: 'right',
+    marginRight: 2,
+  },
   euro: { fontSize: 13, marginRight: 4 },
   methodBox: { flexDirection: 'row', marginRight: 4 },
-  methodBtn: { backgroundColor: '#eee', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, marginRight: 2 },
+  methodBtn: {
+    backgroundColor: '#eee',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 2,
+  },
   methodBtnActive: { backgroundColor: '#1976d2' },
   methodText: { color: '#333', fontSize: 12 },
   methodTextActive: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
   removeBtn: { marginLeft: 2, padding: 2 },
-  addBtn: { marginTop: 4, alignSelf: 'flex-start', backgroundColor: '#27ae60', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4 },
+  addBtn: {
+    marginTop: 4,
+    alignSelf: 'flex-start',
+    backgroundColor: '#27ae60',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
   addBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
   summaryRow: { marginTop: 6, alignItems: 'flex-end' },
   missing: { color: '#d32f2f', fontWeight: 'bold' },
   ok: { color: '#388e3c', fontWeight: 'bold' },
 });
 
-export default SplitBillSection; 
+export default SplitBillSection;

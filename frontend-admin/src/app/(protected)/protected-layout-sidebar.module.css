@@ -1,58 +1,58 @@
 /* Sidebar menu: ellipsis for long German labels; leaf link structure */
 .siderMenu :global(.ant-menu-item .ant-menu-title-content),
 .siderMenu :global(.ant-menu-submenu-title .ant-menu-title-content) {
-    overflow: hidden;
+  overflow: hidden;
 }
 
 .siderMenu :global(.admin-sidebar-leaf-link) {
-    display: block;
-    max-width: 100%;
-    overflow: hidden;
-    color: inherit;
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  color: inherit;
 }
 
 .siderMenu :global(.admin-sidebar-leaf-link__text) {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .siderRoot :global(.ant-layout-sider-children) {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    /* Reserve a sliver so the resize handle does not overlap the last few pixels of menu labels. */
-    padding-right: 2px;
-    box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  /* Reserve a sliver so the resize handle does not overlap the last few pixels of menu labels. */
+  padding-right: 2px;
+  box-sizing: border-box;
 }
 
 .siderRoot {
-    position: relative;
+  position: relative;
 }
 
 /* Resize handle: desktop only (component is not mounted on mobile) */
 .siderRoot :global(.admin-desktop-sider-resize-handle) {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 6px;
-    height: 100%;
-    cursor: col-resize;
-    z-index: 50;
-    touch-action: none;
-    background: transparent;
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 50;
+  touch-action: none;
+  background: transparent;
 }
 
 .siderRoot :global(.admin-desktop-sider-resize-handle:hover),
 .siderRoot :global(.admin-desktop-sider-resize-handle:focus-visible) {
-    background: rgba(0, 0, 0, 0.06);
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .siderRoot :global(.admin-desktop-sider-resize-handle:active) {
-    background: rgba(24, 144, 255, 0.15);
+  background: rgba(24, 144, 255, 0.15);
 }
 
 .siderMenu :global(.ant-menu-item-divider) {
-    margin: 10px 12px;
+  margin: 10px 12px;
 }

@@ -1,15 +1,19 @@
 import { describe, expect, it } from 'vitest';
+
+import {
+  BackupRunResponseDtoStatus,
+  RestoreVerificationRunResponseDtoStatus,
+} from '@/api/generated/model';
+import {
+  configurationHealthSummaryI18nKey,
+  mapConfigurationHealthLevel,
+} from '@/features/backup-dr/logic/backupDrMappers';
 import {
   buildBackupOperatorTruthModel,
   deriveArtifactTruth,
   deriveRunTruth,
   tagColorForConfigurationHealthUiKind,
 } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
-import {
-  configurationHealthSummaryI18nKey,
-  mapConfigurationHealthLevel,
-} from '@/features/backup-dr/logic/backupDrMappers';
-import { BackupRunResponseDtoStatus, RestoreVerificationRunResponseDtoStatus } from '@/api/generated/model';
 import { FAKE_ADAPTER_STUB_NOT_PG_RESTORE_FORMAT } from '@/features/backup-dr/logic/restoreVerificationFailurePresentation';
 
 describe('deriveRunTruth', () => {
@@ -18,7 +22,7 @@ describe('deriveRunTruth', () => {
       { status: BackupRunResponseDtoStatus.NUMBER_3, id: 'a', adapterKind: 'Fake' } as never,
       null,
       { realPostgreSqlLogicalDumpConfigured: true } as never,
-      { realPostgreSqlLogicalDumpConfigured: true } as never,
+      { realPostgreSqlLogicalDumpConfigured: true } as never
     );
     expect(r.technicalSuccess).toBe(true);
     expect(r.simulatedEvidence).toBe(true);
@@ -33,7 +37,7 @@ describe('deriveRunTruth', () => {
       { status: BackupRunResponseDtoStatus.NUMBER_3, id: 'a', adapterKind: 'PgDump' } as never,
       { isSimulatedExecution: false } as never,
       { realPostgreSqlLogicalDumpConfigured: false } as never,
-      { realPostgreSqlLogicalDumpConfigured: false } as never,
+      { realPostgreSqlLogicalDumpConfigured: false } as never
     );
     expect(r.simulatedEvidence).toBe(false);
     expect(r.recoverabilityNotProven).toBe(true);
@@ -46,7 +50,12 @@ describe('deriveArtifactTruth', () => {
   const t = (k: string) => k;
 
   it('matches latest run when backupRunId equals latest id', () => {
-    const a = deriveArtifactTruth({ backupRunId: 'run-1', status: 1 } as never, 'run-1', 'staging', t);
+    const a = deriveArtifactTruth(
+      { backupRunId: 'run-1', status: 1 } as never,
+      'run-1',
+      'staging',
+      t
+    );
     expect(a.globalVerificationScope).toBe('matches_latest_run');
     expect(a.externalCopyDisplayText).toBe('backupDr.externalCopy.stagingOnly');
   });
@@ -109,7 +118,10 @@ describe('buildBackupOperatorTruthModel', () => {
   it('does not repeat simulated banner line when no pg_dump is already explained (dev/fake)', () => {
     const m = buildBackupOperatorTruthModel({
       t,
-      health: { realPostgreSqlLogicalDumpConfigured: false, readinessNarrative: 'fake adapter' } as never,
+      health: {
+        realPostgreSqlLogicalDumpConfigured: false,
+        readinessNarrative: 'fake adapter',
+      } as never,
       healthLv: 'healthy',
       restoreReady: { level: 'healthy', workerEnabled: true } as never,
       restoreLv: 'healthy',
@@ -264,7 +276,9 @@ describe('buildBackupOperatorTruthModel', () => {
       externalCopyVariant: 'unknown',
     });
     expect(m.banner.warn.some((w) => w.includes('restoreDrillStubListFailedExpected'))).toBe(true);
-    expect(m.banner.critical.some((c) => c.includes('restoreVerification.drillFailed'))).toBe(false);
+    expect(m.banner.critical.some((c) => c.includes('restoreVerification.drillFailed'))).toBe(
+      false
+    );
   });
 
   it('restore drill PG_RESTORE_LIST_FAILED real pipeline + pg_restore not startable: banner warning, not critical', () => {
@@ -291,7 +305,9 @@ describe('buildBackupOperatorTruthModel', () => {
       restoreCapability: undefined,
       externalCopyVariant: 'unknown',
     });
-    expect(m.banner.warn.some((w) => w.includes('restoreDrillRealListFailedPgRestoreUnavailable'))).toBe(true);
+    expect(
+      m.banner.warn.some((w) => w.includes('restoreDrillRealListFailedPgRestoreUnavailable'))
+    ).toBe(true);
     expect(m.banner.critical.some((c) => c.includes('restoreDrillRealListFailed'))).toBe(false);
   });
 
@@ -343,20 +359,28 @@ describe('buildBackupOperatorTruthModel', () => {
     expect(m.labels.restoreStatus(2)).toBe('2');
     expect(m.lockHints.backup).toEqual(['distributed lock disabled']);
     expect(m.lockHints.restore).toEqual(['advisory lock timeout']);
-    expect(m.summaryPresentation.summaryBackupFootnoteKey).toBe('backupDr.summary.backupHealthFootnoteFake');
+    expect(m.summaryPresentation.summaryBackupFootnoteKey).toBe(
+      'backupDr.summary.backupHealthFootnoteFake'
+    );
     expect(m.summaryPresentation.showDevRealDumpGuidance).toBe(true);
     expect(m.summaryPresentation.showRealPgDumpOperationalBanner).toBe(false);
     expect(m.manualActionsModeConfirmations.backupTitle).toBe('backupDr.manual.confirmBackupTitle');
-    expect(m.truthProvenance.simulatedOperationalSurface.runSimulatedSource).toBe('adapter_inference');
-    expect(m.truthProvenance.recoverabilityProofStrength.hasProofGapsFromTimestamps).toBe(m.recoverability.hasProofGaps);
+    expect(m.truthProvenance.simulatedOperationalSurface.runSimulatedSource).toBe(
+      'adapter_inference'
+    );
+    expect(m.truthProvenance.recoverabilityProofStrength.hasProofGapsFromTimestamps).toBe(
+      m.recoverability.hasProofGaps
+    );
     expect(m.truthProvenance.externalArchiveProofStrength.variantKind).toBe('frontend_inferred');
-    expect(m.summaryPresentation.backupHealthSummaryLabelKey).toBe(configurationHealthSummaryI18nKey(undefined));
+    expect(m.summaryPresentation.backupHealthSummaryLabelKey).toBe(
+      configurationHealthSummaryI18nKey(undefined)
+    );
     expect(m.summaryPresentation.restoreReadinessSummaryLabelKey).toBe(
-      configurationHealthSummaryI18nKey(m.restore.effectiveReadinessLevel),
+      configurationHealthSummaryI18nKey(m.restore.effectiveReadinessLevel)
     );
     expect(m.summaryPresentation.backupHealthUiKind).toBe(mapConfigurationHealthLevel(undefined));
     expect(m.summaryPresentation.restoreReadinessUiKind).toBe(
-      mapConfigurationHealthLevel(m.restore.effectiveReadinessLevel),
+      mapConfigurationHealthLevel(m.restore.effectiveReadinessLevel)
     );
     expect(m.summaryPresentation.configShortSummaryLine).toContain('Fake');
     expect(m.summaryPresentation.configShortSummaryLine).toContain('backupDr.health.realPgDumpNo');
@@ -402,8 +426,14 @@ describe('buildBackupOperatorTruthModel', () => {
       restoreCapability: undefined,
       externalCopyVariant: 'unknown' as const,
     };
-    const withDrillInBanner = buildBackupOperatorTruthModel({ ...base, suppressRestoreDrillFailureInHealthBanner: false });
-    const suppressed = buildBackupOperatorTruthModel({ ...base, suppressRestoreDrillFailureInHealthBanner: true });
+    const withDrillInBanner = buildBackupOperatorTruthModel({
+      ...base,
+      suppressRestoreDrillFailureInHealthBanner: false,
+    });
+    const suppressed = buildBackupOperatorTruthModel({
+      ...base,
+      suppressRestoreDrillFailureInHealthBanner: true,
+    });
     expect(withDrillInBanner.restore.latestDrillFailed).toBe(true);
     expect(suppressed.restore.latestDrillFailed).toBe(true);
     expect(withDrillInBanner.banner.critical.length).toBeGreaterThan(0);

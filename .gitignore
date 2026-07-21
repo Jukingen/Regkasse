@@ -237,6 +237,10 @@ backend/CreateTableOrderTables.sql
 .next/cache/
 **/.next/cache/
 
+# Deploy platform local folders (Vercel / Netlify CLI)
+.vercel/
+.netlify/
+
 # TestSprite
 test-results/
 tmp/

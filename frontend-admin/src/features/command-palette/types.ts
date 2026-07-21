@@ -1,6 +1,6 @@
 /** @deprecated Import from `@/components/CommandPalette/types` instead. */
 export type {
-    CommandItem,
-    CommandItemType,
-    CommandItemGroup,
+  CommandItem,
+  CommandItemGroup,
+  CommandItemType,
 } from '@/components/CommandPalette/types';

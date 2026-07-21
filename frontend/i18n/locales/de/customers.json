@@ -19,6 +19,7 @@
   "noSearchResults": "Keine Suchergebnisse",
   "discount": "Rabatt",
   "errorLoading": "Kunden konnten nicht geladen werden.",
+  "loadingCustomers": "Kunden werden geladen…",
   "selectionSheet": {
     "title": "Kunde",
     "customerNumberLabel": "Kunden-Nr.",

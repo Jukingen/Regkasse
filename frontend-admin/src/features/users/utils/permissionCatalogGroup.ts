@@ -5,9 +5,6 @@
 export function permissionCatalogGroupToSlug(group: string): string {
   const trimmed = group.trim();
   if (!trimmed) return 'other';
-  const s = trimmed
-    .replace(/ & /g, '_')
-    .replace(/ /g, '_')
-    .toLowerCase();
+  const s = trimmed.replace(/ & /g, '_').replace(/ /g, '_').toLowerCase();
   return s || 'other';
 }

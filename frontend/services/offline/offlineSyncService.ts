@@ -1,13 +1,14 @@
-import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
-
-import { OfflineSessionManager } from '@/services/auth/offlineSessionManager';
-import { OfflineConfigService } from '@/services/config/offlineConfigService';
-import { apiClient } from '@/services/api/config';
-import { sessionManager } from '@/services/session/sessionManager';
-import { eventEmitter } from '@/utils/eventEmitter';
+import NetInfo from '@react-native-community/netinfo';
 
 import { OfflineOrderManager } from './offlineOrderManager';
 import { OfflineSyncHistory } from './offlineSyncHistory';
+
+import { apiClient } from '@/services/api/config';
+import { OfflineSessionManager } from '@/services/auth/offlineSessionManager';
+import { OfflineConfigService } from '@/services/config/offlineConfigService';
+import { sessionManager } from '@/services/session/sessionManager';
+import { eventEmitter } from '@/utils/eventEmitter';
+import { fetchIsNetworkOnline, isNetworkOnline } from '@/utils/isNetworkOnline';
 
 export interface SyncStatus {
   isSyncing: boolean;
@@ -31,7 +32,7 @@ type ServerSyncHealth = {
   lastSyncAt: string | null;
 };
 
-function countSyncResults(details: Array<{ success: boolean }> | undefined): {
+function countSyncResults(details: { success: boolean }[] | undefined): {
   synced: number;
   errors: number;
 } {
@@ -40,12 +41,6 @@ function countSyncResults(details: Array<{ success: boolean }> | undefined): {
   }
   const synced = details.filter((row) => row.success).length;
   return { synced, errors: details.length - synced };
-}
-
-function isNetworkOnline(state: NetInfoState): boolean {
-  if (state.isConnected !== true) return false;
-  // NetInfo often reports null on reconnect; treat connected as online unless explicitly unreachable.
-  return state.isInternetReachable !== false;
 }
 
 type NetworkInformationLike = EventTarget & {
@@ -65,13 +60,6 @@ function getNetworkConnection(): NetworkInformationLike | null {
   if (typeof navigator === 'undefined') return null;
   const nav = navigator as NavigatorWithNetworkInformation;
   return nav.connection ?? nav.mozConnection ?? nav.webkitConnection ?? null;
-}
-
-function isBrowserOnline(): boolean {
-  if (typeof navigator === 'undefined' || !('onLine' in navigator)) {
-    return false;
-  }
-  return navigator.onLine;
 }
 
 export class OfflineSyncService {
@@ -166,10 +154,7 @@ export class OfflineSyncService {
       const health = raw?.data;
       if (!health) return;
 
-      if (
-        health.status === 'warning' &&
-        this.lastServerHealthStatus !== 'warning'
-      ) {
+      if (health.status === 'warning' && this.lastServerHealthStatus !== 'warning') {
         eventEmitter.emit('sync:warning', {
           message: `${health.pendingOrders} Offline-Bestellungen warten auf dem Server`,
         });
@@ -252,16 +237,11 @@ export class OfflineSyncService {
       return { success: false, synced: 0, errors: 1 };
     }
 
-    return this.syncAll();
+    return await this.syncAll();
   }
 
   private async isOnline(): Promise<boolean> {
-    try {
-      const state = await NetInfo.fetch();
-      return isNetworkOnline(state);
-    } catch {
-      return isBrowserOnline();
-    }
+    return await fetchIsNetworkOnline();
   }
 
   getSyncStatus(): SyncStatus {

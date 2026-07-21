@@ -76,14 +76,18 @@ export function ReceiptSummary({ receipt, mode }: ReceiptSummaryProps) {
       <View style={styles.mainRow}>
         <View style={styles.nameQty}>
           <Text style={styles.productName}>{item.name}</Text>
-          <Text style={styles.qty}>{item.quantity} × {formatMoney(item.lineTotalGross / item.quantity)}</Text>
+          <Text style={styles.qty}>
+            {item.quantity} × {formatMoney(item.lineTotalGross / item.quantity)}
+          </Text>
         </View>
         <Text style={styles.lineTotal}>{formatMoney(item.lineTotalGross)}</Text>
       </View>
       {item.modifiers.length > 0 && (
         <View style={styles.modifiers}>
           {item.modifiers.map((mod, i) => (
-            <Text key={i} style={styles.modifierText}>{mod.name} {formatMoney(mod.lineTotalGross)}</Text>
+            <Text key={i} style={styles.modifierText}>
+              {mod.name} {formatMoney(mod.lineTotalGross)}
+            </Text>
           ))}
         </View>
       )}
@@ -117,17 +121,19 @@ export function ReceiptSummary({ receipt, mode }: ReceiptSummaryProps) {
               <View style={styles.breakdownSection}>
                 <TouchableOpacity
                   style={styles.breakdownToggle}
-                  onPress={() => setBreakdownVisible((v) => !v)}
-                >
+                  onPress={() => {
+                    setBreakdownVisible((v) => !v);
+                  }}>
                   <Text style={styles.breakdownTitle}>Details</Text>
                   <Text style={styles.toggleHint}>{breakdownVisible ? '▼' : '▶'}</Text>
                 </TouchableOpacity>
-                {breakdownVisible && receipt.vatBreakdown.map((row, i) => (
-                  <View key={i} style={styles.breakdownRow}>
-                    <Text style={styles.breakdownCell}>{row.rate}%</Text>
-                    <Text style={styles.breakdownCellRight}>{formatMoney(row.gross)}</Text>
-                  </View>
-                ))}
+                {breakdownVisible &&
+                  receipt.vatBreakdown.map((row, i) => (
+                    <View key={i} style={styles.breakdownRow}>
+                      <Text style={styles.breakdownCell}>{row.rate}%</Text>
+                      <Text style={styles.breakdownCellRight}>{formatMoney(row.gross)}</Text>
+                    </View>
+                  ))}
               </View>
             )}
             <View style={styles.totalsSection}>
@@ -177,13 +183,29 @@ const styles = StyleSheet.create({
   productName: { fontSize: 15, fontWeight: '600', color: '#333' },
   qty: { fontSize: 13, color: '#666', marginTop: 2 },
   lineTotal: { fontSize: 15, fontWeight: '600', color: '#333' },
-  modifiers: { marginTop: 6, marginLeft: 12, paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: '#ddd' },
+  modifiers: {
+    marginTop: 6,
+    marginLeft: 12,
+    paddingLeft: 8,
+    borderLeftWidth: 2,
+    borderLeftColor: '#ddd',
+  },
   modifierText: { fontSize: 12, color: '#666', marginTop: 2 },
   breakdownSection: { marginTop: 16 },
   breakdownTitle: { fontSize: 14, fontWeight: '700', marginBottom: 8, color: '#333' },
-  breakdownToggle: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  breakdownToggle: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   toggleHint: { fontSize: 12, color: '#666' },
-  breakdownRow: { flexDirection: 'row', paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+  breakdownRow: {
+    flexDirection: 'row',
+    paddingVertical: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
   breakdownCell: { fontSize: 13, color: '#333', flex: 1 },
   breakdownCellRight: { fontSize: 13, color: '#333', minWidth: 64, textAlign: 'right' },
   totalsSection: { marginTop: 16, paddingTop: 12, borderTopWidth: 2, borderTopColor: '#ddd' },

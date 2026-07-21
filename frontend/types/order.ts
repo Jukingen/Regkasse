@@ -44,7 +44,7 @@ export enum OrderStatus {
   Ready = 'Ready',
   Served = 'Served',
   Completed = 'Completed',
-  Cancelled = 'Cancelled'
+  Cancelled = 'Cancelled',
 }
 
 // API Request/Response tipleri

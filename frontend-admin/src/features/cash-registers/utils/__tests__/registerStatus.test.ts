@@ -1,44 +1,45 @@
 import { describe, expect, it } from 'vitest';
-import {
-    REGISTER_STATUS,
-    canDecommissionRegister,
-    isDecommissionedRegister,
-    readStartbelegCreatedAt,
-    registerStatusEmoji,
-} from '@/features/cash-registers/utils/registerStatus';
+
 import type { CashRegister } from '@/api/generated/model';
+import {
+  REGISTER_STATUS,
+  canDecommissionRegister,
+  isDecommissionedRegister,
+  readStartbelegCreatedAt,
+  registerStatusEmoji,
+} from '@/features/cash-registers/utils/registerStatus';
 
 describe('registerStatus', () => {
-    it('allows decommission only when closed', () => {
-        expect(canDecommissionRegister(REGISTER_STATUS.closed)).toBe(true);
-        expect(canDecommissionRegister(REGISTER_STATUS.open)).toBe(false);
-        expect(canDecommissionRegister(REGISTER_STATUS.decommissioned)).toBe(false);
-    });
+  it('allows decommission only when closed', () => {
+    expect(canDecommissionRegister(REGISTER_STATUS.closed)).toBe(true);
+    expect(canDecommissionRegister(REGISTER_STATUS.open)).toBe(false);
+    expect(canDecommissionRegister(REGISTER_STATUS.decommissioned)).toBe(false);
+  });
 
-    it('detects decommissioned status', () => {
-        expect(isDecommissionedRegister(REGISTER_STATUS.decommissioned)).toBe(true);
-        expect(isDecommissionedRegister(REGISTER_STATUS.open)).toBe(false);
-    });
+  it('detects decommissioned status', () => {
+    expect(isDecommissionedRegister(REGISTER_STATUS.decommissioned)).toBe(true);
+    expect(isDecommissionedRegister(REGISTER_STATUS.open)).toBe(false);
+  });
 
-    it('maps emoji for primary statuses', () => {
-        expect(registerStatusEmoji(REGISTER_STATUS.open)).toBe('🟢');
-        expect(registerStatusEmoji(REGISTER_STATUS.closed)).toBe('🔴');
-        expect(registerStatusEmoji(REGISTER_STATUS.decommissioned)).toBe('⚫');
-    });
+  it('maps emoji for primary statuses', () => {
+    expect(registerStatusEmoji(REGISTER_STATUS.open)).toBe('🟢');
+    expect(registerStatusEmoji(REGISTER_STATUS.closed)).toBe('🔴');
+    expect(registerStatusEmoji(REGISTER_STATUS.decommissioned)).toBe('⚫');
+  });
 
-    it('reads startbeleg from entity or admin Utc field', () => {
-        expect(
-            readStartbelegCreatedAt({
-                startbelegCreatedAt: '2026-01-01T00:00:00Z',
-            } as CashRegister),
-        ).toBe('2026-01-01T00:00:00Z');
+  it('reads startbeleg from entity or admin Utc field', () => {
+    expect(
+      readStartbelegCreatedAt({
+        startbelegCreatedAt: '2026-01-01T00:00:00Z',
+      } as CashRegister)
+    ).toBe('2026-01-01T00:00:00Z');
 
-        expect(
-            readStartbelegCreatedAt({
-                startbelegCreatedAtUtc: '2026-02-01T00:00:00Z',
-            } as CashRegister & { startbelegCreatedAtUtc: string }),
-        ).toBe('2026-02-01T00:00:00Z');
+    expect(
+      readStartbelegCreatedAt({
+        startbelegCreatedAtUtc: '2026-02-01T00:00:00Z',
+      } as CashRegister & { startbelegCreatedAtUtc: string })
+    ).toBe('2026-02-01T00:00:00Z');
 
-        expect(readStartbelegCreatedAt({} as CashRegister)).toBeNull();
-    });
+    expect(readStartbelegCreatedAt({} as CashRegister)).toBeNull();
+  });
 });

@@ -1,13 +1,13 @@
 import { describe, expect, it, jest } from '@jest/globals';
 
+import { parseSplitItemDto, parseSplitSessionDto } from '../services/api/splitService';
+
 jest.mock('../services/api/config', () => ({
   apiClient: {
     get: jest.fn(),
     post: jest.fn(),
   },
 }));
-
-import { parseSplitItemDto, parseSplitSessionDto } from '../services/api/splitService';
 
 describe('splitService parsers', () => {
   it('parseSplitSessionDto reads items and totals', () => {

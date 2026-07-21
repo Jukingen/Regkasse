@@ -14,39 +14,33 @@ export const SimpleAsyncExample: React.FC = () => {
   const [state, actions] = useAsyncState(
     async () => {
       // Simüle edilmiş API çağrısı
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       return { message: 'Data loaded successfully!' };
     },
     {
       showErrorAlert: true,
       showSuccessAlert: true,
       successMessage: 'Operation completed successfully!',
-      errorMessage: 'Operation failed!'
+      errorMessage: 'Operation failed!',
     }
   );
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Simple Async State Example</Text>
-      
+
       {state.loading && <Text>Loading...</Text>}
       {state.error && <Text style={styles.error}>Error: {state.error}</Text>}
       {state.data && <Text>Data: {state.data.message}</Text>}
-      
-      <TouchableOpacity 
+
+      <TouchableOpacity
         style={styles.button}
         onPress={() => actions.execute()}
-        disabled={state.loading}
-      >
-        <Text style={styles.buttonText}>
-          {state.loading ? 'Loading...' : 'Load Data'}
-        </Text>
+        disabled={state.loading}>
+        <Text style={styles.buttonText}>{state.loading ? 'Loading...' : 'Load Data'}</Text>
       </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={styles.button}
-        onPress={actions.reset}
-      >
+
+      <TouchableOpacity style={styles.button} onPress={actions.reset}>
         <Text style={styles.buttonText}>Reset</Text>
       </TouchableOpacity>
     </View>
@@ -71,74 +65,75 @@ export const FormStateExample: React.FC = () => {
     {
       showErrorAlert: true,
       showSuccessAlert: true,
-      successMessage: 'Form submitted successfully!'
+      successMessage: 'Form submitted successfully!',
     }
   );
 
   const handleSubmit = async (values: any) => {
     // Simüle edilmiş form gönderimi
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     console.log('Form values:', values);
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Form State Example</Text>
-      
+
       <TextInput
-        style={[
-          styles.input,
-          formState.touched.name && formState.errors.name && styles.inputError
-        ]}
+        style={[styles.input, formState.touched.name && formState.errors.name && styles.inputError]}
         placeholder="Name"
         value={formState.values.name}
-        onChangeText={(text) => formActions.setValue('name', text)}
-        onBlur={() => formActions.setTouched('name', true)}
+        onChangeText={(text) => {
+          formActions.setValue('name', text);
+        }}
+        onBlur={() => {
+          formActions.setTouched('name', true);
+        }}
       />
       {formState.touched.name && formState.errors.name && (
         <Text style={styles.errorText}>{formState.errors.name}</Text>
       )}
-      
+
       <TextInput
         style={[
           styles.input,
-          formState.touched.email && formState.errors.email && styles.inputError
+          formState.touched.email && formState.errors.email && styles.inputError,
         ]}
         placeholder="Email"
         value={formState.values.email}
-        onChangeText={(text) => formActions.setValue('email', text)}
-        onBlur={() => formActions.setTouched('email', true)}
+        onChangeText={(text) => {
+          formActions.setValue('email', text);
+        }}
+        onBlur={() => {
+          formActions.setTouched('email', true);
+        }}
         keyboardType="email-address"
       />
       {formState.touched.email && formState.errors.email && (
         <Text style={styles.errorText}>{formState.errors.email}</Text>
       )}
-      
+
       <TextInput
         style={styles.input}
         placeholder="Message (optional)"
         value={formState.values.message}
-        onChangeText={(text) => formActions.setValue('message', text)}
+        onChangeText={(text) => {
+          formActions.setValue('message', text);
+        }}
         multiline
       />
-      
-      <TouchableOpacity 
+
+      <TouchableOpacity
         style={[
           styles.button,
-          (!formState.isValid || formState.isSubmitting) && styles.buttonDisabled
+          (!formState.isValid || formState.isSubmitting) && styles.buttonDisabled,
         ]}
         onPress={() => formActions.submit(handleSubmit)}
-        disabled={!formState.isValid || formState.isSubmitting}
-      >
-        <Text style={styles.buttonText}>
-          {formState.isSubmitting ? 'Submitting...' : 'Submit'}
-        </Text>
+        disabled={!formState.isValid || formState.isSubmitting}>
+        <Text style={styles.buttonText}>{formState.isSubmitting ? 'Submitting...' : 'Submit'}</Text>
       </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={styles.button}
-        onPress={formActions.reset}
-      >
+
+      <TouchableOpacity style={styles.button} onPress={formActions.reset}>
         <Text style={styles.buttonText}>Reset Form</Text>
       </TouchableOpacity>
     </View>
@@ -156,11 +151,11 @@ export const ProductOperationsExample: React.FC = () => {
       price: 9.99,
       stockQuantity: 100,
       minStockLevel: 10,
-      
+
       category: 'Test',
       unit: 'piece',
       taxRate: 20,
-      isActive: true
+      isActive: true,
     };
 
     // ❌ REMOVED: createProduct - API'den kaldırıldı
@@ -170,31 +165,21 @@ export const ProductOperationsExample: React.FC = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Product Operations Example</Text>
-      
+
       {products.loading && <Text>Loading products...</Text>}
       {products.error && <Text style={styles.error}>Error: {products.error}</Text>}
-      {products.data && (
-        <Text>Products loaded: {products.data.length}</Text>
-      )}
-      
-      <TouchableOpacity 
-        style={styles.button}
-        onPress={refreshProducts}
-        disabled={products.loading}
-      >
+      {products.data && <Text>Products loaded: {products.data.length}</Text>}
+
+      <TouchableOpacity style={styles.button} onPress={refreshProducts} disabled={products.loading}>
         <Text style={styles.buttonText}>
           {products.loading ? 'Loading...' : 'Refresh Products'}
         </Text>
       </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={[
-          styles.button,
-          create.loading && styles.buttonDisabled
-        ]}
+
+      <TouchableOpacity
+        style={[styles.button, create.loading && styles.buttonDisabled]}
         onPress={handleCreateProduct}
-        disabled={create.loading}
-      >
+        disabled={create.loading}>
         <Text style={styles.buttonText}>
           {create.loading ? 'Creating...' : 'Create Test Product'}
         </Text>
@@ -205,9 +190,9 @@ export const ProductOperationsExample: React.FC = () => {
 
 // 4. Global App State Kullanımı
 export const GlobalAppStateExample: React.FC = () => {
-  const { 
-    globalLoading, 
-    globalError, 
+  const {
+    globalLoading,
+    globalError,
     globalSuccess,
     showGlobalLoading,
     hideGlobalLoading,
@@ -215,61 +200,60 @@ export const GlobalAppStateExample: React.FC = () => {
     showSuccess,
     addNotification,
     clearError,
-    clearSuccess
+    clearSuccess,
   } = useAppState();
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Global App State Example</Text>
-      
-      <TouchableOpacity 
+
+      <TouchableOpacity
         style={styles.button}
         onPress={() => {
           showGlobalLoading();
           setTimeout(hideGlobalLoading, 2000);
-        }}
-      >
+        }}>
         <Text style={styles.buttonText}>Show Global Loading</Text>
       </TouchableOpacity>
-      
-      <TouchableOpacity 
+
+      <TouchableOpacity
         style={styles.button}
-        onPress={() => showError('This is a test error message')}
-      >
+        onPress={() => {
+          showError('This is a test error message');
+        }}>
         <Text style={styles.buttonText}>Show Error</Text>
       </TouchableOpacity>
-      
-      <TouchableOpacity 
+
+      <TouchableOpacity
         style={styles.button}
-        onPress={() => showSuccess('This is a test success message')}
-      >
+        onPress={() => {
+          showSuccess('This is a test success message');
+        }}>
         <Text style={styles.buttonText}>Show Success</Text>
       </TouchableOpacity>
-      
-      <TouchableOpacity 
+
+      <TouchableOpacity
         style={styles.button}
         onPress={() => {
           addNotification({
             type: 'info',
             title: 'Test Notification',
             message: 'This is a test notification',
-            duration: 3000
+            duration: 3000,
           });
-        }}
-      >
+        }}>
         <Text style={styles.buttonText}>Add Notification</Text>
       </TouchableOpacity>
-      
-      <TouchableOpacity 
+
+      <TouchableOpacity
         style={styles.button}
         onPress={() => {
           clearError();
           clearSuccess();
-        }}
-      >
+        }}>
         <Text style={styles.buttonText}>Clear Messages</Text>
       </TouchableOpacity>
-      
+
       {globalLoading && <Text>Global loading is active</Text>}
       {globalError && <Text style={styles.error}>Global error: {globalError}</Text>}
       {globalSuccess && <Text style={styles.success}>Global success: {globalSuccess}</Text>}
@@ -343,4 +327,4 @@ const styles = StyleSheet.create({
     color: '#34C759',
     marginVertical: 8,
   },
-}); 
+});

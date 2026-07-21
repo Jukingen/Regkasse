@@ -1,19 +1,35 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
+import { DeleteOutlined, PlusOutlined, SaveOutlined } from '@ant-design/icons';
+import {
+  Alert,
+  Button,
+  Card,
+  Checkbox,
+  Col,
+  Drawer,
+  Empty,
+  Row,
+  Select,
+  Space,
+  Spin,
+  Tag,
+  Tooltip,
+  Typography,
+} from 'antd';
 /**
  * Role management drawer: left = role list (System + Custom), right = grouped permission checklist.
  * System roles are readonly; custom roles are editable. No legacy/deprecated role category.
  */
-import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
-import { Drawer, Button, Space, Spin, Alert, Empty, Checkbox, Tooltip, Typography, Select, Tag, Card, Row, Col } from 'antd';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
 import { SimpleList as List } from '@/components/ui/SimpleList';
-import { PlusOutlined, DeleteOutlined, SaveOutlined } from '@ant-design/icons';
-import type { RoleWithPermissionsDto } from '../api/usersGateway';
-import type { PermissionCatalogItemDto } from '../api/usersGateway';
-import { ROLE_PRESETS, getPresetKeysInCatalog, type RolePreset } from '../constants/rolePresets';
-import { validateCatalogAlignment } from '@/shared/auth/validateCatalogAlignment';
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n/I18nProvider';
+import { validateCatalogAlignment } from '@/shared/auth/validateCatalogAlignment';
+
+import type { PermissionCatalogItemDto, RoleWithPermissionsDto } from '../api/usersGateway';
+import { ROLE_PRESETS, type RolePreset, getPresetKeysInCatalog } from '../constants/rolePresets';
 import { permissionCatalogGroupToSlug } from '../utils/permissionCatalogGroup';
 import { resolvePermissionDisplayLabel } from '../utils/permissionDisplayLabel';
 
@@ -51,7 +67,9 @@ const SUMMARY_CATEGORY_KEYS = [
   { key: 'settings', summaryKey: 'settingsAdmin' as const, groupKeys: ['settings', 'user_role'] },
 ] as const;
 
-function groupCatalogByGroup(catalog: PermissionCatalogItemDto[]): Map<string, PermissionCatalogItemDto[]> {
+function groupCatalogByGroup(
+  catalog: PermissionCatalogItemDto[]
+): Map<string, PermissionCatalogItemDto[]> {
   const map = new Map<string, PermissionCatalogItemDto[]>();
   for (const item of catalog) {
     const rawGroup = item.group?.trim() || 'Other';
@@ -112,35 +130,47 @@ export function RoleManagementDrawer({
   const roleDisplayLabel = useCallback(
     (roleName: string) =>
       CANONICAL_ROLE_NAMES.has(roleName) ? t(`users.roles.displayNames.${roleName}`) : roleName,
-    [t],
+    [t]
   );
 
   const formatUserCount = useCallback(
-    (n: number) => (n === 1 ? t('users.roleDrawer.userCountOne') : t('users.roleDrawer.userCountMany', { count: n })),
-    [t],
+    (n: number) =>
+      n === 1
+        ? t('users.roleDrawer.userCountOne')
+        : t('users.roleDrawer.userCountMany', { count: n }),
+    [t]
   );
 
   const formatPermissionGroupCount = useCallback(
     (n: number) =>
-      n === 1 ? t('users.roleDrawer.permissionGroupCountOne') : t('users.roleDrawer.permissionGroupCountMany', { count: n }),
-    [t],
+      n === 1
+        ? t('users.roleDrawer.permissionGroupCountOne')
+        : t('users.roleDrawer.permissionGroupCountMany', { count: n }),
+    [t]
   );
 
   const getUiAccessBadge = useCallback(
     (role: RoleWithPermissionsDto): { label: string; color: string } | null => {
       const cap = role.uiCapabilities;
       if (!cap) return null;
-      if (cap.posLogin && cap.adminLogin) return { label: t('users.roleDrawer.badgePosAndAdmin'), color: 'blue' };
+      if (cap.posLogin && cap.adminLogin)
+        return { label: t('users.roleDrawer.badgePosAndAdmin'), color: 'blue' };
       if (cap.posLogin) return { label: t('users.roleDrawer.badgePosUi'), color: 'green' };
       if (cap.adminLogin) return { label: t('users.roleDrawer.badgeAdminUi'), color: 'geekblue' };
       return null;
     },
-    [t],
+    [t]
   );
 
-  const getGroupLabel = useCallback((groupKey: string) => t(`users.roleDrawer.groups.${groupKey}`), [t]);
+  const getGroupLabel = useCallback(
+    (groupKey: string) => t(`users.roleDrawer.groups.${groupKey}`),
+    [t]
+  );
 
-  const getPermissionDisplayLabel = useCallback((code: string) => resolvePermissionDisplayLabel(code, t), [t]);
+  const getPermissionDisplayLabel = useCallback(
+    (code: string) => resolvePermissionDisplayLabel(code, t),
+    [t]
+  );
 
   const getRoleCapabilityHint = useCallback(
     (role: RoleWithPermissionsDto): string => {
@@ -154,25 +184,34 @@ export function RoleManagementDrawer({
       if (pos && has('cash_shift')) return t('users.roleDrawer.capabilityHintPosCash');
       if (pos) return t('users.roleDrawer.capabilityHintPosOnly');
       if (admin && has('audit_report')) return t('users.roleDrawer.capabilityHintAdminReports');
-      if (admin && (has('user_role') || has('settings') || has('system'))) return t('users.roleDrawer.capabilityHintAdminFull');
+      if (admin && (has('user_role') || has('settings') || has('system')))
+        return t('users.roleDrawer.capabilityHintAdminFull');
       if (admin) return t('users.roleDrawer.capabilityHintAdminCatalog');
       if (has('audit_report')) return t('users.roleDrawer.summary.reports');
       if (has('cash_shift')) return t('users.roleDrawer.summary.cashShift');
       if (groups.length > 0) return formatPermissionGroupCount(groups.length);
       return '';
     },
-    [t, formatPermissionGroupCount],
+    [t, formatPermissionGroupCount]
   );
 
   const getSummaryValue = useCallback(
     (role: RoleWithPermissionsDto, cat: (typeof SUMMARY_CATEGORY_KEYS)[number]): string => {
-      if (cat.key === 'pos') return role.uiCapabilities?.posLogin === true ? t('users.roleDrawer.loginYes') : t('users.roleDrawer.loginNo');
-      if (cat.key === 'admin') return role.uiCapabilities?.adminLogin === true ? t('users.roleDrawer.loginYes') : t('users.roleDrawer.loginNo');
+      if (cat.key === 'pos')
+        return role.uiCapabilities?.posLogin === true
+          ? t('users.roleDrawer.loginYes')
+          : t('users.roleDrawer.loginNo');
+      if (cat.key === 'admin')
+        return role.uiCapabilities?.adminLogin === true
+          ? t('users.roleDrawer.loginYes')
+          : t('users.roleDrawer.loginNo');
       const groups = role.permissionGroups ?? [];
-      const hasAny = cat.groupKeys.some((gk) => groups.some((pg) => pg.groupKey === gk && pg.permissions.length > 0));
+      const hasAny = cat.groupKeys.some((gk) =>
+        groups.some((pg) => pg.groupKey === gk && pg.permissions.length > 0)
+      );
       return hasAny ? t('users.roleDrawer.loginYes') : t('users.roleDrawer.summaryNone');
     },
-    [t],
+    [t]
   );
 
   const sortedRoles = useMemo(
@@ -183,16 +222,16 @@ export function RoleManagementDrawer({
         if (systemA !== systemB) return systemA - systemB;
         return a.roleName.localeCompare(b.roleName, 'de');
       }),
-    [roles],
+    [roles]
   );
 
   const systemRolesList = useMemo(
     () => sortedRoles.filter((r) => r.isSystemRole || r.isImmutable),
-    [sortedRoles],
+    [sortedRoles]
   );
   const customRolesList = useMemo(
     () => sortedRoles.filter((r) => !(r.isSystemRole || r.isImmutable)),
-    [sortedRoles],
+    [sortedRoles]
   );
 
   const [selectedRoleName, setSelectedRoleName] = useState<string | null>(null);
@@ -220,7 +259,7 @@ export function RoleManagementDrawer({
   // Derived selection + capabilities in one memo (reduces duplicate finds).
   const selectedRole = useMemo(
     () => (selectedRoleName ? roles.find((r) => r.roleName === selectedRoleName) : undefined),
-    [roles, selectedRoleName],
+    [roles, selectedRoleName]
   );
   const isSystemRole = selectedRole?.isSystemRole ?? false;
   // Backend: all system roles immutable → canEditPermissions false; custom uses DTO flag.
@@ -232,7 +271,7 @@ export function RoleManagementDrawer({
   const savedPermissionsSet = useMemo(
     () => new Set(selectedRole?.permissions ?? []),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: selectedRolePermissionsKey is the fingerprint
-    [selectedRolePermissionsKey],
+    [selectedRolePermissionsKey]
   );
 
   const dirty = useMemo(() => {
@@ -307,7 +346,10 @@ export function RoleManagementDrawer({
     });
   }, [groupedCatalog, t]);
 
-  const presetOptions = useMemo(() => ROLE_PRESETS.map((p) => ({ value: p.id, label: p.label })), []);
+  const presetOptions = useMemo(
+    () => ROLE_PRESETS.map((p) => ({ value: p.id, label: p.label })),
+    []
+  );
 
   const handleApplyPreset = useCallback(
     (preset: RolePreset) => {
@@ -316,7 +358,7 @@ export function RoleManagementDrawer({
       setDraftPermissions(new Set(keysInCatalog));
       setPresetSelectValue(null);
     },
-    [canEditRole, catalogKeySet],
+    [canEditRole, catalogKeySet]
   );
 
   const syncDraftToRole = useCallback((roleName: string) => {
@@ -394,52 +436,51 @@ export function RoleManagementDrawer({
     });
   };
 
-  const deleteButtonTooltip =
-    !selectedRoleName
-      ? undefined
-      : isSystemRole
-        ? t('users.roleDrawer.systemRoleProtectedNoDelete')
-        : (selectedRole?.userCount ?? 0) > 0
-          ? t('users.roleDrawer.roleDeleteBlockedReassignFirst')
-          : undefined;
+  const deleteButtonTooltip = !selectedRoleName
+    ? undefined
+    : isSystemRole
+      ? t('users.roleDrawer.systemRoleProtectedNoDelete')
+      : (selectedRole?.userCount ?? 0) > 0
+        ? t('users.roleDrawer.roleDeleteBlockedReassignFirst')
+        : undefined;
 
   const loading = rolesLoading || catalogLoading;
   const error = rolesError || catalogError;
 
   const actionFooter = (
-        <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
-          {canCreateRole && (
-            <Button icon={<PlusOutlined />} onClick={onCreateRole}>
-              {t('users.roleDrawer.newRoleButton')}
-            </Button>
-          )}
-          {canDeleteRole && (
-            <Tooltip title={deleteButtonTooltip}>
-              <span>
-                <Button
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={handleDelete}
-                  disabled={!selectedRoleCanDelete || !selectedRoleName}
-                  loading={deleteLoading}
-                >
-                  {t('users.roleDrawer.deleteRole')}
-                </Button>
-              </span>
-            </Tooltip>
-          )}
-          {canEditRolePermissions && (
+    <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
+      {canCreateRole && (
+        <Button icon={<PlusOutlined />} onClick={onCreateRole}>
+          {t('users.roleDrawer.newRoleButton')}
+        </Button>
+      )}
+      {canDeleteRole && (
+        <Tooltip title={deleteButtonTooltip}>
+          <span>
             <Button
-              type="primary"
-              icon={<SaveOutlined />}
-              onClick={handleSave}
-              disabled={!dirty || !canEditRole || !selectedRoleName}
-              loading={saveLoading}
+              danger
+              icon={<DeleteOutlined />}
+              onClick={handleDelete}
+              disabled={!selectedRoleCanDelete || !selectedRoleName}
+              loading={deleteLoading}
             >
-              {t('users.roleDrawer.savePermissions')}
+              {t('users.roleDrawer.deleteRole')}
             </Button>
-          )}
-        </Space>
+          </span>
+        </Tooltip>
+      )}
+      {canEditRolePermissions && (
+        <Button
+          type="primary"
+          icon={<SaveOutlined />}
+          onClick={handleSave}
+          disabled={!dirty || !canEditRole || !selectedRoleName}
+          loading={saveLoading}
+        >
+          {t('users.roleDrawer.savePermissions')}
+        </Button>
+      )}
+    </Space>
   );
 
   const panelBody = (
@@ -469,7 +510,14 @@ export function RoleManagementDrawer({
         </div>
       ) : (
         <div style={{ display: 'flex', gap: 24, minHeight: presentation === 'page' ? 520 : 400 }}>
-          <div style={{ width: 220, flexShrink: 0, borderRight: '1px solid #f0f0f0', paddingRight: 16 }}>
+          <div
+            style={{
+              width: 220,
+              flexShrink: 0,
+              borderRight: '1px solid #f0f0f0',
+              paddingRight: 16,
+            }}
+          >
             <Typography.Text strong>{t('users.list.columnRole')}</Typography.Text>
             {sortedRoles.length === 0 ? (
               <Empty
@@ -481,10 +529,16 @@ export function RoleManagementDrawer({
               <div style={{ marginTop: 8 }}>
                 {systemRolesList.length > 0 && (
                   <>
-                    <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>
+                    <Typography.Text
+                      type="secondary"
+                      style={{ fontSize: 11, display: 'block', marginBottom: 4 }}
+                    >
                       {t('users.roleDrawer.systemRolesSection')}
                     </Typography.Text>
-                    <Typography.Text type="secondary" style={{ fontSize: 10, display: 'block', marginBottom: 6, opacity: 0.85 }}>
+                    <Typography.Text
+                      type="secondary"
+                      style={{ fontSize: 10, display: 'block', marginBottom: 6, opacity: 0.85 }}
+                    >
                       {t('users.roleDrawer.systemRolesSectionHint')}
                     </Typography.Text>
                     <List
@@ -504,7 +558,14 @@ export function RoleManagementDrawer({
                             onClick={() => handleSelectRole(r.roleName)}
                           >
                             <div style={{ width: '100%' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 6,
+                                  flexWrap: 'wrap',
+                                }}
+                              >
                                 <span>{roleDisplayLabel(r.roleName)}</span>
                                 {uiBadge ? (
                                   <Tag color={uiBadge.color} style={{ margin: 0, fontSize: 11 }}>
@@ -512,13 +573,24 @@ export function RoleManagementDrawer({
                                   </Tag>
                                 ) : null}
                               </div>
-                              <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block', marginTop: 2 }}>
+                              <Typography.Text
+                                type="secondary"
+                                style={{ fontSize: 11, display: 'block', marginTop: 2 }}
+                              >
                                 {formatUserCount(r.userCount)}
                                 {(r.permissionGroups?.length ?? 0) > 0 &&
                                   ` · ${formatPermissionGroupCount(r.permissionGroups!.length)}`}
                               </Typography.Text>
                               {getRoleCapabilityHint(r) && (
-                                <Typography.Text type="secondary" style={{ fontSize: 10, display: 'block', marginTop: 1, lineHeight: 1.3 }}>
+                                <Typography.Text
+                                  type="secondary"
+                                  style={{
+                                    fontSize: 10,
+                                    display: 'block',
+                                    marginTop: 1,
+                                    lineHeight: 1.3,
+                                  }}
+                                >
                                   {getRoleCapabilityHint(r)}
                                 </Typography.Text>
                               )}
@@ -542,7 +614,10 @@ export function RoleManagementDrawer({
                     >
                       {t('users.roleDrawer.customRolesSection')}
                     </Typography.Text>
-                    <Typography.Text type="secondary" style={{ fontSize: 10, display: 'block', marginBottom: 6, opacity: 0.85 }}>
+                    <Typography.Text
+                      type="secondary"
+                      style={{ fontSize: 10, display: 'block', marginBottom: 6, opacity: 0.85 }}
+                    >
                       {t('users.roleDrawer.customRolesSectionHint')}
                     </Typography.Text>
                     <List
@@ -562,7 +637,14 @@ export function RoleManagementDrawer({
                             onClick={() => handleSelectRole(r.roleName)}
                           >
                             <div style={{ width: '100%' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 6,
+                                  flexWrap: 'wrap',
+                                }}
+                              >
                                 <span>{roleDisplayLabel(r.roleName)}</span>
                                 {uiBadge ? (
                                   <Tag color={uiBadge.color} style={{ margin: 0, fontSize: 11 }}>
@@ -574,13 +656,24 @@ export function RoleManagementDrawer({
                                   </Tag>
                                 )}
                               </div>
-                              <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block', marginTop: 2 }}>
+                              <Typography.Text
+                                type="secondary"
+                                style={{ fontSize: 11, display: 'block', marginTop: 2 }}
+                              >
                                 {formatUserCount(r.userCount)}
                                 {(r.permissionGroups?.length ?? 0) > 0 &&
                                   ` · ${formatPermissionGroupCount(r.permissionGroups!.length)}`}
                               </Typography.Text>
                               {getRoleCapabilityHint(r) && (
-                                <Typography.Text type="secondary" style={{ fontSize: 10, display: 'block', marginTop: 1, lineHeight: 1.3 }}>
+                                <Typography.Text
+                                  type="secondary"
+                                  style={{
+                                    fontSize: 10,
+                                    display: 'block',
+                                    marginTop: 1,
+                                    lineHeight: 1.3,
+                                  }}
+                                >
                                   {getRoleCapabilityHint(r)}
                                 </Typography.Text>
                               )}
@@ -606,7 +699,9 @@ export function RoleManagementDrawer({
                 marginBottom: 8,
               }}
             >
-              <Typography.Text strong>{t('users.roleDrawer.permissionGroupsSection')}</Typography.Text>
+              <Typography.Text strong>
+                {t('users.roleDrawer.permissionGroupsSection')}
+              </Typography.Text>
               {canEditRolePermissions && selectedRoleName && canEditRole && (
                 <Select
                   placeholder={t('users.roleDrawer.presetPlaceholder')}
@@ -626,8 +721,12 @@ export function RoleManagementDrawer({
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
                 description={
                   <span>
-                    <div style={{ fontWeight: 500, marginBottom: 4 }}>{t('users.roleDrawer.noRoleSelectedTitle')}</div>
-                    <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)' }}>{t('users.roleDrawer.noRoleSelectedDescription')}</div>
+                    <div style={{ fontWeight: 500, marginBottom: 4 }}>
+                      {t('users.roleDrawer.noRoleSelectedTitle')}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)' }}>
+                      {t('users.roleDrawer.noRoleSelectedDescription')}
+                    </div>
                   </span>
                 }
                 style={{ marginTop: 24 }}
@@ -639,7 +738,10 @@ export function RoleManagementDrawer({
                     <Typography.Title level={5} style={{ marginTop: 0, marginBottom: 8 }}>
                       {roleDisplayLabel(selectedRole.roleName)}
                     </Typography.Title>
-                    <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 12 }}>
+                    <Typography.Paragraph
+                      type="secondary"
+                      style={{ fontSize: 12, marginBottom: 12 }}
+                    >
                       {selectedRole.description ?? formatUserCount(selectedRole.userCount)}
                     </Typography.Paragraph>
 
@@ -649,7 +751,10 @@ export function RoleManagementDrawer({
                         {SUMMARY_CATEGORY_KEYS.map((cat) => (
                           <Col key={cat.key} xs={12} sm={8} md={6}>
                             <Card size="small" style={{ background: '#fafafa' }}>
-                              <Typography.Text type="secondary" style={{ fontSize: 10, display: 'block' }}>
+                              <Typography.Text
+                                type="secondary"
+                                style={{ fontSize: 10, display: 'block' }}
+                              >
                                 {t(`users.roleDrawer.summary.${cat.summaryKey}`)}
                               </Typography.Text>
                               <Typography.Text style={{ fontSize: 12, fontWeight: 500 }}>
@@ -664,13 +769,24 @@ export function RoleManagementDrawer({
                     <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
                       {t('users.roleDrawer.accessSection')}
                     </Typography.Text>
-                    <div style={{ marginBottom: 16, padding: '8px 12px', background: '#fafafa', borderRadius: 6 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <div
+                      style={{
+                        marginBottom: 16,
+                        padding: '8px 12px',
+                        background: '#fafafa',
+                        borderRadius: 6,
+                      }}
+                    >
+                      <div
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}
+                      >
                         <Typography.Text type="secondary" style={{ minWidth: 100 }}>
                           {t('users.roleDrawer.posLoginLabel')}:
                         </Typography.Text>
                         <Typography.Text>
-                          {selectedRole.uiCapabilities?.posLogin === true ? t('users.roleDrawer.loginYes') : t('users.roleDrawer.loginNo')}
+                          {selectedRole.uiCapabilities?.posLogin === true
+                            ? t('users.roleDrawer.loginYes')
+                            : t('users.roleDrawer.loginNo')}
                         </Typography.Text>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -678,7 +794,9 @@ export function RoleManagementDrawer({
                           {t('users.roleDrawer.adminLoginLabel')}:
                         </Typography.Text>
                         <Typography.Text>
-                          {selectedRole.uiCapabilities?.adminLogin === true ? t('users.roleDrawer.loginYes') : t('users.roleDrawer.loginNo')}
+                          {selectedRole.uiCapabilities?.adminLogin === true
+                            ? t('users.roleDrawer.loginYes')
+                            : t('users.roleDrawer.loginNo')}
                         </Typography.Text>
                       </div>
                     </div>
@@ -702,15 +820,18 @@ export function RoleManagementDrawer({
                     style={{ marginBottom: 12 }}
                   />
                 )}
-                {selectedRole && !selectedRole.isSystemRole && !selectedRole.isImmutable && selectedRole.userCount > 0 && (
-                  <Alert
-                    type="info"
-                    title={t('users.roleDrawer.roleHasUsers')}
-                    description={t('users.roleDrawer.roleDeleteBlockedReassignFirst')}
-                    showIcon
-                    style={{ marginBottom: 12 }}
-                  />
-                )}
+                {selectedRole &&
+                  !selectedRole.isSystemRole &&
+                  !selectedRole.isImmutable &&
+                  selectedRole.userCount > 0 && (
+                    <Alert
+                      type="info"
+                      title={t('users.roleDrawer.roleHasUsers')}
+                      description={t('users.roleDrawer.roleDeleteBlockedReassignFirst')}
+                      showIcon
+                      style={{ marginBottom: 12 }}
+                    />
+                  )}
 
                 {/* Always render from full permission catalog; assigned state (draftPermissions) only drives checked. Never use selectedRole.permissionGroups for the list. */}
                 <div style={{ marginTop: 8, maxHeight: 360, overflow: 'auto' }}>
@@ -730,7 +851,15 @@ export function RoleManagementDrawer({
                           border: '1px solid #f0f0f0',
                         }}
                       >
-                        <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 6, fontWeight: 500 }}>
+                        <Typography.Text
+                          type="secondary"
+                          style={{
+                            fontSize: 12,
+                            display: 'block',
+                            marginBottom: 6,
+                            fontWeight: 500,
+                          }}
+                        >
                           {t(`users.roleDrawer.groups.${groupSlug}`)}
                         </Typography.Text>
                         <Space orientation="vertical" size={2} style={{ width: '100%' }}>
@@ -765,7 +894,9 @@ export function RoleManagementDrawer({
     return (
       <Card>
         {panelBody}
-        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #f0f0f0' }}>{actionFooter}</div>
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #f0f0f0' }}>
+          {actionFooter}
+        </div>
       </Card>
     );
   }

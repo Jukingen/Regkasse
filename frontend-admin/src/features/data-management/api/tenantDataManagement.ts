@@ -1,12 +1,7 @@
 import { AXIOS_INSTANCE } from '@/lib/axios';
 
 export type TenantDataLifecycleState =
-  | 'Active'
-  | 'Grace'
-  | 'Locked'
-  | 'Archived'
-  | 'ExportRequest'
-  | 'Deleted';
+  'Active' | 'Grace' | 'Locked' | 'Archived' | 'ExportRequest' | 'Deleted';
 
 export type TenantDataTypeSummary = {
   key: string;
@@ -74,10 +69,10 @@ export type DeletionResult = {
 };
 
 export async function getTenantDataManagementSummary(
-  tenantId: string,
+  tenantId: string
 ): Promise<TenantDataManagementSummary> {
   const { data } = await AXIOS_INSTANCE.get<TenantDataManagementSummary>(
-    `/api/admin/tenants/${tenantId}/data-management`,
+    `/api/admin/tenants/${tenantId}/data-management`
   );
   return data;
 }
@@ -85,38 +80,38 @@ export async function getTenantDataManagementSummary(
 export async function downloadTenantDataExport(tenantId: string): Promise<Blob> {
   const { data } = await AXIOS_INSTANCE.get<Blob>(
     `/api/admin/tenants/${tenantId}/data-management/export`,
-    { responseType: 'blob' },
+    { responseType: 'blob' }
   );
   return data;
 }
 
 export async function requestTenantDataDeletion(
   tenantId: string,
-  reason?: string,
+  reason?: string
 ): Promise<TenantDataDeletionRequest> {
   const { data } = await AXIOS_INSTANCE.post<TenantDataDeletionRequest>(
     `/api/admin/tenants/${tenantId}/data-management/deletion-request`,
-    { reason: reason?.trim() || undefined },
+    { reason: reason?.trim() || undefined }
   );
   return data;
 }
 
 export async function confirmTenantDataDeletion(
   tenantId: string,
-  requestId: string,
+  requestId: string
 ): Promise<TenantDataDeletionRequest> {
   const { data } = await AXIOS_INSTANCE.post<TenantDataDeletionRequest>(
-    `/api/admin/tenants/${tenantId}/data-management/deletion-request/${requestId}/confirm`,
+    `/api/admin/tenants/${tenantId}/data-management/deletion-request/${requestId}/confirm`
   );
   return data;
 }
 
 export async function executeTenantDataPurge(
   tenantId: string,
-  requestId: string,
+  requestId: string
 ): Promise<DeletionResult> {
   const { data } = await AXIOS_INSTANCE.post<DeletionResult>(
-    `/api/admin/tenants/${tenantId}/data-management/deletion-request/${requestId}/execute`,
+    `/api/admin/tenants/${tenantId}/data-management/deletion-request/${requestId}/execute`
   );
   return data;
 }
@@ -160,19 +155,17 @@ export type TenantDataRightsRequest = {
 };
 
 export async function listDataRightsRequestTypes(
-  tenantId: string,
+  tenantId: string
 ): Promise<DataRightsRequestTypeCatalogItem[]> {
   const { data } = await AXIOS_INSTANCE.get<DataRightsRequestTypeCatalogItem[]>(
-    `/api/admin/tenants/${tenantId}/data-management/request-types`,
+    `/api/admin/tenants/${tenantId}/data-management/request-types`
   );
   return data;
 }
 
-export async function listDataRightsRequests(
-  tenantId: string,
-): Promise<TenantDataRightsRequest[]> {
+export async function listDataRightsRequests(tenantId: string): Promise<TenantDataRightsRequest[]> {
   const { data } = await AXIOS_INSTANCE.get<TenantDataRightsRequest[]>(
-    `/api/admin/tenants/${tenantId}/data-management/requests`,
+    `/api/admin/tenants/${tenantId}/data-management/requests`
   );
   return data;
 }
@@ -198,13 +191,13 @@ export type DataAccessResult = {
 export async function createDataRightsRequest(
   tenantId: string,
   type: DataRightsRequestType,
-  reason?: string,
+  reason?: string
 ): Promise<TenantDataRightsRequest> {
   const { data } = await AXIOS_INSTANCE.post<DataAccessResult>(
     `/api/admin/tenants/${tenantId}/data-management/requests`,
     { type, reason: reason?.trim() || undefined },
     // Delete returns HTTP 202 Accepted with the same payload shape.
-    { validateStatus: (status) => status === 200 || status === 202 },
+    { validateStatus: (status) => status === 200 || status === 202 }
   );
 
   if (!data.succeeded || !data.rights) {
@@ -214,33 +207,30 @@ export async function createDataRightsRequest(
   return data.rights;
 }
 
-export async function downloadDataRightsExport(
-  tenantId: string,
-  requestId: string,
-): Promise<Blob> {
+export async function downloadDataRightsExport(tenantId: string, requestId: string): Promise<Blob> {
   const { data } = await AXIOS_INSTANCE.get<Blob>(
     `/api/admin/tenants/${tenantId}/data-management/requests/${requestId}/download`,
-    { responseType: 'blob' },
+    { responseType: 'blob' }
   );
   return data;
 }
 
 export async function confirmDataRightsDelete(
   tenantId: string,
-  requestId: string,
+  requestId: string
 ): Promise<TenantDataRightsRequest> {
   const { data } = await AXIOS_INSTANCE.post<TenantDataRightsRequest>(
-    `/api/admin/tenants/${tenantId}/data-management/requests/${requestId}/confirm`,
+    `/api/admin/tenants/${tenantId}/data-management/requests/${requestId}/confirm`
   );
   return data;
 }
 
 export async function executeDataRightsDelete(
   tenantId: string,
-  requestId: string,
+  requestId: string
 ): Promise<DeletionResult> {
   const { data } = await AXIOS_INSTANCE.post<DeletionResult>(
-    `/api/admin/tenants/${tenantId}/data-management/requests/${requestId}/execute`,
+    `/api/admin/tenants/${tenantId}/data-management/requests/${requestId}/execute`
   );
   return data;
 }

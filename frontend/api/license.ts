@@ -71,7 +71,7 @@ export const licenseApi = {
     const res = await apiClient.post<LicenseActivationResultDto>(
       '/license/activate',
       { licenseKey },
-      { headers: { [APP_CONTEXT_HEADER]: 'pos' } },
+      { headers: { [APP_CONTEXT_HEADER]: 'pos' } }
     );
 
     if (res.success) {

@@ -3,8 +3,8 @@
  * Tap opens create confirmation (same flow as former main-screen banners).
  */
 import React, { useCallback } from 'react';
-import { Pressable, Text, StyleSheet, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Pressable, Text, StyleSheet, Alert } from 'react-native';
 
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
 import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
@@ -25,7 +25,7 @@ export function MonatsbelegHeaderBadge() {
     if (!registerId || !isValidPosCashRegisterId(registerId)) {
       Alert.alert(
         'Keine Kasse ausgewählt',
-        'Bitte wählen Sie zuerst eine Registrierkasse aus, bevor Sie den Monatsbeleg erstellen.',
+        'Bitte wählen Sie zuerst eine Registrierkasse aus, bevor Sie den Monatsbeleg erstellen.'
       );
       return;
     }
@@ -88,8 +88,7 @@ export function MonatsbelegHeaderBadge() {
             })
       }
       accessibilityHint={t('checkout:posFlow.monatsbelegBanner.createNow')}
-      hitSlop={6}
-    >
+      hitSlop={6}>
       <Text style={[styles.icon, isRed && styles.iconRed]}>!</Text>
     </Pressable>
   );

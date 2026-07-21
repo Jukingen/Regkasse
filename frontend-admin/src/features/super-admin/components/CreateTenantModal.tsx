@@ -1,7 +1,7 @@
 /** @deprecated Use CreateTenantWizard */
 export {
-    CreateTenantWizard,
-    CreateTenantWizard as CreateTenantModal,
-    type CreateTenantFormValues,
-    type CreateTenantWizardProps,
+  type CreateTenantFormValues,
+  CreateTenantWizard as CreateTenantModal,
+  CreateTenantWizard,
+  type CreateTenantWizardProps,
 } from '@/features/super-admin/components/CreateTenantWizard';

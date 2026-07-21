@@ -1,13 +1,14 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
 import {
+  type DigitalServiceRequest,
   approveDigitalServiceRequest,
   fetchDigitalServiceRequests,
   fetchTenantDigitalServiceRequests,
   rejectDigitalServiceRequest,
   requestDigitalService,
-  type DigitalServiceRequest,
 } from '@/features/digital-services/api/digitalServiceRequestsApi';
 import type { DigitalServiceType } from '@/features/digital-services/api/tenantDigitalServicesApi';
 import { TENANT_DIGITAL_SERVICES_QUERY_KEY } from '@/features/digital-services/hooks/useTenantDigitalServices';
@@ -35,9 +36,7 @@ export function useTenantDigitalServiceRequests(tenantId: string | undefined) {
   });
 }
 
-export function useDigitalServiceRequests(
-  status: DigitalServiceRequestListFilter = 'Pending',
-) {
+export function useDigitalServiceRequests(status: DigitalServiceRequestListFilter = 'Pending') {
   const { isAuthorized } = useAuthorizationGate({
     requiredPermission: [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
   });
@@ -97,9 +96,7 @@ export function useRejectDigitalServiceRequest() {
 
 export function findPendingRequest(
   requests: DigitalServiceRequest[] | undefined,
-  serviceType: DigitalServiceType,
+  serviceType: DigitalServiceType
 ): DigitalServiceRequest | undefined {
-  return requests?.find(
-    (r) => r.serviceType === serviceType && r.status === 'Pending',
-  );
+  return requests?.find((r) => r.serviceType === serviceType && r.status === 'Pending');
 }

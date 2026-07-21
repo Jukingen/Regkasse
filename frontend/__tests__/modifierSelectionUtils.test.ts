@@ -72,7 +72,12 @@ describe('modifierSelectionUtils', () => {
 
   describe('3. selecting a new radio option replaces the previous one', () => {
     it('selecting p2 when p1 is selected leaves only p2 in group', () => {
-      const g = group({ id: 'g1', minSelections: 1, maxSelections: 1, productIds: ['p1', 'p2', 'p3'] });
+      const g = group({
+        id: 'g1',
+        minSelections: 1,
+        maxSelections: 1,
+        productIds: ['p1', 'p2', 'p3'],
+      });
       const prev = new Set<string>(['p1']);
       const next = toggleSelectionInGroup(prev, g, 'p2');
       expect(next.has('p1')).toBe(false);
@@ -104,7 +109,12 @@ describe('modifierSelectionUtils', () => {
 
   describe('5. max_selection prevents additional unchecked options', () => {
     it('toggle does not add when group is at max', () => {
-      const g = group({ id: 'g1', minSelections: 0, maxSelections: 2, productIds: ['p1', 'p2', 'p3'] });
+      const g = group({
+        id: 'g1',
+        minSelections: 0,
+        maxSelections: 2,
+        productIds: ['p1', 'p2', 'p3'],
+      });
       const atMax = new Set<string>(['p1', 'p2']);
       const next = toggleSelectionInGroup(atMax, g, 'p3');
       expect(next.has('p3')).toBe(false);
@@ -126,7 +136,12 @@ describe('modifierSelectionUtils', () => {
 
   describe('6. required/min_selection validation fails correctly', () => {
     it('fails when selected count is below minSelections', () => {
-      const g = group({ id: 'g1', minSelections: 2, maxSelections: 3, productIds: ['p1', 'p2', 'p3'] });
+      const g = group({
+        id: 'g1',
+        minSelections: 2,
+        maxSelections: 3,
+        productIds: ['p1', 'p2', 'p3'],
+      });
       const result = validateGroup(g, new Set(['p1']));
       expect(result.valid).toBe(false);
       expect(result.message).toContain('Mindestens');
@@ -145,7 +160,11 @@ describe('modifierSelectionUtils', () => {
     });
 
     it('isGroupRequired is true when isRequired is true', () => {
-      expect(isGroupRequired(group({ id: 'g1', minSelections: 0, maxSelections: null, isRequired: true }))).toBe(true);
+      expect(
+        isGroupRequired(
+          group({ id: 'g1', minSelections: 0, maxSelections: null, isRequired: true })
+        )
+      ).toBe(true);
     });
   });
 
@@ -158,7 +177,12 @@ describe('modifierSelectionUtils', () => {
     });
 
     it('passes when count is between min and max', () => {
-      const g = group({ id: 'g1', minSelections: 1, maxSelections: 3, productIds: ['p1', 'p2', 'p3'] });
+      const g = group({
+        id: 'g1',
+        minSelections: 1,
+        maxSelections: 3,
+        productIds: ['p1', 'p2', 'p3'],
+      });
       const result = validateGroup(g, new Set(['p1', 'p2']));
       expect(result.valid).toBe(true);
     });
@@ -207,7 +231,7 @@ describe('modifierSelectionUtils', () => {
       expect(result.errors).toHaveLength(1);
       expect(result.errors[0].groupId).toBe('required-group');
       expect(result.errors[0].message).toBeDefined();
-      expect(result.errors[0].message!.length).toBeGreaterThan(0);
+      expect(result.errors[0].message.length).toBeGreaterThan(0);
     });
 
     it('returns all failing groups in errors (not only the first)', () => {

@@ -1,23 +1,27 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Button, Card, Descriptions, Radio, Space, Table, Tag, Timeline, Typography } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import { useParams, useRouter } from 'next/navigation';
 /**
  * Tagesbericht-Detail: Snapshot, Profile (Betrieb/Buchhaltung/Compliance), Finalisieren, FinanzOnline, Korrektur.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { Button, Card, Descriptions, Radio, Space, Table, Tag, Timeline, Typography } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
-import { useParams, useRouter } from 'next/navigation';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
+import {
+  FormalReportLanguageNotice,
+  FormalReportProfileLanguageCue,
+} from '@/components/reporting/FormalReportLanguageNotice';
+import { LegalExportCompletenessBanner } from '@/components/reporting/LegalExportCompletenessBanner';
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { formatCurrency, formatDateTime, formatNumber, useI18n } from '@/i18n';
 import { AXIOS_INSTANCE } from '@/lib/axios';
-import { usePermissions } from '@/shared/auth/usePermissions';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
-import { FormalReportLanguageNotice, FormalReportProfileLanguageCue } from '@/components/reporting/FormalReportLanguageNotice';
-import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
-import { LegalExportCompletenessBanner } from '@/components/reporting/LegalExportCompletenessBanner';
+import { usePermissions } from '@/shared/auth/usePermissions';
 import { useFiscalReportText } from '@/shared/reporting/useFiscalReportText';
 
 type TagesberichtDto = {
@@ -39,7 +43,12 @@ type TagesberichtDto = {
     salePaymentRowCount: number;
     refundRowCount: number;
     stornoRowCount: number;
-    paymentMethodBreakdown: { methodKey: string; displayLabel?: string; rowCount: number; totalAmount: number }[];
+    paymentMethodBreakdown: {
+      methodKey: string;
+      displayLabel?: string;
+      rowCount: number;
+      totalAmount: number;
+    }[];
     taxBreakdown: { taxBucketKey: string; taxAmount: number }[];
     reconciliation: {
       paymentsWithoutInvoiceCount: number;
@@ -59,7 +68,12 @@ type TagesberichtDto = {
   submissionEnvelope?: {
     submissionVersusReportNoteDe?: string;
     submissionVersusReportNoteEn?: string | null;
-    attempts?: { attemptCount: number; status?: string; nextAttemptAtUtc?: string; failureCategory?: string }[];
+    attempts?: {
+      attemptCount: number;
+      status?: string;
+      nextAttemptAtUtc?: string;
+      failureCategory?: string;
+    }[];
     rejectionReasons?: string[];
     remediationHintsDe?: string[];
   };
@@ -127,7 +141,9 @@ export default function TagesberichtDetailPage() {
 
   const backendApiTooltip = t('reporting.backend.apiStringsTooltip');
 
-  const [profile, setProfile] = useState<'operationalPreview' | 'accountingReport' | 'legalComplianceExport' | 'diagnosticPackage'>('operationalPreview');
+  const [profile, setProfile] = useState<
+    'operationalPreview' | 'accountingReport' | 'legalComplianceExport' | 'diagnosticPackage'
+  >('operationalPreview');
 
   const detailQ = useQuery({
     queryKey: ['tagesbericht', id],
@@ -141,7 +157,9 @@ export default function TagesberichtDetailPage() {
   const historyQ = useQuery({
     queryKey: ['report-history', 'tagesbericht', id],
     queryFn: async () => {
-      const { data } = await AXIOS_INSTANCE.get<ReportHistoryTimelineDto>(`/api/reports/history/tagesbericht/${id}`);
+      const { data } = await AXIOS_INSTANCE.get<ReportHistoryTimelineDto>(
+        `/api/reports/history/tagesbericht/${id}`
+      );
       return data;
     },
     enabled: !!id,
@@ -171,11 +189,14 @@ export default function TagesberichtDetailPage() {
 
   const correctionMut = useMutation({
     mutationFn: async () => {
-      const { data } = await AXIOS_INSTANCE.post<TagesberichtDto>('/api/reports/tagesbericht/correction', {
-        supersedesReportId: id,
-        // API sözleşmesi: backend şu an Almanca sabit bekliyor olabilir — davranış korunur.
-        reason: 'Korrektur',
-      });
+      const { data } = await AXIOS_INSTANCE.post<TagesberichtDto>(
+        '/api/reports/tagesbericht/correction',
+        {
+          supersedesReportId: id,
+          // API sözleşmesi: backend şu an Almanca sabit bekliyor olabilir — davranış korunur.
+          reason: 'Korrektur',
+        }
+      );
       return data;
     },
     onSuccess: (data) => {
@@ -196,7 +217,7 @@ export default function TagesberichtDetailPage() {
         render: (v: number) => formatCurrency(v ?? 0, formatLocale),
       },
     ],
-    [td, formatLocale],
+    [td, formatLocale]
   );
 
   const taxColumns: ColumnsType<TagesberichtDto['summary']['taxBreakdown'][0]> = useMemo(
@@ -206,10 +227,13 @@ export default function TagesberichtDetailPage() {
         title: td('labels.taxAmount'),
         dataIndex: 'taxAmount',
         render: (v: number) =>
-          formatNumber(v ?? 0, formatLocale, { minimumFractionDigits: 2, maximumFractionDigits: 4 }),
+          formatNumber(v ?? 0, formatLocale, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 4,
+          }),
       },
     ],
-    [td, formatLocale],
+    [td, formatLocale]
   );
 
   if (detailQ.isLoading) {
@@ -226,9 +250,12 @@ export default function TagesberichtDetailPage() {
 
   const reportVsSubmissionNote = resolveFiscal(
     d.submissionEnvelope?.submissionVersusReportNoteDe,
-    d.submissionEnvelope?.submissionVersusReportNoteEn,
+    d.submissionEnvelope?.submissionVersusReportNoteEn
   );
-  const operatorHintResolved = resolveFiscal(d.submission.operatorHintDe, d.submission.operatorHintEn);
+  const operatorHintResolved = resolveFiscal(
+    d.submission.operatorHintDe,
+    d.submission.operatorHintEn
+  );
   const remediationResolved = joinRemediationHints(d.submissionEnvelope?.remediationHintsDe, ' | ');
 
   return (
@@ -243,7 +270,11 @@ export default function TagesberichtDetailPage() {
         actions={
           <Space wrap>
             {canExport && d.reportStatus === 'Provisional' ? (
-              <Button type="primary" loading={finalizeMut.isPending} onClick={() => finalizeMut.mutate()}>
+              <Button
+                type="primary"
+                loading={finalizeMut.isPending}
+                onClick={() => finalizeMut.mutate()}
+              >
                 {td('actions.finalize')}
               </Button>
             ) : null}
@@ -257,7 +288,9 @@ export default function TagesberichtDetailPage() {
                 {td('actions.correction')}
               </Button>
             ) : null}
-            <Button onClick={() => router.push('/reporting/tagesbericht')}>{td('actions.backToList')}</Button>
+            <Button onClick={() => router.push('/reporting/tagesbericht')}>
+              {td('actions.backToList')}
+            </Button>
           </Space>
         }
       />
@@ -322,7 +355,10 @@ export default function TagesberichtDetailPage() {
           ) : null}
           {reportVsSubmissionNote ? (
             <Descriptions.Item label={td('labels.reportVsSubmission')}>
-              <Typography.Text type="secondary" title={fiscalTooltip(reportVsSubmissionNote.contentLang)}>
+              <Typography.Text
+                type="secondary"
+                title={fiscalTooltip(reportVsSubmissionNote.contentLang)}
+              >
                 {reportVsSubmissionNote.text}
               </Typography.Text>
             </Descriptions.Item>
@@ -330,7 +366,10 @@ export default function TagesberichtDetailPage() {
           <Descriptions.Item label={td('labels.submission')}>
             <Tag title={backendApiTooltip}>{d.submission.lifecycle}</Tag>{' '}
             {operatorHintResolved ? (
-              <Typography.Text type="secondary" title={fiscalTooltip(operatorHintResolved.contentLang)}>
+              <Typography.Text
+                type="secondary"
+                title={fiscalTooltip(operatorHintResolved.contentLang)}
+              >
                 {operatorHintResolved.text}
               </Typography.Text>
             ) : null}
@@ -357,10 +396,14 @@ export default function TagesberichtDetailPage() {
             </Descriptions.Item>
           ) : null}
           {d.submission.externalReferenceId ? (
-            <Descriptions.Item label={td('labels.reference')}>{d.submission.externalReferenceId}</Descriptions.Item>
+            <Descriptions.Item label={td('labels.reference')}>
+              {d.submission.externalReferenceId}
+            </Descriptions.Item>
           ) : null}
           {showHashes ? (
-            <Descriptions.Item label={td('labels.snapshotHash')}>{d.snapshotHash}</Descriptions.Item>
+            <Descriptions.Item label={td('labels.snapshotHash')}>
+              {d.snapshotHash}
+            </Descriptions.Item>
           ) : null}
         </Descriptions>
       </Card>
@@ -376,13 +419,21 @@ export default function TagesberichtDetailPage() {
           <Descriptions.Item label={td('labels.refunds')}>
             {formatCurrency(d.summary.refundAmountTotal, formatLocale)}
           </Descriptions.Item>
-          <Descriptions.Item label={td('labels.saleLines')}>{d.summary.salePaymentRowCount}</Descriptions.Item>
-          <Descriptions.Item label={td('labels.refundLines')}>{d.summary.refundRowCount}</Descriptions.Item>
-          <Descriptions.Item label={td('labels.stornoLines')}>{d.summary.stornoRowCount}</Descriptions.Item>
+          <Descriptions.Item label={td('labels.saleLines')}>
+            {d.summary.salePaymentRowCount}
+          </Descriptions.Item>
+          <Descriptions.Item label={td('labels.refundLines')}>
+            {d.summary.refundRowCount}
+          </Descriptions.Item>
+          <Descriptions.Item label={td('labels.stornoLines')}>
+            {d.summary.stornoRowCount}
+          </Descriptions.Item>
         </Descriptions>
       </Card>
 
-      {(profile === 'accountingReport' || profile === 'legalComplianceExport' || profile === 'diagnosticPackage') && (
+      {(profile === 'accountingReport' ||
+        profile === 'legalComplianceExport' ||
+        profile === 'diagnosticPackage') && (
         <Card title={td('cards.taxBreakdown')} style={{ marginBottom: 16 }}>
           <Table
             rowKey="taxBucketKey"
@@ -395,7 +446,13 @@ export default function TagesberichtDetailPage() {
       )}
 
       <Card title={td('cards.paymentMethods')} style={{ marginBottom: 16 }}>
-        <Table rowKey="methodKey" size="small" pagination={false} dataSource={d.summary.paymentMethodBreakdown} columns={pmCols} />
+        <Table
+          rowKey="methodKey"
+          size="small"
+          pagination={false}
+          dataSource={d.summary.paymentMethodBreakdown}
+          columns={pmCols}
+        />
       </Card>
 
       <Card title={td('cards.reconciliation')} style={{ marginBottom: 16 }}>
@@ -439,7 +496,11 @@ export default function TagesberichtDetailPage() {
         ) : historyQ.data?.items?.length ? (
           <Timeline
             items={historyQ.data.items.map((item) => ({
-              color: item.isCurrentActiveVersion ? 'green' : item.reportStatus === 'Superseded' ? 'orange' : 'blue',
+              color: item.isCurrentActiveVersion
+                ? 'green'
+                : item.reportStatus === 'Superseded'
+                  ? 'orange'
+                  : 'blue',
               children: (
                 <Space orientation="vertical" size={2}>
                   <Typography.Text strong title={backendApiTooltip}>
@@ -464,7 +525,9 @@ export default function TagesberichtDetailPage() {
                     {item.submission.outboxMessageId
                       ? ` · ${td('history.outbox')} ${item.submission.outboxMessageId.slice(0, 8)}`
                       : ''}
-                    {item.submission.hasMissingOutboxReference ? ` · ${td('history.missingOutboxRef')}` : ''}
+                    {item.submission.hasMissingOutboxReference
+                      ? ` · ${td('history.missingOutboxRef')}`
+                      : ''}
                   </Typography.Text>
                   {item.submission.lastErrorMessage ? (
                     <BackendRawTextBlock

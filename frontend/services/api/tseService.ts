@@ -89,7 +89,9 @@ export const getTseDevices = async (): Promise<TseDevice[]> => {
 };
 
 // TSE cihazına bağlan
-export const connectTseDevice = async (request: TseConnectionRequest): Promise<TseConnectionResponse> => {
+export const connectTseDevice = async (
+  request: TseConnectionRequest
+): Promise<TseConnectionResponse> => {
   try {
     const response = await apiClient.post<TseConnectionResponse>('/tse/connect', request);
     return response;
@@ -111,7 +113,9 @@ export const disconnectTseDevice = async (): Promise<TseConnectionResponse> => {
 };
 
 // TSE imzası oluştur
-export const createTseSignature = async (request: TseSignatureRequest): Promise<TseSignatureResponse> => {
+export const createTseSignature = async (
+  request: TseSignatureRequest
+): Promise<TseSignatureResponse> => {
   try {
     const response = await apiClient.post<TseSignatureResponse>('/tse/signature', request);
     return response;
@@ -122,7 +126,10 @@ export const createTseSignature = async (request: TseSignatureRequest): Promise<
 };
 
 // TSE cihazı bağlantı durumunu periyodik olarak kontrol et
-export const startTseMonitoring = (callback: (status: TseStatus) => void, intervalMs: number = 2 * 60 * 1000) => {
+export const startTseMonitoring = (
+  callback: (status: TseStatus) => void,
+  intervalMs: number = 2 * 60 * 1000
+) => {
   const checkStatus = async () => {
     try {
       const status = await checkTseStatus();
@@ -159,7 +166,10 @@ export const testTseConnection = async (serialNumber: string): Promise<boolean> 
  * @deprecated Backend has no PUT /tse/devices/:id. TSE device state is read-only from API.
  * This method throws; do not use in new code.
  */
-export const updateTseStatus = async (_deviceId: string, _updates: Partial<TseDevice>): Promise<TseDevice> => {
+export const updateTseStatus = async (
+  _deviceId: string,
+  _updates: Partial<TseDevice>
+): Promise<TseDevice> => {
   throw new Error(
     'updateTseStatus is unsupported: backend does not expose TSE device update. TSE state is read-only from API.'
   );

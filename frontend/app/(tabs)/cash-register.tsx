@@ -15,14 +15,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { SafeAreaView, StyleSheet, Text, TextStyle, View, ViewStyle, Pressable, Alert } from 'react-native';
+import { StyleSheet, Text, TextStyle, View, ViewStyle, Pressable, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BillSplitMergeSheet } from '../../components/BillSplitMergeSheet';
 import { CartDisplay } from '../../components/CartDisplay';
 import { CartSummary } from '../../components/CartSummary';
 import { CashRegisterHeader } from '../../components/CashRegisterHeader';
 import CategoryFilter from '../../components/CategoryFilter';
-import { BillSplitMergeSheet } from '../../components/BillSplitMergeSheet';
 import CustomerSelectionSheet from '../../components/CustomerSelectionSheet';
 import { FavoritesBar } from '../../components/FavoritesBar';
 import { LicenseModeIndicator } from '../../components/LicenseModeIndicator';
@@ -30,23 +30,28 @@ import { ModifierSelectionBottomSheet } from '../../components/ModifierSelection
 import { ProductList } from '../../components/ProductList';
 import { TableSelector } from '../../components/TableSelector';
 import { ToastContainer } from '../../components/ToastNotification';
-import { consumeMergeSheetRequest } from '../../utils/pendingPosNav';
-import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftTypography, Space8 } from '../../constants/SoftTheme';
+import {
+  SoftColors,
+  SoftRadius,
+  SoftShadows,
+  SoftSpacing,
+  SoftTypography,
+  Space8,
+} from '../../constants/SoftTheme';
 import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
 import { POS_ENSURE_READY_ON_ENTRY } from '../../constants/posFeatureFlags';
 import { useCart, getCartDisplayTotals } from '../../contexts/CartContext';
 import { usePosRegisterReadiness } from '../../contexts/PosRegisterReadinessContext';
-import { useFavorites } from '../../hooks/useFavorites';
 import { useCashRegisterCart } from '../../hooks/useCashRegisterCart';
+import { useFavorites } from '../../hooks/useFavorites';
+import { useProductDisplayLocale } from '../../hooks/useProductDisplayLocale';
 import { useProductsUnified } from '../../hooks/useProductsUnified';
 import { useTableOrdersRecoveryOptimized } from '../../hooks/useTableOrdersRecoveryOptimized';
 import { customerService, isWalkInCustomerId } from '../../services/api/customerService';
 import type { AddOnSelection } from '../../services/api/productModifiersService';
 import { Product } from '../../services/api/productService';
 import { formatPrice } from '../../utils/formatPrice';
-import { useProductDisplayLocale } from '../../hooks/useProductDisplayLocale';
-import { resolveProductDisplayName } from '../../utils/productLocalization';
-import type { ProductTextLocale } from '../../utils/productLocalization';
+import { consumeMergeSheetRequest } from '../../utils/pendingPosNav';
 import { isValidPosCashRegisterId } from '../../utils/posCashRegister';
 import {
   isReadinessRegisterDecommissioned,
@@ -56,6 +61,8 @@ import {
   buildPosRegisterGateContext,
   POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE,
 } from '../../utils/posRegisterGateCopy';
+import { resolveProductDisplayName } from '../../utils/productLocalization';
+import type { ProductTextLocale } from '../../utils/productLocalization';
 
 /** POS modifier selection (quantity independent from product qty). Cart is source of truth. */
 type SelectedModifier = { id: string; name: string; price: number; quantity?: number };
@@ -77,7 +84,9 @@ function SectionHeader({
   return (
     <View style={[styles.sectionTitleRow, rowStyle]}>
       <Text style={[styles.stepLabel, stepStyle]}>{step}</Text>
-      <Text style={[styles.sectionTitle, titleStyle]} accessibilityRole="header">{title}</Text>
+      <Text style={[styles.sectionTitle, titleStyle]} accessibilityRole="header">
+        {title}
+      </Text>
     </View>
   );
 }
@@ -136,15 +145,24 @@ function POSSummaryBlock({
         : '';
   return (
     <View style={[styles.summaryBlock, { paddingBottom }]}>
-      <SectionHeader step="4" title={t('checkout:posFlow.section.summary')} rowStyle={styles.summaryBlockHeader} titleStyle={styles.summaryBlockTitle} />
+      <SectionHeader
+        step="4"
+        title={t('checkout:posFlow.section.summary')}
+        rowStyle={styles.summaryBlockHeader}
+        titleStyle={styles.summaryBlockTitle}
+      />
       {onOpenCustomerSheet && (
         <View style={styles.personalStrip}>
           <Text style={styles.personalLabel}>{t('checkout:posFlow.personal.label')}</Text>
           {saleCustomer ? (
             <>
-              <Text style={styles.personalValue} numberOfLines={1}>{saleCustomer.name}</Text>
+              <Text style={styles.personalValue} numberOfLines={1}>
+                {saleCustomer.name}
+              </Text>
               {showBenefitBadge && benefitBadgeText ? (
-                <Text style={styles.benefitBadge} numberOfLines={1}>{benefitBadgeText}</Text>
+                <Text style={styles.benefitBadge} numberOfLines={1}>
+                  {benefitBadgeText}
+                </Text>
               ) : null}
               <Pressable style={styles.personalBtn} onPress={onOpenCustomerSheet}>
                 <Text style={styles.personalBtnText}>{t('checkout:posFlow.personal.change')}</Text>
@@ -200,12 +218,7 @@ function POSSummaryBlock({
         onIncrementModifier={incrementModifier}
         onDecrementModifier={decrementModifier}
       />
-      <CartSummary
-        cart={cart}
-        loading={cartLoading}
-        error={cartError}
-        onPayment={onPayment}
-      />
+      <CartSummary cart={cart} loading={cartLoading} error={cartError} onPayment={onPayment} />
     </View>
   );
 }
@@ -214,13 +227,23 @@ function POSSummaryBlock({
 // Hook: Sepet ekleme + modifier pending state (tek tık akışı, minimal re-render)
 // -----------------------------------------------------------------------------
 function usePOSOrderFlow(
-  addItem: (productId: string, qty?: number, options?: { productName?: string; unitPrice?: number }) => Promise<void>,
+  addItem: (
+    productId: string,
+    qty?: number,
+    options?: { productName?: string; unitPrice?: number }
+  ) => Promise<void>,
   activeTableId: number,
-  addToast: (type: 'error' | 'success' | 'info' | 'warning', message: string, duration?: number) => void,
+  addToast: (
+    type: 'error' | 'success' | 'info' | 'warning',
+    message: string,
+    duration?: number
+  ) => void,
   t: (key: string, options?: Record<string, string | number>) => string,
-  displayLocale: ProductTextLocale,
+  displayLocale: ProductTextLocale
 ) {
-  const [pendingModifiersByProduct, setPendingModifiersByProduct] = useState<Record<string, SelectedModifier[]>>({});
+  const [pendingModifiersByProduct, setPendingModifiersByProduct] = useState<
+    Record<string, SelectedModifier[]>
+  >({});
 
   const handleAddProduct = useCallback(
     async (product: Product) => {
@@ -234,14 +257,28 @@ function usePOSOrderFlow(
           productName: displayName,
           unitPrice: product.price ?? 0,
         });
-        addToast('success', t('checkout:posFlow.toast.productAddedToTable', { name: displayName, table: activeTableId }), 2000);
+        addToast(
+          'success',
+          t('checkout:posFlow.toast.productAddedToTable', {
+            name: displayName,
+            table: activeTableId,
+          }),
+          2000
+        );
         setPendingModifiersByProduct((prev) => {
           const next = { ...prev };
           delete next[product.id];
           return next;
         });
       } catch (error: any) {
-        addToast('error', t('checkout:posFlow.toast.productAddError', { name: resolveProductDisplayName(product, displayLocale), reason: error?.message || t('common:error') }), 5000);
+        addToast(
+          'error',
+          t('checkout:posFlow.toast.productAddError', {
+            name: resolveProductDisplayName(product, displayLocale),
+            reason: error?.message || t('common:error'),
+          }),
+          5000
+        );
       }
     },
     [addItem, activeTableId, addToast, t, displayLocale]
@@ -258,7 +295,11 @@ function usePOSOrderFlow(
           productName: addOn.productName,
           unitPrice: addOn.price,
         });
-        addToast('success', t('checkout:posFlow.toast.addOnAdded', { name: addOn.productName }), 2000);
+        addToast(
+          'success',
+          t('checkout:posFlow.toast.addOnAdded', { name: addOn.productName }),
+          2000
+        );
       } catch (e: any) {
         addToast('error', e?.message ?? t('checkout:posFlow.toast.addOnAddFailed'), 3000);
       }
@@ -327,8 +368,15 @@ export default function CashRegisterScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (!POS_ENSURE_READY_ON_ENTRY) return;
-      void posReadiness.refreshAsync();
+      if (!POS_ENSURE_READY_ON_ENTRY) return undefined;
+      let cancelled = false;
+      void (async () => {
+        await posReadiness.refreshAsync();
+        if (cancelled) return;
+      })();
+      return () => {
+        cancelled = true;
+      };
     }, [posReadiness.refreshAsync])
   );
 
@@ -399,32 +447,40 @@ export default function CashRegisterScreen() {
 
   const productDisplayLocale = useProductDisplayLocale();
 
-  const {
-    pendingModifiersByProduct,
-    handleAddProduct,
-    handleAddAddOn,
-  } = usePOSOrderFlow(addItem, activeTableId, addToast, t, productDisplayLocale);
+  const { pendingModifiersByProduct, handleAddProduct, handleAddAddOn } = usePOSOrderFlow(
+    addItem,
+    activeTableId,
+    addToast,
+    t,
+    productDisplayLocale
+  );
   /** Merged modifier selection per product: last cart line or pending (for inline chips). */
   const selectedModifiersForProduct = useMemo(() => {
     const out: Record<string, SelectedModifier[]> = {};
     const pids = new Set([
       ...Object.keys(lastCartItemModifiersByProductId),
-      ...Object.keys(pendingModifiersByProduct)
+      ...Object.keys(pendingModifiersByProduct),
     ]);
     pids.forEach((pid) => {
-      out[pid] =
-        lastCartItemModifiersByProductId[pid]?.length
-          ? lastCartItemModifiersByProductId[pid]
-          : pendingModifiersByProduct[pid] ?? [];
+      out[pid] = lastCartItemModifiersByProductId[pid]?.length
+        ? lastCartItemModifiersByProductId[pid]
+        : (pendingModifiersByProduct[pid] ?? []);
     });
     return out;
   }, [lastCartItemModifiersByProductId, pendingModifiersByProduct]);
 
   const handleApplyWithBase = useCallback(
-    async (base: { productId: string; productName: string; price: number }, addOns: { productId: string; productName: string; price: number }[]) => {
+    async (
+      base: { productId: string; productName: string; price: number },
+      addOns: { productId: string; productName: string; price: number }[]
+    ) => {
       try {
         await addItemWithAddOns(base.productId, base.productName, base.price, addOns);
-        addToast('success', t('checkout:posFlow.toast.baseProductAdded', { name: base.productName }), 2000);
+        addToast(
+          'success',
+          t('checkout:posFlow.toast.baseProductAdded', { name: base.productName }),
+          2000
+        );
       } catch (e: any) {
         addToast('error', e?.message ?? t('checkout:posFlow.toast.addingFailed'), 3000);
       }
@@ -451,64 +507,83 @@ export default function CashRegisterScreen() {
   }, []);
 
   // Contract: User can always switch table; having items on current table must not block.
-  const handleTableSelect = useCallback(async (tableNumber: number) => {
-    if (!tableNumber || tableNumber < 1 || tableNumber > 10) {
-      addToast('error', t('checkout:posFlow.toast.invalidTableNumber'), 3000);
-      return;
-    }
+  const handleTableSelect = useCallback(
+    async (tableNumber: number) => {
+      if (!tableNumber || tableNumber < 1 || tableNumber > 10) {
+        addToast('error', t('checkout:posFlow.toast.invalidTableNumber'), 3000);
+        return;
+      }
 
-    if (activeTableId === tableNumber) {
-      return;
-    }
+      if (activeTableId === tableNumber) {
+        return;
+      }
 
-    setTableSelectionLoading(tableNumber);
-    const clearLoading = () => setTableSelectionLoading(null);
-    const loadingTimeout = setTimeout(clearLoading, 8000);
+      setTableSelectionLoading(tableNumber);
+      const clearLoading = () => {
+        setTableSelectionLoading(null);
+      };
+      const loadingTimeout = setTimeout(clearLoading, 8000);
 
-    try {
-      // Timeout so loading always clears even if fetch hangs (regression: stuck loading blocked other tables)
-      await Promise.race([
-        switchTable(tableNumber),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Table switch timeout')), 6000)
-        ),
-      ]);
-      addToast('info', t('checkout:posFlow.toast.switchingToTable', { table: tableNumber }), 2000);
-    } catch (error) {
-      console.error('❌ Masa seçim hatası:', error);
-      addToast('error', t('checkout:posFlow.toast.tableSwitchFailed'), 3000);
-    } finally {
-      clearTimeout(loadingTimeout);
-      setTimeout(clearLoading, 300);
-    }
-  }, [activeTableId, switchTable, addToast]);
+      try {
+        // Timeout so loading always clears even if fetch hangs (regression: stuck loading blocked other tables)
+        await Promise.race([
+          switchTable(tableNumber),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => {
+              reject(new Error('Table switch timeout'));
+            }, 6000)
+          ),
+        ]);
+        addToast(
+          'info',
+          t('checkout:posFlow.toast.switchingToTable', { table: tableNumber }),
+          2000
+        );
+      } catch (error) {
+        console.error('❌ Masa seçim hatası:', error);
+        addToast('error', t('checkout:posFlow.toast.tableSwitchFailed'), 3000);
+      } finally {
+        clearTimeout(loadingTimeout);
+        setTimeout(clearLoading, 300);
+      }
+    },
+    [activeTableId, switchTable, addToast]
+  );
 
-  const handleQuantityUpdate = useCallback(async (itemId: string, action: 'increment' | 'decrement') => {
-    if (!activeTableId) return;
+  const handleQuantityUpdate = useCallback(
+    async (itemId: string, action: 'increment' | 'decrement') => {
+      if (!activeTableId) return;
 
-    const currentCart = getCartForTable(activeTableId);
-    const item = currentCart?.items?.find((i: any) => (i.itemId || i.id || i.productId) === itemId);
-    if (!item) return;
+      const currentCart = getCartForTable(activeTableId);
+      const item = currentCart?.items?.find(
+        (i: any) => (i.itemId || i.id || i.productId) === itemId
+      );
+      if (!item) return;
 
-    const currentQty = (item as any).quantity ?? item.qty ?? 0;
-    const newQty = action === 'increment' ? currentQty + 1 : currentQty - 1;
+      const currentQty = (item as any).quantity ?? item.qty ?? 0;
+      const newQty = action === 'increment' ? currentQty + 1 : currentQty - 1;
 
-    try {
-      await updateItemQuantityByItemId(itemId, newQty);
-    } catch (err: any) {
-      addToast('error', t('checkout:posFlow.toast.updateFailed'), 2000);
-    }
-  }, [activeTableId, getCartForTable, updateItemQuantityByItemId, addToast]);
+      try {
+        await updateItemQuantityByItemId(itemId, newQty);
+      } catch (err: any) {
+        addToast('error', t('checkout:posFlow.toast.updateFailed'), 2000);
+      }
+    },
+    [activeTableId, getCartForTable, updateItemQuantityByItemId, addToast]
+  );
 
-  const handleItemRemove = useCallback(async (itemId: string) => {
-    if (!activeTableId) return;
-    try {
-      await removeByItemId(itemId);
-      addToast('success', t('checkout:posFlow.toast.itemRemoved'), 2000);
-    } catch {
-      addToast('error', t('checkout:posFlow.toast.itemRemoveFailed'), 3000);
-    }
-  }, [activeTableId, removeByItemId, addToast]);
+  const handleItemRemove = useCallback(
+    async (itemId: string) => {
+      if (!activeTableId) return;
+      try {
+        await removeByItemId(itemId);
+        addToast('success', t('checkout:posFlow.toast.itemRemoved'), 2000);
+      } catch {
+        addToast('error', t('checkout:posFlow.toast.itemRemoveFailed'), 3000);
+      }
+    },
+    [activeTableId, removeByItemId, addToast]
+  );
 
   const handleClearCart = useCallback(async () => {
     if (!activeTableId) {
@@ -518,11 +593,18 @@ export default function CashRegisterScreen() {
 
     try {
       await clearCart(activeTableId);
-      addToast('success', t('checkout:posFlow.toast.cartClearedForTable', { table: activeTableId }), 2000);
-
+      addToast(
+        'success',
+        t('checkout:posFlow.toast.cartClearedForTable', { table: activeTableId }),
+        2000
+      );
     } catch (err) {
       console.error(`❌ Error clearing table ${activeTableId}:`, err);
-      addToast('error', t('checkout:posFlow.toast.tableClearFailed', { table: activeTableId }), 3000);
+      addToast(
+        'error',
+        t('checkout:posFlow.toast.tableClearFailed', { table: activeTableId }),
+        3000
+      );
     }
   }, [activeTableId, clearCart, addToast]);
 
@@ -544,7 +626,6 @@ export default function CashRegisterScreen() {
       // ✅ Behavior: UI stays on the same table (targetTableId)
 
       addToast('success', t('checkout:posFlow.toast.tableCleared', { table: targetTableId }), 3000);
-
     } catch (err: any) {
       console.error('❌ Error clearing table:', err);
       addToast('error', err?.message ?? t('checkout:posFlow.toast.tableClearGenericFailed'), 3000);
@@ -566,14 +647,22 @@ export default function CashRegisterScreen() {
       Alert.alert('Verkauf', POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE);
       return;
     }
-    if (isReadinessStartbelegGateActive(posReadiness.data, { ensureReadyEnabled: POS_ENSURE_READY_ON_ENTRY })) {
+    if (
+      isReadinessStartbelegGateActive(posReadiness.data, {
+        ensureReadyEnabled: POS_ENSURE_READY_ON_ENTRY,
+      })
+    ) {
       Alert.alert(
         'Startbeleg erforderlich',
         'Bitte zuerst den fiskalischen Startbeleg erstellen, bevor Sie zur Zahlung wechseln.'
       );
       return;
     }
-    if (isReadinessOpenRegisterGateActive(posReadiness.data, { ensureReadyEnabled: POS_ENSURE_READY_ON_ENTRY })) {
+    if (
+      isReadinessOpenRegisterGateActive(posReadiness.data, {
+        ensureReadyEnabled: POS_ENSURE_READY_ON_ENTRY,
+      })
+    ) {
       const gateCtx = buildPosRegisterGateContext({
         settingsLoadFailed: false,
         registerListFailureKind: null,
@@ -601,8 +690,9 @@ export default function CashRegisterScreen() {
     t,
   ]);
 
+  // Top inset is applied once in (tabs)/_layout (licenseStatusBar); bottom by tab bar + footerBottomPadding.
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <LicenseModeIndicator />
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
@@ -610,7 +700,9 @@ export default function CashRegisterScreen() {
       {/* Customer identification sheet for customer attachment */}
       <CustomerSelectionSheet
         visible={customerSheetVisible}
-        onClose={() => setCustomerSheetVisible(false)}
+        onClose={() => {
+          setCustomerSheetVisible(false);
+        }}
         onSelect={(c) => {
           setSaleCustomer(c);
           setCustomerSheetVisible(false);
@@ -622,7 +714,9 @@ export default function CashRegisterScreen() {
         mode={splitMergeMode}
         activeTableId={activeTableId}
         cartItems={cart?.items ?? []}
-        onClose={() => setSplitMergeVisible(false)}
+        onClose={() => {
+          setSplitMergeVisible(false);
+        }}
         onSplitItems={(target, ids) => splitCartItems(activeTableId, target, ids)}
         onMergeTables={(source, target) => mergeTableCarts(source, target)}
       />
@@ -635,7 +729,9 @@ export default function CashRegisterScreen() {
           productName={resolveProductDisplayName(modifierSheetProduct, productDisplayLocale)}
           productPrice={modifierSheetProduct.price ?? 0}
           modifierGroups={modifierSheetProduct.modifierGroups ?? undefined}
-          onClose={() => setModifierSheetProduct(null)}
+          onClose={() => {
+            setModifierSheetProduct(null);
+          }}
           onApplyWithBase={handleApplyWithBase}
         />
       )}
@@ -677,7 +773,7 @@ export default function CashRegisterScreen() {
             <FavoritesBar
               favorites={favorites}
               removeFavorite={removeFavorite}
-              onProductAdded={(name) =>
+              onProductAdded={(name) => {
                 addToast(
                   'success',
                   t('checkout:posFlow.toast.productAddedToTable', {
@@ -685,8 +781,8 @@ export default function CashRegisterScreen() {
                     table: activeTableId,
                   }),
                   2000
-                )
-              }
+                );
+              }}
             />
             {/* Table Selector */}
             <TableSelector
@@ -725,8 +821,12 @@ export default function CashRegisterScreen() {
             onPayment={handlePayment}
             paddingBottom={footerBottomPadding}
             saleCustomer={saleCustomer}
-            onOpenCustomerSheet={() => setCustomerSheetVisible(true)}
-            onClearCustomer={() => setSaleCustomer(null)}
+            onOpenCustomerSheet={() => {
+              setCustomerSheetVisible(true);
+            }}
+            onClearCustomer={() => {
+              setSaleCustomer(null);
+            }}
             onOpenSplitSheet={() => {
               router.push({
                 pathname: '/(screens)/SplitScreen',
@@ -740,10 +840,9 @@ export default function CashRegisterScreen() {
             benefitSummaryCount={benefitSummaryCount}
             t={t}
           />
-        } 
+        }
       />
-
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -878,4 +977,4 @@ const styles = StyleSheet.create({
     ...SoftTypography.caption,
     color: SoftColors.textSecondary,
   },
-}); 
+});

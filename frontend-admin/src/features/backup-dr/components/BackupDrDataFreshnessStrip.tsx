@@ -1,11 +1,10 @@
-"use client";
+'use client';
 
 /**
  * Kısmi API hatası: sayfa sağlıklı görünmesin diye tek satır veri sağlığı — tam sayfa fatal hata değil.
  */
-
-import React from "react";
-import { Alert, Button, Space, Typography } from "antd";
+import { Alert, Button, Space, Typography } from 'antd';
+import React from 'react';
 
 export interface BackupDrDataFreshnessStripProps {
   /** Ana omurga yüklü; destekleyici uçlardan biri veya birkaçı başarısız. */
@@ -28,9 +27,9 @@ export function BackupDrDataFreshnessStrip({
   if (!show) return null;
 
   const parts: string[] = [];
-  if (recoverabilityFailed) parts.push(t("backupDr.dataFreshness.sliceRecoverability"));
-  if (verificationFailed) parts.push(t("backupDr.dataFreshness.sliceVerification"));
-  if (restoreLatestFailed) parts.push(t("backupDr.dataFreshness.sliceRestoreLatest"));
+  if (recoverabilityFailed) parts.push(t('backupDr.dataFreshness.sliceRecoverability'));
+  if (verificationFailed) parts.push(t('backupDr.dataFreshness.sliceVerification'));
+  if (restoreLatestFailed) parts.push(t('backupDr.dataFreshness.sliceRestoreLatest'));
 
   return (
     <Alert
@@ -39,24 +38,20 @@ export function BackupDrDataFreshnessStrip({
       style={{ marginBottom: 0 }}
       title={
         <Space wrap size="small" align="center">
-          <Typography.Text strong>
-            {t("backupDr.dataFreshness.title")}
-          </Typography.Text>
+          <Typography.Text strong>{t('backupDr.dataFreshness.title')}</Typography.Text>
           <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-            {parts.length > 0
-              ? parts.join(" · ")
-              : t("backupDr.dataFreshness.generic")}
+            {parts.length > 0 ? parts.join(' · ') : t('backupDr.dataFreshness.generic')}
           </Typography.Text>
         </Space>
       }
       description={
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          {t("backupDr.dataFreshness.hint")}
+          {t('backupDr.dataFreshness.hint')}
         </Typography.Text>
       }
       action={
         <Button size="small" type="default" onClick={onRetry}>
-          {t("backupDr.actions.refresh")}
+          {t('backupDr.actions.refresh')}
         </Button>
       }
     />

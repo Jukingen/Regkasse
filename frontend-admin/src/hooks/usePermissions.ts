@@ -1,27 +1,25 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useAuth } from '@/features/auth/hooks/useAuth';
+
 import { isManager, isSuperAdmin } from '@/features/auth/constants/roles';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
 import {
   AppPermissions,
-  hasPermission as checkPermission,
-  hasAnyPermission as checkAnyPermission,
-  hasAllPermissions as checkAllPermissions,
   type UserWithPermissions,
+  hasAllPermissions as checkAllPermissions,
+  hasAnyPermission as checkAnyPermission,
+  hasPermission as checkPermission,
 } from '@/shared/auth/permissions';
 
 export function usePermissions() {
   const { user } = useAuth();
-  const userPermissions = useMemo(
-    () => user?.permissions ?? [],
-    [user?.permissions],
-  );
+  const userPermissions = useMemo(() => user?.permissions ?? [], [user?.permissions]);
 
   const userWithPerms: UserWithPermissions | null = useMemo(
     () => (user ? { permissions: userPermissions } : null),
-    [user, userPermissions],
+    [user, userPermissions]
   );
 
   return useMemo(() => {

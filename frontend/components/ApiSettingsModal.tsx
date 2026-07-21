@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Modal,
   View,
@@ -7,25 +8,30 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  ScrollView
+  ScrollView,
 } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { setApiServerIP } from '../services/api/config';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getLocalIPInstructions, getTestIPs, isValidIPAddress, findWorkingIP } from '../utils/networkUtils';
+
+import { applyStoredApiBaseUrl } from '../services/api/config';
+import {
+  getLocalIPInstructions,
+  getTestIPs,
+  isValidIPAddress,
+  findWorkingIP,
+} from '../utils/networkUtils';
+import { storage } from '../utils/storage';
+
+const API_SERVER_IP_KEY = 'api_server_ip';
+const DEFAULT_API_PORT = '5184';
 
 interface ApiSettingsModalProps {
   visible: boolean;
   onClose: () => void;
 }
 
-export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
-  visible,
-  onClose
-}) => {
+export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({ visible, onClose }) => {
   const { t } = useTranslation(['settings']);
   const [ipAddress, setIpAddress] = useState('192.168.1.100');
-  const [port, setPort] = useState('5184');
+  const [port, setPort] = useState(DEFAULT_API_PORT);
 
   useEffect(() => {
     loadCurrentSettings();
@@ -33,7 +39,7 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
 
   const loadCurrentSettings = async () => {
     try {
-      const savedIP = await AsyncStorage.getItem('api_server_ip');
+      const savedIP = await storage.getItem(API_SERVER_IP_KEY);
       if (savedIP) {
         setIpAddress(savedIP);
       }
@@ -44,15 +50,15 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
 
   const saveSettings = async () => {
     if (!isValidIPAddress(ipAddress)) {
-      Alert.alert(
-        t('settings:apiServer.invalidIpTitle'),
-        t('settings:apiServer.invalidIpMessage')
-      );
+      Alert.alert(t('settings:apiServer.invalidIpTitle'), t('settings:apiServer.invalidIpMessage'));
       return;
     }
 
     try {
-      await setApiServerIP(ipAddress);
+      const trimmedIp = ipAddress.trim();
+      const trimmedPort = (port || DEFAULT_API_PORT).trim();
+      await storage.setItem(API_SERVER_IP_KEY, trimmedIp);
+      applyStoredApiBaseUrl(`http://${trimmedIp}:${trimmedPort}/api`);
       Alert.alert(
         t('settings:apiServer.saveSuccessTitle'),
         t('settings:apiServer.saveSuccessMessage'),
@@ -84,10 +90,7 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
 
   const autoFindIP = async () => {
     try {
-      Alert.alert(
-        t('settings:apiServer.searchingTitle'),
-        t('settings:apiServer.searchingMessage')
-      );
+      Alert.alert(t('settings:apiServer.searchingTitle'), t('settings:apiServer.searchingMessage'));
 
       const workingIP = await findWorkingIP();
       if (workingIP) {
@@ -111,12 +114,7 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.centeredView}>
         <View style={styles.modalView}>
           <Text style={styles.title}>{t('settings:apiServer.title')}</Text>
@@ -159,8 +157,7 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
                     <TouchableOpacity
                       key={ipIndex}
                       style={styles.ipButton}
-                      onPress={() => testIPAddress(ip)}
-                    >
+                      onPress={() => testIPAddress(ip)}>
                       <Text style={styles.ipButtonText}>{ip}</Text>
                     </TouchableOpacity>
                   ))}

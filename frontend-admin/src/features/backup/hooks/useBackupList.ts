@@ -1,12 +1,13 @@
-"use client";
+'use client';
 
-import type { UseQueryOptions } from "@tanstack/react-query";
+import type { UseQueryOptions } from '@tanstack/react-query';
+
 import {
   getGetApiAdminBackupListQueryKey,
   useGetApiAdminBackupList,
-} from "@/api/generated/admin/admin";
-import type { BackupListItemResponseDto } from "@/api/generated/model";
-import { BACKUP_DASHBOARD_STATS_POLL_MS } from "@/features/backup/logic/backupDashboardStatsApi";
+} from '@/api/generated/admin/admin';
+import type { BackupListItemResponseDto } from '@/api/generated/model';
+import { BACKUP_DASHBOARD_STATS_POLL_MS } from '@/features/backup/logic/backupDashboardStatsApi';
 
 export type { BackupListItemResponseDto };
 
@@ -28,7 +29,7 @@ export function useBackupList(options?: UseBackupListOptions) {
       enabled: options?.enabled,
     } satisfies Pick<
       UseQueryOptions<BackupListItemResponseDto[]>,
-      "staleTime" | "refetchInterval" | "refetchOnWindowFocus" | "enabled"
+      'staleTime' | 'refetchInterval' | 'refetchOnWindowFocus' | 'enabled'
     >,
   });
 }

@@ -1,16 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import {
-  OfflineSyncService,
-  type SyncAllResult,
-} from '@/services/offline/offlineSyncService';
-import { eventEmitter } from '@/utils/eventEmitter';
-
-import {
   getOfflineOrderManager,
   type OfflineStatus,
 } from '../services/offline/offlineOrderManager';
 import type { OfflineOrder } from '../services/offline/offlineStorage';
+
+import { OfflineSyncService, type SyncAllResult } from '@/services/offline/offlineSyncService';
+import { eventEmitter } from '@/utils/eventEmitter';
 
 function mapSyncStatusToOfflineStatus(
   syncStatus: ReturnType<OfflineSyncService['getSyncStatus']>,
@@ -46,9 +43,7 @@ export function useOfflineOrderManager() {
   useEffect(() => {
     void refreshStatus();
 
-    const onSyncStatus = (
-      syncStatus: ReturnType<OfflineSyncService['getSyncStatus']>
-    ) => {
+    const onSyncStatus = (syncStatus: ReturnType<OfflineSyncService['getSyncStatus']>) => {
       void (async () => {
         try {
           const managerStatus = await manager.getStatus();
@@ -93,10 +88,7 @@ export function useOfflineOrderManager() {
     return result;
   }, [refreshStatus, syncService]);
 
-  const getPending = useCallback(
-    () => manager.getPendingOrders(),
-    [manager]
-  );
+  const getPending = useCallback(() => manager.getPendingOrders(), [manager]);
 
   return {
     status,

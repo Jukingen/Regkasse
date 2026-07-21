@@ -4,9 +4,10 @@ import { GlobalOutlined, SyncOutlined } from '@ant-design/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Card, Col, Drawer, Row, Space, Tag, Typography } from 'antd';
 import { useState } from 'react';
+
 import {
-  syncDigitalMenu,
   type CustomerDigitalService,
+  syncDigitalMenu,
 } from '@/features/website-generator/api/customerPortalApi';
 import { useCustomerServices } from '@/features/website-generator/hooks/useCustomerServices';
 import { useAntdApp } from '@/hooks/useAntdApp';
@@ -40,7 +41,7 @@ const KNOWN_STATUSES = new Set(['active', 'cancelled', 'past_due']);
 
 function statusLabel(
   t: (key: string, options?: Record<string, string | number>) => string,
-  status: string,
+  status: string
 ): string {
   const normalized = status.toLowerCase();
   if (KNOWN_STATUSES.has(normalized)) {
@@ -80,9 +81,7 @@ export function CustomerPortalPanel({ tenantId }: CustomerPortalPanelProps) {
         {t('tenants.digitalServices.customerPortalSubtitle')}
       </Paragraph>
 
-      {isError ? (
-        <Alert type="error" showIcon message={t('common.errors.http500')} />
-      ) : null}
+      {isError ? <Alert type="error" showIcon message={t('common.errors.http500')} /> : null}
 
       <Row gutter={[16, 16]}>
         {(services ?? []).map((service) => (
@@ -91,9 +90,7 @@ export function CustomerPortalPanel({ tenantId }: CustomerPortalPanelProps) {
               loading={isLoading}
               title={service.name}
               extra={
-                <Tag color={statusColor(service.status)}>
-                  {statusLabel(t, service.status)}
-                </Tag>
+                <Tag color={statusColor(service.status)}>{statusLabel(t, service.status)}</Tag>
               }
             >
               <Space orientation="vertical" size="small" style={{ width: '100%' }}>

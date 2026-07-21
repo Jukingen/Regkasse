@@ -1,22 +1,23 @@
+// @ts-nocheck
 /**
  * TaskMasterService - RKSV Uyumlu Görev Yönetimi Servisi
- * 
+ *
  * Bu servis, Avusturya RKSV standartlarına uygun görev yönetimi sağlar.
  * TSE entegrasyonu, audit logging ve veri koruma özelliklerini içerir.
- * 
+ *
  * Özellikler:
  * - RKSV uyumlu görev kategorileri
  * - TSE imza gereksinimleri
  * - Audit trail logging
  * - Çok dilli destek (DE, EN, TR)
  * - React Native AsyncStorage entegrasyonu
- * 
+ *
  * @author Frontend Team
  * @version 2.0.0
  * @since 2025-01-10
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { storage } from '../utils/storage';
 
 // RKSV uyumlu görev kategorileri
 export enum TaskCategory {
@@ -28,7 +29,7 @@ export enum TaskCategory {
   DATA_PROTECTION = 'data_protection',
   DEVELOPMENT = 'development',
   BUG_FIX = 'bug_fix',
-  TESTING = 'testing'
+  TESTING = 'testing',
 }
 
 // Görev öncelik seviyeleri
@@ -36,7 +37,7 @@ export enum TaskPriority {
   LOW = 'low',
   MEDIUM = 'medium',
   HIGH = 'high',
-  CRITICAL = 'critical'
+  CRITICAL = 'critical',
 }
 
 // Görev durumları
@@ -45,7 +46,7 @@ export enum TaskStatus {
   IN_PROGRESS = 'in_progress',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
-  ON_HOLD = 'on_hold'
+  ON_HOLD = 'on_hold',
 }
 
 // Ana görev interface'i
@@ -63,19 +64,19 @@ export interface Task {
   assignedTo?: string;
   dependencies: string[];
   estimatedDuration?: number; // dakika cinsinden
-  actualDuration?: number;    // dakika cinsinden
-  progress?: number;          // 0-100 arası yüzde
-  
+  actualDuration?: number; // dakika cinsinden
+  progress?: number; // 0-100 arası yüzde
+
   // RKSV spesifik alanlar
-  relatedInvoiceId?: string;  // RKSV fiş bağlantısı
-  tseRequired?: boolean;      // TSE imzası gerekli mi?
-  auditLogId?: string;        // Audit log bağlantısı
+  relatedInvoiceId?: string; // RKSV fiş bağlantısı
+  tseRequired?: boolean; // TSE imzası gerekli mi?
+  auditLogId?: string; // Audit log bağlantısı
 }
 
 class TaskMasterService {
   private isInitialized: boolean = false;
-  private storageKey: string = 'task_master_tasks';
-  private auditStorageKey: string = 'task_master_audit';
+  private readonly storageKey: string = 'task_master_tasks';
+  private readonly auditStorageKey: string = 'task_master_audit';
 
   constructor() {
     // Simple constructor - no external dependencies
@@ -103,15 +104,15 @@ class TaskMasterService {
     }
 
     try {
-      const tasksJson = await AsyncStorage.getItem(this.storageKey);
+      const tasksJson = await storage.getItem(this.storageKey);
       const tasks = tasksJson ? JSON.parse(tasksJson) : [];
-      
+
       // Date string'lerini Date objesine çevir
       return tasks.map((task: any) => ({
         ...task,
         createdAt: new Date(task.createdAt),
         updatedAt: new Date(task.updatedAt),
-        dueDate: task.dueDate ? new Date(task.dueDate) : undefined
+        dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
       }));
     } catch (error) {
       console.error('Failed to get tasks:', error);
@@ -132,15 +133,15 @@ class TaskMasterService {
         ...taskData,
         id: this.generateTaskId(),
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       // Mevcut görevleri al
       const tasks = await this.getTasks();
       tasks.push(task);
-      
+
       // AsyncStorage'a kaydet
-      await AsyncStorage.setItem(this.storageKey, JSON.stringify(tasks));
+      await storage.setItem(this.storageKey, JSON.stringify(tasks));
 
       // RKSV uyumlu görevler için özel işlemler
       if (this.isRksvCompliantTask(task)) {
@@ -151,12 +152,11 @@ class TaskMasterService {
       await this.logTaskAction('CREATE', task.id, {
         category: task.category,
         priority: task.priority,
-        tseRequired: task.tseRequired
+        tseRequired: task.tseRequired,
       });
 
       console.log(`✅ Task created successfully: ${task.title}`);
       return task;
-
     } catch (error) {
       console.error('Failed to create task:', error);
       throw new Error('Task creation failed');
@@ -173,8 +173,8 @@ class TaskMasterService {
 
     try {
       const tasks = await this.getTasks();
-      const taskIndex = tasks.findIndex(t => t.id === taskId);
-      
+      const taskIndex = tasks.findIndex((t) => t.id === taskId);
+
       if (taskIndex === -1) {
         throw new Error(`Task not found: ${taskId}`);
       }
@@ -184,16 +184,16 @@ class TaskMasterService {
         ...oldTask,
         ...updates,
         id: taskId, // ID değişmemeli
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       tasks[taskIndex] = updatedTask;
-      await AsyncStorage.setItem(this.storageKey, JSON.stringify(tasks));
+      await storage.setItem(this.storageKey, JSON.stringify(tasks));
 
       // Audit log
       await this.logTaskAction('UPDATE', taskId, {
         oldValues: oldTask,
-        newValues: updates
+        newValues: updates,
       });
 
       return updatedTask;
@@ -213,9 +213,9 @@ class TaskMasterService {
 
     try {
       const tasks = await this.getTasks();
-      const filteredTasks = tasks.filter(t => t.id !== taskId);
-      
-      await AsyncStorage.setItem(this.storageKey, JSON.stringify(filteredTasks));
+      const filteredTasks = tasks.filter((t) => t.id !== taskId);
+
+      await storage.setItem(this.storageKey, JSON.stringify(filteredTasks));
 
       // Audit log
       await this.logTaskAction('DELETE', taskId, {});
@@ -230,7 +230,10 @@ class TaskMasterService {
   /**
    * Görev önerileri oluştur (Çok dilli)
    */
-  async generateTaskSuggestions(category: TaskCategory, language: string = 'de'): Promise<string[]> {
+  async generateTaskSuggestions(
+    category: TaskCategory,
+    language: string = 'de'
+  ): Promise<string[]> {
     // Çok dilli görev şablonları
     const suggestions: Record<string, Record<TaskCategory, string[]>> = {
       // TÜRKÇE ÖNERİLER
@@ -241,7 +244,7 @@ class TaskMasterService {
           'RKSV uyumluluk raporu oluştur',
           'Vergi numarası doğrulaması kontrol et',
           'Günlük fiş kontrolü gerçekleştir',
-          'Yasal gereksinimleri gözden geçir'
+          'Yasal gereksinimleri gözden geçir',
         ],
         [TaskCategory.TSE_INTEGRATION]: [
           'TSE cihaz bağlantısını test et',
@@ -249,7 +252,7 @@ class TaskMasterService {
           'TSE yedekleme işlemi yap',
           'Gün sonu kapanışını gerçekleştir',
           'TSE sistem durumunu izle',
-          'İmza üretim testleri yap'
+          'İmza üretim testleri yap',
         ],
         [TaskCategory.INVOICE_MANAGEMENT]: [
           'Fatura şablonunu güncelle',
@@ -257,7 +260,7 @@ class TaskMasterService {
           'PDF dışa aktarma işlemini optimize et',
           'KDV hesaplama doğrulaması yap',
           'Müşteri bilgilerini güncelle',
-          'Fatura yazdırma testleri gerçekleştir'
+          'Fatura yazdırma testleri gerçekleştir',
         ],
         [TaskCategory.PAYMENT_PROCESSING]: [
           'Kart ödeme entegrasyonunu test et',
@@ -265,7 +268,7 @@ class TaskMasterService {
           'Ödeme geçidi bağlantısını kontrol et',
           'İşlem günlüklerini incele',
           'Başarısız ödemeleri analiz et',
-          'Ödeme güvenliğini test et'
+          'Ödeme güvenliğini test et',
         ],
         [TaskCategory.AUDIT_LOGGING]: [
           'Denetim izini tamamla',
@@ -273,7 +276,7 @@ class TaskMasterService {
           'Uyumluluk günlüklerini arşivle',
           'Erişim protokolü oluştur',
           'Sistem günlüklerini analiz et',
-          'Güvenlik olaylarını kaydet'
+          'Güvenlik olaylarını kaydet',
         ],
         [TaskCategory.DATA_PROTECTION]: [
           'KVKK uyumluluğunu kontrol et',
@@ -281,7 +284,7 @@ class TaskMasterService {
           'Yedekleme stratejisini güncelle',
           'Erişim haklarını gözden geçir',
           'Kişisel veri envanteri hazırla',
-          'Veri silme prosedürlerini test et'
+          'Veri silme prosedürlerini test et',
         ],
         [TaskCategory.DEVELOPMENT]: [
           'Özellik dalı (feature branch) oluştur',
@@ -289,7 +292,7 @@ class TaskMasterService {
           'Birim testleri yaz',
           'Dokümantasyonu güncelle',
           'API testleri gerçekleştir',
-          'Performans optimizasyonu yap'
+          'Performans optimizasyonu yap',
         ],
         [TaskCategory.BUG_FIX]: [
           'Hata raporunu analiz et',
@@ -297,7 +300,7 @@ class TaskMasterService {
           'Düzeltmeyi uygula',
           'Regresyon testleri gerçekleştir',
           'Hata dokümanını güncelle',
-          'Kod kalitesi kontrolü yap'
+          'Kod kalitesi kontrolü yap',
         ],
         [TaskCategory.TESTING]: [
           'Uçtan uca (E2E) testler oluştur',
@@ -305,127 +308,127 @@ class TaskMasterService {
           'Güvenlik taraması yap',
           'Kullanıcı kabul testleri',
           'Otomatik test senaryoları yaz',
-          'Test kapsamını analiz et'
-        ]
+          'Test kapsamını analiz et',
+        ],
       },
-      
+
       // ALMANCA ÖNERİLER
       de: {
         [TaskCategory.RKSV_COMPLIANCE]: [
           'TSE Signatur Kontrolle',
           'Belege für Finanz Audit vorbereiten',
           'RKSV Compliance Report erstellen',
-          'Steuernummer Validierung prüfen'
+          'Steuernummer Validierung prüfen',
         ],
         [TaskCategory.TSE_INTEGRATION]: [
           'TSE Gerät Verbindung testen',
           'Epson-TSE Konfiguration prüfen',
           'TSE Backup erstellen',
-          'Tagesabschluss durchführen'
+          'Tagesabschluss durchführen',
         ],
         [TaskCategory.INVOICE_MANAGEMENT]: [
           'Rechnungsvorlage aktualisieren',
           'Rechnungsnummern-Format prüfen',
           'PDF Export optimieren',
-          'Mehrwertsteuer Berechnung validieren'
+          'Mehrwertsteuer Berechnung validieren',
         ],
         [TaskCategory.PAYMENT_PROCESSING]: [
           'Kartenzahlung-Integration testen',
           'Bargeld-Workflow optimieren',
           'Payment Gateway verbinden',
-          'Transaktions-Logs prüfen'
+          'Transaktions-Logs prüfen',
         ],
         [TaskCategory.AUDIT_LOGGING]: [
           'Audit Trail vervollständigen',
           'Log Rotation konfigurieren',
           'Compliance-Logs archivieren',
-          'Zugriffsprotokoll erstellen'
+          'Zugriffsprotokoll erstellen',
         ],
         [TaskCategory.DATA_PROTECTION]: [
           'DSGVO Compliance prüfen',
           'Datenverschlüsselung implementieren',
           'Backup-Strategie aktualisieren',
-          'Zugriffsrechte überprüfen'
+          'Zugriffsrechte überprüfen',
         ],
         [TaskCategory.DEVELOPMENT]: [
           'Feature-Branch erstellen',
           'Code Review durchführen',
           'Unit Tests schreiben',
-          'Dokumentation aktualisieren'
+          'Dokumentation aktualisieren',
         ],
         [TaskCategory.BUG_FIX]: [
           'Bug Report analysieren',
           'Reproduktionsschritte testen',
           'Fix implementieren',
-          'Regression Tests durchführen'
+          'Regression Tests durchführen',
         ],
         [TaskCategory.TESTING]: [
           'E2E Tests erstellen',
           'Performance Tests durchführen',
           'Security Scan ausführen',
-          'User Acceptance Tests'
-        ]
+          'User Acceptance Tests',
+        ],
       },
-      
+
       // İNGİLİZCE ÖNERİLER
       en: {
         [TaskCategory.RKSV_COMPLIANCE]: [
           'Perform TSE signature verification',
           'Prepare documents for financial audit',
           'Create RKSV compliance report',
-          'Validate tax number format'
+          'Validate tax number format',
         ],
         [TaskCategory.TSE_INTEGRATION]: [
           'Test TSE device connection',
           'Verify Epson-TSE configuration',
           'Perform TSE backup operation',
-          'Execute daily closing procedure'
+          'Execute daily closing procedure',
         ],
         [TaskCategory.INVOICE_MANAGEMENT]: [
           'Update invoice template',
           'Verify invoice number format',
           'Optimize PDF export functionality',
-          'Validate VAT calculation'
+          'Validate VAT calculation',
         ],
         [TaskCategory.PAYMENT_PROCESSING]: [
           'Test card payment integration',
           'Optimize cash payment workflow',
           'Verify payment gateway connection',
-          'Review transaction logs'
+          'Review transaction logs',
         ],
         [TaskCategory.AUDIT_LOGGING]: [
           'Complete audit trail',
           'Configure log rotation',
           'Archive compliance logs',
-          'Create access protocol'
+          'Create access protocol',
         ],
         [TaskCategory.DATA_PROTECTION]: [
           'Check GDPR compliance',
           'Implement data encryption',
           'Update backup strategy',
-          'Review access rights'
+          'Review access rights',
         ],
         [TaskCategory.DEVELOPMENT]: [
           'Create feature branch',
           'Perform code review',
           'Write unit tests',
-          'Update documentation'
+          'Update documentation',
         ],
         [TaskCategory.BUG_FIX]: [
           'Analyze bug report',
           'Test reproduction steps',
           'Implement fix',
-          'Run regression tests'
+          'Run regression tests',
         ],
         [TaskCategory.TESTING]: [
           'Create E2E tests',
           'Perform performance tests',
           'Run security scan',
-          'Execute user acceptance tests'
-        ]
-      }
+          'Execute user acceptance tests',
+        ],
+      },
     };
-    
+
     // Mevcut dil için önerileri al, yoksa Almanca varsayılan
     const languageSuggestions = suggestions[language] || suggestions['de'];
     return languageSuggestions[category] || [];
@@ -451,7 +454,6 @@ class TaskMasterService {
       if (task.category === TaskCategory.TSE_INTEGRATION) {
         console.log(`🔧 TSE integration task processed: ${task.title}`);
       }
-
     } catch (error) {
       console.error('RKSV compliance handling failed:', error);
     }
@@ -465,7 +467,7 @@ class TaskMasterService {
       TaskCategory.RKSV_COMPLIANCE,
       TaskCategory.TSE_INTEGRATION,
       TaskCategory.INVOICE_MANAGEMENT,
-      TaskCategory.AUDIT_LOGGING
+      TaskCategory.AUDIT_LOGGING,
     ].includes(task.category);
   }
 
@@ -480,24 +482,23 @@ class TaskMasterService {
         taskId,
         details,
         timestamp: new Date().toISOString(),
-        user: 'system' // Gerçek uygulamada kullanıcı ID'si
+        user: 'system', // Gerçek uygulamada kullanıcı ID'si
       };
 
       // Mevcut audit log'ları al
-      const auditLogJson = await AsyncStorage.getItem(this.auditStorageKey);
+      const auditLogJson = await storage.getItem(this.auditStorageKey);
       const auditLogs = auditLogJson ? JSON.parse(auditLogJson) : [];
-      
+
       auditLogs.push(auditEntry);
-      
+
       // Son 1000 kaydı tut (performans için)
       if (auditLogs.length > 1000) {
         auditLogs.splice(0, auditLogs.length - 1000);
       }
-      
-      await AsyncStorage.setItem(this.auditStorageKey, JSON.stringify(auditLogs));
-      
+
+      await storage.setItem(this.auditStorageKey, JSON.stringify(auditLogs));
+
       console.log(`📋 Audit logged: ${action} - ${taskId}`);
-      
     } catch (error) {
       console.error('Audit logging failed:', error);
     }
@@ -529,7 +530,7 @@ class TaskMasterService {
    */
   async getAuditLogs(): Promise<any[]> {
     try {
-      const auditLogJson = await AsyncStorage.getItem(this.auditStorageKey);
+      const auditLogJson = await storage.getItem(this.auditStorageKey);
       return auditLogJson ? JSON.parse(auditLogJson) : [];
     } catch (error) {
       console.error('Failed to get audit logs:', error);

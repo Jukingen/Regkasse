@@ -1,17 +1,18 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+
+import { DASHBOARD_AUTO_REFRESH_MS } from '@/features/dashboard/types';
 import { listDataManagementOverview } from '@/features/data-management/api/adminDataManagement';
 import { getTenantDataManagementSummary } from '@/features/data-management/api/tenantDataManagement';
 import {
+  type DataRetentionStats,
   mapPlatformOverviewToStats,
   mapTenantSummaryToStats,
-  type DataRetentionStats,
 } from '@/features/data-management/logic/dataRetentionStats';
 import { useCurrentTenant } from '@/hooks/useCurrentTenant';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
-import { DASHBOARD_AUTO_REFRESH_MS } from '@/features/dashboard/types';
 
 export const dataRetentionStatsQueryKey = (scope: 'platform' | 'tenant', tenantId?: string) =>
   ['data-retention-stats', scope, tenantId ?? null] as const;
@@ -26,22 +27,21 @@ export function useDataRetentionStats() {
 
   const canBackup = hasPermission(
     user ? { permissions: user.permissions } : null,
-    PERMISSIONS.BACKUP_MANAGE,
+    PERMISSIONS.BACKUP_MANAGE
   );
   const canSystem = hasPermission(
     user ? { permissions: user.permissions } : null,
-    PERMISSIONS.SYSTEM_CRITICAL,
+    PERMISSIONS.SYSTEM_CRITICAL
   );
   const allowed = isSuperAdmin || canSystem || canBackup;
 
   const platformEnabled = allowed && isSuperAdmin;
-  const tenantEnabled =
-    allowed && !isSuperAdmin && Boolean(tenantId) && isRealTenantSlug;
+  const tenantEnabled = allowed && !isSuperAdmin && Boolean(tenantId) && isRealTenantSlug;
 
   return useQuery({
     queryKey: dataRetentionStatsQueryKey(
       platformEnabled ? 'platform' : 'tenant',
-      platformEnabled ? undefined : tenantId ?? undefined,
+      platformEnabled ? undefined : (tenantId ?? undefined)
     ),
     queryFn: async (): Promise<DataRetentionStats> => {
       if (platformEnabled) {

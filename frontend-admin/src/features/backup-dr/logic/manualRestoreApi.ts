@@ -1,7 +1,6 @@
 /**
  * Manual restore approval API (Super Admin) — manual OpenAPI integration until Orval regen.
  */
-
 import { customInstance } from '@/lib/axios';
 
 export const MANUAL_RESTORE_REQUEST_PATH = '/api/admin/restore/request' as const;
@@ -49,7 +48,7 @@ export interface RestoreRequestHistoryResponseDto {
 }
 
 export async function postManualRestoreRequest(
-  body: RestoreRequestBody,
+  body: RestoreRequestBody
 ): Promise<RestoreRequestStatusDto> {
   return customInstance<RestoreRequestStatusDto>({
     url: MANUAL_RESTORE_REQUEST_PATH,
@@ -61,7 +60,7 @@ export async function postManualRestoreRequest(
 
 export async function postManualRestoreApproval(
   requestId: string,
-  body: RestoreApprovalBody,
+  body: RestoreApprovalBody
 ): Promise<RestoreRequestStatusDto> {
   return customInstance<RestoreRequestStatusDto>({
     url: `/api/admin/restore/approve/${requestId}`,
@@ -71,9 +70,7 @@ export async function postManualRestoreApproval(
   });
 }
 
-export async function getManualRestoreRequest(
-  requestId: string,
-): Promise<RestoreRequestStatusDto> {
+export async function getManualRestoreRequest(requestId: string): Promise<RestoreRequestStatusDto> {
   return customInstance<RestoreRequestStatusDto>({
     url: `/api/admin/restore/request/${requestId}`,
     method: 'GET',
@@ -82,7 +79,7 @@ export async function getManualRestoreRequest(
 
 export async function getManualRestoreHistory(
   page = 1,
-  pageSize = 20,
+  pageSize = 20
 ): Promise<RestoreRequestHistoryResponseDto> {
   return customInstance<RestoreRequestHistoryResponseDto>({
     url: MANUAL_RESTORE_HISTORY_PATH,
@@ -91,18 +88,10 @@ export async function getManualRestoreHistory(
   });
 }
 
-export const MANUAL_RESTORE_COMPLIANCE_CHECK_PATH =
-  '/api/admin/restore/compliance-check' as const;
+export const MANUAL_RESTORE_COMPLIANCE_CHECK_PATH = '/api/admin/restore/compliance-check' as const;
 
-export function getRestoreComplianceCheckQueryKey(
-  backupRunId: string,
-  tenantId?: string | null,
-) {
-  return [
-    MANUAL_RESTORE_COMPLIANCE_CHECK_PATH,
-    backupRunId,
-    tenantId ?? '',
-  ] as const;
+export function getRestoreComplianceCheckQueryKey(backupRunId: string, tenantId?: string | null) {
+  return [MANUAL_RESTORE_COMPLIANCE_CHECK_PATH, backupRunId, tenantId ?? ''] as const;
 }
 
 export interface RestoreComplianceCheckItemDto {
@@ -123,7 +112,7 @@ export interface RestoreComplianceCheckResponseDto {
 /** Pre-restore RKSV compliance (same-tenant, integrity, validation gates). */
 export async function getRestoreComplianceCheck(
   backupRunId: string,
-  tenantId?: string | null,
+  tenantId?: string | null
 ): Promise<RestoreComplianceCheckResponseDto> {
   return customInstance<RestoreComplianceCheckResponseDto>({
     url: MANUAL_RESTORE_COMPLIANCE_CHECK_PATH,
@@ -168,9 +157,7 @@ export interface RestoreReportResponseDto {
   correlationId?: string | null;
 }
 
-export async function getManualRestoreReport(
-  requestId: string,
-): Promise<RestoreReportResponseDto> {
+export async function getManualRestoreReport(requestId: string): Promise<RestoreReportResponseDto> {
   return customInstance<RestoreReportResponseDto>({
     url: getManualRestoreReportPath(requestId),
     method: 'GET',

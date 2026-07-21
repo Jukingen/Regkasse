@@ -1,5 +1,5 @@
-import { apiClient } from '../api/config';
 import { API_PATHS } from '../api/apiPaths';
+import { apiClient } from '../api/config';
 
 export type CustomerTenantProfile = {
   slug: string;
@@ -42,13 +42,13 @@ type ProfileApi = {
 type MenuApi = {
   slug?: string;
   currency?: string;
-  items?: Array<{
+  items?: {
     id?: string;
     name?: string;
     categoryName?: string | null;
     price?: number;
     description?: string | null;
-  }>;
+  }[];
 };
 
 export async function loadTenant(slug: string): Promise<CustomerTenantProfile> {

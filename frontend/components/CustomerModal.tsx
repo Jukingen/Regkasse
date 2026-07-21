@@ -34,7 +34,9 @@ export default function CustomerModal({
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<'Regular' | 'Premium' | 'VIP' | 'all'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<'Regular' | 'Premium' | 'VIP' | 'all'>(
+    'all'
+  );
 
   useEffect(() => {
     if (visible) {
@@ -64,16 +66,17 @@ export default function CustomerModal({
 
     // Kategori filtresi
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter(customer => customer.category === selectedCategory);
+      filtered = filtered.filter((customer) => customer.category === selectedCategory);
     }
 
     // Arama filtresi
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(customer =>
-        customer.name.toLowerCase().includes(query) ||
-        customer.email?.toLowerCase().includes(query) ||
-        customer.phone?.includes(query)
+      filtered = filtered.filter(
+        (customer) =>
+          customer.name.toLowerCase().includes(query) ||
+          customer.email?.toLowerCase().includes(query) ||
+          customer.phone?.includes(query)
       );
     }
 
@@ -114,18 +117,13 @@ export default function CustomerModal({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.container}>
           <View style={styles.header}>
             <Text style={styles.title}>
-              <Ionicons name="people" size={24} color={Colors.light.primary} />
-              {' '}{t('customers:selectionTitle')}
+              <Ionicons name="people" size={24} color={Colors.light.primary} />{' '}
+              {t('customers:selectionTitle')}
             </Text>
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
               <Ionicons name="close" size={24} color={Colors.light.textSecondary} />
@@ -143,18 +141,20 @@ export default function CustomerModal({
             />
           </View>
 
-          <ScrollView horizontal style={styles.categoryFilter} showsHorizontalScrollIndicator={false}>
+          <ScrollView
+            horizontal
+            style={styles.categoryFilter}
+            showsHorizontalScrollIndicator={false}>
             <TouchableOpacity
-              style={[
-                styles.categoryChip,
-                selectedCategory === 'all' && styles.categoryChipActive
-              ]}
-              onPress={() => setSelectedCategory('all')}
-            >
-              <Text style={[
-                styles.categoryChipText,
-                selectedCategory === 'all' && styles.categoryChipTextActive
-              ]}>
+              style={[styles.categoryChip, selectedCategory === 'all' && styles.categoryChipActive]}
+              onPress={() => {
+                setSelectedCategory('all');
+              }}>
+              <Text
+                style={[
+                  styles.categoryChipText,
+                  selectedCategory === 'all' && styles.categoryChipTextActive,
+                ]}>
                 {t('customers:all')}
               </Text>
             </TouchableOpacity>
@@ -163,14 +163,16 @@ export default function CustomerModal({
                 key={category}
                 style={[
                   styles.categoryChip,
-                  selectedCategory === category && styles.categoryChipActive
+                  selectedCategory === category && styles.categoryChipActive,
                 ]}
-                onPress={() => setSelectedCategory(category)}
-              >
-                <Text style={[
-                  styles.categoryChipText,
-                  selectedCategory === category && styles.categoryChipTextActive
-                ]}>
+                onPress={() => {
+                  setSelectedCategory(category);
+                }}>
+                <Text
+                  style={[
+                    styles.categoryChipText,
+                    selectedCategory === category && styles.categoryChipTextActive,
+                  ]}>
                   {getCategoryDisplayName(category)}
                 </Text>
               </TouchableOpacity>
@@ -190,28 +192,36 @@ export default function CustomerModal({
                   key={customer.id}
                   style={[
                     styles.customerItem,
-                    selectedCustomer?.id === customer.id && styles.customerItemSelected
+                    selectedCustomer?.id === customer.id && styles.customerItemSelected,
                   ]}
-                  onPress={() => handleCustomerSelect(customer)}
-                >
+                  onPress={() => {
+                    handleCustomerSelect(customer);
+                  }}>
                   <View style={styles.customerHeader}>
                     <View style={styles.customerInfo}>
                       <Text style={styles.customerName}>{customer.name}</Text>
                       <View style={styles.customerBadges}>
-                        <View style={[
-                          styles.categoryBadge,
-                          { backgroundColor: getCategoryColor(customer.category) + '20' }
-                        ]}>
-                          <Text style={[
-                            styles.categoryBadgeText,
-                            { color: getCategoryColor(customer.category) }
+                        <View
+                          style={[
+                            styles.categoryBadge,
+                            { backgroundColor: getCategoryColor(customer.category) + '20' },
                           ]}>
+                          <Text
+                            style={[
+                              styles.categoryBadgeText,
+                              { color: getCategoryColor(customer.category) },
+                            ]}>
                             {getCategoryDisplayName(customer.category)}
                           </Text>
                         </View>
                         {customer.discountPercentage > 0 && (
-                          <View style={[styles.categoryBadge, { backgroundColor: Colors.light.success + '20' }]}>
-                            <Text style={[styles.categoryBadgeText, { color: Colors.light.success }]}>
+                          <View
+                            style={[
+                              styles.categoryBadge,
+                              { backgroundColor: Colors.light.success + '20' },
+                            ]}>
+                            <Text
+                              style={[styles.categoryBadgeText, { color: Colors.light.success }]}>
                               %{customer.discountPercentage} {t('customers:discount')}
                             </Text>
                           </View>
@@ -223,20 +233,20 @@ export default function CustomerModal({
                   <View style={styles.customerDetails}>
                     {customer.email && (
                       <Text style={styles.customerDetail}>
-                        <Ionicons name="mail" size={14} color={Colors.light.textSecondary} />
-                        {' '}{customer.email}
+                        <Ionicons name="mail" size={14} color={Colors.light.textSecondary} />{' '}
+                        {customer.email}
                       </Text>
                     )}
                     {customer.phone && (
                       <Text style={styles.customerDetail}>
-                        <Ionicons name="call" size={14} color={Colors.light.textSecondary} />
-                        {' '}{customer.phone}
+                        <Ionicons name="call" size={14} color={Colors.light.textSecondary} />{' '}
+                        {customer.phone}
                       </Text>
                     )}
                     {customer.address && (
                       <Text style={styles.customerDetail}>
-                        <Ionicons name="location" size={14} color={Colors.light.textSecondary} />
-                        {' '}{customer.address}
+                        <Ionicons name="location" size={14} color={Colors.light.textSecondary} />{' '}
+                        {customer.address}
                       </Text>
                     )}
                   </View>
@@ -398,4 +408,4 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-}); 
+});

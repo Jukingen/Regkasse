@@ -1,16 +1,16 @@
 'use client';
 
 // Read-only back-office table list; API is still in-memory demo (TableController) until persisted tables exist.
-
-import React from 'react';
 import { Alert, Card, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import React from 'react';
+
+import type { TableInfo } from '@/api/generated/model';
+import { useGetApiTable } from '@/api/generated/table/table';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { adminTablePaginationDefaults } from '@/components/ui/adminTablePagination';
 import { useI18n } from '@/i18n/I18nProvider';
-import { useGetApiTable } from '@/api/generated/table/table';
-import type { TableInfo } from '@/api/generated/model';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 
 export default function TablesAdminPage() {
   const { t } = useI18n();
@@ -26,9 +26,7 @@ export default function TablesAdminPage() {
         const statusKey = `adminShell.tablesAdmin.status.${s}`;
         const label = t(statusKey);
         return (
-          <Tag color={s === 'Available' ? 'green' : 'blue'}>
-            {label === statusKey ? s : label}
-          </Tag>
+          <Tag color={s === 'Available' ? 'green' : 'blue'}>{label === statusKey ? s : label}</Tag>
         );
       },
     },
@@ -57,7 +55,12 @@ export default function TablesAdminPage() {
       />
 
       {isError ? (
-        <Alert type="error" showIcon title={t('adminShell.tablesAdmin.loadError')} description={errMsg} />
+        <Alert
+          type="error"
+          showIcon
+          title={t('adminShell.tablesAdmin.loadError')}
+          description={errMsg}
+        />
       ) : (
         <Card variant="borderless">
           <Table<TableInfo>

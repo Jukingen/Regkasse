@@ -18,8 +18,10 @@ export type CreateStartbelegResponse = {
   qrData: string;
 };
 
-export async function postCreateStartbeleg(body: CreateStartbelegRequest): Promise<CreateStartbelegResponse> {
-  return apiClient.post<CreateStartbelegResponse>('/rksv/special-receipts/startbeleg', body);
+export async function postCreateStartbeleg(
+  body: CreateStartbelegRequest
+): Promise<CreateStartbelegResponse> {
+  return await apiClient.post<CreateStartbelegResponse>('/rksv/special-receipts/startbeleg', body);
 }
 
 /** POST /api/rksv/special-receipts/monatsbeleg */
@@ -38,8 +40,13 @@ export type CreateMonatsbelegResponse = {
   qrData: string;
 };
 
-export async function postCreateMonatsbeleg(body: CreateMonatsbelegRequest): Promise<CreateMonatsbelegResponse> {
-  return apiClient.post<CreateMonatsbelegResponse>('/rksv/special-receipts/monatsbeleg', body);
+export async function postCreateMonatsbeleg(
+  body: CreateMonatsbelegRequest
+): Promise<CreateMonatsbelegResponse> {
+  return await apiClient.post<CreateMonatsbelegResponse>(
+    '/rksv/special-receipts/monatsbeleg',
+    body
+  );
 }
 
 /** POST /api/rksv/special-receipts/jahresbeleg */
@@ -58,8 +65,13 @@ export type CreateJahresbelegResponse = {
   qrData: string;
 };
 
-export async function postCreateJahresbeleg(body: CreateJahresbelegRequest): Promise<CreateJahresbelegResponse> {
-  return apiClient.post<CreateJahresbelegResponse>('/rksv/special-receipts/jahresbeleg', body);
+export async function postCreateJahresbeleg(
+  body: CreateJahresbelegRequest
+): Promise<CreateJahresbelegResponse> {
+  return await apiClient.post<CreateJahresbelegResponse>(
+    '/rksv/special-receipts/jahresbeleg',
+    body
+  );
 }
 
 /** GET /api/rksv/monatsbeleg/status/{cashRegisterId} — matches backend `MonatsbelegStatusDto` (camelCase JSON). */
@@ -89,5 +101,5 @@ export type MonatsbelegStatusDto = {
 };
 
 export async function getMonatsbelegStatus(cashRegisterId: string): Promise<MonatsbelegStatusDto> {
-  return apiClient.get<MonatsbelegStatusDto>(`/rksv/monatsbeleg/status/${cashRegisterId}`);
+  return await apiClient.get<MonatsbelegStatusDto>(`/rksv/monatsbeleg/status/${cashRegisterId}`);
 }

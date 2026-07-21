@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
 import { useTagesabschlussReminder } from './useTagesabschlussReminder';
+import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
 import { canPerformClosing } from '../services/api/tagesabschlussService';
 import { isValidPosCashRegisterId } from '../utils/posCashRegister';
 
@@ -64,7 +64,9 @@ export function useTagesabschlussStatus(): PosTagesabschlussStatus {
     const interval = setInterval(() => {
       void refresh();
     }, STATUS_POLL_MS);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+    };
   }, [registerId, refresh]);
 
   const shouldShowReminder = reminder.shouldShowReminder;

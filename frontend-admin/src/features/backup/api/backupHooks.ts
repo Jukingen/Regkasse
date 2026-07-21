@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
 /**
  * Backup admin API hooks — Orval-generated clients + shared query keys / invalidation.
  * Configuration health is derived from GET /api/admin/backup/status/latest (no dedicated health route).
  */
+import type { UseQueryOptions } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
 
-import { useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { UseQueryOptions } from "@tanstack/react-query";
 import {
   getGetApiAdminBackupRecoverabilitySummaryQueryKey,
   getGetApiAdminBackupRunsIdQueryKey,
@@ -15,29 +15,30 @@ import {
   getGetApiAdminBackupStatusLatestQueryKey,
   useGetApiAdminBackupRuns,
   useGetApiAdminBackupRunsId,
+  useGetApiAdminBackupStatusLatest,
   usePostApiAdminBackupTrigger,
-} from "@/api/generated/admin-backup/admin-backup";
-import type { BackupTriggerRequestDto } from "@/api/generated/model";
-import type { GetApiAdminBackupRunsParams } from "@/api/generated/model/getApiAdminBackupRunsParams";
-import type { BackupArtifactPipelinePolicyResponseDto } from "@/api/generated/model";
-import type { BackupConfigurationHealthResponseDto } from "@/api/generated/model/backupConfigurationHealthResponseDto";
-import { useCurrentTenant } from "@/hooks/useCurrentTenant";
-import { useGetApiAdminBackupStatusLatest } from "@/api/generated/admin-backup/admin-backup";
+} from '@/api/generated/admin-backup/admin-backup';
+import { getGetApiAdminBackupListQueryKey } from '@/api/generated/admin/admin';
+import type {
+  BackupArtifactPipelinePolicyResponseDto,
+  BackupTriggerRequestDto,
+} from '@/api/generated/model';
+import type { BackupConfigurationHealthResponseDto } from '@/api/generated/model/backupConfigurationHealthResponseDto';
+import type { GetApiAdminBackupRunsParams } from '@/api/generated/model/getApiAdminBackupRunsParams';
+import { usePollRunDetailDashboardInterval } from '@/features/backup-dr/logic/backupDashboardQueryTiming';
 import {
-  getBackupScheduleSettingsQueryKey,
-  getBackupScheduleStatusQueryKey,
-  getBackupScheduleSettings,
-  putBackupScheduleSettings,
   type BackupSettingsPutRequestDto,
   type BackupSettingsResponseDto,
-} from "@/features/backup-dr/logic/backupScheduleSettingsApi";
-import { useMutation } from "@tanstack/react-query";
-import { usePollRunDetailDashboardInterval } from "@/features/backup-dr/logic/backupDashboardQueryTiming";
+  getBackupScheduleSettings,
+  getBackupScheduleSettingsQueryKey,
+  getBackupScheduleStatusQueryKey,
+  putBackupScheduleSettings,
+} from '@/features/backup-dr/logic/backupScheduleSettingsApi';
 import {
   BACKUP_DASHBOARD_STATS_POLL_MS,
   getBackupDashboardStatsQueryKey,
-} from "@/features/backup/logic/backupDashboardStatsApi";
-import { getGetApiAdminBackupListQueryKey } from "@/api/generated/admin/admin";
+} from '@/features/backup/logic/backupDashboardStatsApi';
+import { useCurrentTenant } from '@/hooks/useCurrentTenant';
 
 /** List/query params for GET /api/admin/backup/runs */
 export type BackupRunsParams = GetApiAdminBackupRunsParams & {
@@ -48,7 +49,9 @@ export type BackupRunsParams = GetApiAdminBackupRunsParams & {
   tenantId?: string;
 };
 
-function toRunsQueryParams(params?: BackupRunsParams): GetApiAdminBackupRunsParams & { tenantId?: string } {
+function toRunsQueryParams(
+  params?: BackupRunsParams
+): GetApiAdminBackupRunsParams & { tenantId?: string } {
   if (!params) return {};
   const { tenantId, ...rest } = params;
   const trimmed = tenantId?.trim();
@@ -63,7 +66,7 @@ export type BackupConfigurationHealthView = BackupConfigurationHealthResponseDto
 
 /** Stable query keys (Orval-aligned for cache sharing with generated hooks). */
 export const backupQueryKeys = {
-  all: ["/api/admin/backup"] as const,
+  all: ['/api/admin/backup'] as const,
   runs: (params?: BackupRunsParams) =>
     getGetApiAdminBackupRunsQueryKey(toRunsQueryParams(params) as GetApiAdminBackupRunsParams),
   run: (id: string) => getGetApiAdminBackupRunsIdQueryKey(id),
@@ -107,14 +110,11 @@ export type UseBackupRunOptions = {
 };
 
 /** GET /api/admin/backup/runs/{id} */
-export function useBackupRun(
-  id: string | null | undefined,
-  options?: UseBackupRunOptions,
-) {
+export function useBackupRun(id: string | null | undefined, options?: UseBackupRunOptions) {
   const pollRunDetail = usePollRunDetailDashboardInterval(id ?? undefined, undefined);
   const enabled = Boolean(id?.trim()) && options?.enabled !== false;
 
-  return useGetApiAdminBackupRunsId(id ?? "", {
+  return useGetApiAdminBackupRunsId(id ?? '', {
     query: {
       enabled,
       refetchInterval: enabled ? pollRunDetail : false,
@@ -143,7 +143,7 @@ function buildIdempotencyKey(params: TriggerBackupParams): string {
 
 function resolveTriggerBackupParams(
   params: TriggerBackupParams,
-  ambientTenantId: string | null | undefined,
+  ambientTenantId: string | null | undefined
 ): TriggerBackupParams {
   if (params.allTenants || params.tenantId?.trim()) {
     return params;
@@ -163,7 +163,7 @@ function toTriggerRequestBody(params: TriggerBackupParams): BackupTriggerRequest
 /** Builds POST /api/admin/backup/trigger body with tenant encoded in idempotency key when available. */
 export function buildBackupTriggerRequestBody(
   params: TriggerBackupParams = {},
-  ambientTenantId?: string | null,
+  ambientTenantId?: string | null
 ): BackupTriggerRequestDto {
   return toTriggerRequestBody(resolveTriggerBackupParams(params, ambientTenantId));
 }
@@ -194,7 +194,7 @@ export function useTriggerBackup() {
 
 /** GET /api/admin/backup/settings */
 export function useBackupSettings(
-  options?: Pick<UseQueryOptions<BackupSettingsResponseDto>, "enabled" | "staleTime">,
+  options?: Pick<UseQueryOptions<BackupSettingsResponseDto>, 'enabled' | 'staleTime'>
 ) {
   return useQuery({
     queryKey: backupQueryKeys.settings(),
@@ -245,7 +245,10 @@ export function useBackupConfigurationHealth(options?: UseBackupConfigurationHea
       externalArchiveRootConfigured:
         query.data?.artifactPipelinePolicy?.externalArchiveRootConfigured === true,
     };
-  }, [query.data?.artifactPipelinePolicy?.externalArchiveRootConfigured, query.data?.configurationHealth]);
+  }, [
+    query.data?.artifactPipelinePolicy?.externalArchiveRootConfigured,
+    query.data?.configurationHealth,
+  ]);
 
   const updatedAt =
     query.dataUpdatedAt > 0 ? new Date(query.dataUpdatedAt).toISOString() : undefined;
@@ -255,8 +258,7 @@ export function useBackupConfigurationHealth(options?: UseBackupConfigurationHea
     health,
     configurationHealth: query.data?.configurationHealth,
     artifactPipelinePolicy: query.data?.artifactPipelinePolicy as
-      | BackupArtifactPipelinePolicyResponseDto
-      | undefined,
+      BackupArtifactPipelinePolicyResponseDto | undefined,
     updatedAt,
   };
 }

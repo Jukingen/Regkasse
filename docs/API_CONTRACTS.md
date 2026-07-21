@@ -548,9 +548,10 @@ node scripts/verify-api-client.mjs
 
 After backend DTO changes:
 
-1. Update `backend/swagger.json`
+1. `node scripts/generate-backend-openapi.mjs` (do not hand-edit `backend/swagger.json`)
 2. `cd frontend-admin && npm run generate:api`
-3. `node scripts/verify-api-client.mjs` (repo root)
+3. `node scripts/verify-api-client.mjs` (repo root) — also runs in CI (`api-client-alignment.yml`)
+4. Optional local gate: `npm run install:git-hooks` so commits that touch swagger/generated run the same verify
 
 ---
 

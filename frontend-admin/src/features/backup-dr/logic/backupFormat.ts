@@ -4,7 +4,7 @@
 
 export function formatBackupBytes(
   n: number | undefined,
-  t: (key: string, options?: Record<string, string | number>) => string,
+  t: (key: string, options?: Record<string, string | number>) => string
 ): string {
   if (n === undefined) return '—';
   if (n < 1024) return t('backupDr.latestRun.bytesB', { n: String(n) });
@@ -16,7 +16,7 @@ export function formatBackupBytes(
 
 export function formatBackupDurationMs(
   ms: number | undefined,
-  t: (key: string, options?: Record<string, string | number>) => string,
+  t: (key: string, options?: Record<string, string | number>) => string
 ): string {
   if (ms === undefined) return '—';
   if (ms < 1000) return t('backupDr.latestRun.durationMs', { ms: String(Math.round(ms)) });
@@ -30,7 +30,7 @@ export function formatBackupDurationMs(
 /** İnsan okunur RPO/RTO tahmini (saniye → kısa metin). */
 export function formatBackupAgeSeconds(
   seconds: number | undefined,
-  t: (key: string, options?: Record<string, string | number>) => string,
+  t: (key: string, options?: Record<string, string | number>) => string
 ): string {
   if (seconds === undefined || Number.isNaN(seconds)) return '—';
   if (seconds < 60) {

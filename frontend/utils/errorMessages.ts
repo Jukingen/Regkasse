@@ -37,18 +37,15 @@ export const dailyClosingErrorMessages: Record<DailyClosingErrorCode, string> = 
     'Der Tagesabschluss wurde erstellt, aber die Kasse konnte nicht geschlossen werden. Bitte kontaktieren Sie den Administrator.',
   TSE_UNAVAILABLE:
     'Die Signiereinheit (TSE) ist nicht erreichbar. Bitte prüfen Sie die Verbindung und versuchen Sie es erneut.',
-  NO_SALES_TODAY:
-    'Für heute gibt es keine Umsätze. Ein Tagesabschluss ist derzeit nicht möglich.',
+  NO_SALES_TODAY: 'Für heute gibt es keine Umsätze. Ein Tagesabschluss ist derzeit nicht möglich.',
   PERMISSION_DENIED:
     'Sie haben keine Berechtigung, einen Tagesabschluss durchzuführen. Bitte wenden Sie sich an Ihren Vorgesetzten.',
   NETWORK_ERROR:
     'Keine Verbindung zum Server. Bitte prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
-  TIMEOUT:
-    'Die Anfrage hat zu lange gedauert. Bitte versuchen Sie es in wenigen Momenten erneut.',
+  TIMEOUT: 'Die Anfrage hat zu lange gedauert. Bitte versuchen Sie es in wenigen Momenten erneut.',
   BACKEND_ERROR:
     'Ein technischer Fehler ist aufgetreten. Bitte kontaktieren Sie den Administrator.',
-  UNKNOWN:
-    'Ein unbekannter Fehler ist aufgetreten. Bitte kontaktieren Sie den Administrator.',
+  UNKNOWN: 'Ein unbekannter Fehler ist aufgetreten. Bitte kontaktieren Sie den Administrator.',
   // Product note: POS Tagesabschluss requires an open shift (not "close shift first").
   SHIFT_NOT_CLOSED:
     'Es ist keine Schicht geöffnet. Bitte starten Sie zuerst eine Schicht und versuchen Sie es erneut.',
@@ -85,20 +82,20 @@ function normalizeCode(raw: string): DailyClosingErrorCode | null {
 function classifyFromMessage(message: string): DailyClosingErrorCode | null {
   const m = message.toLowerCase();
 
-  if (/no active shift/.test(m)) return 'NO_ACTIVE_SHIFT';
-  if (/already performed/.test(m) || /already closed/.test(m)) return 'ALREADY_CLOSED';
-  if (/without (a matching )?invoice/.test(m) || /payments_without_invoice/.test(m)) {
+  if (m.includes('no active shift')) return 'NO_ACTIVE_SHIFT';
+  if (m.includes('already performed') || m.includes('already closed')) return 'ALREADY_CLOSED';
+  if (/without (a matching )?invoice/.test(m) || m.includes('payments_without_invoice')) {
     return 'PAYMENTS_WITHOUT_INVOICE';
   }
   if (/not available for daily closing|cash register .* not found|decommissioned/.test(m)) {
     return 'REGISTER_UNAVAILABLE';
   }
-  if (/not allowed to close this cash register/.test(m)) return 'PERMISSION_DENIED';
-  if (/could not be closed after daily closing/.test(m)) return 'REGISTER_CLOSE_FAILED';
+  if (m.includes('not allowed to close this cash register')) return 'PERMISSION_DENIED';
+  if (m.includes('could not be closed after daily closing')) return 'REGISTER_CLOSE_FAILED';
   if (/tse device is not connected|tse.*(unavailable|not connected|offline)/.test(m)) {
     return 'TSE_UNAVAILABLE';
   }
-  if (/no transactions found/.test(m)) return 'NO_SALES_TODAY';
+  if (m.includes('no transactions found')) return 'NO_SALES_TODAY';
   if (/network error|failed to fetch|internet/.test(m)) return 'NETWORK_ERROR';
   if (/timeout|timed out|aborted/.test(m)) return 'TIMEOUT';
 
@@ -111,7 +108,10 @@ function classifyFromMessage(message: string): DailyClosingErrorCode | null {
 export function classifyDailyClosingError(
   input: DailyClosingErrorClassifyInput
 ): DailyClosingErrorCode {
-  if (typeof input.paymentsWithoutInvoiceCount === 'number' && input.paymentsWithoutInvoiceCount > 0) {
+  if (
+    typeof input.paymentsWithoutInvoiceCount === 'number' &&
+    input.paymentsWithoutInvoiceCount > 0
+  ) {
     return 'PAYMENTS_WITHOUT_INVOICE';
   }
 

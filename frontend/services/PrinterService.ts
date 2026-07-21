@@ -18,8 +18,8 @@ export interface PrinterConfig {
 }
 
 class PrinterService {
-  private baseUrl = '/printer';
-  private defaultConfig: PrinterConfig = {
+  private readonly baseUrl = '/printer';
+  private readonly defaultConfig: PrinterConfig = {
     printerName: 'EPSON TM-T88VI',
     printerType: 'EPSON',
     paperWidth: 80,
@@ -80,14 +80,14 @@ class PrinterService {
   }): Promise<boolean> {
     try {
       console.log('Printing receipt immediately...');
-      
+
       const printContent = this.formatReceiptContent(receiptData);
-      
+
       const response = await apiClient.post(`${this.baseUrl}/print`, {
         type: 'receipt',
         content: printContent,
         immediate: true, // Anında yazdır
-        priority: 'high'
+        priority: 'high',
       });
 
       console.log('Receipt printed successfully');
@@ -114,14 +114,14 @@ class PrinterService {
   }): Promise<boolean> {
     try {
       console.log('Printing order immediately...');
-      
+
       const printContent = this.formatOrderContent(orderData);
-      
+
       const response = await apiClient.post(`${this.baseUrl}/print`, {
         type: 'order',
         content: printContent,
         immediate: true, // Anında yazdır
-        priority: 'high'
+        priority: 'high',
       });
 
       console.log('Order printed successfully');
@@ -136,9 +136,9 @@ class PrinterService {
   private formatReceiptContent(data: any): string {
     const config = this.defaultConfig;
     const separator = '='.repeat(config.paperWidth / 8);
-    
+
     let content = '';
-    
+
     // Header
     content += `${' '.repeat(8)}KASSA\n`;
     content += `${separator}\n`;
@@ -147,13 +147,13 @@ class PrinterService {
     content += `Saat: ${data.time}\n`;
     content += `Kasiyer: ${data.cashier}\n`;
     content += `${separator}\n`;
-    
+
     // Items
     data.items.forEach((item: any) => {
       content += `${item.name}\n`;
       content += `${item.quantity}x €${item.price.toFixed(2)} = €${item.total.toFixed(2)}\n`;
     });
-    
+
     content += `${separator}\n`;
     content += `Ara Toplam: €${data.subtotal.toFixed(2)}\n`;
     content += `KDV: €${data.tax.toFixed(2)}\n`;
@@ -162,7 +162,7 @@ class PrinterService {
     content += `${separator}\n`;
     content += `${' '.repeat(8)}TEŞEKKÜRLER\n`;
     content += `${' '.repeat(6)}Bizi tercih ettiğiniz için\n`;
-    
+
     return content;
   }
 
@@ -170,26 +170,26 @@ class PrinterService {
   private formatOrderContent(data: any): string {
     const config = this.defaultConfig;
     const separator = '='.repeat(config.paperWidth / 8);
-    
+
     let content = '';
-    
+
     // Header
     content += `${' '.repeat(8)}SİPARİŞ\n`;
     content += `${separator}\n`;
     content += `Sipariş No: ${data.orderNumber}\n`;
     content += `Tarih: ${data.date}\n`;
     content += `Saat: ${data.time}\n`;
-    
+
     if (data.customerName) {
       content += `Müşteri: ${data.customerName}\n`;
     }
-    
+
     if (data.tableNumber) {
       content += `Masa: ${data.tableNumber}\n`;
     }
-    
+
     content += `${separator}\n`;
-    
+
     // Items
     data.items.forEach((item: any) => {
       content += `${item.quantity}x ${item.name}\n`;
@@ -197,22 +197,22 @@ class PrinterService {
         content += `  Not: ${item.notes}\n`;
       }
     });
-    
+
     if (data.notes) {
       content += `${separator}\n`;
       content += `Sipariş Notu: ${data.notes}\n`;
     }
-    
+
     content += `${separator}\n`;
     content += `${' '.repeat(8)}HAZIRLANIYOR\n`;
-    
+
     return content;
   }
 
   // Yazıcı test sayfası
   async printTestPage(): Promise<boolean> {
     try {
-      const response = await apiClient.post(`${this.baseUrl}/test`);
+      const response = await apiClient.post<{ success?: boolean }>(`${this.baseUrl}/test`);
       return response?.success === true;
     } catch (error) {
       console.error('Test page printing failed:', error);
@@ -223,7 +223,7 @@ class PrinterService {
   // Yazıcı kuyruğunu temizle
   async clearPrintQueue(): Promise<boolean> {
     try {
-      const response = await apiClient.delete(`${this.baseUrl}/queue`);
+      const response = await apiClient.delete<{ success?: boolean }>(`${this.baseUrl}/queue`);
       return response?.success === true;
     } catch (error) {
       console.error('Failed to clear print queue:', error);
@@ -234,7 +234,7 @@ class PrinterService {
   // Yazıcı geçmişini al
   async getPrintHistory(limit: number = 50): Promise<PrintJob[]> {
     try {
-      const response = await apiClient.get(`${this.baseUrl}/history?limit=${limit}`);
+      const response = await apiClient.get<PrintJob[]>(`${this.baseUrl}/history?limit=${limit}`);
       return response || [];
     } catch (error) {
       console.error('Failed to get print history:', error);
@@ -244,4 +244,4 @@ class PrinterService {
 }
 
 export const printerService = new PrinterService();
-export default printerService; 
+export default printerService;

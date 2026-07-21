@@ -1,17 +1,18 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
-import { Alert, Button, Card, Descriptions, Space, Typography } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
+import { Alert, Button, Card, Descriptions, Space, Typography } from 'antd';
 import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
+
 import { useGetApiAdminPaymentsId } from '@/api/generated/admin/admin';
 import type { AdminPaymentDetailDto } from '@/api/generated/model';
-import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { CardSkeleton } from '@/components/Skeleton';
-import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ReprintButton } from '@/features/payments/components/ReprintButton';
 import { useI18n } from '@/i18n';
 import { FORMAT_EMPTY_DISPLAY, formatCurrency, formatDateTime } from '@/i18n/formatting';
+import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 
 function isNotFoundError(error: unknown): boolean {
   const status =
@@ -95,7 +96,9 @@ export default function AdminPaymentStandaloneDetailPage() {
         type="warning"
         showIcon
         title={t('payments.standaloneDetail.notFound')}
-        action={<Button onClick={handleBack}>{t('payments.standaloneDetail.backToPayments')}</Button>}
+        action={
+          <Button onClick={handleBack}>{t('payments.standaloneDetail.backToPayments')}</Button>
+        }
       />
     );
   }
@@ -143,7 +146,9 @@ export default function AdminPaymentStandaloneDetailPage() {
             {payment.receiptNumber?.trim() || FORMAT_EMPTY_DISPLAY}
           </Descriptions.Item>
           <Descriptions.Item label={t('payments.detail.labelTimestampServer')}>
-            {payment.createdAt ? formatDateTime(payment.createdAt, formatLocale) : FORMAT_EMPTY_DISPLAY}
+            {payment.createdAt
+              ? formatDateTime(payment.createdAt, formatLocale)
+              : FORMAT_EMPTY_DISPLAY}
           </Descriptions.Item>
           <Descriptions.Item label={t('payments.detail.labelAmount')}>
             {formatCurrency(payment.totalAmount ?? 0, formatLocale, { currency })}

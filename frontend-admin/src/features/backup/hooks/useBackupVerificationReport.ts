@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+
 import {
   getBackupVerificationReport,
   getBackupVerificationReportQueryKey,
@@ -8,7 +9,9 @@ import {
 
 export function useBackupVerificationReport(backupRunId: string | null, enabled: boolean) {
   return useQuery({
-    queryKey: backupRunId ? getBackupVerificationReportQueryKey(backupRunId) : ['backup-verification-report', 'idle'],
+    queryKey: backupRunId
+      ? getBackupVerificationReportQueryKey(backupRunId)
+      : ['backup-verification-report', 'idle'],
     queryFn: () => getBackupVerificationReport(backupRunId!),
     enabled: enabled && Boolean(backupRunId),
     staleTime: 60_000,

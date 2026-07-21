@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { buildBackupTriggerRequestBody } from '@/features/backup/api/backupHooks';
 
 describe('buildBackupTriggerRequestBody', () => {
@@ -6,17 +7,13 @@ describe('buildBackupTriggerRequestBody', () => {
 
   it('encodes ambient tenant when params omit tenantId', () => {
     const body = buildBackupTriggerRequestBody({}, tenantId);
-    expect(body.idempotencyKey).toMatch(
-      new RegExp(`^manual-tenant-${tenantId}-\\d+$`),
-    );
+    expect(body.idempotencyKey).toMatch(new RegExp(`^manual-tenant-${tenantId}-\\d+$`));
   });
 
   it('prefers explicit tenantId over ambient', () => {
     const explicit = '11111111-2222-3333-4444-555555555555';
     const body = buildBackupTriggerRequestBody({ tenantId: explicit }, tenantId);
-    expect(body.idempotencyKey).toMatch(
-      new RegExp(`^manual-tenant-${explicit}-\\d+$`),
-    );
+    expect(body.idempotencyKey).toMatch(new RegExp(`^manual-tenant-${explicit}-\\d+$`));
   });
 
   it('uses all-tenants prefix when requested', () => {

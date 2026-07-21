@@ -9,12 +9,9 @@ import path from 'path';
 describe('TagesabschlussReminder (POS)', () => {
   const source = fs.readFileSync(
     path.join(__dirname, '../components/TagesabschlussReminder.tsx'),
-    'utf8',
+    'utf8'
   );
-  const layoutSource = fs.readFileSync(
-    path.join(__dirname, '../app/(tabs)/_layout.tsx'),
-    'utf8',
-  );
+  const layoutSource = fs.readFileSync(path.join(__dirname, '../app/(tabs)/_layout.tsx'), 'utf8');
 
   it('opens DailyClosingModal directly instead of navigating to settings', () => {
     expect(source).toContain('setShowModal(true)');
@@ -25,7 +22,9 @@ describe('TagesabschlussReminder (POS)', () => {
   });
 
   it('shows reminder only when shouldShowReminder and canClose (display gate, not sales lock)', () => {
-    expect(source).toMatch(/!shouldShowReminder\s*\|\|\s*!canClose|!canClose\s*\|\|\s*!shouldShowReminder/);
+    expect(source).toMatch(
+      /!shouldShowReminder\s*\|\|\s*!canClose|!canClose\s*\|\|\s*!shouldShowReminder/
+    );
   });
 
   it('documents that it never blocks POS operations', () => {

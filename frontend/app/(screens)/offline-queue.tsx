@@ -3,9 +3,10 @@
  * Operator visibility and recovery UX; does not change fiscal/offline intent model.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useFocusEffect, useRouter } from 'expo-router';
 import type { TFunction } from 'i18next';
+import React, { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -16,8 +17,7 @@ import {
   RefreshControl,
   Share,
 } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
-import { useRouter } from 'expo-router';
+
 import {
   getAllQueueEntries,
   syncPendingPaymentQueue,
@@ -26,6 +26,7 @@ import {
   type OfflineTransactionStatus,
 } from '../../services/payment/pendingPaymentQueue';
 import { WaveLoader } from '../../src/components/common/WaveLoader';
+import { copyTextWithShareFallback } from '../../utils/clipboard';
 import { formatUserDateTime } from '../../utils/dateFormatter';
 
 const FILTER_ALL = 'All';
@@ -75,7 +76,10 @@ function getErrorSummary(lastError: string | undefined, t: TFunction): string {
   if (lastError.includes('sync_transport_failed') || lastError.includes('Network')) {
     return t('settings:offlineQueueScreen.errorConnectionFailed');
   }
-  if (lastError.toLowerCase().includes('duplicate') || lastError.toLowerCase().includes('already')) {
+  if (
+    lastError.toLowerCase().includes('duplicate') ||
+    lastError.toLowerCase().includes('already')
+  ) {
     return t('settings:offlineQueueScreen.errorDuplicate');
   }
   if (lastError.includes('replay_response_incomplete')) {
@@ -129,14 +133,21 @@ export default function OfflineQueueScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      void (async () => {
+        await load();
+        if (cancelled) return;
+      })();
+      // Blur cleanup: ignore in-flight result (no useBlurEffect API in expo-router).
+      return () => {
+        cancelled = true;
+      };
+    }, [load])
+  );
 
-  const filtered =
-    filter === FILTER_ALL
-      ? entries
-      : entries.filter((e) => e.status === filter);
+  const filtered = filter === FILTER_ALL ? entries : entries.filter((e) => e.status === filter);
 
   const handleSyncAll = useCallback(async () => {
     setSyncing(true);
@@ -150,9 +161,7 @@ export default function OfflineQueueScreen() {
             : t('settings:offlineQueueScreen.syncResult', {
                 processed,
                 failedSuffix:
-                  failed > 0
-                    ? t('settings:offlineQueueScreen.syncFailedSuffix', { failed })
-                    : '',
+                  failed > 0 ? t('settings:offlineQueueScreen.syncFailedSuffix', { failed }) : '',
               });
         Alert.alert(t('settings:offlineQueueScreen.syncTitle'), syncMsg);
       } else {
@@ -202,21 +211,19 @@ export default function OfflineQueueScreen() {
 
   const copyToClipboard = useCallback(
     async (label: string, value: string) => {
-      const v = value.trim();
-      if (!v) return;
-      try {
-        await Clipboard.setStringAsync(v);
+      const result = await copyTextWithShareFallback(value, { shareTitle: label });
+      if (result.ok && result.method === 'clipboard') {
         Alert.alert(
           t('settings:offlineQueueScreen.copiedTitle'),
           t('settings:offlineQueueScreen.copiedMessage', { label })
         );
-      } catch {
-        try {
-          await Share.share({ message: v, title: label });
-        } catch {
-          Alert.alert(label, v);
-        }
+        return;
       }
+      if (!result.ok) {
+        // Clipboard write + share both unavailable — show value for manual copy.
+        Alert.alert(label, value.trim() || value);
+      }
+      // Share sheet is its own confirmation UI; no extra alert.
     },
     [t]
   );
@@ -255,7 +262,11 @@ export default function OfflineQueueScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity
+          onPress={() => {
+            router.back();
+          }}
+          style={styles.backBtn}>
           <Text style={styles.backText}>{t('settings:offlineQueueScreen.back')}</Text>
         </TouchableOpacity>
         <Text style={styles.title}>{t('settings:offlineQueueScreen.title')}</Text>
@@ -263,20 +274,29 @@ export default function OfflineQueueScreen() {
 
       <View style={styles.toolbar}>
         <View style={styles.supportBanner}>
-          <Text style={styles.supportBannerTitle}>{t('settings:offlineQueueScreen.supportTitle')}</Text>
-          <Text style={styles.supportBannerText}>{t('settings:offlineQueueScreen.supportText')}</Text>
+          <Text style={styles.supportBannerTitle}>
+            {t('settings:offlineQueueScreen.supportTitle')}
+          </Text>
+          <Text style={styles.supportBannerText}>
+            {t('settings:offlineQueueScreen.supportText')}
+          </Text>
         </View>
         <View style={styles.operatorHint}>
-          <Text style={styles.operatorHintTitle}>{t('settings:offlineQueueScreen.operatorHintTitle')}</Text>
-          <Text style={styles.operatorHintText}>{t('settings:offlineQueueScreen.operatorHintText')}</Text>
+          <Text style={styles.operatorHintTitle}>
+            {t('settings:offlineQueueScreen.operatorHintTitle')}
+          </Text>
+          <Text style={styles.operatorHintText}>
+            {t('settings:offlineQueueScreen.operatorHintText')}
+          </Text>
         </View>
         <View style={styles.filterRow}>
           {[FILTER_ALL, FILTER_PENDING, FILTER_FAILED, FILTER_UNKNOWN].map((f) => (
             <TouchableOpacity
               key={f}
               style={[styles.filterChip, filter === f && styles.filterChipActive]}
-              onPress={() => setFilter(f)}
-            >
+              onPress={() => {
+                setFilter(f);
+              }}>
               <Text style={[styles.filterChipText, filter === f && styles.filterChipTextActive]}>
                 {f === FILTER_ALL
                   ? t('settings:offlineQueueScreen.filterAll')
@@ -292,8 +312,7 @@ export default function OfflineQueueScreen() {
         <TouchableOpacity
           style={[styles.syncAllBtn, syncing && styles.syncAllBtnDisabled]}
           onPress={handleSyncAll}
-          disabled={syncing || pendingCount === 0}
-        >
+          disabled={syncing || pendingCount === 0}>
           {syncing ? (
             <WaveLoader size={18} color="#fff" />
           ) : (
@@ -322,10 +341,7 @@ export default function OfflineQueueScreen() {
       ) : (
         <ScrollView
           style={styles.list}
-          refreshControl={
-            <RefreshControl refreshing={false} onRefresh={load} />
-          }
-        >
+          refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}>
           {filtered.map((entry) => (
             <View key={entry.queueId} style={styles.card}>
               <View style={styles.cardRow}>
@@ -346,7 +362,9 @@ export default function OfflineQueueScreen() {
               </View>
               {entry.lastAttemptAt && (
                 <Text style={styles.meta}>
-                  {t('settings:offlineQueueScreen.lastAttempt', { time: formatDate(entry.lastAttemptAt) })}
+                  {t('settings:offlineQueueScreen.lastAttempt', {
+                    time: formatDate(entry.lastAttemptAt),
+                  })}
                 </Text>
               )}
               {entry.lastError && (
@@ -354,27 +372,37 @@ export default function OfflineQueueScreen() {
               )}
               {entry.replayBatchCorrelationId ? (
                 <View style={styles.metaRow}>
-                  <Text style={styles.metaLabel}>{t('settings:offlineQueueScreen.replayBatchLabel')}</Text>
+                  <Text style={styles.metaLabel}>
+                    {t('settings:offlineQueueScreen.replayBatchLabel')}
+                  </Text>
                   <Text style={styles.metaId} selectable>
                     {entry.replayBatchCorrelationId}
                   </Text>
                   <View style={styles.batchActions}>
                     <TouchableOpacity
                       style={styles.copySmallBtn}
-                      onPress={() => copyToClipboard('Replay-Batch-ID', entry.replayBatchCorrelationId!)}
-                    >
-                      <Text style={styles.copySmallBtnText}>{t('settings:offlineQueueScreen.copy')}</Text>
+                      onPress={() =>
+                        copyToClipboard('Replay-Batch-ID', entry.replayBatchCorrelationId!)
+                      }>
+                      <Text style={styles.copySmallBtnText}>
+                        {t('settings:offlineQueueScreen.copy')}
+                      </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.copySmallBtn}
-                      onPress={() => handleShareReplayBatchId(entry.replayBatchCorrelationId!, entry.queueId)}
-                    >
-                      <Text style={styles.copySmallBtnText}>{t('settings:offlineQueueScreen.share')}</Text>
+                      onPress={() =>
+                        handleShareReplayBatchId(entry.replayBatchCorrelationId!, entry.queueId)
+                      }>
+                      <Text style={styles.copySmallBtnText}>
+                        {t('settings:offlineQueueScreen.share')}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </View>
               ) : (
-                <Text style={styles.metaMuted}>{t('settings:offlineQueueScreen.replayBatchPending')}</Text>
+                <Text style={styles.metaMuted}>
+                  {t('settings:offlineQueueScreen.replayBatchPending')}
+                </Text>
               )}
               <View style={styles.actions}>
                 {(entry.status === 'Pending' ||
@@ -383,20 +411,22 @@ export default function OfflineQueueScreen() {
                   <TouchableOpacity
                     style={styles.retryBtn}
                     onPress={() => handleRetrySingle(entry.queueId)}
-                    disabled={retryingId === entry.queueId}
-                  >
+                    disabled={retryingId === entry.queueId}>
                     {retryingId === entry.queueId ? (
                       <WaveLoader size={18} color="#fff" />
                     ) : (
-                      <Text style={styles.retryBtnText}>{t('settings:offlineQueueScreen.retrySend')}</Text>
+                      <Text style={styles.retryBtnText}>
+                        {t('settings:offlineQueueScreen.retrySend')}
+                      </Text>
                     )}
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity
                   style={styles.copyBtn}
-                  onPress={() => handleCopyId(entry.queueId)}
-                >
-                  <Text style={styles.copyBtnText}>{t('settings:offlineQueueScreen.queueIdButton')}</Text>
+                  onPress={() => handleCopyId(entry.queueId)}>
+                  <Text style={styles.copyBtnText}>
+                    {t('settings:offlineQueueScreen.queueIdButton')}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>

@@ -55,20 +55,26 @@ function transform(code, filePath) {
     next = next.replace(/\bModal\.(confirm|success|warning|error|info)\b/g, 'modal.$1');
   }
 
-  const antdImportRe =
-    /import\s+(type\s+)?\{([^}]+)\}\s+from\s+['"]antd['"]\s*;?/g;
+  const antdImportRe = /import\s+(type\s+)?\{([^}]+)\}\s+from\s+['"]antd['"]\s*;?/g;
   let antdAppImport = '';
-  if (needsMessage && needsModal) antdAppImport = "import { message, modal } from '@/lib/antdApp';\n";
+  if (needsMessage && needsModal)
+    antdAppImport = "import { message, modal } from '@/lib/antdApp';\n";
   else if (needsMessage) antdAppImport = "import { message } from '@/lib/antdApp';\n";
   else if (needsModal) antdAppImport = "import { modal } from '@/lib/antdApp';\n";
 
   let insertedAntdApp = false;
   next = next.replace(antdImportRe, (full, typePrefix, inner) => {
     const isTypeOnly = Boolean(typePrefix);
-    const parts = inner.split(',').map((p) => p.trim()).filter(Boolean);
+    const parts = inner
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean);
     const usesModalJsx = /<Modal[\s>]/.test(code);
     const kept = parts.filter((p) => {
-      const name = p.replace(/^type\s+/, '').split(/\s+as\s+/)[0].trim();
+      const name = p
+        .replace(/^type\s+/, '')
+        .split(/\s+as\s+/)[0]
+        .trim();
       if (name === 'message') return false;
       if (name === 'Modal' && !usesModalJsx) return false;
       return true;
@@ -99,7 +105,7 @@ function transform(code, filePath) {
   // Standalone: import { message } from 'antd'
   next = next.replace(
     /import\s+\{\s*message\s*\}\s+from\s+['"]antd['"]\s*;?\n?/g,
-    "import { message } from '@/lib/antdApp';\n",
+    "import { message } from '@/lib/antdApp';\n"
   );
 
   return next === code ? null : next;

@@ -11,15 +11,35 @@
  * - Render: full catalog as options; checked = assignedRoleIds.includes(role) → form field "role" holds the single selected value.
  * - User switch: form key edit-${user.id} resets component; sync effect sets values from new user (no stale selection).
  */
+import {
+  Alert,
+  Button,
+  Divider,
+  Drawer,
+  Form,
+  Input,
+  Radio,
+  Select,
+  Space,
+  Spin,
+  Typography,
+} from 'antd';
 import React, { useEffect, useMemo } from 'react';
-import { Drawer, Form, Input, Radio, Button, Space, Spin, Alert, Typography, Divider, Select } from 'antd';
-import type { UserInfo } from '@/api/generated/model';
-import type { CreateUserRequest, UpdateUserRequest } from '@/api/generated/model';
+
+import type { CreateUserRequest, UpdateUserRequest, UserInfo } from '@/api/generated/model';
+import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
 import { UserTenantSummary } from '@/features/users/components/UserTenantSummary';
 import { useAdminUserTenants } from '@/features/users/hooks/useAdminUserTenants';
-import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
 import { useI18n } from '@/i18n';
-import { createUsersFormRules, buildUsersFormRulesContext, NAME_MAX_LENGTH, EMAIL_MAX_LENGTH, SHORT_FIELD_MAX_LENGTH, NOTES_MAX_LENGTH } from '../constants/validation';
+
+import {
+  EMAIL_MAX_LENGTH,
+  NAME_MAX_LENGTH,
+  NOTES_MAX_LENGTH,
+  SHORT_FIELD_MAX_LENGTH,
+  buildUsersFormRulesContext,
+  createUsersFormRules,
+} from '../constants/validation';
 
 type Mode = 'create' | 'edit';
 type UserFormTenantValues = {
@@ -104,14 +124,11 @@ function UserFormDrawerContent({
   const [form] = Form.useForm();
   const rules = useMemo(() => createUsersFormRules(buildUsersFormRulesContext(t)), [t]);
   const editUserId = mode === 'edit' && user?.id ? user.id : null;
-  const {
-    data: memberships = [],
-    isLoading: tenantsLoading,
-  } = useAdminUserTenants(editUserId, open && mode === 'edit' && !!editUserId);
-  const {
-    tenants: editableTenants,
-    isLoading: editableTenantsLoading,
-  } = useTenantList({
+  const { data: memberships = [], isLoading: tenantsLoading } = useAdminUserTenants(
+    editUserId,
+    open && mode === 'edit' && !!editUserId
+  );
+  const { tenants: editableTenants, isLoading: editableTenantsLoading } = useTenantList({
     enabled: canManageTenants && open && mode === 'edit' && user?.role !== 'SuperAdmin',
   });
 
@@ -125,7 +142,7 @@ function UserFormDrawerContent({
         value: tenant.id,
         label: `${tenant.name} (${tenant.slug})`,
       })),
-    [editableTenants],
+    [editableTenants]
   );
 
   useEffect(() => {
@@ -158,7 +175,8 @@ function UserFormDrawerContent({
   }, [open, mode, user, form, canManageTenants, memberships]);
 
   const handleSubmit = () => {
-    form.validateFields()
+    form
+      .validateFields()
       .then((values) => {
         const raw = values as Record<string, unknown>;
         const normalized = {
@@ -212,8 +230,19 @@ function UserFormDrawerContent({
         <Alert
           type="error"
           title={t('users.form.errorLoadUser')}
-          description={((fetchError as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ?? (fetchError as { message?: string })?.message) ?? String(fetchError)}
-          action={onRetryFetch && <Button size="small" onClick={onRetryFetch}>{t('common.buttons.retry')}</Button>}
+          description={
+            (fetchError as { response?: { data?: { message?: string } }; message?: string })
+              ?.response?.data?.message ??
+            (fetchError as { message?: string })?.message ??
+            String(fetchError)
+          }
+          action={
+            onRetryFetch && (
+              <Button size="small" onClick={onRetryFetch}>
+                {t('common.buttons.retry')}
+              </Button>
+            )
+          }
           showIcon
         />
       ) : null}
@@ -227,95 +256,109 @@ function UserFormDrawerContent({
       >
         {showForm ? (
           <>
-          {mode === 'create' && (
-            <>
-              <Form.Item name="userName" label={t('users.form.userName')} rules={rules.userName}>
-                <Input maxLength={NAME_MAX_LENGTH} showCount placeholder={t('users.username.placeholder')} />
-              </Form.Item>
-              <Form.Item name="password" label={t('users.create.password')} rules={rules.password}>
-                <Input.Password
-                  autoComplete="new-password"
-                  placeholder={t('common.auth.passwordMaskedPlaceholder')}
-                />
-              </Form.Item>
-            </>
-          )}
-          <Form.Item name="firstName" label={t('users.create.firstName')} rules={rules.firstName}>
-            <Input maxLength={NAME_MAX_LENGTH} />
-          </Form.Item>
-          <Form.Item name="lastName" label={t('users.create.lastName')} rules={rules.lastName}>
-            <Input maxLength={NAME_MAX_LENGTH} />
-          </Form.Item>
-          <Form.Item name="email" label={t('users.create.email')} rules={rules.email}>
-            <Input type="email" maxLength={EMAIL_MAX_LENGTH} />
-          </Form.Item>
-          <Form.Item name="employeeNumber" label={t('users.form.employeeNumber')} rules={rules.employeeNumber}>
-            <Input maxLength={SHORT_FIELD_MAX_LENGTH} />
-          </Form.Item>
-          {isPlatformCreate ? (
-            <Alert
-              type="info"
-              showIcon
-              title={t('users.form.platformCreateHint')}
-              style={{ marginBottom: 16 }}
-            />
-          ) : null}
-          <Form.Item name="role" label={t('users.create.role')} rules={rules.role}>
-            {rolesLoading && effectiveRoleOptions.length === 0 ? (
-              <span style={{ color: 'rgba(0,0,0,0.45)', fontSize: 13 }}>{t('users.form.rolesLoading')}</span>
-            ) : (
-              <Radio.Group
-                disabled={isPlatformCreate}
-                options={effectiveRoleOptions.map((opt) => ({
-                  value: opt.value,
-                  label: opt.label ?? t(`users.roles.displayNames.${opt.value}`),
-                }))}
-              />
+            {mode === 'create' && (
+              <>
+                <Form.Item name="userName" label={t('users.form.userName')} rules={rules.userName}>
+                  <Input
+                    maxLength={NAME_MAX_LENGTH}
+                    showCount
+                    placeholder={t('users.username.placeholder')}
+                  />
+                </Form.Item>
+                <Form.Item
+                  name="password"
+                  label={t('users.create.password')}
+                  rules={rules.password}
+                >
+                  <Input.Password
+                    autoComplete="new-password"
+                    placeholder={t('common.auth.passwordMaskedPlaceholder')}
+                  />
+                </Form.Item>
+              </>
             )}
-          </Form.Item>
-          <Form.Item name="taxNumber" label={t('users.form.taxNumber')} rules={rules.taxNumber}>
-            <Input maxLength={SHORT_FIELD_MAX_LENGTH} />
-          </Form.Item>
-          <Form.Item name="notes" label={t('users.form.notes')} rules={rules.notes}>
-            <Input.TextArea rows={2} maxLength={NOTES_MAX_LENGTH} showCount />
-          </Form.Item>
-          {mode === 'edit' && user?.id ? (
-            <>
-              <Divider style={{ margin: '8px 0 16px' }} />
-              <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
-                {t('users.tabs.tenant.columnTenant')}
-              </Typography.Text>
+            <Form.Item name="firstName" label={t('users.create.firstName')} rules={rules.firstName}>
+              <Input maxLength={NAME_MAX_LENGTH} />
+            </Form.Item>
+            <Form.Item name="lastName" label={t('users.create.lastName')} rules={rules.lastName}>
+              <Input maxLength={NAME_MAX_LENGTH} />
+            </Form.Item>
+            <Form.Item name="email" label={t('users.create.email')} rules={rules.email}>
+              <Input type="email" maxLength={EMAIL_MAX_LENGTH} />
+            </Form.Item>
+            <Form.Item
+              name="employeeNumber"
+              label={t('users.form.employeeNumber')}
+              rules={rules.employeeNumber}
+            >
+              <Input maxLength={SHORT_FIELD_MAX_LENGTH} />
+            </Form.Item>
+            {isPlatformCreate ? (
               <Alert
                 type="info"
                 showIcon
-                title={t('users.tenants.manageHint')}
-                style={{ marginBottom: 12 }}
+                title={t('users.form.platformCreateHint')}
+                style={{ marginBottom: 16 }}
               />
-              <UserTenantSummary
-                userRole={user.role}
-                memberships={memberships}
-                loading={tenantsLoading}
-              />
-              {canManageTenants && user.role !== 'SuperAdmin' ? (
-                <div style={{ marginTop: 16 }}>
-                  <Form.Item
-                    name="tenantIds"
-                    label={t('users.tenants.manageTitle')}
-                    style={{ marginBottom: 0 }}
-                  >
-                    <Select
-                      mode="multiple"
-                      allowClear
-                      optionFilterProp="label"
-                      placeholder={t('users.tenants.manageTitle')}
-                      loading={editableTenantsLoading || tenantsLoading}
-                      options={editableTenantOptions}
-                    />
-                  </Form.Item>
-                </div>
-              ) : null}
-            </>
-          ) : null}
+            ) : null}
+            <Form.Item name="role" label={t('users.create.role')} rules={rules.role}>
+              {rolesLoading && effectiveRoleOptions.length === 0 ? (
+                <span style={{ color: 'rgba(0,0,0,0.45)', fontSize: 13 }}>
+                  {t('users.form.rolesLoading')}
+                </span>
+              ) : (
+                <Radio.Group
+                  disabled={isPlatformCreate}
+                  options={effectiveRoleOptions.map((opt) => ({
+                    value: opt.value,
+                    label: opt.label ?? t(`users.roles.displayNames.${opt.value}`),
+                  }))}
+                />
+              )}
+            </Form.Item>
+            <Form.Item name="taxNumber" label={t('users.form.taxNumber')} rules={rules.taxNumber}>
+              <Input maxLength={SHORT_FIELD_MAX_LENGTH} />
+            </Form.Item>
+            <Form.Item name="notes" label={t('users.form.notes')} rules={rules.notes}>
+              <Input.TextArea rows={2} maxLength={NOTES_MAX_LENGTH} showCount />
+            </Form.Item>
+            {mode === 'edit' && user?.id ? (
+              <>
+                <Divider style={{ margin: '8px 0 16px' }} />
+                <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
+                  {t('users.tabs.tenant.columnTenant')}
+                </Typography.Text>
+                <Alert
+                  type="info"
+                  showIcon
+                  title={t('users.tenants.manageHint')}
+                  style={{ marginBottom: 12 }}
+                />
+                <UserTenantSummary
+                  userRole={user.role}
+                  memberships={memberships}
+                  loading={tenantsLoading}
+                />
+                {canManageTenants && user.role !== 'SuperAdmin' ? (
+                  <div style={{ marginTop: 16 }}>
+                    <Form.Item
+                      name="tenantIds"
+                      label={t('users.tenants.manageTitle')}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Select
+                        mode="multiple"
+                        allowClear
+                        optionFilterProp="label"
+                        placeholder={t('users.tenants.manageTitle')}
+                        loading={editableTenantsLoading || tenantsLoading}
+                        options={editableTenantOptions}
+                      />
+                    </Form.Item>
+                  </div>
+                ) : null}
+              </>
+            ) : null}
           </>
         ) : null}
       </Form>

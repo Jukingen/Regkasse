@@ -6,16 +6,15 @@
  * Empty = show when authenticated. One permission = require it; array = require any.
  */
 import { canShowRksvMenu } from '@/features/auth/constants/roles';
+
 import { ROUTE_PERMISSIONS } from './routePermissions';
 
 // Deprecate direct usage; proxy to route permissions.
 /** @deprecated Use ROUTE_PERMISSIONS directly */
-export const MENU_PERMISSION: Record<string, string | string[] | undefined> = ROUTE_PERMISSIONS as Record<string, string | string[] | undefined>;
+export const MENU_PERMISSION: Record<string, string | string[] | undefined> =
+  ROUTE_PERMISSIONS as Record<string, string | string[] | undefined>;
 
-export function isMenuItemAllowed(
-  key: string,
-  permissions: string[] | undefined
-): boolean {
+export function isMenuItemAllowed(key: string, permissions: string[] | undefined): boolean {
   const required = ROUTE_PERMISSIONS[key];
   if (required === undefined) return true;
   if (!permissions?.length) return false;
@@ -28,12 +27,11 @@ export function isMenuItemAllowed(
 /** RKSV hub visibility — permission-first; legacy role fallback when JWT has no permission claims. */
 export function isRksvMenuAreaAllowed(
   permissions: string[] | undefined,
-  role?: string | null,
+  role?: string | null
 ): boolean {
   if (permissions && permissions.length > 0) {
     return (
-      isMenuItemAllowed('/rksv', permissions) ||
-      isMenuItemAllowed('/rksv/operations', permissions)
+      isMenuItemAllowed('/rksv', permissions) || isMenuItemAllowed('/rksv/operations', permissions)
     );
   }
   return canShowRksvMenu(role);
@@ -43,7 +41,7 @@ export function isRksvMenuAreaAllowed(
 export function isRksvRouteKeyAllowed(
   menuKey: string,
   permissions: string[] | undefined,
-  role?: string | null,
+  role?: string | null
 ): boolean {
   if (!menuKey.startsWith('/rksv')) return true;
   if (permissions && permissions.length > 0) {

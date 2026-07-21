@@ -1,47 +1,49 @@
-"use client";
+'use client';
 
 /**
  * Admin backup dashboard — /admin/backup
  * Metrikler, 30 günlük grafik, son çalıştırmalar ve daraltılabilir yapılandırma.
  */
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Alert, Card, Col, Collapse, Row, Space, Typography } from 'antd';
+import { useRouter } from 'next/navigation';
+import React, { useCallback, useMemo } from 'react';
 
-import React, { useCallback, useMemo } from "react";
-import { Alert, Card, Col, Collapse, Row, Space, Typography } from "antd";
-import { PageSkeleton } from "@/components/Skeleton";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { useI18n } from "@/i18n";
-import { formatDateTime } from "@/i18n/formatting";
-import { useBackupPermissions } from "@/features/backup/hooks/useBackupPermissions";
-import { MetricCard } from "@/features/backup/components/MetricCard";
-import { TriggerBackupButton } from "@/features/backup/components/TriggerBackupButton";
-import { PitrRestoreWorkflow } from "@/features/backup/components/PitrRestoreWorkflow";
-import { BackupHistoryChart } from "@/features/backup/components/BackupHistoryChart";
-import { BackupList } from "@/features/backup/components/BackupList";
-import { BackupSettings } from "@/features/backup/components/BackupSettings";
-import { BackupRecentRestoreDrillsTable } from "@/features/backup-dr/components/BackupRecentRestoreDrillsTable";
+import { useGetApiAdminBackupStatusLatest } from '@/api/generated/admin-backup/admin-backup';
+import { useGetApiAdminRestoreVerificationRunsLatest } from '@/api/generated/admin-restore-verification/admin-restore-verification';
+import { BackupRunStatus } from '@/api/generated/model/backupRunStatus';
+import { PageSkeleton } from '@/components/Skeleton';
+import { BackupRecentRestoreDrillsTable } from '@/features/backup-dr/components/BackupRecentRestoreDrillsTable';
+import { apiNullableToUndefined } from '@/features/backup-dr/logic/backupDrDtoNormalize';
+import {
+  mapArtifactsToExternalCopyVariant,
+  normalizeHealthLevelString,
+} from '@/features/backup-dr/logic/backupDrMappers';
+import { buildBackupOperatorTruthModel } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
+import { useBackupManagementAccess } from '@/features/backup-management/hooks/useBackupManagementAccess';
+import { BackupHistoryChart } from '@/features/backup/components/BackupHistoryChart';
+import { BackupList } from '@/features/backup/components/BackupList';
+import { BackupSettings } from '@/features/backup/components/BackupSettings';
+import { MetricCard } from '@/features/backup/components/MetricCard';
+import { PitrRestoreWorkflow } from '@/features/backup/components/PitrRestoreWorkflow';
+import { TriggerBackupButton } from '@/features/backup/components/TriggerBackupButton';
+import { useBackupPermissions } from '@/features/backup/hooks/useBackupPermissions';
 import {
   BACKUP_DASHBOARD_STATS_POLL_MS,
   getBackupDashboardStats,
   getBackupDashboardStatsQueryKey,
-} from "@/features/backup/logic/backupDashboardStatsApi";
+} from '@/features/backup/logic/backupDashboardStatsApi';
 import {
   buildSyntheticRestoreLatest,
   mapDashboardHistoryToChartRows,
   metricStatusFromStats,
   statsToRecoverabilitySummary,
-} from "@/features/backup/logic/backupDashboardStatsMapper";
-import { useGetApiAdminBackupStatusLatest } from "@/api/generated/admin-backup/admin-backup";
-import { useGetApiAdminRestoreVerificationRunsLatest } from "@/api/generated/admin-restore-verification/admin-restore-verification";
-import { buildBackupOperatorTruthModel } from "@/features/backup-dr/logic/backupDrOperatorTruthModel";
-import { mapArtifactsToExternalCopyVariant } from "@/features/backup-dr/logic/backupDrMappers";
-import { apiNullableToUndefined } from "@/features/backup-dr/logic/backupDrDtoNormalize";
-import { BackupRunStatus } from "@/api/generated/model/backupRunStatus";
-import { normalizeHealthLevelString } from "@/features/backup-dr/logic/backupDrMappers";
-import { useBackupManagementAccess } from "@/features/backup-management/hooks/useBackupManagementAccess";
+} from '@/features/backup/logic/backupDashboardStatsMapper';
+import { useI18n } from '@/i18n';
+import { formatDateTime } from '@/i18n/formatting';
 
 function formatDt(iso: string | undefined | null, formatLocale: string): string {
-  if (!iso) return "—";
+  if (!iso) return '—';
   return formatDateTime(iso, formatLocale);
 }
 
@@ -81,7 +83,7 @@ export function AdminBackupPage() {
         health,
         healthLv,
         restoreReady: undefined,
-        restoreLv: "",
+        restoreLv: '',
         latest: latestFromStatus,
         detailForPipeline: null,
         verification: undefined,
@@ -92,27 +94,27 @@ export function AdminBackupPage() {
         omitDedicatedSectionIssueDuplicates: true,
         hasStatusPayload: Boolean(stats ?? statusQuery.data),
       }),
-    [health, healthLv, latestFromStatus, restoreLatest, stats, statusQuery.data, t],
+    [health, healthLv, latestFromStatus, restoreLatest, stats, statusQuery.data, t]
   );
 
   const metrics = useMemo(() => (stats ? metricStatusFromStats(stats) : null), [stats]);
 
   const chartRows = useMemo(
     () => mapDashboardHistoryToChartRows(stats?.history30Days, formatLocale),
-    [stats?.history30Days, formatLocale],
+    [stats?.history30Days, formatLocale]
   );
 
   const navigateToRun = useCallback(
     (runId: string) => {
       router.push(`/backup/dashboard?runId=${encodeURIComponent(runId)}`);
     },
-    [router],
+    [router]
   );
 
   const invalidateAll = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: getBackupDashboardStatsQueryKey() });
-    await queryClient.invalidateQueries({ queryKey: ["/api/admin/backup"] });
-    await queryClient.invalidateQueries({ queryKey: ["/api/admin/restore-verification"] });
+    await queryClient.invalidateQueries({ queryKey: ['/api/admin/backup'] });
+    await queryClient.invalidateQueries({ queryKey: ['/api/admin/restore-verification'] });
   }, [queryClient]);
 
   if (statsQuery.isLoading && !stats) {
@@ -124,21 +126,21 @@ export function AdminBackupPage() {
       <Alert
         type="error"
         showIcon
-        title={t("backupDr.errors.loadFailed")}
-        description={t("backupDr.monitoring.dashboardStatsLoadFailed")}
+        title={t('backupDr.errors.loadFailed')}
+        description={t('backupDr.monitoring.dashboardStatsLoadFailed')}
       />
     );
   }
 
   const lastBackupLabel = `${operatorTruth.labels.backupStatus(stats?.lastBackupStatus)} · ${formatDt(
     stats?.lastBackupAtUtc,
-    formatLocale,
+    formatLocale
   )}`;
 
   const healthSummary =
     health?.level?.trim() ||
     health?.effectiveAdapterKind?.trim() ||
-    t("backupDr.monitoring.configHealth.title");
+    t('backupDr.monitoring.configHealth.title');
 
   const activeBackupHint =
     latestFromStatus?.status === BackupRunStatus.NUMBER_1 ||
@@ -146,17 +148,17 @@ export function AdminBackupPage() {
 
   const collapseItems = [
     {
-      key: "config",
-      label: t("backupDr.adminBackup.collapse.config"),
+      key: 'config',
+      label: t('backupDr.adminBackup.collapse.config'),
       children: <BackupSettings />,
     },
     ...(permissions.canRestore
       ? [
           {
-            key: "restore",
-            label: t("backupDr.adminBackup.collapse.restoreVerification"),
+            key: 'restore',
+            label: t('backupDr.adminBackup.collapse.restoreVerification'),
             children: (
-              <Space orientation="vertical" size={16} style={{ width: "100%" }}>
+              <Space orientation="vertical" size={16} style={{ width: '100%' }}>
                 <PitrRestoreWorkflow
                   canRestore={permissions.canRestore}
                   showRequestsTable
@@ -180,23 +182,23 @@ export function AdminBackupPage() {
 
   return (
     <div className="backup-page">
-      <Space orientation="vertical" size={16} style={{ width: "100%" }}>
+      <Space orientation="vertical" size={16} style={{ width: '100%' }}>
         {permissions.isReadOnly ? (
-          <Alert type="info" showIcon title={t("backupDr.permission.noManage")} />
+          <Alert type="info" showIcon title={t('backupDr.permission.noManage')} />
         ) : null}
 
         {access.isSuperAdmin ? (
-          <Alert type="info" showIcon title={t("backupDr.management.scope.deploymentWide")} />
+          <Alert type="info" showIcon title={t('backupDr.management.scope.deploymentWide')} />
         ) : null}
 
         {activeBackupHint ? (
-          <Alert type="info" showIcon title={t("backupDr.monitoring.header.activeHint")} />
+          <Alert type="info" showIcon title={t('backupDr.monitoring.header.activeHint')} />
         ) : null}
 
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={12} lg={6}>
             <MetricCard
-              title={t("backupDr.monitoring.metrics.lastBackup")}
+              title={t('backupDr.monitoring.metrics.lastBackup')}
               value={lastBackupLabel}
               status={metrics?.lastBackupStatus}
               loading={statsQuery.isFetching}
@@ -204,20 +206,20 @@ export function AdminBackupPage() {
           </Col>
           <Col xs={24} sm={12} lg={6}>
             <MetricCard
-              title={t("backupDr.monitoring.metrics.successRate30d")}
-              value={metrics?.successRateValue ?? "—"}
+              title={t('backupDr.monitoring.metrics.successRate30d')}
+              value={metrics?.successRateValue ?? '—'}
               status={metrics?.successMetricStatus}
               trend={stats?.successRateTrendVsPrior30DaysPercent ?? undefined}
-              trendLabel={t("backupDr.monitoring.metrics.trendVsPriorMonth")}
+              trendLabel={t('backupDr.monitoring.metrics.trendVsPriorMonth')}
               loading={statsQuery.isFetching}
             />
           </Col>
           <Col xs={24} sm={12} lg={6}>
             <MetricCard
-              title={t("backupDr.monitoring.metrics.lastRestoreDrill")}
+              title={t('backupDr.monitoring.metrics.lastRestoreDrill')}
               value={`${operatorTruth.labels.restoreStatus(stats?.latestRestoreDrillStatus)} · ${formatDt(
                 stats?.lastSuccessfulRestoreDrillAtUtc,
-                formatLocale,
+                formatLocale
               )}`}
               status={metrics?.drillStatus}
               loading={statsQuery.isFetching}
@@ -225,15 +227,15 @@ export function AdminBackupPage() {
           </Col>
           <Col xs={24} sm={12} lg={6}>
             <MetricCard
-              title={t("backupDr.monitoring.configHealth.title")}
+              title={t('backupDr.monitoring.configHealth.title')}
               value={healthSummary}
               status={
-                healthLv === "unhealthy"
-                  ? "error"
-                  : healthLv === "degraded"
-                    ? "warning"
-                    : healthLv === "healthy"
-                      ? "success"
+                healthLv === 'unhealthy'
+                  ? 'error'
+                  : healthLv === 'degraded'
+                    ? 'warning'
+                    : healthLv === 'healthy'
+                      ? 'success'
                       : undefined
               }
               loading={statsQuery.isFetching}
@@ -244,22 +246,22 @@ export function AdminBackupPage() {
         <BackupHistoryChart
           chartData={chartRows}
           formatLocale={formatLocale}
-          title={t("backupDr.monitoring.charts.history30d")}
-          successLabel={t("backupDr.monitoring.charts.legendSuccess")}
-          failedLabel={t("backupDr.monitoring.charts.legendFailed")}
-          durationLabel={t("backupDr.monitoring.charts.legendDuration")}
-          durationSuffix={t("backupDr.monitoring.charts.durationSuffix")}
+          title={t('backupDr.monitoring.charts.history30d')}
+          successLabel={t('backupDr.monitoring.charts.legendSuccess')}
+          failedLabel={t('backupDr.monitoring.charts.legendFailed')}
+          durationLabel={t('backupDr.monitoring.charts.legendDuration')}
+          durationSuffix={t('backupDr.monitoring.charts.durationSuffix')}
           onBarClick={navigateToRun}
         />
 
-        <Card title={t("backupDr.adminBackup.recentBackupsTitle")} size="small">
+        <Card title={t('backupDr.adminBackup.recentBackupsTitle')} size="small">
           <BackupList onRetryInvalidate={invalidateAll} />
         </Card>
 
         <Collapse items={collapseItems} defaultActiveKey={[]} />
 
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
-          {t("backupDr.monitoring.dashboardRefreshHint", {
+          {t('backupDr.monitoring.dashboardRefreshHint', {
             seconds: String(BACKUP_DASHBOARD_STATS_POLL_MS / 1000),
           })}
         </Typography.Paragraph>
@@ -274,7 +276,7 @@ export function AdminBackupPageHeaderActions() {
   const { canTrigger, canRestore } = useBackupPermissions();
 
   const formatDt = (iso: string | undefined | null, locale: string) => {
-    if (!iso) return "—";
+    if (!iso) return '—';
     return formatDateTime(iso, locale);
   };
 

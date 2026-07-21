@@ -90,7 +90,7 @@ for (const appId of appIds) {
   }
 
   for (const entry of expandedUsedEntries) {
-    const normalized = normalizeUsage(app.id, entry.rawKey, knownNamespaces);
+    const normalized = normalizeUsage(app.id, entry.rawKey, knownNamespaces, entry.defaultNs ?? null);
     if (!normalized) continue;
 
     const { namespace, keyPath } = normalized;
@@ -324,6 +324,7 @@ async function scanUsage(appId, knownNamespaces) {
     const content = await fs.readFile(file, 'utf8').catch(() => '');
     if (!content) continue;
     const isJsxLike = /\.(tsx|jsx)$/.test(file);
+    const defaultNs = extractDefaultNamespaceFromSource(content, knownNamespaces);
 
     for (const match of content.matchAll(/\b(?:i18n\.)?t\(\s*['"`]([^'"`]+)['"`]\s*[,)]/g)) {
       const rawKey = match[1];
@@ -332,6 +333,7 @@ async function scanUsage(appId, knownNamespaces) {
         file: toRelative(file),
         line,
         rawKey,
+        defaultNs,
       });
     }
 
@@ -378,7 +380,15 @@ async function scanUsage(appId, knownNamespaces) {
   };
 }
 
-function normalizeUsage(appId, rawKey, knownNamespaces) {
+/** First useTranslation('ns') / useTranslation(['ns', ...]) in a file — default NS for bare t('key') calls. */
+function extractDefaultNamespaceFromSource(content, knownNamespaces) {
+  const match = content.match(/useTranslation\(\s*(?:\[\s*)?['"`]([a-zA-Z0-9_-]+)['"`]/);
+  if (!match) return null;
+  const ns = match[1];
+  return knownNamespaces.has(ns) ? ns : null;
+}
+
+function normalizeUsage(appId, rawKey, knownNamespaces, defaultNs = null) {
   if (!rawKey || typeof rawKey !== 'string') return null;
   const key = rawKey.trim();
   if (!key) return null;
@@ -400,6 +410,9 @@ function normalizeUsage(appId, rawKey, knownNamespaces) {
     const [first, ...rest] = key.split('.');
     if (knownNamespaces.has(first) && rest.length > 0) {
       return { namespace: first, keyPath: rest.join('.').trim() };
+    }
+    if (defaultNs && knownNamespaces.has(defaultNs)) {
+      return { namespace: defaultNs, keyPath: key };
     }
   }
 

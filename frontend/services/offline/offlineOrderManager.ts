@@ -1,15 +1,16 @@
-import NetInfo from '@react-native-community/netinfo';
+import type { IOfflineStorage, OfflineOrder } from './offlineStorage';
+import { getOfflineStorage } from './offlineStorage';
+import { OfflineSyncHistory } from './offlineSyncHistory';
 import { apiClient } from '../api/config';
 import {
   paymentPayloadContainsVoucherSecrets,
   VOUCHER_OFFLINE_NOT_ALLOWED_MESSAGE_DE,
   type PendingPaymentPayload,
 } from '../payment/pendingPaymentQueue';
-import type { IOfflineStorage, OfflineOrder } from './offlineStorage';
-import { getOfflineStorage } from './offlineStorage';
-import { eventEmitter } from '@/utils/eventEmitter';
-import { OfflineSyncHistory } from './offlineSyncHistory';
+
 import { OFFLINE_CONFIG } from '@/constants/offlineConfig';
+import { eventEmitter } from '@/utils/eventEmitter';
+import { fetchIsNetworkOnline } from '@/utils/isNetworkOnline';
 
 const EXPIRY_MS = OFFLINE_CONFIG.OFFLINE_EXPIRY_HOURS * 60 * 60 * 1000;
 
@@ -36,10 +37,7 @@ export type OfflineStatus = {
   oldestPending: string | null;
 };
 
-export type ExpiryWarningListener = (
-  offlineOrderId: string,
-  hoursUntilExpiry: number
-) => void;
+export type ExpiryWarningListener = (offlineOrderId: string, hoursUntilExpiry: number) => void;
 
 export type OfflineOrderManagerOptions = {
   autoSync?: boolean;
@@ -62,13 +60,13 @@ type ReplayOfflineOrdersApiResponse = {
   data?: {
     success?: number;
     failed?: number;
-    details?: Array<{
+    details?: {
       orderId?: string;
       success?: boolean;
       paymentId?: string | null;
       invoiceNumber?: string | null;
       errorMessage?: string | null;
-    }>;
+    }[];
   };
 };
 
@@ -92,9 +90,7 @@ function randomFourDigits(): string {
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  return value != null && typeof value === 'object'
-    ? (value as Record<string, unknown>)
-    : null;
+  return value != null && typeof value === 'object' ? (value as Record<string, unknown>) : null;
 }
 
 function extractPaymentRequest(orderData: unknown): PendingPaymentPayload | null {
@@ -160,12 +156,7 @@ function isNonRetryableSyncError(error: unknown): boolean {
 }
 
 async function defaultIsOnlineChecker(): Promise<boolean> {
-  try {
-    const state = await NetInfo.fetch();
-    return state.isConnected === true && state.isInternetReachable !== false;
-  } catch {
-    return false;
-  }
+  return await fetchIsNetworkOnline();
 }
 
 export class OfflineOrderManager {
@@ -308,11 +299,16 @@ export class OfflineOrderManager {
       const cashRegisterId = extractCashRegisterId(order.orderData);
       if (!cashRegisterId) {
         await this.markAttemptFailed(order, 'cash_register_id_missing');
-        this.pushSyncDetail(details, {
-          success: false,
-          id: order.id,
-          error: 'cash_register_id_missing',
-        }, total, order);
+        this.pushSyncDetail(
+          details,
+          {
+            success: false,
+            id: order.id,
+            error: 'cash_register_id_missing',
+          },
+          total,
+          order
+        );
         continue;
       }
 
@@ -324,7 +320,12 @@ export class OfflineOrderManager {
       } catch (err) {
         const message = err instanceof Error ? err.message : 'upload_failed';
         await this.markAttemptFailed(order, message);
-        this.pushSyncDetail(details, { success: false, id: order.id, error: message }, total, order);
+        this.pushSyncDetail(
+          details,
+          { success: false, id: order.id, error: message },
+          total,
+          order
+        );
       }
     }
 
@@ -355,7 +356,12 @@ export class OfflineOrderManager {
         const message = err instanceof Error ? err.message : 'replay_failed';
         for (const order of registerOrders) {
           await this.markAttemptFailed(order, message);
-          this.pushSyncDetail(details, { success: false, id: order.id, error: message }, total, order);
+          this.pushSyncDetail(
+            details,
+            { success: false, id: order.id, error: message },
+            total,
+            order
+          );
         }
       }
     }
@@ -387,7 +393,7 @@ export class OfflineOrderManager {
     const label = order?.offlineOrderId ?? detail.id;
     const message = detail.success
       ? `Order ${label} synced successfully`
-      : detail.error ?? `Order ${label} sync failed`;
+      : (detail.error ?? `Order ${label} sync failed`);
 
     void OfflineSyncHistory.getInstance().recordOrderSync(
       detail.id,
@@ -401,7 +407,7 @@ export class OfflineOrderManager {
     if (order.serverOrderGuid) {
       return order;
     }
-    return this.uploadOrderToBackend(order, cashRegisterId);
+    return await this.uploadOrderToBackend(order, cashRegisterId);
   }
 
   /** Retry upload with exponential backoff (2s, 4s, 8s). */
@@ -415,7 +421,7 @@ export class OfflineOrderManager {
     } catch (error) {
       if (attempt < this.maxSyncAttempts && !isNonRetryableSyncError(error)) {
         await sleep(calculateRetryDelayMs(attempt));
-        return this.syncWithRetry(order, cashRegisterId, attempt + 1);
+        return await this.syncWithRetry(order, cashRegisterId, attempt + 1);
       }
       throw error;
     }
@@ -425,18 +431,18 @@ export class OfflineOrderManager {
     cashRegisterId: string,
     attempt = 1
   ): Promise<
-    Array<{
+    {
       orderId?: string;
       success?: boolean;
       errorMessage?: string | null;
-    }>
+    }[]
   > {
     try {
       return await this.replayRegister(cashRegisterId);
     } catch (error) {
       if (attempt < this.maxSyncAttempts) {
         await sleep(calculateRetryDelayMs(attempt));
-        return this.replayRegisterWithRetry(cashRegisterId, attempt + 1);
+        return await this.replayRegisterWithRetry(cashRegisterId, attempt + 1);
       }
       throw error;
     }
@@ -453,11 +459,8 @@ export class OfflineOrderManager {
       paymentMethod: order.paymentMethod,
     };
 
-    const raw = await apiClient.post<OfflineOrderSaveApiResponse>(
-      '/pos/offline-orders',
-      body
-    );
-    const data = raw?.data ?? (raw as OfflineOrderSaveApiResponse)?.data;
+    const raw = await apiClient.post<OfflineOrderSaveApiResponse>('/pos/offline-orders', body);
+    const data = raw?.data ?? raw?.data;
     if (!data?.id) {
       throw new Error('offline_order_save_incomplete');
     }
@@ -473,11 +476,11 @@ export class OfflineOrderManager {
   }
 
   private async replayRegister(cashRegisterId: string): Promise<
-    Array<{
+    {
       orderId?: string;
       success?: boolean;
       errorMessage?: string | null;
-    }>
+    }[]
   > {
     const raw = await apiClient.post<ReplayOfflineOrdersApiResponse>(
       `/pos/offline-orders/replay?cashRegisterId=${encodeURIComponent(cashRegisterId)}`,
@@ -509,8 +512,7 @@ export class OfflineOrderManager {
   }
 
   private async checkExpiryWarning(order: OfflineOrder): Promise<void> {
-    const hoursUntilExpiry =
-      (new Date(order.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60);
+    const hoursUntilExpiry = (new Date(order.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60);
     if (hoursUntilExpiry <= 24 && hoursUntilExpiry > 0) {
       this.showExpiryWarning(order.offlineOrderId, hoursUntilExpiry);
     }
@@ -527,7 +529,7 @@ export class OfflineOrderManager {
   }
 
   async isOnline(): Promise<boolean> {
-    return this.isOnlineChecker();
+    return await this.isOnlineChecker();
   }
 
   async getStatus(): Promise<OfflineStatus> {
@@ -575,19 +577,17 @@ export class OfflineOrderManager {
   }
 
   async getPendingOrders(): Promise<OfflineOrder[]> {
-    return this.storage.getPendingOrders();
+    return await this.storage.getPendingOrders();
   }
 
   async getOrder(id: string): Promise<OfflineOrder | null> {
-    return this.storage.getOrder(id);
+    return await this.storage.getOrder(id);
   }
 }
 
 let sharedManager: OfflineOrderManager | null = null;
 
-export function getOfflineOrderManager(
-  options?: OfflineOrderManagerOptions
-): OfflineOrderManager {
+export function getOfflineOrderManager(options?: OfflineOrderManagerOptions): OfflineOrderManager {
   if (!sharedManager) {
     sharedManager = new OfflineOrderManager(getOfflineStorage(), options);
   }

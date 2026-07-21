@@ -63,7 +63,7 @@
       "productAddedToTable": "{{name}} zu Tisch {{table}} hinzugefügt",
       "productAddError": "{{name}}: {{reason}}",
       "addOnAdded": "{{name}} hinzugefügt",
-      "addOnAddFailed": "Add-on konnte nicht hinzugefügt werden.",
+      "addOnAddFailed": "Zusatzartikel konnte nicht hinzugefügt werden.",
       "baseProductAdded": "{{name}} hinzugefügt",
       "addingFailed": "Fehler beim Hinzufügen",
       "invalidTableNumber": "Ungültige Tischnummer",
@@ -108,8 +108,9 @@
         "cartLoadFailedRefresh": "Warenkorb konnte nicht geladen werden. Bitte Seite aktualisieren oder erneut versuchen.",
         "completeCartFailed": "Zahlung OK, Warenkorb konnte nicht abgeschlossen werden. Bitte Administrator informieren.",
         "printFailed": "Zahlung OK, Druck fehlgeschlagen.",
+        "shareUnavailable": "Teilen ist auf diesem Gerät nicht verfügbar.",
         "genericFailed": "Zahlung fehlgeschlagen. Bitte erneut versuchen.",
-        "fiscalNotConfirmed": "Zahlung nicht fiscal bestätigt",
+        "fiscalNotConfirmed": "Zahlung nicht fiskalisch bestätigt",
         "failed": "Zahlung fehlgeschlagen"
       },
       "alerts": {
@@ -121,7 +122,7 @@
         "cancelPaymentConfirm": "Möchten Sie diese Zahlung wirklich abbrechen?",
         "cancelFailed": "Stornierung fehlgeschlagen. Bitte erneut versuchen.",
         "cancelRequestFailed": "Stornierung der Zahlung fehlgeschlagen.",
-        "fiscalPending": "Keine Verbindung zur Kasse. Die Zahlung ist nicht fiscal verbucht und steht in der Warteschlange.",
+        "fiscalPending": "Keine Verbindung zur Kasse. Die Zahlung ist nicht fiskalisch verbucht und steht in der Warteschlange.",
         "invoiceReconcileAttention": "Zahlung erfolgreich. Die Belegabstimmung erfordert jedoch Ihre Aufmerksamkeit."
       },
       "buttons": {

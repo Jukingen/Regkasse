@@ -1,52 +1,54 @@
 .tableWrap :global(.ant-table-wrapper .ant-table-row:hover > td) {
-    background-color: #fafafa !important;
+  background-color: #fafafa !important;
 }
 
 .tableWrap :global(.ant-table-wrapper .ant-table-row:hover) {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    transition: box-shadow 0.15s ease, background-color 0.15s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition:
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .tableWrap :global(.ant-table-wrapper .ant-table-thead > tr > th) {
-    background: #fafafa;
-    font-weight: 600;
+  background: #fafafa;
+  font-weight: 600;
 }
 
 .filtersBar {
-    width: 100%;
+  width: 100%;
 }
 
 .groupCollapse {
-    width: 100%;
+  width: 100%;
 }
 
 .groupCollapse :global(.ant-collapse-item) {
-    margin-bottom: 12px;
-    border-radius: 8px;
-    overflow: hidden;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .groupCollapse :global(.ant-collapse-header) {
-    align-items: center !important;
+  align-items: center !important;
 }
 
 .groupCollapse :global(.ant-collapse-content-box) {
-    padding: 8px 12px 12px !important;
+  padding: 8px 12px 12px !important;
 }
 
 .groupHeader {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    min-width: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
 }
 
 .groupHeaderMain {
-    min-width: 0;
+  min-width: 0;
 }
 
 .groupHeaderTitle {
-    max-width: 100%;
+  max-width: 100%;
 }

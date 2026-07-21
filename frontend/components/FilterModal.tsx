@@ -1,14 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  Modal,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Switch,
-} from 'react-native';
+import { View, Text, Modal, TouchableOpacity, StyleSheet, ScrollView, Switch } from 'react-native';
 
 import { useColorScheme } from '../hooks/useColorScheme';
 
@@ -56,7 +48,7 @@ export function FilterModal({
   };
 
   const updateFilter = (key: string, value: any) => {
-    setLocalFilters(prev => ({
+    setLocalFilters((prev) => ({
       ...prev,
       [key]: value,
     }));
@@ -65,10 +57,8 @@ export function FilterModal({
   const renderFilterOption = (key: string, options: FilterOption[]) => {
     return (
       <View key={key} style={styles.filterSection}>
-        <Text style={[
-          styles.filterLabel,
-          { color: colorScheme === 'dark' ? '#FFFFFF' : '#000000' }
-        ]}>
+        <Text
+          style={[styles.filterLabel, { color: colorScheme === 'dark' ? '#FFFFFF' : '#000000' }]}>
           {key.charAt(0).toUpperCase() + key.slice(1)}
         </Text>
         <View style={styles.optionsContainer}>
@@ -78,25 +68,29 @@ export function FilterModal({
               style={[
                 styles.optionButton,
                 {
-                  backgroundColor: localFilters[key] === option.value
-                    ? '#007AFF'
-                    : colorScheme === 'dark'
-                    ? '#2C2C2E'
-                    : '#F2F2F7',
+                  backgroundColor:
+                    localFilters[key] === option.value
+                      ? '#007AFF'
+                      : colorScheme === 'dark'
+                        ? '#2C2C2E'
+                        : '#F2F2F7',
                 },
               ]}
-              onPress={() => updateFilter(key, option.value)}
-            >
-              <Text style={[
-                styles.optionText,
-                {
-                  color: localFilters[key] === option.value
-                    ? '#FFFFFF'
-                    : colorScheme === 'dark'
-                    ? '#FFFFFF'
-                    : '#000000',
-                },
-              ]}>
+              onPress={() => {
+                updateFilter(key, option.value);
+              }}>
+              <Text
+                style={[
+                  styles.optionText,
+                  {
+                    color:
+                      localFilters[key] === option.value
+                        ? '#FFFFFF'
+                        : colorScheme === 'dark'
+                          ? '#FFFFFF'
+                          : '#000000',
+                  },
+                ]}>
                 {option.label}
               </Text>
             </TouchableOpacity>
@@ -110,15 +104,15 @@ export function FilterModal({
     return (
       <View key={key} style={styles.filterSection}>
         <View style={styles.booleanFilterRow}>
-          <Text style={[
-            styles.filterLabel,
-            { color: colorScheme === 'dark' ? '#FFFFFF' : '#000000' }
-          ]}>
+          <Text
+            style={[styles.filterLabel, { color: colorScheme === 'dark' ? '#FFFFFF' : '#000000' }]}>
             {key.charAt(0).toUpperCase() + key.slice(1)}
           </Text>
           <Switch
             value={localFilters[key] || false}
-            onValueChange={(value) => updateFilter(key, value)}
+            onValueChange={(value) => {
+              updateFilter(key, value);
+            }}
             trackColor={{ false: '#767577', true: '#81b0ff' }}
             thumbColor={localFilters[key] ? '#007AFF' : '#f4f3f4'}
           />
@@ -128,24 +122,21 @@ export function FilterModal({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
-        <View style={[
-          styles.modalContent,
-          {
-            backgroundColor: colorScheme === 'dark' ? '#1C1C1E' : '#FFFFFF',
-          },
-        ]}>
+        <View
+          style={[
+            styles.modalContent,
+            {
+              backgroundColor: colorScheme === 'dark' ? '#1C1C1E' : '#FFFFFF',
+            },
+          ]}>
           <View style={styles.modalHeader}>
-            <Text style={[
-              styles.modalTitle,
-              { color: colorScheme === 'dark' ? '#FFFFFF' : '#000000' }
-            ]}>
+            <Text
+              style={[
+                styles.modalTitle,
+                { color: colorScheme === 'dark' ? '#FFFFFF' : '#000000' },
+              ]}>
               {title}
             </Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -161,23 +152,21 @@ export function FilterModal({
             {Object.entries(filterOptions).map(([key, options]) =>
               renderFilterOption(key, options)
             )}
-            
-            {Object.keys(filters).filter(key => !filterOptions[key]).map(key =>
-              renderBooleanFilter(key)
-            )}
+
+            {Object.keys(filters)
+              .filter((key) => !filterOptions[key])
+              .map((key) => renderBooleanFilter(key))}
           </ScrollView>
 
           <View style={styles.modalFooter}>
             <TouchableOpacity
               style={[styles.footerButton, styles.resetButton]}
-              onPress={handleReset}
-            >
+              onPress={handleReset}>
               <Text style={styles.resetButtonText}>Sıfırla</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.footerButton, styles.applyButton]}
-              onPress={handleApply}
-            >
+              onPress={handleApply}>
               <Text style={styles.applyButtonText}>Uygula</Text>
             </TouchableOpacity>
           </View>
@@ -271,4 +260,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-}); 
+});

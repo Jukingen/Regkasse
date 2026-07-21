@@ -1,5 +1,12 @@
 import { describe, expect, it, jest } from '@jest/globals';
 
+import {
+  parsePaymentHistoryItem,
+  parsePaymentHistoryResponse,
+  parseStornoResponse,
+  paymentHistoryLabelKeyToI18n,
+} from '../services/api/paymentHistoryService';
+
 jest.mock('../services/api/config', () => ({
   apiClient: {
     get: jest.fn(),
@@ -8,13 +15,6 @@ jest.mock('../services/api/config', () => ({
   API_BASE_URL: 'http://test/api',
   resolveTenantFetchHeaders: jest.fn(async (headers: Record<string, string>) => headers),
 }));
-
-import {
-  parsePaymentHistoryItem,
-  parsePaymentHistoryResponse,
-  parseStornoResponse,
-  paymentHistoryLabelKeyToI18n,
-} from '../services/api/paymentHistoryService';
 
 describe('paymentHistoryService parsers', () => {
   it('parsePaymentHistoryItem reads camelCase payment row', () => {

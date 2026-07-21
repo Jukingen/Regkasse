@@ -1,9 +1,8 @@
 import { useState, useCallback } from 'react';
 
-import { useAuth } from '../contexts/AuthContext';
 import { useCart } from './useCart';
 import { usePaymentMethods } from './usePaymentMethods';
-
+import { useAuth } from '../contexts/AuthContext';
 import { cartService } from '../services/api/cartService';
 
 // English Description: Cash register cart/table/toast operations. Current-register identity lives in useCashRegister.ts.
@@ -31,16 +30,19 @@ export const useCashRegisterCart = () => {
 
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
 
-  const addToast = useCallback((type: ToastNotification['type'], message: string, duration: number = 5000) => {
-    const id = Date.now().toString();
-    const newToast: ToastNotification = { id, type, message, duration };
+  const addToast = useCallback(
+    (type: ToastNotification['type'], message: string, duration: number = 5000) => {
+      const id = Date.now().toString();
+      const newToast: ToastNotification = { id, type, message, duration };
 
-    setToasts((prev) => [...prev, newToast]);
+      setToasts((prev) => [...prev, newToast]);
 
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, duration);
-  }, []);
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, duration);
+    },
+    []
+  );
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));

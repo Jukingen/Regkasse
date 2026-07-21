@@ -6,19 +6,19 @@ import { QuickActions } from '@/components/QuickActions';
 import { usePermissions } from '@/hooks/usePermissions';
 
 export type AdminLayoutProps = {
-    children: ReactNode;
+  children: ReactNode;
 };
 
 /**
  * Content shell for protected admin pages — wraps route output and Manager quick actions.
  */
 export function AdminLayout({ children }: AdminLayoutProps) {
-    const { isManager } = usePermissions();
+  const { isManager } = usePermissions();
 
-    return (
-        <div className="admin-layout">
-            {children}
-            {isManager ? <QuickActions /> : null}
-        </div>
-    );
+  return (
+    <div className="admin-layout">
+      {children}
+      {isManager ? <QuickActions /> : null}
+    </div>
+  );
 }

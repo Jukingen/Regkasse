@@ -10,39 +10,39 @@ export const productCache = {
   lastFetch: null as number | null,
   cacheTimeout: 15 * 60 * 1000, // 15 dakika cache süresi
 
-  isExpired: function () {
+  isExpired() {
     if (!this.lastFetch) return true;
     return Date.now() - this.lastFetch > this.cacheTimeout;
   },
 
-  clear: function () {
+  clear() {
     this.products = null;
     this.categories = null;
     this.lastFetch = null;
-  }
+  },
 };
 
 // RKSV uyumlu vergi tipleri - Backend ile senkron
 export const TaxTypes = {
-  Standard: 'Standard',    // %20
-  Reduced: 'Reduced',      // %10 (gıda, kitap, vb.)
-  Special: 'Special',      // %13 (konaklama, vb.)
-  Exempt: 'Exempt'         // %0 (vergisiz)
+  Standard: 'Standard', // %20
+  Reduced: 'Reduced', // %10 (gıda, kitap, vb.)
+  Special: 'Special', // %13 (konaklama, vb.)
+  Exempt: 'Exempt', // %0 (vergisiz)
 } as const;
 
-export type TaxType = typeof TaxTypes[keyof typeof TaxTypes];
+export type TaxType = (typeof TaxTypes)[keyof typeof TaxTypes];
 
 // RKSV ürün tipleri - Avusturya kasa sistemi standartları
 export const RksvProductTypes = {
-  Standard: 'Standard',        // Standart ürün
-  Reduced: 'Reduced',          // İndirimli vergi oranı
-  Special: 'Special',          // Özel vergi oranı
-  Exempt: 'Exempt',            // Vergi muaf
-  Service: 'Service',          // Hizmet
-  Digital: 'Digital'           // Dijital ürün
+  Standard: 'Standard', // Standart ürün
+  Reduced: 'Reduced', // İndirimli vergi oranı
+  Special: 'Special', // Özel vergi oranı
+  Exempt: 'Exempt', // Vergi muaf
+  Service: 'Service', // Hizmet
+  Digital: 'Digital', // Dijital ürün
 } as const;
 
-export type RksvProductType = typeof RksvProductTypes[keyof typeof RksvProductTypes];
+export type RksvProductType = (typeof RksvProductTypes)[keyof typeof RksvProductTypes];
 
 // RKSV uyumlu ürün interface'i - Backend ile senkron
 export interface Product {
@@ -197,17 +197,19 @@ export const getAllProducts = async (
  * Ana sayfa için tüm aktif ürünleri getir (kategori bazlı gruplandırılmış)
  * @returns Kategori bazlı gruplandırılmış ürünler
  */
-export const getActiveProductsForHomePage = async (): Promise<{
-  category: string;
-  products: Product[];
-}[]> => {
+export const getActiveProductsForHomePage = async (): Promise<
+  {
+    category: string;
+    products: Product[];
+  }[]
+> => {
   try {
     const resp = await apiClient.get<any>(API_PATHS.PRODUCT.ACTIVE);
     const arr = unwrapData<any[]>(resp);
     // Backend grouped format olabilir: { Category, Products }
-    return arr.map(g => ({
+    return arr.map((g) => ({
       category: g.Category ?? g.category,
-      products: (g.Products ?? g.products ?? []).map(mapProduct)
+      products: (g.Products ?? g.products ?? []).map(mapProduct),
     }));
   } catch (error) {
     const apiError = handleAPIError(error);
@@ -262,7 +264,7 @@ export const getProductCatalog = async (): Promise<{
       hasCategories: !!data?.Categories,
       hasProducts: !!data?.Products,
       categoriesCount: data?.Categories?.length || 0,
-      productsCount: data?.Products?.length || 0
+      productsCount: data?.Products?.length || 0,
     });
 
     const categories = (data?.Categories ?? data?.categories ?? []).map((c: any) => ({
@@ -349,11 +351,16 @@ export const searchProducts = async (searchParams: {
 // Vergi oranını hesapla
 export const getTaxRate = (taxType: TaxType): number => {
   switch (taxType) {
-    case TaxTypes.Standard: return 20.0;
-    case TaxTypes.Reduced: return 10.0;
-    case TaxTypes.Special: return 13.0;
-    case TaxTypes.Exempt: return 0.0;
-    default: return 20.0;
+    case TaxTypes.Standard:
+      return 20.0;
+    case TaxTypes.Reduced:
+      return 10.0;
+    case TaxTypes.Special:
+      return 13.0;
+    case TaxTypes.Exempt:
+      return 0.0;
+    default:
+      return 20.0;
   }
 };
 
@@ -380,4 +387,4 @@ export const clearProductCache = () => {
 
 // Geriye uyumluluk için eski fonksiyonları koru
 export const getProducts = getAllProducts;
-export const getActiveProducts = getActiveProductsForHomePage; 
+export const getActiveProducts = getActiveProductsForHomePage;

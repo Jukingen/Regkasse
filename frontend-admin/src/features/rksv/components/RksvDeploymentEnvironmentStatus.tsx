@@ -2,9 +2,10 @@
 
 import { Alert, Skeleton, Tag, Tooltip } from 'antd';
 import type { CSSProperties } from 'react';
-import { useI18n } from '@/i18n/I18nProvider';
+
 import { useRksvStatus } from '@/features/rksv/hooks/useRksvBackendEnvironment';
 import type { RksvBackendEnvironmentStatus } from '@/features/rksv/types/rksvBackendEnvironment';
+import { useI18n } from '@/i18n/I18nProvider';
 
 function badgeColor(isDemo: boolean): 'warning' | 'success' {
   return isDemo ? 'warning' : 'success';
@@ -18,7 +19,9 @@ type BadgeProps = {
 
 export function RksvDeploymentEnvironmentBadge({ status, isDemo, loading }: BadgeProps) {
   const { t } = useI18n();
-  const query = useRksvStatus({ enabled: status === undefined && isDemo === undefined && loading === undefined });
+  const query = useRksvStatus({
+    enabled: status === undefined && isDemo === undefined && loading === undefined,
+  });
   const resolvedStatus = status ?? query.data ?? null;
   const resolvedLoading = loading ?? query.isLoading;
   const isSimulated = isDemo ?? resolvedStatus?.isSimulated ?? false;

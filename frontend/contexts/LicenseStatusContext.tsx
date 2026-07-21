@@ -1,8 +1,7 @@
 import React, { createContext, useCallback, useContext, useMemo } from 'react';
 
-import type { LicenseStatus } from '../services/license/licenseStatusCache';
-
 import { usePosStatusOverview } from './PosStatusOverviewContext';
+import type { LicenseStatus } from '../services/license/licenseStatusCache';
 
 export type { LicenseStatus };
 
@@ -23,7 +22,7 @@ export function LicenseStatusProvider({ children }: { children: React.ReactNode 
 
   const value = useMemo(
     () => ({ status: licenseStatus, loading, refetch }),
-    [licenseStatus, loading, refetch],
+    [licenseStatus, loading, refetch]
   );
 
   return <LicenseStatusContext.Provider value={value}>{children}</LicenseStatusContext.Provider>;

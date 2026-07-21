@@ -1,30 +1,44 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
-import React, { useState, useMemo } from 'react';
-import { Modal, Button, Table, Space, Popconfirm, Tooltip, Alert, Form, InputNumber, Select, Switch, DatePicker } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, FilterOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  Alert,
+  Button,
+  DatePicker,
+  Form,
+  InputNumber,
+  Modal,
+  Popconfirm,
+  Select,
+  Space,
+  Switch,
+  Table,
+  Tooltip,
+} from 'antd';
 import type { ColumnType } from 'antd/es/table';
 import dayjs from 'dayjs';
+import { useSearchParams } from 'next/navigation';
+import React, { useMemo, useState } from 'react';
+
 import {
-  useAdminBenefitAssignmentsList,
-  useCreateAdminBenefitAssignment,
-  useUpdateAdminBenefitAssignment,
-  useDeleteAdminBenefitAssignment,
-  adminBenefitAssignmentsQueryKeys,
   type BenefitAssignment,
   type CreateBenefitAssignmentRequest,
+  adminBenefitAssignmentsQueryKeys,
+  useAdminBenefitAssignmentsList,
+  useCreateAdminBenefitAssignment,
+  useDeleteAdminBenefitAssignment,
+  useUpdateAdminBenefitAssignment,
 } from '@/api/admin/benefit-assignments';
 import { useAdminBenefitDefinitionsList } from '@/api/admin/benefit-definitions';
 import { useGetApiCustomer } from '@/api/generated/customer/customer';
-import { useQueryClient } from '@tanstack/react-query';
-import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { EmptyState } from '@/components/EmptyState';
-import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
-import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
-import { useSearchParams } from 'next/navigation';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
+import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 
 export default function BenefitAssignmentsPage() {
   const { message } = useAntdApp();
@@ -36,7 +50,7 @@ export default function BenefitAssignmentsPage() {
   const definitionsQuery = useAdminBenefitDefinitionsList();
   const customersQuery = useGetApiCustomer(
     { pageNumber: 1, pageSize: 100 },
-    { query: { enabled: modalOpen, staleTime: 60_000 } },
+    { query: { enabled: modalOpen, staleTime: 60_000 } }
   );
   const createMutation = useCreateAdminBenefitAssignment();
   const updateMutation = useUpdateAdminBenefitAssignment();
@@ -46,7 +60,8 @@ export default function BenefitAssignmentsPage() {
 
   const assignments = useMemo(() => listQuery.data ?? [], [listQuery.data]);
   const definitions = definitionsQuery.data ?? [];
-  const customerResponse = customersQuery.data as { items?: { id: string; name: string; customerNumber?: string }[] } | undefined;
+  const customerResponse = customersQuery.data as
+    { items?: { id: string; name: string; customerNumber?: string }[] } | undefined;
   const customers = useMemo(() => customerResponse?.items ?? [], [customerResponse?.items]);
 
   // Customer-scoped filter from query param (e.g. navigated from /customers)
@@ -56,14 +71,16 @@ export default function BenefitAssignmentsPage() {
   const filterCustomerId = filterActive ? customerIdParam : null;
   const filterCustomer = useMemo(
     () => (filterCustomerId ? customers.find((c) => c.id === filterCustomerId) : null),
-    [filterCustomerId, customers],
+    [filterCustomerId, customers]
   );
   const filteredAssignments = useMemo(
-    () => (filterCustomerId ? assignments.filter((a) => a.customerId === filterCustomerId) : assignments),
-    [filterCustomerId, assignments],
+    () =>
+      filterCustomerId ? assignments.filter((a) => a.customerId === filterCustomerId) : assignments,
+    [filterCustomerId, assignments]
   );
 
-  const invalidateList = () => queryClient.invalidateQueries({ queryKey: adminBenefitAssignmentsQueryKeys.lists() });
+  const invalidateList = () =>
+    queryClient.invalidateQueries({ queryKey: adminBenefitAssignmentsQueryKeys.lists() });
 
   const handleCreate = () => {
     setEditing(null);
@@ -114,7 +131,11 @@ export default function BenefitAssignmentsPage() {
       invalidateList();
     } catch (e) {
       if (e && typeof e === 'object' && 'errorFields' in e) return;
-      message.error(editing ? t('benefits.assignments.messages.updateFailed') : t('benefits.assignments.messages.saveFailed'));
+      message.error(
+        editing
+          ? t('benefits.assignments.messages.updateFailed')
+          : t('benefits.assignments.messages.saveFailed')
+      );
     }
   };
 
@@ -132,7 +153,8 @@ export default function BenefitAssignmentsPage() {
     {
       title: t('benefits.assignments.columnBenefit'),
       key: 'definition',
-      render: (_: unknown, r: BenefitAssignment) => r.benefitDefinition?.name ?? r.benefitDefinitionId,
+      render: (_: unknown, r: BenefitAssignment) =>
+        r.benefitDefinition?.name ?? r.benefitDefinitionId,
     },
     {
       title: t('benefits.shared.customer'),
@@ -151,7 +173,12 @@ export default function BenefitAssignmentsPage() {
       key: 'validTo',
       render: (v: string | null) => (v ? dayjs(v).format('DD.MM.YYYY') : '–'),
     },
-    { title: t('benefits.shared.priority'), dataIndex: 'priority', key: 'priority', align: 'right' },
+    {
+      title: t('benefits.shared.priority'),
+      dataIndex: 'priority',
+      key: 'priority',
+      align: 'right',
+    },
     {
       title: t('benefits.shared.active'),
       dataIndex: 'isActive',
@@ -166,7 +193,12 @@ export default function BenefitAssignmentsPage() {
       render: (_: unknown, record: BenefitAssignment) => (
         <Space>
           <Tooltip title={t('benefits.shared.edit')}>
-            <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+            <Button
+              type="text"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+            />
           </Tooltip>
           <Popconfirm
             title={t('benefits.assignments.popconfirmDeactivate')}
@@ -192,7 +224,11 @@ export default function BenefitAssignmentsPage() {
   return (
     <Space orientation="vertical" size="large" style={{ width: '100%' }}>
       <AdminPageHeader
-        title={filterCustomer ? `${t('benefits.assignments.pageTitle')} – ${filterCustomer.name}` : t('benefits.assignments.pageTitle')}
+        title={
+          filterCustomer
+            ? `${t('benefits.assignments.pageTitle')} – ${filterCustomer.name}`
+            : t('benefits.assignments.pageTitle')
+        }
         breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: t('benefits.assignments.breadcrumb') }]}
         actions={
           <Space>
@@ -207,7 +243,9 @@ export default function BenefitAssignmentsPage() {
                   }
                 }}
               >
-                {filterActive ? t('benefits.assignments.showAllCustomers') : t('benefits.assignments.filteringForCustomer')}
+                {filterActive
+                  ? t('benefits.assignments.showAllCustomers')
+                  : t('benefits.assignments.filteringForCustomer')}
               </Button>
             )}
             <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
@@ -250,33 +288,57 @@ export default function BenefitAssignmentsPage() {
       />
 
       <Modal
-        title={editing ? t('benefits.assignments.modalEditTitle') : t('benefits.assignments.modalCreateTitle')}
+        title={
+          editing
+            ? t('benefits.assignments.modalEditTitle')
+            : t('benefits.assignments.modalCreateTitle')
+        }
         open={modalOpen}
         forceRender
         onOk={handleSubmit}
-        onCancel={() => { setModalOpen(false); setEditing(null); }}
+        onCancel={() => {
+          setModalOpen(false);
+          setEditing(null);
+        }}
         confirmLoading={createMutation.isPending || updateMutation.isPending}
         okText={t('common.buttons.save')}
         cancelText={t('common.buttons.cancel')}
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="benefitDefinitionId" label={t('benefits.assignments.formDefinition')} rules={[{ required: true, message: t('benefits.assignments.formDefinitionRequired') }]}>
+          <Form.Item
+            name="benefitDefinitionId"
+            label={t('benefits.assignments.formDefinition')}
+            rules={[{ required: true, message: t('benefits.assignments.formDefinitionRequired') }]}
+          >
             <Select
               placeholder={t('benefits.assignments.formDefinitionPlaceholder')}
               loading={definitionsQuery.isLoading}
-              options={definitions.filter((d) => d.isActive).map((d) => ({ value: d.id, label: `${d.code} – ${d.name}` }))}
+              options={definitions
+                .filter((d) => d.isActive)
+                .map((d) => ({ value: d.id, label: `${d.code} – ${d.name}` }))}
             />
           </Form.Item>
-          <Form.Item name="customerId" label={t('benefits.shared.customer')} rules={[{ required: true, message: t('benefits.assignments.formCustomerRequired') }]}>
+          <Form.Item
+            name="customerId"
+            label={t('benefits.shared.customer')}
+            rules={[{ required: true, message: t('benefits.assignments.formCustomerRequired') }]}
+          >
             <Select
               placeholder={t('benefits.assignments.formCustomerPlaceholder')}
               loading={customersQuery.isLoading}
-              options={customers.map((c) => ({ value: c.id, label: c.customerNumber ? `${c.customerNumber} – ${c.name}` : c.name }))}
+              options={customers.map((c) => ({
+                value: c.id,
+                label: c.customerNumber ? `${c.customerNumber} – ${c.name}` : c.name,
+              }))}
               showSearch
               optionFilterProp="label"
             />
           </Form.Item>
-          <Form.Item name="validFrom" label={t('benefits.assignments.formValidFrom')} rules={[{ required: true, message: t('benefits.assignments.formValidFromRequired') }]}>
+          <Form.Item
+            name="validFrom"
+            label={t('benefits.assignments.formValidFrom')}
+            rules={[{ required: true, message: t('benefits.assignments.formValidFromRequired') }]}
+          >
             <DatePicker format={DAYJS_DATE_FORMAT} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="validTo" label={t('benefits.assignments.formValidTo')}>

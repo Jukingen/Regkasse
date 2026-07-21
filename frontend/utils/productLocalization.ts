@@ -19,7 +19,7 @@ export function normalizeProductTextLocale(language: string | undefined): Produc
   return 'de';
 }
 
-function firstNonEmpty(...values: Array<string | null | undefined>): string {
+function firstNonEmpty(...values: (string | null | undefined)[]): string {
   for (const value of values) {
     if (value != null && String(value).trim() !== '') {
       return String(value).trim();
@@ -28,14 +28,14 @@ function firstNonEmpty(...values: Array<string | null | undefined>): string {
   return '';
 }
 
-function firstNonEmptyOptional(...values: Array<string | null | undefined>): string | undefined {
+function firstNonEmptyOptional(...values: (string | null | undefined)[]): string | undefined {
   const hit = firstNonEmpty(...values);
   return hit || undefined;
 }
 
 export function resolveProductDisplayName(
   product: LocalizedProductFields,
-  locale?: string,
+  locale?: string
 ): string {
   const lang = normalizeProductTextLocale(locale);
   switch (lang) {
@@ -50,14 +50,22 @@ export function resolveProductDisplayName(
 
 export function resolveProductDisplayDescription(
   product: LocalizedProductFields,
-  locale?: string,
+  locale?: string
 ): string | undefined {
   const lang = normalizeProductTextLocale(locale);
   switch (lang) {
     case 'en':
-      return firstNonEmptyOptional(product.descriptionEn, product.descriptionDe, product.description);
+      return firstNonEmptyOptional(
+        product.descriptionEn,
+        product.descriptionDe,
+        product.description
+      );
     case 'tr':
-      return firstNonEmptyOptional(product.descriptionTr, product.descriptionDe, product.description);
+      return firstNonEmptyOptional(
+        product.descriptionTr,
+        product.descriptionDe,
+        product.description
+      );
     default:
       return firstNonEmptyOptional(product.descriptionDe, product.description);
   }
@@ -66,7 +74,7 @@ export function resolveProductDisplayDescription(
 /** View-model with locale-resolved name/description for POS lists. */
 export function withLocalizedProductDisplay<T extends LocalizedProductFields>(
   product: T,
-  locale?: string,
+  locale?: string
 ): T & { displayName: string; displayDescription?: string } {
   return {
     ...product,
@@ -75,7 +83,11 @@ export function withLocalizedProductDisplay<T extends LocalizedProductFields>(
   };
 }
 
-export function productMatchesSearchQuery(product: Product, query: string, locale?: string): boolean {
+export function productMatchesSearchQuery(
+  product: Product,
+  query: string,
+  locale?: string
+): boolean {
   const q = query.trim().toLowerCase();
   if (!q) return true;
   const names = [

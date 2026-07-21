@@ -1,6 +1,6 @@
 import { DENSITY_STYLES } from './density';
-import type { DensityMode, ResolvedTheme, ThemeMode } from './types';
 import { resolveEffectiveTheme } from './theme';
+import type { DensityMode, ResolvedTheme, ThemeMode } from './types';
 
 export function applyDocumentTheme(mode: ThemeMode, effective?: ResolvedTheme): ResolvedTheme {
   if (typeof document === 'undefined') return effective ?? 'light';

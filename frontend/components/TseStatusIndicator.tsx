@@ -1,13 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 
 import { Colors, Spacing, BorderRadius } from '../constants/Colors';
 import { checkTseStatus, TseStatus } from '../services/api/tseService';
@@ -32,11 +26,13 @@ export const TseStatusIndicator: React.FC<TseStatusIndicatorProps> = ({
 
   useEffect(() => {
     checkTseStatusAndUpdate();
-    
+
     // OPTIMIZATION: autoRefresh true ise sadece 2 dakikada bir kontrol et (30 saniye yerine)
     if (autoRefresh) {
       const interval = setInterval(checkTseStatusAndUpdate, 2 * 60 * 1000); // 2 dakika
-      return () => clearInterval(interval);
+      return () => {
+        clearInterval(interval);
+      };
     }
   }, [autoRefresh]);
 
@@ -58,6 +54,8 @@ export const TseStatusIndicator: React.FC<TseStatusIndicatorProps> = ({
         lastSignatureTime: '',
         canCreateInvoices: false,
         errorMessage: 'TSE durumu kontrol edilemiyor',
+        kassenId: '',
+        finanzOnlineEnabled: false,
       };
       setTseStatus(fallbackStatus);
       onStatusChange?.(fallbackStatus);
@@ -75,14 +73,16 @@ export const TseStatusIndicator: React.FC<TseStatusIndicatorProps> = ({
 
     Alert.alert(
       t('tse.deviceStatus', 'TSE Device Status'),
-      t('tse.deviceStatusDetails',
+      t(
+        'tse.deviceStatusDetails',
         `Connection: ${tseStatus.isConnected ? t('tse.connected', 'Connected') : t('tse.disconnected', 'Disconnected')}
 Serial Number: ${tseStatus.serialNumber || t('tse.na', 'N/A')}
 Certificate: ${tseStatus.certificateStatus}
 Memory: ${tseStatus.memoryStatus}
 Last Signature: ${tseStatus.lastSignatureTime ? formatUserDateTime(tseStatus.lastSignatureTime) : t('tse.na', 'N/A')}
 Can Create Invoices: ${tseStatus.canCreateInvoices ? t('tse.yes', 'Yes') : t('tse.no', 'No')}
-${tseStatus.errorMessage ? `${t('tse.error', 'Error')}: ${tseStatus.errorMessage}` : ''}`),
+${tseStatus.errorMessage ? `${t('tse.error', 'Error')}: ${tseStatus.errorMessage}` : ''}`
+      ),
       [
         { text: t('common.refresh', 'Refresh'), onPress: handleRefresh },
         { text: t('common.ok', 'OK'), style: 'default' },
@@ -92,7 +92,7 @@ ${tseStatus.errorMessage ? `${t('tse.error', 'Error')}: ${tseStatus.errorMessage
 
   const getStatusColor = () => {
     if (!tseStatus) return Colors.light.error;
-    
+
     if (tseStatus.canCreateInvoices) return Colors.light.success;
     if (tseStatus.isConnected) return Colors.light.warning;
     return Colors.light.error;
@@ -100,7 +100,7 @@ ${tseStatus.errorMessage ? `${t('tse.error', 'Error')}: ${tseStatus.errorMessage
 
   const getStatusIcon = () => {
     if (!tseStatus) return 'hardware-chip-outline';
-    
+
     if (tseStatus.canCreateInvoices) return 'checkmark-circle';
     if (tseStatus.isConnected) return 'warning';
     return 'close-circle';
@@ -108,7 +108,7 @@ ${tseStatus.errorMessage ? `${t('tse.error', 'Error')}: ${tseStatus.errorMessage
 
   const getStatusText = () => {
     if (!tseStatus) return t('tse.unknown', 'TSE Unknown');
-    
+
     if (tseStatus.canCreateInvoices) return t('tse.ready', 'TSE Ready');
     if (tseStatus.isConnected) return t('tse.warning', 'TSE Warning');
     return t('tse.errorStatus', 'TSE Error');
@@ -127,31 +127,28 @@ ${tseStatus.errorMessage ? `${t('tse.error', 'Error')}: ${tseStatus.errorMessage
     <TouchableOpacity
       style={[styles.container, { borderColor: getStatusColor() }]}
       onPress={handleShowDetails}
-      disabled={!showDetails}
-    >
+      disabled={!showDetails}>
       <View style={styles.statusContainer}>
-        <Ionicons
-          name={getStatusIcon() as any}
-          size={20}
-          color={getStatusColor()}
-        />
-        <Text style={[styles.statusText, { color: getStatusColor() }]}>
-          {getStatusText()}
-        </Text>
+        <Ionicons name={getStatusIcon()} size={20} color={getStatusColor()} />
+        <Text style={[styles.statusText, { color: getStatusColor() }]}>{getStatusText()}</Text>
       </View>
       {/* Sadece bir kez göster */}
       {error && (!tseStatus?.errorMessage || error !== tseStatus.errorMessage) && (
         <Text style={styles.errorText}>{error}</Text>
       )}
-      {tseStatus?.errorMessage && (
-        <Text style={styles.errorText}>{tseStatus.errorMessage}</Text>
-      )}
-      
+      {tseStatus?.errorMessage && <Text style={styles.errorText}>{tseStatus.errorMessage}</Text>}
+
       {showDetails && (
         <View style={styles.detailsContainer}>
-          <Text style={styles.detailText}>{t('tse.serial', 'Serial')}: {tseStatus?.serialNumber || t('tse.na', 'N/A')}</Text>
-          <Text style={styles.detailText}>{t('tse.cert', 'Cert')}: {tseStatus?.certificateStatus || t('tse.na', 'N/A')}</Text>
-          <Text style={styles.detailText}>{t('tse.memory', 'Memory')}: {tseStatus?.memoryStatus || t('tse.na', 'N/A')}</Text>
+          <Text style={styles.detailText}>
+            {t('tse.serial', 'Serial')}: {tseStatus?.serialNumber || t('tse.na', 'N/A')}
+          </Text>
+          <Text style={styles.detailText}>
+            {t('tse.cert', 'Cert')}: {tseStatus?.certificateStatus || t('tse.na', 'N/A')}
+          </Text>
+          <Text style={styles.detailText}>
+            {t('tse.memory', 'Memory')}: {tseStatus?.memoryStatus || t('tse.na', 'N/A')}
+          </Text>
         </View>
       )}
     </TouchableOpacity>
@@ -196,4 +193,4 @@ const styles = StyleSheet.create({
     color: Colors.light.textSecondary,
     marginBottom: 2,
   },
-}); 
+});

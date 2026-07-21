@@ -27,7 +27,8 @@
   "errors": {
     "loadInvoices": "Faturalar yüklenirken bir hata oluştu",
     "loadDetail": "Fatura detayı yüklenirken bir hata oluştu",
-    "downloadPdf": "PDF indirilirken bir hata oluştu"
+    "downloadPdf": "PDF indirilirken bir hata oluştu",
+    "shareUnavailable": "Bu cihazda paylaşım kullanılamıyor"
   },
   "statusLabels": {
     "paid": "Ödendi",

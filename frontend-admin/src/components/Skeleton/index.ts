@@ -1,7 +1,7 @@
 export { CardSkeleton } from './CardSkeleton';
-export { TableSkeleton } from './TableSkeleton';
-export { ListSkeleton } from './ListSkeleton';
 export { FormSkeleton } from './FormSkeleton';
-export { SkeletonWrapper } from './SkeletonWrapper';
-export { WidgetSkeleton } from './WidgetSkeleton';
+export { ListSkeleton } from './ListSkeleton';
 export { PageSkeleton } from './PageSkeleton';
+export { SkeletonWrapper } from './SkeletonWrapper';
+export { TableSkeleton } from './TableSkeleton';
+export { WidgetSkeleton } from './WidgetSkeleton';

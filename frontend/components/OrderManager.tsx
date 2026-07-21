@@ -63,7 +63,9 @@ const OrderManager: React.FC<OrderManagerProps> = ({
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showNewOrderModal, setShowNewOrderModal] = useState(false);
-  const [newOrderItems, setNewOrderItems] = useState<{ product: Product; quantity: number; notes: string }[]>([]);
+  const [newOrderItems, setNewOrderItems] = useState<
+    { product: Product; quantity: number; notes: string }[]
+  >([]);
   const [customerName, setCustomerName] = useState('');
   const [tableNumber, setTableNumber] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
@@ -71,24 +73,36 @@ const OrderManager: React.FC<OrderManagerProps> = ({
   // Sipariş durumu renkleri
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return Colors.light.warning;
-      case 'preparing': return Colors.light.info;
-      case 'ready': return Colors.light.success;
-      case 'served': return Colors.light.primary;
-      case 'cancelled': return Colors.light.error;
-      default: return Colors.light.textSecondary;
+      case 'pending':
+        return Colors.light.warning;
+      case 'preparing':
+        return Colors.light.info;
+      case 'ready':
+        return Colors.light.success;
+      case 'served':
+        return Colors.light.primary;
+      case 'cancelled':
+        return Colors.light.error;
+      default:
+        return Colors.light.textSecondary;
     }
   };
 
   // Sipariş durumu ikonları
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'pending': return 'time-outline';
-      case 'preparing': return 'restaurant-outline';
-      case 'ready': return 'checkmark-circle-outline';
-      case 'served': return 'checkmark-done-circle-outline';
-      case 'cancelled': return 'close-circle-outline';
-      default: return 'help-circle-outline';
+      case 'pending':
+        return 'time-outline';
+      case 'preparing':
+        return 'restaurant-outline';
+      case 'ready':
+        return 'checkmark-circle-outline';
+      case 'served':
+        return 'checkmark-done-circle-outline';
+      case 'cancelled':
+        return 'close-circle-outline';
+      default:
+        return 'help-circle-outline';
     }
   };
 
@@ -114,92 +128,88 @@ const OrderManager: React.FC<OrderManagerProps> = ({
       customerName: customerName || undefined,
       tableNumber: tableNumber || undefined,
       status: 'pending',
-      totalAmount: newOrderItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0),
+      totalAmount: newOrderItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0),
       notes: orderNotes,
       userId: currentUserId, // Siparişi oluşturan kullanıcıyı kaydet
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
-    setOrders(prev => [newOrder, ...prev]);
+    setOrders((prev) => [newOrder, ...prev]);
     setShowNewOrderModal(false);
     resetNewOrderForm();
   };
 
   // Sipariş durumunu güncelle
   const updateOrderStatus = (orderId: string, status: Order['status']) => {
-    setOrders(prev => prev.map(order => {
-      if (order.id === orderId) {
-        return {
-          ...order,
-          status,
-          updatedAt: new Date(),
-          items: order.items.map(item => ({
-            ...item,
-            status: status === 'cancelled' ? 'cancelled' : item.status,
+    setOrders((prev) =>
+      prev.map((order) => {
+        if (order.id === orderId) {
+          return {
+            ...order,
+            status,
             updatedAt: new Date(),
-          })),
-        };
-      }
-      return order;
-    }));
+            items: order.items.map((item) => ({
+              ...item,
+              status: status === 'cancelled' ? 'cancelled' : item.status,
+              updatedAt: new Date(),
+            })),
+          };
+        }
+        return order;
+      })
+    );
   };
 
   // Sipariş öğesi durumunu güncelle
   const updateOrderItemStatus = (orderId: string, itemId: string, status: OrderItem['status']) => {
-    setOrders(prev => prev.map(order => {
-      if (order.id === orderId) {
-        return {
-          ...order,
-          items: order.items.map(item => {
-            if (item.id === itemId) {
-              return { ...item, status, updatedAt: new Date() };
-            }
-            return item;
-          }),
-          updatedAt: new Date(),
-        };
-      }
-      return order;
-    }));
+    setOrders((prev) =>
+      prev.map((order) => {
+        if (order.id === orderId) {
+          return {
+            ...order,
+            items: order.items.map((item) => {
+              if (item.id === itemId) {
+                return { ...item, status, updatedAt: new Date() };
+              }
+              return item;
+            }),
+            updatedAt: new Date(),
+          };
+        }
+        return order;
+      })
+    );
   };
 
   // Siparişi tamamla
   const completeOrder = (order: Order) => {
-    Alert.alert(
-      t('orders:complete_title'),
-      t('orders:complete_message'),
-      [
-        { text: t('common:cancel'), style: 'cancel' },
-        {
-          text: t('orders:complete'),
-          onPress: () => {
-            updateOrderStatus(order.id, 'served');
-            onOrderComplete(order);
-            setSelectedOrder(null);
-          },
+    Alert.alert(t('orders:complete_title'), t('orders:complete_message'), [
+      { text: t('common:cancel'), style: 'cancel' },
+      {
+        text: t('orders:complete'),
+        onPress: () => {
+          updateOrderStatus(order.id, 'served');
+          onOrderComplete(order);
+          setSelectedOrder(null);
         },
-      ]
-    );
+      },
+    ]);
   };
 
   // Siparişi iptal et
   const cancelOrder = (orderId: string) => {
-    Alert.alert(
-      t('orders:cancel_title'),
-      t('orders:cancel_message'),
-      [
-        { text: t('common:cancel'), style: 'cancel' },
-        {
-          text: t('orders:cancel_confirm'),
-          style: 'destructive',
-          onPress: () => {
-            updateOrderStatus(orderId, 'cancelled');
-            onOrderCancel(orderId);
-          },
+    Alert.alert(t('orders:cancel_title'), t('orders:cancel_message'), [
+      { text: t('common:cancel'), style: 'cancel' },
+      {
+        text: t('orders:cancel_confirm'),
+        style: 'destructive',
+        onPress: () => {
+          updateOrderStatus(orderId, 'cancelled');
+          onOrderCancel(orderId);
         },
-      ]
-    );
+      },
+    ]);
   };
 
   // Yeni sipariş formunu sıfırla
@@ -212,21 +222,21 @@ const OrderManager: React.FC<OrderManagerProps> = ({
 
   // Sepete ürün ekle
   const addItemToNewOrder = (product: Product) => {
-    const existingItem = newOrderItems.find(item => item.product.id === product.id);
+    const existingItem = newOrderItems.find((item) => item.product.id === product.id);
     if (existingItem) {
-      setNewOrderItems(prev => prev.map(item =>
-        item.product.id === product.id
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      ));
+      setNewOrderItems((prev) =>
+        prev.map((item) =>
+          item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+        )
+      );
     } else {
-      setNewOrderItems(prev => [...prev, { product, quantity: 1, notes: '' }]);
+      setNewOrderItems((prev) => [...prev, { product, quantity: 1, notes: '' }]);
     }
   };
 
   // Sepetten ürün çıkar
   const removeItemFromNewOrder = (productId: string) => {
-    setNewOrderItems(prev => prev.filter(item => item.product.id !== productId));
+    setNewOrderItems((prev) => prev.filter((item) => item.product.id !== productId));
   };
 
   // Ürün miktarını güncelle
@@ -234,33 +244,30 @@ const OrderManager: React.FC<OrderManagerProps> = ({
     if (quantity <= 0) {
       removeItemFromNewOrder(productId);
     } else {
-      setNewOrderItems(prev => prev.map(item =>
-        item.product.id === productId
-          ? { ...item, quantity }
-          : item
-      ));
+      setNewOrderItems((prev) =>
+        prev.map((item) => (item.product.id === productId ? { ...item, quantity } : item))
+      );
     }
   };
 
   // Ürün notunu güncelle
   const updateItemNotes = (productId: string, notes: string) => {
-    setNewOrderItems(prev => prev.map(item =>
-      item.product.id === productId
-        ? { ...item, notes }
-        : item
-    ));
+    setNewOrderItems((prev) =>
+      prev.map((item) => (item.product.id === productId ? { ...item, notes } : item))
+    );
   };
 
   // Sipariş listesi render
   const renderOrderItem = ({ item: order }: { item: Order }) => (
     <TouchableOpacity
       style={styles.orderCard}
-      onPress={() => setSelectedOrder(order)}
-    >
+      onPress={() => {
+        setSelectedOrder(order);
+      }}>
       <View style={styles.orderHeader}>
         <Text style={styles.orderNumber}>{order.orderNumber}</Text>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) }]}>
-          <Ionicons name={getStatusIcon(order.status) as any} size={16} color="white" />
+          <Ionicons name={getStatusIcon(order.status)} size={16} color="white" />
           <Text style={styles.statusText}>{t(`orders:status.${order.status}`)}</Text>
         </View>
       </View>
@@ -269,11 +276,11 @@ const OrderManager: React.FC<OrderManagerProps> = ({
         <Text style={styles.orderTime}>
           {order.createdAt.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
         </Text>
-        {order.customerName && (
-          <Text style={styles.customerName}>{order.customerName}</Text>
-        )}
+        {order.customerName && <Text style={styles.customerName}>{order.customerName}</Text>}
         {order.tableNumber && (
-          <Text style={styles.tableNumber}>{t('orders:table')} {order.tableNumber}</Text>
+          <Text style={styles.tableNumber}>
+            {t('orders:table')} {order.tableNumber}
+          </Text>
         )}
       </View>
 
@@ -296,16 +303,18 @@ const OrderManager: React.FC<OrderManagerProps> = ({
           {order.status === 'ready' && (
             <TouchableOpacity
               style={[styles.actionButton, styles.completeButton]}
-              onPress={() => completeOrder(order)}
-            >
+              onPress={() => {
+                completeOrder(order);
+              }}>
               <Ionicons name="checkmark" size={16} color="white" />
             </TouchableOpacity>
           )}
           {order.status !== 'cancelled' && order.status !== 'served' && (
             <TouchableOpacity
               style={[styles.actionButton, styles.cancelButton]}
-              onPress={() => cancelOrder(order.id)}
-            >
+              onPress={() => {
+                cancelOrder(order.id);
+              }}>
               <Ionicons name="close" size={16} color="white" />
             </TouchableOpacity>
           )}
@@ -319,8 +328,7 @@ const OrderManager: React.FC<OrderManagerProps> = ({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
+      onRequestClose={onClose}>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -328,8 +336,9 @@ const OrderManager: React.FC<OrderManagerProps> = ({
           <View style={styles.headerActions}>
             <TouchableOpacity
               style={styles.newOrderButton}
-              onPress={() => setShowNewOrderModal(true)}
-            >
+              onPress={() => {
+                setShowNewOrderModal(true);
+              }}>
               <Ionicons name="add" size={20} color="white" />
               <Text style={styles.newOrderButtonText}>{t('orders:new')}</Text>
             </TouchableOpacity>
@@ -341,7 +350,7 @@ const OrderManager: React.FC<OrderManagerProps> = ({
 
         {/* Sipariş Listesi */}
         <FlatList
-          data={orders.filter(order => {
+          data={orders.filter((order) => {
             // SuperAdmin tüm siparişleri görebilir
             if (currentUserRole === 'admin') {
               return order.status !== 'served';
@@ -364,15 +373,14 @@ const OrderManager: React.FC<OrderManagerProps> = ({
         />
 
         {/* Yeni Sipariş Modal */}
-        <Modal
-          visible={showNewOrderModal}
-          animationType="slide"
-          presentationStyle="pageSheet"
-        >
+        <Modal visible={showNewOrderModal} animationType="slide" presentationStyle="pageSheet">
           <View style={styles.newOrderContainer}>
             <View style={styles.newOrderHeader}>
               <Text style={styles.newOrderTitle}>{t('orders:create_new')}</Text>
-              <TouchableOpacity onPress={() => setShowNewOrderModal(false)}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowNewOrderModal(false);
+                }}>
                 <Ionicons name="close" size={24} color={Colors.light.text} />
               </TouchableOpacity>
             </View>
@@ -404,8 +412,9 @@ const OrderManager: React.FC<OrderManagerProps> = ({
                     <TouchableOpacity
                       key={product.id}
                       style={styles.productButton}
-                      onPress={() => addItemToNewOrder(product)}
-                    >
+                      onPress={() => {
+                        addItemToNewOrder(product);
+                      }}>
                       <Text style={styles.productButtonText}>{product.name}</Text>
                       <Text style={styles.productButtonPrice}>{product.price.toFixed(2)}€</Text>
                     </TouchableOpacity>
@@ -428,15 +437,17 @@ const OrderManager: React.FC<OrderManagerProps> = ({
                       <View style={styles.selectedItemActions}>
                         <TouchableOpacity
                           style={styles.quantityButton}
-                          onPress={() => updateItemQuantity(item.product.id, item.quantity - 1)}
-                        >
+                          onPress={() => {
+                            updateItemQuantity(item.product.id, item.quantity - 1);
+                          }}>
                           <Ionicons name="remove" size={16} color={Colors.light.text} />
                         </TouchableOpacity>
                         <Text style={styles.quantityText}>{item.quantity}</Text>
                         <TouchableOpacity
                           style={styles.quantityButton}
-                          onPress={() => updateItemQuantity(item.product.id, item.quantity + 1)}
-                        >
+                          onPress={() => {
+                            updateItemQuantity(item.product.id, item.quantity + 1);
+                          }}>
                           <Ionicons name="add" size={16} color={Colors.light.text} />
                         </TouchableOpacity>
                       </View>
@@ -444,7 +455,9 @@ const OrderManager: React.FC<OrderManagerProps> = ({
                         style={styles.notesInput}
                         placeholder={t('orders:item_notes_placeholder')}
                         value={item.notes}
-                        onChangeText={(notes) => updateItemNotes(item.product.id, notes)}
+                        onChangeText={(notes) => {
+                          updateItemNotes(item.product.id, notes);
+                        }}
                       />
                     </View>
                   ))}
@@ -468,10 +481,12 @@ const OrderManager: React.FC<OrderManagerProps> = ({
             {/* Onay Butonu */}
             <View style={styles.newOrderFooter}>
               <TouchableOpacity
-                style={[styles.createOrderButton, newOrderItems.length === 0 && styles.createOrderButtonDisabled]}
+                style={[
+                  styles.createOrderButton,
+                  newOrderItems.length === 0 && styles.createOrderButtonDisabled,
+                ]}
                 onPress={createNewOrder}
-                disabled={newOrderItems.length === 0}
-              >
+                disabled={newOrderItems.length === 0}>
                 <Ionicons name="checkmark" size={20} color="white" />
                 <Text style={styles.createOrderButtonText}>{t('orders:create')}</Text>
               </TouchableOpacity>
@@ -777,4 +792,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default OrderManager; 
+export default OrderManager;

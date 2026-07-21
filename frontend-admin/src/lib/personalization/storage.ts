@@ -1,3 +1,4 @@
+import { normalizeThemeMode } from './theme';
 import {
   DEFAULT_LANDING_PATHS,
   DEFAULT_PERSONALIZATION,
@@ -7,7 +8,6 @@ import {
   type PersonalizationPreferences,
   type ThemeMode,
 } from './types';
-import { normalizeThemeMode } from './theme';
 
 export const PERSONALIZATION_STORAGE_KEY = 'regkasse.admin.personalization.v1';
 
@@ -78,7 +78,7 @@ export function writeStoredPersonalization(prefs: PersonalizationPreferences): v
 }
 
 export function patchStoredPersonalization(
-  patch: Partial<PersonalizationPreferences>,
+  patch: Partial<PersonalizationPreferences>
 ): PersonalizationPreferences {
   const next = { ...readStoredPersonalization(), ...patch };
   writeStoredPersonalization(next);

@@ -1,6 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
-import { permissionCodeToLabelLeaf, resolvePermissionDisplayLabel } from '../permissionDisplayLabel';
+import { describe, expect, it, vi } from 'vitest';
+
 import { USER_FACING_MISSING_TRANSLATION_LABEL } from '@/i18n/translationFallback';
+
+import {
+  permissionCodeToLabelLeaf,
+  resolvePermissionDisplayLabel,
+} from '../permissionDisplayLabel';
 
 describe('permissionDisplayLabel', () => {
   it('maps code to i18n leaf with underscores', () => {

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { permissionImplied } from '../permissionImplication';
 
 describe('permissionImplied', () => {

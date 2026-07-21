@@ -1,26 +1,31 @@
 import { jest, describe, it, expect, beforeEach, afterAll } from '@jest/globals';
-import { storage } from '../utils/storage';
 
-jest.mock('../utils/storage', () => ({
-  storage: {
-    getItem: jest.fn(),
-    setItem: jest.fn(),
-    removeItem: jest.fn(),
+import { secureStorage } from '../services/secureStorage';
+
+jest.mock('../services/secureStorage', () => ({
+  secureStorage: {
+    getItem: jest.fn(async () => null),
+    setItem: jest.fn(async () => undefined),
+    removeItem: jest.fn(async () => undefined),
   },
 }));
 
-async function loadDevTenantModule() {
-  (global as typeof globalThis & { __DEV__?: boolean }).__DEV__ = true;
-  jest.resetModules();
-  return import('../services/tenant/devTenant');
-}
+jest.mock('../services/tenant/tenantStorage', () => ({
+  TENANT_HTTP_HEADER: 'X-Tenant-Id',
+}));
+
+// Avoid dynamic import + resetModules (needs experimental-vm-modules under some Jest runners).
+(global as typeof globalThis & { __DEV__?: boolean }).__DEV__ = true;
+
+const { resolveEffectiveTenantSlug, getEnvDevTenantSlug } =
+  require('../services/tenant/devTenant') as typeof import('../services/tenant/devTenant');
 
 describe('devTenant resolveEffectiveTenantSlug', () => {
   const prevDevTenantEnv = process.env.EXPO_PUBLIC_DEV_TENANT_ID;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.mocked(storage.getItem).mockResolvedValue(null);
+    jest.mocked(secureStorage.getItem).mockResolvedValue(null);
     process.env.EXPO_PUBLIC_DEV_TENANT_ID = 'dev';
   });
 
@@ -33,22 +38,16 @@ describe('devTenant resolveEffectiveTenantSlug', () => {
   });
 
   it('returns dev from EXPO_PUBLIC_DEV_TENANT_ID when no storage override', async () => {
-    const { resolveEffectiveTenantSlug } = await loadDevTenantModule();
-
     await expect(resolveEffectiveTenantSlug(null)).resolves.toBe('dev');
   });
 
-  it('getEnvDevTenantSlug reads EXPO_PUBLIC_DEV_TENANT_ID', async () => {
+  it('getEnvDevTenantSlug reads EXPO_PUBLIC_DEV_TENANT_ID', () => {
     process.env.EXPO_PUBLIC_DEV_TENANT_ID = 'prod';
-    const { getEnvDevTenantSlug } = await loadDevTenantModule();
-
     expect(getEnvDevTenantSlug()).toBe('prod');
   });
 
-  it('defaults getEnvDevTenantSlug to dev when env is unset', async () => {
+  it('defaults getEnvDevTenantSlug to dev when env is unset', () => {
     delete process.env.EXPO_PUBLIC_DEV_TENANT_ID;
-    const { getEnvDevTenantSlug } = await loadDevTenantModule();
-
     expect(getEnvDevTenantSlug()).toBe('dev');
   });
 });

@@ -1,3 +1,4 @@
+import { apiClient } from './config';
 import { useFetch } from './useFetch';
 
 export interface Coupon {
@@ -19,6 +20,34 @@ export interface Coupon {
   productCategoryRestriction?: string;
 }
 
+export interface CouponValidationResult {
+  isValid: boolean;
+  coupon?: Coupon;
+  discountAmount: number;
+  message?: string;
+  errorMessage?: string;
+}
+
+export interface ValidateCouponRequest {
+  code: string;
+  totalAmount: number;
+  customerId?: string;
+}
+
+class CouponService {
+  private readonly baseUrl = '/coupon';
+
+  async getActiveCoupons(): Promise<Coupon[]> {
+    return apiClient.get<Coupon[]>(`${this.baseUrl}/active`);
+  }
+
+  async validateCoupon(request: ValidateCouponRequest): Promise<CouponValidationResult> {
+    return apiClient.post<CouponValidationResult>(`${this.baseUrl}/validate`, request);
+  }
+}
+
+export const couponService = new CouponService();
+
 export function useCoupons() {
   return useFetch<Coupon[]>('/api/coupon');
 }
@@ -33,4 +62,4 @@ export function useValidateCoupon() {
 
 export function useUseCoupon() {
   return useFetch('/api/coupon/use', { method: 'POST' });
-} 
+}

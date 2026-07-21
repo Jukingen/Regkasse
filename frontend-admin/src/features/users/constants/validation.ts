@@ -96,9 +96,15 @@ export function mapBackendPasswordError(t: UsersFormTranslate, backendMessage: s
     return t('users.passwordErrors.minLength', { min: PASSWORD_MIN_LENGTH });
   }
   if (lower.includes('digit') || lower.includes('number')) return t('users.passwordErrors.digit');
-  if (lower.includes('lowercase') || lower.includes('lower case')) return t('users.passwordErrors.lowercase');
-  if (lower.includes('uppercase') || lower.includes('upper case')) return t('users.passwordErrors.uppercase');
-  if (lower.includes('non-alphanumeric') || lower.includes('non alphanumeric') || lower.includes('special')) {
+  if (lower.includes('lowercase') || lower.includes('lower case'))
+    return t('users.passwordErrors.lowercase');
+  if (lower.includes('uppercase') || lower.includes('upper case'))
+    return t('users.passwordErrors.uppercase');
+  if (
+    lower.includes('non-alphanumeric') ||
+    lower.includes('non alphanumeric') ||
+    lower.includes('special')
+  ) {
     return t('users.passwordErrors.nonAlphanumeric');
   }
   return t('users.passwordErrors.generic');

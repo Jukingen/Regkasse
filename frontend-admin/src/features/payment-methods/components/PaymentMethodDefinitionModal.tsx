@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useMemo } from 'react';
 import { Form, Input, InputNumber, Modal, Select, Switch } from 'antd';
+import React, { useMemo } from 'react';
 
 import type {
   CreatePaymentMethodDefinitionRequest,
@@ -39,7 +39,7 @@ export function PaymentMethodDefinitionModal({
       { value: 4, label: t('settings.paymentMethods.form.legacyOption4') },
       { value: 5, label: t('settings.paymentMethods.form.legacyOption5') },
     ],
-    [t],
+    [t]
   );
 
   const handleOk = async () => {
@@ -63,7 +63,9 @@ export function PaymentMethodDefinitionModal({
 
   return (
     <Modal
-      title={editing ? t('settings.paymentMethods.editTitle') : t('settings.paymentMethods.createTitle')}
+      title={
+        editing ? t('settings.paymentMethods.editTitle') : t('settings.paymentMethods.createTitle')
+      }
       open={open}
       forceRender
       onCancel={onCancel}
@@ -85,10 +87,18 @@ export function PaymentMethodDefinitionModal({
         >
           <Input disabled={!!editing} autoComplete="off" />
         </Form.Item>
-        <Form.Item name="name" label={t('settings.paymentMethods.form.name')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
+        <Form.Item
+          name="name"
+          label={t('settings.paymentMethods.form.name')}
+          rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
+        >
           <Input />
         </Form.Item>
-        <Form.Item name="legacyPaymentMethodValue" label={t('settings.paymentMethods.form.legacy')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
+        <Form.Item
+          name="legacyPaymentMethodValue"
+          label={t('settings.paymentMethods.form.legacy')}
+          rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
+        >
           <Select options={legacyPaymentMethodOptions} />
         </Form.Item>
         <Form.Item name="fiscalCategory" label={t('settings.paymentMethods.form.fiscalCategory')}>
@@ -97,19 +107,35 @@ export function PaymentMethodDefinitionModal({
         <Form.Item name="displayOrder" label={t('settings.paymentMethods.form.order')}>
           <InputNumber style={{ width: '100%' }} />
         </Form.Item>
-        <Form.Item name="isActive" label={t('settings.paymentMethods.form.active')} valuePropName="checked">
+        <Form.Item
+          name="isActive"
+          label={t('settings.paymentMethods.form.active')}
+          valuePropName="checked"
+        >
           <Switch />
         </Form.Item>
-        <Form.Item name="isDefault" label={t('settings.paymentMethods.form.default')} valuePropName="checked">
+        <Form.Item
+          name="isDefault"
+          label={t('settings.paymentMethods.form.default')}
+          valuePropName="checked"
+        >
           <Switch />
         </Form.Item>
-        <Form.Item name="requiresTerminal" label={t('settings.paymentMethods.form.requiresTerminal')} valuePropName="checked">
+        <Form.Item
+          name="requiresTerminal"
+          label={t('settings.paymentMethods.form.requiresTerminal')}
+          valuePropName="checked"
+        >
           <Switch />
         </Form.Item>
         <Form.Item name="terminalType" label={t('settings.paymentMethods.form.terminalType')}>
           <Input />
         </Form.Item>
-        <Form.Item name="allowRefund" label={t('settings.paymentMethods.form.allowRefund')} valuePropName="checked">
+        <Form.Item
+          name="allowRefund"
+          label={t('settings.paymentMethods.form.allowRefund')}
+          valuePropName="checked"
+        >
           <Switch />
         </Form.Item>
         <Form.Item name="icon" label={t('settings.paymentMethods.form.icon')}>

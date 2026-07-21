@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 
 import {
+  type AdminShiftOverviewParams,
   adminShiftOverviewQueryKey,
   fetchAdminShiftOverview,
-  type AdminShiftOverviewParams,
 } from '@/features/shifts/api/shiftsOverview';
 
 export function useAdminShiftOverview(params: AdminShiftOverviewParams = {}) {

@@ -1,10 +1,19 @@
 // Professional POS cart summary with subtotal, tax, and grand total breakdown
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftState, SoftTypography } from '../constants/SoftTheme';
-import { formatPrice } from '../utils/formatPrice';
+
+import {
+  SoftColors,
+  SoftRadius,
+  SoftShadows,
+  SoftSpacing,
+  SoftState,
+  SoftTypography,
+} from '../constants/SoftTheme';
 import { getCartDisplayTotals } from '../contexts/CartContext';
 import { WaveLoader } from '../src/components/common/WaveLoader';
+import { formatPrice } from '../utils/formatPrice';
 
 interface CartSummaryProps {
   cart: any;
@@ -23,14 +32,16 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
   preventDoubleClick = false,
   onPayment,
 }) => {
+  const { t } = useTranslation('cart');
   const totals = useMemo(() => getCartDisplayTotals(cart), [cart]);
 
   // Hide if no items
-  if (loading || error || !cart || !cart.items || cart.items.length === 0) {
+  if (loading || error || !cart?.items || cart.items.length === 0) {
     return null;
   }
 
   const isDisabled = paymentProcessing || preventDoubleClick;
+  const payLabel = t('payWithAmount', { amount: formatPrice(totals.grandTotalGross) });
 
   return (
     <View style={styles.container}>
@@ -39,19 +50,15 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
         {/* Subtotal */}
         <View style={styles.row}>
           <Text style={styles.label}>
-            Zwischensumme ({totals.itemCount} Artikel)
+            {t('summarySubtotalWithCount', { count: totals.itemCount })}
           </Text>
-          <Text style={styles.value}>
-            {formatPrice(totals.subtotalGross)}
-          </Text>
+          <Text style={styles.value}>{formatPrice(totals.subtotalGross)}</Text>
         </View>
 
         {/* Tax (embedded in gross - backend'den, FE hesaplamaz) */}
         <View style={styles.row}>
-          <Text style={styles.label}>MwSt.</Text>
-          <Text style={styles.value}>
-            {formatPrice(totals.includedTaxTotal)}
-          </Text>
+          <Text style={styles.label}>{t('vat')}</Text>
+          <Text style={styles.value}>{formatPrice(totals.includedTaxTotal)}</Text>
         </View>
 
         {/* Divider */}
@@ -59,39 +66,34 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
 
         {/* Grand Total */}
         <View style={[styles.row, styles.totalRow]}>
-          <Text style={styles.totalLabel}>GESAMT</Text>
-          <Text style={styles.totalValue}>
-            {formatPrice(totals.grandTotalGross)}
-          </Text>
+          <Text style={styles.totalLabel}>{t('grandTotal')}</Text>
+          <Text style={styles.totalValue}>{formatPrice(totals.grandTotalGross)}</Text>
         </View>
       </View>
 
       {/* Payment Button (if onPayment provided) */}
       {onPayment && (
         <Pressable
-          style={({ pressed, focused }) => [
+          style={(state) => [
             styles.payButton,
             isDisabled && styles.payButtonDisabled,
-            pressed && !isDisabled && styles.payButtonPressed,
-            focused && !isDisabled && SoftState.focusVisible,
+            state.pressed && !isDisabled && styles.payButtonPressed,
+            (state as { focused?: boolean }).focused && !isDisabled && SoftState.focusVisible,
           ]}
           onPress={onPayment}
           disabled={isDisabled}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessibilityLabel={`Bezahlen ${formatPrice(totals.grandTotalGross)}`}
+          accessibilityLabel={payLabel}
           accessibilityRole="button"
-          accessibilityState={{ disabled: isDisabled }}
-        >
+          accessibilityState={{ disabled: isDisabled }}>
           {isDisabled ? (
             <View style={styles.payContent}>
               <WaveLoader size={18} color={SoftColors.textInverse} />
-              <Text style={styles.payText}>Verarbeitung...</Text>
+              <Text style={styles.payText}>{t('processing')}</Text>
             </View>
           ) : (
             <View style={styles.payContent}>
-              <Text style={styles.payText}>
-                Bezahlen {formatPrice(totals.grandTotalGross)}
-              </Text>
+              <Text style={styles.payText}>{payLabel}</Text>
             </View>
           )}
         </Pressable>

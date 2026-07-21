@@ -2,37 +2,39 @@ import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 
 export interface LicenseActivity {
-    timestampUtc: string;
-    licenseKeyMasked: string;
-    machineFingerprintShort: string | null;
-    action: string;
-    sourceCode: string;
+  timestampUtc: string;
+  licenseKeyMasked: string;
+  machineFingerprintShort: string | null;
+  action: string;
+  sourceCode: string;
 }
 
 export interface LicenseDashboardStats {
-    activeTenantLicenses: number;
-    expiringTenantLicenses: number;
-    expiredTenantLicenses: number;
-    activeDeploymentLicenses: number;
-    expiringDeploymentLicenses: number;
-    expiredDeploymentLicenses: number;
-    activatedDevices: number;
-    recentActivities: LicenseActivity[];
+  activeTenantLicenses: number;
+  expiringTenantLicenses: number;
+  expiredTenantLicenses: number;
+  activeDeploymentLicenses: number;
+  expiringDeploymentLicenses: number;
+  expiredDeploymentLicenses: number;
+  activatedDevices: number;
+  recentActivities: LicenseActivity[];
 }
 
 export const licenseDashboardStatsQueryKey = ['license', 'dashboard-stats'] as const;
 
 export const getLicenseDashboardStats = async (): Promise<LicenseDashboardStats> => {
-    const { data } = await AXIOS_INSTANCE.get<LicenseDashboardStats>('/api/admin/license/dashboard-stats');
-    return data;
+  const { data } = await AXIOS_INSTANCE.get<LicenseDashboardStats>(
+    '/api/admin/license/dashboard-stats'
+  );
+  return data;
 };
 
 export const useLicenseDashboardStats = (options?: { enabled?: boolean }) => {
-    return useAuthorizedQuery({
-        queryKey: licenseDashboardStatsQueryKey,
-        queryFn: getLicenseDashboardStats,
-        requiredRole: 'SuperAdmin',
-        refetchInterval: 60_000,
-        enabled: options?.enabled !== false,
-    });
+  return useAuthorizedQuery({
+    queryKey: licenseDashboardStatsQueryKey,
+    queryFn: getLicenseDashboardStats,
+    requiredRole: 'SuperAdmin',
+    refetchInterval: 60_000,
+    enabled: options?.enabled !== false,
+  });
 };

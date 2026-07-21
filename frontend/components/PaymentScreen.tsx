@@ -1,6 +1,8 @@
 // Multi-method payment screen; confirms via POST /api/pos/payment.
 
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -11,22 +13,27 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
+
+import {
+  POS_VOUCHER_REQUIRES_ONLINE_MESSAGE_DE,
+  posOfflineBlocksVoucherSplitEntry,
+} from '../constants/posVoucherOffline';
+import { WALK_IN_CUSTOMER_ID_FALLBACK } from '../constants/walkInCustomer';
+import { useSystem } from '../contexts/SystemContext';
+import { isPaymentError, getPaymentErrorMessage } from '../features/payment/paymentErrors';
+import { usePosCashRegisterAssignment } from '../hooks/usePosCashRegisterAssignment';
+import { cartService } from '../services/api/cartService';
+import { customerService } from '../services/api/customerService';
 import paymentService, {
   type PaymentItem,
   type PaymentRequest,
   type PosPaymentMethodCode,
 } from '../services/api/paymentService';
-import { cartService } from '../services/api/cartService';
-import { customerService } from '../services/api/customerService';
-import { WALK_IN_CUSTOMER_ID_FALLBACK } from '../constants/walkInCustomer';
 import { receiptPrinter } from '../services/receiptPrinter';
-import { usePosCashRegisterAssignment } from '../hooks/usePosCashRegisterAssignment';
-import { validateAmount } from '../utils/validation';
-import { isPaymentError, getPaymentErrorMessage } from '../features/payment/paymentErrors';
-import { PaymentCancelResponse } from '../types/cart';
 import { WaveLoader } from '../src/components/common/WaveLoader';
+import { PaymentCancelResponse } from '../types/cart';
+import { formatUserDateTime } from '../utils/dateFormatter';
+import { isPrintCancelled } from '../utils/expoPrintShare';
 import {
   buildPosRegisterGateContext,
   registerGateAlertMessage,
@@ -34,16 +41,15 @@ import {
   registerGateBannerTitle,
   registerGateFooterHint,
 } from '../utils/posRegisterGateCopy';
-import { formatUserDateTime } from '../utils/dateFormatter';
-import { useSystem } from '../contexts/SystemContext';
-import {
-  POS_VOUCHER_REQUIRES_ONLINE_MESSAGE_DE,
-  posOfflineBlocksVoucherSplitEntry,
-} from '../constants/posVoucherOffline';
+import { validateAmount } from '../utils/validation';
 
 // Desteklenen ödeme yöntemleri ve ikon adları
 type PaymentMethodKey = 'cash' | 'card' | 'voucher' | 'contactless' | 'transfer';
-const PAYMENT_METHODS: { key: PaymentMethodKey; labelKey: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+const PAYMENT_METHODS: {
+  key: PaymentMethodKey;
+  labelKey: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
   { key: 'cash', labelKey: 'payment:methods.cash', icon: 'cash' },
   { key: 'card', labelKey: 'payment:methods.card', icon: 'card' },
   { key: 'voucher', labelKey: 'payment:methods.voucher', icon: 'pricetag' },
@@ -78,7 +84,7 @@ type PaymentScreenProps = {
 
 function mapMethodForBackend(key: PaymentMethodKey): PosPaymentMethodCode {
   if (key === 'contactless') return 'card';
-  return key as PosPaymentMethodCode;
+  return key;
 }
 
 function pickDominantMethod(payments: Record<PaymentMethodKey, string>): PosPaymentMethodCode {
@@ -170,15 +176,22 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
   const [error, setError] = useState('');
   const [guestCustomerId, setGuestCustomerId] = useState<string>(WALK_IN_CUSTOMER_ID_FALLBACK);
 
-  const enteredTotal = (Object.values(payments) as string[]).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+  const enteredTotal = Object.values(payments).reduce(
+    (sum, val) => sum + (parseFloat(val) || 0),
+    0
+  );
   const voucherAmountEntered = parseFloat(payments.voucher) || 0;
   const offlineBlocksVoucher = posOfflineBlocksVoucherSplitEntry(isOnline, voucherAmountEntered);
 
   useEffect(() => {
     customerService
       .getGuestCustomer()
-      .then((id) => setGuestCustomerId(id))
-      .catch(() => setGuestCustomerId(WALK_IN_CUSTOMER_ID_FALLBACK));
+      .then((id) => {
+        setGuestCustomerId(id);
+      })
+      .catch(() => {
+        setGuestCustomerId(WALK_IN_CUSTOMER_ID_FALLBACK);
+      });
   }, []);
 
   const handleChange = (method: PaymentMethodKey, value: string) => {
@@ -203,9 +216,13 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
           onPress: async () => {
             setProcessing(true);
             try {
-              const cancelResponse = await paymentService.cancelPayment(paymentSessionId, t('checkout:posFlow.payment.cancelReasonByCashier'));
+              const cancelResponse = await paymentService.cancelPayment(
+                paymentSessionId,
+                t('checkout:posFlow.payment.cancelReasonByCashier')
+              );
 
-              const ok = cancelResponse && (cancelResponse as { success?: boolean }).success !== false;
+              const ok =
+                cancelResponse && (cancelResponse as { success?: boolean }).success !== false;
 
               if (ok) {
                 if (onPaymentCancelled) {
@@ -219,14 +236,27 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
                     cancelledBy: cancelResponse.cancelledBy,
                     cancelledAt: formatUserDateTime(cancelResponse.cancelledAt),
                   }),
-                  [{ text: t('common:ok'), onPress: () => onCancel() }]
+                  [
+                    {
+                      text: t('common:ok'),
+                      onPress: () => {
+                        onCancel();
+                      },
+                    },
+                  ]
                 );
               } else {
-                Alert.alert(t('checkout:posFlow.payment.alerts.errorTitle'), t('checkout:posFlow.payment.alerts.cancelRequestFailed'));
+                Alert.alert(
+                  t('checkout:posFlow.payment.alerts.errorTitle'),
+                  t('checkout:posFlow.payment.alerts.cancelRequestFailed')
+                );
               }
             } catch (err) {
               console.error('Payment cancellation error:', err);
-              Alert.alert(t('checkout:posFlow.payment.alerts.errorTitle'), t('checkout:posFlow.payment.alerts.cancelFailed'));
+              Alert.alert(
+                t('checkout:posFlow.payment.alerts.errorTitle'),
+                t('checkout:posFlow.payment.alerts.cancelFailed')
+              );
             } finally {
               setProcessing(false);
             }
@@ -251,7 +281,10 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
       return;
     }
     if (!tableNumber) {
-      Alert.alert(t('checkout:posFlow.payment.alerts.errorTitle'), t('checkout:posFlow.payment.errors.missingTableNumber'));
+      Alert.alert(
+        t('checkout:posFlow.payment.alerts.errorTitle'),
+        t('checkout:posFlow.payment.errors.missingTableNumber')
+      );
       return;
     }
     if (!cartLines.length) {
@@ -285,7 +318,10 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
         currentCartId = cart.cartId;
       } catch (cartErr) {
         console.error('[PaymentScreen] Cart fetch failed:', cartErr);
-        Alert.alert(t('checkout:posFlow.payment.alerts.errorTitle'), t('checkout:posFlow.payment.errors.cartLoadFailed'));
+        Alert.alert(
+          t('checkout:posFlow.payment.alerts.errorTitle'),
+          t('checkout:posFlow.payment.errors.cartLoadFailed')
+        );
         return;
       }
 
@@ -297,7 +333,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
         taxType: line.taxType as PaymentItem['taxType'],
       }));
 
-      const shouldRequireTse = __DEV__ ? false : true;
+      const shouldRequireTse = !__DEV__;
 
       const idempotencyKey =
         typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
@@ -329,14 +365,12 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
         return;
       }
 
-      if (
-        !response.success ||
-        response.fiscalStatus !== 'FISCAL_COMPLETE' ||
-        !response.paymentId
-      ) {
+      if (!response.success || response.fiscalStatus !== 'FISCAL_COMPLETE' || !response.paymentId) {
         const msg =
           response.fiscalStatus === 'FAILED'
-            ? response.message || response.error || t('checkout:posFlow.payment.errors.fiscalNotConfirmed')
+            ? response.message ||
+              response.error ||
+              t('checkout:posFlow.payment.errors.fiscalNotConfirmed')
             : response.message || response.error || t('checkout:posFlow.payment.errors.failed');
         Alert.alert(t('checkout:posFlow.payment.errors.failed'), msg);
         return;
@@ -360,8 +394,13 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
           isDemoFiscal: response.tse?.isDemoFiscal ?? false,
         });
       } catch (printErr) {
-        console.error('[PaymentScreen] Print failed:', printErr);
-        Alert.alert(t('checkout:posFlow.payment.alerts.hintTitle'), t('checkout:posFlow.payment.errors.printFailed'));
+        if (!isPrintCancelled(printErr)) {
+          console.error('[PaymentScreen] Print failed:', printErr);
+          Alert.alert(
+            t('checkout:posFlow.payment.alerts.hintTitle'),
+            t('checkout:posFlow.payment.errors.printFailed')
+          );
+        }
       }
 
       onPaymentSuccess?.(response.paymentId);
@@ -380,21 +419,23 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={styles.container}>
       <Text style={styles.title}>{t('checkout:posFlow.payment.title')}</Text>
-      <Text style={styles.total}>{t('checkout:posFlow.payment.totalLabel')}: {totalAmount.toFixed(2)} €</Text>
+      <Text style={styles.total}>
+        {t('checkout:posFlow.payment.totalLabel')}: {totalAmount.toFixed(2)} €
+      </Text>
 
       {isRegisterGateBlockingPayment ? (
         <View style={styles.registerBanner}>
-          <Text style={styles.registerBannerTitle}>
-            {registerGateBannerTitle(registerGateCtx)}
-          </Text>
+          <Text style={styles.registerBannerTitle}>{registerGateBannerTitle(registerGateCtx)}</Text>
           {!registerListLoading && !posReadinessLoading ? (
-            <Text style={[styles.registerBannerMuted, { marginBottom: 4 }]}>{t('settings:registerGate.banner.intro')}</Text>
+            <Text style={[styles.registerBannerMuted, { marginBottom: 4 }]}>
+              {t('settings:registerGate.banner.intro')}
+            </Text>
           ) : null}
-          <Text style={styles.registerBannerText}>
-            {registerGateBannerDetail(registerGateCtx)}
-          </Text>
+          <Text style={styles.registerBannerText}>{registerGateBannerDetail(registerGateCtx)}</Text>
           {registerListLoading || posReadinessLoading ? (
             <WaveLoader color="#1976d2" size={22} style={{ marginVertical: 8 }} />
           ) : registerPicklist.length > 0 ? (
@@ -402,32 +443,48 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
               {registerPicklist.map((r) => (
                 <TouchableOpacity
                   key={r.id}
-                  style={[styles.registerChip, savingRegisterId === r.id && styles.registerChipDisabled]}
+                  style={[
+                    styles.registerChip,
+                    savingRegisterId === r.id && styles.registerChipDisabled,
+                  ]}
                   disabled={!!savingRegisterId}
-                  onPress={() => handlePersistCashRegister(r.id)}
-                >
-                  <Text style={styles.registerChipText}>{r.registerNumber || r.id.slice(0, 8)}</Text>
+                  onPress={() => handlePersistCashRegister(r.id)}>
+                  <Text style={styles.registerChipText}>
+                    {r.registerNumber || r.id.slice(0, 8)}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
           ) : settingsLoadFailed ? (
             <TouchableOpacity onPress={retryUserSettingsLoad} accessibilityRole="button">
-              <Text style={styles.registerRetryLink}>{t('checkout:posFlow.payment.retryActions.retrySettings')}</Text>
+              <Text style={styles.registerRetryLink}>
+                {t('checkout:posFlow.payment.retryActions.retrySettings')}
+              </Text>
             </TouchableOpacity>
           ) : posReadinessError ? (
-            <TouchableOpacity onPress={() => refreshPosReadiness()} accessibilityRole="button">
-              <Text style={styles.registerRetryLink}>{t('checkout:posFlow.payment.retryActions.retryReadiness')}</Text>
+            <TouchableOpacity
+              onPress={() => {
+                refreshPosReadiness();
+              }}
+              accessibilityRole="button">
+              <Text style={styles.registerRetryLink}>
+                {t('checkout:posFlow.payment.retryActions.retryReadiness')}
+              </Text>
             </TouchableOpacity>
           ) : registerListFailureKind === 'network' || registerListFailureKind === 'unknown' ? (
             <TouchableOpacity onPress={refetchRegisterList} accessibilityRole="button">
-              <Text style={styles.registerRetryLink}>{t('checkout:posFlow.payment.retryActions.reloadRegisterList')}</Text>
+              <Text style={styles.registerRetryLink}>
+                {t('checkout:posFlow.payment.retryActions.reloadRegisterList')}
+              </Text>
             </TouchableOpacity>
           ) : null}
         </View>
       ) : null}
 
       {!cashRegisterResolved ? (
-        <Text style={styles.registerBannerMuted}>{t('checkout:posFlow.payment.loadingRegisterSettings')}</Text>
+        <Text style={styles.registerBannerMuted}>
+          {t('checkout:posFlow.payment.loadingRegisterSettings')}
+        </Text>
       ) : null}
       {PAYMENT_METHODS.map((method) => (
         <View key={method.key} style={styles.methodBlock}>
@@ -439,7 +496,9 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
               keyboardType="decimal-pad"
               placeholder={t('checkout:posFlow.payment.placeholderAmount')}
               value={payments[method.key]}
-              onChangeText={(val) => handleChange(method.key as PaymentMethodKey, val)}
+              onChangeText={(val) => {
+                handleChange(method.key, val);
+              }}
               editable={!processing && (method.key !== 'voucher' || isOnline)}
             />
             <Text style={styles.euro}>€</Text>
@@ -456,7 +515,10 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
       </View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <View style={styles.buttonRow}>
-        <TouchableOpacity style={styles.cancelBtn} onPress={handlePaymentCancel} disabled={processing}>
+        <TouchableOpacity
+          style={styles.cancelBtn}
+          onPress={handlePaymentCancel}
+          disabled={processing}>
           <Text style={styles.buttonText}>{t('checkout:posFlow.payment.buttons.cancel')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -464,7 +526,9 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
             styles.confirmBtn,
             {
               opacity:
-                enteredTotal < totalAmount || isRegisterGateBlockingPayment || offlineBlocksVoucher ? 0.5 : 1,
+                enteredTotal < totalAmount || isRegisterGateBlockingPayment || offlineBlocksVoucher
+                  ? 0.5
+                  : 1,
             },
           ]}
           onPress={handleConfirm}
@@ -478,15 +542,12 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
             isRegisterGateBlockingPayment && !processing
               ? registerGateFooterHint(registerGateCtx)
               : undefined
-          }
-        >
+          }>
           <Text style={styles.buttonText}>{t('checkout:posFlow.payment.buttons.confirm')}</Text>
         </TouchableOpacity>
       </View>
       {isRegisterGateBlockingPayment ? (
-        <Text style={styles.registerFooterHint}>
-          {registerGateFooterHint(registerGateCtx)}
-        </Text>
+        <Text style={styles.registerFooterHint}>{registerGateFooterHint(registerGateCtx)}</Text>
       ) : null}
     </KeyboardAvoidingView>
   );
@@ -500,7 +561,16 @@ const styles = StyleSheet.create({
   methodRow: { flexDirection: 'row', alignItems: 'center', width: '100%' },
   voucherOfflineHint: { fontSize: 12, color: '#c62828', marginTop: 4, marginLeft: 30 },
   methodLabel: { flex: 1, fontSize: 15 },
-  input: { width: 70, borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 6, fontSize: 15, textAlign: 'right', backgroundColor: '#f9f9f9' },
+  input: {
+    width: 70,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 6,
+    padding: 6,
+    fontSize: 15,
+    textAlign: 'right',
+    backgroundColor: '#f9f9f9',
+  },
   euro: { marginLeft: 4, fontSize: 15 },
   summaryRow: { marginTop: 8, marginBottom: 4, alignSelf: 'flex-end' },
   missing: { color: '#d32f2f', fontWeight: 'bold' },
@@ -523,8 +593,20 @@ const styles = StyleSheet.create({
   registerBannerText: { fontSize: 12, color: '#5d4037', marginBottom: 6 },
   registerBannerMuted: { fontSize: 12, color: '#795548', fontStyle: 'italic', marginBottom: 6 },
   registerChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  registerRetryLink: { color: '#1565c0', fontWeight: '600', fontSize: 14, marginTop: 6, textDecorationLine: 'underline' },
-  registerFooterHint: { fontSize: 11, color: '#666', marginTop: 8, textAlign: 'center', paddingHorizontal: 8 },
+  registerRetryLink: {
+    color: '#1565c0',
+    fontWeight: '600',
+    fontSize: 14,
+    marginTop: 6,
+    textDecorationLine: 'underline',
+  },
+  registerFooterHint: {
+    fontSize: 11,
+    color: '#666',
+    marginTop: 8,
+    textAlign: 'center',
+    paddingHorizontal: 8,
+  },
   registerChip: {
     paddingVertical: 8,
     paddingHorizontal: 12,

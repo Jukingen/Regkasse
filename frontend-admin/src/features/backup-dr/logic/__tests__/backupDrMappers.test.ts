@@ -1,21 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import type { BackupArtifactResponseDto, RestoreVerificationRunResponseDto } from '@/api/generated/model';
+
+import type {
+  BackupArtifactResponseDto,
+  RestoreVerificationRunResponseDto,
+} from '@/api/generated/model';
 import { BackupArtifactResponseDtoArtifactType } from '@/api/generated/model/backupArtifactResponseDtoArtifactType';
 import { BackupArtifactResponseDtoLifecycleState } from '@/api/generated/model/backupArtifactResponseDtoLifecycleState';
 import {
   computeEffectiveRestoreReadinessLevel,
-  isSimulatedBackupAdapterKind,
   configurationHealthSummaryI18nKey,
   externalCopyVariantToI18nKey,
-  mapArtifactsToExternalCopyVariant,
   healthStatisticValueStyle,
-  restoreReadinessStatisticValueStyle,
+  isSimulatedBackupAdapterKind,
+  mapArtifactsToExternalCopyVariant,
   mapBackupRunStatusAntdColor,
   mapConfigurationHealthLevel,
   mapDumpInspectionTriState,
   mapRestoreVerificationPhases,
   mapRestoreVerificationStatusAntdColor,
   normalizeHealthLevelString,
+  restoreReadinessStatisticValueStyle,
 } from '@/features/backup-dr/logic/backupDrMappers';
 
 describe('computeEffectiveRestoreReadinessLevel', () => {
@@ -28,7 +32,7 @@ describe('computeEffectiveRestoreReadinessLevel', () => {
         latestBackupStatus: 3,
         isLatestRunSimulatedExecution: true,
         latestAdapterKind: 'PgDump',
-      }),
+      })
     ).toBe('degraded');
   });
 
@@ -41,7 +45,7 @@ describe('computeEffectiveRestoreReadinessLevel', () => {
         latestBackupStatus: 3,
         isLatestRunSimulatedExecution: undefined,
         latestAdapterKind: 'Fake',
-      }),
+      })
     ).toBe('degraded');
   });
 
@@ -54,7 +58,7 @@ describe('computeEffectiveRestoreReadinessLevel', () => {
         latestBackupStatus: 3,
         isLatestRunSimulatedExecution: false,
         latestAdapterKind: 'PgDump',
-      }),
+      })
     ).toBe('degraded');
   });
 
@@ -67,7 +71,7 @@ describe('computeEffectiveRestoreReadinessLevel', () => {
         latestBackupStatus: 3,
         isLatestRunSimulatedExecution: false,
         latestAdapterKind: 'PgDump',
-      }),
+      })
     ).toBe('degraded');
   });
 
@@ -80,7 +84,7 @@ describe('computeEffectiveRestoreReadinessLevel', () => {
         latestBackupStatus: 3,
         isLatestRunSimulatedExecution: false,
         latestAdapterKind: 'PgDump',
-      }),
+      })
     ).toBe('unhealthy');
   });
 
@@ -93,7 +97,7 @@ describe('computeEffectiveRestoreReadinessLevel', () => {
         latestBackupStatus: 3,
         isLatestRunSimulatedExecution: false,
         latestAdapterKind: 'PgDump',
-      }),
+      })
     ).toBe('healthy');
   });
 
@@ -107,7 +111,7 @@ describe('computeEffectiveRestoreReadinessLevel', () => {
         isLatestRunSimulatedExecution: false,
         latestAdapterKind: 'PgDump',
         executionModeUsesSimulatedAdapter: true,
-      }),
+      })
     ).toBe('degraded');
   });
 });
@@ -183,7 +187,9 @@ describe('mapArtifactsToExternalCopyVariant / i18n key', () => {
   it('unknown empty', () => {
     expect(mapArtifactsToExternalCopyVariant(undefined)).toBe('unknown');
     expect(externalCopyVariantToI18nKey('unknown')).toBe('backupDr.externalCopy.unknown');
-    expect(externalCopyVariantToI18nKey('externalLifecycleOk')).toBe('backupDr.externalCopy.externalLifecycleOk');
+    expect(externalCopyVariantToI18nKey('externalLifecycleOk')).toBe(
+      'backupDr.externalCopy.externalLifecycleOk'
+    );
   });
 
   it('externalLifecycleOk / failed / staging / mixed', () => {
@@ -198,36 +204,49 @@ describe('mapArtifactsToExternalCopyVariant / i18n key', () => {
           artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_4,
           lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_1,
         },
-      ]),
+      ])
     ).toBe('externalLifecycleOk');
 
-    expect(mapArtifactsToExternalCopyVariant([logical(BackupArtifactResponseDtoLifecycleState.NUMBER_3)])).toBe('failed');
+    expect(
+      mapArtifactsToExternalCopyVariant([logical(BackupArtifactResponseDtoLifecycleState.NUMBER_3)])
+    ).toBe('failed');
 
     expect(
-      mapArtifactsToExternalCopyVariant([logical(BackupArtifactResponseDtoLifecycleState.NUMBER_0)]),
+      mapArtifactsToExternalCopyVariant([logical(BackupArtifactResponseDtoLifecycleState.NUMBER_0)])
     ).toBe('staging');
 
     expect(
       mapArtifactsToExternalCopyVariant([
         logical(BackupArtifactResponseDtoLifecycleState.NUMBER_3),
         logical(BackupArtifactResponseDtoLifecycleState.NUMBER_2),
-      ]),
+      ])
     ).toBe('mixed');
   });
 });
 
 describe('mapDumpInspectionTriState', () => {
   it('prefers dumpInspectionPassed then pgRestoreListExitCode (0 = pass)', () => {
-    expect(mapDumpInspectionTriState({ dumpInspectionPassed: true } as RestoreVerificationRunResponseDto)).toBe(true);
     expect(
-      mapDumpInspectionTriState({ dumpInspectionPassed: null, pgRestoreListExitCode: 0 } as RestoreVerificationRunResponseDto),
+      mapDumpInspectionTriState({ dumpInspectionPassed: true } as RestoreVerificationRunResponseDto)
     ).toBe(true);
     expect(
-      mapDumpInspectionTriState({ dumpInspectionPassed: null, pgRestoreListExitCode: 2 } as RestoreVerificationRunResponseDto),
+      mapDumpInspectionTriState({
+        dumpInspectionPassed: null,
+        pgRestoreListExitCode: 0,
+      } as RestoreVerificationRunResponseDto)
+    ).toBe(true);
+    expect(
+      mapDumpInspectionTriState({
+        dumpInspectionPassed: null,
+        pgRestoreListExitCode: 2,
+      } as RestoreVerificationRunResponseDto)
     ).toBe(false);
-    expect(mapDumpInspectionTriState({ dumpInspectionPassed: null, pgRestoreListExitCode: null } as RestoreVerificationRunResponseDto)).toBe(
-      undefined,
-    );
+    expect(
+      mapDumpInspectionTriState({
+        dumpInspectionPassed: null,
+        pgRestoreListExitCode: null,
+      } as RestoreVerificationRunResponseDto)
+    ).toBe(undefined);
   });
 });
 

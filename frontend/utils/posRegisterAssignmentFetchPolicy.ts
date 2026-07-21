@@ -23,7 +23,9 @@ export type PosSelectableRegisterListFetchParams = {
  *
  * When settings load fails, defer (3) until ensure-ready is not in-flight (unless it already errored), so readiness outcome is applied before spending a list request and to avoid racing auto-persist against a pending readiness response.
  */
-export function shouldFetchPosSelectableRegisterList(p: PosSelectableRegisterListFetchParams): boolean {
+export function shouldFetchPosSelectableRegisterList(
+  p: PosSelectableRegisterListFetchParams
+): boolean {
   if (!p.enabled || !p.cashRegisterResolved) return false;
 
   const readinessReady =

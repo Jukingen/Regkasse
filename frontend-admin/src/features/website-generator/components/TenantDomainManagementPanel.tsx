@@ -4,16 +4,17 @@ import { DownloadOutlined, MobileOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Card, Form, Input, Space, Switch, Table, Typography } from 'antd';
 import { useState } from 'react';
-import { downloadTenantAppPackage } from '@/features/website-generator/api/websiteGeneratorApi';
+
 import {
+  type TenantDomain,
   addTenantDomain,
   downloadTenantWebsitePackage,
   fetchTenantDomains,
   removeTenantDomain,
   setTenantDomainWebsiteEnabled,
   verifyTenantDomain,
-  type TenantDomain,
 } from '@/features/website-generator/api/tenantDomainsApi';
+import { downloadTenantAppPackage } from '@/features/website-generator/api/websiteGeneratorApi';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';

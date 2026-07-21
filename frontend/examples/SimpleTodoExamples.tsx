@@ -1,25 +1,19 @@
 /**
  * SimpleTodo Usage Examples - Basit React Todo kullanım örnekleri
- * 
+ *
  * Bu dosya, SimpleTodo componentinin farklı senaryolarda nasıl kullanılacağını gösterir.
  * React Native todo list için best practices ve RKSV-specific örnekler içerir.
- * 
+ *
  * @author Frontend Team
  * @version 1.0.0
  * @since 2025-01-10
  */
 
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Alert
-} from 'react-native';
-import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+
 import SimpleTodo from '../components/SimpleTodo';
 
 const SimpleTodoExamples: React.FC = () => {
@@ -41,7 +35,7 @@ const SimpleTodoExamples: React.FC = () => {
           enableCategories={false}
           enablePriority={false}
         />
-      )
+      ),
     },
     {
       id: 'rksv',
@@ -51,10 +45,10 @@ const SimpleTodoExamples: React.FC = () => {
         <SimpleTodo
           storageKey="rksv_compliance_todos"
           maxItems={50}
-          enableCategories={true}
-          enablePriority={true}
+          enableCategories
+          enablePriority
         />
-      )
+      ),
     },
     {
       id: 'minimal',
@@ -67,8 +61,8 @@ const SimpleTodoExamples: React.FC = () => {
           enableCategories={false}
           enablePriority={false}
         />
-      )
-    }
+      ),
+    },
   ];
 
   /**
@@ -146,38 +140,26 @@ const SimpleTodoExamples: React.FC = () => {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>SimpleTodo Examples</Text>
-        <Text style={styles.subtitle}>
-          React Native Todo List - Usage Examples
-        </Text>
+        <Text style={styles.subtitle}>React Native Todo List - Usage Examples</Text>
       </View>
 
       {/* Quick Actions */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Quick Actions</Text>
-        
-        <TouchableOpacity
-          style={styles.actionCard}
-          onPress={showQuickTipsAlert}
-        >
+
+        <TouchableOpacity style={styles.actionCard} onPress={showQuickTipsAlert}>
           <Ionicons name="lightbulb-outline" size={24} color="#2196F3" />
           <View style={styles.actionContent}>
             <Text style={styles.actionTitle}>Kullanım İpuçları</Text>
-            <Text style={styles.actionDescription}>
-              Nasıl kullanılacağını öğrenin
-            </Text>
+            <Text style={styles.actionDescription}>Nasıl kullanılacağını öğrenin</Text>
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.actionCard}
-          onPress={showRksvTemplates}
-        >
+        <TouchableOpacity style={styles.actionCard} onPress={showRksvTemplates}>
           <Ionicons name="document-text-outline" size={24} color="#FF9800" />
           <View style={styles.actionContent}>
             <Text style={styles.actionTitle}>RKSV Templates</Text>
-            <Text style={styles.actionDescription}>
-              Hazır görev şablonları
-            </Text>
+            <Text style={styles.actionDescription}>Hazır görev şablonları</Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -185,32 +167,27 @@ const SimpleTodoExamples: React.FC = () => {
       {/* Examples */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Todo Variants</Text>
-        
-        {examples.map(example => (
+
+        {examples.map((example) => (
           <View key={example.id} style={styles.exampleCard}>
             <TouchableOpacity
               style={styles.exampleHeader}
-              onPress={() => setActiveExample(
-                activeExample === example.id ? null : example.id
-              )}
-            >
+              onPress={() => {
+                setActiveExample(activeExample === example.id ? null : example.id);
+              }}>
               <View style={styles.exampleInfo}>
                 <Text style={styles.exampleTitle}>{example.title}</Text>
-                <Text style={styles.exampleDescription}>
-                  {example.description}
-                </Text>
+                <Text style={styles.exampleDescription}>{example.description}</Text>
               </View>
               <Ionicons
-                name={activeExample === example.id ? "chevron-up" : "chevron-down"}
+                name={activeExample === example.id ? 'chevron-up' : 'chevron-down'}
                 size={20}
                 color="#666"
               />
             </TouchableOpacity>
-            
+
             {activeExample === example.id && (
-              <View style={styles.exampleContent}>
-                {example.component}
-              </View>
+              <View style={styles.exampleContent}>{example.component}</View>
             )}
           </View>
         ))}
@@ -219,21 +196,21 @@ const SimpleTodoExamples: React.FC = () => {
       {/* Usage Guide */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Usage Guide</Text>
-        
+
         <View style={styles.guideCard}>
           <Text style={styles.guideTitle}>🚀 Projenizde Nasıl Kullanılır?</Text>
-          
+
           <View style={styles.codeBlock}>
             <Text style={styles.codeTitle}>1. Import Component:</Text>
             <Text style={styles.codeText}>
-{`import SimpleTodo from '../components/SimpleTodo';`}
+              {`import SimpleTodo from '../components/SimpleTodo';`}
             </Text>
           </View>
 
           <View style={styles.codeBlock}>
             <Text style={styles.codeTitle}>2. Basic Usage:</Text>
             <Text style={styles.codeText}>
-{`<SimpleTodo
+              {`<SimpleTodo
   storageKey="my_todos"
   maxItems={50}
   enableCategories={true}
@@ -245,7 +222,7 @@ const SimpleTodoExamples: React.FC = () => {
           <View style={styles.codeBlock}>
             <Text style={styles.codeTitle}>3. RKSV Optimized:</Text>
             <Text style={styles.codeText}>
-{`<SimpleTodo
+              {`<SimpleTodo
   storageKey="rksv_daily_tasks"
   maxItems={100}
   enableCategories={true}
@@ -271,34 +248,31 @@ const SimpleTodoExamples: React.FC = () => {
       {/* Best Practices */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Best Practices</Text>
-        
+
         <View style={styles.practiceCard}>
           <Text style={styles.practiceTitle}>📋 RKSV İş Akışı İçin:</Text>
           <Text style={styles.practiceText}>
-            • Günlük kontrol listeleri oluşturun{'\n'}
-            • TSE işlemlerini kategorize edin{'\n'}
-            • Compliance görevleri için HIGH priority kullanın{'\n'}
-            • Tamamlanan görevleri düzenli temizleyin
+            • Günlük kontrol listeleri oluşturun{'\n'}• TSE işlemlerini kategorize edin{'\n'}•
+            Compliance görevleri için HIGH priority kullanın{'\n'}• Tamamlanan görevleri düzenli
+            temizleyin
           </Text>
         </View>
 
         <View style={styles.practiceCard}>
           <Text style={styles.practiceTitle}>⚡ Performance:</Text>
           <Text style={styles.practiceText}>
-            • maxItems ile liste boyutunu sınırlayın{'\n'}
-            • Gereksiz kategoriler/priority'yi devre dışı bırakın{'\n'}
-            • Benzersiz storageKey kullanın{'\n'}
-            • Tamamlanan görevleri düzenli silin
+            • maxItems ile liste boyutunu sınırlayın{'\n'}• Gereksiz kategoriler/priority'yi devre
+            dışı bırakın{'\n'}• Benzersiz storageKey kullanın{'\n'}• Tamamlanan görevleri düzenli
+            silin
           </Text>
         </View>
 
         <View style={styles.practiceCard}>
           <Text style={styles.practiceTitle}>🎯 UX/UI:</Text>
           <Text style={styles.practiceText}>
-            • Kısa ve net görev tanımları yazın{'\n'}
-            • Kategori renklerini tutarlı kullanın{'\n'}
-            • Priority sistemini anlamlı şekilde kullanın{'\n'}
-            • User feedback için Alert'leri aktif bırakın
+            • Kısa ve net görev tanımları yazın{'\n'}• Kategori renklerini tutarlı kullanın{'\n'}•
+            Priority sistemini anlamlı şekilde kullanın{'\n'}• User feedback için Alert'leri aktif
+            bırakın
           </Text>
         </View>
       </View>

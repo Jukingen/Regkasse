@@ -1,12 +1,13 @@
 'use client';
 
 import { Alert, Space } from 'antd';
+
+import { useTenantDigitalService } from '@/features/digital-services/hooks/useTenantDigitalServices';
+import { ManagerDigitalRequestPanel } from '@/features/digital/components/ManagerDigitalRequestPanel';
 import {
   canGenerateDigitalApp,
   canGenerateDigitalWebsite,
 } from '@/features/digital/digitalServicePermissions';
-import { ManagerDigitalRequestPanel } from '@/features/digital/components/ManagerDigitalRequestPanel';
-import { useTenantDigitalService } from '@/features/digital-services/hooks/useTenantDigitalServices';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { DigitalServicePricingCards } from '@/features/website-generator/components/DigitalServicePricingCards';
 import { WebsiteGeneratorPanel } from '@/features/website-generator/components/WebsiteGeneratorPanel';

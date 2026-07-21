@@ -5,12 +5,12 @@
  * Product → ModifierGroup: welche Gruppen für dieses Produkt wählbar sind.
  * Add-on-Produkte pro Gruppe werden unter „Add-on-Gruppen“ verwaltet (nicht hier).
  */
-
-import React from 'react';
 import { Alert, Checkbox, Collapse, Typography } from 'antd';
-import type { ModifierGroupDto, AddOnGroupProductItemDto } from '@/lib/api/modifierGroups';
+import React from 'react';
+
 import { ListSkeleton } from '@/components/Skeleton';
 import { useI18n } from '@/i18n';
+import type { AddOnGroupProductItemDto, ModifierGroupDto } from '@/lib/api/modifierGroups';
 
 const { Text } = Typography;
 
@@ -27,7 +27,9 @@ export interface ExtraZutatenSectionProps {
 
 /** API response may return id or Id; return string in both cases. */
 function getGroupId(g: ModifierGroupDto): string {
-  return String((g as { id?: string; Id?: string }).id ?? (g as { id?: string; Id?: string }).Id ?? '');
+  return String(
+    (g as { id?: string; Id?: string }).id ?? (g as { id?: string; Id?: string }).Id ?? ''
+  );
 }
 
 export default function ExtraZutatenSection({
@@ -48,7 +50,7 @@ export default function ExtraZutatenSection({
   };
 
   const emptySelectedGroups = groups.filter(
-    (g) => selectedGroupIds.includes(getGroupId(g)) && ((g.products ?? []).length === 0)
+    (g) => selectedGroupIds.includes(getGroupId(g)) && (g.products ?? []).length === 0
   );
 
   const items = groups.map((group) => {
@@ -77,15 +79,20 @@ export default function ExtraZutatenSection({
       ),
       children: (
         <div style={{ paddingLeft: 24 }}>
-          <div style={{ marginBottom: 8, fontSize: 12, color: '#333' }}>{t('products.addonGroups.sectionTitle')}</div>
+          <div style={{ marginBottom: 8, fontSize: 12, color: '#333' }}>
+            {t('products.addonGroups.sectionTitle')}
+          </div>
           {products.length === 0 ? (
-            <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>{t('products.addonGroups.noneInGroup')}</Text>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
+              {t('products.addonGroups.noneInGroup')}
+            </Text>
           ) : (
             <ul style={{ margin: 0, paddingLeft: 20, marginBottom: 12 }}>
               {products.map((p) => (
                 <li key={p.productId} style={{ marginBottom: 4 }}>
                   <Text>
-                    {p.productName} — €{Number(p.price).toFixed(2)} ({t('products.addonGroups.taxSuffix', { type: p.taxType })})
+                    {p.productName} — €{Number(p.price).toFixed(2)} (
+                    {t('products.addonGroups.taxSuffix', { type: p.taxType })})
                   </Text>
                 </li>
               ))}
@@ -136,7 +143,9 @@ export default function ExtraZutatenSection({
       )}
       <Collapse
         items={items}
-        defaultActiveKey={selectedGroupIds.length > 0 ? selectedGroupIds : (groups[0] ? [getGroupId(groups[0])] : [])}
+        defaultActiveKey={
+          selectedGroupIds.length > 0 ? selectedGroupIds : groups[0] ? [getGroupId(groups[0])] : []
+        }
         style={{ background: '#fafafa' }}
       />
     </div>

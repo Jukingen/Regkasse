@@ -1,9 +1,9 @@
 'use client';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { WebsiteGeneratorPanel } from '@/features/website-generator/components/WebsiteGeneratorPanel';
-import { TenantDomainsPanel } from '@/features/website-generator/components/TenantDomainsPanel';
 import { TenantCustomizationPanel } from '@/features/website-generator/components/TenantCustomizationPanel';
+import { TenantDomainsPanel } from '@/features/website-generator/components/TenantDomainsPanel';
+import { WebsiteGeneratorPanel } from '@/features/website-generator/components/WebsiteGeneratorPanel';
 import { useI18n } from '@/i18n';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 

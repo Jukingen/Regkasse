@@ -1,6 +1,7 @@
 // Türkçe Açıklama: Bu component, dokunmatik dostu, sade ve büyük butonlu bir sepet/kasa ekranı sunar. Tüm hesaplamalar backend'den gelir, frontend'de tekrar hesaplanmaz.
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -15,15 +16,14 @@ import {
   FlatList,
 } from 'react-native';
 
-import { useApiCart } from '../hooks/useApiCart';
 import CartFooter from './CartFooter';
-import { useAppState } from '../contexts/AppStateContext';
+import EmailInvoice from './EmailInvoice';
+import ErrorModal from './ErrorModal';
 import PaymentScreen from './PaymentScreen';
 import SplitBillSection from './SplitBillSection';
-import ErrorModal from './ErrorModal';
-import EmailInvoice from './EmailInvoice';
 import WaiterShortcuts from './WaiterShortcuts';
-import { useTranslation } from 'react-i18next';
+import { useAppState } from '../contexts/AppStateContext';
+import { useApiCart } from '../hooks/useApiCart';
 
 // Sepet item'ını CartScreen için uygun tipe dönüştürür.
 // stockQuantity: Backend cart response'da şu an yok; ileride eklense bile kullanılır. Yoksa güvenli fallback.
@@ -100,7 +100,10 @@ const CartScreen: React.FC = () => {
   const [lastPayments, setLastPayments] = useState<any>(null); // Son ödeme verisi (isteğe bağlı)
   const [splitData, setSplitData] = useState<any[]>([]); // Split bill verisi
   const [errorModal, setErrorModal] = useState({ visible: false, code: '', message: '' });
-  const [emailInvoice, setEmailInvoice] = useState<{ visible: boolean; data: any }>({ visible: false, data: null });
+  const [emailInvoice, setEmailInvoice] = useState<{ visible: boolean; data: any }>({
+    visible: false,
+    data: null,
+  });
   const [tip, setTip] = useState(0); // Bahşiş tutarı
   const [addingItemId, setAddingItemId] = useState<string | null>(null); // Sadece eklenen ürünü disable et
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -108,7 +111,9 @@ const CartScreen: React.FC = () => {
   // Sepet değiştiğinde ilk ürünü otomatik seçili yap
   useEffect(() => {
     if (cart && cart.items.length > 0) {
-      setSelectedItemId(prev => prev && cart.items.some(i => i.id === prev) ? prev : cart.items[0].id);
+      setSelectedItemId((prev) =>
+        prev && cart.items.some((i) => i.id === prev) ? prev : cart.items[0].id
+      );
     } else {
       setSelectedItemId(null);
     }
@@ -124,7 +129,9 @@ const CartScreen: React.FC = () => {
       <View style={styles.emptyBox}>
         <Text style={styles.emptyEmoji}>🛒</Text>
         <Text style={styles.emptyText}>{t('cart:empty', 'Sepetiniz boş!')}</Text>
-        <Text style={styles.emptyMotivation}>{t('cart:emptyMotivation', 'Hadi alışverişe başlayın ve favori ürünlerinizi ekleyin.')}</Text>
+        <Text style={styles.emptyMotivation}>
+          {t('cart:emptyMotivation', 'Hadi alışverişe başlayın ve favori ürünlerinizi ekleyin.')}
+        </Text>
       </View>
     );
   }
@@ -137,9 +144,18 @@ const CartScreen: React.FC = () => {
       if (newQuantity <= 0) {
         Alert.alert(
           t('cart:removeConfirmTitle', 'Ürünü Kaldır'),
-          t('cart:removeConfirmMessage', 'Bu ürünü sepetten kaldırmak istediğinizden emin misiniz?'),
+          t(
+            'cart:removeConfirmMessage',
+            'Bu ürünü sepetten kaldırmak istediğinizden emin misiniz?'
+          ),
           [
-            { text: t('cart:cancel', 'İptal'), style: 'cancel', onPress: () => setProcessingItem(null) },
+            {
+              text: t('cart:cancel', 'İptal'),
+              style: 'cancel',
+              onPress: () => {
+                setProcessingItem(null);
+              },
+            },
             {
               text: t('cart:remove', 'Kaldır'),
               style: 'destructive',
@@ -239,15 +255,15 @@ const CartScreen: React.FC = () => {
   const handlePaymentCancelled = (cancelResponse: any) => {
     setShowPayment(false);
     setCurrentPaymentSessionId(null); // Session ID'yi temizle
-    
+
     // Ödeme iptal bildirimini göster
     addNotification({
       type: 'info',
       title: t('cart:paymentCancelled', 'Ödeme İptal Edildi'),
       message: `${t('cart:cancellationReason', 'İptal Sebebi')}: ${cancelResponse.cancellationReason}`,
-      duration: 5000
+      duration: 5000,
     });
-    
+
     // Sepeti temizle (iptal edilen ödeme için)
     clearCart();
   };
@@ -266,8 +282,8 @@ const CartScreen: React.FC = () => {
       case 'split_half':
         // Yarı-yarı böl
         setSplitData([
-          { name: 'Kişi 1', amount: amount, method: 'cash' },
-          { name: 'Kişi 2', amount: amount, method: 'card' }
+          { name: 'Kişi 1', amount, method: 'cash' },
+          { name: 'Kişi 2', amount, method: 'card' },
         ]);
         break;
       case 'add_tip':
@@ -284,9 +300,9 @@ const CartScreen: React.FC = () => {
           visible: true,
           data: {
             id: 'temp-invoice-id',
-            totalAmount: totalAmount,
-            receiptNumber: 'TEMP-001'
-          }
+            totalAmount,
+            receiptNumber: 'TEMP-001',
+          },
         });
         break;
     }
@@ -298,17 +314,17 @@ const CartScreen: React.FC = () => {
       // Ödeme session ID oluştur (gerçek uygulamada backend'den gelir)
       const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       setCurrentPaymentSessionId(sessionId);
-      
+
       // Backend'e ödeme isteği gönder
       console.log(`Processing ${method} payment for ${amount} with session ${sessionId}`);
-      
+
       // Ödeme ekranını aç
       setShowPayment(true);
     } catch (error) {
       setErrorModal({
         visible: true,
         code: 'PAYMENT_ERROR',
-        message: t('cart:paymentError', 'Ödeme işlemi başarısız')
+        message: t('cart:paymentError', 'Ödeme işlemi başarısız'),
       });
     }
   };
@@ -317,12 +333,15 @@ const CartScreen: React.FC = () => {
   const printReceipt = async () => {
     try {
       console.log('Printing receipt...');
-      Alert.alert(t('cart:printSuccess', 'Başarılı'), t('cart:printSuccessMessage', 'Fiş yazdırılıyor...'));
+      Alert.alert(
+        t('cart:printSuccess', 'Başarılı'),
+        t('cart:printSuccessMessage', 'Fiş yazdırılıyor...')
+      );
     } catch (error) {
       setErrorModal({
         visible: true,
         code: 'PRINT_ERROR',
-        message: t('cart:printError', 'Yazdırma hatası')
+        message: t('cart:printError', 'Yazdırma hatası'),
       });
     }
   };
@@ -378,22 +397,42 @@ const CartScreen: React.FC = () => {
   };
 
   // Ağ hatası ile sarmalayan yardımcı fonksiyon
-  const withNetworkError = (fn: (...args: any[]) => Promise<void>, retryLabel: string) => async (...args: any[]) => {
-    try {
-      await fn(...args);
-      setNetworkError(null);
-      setRetryAction(null);
-    } catch (e: any) {
-      setNetworkError(t('cart:networkError', 'Netzwerkfehler! Bitte überprüfen Sie Ihre Verbindung.'));
-      setRetryAction(() => async () => await fn(...args));
-    }
-  };
+  const withNetworkError =
+    (fn: (...args: any[]) => Promise<void>, retryLabel: string) =>
+    async (...args: any[]) => {
+      try {
+        await fn(...args);
+        setNetworkError(null);
+        setRetryAction(null);
+      } catch (e: any) {
+        setNetworkError(
+          t('cart:networkError', 'Netzwerkfehler! Bitte überprüfen Sie Ihre Verbindung.')
+        );
+        setRetryAction(() => async () => {
+          await fn(...args);
+        });
+      }
+    };
 
   // Sepet işlemlerini ağ hatası ile sarmala
-  const safeHandleQuantityChange = withNetworkError(handleQuantityChange, t('cart:updateQuantity', 'Miktar güncelle'));
-  const safeHandleClearCart = withNetworkError(async () => { await handleClearCart(); }, t('cart:clearCart', 'Sepeti temizle'));
-  const safeHandleApplyCoupon = withNetworkError(handleApplyCoupon, t('cart:applyCoupon', 'Kupon uygula'));
-  const safeHandleRemoveCoupon = withNetworkError(handleRemoveCoupon, t('cart:removeCoupon', 'Kupon kaldır'));
+  const safeHandleQuantityChange = withNetworkError(
+    handleQuantityChange,
+    t('cart:updateQuantity', 'Miktar güncelle')
+  );
+  const safeHandleClearCart = withNetworkError(
+    async () => {
+      await handleClearCart();
+    },
+    t('cart:clearCart', 'Sepeti temizle')
+  );
+  const safeHandleApplyCoupon = withNetworkError(
+    handleApplyCoupon,
+    t('cart:applyCoupon', 'Kupon uygula')
+  );
+  const safeHandleRemoveCoupon = withNetworkError(
+    handleRemoveCoupon,
+    t('cart:removeCoupon', 'Kupon kaldır')
+  );
 
   // Sepet toplamı ve alt bilgi değerleri - backend'den gelen gross model (useApiCart: grandTotal / gross variants)
   const subtotal = (cart as any)?.subtotalGross ?? (cart as any)?.subtotal ?? 0;
@@ -409,32 +448,47 @@ const CartScreen: React.FC = () => {
     return (
       <TouchableOpacity
         style={[styles.cardBox, isSelected && styles.cardBoxSelected]}
-        onPress={() => setSelectedItemId(mapped.id)}
-        activeOpacity={0.85}
-      >
+        onPress={() => {
+          setSelectedItemId(mapped.id);
+        }}
+        activeOpacity={0.85}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardName}>{mapped.product.name}</Text>
           {isSelected && (
-            <Ionicons name="checkmark-circle" size={22} color={COLORS.accent} style={{ marginLeft: 4 }} />
+            <Ionicons
+              name="checkmark-circle"
+              size={22}
+              color={COLORS.accent}
+              style={{ marginLeft: 4 }}
+            />
           )}
         </View>
         <View style={styles.cardDetailsRow}>
-          <Text style={styles.cardDetail}>{t('cart:quantity', 'Miktar')}: <Text style={styles.bold}>{mapped.quantity}</Text></Text>
-          <Text style={styles.cardDetail}>{t('cart:unitPrice', 'Birim')}: <Text style={styles.bold}>{mapped.unitPrice.toFixed(2)} €</Text></Text>
+          <Text style={styles.cardDetail}>
+            {t('cart:quantity', 'Miktar')}: <Text style={styles.bold}>{mapped.quantity}</Text>
+          </Text>
+          <Text style={styles.cardDetail}>
+            {t('cart:unitPrice', 'Birim')}:{' '}
+            <Text style={styles.bold}>{mapped.unitPrice.toFixed(2)} €</Text>
+          </Text>
         </View>
         <View style={styles.cardDetailsRow}>
-          <Text style={styles.cardDetail}>{t('cart:totalAmount', 'Toplam')}: <Text style={styles.bold}>{mapped.totalAmount.toFixed(2)} €</Text></Text>
+          <Text style={styles.cardDetail}>
+            {t('cart:totalAmount', 'Toplam')}:{' '}
+            <Text style={styles.bold}>{mapped.totalAmount.toFixed(2)} €</Text>
+          </Text>
         </View>
         {mapped.notes && (
-          <Text style={styles.cardNote}>{t('cart:notes', 'Not')}: {mapped.notes}</Text>
+          <Text style={styles.cardNote}>
+            {t('cart:notes', 'Not')}: {mapped.notes}
+          </Text>
         )}
         <View style={styles.cardActionsRow}>
           <TouchableOpacity
             style={[styles.cardQtyBtn, isSelected && styles.cardQtyBtnActive]}
             onPress={() => safeHandleQuantityChange(mapped.id, mapped.quantity - 1)}
             disabled={processingItem === mapped.id}
-            accessibilityLabel={t('cart:decreaseQuantity', 'Miktarı azalt')}
-          >
+            accessibilityLabel={t('cart:decreaseQuantity', 'Miktarı azalt')}>
             <Ionicons name="remove-circle-outline" size={26} color={COLORS.danger} />
           </TouchableOpacity>
           <Text style={styles.cardQtyText}>{mapped.quantity}</Text>
@@ -442,16 +496,14 @@ const CartScreen: React.FC = () => {
             style={[styles.cardQtyBtn, isSelected && styles.cardQtyBtnActive]}
             onPress={() => safeHandleQuantityChange(mapped.id, mapped.quantity + 1)}
             disabled={processingItem === mapped.id}
-            accessibilityLabel={t('cart:increaseQuantity', 'Miktarı arttır')}
-          >
+            accessibilityLabel={t('cart:increaseQuantity', 'Miktarı arttır')}>
             <Ionicons name="add-circle-outline" size={26} color={COLORS.success} />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.cardDeleteBtn, isSelected && styles.cardDeleteBtnActive]}
             onPress={() => safeHandleQuantityChange(mapped.id, 0)}
             disabled={processingItem === mapped.id}
-            accessibilityLabel={t('cart:removeItem', 'Ürünü sil')}
-          >
+            accessibilityLabel={t('cart:removeItem', 'Ürünü sil')}>
             <Ionicons name="trash-outline" size={24} color={COLORS.danger} />
           </TouchableOpacity>
         </View>
@@ -467,7 +519,7 @@ const CartScreen: React.FC = () => {
       <FlatList
         data={cart.items}
         renderItem={renderCartCard}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingBottom: 8 }}
         style={{ flex: 1 }}
         initialNumToRender={8}
@@ -491,15 +543,13 @@ const CartScreen: React.FC = () => {
           <TouchableOpacity
             style={styles.couponBtn}
             onPress={safeHandleApplyCoupon}
-            disabled={isApplyingCoupon || !couponCode}
-          >
+            disabled={isApplyingCoupon || !couponCode}>
             <Text style={styles.couponBtnText}>{t('cart:applyCouponBtn', 'Uygula')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.couponRemoveBtn}
             onPress={safeHandleRemoveCoupon}
-            disabled={isApplyingCoupon || !couponCode}
-          >
+            disabled={isApplyingCoupon || !couponCode}>
             <Ionicons name="close-circle" size={22} color="#d32f2f" />
           </TouchableOpacity>
         </View>
@@ -509,30 +559,49 @@ const CartScreen: React.FC = () => {
       {/* Sepet özeti ve toplamlar */}
       <View style={styles.summaryRow}>
         {discount > 0 && (
-          <Text style={styles.discountText}>{t('cart:discount', 'İndirim')}: -{discount.toFixed(2)} €</Text>
+          <Text style={styles.discountText}>
+            {t('cart:discount', 'İndirim')}: -{discount.toFixed(2)} €
+          </Text>
         )}
-        <Animated.Text style={[styles.totalText, { transform: [{ scale: totalAnimation }] }]}>{t('cart:total', 'Toplam')}: {totalAmount.toFixed(2)} €</Animated.Text>
+        <Animated.Text style={[styles.totalText, { transform: [{ scale: totalAnimation }] }]}>
+          {t('cart:total', 'Toplam')}: {totalAmount.toFixed(2)} €
+        </Animated.Text>
       </View>
       {/* Sepet alt bilgi (footer) */}
       <CartFooter subtotal={subtotal} vat={vat} serviceFee={serviceFee} grandTotal={totalAmount} />
       {/* Split bill bölümü */}
       <SplitBillSection totalAmount={totalAmount} onSplitChange={setSplitData} />
       {/* Garson kısayolları */}
-      <WaiterShortcuts
-        totalAmount={totalAmount}
-        onQuickAction={handleQuickAction}
-      />
-      <View style={[styles.buttonRow, { marginTop: 4 }]}> {/* marginTop küçültüldü */}
-        <TouchableOpacity style={[styles.clearButton, { minHeight: 0, minWidth: 0, paddingVertical: 0, paddingHorizontal: 0 }]} onPress={safeHandleClearCart}>
+      <WaiterShortcuts totalAmount={totalAmount} onQuickAction={handleQuickAction} />
+      <View style={[styles.buttonRow, { marginTop: 4 }]}>
+        {' '}
+        {/* marginTop küçültüldü */}
+        <TouchableOpacity
+          style={[
+            styles.clearButton,
+            { minHeight: 0, minWidth: 0, paddingVertical: 0, paddingHorizontal: 0 },
+          ]}
+          onPress={safeHandleClearCart}>
           <Text style={styles.buttonText}>{t('cart:clearCartButton', 'Sepeti Temizle')}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.checkoutButton, { minHeight: 0, minWidth: 0, paddingVertical: 0, paddingHorizontal: 0 }]} onPress={handleCheckout}>
+        <TouchableOpacity
+          style={[
+            styles.checkoutButton,
+            { minHeight: 0, minWidth: 0, paddingVertical: 0, paddingHorizontal: 0 },
+          ]}
+          onPress={handleCheckout}>
           <Text style={styles.buttonText}>{t('cart:checkoutButton', 'Ödeme Yap')}</Text>
         </TouchableOpacity>
       </View>
       {/* PaymentScreen modal entegrasyonu */}
       <Modal visible={showPayment} transparent animationType="slide">
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.2)' }}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: 'rgba(0,0,0,0.2)',
+          }}>
           <PaymentScreen
             totalAmount={totalAmount}
             paymentSessionId={currentPaymentSessionId ?? undefined}
@@ -544,7 +613,9 @@ const CartScreen: React.FC = () => {
             tableNumber={1}
             onPaymentSuccess={handlePaymentSuccess}
             onConfirm={() => {}}
-            onCancel={() => setShowPayment(false)}
+            onCancel={() => {
+              setShowPayment(false);
+            }}
             onPaymentCancelled={handlePaymentCancelled}
             cashRegisterResolutionActive={showPayment}
           />
@@ -568,13 +639,17 @@ const CartScreen: React.FC = () => {
         visible={emailInvoice.visible}
         invoiceData={emailInvoice.data}
         onSend={handleEmailSend}
-        onClose={() => setEmailInvoice({ visible: false, data: null })}
+        onClose={() => {
+          setEmailInvoice({ visible: false, data: null });
+        }}
       />
       {/* Ağ bağlantısı hatası modalı */}
       <Modal visible={!!networkError} transparent animationType="fade">
         <View style={styles.networkModalContainer}>
           <View style={styles.networkModalContent}>
-            <Text style={styles.networkModalTitle}>{t('cart:networkErrorTitle', 'Verbindungsfehler')}</Text>
+            <Text style={styles.networkModalTitle}>
+              {t('cart:networkErrorTitle', 'Verbindungsfehler')}
+            </Text>
             <Text style={styles.networkModalText}>{networkError}</Text>
             <View style={styles.networkModalBtnRow}>
               <TouchableOpacity
@@ -582,14 +657,16 @@ const CartScreen: React.FC = () => {
                 onPress={async () => {
                   if (retryAction) await retryAction();
                   setNetworkError(null);
-                }}
-              >
-                <Text style={styles.networkModalBtnText}>{t('cart:retry', 'Erneut versuchen')}</Text>
+                }}>
+                <Text style={styles.networkModalBtnText}>
+                  {t('cart:retry', 'Erneut versuchen')}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.networkModalCancelBtn}
-                onPress={() => setNetworkError(null)}
-              >
+                onPress={() => {
+                  setNetworkError(null);
+                }}>
                 <Text style={styles.networkModalBtnText}>{t('cart:cancel', 'Abbrechen')}</Text>
               </TouchableOpacity>
             </View>
@@ -599,10 +676,18 @@ const CartScreen: React.FC = () => {
       <Modal visible={showConfirmation} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{t('cart:checkoutConfirmationTitle', 'Ödeme Onayı')}</Text>
-            <Text style={styles.modalTotal}>{t('cart:checkoutConfirmationTotal', 'Toplam')}: {totalAmount.toFixed(2)} €</Text>
+            <Text style={styles.modalTitle}>
+              {t('cart:checkoutConfirmationTitle', 'Ödeme Onayı')}
+            </Text>
+            <Text style={styles.modalTotal}>
+              {t('cart:checkoutConfirmationTotal', 'Toplam')}: {totalAmount.toFixed(2)} €
+            </Text>
             <View style={styles.buttonRow}>
-              <TouchableOpacity onPress={() => setShowConfirmation(false)} style={styles.cancelBtn}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowConfirmation(false);
+                }}
+                style={styles.cancelBtn}>
                 <Text style={styles.buttonText}>{t('cart:cancel', 'İptal')}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={confirmCheckout} style={styles.confirmBtn}>
@@ -624,10 +709,27 @@ const CartScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 8, backgroundColor: COLORS.background },
-  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 8, textAlign: 'center', color: COLORS.accent },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
+    color: COLORS.accent,
+  },
   // Ürün kutusu stilleri
-  itemBox: { backgroundColor: '#f8f8f8', borderRadius: 10, padding: 8, marginBottom: 8, elevation: 1 },
-  itemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },
+  itemBox: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: 10,
+    padding: 8,
+    marginBottom: 8,
+    elevation: 1,
+  },
+  itemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
   itemName: { fontSize: 14, fontWeight: '600', flex: 1 },
   itemDetailsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
   detailText: { fontSize: 12, color: '#444' },
@@ -639,11 +741,33 @@ const styles = StyleSheet.create({
   price: { flex: 1, textAlign: 'right', fontSize: 14, fontWeight: '600' },
   removeBtn: { backgroundColor: '#d32f2f', borderRadius: 8, padding: 6, marginLeft: 4 },
   // Kupon alanı stilleri
-  couponBox: { backgroundColor: COLORS.card, borderRadius: 8, padding: 6, marginTop: 4, marginBottom: 4, borderWidth: 1, borderColor: COLORS.border },
+  couponBox: {
+    backgroundColor: COLORS.card,
+    borderRadius: 8,
+    padding: 6,
+    marginTop: 4,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
   couponLabel: { fontSize: 12, fontWeight: 'bold', marginBottom: 2, color: COLORS.text },
   couponRow: { flexDirection: 'row', alignItems: 'center' },
-  couponInput: { flex: 1, backgroundColor: COLORS.background, borderRadius: 6, padding: 6, fontSize: 13, borderWidth: 1, borderColor: COLORS.border, marginRight: 4 },
-  couponBtn: { backgroundColor: COLORS.accent, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 6 },
+  couponInput: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    borderRadius: 6,
+    padding: 6,
+    fontSize: 13,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginRight: 4,
+  },
+  couponBtn: {
+    backgroundColor: COLORS.accent,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
   couponBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
   couponRemoveBtn: { marginLeft: 2 },
   couponError: { color: COLORS.danger, fontSize: 12, marginTop: 2 },
@@ -653,20 +777,50 @@ const styles = StyleSheet.create({
   totalText: { fontSize: 16, fontWeight: 'bold', color: COLORS.accent },
   discountText: { fontSize: 13, fontWeight: 'bold', color: COLORS.danger, marginBottom: 1 },
   buttonRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }, // marginTop küçültüldü
-  clearButton: { flex: 1, backgroundColor: COLORS.danger, marginRight: 2, borderRadius: 8, padding: 10, alignItems: 'center' },
-  checkoutButton: { flex: 1, backgroundColor: COLORS.accent, marginLeft: 2, borderRadius: 8, padding: 10, alignItems: 'center' },
+  clearButton: {
+    flex: 1,
+    backgroundColor: COLORS.danger,
+    marginRight: 2,
+    borderRadius: 8,
+    padding: 10,
+    alignItems: 'center',
+  },
+  checkoutButton: {
+    flex: 1,
+    backgroundColor: COLORS.accent,
+    marginLeft: 2,
+    borderRadius: 8,
+    padding: 10,
+    alignItems: 'center',
+  },
   buttonText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
-  modalContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
   modalContent: { backgroundColor: '#fff', padding: 16, borderRadius: 12, alignItems: 'center' },
   modalTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 6 },
   modalTotal: { fontSize: 14, fontWeight: '600', marginBottom: 8 },
   cancelBtn: { backgroundColor: '#eee', borderRadius: 8, padding: 8, marginRight: 4 },
   confirmBtn: { backgroundColor: '#27ae60', borderRadius: 8, padding: 8, marginLeft: 4 },
   errorText: { color: '#d32f2f', fontSize: 12, textAlign: 'center', marginBottom: 4 },
-  emptyBox: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.accentSoft },
+  emptyBox: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.accentSoft,
+  },
   emptyEmoji: { fontSize: 54, marginBottom: 8 },
   emptyText: { color: COLORS.accent, fontSize: 18, fontWeight: 'bold', marginTop: 8 },
-  emptyMotivation: { color: COLORS.textSoft, fontSize: 14, marginTop: 4, textAlign: 'center', maxWidth: 260 },
+  emptyMotivation: {
+    color: COLORS.textSoft,
+    fontSize: 14,
+    marginTop: 4,
+    textAlign: 'center',
+    maxWidth: 260,
+  },
   // Ağ hatası modalı stilleri
   networkModalContainer: {
     flex: 1,
@@ -721,13 +875,51 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   // Tablo stilleri
-  tableHeaderRow: { flexDirection: 'row', borderBottomWidth: 1, borderColor: COLORS.border, paddingBottom: 4, marginBottom: 4, backgroundColor: COLORS.tableHeader },
-  tableHeaderColName: { flex: 2, textAlign: 'left', fontWeight: 'bold', fontSize: 13, color: COLORS.text },
-  tableHeaderColQty: { flex: 1.2, textAlign: 'center', fontWeight: 'bold', fontSize: 13, color: COLORS.text },
-  tableHeaderColPrice: { flex: 1.2, textAlign: 'center', fontWeight: 'bold', fontSize: 13, color: COLORS.text },
-  tableHeaderColTotal: { flex: 1.2, textAlign: 'center', fontWeight: 'bold', fontSize: 13, color: COLORS.text },
+  tableHeaderRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderColor: COLORS.border,
+    paddingBottom: 4,
+    marginBottom: 4,
+    backgroundColor: COLORS.tableHeader,
+  },
+  tableHeaderColName: {
+    flex: 2,
+    textAlign: 'left',
+    fontWeight: 'bold',
+    fontSize: 13,
+    color: COLORS.text,
+  },
+  tableHeaderColQty: {
+    flex: 1.2,
+    textAlign: 'center',
+    fontWeight: 'bold',
+    fontSize: 13,
+    color: COLORS.text,
+  },
+  tableHeaderColPrice: {
+    flex: 1.2,
+    textAlign: 'center',
+    fontWeight: 'bold',
+    fontSize: 13,
+    color: COLORS.text,
+  },
+  tableHeaderColTotal: {
+    flex: 1.2,
+    textAlign: 'center',
+    fontWeight: 'bold',
+    fontSize: 13,
+    color: COLORS.text,
+  },
   tableHeaderColDelete: { flex: 0.7 },
-  tableRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 0.5, borderColor: COLORS.border, backgroundColor: COLORS.tableRow },
+  tableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 0.5,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.tableRow,
+  },
   tableColName: { flex: 2, textAlign: 'left', fontSize: 14, color: COLORS.text },
   tableColQty: { flex: 1.2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   qtyBtnTouch: {
@@ -741,7 +933,13 @@ const styles = StyleSheet.create({
   },
   qtyText: { minWidth: 24, textAlign: 'center', fontSize: 15, color: COLORS.text },
   tableColPrice: { flex: 1.2, textAlign: 'center', fontSize: 14, color: COLORS.text },
-  tableColTotal: { flex: 1.2, textAlign: 'center', fontWeight: 'bold', fontSize: 14, color: COLORS.text },
+  tableColTotal: {
+    flex: 1.2,
+    textAlign: 'center',
+    fontWeight: 'bold',
+    fontSize: 14,
+    color: COLORS.text,
+  },
   deleteBtnTouch: {
     width: 44,
     height: 44,
@@ -804,7 +1002,13 @@ const styles = StyleSheet.create({
   cardQtyBtnActive: {
     backgroundColor: COLORS.accentSoft,
   },
-  cardQtyText: { minWidth: 28, textAlign: 'center', fontSize: 16, fontWeight: 'bold', color: COLORS.text },
+  cardQtyText: {
+    minWidth: 28,
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
   cardDeleteBtn: {
     width: 38,
     height: 38,
@@ -819,4 +1023,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CartScreen; 
+export default CartScreen;

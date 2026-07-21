@@ -1,9 +1,9 @@
 export {
   ENVIRONMENT_CONFIG,
+  type EnvironmentBadgeColor,
+  type EnvironmentBadgeSnapshot,
   getEnvironmentBadge,
   getEnvironmentBadgeColor,
   getEnvironmentBadgeText,
   readEnvironmentSnapshot,
-  type EnvironmentBadgeColor,
-  type EnvironmentBadgeSnapshot,
 } from '../../../../shared/constants/environment';

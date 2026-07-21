@@ -1,12 +1,13 @@
 import { customInstance } from '@/lib/axios';
-import type { PersonalizationPreferences } from './types';
+
+import { normalizeThemeMode } from './theme';
 import type {
   DateFormatPattern,
   DefaultLandingPath,
   DensityMode,
+  PersonalizationPreferences,
 } from './types';
-import { normalizeThemeMode } from './theme';
-import { DEFAULT_PERSONALIZATION, DEFAULT_LANDING_PATHS } from './types';
+import { DEFAULT_LANDING_PATHS, DEFAULT_PERSONALIZATION } from './types';
 
 export type UserPreferencesApiResponse = {
   themeMode: string;
@@ -37,7 +38,7 @@ export async function fetchUserPreferences(): Promise<UserPreferencesApiResponse
 }
 
 export async function saveUserPreferences(
-  body: SaveUserPreferencesApiRequest,
+  body: SaveUserPreferencesApiRequest
 ): Promise<UserPreferencesApiResponse> {
   return customInstance<UserPreferencesApiResponse>({
     url: '/api/admin/user/preferences',
@@ -63,7 +64,9 @@ function normalizeDateFormatFromApi(_value: string | null | undefined): DateForm
   return DEFAULT_PERSONALIZATION.dateFormat;
 }
 
-export function mapApiToPersonalization(api: UserPreferencesApiResponse): PersonalizationPreferences {
+export function mapApiToPersonalization(
+  api: UserPreferencesApiResponse
+): PersonalizationPreferences {
   const timeFormat = api.timeFormat === '12h' || api.timeFormat === '24h' ? api.timeFormat : '24h';
   return {
     themeMode: normalizeThemeMode(api.themeMode),
@@ -75,7 +78,9 @@ export function mapApiToPersonalization(api: UserPreferencesApiResponse): Person
   };
 }
 
-export function mapPersonalizationToApi(prefs: PersonalizationPreferences): SaveUserPreferencesApiRequest {
+export function mapPersonalizationToApi(
+  prefs: PersonalizationPreferences
+): SaveUserPreferencesApiRequest {
   return {
     themeMode: prefs.themeMode,
     densityMode: prefs.density,

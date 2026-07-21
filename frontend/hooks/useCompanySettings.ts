@@ -38,7 +38,9 @@ export function useCompanySettings(): UseCompanySettingsResult {
     const interval = setInterval(() => {
       void refresh();
     }, COMPANY_POLL_MS);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+    };
   }, [refresh]);
 
   return { data, loading, error, refresh };

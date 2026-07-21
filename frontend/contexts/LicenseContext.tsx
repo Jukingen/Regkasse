@@ -1,4 +1,8 @@
-import { LicenseStatusProvider, useLicenseStatus, type LicenseStatus } from './LicenseStatusContext';
+import {
+  LicenseStatusProvider,
+  useLicenseStatus,
+  type LicenseStatus,
+} from './LicenseStatusContext';
 
 export type { LicenseStatus };
 

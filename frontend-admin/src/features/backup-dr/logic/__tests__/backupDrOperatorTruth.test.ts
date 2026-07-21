@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildOperatorTruthBanner, hasRecoverabilityProofGaps } from '@/features/backup-dr/logic/backupDrOperatorTruth';
+
+import {
+  buildOperatorTruthBanner,
+  hasRecoverabilityProofGaps,
+} from '@/features/backup-dr/logic/backupDrOperatorTruth';
 
 describe('buildOperatorTruthBanner', () => {
   const t = (k: string) => k;
@@ -34,7 +38,9 @@ describe('buildOperatorTruthBanner', () => {
       externalCopyVariant: 'unknown',
       restoreLatest: { status: 3, failureCode: 'X' } as never,
     });
-    expect(r.critical.some((x) => x.includes('backupDr.restoreVerification.drillFailed'))).toBe(true);
+    expect(r.critical.some((x) => x.includes('backupDr.restoreVerification.drillFailed'))).toBe(
+      true
+    );
   });
 });
 
@@ -45,7 +51,7 @@ describe('hasRecoverabilityProofGaps', () => {
         lastSuccessfulBackupAt: '2026-01-01',
         lastSuccessfulArtifactVerificationAt: null,
         lastSuccessfulRestoreProofAt: null,
-      } as never),
+      } as never)
     ).toBe(true);
   });
 
@@ -55,7 +61,7 @@ describe('hasRecoverabilityProofGaps', () => {
         lastSuccessfulBackupAt: '2026-01-01',
         lastSuccessfulArtifactVerificationAt: '2026-01-01',
         lastSuccessfulRestoreProofAt: '2026-01-01',
-      } as never),
+      } as never)
     ).toBe(false);
   });
 });

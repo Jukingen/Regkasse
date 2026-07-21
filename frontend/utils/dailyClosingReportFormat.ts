@@ -1,3 +1,4 @@
+import { formatUserDate } from './dateFormatter';
 import type { PosDailyClosingReportDto } from '../services/api/shiftService';
 
 export interface DailyClosingReportLabels {
@@ -59,8 +60,6 @@ function formatMoney(amount: number, locale: string): string {
     maximumFractionDigits: 2,
   }).format(amount);
 }
-
-import { formatUserDate } from './dateFormatter';
 
 function formatDate(iso: string, _locale: string): string {
   return formatUserDate(iso) || iso;
@@ -129,24 +128,24 @@ export function formatDailyClosingReportHtml(
     total: 0,
   };
 
-  const notes = [
-    report.salesFiscalReconciliationNote,
-    report.differenceScopeNote,
-  ]
+  const notes = [report.salesFiscalReconciliationNote, report.differenceScopeNote]
     .filter((note): note is string => Boolean(note?.trim()))
-    .map(
-      (note) =>
-        `<p class="note">${escapeHtml(note)}</p>`
-    )
+    .map((note) => `<p class="note">${escapeHtml(note)}</p>`)
     .join('');
 
   const taxRows = tax
     ? [
         tax.grossAt20 > 0 || tax.taxAt20 > 0
-          ? row(labels.tax20, `${formatMoney(tax.grossAt20, formatLocale)} / ${formatMoney(tax.taxAt20, formatLocale)}`)
+          ? row(
+              labels.tax20,
+              `${formatMoney(tax.grossAt20, formatLocale)} / ${formatMoney(tax.taxAt20, formatLocale)}`
+            )
           : '',
         tax.grossAt10 > 0 || tax.taxAt10 > 0
-          ? row(labels.tax10, `${formatMoney(tax.grossAt10, formatLocale)} / ${formatMoney(tax.taxAt10, formatLocale)}`)
+          ? row(
+              labels.tax10,
+              `${formatMoney(tax.grossAt10, formatLocale)} / ${formatMoney(tax.taxAt10, formatLocale)}`
+            )
           : '',
         tax.grossAt0 > 0 ? row(labels.tax0, formatMoney(tax.grossAt0, formatLocale)) : '',
       ]
@@ -166,13 +165,11 @@ export function formatDailyClosingReportHtml(
       </div>`
     : '';
 
-  const cashRegisterId =
-    report.cashRegisterId?.trim() || report.registerNumber?.trim() || '—';
+  const cashRegisterId = report.cashRegisterId?.trim() || report.registerNumber?.trim() || '—';
   const tseProvider = report.tseProviderLabel?.trim() || tseStatus;
   const depExport = report.depExportStatusLabel?.trim() || '—';
   const fiscalNet =
-    report.fiscalTotalNetAmount ??
-    report.fiscalTotalAmount - report.fiscalTotalTaxAmount;
+    report.fiscalTotalNetAmount ?? report.fiscalTotalAmount - report.fiscalTotalTaxAmount;
 
   return `<!DOCTYPE html>
 <html>

@@ -16,18 +16,18 @@
 
 ## 2. Files Inspected
 
-| File | Purpose | Verdict |
-|------|---------|--------|
-| `src/app/(protected)/users/page.tsx` | Users list, edit/create state, roleOptions, useRoles, UserFormDrawer props | **OK** – roleOptions from `roles` only; no user in deps |
-| `src/features/users/components/UserFormDrawer.tsx` | Create/Edit user form; role field (Radio.Group) | **OK** – options = roleOptions (catalog); value = user.role |
-| `src/features/users/components/UserDetailDrawer.tsx` | View user; shows user.role in a Tag | **OK** – read-only display, no role selection |
-| `src/features/users/components/RoleManagementDrawer.tsx` | Manage role permissions (which permissions a role has) | **N/A** – not user-role assignment; no “selected user”; lists all system roles |
-| `src/features/users/hooks/useRoles.ts` | Load role catalog (GET /api/UserManagement/roles) | **OK** – returns full list |
-| `src/features/users/hooks/useRolesWithPermissions.ts` | Used by RoleManagementDrawer only | **N/A** – for role↔permissions, not user↔roles |
-| `src/features/users/api/usersGateway.ts` | getRoles, getUserById, query keys | **OK** – catalog and user detail separate |
-| `src/features/users/utils/roleAssignmentMerge.ts` | Helpers for assigned vs catalog semantics | **OK** – used in tests/docs only |
-| `src/shared/auth/AdminOnlyGate.tsx` | Uses user?.role for redirect | **OK** – no role selection UI |
-| `src/app/(protected)/layout.tsx` | Menu visibility by role | **OK** – no role assignment UI |
+| File                                                     | Purpose                                                                    | Verdict                                                                        |
+| -------------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `src/app/(protected)/users/page.tsx`                     | Users list, edit/create state, roleOptions, useRoles, UserFormDrawer props | **OK** – roleOptions from `roles` only; no user in deps                        |
+| `src/features/users/components/UserFormDrawer.tsx`       | Create/Edit user form; role field (Radio.Group)                            | **OK** – options = roleOptions (catalog); value = user.role                    |
+| `src/features/users/components/UserDetailDrawer.tsx`     | View user; shows user.role in a Tag                                        | **OK** – read-only display, no role selection                                  |
+| `src/features/users/components/RoleManagementDrawer.tsx` | Manage role permissions (which permissions a role has)                     | **N/A** – not user-role assignment; no “selected user”; lists all system roles |
+| `src/features/users/hooks/useRoles.ts`                   | Load role catalog (GET /api/UserManagement/roles)                          | **OK** – returns full list                                                     |
+| `src/features/users/hooks/useRolesWithPermissions.ts`    | Used by RoleManagementDrawer only                                          | **N/A** – for role↔permissions, not user↔roles                                 |
+| `src/features/users/api/usersGateway.ts`                 | getRoles, getUserById, query keys                                          | **OK** – catalog and user detail separate                                      |
+| `src/features/users/utils/roleAssignmentMerge.ts`        | Helpers for assigned vs catalog semantics                                  | **OK** – used in tests/docs only                                               |
+| `src/shared/auth/AdminOnlyGate.tsx`                      | Uses user?.role for redirect                                               | **OK** – no role selection UI                                                  |
+| `src/app/(protected)/layout.tsx`                         | Menu visibility by role                                                    | **OK** – no role assignment UI                                                 |
 
 Searched for: any modal/drawer/table that (a) receives a selected user and (b) builds role options from that user or from “assigned” list. **None found.** Only one user-role assignment flow: Edit User → UserFormDrawer → role field.
 
@@ -36,23 +36,28 @@ Searched for: any modal/drawer/table that (a) receives a selected user and (b) b
 ## 3. Data Flow Verified
 
 ### Role catalog (visible list)
+
 - **Source:** `useRoles({ enabled: policy.canView || !!editUserId })` → `getRoles()` → `GET /api/UserManagement/roles`.
 - **Derivation:** `roleOptions = roles?.map(r => ({ value: r, label: r })) ?? ROLE_OPTIONS`. Dependency: `[roles]` only. **No `user` or `editUserFull` in this useMemo.**
 - **Usage:** Passed to UserFormDrawer as `roleOptions`; used for table role filter `options={roleOptions}`. Same catalog everywhere.
 
 ### Selected user / checked state
+
 - **Source:** `getUserById(editUserId)` → `GET /api/UserManagement/{id}` → `UserInfo.role` (single string).
 - **Usage:** In UserFormDrawer, `userToFormValues(user).role` sets form field `role`. Radio.Group value = that form value. Only the one assigned role is checked.
 
 ### User switch / state reset
+
 - **Form key:** `key={editUserId ?? 'edit'}` on UserFormDrawer; form key inside is `edit-${user.id}`. When `editUserId` or `user.id` changes, the form remounts → no stale selection.
 - **Sync effect:** When `user` changes (edit mode), effect runs and `setFieldsValue(userToFormValues(user))` so the form reflects the new user.
 
 ### Save and rehydration
+
 - **Mutation:** `updateMutation` calls `gatewayUpdateUser(id, data)` → `PUT /api/UserManagement/{id}`.
 - **onSuccess:** `invalidateQueries(getUserByIdQueryKey(id))`, `invalidateQueries(listQueryKey)`, `setEditUserId(null)`. Next time the same user is opened, user detail is refetched.
 
 ### Loading / empty
+
 - **UserFormDrawer:** When `rolesLoading && roleOptions.length === 0`, shows “Rollen werden geladen…” instead of rendering an option list. So the UI never shows a list built only from the assigned role.
 
 ---
@@ -68,9 +73,9 @@ Searched for: any modal/drawer/table that (a) receives a selected user and (b) b
 
 ## 5. Changes Made (Minimal Hardening)
 
-| File | Change |
-|------|--------|
-| `src/app/(protected)/users/page.tsx` | One comment added above `roleOptions` useMemo: *“Role list for form + filter: always from full catalog (useRoles). Never from selected user or assigned subset.”* |
+| File                                 | Change                                                                                                                                                            |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app/(protected)/users/page.tsx` | One comment added above `roleOptions` useMemo: _“Role list for form + filter: always from full catalog (useRoles). Never from selected user or assigned subset.”_ |
 
 No logic change. Comment makes the invariant explicit for future edits.
 

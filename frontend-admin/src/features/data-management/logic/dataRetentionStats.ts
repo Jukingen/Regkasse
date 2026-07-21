@@ -15,7 +15,7 @@ export type DataRetentionStats = {
 const PENDING_DELETION_STATUSES = new Set(['pending', 'export_ready', 'confirmed']);
 
 export function mapPlatformOverviewToStats(
-  overview: TenantDataManagementOverview,
+  overview: TenantDataManagementOverview
 ): DataRetentionStats {
   const activeCount = overview.items.filter((i) => i.lifecycleState === 'Active').length;
   let oldest: string | null = null;
@@ -37,9 +37,7 @@ export function mapPlatformOverviewToStats(
   };
 }
 
-export function mapTenantSummaryToStats(
-  summary: TenantDataManagementSummary,
-): DataRetentionStats {
+export function mapTenantSummaryToStats(summary: TenantDataManagementSummary): DataRetentionStats {
   const status = summary.latestDeletionRequest?.status?.toLowerCase() ?? '';
   const pending =
     Boolean(summary.latestDeletionRequest) && PENDING_DELETION_STATUSES.has(status) ? 1 : 0;

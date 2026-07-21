@@ -36,7 +36,7 @@ export async function getPitrAvailability(): Promise<PitrAvailabilityResponse> {
 }
 
 export async function validatePitrRestorePoint(
-  body: ValidatePitrRestorePointRequest,
+  body: ValidatePitrRestorePointRequest
 ): Promise<RestorePointValidationResult> {
   return customInstance<RestorePointValidationResult>({
     url: PITR_VALIDATE_PATH,

@@ -3,48 +3,50 @@ import { Tabs, Redirect } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, Pressable, StyleSheet, Alert } from 'react-native';
-
-import { WaveLoader } from '../../src/components/common/WaveLoader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { LicenseExpiryBanner } from '../../components/LicenseExpiryBanner';
-import { LicenseWarningBanner } from '../../components/LicenseWarningBanner';
-import { LicenseStatusIndicator } from '../../components/LicenseStatusIndicator';
 import { EnvironmentBadge } from '../../components/EnvironmentBadge';
-import { UserMenu } from '../../components/UserMenu';
-import { DevTenantSwitcher } from '../../src/components/dev/DevTenantSwitcher';
-import PaymentModal from '../../components/PaymentModal';
-import { TimeSyncBanner } from '../../components/TimeSyncBanner';
-import { TimeSyncStatusProvider } from '../../hooks/useTimeSyncStatus';
-import { TseOfflineRestrictionBanner, TseStatusBanner } from '../../components/TseStatusBanner';
 import { OfflineStatusChip } from '../../components/OfflineStatusChip';
 import { Header as WorkingHoursStatus } from '../../components/Header';
+import { LicenseExpiryBanner } from '../../components/LicenseExpiryBanner';
+import { LicenseStatusIndicator } from '../../components/LicenseStatusIndicator';
+import { LicenseWarningBanner } from '../../components/LicenseWarningBanner';
 import { MonatsbelegHeaderBadge } from '../../components/MonatsbelegHeaderBadge';
-import { OfflineBanner } from '../../components/OfflineBanner';
-import { ToastContainer } from '../../components/ToastNotification';
-import { eventEmitter } from '../../utils/eventEmitter';
 import { OFFLINE_CONFIG } from '../../constants/offlineConfig';
 import { MonatsbelegSessionBlockModal } from '../../components/MonatsbelegSessionBlockModal';
+import { OfflineBanner } from '../../components/OfflineBanner';
+import PaymentModal from '../../components/PaymentModal';
 import { StartbelegRequiredBanner } from '../../components/StartbelegRequiredBanner';
 import { TagesabschlussReminder } from '../../components/TagesabschlussReminder';
-import { subscribeOfflineSyncComplete } from '../../services/payment/offlineQueueSyncNotifier';
-import { POS_HEALTH_POLL_MS } from '../../constants/posPollingIntervals';
-import { useConditionalPolling } from '../../hooks/useConditionalPolling';
-import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
+import { TimeSyncBanner } from '../../components/TimeSyncBanner';
+import { ToastContainer } from '../../components/ToastNotification';
+import { TseOfflineRestrictionBanner, TseStatusBanner } from '../../components/TseStatusBanner';
+import { UserMenu } from '../../components/UserMenu';
 import { SoftColors, SoftShadows, SoftSpacing } from '../../constants/SoftTheme';
-import { useDevelopmentModeContext } from '../../contexts/DevelopmentModeContext';
-import { PosRegisterReadinessProvider, usePosRegisterReadiness } from '../../contexts/PosRegisterReadinessContext';
-import { TseHealthProvider } from '../../contexts/TseHealthContext';
+import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
 import { POS_ENSURE_READY_ON_ENTRY } from '../../constants/posFeatureFlags';
+import { POS_HEALTH_POLL_MS } from '../../constants/posPollingIntervals';
 import { useCart, getCartDisplayTotals, getCartLineTotal } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { isPosAllowedRole } from '../../utils/posRoleGuard';
+import { useDevelopmentModeContext } from '../../contexts/DevelopmentModeContext';
+import {
+  PosRegisterReadinessProvider,
+  usePosRegisterReadiness,
+} from '../../contexts/PosRegisterReadinessContext';
+import { TseHealthProvider } from '../../contexts/TseHealthContext';
+import { useConditionalPolling } from '../../hooks/useConditionalPolling';
+import { TimeSyncStatusProvider } from '../../hooks/useTimeSyncStatus';
+import { subscribeOfflineSyncComplete } from '../../services/payment/offlineQueueSyncNotifier';
+import { WaveLoader } from '../../src/components/common/WaveLoader';
+import { DevTenantSwitcher } from '../../src/components/dev/DevTenantSwitcher';
+import { eventEmitter } from '../../utils/eventEmitter';
 import { formatPrice } from '../../utils/formatPrice';
 import {
   isReadinessRegisterDecommissioned,
   isReadinessStartbelegGateActive,
   POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE,
 } from '../../utils/posRegisterGateCopy';
+import { isPosAllowedRole } from '../../utils/posRoleGuard';
 
 type PosTabsInnerProps = {
   t: (key: string, options?: Record<string, string | number>) => string;
@@ -76,7 +78,12 @@ function PosTabsInner({
   const posReadiness = usePosRegisterReadiness();
 
   const [tabBarToasts, setTabBarToasts] = useState<
-    { id: string; type: 'success' | 'error' | 'info' | 'warning'; message: string; duration?: number }[]
+    {
+      id: string;
+      type: 'success' | 'error' | 'info' | 'warning';
+      message: string;
+      duration?: number;
+    }[]
   >([]);
 
   const removeTabBarToast = useCallback((id: string) => {
@@ -97,7 +104,11 @@ function PosTabsInner({
       Alert.alert('Verkauf', POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE);
       return;
     }
-    if (isReadinessStartbelegGateActive(posReadiness.data, { ensureReadyEnabled: POS_ENSURE_READY_ON_ENTRY })) {
+    if (
+      isReadinessStartbelegGateActive(posReadiness.data, {
+        ensureReadyEnabled: POS_ENSURE_READY_ON_ENTRY,
+      })
+    ) {
       Alert.alert(
         'Startbeleg erforderlich',
         'Bitte zuerst den fiskalischen Startbeleg erstellen, bevor Sie zur Zahlung wechseln.'
@@ -108,7 +119,11 @@ function PosTabsInner({
   };
 
   const pushTabBarToast = useCallback(
-    (payload: { type?: 'success' | 'warning' | 'info' | 'error'; message: string; duration?: number }) => {
+    (payload: {
+      type?: 'success' | 'warning' | 'info' | 'error';
+      message: string;
+      duration?: number;
+    }) => {
       const id = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
       setTabBarToasts((prev) => [
         ...prev,
@@ -119,7 +134,12 @@ function PosTabsInner({
           duration: payload.duration ?? 4500,
         },
       ]);
-      setTimeout(() => removeTabBarToast(id), (payload.duration ?? 4500) + 400);
+      setTimeout(
+        () => {
+          removeTabBarToast(id);
+        },
+        (payload.duration ?? 4500) + 400
+      );
     },
     [removeTabBarToast]
   );
@@ -195,7 +215,8 @@ function PosTabsInner({
         <ToastContainer toasts={tabBarToasts} onRemove={removeTabBarToast} />
         <LicenseWarningBanner />
         <LicenseExpiryBanner />
-        <View style={styles.licenseStatusBar}>
+        {/* Top chrome sits above Tabs — apply notch/status-bar inset here once. */}
+        <View style={[styles.licenseStatusBar, { paddingTop: insets.top + 6 }]}>
           <View style={styles.headerStatusLeft}>
             <TseStatusBanner />
             <WorkingHoursStatus />
@@ -211,283 +232,291 @@ function PosTabsInner({
         </View>
         <TimeSyncBanner />
         <TseOfflineRestrictionBanner />
-      <MonatsbelegSessionBlockModal />
-      <StartbelegRequiredBanner />
-      <TagesabschlussReminder />
-      <Tabs
-        screenOptions={{
-          tabBarActiveTintColor: SoftColors.accent,
-          tabBarInactiveTintColor: SoftColors.textMuted,
-          tabBarStyle: {
-            height: TAB_BAR_HEIGHT + insets.bottom,
-            paddingBottom: insets.bottom,
-            paddingTop: 8,
-            overflow: 'visible',
-          },
-          headerShown: true,
-        }}
-      >
-        <Tabs.Screen
-          name="cash-register"
-          options={{
-            title: t('navigation:cashRegister') || 'Kasa',
-            tabBarIcon: ({ color }) => <Ionicons name="cash-outline" size={24} color={color} />,
-          }}
-        />
-
-        <Tabs.Screen
-          name="cart"
-          options={{
-            title: t('navigation:cart'),
-            tabBarButton: (props) => {
-              const { style } = props;
-              return (
-                <Pressable
-                  onPress={tryOpenPaymentModal}
-                  style={[style, styles.cartTabButton]}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  accessibilityLabel={
-                    cartCount > 0
-                      ? t('navigation:cartAccessibility.withCount', {
-                          count: cartCount,
-                          total: formatPrice(totals.grandTotalGross),
-                        })
-                      : t('navigation:cartAccessibility.default', {
-                          total: formatPrice(totals.grandTotalGross),
-                        })
-                  }
-                  accessibilityRole="button"
-                >
-                  <View style={styles.cartIconContainer}>
-                    <Ionicons name="cart" size={28} color={SoftColors.textInverse} />
-                    {cartCount > 0 && (
-                      <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{cartCount}</Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text style={styles.cartLabel} numberOfLines={1}>
-                    {formatPrice(totals.grandTotalGross)}
-                  </Text>
-                </Pressable>
-              );
+        <MonatsbelegSessionBlockModal />
+        <StartbelegRequiredBanner />
+        <TagesabschlussReminder />
+        <Tabs
+          screenOptions={{
+            tabBarActiveTintColor: SoftColors.accent,
+            tabBarInactiveTintColor: SoftColors.textMuted,
+            tabBarStyle: {
+              height: TAB_BAR_HEIGHT + insets.bottom,
+              paddingBottom: insets.bottom,
+              paddingTop: 8,
+              overflow: 'visible',
             },
-          }}
-        />
+            // Custom licenseStatusBar already consumed the top inset — avoid double padding.
+            headerStatusBarHeight: 0,
+            headerShown: true,
+          }}>
+          <Tabs.Screen
+            name="cash-register"
+            options={{
+              title: t('navigation:cashRegister') || 'Kasa',
+              tabBarIcon: ({ color }) => <Ionicons name="cash-outline" size={24} color={color} />,
+            }}
+          />
 
-        {/* Settings & Admin remain routable via UserMenu; hidden from footer */}
-        <Tabs.Screen
-          name="settings"
-          options={{
-            href: null,
-            title: t('navigation:settings') || 'Einstellungen',
-          }}
-        />
+          <Tabs.Screen
+            name="cart"
+            options={{
+              title: t('navigation:cart'),
+              tabBarButton: (props) => {
+                const { style } = props;
+                return (
+                  <Pressable
+                    onPress={tryOpenPaymentModal}
+                    style={[style, styles.cartTabButton]}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    accessibilityLabel={
+                      cartCount > 0
+                        ? t('navigation:cartAccessibility.withCount', {
+                            count: cartCount,
+                            total: formatPrice(totals.grandTotalGross),
+                          })
+                        : t('navigation:cartAccessibility.default', {
+                            total: formatPrice(totals.grandTotalGross),
+                          })
+                    }
+                    accessibilityRole="button">
+                    <View style={styles.cartIconContainer}>
+                      <Ionicons name="cart" size={28} color={SoftColors.textInverse} />
+                      {cartCount > 0 && (
+                        <View style={styles.badge}>
+                          <Text style={styles.badgeText}>{cartCount}</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.cartLabel} numberOfLines={1}>
+                      {formatPrice(totals.grandTotalGross)}
+                    </Text>
+                  </Pressable>
+                );
+              },
+            }}
+          />
 
-        <Tabs.Screen
-          name="admin-menu"
-          options={{
-            href: null,
-            title: 'Admin',
-          }}
-        />
-      </Tabs>
+          {/* Settings & Admin remain routable via UserMenu; hidden from footer */}
+          <Tabs.Screen
+            name="settings"
+            options={{
+              href: null,
+              title: t('navigation:settings') || 'Einstellungen',
+            }}
+          />
 
-      <PaymentModal
-        visible={isPaymentModalVisible}
-        onClose={() => setIsPaymentModalVisible(false)}
-        onSuccess={handlePaymentSuccess}
-        onPosToast={(p) => pushTabBarToast({ type: p.type ?? 'info', message: p.message })}
-        cartItems={(currentCart?.items || []).map((item) => ({
-          id: item.itemId ?? item.clientId ?? item.productId,
-          productId: item.productId,
-          productName: item.productName || 'Unknown Product',
-          quantity: item.qty,
-          unitPrice: item.unitPrice || item.price || 0,
-          totalPrice: item.totalPrice ?? getCartLineTotal(item as any),
-          taxType: item.taxType,
-          modifiers: item.modifiers?.map((m) => ({ modifierId: m.id, name: m.name, priceDelta: m.price })),
-        }))}
-        grandTotalGross={totals.grandTotalGross}
-        customerId={saleCustomer?.id ?? '00000000-0000-0000-0000-000000000000'}
-        tableNumber={activeTableId}
-      />
-      <OfflineBanner />
+          <Tabs.Screen
+            name="admin-menu"
+            options={{
+              href: null,
+              title: 'Admin',
+            }}
+          />
+        </Tabs>
+
+        <PaymentModal
+          visible={isPaymentModalVisible}
+          onClose={() => {
+            setIsPaymentModalVisible(false);
+          }}
+          onSuccess={handlePaymentSuccess}
+          onPosToast={(p) => {
+            pushTabBarToast({ type: p.type ?? 'info', message: p.message });
+          }}
+          cartItems={(currentCart?.items || []).map((item) => ({
+            id: item.itemId ?? item.clientId ?? item.productId,
+            productId: item.productId,
+            productName: item.productName || 'Unknown Product',
+            quantity: item.qty,
+            unitPrice: item.unitPrice || item.price || 0,
+            totalPrice: item.totalPrice ?? getCartLineTotal(item as any),
+            taxType: item.taxType,
+            modifiers: item.modifiers?.map((m) => ({
+              modifierId: m.id,
+              name: m.name,
+              priceDelta: m.price,
+            })),
+          }))}
+          grandTotalGross={totals.grandTotalGross}
+          customerId={saleCustomer?.id ?? '00000000-0000-0000-0000-000000000000'}
+          tableNumber={activeTableId}
+        />
+        <OfflineBanner />
       </View>
     </TseHealthProvider>
   );
 }
 
 export default function TabLayout() {
-    const { t } = useTranslation(['navigation', 'checkout']);
-    const insets = useSafeAreaInsets();
-    const { isAuthenticated, isLoading, isAuthReady, user, checkAuthStatus, logout } = useAuth();
-    const { settings: developmentModeSettings } = useDevelopmentModeContext();
-    const checkAuthStatusRef = useRef(checkAuthStatus);
-    checkAuthStatusRef.current = checkAuthStatus;
+  const { t } = useTranslation(['navigation', 'checkout']);
+  const insets = useSafeAreaInsets();
+  const { isAuthenticated, isLoading, isAuthReady, user, checkAuthStatus, logout } = useAuth();
+  const { settings: developmentModeSettings } = useDevelopmentModeContext();
+  const checkAuthStatusRef = useRef(checkAuthStatus);
+  checkAuthStatusRef.current = checkAuthStatus;
 
-    // Context usage
-    const {
-        activeTableId,
-        currentCart,
-        isPaymentModalVisible,
-        setIsPaymentModalVisible,
-        clearCart,
-        saleCustomer,
-        setSaleCustomer,
-    } = useCart();
+  // Context usage
+  const {
+    activeTableId,
+    currentCart,
+    isPaymentModalVisible,
+    setIsPaymentModalVisible,
+    clearCart,
+    saleCustomer,
+    setSaleCustomer,
+  } = useCart();
 
-    const totals = getCartDisplayTotals(currentCart);
-    const cartCount = totals.itemCount;
+  const totals = getCartDisplayTotals(currentCart);
+  const cartCount = totals.itemCount;
 
-    const handlePaymentSuccess = async (paymentId: string, paidTableNumber?: number) => {
-        setSaleCustomer(null);
-        await clearCart(paidTableNumber ?? activeTableId);
-    };
+  const handlePaymentSuccess = async (paymentId: string, paidTableNumber?: number) => {
+    setSaleCustomer(null);
+    await clearCart(paidTableNumber ?? activeTableId);
+  };
 
-    // When background offline queue sync completes after reconnect, show short summary to user
-    useEffect(() => {
-        const unsub = subscribeOfflineSyncComplete((processed, failed) => {
-            if (processed > 0 && failed > 0) {
-                Alert.alert(
-                    t('navigation:offlineQueue.title'),
-                    t('navigation:offlineQueue.syncSummaryPartial', { processed, failed })
-                );
-            } else if (processed > 0) {
-                Alert.alert(
-                    t('navigation:offlineQueue.title'),
-                    t('navigation:offlineQueue.syncSummarySuccess', { processed })
-                );
-            } else if (failed > 0) {
-                Alert.alert(
-                    t('navigation:offlineQueue.title'),
-                    t('navigation:offlineQueue.syncSummaryAllFailed', { failed })
-                );
-            }
-        });
-        return unsub;
-    }, [t]);
-
-    useConditionalPolling(
-        () => {
-            void checkAuthStatusRef.current();
-        },
-        POS_HEALTH_POLL_MS,
-        Boolean(isAuthenticated && user?.id),
-    );
-
-    if (!isAuthReady || isLoading) {
-        return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <WaveLoader size={32} color="#007AFF" />
-            </View>
+  // When background offline queue sync completes after reconnect, show short summary to user
+  useEffect(() => {
+    const unsub = subscribeOfflineSyncComplete((processed, failed) => {
+      if (processed > 0 && failed > 0) {
+        Alert.alert(
+          t('navigation:offlineQueue.title'),
+          t('navigation:offlineQueue.syncSummaryPartial', { processed, failed })
         );
-    }
+      } else if (processed > 0) {
+        Alert.alert(
+          t('navigation:offlineQueue.title'),
+          t('navigation:offlineQueue.syncSummarySuccess', { processed })
+        );
+      } else if (failed > 0) {
+        Alert.alert(
+          t('navigation:offlineQueue.title'),
+          t('navigation:offlineQueue.syncSummaryAllFailed', { failed })
+        );
+      }
+    });
+    return unsub;
+  }, [t]);
 
-    if (!isAuthenticated || !user) {
-        return <Redirect href="/(auth)/login" />;
-    }
+  useConditionalPolling(
+    () => {
+      void checkAuthStatusRef.current();
+    },
+    POS_HEALTH_POLL_MS,
+    Boolean(isAuthenticated && user?.id)
+  );
 
-    if (user.mustChangePasswordOnNextLogin) {
-        return <Redirect href="/(auth)/change-password" />;
-    }
-
-    // POS rol guard: yetkisiz rol tabs'a erişemez, login'e geri gönderilir
-    if (!isPosAllowedRole(user.role, user.roles)) {
-        console.warn('[TabLayout] POS role denied, redirecting to login. role:', user.role);
-        logout();
-        return <Redirect href="/(auth)/login" />;
-    }
-
+  if (!isAuthReady || isLoading) {
     return (
-        <PosRegisterReadinessProvider>
-            <TimeSyncStatusProvider enabled>
-                <PosTabsInner
-                    t={t}
-                    insets={insets}
-                    cartCount={cartCount}
-                    isPaymentModalVisible={isPaymentModalVisible}
-                    setIsPaymentModalVisible={setIsPaymentModalVisible}
-                    handlePaymentSuccess={handlePaymentSuccess}
-                    currentCart={currentCart}
-                    totals={totals}
-                    activeTableId={activeTableId}
-                    saleCustomer={saleCustomer}
-                    developmentModeSettings={developmentModeSettings}
-                />
-            </TimeSyncStatusProvider>
-        </PosRegisterReadinessProvider>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <WaveLoader size={32} color="#007AFF" />
+      </View>
     );
+  }
+
+  if (!isAuthenticated || !user) {
+    return <Redirect href="/(auth)/login" />;
+  }
+
+  if (user.mustChangePasswordOnNextLogin) {
+    return <Redirect href="/(auth)/change-password" />;
+  }
+
+  // POS rol guard: yetkisiz rol tabs'a erişemez, login'e geri gönderilir
+  if (!isPosAllowedRole(user.role, user.roles)) {
+    console.warn('[TabLayout] POS role denied, redirecting to login. role:', user.role);
+    logout();
+    return <Redirect href="/(auth)/login" />;
+  }
+
+  return (
+    <PosRegisterReadinessProvider>
+      <TimeSyncStatusProvider enabled>
+        <PosTabsInner
+          t={t}
+          insets={insets}
+          cartCount={cartCount}
+          isPaymentModalVisible={isPaymentModalVisible}
+          setIsPaymentModalVisible={setIsPaymentModalVisible}
+          handlePaymentSuccess={handlePaymentSuccess}
+          currentCart={currentCart}
+          totals={totals}
+          activeTableId={activeTableId}
+          saleCustomer={saleCustomer}
+          developmentModeSettings={developmentModeSettings}
+        />
+      </TimeSyncStatusProvider>
+    </PosRegisterReadinessProvider>
+  );
 }
 
 const styles = StyleSheet.create({
-    licenseStatusBar: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: 8,
-        flexWrap: 'nowrap',
-        paddingHorizontal: SoftSpacing.sm,
-        paddingVertical: 6,
-        backgroundColor: SoftColors.bgPrimary,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: SoftColors.border,
-        minHeight: 40,
-    },
-    headerStatusLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        flex: 1,
-        flexShrink: 1,
-        minWidth: 0,
-    },
-    headerRight: {
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-        alignItems: 'center',
-        gap: 8,
-        flexWrap: 'wrap',
-        flexShrink: 0,
-    },
-    cartTabButton: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: -15,
-    },
-    cartIconContainer: {
-        width: 54,
-        minHeight: 54,
-        borderRadius: 27,
-        backgroundColor: SoftColors.accent,
-        justifyContent: 'center',
-        alignItems: 'center',
-        ...SoftShadows.md,
-    },
-    cartLabel: {
-        fontSize: 10,
-        color: SoftColors.accentDark,
-        marginTop: 4,
-        fontWeight: '600',
-    },
-    badge: {
-        position: 'absolute',
-        top: -4,
-        right: -4,
-        backgroundColor: SoftColors.error,
-        borderRadius: 10,
-        minWidth: 20,
-        height: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: 4,
-        borderWidth: 2,
-        borderColor: SoftColors.bgCard,
-    },
-    badgeText: {
-        color: SoftColors.textInverse,
-        fontSize: 10,
-        fontWeight: 'bold',
-    },
+  licenseStatusBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'nowrap',
+    paddingHorizontal: SoftSpacing.sm,
+    paddingBottom: 6,
+    backgroundColor: SoftColors.bgPrimary,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: SoftColors.border,
+    minHeight: 40,
+  },
+  headerStatusLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+    flexShrink: 0,
+  },
+  cartTabButton: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: -15,
+  },
+  cartIconContainer: {
+    width: 54,
+    minHeight: 54,
+    borderRadius: 27,
+    backgroundColor: SoftColors.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SoftShadows.md,
+  },
+  cartLabel: {
+    fontSize: 10,
+    color: SoftColors.accentDark,
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: SoftColors.error,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: SoftColors.bgCard,
+  },
+  badgeText: {
+    color: SoftColors.textInverse,
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
 });

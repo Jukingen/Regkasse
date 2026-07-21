@@ -10,11 +10,11 @@ export const DEV_TENANT_CATALOG = [
 ] as const;
 
 const SLUG_ORDER = new Map(
-  DEV_TENANT_CATALOG.map((entry, index) => [entry.canonicalSlug, index] as const),
+  DEV_TENANT_CATALOG.map((entry, index) => [entry.canonicalSlug, index] as const)
 );
 
 const PRESET_SLUG_BY_CANONICAL = new Map(
-  DEV_TENANT_CATALOG.map((entry) => [entry.canonicalSlug, entry.presetSlug] as const),
+  DEV_TENANT_CATALOG.map((entry) => [entry.canonicalSlug, entry.presetSlug] as const)
 );
 
 /** Legacy / UI slugs → DB seed slugs (see backend DevTenantSlugAliases). */
@@ -46,7 +46,7 @@ export function getDevTenantCatalogDisplayName(slug: string): string | null {
 export function formatDisplaySlug(slug: string): string {
   const canonical = canonicalDevTenantSlug(slug).toLowerCase();
   const preset = PRESET_SLUG_BY_CANONICAL.get(
-    canonical as (typeof DEV_TENANT_CATALOG)[number]['canonicalSlug'],
+    canonical as (typeof DEV_TENANT_CATALOG)[number]['canonicalSlug']
   );
   if (preset) {
     return preset;
@@ -55,9 +55,10 @@ export function formatDisplaySlug(slug: string): string {
 }
 
 /** POS/FA shared row labels for header tenant switcher. */
-export function formatTenantDisplay(
-  tenant: Pick<AdminTenantListItem, 'name' | 'slug'>,
-): { displayName: string; displaySlug: string } {
+export function formatTenantDisplay(tenant: Pick<AdminTenantListItem, 'name' | 'slug'>): {
+  displayName: string;
+  displaySlug: string;
+} {
   return {
     displayName: getDevTenantCatalogDisplayName(tenant.slug) ?? tenant.name,
     displaySlug: formatDisplaySlug(tenant.slug),

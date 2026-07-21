@@ -1,14 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { OFFLINE_CONFIG } from '@/constants/offlineConfig';
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '@/constants/SoftTheme';
+import { OFFLINE_CONFIG } from '@/constants/offlineConfig';
 import { useOfflineStatus } from '@/hooks/useOfflineStatus';
 import { eventEmitter } from '@/utils/eventEmitter';
-import {
-  OFFLINE_UI_LEVEL_COLORS,
-  type OfflineUiLevel,
-} from '@/utils/offlineStatusLevel';
+import { OFFLINE_UI_LEVEL_COLORS, type OfflineUiLevel } from '@/utils/offlineStatusLevel';
 
 type SyncProgress = {
   current: number;
@@ -29,25 +26,14 @@ const SYNC_LABEL_DE = {
   offline: 'Keine Verbindung',
 } as const;
 
-function QueueProgressBar({
-  progress,
-  color,
-}: {
-  progress: number;
-  color: string;
-}) {
+function QueueProgressBar({ progress, color }: { progress: number; color: string }) {
   const clamped = Math.max(0, Math.min(1, progress));
   const percent = Math.round(clamped * 100);
 
   return (
     <View style={styles.progressRow} accessibilityRole="progressbar">
       <View style={styles.progressTrack}>
-        <View
-          style={[
-            styles.progressFill,
-            { width: `${percent}%`, backgroundColor: color },
-          ]}
-        />
+        <View style={[styles.progressFill, { width: `${percent}%`, backgroundColor: color }]} />
       </View>
       <Text style={styles.progressPercent}>{percent}%</Text>
     </View>
@@ -102,11 +88,9 @@ export function OfflineCounter() {
   const showSyncQueueProgress = isSyncing && syncProgress.total > 0;
   const showCapacityDetails = !isOnline || pendingCount > 0 || isSyncing;
   const showTimeWarning =
-    pendingCount > 0 &&
-    (hoursRemaining < OFFLINE_CONFIG.OFFLINE_WARNING_HOURS || !isOnline);
+    pendingCount > 0 && (hoursRemaining < OFFLINE_CONFIG.OFFLINE_WARNING_HOURS || !isOnline);
   const showCriticalCapacity =
-    pendingCount >= OFFLINE_CONFIG.CRITICAL_PENDING_COUNT ||
-    remainingCapacity <= 2;
+    pendingCount >= OFFLINE_CONFIG.CRITICAL_PENDING_COUNT || remainingCapacity <= 2;
 
   const syncLabel = !isOnline
     ? SYNC_LABEL_DE.offline
@@ -120,8 +104,7 @@ export function OfflineCounter() {
     <View
       style={[styles.container, { borderColor: statusColor }]}
       accessibilityRole="summary"
-      accessibilityLabel={`Offline-Status ${statusText}, ${pendingCount} von ${maxLimit} Bestellungen`}
-    >
+      accessibilityLabel={`Offline-Status ${statusText}, ${pendingCount} von ${maxLimit} Bestellungen`}>
       <View style={styles.header}>
         <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
         <Text style={[styles.statusText, { color: statusColor }]}>{statusText}</Text>
@@ -146,11 +129,7 @@ export function OfflineCounter() {
                 Sync: {syncProgress.current} / {syncProgress.total}
               </Text>
               <QueueProgressBar
-                progress={
-                  syncProgress.total > 0
-                    ? syncProgress.current / syncProgress.total
-                    : 0
-                }
+                progress={syncProgress.total > 0 ? syncProgress.current / syncProgress.total : 0}
                 color={SoftColors.info}
               />
             </View>
@@ -159,12 +138,11 @@ export function OfflineCounter() {
           {showTimeWarning ? (
             <View style={styles.warningContainer}>
               <Text style={styles.warningText}>
-                Noch ca. {hoursRemaining}{' '}
-                {hoursRemaining === 1 ? 'Stunde' : 'Stunden'} bis Ablauf
+                Noch ca. {hoursRemaining} {hoursRemaining === 1 ? 'Stunde' : 'Stunden'} bis Ablauf
               </Text>
               <Text style={styles.warningText}>
-                Nach {OFFLINE_CONFIG.OFFLINE_EXPIRY_HOURS} Stunden werden
-                Offline-Bestellungen gelöscht
+                Nach {OFFLINE_CONFIG.OFFLINE_EXPIRY_HOURS} Stunden werden Offline-Bestellungen
+                gelöscht
               </Text>
             </View>
           ) : null}
@@ -177,12 +155,10 @@ export function OfflineCounter() {
             </View>
           ) : null}
 
-          {pendingCount >= OFFLINE_CONFIG.WARNING_PENDING_COUNT &&
-          !showCriticalCapacity ? (
+          {pendingCount >= OFFLINE_CONFIG.WARNING_PENDING_COUNT && !showCriticalCapacity ? (
             <View style={styles.warningContainer}>
               <Text style={styles.warningText}>
-                Warnung: Warteschlange nähert sich dem Limit ({pendingCount}/
-                {maxLimit})
+                Warnung: Warteschlange nähert sich dem Limit ({pendingCount}/{maxLimit})
               </Text>
             </View>
           ) : null}

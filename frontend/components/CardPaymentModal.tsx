@@ -10,10 +10,8 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
-import {
-  confirmCardPayment,
-  createCardPaymentIntent,
-} from '../services/api/cardPaymentService';
+
+import { confirmCardPayment, createCardPaymentIntent } from '../services/api/cardPaymentService';
 
 export type CardPaymentModalProps = {
   visible: boolean;
@@ -118,7 +116,9 @@ export function CardPaymentModal({
               style={[styles.input, styles.halfInput]}
               placeholder={t('payment:cardPayment.expiryPlaceholder')}
               value={expiry}
-              onChangeText={(v) => setExpiry(formatExpiry(v))}
+              onChangeText={(v) => {
+                setExpiry(formatExpiry(v));
+              }}
               keyboardType="number-pad"
               maxLength={5}
               editable={!loading}
@@ -127,7 +127,9 @@ export function CardPaymentModal({
               style={[styles.input, styles.halfInput]}
               placeholder={t('payment:cardPayment.cvcPlaceholder')}
               value={cvc}
-              onChangeText={(v) => setCvc(v.replace(/\D/g, '').slice(0, 4))}
+              onChangeText={(v) => {
+                setCvc(v.replace(/\D/g, '').slice(0, 4));
+              }}
               keyboardType="number-pad"
               secureTextEntry
               maxLength={4}

@@ -19,7 +19,7 @@ function downloadTextFile(content: string, fileName: string, mimeType: string) {
 
 export function exportSignatureChainIssuesCsv(
   issues: RksvComplianceSignatureChainItem[],
-  stampUtc: string,
+  stampUtc: string
 ): void {
   const header = [
     'receiptNumber',
@@ -41,20 +41,16 @@ export function exportSignatureChainIssuesCsv(
       item.prevSignaturePrefix ?? '',
       item.expectedPrevSignaturePrefix ?? '',
       item.issue ?? '',
-    ].map(escapeCsvCell),
+    ].map(escapeCsvCell)
   );
   const csv = [header.join(','), ...rows.map((r) => r.join(','))].join('\n');
   const stamp = stampUtc.replace(/[:.]/g, '-').slice(0, 19);
-  downloadTextFile(
-    csv,
-    `rksv-signature-chain-issues_${stamp}_UTC.csv`,
-    'text/csv;charset=utf-8',
-  );
+  downloadTextFile(csv, `rksv-signature-chain-issues_${stamp}_UTC.csv`, 'text/csv;charset=utf-8');
 }
 
 export function exportSignatureChainIssuesFromChain(
   chain: RksvComplianceSignatureChainItem[],
-  stampUtc: string,
+  stampUtc: string
 ): void {
   exportSignatureChainIssuesCsv(chain.filter(isChainItemIssue), stampUtc);
 }

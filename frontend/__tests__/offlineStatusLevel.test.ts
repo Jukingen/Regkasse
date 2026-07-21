@@ -1,16 +1,13 @@
 import { describe, expect, it } from '@jest/globals';
 
-import {
-  resolveOfflineUiLevel,
-  type OfflineUiLevel,
-} from '../utils/offlineStatusLevel';
+import { resolveOfflineUiLevel, type OfflineUiLevel } from '../utils/offlineStatusLevel';
 
 describe('resolveOfflineUiLevel', () => {
-  const cases: Array<{
+  const cases: {
     name: string;
     input: Parameters<typeof resolveOfflineUiLevel>[0];
     expected: OfflineUiLevel;
-  }> = [
+  }[] = [
     {
       name: 'online when connected and queue empty',
       input: { isOnline: true, pendingCount: 0, hoursRemaining: 72 },

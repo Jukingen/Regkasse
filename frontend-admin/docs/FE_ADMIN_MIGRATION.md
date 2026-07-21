@@ -7,16 +7,16 @@
 
 ## 1) Değişen dosyalar listesi
 
-| Dosya | Değişiklik |
-|-------|------------|
-| `orval.config.ts` | Açıklama eklendi: admin product/category için `src/api/admin/*` kullanıldığı belirtildi. |
-| `src/api/admin/products.ts` | Tüm çağrılar `/api/admin/products`: list, getById, search, create, update, delete, stock, modifier-groups (legacy product endpoint kaldırıldı). |
-| `src/api/admin/categories.ts` | **Yeni.** Tüm kategori çağrıları `/api/admin/categories`. |
-| `src/features/products/hooks/useProducts.ts` | Generated `product/product` yerine `@/api/admin/products` kullanıyor. |
-| `src/features/categories/hooks/useCategories.ts` | Generated `categories/categories` yerine `@/api/admin/categories` kullanıyor. |
-| `src/app/(protected)/products/page.tsx` | List/search veri şekli admin response’a göre güncellendi (`listQuery.data?.items`, `listQuery.data?.pagination`); create sonucu `result?.id`. |
-| `src/lib/api/modifierGroups.ts` | `getProductModifierGroups` ve `setProductModifierGroups` artık `@/api/admin/products` üzerinden. |
-| `src/features/products/components/ProductForm.tsx` | Yorum güncellendi: categories için admin kullanıldığı yazıldı. |
+| Dosya                                              | Değişiklik                                                                                                                                      |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `orval.config.ts`                                  | Açıklama eklendi: admin product/category için `src/api/admin/*` kullanıldığı belirtildi.                                                        |
+| `src/api/admin/products.ts`                        | Tüm çağrılar `/api/admin/products`: list, getById, search, create, update, delete, stock, modifier-groups (legacy product endpoint kaldırıldı). |
+| `src/api/admin/categories.ts`                      | **Yeni.** Tüm kategori çağrıları `/api/admin/categories`.                                                                                       |
+| `src/features/products/hooks/useProducts.ts`       | Generated `product/product` yerine `@/api/admin/products` kullanıyor.                                                                           |
+| `src/features/categories/hooks/useCategories.ts`   | Generated `categories/categories` yerine `@/api/admin/categories` kullanıyor.                                                                   |
+| `src/app/(protected)/products/page.tsx`            | List/search veri şekli admin response’a göre güncellendi (`listQuery.data?.items`, `listQuery.data?.pagination`); create sonucu `result?.id`.   |
+| `src/lib/api/modifierGroups.ts`                    | `getProductModifierGroups` ve `setProductModifierGroups` artık `@/api/admin/products` üzerinden.                                                |
+| `src/features/products/components/ProductForm.tsx` | Yorum güncellendi: categories için admin kullanıldığı yazıldı.                                                                                  |
 
 ---
 
@@ -102,13 +102,14 @@ return {
 
 ```ts
 import {
-    useGetApiCategories,
-    usePostApiCategories,
-    usePutApiCategoriesId,
-    useDeleteApiCategoriesId,
-    useGetApiCategoriesIdProducts,
-    useGetApiCategoriesSearch
+  useDeleteApiCategoriesId,
+  useGetApiCategories,
+  useGetApiCategoriesIdProducts,
+  useGetApiCategoriesSearch,
+  usePostApiCategories,
+  usePutApiCategoriesId,
 } from '@/api/generated/categories/categories';
+
 // useList: () => useGetApiCategories({ query: { queryKey: categoryKeys.lists() } }),
 // useSearch: (query) => useGetApiCategoriesSearch({ query }, { query: { queryKey: [...], enabled: !!query } }),
 // ...
@@ -118,14 +119,15 @@ import {
 
 ```ts
 import {
-    useAdminCategoriesList,
-    useAdminCategoriesSearch,
-    useAdminCategoryProducts,
-    useCreateAdminCategory,
-    useUpdateAdminCategory,
-    useDeleteAdminCategory,
-    adminCategoriesQueryKeys,
+  adminCategoriesQueryKeys,
+  useAdminCategoriesList,
+  useAdminCategoriesSearch,
+  useAdminCategoryProducts,
+  useCreateAdminCategory,
+  useDeleteAdminCategory,
+  useUpdateAdminCategory,
 } from '@/api/admin/categories';
+
 // useList: () => useAdminCategoriesList({ queryKey: categoryKeys.lists() }),
 // useSearch: (query) => useAdminCategoriesSearch(query, { queryKey: [...], enabled: !!query }),
 // useProductsByCategory: (id) => useAdminCategoryProducts(id, { queryKey: categoryKeys.products(id), enabled: !!id }),
@@ -156,14 +158,14 @@ const pagination = listQuery.data?.pagination ? { current: page, total: listQuer
 **Önce**:
 
 ```ts
-const result = await createMutation.mutateAsync({ data: apiData }) as { data?: { id?: string } };
+const result = (await createMutation.mutateAsync({ data: apiData })) as { data?: { id?: string } };
 const createdId = result?.data?.id;
 ```
 
 **Sonra**:
 
 ```ts
-const result = await createMutation.mutateAsync({ data: apiData }) as { id?: string };
+const result = (await createMutation.mutateAsync({ data: apiData })) as { id?: string };
 const createdId = result?.id;
 ```
 
@@ -185,7 +187,11 @@ export async function setProductModifierGroups(productId: string, modifierGroupI
 **Sonra**:
 
 ```ts
-import { getAdminProductModifierGroups, setAdminProductModifierGroups as setAdminProductModifierGroupsApi } from '@/api/admin/products';
+import {
+  getAdminProductModifierGroups,
+  setAdminProductModifierGroups as setAdminProductModifierGroupsApi,
+} from '@/api/admin/products';
+
 // getProductModifierGroups → getAdminProductModifierGroups(productId)
 // setProductModifierGroups → setAdminProductModifierGroupsApi(productId, modifierGroupIds)
 ```
@@ -194,13 +200,13 @@ import { getAdminProductModifierGroups, setAdminProductModifierGroups as setAdmi
 
 ## 4) Endpoint eşlemesi (FE-Admin artık ne çağırıyor)
 
-| İşlem | Eski (artık kullanılmıyor) | Yeni (FE-Admin) |
-|-------|----------------------------|------------------|
-| Ürün listesi | GET legacy product (veya /list) | GET /api/admin/products |
-| Ürün detay | GET legacy product/{id} | GET /api/admin/products/{id} |
-| Ürün arama | GET legacy product/search | Admin client → `src/api/admin/products` search |
-| Ürün oluştur/güncelle/sil, stok, modifier-groups | legacy product/* | Admin client → `src/api/admin/products` |
-| Kategori listesi/detay/CRUD/search/products-by-category | legacy categories/* | GET/POST/PUT/DELETE /api/admin/categories, /api/admin/categories/{id}, /search, /{id}/products |
-| Modifier grupları (ürüne ata/getir) | legacy product modifier-groups | `modifierGroups.ts` → `@/api/admin/products` (getAdminProductModifierGroups, setAdminProductModifierGroups) |
+| İşlem                                                   | Eski (artık kullanılmıyor)      | Yeni (FE-Admin)                                                                                             |
+| ------------------------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Ürün listesi                                            | GET legacy product (veya /list) | GET /api/admin/products                                                                                     |
+| Ürün detay                                              | GET legacy product/{id}         | GET /api/admin/products/{id}                                                                                |
+| Ürün arama                                              | GET legacy product/search       | Admin client → `src/api/admin/products` search                                                              |
+| Ürün oluştur/güncelle/sil, stok, modifier-groups        | legacy product/*                | Admin client → `src/api/admin/products`                                                                     |
+| Kategori listesi/detay/CRUD/search/products-by-category | legacy categories/*             | GET/POST/PUT/DELETE /api/admin/categories, /api/admin/categories/{id}, /search, /{id}/products              |
+| Modifier grupları (ürüne ata/getir)                     | legacy product modifier-groups  | `modifierGroups.ts` → `@/api/admin/products` (getAdminProductModifierGroups, setAdminProductModifierGroups) |
 
 UI davranışı (liste yükleme, edit, create, delete) aynı kaldı; yalnızca veri kaynağı admin route’larına (ve admin client üzerinden legacy’e) taşındı.

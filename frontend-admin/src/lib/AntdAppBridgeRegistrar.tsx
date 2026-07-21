@@ -2,6 +2,7 @@
 
 import { App } from 'antd';
 import { useEffect } from 'react';
+
 import { registerAntdApp, unregisterAntdApp } from '@/lib/antdAppBridge';
 
 /** Registers App.useApp() message + modal for axios interceptors and query error handling. */

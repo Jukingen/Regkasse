@@ -3,8 +3,7 @@
  * Row counts in verification reports are live-DB snapshots — not used for per-table
  * backup-vs-backup diffs. Presence (in dump TOC) is the comparable signal.
  */
-
-import type { BackupVerificationReport } from "@/features/backup/logic/backupVerificationReportApi";
+import type { BackupVerificationReport } from '@/features/backup/logic/backupVerificationReportApi';
 
 export type BackupDiffRow = {
   key: string;
@@ -32,13 +31,11 @@ export type BackupDiffViewModel = {
 };
 
 function tableKey(schema: string | undefined, name: string): string {
-  const s = (schema || "public").trim() || "public";
+  const s = (schema || 'public').trim() || 'public';
   return `${s}.${name}`;
 }
 
-function presenceMap(
-  report: BackupVerificationReport | null | undefined,
-): Map<string, boolean> {
+function presenceMap(report: BackupVerificationReport | null | undefined): Map<string, boolean> {
   const map = new Map<string, boolean>();
   if (!report) return map;
   for (const row of report.tableStatistics ?? []) {
@@ -50,7 +47,7 @@ function presenceMap(
 
 export function buildBackupDiffViewModel(
   report1: BackupVerificationReport | null | undefined,
-  report2: BackupVerificationReport | null | undefined,
+  report2: BackupVerificationReport | null | undefined
 ): BackupDiffViewModel | null {
   if (!report1?.backupRunId || !report2?.backupRunId) return null;
 
@@ -93,10 +90,7 @@ export function buildBackupDiffViewModel(
 }
 
 /** Prefer showing only rows that differ; caller can toggle. */
-export function filterBackupDiffRows(
-  rows: BackupDiffRow[],
-  onlyChanged: boolean,
-): BackupDiffRow[] {
+export function filterBackupDiffRows(rows: BackupDiffRow[], onlyChanged: boolean): BackupDiffRow[] {
   if (!onlyChanged) return rows;
   return rows.filter((r) => r.diff !== 0);
 }

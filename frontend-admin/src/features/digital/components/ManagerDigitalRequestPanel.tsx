@@ -1,27 +1,28 @@
 'use client';
 
-import { useState } from 'react';
 import { GlobalOutlined, MobileOutlined } from '@ant-design/icons';
 import { Alert, Button, Card, Col, Modal, Row, Space, Tag } from 'antd';
 import Link from 'next/link';
+import { useState } from 'react';
+
 import { CardSkeleton } from '@/components/Skeleton';
-import {
-  canPreviewDigitalApp,
-  canPreviewDigitalWeb,
-  canRequestDigitalApp,
-  canRequestDigitalWeb,
-} from '@/features/digital/digitalServicePermissions';
+import type {
+  DigitalProvisionStatus,
+  DigitalServiceType,
+  TenantDigitalServiceState,
+} from '@/features/digital-services/api/tenantDigitalServicesApi';
 import {
   findPendingRequest,
   useRequestDigitalService,
   useTenantDigitalServiceRequests,
 } from '@/features/digital-services/hooks/useDigitalServiceRequests';
 import { useTenantDigitalService } from '@/features/digital-services/hooks/useTenantDigitalServices';
-import type {
-  DigitalProvisionStatus,
-  DigitalServiceType,
-  TenantDigitalServiceState,
-} from '@/features/digital-services/api/tenantDigitalServicesApi';
+import {
+  canPreviewDigitalApp,
+  canPreviewDigitalWeb,
+  canRequestDigitalApp,
+  canRequestDigitalWeb,
+} from '@/features/digital/digitalServicePermissions';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
@@ -80,7 +81,7 @@ export function ManagerDigitalRequestPanel({ tenantId }: ManagerDigitalRequestPa
       setRequestModalOpen(false);
     } catch (err) {
       message.error(
-        err instanceof Error ? err.message : t('tenants.digitalServices.requestFailed'),
+        err instanceof Error ? err.message : t('tenants.digitalServices.requestFailed')
       );
     }
   };
@@ -113,7 +114,7 @@ export function ManagerDigitalRequestPanel({ tenantId }: ManagerDigitalRequestPa
     state: TenantDigitalServiceState,
     canPreview: boolean,
     canRequest: boolean,
-    pendingFromQueue: boolean,
+    pendingFromQueue: boolean
   ) => {
     const isWebsite = type === 'website';
     const title = isWebsite
@@ -124,8 +125,7 @@ export function ManagerDigitalRequestPanel({ tenantId }: ManagerDigitalRequestPa
       pendingFromQueue || state.hasRequest ? 'pending' : state.status;
     const isPending = status === 'pending';
     const isReady = status === 'created' || status === 'published';
-    const canRequestNow =
-      canRequest && (status === 'none' || status === 'rejected') && !isPending;
+    const canRequestNow = canRequest && (status === 'none' || status === 'rejected') && !isPending;
 
     return (
       <Card

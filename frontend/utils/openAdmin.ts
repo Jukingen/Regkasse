@@ -1,6 +1,6 @@
-import { Alert, Linking } from 'react-native';
+import { Alert } from 'react-native';
 
-import { openHttpOrHttpsUrl } from './openLink';
+import { openHttpOrHttpsUrl, openMailtoUrl } from './openLink';
 
 import {
   allowedOnPlatformHost,
@@ -28,9 +28,20 @@ function confirmTenantlessNavigation(): Promise<boolean> {
       'Mandant erforderlich',
       'Diese Aktion erfordert einen ausgewählten Mandanten. Möchten Sie trotzdem fortfahren?',
       [
-        { text: 'Abbrechen', style: 'cancel', onPress: () => resolve(false) },
-        { text: 'Fortfahren', onPress: () => resolve(true) },
-      ],
+        {
+          text: 'Abbrechen',
+          style: 'cancel',
+          onPress: () => {
+            resolve(false);
+          },
+        },
+        {
+          text: 'Fortfahren',
+          onPress: () => {
+            resolve(true);
+          },
+        },
+      ]
     );
   });
 }
@@ -38,7 +49,7 @@ function confirmTenantlessNavigation(): Promise<boolean> {
 export async function openAdmin(
   target: AdminTarget,
   context?: AdminTargetContext,
-  options?: OpenAdminOptions,
+  options?: OpenAdminOptions
 ): Promise<boolean> {
   try {
     const url = buildAdminUrl(target, context);
@@ -59,7 +70,7 @@ export async function openAdmin(
     if (isPlatformHost && !isAllowedOnPlatform && !context?.forcePlatformHost) {
       Alert.alert(
         'Nicht verfügbar',
-        'Diese Funktion ist im Plattform-Modus nicht verfügbar. Bitte wählen Sie zuerst einen Mandanten.',
+        'Diese Funktion ist im Plattform-Modus nicht verfügbar. Bitte wählen Sie zuerst einen Mandanten.'
       );
       return false;
     }
@@ -69,10 +80,9 @@ export async function openAdmin(
     if (!success && options?.fallbackToMail) {
       const mailtoUrl = buildSupportMailtoUrl(
         options.mailtoSubject ?? 'Lizenzverlängerung',
-        options.mailtoBody ?? '',
+        options.mailtoBody ?? ''
       );
-      await Linking.openURL(mailtoUrl);
-      return true;
+      return await openMailtoUrl(mailtoUrl);
     }
 
     return success;
@@ -83,7 +93,7 @@ export async function openAdmin(
 }
 
 export async function openLicenseExtension(machineHash: string): Promise<boolean> {
-  return openAdmin(
+  return await openAdmin(
     'licenseExtend',
     {
       machineHash,
@@ -93,6 +103,6 @@ export async function openLicenseExtension(machineHash: string): Promise<boolean
       fallbackToMail: true,
       mailtoSubject: 'Lizenzverlängerung',
       mailtoBody: `Bitte verlängern Sie meine Lizenz.\n\nMaschinen-Fingerprint: ${machineHash}\n\nVielen Dank.`,
-    },
+    }
   );
 }

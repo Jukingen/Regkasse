@@ -1,37 +1,37 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
-import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Form, Tabs, Typography } from 'antd';
 import { AppstoreOutlined, EditOutlined } from '@ant-design/icons';
 import { useQueryClient } from '@tanstack/react-query';
+import { Alert, Form, Tabs, Typography } from 'antd';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import {
+  type CreatePaymentMethodDefinitionRequest,
+  type PaymentMethodDefinitionAdmin,
   adminPaymentMethodDefinitionsQueryKeys,
   createAdminPaymentMethodDefinition,
   deleteAdminPaymentMethodDefinition,
   updateAdminPaymentMethodDefinition,
   useAdminPaymentMethodDefinitionsList,
-  type CreatePaymentMethodDefinitionRequest,
-  type PaymentMethodDefinitionAdmin,
 } from '@/api/admin/payment-method-definitions';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { useI18n } from '@/i18n';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
-import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { useCashRegisters } from '@/features/cash-registers/hooks/useCashRegisters';
 import { PaymentMethodDefinitionModal } from '@/features/payment-methods/components/PaymentMethodDefinitionModal';
 import { PaymentMethodMatrixOverview } from '@/features/payment-methods/components/PaymentMethodMatrixOverview';
 import { PaymentMethodRegisterPanel } from '@/features/payment-methods/components/PaymentMethodRegisterPanel';
 import { useAllRegistersPaymentMethods } from '@/features/payment-methods/hooks/useAllRegistersPaymentMethods';
+import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { useI18n } from '@/i18n';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
 
 type SettingsTab = 'overview' | 'manage';
 
 function toRequestPayload(
   row: PaymentMethodDefinitionAdmin,
-  overrides?: Partial<CreatePaymentMethodDefinitionRequest>,
+  overrides?: Partial<CreatePaymentMethodDefinitionRequest>
 ): CreatePaymentMethodDefinitionRequest {
   return {
     cashRegisterId: row.cashRegisterId,
@@ -59,12 +59,19 @@ export default function PaymentMethodsSettingsPage() {
   const { tenantId, requiresTenantSelection } = useCurrentTenant();
   const canManage = hasPermission(user, PERMISSIONS.SETTINGS_MANAGE);
 
-  const { registers, defaultRegister, isLoading: registersLoading } = useCashRegisters(tenantId ?? undefined, {
+  const {
+    registers,
+    defaultRegister,
+    isLoading: registersLoading,
+  } = useCashRegisters(tenantId ?? undefined, {
     enabled: Boolean(tenantId) && !requiresTenantSelection,
   });
 
   const registerIds = registers.map((r) => r.id);
-  const matrixQuery = useAllRegistersPaymentMethods(registerIds, Boolean(tenantId) && !requiresTenantSelection);
+  const matrixQuery = useAllRegistersPaymentMethods(
+    registerIds,
+    Boolean(tenantId) && !requiresTenantSelection
+  );
 
   const [activeTab, setActiveTab] = useState<SettingsTab>('overview');
   const [selectedRegisterId, setSelectedRegisterId] = useState<string | null>(null);
@@ -91,7 +98,9 @@ export default function PaymentMethodsSettingsPage() {
   const [form] = Form.useForm<CreatePaymentMethodDefinitionRequest>();
 
   const invalidateAll = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: adminPaymentMethodDefinitionsQueryKeys.lists() });
+    await queryClient.invalidateQueries({
+      queryKey: adminPaymentMethodDefinitionsQueryKeys.lists(),
+    });
     await matrixQuery.refetchAll();
   }, [matrixQuery, queryClient]);
 
@@ -123,7 +132,14 @@ export default function PaymentMethodsSettingsPage() {
     if (row.cashRegisterId !== cashRegisterId) {
       setSelectedRegisterId(row.cashRegisterId);
     }
-    form.setFieldsValue(toRequestPayload(row, { fiscalCategory: row.fiscalCategory ?? '', icon: row.icon ?? '', metadataJson: row.metadataJson ?? '', terminalType: row.terminalType ?? '' }));
+    form.setFieldsValue(
+      toRequestPayload(row, {
+        fiscalCategory: row.fiscalCategory ?? '',
+        icon: row.icon ?? '',
+        metadataJson: row.metadataJson ?? '',
+        terminalType: row.terminalType ?? '',
+      })
+    );
     setModalOpen(true);
   };
 
@@ -132,7 +148,10 @@ export default function PaymentMethodsSettingsPage() {
     if (!targetRegisterId) return;
     setSaving(true);
     try {
-      const body: CreatePaymentMethodDefinitionRequest = { ...payload, cashRegisterId: targetRegisterId };
+      const body: CreatePaymentMethodDefinitionRequest = {
+        ...payload,
+        cashRegisterId: targetRegisterId,
+      };
       if (editing) {
         await updateAdminPaymentMethodDefinition(editing.id, body);
         message.success(t('settings.paymentMethods.saved'));
@@ -165,11 +184,17 @@ export default function PaymentMethodsSettingsPage() {
     });
   };
 
-  const handleToggleActive = async (definition: PaymentMethodDefinitionAdmin, nextActive: boolean) => {
+  const handleToggleActive = async (
+    definition: PaymentMethodDefinitionAdmin,
+    nextActive: boolean
+  ) => {
     if (!canManage) return;
     try {
       if (nextActive) {
-        await updateAdminPaymentMethodDefinition(definition.id, toRequestPayload(definition, { isActive: true }));
+        await updateAdminPaymentMethodDefinition(
+          definition.id,
+          toRequestPayload(definition, { isActive: true })
+        );
         message.success(t('settings.paymentMethods.matrix.turnedOn', { code: definition.code }));
       } else {
         await deleteAdminPaymentMethodDefinition(definition.id);
@@ -195,7 +220,10 @@ export default function PaymentMethodsSettingsPage() {
   if (requiresTenantSelection) {
     return (
       <>
-        <AdminPageHeader title={t('settings.paymentMethods.title')} breadcrumbs={headerBreadcrumbs} />
+        <AdminPageHeader
+          title={t('settings.paymentMethods.title')}
+          breadcrumbs={headerBreadcrumbs}
+        />
         <Alert type="info" showIcon message={t('settings.paymentMethods.noCashRegister')} />
       </>
     );
@@ -204,7 +232,9 @@ export default function PaymentMethodsSettingsPage() {
   return (
     <>
       <AdminPageHeader title={t('settings.paymentMethods.title')} breadcrumbs={headerBreadcrumbs} />
-      <Typography.Paragraph type="secondary">{t('settings.paymentMethods.intro')}</Typography.Paragraph>
+      <Typography.Paragraph type="secondary">
+        {t('settings.paymentMethods.intro')}
+      </Typography.Paragraph>
 
       <Tabs
         activeKey={activeTab}

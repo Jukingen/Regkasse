@@ -1,6 +1,6 @@
 import { licenseApi, type TenantLicenseStatusDto } from '../../api/license';
-import { showToast } from '../../utils/toast';
 import { formatLicenseRemainingDe } from '../../utils/licenseExpiryRemaining';
+import { showToast } from '../../utils/toast';
 
 const EXPIRY_WARNING_DAYS = 14;
 
@@ -24,7 +24,7 @@ export async function checkLicenseStatus(tenantId: string): Promise<boolean> {
       showToast(
         'Lizenz',
         statusMessage ??
-          'Lizenz abgelaufen! POS ist gesperrt. Nur Super-Administrator kann entsperren.',
+          'Lizenz abgelaufen! POS ist gesperrt. Nur Super-Administrator kann entsperren.'
       );
       return false;
     }
@@ -33,7 +33,7 @@ export async function checkLicenseStatus(tenantId: string): Promise<boolean> {
       showToast(
         'Lizenz',
         statusMessage ??
-          `Lizenz abgelaufen. Grace Period: noch ${gracePeriodRemaining} Tage. Bitte verlängern.`,
+          `Lizenz abgelaufen. Grace Period: noch ${gracePeriodRemaining} Tage. Bitte verlängern.`
       );
     } else if (daysRemaining <= EXPIRY_WARNING_DAYS && daysRemaining > 0) {
       const remainingLabel =
@@ -44,7 +44,6 @@ export async function checkLicenseStatus(tenantId: string): Promise<boolean> {
     return true;
   } catch (error) {
     if (__DEV__) {
-      // eslint-disable-next-line no-console
       console.error('License check failed:', error);
     }
     return false;

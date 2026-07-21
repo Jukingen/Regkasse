@@ -2,7 +2,11 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { Card, Col, List, Row, Tag, Typography } from 'antd';
-import { fetchDigitalServicePricing, type ServicePricing } from '@/features/website-generator/api/websiteGeneratorApi';
+
+import {
+  type ServicePricing,
+  fetchDigitalServicePricing,
+} from '@/features/website-generator/api/websiteGeneratorApi';
 import { useI18n } from '@/i18n';
 
 const { Text } = Typography;
@@ -56,7 +60,9 @@ export function DigitalServicePricingCards({ type }: DigitalServicePricingCardsP
                 size="small"
                 style={{ marginTop: 12 }}
                 dataSource={plan.features}
-                renderItem={(feature) => <List.Item style={{ padding: '4px 0' }}>{feature}</List.Item>}
+                renderItem={(feature) => (
+                  <List.Item style={{ padding: '4px 0' }}>{feature}</List.Item>
+                )}
               />
             </Card>
           </Col>

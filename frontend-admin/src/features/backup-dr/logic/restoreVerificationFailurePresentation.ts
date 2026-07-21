@@ -2,7 +2,6 @@
  * Restore drill hata kodları: Fake/stub kaynaklı pg_restore --list başarısızlığını operatör dilinde açıklar.
  * Backend `DetailsJson` içinde `pgRestoreListFailureContext` ile işaretler (API stderr ham kalır).
  */
-
 import type { RestoreVerificationRunResponseDto } from '@/api/generated/model';
 
 export const PG_RESTORE_LIST_FAILED = 'PG_RESTORE_LIST_FAILED';
@@ -37,7 +36,7 @@ export type PgRestoreListFailureContext = {
 };
 
 export function parsePgRestoreListFailureContext(
-  detailsJson: string | null | undefined,
+  detailsJson: string | null | undefined
 ): PgRestoreListFailureContext | null {
   if (!detailsJson?.trim()) return null;
   try {
@@ -47,8 +46,10 @@ export function parsePgRestoreListFailureContext(
     const ctx = raw as Record<string, unknown>;
     return {
       reason: typeof ctx.reason === 'string' ? ctx.reason : undefined,
-      sourceAdapterKind: typeof ctx.sourceAdapterKind === 'string' ? ctx.sourceAdapterKind : undefined,
-      sourceBackupRunId: typeof ctx.sourceBackupRunId === 'string' ? ctx.sourceBackupRunId : undefined,
+      sourceAdapterKind:
+        typeof ctx.sourceAdapterKind === 'string' ? ctx.sourceAdapterKind : undefined,
+      sourceBackupRunId:
+        typeof ctx.sourceBackupRunId === 'string' ? ctx.sourceBackupRunId : undefined,
     };
   } catch {
     return null;
@@ -110,7 +111,10 @@ export function pgRestoreListFailureKindToBannerMessageKey(kind: PgRestoreListFa
       /** warn: üst şeritte kritik/uyarı varken de görünür (info HealthBanner’da gizlenir). */
       return { tier: 'warn', key: 'backupDr.banner.restoreDrillStubListFailedExpected' };
     case 'real_pg_restore_unavailable':
-      return { tier: 'warn', key: 'backupDr.banner.restoreDrillRealListFailedPgRestoreUnavailable' };
+      return {
+        tier: 'warn',
+        key: 'backupDr.banner.restoreDrillRealListFailedPgRestoreUnavailable',
+      };
     case 'real_dump_file_missing':
       return { tier: 'warn', key: 'backupDr.banner.restoreDrillRealListFailedDumpMissing' };
     case 'real_format_or_corrupt':

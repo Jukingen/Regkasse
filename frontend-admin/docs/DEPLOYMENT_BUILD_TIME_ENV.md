@@ -12,20 +12,23 @@ This document is grounded in **what exists in this repository** (as of the last 
 
 ### Environment Variables (backend)
 
-| Variable | Effect on tenant resolution |
-|----------|----------------------------|
+| Variable                             | Effect on tenant resolution                                     |
+| ------------------------------------ | --------------------------------------------------------------- |
 | `ASPNETCORE_ENVIRONMENT=Development` | API accepts `X-Tenant-Id` and `?tenant=` (slug) on loopback/dev |
-| `ASPNETCORE_ENVIRONMENT=Production` | API uses **subdomain / Host only** |
+| `ASPNETCORE_ENVIRONMENT=Production`  | API uses **subdomain / Host only**                              |
 
 Full ops notes: `REGKASSE_AI_ONBOARDING.md` §16 Deployment Requirements.
 
 ## 1. What this repo contains
 
-| Area | In this repo? |
-|------|----------------|
-| `Dockerfile` for `frontend-admin` | **No** — no `Dockerfile` or `docker-compose` files were found under the repository root. |
-| GitHub Actions running `frontend-admin` production build | **Yes** — `.github/workflows/api-client-alignment.yml` runs `npm run build` in `frontend-admin/`. |
-| Committed `.env.local` | **No** — `.gitignore` excludes `.env.local`; CI must not rely on a checked-in file for secrets or public build vars. |
+| Area                                                     | In this repo?                                                                                                        |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `Dockerfile` for `frontend-admin`                        | **Yes** — `frontend-admin/Dockerfile` (multi-stage: `deps` → `builder` → non-root `runner`, `npm start`)             |
+| `docker-compose.yml` for `frontend-admin`                | **Yes** — `frontend-admin/docker-compose.yml` (port 3000, build-args for `NEXT_PUBLIC_*`)                            |
+| `vercel.json` for `frontend-admin`                       | **Yes** — Next.js framework + `npm run build`; **do not** set `outputDirectory` to `.next`                          |
+| `nginx.conf` for `frontend-admin`                        | **Yes** — reverse proxy sample for `admin.regkasse.at` → `:3000`                                                    |
+| GitHub Actions running `frontend-admin` production build | **Yes** — `frontend-admin-ci.yml`, `frontend-admin-deploy.yml` (GHCR), `api-client-alignment.yml`. See `docs/CI_CD.md`. |
+| Committed `.env.local`                                   | **No** — `.gitignore` excludes `.env.local`; CI must not rely on a checked-in file for secrets or public build vars. |
 
 ## 2. Build-time vs runtime-only
 
@@ -36,66 +39,63 @@ Full ops notes: `REGKASSE_AI_ONBOARDING.md` §16 Deployment Requirements.
 
 ## 3. CI in this repo (verified)
 
-Workflow: **`.github/workflows/api-client-alignment.yml`**
+Primary quality gate: **`.github/workflows/frontend-admin-ci.yml`** — sets `NEXT_PUBLIC_RKSV_ENVIRONMENT=TEST` and `NEXT_PUBLIC_API_BASE_URL` for `npm run build` (and E2E).
 
-The step **“Admin build (TypeScript + Next smoke)”** sets at least:
+Also: **`.github/workflows/api-client-alignment.yml`** (“Admin build” step) and **`.github/workflows/frontend-admin-deploy.yml`** (Docker build-args for staging/prod).
 
-- `NEXT_PUBLIC_RKSV_ENVIRONMENT=TEST`
-- `NEXT_PUBLIC_API_BASE_URL=…`
+Those values must be on the **same step / image build** as `next build`, so they are available at **build time** (required by `next.config.mjs` for production builds).
 
-on the **same step** as `npm run build`, so the value is available at **build time** (required by `next.config.mjs` for production builds).
+Pipeline detail: [`CI_CD.md`](./CI_CD.md). Other workflows (`localization-validation.yml`, `api-contract-tests.yml`) install FA deps but are not the full quality gate.
 
-Other workflows (`localization-validation.yml`, `api-contract-tests.yml`) install `frontend-admin` dependencies but **do not** run `next build` for the admin app.
+## 4. Docker / Vercel / Nginx (in-repo)
 
-## 4. If you add Docker later (recommended pattern)
+### Docker
 
-Place `ARG` / `ENV` **before** `RUN npm run build`. Pass values with `docker build --build-arg` or Compose `build.args`.
+Canonical files:
 
-### Example `Dockerfile` fragment (not in repo — copy when you add a real file)
+- `frontend-admin/Dockerfile`
+- `frontend-admin/docker-compose.yml`
+- `frontend-admin/.dockerignore`
 
-```dockerfile
-# Build stage
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY frontend-admin/package.json frontend-admin/package-lock.json ./
-RUN npm ci
-COPY frontend-admin/ ./
-# Must be set before next build (not only at runtime)
-ARG NEXT_PUBLIC_RKSV_ENVIRONMENT=TEST
-ARG NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:5183
-ENV NEXT_PUBLIC_RKSV_ENVIRONMENT=$NEXT_PUBLIC_RKSV_ENVIRONMENT
-ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
-RUN npm run build
+`ARG` / `ENV` for `NEXT_PUBLIC_*` are set **before** `RUN npm run build`. Pass values with `docker build --build-arg` or Compose `build.args`.
 
-# Runtime stage — do NOT expect new NEXT_PUBLIC_* here to change the client bundle
-FROM node:20-alpine AS runner
-WORKDIR /app
-ENV NODE_ENV=production
-COPY --from=builder /app/.next/standalone ./
-# ... plus public/static as per Next standalone docs
-CMD ["node", "server.js"]
+```bash
+cd frontend-admin
+NEXT_PUBLIC_API_BASE_URL=https://api.regkasse.at \
+NEXT_PUBLIC_RKSV_ENVIRONMENT=PROD \
+docker compose build
+docker compose up -d
 ```
 
-### Example `docker-compose.yml` fragment (build args)
+The runner stage uses a non-root user (`nextjs`, uid 1001) and `CMD ["npm", "start"]` on port **3000**.
 
-```yaml
-services:
-  admin:
-    build:
-      context: .
-      dockerfile: path/to/Dockerfile
-      args:
-        NEXT_PUBLIC_RKSV_ENVIRONMENT: TEST
-        NEXT_PUBLIC_API_BASE_URL: https://api.example.com
-```
+### Vercel
+
+Canonical file: `frontend-admin/vercel.json`
+
+| Field | Value |
+| ----- | ----- |
+| `framework` | `nextjs` |
+| `installCommand` | `npm ci` |
+| `buildCommand` | `npm run build` |
+| `outputDirectory` | **omit** — Next.js owns `.next`; overriding Project Settings to `.next` breaks SSR |
+
+Set `NEXT_PUBLIC_API_BASE_URL` and `NEXT_PUBLIC_RKSV_ENVIRONMENT` as **Build** environment variables in the Vercel project (Root Directory = `frontend-admin`).
+
+### Nginx (self-hosted)
+
+- `frontend-admin/nginx.conf` — TLS vhost proxying to `127.0.0.1:3000`
+- `frontend-admin/deploy/nginx-map-connection-upgrade.conf` — WebSocket `map` for `http {}`
+
+Also documented in `frontend-admin/README.md` → **Docker** / **Vercel** / **Nginx**.
 
 ## 5. Local dev, CI, production — correct flow (summary)
 
-| Context | What to do |
-|---------|------------|
-| **Local** | Put `NEXT_PUBLIC_RKSV_ENVIRONMENT=TEST` (or `PROD`) in `frontend-admin/.env.local`. Run `cd frontend-admin && npm run dev`. Restart dev after changing any `NEXT_PUBLIC_*`. |
-| **CI** | Set `NEXT_PUBLIC_*` on the job step that runs `npm run build` (see `api-client-alignment.yml`). Do not assume `.env.local` exists on the runner. |
-| **Production / container** | Set `NEXT_PUBLIC_*` during **image build** (`ARG`/`ENV` + `RUN npm run build`) or equivalent CI build step. Setting them only at `docker run` is too late for the client bundle. |
+| Context                    | What to do                                                                                                                                                                       |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Local**                  | Put `NEXT_PUBLIC_RKSV_ENVIRONMENT=TEST` (or `PROD`) in `frontend-admin/.env.local`. Run `cd frontend-admin && npm run dev`. Restart dev after changing any `NEXT_PUBLIC_*`.      |
+| **CI**                     | Set `NEXT_PUBLIC_*` on the job step that runs `npm run build` (see `api-client-alignment.yml`). Do not assume `.env.local` exists on the runner.                                 |
+| **Production / container** | Set `NEXT_PUBLIC_*` during **image build** (`frontend-admin/Dockerfile` build-args / Compose `build.args`, or CI build step). Setting them only at `docker run` is too late for the client bundle. |
 
 ## 6. Related code
 

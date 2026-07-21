@@ -61,7 +61,7 @@ export function mapSyncHealth(dto: SyncHealthApiDto): OfflineSyncHealth {
 
 export function mapStatus(
   status: OfflineSystemStatusApiDto,
-  syncHealth: OfflineSyncHealth,
+  syncHealth: OfflineSyncHealth
 ): OfflineMonitoringStatus {
   return {
     totalPendingOrders: status.totalPendingOrders ?? status.TotalPendingOrders ?? 0,
@@ -77,7 +77,7 @@ export function mapStatus(
 }
 
 export async function fetchOfflineMonitoringStatus(
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<OfflineMonitoringStatus> {
   const [statusRes, syncRes] = await Promise.all([
     customInstance<OfflineSystemStatusApiDto>({

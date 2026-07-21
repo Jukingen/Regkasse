@@ -23,6 +23,6 @@ export function useRksvStatus(): RksvStatusQuery {
       isLoading: loading,
       isDemo: isRksvDemoEnvironment(data),
     }),
-    [data, loading],
+    [data, loading]
   );
 }

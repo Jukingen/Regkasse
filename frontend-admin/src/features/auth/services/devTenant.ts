@@ -8,8 +8,8 @@ export const DEV_TENANT_LOCAL_STORAGE_KEY = 'dev_tenant_id';
 export const DEV_TENANT_CHANGED_EVENT = 'regkasse:dev-tenant-changed';
 
 export type DevTenantChangedDetail = {
-    slug: string;
-    previousSlug: string | null;
+  slug: string;
+  previousSlug: string | null;
 };
 
 export const DEV_TENANT_ENV_KEY = 'NEXT_PUBLIC_DEV_TENANT_ID';
@@ -40,11 +40,7 @@ export function isPlatformAdminHost(hostname?: string): boolean {
 /** Production: first subdomain label when not admin/www/localhost. */
 export function getTenantSlugFromSubdomain(hostname?: string): string {
   const host = (hostname ?? (typeof window !== 'undefined' ? window.location.hostname : '')).trim();
-  if (
-    !host ||
-    host === 'localhost' ||
-    host.startsWith('127.0.0.1')
-  ) {
+  if (!host || host === 'localhost' || host.startsWith('127.0.0.1')) {
     return 'admin';
   }
 
@@ -114,7 +110,7 @@ export function writeDevTenantSlug(slug: string, tenantId?: string | null): bool
   window.dispatchEvent(
     new CustomEvent<DevTenantChangedDetail>(DEV_TENANT_CHANGED_EVENT, {
       detail: { slug: normalized, previousSlug },
-    }),
+    })
   );
   return true;
 }
@@ -188,9 +184,7 @@ export function getEffectiveTenantSlug(): string {
 
   // Super Admin platform host: do not send stale bootstrap slug as X-Tenant-Id.
   const stored = normalizeSlug(
-    typeof window !== 'undefined'
-      ? window.localStorage.getItem(DEV_TENANT_LOCAL_STORAGE_KEY)
-      : null,
+    typeof window !== 'undefined' ? window.localStorage.getItem(DEV_TENANT_LOCAL_STORAGE_KEY) : null
   );
   if (stored) {
     return stored;

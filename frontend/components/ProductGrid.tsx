@@ -2,14 +2,7 @@
 // Backend'den gelen ürün verilerini kullanarak kategori bazlı filtreleme yapar
 
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Vibration,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Vibration } from 'react-native';
 
 interface Product {
   // Backend'den gelen field'lar (lowercase)
@@ -59,10 +52,12 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   // Ürün filtreleme - Backend'den gelen category field'ını öncelikle kullan
   const filteredProducts = products.filter((product: Product) => {
     if (selectedCategory === 'all') return true;
-    
+
     // Backend'den gelen category field'larını öncelikle kullan
     const productCategory = product.productCategory || product.category || product.Category;
-    console.log(`🔍 Filtering product: ${product.name || product.Name}, category: ${productCategory}, selected: ${selectedCategory}`);
+    console.log(
+      `🔍 Filtering product: ${product.name || product.Name}, category: ${productCategory}, selected: ${selectedCategory}`
+    );
     return productCategory === selectedCategory;
   });
 
@@ -73,7 +68,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
 
     // Haptic feedback
     Vibration.vibrate(30);
-    
+
     // Ürün seçimi
     onProductSelect(product);
   };
@@ -84,7 +79,9 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   };
 
   // Debug bilgisi
-  console.log(`🔍 ProductGrid: ${products.length} total products, ${filteredProducts.length} filtered for category: ${selectedCategory}`);
+  console.log(
+    `🔍 ProductGrid: ${products.length} total products, ${filteredProducts.length} filtered for category: ${selectedCategory}`
+  );
 
   if (loading) {
     return (
@@ -122,7 +119,10 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
         <Text style={styles.sectionTitle}>Available Products</Text>
         <View style={styles.noProductsContainer}>
           <Text style={styles.noProductsText}>
-            📦 {selectedCategory === 'all' ? 'No products available' : `No products in ${selectedCategory} category`}
+            📦{' '}
+            {selectedCategory === 'all'
+              ? 'No products available'
+              : `No products in ${selectedCategory} category`}
           </Text>
           <TouchableOpacity onPress={onRefreshProducts} style={styles.retryButton}>
             <Text style={styles.retryButtonText}>🔄 Refresh Products</Text>
@@ -142,32 +142,28 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
           const productName = product.name || product.Name || '';
           const productPrice = product.price || product.Price || 0;
           const productStock = product.stockQuantity || product.StockQuantity || 0;
-          
+
           console.log(`📦 Rendering product: ${productName}, category: ${productCategory}`);
-          
+
           return (
             <TouchableOpacity
               key={product.id || product.Id}
-              style={[
-                styles.productCard,
-                quantityInCart > 0 && styles.productCardInCart
-              ]}
-              onPress={() => handleProductPress(product)}
-              activeOpacity={0.7}
-            >
+              style={[styles.productCard, quantityInCart > 0 && styles.productCardInCart]}
+              onPress={() => {
+                handleProductPress(product);
+              }}
+              activeOpacity={0.7}>
               {/* Quantity Badge */}
               {quantityInCart > 0 && (
                 <View style={styles.quantityBadge}>
                   <Text style={styles.quantityBadgeText}>{quantityInCart}x</Text>
                 </View>
               )}
-              
+
               <Text style={styles.productName}>{productName}</Text>
               <Text style={styles.productPrice}>€{productPrice.toFixed(2)}</Text>
               <Text style={styles.productStock}>Stock: {productStock}</Text>
-              {productCategory && (
-                <Text style={styles.productCategory}>{productCategory}</Text>
-              )}
+              {productCategory && <Text style={styles.productCategory}>{productCategory}</Text>}
             </TouchableOpacity>
           );
         })}

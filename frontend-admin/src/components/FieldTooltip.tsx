@@ -1,12 +1,12 @@
 'use client';
 
-import type { ReactNode } from 'react';
-import { Tooltip } from 'antd';
 import { QuestionCircleOutlined } from '@ant-design/icons';
+import { Tooltip } from 'antd';
+import type { ReactNode } from 'react';
 
 export type FieldTooltipProps = {
-    title: ReactNode;
-    children: ReactNode;
+  title: ReactNode;
+  children: ReactNode;
 };
 
 /**
@@ -15,15 +15,15 @@ export type FieldTooltipProps = {
  * use this helper when you need the icon beside arbitrary children.
  */
 export function FieldTooltip({ title, children }: FieldTooltipProps) {
-    return (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            {children}
-            <Tooltip title={title}>
-                <QuestionCircleOutlined
-                    style={{ color: 'var(--ant-color-text-tertiary, #94a3b8)', cursor: 'help' }}
-                    aria-hidden
-                />
-            </Tooltip>
-        </span>
-    );
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+      {children}
+      <Tooltip title={title}>
+        <QuestionCircleOutlined
+          style={{ color: 'var(--ant-color-text-tertiary, #94a3b8)', cursor: 'help' }}
+          aria-hidden
+        />
+      </Tooltip>
+    </span>
+  );
 }

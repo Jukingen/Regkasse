@@ -12,9 +12,10 @@ import {
   Alert,
   Pressable,
 } from 'react-native';
-import { QrCustomerScanner } from '../app/components/QrCustomerScanner';
-import { customerService, type Customer } from '../services/api/customerService';
+
+import { QrCustomerScanner } from './QrCustomerScanner';
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
+import { customerService, type Customer } from '../services/api/customerService';
 import { WaveLoader } from '../src/components/common/WaveLoader';
 
 interface CustomerSelectionSheetProps {
@@ -107,15 +108,13 @@ export default function CustomerSelectionSheet({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
+      onRequestClose={onClose}>
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity
             onPress={onClose}
             style={styles.closeBtn}
-            accessibilityLabel={t('customers:selectionSheet.closeA11y')}
-          >
+            accessibilityLabel={t('customers:selectionSheet.closeA11y')}>
             <Ionicons name="close" size={24} color={SoftColors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.title}>{t('customers:selectionSheet.title')}</Text>
@@ -138,8 +137,7 @@ export default function CustomerSelectionSheet({
             <Pressable
               style={[styles.primaryBtn, lookupLoading && styles.btnDisabled]}
               onPress={handleSearchByNumber}
-              disabled={lookupLoading || !customerNumber.trim()}
-            >
+              disabled={lookupLoading || !customerNumber.trim()}>
               {lookupLoading ? (
                 <WaveLoader size={18} color={SoftColors.textInverse} />
               ) : (
@@ -148,9 +146,10 @@ export default function CustomerSelectionSheet({
             </Pressable>
             <Pressable
               style={styles.scanBtn}
-              onPress={() => setScannerVisible(true)}
-              accessibilityLabel={t('customers:selectionSheet.scanQrA11y')}
-            >
+              onPress={() => {
+                setScannerVisible(true);
+              }}
+              accessibilityLabel={t('customers:selectionSheet.scanQrA11y')}>
               <Ionicons name="scan-outline" size={22} color={SoftColors.accent} />
             </Pressable>
           </View>
@@ -164,9 +163,15 @@ export default function CustomerSelectionSheet({
         </View>
 
         {!showList ? (
-          <Pressable style={styles.secondaryBtn} onPress={() => setShowList(true)}>
+          <Pressable
+            style={styles.secondaryBtn}
+            onPress={() => {
+              setShowList(true);
+            }}>
             <Ionicons name="list" size={20} color={SoftColors.accent} />
-            <Text style={styles.secondaryBtnText}>{t('customers:selectionSheet.chooseFromList')}</Text>
+            <Text style={styles.secondaryBtnText}>
+              {t('customers:selectionSheet.chooseFromList')}
+            </Text>
           </Pressable>
         ) : (
           <View style={styles.listSection}>
@@ -178,7 +183,11 @@ export default function CustomerSelectionSheet({
                 value={listFilter}
                 onChangeText={setListFilter}
               />
-              <TouchableOpacity onPress={() => setShowList(false)} style={styles.backToListBtn}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowList(false);
+                }}
+                style={styles.backToListBtn}>
                 <Text style={styles.backToListText}>{t('customers:selectionSheet.back')}</Text>
               </TouchableOpacity>
             </View>
@@ -195,8 +204,9 @@ export default function CustomerSelectionSheet({
                 renderItem={({ item }) => (
                   <Pressable
                     style={styles.listItem}
-                    onPress={() => handleSelectCustomer(item)}
-                  >
+                    onPress={() => {
+                      handleSelectCustomer(item);
+                    }}>
                     <Text style={styles.listItemName}>{item.name}</Text>
                     {item.customerNumber ? (
                       <Text style={styles.listItemNumber}>
@@ -220,10 +230,13 @@ export default function CustomerSelectionSheet({
         visible={scannerVisible}
         animationType="slide"
         presentationStyle="fullScreen"
-        onRequestClose={() => setScannerVisible(false)}
-      >
+        onRequestClose={() => {
+          setScannerVisible(false);
+        }}>
         <QrCustomerScanner
-          onClose={() => setScannerVisible(false)}
+          onClose={() => {
+            setScannerVisible(false);
+          }}
           onCustomerFound={(customer) => {
             onSelect(customer);
             setScannerVisible(false);

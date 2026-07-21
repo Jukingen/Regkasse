@@ -1,15 +1,16 @@
 /**
  * Users page – shell, tenant list (Manager) and unified view wiring (SuperAdmin).
  */
-import React from 'react';
-import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
-import '@testing-library/jest-dom';
-import { render, screen, within, waitFor, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { I18nProvider } from '@/i18n';
-import UsersPage from '@/features/users/components/UsersPageContent';
-import type { UserInfo } from '@/features/users/api/usersGateway';
+import '@testing-library/jest-dom';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import React from 'react';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { UsersListResponse } from '@/features/users/api/usersApi';
+import type { UserInfo } from '@/features/users/api/usersGateway';
+import UsersPage from '@/features/users/components/UsersPageContent';
+import { I18nProvider } from '@/i18n';
 
 const { mockMessageSuccess, mockMessageError } = vi.hoisted(() => ({
   mockMessageSuccess: vi.fn(() => ({})),
@@ -115,7 +116,8 @@ vi.mock('@/features/users/api/usersGateway', () => ({
   resetPassword: (id: string, data: unknown) => mockResetPassword(id, data),
   createRole: (data: unknown) => mockCreateRole(data),
   normalizeError: (err: unknown, fallback: string) =>
-    (err as { response?: { data?: { message?: string }; message?: string } })?.response?.data?.message ??
+    (err as { response?: { data?: { message?: string }; message?: string } })?.response?.data
+      ?.message ??
     (err as Error)?.message ??
     fallback,
   useGenerateTemporaryPasswordMutation: () => ({
@@ -223,8 +225,7 @@ vi.mock('@/features/users/components/UnifiedAdminUsersView', () => ({
     isSuperAdminActor?: boolean;
   }) => {
     unifiedViewPropsRef.current = props as unknown as Record<string, unknown>;
-    const showPlatformCreate =
-      props.isSuperAdminActor !== false && props.policy.canCreate;
+    const showPlatformCreate = props.isSuperAdminActor !== false && props.policy.canCreate;
     return (
       <div data-testid="unified-admin-users-view">
         {props.tenantScopeId ? (
@@ -312,7 +313,12 @@ vi.mock('@/features/users/api/users', () => ({
 }));
 
 vi.mock('@/features/users/components/UserFormDrawer', () => ({
-  UserFormDrawer: ({ open, onClose, mode, onSubmit }: {
+  UserFormDrawer: ({
+    open,
+    onClose,
+    mode,
+    onSubmit,
+  }: {
     open: boolean;
     onClose: () => void;
     mode: string;
@@ -348,7 +354,12 @@ function listResponse(items: UserInfo[], totalCount?: number): UsersListResponse
   const count = totalCount ?? items.length;
   return {
     items,
-    pagination: { page: 1, pageSize: 20, totalCount: count, totalPages: Math.ceil(count / 20) || 1 },
+    pagination: {
+      page: 1,
+      pageSize: 20,
+      totalCount: count,
+      totalPages: Math.ceil(count / 20) || 1,
+    },
   };
 }
 
@@ -373,7 +384,7 @@ function renderPage() {
       <I18nProvider>
         <UsersPage />
       </I18nProvider>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
 }
 
@@ -442,7 +453,7 @@ describe('Users page', () => {
         expect(screen.getAllByText('Benutzerverwaltung').length).toBeGreaterThanOrEqual(1);
       });
       expect(
-        screen.getByText(/Alle Plattform- und Mandanten-Benutzer an einem Ort/),
+        screen.getByText(/Alle Plattform- und Mandanten-Benutzer an einem Ort/)
       ).toBeInTheDocument();
       expect(screen.getByTestId('unified-admin-users-view')).toBeInTheDocument();
       expect(screen.queryByTestId('access-secondary-nav')).not.toBeInTheDocument();
@@ -464,14 +475,16 @@ describe('Users page', () => {
             lastName: 'User',
             email: 'new@test.com',
             role: 'SuperAdmin',
-          }),
+          })
         );
       });
       expect(mockMessageSuccess).toHaveBeenCalledWith('Benutzer angelegt.');
     });
 
     it('shows error when platform user creation fails', async () => {
-      mockCreatePlatformUser.mockRejectedValue({ response: { data: { message: 'Email already exists' } } });
+      mockCreatePlatformUser.mockRejectedValue({
+        response: { data: { message: 'Email already exists' } },
+      });
       renderPage();
       fireEvent.click(screen.getByRole('button', { name: /Plattform-Admin anlegen/ }));
       await waitFor(() => {
@@ -508,7 +521,9 @@ describe('Users page', () => {
       await waitFor(() => {
         expect(screen.getByTestId('unified-admin-users-view')).toBeInTheDocument();
       });
-      expect(screen.queryByRole('button', { name: /Plattform-Admin anlegen/ })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /Plattform-Admin anlegen/ })
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -543,7 +558,9 @@ describe('Users page', () => {
         tenantScopeId: 'tenant-1',
         isSuperAdminActor: false,
       });
-      expect(screen.queryByRole('button', { name: /Plattform-Admin anlegen/ })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /Plattform-Admin anlegen/ })
+      ).not.toBeInTheDocument();
     });
 
     it('opens edit drawer from unified view callback', async () => {
@@ -565,7 +582,9 @@ describe('Users page', () => {
 
     it('hides platform create when scoped as Manager', async () => {
       renderPage();
-      expect(screen.queryByRole('button', { name: /Plattform-Admin anlegen/ })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /Plattform-Admin anlegen/ })
+      ).not.toBeInTheDocument();
     });
   });
 });

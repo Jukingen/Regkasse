@@ -1,18 +1,5 @@
 'use client';
 
-import React, { useMemo } from 'react';
-import {
-  Button,
-  Card,
-  Flex,
-  Popover,
-  Space,
-  Table,
-  Tag,
-  Tooltip,
-  Typography,
-} from 'antd';
-import type { ColumnsType } from 'antd/es/table';
 import {
   CheckCircleFilled,
   CloseCircleFilled,
@@ -20,16 +7,19 @@ import {
   MinusCircleOutlined,
   StarFilled,
 } from '@ant-design/icons';
+import { Button, Card, Flex, Popover, Space, Table, Tag, Tooltip, Typography } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import React, { useMemo } from 'react';
 
 import type { PaymentMethodDefinitionAdmin } from '@/api/admin/payment-method-definitions';
-import type { AdminCashRegisterListItem } from '@/features/cash-registers/api/cashRegisters';
 import { TableSkeleton } from '@/components/Skeleton';
-import { useI18n } from '@/i18n';
+import type { AdminCashRegisterListItem } from '@/features/cash-registers/api/cashRegisters';
 import {
-  buildPaymentMethodMatrix,
   type PaymentMethodMatrixRow,
   type PaymentMethodRegisterSummary,
+  buildPaymentMethodMatrix,
 } from '@/features/payment-methods/utils/buildPaymentMethodMatrix';
+import { useI18n } from '@/i18n';
 
 type PaymentMethodMatrixOverviewProps = {
   registers: AdminCashRegisterListItem[];
@@ -62,7 +52,9 @@ function RegisterSummaryCard({
       title={title}
       extra={
         summary.defaultCode ? (
-          <Tooltip title={t('settings.paymentMethods.matrix.defaultBadge', { code: summary.defaultCode })}>
+          <Tooltip
+            title={t('settings.paymentMethods.matrix.defaultBadge', { code: summary.defaultCode })}
+          >
             <StarFilled style={{ color: '#1677ff' }} />
           </Tooltip>
         ) : null
@@ -81,7 +73,9 @@ function RegisterSummaryCard({
                 </Tag>
               ))
             ) : (
-              <Typography.Text type="secondary">{t('settings.paymentMethods.matrix.noneActive')}</Typography.Text>
+              <Typography.Text type="secondary">
+                {t('settings.paymentMethods.matrix.noneActive')}
+              </Typography.Text>
             )}
           </div>
         </div>
@@ -140,7 +134,9 @@ function MatrixCell({
       <Typography.Text type="secondary">{row.code}</Typography.Text>
       <div>
         <Tag color={cell.isActive ? 'success' : 'default'}>
-          {cell.isActive ? t('settings.paymentMethods.matrix.statusOpen') : t('settings.paymentMethods.matrix.statusClosed')}
+          {cell.isActive
+            ? t('settings.paymentMethods.matrix.statusOpen')
+            : t('settings.paymentMethods.matrix.statusClosed')}
         </Tag>
         {cell.isDefault && (
           <Tag color="blue" icon={<StarFilled />}>
@@ -159,7 +155,11 @@ function MatrixCell({
               ? t('settings.paymentMethods.matrix.turnOff')
               : t('settings.paymentMethods.matrix.turnOn')}
           </Button>
-          <Button size="small" icon={<EditOutlined />} onClick={() => onEditDefinition(cell.definition)}>
+          <Button
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => onEditDefinition(cell.definition)}
+          >
             {t('common.buttons.edit')}
           </Button>
         </Space>
@@ -169,7 +169,11 @@ function MatrixCell({
 
   return (
     <Popover content={popover} trigger="click" placement="top">
-      <Button type="text" style={{ height: 'auto', padding: '4px 8px' }} aria-label={`${row.code} ${registerId}`}>
+      <Button
+        type="text"
+        style={{ height: 'auto', padding: '4px 8px' }}
+        aria-label={`${row.code} ${registerId}`}
+      >
         <Space size={4}>
           {icon}
           {cell.isDefault && <StarFilled style={{ color: '#1677ff', fontSize: 12 }} />}
@@ -192,7 +196,7 @@ export function PaymentMethodMatrixOverview({
 
   const { rows, summaries } = useMemo(
     () => buildPaymentMethodMatrix(registers, methodsByRegisterId),
-    [registers, methodsByRegisterId],
+    [registers, methodsByRegisterId]
   );
 
   const columns: ColumnsType<PaymentMethodMatrixRow> = useMemo(() => {
@@ -213,7 +217,12 @@ export function PaymentMethodMatrixOverview({
 
     const registerColumns: ColumnsType<PaymentMethodMatrixRow> = registers.map((register) => ({
       title: (
-        <Button type="link" size="small" onClick={() => onManageRegister(register.id)} style={{ padding: 0 }}>
+        <Button
+          type="link"
+          size="small"
+          onClick={() => onManageRegister(register.id)}
+          style={{ padding: 0 }}
+        >
           {register.registerNumber}
         </Button>
       ),
@@ -257,19 +266,27 @@ export function PaymentMethodMatrixOverview({
       <Space wrap size="middle">
         <Space size={4}>
           <CheckCircleFilled style={{ color: '#52c41a' }} />
-          <Typography.Text type="secondary">{t('settings.paymentMethods.matrix.legendOpen')}</Typography.Text>
+          <Typography.Text type="secondary">
+            {t('settings.paymentMethods.matrix.legendOpen')}
+          </Typography.Text>
         </Space>
         <Space size={4}>
           <CloseCircleFilled style={{ color: '#ff4d4f' }} />
-          <Typography.Text type="secondary">{t('settings.paymentMethods.matrix.legendClosed')}</Typography.Text>
+          <Typography.Text type="secondary">
+            {t('settings.paymentMethods.matrix.legendClosed')}
+          </Typography.Text>
         </Space>
         <Space size={4}>
           <MinusCircleOutlined style={{ color: '#bfbfbf' }} />
-          <Typography.Text type="secondary">{t('settings.paymentMethods.matrix.legendMissing')}</Typography.Text>
+          <Typography.Text type="secondary">
+            {t('settings.paymentMethods.matrix.legendMissing')}
+          </Typography.Text>
         </Space>
         <Space size={4}>
           <StarFilled style={{ color: '#1677ff' }} />
-          <Typography.Text type="secondary">{t('settings.paymentMethods.matrix.legendDefault')}</Typography.Text>
+          <Typography.Text type="secondary">
+            {t('settings.paymentMethods.matrix.legendDefault')}
+          </Typography.Text>
         </Space>
       </Space>
 

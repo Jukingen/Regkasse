@@ -1,13 +1,15 @@
 import { jest } from '@jest/globals';
 
+type MockAxiosResponse = { data: Record<string, unknown>; status: number };
+
 // Mock axios instance
 const mockAxios = {
   create: jest.fn(() => mockAxios),
-  get: jest.fn(),
-  post: jest.fn(),
-  put: jest.fn(),
-  delete: jest.fn(),
-  patch: jest.fn(),
+  get: jest.fn<() => Promise<MockAxiosResponse>>(),
+  post: jest.fn<() => Promise<MockAxiosResponse>>(),
+  put: jest.fn<() => Promise<MockAxiosResponse>>(),
+  delete: jest.fn<() => Promise<MockAxiosResponse>>(),
+  patch: jest.fn<() => Promise<MockAxiosResponse>>(),
   interceptors: {
     request: {
       use: jest.fn(),

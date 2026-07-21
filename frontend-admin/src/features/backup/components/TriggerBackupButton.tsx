@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
 /**
  * Backup starten: Dropdown + Modal (optional Mandant für Super Admin).
  * API: POST /api/admin/backup/trigger — nur idempotencyKey; Mandant nur im Schlüssel zur Nachverfolgung.
  */
-
-import React, { useCallback, useMemo, useState } from "react";
-import { App, Modal, Alert, Button, Dropdown, Form, Select, Tooltip, Typography } from 'antd';
+import { CloudUploadOutlined, DatabaseOutlined } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
-import { CloudUploadOutlined, DatabaseOutlined } from "@ant-design/icons";
-import { useI18n } from "@/i18n";
-import { useBackupPermissions } from "@/features/backup/hooks/useBackupPermissions";
-import { useTriggerBackup } from "@/features/backup/hooks/useTriggerBackup";
-import { useTenants } from "@/features/backup/hooks/useTenants";
-import { triggerErrorMessageBackupDashboard } from "@/features/backup-dr/logic/backupManualTriggerMessaging";
-import { describeBackupTriggerOutcome } from "@/features/backup-dr/logic/backupTriggerOutcome";
+import { Alert, App, Button, Dropdown, Form, Modal, Select, Tooltip, Typography } from 'antd';
+import React, { useCallback, useMemo, useState } from 'react';
+
+import { triggerErrorMessageBackupDashboard } from '@/features/backup-dr/logic/backupManualTriggerMessaging';
+import { describeBackupTriggerOutcome } from '@/features/backup-dr/logic/backupTriggerOutcome';
+import { useBackupPermissions } from '@/features/backup/hooks/useBackupPermissions';
+import { useTenants } from '@/features/backup/hooks/useTenants';
+import { useTriggerBackup } from '@/features/backup/hooks/useTriggerBackup';
+import { useI18n } from '@/i18n';
 
 export interface TriggerBackupButtonProps {
   canManage: boolean;
@@ -39,21 +39,21 @@ export function TriggerBackupButton({ canManage }: TriggerBackupButtonProps) {
         label: `${row.name} (${row.slug})`,
         value: row.id,
       })),
-    [tenants],
+    [tenants]
   );
 
   const handleTrigger = useCallback(async () => {
     try {
       const res = await triggerBackup.mutateAsync({
         tenantId: selectedTenantId,
-        note: "Manuell ausgelöst",
+        note: 'Manuell ausgelöst',
       });
       const fb = describeBackupTriggerOutcome(res);
       const suffix = res.orchestrationState?.trim()
-        ? ` ${t("backupDr.messages.orchestrationStateSuffix", { state: res.orchestrationState })}`
-        : "";
+        ? ` ${t('backupDr.messages.orchestrationStateSuffix', { state: res.orchestrationState })}`
+        : '';
       const text = `${t(fb.messageKey)}${suffix}`;
-      if (fb.level === "success") message.success(text);
+      if (fb.level === 'success') message.success(text);
       else message.info(text);
       setIsModalOpen(false);
       setSelectedTenantId(undefined);
@@ -64,21 +64,21 @@ export function TriggerBackupButton({ canManage }: TriggerBackupButtonProps) {
 
   const handleAllTenantsTrigger = useCallback(() => {
     modal.confirm({
-      title: t("backupDr.triggerButton.allTenantsConfirmTitle"),
+      title: t('backupDr.triggerButton.allTenantsConfirmTitle'),
       content: (
         <Typography.Paragraph style={{ marginBottom: 0 }}>
-          {t("backupDr.triggerButton.allTenantsConfirmBody")}
+          {t('backupDr.triggerButton.allTenantsConfirmBody')}
         </Typography.Paragraph>
       ),
-      okText: t("backupDr.manual.confirmBackupOk"),
-      cancelText: t("common.buttons.cancel"),
+      okText: t('backupDr.manual.confirmBackupOk'),
+      cancelText: t('common.buttons.cancel'),
       okButtonProps: { loading: triggerBackup.isPending },
       onOk: async () => {
         try {
           const res = await triggerBackup.mutateAsync({ allTenants: true });
           const fb = describeBackupTriggerOutcome(res);
-          if (fb.level === "success") {
-            message.success(t("backupDr.triggerButton.allTenantsSuccess"));
+          if (fb.level === 'success') {
+            message.success(t('backupDr.triggerButton.allTenantsSuccess'));
           } else {
             message.info(t(fb.messageKey));
           }
@@ -90,19 +90,19 @@ export function TriggerBackupButton({ canManage }: TriggerBackupButtonProps) {
     });
   }, [t, triggerBackup]);
 
-  const menuItems: MenuProps["items"] = useMemo(() => {
-    const items: MenuProps["items"] = [
+  const menuItems: MenuProps['items'] = useMemo(() => {
+    const items: MenuProps['items'] = [
       {
-        key: "now",
-        label: t("backupDr.triggerButton.menuStartNow"),
+        key: 'now',
+        label: t('backupDr.triggerButton.menuStartNow'),
         icon: <CloudUploadOutlined />,
         onClick: () => setIsModalOpen(true),
       },
     ];
     if (superAdmin) {
       items.push({
-        key: "all-tenants",
-        label: t("backupDr.triggerButton.menuAllTenants"),
+        key: 'all-tenants',
+        label: t('backupDr.triggerButton.menuAllTenants'),
         icon: <DatabaseOutlined />,
         onClick: () => handleAllTenantsTrigger(),
       });
@@ -111,12 +111,12 @@ export function TriggerBackupButton({ canManage }: TriggerBackupButtonProps) {
   }, [handleAllTenantsTrigger, superAdmin, t]);
 
   const disabled = !canManage || triggerBackup.isPending;
-  const permissionTip = t("backupDr.permission.manualActionsTooltip");
+  const permissionTip = t('backupDr.permission.manualActionsTooltip');
 
   const triggerControl = (
     <Dropdown menu={{ items: menuItems }} placement="bottomRight" disabled={disabled}>
       <Button type="primary" icon={<CloudUploadOutlined />} loading={triggerBackup.isPending}>
-        {t("backupDr.triggerButton.label")}
+        {t('backupDr.triggerButton.label')}
       </Button>
     </Dropdown>
   );
@@ -124,7 +124,7 @@ export function TriggerBackupButton({ canManage }: TriggerBackupButtonProps) {
   if (!canManage) {
     return (
       <Tooltip title={permissionTip}>
-        <span style={{ display: "inline-block", cursor: "not-allowed" }}>{triggerControl}</span>
+        <span style={{ display: 'inline-block', cursor: 'not-allowed' }}>{triggerControl}</span>
       </Tooltip>
     );
   }
@@ -134,7 +134,7 @@ export function TriggerBackupButton({ canManage }: TriggerBackupButtonProps) {
       {triggerControl}
 
       <Modal
-        title={t("backupDr.triggerButton.modalTitle")}
+        title={t('backupDr.triggerButton.modalTitle')}
         open={isModalOpen}
         onOk={() => void handleTrigger()}
         onCancel={() => {
@@ -142,8 +142,8 @@ export function TriggerBackupButton({ canManage }: TriggerBackupButtonProps) {
           setSelectedTenantId(undefined);
         }}
         confirmLoading={triggerBackup.isPending}
-        okText={t("backupDr.triggerButton.modalOk")}
-        cancelText={t("common.buttons.cancel")}
+        okText={t('backupDr.triggerButton.modalOk')}
+        cancelText={t('common.buttons.cancel')}
         destroyOnHidden
       >
         {superAdmin ? (
@@ -151,17 +151,17 @@ export function TriggerBackupButton({ canManage }: TriggerBackupButtonProps) {
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
-            title={t("backupDr.triggerButton.instanceScopeHint")}
+            title={t('backupDr.triggerButton.instanceScopeHint')}
           />
         ) : null}
 
         {superAdmin ? (
           <Form layout="vertical">
-            <Form.Item label={t("backupDr.triggerButton.tenantLabel")}>
+            <Form.Item label={t('backupDr.triggerButton.tenantLabel')}>
               <Select
                 allowClear
                 showSearch
-                placeholder={t("backupDr.triggerButton.tenantPlaceholder")}
+                placeholder={t('backupDr.triggerButton.tenantPlaceholder')}
                 value={selectedTenantId}
                 onChange={setSelectedTenantId}
                 loading={tenantsLoading}
@@ -173,7 +173,7 @@ export function TriggerBackupButton({ canManage }: TriggerBackupButtonProps) {
         ) : null}
 
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 13 }}>
-          {t("backupDr.triggerButton.modalHint")}
+          {t('backupDr.triggerButton.modalHint')}
         </Typography.Paragraph>
       </Modal>
     </>

@@ -1,9 +1,10 @@
-"use client";
+'use client';
 
-import React from "react";
-import { BackupPageShell } from "@/features/backup/components/BackupPageShell";
-import { BackupComplianceDashboard } from "@/features/backup/components/BackupComplianceDashboard";
-import { BACKUP_COMPLIANCE_PATH } from "@/shared/backupAreaRoutes";
+import React from 'react';
+
+import { BackupComplianceDashboard } from '@/features/backup/components/BackupComplianceDashboard';
+import { BackupPageShell } from '@/features/backup/components/BackupPageShell';
+import { BACKUP_COMPLIANCE_PATH } from '@/shared/backupAreaRoutes';
 
 export default function BackupCompliancePage() {
   return (

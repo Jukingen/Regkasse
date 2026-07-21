@@ -1,9 +1,10 @@
 'use client';
 
-import { createContext, useContext, type ReactNode } from 'react';
+import { type ReactNode, createContext, useContext } from 'react';
+
 import {
-    useKeyboardShortcuts,
-    type UseKeyboardShortcutsResult,
+  type UseKeyboardShortcutsResult,
+  useKeyboardShortcuts,
 } from '@/hooks/useKeyboardShortcuts';
 
 const KeyboardShortcutsContext = createContext<UseKeyboardShortcutsResult | null>(null);
@@ -12,20 +13,18 @@ const KeyboardShortcutsContext = createContext<UseKeyboardShortcutsResult | null
  * Mounts global FA keyboard shortcuts once in the protected shell.
  */
 export function KeyboardShortcutsProvider({ children }: { children: ReactNode }) {
-    const value = useKeyboardShortcuts();
-    return (
-        <KeyboardShortcutsContext.Provider value={value}>
-            {children}
-        </KeyboardShortcutsContext.Provider>
-    );
+  const value = useKeyboardShortcuts();
+  return (
+    <KeyboardShortcutsContext.Provider value={value}>{children}</KeyboardShortcutsContext.Provider>
+  );
 }
 
 export function useKeyboardShortcutLabels(): UseKeyboardShortcutsResult {
-    const ctx = useContext(KeyboardShortcutsContext);
-    if (!ctx) {
-        return {
-            getShortcutLabel: () => '',
-        };
-    }
-    return ctx;
+  const ctx = useContext(KeyboardShortcutsContext);
+  if (!ctx) {
+    return {
+      getShortcutLabel: () => '',
+    };
+  }
+  return ctx;
 }

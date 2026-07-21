@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
 import { Alert } from 'antd';
 import { useRouter } from 'next/navigation';
-import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
+import { useEffect } from 'react';
+
 import { PageSkeleton } from '@/components/Skeleton';
+import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { useCurrentTenant } from '@/hooks/useCurrentTenant';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';

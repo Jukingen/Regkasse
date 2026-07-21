@@ -1,15 +1,16 @@
 /**
  * Üst özet + kısmi sorgu uyarısı — operatör netliği regresyonu.
  */
-import React from 'react';
 import '@testing-library/jest-dom';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { BackupDrPostureSummary } from '@/features/backup-dr/components/BackupDrPostureSummary';
+import React from 'react';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+
 import { BackupDrDataFreshnessStrip } from '@/features/backup-dr/components/BackupDrDataFreshnessStrip';
-import type { DrProofPresentationModel } from '@/features/backup-dr/logic/drProofLevelPresentation';
+import { BackupDrPostureSummary } from '@/features/backup-dr/components/BackupDrPostureSummary';
 import type { BackupExecutionModeTruth } from '@/features/backup-dr/logic/backupDrExecutionModeTruth';
 import { unloadedBackupExecutionModeTruth } from '@/features/backup-dr/logic/backupDrExecutionModeTruth';
+import type { DrProofPresentationModel } from '@/features/backup-dr/logic/drProofLevelPresentation';
 
 const t = (k: string) => k;
 
@@ -29,9 +30,7 @@ beforeAll(() => {
   });
 });
 
-function baseDrProof(
-  over: Partial<DrProofPresentationModel> = {},
-): DrProofPresentationModel {
+function baseDrProof(over: Partial<DrProofPresentationModel> = {}): DrProofPresentationModel {
   return {
     highestFullyProvenLevel: 2,
     layers: [],
@@ -91,7 +90,7 @@ describe('BackupDrPostureSummary', () => {
         formatDt={() => '—'}
         formatLocale="en-US"
         t={t}
-      />,
+      />
     );
     expect(screen.getByText('backupDr.postureSummary.simulatedModeTag')).toBeInTheDocument();
   });
@@ -110,7 +109,7 @@ describe('BackupDrPostureSummary', () => {
         formatDt={() => '—'}
         formatLocale="en-US"
         t={t}
-      />,
+      />
     );
     expect(screen.queryByText('backupDr.postureSummary.simulatedModeTag')).not.toBeInTheDocument();
   });
@@ -136,9 +135,11 @@ describe('BackupDrPostureSummary', () => {
         formatDt={() => '—'}
         formatLocale="en-US"
         t={t}
-      />,
+      />
     );
-    expect(screen.getByText('backupDr.confidenceDashboard.strip.drillFailedTitle')).toBeInTheDocument();
+    expect(
+      screen.getByText('backupDr.confidenceDashboard.strip.drillFailedTitle')
+    ).toBeInTheDocument();
   });
 
   it('renders scan tags with Ant Design preset colors (error → red)', () => {
@@ -163,7 +164,7 @@ describe('BackupDrPostureSummary', () => {
         formatDt={() => '—'}
         formatLocale="en-US"
         t={t}
-      />,
+      />
     );
     const el = screen.getByText('backupDr.scan.drill.latestFailed');
     expect(el.closest('.ant-tag')?.className).toMatch(/ant-tag-red/);
@@ -182,7 +183,7 @@ describe('BackupDrDataFreshnessStrip', () => {
         restoreLatestFailed={false}
         onRetry={onRetry}
         t={t}
-      />,
+      />
     );
     expect(screen.getByText('backupDr.dataFreshness.title')).toBeInTheDocument();
     expect(screen.getByText('backupDr.dataFreshness.sliceRecoverability')).toBeInTheDocument();
@@ -199,7 +200,7 @@ describe('BackupDrDataFreshnessStrip', () => {
         restoreLatestFailed={false}
         onRetry={() => {}}
         t={t}
-      />,
+      />
     );
     expect(container.firstChild).toBeNull();
   });

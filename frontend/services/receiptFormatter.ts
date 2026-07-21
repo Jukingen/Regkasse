@@ -1,5 +1,5 @@
-import { formatUserDateTime } from '../utils/dateFormatter';
 import type { ReceiptDTO } from '../types/ReceiptDTO';
+import { formatUserDateTime } from '../utils/dateFormatter';
 
 export interface FormatReceiptParams {
   qrBase64?: string;
@@ -18,6 +18,17 @@ function safeCurrency(value: number | undefined | null): string {
 function safeNumber(value: number | undefined | null): string {
   if (value === undefined || value === null || isNaN(value)) return '0';
   return Number(value).toFixed(2).replace('.', ',');
+}
+
+/** Escape text interpolated into receipt HTML (names, addresses, footer). */
+export function escapeHtml(value: string | undefined | null): string {
+  if (value == null || value === '') return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function getTaxCode(rate: number): string {
@@ -53,34 +64,46 @@ export function formatReceiptHtml(data: ReceiptDTO, params?: FormatReceiptParams
   const qrBase64 = params?.qrBase64;
   const verificationUrl = params?.verificationUrl ?? (data as any).verificationUrl;
   const rksvFooterLabel =
-    (data.rksvFooterLabel && data.rksvFooterLabel.trim()) ||
+    data.rksvFooterLabel?.trim() ||
     (params?.isDemoFiscal ? 'DEMO / NICHT FISKAL' : PRODUCTION_RKSV_FOOTER);
   const isDemoFooter = rksvFooterLabel.includes('DEMO');
 
-  const itemsHtml = items.map(item => `
+  const itemsHtml = items
+    .map(
+      (item) => `
         <tr>
-          <td>${item.name || 'Unknown Item'}</td>
+          <td>${escapeHtml(item.name) || '—'}</td>
           <td style="text-align: center;">${item.quantity || 0}</td>
           <td style="text-align: right;">${safeCurrency(item.unitPrice)}</td>
           <td style="text-align: right;">${safeCurrency(item.totalPrice)} ${getTaxCode(item.taxRate)}</td>
         </tr>
-      `).join('');
+      `
+    )
+    .join('');
 
-  const taxTableRowsHtml = taxRates.map(rate => `
+  const taxTableRowsHtml = taxRates
+    .map(
+      (rate) => `
         <tr>
           <td style="text-align: right;">${safeNumber(rate.rate)}%</td>
           <td style="text-align: right;">${safeCurrency(rate.netAmount)}</td>
           <td style="text-align: right;">${safeCurrency(rate.taxAmount)}</td>
           <td style="text-align: right;">${safeCurrency(rate.grossAmount)} ${getTaxCode(rate.rate)}</td>
         </tr>
-      `).join('');
+      `
+    )
+    .join('');
 
-  const paymentsHtml = payments.map(p => `
+  const paymentsHtml = payments
+    .map(
+      (p) => `
         <div class="total-row optional-totals">
-            <span>${p.method}:</span>
+            <span>${escapeHtml(p.method)}:</span>
             <span class="total-value">${safeCurrency(p.amount)}</span>
         </div>
-        ${p.method === 'cash' ? `
+        ${
+          p.method === 'cash'
+            ? `
           <div class="total-row optional-totals">
              <span>Gegeben:</span>
              <span class="total-value">${safeCurrency(p.tendered)}</span>
@@ -89,15 +112,19 @@ export function formatReceiptHtml(data: ReceiptDTO, params?: FormatReceiptParams
              <span>Rückgeld:</span>
              <span class="total-value">${safeCurrency(p.change)}</span>
           </div>
-        ` : ''}
-    `).join('');
+        `
+            : ''
+        }
+    `
+    )
+    .join('');
 
   const grandTotalGross = data.grandTotal ?? 0;
-  const subtotalNet = data.subtotal ?? (grandTotalGross - (data.taxAmount ?? 0));
+  const subtotalNet = data.subtotal ?? grandTotalGross - (data.taxAmount ?? 0);
   const includedTaxTotal = data.taxAmount ?? 0;
 
   const rksvVerificationLine = verificationUrl
-    ? `<div class="rksv-url">${verificationUrl}</div>`
+    ? `<div class="rksv-url">${escapeHtml(verificationUrl)}</div>`
     : '<div class="rksv-url">RKSV-Prüfung: QR-Code oben scannen</div>';
 
   const reversalBanner =
@@ -108,15 +135,17 @@ export function formatReceiptHtml(data: ReceiptDTO, params?: FormatReceiptParams
         : '';
 
   const demoLabel = isDemoFooter
-    ? `<div class="qr-demo-label">${rksvFooterLabel}</div>`
-    : `<div class="qr-fiscal-label">${rksvFooterLabel}</div>`;
+    ? `<div class="qr-demo-label">${escapeHtml(rksvFooterLabel)}</div>`
+    : `<div class="qr-fiscal-label">${escapeHtml(rksvFooterLabel)}</div>`;
   const signatureValue = resolveSignatureValue(signature);
-  const tseSignatureHtml = `<div class="tse-signature">${formatTseSignatureDisplay(signatureValue).replace('\n', '<br/>')}</div>`;
-  const qrBlock = qrBase64
+  const tseSignatureHtml = `<div class="tse-signature">${escapeHtml(formatTseSignatureDisplay(signatureValue)).replace(/\n/g, '<br/>')}</div>`;
+  // qrBase64 must already be a data: URL from the printer service — do not escape (would break the image).
+  const qrImgSrc = qrBase64 && /^data:image\//i.test(qrBase64) ? qrBase64 : '';
+  const qrBlock = qrImgSrc
     ? `
         <div class="qr-block">
           ${demoLabel}
-          <img src="${qrBase64}" class="qr-image" width="180" height="180" alt="RKSV QR Code" />
+          <img src="${qrImgSrc}" class="qr-image" width="180" height="180" alt="RKSV QR Code" />
           ${rksvVerificationLine}
         </div>
       `
@@ -127,7 +156,8 @@ export function formatReceiptHtml(data: ReceiptDTO, params?: FormatReceiptParams
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Receipt ${data.receiptNumber || 'N/A'}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Beleg ${escapeHtml(data.receiptNumber) || 'N/A'}</title>
         <style>
           body { font-family: 'Courier New', monospace; max-width: 300px; margin: 20px auto; padding: 10px; color: #000; }
           h1 { text-align: center; font-size: 16px; margin: 5px 0; font-weight: bold; }
@@ -162,14 +192,14 @@ export function formatReceiptHtml(data: ReceiptDTO, params?: FormatReceiptParams
       <body>
         ${reversalBanner}
         <div class="company-info">
-          <h1>${company.name || '—'}</h1>
-          <div>${company.address || ''}</div>
-          <div>${company.taxNumber ? `UID: ${company.taxNumber}` : ''}</div>
+          <h1>${escapeHtml(company.name) || '—'}</h1>
+          <div>${escapeHtml(company.address)}</div>
+          <div>${company.taxNumber ? `UID: ${escapeHtml(company.taxNumber)}` : ''}</div>
         </div>
         <div class="meta-info">
-          <div>Beleg: ${data.receiptNumber}</div>
-          <div>Datum: ${formatUserDateTime(data.date)}</div>
-          <div>Kasse: ${data.kassenID} | Kassierer: ${(data.cashierDisplayName && data.cashierDisplayName.trim()) || (data.cashierId && data.cashierId.trim()) || '—'}</div>
+          <div>Beleg: ${escapeHtml(data.receiptNumber)}</div>
+          <div>Datum: ${escapeHtml(formatUserDateTime(data.date))}</div>
+          <div>Kasse: ${escapeHtml(data.kassenID)} | Kassierer: ${escapeHtml(data.cashierDisplayName?.trim() || (data.cashierId && data.cashierId.trim()) || '—')}</div>
         </div>
         <table>
           <thead>
@@ -216,10 +246,10 @@ export function formatReceiptHtml(data: ReceiptDTO, params?: FormatReceiptParams
           <div style="font-weight: bold; margin-bottom: 5px;">Registrierkassensicherheitsverordnung</div>
           ${qrBlock}
           ${tseSignatureHtml}
-          ${signature?.serialNumber && signature?.timestamp ? `<div style="margin-top: 2px; font-size: 9px;">${signature.serialNumber} | ${signature.timestamp}</div>` : ''}
+          ${signature?.serialNumber && signature?.timestamp ? `<div style="margin-top: 2px; font-size: 9px;">${escapeHtml(signature.serialNumber)} | ${escapeHtml(signature.timestamp)}</div>` : ''}
         </div>
         <div class="footer">
-          <div>${data.footerText || 'Vielen Dank für Ihren Einkauf!'}</div>
+          <div>${escapeHtml(data.footerText) || 'Vielen Dank für Ihren Einkauf!'}</div>
         </div>
       </body>
       </html>

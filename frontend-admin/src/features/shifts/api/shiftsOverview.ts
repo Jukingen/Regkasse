@@ -63,14 +63,12 @@ export const adminShiftOverviewQueryKeyPrefix = ['admin', 'shifts', 'overview'] 
 export const adminShiftOverviewQueryKey = (params: AdminShiftOverviewParams = {}) =>
   [...adminShiftOverviewQueryKeyPrefix, params] as const;
 
-export async function invalidateAdminShiftOverviewQueries(
-  queryClient: QueryClient,
-): Promise<void> {
+export async function invalidateAdminShiftOverviewQueries(queryClient: QueryClient): Promise<void> {
   await queryClient.invalidateQueries({ queryKey: adminShiftOverviewQueryKeyPrefix });
 }
 
 export async function fetchAdminShiftOverview(
-  params: AdminShiftOverviewParams = {},
+  params: AdminShiftOverviewParams = {}
 ): Promise<AdminShiftOverview> {
   return customInstance<AdminShiftOverview>({
     url: '/api/admin/shifts/overview',
@@ -86,7 +84,7 @@ export type AdminForceCloseShiftRequest = {
 
 export async function forceCloseAdminShiftRegister(
   cashRegisterId: string,
-  body: AdminForceCloseShiftRequest = {},
+  body: AdminForceCloseShiftRequest = {}
 ): Promise<{ cashRegisterId: string; closedShiftCount: number }> {
   return customInstance({
     url: `/api/admin/shifts/registers/${cashRegisterId.trim()}/force-close`,

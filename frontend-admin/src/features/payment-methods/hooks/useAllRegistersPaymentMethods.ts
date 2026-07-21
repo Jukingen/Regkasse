@@ -1,12 +1,12 @@
 'use client';
 
-import { useMemo } from 'react';
 import { useQueries } from '@tanstack/react-query';
+import { useMemo } from 'react';
 
 import {
+  type PaymentMethodDefinitionAdmin,
   adminPaymentMethodDefinitionsQueryKeys,
   getAdminPaymentMethodDefinitions,
-  type PaymentMethodDefinitionAdmin,
 } from '@/api/admin/payment-method-definitions';
 
 export function useAllRegistersPaymentMethods(registerIds: string[], enabled: boolean) {

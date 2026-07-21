@@ -102,7 +102,9 @@ export function LicenseStatusIndicator({
   return (
     <>
       <Pressable
-        onPress={() => setDetailOpen(true)}
+        onPress={() => {
+          setDetailOpen(true);
+        }}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
         accessibilityHint={t('license:badge.accessibilityHint')}
@@ -111,8 +113,7 @@ export function LicenseStatusIndicator({
           { alignSelf: badgeAlignSelf },
           expandedTouchTarget ? styles.badgeExpanded : null,
           { backgroundColor: badgeBackground(tone) },
-        ]}
-      >
+        ]}>
         {!status && loading ? (
           <ActivityIndicator size="small" color={SoftColors.textInverse} />
         ) : (
@@ -141,7 +142,9 @@ export function LicenseStatusIndicator({
 
       <LicenseModal
         visible={detailOpen}
-        onClose={() => setDetailOpen(false)}
+        onClose={() => {
+          setDetailOpen(false);
+        }}
         status={status}
         loading={loading}
         unlimitedPaid={unlimitedPaid}

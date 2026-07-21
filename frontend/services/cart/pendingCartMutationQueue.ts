@@ -128,10 +128,7 @@ function sequenceKey(tableNumber: number, deviceId: string): string {
   return `${deviceId}:${tableNumber}`;
 }
 
-async function nextClientSequenceNumber(
-  tableNumber: number,
-  deviceId: string
-): Promise<number> {
+async function nextClientSequenceNumber(tableNumber: number, deviceId: string): Promise<number> {
   const raw = await storage.getItem(CART_SEQUENCE_MAP_KEY);
   let map: Record<string, number> = {};
   if (raw) {
@@ -169,9 +166,7 @@ export async function enqueueCartMutation(
   const idem = idempotencyKey?.trim();
 
   if (idem) {
-    const existing = q.find(
-      (e) => e.status === 'Pending' && e.idempotencyKey === idem
-    );
+    const existing = q.find((e) => e.status === 'Pending' && e.idempotencyKey === idem);
     if (existing) return existing.mutationId;
   }
 

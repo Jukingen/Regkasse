@@ -1,36 +1,37 @@
 /**
  * @vitest-environment jsdom
  */
-import React from "react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
-import "@testing-library/jest-dom/vitest";
-import { App } from "antd";
-import { BackupDiff } from "@/features/backup/components/BackupDiff";
+import '@testing-library/jest-dom/vitest';
+import { render, screen } from '@testing-library/react';
+import { App } from 'antd';
+import React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { BackupDiff } from '@/features/backup/components/BackupDiff';
 
 const useBackupDiffMock = vi.fn();
 
-vi.mock("@/features/backup/hooks/useBackupDiff", () => ({
+vi.mock('@/features/backup/hooks/useBackupDiff', () => ({
   useBackupDiff: (...args: unknown[]) => useBackupDiffMock(...args),
 }));
 
-vi.mock("@/i18n", () => ({
+vi.mock('@/i18n', () => ({
   useI18n: () => ({
     t: (key: string) => key,
-    formatLocale: "de-AT",
+    formatLocale: 'de-AT',
   }),
 }));
 
-describe("BackupDiff", () => {
+describe('BackupDiff', () => {
   beforeEach(() => {
     useBackupDiffMock.mockReset();
   });
 
-  it("renders comparison table when diff is ready", () => {
+  it('renders comparison table when diff is ready', () => {
     useBackupDiffMock.mockReturnValue({
       data: {
-        backup1Id: "a",
-        backup2Id: "b",
+        backup1Id: 'a',
+        backup2Id: 'b',
         sizeBytes1: 1000,
         sizeBytes2: 800,
         sizeDiffBytes: 200,
@@ -39,8 +40,8 @@ describe("BackupDiff", () => {
         changedCount: 1,
         differences: [
           {
-            key: "public.products",
-            table: "public.products",
+            key: 'public.products',
+            table: 'public.products',
             count1: 1,
             count2: 0,
             diff: 1,
@@ -57,14 +58,14 @@ describe("BackupDiff", () => {
     render(
       <App>
         <BackupDiff backup1Id="a" backup2Id="b" />
-      </App>,
+      </App>
     );
 
-    expect(screen.getByText("backupDr.backupDiff.cardTitle")).toBeInTheDocument();
-    expect(screen.getByText("public.products")).toBeInTheDocument();
+    expect(screen.getByText('backupDr.backupDiff.cardTitle')).toBeInTheDocument();
+    expect(screen.getByText('public.products')).toBeInTheDocument();
   });
 
-  it("prompts to pick two runs when ids missing", () => {
+  it('prompts to pick two runs when ids missing', () => {
     useBackupDiffMock.mockReturnValue({
       data: null,
       sameId: false,
@@ -75,9 +76,9 @@ describe("BackupDiff", () => {
     render(
       <App>
         <BackupDiff />
-      </App>,
+      </App>
     );
 
-    expect(screen.getByText("backupDr.backupDiff.pickTwo")).toBeInTheDocument();
+    expect(screen.getByText('backupDr.backupDiff.pickTwo')).toBeInTheDocument();
   });
 });

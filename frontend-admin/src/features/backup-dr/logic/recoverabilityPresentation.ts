@@ -10,7 +10,9 @@ const AGING_THRESHOLD_SEC = SEC_DAY;
 /** 7 gün: “stale” — kanıt eskisi. */
 const STALE_THRESHOLD_SEC = 7 * SEC_DAY;
 
-export function proofAgeFreshnessTier(ageSeconds: number | null | undefined): ProofAgeFreshnessTier {
+export function proofAgeFreshnessTier(
+  ageSeconds: number | null | undefined
+): ProofAgeFreshnessTier {
   if (ageSeconds === null || ageSeconds === undefined || Number.isNaN(ageSeconds)) return 'unknown';
   if (ageSeconds >= STALE_THRESHOLD_SEC) return 'stale';
   if (ageSeconds >= AGING_THRESHOLD_SEC) return 'aging';
@@ -19,7 +21,7 @@ export function proofAgeFreshnessTier(ageSeconds: number | null | undefined): Pr
 
 /** i18n: recoverability.freshnessTag.* */
 export function freshnessTagColor(
-  tier: ProofAgeFreshnessTier,
+  tier: ProofAgeFreshnessTier
 ): 'blue' | 'orange' | 'red' | 'default' {
   if (tier === 'recent') return 'blue';
   if (tier === 'aging') return 'orange';

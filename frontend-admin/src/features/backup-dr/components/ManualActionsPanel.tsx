@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
-import { Alert, Button, Card, Popconfirm, Space, Tooltip, Typography } from 'antd';
 import { CloudUploadOutlined, ExperimentOutlined } from '@ant-design/icons';
+import { Alert, Button, Card, Popconfirm, Space, Tooltip, Typography } from 'antd';
+import React from 'react';
+
 import type { ManualActionsModeConfirmations } from '@/features/backup-dr/logic/backupManualActionsModePresentation';
 
 export interface ManualActionsPanelProps {
@@ -70,12 +71,16 @@ export function ManualActionsPanel({
   const backupDisabled = !canManage || backupTrigger.isPending;
   const restoreDisabled = !canRestoreEffective || restoreTrigger.isPending;
 
-  const backupTitle = modeAwareConfirmations?.backupTitle ?? t('backupDr.manual.confirmBackupTitle');
-  const backupDescParts =
-    modeAwareConfirmations?.backupDescriptionParts ?? [t('backupDr.manual.confirmBackupDescription')];
-  const restoreTitle = modeAwareConfirmations?.restoreTitle ?? t('backupDr.manual.confirmRestoreTitle');
-  const restoreDescParts =
-    modeAwareConfirmations?.restoreDescriptionParts ?? [t('backupDr.manual.confirmRestoreDescription')];
+  const backupTitle =
+    modeAwareConfirmations?.backupTitle ?? t('backupDr.manual.confirmBackupTitle');
+  const backupDescParts = modeAwareConfirmations?.backupDescriptionParts ?? [
+    t('backupDr.manual.confirmBackupDescription'),
+  ];
+  const restoreTitle =
+    modeAwareConfirmations?.restoreTitle ?? t('backupDr.manual.confirmRestoreTitle');
+  const restoreDescParts = modeAwareConfirmations?.restoreDescriptionParts ?? [
+    t('backupDr.manual.confirmRestoreDescription'),
+  ];
 
   const backupControl = (
     <Popconfirm
@@ -108,7 +113,11 @@ export function ManualActionsPanel({
       onConfirm={() => restoreTrigger.mutate({ data: {} })}
       overlayStyle={{ maxWidth: 440 }}
     >
-      <Button icon={<ExperimentOutlined />} disabled={restoreDisabled} loading={restoreTrigger.isPending}>
+      <Button
+        icon={<ExperimentOutlined />}
+        disabled={restoreDisabled}
+        loading={restoreTrigger.isPending}
+      >
         {t('backupDr.actions.enqueueRestoreDrill')}
       </Button>
     </Popconfirm>

@@ -1,8 +1,9 @@
 'use client';
 
-import { ReactNode } from 'react';
-import { usePermissions } from './usePermissions';
 import { Tooltip } from 'antd';
+import { ReactNode } from 'react';
+
+import { usePermissions } from './usePermissions';
 
 export type PermissionGateMode = 'hide' | 'disable';
 
@@ -37,9 +38,7 @@ export function PermissionGate({
 
   return (
     <Tooltip title={fallbackTooltip}>
-      <span style={{ display: 'inline-block', cursor: 'not-allowed' }}>
-        {children}
-      </span>
+      <span style={{ display: 'inline-block', cursor: 'not-allowed' }}>{children}</span>
     </Tooltip>
   );
 }

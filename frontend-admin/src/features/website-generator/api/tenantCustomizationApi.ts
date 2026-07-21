@@ -89,7 +89,7 @@ function map(dto: Api): TenantCustomization {
 
 export async function fetchTenantCustomization(
   type: 'website' | 'app',
-  tenantId?: string,
+  tenantId?: string
 ): Promise<TenantCustomization> {
   const res = await customInstance<Api>({
     url: '/api/admin/tenant-customizations',
@@ -103,7 +103,7 @@ export async function fetchTenantCustomization(
 }
 
 export async function upsertTenantCustomization(
-  input: UpsertTenantCustomizationInput,
+  input: UpsertTenantCustomizationInput
 ): Promise<TenantCustomization> {
   const res = await customInstance<Api>({
     url: '/api/admin/tenant-customizations',

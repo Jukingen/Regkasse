@@ -22,14 +22,14 @@ Axios mutator / dev tenant selector should set the header on loopback; see `src/
 
 Base path: `/api/admin/tenants`. Auth: `Bearer` JWT with `SuperAdmin` role.
 
-| Method | Path | Response | Notes |
-|--------|------|----------|--------|
-| `GET` | `/api/admin/tenants` | `AdminTenantListItemDto[]` | Query: `includeDeleted` (bool, default false) |
-| `GET` | `/api/admin/tenants/{tenantId}` | `AdminTenantDetailDto` | 404 if missing |
-| `POST` | `/api/admin/tenants` | `201` + `AdminTenantDetailDto` | Body: `CreateAdminTenantRequest` (`name`, `slug` required) |
-| `PUT` | `/api/admin/tenants/{tenantId}` | `AdminTenantDetailDto` | Body: `UpdateAdminTenantRequest` (`status`: `active` \| `suspended` \| `deleted`) |
-| `DELETE` | `/api/admin/tenants/{tenantId}` | `204` | Soft-delete |
-| `POST` | `/api/admin/tenants/{tenantId}/impersonate` | `TenantImpersonationResponseDto` | 400 if suspended/inactive; 404 if tenant missing |
+| Method   | Path                                        | Response                         | Notes                                                                             |
+| -------- | ------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------- |
+| `GET`    | `/api/admin/tenants`                        | `AdminTenantListItemDto[]`       | Query: `includeDeleted` (bool, default false)                                     |
+| `GET`    | `/api/admin/tenants/{tenantId}`             | `AdminTenantDetailDto`           | 404 if missing                                                                    |
+| `POST`   | `/api/admin/tenants`                        | `201` + `AdminTenantDetailDto`   | Body: `CreateAdminTenantRequest` (`name`, `slug` required)                        |
+| `PUT`    | `/api/admin/tenants/{tenantId}`             | `AdminTenantDetailDto`           | Body: `UpdateAdminTenantRequest` (`status`: `active` \| `suspended` \| `deleted`) |
+| `DELETE` | `/api/admin/tenants/{tenantId}`             | `204`                            | Soft-delete                                                                       |
+| `POST`   | `/api/admin/tenants/{tenantId}/impersonate` | `TenantImpersonationResponseDto` | 400 if suspended/inactive; 404 if tenant missing                                  |
 
 **Impersonation response fields:** `token`, `expiresIn`, `refreshToken`, `refreshTokenExpiresAtUtc`, `tenantId`, `tenantSlug`, `tenantDisplayName`, `impersonation` (bool).
 
@@ -38,6 +38,7 @@ Base path: `/api/admin/tenants`. Auth: `Bearer` JWT with `SuperAdmin` role.
 **OpenAPI:** `backend/swagger.json` (tags: admin tenants). Full architecture: `docs/MULTI_TENANT.md`.
 
 ## Auth
+
 - **Login**: `POST /api/Auth/login` — body: **`loginIdentifier`** (email or username) + `password` + `clientApp` (`admin` \| `pos`). Legacy `email` field still accepted when `loginIdentifier` is empty.
 - **Logout**: `POST /api/Auth/logout`
 - **User create (platform):** `POST /api/admin/users` — optional `userName`; response includes `userName` + `generatedPassword`.
@@ -48,6 +49,7 @@ Base path: `/api/admin/tenants`. Auth: `Bearer` JWT with `SuperAdmin` role.
 ## Modules
 
 ### Dashboard (`/dashboard`)
+
 - **Widget layout (per user + tenant)**:
   - `GET /api/admin/dashboard/widgets` — catalog (permission-filtered)
   - `GET /api/admin/dashboard/preferences` — saved layout or defaults
@@ -57,6 +59,7 @@ Base path: `/api/admin/tenants`. Auth: `Bearer` JWT with `SuperAdmin` role.
 - **Current source of truth**: `frontend-admin/src/app/(protected)/dashboard/page.tsx`.
 
 ### Invoices (`/invoices`)
+
 - **List**: `GET /api/Invoice/pos-list` (POS-authoritative admin list)
 - **Details**: `GET /api/Invoice/{id}`
 - **CSV export (implemented)**:
@@ -67,16 +70,19 @@ Base path: `/api/admin/tenants`. Auth: `Bearer` JWT with `SuperAdmin` role.
 - **Current source of truth**: `frontend-admin/src/features/invoices/components/InvoiceList.tsx`.
 
 ### Audit Logs (`/audit-logs`)
+
 - **List**: `GET /api/AuditLog`
   - Params: `page`, `pageSize`, `startDate`, `endDate`, `userId`, `action`
 - **Details**: `GET /api/AuditLog/{id}`
 
 ## API Client Generation
+
 The client is generated using Orval from `swagger.json`.
 Configuration: `orval.config.ts`
 Output: `src/api/generated`
 
 ## RKSV/Admin Canonical Flows
+
 - **Payments (Admin UI)** use canonical admin payment routes: `/api/admin/payments/*` (list/detail/statistics/cancel/refund).
 - **FinanzOnline reconciliation**: `/api/admin/finanzonline-reconciliation`, `/metrics`, `/retry/{paymentId}` via generated `admin` client.
 - **Incident investigation**: `/api/admin/incidents/{correlationId}` (aggregate source for replay + audit + FO state).

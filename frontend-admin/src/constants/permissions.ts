@@ -5,19 +5,22 @@
  * Full route guard map: `shared/auth/routePermissions.ts` (`ROUTE_PERMISSIONS`).
  * Runtime checks: `shared/auth/menuPermissions.ts` (`isMenuItemAllowed`).
  */
-
-export {
+import {
+  ANY_AUTHENTICATED_PERMISSION,
   AppPermissions,
   PERMISSIONS,
-  ANY_AUTHENTICATED_PERMISSION,
-  hasPermission,
-  hasAnyPermission,
-  hasAllPermissions,
-  type Permission,
-  type UserWithPermissions,
 } from '@/shared/auth/permissions';
 
-import { AppPermissions, PERMISSIONS, ANY_AUTHENTICATED_PERMISSION } from '@/shared/auth/permissions';
+export {
+  ANY_AUTHENTICATED_PERMISSION,
+  AppPermissions,
+  hasAllPermissions,
+  hasAnyPermission,
+  hasPermission,
+  type Permission,
+  PERMISSIONS,
+  type UserWithPermissions,
+} from '@/shared/auth/permissions';
 
 /**
  * Primary sidebar routes → required permission(s).

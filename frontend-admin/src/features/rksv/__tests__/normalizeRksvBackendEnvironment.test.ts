@@ -37,7 +37,7 @@ describe('normalizeRksvBackendEnvironment', () => {
         tseStatusDisplay: '',
         tseStatusBadge: '',
         environmentDisplayName: '',
-      }),
+      })
     ).toBe(false);
   });
 });

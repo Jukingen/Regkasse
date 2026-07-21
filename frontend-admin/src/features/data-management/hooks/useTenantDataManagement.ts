@@ -1,7 +1,9 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
 import {
+  type DataRightsRequestType,
   confirmDataRightsDelete,
   confirmTenantDataDeletion,
   createDataRightsRequest,
@@ -13,7 +15,6 @@ import {
   listDataRightsRequestTypes,
   listDataRightsRequests,
   requestTenantDataDeletion,
-  type DataRightsRequestType,
 } from '@/features/data-management/api/tenantDataManagement';
 
 export const tenantDataManagementQueryKey = (tenantId: string) =>
@@ -25,7 +26,10 @@ export const dataRightsRequestsQueryKey = (tenantId: string) =>
 export const dataRightsCatalogQueryKey = (tenantId: string) =>
   ['tenant-data-rights-catalog', tenantId] as const;
 
-function invalidateDataManagement(queryClient: ReturnType<typeof useQueryClient>, tenantId: string) {
+function invalidateDataManagement(
+  queryClient: ReturnType<typeof useQueryClient>,
+  tenantId: string
+) {
   void queryClient.invalidateQueries({ queryKey: tenantDataManagementQueryKey(tenantId) });
   void queryClient.invalidateQueries({ queryKey: dataRightsRequestsQueryKey(tenantId) });
 }
@@ -53,7 +57,12 @@ export function useDataRightsRequests(tenantId: string) {
     enabled: Boolean(tenantId),
     refetchInterval: (query) => {
       const rows = query.state.data;
-      if (!rows?.some((r) => r.requestType === 'export' && (r.status === 'processing' || r.status === 'approved'))) {
+      if (
+        !rows?.some(
+          (r) =>
+            r.requestType === 'export' && (r.status === 'processing' || r.status === 'approved')
+        )
+      ) {
         return false;
       }
       return 10_000;

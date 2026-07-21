@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+
 import type { BackupArtifactResponseDto } from '@/api/generated/model';
+import { BackupArtifactResponseDtoArtifactType } from '@/api/generated/model/backupArtifactResponseDtoArtifactType';
 import {
   artifactByteSizeFootnoteKey,
   artifactClassLabelKeyForType,
@@ -8,14 +10,13 @@ import {
   buildArtifactDownloadRowTruth,
   contentExpectationTableSummaryKey,
   formatArtifactByteSize,
-  sortArtifactsForOperatorDisplay,
   inferNonFakeArtifactSuspicion,
   inferRecoverabilityUse,
   inferSourceExecutionReality,
   shouldConfirmDownloadUnprovenLogicalDump,
   shouldOfferLastKnownGoodArtifactDownload,
+  sortArtifactsForOperatorDisplay,
 } from '@/features/backup-dr/logic/backupArtifactDownloadTruth';
-import { BackupArtifactResponseDtoArtifactType } from '@/api/generated/model/backupArtifactResponseDtoArtifactType';
 
 describe('shouldOfferLastKnownGoodArtifactDownload', () => {
   it('is true when latest failed and LKG id differs', () => {
@@ -24,7 +25,7 @@ describe('shouldOfferLastKnownGoodArtifactDownload', () => {
         latestRunId: 'fail-1',
         latestStatus: 4,
         lastSuccessfulBackupRunId: 'good-1',
-      }),
+      })
     ).toBe(true);
   });
 
@@ -34,7 +35,7 @@ describe('shouldOfferLastKnownGoodArtifactDownload', () => {
         latestRunId: 'a',
         latestStatus: 3,
         lastSuccessfulBackupRunId: 'good-1',
-      }),
+      })
     ).toBe(false);
   });
 
@@ -44,7 +45,7 @@ describe('shouldOfferLastKnownGoodArtifactDownload', () => {
         latestRunId: 'same',
         latestStatus: 4,
         lastSuccessfulBackupRunId: 'same',
-      }),
+      })
     ).toBe(false);
   });
 });
@@ -71,12 +72,15 @@ describe('buildArtifactDownloadRowTruth', () => {
   });
 
   it('blocks download when file presence unknown', () => {
-    const row = buildArtifactDownloadRowTruth(baseArtifact({ isFilePresentForDownload: undefined }), {
-      isSimulatedExecutionFlag: false,
-      runAdapterKind: 'PgDump',
-      realPostgreSqlLogicalDumpConfigured: true,
-      canManage: true,
-    });
+    const row = buildArtifactDownloadRowTruth(
+      baseArtifact({ isFilePresentForDownload: undefined }),
+      {
+        isSimulatedExecutionFlag: false,
+        runAdapterKind: 'PgDump',
+        realPostgreSqlLogicalDumpConfigured: true,
+        canManage: true,
+      }
+    );
     expect(row.download).toEqual({ state: 'blocked', reason: 'file_presence_unknown' });
   });
 
@@ -99,7 +103,9 @@ describe('buildArtifactDownloadRowTruth', () => {
       canManage: true,
     });
     expect(row.artifactClassLabelKey).toBe('backupDr.download.types.logicalDumpStub');
-    expect(row.contentExpectationKey).toBe('backupDr.download.contentExpect.stubLogicalDumpFakeAdapter');
+    expect(row.contentExpectationKey).toBe(
+      'backupDr.download.contentExpect.stubLogicalDumpFakeAdapter'
+    );
     expect(row.recoverabilityUse).toBe('not_dr_evidence_simulated');
     expect(row.nonFakeSuspicion).toBe('none');
     expect(row.showIntegrityPrecheckDisclaimer).toBe(false);
@@ -113,7 +119,7 @@ describe('buildArtifactDownloadRowTruth', () => {
         runAdapterKind: 'PgDump',
         realPostgreSqlLogicalDumpConfigured: true,
         canManage: true,
-      },
+      }
     );
     expect(row.sourceExecutionReality).toBe('non_simulated');
     expect(row.artifactClassLabelKey).toBe('backupDr.download.types.logicalDumpOperational');
@@ -129,10 +135,12 @@ describe('buildArtifactDownloadRowTruth', () => {
         runAdapterKind: 'Fake',
         realPostgreSqlLogicalDumpConfigured: false,
         canManage: true,
-      },
+      }
     );
     expect(row.artifactClassLabelKey).toBe('backupDr.download.types.manifestStub');
-    expect(row.contentExpectationKey).toBe('backupDr.download.contentExpect.stubManifestFakeAdapter');
+    expect(row.contentExpectationKey).toBe(
+      'backupDr.download.contentExpect.stubManifestFakeAdapter'
+    );
     expect(row.recoverabilityUse).toBe('not_dr_evidence_simulated');
   });
 
@@ -147,12 +155,12 @@ describe('buildArtifactDownloadRowTruth', () => {
 
 describe('artifactContentExpectationKey', () => {
   it('matches Fake adapter logical + manifest keys', () => {
-    expect(
-      artifactContentExpectationKey(0, 'simulated_stub', false),
-    ).toBe('backupDr.download.contentExpect.stubLogicalDumpFakeAdapter');
-    expect(
-      artifactContentExpectationKey(4, 'simulated_stub', false),
-    ).toBe('backupDr.download.contentExpect.stubManifestFakeAdapter');
+    expect(artifactContentExpectationKey(0, 'simulated_stub', false)).toBe(
+      'backupDr.download.contentExpect.stubLogicalDumpFakeAdapter'
+    );
+    expect(artifactContentExpectationKey(4, 'simulated_stub', false)).toBe(
+      'backupDr.download.contentExpect.stubManifestFakeAdapter'
+    );
   });
 });
 
@@ -168,9 +176,15 @@ describe('artifactClassLabelKeyForType', () => {
   });
 
   it('uses stub-typed label for enum 1–3 in simulated_stub (not generic backup name)', () => {
-    expect(artifactClassLabelKeyForType(1, 'simulated_stub', true)).toBe('backupDr.download.types.stub.1');
-    expect(artifactClassLabelKeyForType(2, 'simulated_stub', true)).toBe('backupDr.download.types.stub.2');
-    expect(artifactClassLabelKeyForType(3, 'simulated_stub', true)).toBe('backupDr.download.types.stub.3');
+    expect(artifactClassLabelKeyForType(1, 'simulated_stub', true)).toBe(
+      'backupDr.download.types.stub.1'
+    );
+    expect(artifactClassLabelKeyForType(2, 'simulated_stub', true)).toBe(
+      'backupDr.download.types.stub.2'
+    );
+    expect(artifactClassLabelKeyForType(3, 'simulated_stub', true)).toBe(
+      'backupDr.download.types.stub.3'
+    );
   });
 });
 
@@ -178,45 +192,65 @@ describe('inferNonFakeArtifactSuspicion', () => {
   it('returns none for simulated_stub even if byte size missing', () => {
     expect(
       inferNonFakeArtifactSuspicion(
-        { isFilePresentForDownload: true, byteSize: undefined, artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0 },
-        'simulated_stub',
-      ),
+        {
+          isFilePresentForDownload: true,
+          byteSize: undefined,
+          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+        },
+        'simulated_stub'
+      )
     ).toBe('none');
   });
 
   it('flags metadata_incomplete when file present but no byte size (non_simulated)', () => {
     expect(
       inferNonFakeArtifactSuspicion(
-        { isFilePresentForDownload: true, byteSize: undefined, artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0 },
-        'non_simulated',
-      ),
+        {
+          isFilePresentForDownload: true,
+          byteSize: undefined,
+          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+        },
+        'non_simulated'
+      )
     ).toBe('metadata_incomplete');
   });
 
   it('flags zero_reported_size when present and byte size 0', () => {
     expect(
       inferNonFakeArtifactSuspicion(
-        { isFilePresentForDownload: true, byteSize: 0, artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0 },
-        'non_simulated',
-      ),
+        {
+          isFilePresentForDownload: true,
+          byteSize: 0,
+          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+        },
+        'non_simulated'
+      )
     ).toBe('zero_reported_size');
   });
 
   it('flags tiny logical dump when non_simulated and size below threshold', () => {
     expect(
       inferNonFakeArtifactSuspicion(
-        { isFilePresentForDownload: true, byteSize: 100, artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0 },
-        'non_simulated',
-      ),
+        {
+          isFilePresentForDownload: true,
+          byteSize: 100,
+          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+        },
+        'non_simulated'
+      )
     ).toBe('tiny_reported_logical_dump');
   });
 
   it('does not flag tiny logical dump for unknown source (heuristic only for non_simulated)', () => {
     expect(
       inferNonFakeArtifactSuspicion(
-        { isFilePresentForDownload: true, byteSize: 100, artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0 },
-        'unknown',
-      ),
+        {
+          isFilePresentForDownload: true,
+          byteSize: 100,
+          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+        },
+        'unknown'
+      )
     ).toBe('none');
   });
 });
@@ -242,19 +276,29 @@ describe('download UI helpers', () => {
   });
 
   it('artifactByteSizeFootnoteKey stub vs manifest', () => {
-    expect(artifactByteSizeFootnoteKey(0, 'simulated_stub')).toBe('backupDr.download.byteSizeFootnote.stubExpectedTiny');
+    expect(artifactByteSizeFootnoteKey(0, 'simulated_stub')).toBe(
+      'backupDr.download.byteSizeFootnote.stubExpectedTiny'
+    );
     expect(artifactByteSizeFootnoteKey(4, 'non_simulated')).toBe(
-      'backupDr.download.byteSizeFootnote.manifestMetadataOnly',
+      'backupDr.download.byteSizeFootnote.manifestMetadataOnly'
     );
     expect(artifactByteSizeFootnoteKey(0, 'non_simulated')).toBeNull();
   });
 
   it('contentExpectationTableSummaryKey for common rows', () => {
     expect(
-      contentExpectationTableSummaryKey(BackupArtifactResponseDtoArtifactType.NUMBER_0, 'simulated_stub', false),
+      contentExpectationTableSummaryKey(
+        BackupArtifactResponseDtoArtifactType.NUMBER_0,
+        'simulated_stub',
+        false
+      )
     ).toBe('backupDr.download.contentExpectSummary.stubLogicalDumpFakeAdapter');
     expect(
-      contentExpectationTableSummaryKey(BackupArtifactResponseDtoArtifactType.NUMBER_4, 'non_simulated', false),
+      contentExpectationTableSummaryKey(
+        BackupArtifactResponseDtoArtifactType.NUMBER_4,
+        'non_simulated',
+        false
+      )
     ).toBe('backupDr.download.contentExpectSummary.manifestNonStub');
   });
 
@@ -270,13 +314,13 @@ describe('download UI helpers', () => {
         runAdapterKind: 'PgDump',
         realPostgreSqlLogicalDumpConfigured: false,
         canManage: true,
-      },
+      }
     );
     expect(
       shouldConfirmDownloadUnprovenLogicalDump(
         { artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0 } as never,
-        truth,
-      ),
+        truth
+      )
     ).toBe(true);
   });
 });

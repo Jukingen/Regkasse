@@ -1,6 +1,7 @@
 'use client';
 
 import React, { Suspense } from 'react';
+
 import { PageSkeleton } from '@/components/Skeleton';
 import RksvSignatureChainVerification from '@/features/rksv/signature-chain/RksvSignatureChainVerification';
 

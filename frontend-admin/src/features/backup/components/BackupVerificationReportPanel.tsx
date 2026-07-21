@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Button } from 'antd';
 import { SafetyCertificateOutlined } from '@ant-design/icons';
-import { useI18n } from '@/i18n';
+import { Button } from 'antd';
+import React, { useState } from 'react';
+
 import { BackupVerificationReport } from '@/features/backup/components/BackupVerificationReport';
+import { useI18n } from '@/i18n';
 
 export interface BackupVerificationReportPanelProps {
   runId: string;
@@ -12,7 +13,10 @@ export interface BackupVerificationReportPanelProps {
 }
 
 /** Inline entry point: opens full verification report modal. */
-export function BackupVerificationReportPanel({ runId, enabled }: BackupVerificationReportPanelProps) {
+export function BackupVerificationReportPanel({
+  runId,
+  enabled,
+}: BackupVerificationReportPanelProps) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
 

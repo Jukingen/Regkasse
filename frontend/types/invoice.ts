@@ -1,21 +1,21 @@
 export enum InvoiceType {
-  Standard = 'Standard',       // Normal satış fişi
-  Refund = 'Refund',          // İade fişi
-  Correction = 'Correction',   // Düzeltme fişi
-  Void = 'Void',              // İptal fişi
+  Standard = 'Standard', // Normal satış fişi
+  Refund = 'Refund', // İade fişi
+  Correction = 'Correction', // Düzeltme fişi
+  Void = 'Void', // İptal fişi
   DailyReport = 'DailyReport', // Günlük rapor
   MonthlyReport = 'MonthlyReport', // Aylık rapor
-  YearlyReport = 'YearlyReport',   // Yıllık rapor
-  Training = 'Training',      // Eğitim modu fişi
-  Test = 'Test'               // Test fişi
+  YearlyReport = 'YearlyReport', // Yıllık rapor
+  Training = 'Training', // Eğitim modu fişi
+  Test = 'Test', // Test fişi
 }
 
 export enum TaxType {
-  Standard = 20,  // %20
-  Reduced = 10,   // %10
-  Special = 13,   // %13
-  Zero = 0,       // %0
-  Exempt = -1     // Vergiden muaf
+  Standard = 20, // %20
+  Reduced = 10, // %10
+  Special = 13, // %13
+  Zero = 0, // %0
+  Exempt = -1, // Vergiden muaf
 }
 
 export interface TaxSummary {
@@ -110,7 +110,7 @@ export enum InvoiceStatus {
   Pending = 'Pending',
   Completed = 'Completed',
   Cancelled = 'Cancelled',
-  Refunded = 'Refunded'
+  Refunded = 'Refunded',
 }
 
 export interface InvoiceItem {
@@ -134,4 +134,4 @@ export interface InvoiceCreateRequest {
     notes?: string;
   }[];
   notes?: string;
-} 
+}

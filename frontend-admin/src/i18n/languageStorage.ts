@@ -1,4 +1,9 @@
-import { DEFAULT_TEXT_LOCALE, isSupportedTextLocale, normalizeTextLocale, type TextLocale } from './config';
+import {
+  DEFAULT_TEXT_LOCALE,
+  type TextLocale,
+  isSupportedTextLocale,
+  normalizeTextLocale,
+} from './config';
 
 export const APP_LANGUAGE_STORAGE_KEY = 'app_language';
 const LEGACY_LANGUAGE_STORAGE_KEY = 'regkasse.admin.textLocale';
@@ -11,7 +16,9 @@ const LEGACY_LANGUAGE_STORAGE_KEY = 'regkasse.admin.textLocale';
 export function getStoredLanguage(): TextLocale {
   if (typeof window === 'undefined') return DEFAULT_TEXT_LOCALE;
   try {
-    const raw = window.localStorage.getItem(APP_LANGUAGE_STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_LANGUAGE_STORAGE_KEY);
+    const raw =
+      window.localStorage.getItem(APP_LANGUAGE_STORAGE_KEY) ??
+      window.localStorage.getItem(LEGACY_LANGUAGE_STORAGE_KEY);
     if (raw) {
       const normalized = raw.toLowerCase().trim();
       return isSupportedTextLocale(normalized) ? normalized : DEFAULT_TEXT_LOCALE;

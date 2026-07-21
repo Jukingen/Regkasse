@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import {
   deriveBackupExecutionModeTruth,
   unloadedBackupExecutionModeTruth,
@@ -38,7 +39,7 @@ describe('deriveBackupExecutionModeTruth', () => {
         effectiveExecutionAdapterKind: 'PgDump',
         effectiveUserFacingMode: 'RealPgDump',
         effectiveModeRunnable: false,
-      }),
+      })
     );
     expect(t.loaded).toBe(true);
     expect(t.requestedRealButBlocked).toBe(true);
@@ -50,7 +51,7 @@ describe('deriveBackupExecutionModeTruth', () => {
     const t = deriveBackupExecutionModeTruth(
       dto({
         recommendedFallbackUserFacingMode: 'UseConfigurationDefault',
-      }),
+      })
     );
     expect(t.fallbackBehavior).toBe('operator_guidance_only');
     expect(t.recommendedFallbackUserFacingMode).toBe('UseConfigurationDefault');
@@ -62,7 +63,7 @@ describe('deriveBackupExecutionModeTruth', () => {
         requestedUserFacingMode: 'RealPgDump',
         effectiveExecutionAdapterKind: 'Fake',
         effectiveUserFacingMode: 'Fake',
-      }),
+      })
     );
     expect(t.requestedRealButEffectiveSimulated).toBe(true);
   });
@@ -73,7 +74,7 @@ describe('deriveBackupExecutionModeTruth', () => {
         requestedUserFacingMode: 'Fake',
         effectiveExecutionAdapterKind: 'PgDump',
         effectiveUserFacingMode: 'RealPgDump',
-      }),
+      })
     );
     expect(t.requestedFakeButEffectivePgDump).toBe(true);
     expect(t.effectiveIsPgDumpAdapter).toBe(true);

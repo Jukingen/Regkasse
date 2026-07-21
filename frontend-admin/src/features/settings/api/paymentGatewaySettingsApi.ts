@@ -39,12 +39,9 @@ function mapFromApi(dto: ApiDto): PaymentGatewaySettings {
     provider: dto.provider ?? dto.Provider ?? 'Mock',
     isStripeProvider: dto.isStripeProvider ?? dto.IsStripeProvider ?? false,
     apiKeyConfigured: dto.apiKeyConfigured ?? dto.ApiKeyConfigured ?? false,
-    webhookSecretConfigured:
-      dto.webhookSecretConfigured ?? dto.WebhookSecretConfigured ?? false,
+    webhookSecretConfigured: dto.webhookSecretConfigured ?? dto.WebhookSecretConfigured ?? false,
     requireCardIntentForPosPayments:
-      dto.requireCardIntentForPosPayments ??
-      dto.RequireCardIntentForPosPayments ??
-      false,
+      dto.requireCardIntentForPosPayments ?? dto.RequireCardIntentForPosPayments ?? false,
     webhookPath: dto.webhookPath ?? dto.WebhookPath ?? '/api/webhooks/stripe',
     onlinePaymentMethods: methods.map((m) => m.toLowerCase()),
   };
@@ -59,7 +56,7 @@ export async function fetchPaymentGatewaySettings(): Promise<PaymentGatewaySetti
 }
 
 export async function updatePaymentGatewaySettings(
-  payload: UpdatePaymentGatewaySettingsPayload,
+  payload: UpdatePaymentGatewaySettingsPayload
 ): Promise<PaymentGatewaySettings> {
   const res = await customInstance<ApiDto>({
     url: '/api/admin/settings/payment-gateway',
@@ -70,11 +67,11 @@ export async function updatePaymentGatewaySettings(
 }
 
 export function buildWebhookUrl(webhookPath: string): string {
-  const base =
-    (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_BASE_URL
+  const base = (
+    typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_BASE_URL
       ? process.env.NEXT_PUBLIC_API_BASE_URL
       : 'https://api.regkasse.at'
-    ).replace(/\/+$/, '');
+  ).replace(/\/+$/, '');
   const path = webhookPath.startsWith('/') ? webhookPath : `/${webhookPath}`;
   return `${base}${path}`;
 }

@@ -49,13 +49,14 @@
 
 ## Files modified
 
-| File | Change |
-|------|--------|
-| `src/lib/api/legacyModifierMigration.ts` | **New.** Migration progress and bulk migration API; defensive unwrap and property names. |
-| `src/app/(protected)/modifier-groups/page.tsx` | Migration progress card; bulk modal (category, dry run, confirmation checkbox, result view); single-migrate confirmation checkbox; comments separating bulk vs single; imports for migration API. |
-| `docs/LEGACY_MODIFIER_MIGRATION_DELIVERABLE.md` | **New.** This deliverable. |
+| File                                            | Change                                                                                                                                                                                            |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/api/legacyModifierMigration.ts`        | **New.** Migration progress and bulk migration API; defensive unwrap and property names.                                                                                                          |
+| `src/app/(protected)/modifier-groups/page.tsx`  | Migration progress card; bulk modal (category, dry run, confirmation checkbox, result view); single-migrate confirmation checkbox; comments separating bulk vs single; imports for migration API. |
+| `docs/LEGACY_MODIFIER_MIGRATION_DELIVERABLE.md` | **New.** This deliverable.                                                                                                                                                                        |
 
 **Not modified**
+
 - `src/lib/api/modifierGroups.ts` – single modifier migration still uses existing `migrateLegacyModifier` (POST .../modifier-groups/.../modifiers/.../migrate). No change to backend contracts.
 
 ---

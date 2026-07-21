@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
 import NetInfo from '@react-native-community/netinfo';
+import { useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 
 import { isDevSimulatePosNetworkOffline } from '../constants/devSimulatePosOffline';
+import { fetchIsNetworkOnline, isNetworkOnline } from '../utils/isNetworkOnline';
 
 export type UseConnectivityOptions = {
   /** When true, treat device as online for POS offline UX (development-mode server flag). */
@@ -21,8 +22,7 @@ export const useConnectivity = (options?: UseConnectivityOptions) => {
   forceOnlineRef.current = forceOnline;
 
   useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener((state) => {
-      const connectedRaw = state.isConnected ?? false;
+    const applyConnected = (connectedRaw: boolean) => {
       const connected =
         forceOnlineRef.current || (connectedRaw && !isDevSimulatePosNetworkOffline());
 
@@ -35,15 +35,43 @@ export const useConnectivity = (options?: UseConnectivityOptions) => {
         wasOfflineRef.current = true;
         setWasOffline(true);
       } else if (connected && wasOfflineRef.current) {
-        Alert.alert('Online-Modus wiederhergestellt', 'Ausstehende Zahlungen werden jetzt verarbeitet.', [{ text: 'OK' }]);
+        Alert.alert(
+          'Online-Modus wiederhergestellt',
+          'Ausstehende Zahlungen werden jetzt verarbeitet.',
+          [{ text: 'OK' }]
+        );
         wasOfflineRef.current = false;
         setWasOffline(false);
       }
 
       setIsConnected(connected);
+    };
+
+    void fetchIsNetworkOnline().then(applyConnected);
+
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      applyConnected(isNetworkOnline(state));
     });
 
-    return () => unsubscribe();
+    const handleBrowserOnline = () => {
+      void fetchIsNetworkOnline().then(applyConnected);
+    };
+    const handleBrowserOffline = () => {
+      applyConnected(false);
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', handleBrowserOnline);
+      window.addEventListener('offline', handleBrowserOffline);
+    }
+
+    return () => {
+      unsubscribe();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('online', handleBrowserOnline);
+        window.removeEventListener('offline', handleBrowserOffline);
+      }
+    };
   }, []);
 
   useEffect(() => {

@@ -2,7 +2,6 @@
  * DR kanıt seviyesi (L0–L6): tek merkezden türetilir; kartlar çekirdek anlamı yeniden yorumlamaz.
  * Simüle/stub geçmişi yüksek seviye sayılmaz; API’de olmayan uçlar açıkça "not proven" kalır.
  */
-
 import type {
   BackupRecoverabilitySummaryResponseDto,
   BackupRunResponseDto,
@@ -22,7 +21,8 @@ import type { RestoreVerificationRunDtoExtended } from '@/features/backup-dr/log
 export const DR_PROOF_LEVEL_IDS = ['L0', 'L1', 'L2', 'L3', 'L4', 'L5', 'L6'] as const;
 export type DrProofLevelIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
-export type DrProofLayerUiState = 'proven' | 'partial' | 'gap' | 'stub_only' | 'not_applicable' | 'unknown';
+export type DrProofLayerUiState =
+  'proven' | 'partial' | 'gap' | 'stub_only' | 'not_applicable' | 'unknown';
 
 export interface DrProofLayerRow {
   id: DrProofLevelIndex;
@@ -76,15 +76,22 @@ export interface DrProofPresentationModel {
   };
 }
 
-function logicalDumpPass(latest: BackupRunResponseDto | undefined, detail: BackupRunResponseDto | null | undefined): boolean {
+function logicalDumpPass(
+  latest: BackupRunResponseDto | undefined,
+  detail: BackupRunResponseDto | null | undefined
+): boolean {
   const arts = detail?.artifacts ?? latest?.artifacts ?? [];
   const row = arts.find((a) => a.artifactType === BackupArtifactResponseDtoArtifactType.NUMBER_0);
   if (row?.isFilePresentForDownload === true) return true;
   return false;
 }
 
-function verificationPass(verification: BackupVerificationResponseDto | undefined, latestRunId: string | undefined): boolean {
-  if (!verification || verification.status === undefined || verification.status === null) return false;
+function verificationPass(
+  verification: BackupVerificationResponseDto | undefined,
+  latestRunId: string | undefined
+): boolean {
+  if (!verification || verification.status === undefined || verification.status === null)
+    return false;
   if (verification.status !== 1) return false;
   const bid = verification.backupRunId?.trim();
   if (latestRunId && bid && bid !== latestRunId) return false;
@@ -103,46 +110,58 @@ function fiscalProven(restore: RestoreVerificationRunResponseDto | undefined): b
 
 /** L4: izole geri yükleme sonrası süreklilik SQL (L3 üzerine). */
 function postRestoreContinuitySqlProven(extended: RestoreVerificationRunDtoExtended): boolean {
-  return extended.postRestoreContinuityChecksExecuted === true && extended.postRestoreContinuityChecksPassed === true;
+  return (
+    extended.postRestoreContinuityChecksExecuted === true &&
+    extended.postRestoreContinuityChecksPassed === true
+  );
 }
 
 /** Bileşik “fiscal continuity layer” (API bayrağı veya fiscal betik). Ayrı kartta gösterilir; L4 basamağı SQL ile hizalanır. */
 function fiscalContinuityProven(
   restore: RestoreVerificationRunResponseDto | undefined,
-  extended: RestoreVerificationRunDtoExtended,
+  extended: RestoreVerificationRunDtoExtended
 ): boolean {
   if (!restore || !drillSucceeded(restore)) return false;
-  if (typeof extended.fiscalContinuityLayerPassed === 'boolean') return extended.fiscalContinuityLayerPassed;
+  if (typeof extended.fiscalContinuityLayerPassed === 'boolean')
+    return extended.fiscalContinuityLayerPassed;
   return fiscalProven(restore);
 }
 
 /** L5: geri yüklenen DB üzerinde in-process duman (L5a). */
 function restoredDbApplicationSmokeProven(extended: RestoreVerificationRunDtoExtended): boolean {
   return (
-    extended.restoredDatabaseApplicationSmokeExecuted === true && extended.restoredDatabaseApplicationSmokePassed === true
+    extended.restoredDatabaseApplicationSmokeExecuted === true &&
+    extended.restoredDatabaseApplicationSmokePassed === true
   );
 }
 
 function applicationSmokeProven(
   restore: RestoreVerificationRunResponseDto | undefined,
-  extended: RestoreVerificationRunDtoExtended,
+  extended: RestoreVerificationRunDtoExtended
 ): boolean {
   if (!restore || !drillSucceeded(restore)) return false;
-  return extended.applicationSmokeProbeExecuted === true && extended.applicationSmokeProbePassed === true;
+  return (
+    extended.applicationSmokeProbeExecuted === true && extended.applicationSmokeProbePassed === true
+  );
 }
 
 function restoreLevel3Proven(
   restore: RestoreVerificationRunResponseDto | undefined,
   extended: RestoreVerificationRunDtoExtended,
-  dumpListOk: boolean,
+  dumpListOk: boolean
 ): { full: boolean; partial: boolean } {
   if (!restore || !drillSucceeded(restore)) return { full: false, partial: false };
   if (!dumpListOk) return { full: false, partial: true };
   if (restore.restoreAttemptExecuted === true) {
     const iso = restore.restoreAttemptPassed === true;
     const post =
-      extended.postRestoreContinuityChecksExecuted === true ? extended.postRestoreContinuityChecksPassed === true : true;
-    return { full: iso && post, partial: iso || extended.postRestoreContinuityChecksPassed === true };
+      extended.postRestoreContinuityChecksExecuted === true
+        ? extended.postRestoreContinuityChecksPassed === true
+        : true;
+    return {
+      full: iso && post,
+      partial: iso || extended.postRestoreContinuityChecksPassed === true,
+    };
   }
   /* İzole restore çalıştırılmadı — tam L3 değil */
   return { full: false, partial: true };
@@ -160,7 +179,15 @@ export function buildDrProofPresentationModel(params: {
   restoreLatest: RestoreVerificationRunResponseDto | undefined;
   restoreExtended: RestoreVerificationRunDtoExtended;
 }): DrProofPresentationModel {
-  const { truth, latest, detailForPipeline, verification, recoverability, restoreLatest, restoreExtended } = params;
+  const {
+    truth,
+    latest,
+    detailForPipeline,
+    verification,
+    recoverability,
+    restoreLatest,
+    restoreExtended,
+  } = params;
 
   const simulated = truth.run.simulatedEvidence;
   const technicalOk = latest?.status === BackupRunResponseDtoStatus.NUMBER_3;
@@ -174,7 +201,11 @@ export function buildDrProofPresentationModel(params: {
     Boolean(latest) ||
     technicalOk;
 
-  const l1 = !simulated && technicalOk && logicalDumpPass(latest, detailForPipeline) && truth.run.realPostgreSqlLogicalDumpConfigured === true;
+  const l1 =
+    !simulated &&
+    technicalOk &&
+    logicalDumpPass(latest, detailForPipeline) &&
+    truth.run.realPostgreSqlLogicalDumpConfigured === true;
 
   const l2 = l1 && verificationPass(verification, latestId);
 
@@ -185,7 +216,8 @@ export function buildDrProofPresentationModel(params: {
 
   const l5 = !simulated && l4 && restoredDbApplicationSmokeProven(restoreExtended);
 
-  const latestDrillFailed = restoreLatest?.status === RestoreVerificationRunResponseDtoStatus.NUMBER_3;
+  const latestDrillFailed =
+    restoreLatest?.status === RestoreVerificationRunResponseDtoStatus.NUMBER_3;
 
   let highest: DrProofLevelIndex = 0;
   if (l5) highest = 5;
@@ -208,7 +240,9 @@ export function buildDrProofPresentationModel(params: {
     {
       id: 0,
       titleKey: 'backupDr.confidenceDashboard.layers.L0.title',
-      detailKey: l0 ? 'backupDr.confidenceDashboard.layers.L0.detailOk' : 'backupDr.confidenceDashboard.layers.L0.detailGap',
+      detailKey: l0
+        ? 'backupDr.confidenceDashboard.layers.L0.detailOk'
+        : 'backupDr.confidenceDashboard.layers.L0.detailGap',
       state: simulated ? 'stub_only' : l0 ? 'proven' : 'gap',
     },
     {
@@ -378,10 +412,9 @@ export function buildDrProofPresentationModel(params: {
     latestRealBackupArtifactSummary: realBackupArtifactSummary,
     latestRestoreVerifiedSummary: restoreVerifiedSummary,
     fiscalVerifiedSummary: {
-      labelKey:
-        fiscalContinuityProven(restoreLatest, restoreExtended)
-          ? 'backupDr.confidenceDashboard.fiscal.proven'
-          : 'backupDr.confidenceDashboard.fiscal.notProven',
+      labelKey: fiscalContinuityProven(restoreLatest, restoreExtended)
+        ? 'backupDr.confidenceDashboard.fiscal.proven'
+        : 'backupDr.confidenceDashboard.fiscal.notProven',
       passed: restoreLatest?.fiscalSqlPassed ?? undefined,
       skipped: restoreLatest?.fiscalSqlSkipped,
     },
@@ -431,7 +464,7 @@ export interface DrProofScanTag {
 
 /** Ant Design `Tag` preset `color` — tutarlı uyarı / işlem tonları (yeşil yok). */
 export function mapDrProofScanTagToneToAntdTagColor(
-  tone: DrProofScanTagTone,
+  tone: DrProofScanTagTone
 ): 'red' | 'orange' | 'blue' | 'default' {
   if (tone === 'error') return 'red';
   if (tone === 'warning') return 'orange';
@@ -452,7 +485,8 @@ export function buildDrProofScanTags(params: {
 
   const st = restoreLatest?.status;
   const drillFailed =
-    st === RestoreVerificationRunResponseDtoStatus.NUMBER_3 || truth.restore.latestDrillFailed === true;
+    st === RestoreVerificationRunResponseDtoStatus.NUMBER_3 ||
+    truth.restore.latestDrillFailed === true;
   const drillSucceeded = st === RestoreVerificationRunResponseDtoStatus.NUMBER_2;
   const drillRunning =
     st === RestoreVerificationRunResponseDtoStatus.NUMBER_0 ||
@@ -483,7 +517,10 @@ export function buildDrProofScanTags(params: {
     } else if (h >= 3 && h < 5) {
       tags.push({ labelKey: 'backupDr.scan.scope.apiDbCentricNotFullSystem', tone: 'processing' });
     } else if (h >= 5) {
-      tags.push({ labelKey: 'backupDr.scan.scope.apiIncludesAppLayerNotFullOrg', tone: 'processing' });
+      tags.push({
+        labelKey: 'backupDr.scan.scope.apiIncludesAppLayerNotFullOrg',
+        tone: 'processing',
+      });
     }
   }
 

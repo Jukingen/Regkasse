@@ -1,15 +1,15 @@
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
 import { useLicenseStatus } from './useLicenseStatus';
-import { ensureLicenseAllowsCriticalAction } from '../utils/licenseCriticalActionGuard';
+import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
 import {
   alertPosMonatsbelegCreateError,
   alertPosMonatsbelegCreateSuccess,
   createPosMonatsbelegAndPrint,
   requestPosMonatsbelegCreate,
 } from '../utils/createPosMonatsbeleg';
+import { ensureLicenseAllowsCriticalAction } from '../utils/licenseCriticalActionGuard';
 
 export type PosMonatsbelegCreateArgs = {
   cashRegisterId: string;
@@ -34,7 +34,11 @@ export function usePosMonatsbelegCreate() {
       const registerId = args.cashRegisterId.trim();
       if (!registerId) return false;
 
-      const licenseOk = await ensureLicenseAllowsCriticalAction(licenseSnapshot, t, 'specialReceipt');
+      const licenseOk = await ensureLicenseAllowsCriticalAction(
+        licenseSnapshot,
+        t,
+        'specialReceipt'
+      );
       if (!licenseOk) return false;
 
       setBusy(true);
@@ -55,7 +59,7 @@ export function usePosMonatsbelegCreate() {
         setBusy(false);
       }
     },
-    [licenseSnapshot, refreshAsync, t],
+    [licenseSnapshot, refreshAsync, t]
   );
 
   const requestCreate = useCallback(
@@ -64,10 +68,12 @@ export function usePosMonatsbelegCreate() {
       requestPosMonatsbelegCreate({
         year: args.year,
         month: args.month,
-        run: () => runCreate(args),
+        run: () => {
+          void runCreate(args);
+        },
       });
     },
-    [runCreate],
+    [runCreate]
   );
 
   return { busy, runCreate, requestCreate };

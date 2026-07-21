@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { normalizeRksvEnvironmentStatus } from '../utils/normalizeRksvEnvironment';
 import { isRksvDemoEnvironment } from '../services/api/rksvEnvironmentTypes';
+import { normalizeRksvEnvironmentStatus } from '../utils/normalizeRksvEnvironment';
 
 describe('normalizeRksvEnvironmentStatus', () => {
   it('maps camelCase backend payload', () => {

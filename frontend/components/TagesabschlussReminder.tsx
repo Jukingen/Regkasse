@@ -1,10 +1,11 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { DailyClosingModal } from './DailyClosingModal';
 import { SoftColors, SoftRadius, SoftSpacing } from '../constants/SoftTheme';
-import { useTagesabschlussStatus } from '../hooks/useTagesabschlussStatus';
 import { useShift } from '../hooks/useShift';
+import { useTagesabschlussStatus } from '../hooks/useTagesabschlussStatus';
 import { getFormattingLocaleForTextLocale } from '../i18n/localeUtils';
 import { downloadDailyClosingReportPdf } from '../services/api/shiftService';
 import {
@@ -15,8 +16,8 @@ import {
   extractDailyClosingErrorDetails,
   getDailyClosingErrorMessage,
 } from '../utils/errorMessages';
+import { isPrintCancelled } from '../utils/expoPrintShare';
 import { formatPrice } from '../utils/formatPrice';
-import { DailyClosingModal } from './DailyClosingModal';
 
 function parseMoneyInput(value: string): number | null {
   const normalized = value.trim().replace(/\s/g, '').replace(',', '.');
@@ -45,11 +46,7 @@ export function TagesabschlussReminder() {
     loading,
     refresh,
   } = useTagesabschlussStatus();
-  const {
-    performDailyClosing,
-    isLoading,
-    refreshDailyClosingStatus,
-  } = useShift();
+  const { performDailyClosing, isLoading, refreshDailyClosingStatus } = useShift();
 
   const [showModal, setShowModal] = useState(false);
   const [cashCount, setCashCount] = useState('');
@@ -112,7 +109,7 @@ export function TagesabschlussReminder() {
       previousSignature: t('settings:shift.dailyClosing.reportPreviousSignature'),
       disclaimer: t('settings:shift.dailyClosing.reportDisclaimer'),
     }),
-    [t],
+    [t]
   );
 
   const confirmDailyClosing = useCallback(async () => {
@@ -134,18 +131,20 @@ export function TagesabschlussReminder() {
           await printDailyClosingReport(
             report,
             reportLabels(),
-            getFormattingLocaleForTextLocale(i18n.language),
+            getFormattingLocaleForTextLocale(i18n.language)
           );
         }
-      } catch {
-        Alert.alert(t('settings:shift.errorTitle'), t('settings:shift.dailyClosing.printFailed'));
+      } catch (printErr) {
+        if (!isPrintCancelled(printErr)) {
+          Alert.alert(t('settings:shift.errorTitle'), t('settings:shift.dailyClosing.printFailed'));
+        }
       }
       Alert.alert(
         t('settings:shift.dailyClosing.successTitle'),
         t('settings:shift.dailyClosing.successMessage', {
           sales: formatPrice(report?.totalSales ?? 0),
           difference: formatPrice(report?.difference ?? 0),
-        }),
+        })
       );
       void refresh();
       void refreshDailyClosingStatus();
@@ -192,15 +191,12 @@ export function TagesabschlussReminder() {
         accessibilityHint={t('settings:dailyClosing.reminder.body', {
           count: hoursRemaining,
           deadlineHint,
-        })}
-      >
+        })}>
         <View style={styles.titleRow}>
           <Text style={styles.icon} accessibilityElementsHidden>
             ⚠️
           </Text>
-          <Text style={styles.warningTitle}>
-            {t('settings:dailyClosing.reminder.title')}
-          </Text>
+          <Text style={styles.warningTitle}>{t('settings:dailyClosing.reminder.title')}</Text>
         </View>
         <Text style={styles.warningText}>
           {t('settings:dailyClosing.reminder.body', {
@@ -212,14 +208,11 @@ export function TagesabschlussReminder() {
           style={styles.countdown}
           accessibilityLabel={t('settings:dailyClosing.reminder.countdownA11y', {
             countdown: countdownLabel,
-          })}
-        >
+          })}>
           {countdownLabel}
         </Text>
         <View style={styles.closeButton}>
-          <Text style={styles.closeButtonText}>
-            {t('settings:dailyClosing.reminder.cta')}
-          </Text>
+          <Text style={styles.closeButtonText}>{t('settings:dailyClosing.reminder.cta')}</Text>
         </View>
       </Pressable>
 

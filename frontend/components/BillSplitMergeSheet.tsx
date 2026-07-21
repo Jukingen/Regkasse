@@ -1,20 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  Alert,
-  FlatList,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
 import type { CartItem } from '../contexts/CartContext';
-import { VALID_TABLE_NUMBERS } from '../utils/tableCartUtils';
 import { WaveLoader } from '../src/components/common/WaveLoader';
+import { VALID_TABLE_NUMBERS } from '../utils/tableCartUtils';
 
 type Mode = 'split' | 'merge';
 
@@ -60,14 +52,20 @@ export function BillSplitMergeSheet({
 
   const handleConfirm = useCallback(async () => {
     if (targetTable == null) {
-      Alert.alert(t('tables:billSplitMerge.alerts.hintTitle'), t('tables:billSplitMerge.alerts.selectTargetTable'));
+      Alert.alert(
+        t('tables:billSplitMerge.alerts.hintTitle'),
+        t('tables:billSplitMerge.alerts.selectTargetTable')
+      );
       return;
     }
     setBusy(true);
     try {
       if (mode === 'split') {
         if (selectedIds.size === 0) {
-          Alert.alert(t('tables:billSplitMerge.alerts.hintTitle'), t('tables:billSplitMerge.alerts.selectAtLeastOne'));
+          Alert.alert(
+            t('tables:billSplitMerge.alerts.hintTitle'),
+            t('tables:billSplitMerge.alerts.selectAtLeastOne')
+          );
           return;
         }
         await onSplitItems(targetTable, Array.from(selectedIds));
@@ -87,14 +85,21 @@ export function BillSplitMergeSheet({
     }
   }, [targetTable, mode, selectedIds, onSplitItems, onMergeTables, activeTableId, onClose, t]);
 
-  const title = mode === 'split' ? t('tables:billSplitMerge.splitTitle') : t('tables:billSplitMerge.mergeTitle');
+  const title =
+    mode === 'split'
+      ? t('tables:billSplitMerge.splitTitle')
+      : t('tables:billSplitMerge.mergeTitle');
   const subtitle =
     mode === 'split'
       ? t('tables:billSplitMerge.splitSubtitle', { table: activeTableId })
       : t('tables:billSplitMerge.mergeSubtitle', { table: activeTableId });
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}>
       <View style={styles.container}>
         <View style={styles.header}>
           <Pressable onPress={onClose} style={styles.iconBtn}>
@@ -112,8 +117,9 @@ export function BillSplitMergeSheet({
             <Pressable
               key={n}
               style={[styles.tableChip, targetTable === n && styles.tableChipActive]}
-              onPress={() => setTargetTable(n)}
-            >
+              onPress={() => {
+                setTargetTable(n);
+              }}>
               <Text style={[styles.tableChipText, targetTable === n && styles.tableChipTextActive]}>
                 {n}
               </Text>
@@ -132,7 +138,11 @@ export function BillSplitMergeSheet({
                 const id = resolveItemId(item);
                 const checked = selectedIds.has(id);
                 return (
-                  <Pressable style={styles.lineRow} onPress={() => toggleItem(id)}>
+                  <Pressable
+                    style={styles.lineRow}
+                    onPress={() => {
+                      toggleItem(id);
+                    }}>
                     <Ionicons
                       name={checked ? 'checkbox' : 'square-outline'}
                       size={22}
@@ -144,7 +154,9 @@ export function BillSplitMergeSheet({
                   </Pressable>
                 );
               }}
-              ListEmptyComponent={<Text style={styles.empty}>{t('tables:billSplitMerge.noPositions')}</Text>}
+              ListEmptyComponent={
+                <Text style={styles.empty}>{t('tables:billSplitMerge.noPositions')}</Text>
+              }
             />
           </>
         ) : null}
@@ -152,13 +164,14 @@ export function BillSplitMergeSheet({
         <Pressable
           style={[styles.confirmBtn, busy && styles.confirmBtnDisabled]}
           onPress={() => void handleConfirm()}
-          disabled={busy}
-        >
+          disabled={busy}>
           {busy ? (
             <WaveLoader size={20} color={SoftColors.textInverse} />
           ) : (
             <Text style={styles.confirmText}>
-              {mode === 'split' ? t('tables:billSplitMerge.split') : t('tables:billSplitMerge.merge')}
+              {mode === 'split'
+                ? t('tables:billSplitMerge.split')
+                : t('tables:billSplitMerge.merge')}
             </Text>
           )}
         </Pressable>
@@ -169,7 +182,12 @@ export function BillSplitMergeSheet({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: SoftColors.bgPrimary, padding: SoftSpacing.md },
-  header: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: SoftSpacing.md, gap: SoftSpacing.sm },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: SoftSpacing.md,
+    gap: SoftSpacing.sm,
+  },
   iconBtn: { padding: SoftSpacing.xs },
   headerText: { flex: 1 },
   title: { ...SoftTypography.h2, color: SoftColors.textPrimary },

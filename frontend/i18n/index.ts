@@ -1,21 +1,17 @@
+import { getLocales } from 'expo-localization';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import * as Localization from 'expo-localization';
+
 import { getSavedLanguage, saveLanguage } from './languageStorage';
-import { DEFAULT_TEXT_LOCALE, SUPPORTED_TEXT_LOCALES, normalizeTextLocale } from './localeUtils';
+import {
+  DEFAULT_TEXT_LOCALE,
+  SUPPORTED_TEXT_LOCALES,
+  normalizeTextLocale,
+  resolveInitialTextLocale,
+} from './localeUtils';
 import 'intl-pluralrules';
 
 // Import translation resources
-import enCart from './locales/en/cart.json';
-import enAuth from './locales/en/auth.json';
-import enCheckout from './locales/en/checkout.json';
-import enCommon from './locales/en/common.json';
-import enCustomers from './locales/en/customers.json';
-import enEmployees from './locales/en/employees.json';
-import enNavigation from './locales/en/navigation.json';
-import enInvoices from './locales/en/invoices.json';
-import enLicense from './locales/en/license.json';
-import enOrders from './locales/en/orders.json';
 import enPayment from './locales/en/payment.json';
 import enPaymentHistory from './locales/en/paymentHistory.json';
 import enProducts from './locales/en/products.json';
@@ -41,16 +37,25 @@ import deReports from './locales/de/reports.json';
 import deSettings from './locales/de/settings.json';
 import deSystem from './locales/de/system.json';
 import deTables from './locales/de/tables.json';
-
-import trCart from './locales/tr/cart.json';
+import enAuth from './locales/en/auth.json';
+import enCart from './locales/en/cart.json';
+import enCheckout from './locales/en/checkout.json';
+import enCommon from './locales/en/common.json';
+import enCustomers from './locales/en/customers.json';
+import enEmployees from './locales/en/employees.json';
+import enInvoices from './locales/en/invoices.json';
+import enLicense from './locales/en/license.json';
+import enNavigation from './locales/en/navigation.json';
+import enOrders from './locales/en/orders.json';
 import trAuth from './locales/tr/auth.json';
+import trCart from './locales/tr/cart.json';
 import trCheckout from './locales/tr/checkout.json';
 import trCommon from './locales/tr/common.json';
 import trCustomers from './locales/tr/customers.json';
 import trEmployees from './locales/tr/employees.json';
-import trNavigation from './locales/tr/navigation.json';
 import trInvoices from './locales/tr/invoices.json';
 import trLicense from './locales/tr/license.json';
+import trNavigation from './locales/tr/navigation.json';
 import trOrders from './locales/tr/orders.json';
 import trPayment from './locales/tr/payment.json';
 import trPaymentHistory from './locales/tr/paymentHistory.json';
@@ -63,8 +68,7 @@ import trTables from './locales/tr/tables.json';
 export const defaultNS = 'common';
 const missingRuntimeKeys = new Set<string>();
 const isDevRuntime =
-  (typeof __DEV__ !== 'undefined' && Boolean(__DEV__)) ||
-  process.env.NODE_ENV !== 'production';
+  (typeof __DEV__ !== 'undefined' && Boolean(__DEV__)) || process.env.NODE_ENV !== 'production';
 
 function trackMissingRuntimeKey(lng: string, key: string) {
   const marker = `${lng}|${key}`;
@@ -174,8 +178,11 @@ const initI18n = async (): Promise<void> => {
   let languageToUse: string;
   try {
     const saved = await getSavedLanguage();
-    const deviceLocaleTag = Localization.getLocales()[0]?.languageTag;
-    languageToUse = normalizeTextLocale(saved ?? deviceLocaleTag ?? FALLBACK_LNG);
+    // Walk preferred device locales (OS order); German if none are de/en/tr.
+    languageToUse = resolveInitialTextLocale({
+      savedLanguage: saved,
+      deviceLocales: getLocales(),
+    });
   } catch {
     languageToUse = FALLBACK_LNG;
   }
@@ -188,7 +195,7 @@ const initI18n = async (): Promise<void> => {
     defaultNS,
     interpolation: { escapeValue: false },
     react: { useSuspense: false },
-    compatibilityJSON: 'v3',
+    // i18next v24+: JSON v4 plurals (_one/_other) + Intl.PluralRules (polyfilled via intl-pluralrules)
     parseMissingKeyHandler: (key) => {
       trackMissingRuntimeKey(i18n.language || FALLBACK_LNG, key);
       return key;
@@ -207,9 +214,12 @@ export {
   DEFAULT_FORMAT_LOCALE,
   SUPPORTED_TEXT_LOCALES,
   TEXT_TO_FORMAT_LOCALE,
+  matchSupportedTextLocale,
   normalizeTextLocale,
   normalizeFormatLocale,
   getFormattingLocaleForTextLocale,
+  resolveTextLocaleFromDeviceLocales,
+  resolveInitialTextLocale,
   toUserSettingsLanguage,
 } from './localeUtils';
 

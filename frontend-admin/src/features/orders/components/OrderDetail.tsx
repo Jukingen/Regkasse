@@ -1,6 +1,7 @@
 'use client';
 
 import { Button, Descriptions, Divider, Space, Timeline, Typography } from 'antd';
+
 import type { OnlineOrder } from '@/features/orders/api/onlineOrdersApi';
 import {
   getNextOnlineOrderStatus,
@@ -60,7 +61,7 @@ export function OrderDetail({ order, onOrderUpdated }: OrderDetailProps) {
   const money = (value: number) => {
     try {
       return new Intl.NumberFormat(formatLocale, { style: 'currency', currency: 'EUR' }).format(
-        value,
+        value
       );
     } catch {
       return `€ ${value.toFixed(2)}`;
@@ -81,15 +82,15 @@ export function OrderDetail({ order, onOrderUpdated }: OrderDetailProps) {
             onOrderUpdated?.(result.order);
           }
         },
-        onError: (err) => openApiErrorMessage(message.open, t, err, { logContext: 'OrderDetail.updateStatus' }),
-      },
+        onError: (err) =>
+          openApiErrorMessage(message.open, t, err, { logContext: 'OrderDetail.updateStatus' }),
+      }
     );
   };
 
   const history = order.statusHistory ?? [];
   const next = getNextOnlineOrderStatus(order.orderStatus);
-  const canCancel =
-    order.orderStatus !== 'completed' && order.orderStatus !== 'cancelled';
+  const canCancel = order.orderStatus !== 'completed' && order.orderStatus !== 'cancelled';
 
   return (
     <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
@@ -140,9 +141,7 @@ export function OrderDetail({ order, onOrderUpdated }: OrderDetailProps) {
         {next ? (
           <Button
             type="primary"
-            loading={
-              updateStatus.isPending && updateStatus.variables?.status === next
-            }
+            loading={updateStatus.isPending && updateStatus.variables?.status === next}
             onClick={() => applyStatus(next)}
           >
             {nextActionLabel(t, next)}
@@ -151,10 +150,7 @@ export function OrderDetail({ order, onOrderUpdated }: OrderDetailProps) {
         {canCancel ? (
           <Button
             danger
-            loading={
-              updateStatus.isPending &&
-              updateStatus.variables?.status === 'cancelled'
-            }
+            loading={updateStatus.isPending && updateStatus.variables?.status === 'cancelled'}
             onClick={() => applyStatus('cancelled')}
           >
             {t('onlineOrders.actions.cancel')}
@@ -173,9 +169,7 @@ export function OrderDetail({ order, onOrderUpdated }: OrderDetailProps) {
                     ? t(`onlineOrders.status.${h.toStatus}`)
                     : h.toStatus}{' '}
                   <Text type="secondary">
-                    {h.changedAt
-                      ? new Date(h.changedAt).toLocaleString(formatLocale)
-                      : ''}
+                    {h.changedAt ? new Date(h.changedAt).toLocaleString(formatLocale) : ''}
                   </Text>
                 </span>
               ),
@@ -196,9 +190,7 @@ export function OrderDetail({ order, onOrderUpdated }: OrderDetailProps) {
               <div>
                 <Text type="secondary">
                   {item.modifiers
-                    .map((m) =>
-                      m.quantity > 1 ? `${m.name} ×${m.quantity}` : m.name,
-                    )
+                    .map((m) => (m.quantity > 1 ? `${m.name} ×${m.quantity}` : m.name))
                     .join(', ')}
                 </Text>
               </div>

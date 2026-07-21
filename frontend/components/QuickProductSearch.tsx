@@ -20,16 +20,11 @@ import { Product } from '../services/api/productService';
 interface QuickProductSearchProps {
   products: Product[];
   onProductSelect: (product: Product) => void;
-
 }
 
 const { width: screenWidth } = Dimensions.get('window');
 
-const QuickProductSearch: React.FC<QuickProductSearchProps> = ({
-  products,
-  onProductSelect,
-
-}) => {
+const QuickProductSearch: React.FC<QuickProductSearchProps> = ({ products, onProductSelect }) => {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -37,16 +32,16 @@ const QuickProductSearch: React.FC<QuickProductSearchProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [favoriteProducts, setFavoriteProducts] = useState<Product[]>([]);
-  
+
   const searchInputRef = useRef<TextInput>(null);
 
   // Kategorileri al
-  const categories = ['all', ...new Set(products.map(p => p.category))];
+  const categories = ['all', ...new Set(products.map((p) => p.category))];
 
   // Arama işlevi
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    
+
     if (query.trim().length === 0) {
       setFilteredProducts([]);
       setShowResults(false);
@@ -56,16 +51,16 @@ const QuickProductSearch: React.FC<QuickProductSearchProps> = ({
     let filtered = products;
 
     // Arama filtresi
-    filtered = filtered.filter(product =>
-      product.name.toLowerCase().includes(query.toLowerCase()) ||
-      product.description?.toLowerCase().includes(query.toLowerCase()) ||
-      
-      product.category.toLowerCase().includes(query.toLowerCase())
+    filtered = filtered.filter(
+      (product) =>
+        product.name.toLowerCase().includes(query.toLowerCase()) ||
+        product.description?.toLowerCase().includes(query.toLowerCase()) ||
+        product.category.toLowerCase().includes(query.toLowerCase())
     );
 
     // Kategori filtresi
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter(product => product.category === selectedCategory);
+      filtered = filtered.filter((product) => product.category === selectedCategory);
     }
 
     setFilteredProducts(filtered);
@@ -73,8 +68,8 @@ const QuickProductSearch: React.FC<QuickProductSearchProps> = ({
 
     // Son aramaları güncelle
     if (query.trim()) {
-      setRecentSearches(prev => {
-        const newSearches = [query, ...prev.filter(s => s !== query)].slice(0, 5);
+      setRecentSearches((prev) => {
+        const newSearches = [query, ...prev.filter((s) => s !== query)].slice(0, 5);
         return newSearches;
       });
     }
@@ -97,7 +92,7 @@ const QuickProductSearch: React.FC<QuickProductSearchProps> = ({
     // Bu kısım gerçek uygulamada AsyncStorage'dan yüklenecek
     const loadFavorites = async () => {
       // Mock data
-      const favorites = products.filter(p => p.id.includes('1')).slice(0, 5);
+      const favorites = products.filter((p) => p.id.includes('1')).slice(0, 5);
       setFavoriteProducts(favorites);
     };
     loadFavorites();
@@ -106,8 +101,9 @@ const QuickProductSearch: React.FC<QuickProductSearchProps> = ({
   const renderProductItem = ({ item }: { item: Product }) => (
     <TouchableOpacity
       style={styles.productItem}
-      onPress={() => handleProductSelect(item)}
-    >
+      onPress={() => {
+        handleProductSelect(item);
+      }}>
       <View style={styles.productInfo}>
         <Text style={styles.productName} numberOfLines={1}>
           {item.name}
@@ -115,7 +111,6 @@ const QuickProductSearch: React.FC<QuickProductSearchProps> = ({
         <Text style={styles.productCategory} numberOfLines={1}>
           {item.category}
         </Text>
-        
       </View>
       <View style={styles.productPrice}>
         <Text style={styles.priceText}>€{item.price.toFixed(2)}</Text>
@@ -131,16 +126,15 @@ const QuickProductSearch: React.FC<QuickProductSearchProps> = ({
   const renderCategoryButton = (category: string) => (
     <TouchableOpacity
       key={category}
-      style={[
-        styles.categoryButton,
-        selectedCategory === category && styles.categoryButtonActive
-      ]}
-      onPress={() => setSelectedCategory(category)}
-    >
-      <Text style={[
-        styles.categoryButtonText,
-        selectedCategory === category && styles.categoryButtonTextActive
-      ]}>
+      style={[styles.categoryButton, selectedCategory === category && styles.categoryButtonActive]}
+      onPress={() => {
+        setSelectedCategory(category);
+      }}>
+      <Text
+        style={[
+          styles.categoryButtonText,
+          selectedCategory === category && styles.categoryButtonTextActive,
+        ]}>
         {category === 'all' ? 'All' : category}
       </Text>
     </TouchableOpacity>
@@ -158,18 +152,23 @@ const QuickProductSearch: React.FC<QuickProductSearchProps> = ({
             placeholder={t('search.placeholder')}
             value={searchQuery}
             onChangeText={handleSearch}
-            onFocus={() => setShowResults(true)}
+            onFocus={() => {
+              setShowResults(true);
+            }}
             returnKeyType="search"
             autoCapitalize="none"
             autoCorrect={false}
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => handleSearch('')}>
+            <TouchableOpacity
+              onPress={() => {
+                handleSearch('');
+              }}>
               <Ionicons name="close-circle" size={20} color={Colors.light.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
-        
+
         {/* Barkod tarama butonu kaldırıldı */}
       </View>
 
@@ -190,12 +189,13 @@ const QuickProductSearch: React.FC<QuickProductSearchProps> = ({
               {favoriteProducts.length > 0 && (
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Favorite Products</Text>
-                  {favoriteProducts.map(product => (
+                  {favoriteProducts.map((product) => (
                     <TouchableOpacity
                       key={product.id}
                       style={styles.quickProductItem}
-                      onPress={() => handleProductSelect(product)}
-                    >
+                      onPress={() => {
+                        handleProductSelect(product);
+                      }}>
                       <Ionicons name="heart" size={16} color={Colors.light.primary} />
                       <Text style={styles.quickProductName}>{product.name}</Text>
                       <Text style={styles.quickProductPrice}>€{product.price.toFixed(2)}</Text>
@@ -212,8 +212,9 @@ const QuickProductSearch: React.FC<QuickProductSearchProps> = ({
                     <TouchableOpacity
                       key={index}
                       style={styles.recentSearchItem}
-                      onPress={() => handleSearch(search)}
-                    >
+                      onPress={() => {
+                        handleSearch(search);
+                      }}>
                       <Ionicons name="time-outline" size={16} color={Colors.light.textSecondary} />
                       <Text style={styles.recentSearchText}>{search}</Text>
                     </TouchableOpacity>
@@ -227,8 +228,9 @@ const QuickProductSearch: React.FC<QuickProductSearchProps> = ({
                 {/* Barkod tarama butonu kaldırıldı */}
                 <TouchableOpacity
                   style={styles.quickActionItem}
-                  onPress={() => setSelectedCategory('all')}
-                >
+                  onPress={() => {
+                    setSelectedCategory('all');
+                  }}>
                   <Ionicons name="grid-outline" size={16} color={Colors.light.primary} />
                   <Text style={styles.quickActionText}>Browse All Products</Text>
                 </TouchableOpacity>
@@ -244,9 +246,7 @@ const QuickProductSearch: React.FC<QuickProductSearchProps> = ({
               ListEmptyComponent={
                 <View style={styles.emptyState}>
                   <Ionicons name="search-outline" size={48} color={Colors.light.textSecondary} />
-                  <Text style={styles.emptyStateText}>
-                    No products found for "{searchQuery}"
-                  </Text>
+                  <Text style={styles.emptyStateText}>No products found for "{searchQuery}"</Text>
                   <Text style={styles.emptyStateSubtext}>
                     Try a different search term or category
                   </Text>
@@ -326,11 +326,11 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: Spacing.lg,
   },
-     sectionTitle: {
-     ...Typography.h3,
-     color: Colors.light.text,
-     marginBottom: Spacing.sm,
-   },
+  sectionTitle: {
+    ...Typography.h3,
+    color: Colors.light.text,
+    marginBottom: Spacing.sm,
+  },
   quickProductItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -422,12 +422,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.xl,
   },
-     emptyStateText: {
-     ...Typography.h3,
-     color: Colors.light.text,
-     textAlign: 'center',
-     marginTop: Spacing.md,
-   },
+  emptyStateText: {
+    ...Typography.h3,
+    color: Colors.light.text,
+    textAlign: 'center',
+    marginTop: Spacing.md,
+  },
   emptyStateSubtext: {
     ...Typography.body,
     color: Colors.light.textSecondary,
@@ -436,4 +436,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default QuickProductSearch; 
+export default QuickProductSearch;

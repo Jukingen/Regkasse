@@ -4,6 +4,7 @@
  */
 import { USER_FACING_MISSING_TRANSLATION_LABEL } from '@/i18n/translationFallback';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
+
 import { getRegisteredMessageKeyForApiErrorCode } from './apiErrorCodeRegistry';
 import type { NormalizedApiError } from './normalizedApiError';
 import { normalizeApiError } from './normalizedApiError';
@@ -22,7 +23,10 @@ export type UserFacingApiErrorOptions = {
   skipLog?: boolean;
 };
 
-function tryCodeBasedUserMessage(t: TranslateFn, normalized: NormalizedApiError): string | undefined {
+function tryCodeBasedUserMessage(
+  t: TranslateFn,
+  normalized: NormalizedApiError
+): string | undefined {
   const i18nKey = getRegisteredMessageKeyForApiErrorCode(normalized.code);
   if (!i18nKey) return undefined;
   const translated = t(i18nKey);
@@ -36,11 +40,14 @@ function tryCodeBasedUserMessage(t: TranslateFn, normalized: NormalizedApiError)
 export function getUserFacingApiErrorMessage(
   t: TranslateFn,
   error: unknown,
-  options: UserFacingApiErrorOptions,
+  options: UserFacingApiErrorOptions
 ): string {
   const normalized = normalizeApiError(error);
   if (!options.skipLog) {
-    technicalConsole.error(`[API Error] ${options.logContext}`, buildTechnicalApiErrorPayload(normalized));
+    technicalConsole.error(
+      `[API Error] ${options.logContext}`,
+      buildTechnicalApiErrorPayload(normalized)
+    );
   }
 
   // Login screen: backend message is already localized via Accept-Language.

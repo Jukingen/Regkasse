@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { extractHttpStatusFromUnknownError, extractRawApiErrorMessage } from '../extractRawApiErrorMessage';
+
+import {
+  extractHttpStatusFromUnknownError,
+  extractRawApiErrorMessage,
+} from '../extractRawApiErrorMessage';
 
 describe('extractRawApiErrorMessage', () => {
   it('reads axios response.data.message', () => {
     expect(
       extractRawApiErrorMessage({
         response: { data: { message: '  Server says  ' } },
-      }),
+      })
     ).toBe('Server says');
   });
 
@@ -14,7 +18,7 @@ describe('extractRawApiErrorMessage', () => {
     expect(
       extractRawApiErrorMessage({
         response: { data: { errors: { Password: ['Too short'] } } },
-      }),
+      })
     ).toBe('Too short');
   });
 
@@ -26,7 +30,7 @@ describe('extractRawApiErrorMessage', () => {
     expect(
       extractRawApiErrorMessage({
         normalized: { message: 'Wrapped client message' },
-      }),
+      })
     ).toBe('Wrapped client message');
   });
 });

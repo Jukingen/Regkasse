@@ -1,9 +1,9 @@
-import { customInstance } from '@/lib/axios';
 import { triggerReportPdfBlobDownload } from '@/features/reports/api/reportPdfApi';
+import { customInstance } from '@/lib/axios';
 
 export async function downloadStoredClosingReportPdf(
   closingId: string,
-  options?: { language?: string; signal?: AbortSignal },
+  options?: { language?: string; signal?: AbortSignal }
 ): Promise<Blob> {
   const params = options?.language ? `?language=${encodeURIComponent(options.language)}` : '';
   return customInstance<Blob>({
@@ -16,7 +16,7 @@ export async function downloadStoredClosingReportPdf(
 
 export async function downloadStoredReceiptReportPdf(
   paymentId: string,
-  options?: { signal?: AbortSignal },
+  options?: { signal?: AbortSignal }
 ): Promise<Blob> {
   return customInstance<Blob>({
     url: `/api/admin/report-pdfs/receipt/${paymentId}`,

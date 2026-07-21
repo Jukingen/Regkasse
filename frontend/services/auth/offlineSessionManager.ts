@@ -1,7 +1,7 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { jwtDecode } from 'jwt-decode';
 
 import { OfflineConfigService } from '@/services/config/offlineConfigService';
+import { secureStorage } from '@/services/secureStorage';
 import type { StoredSessionUser } from '@/services/session/sessionManager';
 
 const OFFLINE_SESSION_STORAGE_KEY = 'offline_session';
@@ -82,7 +82,7 @@ export class OfflineSessionManager {
       lastActivityAt: Date.now(),
     };
 
-    await AsyncStorage.setItem(OFFLINE_SESSION_STORAGE_KEY, JSON.stringify(this.session));
+    await secureStorage.setItem(OFFLINE_SESSION_STORAGE_KEY, JSON.stringify(this.session));
   }
 
   /** Active session for offline API usage */
@@ -105,20 +105,19 @@ export class OfflineSessionManager {
 
   isTokenExpiringSoon(): boolean {
     if (!this.session) return true;
-    const thresholdMs =
-      this.config.get('TOKEN_REFRESH_THRESHOLD_HOURS') * 60 * 60 * 1000;
+    const thresholdMs = this.config.get('TOKEN_REFRESH_THRESHOLD_HOURS') * 60 * 60 * 1000;
     return Date.now() > this.session.expiresAt - thresholdMs;
   }
 
   updateActivity(): void {
     if (!this.session) return;
     this.session.lastActivityAt = Date.now();
-    void AsyncStorage.setItem(OFFLINE_SESSION_STORAGE_KEY, JSON.stringify(this.session));
+    void secureStorage.setItem(OFFLINE_SESSION_STORAGE_KEY, JSON.stringify(this.session));
   }
 
   async clearSession(): Promise<void> {
     this.session = null;
-    await AsyncStorage.removeItem(OFFLINE_SESSION_STORAGE_KEY);
+    await secureStorage.removeItem(OFFLINE_SESSION_STORAGE_KEY);
   }
 
   canWorkOffline(): boolean {
@@ -134,12 +133,12 @@ export class OfflineSessionManager {
 
   private async loadSession(): Promise<void> {
     try {
-      const data = await AsyncStorage.getItem(OFFLINE_SESSION_STORAGE_KEY);
+      const data = await secureStorage.getItem(OFFLINE_SESSION_STORAGE_KEY);
       if (!data) return;
 
       const parsed: unknown = JSON.parse(data);
       if (!isOfflineSession(parsed)) {
-        await AsyncStorage.removeItem(OFFLINE_SESSION_STORAGE_KEY);
+        await secureStorage.removeItem(OFFLINE_SESSION_STORAGE_KEY);
         return;
       }
 

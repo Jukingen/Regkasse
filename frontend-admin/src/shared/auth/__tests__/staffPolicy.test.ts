@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { getStaffPolicy } from '@/shared/auth/staffPolicy';
+
 import { PERMISSIONS } from '@/shared/auth/permissions';
+import { getStaffPolicy } from '@/shared/auth/staffPolicy';
 
 describe('getStaffPolicy', () => {
   it('grants Manager read-only staff access without user.manage', () => {

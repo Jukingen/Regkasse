@@ -20,7 +20,7 @@ export const NotificationToast: React.FC<NotificationToastProps> = ({
   message,
   duration = 5000,
   onClose,
-  onPress
+  onPress,
 }) => {
   const { theme } = useTheme();
   const translateY = useRef(new Animated.Value(-100)).current;
@@ -47,7 +47,9 @@ export const NotificationToast: React.FC<NotificationToastProps> = ({
         hideToast();
       }, duration);
 
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+      };
     } else {
       hideToast();
     }
@@ -112,16 +114,11 @@ export const NotificationToast: React.FC<NotificationToastProps> = ({
           transform: [{ translateY }],
           opacity,
         },
-      ]}
-    >
+      ]}>
       <TouchableOpacity
-        style={[
-          styles.toast,
-          { backgroundColor: typeStyles.backgroundColor },
-        ]}
+        style={[styles.toast, { backgroundColor: typeStyles.backgroundColor }]}
         onPress={onPress}
-        activeOpacity={onPress ? 0.8 : 1}
-      >
+        activeOpacity={onPress ? 0.8 : 1}>
         <View style={styles.content}>
           <View style={styles.header}>
             <Text style={styles.icon}>{typeStyles.icon}</Text>
@@ -130,9 +127,7 @@ export const NotificationToast: React.FC<NotificationToastProps> = ({
               <Text style={styles.closeText}>✕</Text>
             </TouchableOpacity>
           </View>
-          {message && (
-            <Text style={styles.message}>{message}</Text>
-          )}
+          {message && <Text style={styles.message}>{message}</Text>}
         </View>
       </TouchableOpacity>
     </Animated.View>
@@ -192,4 +187,4 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginLeft: 26,
   },
-}); 
+});

@@ -37,12 +37,13 @@ export const useSessionPersistence = () => {
     };
 
     setSessionMetadata(metadata);
-    
+
     // Session activity log - backend'e gönderebiliriz
     console.log('📊 Session activity updated:', {
       userId: user.id,
       lastActivity: new Date(metadata.lastActivityTime).toISOString(),
-      sessionDuration: Math.round((Date.now() - metadata.sessionStartTime) / 1000 / 60) + ' minutes'
+      sessionDuration:
+        Math.round((Date.now() - metadata.sessionStartTime) / 1000 / 60) + ' minutes',
     });
   }, [user, sessionMetadata?.sessionStartTime]);
 
@@ -59,11 +60,11 @@ export const useSessionPersistence = () => {
    */
   const isSessionActive = useCallback((): boolean => {
     if (!sessionMetadata || !user) return false;
-    
+
     // 8 saatlik session timeout
     const SESSION_TIMEOUT = 8 * 60 * 60 * 1000; // 8 hours
     const timeSinceLastActivity = Date.now() - sessionMetadata.lastActivityTime;
-    
+
     return timeSinceLastActivity < SESSION_TIMEOUT;
   }, [sessionMetadata, user]);
 
@@ -96,14 +97,14 @@ export const useSessionPersistence = () => {
     // Session state
     sessionMetadata,
     isSessionActive: isSessionActive(),
-    sessionDuration: sessionMetadata 
+    sessionDuration: sessionMetadata
       ? Math.round((Date.now() - sessionMetadata.sessionStartTime) / 1000 / 60)
       : 0,
-    
+
     // Actions
     updateSessionActivity,
     clearSession,
-    
+
     // Recommendations
     recommendations: {
       // Masa siparişleri için
@@ -112,14 +113,14 @@ export const useSessionPersistence = () => {
         reason: 'Always fetch fresh data from backend for accuracy and security',
         caching: 'Memory only, no persistence',
       },
-      
+
       // User preferences için
       userPreferences: {
         strategy: 'HYBRID',
         reason: 'Non-sensitive UI preferences can be cached locally',
         caching: 'Local storage for theme, language, etc.',
       },
-      
+
       // Authentication için
       authentication: {
         strategy: 'TOKEN_ONLY',

@@ -10,12 +10,13 @@ import {
 } from '@ant-design/icons';
 import { Card, Form, Radio, Select, Switch, Typography } from 'antd';
 import { useMemo } from 'react';
+
 import { useDensity } from '@/hooks/useDensity';
 import { useTheme } from '@/hooks/useTheme';
 import { useI18n } from '@/i18n';
 import { useUserPreferences } from '@/lib/personalization/hooks/useUserPreferences';
-import { DEFAULT_LANDING_PATHS } from '@/lib/personalization/types';
 import type { DensityMode, ThemeMode } from '@/lib/personalization/types';
+import { DEFAULT_LANDING_PATHS } from '@/lib/personalization/types';
 
 const { Option } = Select;
 
@@ -32,7 +33,7 @@ export function AppearanceSettings() {
         value: path,
         label: t(`settings.personalization.landing.${path.replace(/^\//, '').replace(/\//g, '_')}`),
       })),
-    [t],
+    [t]
   );
 
   return (
@@ -100,8 +101,12 @@ export function AppearanceSettings() {
             value={preferences.timeFormat}
             onChange={(e) => updatePreferences({ timeFormat: e.target.value })}
           >
-            <Radio.Button value="24h">{t('settings.personalization.timeFormat.h24Example')}</Radio.Button>
-            <Radio.Button value="12h">{t('settings.personalization.timeFormat.h12Example')}</Radio.Button>
+            <Radio.Button value="24h">
+              {t('settings.personalization.timeFormat.h24Example')}
+            </Radio.Button>
+            <Radio.Button value="12h">
+              {t('settings.personalization.timeFormat.h12Example')}
+            </Radio.Button>
           </Radio.Group>
         </Form.Item>
 

@@ -1,14 +1,27 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
-import { Alert, Button, Form, Input, InputNumber, Modal, Space, Switch, Table, Tag, Typography } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
 import { EditOutlined } from '@ant-design/icons';
-import { DigitalServiceRequestsPanel } from '@/features/digital-services/components/DigitalServiceRequestsPanel';
+import {
+  Alert,
+  Button,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Space,
+  Switch,
+  Table,
+  Tag,
+  Typography,
+} from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import { useMemo, useRef, useState } from 'react';
+
 import {
   type DigitalServiceType,
   type TenantDigitalServiceRow,
 } from '@/features/digital-services/api/tenantDigitalServicesApi';
+import { DigitalServiceRequestsPanel } from '@/features/digital-services/components/DigitalServiceRequestsPanel';
 import {
   useTenantDigitalServices,
   useToggleTenantDigitalService,
@@ -42,10 +55,7 @@ export function DigitalServicesManagementPanel() {
     isSuperAdmin ||
     hasPermission(PERMISSIONS.DIGITAL_PRICING_MANAGE) ||
     hasPermission(PERMISSIONS.DIGITAL_MANAGE);
-  const canView =
-    canActivate ||
-    canPrice ||
-    hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
+  const canView = canActivate || canPrice || hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
 
   const { data, isLoading, isError } = useTenantDigitalServices();
   const toggleMutation = useToggleTenantDigitalService();
@@ -84,7 +94,7 @@ export function DigitalServicesManagementPanel() {
     row: TenantDigitalServiceRow,
     serviceType: DigitalServiceType,
     active: boolean,
-    reason?: string,
+    reason?: string
   ) => {
     try {
       await toggleMutation.mutateAsync({
@@ -94,9 +104,7 @@ export function DigitalServicesManagementPanel() {
         reason: active ? undefined : reason?.trim() || undefined,
       });
       message.success(
-        active
-          ? t('superadmin.digital.toggleActivated')
-          : t('superadmin.digital.toggleDeactivated'),
+        active ? t('superadmin.digital.toggleActivated') : t('superadmin.digital.toggleDeactivated')
       );
     } catch {
       message.error(t('superadmin.digital.toggleFailed'));
@@ -106,7 +114,7 @@ export function DigitalServicesManagementPanel() {
   const handleToggle = (
     row: TenantDigitalServiceRow,
     serviceType: DigitalServiceType,
-    active: boolean,
+    active: boolean
   ) => {
     if (active) {
       void toggleService(row, serviceType, true);
@@ -263,7 +271,7 @@ export function DigitalServicesManagementPanel() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps -- handlers use stable mutation + i18n
-    [canActivate, canPrice, formatLocale, t, toggleMutation.isPending],
+    [canActivate, canPrice, formatLocale, t, toggleMutation.isPending]
   );
 
   if (!canView) {

@@ -1,17 +1,18 @@
 'use client';
 
-import { Alert, Button } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
+import { Alert, Button } from 'antd';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
-import { TenantDomainManagementPanel } from '@/features/website-generator/components/TenantDomainManagementPanel';
-import { useAuth } from '@/features/auth/hooks/useAuth';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { TenantDomainManagementPanel } from '@/features/website-generator/components/TenantDomainManagementPanel';
 import { useI18n } from '@/i18n';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
+import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
 
 /**
  * Super Admin custom-domain management for a specific tenant.

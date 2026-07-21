@@ -1,24 +1,39 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  Alert,
+  Button,
+  Card,
+  Descriptions,
+  Radio,
+  Space,
+  Table,
+  Tag,
+  Timeline,
+  Typography,
+} from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
 /**
  * Monatsbericht-Detail: verknüpfte Tagesberichte, Aggregation vs. Rohdaten, Profile, Finalisierung, FinanzOnline, Korrekturkette.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, Button, Card, Descriptions, Radio, Space, Table, Tag, Timeline, Typography } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
-import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
+import {
+  FormalReportLanguageNotice,
+  FormalReportProfileLanguageCue,
+} from '@/components/reporting/FormalReportLanguageNotice';
+import { LegalExportCompletenessBanner } from '@/components/reporting/LegalExportCompletenessBanner';
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { formatCurrency, formatDate, formatDateTime, formatNumber, useI18n } from '@/i18n';
 import { AXIOS_INSTANCE } from '@/lib/axios';
-import { usePermissions } from '@/shared/auth/usePermissions';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
-import { FormalReportLanguageNotice, FormalReportProfileLanguageCue } from '@/components/reporting/FormalReportLanguageNotice';
-import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
-import { LegalExportCompletenessBanner } from '@/components/reporting/LegalExportCompletenessBanner';
+import { usePermissions } from '@/shared/auth/usePermissions';
 import { useFiscalReportText } from '@/shared/reporting/useFiscalReportText';
 
 type MonatsberichtDto = {
@@ -73,7 +88,12 @@ type MonatsberichtDto = {
       noteDe?: string | null;
       noteEn?: string | null;
     };
-    paymentMethodBreakdown: { methodKey: string; displayLabel?: string; rowCount: number; totalAmount: number }[];
+    paymentMethodBreakdown: {
+      methodKey: string;
+      displayLabel?: string;
+      rowCount: number;
+      totalAmount: number;
+    }[];
     taxBreakdown: { taxBucketKey: string; taxAmount: number }[];
     warnings: string[];
   };
@@ -87,7 +107,12 @@ type MonatsberichtDto = {
   submissionEnvelope?: {
     submissionVersusReportNoteDe?: string;
     submissionVersusReportNoteEn?: string | null;
-    attempts?: { attemptCount: number; status?: string; nextAttemptAtUtc?: string; failureCategory?: string }[];
+    attempts?: {
+      attemptCount: number;
+      status?: string;
+      nextAttemptAtUtc?: string;
+      failureCategory?: string;
+    }[];
     rejectionReasons?: string[];
     remediationHintsDe?: string[];
   };
@@ -101,7 +126,11 @@ type MonatsberichtDto = {
     nonLegalOutput?: boolean;
     isDiagnosticOnly?: boolean;
   }[];
-  correction: { isCorrection: boolean; supersedesReportId?: string | null; supersededByReportId?: string | null };
+  correction: {
+    isCorrection: boolean;
+    supersedesReportId?: string | null;
+    supersededByReportId?: string | null;
+  };
 };
 
 type ReportHistoryTimelineDto = {
@@ -130,7 +159,8 @@ export default function MonatsberichtDetailPage() {
   const { message } = useAntdApp();
 
   const { t, formatLocale } = useI18n();
-  const { fiscalTooltip, resolveFiscal, joinRemediationHints, resolveExportProfileRow } = useFiscalReportText();
+  const { fiscalTooltip, resolveFiscal, joinRemediationHints, resolveExportProfileRow } =
+    useFiscalReportText();
   const td = useCallback((path: string) => t(`reporting.monatsbericht.detail.${path}`), [t]);
   const ts = useCallback((path: string) => t(`reporting.tagesbericht.detail.${path}`), [t]);
   const router = useRouter();
@@ -143,12 +173,16 @@ export default function MonatsberichtDetailPage() {
 
   const backendApiTooltip = t('reporting.backend.apiStringsTooltip');
 
-  const [profile, setProfile] = useState<'operationalPreview' | 'accountingReport' | 'legalComplianceExport' | 'diagnosticPackage'>('operationalPreview');
+  const [profile, setProfile] = useState<
+    'operationalPreview' | 'accountingReport' | 'legalComplianceExport' | 'diagnosticPackage'
+  >('operationalPreview');
 
   const detailQ = useQuery({
     queryKey: ['monatsbericht', id],
     queryFn: async () => {
-      const { data } = await AXIOS_INSTANCE.get<MonatsberichtDto>(`/api/reports/monatsbericht/${id}`);
+      const { data } = await AXIOS_INSTANCE.get<MonatsberichtDto>(
+        `/api/reports/monatsbericht/${id}`
+      );
       return data;
     },
     enabled: !!id,
@@ -157,7 +191,9 @@ export default function MonatsberichtDetailPage() {
   const historyQ = useQuery({
     queryKey: ['report-history', 'monatsbericht', id],
     queryFn: async () => {
-      const { data } = await AXIOS_INSTANCE.get<ReportHistoryTimelineDto>(`/api/reports/history/monatsbericht/${id}`);
+      const { data } = await AXIOS_INSTANCE.get<ReportHistoryTimelineDto>(
+        `/api/reports/history/monatsbericht/${id}`
+      );
       return data;
     },
     enabled: !!id,
@@ -165,7 +201,10 @@ export default function MonatsberichtDetailPage() {
 
   const finalizeMut = useMutation({
     mutationFn: async () => {
-      await AXIOS_INSTANCE.post('/api/reports/monatsbericht/finalize', { reportId: id, note: null });
+      await AXIOS_INSTANCE.post('/api/reports/monatsbericht/finalize', {
+        reportId: id,
+        note: null,
+      });
     },
     onSuccess: () => {
       message.success(ts('messages.finalizeSuccess'));
@@ -187,11 +226,14 @@ export default function MonatsberichtDetailPage() {
 
   const correctionMut = useMutation({
     mutationFn: async () => {
-      const { data } = await AXIOS_INSTANCE.post<MonatsberichtDto>('/api/reports/monatsbericht/correction', {
-        supersedesReportId: id,
-        // API sözleşmesi: backend şu an bu sabit metni bekliyor olabilir
-        reason: 'Korrektur / Neuberechnung',
-      });
+      const { data } = await AXIOS_INSTANCE.post<MonatsberichtDto>(
+        '/api/reports/monatsbericht/correction',
+        {
+          supersedesReportId: id,
+          // API sözleşmesi: backend şu an bu sabit metni bekliyor olabilir
+          reason: 'Korrektur / Neuberechnung',
+        }
+      );
       return data;
     },
     onSuccess: (data) => {
@@ -202,33 +244,36 @@ export default function MonatsberichtDetailPage() {
     onError: () => message.error(ts('messages.correctionError')),
   });
 
-  const linkedCols: ColumnsType<MonatsberichtDto['summary']['linkedFinalizedTagesberichte'][0]> = useMemo(
-    () => [
-      {
-        title: td('labels.tableDate'),
-        dataIndex: 'viennaBusinessDate',
-        render: (v: string) => formatDate(v, formatLocale),
-      },
-      {
-        title: td('labels.register'),
-        dataIndex: 'registerNumber',
-        render: (v, r) => v ?? r.cashRegisterId.slice(0, 8),
-      },
-      {
-        title: ts('labels.gross'),
-        dataIndex: 'grossSalesAmount',
-        render: (v: number) => formatCurrency(v ?? 0, formatLocale),
-      },
-      {
-        title: ts('labels.report'),
-        key: 'link',
-        render: (_, r) => (
-          <Link href={`/reporting/tagesbericht/${r.tagesberichtId}`}>{td('labels.openDailyReport')}</Link>
-        ),
-      },
-    ],
-    [td, ts, formatLocale],
-  );
+  const linkedCols: ColumnsType<MonatsberichtDto['summary']['linkedFinalizedTagesberichte'][0]> =
+    useMemo(
+      () => [
+        {
+          title: td('labels.tableDate'),
+          dataIndex: 'viennaBusinessDate',
+          render: (v: string) => formatDate(v, formatLocale),
+        },
+        {
+          title: td('labels.register'),
+          dataIndex: 'registerNumber',
+          render: (v, r) => v ?? r.cashRegisterId.slice(0, 8),
+        },
+        {
+          title: ts('labels.gross'),
+          dataIndex: 'grossSalesAmount',
+          render: (v: number) => formatCurrency(v ?? 0, formatLocale),
+        },
+        {
+          title: ts('labels.report'),
+          key: 'link',
+          render: (_, r) => (
+            <Link href={`/reporting/tagesbericht/${r.tagesberichtId}`}>
+              {td('labels.openDailyReport')}
+            </Link>
+          ),
+        },
+      ],
+      [td, ts, formatLocale]
+    );
 
   const pmCols: ColumnsType<MonatsberichtDto['summary']['paymentMethodBreakdown'][0]> = useMemo(
     () => [
@@ -240,7 +285,7 @@ export default function MonatsberichtDetailPage() {
         render: (v: number) => formatCurrency(v ?? 0, formatLocale),
       },
     ],
-    [ts, formatLocale],
+    [ts, formatLocale]
   );
 
   const taxColumns: ColumnsType<MonatsberichtDto['summary']['taxBreakdown'][0]> = useMemo(
@@ -250,10 +295,13 @@ export default function MonatsberichtDetailPage() {
         title: ts('labels.taxAmount'),
         dataIndex: 'taxAmount',
         render: (v: number) =>
-          formatNumber(v ?? 0, formatLocale, { minimumFractionDigits: 2, maximumFractionDigits: 4 }),
+          formatNumber(v ?? 0, formatLocale, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 4,
+          }),
       },
     ],
-    [ts, formatLocale],
+    [ts, formatLocale]
   );
 
   if (detailQ.isLoading) {
@@ -273,9 +321,12 @@ export default function MonatsberichtDetailPage() {
 
   const reportVsSubmissionNote = resolveFiscal(
     d.submissionEnvelope?.submissionVersusReportNoteDe,
-    d.submissionEnvelope?.submissionVersusReportNoteEn,
+    d.submissionEnvelope?.submissionVersusReportNoteEn
   );
-  const operatorHintResolved = resolveFiscal(d.submission.operatorHintDe, d.submission.operatorHintEn);
+  const operatorHintResolved = resolveFiscal(
+    d.submission.operatorHintDe,
+    d.submission.operatorHintEn
+  );
   const remediationResolved = joinRemediationHints(d.submissionEnvelope?.remediationHintsDe, ' | ');
   const upstreamNote = d.upstreamPropagation
     ? resolveFiscal(d.upstreamPropagation.noteDe, d.upstreamPropagation.noteEn)
@@ -294,7 +345,11 @@ export default function MonatsberichtDetailPage() {
         actions={
           <Space wrap>
             {canExport && d.reportStatus === 'Provisional' ? (
-              <Button type="primary" loading={finalizeMut.isPending} onClick={() => finalizeMut.mutate()}>
+              <Button
+                type="primary"
+                loading={finalizeMut.isPending}
+                onClick={() => finalizeMut.mutate()}
+              >
                 {ts('actions.finalize')}
               </Button>
             ) : null}
@@ -308,7 +363,9 @@ export default function MonatsberichtDetailPage() {
                 {ts('actions.correction')}
               </Button>
             ) : null}
-            <Button onClick={() => router.push('/reporting/monatsbericht')}>{ts('actions.backToList')}</Button>
+            <Button onClick={() => router.push('/reporting/monatsbericht')}>
+              {ts('actions.backToList')}
+            </Button>
           </Space>
         }
       />
@@ -321,7 +378,9 @@ export default function MonatsberichtDetailPage() {
           showIcon
           title={td('upstreamAlertTitle')}
           description={
-            <Typography.Text title={fiscalTooltip(upstreamNote.contentLang)}>{upstreamNote.text}</Typography.Text>
+            <Typography.Text title={fiscalTooltip(upstreamNote.contentLang)}>
+              {upstreamNote.text}
+            </Typography.Text>
           }
           style={{ marginBottom: 16 }}
         />
@@ -357,7 +416,9 @@ export default function MonatsberichtDetailPage() {
                   <span key={p.profileKey} style={{ marginRight: 12 }}>
                     <strong title={fiscalTooltip(row.label.contentLang)}>{row.label.text}</strong>
                     {': '}
-                    <span title={fiscalTooltip(row.description.contentLang)}>{row.description.text}</span>
+                    <span title={fiscalTooltip(row.description.contentLang)}>
+                      {row.description.text}
+                    </span>
                   </span>
                 );
               })}
@@ -378,7 +439,9 @@ export default function MonatsberichtDetailPage() {
             {d.scopeKind === 'Company' ? (
               td('labels.scopeAllRegisters')
             ) : (
-              <Typography.Text title={backendApiTooltip}>{d.registerNumber ?? d.cashRegisterId}</Typography.Text>
+              <Typography.Text title={backendApiTooltip}>
+                {d.registerNumber ?? d.cashRegisterId}
+              </Typography.Text>
             )}
           </Descriptions.Item>
           <Descriptions.Item label={ts('labels.report')}>
@@ -423,12 +486,17 @@ export default function MonatsberichtDetailPage() {
           ) : null}
           {d.supersededByReportId ? (
             <Descriptions.Item label={td('labels.supersededBy')}>
-              <Link href={`/reporting/monatsbericht/${d.supersededByReportId}`}>{d.supersededByReportId}</Link>
+              <Link href={`/reporting/monatsbericht/${d.supersededByReportId}`}>
+                {d.supersededByReportId}
+              </Link>
             </Descriptions.Item>
           ) : null}
           {reportVsSubmissionNote ? (
             <Descriptions.Item label={ts('labels.reportVsSubmission')}>
-              <Typography.Text type="secondary" title={fiscalTooltip(reportVsSubmissionNote.contentLang)}>
+              <Typography.Text
+                type="secondary"
+                title={fiscalTooltip(reportVsSubmissionNote.contentLang)}
+              >
                 {reportVsSubmissionNote.text}
               </Typography.Text>
             </Descriptions.Item>
@@ -436,7 +504,10 @@ export default function MonatsberichtDetailPage() {
           <Descriptions.Item label={ts('labels.submission')}>
             <Tag title={backendApiTooltip}>{d.submission.lifecycle}</Tag>{' '}
             {operatorHintResolved ? (
-              <Typography.Text type="secondary" title={fiscalTooltip(operatorHintResolved.contentLang)}>
+              <Typography.Text
+                type="secondary"
+                title={fiscalTooltip(operatorHintResolved.contentLang)}
+              >
                 {operatorHintResolved.text}
               </Typography.Text>
             ) : null}
@@ -462,10 +533,14 @@ export default function MonatsberichtDetailPage() {
             </Descriptions.Item>
           ) : null}
           {d.submission.externalReferenceId ? (
-            <Descriptions.Item label={ts('labels.reference')}>{d.submission.externalReferenceId}</Descriptions.Item>
+            <Descriptions.Item label={ts('labels.reference')}>
+              {d.submission.externalReferenceId}
+            </Descriptions.Item>
           ) : null}
           {showHashes ? (
-            <Descriptions.Item label={ts('labels.snapshotHash')}>{d.snapshotHash}</Descriptions.Item>
+            <Descriptions.Item label={ts('labels.snapshotHash')}>
+              {d.snapshotHash}
+            </Descriptions.Item>
           ) : null}
         </Descriptions>
       </Card>
@@ -482,7 +557,9 @@ export default function MonatsberichtDetailPage() {
 
       <Card title={ts('cards.sums')} style={{ marginBottom: 16 }}>
         <Descriptions column={2} size="small" bordered>
-          <Descriptions.Item label={td('labels.dailyReportsCount')}>{agg.linkedDailyReportCount}</Descriptions.Item>
+          <Descriptions.Item label={td('labels.dailyReportsCount')}>
+            {agg.linkedDailyReportCount}
+          </Descriptions.Item>
           <Descriptions.Item label={td('labels.calendarDaysCovered')}>
             {agg.distinctDaysCovered} / {agg.expectedCalendarDaysInMonth}
           </Descriptions.Item>
@@ -495,11 +572,15 @@ export default function MonatsberichtDetailPage() {
           <Descriptions.Item label={ts('labels.refunds')}>
             {formatCurrency(agg.refundAmountTotal, formatLocale)}
           </Descriptions.Item>
-          <Descriptions.Item label={ts('labels.saleLines')}>{agg.salePaymentRowCount}</Descriptions.Item>
+          <Descriptions.Item label={ts('labels.saleLines')}>
+            {agg.salePaymentRowCount}
+          </Descriptions.Item>
         </Descriptions>
       </Card>
 
-      {(profile === 'accountingReport' || profile === 'legalComplianceExport' || profile === 'diagnosticPackage') && (
+      {(profile === 'accountingReport' ||
+        profile === 'legalComplianceExport' ||
+        profile === 'diagnosticPackage') && (
         <Card title={td('cards.rawDataPaymentDetails')} style={{ marginBottom: 16 }}>
           <Descriptions column={2} size="small" bordered>
             <Descriptions.Item label={ts('labels.gross')}>
@@ -511,7 +592,9 @@ export default function MonatsberichtDetailPage() {
             <Descriptions.Item label={ts('labels.refunds')}>
               {formatCurrency(raw.refundAmountTotal, formatLocale)}
             </Descriptions.Item>
-            <Descriptions.Item label={ts('labels.saleLines')}>{raw.salePaymentRowCount}</Descriptions.Item>
+            <Descriptions.Item label={ts('labels.saleLines')}>
+              {raw.salePaymentRowCount}
+            </Descriptions.Item>
           </Descriptions>
           <Descriptions column={1} size="small" bordered style={{ marginTop: 8 }}>
             <Descriptions.Item label={td('labels.deltaGrossDailyVsRaw')}>
@@ -528,7 +611,9 @@ export default function MonatsberichtDetailPage() {
               {adjustmentNote ? (
                 <>
                   {' — '}
-                  <Typography.Text title={fiscalTooltip(adjustmentNote.contentLang)}>{adjustmentNote.text}</Typography.Text>
+                  <Typography.Text title={fiscalTooltip(adjustmentNote.contentLang)}>
+                    {adjustmentNote.text}
+                  </Typography.Text>
                 </>
               ) : null}
             </Descriptions.Item>
@@ -536,7 +621,9 @@ export default function MonatsberichtDetailPage() {
         </Card>
       )}
 
-      {(profile === 'accountingReport' || profile === 'legalComplianceExport' || profile === 'diagnosticPackage') && (
+      {(profile === 'accountingReport' ||
+        profile === 'legalComplianceExport' ||
+        profile === 'diagnosticPackage') && (
         <Card title={td('cards.taxBreakdownFromDaily')} style={{ marginBottom: 16 }}>
           <Table
             rowKey="taxBucketKey"
@@ -549,7 +636,13 @@ export default function MonatsberichtDetailPage() {
       )}
 
       <Card title={td('cards.paymentMethodsFromDaily')} style={{ marginBottom: 16 }}>
-        <Table rowKey="methodKey" size="small" pagination={false} dataSource={d.summary.paymentMethodBreakdown} columns={pmCols} />
+        <Table
+          rowKey="methodKey"
+          size="small"
+          pagination={false}
+          dataSource={d.summary.paymentMethodBreakdown}
+          columns={pmCols}
+        />
       </Card>
 
       <Card title={td('cards.hints')} style={{ marginBottom: 16 }}>
@@ -580,7 +673,11 @@ export default function MonatsberichtDetailPage() {
         ) : historyQ.data?.items?.length ? (
           <Timeline
             items={historyQ.data.items.map((item) => ({
-              color: item.isCurrentActiveVersion ? 'green' : item.reportStatus === 'Superseded' ? 'orange' : 'blue',
+              color: item.isCurrentActiveVersion
+                ? 'green'
+                : item.reportStatus === 'Superseded'
+                  ? 'orange'
+                  : 'blue',
               children: (
                 <Space orientation="vertical" size={2}>
                   <Typography.Text strong title={backendApiTooltip}>
@@ -604,7 +701,9 @@ export default function MonatsberichtDetailPage() {
                     {item.submission.outboxMessageId
                       ? ` · ${ts('history.outbox')} ${item.submission.outboxMessageId.slice(0, 8)}`
                       : ''}
-                    {item.submission.hasMissingOutboxReference ? ` · ${ts('history.missingOutboxRef')}` : ''}
+                    {item.submission.hasMissingOutboxReference
+                      ? ` · ${ts('history.missingOutboxRef')}`
+                      : ''}
                   </Typography.Text>
                   {item.submission.lastErrorMessage ? (
                     <BackendRawTextBlock

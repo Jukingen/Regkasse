@@ -1,39 +1,35 @@
 /**
  * TurkishTaskDemo - Türkçe Görev Önerileri Demo
- * 
+ *
  * Bu component, Node.js v18 uyumlu Simple TaskMaster servisini kullanarak
  * Türkçe görev önerilerini test eder ve gösterir.
- * 
+ *
  * @author Frontend Team
  * @version 1.0.0
  * @since 2025-01-10
  */
 
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Alert
-} from 'react-native';
-import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
-import useTaskMaster from '../hooks/useTaskMaster';
-import useEnhancedTaskMaster from '../hooks/useEnhancedTaskMaster';
-import { TaskCategory, TaskPriority, TaskStatus } from '../services/TaskMasterService';
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+
 import LanguageSwitcher from './LanguageSwitcher';
+import useEnhancedTaskMaster from '../hooks/useEnhancedTaskMaster';
+import useTaskMaster from '../hooks/useTaskMaster';
+import { TaskCategory, TaskPriority, TaskStatus } from '../services/TaskMasterService';
 
 const TurkishTaskDemo: React.FC = () => {
   const { i18n } = useTranslation();
   const { generateTaskSuggestions, createTask } = useTaskMaster();
   const { getAISuggestions } = useEnhancedTaskMaster();
-  
+
   const [basicSuggestions, setBasicSuggestions] = useState<string[]>([]);
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  const [selectedCategory, setSelectedCategory] = useState<TaskCategory>(TaskCategory.RKSV_COMPLIANCE);
+  const [selectedCategory, setSelectedCategory] = useState<TaskCategory>(
+    TaskCategory.RKSV_COMPLIANCE
+  );
 
   /**
    * Türkçe basic önerileri test et
@@ -41,23 +37,22 @@ const TurkishTaskDemo: React.FC = () => {
   const testBasicTurkishSuggestions = async () => {
     try {
       setLoading(true);
-      
+
       // Dili Türkçe'ye ayarla
       await i18n.changeLanguage('tr');
       console.log('🇹🇷 Language set to Turkish');
-      
+
       // Basic önerileri al
       const suggestions = await generateTaskSuggestions(selectedCategory);
       setBasicSuggestions(suggestions);
-      
+
       Alert.alert(
         '✅ Türkçe Basic Öneriler',
         `${suggestions.length} adet Türkçe öneri alındı!\n\nKategori: ${selectedCategory}`,
         [{ text: 'Harika!' }]
       );
-      
+
       console.log('🔥 Turkish basic suggestions:', suggestions);
-      
     } catch (error) {
       console.error('Turkish basic suggestions failed:', error);
       Alert.alert('Hata', 'Türkçe öneriler alınamadı');
@@ -72,23 +67,22 @@ const TurkishTaskDemo: React.FC = () => {
   const testAITurkishSuggestions = async () => {
     try {
       setLoading(true);
-      
+
       // Dili Türkçe'ye ayarla
       await i18n.changeLanguage('tr');
       console.log('🇹🇷 Language set to Turkish for AI');
-      
+
       // AI önerileri al
       const suggestions = await getAISuggestions(selectedCategory);
       setAiSuggestions(suggestions);
-      
+
       Alert.alert(
         '🤖 Türkçe AI Öneriler',
         `${suggestions.length} adet AI destekli Türkçe öneri alındı!\n\nKategori: ${selectedCategory}`,
         [{ text: 'Muhteşem!' }]
       );
-      
+
       console.log('🚀 Turkish AI suggestions:', suggestions);
-      
     } catch (error) {
       console.error('Turkish AI suggestions failed:', error);
       Alert.alert('Hata', 'AI Türkçe öneriler alınamadı');
@@ -108,10 +102,10 @@ const TurkishTaskDemo: React.FC = () => {
       }
 
       setLoading(true);
-      
+
       // İlk öneriyi görev olarak oluştur
       const suggestion = basicSuggestions[0];
-      
+
       const task = await createTask({
         title: suggestion,
         description: `Türkçe demo görev: ${suggestion}\n\nBu görev TaskMasterService kullanılarak oluşturuldu.`,
@@ -119,18 +113,19 @@ const TurkishTaskDemo: React.FC = () => {
         priority: TaskPriority.HIGH,
         status: TaskStatus.PENDING,
         dependencies: [],
-        tseRequired: selectedCategory === TaskCategory.RKSV_COMPLIANCE || selectedCategory === TaskCategory.TSE_INTEGRATION,
-        tags: ['türkçe-demo', 'test']
+        tseRequired:
+          selectedCategory === TaskCategory.RKSV_COMPLIANCE ||
+          selectedCategory === TaskCategory.TSE_INTEGRATION,
+        tags: ['türkçe-demo', 'test'],
       });
-      
+
       Alert.alert(
         '🎯 Türkçe Görev Oluşturuldu',
         `Başarılı!\n\n"${suggestion}"\n\nGörev başarıyla kaydedildi.`,
         [{ text: 'Harika!' }]
       );
-      
+
       console.log('✅ Turkish task created:', task);
-      
     } catch (error) {
       console.error('Turkish task creation failed:', error);
       Alert.alert('Hata', 'Türkçe görev oluşturulamadı');
@@ -153,7 +148,7 @@ const TurkishTaskDemo: React.FC = () => {
    */
   const showTestResults = () => {
     const totalSuggestions = basicSuggestions.length + aiSuggestions.length;
-    
+
     Alert.alert(
       '📊 Test Sonuçları',
       `Kategori: ${selectedCategory}\n\n📝 Basic Öneriler: ${basicSuggestions.length}\n🤖 AI Öneriler: ${aiSuggestions.length}\n\n🎯 Toplam: ${totalSuggestions} Türkçe öneri`,
@@ -173,25 +168,25 @@ const TurkishTaskDemo: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>🇹🇷 Türkçe Görev Demo</Text>
-        <Text style={styles.subtitle}>
-          TaskMaster Service v2.0 - Node.js v18 Uyumlu
-        </Text>
+        <Text style={styles.subtitle}>TaskMaster Service v2.0 - Node.js v18 Uyumlu</Text>
       </View>
 
       {/* Language Switcher */}
-      <LanguageSwitcher onLanguageChange={(lang) => {
-        console.log(`📱 Language changed to: ${lang}`);
-        setBasicSuggestions([]);
-        setAiSuggestions([]);
-      }} />
+      <LanguageSwitcher
+        onLanguageChange={(lang) => {
+          console.log(`📱 Language changed to: ${lang}`);
+          setBasicSuggestions([]);
+          setAiSuggestions([]);
+        }}
+      />
 
       {/* Category Selection */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>📂 Kategori Seçin</Text>
         <Text style={styles.currentCategory}>
-          Seçili: {categories.find(c => c.key === selectedCategory)?.label}
+          Seçili: {categories.find((c) => c.key === selectedCategory)?.label}
         </Text>
-        
+
         <View style={styles.categoryGrid}>
           {categories.map((category) => (
             <TouchableOpacity
@@ -199,14 +194,19 @@ const TurkishTaskDemo: React.FC = () => {
               style={[
                 styles.categoryButton,
                 { borderColor: category.color },
-                selectedCategory === category.key && { backgroundColor: category.color + '20' }
+                selectedCategory === category.key && { backgroundColor: category.color + '20' },
               ]}
-              onPress={() => selectCategory(category.key)}
-            >
-              <Text style={[
-                styles.categoryText,
-                selectedCategory === category.key && { color: category.color, fontWeight: 'bold' }
-              ]}>
+              onPress={() => {
+                selectCategory(category.key);
+              }}>
+              <Text
+                style={[
+                  styles.categoryText,
+                  selectedCategory === category.key && {
+                    color: category.color,
+                    fontWeight: 'bold',
+                  },
+                ]}>
                 {category.label}
               </Text>
             </TouchableOpacity>
@@ -217,48 +217,36 @@ const TurkishTaskDemo: React.FC = () => {
       {/* Test Actions */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>🚀 Test İşlemleri</Text>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: '#3498db' }]}
           onPress={testBasicTurkishSuggestions}
-          disabled={loading}
-        >
+          disabled={loading}>
           <Ionicons name="list-outline" size={20} color="white" />
-          <Text style={styles.actionButtonText}>
-            📝 Basic Türkçe Öneriler Al
-          </Text>
+          <Text style={styles.actionButtonText}>📝 Basic Türkçe Öneriler Al</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: '#9b59b6' }]}
           onPress={testAITurkishSuggestions}
-          disabled={loading}
-        >
+          disabled={loading}>
           <Ionicons name="bulb-outline" size={20} color="white" />
-          <Text style={styles.actionButtonText}>
-            🤖 AI Türkçe Öneriler Al
-          </Text>
+          <Text style={styles.actionButtonText}>🤖 AI Türkçe Öneriler Al</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: '#27ae60' }]}
           onPress={createSampleTurkishTask}
-          disabled={loading || basicSuggestions.length === 0}
-        >
+          disabled={loading || basicSuggestions.length === 0}>
           <Ionicons name="add-circle-outline" size={20} color="white" />
-          <Text style={styles.actionButtonText}>
-            ✅ Türkçe Görev Oluştur
-          </Text>
+          <Text style={styles.actionButtonText}>✅ Türkçe Görev Oluştur</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: '#95a5a6' }]}
-          onPress={showTestResults}
-        >
+          onPress={showTestResults}>
           <Ionicons name="analytics-outline" size={20} color="white" />
-          <Text style={styles.actionButtonText}>
-            📊 Sonuçları Göster
-          </Text>
+          <Text style={styles.actionButtonText}>📊 Sonuçları Göster</Text>
         </TouchableOpacity>
       </View>
 
@@ -292,12 +280,12 @@ const TurkishTaskDemo: React.FC = () => {
         <Text style={styles.sectionTitle}>💡 Bilgi</Text>
         <View style={styles.infoCard}>
           <Text style={styles.infoText}>
-            ✅ <Text style={styles.infoBold}>TaskMaster Service v2.0</Text> kullanılıyor{'\n'}
-            ✅ <Text style={styles.infoBold}>Node.js v18</Text> uyumlu{'\n'}
-            ✅ <Text style={styles.infoBold}>External dependencies</Text> yok{'\n'}
-            ✅ <Text style={styles.infoBold}>3 dil desteği:</Text> TR, DE, EN{'\n'}
-            ✅ <Text style={styles.infoBold}>9 kategori</Text> için öneriler{'\n'}
-            ✅ <Text style={styles.infoBold}>LocalStorage</Text> ile kayıt
+            ✅ <Text style={styles.infoBold}>TaskMaster Service v2.0</Text> kullanılıyor{'\n'}✅{' '}
+            <Text style={styles.infoBold}>Node.js v18</Text> uyumlu{'\n'}✅{' '}
+            <Text style={styles.infoBold}>External dependencies</Text> yok{'\n'}✅{' '}
+            <Text style={styles.infoBold}>3 dil desteği:</Text> TR, DE, EN{'\n'}✅{' '}
+            <Text style={styles.infoBold}>9 kategori</Text> için öneriler{'\n'}✅{' '}
+            <Text style={styles.infoBold}>LocalStorage</Text> ile kayıt
           </Text>
         </View>
       </View>

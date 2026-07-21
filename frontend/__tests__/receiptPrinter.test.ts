@@ -4,9 +4,10 @@
  * OMV-style: 11.89 gross, 20% → net 9.91, tax 1.98.
  */
 import { describe, expect, it } from '@jest/globals';
+
 import { formatReceiptHtml } from '../services/receiptFormatter';
-import { normalizeReceiptDto } from '../utils/normalizeReceiptDto';
 import type { ReceiptDTO } from '../types/ReceiptDTO';
+import { normalizeReceiptDto } from '../utils/normalizeReceiptDto';
 
 const baseReceipt = (overrides: Partial<ReceiptDTO> = {}): ReceiptDTO => ({
   receiptId: 'test-id',
@@ -35,12 +36,15 @@ const baseReceipt = (overrides: Partial<ReceiptDTO> = {}): ReceiptDTO => ({
 describe('receiptPrinter', () => {
   it('Interspar-style: 10.70 gross, 10% → net 9.73, tax 0.97 in MwSt table and SUMME', () => {
     const data: ReceiptDTO = baseReceipt({
-      items: [{ name: 'SVELACHSFILET', quantity: 1, unitPrice: 7, totalPrice: 7, taxRate: 10 }, { name: 'SALAT KLEINER TELLER', quantity: 1, unitPrice: 3.70, totalPrice: 3.70, taxRate: 10 }],
-      taxRates: [{ rate: 10, netAmount: 9.73, taxAmount: 0.97, grossAmount: 10.70 }],
+      items: [
+        { name: 'SVELACHSFILET', quantity: 1, unitPrice: 7, totalPrice: 7, taxRate: 10 },
+        { name: 'SALAT KLEINER TELLER', quantity: 1, unitPrice: 3.7, totalPrice: 3.7, taxRate: 10 },
+      ],
+      taxRates: [{ rate: 10, netAmount: 9.73, taxAmount: 0.97, grossAmount: 10.7 }],
       subtotal: 9.73,
       taxAmount: 0.97,
-      grandTotal: 10.70,
-      payments: [{ method: 'cash', amount: 10.70, tendered: 50, change: 39.30 }],
+      grandTotal: 10.7,
+      payments: [{ method: 'cash', amount: 10.7, tendered: 50, change: 39.3 }],
     });
     const html = formatReceiptHtml(data);
     expect(html).toContain('9,73');
@@ -57,7 +61,9 @@ describe('receiptPrinter', () => {
 
   it('OMV-style: 11.89 gross, 20% → net 9.91, tax 1.98 in MwSt table and SUMME', () => {
     const data: ReceiptDTO = baseReceipt({
-      items: [{ name: 'TOP NORMAL', quantity: 1, unitPrice: 16.99, totalPrice: 11.89, taxRate: 20 }],
+      items: [
+        { name: 'TOP NORMAL', quantity: 1, unitPrice: 16.99, totalPrice: 11.89, taxRate: 20 },
+      ],
       taxRates: [{ rate: 20, netAmount: 9.91, taxAmount: 1.98, grossAmount: 11.89 }],
       subtotal: 9.91,
       taxAmount: 1.98,

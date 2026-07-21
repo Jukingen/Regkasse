@@ -2,12 +2,7 @@ import { customInstance } from '@/lib/axios';
 
 export type DigitalServiceType = 'website' | 'app';
 
-export type DigitalProvisionStatus =
-  | 'none'
-  | 'pending'
-  | 'created'
-  | 'published'
-  | 'rejected';
+export type DigitalProvisionStatus = 'none' | 'pending' | 'created' | 'published' | 'rejected';
 
 export type TenantDigitalServiceState = {
   serviceType: DigitalServiceType;
@@ -106,18 +101,16 @@ type MutationApi = {
 
 function mapProvisionStatus(raw: string | undefined): DigitalProvisionStatus {
   const value = (raw ?? 'none').toLowerCase();
-  if (
-    value === 'pending' ||
-    value === 'created' ||
-    value === 'published' ||
-    value === 'rejected'
-  ) {
+  if (value === 'pending' || value === 'created' || value === 'published' || value === 'rejected') {
     return value;
   }
   return 'none';
 }
 
-function mapState(dto: StateApi | undefined, fallback: DigitalServiceType): TenantDigitalServiceState {
+function mapState(
+  dto: StateApi | undefined,
+  fallback: DigitalServiceType
+): TenantDigitalServiceState {
   const typeRaw = (dto?.serviceType ?? dto?.ServiceType ?? fallback).toLowerCase();
   const serviceType: DigitalServiceType = typeRaw === 'app' ? 'app' : 'website';
   const status = mapProvisionStatus(dto?.status ?? dto?.Status);
@@ -166,7 +159,7 @@ export async function fetchTenantDigitalServices(): Promise<TenantDigitalService
 }
 
 export async function fetchTenantDigitalService(
-  tenantId: string,
+  tenantId: string
 ): Promise<TenantDigitalServiceRow> {
   const res = await customInstance<RowApi>({
     url: `/api/admin/digital/tenants/${tenantId}`,
@@ -183,7 +176,7 @@ export async function toggleTenantDigitalService(
   tenantId: string,
   serviceType: DigitalServiceType,
   active: boolean,
-  reason?: string,
+  reason?: string
 ): Promise<TenantDigitalServiceRow> {
   const res = await customInstance<MutationApi>({
     url: `/api/admin/digital/${tenantId}/toggle`,
@@ -201,7 +194,7 @@ export async function toggleTenantDigitalService(
 export async function updateTenantDigitalServicePrice(
   tenantId: string,
   serviceType: DigitalServiceType,
-  customPrice: number | null,
+  customPrice: number | null
 ): Promise<TenantDigitalServiceRow> {
   const res = await customInstance<MutationApi>({
     url: `/api/admin/digital/${tenantId}/price`,

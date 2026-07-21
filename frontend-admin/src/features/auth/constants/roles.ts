@@ -55,7 +55,9 @@ export function canDeleteRole(role: UserRole | undefined | null): boolean {
 }
 
 export function canEditRolePermissions(role: UserRole | undefined | null): boolean {
-  return ROLES_CAN_EDIT_ROLE_PERMISSIONS.includes(role as (typeof ROLES_CAN_EDIT_ROLE_PERMISSIONS)[number]);
+  return ROLES_CAN_EDIT_ROLE_PERMISSIONS.includes(
+    role as (typeof ROLES_CAN_EDIT_ROLE_PERMISSIONS)[number]
+  );
 }
 
 export function isSuperAdmin(role: UserRole | undefined | null): boolean {

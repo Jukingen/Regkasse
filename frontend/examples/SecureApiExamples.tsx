@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Alert, ScrollView } from 'react-native';
-import { useSecureApi } from '../hooks/useSecureApi';
+
 import { RoleGuard } from '../components/RoleGuard';
+import { useSecureApi } from '../hooks/useSecureApi';
 
 /**
  * JWT ve Role-Based Access Control kullanım örnekleri
@@ -10,7 +11,7 @@ import { RoleGuard } from '../components/RoleGuard';
 export const SecureApiExamples: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
-  
+
   const {
     secureGet,
     securePost,
@@ -23,7 +24,7 @@ export const SecureApiExamples: React.FC = () => {
     isCashier,
     isManager,
     hasPermission,
-    hasRole
+    hasRole,
   } = useSecureApi();
 
   // Örnek 1: Basit güvenli GET isteği
@@ -65,14 +66,13 @@ export const SecureApiExamples: React.FC = () => {
       const newProduct = {
         name: 'Test Ürün',
         price: 10.99,
-        category: 'Test'
+        category: 'Test',
       };
 
-      const result = await securePost(
-        '/api/products',
-        newProduct,
-        { resource: 'products', action: 'create' }
-      );
+      const result = await securePost('/api/products', newProduct, {
+        resource: 'products',
+        action: 'create',
+      });
       setData(result);
       Alert.alert('Başarılı', 'Ürün başarıyla oluşturuldu');
     } catch (error) {
@@ -86,15 +86,12 @@ export const SecureApiExamples: React.FC = () => {
   const handleCriticalOperation = async () => {
     setLoading(true);
     try {
-      const result = await criticalOperation(
-        async () => {
-          // Kritik işlem: Sistem ayarlarını değiştir
-          return await securePost('/api/system/settings', {
-            maintenanceMode: true
-          });
-        },
-        'Sistem Ayarları Değiştirme'
-      );
+      const result = await criticalOperation(async () => {
+        // Kritik işlem: Sistem ayarlarını değiştir
+        return await securePost('/api/system/settings', {
+          maintenanceMode: true,
+        });
+      }, 'Sistem Ayarları Değiştirme');
       setData(result);
       Alert.alert('Başarılı', 'Kritik işlem başarıyla tamamlandı');
     } catch (error) {
@@ -114,10 +111,7 @@ export const SecureApiExamples: React.FC = () => {
   // Örnek 6: Token durumu kontrolü
   const handleTokenStatusCheck = async () => {
     const isValid = await checkTokenStatus();
-    Alert.alert(
-      'Token Durumu',
-      isValid ? 'Token geçerli' : 'Token geçersiz veya süresi dolmuş'
-    );
+    Alert.alert('Token Durumu', isValid ? 'Token geçerli' : 'Token geçersiz veya süresi dolmuş');
   };
 
   return (
@@ -142,26 +136,27 @@ export const SecureApiExamples: React.FC = () => {
       <TouchableOpacity
         style={{ padding: 16, backgroundColor: '#007AFF', marginBottom: 10, borderRadius: 8 }}
         onPress={handleSecureGet}
-        disabled={loading}
-      >
+        disabled={loading}>
         <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
           {loading ? 'Yükleniyor...' : '1. Güvenli GET - Ürünleri Getir'}
         </Text>
       </TouchableOpacity>
 
       {/* Örnek 2: SuperAdmin Only GET */}
-      <RoleGuard role="SuperAdmin" fallback={
-        <View style={{ padding: 16, backgroundColor: '#FFE5E5', marginBottom: 10, borderRadius: 8 }}>
-          <Text style={{ color: '#D32F2F', textAlign: 'center' }}>
-            Bu işlem için SuperAdmin rolü gereklidir
-          </Text>
-        </View>
-      }>
+      <RoleGuard
+        role="SuperAdmin"
+        fallback={
+          <View
+            style={{ padding: 16, backgroundColor: '#FFE5E5', marginBottom: 10, borderRadius: 8 }}>
+            <Text style={{ color: '#D32F2F', textAlign: 'center' }}>
+              Bu işlem için SuperAdmin rolü gereklidir
+            </Text>
+          </View>
+        }>
         <TouchableOpacity
           style={{ padding: 16, backgroundColor: '#FF6B35', marginBottom: 10, borderRadius: 8 }}
           onPress={handleAdminOnlyGet}
-          disabled={loading}
-        >
+          disabled={loading}>
           <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
             {loading ? 'Yükleniyor...' : '2. SuperAdmin GET - Kullanıcıları Getir'}
           </Text>
@@ -172,26 +167,27 @@ export const SecureApiExamples: React.FC = () => {
       <TouchableOpacity
         style={{ padding: 16, backgroundColor: '#34C759', marginBottom: 10, borderRadius: 8 }}
         onPress={handleSecurePost}
-        disabled={loading}
-      >
+        disabled={loading}>
         <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
           {loading ? 'Yükleniyor...' : '3. Güvenli POST - Yeni Ürün Oluştur'}
         </Text>
       </TouchableOpacity>
 
       {/* Örnek 4: Kritik İşlem */}
-      <RoleGuard role="SuperAdmin" fallback={
-        <View style={{ padding: 16, backgroundColor: '#FFF3E0', marginBottom: 10, borderRadius: 8 }}>
-          <Text style={{ color: '#F57C00', textAlign: 'center' }}>
-            Kritik işlemler için SuperAdmin rolü gereklidir
-          </Text>
-        </View>
-      }>
+      <RoleGuard
+        role="SuperAdmin"
+        fallback={
+          <View
+            style={{ padding: 16, backgroundColor: '#FFF3E0', marginBottom: 10, borderRadius: 8 }}>
+            <Text style={{ color: '#F57C00', textAlign: 'center' }}>
+              Kritik işlemler için SuperAdmin rolü gereklidir
+            </Text>
+          </View>
+        }>
         <TouchableOpacity
           style={{ padding: 16, backgroundColor: '#FF3B30', marginBottom: 10, borderRadius: 8 }}
           onPress={handleCriticalOperation}
-          disabled={loading}
-        >
+          disabled={loading}>
           <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
             {loading ? 'Yükleniyor...' : '4. Kritik İşlem - Sistem Ayarları'}
           </Text>
@@ -201,8 +197,7 @@ export const SecureApiExamples: React.FC = () => {
       {/* Örnek 5: Demo Kısıtlaması */}
       <TouchableOpacity
         style={{ padding: 16, backgroundColor: '#AF52DE', marginBottom: 10, borderRadius: 8 }}
-        onPress={handleDemoRestrictionCheck}
-      >
+        onPress={handleDemoRestrictionCheck}>
         <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
           5. Demo Kısıtlaması Kontrolü
         </Text>
@@ -211,8 +206,7 @@ export const SecureApiExamples: React.FC = () => {
       {/* Örnek 6: Token Durumu */}
       <TouchableOpacity
         style={{ padding: 16, backgroundColor: '#5856D6', marginBottom: 10, borderRadius: 8 }}
-        onPress={handleTokenStatusCheck}
-      >
+        onPress={handleTokenStatusCheck}>
         <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
           6. Token Durumu Kontrolü
         </Text>
@@ -229,4 +223,4 @@ export const SecureApiExamples: React.FC = () => {
       )}
     </ScrollView>
   );
-}; 
+};

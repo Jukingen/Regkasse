@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
 /**
  * Son backup durumu başlık şeridi (izleme panosu üstü).
  */
+import { Alert, Space, Tag, Typography } from 'antd';
+import React from 'react';
 
-import React from "react";
-import { Alert, Space, Tag, Typography } from "antd";
-import type { BackupRunResponseDto } from "@/api/generated/model";
-import { BackupRunStatus } from "@/api/generated/model/backupRunStatus";
-import { mapBackupRunToMetricStatus } from "@/features/backup-dr/logic/backupMonitoringMetrics";
-import { mapBackupRunStatusAntdColor } from "@/features/backup-dr/logic/backupDrMappers";
+import type { BackupRunResponseDto } from '@/api/generated/model';
+import { BackupRunStatus } from '@/api/generated/model/backupRunStatus';
+import { mapBackupRunStatusAntdColor } from '@/features/backup-dr/logic/backupDrMappers';
+import { mapBackupRunToMetricStatus } from '@/features/backup-dr/logic/backupMonitoringMetrics';
 
 export interface BackupStatusHeaderProps {
   latest: BackupRunResponseDto | undefined;
@@ -20,13 +20,11 @@ export interface BackupStatusHeaderProps {
   t: (key: string, options?: Record<string, string | number>) => string;
 }
 
-function headerAlertType(
-  status: MetricStatusLike,
-): "success" | "warning" | "error" | "info" {
-  if (status === "error") return "error";
-  if (status === "warning") return "warning";
-  if (status === "success") return "success";
-  return "info";
+function headerAlertType(status: MetricStatusLike): 'success' | 'warning' | 'error' | 'info' {
+  if (status === 'error') return 'error';
+  if (status === 'warning') return 'warning';
+  if (status === 'success') return 'success';
+  return 'info';
 }
 
 type MetricStatusLike = ReturnType<typeof mapBackupRunToMetricStatus>;
@@ -57,18 +55,16 @@ export function BackupStatusHeader({
       showIcon
       title={
         <Space wrap align="center">
-          <Typography.Text strong>{t("backupDr.monitoring.header.title")}</Typography.Text>
-          <Tag color={mapBackupRunStatusAntdColor(st)}>
-            {backupStatusLabel(st)}
-          </Tag>
+          <Typography.Text strong>{t('backupDr.monitoring.header.title')}</Typography.Text>
+          <Tag color={mapBackupRunStatusAntdColor(st)}>{backupStatusLabel(st)}</Tag>
           <Typography.Text type="secondary">{when}</Typography.Text>
         </Space>
       }
       description={
         simulatedOperationalMode
-          ? t("backupDr.monitoring.header.simulatedHint")
+          ? t('backupDr.monitoring.header.simulatedHint')
           : active
-            ? t("backupDr.monitoring.header.activeHint")
+            ? t('backupDr.monitoring.header.activeHint')
             : undefined
       }
     />

@@ -1,11 +1,10 @@
-"use client";
+'use client';
 
 /**
  * Başarılı backup koşularının süre trendi (saniye).
  */
-
-import React from "react";
-import { Card, Empty } from "antd";
+import { Card, Empty } from 'antd';
+import React from 'react';
 import {
   CartesianGrid,
   Line,
@@ -14,8 +13,9 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from "recharts";
-import type { BackupDurationChartPoint } from "@/features/backup-dr/logic/backupMonitoringMetrics";
+} from 'recharts';
+
+import type { BackupDurationChartPoint } from '@/features/backup-dr/logic/backupMonitoringMetrics';
 
 export interface BackupDurationChartProps {
   title: string;
@@ -23,11 +23,7 @@ export interface BackupDurationChartProps {
   durationSuffix: string;
 }
 
-export function BackupDurationChart({
-  title,
-  data,
-  durationSuffix,
-}: BackupDurationChartProps) {
+export function BackupDurationChart({ title, data, durationSuffix }: BackupDurationChartProps) {
   return (
     <Card size="small" title={title}>
       {data.length === 0 ? (
@@ -38,7 +34,7 @@ export function BackupDurationChart({
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="label" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
             <YAxis tick={{ fontSize: 11 }} width={40} />
-            <Tooltip formatter={(v) => [`${Number(v ?? 0)} ${durationSuffix}`, ""]} />
+            <Tooltip formatter={(v) => [`${Number(v ?? 0)} ${durationSuffix}`, '']} />
             <Line
               type="monotone"
               dataKey="durationSec"

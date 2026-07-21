@@ -1,24 +1,19 @@
 /**
  * LanguageSwitcher - Dil değiştirme komponenti
- * 
+ *
  * Bu component, görev önerilerinin dilini değiştirmek için kullanılır.
  * Task-Master AI sistemindeki çok dilli önerileri test etmek için tasarlanmıştır.
- * 
+ *
  * @author Frontend Team
  * @version 1.0.0
  * @since 2025-01-10
  */
 
-import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Alert
-} from 'react-native';
-import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+
 import { changeLanguage as persistAndChangeLanguage } from '../i18n';
 import { normalizeTextLocale } from '../i18n/localeUtils';
 
@@ -26,9 +21,7 @@ interface LanguageSwitcherProps {
   onLanguageChange?: (language: string) => void;
 }
 
-const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ 
-  onLanguageChange 
-}) => {
+const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ onLanguageChange }) => {
   const { i18n } = useTranslation();
   const activeLanguage = normalizeTextLocale(i18n.resolvedLanguage ?? i18n.language);
 
@@ -37,20 +30,20 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
       code: 'tr',
       name: 'Türkçe',
       flag: '🇹🇷',
-      description: 'Türkçe görev önerileri'
+      description: 'Türkçe görev önerileri',
     },
     {
       code: 'de',
       name: 'Deutsch',
       flag: '🇩🇪',
-      description: 'Deutsche Aufgabenvorschläge'
+      description: 'Deutsche Aufgabenvorschläge',
     },
     {
       code: 'en',
       name: 'English',
       flag: '🇺🇸',
-      description: 'English task suggestions'
-    }
+      description: 'English task suggestions',
+    },
   ];
 
   /**
@@ -59,9 +52,9 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
   const changeLanguage = async (languageCode: string) => {
     try {
       await persistAndChangeLanguage(languageCode);
-      
-      const selectedLanguage = languages.find(lang => lang.code === languageCode);
-      
+
+      const selectedLanguage = languages.find((lang) => lang.code === languageCode);
+
       Alert.alert(
         'Dil Değiştirildi / Language Changed',
         `Görev önerileri artık ${selectedLanguage?.name} dilinde gelecek.\n\nTask suggestions will now be in ${selectedLanguage?.name}.`,
@@ -74,7 +67,6 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
       }
 
       console.log(`🌍 Language changed to: ${languageCode} (${selectedLanguage?.name})`);
-      
     } catch (error) {
       console.error('Language change failed:', error);
       Alert.alert('Hata / Error', 'Dil değiştirilemedi / Language could not be changed');
@@ -85,8 +77,8 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
    * Mevcut dili test et
    */
   const testCurrentLanguage = () => {
-    const currentLang = languages.find(lang => lang.code === activeLanguage);
-    
+    const currentLang = languages.find((lang) => lang.code === activeLanguage);
+
     Alert.alert(
       'Mevcut Dil / Current Language',
       `Aktif dil: ${currentLang?.name || 'Unknown'} (${activeLanguage})\n\nBu dilde görev önerileri alacaksınız.\n\nYou will receive task suggestions in this language.`,
@@ -99,7 +91,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
       <View style={styles.header}>
         <Text style={styles.title}>Görev Dili Seçin / Select Task Language</Text>
         <Text style={styles.subtitle}>
-          Mevcut: {languages.find(lang => lang.code === activeLanguage)?.name || 'Unknown'}
+          Mevcut: {languages.find((lang) => lang.code === activeLanguage)?.name || 'Unknown'}
         </Text>
       </View>
 
@@ -109,22 +101,23 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
             key={language.code}
             style={[
               styles.languageButton,
-              activeLanguage === language.code && styles.activeLanguage
+              activeLanguage === language.code && styles.activeLanguage,
             ]}
-            onPress={() => changeLanguage(language.code)}
-          >
+            onPress={() => changeLanguage(language.code)}>
             <Text style={styles.languageFlag}>{language.flag}</Text>
             <View style={styles.languageInfo}>
-              <Text style={[
-                styles.languageName,
-                activeLanguage === language.code && styles.activeLanguageText
-              ]}>
+              <Text
+                style={[
+                  styles.languageName,
+                  activeLanguage === language.code && styles.activeLanguageText,
+                ]}>
                 {language.name}
               </Text>
-              <Text style={[
-                styles.languageDescription,
-                activeLanguage === language.code && styles.activeLanguageDescription
-              ]}>
+              <Text
+                style={[
+                  styles.languageDescription,
+                  activeLanguage === language.code && styles.activeLanguageDescription,
+                ]}>
                 {language.description}
               </Text>
             </View>
@@ -141,9 +134,10 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
       </TouchableOpacity>
 
       <View style={styles.infoCard}>
-        <Ionicons name="lightbulb-outline" size={20} color="#FF9800" />
+        <Ionicons name="bulb-outline" size={20} color="#FF9800" />
         <Text style={styles.infoText}>
-          <Text style={styles.infoBold}>İpucu:</Text> Dil değiştirdikten sonra görev önerilerini yeniden alın. AI önerileri seçilen dilde gelecektir.
+          <Text style={styles.infoBold}>İpucu:</Text> Dil değiştirdikten sonra görev önerilerini
+          yeniden alın. AI önerileri seçilen dilde gelecektir.
         </Text>
       </View>
     </View>

@@ -1,11 +1,12 @@
-"use client";
+'use client';
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from '@tanstack/react-query';
+
 import {
+  type BackupStorageCostResponseDto,
   getBackupStorageCosts,
   getBackupStorageCostsQueryKey,
-  type BackupStorageCostResponseDto,
-} from "@/features/backup/logic/backupStorageCostsApi";
+} from '@/features/backup/logic/backupStorageCostsApi';
 
 export type UseStorageCostsOptions = {
   enabled?: boolean;

@@ -8,15 +8,15 @@ import React, {
   type ReactNode,
 } from 'react';
 
-import { POS_HEALTH_POLL_MS } from '../constants/posPollingIntervals';
 import { useConditionalPolling } from './useConditionalPolling';
+import { isDevSimulateNtpCriticalUi } from '../constants/devSimulatePosOffline';
+import { POS_HEALTH_POLL_MS } from '../constants/posPollingIntervals';
 import { apiClient } from '../services/api/config';
 import {
   deriveTimeSyncUiFlags,
   normalizeSystemTimeStatusDto,
   type SystemTimeStatusDto,
 } from '../types/timeSyncStatus';
-import { isDevSimulateNtpCriticalUi } from '../constants/devSimulatePosOffline';
 
 export type TimeSyncStatusContextValue = {
   status: SystemTimeStatusDto | null;
@@ -90,9 +90,13 @@ export function TimeSyncStatusProvider({
     }
   }, [enabled]);
 
-  useConditionalPolling(() => {
-    void fetchStatus();
-  }, POS_HEALTH_POLL_MS, enabled);
+  useConditionalPolling(
+    () => {
+      void fetchStatus();
+    },
+    POS_HEALTH_POLL_MS,
+    enabled
+  );
 
   const flags = useMemo(() => deriveTimeSyncUiFlags(status), [status]);
 

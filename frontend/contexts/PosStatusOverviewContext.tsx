@@ -1,22 +1,9 @@
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
+import { useAuth } from './AuthContext';
 import { licenseApi } from '../api/license';
-import { applyPersistedLicenseOverride } from '../utils/posLicenseLocalOverride';
-import {
-  deriveMandantWarningFlags,
-  mapOverviewLicenseToStatus,
-  mapOverviewToMandantWarning,
-} from '../utils/mapPosStatusOverview';
 import { fetchPosStatusOverview } from '../services/api/posStatusOverviewService';
 import type { PosStatusOverviewDto } from '../services/api/posStatusOverviewTypes';
-import type { PosCashRegisterContextDto } from '../utils/posCashRegisterReadinessParse';
 import {
   getCachedLicenseStatus,
   invalidateLicenseStatusCache,
@@ -26,8 +13,13 @@ import {
 import { registerPosStatusOverviewRefresh } from '../services/pos/posStatusOverviewRefreshBridge';
 import { subscribePosStatusReconnectRefresh } from '../services/pos/posStatusOverviewSyncNotifier';
 import type { MandantLicenseWarningState } from '../types/mandantLicenseWarning';
-
-import { useAuth } from './AuthContext';
+import {
+  deriveMandantWarningFlags,
+  mapOverviewLicenseToStatus,
+  mapOverviewToMandantWarning,
+} from '../utils/mapPosStatusOverview';
+import type { PosCashRegisterContextDto } from '../utils/posCashRegisterReadinessParse';
+import { applyPersistedLicenseOverride } from '../utils/posLicenseLocalOverride';
 
 type PosStatusOverviewContextValue = {
   overview: PosStatusOverviewDto | null;
@@ -73,7 +65,7 @@ async function licenseFromAnonymousStatus(): Promise<LicenseStatus | null> {
       expiryDate: pub.validUntil,
       machineHash: '',
     });
-    return applyPersistedLicenseOverride(merged);
+      return await applyPersistedLicenseOverride(merged);
   } catch {
     return getCachedLicenseStatus();
   }
@@ -86,14 +78,16 @@ async function licenseFromAnonymousStatus(): Promise<LicenseStatus | null> {
 export function PosStatusOverviewProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user } = useAuth();
   const [overview, setOverview] = useState<PosStatusOverviewDto | null>(cachedOverview);
-  const [licenseStatus, setLicenseStatus] = useState<LicenseStatus | null>(() => getCachedLicenseStatus());
+  const [licenseStatus, setLicenseStatus] = useState<LicenseStatus | null>(() =>
+    getCachedLicenseStatus()
+  );
   const [mandantWarning, setMandantWarning] = useState<MandantLicenseWarningState | null>(null);
   const [loading, setLoading] = useState(false);
 
   const applyOverview = useCallback(async (next: PosStatusOverviewDto) => {
     cachedOverview = next;
     const license = await applyPersistedLicenseOverride(
-      mapOverviewLicenseToStatus(next.license, next.healthLicense),
+      mapOverviewLicenseToStatus(next.license, next.healthLicense)
     );
     setCachedLicenseStatus(license);
     setOverview(next);
@@ -125,7 +119,7 @@ export function PosStatusOverviewProvider({ children }: { children: React.ReactN
         setLoading(false);
       }
     },
-    [applyOverview, isAuthenticated, user?.id, user?.tenantId, user?.mustChangePasswordOnNextLogin],
+    [applyOverview, isAuthenticated, user?.id, user?.tenantId, user?.mustChangePasswordOnNextLogin]
   );
 
   useEffect(() => {
@@ -133,7 +127,13 @@ export function PosStatusOverviewProvider({ children }: { children: React.ReactN
     invalidateLicenseStatusCache();
     clearCachedPosStatusOverview();
     void refreshOverview(true);
-  }, [isAuthenticated, user?.id, user?.tenantId, user?.mustChangePasswordOnNextLogin, refreshOverview]);
+  }, [
+    isAuthenticated,
+    user?.id,
+    user?.tenantId,
+    user?.mustChangePasswordOnNextLogin,
+    refreshOverview,
+  ]);
 
   useEffect(() => registerPosStatusOverviewRefresh(refreshOverview), [refreshOverview]);
 
@@ -146,7 +146,7 @@ export function PosStatusOverviewProvider({ children }: { children: React.ReactN
 
   const { shouldShowGrace, shouldShowPreExpiry } = useMemo(
     () => deriveMandantWarningFlags(mandantWarning),
-    [mandantWarning],
+    [mandantWarning]
   );
 
   const value = useMemo<PosStatusOverviewContextValue>(
@@ -170,7 +170,7 @@ export function PosStatusOverviewProvider({ children }: { children: React.ReactN
       shouldShowPreExpiry,
       loading,
       refreshOverview,
-    ],
+    ]
   );
 
   return (

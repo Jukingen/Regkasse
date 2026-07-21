@@ -1,12 +1,12 @@
 /**
  * Pure mappers from backend DTOs to dashboard health levels (RKSV operations landing).
  */
-
 import type {
   AdminOperationsSummaryResponse,
-  OfflinePayloadHashAnalyzeResult,
   FinanzOnlineMetricsResponse,
+  OfflinePayloadHashAnalyzeResult,
 } from '@/api/generated/model';
+
 import type { OpsHealthLevel } from './types';
 
 /** Coverage summary shape from GET /api/admin/offline-intent-coverage */
@@ -18,7 +18,9 @@ export interface OfflineIntentCoverageSummaryInput {
   total?: number;
 }
 
-export function mapPayloadHashAnalyzeToHealth(data: OfflinePayloadHashAnalyzeResult | null | undefined): OpsHealthLevel {
+export function mapPayloadHashAnalyzeToHealth(
+  data: OfflinePayloadHashAnalyzeResult | null | undefined
+): OpsHealthLevel {
   if (data == null) return 'unavailable';
   const conflicts = data.conflictGroups?.length ?? 0;
   const runtimeMismatch = data.runtimeMismatchCount ?? 0;
@@ -56,13 +58,14 @@ export function buildPayloadHashCardCopy(
   } else if (level === 'warning') {
     summaryLine = 'Hinweise in der Stichprobe — Detailseite und ggf. größeren Umfang prüfen.';
   } else if ((data.scanned ?? 0) === 0) {
-    summaryLine =
-      '0 Zeilen in der Stichprobe — kein Bewertungssignal (nicht „alles in Ordnung“).';
+    summaryLine = '0 Zeilen in der Stichprobe — kein Bewertungssignal (nicht „alles in Ordnung“).';
   }
   return { summaryLine, detailLines: lines };
 }
 
-export function mapCoverageSummaryToHealth(data: OfflineIntentCoverageSummaryInput | null | undefined): OpsHealthLevel {
+export function mapCoverageSummaryToHealth(
+  data: OfflineIntentCoverageSummaryInput | null | undefined
+): OpsHealthLevel {
   if (data == null) return 'unavailable';
   if (data.lowCoverageAlert) return 'critical';
   const d = data.deviceIdCoveragePercent ?? 100;
@@ -94,13 +97,14 @@ export function buildCoverageCardCopy(
   if (level === 'critical') summaryLine = 'Abdeckungsalarm laut API — Details prüfen.';
   else if (level === 'warning') summaryLine = 'Abdeckung unter Schwellen — Details prüfen.';
   else if (total === 0) {
-    summaryLine =
-      '0 Datensätze im Zeitraum — kein Abdeckungssignal (nicht „alles in Ordnung“).';
+    summaryLine = '0 Datensätze im Zeitraum — kein Abdeckungssignal (nicht „alles in Ordnung“).';
   }
   return { summaryLine, detailLines: lines };
 }
 
-export function mapFinanzOnlineMetricsToHealth(data: FinanzOnlineMetricsResponse | null | undefined): OpsHealthLevel {
+export function mapFinanzOnlineMetricsToHealth(
+  data: FinanzOnlineMetricsResponse | null | undefined
+): OpsHealthLevel {
   if (data == null) return 'unavailable';
   const permanent = data.submitFailedPermanent ?? 0;
   if (permanent > 0) return 'critical';
@@ -136,7 +140,9 @@ export function buildFinanzOnlineCardCopy(
   return { summaryLine, detailLines: lines };
 }
 
-export function mapReplaySummaryToHealth(data: AdminOperationsSummaryResponse | null | undefined): OpsHealthLevel {
+export function mapReplaySummaryToHealth(
+  data: AdminOperationsSummaryResponse | null | undefined
+): OpsHealthLevel {
   if (data == null) return 'unavailable';
   const backlog = data.replayBacklogCount ?? 0;
   const finalFailures = data.replayFinalFailureAuditCount ?? 0;
@@ -163,12 +169,14 @@ export function buildReplaySummaryCardCopy(
   let summaryLine = `Replay unauffällig im ${data.windowHours ?? 24}-h-Fenster.`;
   if (level === 'critical') {
     summaryLine = 'Replay-Risiko erhöht (Rückstand oder Final-Failure-Prüfung).';
-  }
-  else if (level === 'warning') summaryLine = 'Replay benötigt Aufmerksamkeit (offene/fehlgeschlagene Elemente).';
+  } else if (level === 'warning')
+    summaryLine = 'Replay benötigt Aufmerksamkeit (offene/fehlgeschlagene Elemente).';
   return { summaryLine, detailLines: lines };
 }
 
-export function mapExportRiskToHealth(data: AdminOperationsSummaryResponse | null | undefined): OpsHealthLevel {
+export function mapExportRiskToHealth(
+  data: AdminOperationsSummaryResponse | null | undefined
+): OpsHealthLevel {
   if (data == null) return 'unavailable';
   const total = data.exportRisk?.totalRiskCount ?? 0;
   if (total > 0) return 'critical';

@@ -39,7 +39,7 @@ describe('licenseRenewal helpers', () => {
         daysRemaining: 12,
         isTrial: false,
         isExpired: false,
-      }),
+      })
     ).resolves.toBe(true);
 
     expect(openLicenseExtension).toHaveBeenCalledWith('abc123');
@@ -55,7 +55,7 @@ describe('licenseRenewal helpers', () => {
         daysRemaining: 3,
         isTrial: true,
         isExpired: false,
-      }),
+      })
     ).resolves.toBe(true);
 
     expect(openMailtoUrl).toHaveBeenCalledWith(
@@ -64,7 +64,7 @@ describe('licenseRenewal helpers', () => {
         daysRemaining: 3,
         isTrial: true,
         isExpired: false,
-      }),
+      })
     );
   });
 
@@ -72,10 +72,10 @@ describe('licenseRenewal helpers', () => {
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
 
     expect(getLicenseExtensionHttpUrl('abc123')).toBe(
-      'https://admin.example.com/admin/license?intent=extend&machineHash=abc123',
+      'https://admin.example.com/admin/license?intent=extend&machineHash=abc123'
     );
     expect(warnSpy).toHaveBeenCalledWith(
-      'getLicenseExtensionHttpUrl is deprecated, use openLicenseExtension',
+      'getLicenseExtensionHttpUrl is deprecated, use openLicenseExtension'
     );
 
     warnSpy.mockRestore();

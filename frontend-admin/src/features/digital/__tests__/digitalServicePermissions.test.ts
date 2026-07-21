@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+
+import type { TenantDigitalServiceRow } from '@/features/digital-services/api/tenantDigitalServicesApi';
 import {
   canAccessDigitalServices,
   canCreateDigitalApp,
@@ -12,12 +14,11 @@ import {
   canUseDigitalWeb,
   isAnyDigitalServiceAvailable,
 } from '@/features/digital/digitalServicePermissions';
-import type { TenantDigitalServiceRow } from '@/features/digital-services/api/tenantDigitalServicesApi';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
 function statusRow(
   website: { isAvailable: boolean; isEnabled?: boolean; isActive?: boolean },
-  app: { isAvailable: boolean; isEnabled?: boolean; isActive?: boolean },
+  app: { isAvailable: boolean; isEnabled?: boolean; isActive?: boolean }
 ): TenantDigitalServiceRow {
   return {
     tenantId: 't1',
@@ -77,7 +78,7 @@ describe('digitalServicePermissions', () => {
 
   it('denies users without digital permissions', () => {
     expect(canAccessDigitalServices({ permissions: [PERMISSIONS.SETTINGS_VIEW] }, false)).toBe(
-      false,
+      false
     );
     expect(canCreateDigitalWeb({ permissions: [PERMISSIONS.DIGITAL_VIEW] }, false)).toBe(false);
     expect(canCreateDigitalApp({ permissions: [PERMISSIONS.DIGITAL_VIEW] }, false)).toBe(false);
@@ -100,10 +101,10 @@ describe('digitalServicePermissions', () => {
   it('isAnyDigitalServiceAvailable requires at least one surface', () => {
     expect(isAnyDigitalServiceAvailable(undefined)).toBe(true);
     expect(
-      isAnyDigitalServiceAvailable(statusRow({ isAvailable: false }, { isAvailable: false })),
+      isAnyDigitalServiceAvailable(statusRow({ isAvailable: false }, { isAvailable: false }))
     ).toBe(false);
     expect(
-      isAnyDigitalServiceAvailable(statusRow({ isAvailable: true }, { isAvailable: false })),
+      isAnyDigitalServiceAvailable(statusRow({ isAvailable: true }, { isAvailable: false }))
     ).toBe(true);
   });
 

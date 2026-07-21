@@ -11,9 +11,9 @@ export type TenantSwitcherListItem = {
 
 /** Active tenants for dev header switcher (excludes soft-deleted unless includeDeleted). */
 export async function fetchTenantSwitcherList(
-  includeDeleted = false,
+  includeDeleted = false
 ): Promise<TenantSwitcherListItem[]> {
-  return apiClient.get<TenantSwitcherListItem[]>('/tenants/switcher', {
+  return await apiClient.get<TenantSwitcherListItem[]>('/tenants/switcher', {
     params: { includeDeleted },
   });
 }

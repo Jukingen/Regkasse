@@ -4,11 +4,13 @@
  * RKSV hub FinanzOnline ortam etiketi: strict parse + Alert + Badge (tek hook ile bir kez parse).
  * Türkçe: /rksv sayfasında yeniden kullanım; env yalnızca shared config üzerinden.
  */
-
-import { useEffect, useMemo, type CSSProperties } from 'react';
 import { Alert, Tag, Tooltip, Typography } from 'antd';
+import { type CSSProperties, useEffect, useMemo } from 'react';
+
 import { useI18n } from '@/i18n/I18nProvider';
 import {
+  type RksvEnvironmentDevParseDebug,
+  type StrictParsedRksvPublicEnvironment,
   buildRksvEnvironmentDevParseDebug,
   getRksvEnvironmentAlertType,
   getRksvEnvironmentBadgeColor,
@@ -17,8 +19,6 @@ import {
   logRksvEnvironmentDevParseDebug,
   parseStrictRksvPublicEnvironment,
   warnRksvPublicEnvironmentInConsole,
-  type RksvEnvironmentDevParseDebug,
-  type StrictParsedRksvPublicEnvironment,
 } from '@/shared/config/rksvEnvironment';
 
 export function useRksvFinanzOnlineEnvironment(): {
@@ -73,7 +73,8 @@ export function RksvFinanzOnlineEnvironmentAlert({ parsed, style, devParseDebug 
           style={{ marginTop: 8, marginBottom: 0, fontFamily: 'monospace', fontSize: 12 }}
           data-rksv-env-dev-debug="true"
         >
-          [dev] raw={devParseDebug.rawJson} trimmed={JSON.stringify(devParseDebug.trimmed)} normalized=
+          [dev] raw={devParseDebug.rawJson} trimmed={JSON.stringify(devParseDebug.trimmed)}{' '}
+          normalized=
           {JSON.stringify(devParseDebug.normalizedUpper)} state={devParseDebug.parsedState} present=
           {String(devParseDebug.processEnvKeyPresent)} source={devParseDebug.source}
         </Typography.Paragraph>

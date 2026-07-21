@@ -135,10 +135,7 @@ export function parsePaymentHistoryItem(raw: unknown): PaymentHistoryItem | null
     createdAt: readString(raw.createdAt ?? raw.CreatedAt),
     paymentMethod: readString(raw.paymentMethod ?? raw.PaymentMethod),
     customerName: readString(raw.customerName ?? raw.CustomerName, 'Walk-in'),
-    tableNumber:
-      tableRaw == null || tableRaw === ''
-        ? null
-        : readNumber(tableRaw, 0) || null,
+    tableNumber: tableRaw == null || tableRaw === '' ? null : readNumber(tableRaw, 0) || null,
     isStorno: readBool(raw.isStorno ?? raw.IsStorno),
     isRefund: readBool(raw.isRefund ?? raw.IsRefund),
     availableActions,
@@ -162,9 +159,7 @@ export function parsePaymentHistoryResponse(raw: unknown): PaymentHistoryRespons
   }
   const paymentsRaw = layer.payments ?? layer.Payments ?? layer.items ?? layer.Items;
   const payments = Array.isArray(paymentsRaw)
-    ? paymentsRaw
-        .map(parsePaymentHistoryItem)
-        .filter((x): x is PaymentHistoryItem => x != null)
+    ? paymentsRaw.map(parsePaymentHistoryItem).filter((x): x is PaymentHistoryItem => x != null)
     : [];
   return {
     payments,

@@ -29,7 +29,9 @@ export interface UpsertUserPermissionOverrideRequest {
 export const userEffectivePermissionsQueryKey = (userId: string) =>
   ['/api/UserManagement', userId, 'permissions', 'effective'] as const;
 
-export async function getUserEffectivePermissions(userId: string): Promise<UserEffectivePermissionsDto> {
+export async function getUserEffectivePermissions(
+  userId: string
+): Promise<UserEffectivePermissionsDto> {
   return customInstance<UserEffectivePermissionsDto>({
     url: `/api/UserManagement/${userId}/permissions/effective`,
     method: 'GET',
@@ -38,7 +40,7 @@ export async function getUserEffectivePermissions(userId: string): Promise<UserE
 
 export async function upsertUserPermissionOverride(
   userId: string,
-  body: UpsertUserPermissionOverrideRequest,
+  body: UpsertUserPermissionOverrideRequest
 ): Promise<UserPermissionOverrideDto> {
   return customInstance<UserPermissionOverrideDto>({
     url: `/api/UserManagement/${userId}/permissions/overrides`,
@@ -47,7 +49,10 @@ export async function upsertUserPermissionOverride(
   });
 }
 
-export async function deleteUserPermissionOverride(userId: string, overrideId: string): Promise<void> {
+export async function deleteUserPermissionOverride(
+  userId: string,
+  overrideId: string
+): Promise<void> {
   await customInstance<void>({
     url: `/api/UserManagement/${userId}/permissions/overrides/${overrideId}`,
     method: 'DELETE',

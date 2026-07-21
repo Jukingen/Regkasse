@@ -2,7 +2,6 @@
  * Merkezi operatör-doğruluk görünüm modeli: çalıştırma, kurtarılabilirlik, artefakt, restore ve uyarı yüzeyi tek kaynaktan türetilir.
  * Bileşenler başarı/yeşil anlamını kendi başına yeniden yorumlamaz; bu dosyadaki alanları kullanır.
  */
-
 import type {
   BackupConfigurationHealthResponseDto,
   BackupRecoverabilitySummaryResponseDto,
@@ -17,41 +16,47 @@ import {
   BackupVerificationResponseDtoStatus,
   RestoreVerificationRunResponseDtoStatus,
 } from '@/api/generated/model';
+import type { BackupEvidenceLadderModel } from '@/features/backup-dr/logic/backupDrEvidenceLadder';
+import { deriveBackupEvidenceLadder } from '@/features/backup-dr/logic/backupDrEvidenceLadder';
 import {
+  type BackupExecutionModeTruth,
+  deriveBackupExecutionModeTruth,
+} from '@/features/backup-dr/logic/backupDrExecutionModeTruth';
+import {
+  type ConfigurationHealthUiKind,
+  type ExternalCopyVariant,
   computeEffectiveRestoreReadinessLevel,
   configurationHealthSummaryI18nKey,
   externalCopyVariantToI18nKey,
   isSimulatedBackupAdapterKind,
   mapConfigurationHealthLevel,
   normalizeHealthLevelString,
-  type ConfigurationHealthUiKind,
-  type ExternalCopyVariant,
 } from '@/features/backup-dr/logic/backupDrMappers';
-import type { BackupEvidenceLadderModel } from '@/features/backup-dr/logic/backupDrEvidenceLadder';
-import { deriveBackupEvidenceLadder } from '@/features/backup-dr/logic/backupDrEvidenceLadder';
+import {
+  type BackupOperatorTruthProvenance,
+  type BackupTruthContractHints,
+  buildBackupOperatorTruthProvenance,
+} from '@/features/backup-dr/logic/backupDrTruthExtensionPoints';
+import type { BackupExecutionModeResponseDto } from '@/features/backup-dr/logic/backupExecutionModeApi';
+import {
+  type ManualActionsModeConfirmations,
+  buildManualActionsConfirmations,
+} from '@/features/backup-dr/logic/backupManualActionsModePresentation';
 import {
   PG_RESTORE_LIST_FAILED,
   interpretPgRestoreListFailure,
   pgRestoreListFailureKindToBannerMessageKey,
 } from '@/features/backup-dr/logic/restoreVerificationFailurePresentation';
-import type { BackupExecutionModeResponseDto } from '@/features/backup-dr/logic/backupExecutionModeApi';
-import {
-  deriveBackupExecutionModeTruth,
-  type BackupExecutionModeTruth,
-} from '@/features/backup-dr/logic/backupDrExecutionModeTruth';
-import {
-  buildManualActionsConfirmations,
-  type ManualActionsModeConfirmations,
-} from '@/features/backup-dr/logic/backupManualActionsModePresentation';
-import {
-  buildBackupOperatorTruthProvenance,
-  type BackupOperatorTruthProvenance,
-  type BackupTruthContractHints,
+
+export type {
+  BackupOperatorTruthProvenance,
+  BackupTruthContractHints,
 } from '@/features/backup-dr/logic/backupDrTruthExtensionPoints';
 
-export type { BackupOperatorTruthProvenance, BackupTruthContractHints } from '@/features/backup-dr/logic/backupDrTruthExtensionPoints';
-
-export type OperatorTruthTranslate = (key: string, options?: Record<string, string | number>) => string;
+export type OperatorTruthTranslate = (
+  key: string,
+  options?: Record<string, string | number>
+) => string;
 
 export type { BackupExecutionModeTruth };
 
@@ -59,7 +64,7 @@ function restoreDrillSimulatedHeuristic(
   health: BackupConfigurationHealthResponseDto | undefined,
   latest: BackupRunResponseDto | undefined,
   detailForPipeline: BackupRunResponseDto | null | undefined,
-  executionMode: BackupExecutionModeTruth,
+  executionMode: BackupExecutionModeTruth
 ): boolean {
   if (executionMode.loaded && executionMode.effectiveIsSimulatedAdapter) return true;
   return (
@@ -76,7 +81,7 @@ export interface AutomatedRestoreCapabilityModel {
 }
 
 export function automatedRestoreCapabilityFromStatus(
-  restore: RestoreCapabilityDto | undefined,
+  restore: RestoreCapabilityDto | undefined
 ): AutomatedRestoreCapabilityModel {
   const raw = restore?.isAutomatedRestoreAvailable;
   return {
@@ -90,7 +95,9 @@ export function automatedRestoreCapabilityFromStatus(
   };
 }
 
-export function hasRecoverabilityProofGaps(summary: BackupRecoverabilitySummaryResponseDto | undefined): boolean {
+export function hasRecoverabilityProofGaps(
+  summary: BackupRecoverabilitySummaryResponseDto | undefined
+): boolean {
   if (!summary) return true;
   const noBackupProof = !summary.lastSuccessfulBackupAt;
   const noArtifactProof = !summary.lastSuccessfulArtifactVerificationAt;
@@ -141,7 +148,8 @@ export interface ArtifactTruth {
   /** Lifecycle birleştirmesi istemci tarafında. */
   externalArchiveTruthKind: 'frontend_inferred';
   /** `GET .../verification/latest` ile `latestRun.id` ilişkisi. */
-  globalVerificationScope: 'matches_latest_run' | 'mismatch' | 'unlinked' | 'no_verification' | 'no_latest_run';
+  globalVerificationScope:
+    'matches_latest_run' | 'mismatch' | 'unlinked' | 'no_verification' | 'no_latest_run';
   globalVerificationBackupRunId: string | undefined;
   /**
    * execution-mode yüklüyse: worker etkin yüzeyi simüle (Fake/Stub) mi hedefliyor.
@@ -285,7 +293,7 @@ export interface BuildBackupOperatorTruthModelParams {
 function labelFromStatusNamespace(
   ns: 'backupStatus' | 'restoreStatus',
   status: number | undefined,
-  t: OperatorTruthTranslate,
+  t: OperatorTruthTranslate
 ): string {
   const s = status ?? 0;
   const key = `backupDr.${ns}.${s}`;
@@ -302,7 +310,7 @@ export function deriveRunTruth(
   latest: BackupRunResponseDto | undefined,
   detailForPipeline: BackupRunResponseDto | null | undefined,
   health: BackupConfigurationHealthResponseDto | undefined,
-  recoverabilitySummary: BackupRecoverabilitySummaryResponseDto | undefined,
+  recoverabilitySummary: BackupRecoverabilitySummaryResponseDto | undefined
 ): RunTruth {
   const technicalSuccess = latest?.status === BackupRunResponseDtoStatus.NUMBER_3;
 
@@ -332,7 +340,8 @@ export function deriveRunTruth(
   let dataPlane: BackupDataPlane;
   if (simulatedEvidence) dataPlane = 'simulated_or_fake';
   else if (realPostgreSqlLogicalDumpConfigured === false) dataPlane = 'config_no_real_pg_dump';
-  else if (realPostgreSqlLogicalDumpConfigured === true) dataPlane = 'operational_pg_dump_configured';
+  else if (realPostgreSqlLogicalDumpConfigured === true)
+    dataPlane = 'operational_pg_dump_configured';
   else dataPlane = 'config_unknown_real_pg';
 
   return {
@@ -346,7 +355,9 @@ export function deriveRunTruth(
   };
 }
 
-export function deriveRecoverabilityTruth(summary: BackupRecoverabilitySummaryResponseDto | undefined): RecoverabilityTruth {
+export function deriveRecoverabilityTruth(
+  summary: BackupRecoverabilitySummaryResponseDto | undefined
+): RecoverabilityTruth {
   const hasProofGaps = hasRecoverabilityProofGaps(summary);
   return {
     recoverabilityNotProven: hasProofGaps || !summary,
@@ -358,7 +369,7 @@ export function deriveArtifactTruth(
   verification: BackupVerificationResponseDto | undefined,
   latestRunId: string | undefined,
   externalCopyVariant: ExternalCopyVariant,
-  t: OperatorTruthTranslate,
+  t: OperatorTruthTranslate
 ): ArtifactTruth {
   let globalVerificationScope: ArtifactTruth['globalVerificationScope'] = 'no_verification';
   if (!latestRunId) globalVerificationScope = 'no_latest_run';
@@ -388,7 +399,8 @@ export function deriveRestoreTruth(params: {
 }): RestoreTruth {
   const apiReadinessLevel = params.restoreReady?.level;
   const readinessCapped =
-    normalizeHealthLevelString(apiReadinessLevel) !== normalizeHealthLevelString(params.effectiveReadinessLevel ?? '');
+    normalizeHealthLevelString(apiReadinessLevel) !==
+    normalizeHealthLevelString(params.effectiveReadinessLevel ?? '');
   const cap = automatedRestoreCapabilityFromStatus(params.restoreCapability);
   const st = params.restoreLatest?.status;
   return {
@@ -498,7 +510,9 @@ export function deriveOperatorValidityStrip(params: {
 }
 
 /** Konfigürasyon sağlığı etiketi: bilinmeyen seviye yeşil gösterilmez. */
-export function tagColorForConfigurationHealthUiKind(kind: ConfigurationHealthUiKind): 'red' | 'orange' | 'green' | 'default' {
+export function tagColorForConfigurationHealthUiKind(
+  kind: ConfigurationHealthUiKind
+): 'red' | 'orange' | 'green' | 'default' {
   if (kind === 'unhealthy') return 'red';
   if (kind === 'degraded') return 'orange';
   if (kind === 'healthy') return 'green';
@@ -517,7 +531,7 @@ function pushBannerFromAlerts(
   externalCopyVariant: ExternalCopyVariant,
   restoreLatest: RestoreVerificationRunResponseDto | undefined,
   executionMode: BackupExecutionModeTruth,
-  suppressRestoreDrillFailureInHealthBanner?: boolean,
+  suppressRestoreDrillFailureInHealthBanner?: boolean
 ): BannerOperatorTruth {
   const critical: string[] = [];
   const warn: string[] = [];
@@ -536,33 +550,41 @@ function pushBannerFromAlerts(
     info.push(
       t('backupDr.banner.executionModeFallbackGuidanceOnly', {
         mode: executionMode.recommendedFallbackUserFacingMode ?? '',
-      }),
+      })
     );
   }
 
-  if (healthLv === 'unhealthy' && !(health?.issues?.length)) critical.push(t('backupDr.banner.backupConfigUnhealthy'));
-  else if (healthLv === 'degraded' && !(health?.issues?.length)) warn.push(t('backupDr.banner.backupConfigDegraded'));
+  if (healthLv === 'unhealthy' && !health?.issues?.length)
+    critical.push(t('backupDr.banner.backupConfigUnhealthy'));
+  else if (healthLv === 'degraded' && !health?.issues?.length)
+    warn.push(t('backupDr.banner.backupConfigDegraded'));
 
-  if (restoreLv === 'unhealthy' && !(restoreReady?.issues?.length))
+  if (restoreLv === 'unhealthy' && !restoreReady?.issues?.length)
     critical.push(t('backupDr.banner.restoreReadinessUnhealthy'));
-  else if (restoreLv === 'degraded' && !(restoreReady?.issues?.length))
+  else if (restoreLv === 'degraded' && !restoreReady?.issues?.length)
     warn.push(t('backupDr.banner.restoreReadinessDegraded'));
 
   if (health && !health.workerEnabled) critical.push(t('backupDr.health.workerDisabled'));
 
   if (health && health.realPostgreSqlLogicalDumpConfigured === false) {
     const n = health.readinessNarrative?.trim();
-    warn.push(n ? `${t('backupDr.banner.noRealPostgreSqlBackup')}: ${n}` : t('backupDr.banner.noRealPostgreSqlBackup'));
+    warn.push(
+      n
+        ? `${t('backupDr.banner.noRealPostgreSqlBackup')}: ${n}`
+        : t('backupDr.banner.noRealPostgreSqlBackup')
+    );
   }
 
-  if (restoreReady && !restoreReady.workerEnabled) warn.push(t('backupDr.readiness.restoreWorkerDisabled'));
+  if (restoreReady && !restoreReady.workerEnabled)
+    warn.push(t('backupDr.readiness.restoreWorkerDisabled'));
 
-  if (restoreReady?.orchestratorDistributedLockEnabled === false) warn.push(t('backupDr.lock.restoreLockDisabled'));
+  if (restoreReady?.orchestratorDistributedLockEnabled === false)
+    warn.push(t('backupDr.lock.restoreLockDisabled'));
 
   const lr = latest;
   if (lr?.status === 4 || lr?.status === 5) {
     critical.push(
-      `${t('backupDr.latestRun.failure')}: ${lr.failureCode ?? '—'} — ${(lr.failureDetail ?? '').trim()}`.trim(),
+      `${t('backupDr.latestRun.failure')}: ${lr.failureCode ?? '—'} — ${(lr.failureDetail ?? '').trim()}`.trim()
     );
   }
 
@@ -577,7 +599,8 @@ function pushBannerFromAlerts(
 
   const latestSucceededSimulated =
     lr?.status === BackupRunResponseDtoStatus.NUMBER_3 &&
-    (detailForPipeline?.isSimulatedExecution === true || isSimulatedBackupAdapterKind(lr?.adapterKind));
+    (detailForPipeline?.isSimulatedExecution === true ||
+      isSimulatedBackupAdapterKind(lr?.adapterKind));
   /** recoverability block + noRealPostgreSql line already explain “not production pg_dump”; avoid repeating. */
   const skipSimulatedBanner =
     health?.realPostgreSqlLogicalDumpConfigured === false && latestSucceededSimulated;
@@ -587,9 +610,17 @@ function pushBannerFromAlerts(
 
   const rr = restoreLatest;
   if (rr && rr.status === RestoreVerificationRunResponseDtoStatus.NUMBER_3) {
-    const simHeuristic = restoreDrillSimulatedHeuristic(health, latest, detailForPipeline, executionMode);
+    const simHeuristic = restoreDrillSimulatedHeuristic(
+      health,
+      latest,
+      detailForPipeline,
+      executionMode
+    );
     if (rr.failureCode === PG_RESTORE_LIST_FAILED) {
-      const interp = interpretPgRestoreListFailure({ run: rr, isSimulatedPipelineHeuristic: simHeuristic });
+      const interp = interpretPgRestoreListFailure({
+        run: rr,
+        isSimulatedPipelineHeuristic: simHeuristic,
+      });
       if (interp) {
         const { tier, key } = pgRestoreListFailureKindToBannerMessageKey(interp.kind);
         /** Stub-expected list failure: always surface — posture strip does not replace Fake/stub nuance. */
@@ -604,7 +635,7 @@ function pushBannerFromAlerts(
       }
     } else if (!suppressRestoreDrillFailureInHealthBanner) {
       critical.push(
-        `${t('backupDr.restoreVerification.drillFailed')}: ${rr.failureCode ?? ''} ${(rr.failureDetail ?? '').trim()}`.trim(),
+        `${t('backupDr.restoreVerification.drillFailed')}: ${rr.failureCode ?? ''} ${(rr.failureDetail ?? '').trim()}`.trim()
       );
     }
   }
@@ -638,7 +669,7 @@ function buildOperatorAlertRows(
   restoreLatest: RestoreVerificationRunResponseDto | undefined,
   restoreNotes: string | undefined,
   omitDedicatedSectionIssueDuplicates: boolean | undefined,
-  executionMode: BackupExecutionModeTruth,
+  executionMode: BackupExecutionModeTruth
 ): OperatorAlertRow[] {
   const items: OperatorAlertRow[] = [];
   if (!omitDedicatedSectionIssueDuplicates) {
@@ -660,7 +691,9 @@ function buildOperatorAlertRows(
     const n = health.readinessNarrative?.trim();
     items.push({
       severity: 'warning',
-      text: n ? `${t('backupDr.banner.noRealPostgreSqlBackup')}: ${n}` : t('backupDr.banner.noRealPostgreSqlBackup'),
+      text: n
+        ? `${t('backupDr.banner.noRealPostgreSqlBackup')}: ${n}`
+        : t('backupDr.banner.noRealPostgreSqlBackup'),
       redundantWithBanner: true,
     });
   }
@@ -683,9 +716,17 @@ function buildOperatorAlertRows(
   const rr = restoreLatest;
   /** Drill başarısız: üst HealthBanner + RestoreVerificationCard — Fake stub PG_RESTORE_LIST_FAILED Alerts’te yok. */
   if (rr && rr.status === RestoreVerificationRunResponseDtoStatus.NUMBER_3) {
-    const simHeuristic = restoreDrillSimulatedHeuristic(health, latest, detailForPipeline, executionMode);
+    const simHeuristic = restoreDrillSimulatedHeuristic(
+      health,
+      latest,
+      detailForPipeline,
+      executionMode
+    );
     if (rr.failureCode === PG_RESTORE_LIST_FAILED) {
-      const interp = interpretPgRestoreListFailure({ run: rr, isSimulatedPipelineHeuristic: simHeuristic });
+      const interp = interpretPgRestoreListFailure({
+        run: rr,
+        isSimulatedPipelineHeuristic: simHeuristic,
+      });
       if (interp && interp.kind !== 'fake_stub_expected') {
         const { tier, key } = pgRestoreListFailureKindToBannerMessageKey(interp.kind);
         if (tier === 'warn') {
@@ -724,7 +765,9 @@ function buildOperatorAlertRows(
 /**
  * Tüm yedek & DR operatör görünümünü tek seferde üretir (dashboard tek giriş noktası).
  */
-export function buildBackupOperatorTruthModel(params: BuildBackupOperatorTruthModelParams & { restoreNotes?: string }): BackupOperatorTruthModel {
+export function buildBackupOperatorTruthModel(
+  params: BuildBackupOperatorTruthModelParams & { restoreNotes?: string }
+): BackupOperatorTruthModel {
   const {
     t,
     health,
@@ -747,14 +790,17 @@ export function buildBackupOperatorTruthModel(params: BuildBackupOperatorTruthMo
   } = params;
 
   const executionMode = deriveBackupExecutionModeTruth(executionModeDto);
-  const executionModeUsesSimulatedAdapter = executionMode.loaded && executionMode.effectiveIsSimulatedAdapter;
+  const executionModeUsesSimulatedAdapter =
+    executionMode.loaded && executionMode.effectiveIsSimulatedAdapter;
 
   const effectiveReadinessLevel = computeEffectiveRestoreReadinessLevel({
     apiLevel: restoreReady?.level,
     realPostgreSqlLogicalDumpConfiguredHealth: health?.realPostgreSqlLogicalDumpConfigured,
-    realPostgreSqlLogicalDumpConfiguredRecoverability: recoverabilitySummary?.realPostgreSqlLogicalDumpConfigured,
+    realPostgreSqlLogicalDumpConfiguredRecoverability:
+      recoverabilitySummary?.realPostgreSqlLogicalDumpConfigured,
     latestBackupStatus: latest?.status,
-    isLatestRunSimulatedExecution: detailForPipeline?.isSimulatedExecution ?? latest?.isSimulatedExecution,
+    isLatestRunSimulatedExecution:
+      detailForPipeline?.isSimulatedExecution ?? latest?.isSimulatedExecution,
     latestAdapterKind: latest?.adapterKind,
     executionModeUsesSimulatedAdapter,
   });
@@ -764,7 +810,9 @@ export function buildBackupOperatorTruthModel(params: BuildBackupOperatorTruthMo
   const artifactBase = deriveArtifactTruth(verification, latest?.id, externalCopyVariant, t);
   const artifact: ArtifactTruth = {
     ...artifactBase,
-    backupWorkerTargetsSimulatedSurface: executionMode.loaded ? executionMode.effectiveIsSimulatedAdapter : undefined,
+    backupWorkerTargetsSimulatedSurface: executionMode.loaded
+      ? executionMode.effectiveIsSimulatedAdapter
+      : undefined,
   };
   const restoreBase = deriveRestoreTruth({
     restoreReady,
@@ -774,7 +822,9 @@ export function buildBackupOperatorTruthModel(params: BuildBackupOperatorTruthMo
   });
   const restore: RestoreTruth = {
     ...restoreBase,
-    backupExecutionProfileRunnable: executionMode.loaded ? executionMode.effectiveModeRunnable : undefined,
+    backupExecutionProfileRunnable: executionMode.loaded
+      ? executionMode.effectiveModeRunnable
+      : undefined,
   };
   const simulatedOperationalMode =
     (executionMode.loaded && executionMode.effectiveIsSimulatedAdapter) ||
@@ -784,8 +834,10 @@ export function buildBackupOperatorTruthModel(params: BuildBackupOperatorTruthMo
     detailForPipeline?.isSimulatedExecution === true ||
     latest?.isSimulatedExecution === true;
   const labels = {
-    backupStatus: (status: number | undefined) => labelFromStatusNamespace('backupStatus', status, t),
-    restoreStatus: (status: number | undefined) => labelFromStatusNamespace('restoreStatus', status, t),
+    backupStatus: (status: number | undefined) =>
+      labelFromStatusNamespace('backupStatus', status, t),
+    restoreStatus: (status: number | undefined) =>
+      labelFromStatusNamespace('restoreStatus', status, t),
   };
   const lockHints = {
     backup: lockHintIssues(health?.issues),
@@ -820,7 +872,8 @@ export function buildBackupOperatorTruthModel(params: BuildBackupOperatorTruthMo
     }`,
   };
   const progressRunBanner = {
-    recoverabilityNotProvenGlance: recoverability.recoverabilityNotProven || run.recoverabilityNotProven,
+    recoverabilityNotProvenGlance:
+      recoverability.recoverabilityNotProven || run.recoverabilityNotProven,
     latestRestoreDrillFailed: restore.latestDrillFailed,
   };
   const manualActionsModeConfirmations = buildManualActionsConfirmations(executionMode, latest, t, {
@@ -839,7 +892,7 @@ export function buildBackupOperatorTruthModel(params: BuildBackupOperatorTruthMo
     externalCopyVariant,
     restoreLatest,
     executionMode,
-    suppressRestoreDrillFailureInHealthBanner,
+    suppressRestoreDrillFailureInHealthBanner
   );
 
   const alertsRaw = buildOperatorAlertRows(
@@ -854,7 +907,7 @@ export function buildBackupOperatorTruthModel(params: BuildBackupOperatorTruthMo
     restoreLatest,
     restoreNotes,
     omitDedicatedSectionIssueDuplicates,
-    executionMode,
+    executionMode
   );
   const alerts = alertsRaw.filter((row) => !row.redundantWithBanner);
 
@@ -922,7 +975,9 @@ export interface BuildOperatorTruthBannerParams {
   restoreLatest: RestoreVerificationRunResponseDto | undefined;
 }
 
-export function buildOperatorTruthBanner(params: BuildOperatorTruthBannerParams): OperatorTruthBannerModel {
+export function buildOperatorTruthBanner(
+  params: BuildOperatorTruthBannerParams
+): OperatorTruthBannerModel {
   return buildBackupOperatorTruthModel({
     t: params.t,
     health: params.health,

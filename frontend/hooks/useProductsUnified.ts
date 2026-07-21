@@ -2,7 +2,14 @@
 // Duplicate hook'ları kaldırır ve consistent API kullanımı sağlar
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Product, getAllProducts, getAllCategories, clearProductCache, getProductCatalog } from '../services/api/productService';
+
+import {
+  Product,
+  getAllProducts,
+  getAllCategories,
+  clearProductCache,
+  getProductCatalog,
+} from '../services/api/productService';
 import { productMatchesSearchQuery } from '../utils/productLocalization';
 
 export interface CatalogCategory {
@@ -26,9 +33,9 @@ class ProductCache {
     categories: [],
     loading: false,
     error: null,
-    initialized: false
+    initialized: false,
   };
-  private listeners = new Set<() => void>();
+  private readonly listeners = new Set<() => void>();
   private loadingPromise: Promise<void> | null = null;
 
   static getInstance(): ProductCache {
@@ -41,7 +48,9 @@ class ProductCache {
   // State güncellemesi ve listener'ları bilgilendirme
   private updateState(newState: Partial<UseProductsUnifiedState>) {
     this.state = { ...this.state, ...newState };
-    this.listeners.forEach(listener => listener());
+    this.listeners.forEach((listener) => {
+      listener();
+    });
   }
 
   // Listener ekle/kaldır
@@ -62,19 +71,21 @@ class ProductCache {
   async loadData(): Promise<void> {
     // Eğer zaten yükleniyorsa aynı promise'i döndür
     if (this.loadingPromise) {
-      return this.loadingPromise;
+      await this.loadingPromise;
+      return;
     }
 
     // Eğer zaten yüklenmişse yüklemez
     if (this.state.initialized && this.state.products.length > 0) {
       console.log('📦 Products already loaded, skipping...');
-      return Promise.resolve();
+      await Promise.resolve();
+      return;
     }
 
     console.log('🔄 Loading products and categories...');
-    
+
     this.loadingPromise = this._performLoad();
-    
+
     try {
       await this.loadingPromise;
     } finally {
@@ -87,24 +98,26 @@ class ProductCache {
       this.updateState({ loading: true, error: null });
 
       console.log('🔄 Loading products and categories via catalog...');
-      
+
       // Katalog endpoint'i ile tek çağrıda hem kategori hem ürün al
       try {
         const catalog = await getProductCatalog();
         const products = catalog.products;
-        const categories: CatalogCategory[] = (catalog.categories ?? []).map(c => ({
+        const categories: CatalogCategory[] = (catalog.categories ?? []).map((c) => ({
           id: c.id ?? '',
-          name: c.name ?? ''
+          name: c.name ?? '',
         }));
 
         console.log(`📦 Catalog data received:`, {
           productsCount: products.length,
           categoriesCount: categories.length,
-          sampleProduct: products[0] ? {
-            id: products[0].id,
-            name: products[0].name,
-            categoryId: products[0].categoryId
-          } : null,
+          sampleProduct: products[0]
+            ? {
+                id: products[0].id,
+                name: products[0].name,
+                categoryId: products[0].categoryId,
+              }
+            : null,
         });
 
         this.updateState({
@@ -112,24 +125,31 @@ class ProductCache {
           categories,
           loading: false,
           initialized: true,
-          error: null
+          error: null,
         });
 
-        console.log(`✅ Loaded ${products.length} products and ${categories.length} categories from catalog`);
+        console.log(
+          `✅ Loaded ${products.length} products and ${categories.length} categories from catalog`
+        );
       } catch (catalogError) {
-        console.error('❌ Catalog loading failed, falling back to separate endpoints:', catalogError);
-        
+        console.error(
+          '❌ Catalog loading failed, falling back to separate endpoints:',
+          catalogError
+        );
+
         // Fallback: ayrı endpoint'lerden yükle
         const [productsResponse, categoriesResponse] = await Promise.all([
           getAllProducts(1, 1000),
-          getAllCategories()
+          getAllCategories(),
         ]);
 
         const products = Array.isArray(productsResponse) ? productsResponse : [];
-        const categoryNames = Array.isArray(categoriesResponse) ? categoriesResponse : [] as string[];
+        const categoryNames = Array.isArray(categoriesResponse)
+          ? categoriesResponse
+          : ([] as string[]);
         const categories: CatalogCategory[] = categoryNames.map((name, i) => ({
           id: `fallback-${i}-${name}`,
-          name: name ?? ''
+          name: name ?? '',
         }));
 
         this.updateState({
@@ -137,17 +157,19 @@ class ProductCache {
           categories,
           loading: false,
           initialized: true,
-          error: null
+          error: null,
         });
 
-        console.log(`✅ Fallback loaded ${products.length} products and ${categories.length} categories`);
+        console.log(
+          `✅ Fallback loaded ${products.length} products and ${categories.length} categories`
+        );
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to load data';
       this.updateState({
         loading: false,
         error: errorMessage,
-        initialized: true
+        initialized: true,
       });
       console.error('❌ Error loading products/categories:', error);
       throw error;
@@ -157,22 +179,22 @@ class ProductCache {
   // Cache'i temizle ve yeniden yükle
   async refreshData(): Promise<void> {
     console.log('🔄 Refreshing all product data...');
-    
+
     // Frontend cache'i temizle
     clearProductCache();
-    
+
     // Local state'i sıfırla
     this.state = {
       products: [],
       categories: [],
       loading: false,
       error: null,
-      initialized: false
+      initialized: false,
     };
-    
+
     this.loadingPromise = null;
     this.updateState(this.state);
-    
+
     // Yeniden yükle
     await this.loadData();
   }
@@ -182,7 +204,7 @@ class ProductCache {
     if (categoryId == null || categoryId === '') {
       return this.state.products;
     }
-    return this.state.products.filter(p => {
+    return this.state.products.filter((p) => {
       const id = (p as Product & { categoryId?: string }).categoryId;
       return id != null && id === categoryId;
     });
@@ -193,7 +215,7 @@ class ProductCache {
     if (!query.trim()) {
       return this.state.products;
     }
-    
+
     const searchTerm = query.toLowerCase();
     return this.state.products.filter((product) => {
       const productCategory = product.productCategory || product.category;
@@ -223,7 +245,7 @@ export const useProductsUnified = () => {
     };
 
     cache.addListener(listener);
-    
+
     // İlk yüklemeyi başlat
     cache.loadData().catch(console.error);
 
@@ -238,17 +260,18 @@ export const useProductsUnified = () => {
 
   // Fonksiyonları memoize et
   const refreshData = useCallback(() => cache.refreshData(), [cache]);
-  const getProductsByCategory = useCallback((categoryId: string | null) =>
-    cache.getProductsByCategory(categoryId), [cache]);
-  const searchProducts = useCallback((query: string) => 
-    cache.searchProducts(query), [cache]);
+  const getProductsByCategory = useCallback(
+    (categoryId: string | null) => cache.getProductsByCategory(categoryId),
+    [cache]
+  );
+  const searchProducts = useCallback((query: string) => cache.searchProducts(query), [cache]);
 
   return {
     ...state,
     refreshData,
     getProductsByCategory,
     searchProducts,
-    
+
     // Geriye uyumluluk için eski isimleri de export et
     loadProducts: refreshData,
     loadCategories: refreshData,

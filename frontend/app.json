@@ -4,15 +4,21 @@
     "slug": "cash-register",
     "version": "1.0.0",
     "sdkVersion": "56.0.0",
-    "runtimeVersion": "56.0.0",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
     "orientation": "portrait",
-    "scheme": "cashregister",
+    "scheme": ["cashregister", "regkasse"],
     "userInterfaceStyle": "automatic",
+    "primaryColor": "#2196F3",
+    "backgroundColor": "#F5F5F5",
     "description": "RKSV Compliant Cash Register for Cashiers",
     "icon": "./assets/images/icon.png",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.registrierkasse.cashregister",
+      "buildNumber": "1",
+      "backgroundColor": "#F5F5F5",
       "infoPlist": {
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true,
@@ -40,11 +46,12 @@
       }
     },
     "android": {
+      "package": "com.registrierkasse.cashregister",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "package": "com.registrierkasse.cashregister"
+        "backgroundColor": "#F5F5F5"
+      }
     },
     "web": {
       "bundler": "metro",
@@ -56,41 +63,71 @@
       "expo-localization",
       "expo-web-browser",
       "@react-native-community/datetimepicker",
-      "expo-mail-composer",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#ffffff",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200
+          "backgroundColor": "#F5F5F5",
+          "image": "./assets/images/adaptive-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "dark": {
+            "backgroundColor": "#111827",
+            "image": "./assets/images/adaptive-icon.png"
+          }
         }
       ],
       [
         "expo-font",
         {
-          "fonts": [
-            "./assets/fonts/OCRA-B.ttf"
-          ]
+          "fonts": ["./assets/fonts/OCRA-B.ttf"]
         }
       ],
       [
         "expo-build-properties",
         {
           "android": {
-            "usesCleartextTraffic": true
+            "usesCleartextTraffic": true,
+            "minSdkVersion": 24,
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "buildToolsVersion": "36.0.0"
+          },
+          "ios": {
+            "deploymentTarget": "16.4"
           }
         }
       ],
       [
         "expo-camera",
         {
-          "cameraPermission": "Kamera wird für Kunden-QR und Gutschein-Scan benötigt."
+          "cameraPermission": "Kamera wird für Kunden-QR und Gutschein-Scan benötigt.",
+          "microphonePermission": false,
+          "barcodeScannerEnabled": true,
+          "recordAudioAndroid": false
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      "expo-secure-store",
+      "expo-system-ui",
+      [
+        "expo-navigation-bar",
+        {
+          "enforceContrast": true,
+          "hidden": false,
+          "style": "dark"
+        }
+      ],
+      [
+        "expo-status-bar",
+        {
+          "hidden": true,
+          "style": "dark"
+        }
+      ]
     ],
     "experiments": {
-      "typedRoutes": true
+      "typedRoutes": true,
+      "onDemandFilesystem": true
     }
   }
 }

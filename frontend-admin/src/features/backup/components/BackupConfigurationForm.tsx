@@ -1,33 +1,44 @@
-"use client";
+'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
+import { useQuery } from '@tanstack/react-query';
+import {
+  Alert,
+  Button,
+  Col,
+  Divider,
+  Form,
+  Input,
+  InputNumber,
+  Row,
+  Select,
+  Typography,
+} from 'antd';
+import axios from 'axios';
 /**
  * Backup execution mode form (execution-mode PUT only; schedule is BackupScheduleSettings).
  */
+import React, { useEffect, useMemo, useState } from 'react';
 
-import React, { useEffect, useMemo, useState } from "react";
-import axios from "axios";
-import { Alert, Button, Col, Divider, Form, Input, InputNumber, Row, Select, Typography } from 'antd';
+import { useGetApiAdminBackupStatusLatest } from '@/api/generated/admin-backup/admin-backup';
 import { FormSkeleton } from '@/components/Skeleton';
-import { useQuery } from "@tanstack/react-query";
-import { useI18n } from "@/i18n";
-import { useBackupPermissions } from "@/features/backup/hooks/useBackupPermissions";
+import {
+  type BackupExecutionModeRadioValue,
+  fakeSwitchNeedsStrongWarning,
+  findSelectableRow,
+} from '@/features/backup-dr/logic/backupDrExecutionModePresentation';
 import {
   getBackupExecutionMode,
   getGetApiAdminBackupExecutionModeQueryKey,
   putBackupExecutionMode,
-} from "@/features/backup-dr/logic/backupExecutionModeApi";
-import {
-  findSelectableRow,
-  fakeSwitchNeedsStrongWarning,
-  type BackupExecutionModeRadioValue,
-} from "@/features/backup-dr/logic/backupDrExecutionModePresentation";
+} from '@/features/backup-dr/logic/backupExecutionModeApi';
+import { useBackupPermissions } from '@/features/backup/hooks/useBackupPermissions';
 import {
   executionModeSelectLabel,
   initialExecutionModeSelection,
   toPutExecutionModeString,
-} from "@/features/backup/logic/backupExecutionModeFormMapping";
-import { useGetApiAdminBackupStatusLatest } from "@/api/generated/admin-backup/admin-backup";
+} from '@/features/backup/logic/backupExecutionModeFormMapping';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { useI18n } from '@/i18n';
 
 export type BackupConfigurationFormValues = {
   executionMode: BackupExecutionModeRadioValue;
@@ -43,11 +54,15 @@ export function BackupConfigurationForm() {
   const { message, modal } = useAntdApp();
 
   const { t } = useI18n();
-  const { canConfigure: canEdit, canEditExecutionMode, isSuperAdmin: superAdmin } =
-    useBackupPermissions();
+  const {
+    canConfigure: canEdit,
+    canEditExecutionMode,
+    isSuperAdmin: superAdmin,
+  } = useBackupPermissions();
   const [form] = Form.useForm<BackupConfigurationFormValues>();
-  const [initialExecutionMode, setInitialExecutionMode] =
-    useState<BackupExecutionModeRadioValue>("InheritFromConfiguration");
+  const [initialExecutionMode, setInitialExecutionMode] = useState<BackupExecutionModeRadioValue>(
+    'InheritFromConfiguration'
+  );
   const [saving, setSaving] = useState(false);
   const executionModeQuery = useQuery({
     queryKey: getGetApiAdminBackupExecutionModeQueryKey(),
@@ -73,18 +88,18 @@ export function BackupConfigurationForm() {
 
   const executionModeOptions = useMemo(() => {
     const modes: BackupExecutionModeRadioValue[] = [
-      "InheritFromConfiguration",
-      "SimulatedFake",
-      "PostgreSqlPgDump",
+      'InheritFromConfiguration',
+      'SimulatedFake',
+      'PostgreSqlPgDump',
     ];
     const selectable = executionModeQuery.data?.selectableModes;
     return modes.map((value) => {
       const apiName =
-        value === "SimulatedFake"
-          ? "Fake"
-          : value === "PostgreSqlPgDump"
-            ? "RealPgDump"
-            : "UseConfigurationDefault";
+        value === 'SimulatedFake'
+          ? 'Fake'
+          : value === 'PostgreSqlPgDump'
+            ? 'RealPgDump'
+            : 'UseConfigurationDefault';
       const row = findSelectableRow(selectable, apiName);
       return {
         value,
@@ -96,7 +111,7 @@ export function BackupConfigurationForm() {
 
   const persistExecutionMode = async (
     mode: BackupExecutionModeRadioValue,
-    confirmFakeInProduction = false,
+    confirmFakeInProduction = false
   ) => {
     await putBackupExecutionMode({
       mode: toPutExecutionModeString(mode),
@@ -110,16 +125,16 @@ export function BackupConfigurationForm() {
     setSaving(true);
     try {
       if (canEditExecutionMode && values.executionMode !== initialExecutionMode) {
-        const fakeRow = findSelectableRow(executionModeQuery.data?.selectableModes, "Fake");
+        const fakeRow = findSelectableRow(executionModeQuery.data?.selectableModes, 'Fake');
         const needsStrong = fakeSwitchNeedsStrongWarning(values.executionMode, fakeRow);
 
-        if (values.executionMode === "SimulatedFake" && needsStrong) {
+        if (values.executionMode === 'SimulatedFake' && needsStrong) {
           await new Promise<void>((resolve, reject) => {
             modal.confirm({
-              title: t("backupDr.executionMode.saveConfirmTitleFakeStrong"),
-              content: t("backupDr.executionMode.saveConfirmBodyFakeStrong"),
-              okText: t("backupDr.executionMode.saveConfirmOk"),
-              cancelText: t("common.buttons.cancel"),
+              title: t('backupDr.executionMode.saveConfirmTitleFakeStrong'),
+              content: t('backupDr.executionMode.saveConfirmBodyFakeStrong'),
+              okText: t('backupDr.executionMode.saveConfirmOk'),
+              cancelText: t('common.buttons.cancel'),
               okButtonProps: { danger: true },
               onOk: async () => {
                 try {
@@ -129,11 +144,11 @@ export function BackupConfigurationForm() {
                   reject(e);
                 }
               },
-              onCancel: () => reject(new Error("cancelled")),
+              onCancel: () => reject(new Error('cancelled')),
             });
           }).catch((e) => {
-            if ((e as Error).message === "cancelled") {
-              message.info(t("backupDr.configForm.savePartialSettingsOnly"));
+            if ((e as Error).message === 'cancelled') {
+              message.info(t('backupDr.configForm.savePartialSettingsOnly'));
               return;
             }
             throw e;
@@ -143,12 +158,14 @@ export function BackupConfigurationForm() {
         }
       }
 
-      message.success(t("backupDr.configForm.saveSuccess"));
+      message.success(t('backupDr.configForm.saveSuccess'));
       await executionModeQuery.refetch();
     } catch (err) {
       const extra = axiosNormalizedMessage(err);
       message.error(
-        extra ? `${t("backupDr.configForm.saveError")} ${extra}` : t("backupDr.configForm.saveError"),
+        extra
+          ? `${t('backupDr.configForm.saveError')} ${extra}`
+          : t('backupDr.configForm.saveError')
       );
     } finally {
       setSaving(false);
@@ -159,7 +176,7 @@ export function BackupConfigurationForm() {
     return (
       <>
         <Form form={form} style={{ display: 'none' }} preserve />
-        <Alert type="error" showIcon title={t("backupDr.scheduleSettings.loadError")} />
+        <Alert type="error" showIcon title={t('backupDr.scheduleSettings.loadError')} />
       </>
     );
   }
@@ -174,19 +191,14 @@ export function BackupConfigurationForm() {
   }
 
   return (
-    <Form
-      form={form}
-      layout="vertical"
-      onFinish={handleSubmit}
-      disabled={!canEdit}
-    >
+    <Form form={form} layout="vertical" onFinish={handleSubmit} disabled={!canEdit}>
       <Alert
         type="info"
-        title={t("backupDr.configForm.alertTitle")}
+        title={t('backupDr.configForm.alertTitle')}
         description={t(
           superAdmin
-            ? "backupDr.configForm.alertDescriptionSuperAdmin"
-            : "backupDr.configForm.alertDescription",
+            ? 'backupDr.configForm.alertDescriptionSuperAdmin'
+            : 'backupDr.configForm.alertDescription'
         )}
         showIcon
         style={{ marginBottom: 16 }}
@@ -197,8 +209,8 @@ export function BackupConfigurationForm() {
           <Col xs={24} md={12}>
             <Form.Item
               name="executionMode"
-              label={t("backupDr.configForm.executionModeLabel")}
-              tooltip={t("backupDr.configForm.executionModeTooltip")}
+              label={t('backupDr.configForm.executionModeLabel')}
+              tooltip={t('backupDr.configForm.executionModeTooltip')}
             >
               <Select options={executionModeOptions} />
             </Form.Item>
@@ -211,37 +223,37 @@ export function BackupConfigurationForm() {
           <Divider />
           <Alert
             type="warning"
-            title={t("backupDr.configForm.superAdminTitle")}
-            description={t("backupDr.configForm.superAdminDescription")}
+            title={t('backupDr.configForm.superAdminTitle')}
+            description={t('backupDr.configForm.superAdminDescription')}
             showIcon
             style={{ marginBottom: 16 }}
           />
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              <Form.Item label={t("backupDr.configForm.externalArchiveRoot")}>
+              <Form.Item label={t('backupDr.configForm.externalArchiveRoot')}>
                 <Input
                   disabled
                   value={
                     policy?.externalArchiveRootConfigured
-                      ? t("backupDr.configForm.pathConfigured")
-                      : t("backupDr.configForm.pathNotConfigured")
+                      ? t('backupDr.configForm.pathConfigured')
+                      : t('backupDr.configForm.pathNotConfigured')
                   }
                   placeholder="/backup/archive"
                 />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
-              <Form.Item label={t("backupDr.configForm.stagingRoot")}>
+              <Form.Item label={t('backupDr.configForm.stagingRoot')}>
                 <Input
                   disabled
-                  value={health?.effectiveAdapterKind?.trim() || "—"}
+                  value={health?.effectiveAdapterKind?.trim() || '—'}
                   placeholder="/backup/staging"
                 />
               </Form.Item>
             </Col>
           </Row>
           <Typography.Paragraph type="secondary" style={{ fontSize: 12 }}>
-            {t("backupDr.configForm.deploymentPathsHint")}
+            {t('backupDr.configForm.deploymentPathsHint')}
           </Typography.Paragraph>
         </>
       ) : null}
@@ -253,11 +265,11 @@ export function BackupConfigurationForm() {
             htmlType="submit"
             loading={saving || executionModeQuery.isFetching}
           >
-            {t("backupDr.configForm.save")}
+            {t('backupDr.configForm.save')}
           </Button>
         </Form.Item>
       ) : (
-        <Typography.Text type="secondary">{t("backupDr.permission.noManage")}</Typography.Text>
+        <Typography.Text type="secondary">{t('backupDr.permission.noManage')}</Typography.Text>
       )}
     </Form>
   );

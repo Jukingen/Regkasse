@@ -1,7 +1,9 @@
-// Türkçe Açıklama: Multi-step ödeme ekranı. Her adımda ilgili API endpoint'ine istek atar, 
+// Türkçe Açıklama: Multi-step ödeme ekranı. Her adımda ilgili API endpoint'ine istek atar,
 // kullanıcı deneyimini optimize eder ve Avusturya RKSV uyumluluğunu sağlar.
 
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -12,22 +14,20 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Dimensions
+  Dimensions,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import paymentService, { type PaymentRequest } from '../services/api/paymentService';
-import { normalizeCartLineTaxTypeForPayment } from '../utils/paymentTaxType';
-import { getUserSettings } from '../services/api/userSettingsService';
-import { resolveWalkInCustomerId } from '../constants/walkInCustomer';
-import { PaymentCancelResponse } from '../types/cart';
 
-import { useTranslation } from 'react-i18next';
-import { useSystem } from '../contexts/SystemContext';
 import {
   POS_VOUCHER_REQUIRES_ONLINE_MESSAGE_DE,
   posOfflineBlocksVoucherByMethod,
 } from '../constants/posVoucherOffline';
+import { resolveWalkInCustomerId } from '../constants/walkInCustomer';
+import { useSystem } from '../contexts/SystemContext';
+import paymentService, { type PaymentRequest } from '../services/api/paymentService';
+import { getUserSettings } from '../services/api/userSettingsService';
 import { WaveLoader } from '../src/components/common/WaveLoader';
+import { PaymentCancelResponse } from '../types/cart';
+import { normalizeCartLineTaxTypeForPayment } from '../utils/paymentTaxType';
 
 // Ödeme adımları enum'u
 enum PaymentStep {
@@ -36,7 +36,7 @@ enum PaymentStep {
   PAYMENT_AMOUNT = 2,
   TSE_VERIFICATION = 3,
   CONFIRMATION = 4,
-  RECEIPT = 5
+  RECEIPT = 5,
 }
 
 // Desteklenen ödeme yöntemleri - i18n kullanarak
@@ -47,11 +47,16 @@ const PAYMENT_METHODS: {
   icon: keyof typeof Ionicons.glyphMap;
   requiresTSE: boolean;
 }[] = [
-    { key: 'cash', label: 'payment:methods.cash', icon: 'cash', requiresTSE: true },
-    { key: 'card', label: 'payment:methods.card', icon: 'card', requiresTSE: true },
-    { key: 'voucher', label: 'payment:methods.voucher', icon: 'pricetag', requiresTSE: true },
-    { key: 'transfer', label: 'payment:methods.transfer', icon: 'swap-horizontal', requiresTSE: true },
-  ];
+  { key: 'cash', label: 'payment:methods.cash', icon: 'cash', requiresTSE: true },
+  { key: 'card', label: 'payment:methods.card', icon: 'card', requiresTSE: true },
+  { key: 'voucher', label: 'payment:methods.voucher', icon: 'pricetag', requiresTSE: true },
+  {
+    key: 'transfer',
+    label: 'payment:methods.transfer',
+    icon: 'swap-horizontal',
+    requiresTSE: true,
+  },
+];
 
 interface MultiStepPaymentScreenProps {
   totalAmount: number;
@@ -68,7 +73,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
   onComplete,
   onCancel,
   onPaymentCancelled,
-  tableNumber
+  tableNumber,
 }) => {
   const { t } = useTranslation(['payment', 'common']);
   const { isOnline } = useSystem();
@@ -93,7 +98,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
     t('payment:stepTitles.paymentAmount'),
     t('payment:stepTitles.tseVerification'),
     t('payment:stepTitles.confirmation'),
-    t('payment:stepTitles.receipt')
+    t('payment:stepTitles.receipt'),
   ];
 
   // Customer ID validation (8 haneli zorunlu alan)
@@ -155,7 +160,10 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
 
   // TSE doğrulama
   const handleTSEVerification = async () => {
-    if (!selectedPaymentMethod || PAYMENT_METHODS.find(m => m.key === selectedPaymentMethod)?.requiresTSE) {
+    if (
+      !selectedPaymentMethod ||
+      PAYMENT_METHODS.find((m) => m.key === selectedPaymentMethod)?.requiresTSE
+    ) {
       if (!tseSignature) {
         setError(t('payment:tse.required'));
         return;
@@ -196,10 +204,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
         return;
       }
       const regId = settings.cashRegisterId?.trim();
-      if (
-        !regId ||
-        regId === '00000000-0000-0000-0000-000000000000'
-      ) {
+      if (!regId || regId === '00000000-0000-0000-0000-000000000000') {
         setError(
           t(
             'payment:errors.noCashRegister',
@@ -225,14 +230,13 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
           method: selectedPaymentMethod!,
           amount: parseFloat(paymentAmount),
           tseRequired:
-            PAYMENT_METHODS.find((m) => m.key === selectedPaymentMethod)
-              ?.requiresTSE || false
+            PAYMENT_METHODS.find((m) => m.key === selectedPaymentMethod)?.requiresTSE || false,
         },
         customerId: customerId?.trim() ? customerId : await resolveWalkInCustomerId(),
-        tableNumber: tableNumber,
-        totalAmount: totalAmount,
+        tableNumber,
+        totalAmount,
         cashRegisterId: regId,
-        idempotencyKey
+        idempotencyKey,
       };
 
       const response = await paymentService.processPayment(paymentRequest);
@@ -275,43 +279,37 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
 
   // Ödeme iptali
   const handlePaymentCancel = async () => {
-    Alert.alert(
-      t('payment:cancellation.title'),
-      t('payment:cancellation.message'),
-      [
-        { text: t('payment:cancellation.deny'), style: 'cancel' },
-        {
-          text: t('payment:cancellation.confirm'),
-          style: 'destructive',
-          onPress: async () => {
-            if (paymentSessionId) {
-              try {
-                const cancelResponse = await paymentService.cancelPayment(
-                  paymentSessionId,
-                  t('payment:cancellation.reason')
-                );
+    Alert.alert(t('payment:cancellation.title'), t('payment:cancellation.message'), [
+      { text: t('payment:cancellation.deny'), style: 'cancel' },
+      {
+        text: t('payment:cancellation.confirm'),
+        style: 'destructive',
+        onPress: async () => {
+          if (paymentSessionId) {
+            try {
+              const cancelResponse = await paymentService.cancelPayment(
+                paymentSessionId,
+                t('payment:cancellation.reason')
+              );
 
-                if (onPaymentCancelled) {
-                  onPaymentCancelled(cancelResponse);
-                }
-              } catch (error) {
-                console.error('Payment cancellation error:', error);
+              if (onPaymentCancelled) {
+                onPaymentCancelled(cancelResponse);
               }
+            } catch (error) {
+              console.error('Payment cancellation error:', error);
             }
-            onCancel();
           }
-        }
-      ]
-    );
+          onCancel();
+        },
+      },
+    ]);
   };
 
   // Step render fonksiyonları
   const renderCustomerSelection = () => (
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>{t('payment:customerSelection')}</Text>
-      <Text style={styles.stepDescription}>
-        {t('payment:customer.idRequired')}
-      </Text>
+      <Text style={styles.stepDescription}>{t('payment:customer.idRequired')}</Text>
 
       <TextInput
         style={styles.input}
@@ -330,8 +328,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
       <TouchableOpacity
         style={[styles.nextButton, !validateCustomerId(customerId) && styles.disabledButton]}
         onPress={handleCustomerSelection}
-        disabled={!validateCustomerId(customerId) || loading}
-      >
+        disabled={!validateCustomerId(customerId) || loading}>
         {loading ? (
           <WaveLoader size={20} color="#fff" />
         ) : (
@@ -348,7 +345,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
         {t('payment:amount.total')}: {totalAmount.toFixed(2)} €
       </Text>
 
-      {PAYMENT_METHODS.map(method => (
+      {PAYMENT_METHODS.map((method) => (
         <View key={method.key} style={styles.methodCardWrap}>
           <TouchableOpacity
             style={[
@@ -356,8 +353,9 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
               posOfflineBlocksVoucherByMethod(isOnline, method.key) && styles.methodCardDisabled,
             ]}
             disabled={loading || posOfflineBlocksVoucherByMethod(isOnline, method.key)}
-            onPress={() => handlePaymentMethodSelection(method.key)}
-          >
+            onPress={() => {
+              handlePaymentMethodSelection(method.key);
+            }}>
             <Ionicons name={method.icon} size={24} color="#1976d2" />
             <Text style={styles.methodLabel}>{t(method.label)}</Text>
             {method.requiresTSE && (
@@ -379,7 +377,8 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>{t('payment:paymentAmount')}</Text>
       <Text style={styles.stepDescription}>
-        {t('payment:paymentMethod')}: {t(PAYMENT_METHODS.find(m => m.key === selectedPaymentMethod)?.label || '')}
+        {t('payment:paymentMethod')}:{' '}
+        {t(PAYMENT_METHODS.find((m) => m.key === selectedPaymentMethod)?.label || '')}
       </Text>
 
       <View style={styles.amountContainer}>
@@ -396,9 +395,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
         editable={!loading}
       />
 
-      <Text style={styles.amountHint}>
-        {t('payment.amount.hint')}
-      </Text>
+      <Text style={styles.amountHint}>{t('payment.amount.hint')}</Text>
 
       <View style={styles.buttonRow}>
         <TouchableOpacity style={styles.backButton} onPress={prevStep}>
@@ -407,8 +404,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
         <TouchableOpacity
           style={[styles.nextButton, !paymentAmount && styles.disabledButton]}
           onPress={handlePaymentAmount}
-          disabled={!paymentAmount || loading}
-        >
+          disabled={!paymentAmount || loading}>
           {loading ? (
             <WaveLoader size={20} color="#fff" />
           ) : (
@@ -423,13 +419,12 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>{t('payment.tseVerification')}</Text>
       <Text style={styles.stepDescription}>
-        {PAYMENT_METHODS.find(m => m.key === selectedPaymentMethod)?.requiresTSE
+        {PAYMENT_METHODS.find((m) => m.key === selectedPaymentMethod)?.requiresTSE
           ? t('payment.tse.required')
-          : t('payment.tse.notRequired')
-        }
+          : t('payment.tse.notRequired')}
       </Text>
 
-      {PAYMENT_METHODS.find(m => m.key === selectedPaymentMethod)?.requiresTSE && (
+      {PAYMENT_METHODS.find((m) => m.key === selectedPaymentMethod)?.requiresTSE && (
         <TextInput
           style={styles.input}
           placeholder={t('payment:tse.signaturePlaceholder')}
@@ -455,8 +450,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
             loading ||
             ((PAYMENT_METHODS.find((m) => m.key === selectedPaymentMethod)?.requiresTSE ?? true) &&
               !tseSignature)
-          }
-        >
+          }>
           {loading ? (
             <WaveLoader size={20} color="#fff" />
           ) : (
@@ -477,7 +471,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
 
         <Text style={styles.confirmationLabel}>{t('payment:confirmation.paymentMethod')}</Text>
         <Text style={styles.confirmationValue}>
-          {t(PAYMENT_METHODS.find(m => m.key === selectedPaymentMethod)?.label || '')}
+          {t(PAYMENT_METHODS.find((m) => m.key === selectedPaymentMethod)?.label || '')}
         </Text>
 
         <Text style={styles.confirmationLabel}>{t('payment:confirmation.paymentAmount')}</Text>
@@ -499,8 +493,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
         <TouchableOpacity
           style={styles.confirmButton}
           onPress={handlePaymentConfirmation}
-          disabled={loading}
-        >
+          disabled={loading}>
           {loading ? (
             <WaveLoader size={20} color="#fff" />
           ) : (
@@ -514,9 +507,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
   const renderReceipt = () => (
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>{t('payment:receiptTitle')}</Text>
-      <Text style={styles.stepDescription}>
-        {t('payment:receiptDescription')}
-      </Text>
+      <Text style={styles.stepDescription}>{t('payment:receiptDescription')}</Text>
 
       <View style={styles.successIcon}>
         <Ionicons name="checkmark-circle" size={80} color="#4caf50" />
@@ -525,8 +516,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
       <TouchableOpacity
         style={styles.receiptButton}
         onPress={handleReceiptCreation}
-        disabled={loading}
-      >
+        disabled={loading}>
         {loading ? (
           <WaveLoader size={20} color="#fff" />
         ) : (
@@ -559,8 +549,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.container}
-    >
+      style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.cancelButton} onPress={handlePaymentCancel}>
@@ -576,7 +565,8 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
           <View style={[styles.progressFill, { width: `${progress}%` }]} />
         </View>
         <Text style={styles.progressText}>
-          {t('common:step')} {currentStep + 1} / {Object.keys(PaymentStep).length}: {stepTitles[currentStep]}
+          {t('common:step')} {currentStep + 1} / {Object.keys(PaymentStep).length}:{' '}
+          {stepTitles[currentStep]}
         </Text>
       </View>
 

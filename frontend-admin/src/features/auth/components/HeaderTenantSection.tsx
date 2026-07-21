@@ -5,17 +5,17 @@ import { HeaderDevTenantSwitch } from '@/features/auth/components/HeaderDevTenan
 import { HeaderTenantSwitcherProvider } from '@/features/auth/components/HeaderTenantSwitcherContext';
 
 export type HeaderTenantSectionProps = {
-    isMobile: boolean;
+  isMobile: boolean;
 };
 
 /** Groups tenant badge + dev switcher with shared dropdown open state. */
 export function HeaderTenantSection({ isMobile }: HeaderTenantSectionProps) {
-    return (
-        <HeaderTenantSwitcherProvider>
-            <div className="tenant-section">
-                <TenantBadge compact={isMobile} />
-                <HeaderDevTenantSwitch compact={isMobile} />
-            </div>
-        </HeaderTenantSwitcherProvider>
-    );
+  return (
+    <HeaderTenantSwitcherProvider>
+      <div className="tenant-section">
+        <TenantBadge compact={isMobile} />
+        <HeaderDevTenantSwitch compact={isMobile} />
+      </div>
+    </HeaderTenantSwitcherProvider>
+  );
 }

@@ -5,7 +5,14 @@ import { View, Text, Pressable, ScrollView, StyleSheet, Vibration } from 'react-
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TableSelectorTile, webTablePressableOutlineOff } from './TableSelectorTile';
-import { SoftColors, SoftShadows, SoftSpacing, SoftRadius, SoftState, SoftTypography } from '../constants/SoftTheme';
+import {
+  SoftColors,
+  SoftShadows,
+  SoftSpacing,
+  SoftRadius,
+  SoftState,
+  SoftTypography,
+} from '../constants/SoftTheme';
 
 interface TableSelectorProps {
   selectedTable: number;
@@ -46,7 +53,11 @@ export const TableSelector: React.FC<TableSelectorProps> = ({
   };
 
   return (
-    <View style={styles.tableSection} pointerEvents="box-none" accessibilityRole="none" collapsable={false}>
+    <View
+      style={styles.tableSection}
+      pointerEvents="box-none"
+      accessibilityRole="none"
+      collapsable={false}>
       <View style={styles.sectionTitleRow}>
         <Text style={styles.stepLabel}>1</Text>
         <Text style={styles.sectionTitle} accessibilityRole="header">
@@ -57,8 +68,10 @@ export const TableSelector: React.FC<TableSelectorProps> = ({
         horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.tableScroll}
-        contentContainerStyle={[styles.tableScrollContent, { paddingRight: Math.max(SoftSpacing.lg, insets.right) }]}
-      >
+        contentContainerStyle={[
+          styles.tableScrollContent,
+          { paddingRight: Math.max(SoftSpacing.lg, insets.right) },
+        ]}>
         {tableNumbers.map((tableNumber) => {
           const itemCount = getTableItemCount(tableNumber);
           const isSelected = selectedTable === tableNumber;
@@ -71,7 +84,9 @@ export const TableSelector: React.FC<TableSelectorProps> = ({
               itemCount={itemCount}
               isSelected={isSelected}
               isLoading={isLoading}
-              onPress={() => handleTablePress(tableNumber)}
+              onPress={() => {
+                handleTablePress(tableNumber);
+              }}
             />
           );
         })}
@@ -85,8 +100,7 @@ export const TableSelector: React.FC<TableSelectorProps> = ({
           onPress={onClearAllTables}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           accessibilityLabel={t('checkout:posFlow.tableSelector.a11yClearAll')}
-          accessibilityRole="button"
-        >
+          accessibilityRole="button">
           <Text style={styles.clearAllEmoji}>🧹</Text>
           <Text style={styles.clearAllText}>{t('checkout:posFlow.tableSelector.clearAll')}</Text>
         </Pressable>

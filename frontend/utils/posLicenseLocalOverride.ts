@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { secureStorage } from '../services/secureStorage';
 
 // TODO(regkasse-license): Remove this client-side override once backend license/trial responses are authoritative.
 
@@ -31,7 +31,7 @@ export async function persistPosLicenseLocalOverride(
   if (!LICENSE_KEY_PATTERN.test(k)) return;
   const exp = expiryIsoUtc.trim();
   if (!exp) return;
-  await AsyncStorage.multiSet([
+  await secureStorage.multiSet([
     [POS_LICENSE_OVERRIDE_KEY_STORAGE, k],
     [POS_LICENSE_OVERRIDE_EXPIRY_STORAGE, exp],
   ]);
@@ -45,7 +45,7 @@ export async function applyPersistedLicenseOverride(
   merged: MergedLicenseSnapshot | null
 ): Promise<MergedLicenseSnapshot | null> {
   try {
-    const [rawKey, rawExp] = await AsyncStorage.multiGet([
+    const [rawKey, rawExp] = await secureStorage.multiGet([
       POS_LICENSE_OVERRIDE_KEY_STORAGE,
       POS_LICENSE_OVERRIDE_EXPIRY_STORAGE,
     ]);

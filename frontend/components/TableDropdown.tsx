@@ -1,6 +1,7 @@
 // Bu komponent, açık olan masalar/satışlar arasında geçiş için dropdown ve aç/kapat düğmesi sunar.
 import React, { useContext } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+
 import { TableSlotContext } from '../contexts/TableSlotContext';
 
 const TableDropdown = () => {
@@ -21,8 +22,7 @@ const TableDropdown = () => {
                 styles.dropdownButton,
                 Number(slotNumber) === activeSlot && styles.activeDropdownButton,
               ]}
-              onPress={() => setActiveSlot(Number(slotNumber))}
-            >
+              onPress={() => setActiveSlot(Number(slotNumber))}>
               <Text style={styles.dropdownButtonText}>{slotNumber}</Text>
             </TouchableOpacity>
           ))
@@ -97,4 +97,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default TableDropdown; 
+export default TableDropdown;

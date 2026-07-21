@@ -1,16 +1,17 @@
 // RKSV: when ensure-ready returns startbeleg_required, offer in-app creation (German operator copy in UI strings).
 import React, { useCallback, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { SoftColors, SoftRadius, SoftSpacing } from '../constants/SoftTheme';
 import { POS_ENSURE_READY_ON_ENTRY } from '../constants/posFeatureFlags';
 import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
 import { useLicenseStatus } from '../hooks/useLicenseStatus';
 import { postCreateStartbeleg } from '../services/api/rksvSpecialReceiptsService';
 import { receiptPrinter } from '../services/receiptPrinter';
-import { ensureLicenseAllowsCriticalAction } from '../utils/licenseCriticalActionGuard';
-import { SoftColors, SoftRadius, SoftSpacing } from '../constants/SoftTheme';
 import { WaveLoader } from '../src/components/common/WaveLoader';
+import { isPrintCancelled } from '../utils/expoPrintShare';
+import { ensureLicenseAllowsCriticalAction } from '../utils/licenseCriticalActionGuard';
 
 export function StartbelegRequiredBanner() {
   const { data, refreshAsync } = usePosRegisterReadiness();
@@ -31,16 +32,29 @@ export function StartbelegRequiredBanner() {
     if (!licenseOk) return;
     setBusy(true);
     try {
-      const created = await postCreateStartbeleg({ cashRegisterId: registerId, reason: 'POS Startbeleg' });
+      const created = await postCreateStartbeleg({
+        cashRegisterId: registerId,
+        reason: 'POS Startbeleg',
+      });
       await refreshAsync();
       try {
         await receiptPrinter.print(String(created.paymentId));
-        Alert.alert('Startbeleg', 'Startbeleg wurde erstellt und gedruckt. Sie können nun mit der Schicht fortfahren.');
-      } catch {
         Alert.alert(
           'Startbeleg',
-          'Startbeleg wurde erstellt. Der automatische Druck ist fehlgeschlagen — Beleg später erneut drucken. Sie können nun mit der Schicht fortfahren.'
+          'Startbeleg wurde erstellt und gedruckt. Sie können nun mit der Schicht fortfahren.'
         );
+      } catch (err) {
+        if (isPrintCancelled(err)) {
+          Alert.alert(
+            'Startbeleg',
+            'Startbeleg wurde erstellt und gedruckt. Sie können nun mit der Schicht fortfahren.'
+          );
+        } else {
+          Alert.alert(
+            'Startbeleg',
+            'Startbeleg wurde erstellt. Der automatische Druck ist fehlgeschlagen — Beleg später erneut drucken. Sie können nun mit der Schicht fortfahren.'
+          );
+        }
       }
     } catch (e: unknown) {
       const err = e as { data?: { message?: string }; message?: string };
@@ -59,16 +73,19 @@ export function StartbelegRequiredBanner() {
     <View style={styles.wrap} accessibilityRole="alert">
       <Text style={styles.title}>Startbeleg muss erstellt werden.</Text>
       <Text style={styles.hint}>
-        Ohne Startbeleg ist keine normale Schicht / keine Verkäufe möglich. Erstellen Sie den fiskalischen Nullbeleg, um
-        fortzufahren.
+        Ohne Startbeleg ist keine normale Schicht / keine Verkäufe möglich. Erstellen Sie den
+        fiskalischen Nullbeleg, um fortzufahren.
       </Text>
       <Pressable
         onPress={() => void onCreate()}
         disabled={busy}
-        style={({ pressed }) => [styles.btn, pressed && styles.btnPressed, busy && styles.btnDisabled]}
+        style={({ pressed }) => [
+          styles.btn,
+          pressed && styles.btnPressed,
+          busy && styles.btnDisabled,
+        ]}
         accessibilityRole="button"
-        accessibilityLabel="Startbeleg jetzt erstellen"
-      >
+        accessibilityLabel="Startbeleg jetzt erstellen">
         {busy ? (
           <WaveLoader size={20} color={SoftColors.textInverse} />
         ) : (

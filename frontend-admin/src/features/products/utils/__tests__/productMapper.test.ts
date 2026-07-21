@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { mapUiProductToApi } from '@/features/products/utils/productMapper';
 
 describe('mapUiProductToApi', () => {

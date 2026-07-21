@@ -58,13 +58,12 @@ const WaveLoaderBar = memo(function WaveLoaderBar({
       withRepeat(
         withSequence(
           withTiming(1.5, { duration: HALF_CYCLE_MS, easing: EASE_IN_OUT }),
-          withTiming(0.5, { duration: HALF_CYCLE_MS, easing: EASE_IN_OUT }),
+          withTiming(0.5, { duration: HALF_CYCLE_MS, easing: EASE_IN_OUT })
         ),
         -1,
-        false,
-      ),
+        false
+      )
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only; shared value ref is stable
   }, [index]);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -115,16 +114,9 @@ export function WaveLoader({
       style={[styles.container, { gap }, style]}
       accessibilityRole="progressbar"
       accessibilityLabel="Lädt"
-      testID={testID}
-    >
+      testID={testID}>
       {INDICES.map((i) => (
-        <WaveLoaderBar
-          key={i}
-          index={i}
-          color={color}
-          barWidth={barWidth}
-          barHeight={barHeight}
-        />
+        <WaveLoaderBar key={i} index={i} color={color} barWidth={barWidth} barHeight={barHeight} />
       ))}
     </View>
   );

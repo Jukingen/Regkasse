@@ -27,7 +27,7 @@ export function formatSignaturePreview(prefix: string | null | undefined): strin
 
 export function filterReportForRegister(
   report: RksvComplianceReport | undefined,
-  cashRegisterId: string | undefined,
+  cashRegisterId: string | undefined
 ): {
   chain: RksvComplianceSignatureChainItem[];
   chainIssues: RksvComplianceSignatureChainItem[];
@@ -39,15 +39,19 @@ export function filterReportForRegister(
   }
   const chain = (report.signatureChain ?? []).filter((c) => c.cashRegisterId === cashRegisterId);
   const chainIssues = chain.filter(isChainItemIssue);
-  const sequenceGaps = (report.sequenceGaps ?? []).filter((g) => g.cashRegisterId === cashRegisterId);
-  const tseMissing = (report.tseSignatureMissing ?? []).filter((t) => t.cashRegisterId === cashRegisterId);
+  const sequenceGaps = (report.sequenceGaps ?? []).filter(
+    (g) => g.cashRegisterId === cashRegisterId
+  );
+  const tseMissing = (report.tseSignatureMissing ?? []).filter(
+    (t) => t.cashRegisterId === cashRegisterId
+  );
   return { chain, chainIssues, sequenceGaps, tseMissing };
 }
 
 export function computeSignatureChainOutcome(
   chainIssues: RksvComplianceSignatureChainItem[],
   sequenceGaps: RksvComplianceSequenceGap[],
-  tseMissing: RksvComplianceTseSignatureMissing[],
+  tseMissing: RksvComplianceTseSignatureMissing[]
 ): SignatureChainOutcome {
   const hasFail = chainIssues.some(isChainItemFail);
   if (hasFail || sequenceGaps.length > 0 || tseMissing.length > 0) return 'broken';

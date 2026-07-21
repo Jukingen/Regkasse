@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
+
+import { BackupRunStatus } from '@/api/generated/model/backupRunStatus';
 import {
   defaultValidationDatabaseName,
   isBackupRunEligibleForManualRestore,
   isValidValidationDatabaseName,
   shouldPollManualRestoreStatus,
 } from '@/features/backup-dr/logic/manualRestorePresentation';
-import { BackupRunStatus } from '@/api/generated/model/backupRunStatus';
 
 describe('manualRestorePresentation', () => {
   it('defaultValidationDatabaseName uses restore_validation_ prefix', () => {

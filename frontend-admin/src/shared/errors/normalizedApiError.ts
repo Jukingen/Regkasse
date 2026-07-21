@@ -43,7 +43,10 @@ export function collectFieldErrors(errors: unknown): Record<string, string[]> | 
   for (const key of Object.keys(errors)) {
     const val = errors[key];
     if (Array.isArray(val)) {
-      const msgs = val.filter((x): x is string => typeof x === 'string').map((s) => s.trim()).filter(Boolean);
+      const msgs = val
+        .filter((x): x is string => typeof x === 'string')
+        .map((s) => s.trim())
+        .filter(Boolean);
       if (msgs.length) out[key] = msgs;
     } else if (typeof val === 'string' && val.trim()) {
       out[key] = [val.trim()];

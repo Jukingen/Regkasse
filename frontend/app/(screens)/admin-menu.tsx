@@ -1,5 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -101,36 +102,34 @@ export default function AdminMenuScreen() {
   const [tenantSlug, setTenantSlug] = useState<string | null>(null);
   const [openingActionId, setOpeningActionId] = useState<string | null>(null);
 
-  useEffect(() => {
-    let active = true;
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
 
-    const loadTenantSlug = async () => {
-      try {
-        const slug = await getCurrentTenantSlug();
-        if (active) {
-          setTenantSlug(slug);
+      const loadTenantSlug = async () => {
+        try {
+          const slug = await getCurrentTenantSlug();
+          if (active) {
+            setTenantSlug(slug);
+          }
+        } catch {
+          if (active) {
+            setTenantSlug(null);
+          }
         }
-      } catch {
-        if (active) {
-          setTenantSlug(null);
-        }
-      }
-    };
+      };
 
-    loadTenantSlug().catch(() => {
-      if (active) {
-        setTenantSlug(null);
-      }
-    });
+      void loadTenantSlug();
 
-    return () => {
-      active = false;
-    };
-  }, []);
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
 
   const isSuperAdmin = useMemo(
     () => user?.role === 'SuperAdmin' || user?.roles?.includes('SuperAdmin') === true,
-    [user?.role, user?.roles],
+    [user?.role, user?.roles]
   );
 
   const filteredActions = useMemo(() => {
@@ -209,8 +208,7 @@ export default function AdminMenuScreen() {
                 handlePress(action).catch(() => undefined);
               }}
               accessibilityRole="button"
-              disabled={opening}
-            >
+              disabled={opening}>
               <View style={styles.iconWrap}>
                 <MaterialIcons name={action.icon} size={22} color="#007AFF" />
               </View>
@@ -234,9 +232,7 @@ export default function AdminMenuScreen() {
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>
-          Bestimmte Aktionen werden im Admin-Browser geöffnet.
-        </Text>
+        <Text style={styles.footerText}>Bestimmte Aktionen werden im Admin-Browser geöffnet.</Text>
       </View>
     </ScrollView>
   );

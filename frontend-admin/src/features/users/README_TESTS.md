@@ -24,21 +24,21 @@ npm run test:watch
 
 ## Davranış odaklı senaryolar
 
-| Senaryo | Beklenen davranış |
-|--------|---------------------|
-| List load success | Tabloda kullanıcılar, email/role görünür |
-| List empty | "Keine Benutzer gefunden." |
-| List error | Hata metni + "Erneut versuchen" butonu |
-| Filter default | İlk çağrıda `page: 1`, `pageSize: 20`, `isActive: true` |
-| Search | Arama gönderilince `query` ile tekrar çağrı |
-| Create success | `createUser` çağrılır, "Benutzer angelegt." |
-| Create error | `message.error` çağrılır |
-| Edit submit | `updateUser(id, data)` çağrılır |
-| Deactivate | Modal açılır, reason girilir, `deactivateUser(id, { reason })` |
-| Reactivate | Modal açılır, onayda `reactivateUser(id, undefined)` |
-| Reset password kısa | Modal açık kalır, `resetPassword` çağrılmaz |
-| Reset password geçerli | `resetPassword(id, { newPassword })` + success mesajı |
-| canCreate false | "Benutzer anlegen" butonu yok |
+| Senaryo                | Beklenen davranış                                              |
+| ---------------------- | -------------------------------------------------------------- |
+| List load success      | Tabloda kullanıcılar, email/role görünür                       |
+| List empty             | "Keine Benutzer gefunden."                                     |
+| List error             | Hata metni + "Erneut versuchen" butonu                         |
+| Filter default         | İlk çağrıda `page: 1`, `pageSize: 20`, `isActive: true`        |
+| Search                 | Arama gönderilince `query` ile tekrar çağrı                    |
+| Create success         | `createUser` çağrılır, "Benutzer angelegt."                    |
+| Create error           | `message.error` çağrılır                                       |
+| Edit submit            | `updateUser(id, data)` çağrılır                                |
+| Deactivate             | Modal açılır, reason girilir, `deactivateUser(id, { reason })` |
+| Reactivate             | Modal açılır, onayda `reactivateUser(id, undefined)`           |
+| Reset password kısa    | Modal açık kalır, `resetPassword` çağrılmaz                    |
+| Reset password geçerli | `resetPassword(id, { newPassword })` + success mesajı          |
+| canCreate false        | "Benutzer anlegen" butonu yok                                  |
 
 ## Flakiness önleme
 

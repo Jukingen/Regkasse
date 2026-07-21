@@ -3,6 +3,7 @@
 import { GlobalOutlined, MobileOutlined } from '@ant-design/icons';
 import { Alert, Button, Card, Col, Row, Space, Tag } from 'antd';
 import Link from 'next/link';
+
 import { CardSkeleton } from '@/components/Skeleton';
 import { useTenantDigitalService } from '@/features/digital-services/hooks/useTenantDigitalServices';
 import {

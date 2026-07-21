@@ -1,31 +1,44 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
+import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  Button,
+  Collapse,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Popconfirm,
+  Select,
+  Space,
+  Switch,
+  Tabs,
+  Typography,
+} from 'antd';
 /**
  * Add-on groups (modifier groups). Create/edit groups and manage add-on products.
  * Product–group assignment is configured on the product page.
  */
-
 import React, { useState } from 'react';
-import { Modal, Button, Form, Input, InputNumber, Switch, Collapse, Tabs, Select, Popconfirm, Space, Typography } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
-import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { CardSkeleton } from '@/components/Skeleton';
-import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  getModifierGroups,
-  createModifierGroup,
-  updateModifierGroup,
-  addProductToGroup,
-  removeProductFromGroup,
-  type ModifierGroupDto,
-  type AddOnGroupProductItemDto,
-} from '@/lib/api/modifierGroups';
+
 import { adminProductsQueryKeys, getAdminProductsList } from '@/api/admin/products';
+import { CardSkeleton } from '@/components/Skeleton';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { useCategories } from '@/features/categories/hooks/useCategories';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
+import {
+  type AddOnGroupProductItemDto,
+  type ModifierGroupDto,
+  addProductToGroup,
+  createModifierGroup,
+  getModifierGroups,
+  removeProductFromGroup,
+  updateModifierGroup,
+} from '@/lib/api/modifierGroups';
+import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 
 const modifierGroupsKey = ['modifier-groups'] as const;
@@ -55,13 +68,19 @@ export default function ModifierGroupsPage() {
   });
 
   const { data: productsRes } = useQuery({
-    queryKey: adminProductsQueryKeys.list(tenantSlug, { pageSize: 100, pageNumber: 1, isActive: 'true' }),
+    queryKey: adminProductsQueryKeys.list(tenantSlug, {
+      pageSize: 100,
+      pageNumber: 1,
+      isActive: 'true',
+    }),
     queryFn: () => getAdminProductsList({ pageSize: 100, pageNumber: 1, isActive: 'true' }),
     enabled: productModalOpen && productModalTab === 'existing',
     staleTime: 60_000,
   });
 
-  const categoryOptions = (categoryList ?? []).map((c: { id?: string; name?: string }) => ({ label: c.name ?? '', value: c.id ?? '' })).filter((o: { value: string }) => o.value);
+  const categoryOptions = (categoryList ?? [])
+    .map((c: { id?: string; name?: string }) => ({ label: c.name ?? '', value: c.id ?? '' }))
+    .filter((o: { value: string }) => o.value);
 
   const handleAddGroup = async () => {
     try {
@@ -158,7 +177,13 @@ export default function ModifierGroupsPage() {
         }
         await addProductToGroup(selectedGroup.id, { productId });
       } else {
-        const values = await productForm.validateFields(['name', 'price', 'taxType', 'categoryId', 'sortOrder']);
+        const values = await productForm.validateFields([
+          'name',
+          'price',
+          'taxType',
+          'categoryId',
+          'sortOrder',
+        ]);
         if (!values.categoryId) {
           message.error(t('modifierGroups.messages.categoryRequiredNewAddon'));
           return;
@@ -187,10 +212,18 @@ export default function ModifierGroupsPage() {
     }
   };
 
-  const productOptions = (productsRes?.items ?? []).map((p) => ({ label: `${p.name} (€${Number(p.price).toFixed(2)})`, value: p.id }));
+  const productOptions = (productsRes?.items ?? []).map((p) => ({
+    label: `${p.name} (€${Number(p.price).toFixed(2)})`,
+    value: p.id,
+  }));
 
   const items = groups.map((g) => {
-    const products: AddOnGroupProductItemDto[] = (g as { products?: AddOnGroupProductItemDto[]; Products?: AddOnGroupProductItemDto[] }).products ?? (g as { products?: AddOnGroupProductItemDto[]; Products?: AddOnGroupProductItemDto[] }).Products ?? [];
+    const products: AddOnGroupProductItemDto[] =
+      (g as { products?: AddOnGroupProductItemDto[]; Products?: AddOnGroupProductItemDto[] })
+        .products ??
+      (g as { products?: AddOnGroupProductItemDto[]; Products?: AddOnGroupProductItemDto[] })
+        .Products ??
+      [];
     return {
       key: g.id,
       label: g.name,
@@ -206,41 +239,54 @@ export default function ModifierGroupsPage() {
       ),
       children: (
         <div style={{ paddingLeft: 8 }}>
-          <div style={{ marginBottom: 4, fontWeight: 600, color: '#1890ff' }}>{t('modifierGroups.collapse.productsTitle')}</div>
-          <div style={{ marginBottom: 8, fontSize: 12, color: '#666' }}>{t('modifierGroups.collapse.productsHint')}</div>
+          <div style={{ marginBottom: 4, fontWeight: 600, color: '#1890ff' }}>
+            {t('modifierGroups.collapse.productsTitle')}
+          </div>
+          <div style={{ marginBottom: 8, fontSize: 12, color: '#666' }}>
+            {t('modifierGroups.collapse.productsHint')}
+          </div>
           {products.length === 0 ? (
-            <div style={{ color: '#999', marginBottom: 12 }}>{t('modifierGroups.collapse.emptyProducts')}</div>
+            <div style={{ color: '#999', marginBottom: 12 }}>
+              {t('modifierGroups.collapse.emptyProducts')}
+            </div>
           ) : (
             <ul style={{ margin: 0, paddingLeft: 20, marginBottom: 12 }}>
               {products.map((p) => {
-                const productId = (p as { productId?: string; ProductId?: string }).productId ?? (p as { productId?: string; ProductId?: string }).ProductId ?? '';
+                const productId =
+                  (p as { productId?: string; ProductId?: string }).productId ??
+                  (p as { productId?: string; ProductId?: string }).ProductId ??
+                  '';
                 return (
-                <li key={productId} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <span style={{ flex: 1 }}>
-                    {p.productName} — €{Number(p.price).toFixed(2)} ({t('modifierGroups.collapse.taxTypeSuffix', { type: p.taxType })})
-                  </span>
-                  <span onClick={(e) => e.stopPropagation()}>
-                    <Popconfirm
-                      title={t('modifierGroups.actions.removeTitle')}
-                      description={t('modifierGroups.collapse.popconfirmRemoveDescription')}
-                      onConfirm={() => handleRemoveProduct(g, productId)}
-                      okText={t('modifierGroups.actions.remove')}
-                      cancelText={t('common.buttons.cancel')}
-                    >
-                      <Button
-                        type="link"
-                        size="small"
-                        danger
-                        icon={<DeleteOutlined />}
+                  <li
+                    key={productId}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}
+                  >
+                    <span style={{ flex: 1 }}>
+                      {p.productName} — €{Number(p.price).toFixed(2)} (
+                      {t('modifierGroups.collapse.taxTypeSuffix', { type: p.taxType })})
+                    </span>
+                    <span onClick={(e) => e.stopPropagation()}>
+                      <Popconfirm
                         title={t('modifierGroups.actions.removeTitle')}
+                        description={t('modifierGroups.collapse.popconfirmRemoveDescription')}
+                        onConfirm={() => handleRemoveProduct(g, productId)}
+                        okText={t('modifierGroups.actions.remove')}
+                        cancelText={t('common.buttons.cancel')}
                       >
-                        {t('modifierGroups.actions.remove')}
-                      </Button>
-                    </Popconfirm>
-                  </span>
-                </li>
-              );
-            })}
+                        <Button
+                          type="link"
+                          size="small"
+                          danger
+                          icon={<DeleteOutlined />}
+                          title={t('modifierGroups.actions.removeTitle')}
+                        >
+                          {t('modifierGroups.actions.remove')}
+                        </Button>
+                      </Popconfirm>
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
@@ -275,12 +321,23 @@ export default function ModifierGroupsPage() {
         open={groupModalOpen}
         forceRender
         onOk={handleAddGroup}
-        onCancel={() => { setGroupModalOpen(false); groupForm.resetFields(); }}
+        onCancel={() => {
+          setGroupModalOpen(false);
+          groupForm.resetFields();
+        }}
         okText={t('modifierGroups.modal.okCreate')}
         cancelText={t('common.buttons.cancel')}
       >
-        <Form form={groupForm} layout="vertical" initialValues={{ minSelections: 0, sortOrder: 0, isRequired: false }}>
-          <Form.Item name="name" label={t('modifierGroups.form.name')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
+        <Form
+          form={groupForm}
+          layout="vertical"
+          initialValues={{ minSelections: 0, sortOrder: 0, isRequired: false }}
+        >
+          <Form.Item
+            name="name"
+            label={t('modifierGroups.form.name')}
+            rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
+          >
             <Input placeholder={t('modifierGroups.form.placeholderGroupName')} />
           </Form.Item>
           <Form.Item name="minSelections" label={t('modifierGroups.form.minSelections')}>
@@ -289,7 +346,11 @@ export default function ModifierGroupsPage() {
           <Form.Item name="maxSelections" label={t('modifierGroups.form.maxSelections')}>
             <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="isRequired" label={t('modifierGroups.form.isRequired')} valuePropName="checked">
+          <Form.Item
+            name="isRequired"
+            label={t('modifierGroups.form.isRequired')}
+            valuePropName="checked"
+          >
             <Switch />
           </Form.Item>
           <Form.Item name="sortOrder" label={t('modifierGroups.form.sortOrder')}>
@@ -307,13 +368,29 @@ export default function ModifierGroupsPage() {
         open={editGroupModalOpen}
         forceRender
         onOk={handleEditGroup}
-        onCancel={() => { setEditGroupModalOpen(false); setGroupToEdit(null); editGroupForm.resetFields(); }}
+        onCancel={() => {
+          setEditGroupModalOpen(false);
+          setGroupToEdit(null);
+          editGroupForm.resetFields();
+        }}
         okText={t('modifierGroups.modal.okSave')}
         cancelText={t('common.buttons.cancel')}
       >
-        <Form form={editGroupForm} layout="vertical" initialValues={{ minSelections: 0, sortOrder: 0, isRequired: false }}>
-          <Form.Item name="name" label={t('modifierGroups.form.name')} rules={[{ required: true, message: t('modifierGroups.form.nameRequired') }]}>
-            <Input placeholder={t('modifierGroups.form.placeholderGroupName')} maxLength={100} showCount />
+        <Form
+          form={editGroupForm}
+          layout="vertical"
+          initialValues={{ minSelections: 0, sortOrder: 0, isRequired: false }}
+        >
+          <Form.Item
+            name="name"
+            label={t('modifierGroups.form.name')}
+            rules={[{ required: true, message: t('modifierGroups.form.nameRequired') }]}
+          >
+            <Input
+              placeholder={t('modifierGroups.form.placeholderGroupName')}
+              maxLength={100}
+              showCount
+            />
           </Form.Item>
           <Form.Item name="minSelections" label={t('modifierGroups.form.minSelections')}>
             <InputNumber min={0} style={{ width: '100%' }} />
@@ -321,7 +398,11 @@ export default function ModifierGroupsPage() {
           <Form.Item name="maxSelections" label={t('modifierGroups.form.maxSelections')}>
             <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="isRequired" label={t('modifierGroups.form.isRequired')} valuePropName="checked">
+          <Form.Item
+            name="isRequired"
+            label={t('modifierGroups.form.isRequired')}
+            valuePropName="checked"
+          >
             <Switch />
           </Form.Item>
           <Form.Item name="sortOrder" label={t('modifierGroups.form.sortOrder')}>
@@ -339,14 +420,21 @@ export default function ModifierGroupsPage() {
         open={productModalOpen}
         forceRender
         onOk={handleAddProduct}
-        onCancel={() => { setProductModalOpen(false); setSelectedGroup(null); productForm.resetFields(); }}
+        onCancel={() => {
+          setProductModalOpen(false);
+          setSelectedGroup(null);
+          productForm.resetFields();
+        }}
         okText={t('modifierGroups.modal.okAdd')}
         cancelText={t('common.buttons.cancel')}
         width={480}
       >
         <Tabs
           activeKey={productModalTab}
-          onChange={(k) => { setProductModalTab(k as 'existing' | 'new'); productForm.resetFields(); }}
+          onChange={(k) => {
+            setProductModalTab(k as 'existing' | 'new');
+            productForm.resetFields();
+          }}
           items={[
             {
               key: 'existing',
@@ -356,13 +444,24 @@ export default function ModifierGroupsPage() {
                   <Form.Item
                     name="productId"
                     label={t('modifierGroups.form.product')}
-                    rules={productModalTab === 'existing' ? [{ required: true, message: t('modifierGroups.form.selectProductRequired') }] : []}
+                    rules={
+                      productModalTab === 'existing'
+                        ? [
+                            {
+                              required: true,
+                              message: t('modifierGroups.form.selectProductRequired'),
+                            },
+                          ]
+                        : []
+                    }
                   >
                     <Select
                       showSearch
                       placeholder={t('modifierGroups.form.selectProductPlaceholder')}
                       options={productOptions}
-                      filterOption={(input, opt) => (opt?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())}
+                      filterOption={(input, opt) =>
+                        (opt?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())
+                      }
                       loading={!productsRes}
                     />
                   </Form.Item>
@@ -373,18 +472,45 @@ export default function ModifierGroupsPage() {
               key: 'new',
               label: t('modifierGroups.tabs.newAddon'),
               children: (
-                <Form form={productForm} layout="vertical" initialValues={{ price: 0, taxType: 1, sortOrder: 0 }}>
-                  <Form.Item name="name" label={t('modifierGroups.form.name')} rules={productModalTab === 'new' ? [{ required: true, message: t('common.validation.fieldRequired') }] : []}>
+                <Form
+                  form={productForm}
+                  layout="vertical"
+                  initialValues={{ price: 0, taxType: 1, sortOrder: 0 }}
+                >
+                  <Form.Item
+                    name="name"
+                    label={t('modifierGroups.form.name')}
+                    rules={
+                      productModalTab === 'new'
+                        ? [{ required: true, message: t('common.validation.fieldRequired') }]
+                        : []
+                    }
+                  >
                     <Input placeholder={t('modifierGroups.form.placeholderNewAddonName')} />
                   </Form.Item>
-                  <Form.Item name="price" label={t('modifierGroups.form.price')} rules={productModalTab === 'new' ? [{ required: true, message: t('common.validation.fieldRequired') }] : []}>
+                  <Form.Item
+                    name="price"
+                    label={t('modifierGroups.form.price')}
+                    rules={
+                      productModalTab === 'new'
+                        ? [{ required: true, message: t('common.validation.fieldRequired') }]
+                        : []
+                    }
+                  >
                     <InputNumber min={0} step={0.01} style={{ width: '100%' }} />
                   </Form.Item>
                   <Form.Item name="taxType" label={t('modifierGroups.form.taxType')}>
                     <InputNumber min={1} max={4} style={{ width: '100%' }} />
                   </Form.Item>
-                  <Form.Item name="categoryId" label={t('modifierGroups.form.category')} rules={[{ required: true, message: t('modifierGroups.form.categoryRequired') }]}>
-                    <Select placeholder={t('modifierGroups.form.placeholderCategory')} options={categoryOptions} />
+                  <Form.Item
+                    name="categoryId"
+                    label={t('modifierGroups.form.category')}
+                    rules={[{ required: true, message: t('modifierGroups.form.categoryRequired') }]}
+                  >
+                    <Select
+                      placeholder={t('modifierGroups.form.placeholderCategory')}
+                      options={categoryOptions}
+                    />
                   </Form.Item>
                   <Form.Item name="sortOrder" label={t('modifierGroups.form.sortOrder')}>
                     <InputNumber min={0} style={{ width: '100%' }} />

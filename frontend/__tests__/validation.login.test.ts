@@ -1,5 +1,12 @@
 import { describe, expect, it, jest } from '@jest/globals';
 
+import {
+  validateAmount,
+  validateEmail,
+  validatePassword,
+  validateUsername,
+} from '../utils/validation';
+
 jest.mock('../i18n', () => ({
   __esModule: true,
   default: {
@@ -9,7 +16,8 @@ jest.mock('../i18n', () => ({
         'auth:validation.loginIdentifierRequired': 'E-Mail oder Benutzername ist erforderlich',
         'auth:validation.loginIdentifierMin': 'Mindestens 3 Zeichen',
         'auth:validation.loginIdentifierMax': 'Maximal 50 Zeichen',
-        'auth:validation.loginIdentifierPattern': 'Nur Buchstaben, Zahlen, Unterstrich und Bindestrich erlaubt',
+        'auth:validation.loginIdentifierPattern':
+          'Nur Buchstaben, Zahlen, Unterstrich und Bindestrich erlaubt',
         'auth:validation.passwordRequired': 'Passwort ist erforderlich',
         'auth:validation.passwordMin': 'Mindestens 8 Zeichen',
         'auth:validation.passwordMax': 'Passwort darf maximal 128 Zeichen haben',
@@ -19,13 +27,6 @@ jest.mock('../i18n', () => ({
     },
   },
 }));
-
-import {
-  validateAmount,
-  validateEmail,
-  validatePassword,
-  validateUsername,
-} from '../utils/validation';
 
 describe('login validation helpers', () => {
   it('requires login identifier', () => {
@@ -49,7 +50,7 @@ describe('login validation helpers', () => {
   it('rejects invalid username characters', () => {
     expect(validateUsername('bad name').isValid).toBe(false);
     expect(validateUsername('bad name').message).toBe(
-      'Nur Buchstaben, Zahlen, Unterstrich und Bindestrich erlaubt',
+      'Nur Buchstaben, Zahlen, Unterstrich und Bindestrich erlaubt'
     );
   });
 

@@ -10,7 +10,9 @@ import type { CashRegisterRow } from '@/features/tagesabschluss/normalizers';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 
 /** GET /api/rksv/status — canonical RKSV environment status for POS and Admin. */
-export async function getRksvBackendEnvironment(signal?: AbortSignal): Promise<RksvBackendEnvironmentStatus> {
+export async function getRksvBackendEnvironment(
+  signal?: AbortSignal
+): Promise<RksvBackendEnvironmentStatus> {
   const response = await AXIOS_INSTANCE.get<unknown>('/api/rksv/status', { signal });
   const normalized = normalizeRksvBackendEnvironment(response.data);
   if (!normalized) {
@@ -79,7 +81,9 @@ export function getFiscalExportPreview(params: GetApiAdminFiscalExportParams) {
   }).then((response) => unwrapFiscalExportEnvelope(response.data));
 }
 
-export async function downloadFiscalExportJson(params: GetApiAdminFiscalExportParams): Promise<Blob> {
+export async function downloadFiscalExportJson(
+  params: GetApiAdminFiscalExportParams
+): Promise<Blob> {
   const response = await AXIOS_INSTANCE.get<Blob>('/api/admin/fiscal-export', {
     params: { ...params, format: 'jsonDownload' },
     responseType: 'blob',
@@ -93,7 +97,7 @@ export async function downloadFiscalExportJson(params: GetApiAdminFiscalExportPa
  * Removal: regenerate client after swagger exposes `RksvComplianceReportDto` as JSON 200.
  */
 export function getRksvComplianceReportJson(
-  params?: RksvComplianceReportQueryParams,
+  params?: RksvComplianceReportQueryParams
 ): Promise<RksvComplianceReport> {
   return AXIOS_INSTANCE.get<RksvComplianceReport>('/api/admin/rksv/compliance-report', {
     params: { ...params, format: 'json' },
@@ -101,7 +105,7 @@ export function getRksvComplianceReportJson(
 }
 
 export async function downloadRksvComplianceReportPdf(
-  params?: RksvComplianceReportQueryParams,
+  params?: RksvComplianceReportQueryParams
 ): Promise<Blob> {
   const response = await AXIOS_INSTANCE.get<Blob>('/api/admin/rksv/compliance-report', {
     params: { ...params, format: 'pdf' },

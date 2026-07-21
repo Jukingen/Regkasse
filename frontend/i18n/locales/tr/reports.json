@@ -23,5 +23,15 @@
   "createBtn": "Gun Sonu (Tagesende) Al",
   "export": "Dışa Aktar",
   "print": "Yazdır",
-  "dateRange": "Tarih Aralığı"
+  "dateRange": "Tarih Aralığı",
+  "startDate": "Başlangıç",
+  "endDate": "Bitiş",
+  "today": "Bugün",
+  "yesterday": "Dün",
+  "lastWeek": "Son 7 Gün",
+  "lastMonth": "Son 30 Gün",
+  "searchPlaceholder": "Ara...",
+  "advancedFilters": "Gelişmiş Filtreler",
+  "apply": "Uygula",
+  "reset": "Sıfırla"
 }

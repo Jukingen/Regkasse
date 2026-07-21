@@ -1,16 +1,16 @@
 .decommissionedRow :global(td) {
-    background: rgba(0, 0, 0, 0.02);
-    color: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.02);
+  color: rgba(0, 0, 0, 0.45);
 }
 
 .decommissionedRow :global(.ant-typography) {
-    color: rgba(0, 0, 0, 0.45);
+  color: rgba(0, 0, 0, 0.45);
 }
 
 .selectedRow :global(td) {
-    background: #f0fdf4 !important;
+  background: #f0fdf4 !important;
 }
 
 .selectedRow:hover :global(td) {
-    background: #dcfce7 !important;
+  background: #dcfce7 !important;
 }

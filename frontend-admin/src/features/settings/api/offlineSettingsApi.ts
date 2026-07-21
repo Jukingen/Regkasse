@@ -38,15 +38,21 @@ const DEFAULT_OFFLINE_SETTINGS: OfflineSettings = {
 function mapFromApi(dto: OfflineSettingsApiDto): OfflineSettings {
   return {
     maxOfflineTransactions:
-      dto.maxOfflineTransactions ?? dto.MaxOfflineTransactions ?? DEFAULT_OFFLINE_SETTINGS.maxOfflineTransactions,
+      dto.maxOfflineTransactions ??
+      dto.MaxOfflineTransactions ??
+      DEFAULT_OFFLINE_SETTINGS.maxOfflineTransactions,
     maxOfflineOrders:
       dto.maxOfflineOrders ?? dto.MaxOfflineOrders ?? DEFAULT_OFFLINE_SETTINGS.maxOfflineOrders,
     offlineExpiryHours:
-      dto.offlineExpiryHours ?? dto.OfflineExpiryHours ?? DEFAULT_OFFLINE_SETTINGS.offlineExpiryHours,
+      dto.offlineExpiryHours ??
+      dto.OfflineExpiryHours ??
+      DEFAULT_OFFLINE_SETTINGS.offlineExpiryHours,
     tokenExpiryHours:
       dto.tokenExpiryHours ?? dto.TokenExpiryHours ?? DEFAULT_OFFLINE_SETTINGS.tokenExpiryHours,
     enableOfflineOrders:
-      dto.enableOfflineOrders ?? dto.EnableOfflineOrders ?? DEFAULT_OFFLINE_SETTINGS.enableOfflineOrders,
+      dto.enableOfflineOrders ??
+      dto.EnableOfflineOrders ??
+      DEFAULT_OFFLINE_SETTINGS.enableOfflineOrders,
     enableOfflinePayments:
       dto.enableOfflinePayments ??
       dto.EnableOfflinePayments ??
@@ -63,7 +69,7 @@ export async function fetchOfflineSettings(): Promise<OfflineSettings> {
 }
 
 export async function updateOfflineSettings(
-  payload: UpdateOfflineSettingsPayload,
+  payload: UpdateOfflineSettingsPayload
 ): Promise<OfflineSettings> {
   const res = await customInstance<OfflineSettingsApiDto>({
     url: '/api/admin/settings/offline',

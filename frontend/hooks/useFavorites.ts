@@ -34,7 +34,7 @@ export function useFavorites() {
 
   const shouldFetch = useMemo(
     () => canUseFavorites(user?.role, user?.roles),
-    [user?.role, user?.roles],
+    [user?.role, user?.roles]
   );
 
   const refresh = useCallback(async () => {

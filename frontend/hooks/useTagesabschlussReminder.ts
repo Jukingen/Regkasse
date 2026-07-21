@@ -121,7 +121,9 @@ export function useTagesabschlussReminder(): UseTagesabschlussReminderResult {
 
     tick();
     const interval = setInterval(tick, TICK_MS);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+    };
   }, [settings]);
 
   return {

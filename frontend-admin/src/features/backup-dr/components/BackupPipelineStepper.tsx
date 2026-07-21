@@ -3,10 +3,13 @@
 /**
  * Yedek pipeline adımları: kaynak `BackupStatusCard` içinde çözülür; sunucu projeksiyonu öncelikli, istemci türetimi yalnızca env ile açıkken.
  */
-
-import React from 'react';
 import { Space, Typography } from 'antd';
-import type { DerivedPipelineStep, DerivedPipelineStepState } from '@/features/backup-dr/logic/backupPipelineDerived';
+import React from 'react';
+
+import type {
+  DerivedPipelineStep,
+  DerivedPipelineStepState,
+} from '@/features/backup-dr/logic/backupPipelineDerived';
 
 function stepIcon(state: DerivedPipelineStepState): string {
   switch (state) {

@@ -14,9 +14,7 @@ const openDay = (closeTime = '22:00', openTime = '09:00') => ({
   isClosed: false,
 });
 
-function sampleHours(
-  overrides: Partial<PosWorkingHoursExtended> = {},
-): PosWorkingHoursExtended {
+function sampleHours(overrides: Partial<PosWorkingHoursExtended> = {}): PosWorkingHoursExtended {
   const day = openDay();
   return {
     reminderHoursBeforeClosing: 1,
@@ -47,9 +45,7 @@ describe('resolveEffectiveWorkingHoursDay', () => {
 
   it('applies special-day custom hours', () => {
     const hours = sampleHours({
-      specialDays: [
-        { date: '2026-12-31', isClosed: false, openTime: '10:00', closeTime: '18:00' },
-      ],
+      specialDays: [{ date: '2026-12-31', isClosed: false, openTime: '10:00', closeTime: '18:00' }],
     });
     const resolved = resolveEffectiveWorkingHoursDay(hours, 2026, 12, 31);
     expect(resolved.isSpecialDay).toBe(true);
@@ -142,7 +138,7 @@ describe('POS working-hours non-gating contract', () => {
   it('WorkingHoursStatus is display-only and states POS stays ready', () => {
     const src = fs.readFileSync(
       path.join(__dirname, '..', 'components', 'WorkingHoursStatus.tsx'),
-      'utf8',
+      'utf8'
     );
     expect(src).toMatch(/DISPLAY ONLY|display only/i);
     expect(src).toMatch(/POS immer bereit/);
@@ -154,7 +150,7 @@ describe('POS working-hours non-gating contract', () => {
   it('cash-register screen never early-returns on closed hours / !isOpen', () => {
     const src = fs.readFileSync(
       path.join(__dirname, '..', 'app', '(tabs)', 'cash-register.tsx'),
-      'utf8',
+      'utf8'
     );
     expect(src).toMatch(/WORKING HOURS:\s*never gate/i);
     expect(src).not.toMatch(/if\s*\(\s*!isOpen\s*\)/);
@@ -163,10 +159,7 @@ describe('POS working-hours non-gating contract', () => {
   });
 
   it('Header re-exports display-only WorkingHoursStatus', () => {
-    const src = fs.readFileSync(
-      path.join(__dirname, '..', 'components', 'Header.tsx'),
-      'utf8',
-    );
+    const src = fs.readFileSync(path.join(__dirname, '..', 'components', 'Header.tsx'), 'utf8');
     expect(src).toMatch(/DISPLAY ONLY|display-only/i);
     expect(src).toContain('WorkingHoursStatus');
   });
@@ -198,17 +191,14 @@ describe('POS working-hours non-gating contract', () => {
         if (!/\.(ts|tsx)$/.test(file)) continue;
         const src = fs.readFileSync(file, 'utf8');
         expect(src).not.toMatch(
-          /useWorkingHours|restaurantIsOpen|computePosWorkingHoursStatus|canOrder|IsAcceptingOnlineOrders/,
+          /useWorkingHours|restaurantIsOpen|computePosWorkingHoursStatus|canOrder|IsAcceptingOnlineOrders/
         );
       }
     }
   });
 
   it('useWorkingHours always forces posOperationsAllowed true', () => {
-    const src = fs.readFileSync(
-      path.join(__dirname, '..', 'hooks', 'useWorkingHours.ts'),
-      'utf8',
-    );
+    const src = fs.readFileSync(path.join(__dirname, '..', 'hooks', 'useWorkingHours.ts'), 'utf8');
     expect(src).toMatch(/posOperationsAllowed:\s*true/);
     expect(src).toMatch(/posOperationsAllowed:\s*true\s*,\s*loading/);
     expect(src).toMatch(/Never use this hook to block/i);

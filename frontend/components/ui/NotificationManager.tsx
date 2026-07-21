@@ -17,9 +17,11 @@ export const NotificationManager: React.FC = () => {
           title={notification.title}
           message={notification.message}
           duration={notification.duration}
-          onClose={() => removeNotification(notification.id)}
+          onClose={() => {
+            removeNotification(notification.id);
+          }}
         />
       ))}
     </View>
   );
-}; 
+};

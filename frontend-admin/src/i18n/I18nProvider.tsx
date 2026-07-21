@@ -1,21 +1,31 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'react';
 
-const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+import { technicalConsole } from '@/shared/dev/technicalConsole';
+
 import {
+  type AdminNamespace,
   DEFAULT_FORMAT_LOCALE,
   DEFAULT_TEXT_LOCALE,
+  type TextLocale,
   getCatalog,
   getFormattingLocaleForTextLocale,
   normalizeFormatLocale,
   normalizeTextLocale,
-  type AdminNamespace,
-  type TextLocale,
 } from './config';
 import { getStoredLanguage, setStoredLanguage } from './languageStorage';
 import { USER_FACING_MISSING_TRANSLATION_LABEL } from './translationFallback';
-import { technicalConsole } from '@/shared/dev/technicalConsole';
+
+const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 type TranslateOptions = Record<string, string | number>;
 const missingRuntimeKeys = new Set<string>();
@@ -56,10 +66,10 @@ function resolveFromPath(source: unknown, key: string): string | undefined {
 function interpolate(template: string, options?: TranslateOptions): string {
   if (!options) return template;
   const withDoubleBraces = template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, token: string) =>
-    options[token] !== undefined ? String(options[token]) : `{{${token}}}`,
+    options[token] !== undefined ? String(options[token]) : `{{${token}}}`
   );
   return withDoubleBraces.replace(/\{([a-zA-Z0-9_]+)\}/g, (_, token: string) =>
-    options[token] !== undefined ? String(options[token]) : `{${token}}`,
+    options[token] !== undefined ? String(options[token]) : `{${token}}`
   );
 }
 
@@ -67,7 +77,7 @@ function trackMissingRuntimeKey(locale: string, key: string) {
   const marker = `${locale}|${key}`;
   if (isDevRuntime && !missingRuntimeKeys.has(marker)) {
     technicalConsole.warn(
-      `[i18n] Missing translation key (dev diagnostic, English-only). locale="${locale}" key="${key}"`,
+      `[i18n] Missing translation key (dev diagnostic, English-only). locale="${locale}" key="${key}"`
     );
   }
   missingRuntimeKeys.add(marker);
@@ -82,7 +92,8 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     // Text locale: strict `de` when nothing stored (languageStorage); navigator is not used.
     // Layout effect on the client runs before paint so the first visible frame matches storage.
     const storedTextLocale = getStoredLanguage();
-    const savedFormatLocale = typeof window !== 'undefined' ? window.localStorage.getItem(FORMAT_STORAGE_KEY) : null;
+    const savedFormatLocale =
+      typeof window !== 'undefined' ? window.localStorage.getItem(FORMAT_STORAGE_KEY) : null;
     const nextFormatLocale = savedFormatLocale
       ? normalizeFormatLocale(savedFormatLocale)
       : getFormattingLocaleForTextLocale(storedTextLocale);

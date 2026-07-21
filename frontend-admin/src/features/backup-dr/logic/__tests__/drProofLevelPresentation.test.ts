@@ -1,16 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import type { BackupOperatorTruthModel } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
-import {
-  BackupArtifactResponseDtoArtifactType,
-  BackupRunResponseDtoStatus,
-  RestoreVerificationRunResponseDtoStatus,
-} from '@/api/generated/model';
+
 import type {
   BackupRecoverabilitySummaryResponseDto,
   BackupRunResponseDto,
   BackupVerificationResponseDto,
   RestoreVerificationRunResponseDto,
 } from '@/api/generated/model';
+import {
+  BackupArtifactResponseDtoArtifactType,
+  BackupRunResponseDtoStatus,
+  RestoreVerificationRunResponseDtoStatus,
+} from '@/api/generated/model';
+import type { BackupOperatorTruthModel } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
 import {
   buildDrProofPresentationModel,
   mapDrProofScanTagToneToAntdTagColor,
@@ -56,7 +57,9 @@ describe('buildDrProofPresentationModel', () => {
       recoverability: {
         lastSuccessfulBackupAt: '2026-01-01T00:00:00Z',
       } as BackupRecoverabilitySummaryResponseDto,
-      restoreLatest: { status: RestoreVerificationRunResponseDtoStatus.NUMBER_2 } as RestoreVerificationRunResponseDto,
+      restoreLatest: {
+        status: RestoreVerificationRunResponseDtoStatus.NUMBER_2,
+      } as RestoreVerificationRunResponseDto,
       restoreExtended: {},
     });
     expect(m.highestFullyProvenLevel).toBe(0);
@@ -71,7 +74,9 @@ describe('buildDrProofPresentationModel', () => {
       detailForPipeline: undefined,
       verification: undefined,
       recoverability: {},
-      restoreLatest: { status: RestoreVerificationRunResponseDtoStatus.NUMBER_3 } as RestoreVerificationRunResponseDto,
+      restoreLatest: {
+        status: RestoreVerificationRunResponseDtoStatus.NUMBER_3,
+      } as RestoreVerificationRunResponseDto,
       restoreExtended: {},
     });
     expect(m.decisionStrip.alertType).toBe('error');
@@ -107,7 +112,10 @@ describe('buildDrProofPresentationModel', () => {
         lastSuccessfulBackupAt: '2026-01-01T00:00:00Z',
       } as BackupRecoverabilitySummaryResponseDto,
       restoreLatest: restore,
-      restoreExtended: { postRestoreContinuityChecksExecuted: true, postRestoreContinuityChecksPassed: true },
+      restoreExtended: {
+        postRestoreContinuityChecksExecuted: true,
+        postRestoreContinuityChecksPassed: true,
+      },
     });
     expect(m.highestFullyProvenLevel).toBe(4);
     expect(m.fiscalVerifiedSummary.passed).toBe(true);

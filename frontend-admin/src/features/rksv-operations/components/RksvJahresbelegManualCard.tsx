@@ -1,16 +1,17 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
+import { Button, Card, Input, InputNumber, Select, Space, Typography } from 'antd';
 /**
  * Minimal admin trigger for RKSV Jahresbeleg (manual POST). German operator copy only.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { Button, Card, Input, InputNumber, Select, Space, Typography } from 'antd';
+
 import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import type { CashRegister } from '@/api/generated/model';
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { customInstance } from '@/lib/axios';
-import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
+import { usePermissions } from '@/shared/auth/usePermissions';
 
 function getViennaCalendarYear(now: Date = new Date()): number {
   const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Vienna', year: 'numeric' });
@@ -94,7 +95,8 @@ export function RksvJahresbelegManualCard() {
   return (
     <Card size="small" title="Jahresbeleg (manuell)" style={{ marginBottom: 16 }}>
       <Typography.Paragraph type="secondary" style={{ marginTop: 0, fontSize: 12 }}>
-        Erstellt einen fiskalischen Jahres-Nullbeleg für die gewählte Kasse und das Kalenderjahr (Wien).
+        Erstellt einen fiskalischen Jahres-Nullbeleg für die gewählte Kasse und das Kalenderjahr
+        (Wien).
       </Typography.Paragraph>
       <Space orientation="vertical" style={{ width: '100%' }} size="middle">
         <div>
@@ -118,11 +120,24 @@ export function RksvJahresbelegManualCard() {
         </div>
         <div>
           <Typography.Text type="secondary">Kalenderjahr (Wien)</Typography.Text>
-          <InputNumber min={2000} max={2100} value={year} onChange={(v) => setYear(Number(v) || defaultYear)} style={{ width: '100%', marginTop: 4 }} />
+          <InputNumber
+            min={2000}
+            max={2100}
+            value={year}
+            onChange={(v) => setYear(Number(v) || defaultYear)}
+            style={{ width: '100%', marginTop: 4 }}
+          />
         </div>
         <div>
-          <Typography.Text type="secondary">Optional: Hinweis vorzeitige Erstellung</Typography.Text>
-          <Input value={earlyReason} onChange={(e) => setEarlyReason(e.target.value)} maxLength={450} style={{ marginTop: 4 }} />
+          <Typography.Text type="secondary">
+            Optional: Hinweis vorzeitige Erstellung
+          </Typography.Text>
+          <Input
+            value={earlyReason}
+            onChange={(e) => setEarlyReason(e.target.value)}
+            maxLength={450}
+            style={{ marginTop: 4 }}
+          />
         </div>
         <Button type="primary" onClick={onCreateClick} loading={submitting} disabled={!registerId}>
           Jahresbeleg erstellen…

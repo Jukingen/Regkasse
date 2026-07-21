@@ -256,6 +256,7 @@ builder.Services.AddScoped<ITenantDomainService, TenantDomainService>();
 builder.Services.AddSingleton<IDigitalServicePricingService, DigitalServicePricingService>();
 builder.Services.AddScoped<ITenantServiceStatusService, TenantServiceStatusService>();
 builder.Services.AddScoped<IDigitalServiceRequestService, DigitalServiceRequestService>();
+builder.Services.AddScoped<KasseAPI_Final.Services.Feedback.IAdminFeedbackService, KasseAPI_Final.Services.Feedback.AdminFeedbackService>();
 builder.Services.AddScoped<ProductImageThumbnailService>();
 builder.Services.AddScoped<ICashRegisterSettingsService, CashRegisterSettingsService>();
 builder.Services.Configure<CashRegisterComplianceOptions>(

@@ -6,27 +6,27 @@ let isTenantSwitching = false;
 const listeners = new Set<TenantSwitchListener>();
 
 export function getIsTenantSwitching(): boolean {
-    return isTenantSwitching;
+  return isTenantSwitching;
 }
 
 export function beginTenantSwitch(): void {
-    if (isTenantSwitching) {
-        return;
-    }
-    isTenantSwitching = true;
-    listeners.forEach((listener) => listener(true));
+  if (isTenantSwitching) {
+    return;
+  }
+  isTenantSwitching = true;
+  listeners.forEach((listener) => listener(true));
 }
 
 export function endTenantSwitch(): void {
-    if (!isTenantSwitching) {
-        return;
-    }
-    isTenantSwitching = false;
-    listeners.forEach((listener) => listener(false));
+  if (!isTenantSwitching) {
+    return;
+  }
+  isTenantSwitching = false;
+  listeners.forEach((listener) => listener(false));
 }
 
 export function subscribeTenantSwitch(listener: TenantSwitchListener): () => void {
-    listeners.add(listener);
-    listener(isTenantSwitching);
-    return () => listeners.delete(listener);
+  listeners.add(listener);
+  listener(isTenantSwitching);
+  return () => listeners.delete(listener);
 }

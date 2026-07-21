@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Alert, Button, Modal, Space, Typography } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
+import { Alert, Button, Modal, Space, Typography } from 'antd';
+import { useEffect, useState } from 'react';
 
 import type { UserInfo } from '@/features/users/api/usersGateway';
 import { useResetUserPassword } from '@/features/users/hooks/useResetPassword';
@@ -96,10 +96,20 @@ export function ResetPasswordModal({ open, user, onClose, onSuccess }: ResetPass
     >
       {generatedPassword ? (
         <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-          <Alert type="success" showIcon title={t('users.modals.resetPassword.generated.resultTitle')} />
-          <Alert type="info" showIcon title={t('users.modals.resetPassword.generated.forceChangeHint')} />
+          <Alert
+            type="success"
+            showIcon
+            title={t('users.modals.resetPassword.generated.resultTitle')}
+          />
+          <Alert
+            type="info"
+            showIcon
+            title={t('users.modals.resetPassword.generated.forceChangeHint')}
+          />
           <div style={{ background: '#f8fafc', padding: 16, borderRadius: 8 }}>
-            <Typography.Text strong>{t('users.modals.resetPassword.generated.passwordLabel')}</Typography.Text>
+            <Typography.Text strong>
+              {t('users.modals.resetPassword.generated.passwordLabel')}
+            </Typography.Text>
             <Space style={{ marginTop: 8 }}>
               <Typography.Text code style={{ fontSize: 18 }}>
                 {generatedPassword}
@@ -118,7 +128,9 @@ export function ResetPasswordModal({ open, user, onClose, onSuccess }: ResetPass
           <Alert
             type="warning"
             showIcon
-            title={t('users.modals.resetPassword.generated.confirmTitle', { name: displayName(user) })}
+            title={t('users.modals.resetPassword.generated.confirmTitle', {
+              name: displayName(user),
+            })}
             description={t('users.modals.resetPassword.generated.body')}
           />
         </Space>

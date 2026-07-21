@@ -1,4 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -9,15 +11,14 @@ import {
   TextInput,
   ScrollView,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
-import { 
-  getActiveProductsForHomePage, // ✅ YENİ: getAllActiveProducts yerine
-  getProductsByCategory, 
-  searchProducts,
-  Product 
-} from '../services/api/productService';
+
 import { Colors } from '../constants/Colors';
+import {
+  getActiveProductsForHomePage, // ✅ YENİ: getAllActiveProducts yerine
+  getProductsByCategory,
+  searchProducts,
+  Product,
+} from '../services/api/productService';
 import { WaveLoader } from '../src/components/common/WaveLoader';
 
 /**
@@ -28,7 +29,7 @@ interface ProductSelectorProps {
   visible: boolean;
   onClose: () => void;
   onProductSelect: (product: Product, quantity: number) => void;
-  selectedProducts?: Array<{ product: Product; quantity: number }>;
+  selectedProducts?: { product: Product; quantity: number }[];
 }
 
 export const ProductSelector: React.FC<ProductSelectorProps> = ({
@@ -60,7 +61,7 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
     'Kaffee & Tee',
     'Süßigkeiten',
     'Spezialitäten',
-    'Brot & Gebäck'
+    'Brot & Gebäck',
   ];
 
   // Ürünleri yükle
@@ -74,7 +75,7 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
       } else {
         // ✅ YENİ: getActiveProductsForHomePage kullan
         const response = await getActiveProductsForHomePage();
-        productsData = response.flatMap(group => group.products);
+        productsData = response.flatMap((group) => group.products);
       }
 
       setProducts(productsData);
@@ -141,7 +142,9 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
       handleSearch();
     }, 500);
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, [searchQuery]);
 
   return (
@@ -149,8 +152,7 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
+      onRequestClose={onClose}>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -176,20 +178,25 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
         </View>
 
         {/* Kategori Filtreleri */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.categoryContainer}>
           {categories.map((category) => (
             <TouchableOpacity
               key={category}
               style={[
                 styles.categoryButton,
-                selectedCategory === category && styles.categoryButtonActive
+                selectedCategory === category && styles.categoryButtonActive,
               ]}
-              onPress={() => handleCategoryChange(category)}
-            >
-              <Text style={[
-                styles.categoryButtonText,
-                selectedCategory === category && styles.categoryButtonTextActive
-              ]}>
+              onPress={() => {
+                handleCategoryChange(category);
+              }}>
+              <Text
+                style={[
+                  styles.categoryButtonText,
+                  selectedCategory === category && styles.categoryButtonTextActive,
+                ]}>
                 {category === 'all' ? 'Tümü' : category}
               </Text>
             </TouchableOpacity>
@@ -210,36 +217,29 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
               <TouchableOpacity
                 style={[
                   styles.productItem,
-                  selectedProduct?.id === item.id && styles.productItemSelected
+                  selectedProduct?.id === item.id && styles.productItemSelected,
                 ]}
-                onPress={() => handleProductPress(item)}
-              >
+                onPress={() => {
+                  handleProductPress(item);
+                }}>
                 <View style={styles.productInfo}>
                   <Text style={styles.productName} numberOfLines={2}>
                     {item.name}
                   </Text>
-                  <Text style={styles.productCategory}>
-                    {item.category}
-                  </Text>
+                  <Text style={styles.productCategory}>{item.category}</Text>
                   <Text style={styles.productDescription} numberOfLines={1}>
                     {item.description}
                   </Text>
                 </View>
                 <View style={styles.productMeta}>
-                  <Text style={styles.productPrice}>
-                    €{item.price.toFixed(2)}
-                  </Text>
+                  <Text style={styles.productPrice}>€{item.price.toFixed(2)}</Text>
                   {/* Stock info intentionally hidden from cashier UI. Stock management is handled in admin panel. Kept in code for potential future POS usage. */}
                   {/* <Text style={styles.productStock}>
                     Stok: {item.stockQuantity} {item.unit}
                   </Text> */}
-                  <View style={[
-                    styles.taxBadge,
-                    { backgroundColor: getTaxTypeColor(item.taxType) }
-                  ]}>
-                    <Text style={styles.taxBadgeText}>
-                      {item.taxType}
-                    </Text>
+                  <View
+                    style={[styles.taxBadge, { backgroundColor: getTaxTypeColor(item.taxType) }]}>
+                    <Text style={styles.taxBadgeText}>{item.taxType}</Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -253,12 +253,8 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
         {selectedProduct && (
           <View style={styles.selectedProductContainer}>
             <View style={styles.selectedProductInfo}>
-              <Text style={styles.selectedProductName}>
-                {selectedProduct.name}
-              </Text>
-              <Text style={styles.selectedProductPrice}>
-                €{selectedProduct.price.toFixed(2)}
-              </Text>
+              <Text style={styles.selectedProductName}>{selectedProduct.name}</Text>
+              <Text style={styles.selectedProductPrice}>€{selectedProduct.price.toFixed(2)}</Text>
             </View>
             <View style={styles.quantityContainer}>
               <Text style={styles.quantityLabel}>Miktar:</Text>
@@ -270,14 +266,9 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
                 placeholder="1"
                 placeholderTextColor={Colors.textTertiary}
               />
-              <Text style={styles.quantityUnit}>
-                {selectedProduct.unit}
-              </Text>
+              <Text style={styles.quantityUnit}>{selectedProduct.unit}</Text>
             </View>
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={handleAddProduct}
-            >
+            <TouchableOpacity style={styles.addButton} onPress={handleAddProduct}>
               <Ionicons name="add" size={20} color={Colors.white} />
               <Text style={styles.addButtonText}>Sepete Ekle</Text>
             </TouchableOpacity>
@@ -291,10 +282,14 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
 // Vergi tipi rengi
 const getTaxTypeColor = (taxType: string) => {
   switch (taxType) {
-    case 'Standard': return Colors.primary;
-    case 'Reduced': return Colors.secondary;
-    case 'Special': return Colors.accent;
-    default: return Colors.text;
+    case 'Standard':
+      return Colors.primary;
+    case 'Reduced':
+      return Colors.secondary;
+    case 'Special':
+      return Colors.accent;
+    default:
+      return Colors.text;
   }
 };
 

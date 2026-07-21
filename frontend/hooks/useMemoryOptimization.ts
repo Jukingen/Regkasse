@@ -10,11 +10,13 @@ export const useMemoryOptimization = () => {
 
   useEffect(() => {
     mountedRef.current = true;
-    
+
     return () => {
       mountedRef.current = false;
       // Tüm cleanup fonksiyonlarını çalıştır
-      cleanupRef.current.forEach(cleanup => cleanup());
+      cleanupRef.current.forEach((cleanup) => {
+        cleanup();
+      });
       cleanupRef.current = [];
     };
   }, []);
@@ -39,14 +41,17 @@ export const useMemoryMonitor = () => {
           const memory = (global.performance as any).memory;
           const usedMB = Math.round(memory.usedJSHeapSize / 1024 / 1024);
           const totalMB = Math.round(memory.totalJSHeapSize / 1024 / 1024);
-          
-          if (usedMB > 100) { // 100MB üzerinde uyarı
+
+          if (usedMB > 100) {
+            // 100MB üzerinde uyarı
             console.warn(`Memory usage high: ${usedMB}MB / ${totalMB}MB`);
           }
         }
       }, 60 * 1000); // OPTIMIZATION: 10 saniye yerine 1 dakikada bir kontrol
 
-      return () => clearInterval(interval);
+      return () => {
+        clearInterval(interval);
+      };
     }
   }, []);
 };

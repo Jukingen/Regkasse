@@ -56,7 +56,12 @@ describe('addOnFlow', () => {
             { productId: 'p2', productName: 'Mayo', price: 0.5 },
           ],
         },
-        { id: '2', name: 'Extras', modifiers: [{ id: 'm1', name: 'Extra', price: 1 }], products: [] },
+        {
+          id: '2',
+          name: 'Extras',
+          modifiers: [{ id: 'm1', name: 'Extra', price: 1 }],
+          products: [],
+        },
       ];
       const result = groupsWithProducts(groups);
       expect(result).toHaveLength(1);
@@ -87,7 +92,12 @@ describe('addOnFlow', () => {
 
     it('returns false when group has only legacy modifiers (no products)', () => {
       const groups: ModifierGroupDto[] = [
-        { id: '1', name: 'Extras', modifiers: [{ id: 'm1', name: 'Extra', price: 1 }], products: [] },
+        {
+          id: '1',
+          name: 'Extras',
+          modifiers: [{ id: 'm1', name: 'Extra', price: 1 }],
+          products: [],
+        },
       ];
       expect(hasModifiers(groups)).toBe(false);
     });
@@ -97,9 +107,7 @@ describe('addOnFlow', () => {
     });
 
     it('returns false when groups have neither products nor modifiers', () => {
-      const groups: ModifierGroupDto[] = [
-        { id: '1', name: 'Empty', modifiers: [] },
-      ];
+      const groups: ModifierGroupDto[] = [{ id: '1', name: 'Empty', modifiers: [] }];
       expect(hasModifiers(groups)).toBe(false);
     });
   });
@@ -151,10 +159,7 @@ describe('addOnFlow', () => {
       modifiers?: { price: number; quantity?: number }[];
     }): number {
       const base = (item.unitPrice ?? item.price ?? 0) * (item.qty ?? 0);
-      const modTotal = (item.modifiers ?? []).reduce(
-        (s, m) => s + m.price * (m.quantity ?? 1),
-        0
-      );
+      const modTotal = (item.modifiers ?? []).reduce((s, m) => s + m.price * (m.quantity ?? 1), 0);
       return base + modTotal;
     }
 

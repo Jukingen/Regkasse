@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, ReactNode, FC } from 'react';
+import { Spin } from 'antd';
 import { useRouter } from 'next/navigation';
+import { FC, ReactNode, useEffect } from 'react';
+
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
-import { Spin } from 'antd';
 
 interface GuardProps {
-    children: ReactNode;
+  children: ReactNode;
 }
 
 /**
@@ -15,29 +16,31 @@ interface GuardProps {
  * Redirects to /login if not authenticated.
  */
 export const AuthGuard: FC<GuardProps> = ({ children }) => {
-    const { isAuthenticated, isLoadingAuth, user } = useAuth();
-    const router = useRouter();
+  const { isAuthenticated, isLoadingAuth, user } = useAuth();
+  const router = useRouter();
 
-    useEffect(() => {
-        if (!isLoadingAuth && !isAuthenticated) {
-            technicalConsole.devLog('[AuthGuard] not authenticated, redirecting to /login');
-            router.replace('/login');
-        }
-    }, [isAuthenticated, isLoadingAuth, router]);
-
-    if (isLoadingAuth) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-                <Spin size="large" description="Authenticating..." />
-            </div>
-        );
+  useEffect(() => {
+    if (!isLoadingAuth && !isAuthenticated) {
+      technicalConsole.devLog('[AuthGuard] not authenticated, redirecting to /login');
+      router.replace('/login');
     }
+  }, [isAuthenticated, isLoadingAuth, router]);
 
-    if (!isAuthenticated) {
-        return null; // Render nothing while redirecting
-    }
+  if (isLoadingAuth) {
+    return (
+      <div
+        style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}
+      >
+        <Spin size="large" description="Authenticating..." />
+      </div>
+    );
+  }
 
-    return <>{children}</>;
+  if (!isAuthenticated) {
+    return null; // Render nothing while redirecting
+  }
+
+  return <>{children}</>;
 };
 
 /**
@@ -45,27 +48,29 @@ export const AuthGuard: FC<GuardProps> = ({ children }) => {
  * Redirects to /dashboard if already authenticated.
  */
 export const GuestGuard: FC<GuardProps> = ({ children }) => {
-    const { isAuthenticated, isLoadingAuth } = useAuth();
-    const router = useRouter();
+  const { isAuthenticated, isLoadingAuth } = useAuth();
+  const router = useRouter();
 
-    useEffect(() => {
-        if (!isLoadingAuth && isAuthenticated) {
-            technicalConsole.devLog('[GuestGuard] already authenticated, redirecting to /dashboard');
-            router.replace('/dashboard');
-        }
-    }, [isAuthenticated, isLoadingAuth, router]);
-
-    if (isLoadingAuth) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-                <Spin size="large" description="Checking session..." />
-            </div>
-        );
+  useEffect(() => {
+    if (!isLoadingAuth && isAuthenticated) {
+      technicalConsole.devLog('[GuestGuard] already authenticated, redirecting to /dashboard');
+      router.replace('/dashboard');
     }
+  }, [isAuthenticated, isLoadingAuth, router]);
 
-    if (isAuthenticated) {
-        return null; // Render nothing while redirecting
-    }
+  if (isLoadingAuth) {
+    return (
+      <div
+        style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}
+      >
+        <Spin size="large" description="Checking session..." />
+      </div>
+    );
+  }
 
-    return <>{children}</>;
+  if (isAuthenticated) {
+    return null; // Render nothing while redirecting
+  }
+
+  return <>{children}</>;
 };

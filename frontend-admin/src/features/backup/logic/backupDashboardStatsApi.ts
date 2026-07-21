@@ -1,10 +1,9 @@
 /**
  * GET /api/admin/backup/dashboard/stats — manual client until Orval regeneration.
  */
-
-import { customInstance } from '@/lib/axios';
-import type { BackupConfigurationHealthResponseDto } from '@/api/generated/model/backupConfigurationHealthResponseDto';
 import type { BackupArtifactPipelinePolicyResponseDto } from '@/api/generated/model/backupArtifactPipelinePolicyResponseDto';
+import type { BackupConfigurationHealthResponseDto } from '@/api/generated/model/backupConfigurationHealthResponseDto';
+import { customInstance } from '@/lib/axios';
 
 export const BACKUP_DASHBOARD_STATS_PATH = '/api/admin/backup/dashboard/stats' as const;
 

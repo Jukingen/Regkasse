@@ -3,6 +3,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { OfflineSessionManager } from '@/services/auth/offlineSessionManager';
 import { OfflineConfigService } from '@/services/config/offlineConfigService';
 import { eventEmitter } from '@/utils/eventEmitter';
+import { fetchIsNetworkOnline, isNetworkOnline } from '@/utils/isNetworkOnline';
 
 const OFFLINE_TIME_CHECK_MS = 60_000;
 const TOKEN_EXPIRY_CHECK_MS = 300_000;
@@ -47,9 +48,7 @@ export class OfflineNotificationService {
     eventEmitter.on('sync:online', this.onSyncOnline);
 
     this.netInfoUnsubscribe = NetInfo.addEventListener((state) => {
-      const online =
-        state.isConnected === true && state.isInternetReachable !== false;
-      if (online) {
+      if (isNetworkOnline(state)) {
         this.warningsShown.clear();
       }
     });
@@ -75,7 +74,7 @@ export class OfflineNotificationService {
       }
     }
 
-    const online = await this.resolveIsOnline();
+    const online = await fetchIsNetworkOnline();
     if (online) {
       this.warningsShown.clear();
     }
@@ -89,18 +88,6 @@ export class OfflineNotificationService {
     eventEmitter.emit('sync:warning', {
       message: TOKEN_EXPIRY_WARNING_MESSAGE_DE,
     });
-  }
-
-  private async resolveIsOnline(): Promise<boolean> {
-    try {
-      const state = await NetInfo.fetch();
-      return state.isConnected === true && state.isInternetReachable !== false;
-    } catch {
-      if (typeof navigator !== 'undefined' && 'onLine' in navigator) {
-        return navigator.onLine;
-      }
-      return false;
-    }
   }
 
   destroy(): void {

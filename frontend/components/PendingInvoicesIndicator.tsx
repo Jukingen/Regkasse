@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 
 import { networkService, NetworkStatus } from '../services/api/networkService';
-import { pendingInvoicesService, PendingInvoicesResponse } from '../services/api/pendingInvoicesService';
+import {
+  pendingInvoicesService,
+  PendingInvoicesResponse,
+} from '../services/api/pendingInvoicesService';
 import { WaveLoader } from '../src/components/common/WaveLoader';
 import { formatUserDate } from '../utils/dateFormatter';
 
@@ -13,7 +16,7 @@ interface PendingInvoicesIndicatorProps {
 
 export const PendingInvoicesIndicator: React.FC<PendingInvoicesIndicatorProps> = ({
   showDetails = false,
-  onStatusChange
+  onStatusChange,
 }) => {
   const [pendingData, setPendingData] = useState<PendingInvoicesResponse | null>(null);
   const [networkStatus, setNetworkStatus] = useState<NetworkStatus | null>(null);
@@ -23,14 +26,19 @@ export const PendingInvoicesIndicator: React.FC<PendingInvoicesIndicatorProps> =
   useEffect(() => {
     checkPendingInvoices();
     checkNetworkStatus();
-    
-    // OPTIMIZATION: Periyodik kontrolü daha az sıklıkta yap
-    const interval = setInterval(() => {
-      checkPendingInvoices();
-      checkNetworkStatus();
-    }, 5 * 60 * 1000); // 5 dakika
 
-    return () => clearInterval(interval);
+    // OPTIMIZATION: Periyodik kontrolü daha az sıklıkta yap
+    const interval = setInterval(
+      () => {
+        checkPendingInvoices();
+        checkNetworkStatus();
+      },
+      5 * 60 * 1000
+    ); // 5 dakika
+
+    return () => {
+      clearInterval(interval);
+    };
   }, []);
 
   const checkPendingInvoices = async () => {
@@ -57,11 +65,9 @@ export const PendingInvoicesIndicator: React.FC<PendingInvoicesIndicatorProps> =
 
   const handleSubmitAll = async () => {
     if (!networkStatus?.canSubmitToFinanzOnline) {
-      Alert.alert(
-        'Bağlantı Hatası',
-        'FinanzOnline bağlantısı yok. Faturalar gönderilemez.',
-        [{ text: 'Tamam', style: 'default' }]
-      );
+      Alert.alert('Bağlantı Hatası', 'FinanzOnline bağlantısı yok. Faturalar gönderilemez.', [
+        { text: 'Tamam', style: 'default' },
+      ]);
       return;
     }
 
@@ -84,19 +90,17 @@ export const PendingInvoicesIndicator: React.FC<PendingInvoicesIndicatorProps> =
             } finally {
               setSubmitting(false);
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
 
   const handleRetryInvoice = async (invoiceId: string, invoiceNumber: string) => {
     if (!networkStatus?.canSubmitToFinanzOnline) {
-      Alert.alert(
-        'Bağlantı Hatası',
-        'FinanzOnline bağlantısı yok. Fatura gönderilemez.',
-        [{ text: 'Tamam', style: 'default' }]
-      );
+      Alert.alert('Bağlantı Hatası', 'FinanzOnline bağlantısı yok. Fatura gönderilemez.', [
+        { text: 'Tamam', style: 'default' },
+      ]);
       return;
     }
 
@@ -148,8 +152,7 @@ export const PendingInvoicesIndicator: React.FC<PendingInvoicesIndicatorProps> =
           <TouchableOpacity
             style={styles.submitButton}
             onPress={handleSubmitAll}
-            disabled={submitting}
-          >
+            disabled={submitting}>
             {submitting ? (
               <WaveLoader size={18} color="#FFFFFF" />
             ) : (
@@ -166,19 +169,14 @@ export const PendingInvoicesIndicator: React.FC<PendingInvoicesIndicatorProps> =
             <View key={invoice.id} style={styles.invoiceRow}>
               <View style={styles.invoiceInfo}>
                 <Text style={styles.invoiceNumber}>{invoice.invoiceNumber}</Text>
-                <Text style={styles.invoiceDate}>
-                  {formatUserDate(invoice.invoiceDate)}
-                </Text>
-                <Text style={styles.invoiceAmount}>
-                  {invoice.totalAmount.toFixed(2)} €
-                </Text>
+                <Text style={styles.invoiceDate}>{formatUserDate(invoice.invoiceDate)}</Text>
+                <Text style={styles.invoiceAmount}>{invoice.totalAmount.toFixed(2)} €</Text>
               </View>
               {networkStatus?.canSubmitToFinanzOnline && (
                 <TouchableOpacity
                   style={styles.retryButton}
                   onPress={() => handleRetryInvoice(invoice.id, invoice.invoiceNumber)}
-                  disabled={submitting}
-                >
+                  disabled={submitting}>
                   <Text style={styles.retryButtonText}>Yeniden Dene</Text>
                 </TouchableOpacity>
               )}
@@ -290,4 +288,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
   },
-}); 
+});

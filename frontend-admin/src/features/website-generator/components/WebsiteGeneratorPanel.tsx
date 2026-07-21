@@ -4,6 +4,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { Alert, Button, Card, Radio, Space, Typography } from 'antd';
 import Link from 'next/link';
 import { useState } from 'react';
+
 import {
   fetchWebsiteTemplates,
   generateMobileApp,
@@ -127,10 +128,7 @@ export function WebsiteGeneratorPanel({
           </Button>
         ) : null}
         {appEnabled ? (
-          <Button
-            loading={mobileMutation.isPending}
-            onClick={() => mobileMutation.mutate()}
-          >
+          <Button loading={mobileMutation.isPending} onClick={() => mobileMutation.mutate()}>
             {t('settings.websiteGenerator.generateMobile')}
           </Button>
         ) : null}

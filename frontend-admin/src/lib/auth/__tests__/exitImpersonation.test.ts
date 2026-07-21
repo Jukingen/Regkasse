@@ -5,48 +5,46 @@ import { DEV_TENANT_LOCAL_STORAGE_KEY } from '@/features/auth/services/devTenant
 import { buildAdminPlatformOrigin, exitImpersonation } from '@/lib/auth/exitImpersonation';
 
 describe('exitImpersonation', () => {
-    const assign = vi.fn();
+  const assign = vi.fn();
 
-    beforeEach(() => {
-        assign.mockReset();
-        vi.stubGlobal('location', {
-            hostname: 'dev.regkasse.at',
-            protocol: 'https:',
-            assign,
-        } as Location);
-        localStorage.clear();
-        authStorage.setToken('test.jwt.token');
-        localStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, 'dev');
-    });
+  beforeEach(() => {
+    assign.mockReset();
+    vi.stubGlobal('location', {
+      hostname: 'dev.regkasse.at',
+      protocol: 'https:',
+      assign,
+    } as Location);
+    localStorage.clear();
+    authStorage.setToken('test.jwt.token');
+    localStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, 'dev');
+  });
 
-    afterEach(() => {
-        vi.unstubAllGlobals();
-        localStorage.clear();
-    });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    localStorage.clear();
+  });
 
-    it('buildAdminPlatformOrigin uses admin slug', () => {
-        expect(buildAdminPlatformOrigin()).toMatch(/^https:\/\/admin\./);
-    });
+  it('buildAdminPlatformOrigin uses admin slug', () => {
+    expect(buildAdminPlatformOrigin()).toMatch(/^https:\/\/admin\./);
+  });
 
-    it('clears session and redirects to admin tenants in production', () => {
-        exitImpersonation();
+  it('clears session and redirects to admin tenants in production', () => {
+    exitImpersonation();
 
-        expect(authStorage.getToken()).toBeNull();
-        expect(localStorage.getItem(DEV_TENANT_LOCAL_STORAGE_KEY)).toBeNull();
-        expect(assign).toHaveBeenCalledWith(
-            `${buildAdminPlatformOrigin('https')}/admin/tenants`,
-        );
-    });
+    expect(authStorage.getToken()).toBeNull();
+    expect(localStorage.getItem(DEV_TENANT_LOCAL_STORAGE_KEY)).toBeNull();
+    expect(assign).toHaveBeenCalledWith(`${buildAdminPlatformOrigin('https')}/admin/tenants`);
+  });
 
-    it('redirects same-origin on localhost dev', () => {
-        vi.stubGlobal('location', {
-            hostname: 'localhost',
-            protocol: 'http:',
-            assign,
-        } as Location);
+  it('redirects same-origin on localhost dev', () => {
+    vi.stubGlobal('location', {
+      hostname: 'localhost',
+      protocol: 'http:',
+      assign,
+    } as Location);
 
-        exitImpersonation();
+    exitImpersonation();
 
-        expect(assign).toHaveBeenCalledWith('/admin/tenants');
-    });
+    expect(assign).toHaveBeenCalledWith('/admin/tenants');
+  });
 });

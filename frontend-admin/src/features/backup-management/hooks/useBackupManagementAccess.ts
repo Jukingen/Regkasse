@@ -1,9 +1,10 @@
-"use client";
+'use client';
 
-import { useMemo } from "react";
-import { useAuth } from "@/features/auth/hooks/useAuth";
-import { isSuperAdmin } from "@/features/auth/constants/roles";
-import { hasAnyPermission, hasPermission, PERMISSIONS } from "@/shared/auth/permissions";
+import { useMemo } from 'react';
+
+import { isSuperAdmin } from '@/features/auth/constants/roles';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { PERMISSIONS, hasAnyPermission, hasPermission } from '@/shared/auth/permissions';
 
 /** Backup panel capability matrix (permissions-first; SuperAdmin for platform scope). */
 export function useBackupManagementAccess() {

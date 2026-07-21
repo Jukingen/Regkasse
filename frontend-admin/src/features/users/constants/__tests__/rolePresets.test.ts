@@ -1,12 +1,13 @@
 /**
  * Role presets: getPresetKeysInCatalog filtering, preset apply semantics (replace selection).
  */
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import {
-  ROLE_PRESETS,
-  getPresetKeysInCatalog,
   PRESET_KASA_OPERASYON,
   PRESET_RAPOR_GORUNTULEME,
+  ROLE_PRESETS,
+  getPresetKeysInCatalog,
 } from '../rolePresets';
 
 describe('rolePresets', () => {
@@ -38,7 +39,9 @@ describe('rolePresets', () => {
     it('applying preset replaces current selection (draft becomes preset keys in catalog)', () => {
       const catalogSet = new Set(['sale.view', 'report.view', 'audit.view', 'invoice.view']);
       const applied = getPresetKeysInCatalog(PRESET_RAPOR_GORUNTULEME, catalogSet);
-      expect(applied).toEqual(expect.arrayContaining(['report.view', 'audit.view', 'sale.view', 'invoice.view']));
+      expect(applied).toEqual(
+        expect.arrayContaining(['report.view', 'audit.view', 'sale.view', 'invoice.view'])
+      );
       expect(new Set(applied).size).toBe(applied.length);
     });
 

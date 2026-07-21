@@ -7,7 +7,6 @@
  *   formatCurrency(19.99, formatLocale);
  *   formatDate(iso, formatLocale); // → 01.12.2025 (locale ignored for dates)
  */
-
 import { formatUserDate, formatUserDateTime, formatUserMonthDay } from '@/lib/dateFormatter';
 
 export const FORMAT_EMPTY_DISPLAY = '—';
@@ -43,7 +42,7 @@ function hasTimeComponent(options?: Intl.DateTimeFormatOptions): boolean {
 export function formatDateTime(
   input: string | number | Date | null | undefined,
   _formatLocale?: string,
-  options?: Intl.DateTimeFormatOptions,
+  options?: Intl.DateTimeFormatOptions
 ): string {
   if (input == null || input === '') return FORMAT_EMPTY_DISPLAY;
   if (wantsMonthDayOnly(options)) {
@@ -65,7 +64,7 @@ export function formatDateTime(
 export function formatDate(
   input: string | number | Date | null | undefined,
   _formatLocale?: string,
-  options?: Intl.DateTimeFormatOptions,
+  options?: Intl.DateTimeFormatOptions
 ): string {
   if (input == null || input === '') return FORMAT_EMPTY_DISPLAY;
   if (wantsMonthDayOnly(options)) {
@@ -76,7 +75,11 @@ export function formatDate(
   return formatted || FORMAT_EMPTY_DISPLAY;
 }
 
-export function formatNumber(value: number, formatLocale: string, options?: Intl.NumberFormatOptions): string {
+export function formatNumber(
+  value: number,
+  formatLocale: string,
+  options?: Intl.NumberFormatOptions
+): string {
   if (!Number.isFinite(value)) return FORMAT_EMPTY_DISPLAY;
   return value.toLocaleString(formatLocale, options);
 }
@@ -90,7 +93,7 @@ export type FormatCurrencyOptions = {
 export function formatCurrency(
   value: number,
   formatLocale: string,
-  options?: FormatCurrencyOptions,
+  options?: FormatCurrencyOptions
 ): string {
   if (!Number.isFinite(value)) return FORMAT_EMPTY_DISPLAY;
   const currency = options?.currency ?? 'EUR';
@@ -113,7 +116,7 @@ export type FormatPercentOptions = {
 export function formatPercent(
   value: number,
   formatLocale: string,
-  options?: FormatPercentOptions,
+  options?: FormatPercentOptions
 ): string {
   if (!Number.isFinite(value)) return FORMAT_EMPTY_DISPLAY;
   return value.toLocaleString(formatLocale, {
@@ -134,13 +137,18 @@ export function formatBytes(bytes: number, formatLocale: string): string {
 
 export function createIntlFormatters(formatLocale: string) {
   return {
-    formatCurrency: (value: number, opts?: FormatCurrencyOptions) => formatCurrency(value, formatLocale, opts),
+    formatCurrency: (value: number, opts?: FormatCurrencyOptions) =>
+      formatCurrency(value, formatLocale, opts),
     formatDate: (input: Parameters<typeof formatDate>[0], opts?: Intl.DateTimeFormatOptions) =>
       formatDate(input, formatLocale, opts),
-    formatDateTime: (input: Parameters<typeof formatDateTime>[0], opts?: Intl.DateTimeFormatOptions) =>
-      formatDateTime(input, formatLocale, opts),
-    formatNumber: (value: number, opts?: Intl.NumberFormatOptions) => formatNumber(value, formatLocale, opts),
-    formatPercent: (value: number, opts?: FormatPercentOptions) => formatPercent(value, formatLocale, opts),
+    formatDateTime: (
+      input: Parameters<typeof formatDateTime>[0],
+      opts?: Intl.DateTimeFormatOptions
+    ) => formatDateTime(input, formatLocale, opts),
+    formatNumber: (value: number, opts?: Intl.NumberFormatOptions) =>
+      formatNumber(value, formatLocale, opts),
+    formatPercent: (value: number, opts?: FormatPercentOptions) =>
+      formatPercent(value, formatLocale, opts),
     formatBytes: (bytes: number) => formatBytes(bytes, formatLocale),
     formatLocale,
   };

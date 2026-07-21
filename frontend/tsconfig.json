@@ -1,41 +1,42 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
+    // Expo SDK 56 + React 19 use the automatic JSX runtime.
+    // Prefer "react-jsx" over legacy "react-native" (Expo tsconfig.base / SDK docs).
     "jsx": "react-jsx",
     "strict": true,
-    "baseUrl": ".",
+    // TypeScript 7 removed baseUrl — paths are relative to this tsconfig.
     "paths": {
-      "@/*": [
-        "./*"
-      ],
-      "@/src/*": [
-        "./src/*"
-      ],
-      "@/utils/*": [
-        "./utils/*"
-      ],
-      "@/services/*": [
-        "./services/*"
-      ],
-      "@/constants/*": [
-        "./constants/*"
-      ],
-      "@/shared/*": [
-        "./shared/*"
-      ],
-      "shared/*": [
-        "./shared/*"
-      ]
-    }
+      "@/*": ["./*"],
+      "@/src/*": ["./src/*"],
+      "@/utils/*": ["./utils/*"],
+      "@/services/*": ["./services/*"],
+      "@/constants/*": ["./constants/*"],
+      "@/shared/*": ["./shared/*"],
+      "shared/*": ["./shared/*"]
+    },
+    // TS 7 defaults types to [] (no auto @types/*). Restore ambient typings used by the app/tests.
+    "types": ["*"],
+    "noEmit": true,
+    "isolatedModules": true,
+    "forceConsistentCasingInFileNames": true
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
-  ],
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
   "exclude": [
     "node_modules",
-    "backup/**/*"
+    "backup/**/*",
+    "android",
+    "ios",
+    "dist",
+    "coverage",
+    "examples/**/*",
+    "components/VoiceCommands.tsx",
+    "components/TaskMasterDashboard.tsx",
+    "components/SimpleTodo.tsx",
+    "components/TaskSuggestionsDemo.tsx",
+    "hooks/useTaskMaster.ts",
+    "hooks/useEnhancedTaskMaster.ts",
+    "services/EnhancedTaskMasterService.ts",
+    "services/TaskMasterService.ts"
   ]
 }

@@ -16,6 +16,7 @@
   "no": "No",
   "step": "Step",
   "ok": "OK",
+  "selectDate": "Select date",
   "retry": "Retry",
   "errorLoadingProducts": "Error loading products",
   "loadingMore": "Loading more...",
@@ -38,10 +39,20 @@
   "noAccess": "You don't have access to this screen",
   "tableRestoring": "Restoring tables",
   "table": "Table",
+  "tax": {
+    "standard": "Standard",
+    "reduced": "Reduced",
+    "special": "Special",
+    "exempt": "Exempt"
+  },
   "barcodeScanner": {
     "closeA11y": "Close",
     "webFallback": "Camera scan is not available in the browser. Please enter the code manually.",
     "cameraRequired": "Camera access is required.",
-    "allowCamera": "Allow camera"
+    "allowCamera": "Allow camera",
+    "permissionBlocked": "Camera access was permanently denied. Please enable it in device settings.",
+    "openSettings": "Open settings",
+    "cameraUnavailable": "Camera is unavailable. Please restart the device or enter the code manually.",
+    "loading": "Preparing camera…"
   }
 }

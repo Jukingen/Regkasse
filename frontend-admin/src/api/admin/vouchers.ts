@@ -1,8 +1,9 @@
 /**
  * Admin vouchers API — /api/admin/vouchers (manual client; not generated).
  */
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationOptions, UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
 import { customInstance } from '@/lib/axios';
 
 const BASE = '/api/admin/vouchers';
@@ -120,9 +121,10 @@ export function getAdminVoucherById(
   options?: SecondParameter<typeof customInstance>,
   signal?: AbortSignal
 ): Promise<AdminVoucherDetailDto> {
-  return customInstance<AdminVoucherDetailDto>({ url: `${BASE}/${id}`, method: 'GET', signal }, options).then((res) =>
-    unwrapData<AdminVoucherDetailDto>(res)
-  );
+  return customInstance<AdminVoucherDetailDto>(
+    { url: `${BASE}/${id}`, method: 'GET', signal },
+    options
+  ).then((res) => unwrapData<AdminVoucherDetailDto>(res));
 }
 
 export function getAdminVoucherLedger(
@@ -181,7 +183,8 @@ export function verifyAdminVoucherCode(
 export const adminVouchersQueryKeys = {
   all: ['admin', 'vouchers'] as const,
   lists: () => [...adminVouchersQueryKeys.all, 'list'] as const,
-  list: (page: number, pageSize: number, q: string) => [...adminVouchersQueryKeys.lists(), page, pageSize, q] as const,
+  list: (page: number, pageSize: number, q: string) =>
+    [...adminVouchersQueryKeys.lists(), page, pageSize, q] as const,
   details: () => [...adminVouchersQueryKeys.all, 'detail'] as const,
   detail: (id: string) => [...adminVouchersQueryKeys.details(), id] as const,
   ledger: (id: string) => [...adminVouchersQueryKeys.all, 'ledger', id] as const,
@@ -255,7 +258,8 @@ export function useVerifyAdminVoucherCode(
   options?: UseMutationOptions<VerifyAdminVoucherCodeResponse, Error, { id: string; code: string }>
 ) {
   return useMutation({
-    mutationFn: ({ id, code }: { id: string; code: string }) => verifyAdminVoucherCode(id, code.trim()),
+    mutationFn: ({ id, code }: { id: string; code: string }) =>
+      verifyAdminVoucherCode(id, code.trim()),
     ...options,
   });
 }

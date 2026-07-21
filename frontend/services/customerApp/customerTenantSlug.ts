@@ -12,13 +12,16 @@ function normalizeSlug(value: string | null | undefined): string | null {
 export { normalizeSlug as normalizeCustomerTenantSlug };
 
 /**
- * Accepts plain slug, path URL, or `regkasse://tenant/{slug}` / `tenant:{slug}`.
+ * Accepts plain slug, path URL, or deep links:
+ * - `regkasse://tenant/{slug}` / `cashregister://tenant/{slug}`
+ * - `tenant:{slug}`
+ * - `…/customer?tenant={slug}` (query)
  */
 export function parseTenantSlugFromPayload(payload?: string | null): string | null {
   if (!payload?.trim()) return null;
   const raw = payload.trim();
 
-  const tenantScheme = /^regkasse:\/\/tenant\/([a-z0-9-]+)/i.exec(raw);
+  const tenantScheme = /^(?:regkasse|cashregister):\/\/tenant\/([a-z0-9-]+)/i.exec(raw);
   if (tenantScheme?.[1]) return normalizeSlug(tenantScheme[1]);
 
   const tenantPrefix = /^tenant:([a-z0-9-]+)$/i.exec(raw);
@@ -26,10 +29,22 @@ export function parseTenantSlugFromPayload(payload?: string | null): string | nu
 
   try {
     const url = new URL(raw);
+    // hostname form: scheme://tenant/{slug}
+    if (url.hostname.toLowerCase() === 'tenant') {
+      const fromHost = normalizeSlug(url.pathname.split('/').filter(Boolean)[0]);
+      if (fromHost) return fromHost;
+    }
     const parts = url.pathname.split('/').filter(Boolean);
+    const tenantIdx = parts.findIndex((p) => p.toLowerCase() === 'tenant');
+    if (tenantIdx >= 0 && parts[tenantIdx + 1]) {
+      const fromSegment = normalizeSlug(parts[tenantIdx + 1]);
+      if (fromSegment) return fromSegment;
+    }
     const last = parts[parts.length - 1];
     const fromPath = normalizeSlug(last);
-    if (fromPath) return fromPath;
+    if (fromPath && last?.toLowerCase() !== 'customer' && last?.toLowerCase() !== 'tenant') {
+      return fromPath;
+    }
     const q = url.searchParams.get('tenant') ?? url.searchParams.get('slug');
     return normalizeSlug(q);
   } catch {

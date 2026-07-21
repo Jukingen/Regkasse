@@ -43,7 +43,7 @@ const AdvancedProductSearch: React.FC<AdvancedProductSearchProps> = ({
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
   // Kategorileri al
-  const categories = [...new Set(products.map(p => p.category))];
+  const categories = [...new Set(products.map((p) => p.category))];
   const taxTypes = ['standard', 'reduced', 'special'];
 
   // Arama işlevi
@@ -53,8 +53,8 @@ const AdvancedProductSearch: React.FC<AdvancedProductSearchProps> = ({
 
     // Son aramaları güncelle
     if (query.trim()) {
-      setRecentSearches(prev => {
-        const newSearches = [query, ...prev.filter(s => s !== query)].slice(0, 5);
+      setRecentSearches((prev) => {
+        const newSearches = [query, ...prev.filter((s) => s !== query)].slice(0, 5);
         return newSearches;
       });
     }
@@ -72,32 +72,34 @@ const AdvancedProductSearch: React.FC<AdvancedProductSearchProps> = ({
 
     // Arama filtresi
     if (searchQuery) {
-      filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.category?.toLowerCase().includes(searchQuery.toLowerCase())
+      filtered = filtered.filter(
+        (product) =>
+          product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          product.category?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
     // Kategori filtresi
     if (filters.category) {
-      filtered = filtered.filter(product => product.category === filters.category);
+      filtered = filtered.filter((product) => product.category === filters.category);
     }
 
     // Stok filtresi
     if (filters.inStock) {
-      filtered = filtered.filter(product => product.stock > 0);
+      filtered = filtered.filter((product) => product.stockQuantity > 0);
     }
 
     // Vergi tipi filtresi
     if (filters.taxType) {
-      filtered = filtered.filter(product => product.taxType === filters.taxType);
+      filtered = filtered.filter((product) => product.taxType === filters.taxType);
     }
 
     // Fiyat aralığı filtresi
     if (filters.priceRange) {
-      filtered = filtered.filter(product =>
-        product.price >= filters.priceRange!.min && product.price <= filters.priceRange!.max
+      filtered = filtered.filter(
+        (product) =>
+          product.price >= filters.priceRange!.min && product.price <= filters.priceRange!.max
       );
     }
 
@@ -107,8 +109,9 @@ const AdvancedProductSearch: React.FC<AdvancedProductSearchProps> = ({
   const renderProductItem = ({ item }: { item: Product }) => (
     <TouchableOpacity
       style={styles.productItem}
-      onPress={() => onProductSelect(item)}
-    >
+      onPress={() => {
+        onProductSelect(item);
+      }}>
       <View style={styles.productInfo}>
         <Text style={styles.productName}>{item.name}</Text>
         <Text style={styles.productDescription}>{item.description}</Text>
@@ -116,7 +119,7 @@ const AdvancedProductSearch: React.FC<AdvancedProductSearchProps> = ({
           <Text style={styles.productCategory}>{item.category}</Text>
           {/* Stock info intentionally hidden from cashier UI. Stock management is handled in admin panel. Kept in code for potential future POS usage. */}
           {/* <Text style={styles.productStock}>
-            {t('product.stock')}: {item.stock}
+            {t('product.stock')}: {item.stockQuantity}
           </Text> */}
         </View>
       </View>
@@ -131,10 +134,14 @@ const AdvancedProductSearch: React.FC<AdvancedProductSearchProps> = ({
 
   const getTaxRate = (taxType: string) => {
     switch (taxType) {
-      case 'standard': return 0.20;
-      case 'reduced': return 0.10;
-      case 'special': return 0.13;
-      default: return 0.20;
+      case 'standard':
+        return 0.2;
+      case 'reduced':
+        return 0.1;
+      case 'special':
+        return 0.13;
+      default:
+        return 0.2;
     }
   };
 
@@ -152,7 +159,10 @@ const AdvancedProductSearch: React.FC<AdvancedProductSearchProps> = ({
             returnKeyType="search"
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => handleSearch('')}>
+            <TouchableOpacity
+              onPress={() => {
+                handleSearch('');
+              }}>
               <Ionicons name="close-circle" size={20} color={Colors.light.textSecondary} />
             </TouchableOpacity>
           )}
@@ -160,8 +170,9 @@ const AdvancedProductSearch: React.FC<AdvancedProductSearchProps> = ({
 
         <TouchableOpacity
           style={styles.filterButton}
-          onPress={() => setShowFilters(true)}
-        >
+          onPress={() => {
+            setShowFilters(true);
+          }}>
           <Ionicons name="filter" size={20} color={Colors.light.primary} />
         </TouchableOpacity>
       </View>
@@ -175,8 +186,9 @@ const AdvancedProductSearch: React.FC<AdvancedProductSearchProps> = ({
               <TouchableOpacity
                 key={index}
                 style={styles.recentSearchItem}
-                onPress={() => handleSearch(search)}
-              >
+                onPress={() => {
+                  handleSearch(search);
+                }}>
                 <Text style={styles.recentSearchText}>{search}</Text>
               </TouchableOpacity>
             ))}
@@ -205,13 +217,17 @@ const AdvancedProductSearch: React.FC<AdvancedProductSearchProps> = ({
         visible={showFilters}
         animationType="slide"
         transparent
-        onRequestClose={() => setShowFilters(false)}
-      >
+        onRequestClose={() => {
+          setShowFilters(false);
+        }}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('search.filters')}</Text>
-              <TouchableOpacity onPress={() => setShowFilters(false)}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowFilters(false);
+                }}>
                 <Ionicons name="close" size={24} color={Colors.light.text} />
               </TouchableOpacity>
             </View>
@@ -221,22 +237,24 @@ const AdvancedProductSearch: React.FC<AdvancedProductSearchProps> = ({
               <View style={styles.filterSection}>
                 <Text style={styles.filterSectionTitle}>{t('search.categories')}</Text>
                 <View style={styles.filterOptions}>
-                  {categories.map(category => (
+                  {categories.map((category) => (
                     <TouchableOpacity
                       key={category}
                       style={[
                         styles.filterOption,
-                        filters.category === category && styles.filterOptionActive
+                        filters.category === category && styles.filterOptionActive,
                       ]}
-                      onPress={() => applyFilters({
-                        ...filters,
-                        category: filters.category === category ? undefined : category
-                      })}
-                    >
-                      <Text style={[
-                        styles.filterOptionText,
-                        filters.category === category && styles.filterOptionTextActive
-                      ]}>
+                      onPress={() => {
+                        applyFilters({
+                          ...filters,
+                          category: filters.category === category ? undefined : category,
+                        });
+                      }}>
+                      <Text
+                        style={[
+                          styles.filterOptionText,
+                          filters.category === category && styles.filterOptionTextActive,
+                        ]}>
                         {category}
                       </Text>
                     </TouchableOpacity>
@@ -270,22 +288,24 @@ const AdvancedProductSearch: React.FC<AdvancedProductSearchProps> = ({
               <View style={styles.filterSection}>
                 <Text style={styles.filterSectionTitle}>{t('search.taxTypes')}</Text>
                 <View style={styles.filterOptions}>
-                  {taxTypes.map(taxType => (
+                  {taxTypes.map((taxType) => (
                     <TouchableOpacity
                       key={taxType}
                       style={[
                         styles.filterOption,
-                        filters.taxType === taxType && styles.filterOptionActive
+                        filters.taxType === taxType && styles.filterOptionActive,
                       ]}
-                      onPress={() => applyFilters({
-                        ...filters,
-                        taxType: filters.taxType === taxType ? undefined : taxType
-                      })}
-                    >
-                      <Text style={[
-                        styles.filterOptionText,
-                        filters.taxType === taxType && styles.filterOptionTextActive
-                      ]}>
+                      onPress={() => {
+                        applyFilters({
+                          ...filters,
+                          taxType: filters.taxType === taxType ? undefined : taxType,
+                        });
+                      }}>
+                      <Text
+                        style={[
+                          styles.filterOptionText,
+                          filters.taxType === taxType && styles.filterOptionTextActive,
+                        ]}>
                         {t(`tax.${taxType}`)} ({Math.round(getTaxRate(taxType) * 100)}%)
                       </Text>
                     </TouchableOpacity>
@@ -300,15 +320,15 @@ const AdvancedProductSearch: React.FC<AdvancedProductSearchProps> = ({
                 onPress={() => {
                   setFilters({});
                   onFilterChange({});
-                }}
-              >
+                }}>
                 <Text style={styles.clearFiltersText}>{t('search.clearFilters')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.applyFiltersButton}
-                onPress={() => setShowFilters(false)}
-              >
+                onPress={() => {
+                  setShowFilters(false);
+                }}>
                 <Text style={styles.applyFiltersText}>{t('search.applyFilters')}</Text>
               </TouchableOpacity>
             </View>
@@ -514,4 +534,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AdvancedProductSearch; 
+export default AdvancedProductSearch;

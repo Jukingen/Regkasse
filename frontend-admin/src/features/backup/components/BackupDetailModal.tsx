@@ -1,10 +1,9 @@
-"use client";
+'use client';
 
 /**
  * Backup run detail modal — GET /api/admin/backup/runs/{id} (overview, artifacts, verification, pipeline, logs).
  */
-
-import React, { useCallback, useMemo, useState } from "react";
+import { DownloadOutlined } from '@ant-design/icons';
 import {
   Alert,
   Button,
@@ -18,38 +17,37 @@ import {
   Tabs,
   Timeline,
   Typography,
-} from "antd";
-import { DownloadOutlined } from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table";
-import { CardSkeleton } from "@/components/Skeleton";
+} from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import React, { useCallback, useMemo, useState } from 'react';
+
 import type {
   BackupArtifactResponseDto,
   BackupVerificationResponseDto,
-} from "@/api/generated/model";
-import { useI18n } from "@/i18n";
-import { formatDateTime as formatDisplayDateTime } from "@/i18n/formatting";
-import { useBackupPermissions } from "@/features/backup/hooks/useBackupPermissions";
-import { useBackupRun } from "@/features/backup/hooks/useBackupRun";
-import { BackupArtifactsDownloadCard } from "@/features/backup-dr/components/BackupArtifactsDownloadCard";
-import {
-  resolveBackupPipelineStepsForUi,
-} from "@/features/backup-dr/logic/backupPipelineDerived";
-import { isBackupPipelineClientFallbackEnabled } from "@/features/backup-dr/logic/backupPipelineEnv";
-import { isSimulatedBackupAdapterKind } from "@/features/backup-dr/logic/backupDrMappers";
-import { formatBackupBytes } from "@/features/backup-dr/logic/backupFormat";
-import { downloadBackupArtifactFile } from "@/features/backup-dr/logic/downloadBackupArtifactFile";
-import { BackupStatusBadge } from "@/features/backup/components/BackupStatusBadge";
+} from '@/api/generated/model';
+import { CardSkeleton } from '@/components/Skeleton';
+import { BackupArtifactsDownloadCard } from '@/features/backup-dr/components/BackupArtifactsDownloadCard';
+import { isSimulatedBackupAdapterKind } from '@/features/backup-dr/logic/backupDrMappers';
+import { formatBackupBytes } from '@/features/backup-dr/logic/backupFormat';
+import { resolveBackupPipelineStepsForUi } from '@/features/backup-dr/logic/backupPipelineDerived';
+import { isBackupPipelineClientFallbackEnabled } from '@/features/backup-dr/logic/backupPipelineEnv';
+import { downloadBackupArtifactFile } from '@/features/backup-dr/logic/downloadBackupArtifactFile';
+import { BackupStatusBadge } from '@/features/backup/components/BackupStatusBadge';
+import { BackupVerificationReportPanel } from '@/features/backup/components/BackupVerificationReportPanel';
+import { useBackupPermissions } from '@/features/backup/hooks/useBackupPermissions';
+import { useBackupRun } from '@/features/backup/hooks/useBackupRun';
 import {
   backupTriggerSourceLabelKey,
   isBackupRunSucceeded,
   pipelineStepTimelineColor,
-} from "@/features/backup/logic/backupRunDetailPresentation";
+} from '@/features/backup/logic/backupRunDetailPresentation';
 import {
   resolveBackupRunDurationLabel,
   resolveBackupRunSizeLabel,
   resolveBackupRunTotalBytes,
-} from "@/features/backup/logic/backupRunTablePresentation";
-import { BackupVerificationReportPanel } from "@/features/backup/components/BackupVerificationReportPanel";
+} from '@/features/backup/logic/backupRunTablePresentation';
+import { useI18n } from '@/i18n';
+import { formatDateTime as formatDisplayDateTime } from '@/i18n/formatting';
 
 export interface BackupDetailModalProps {
   runId: string | null;
@@ -62,7 +60,12 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
   const { canDownloadBackup } = useBackupPermissions();
   const [downloading, setDownloading] = useState(false);
 
-  const { data: run, isLoading, isError, isFetching } = useBackupRun(runId, {
+  const {
+    data: run,
+    isLoading,
+    isError,
+    isFetching,
+  } = useBackupRun(runId, {
     enabled: open,
   });
 
@@ -74,24 +77,20 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
       resolveBackupPipelineStepsForUi(run ?? null, run ?? null, undefined, {
         allowClientFallback: allowClientPipelineFallback,
       }),
-    [allowClientPipelineFallback, run],
+    [allowClientPipelineFallback, run]
   );
 
   const formatDateTime = useCallback(
     (iso: string | undefined | null) => {
-      if (!iso) return "—";
+      if (!iso) return '—';
       return formatDisplayDateTime(iso, formatLocale);
     },
-    [formatLocale],
+    [formatLocale]
   );
 
   const primaryDownloadArtifact = useMemo(() => {
     const arts = run?.artifacts ?? [];
-    return (
-      arts.find((a) => a.isFilePresentForDownload && a.id) ??
-      arts.find((a) => a.id) ??
-      null
-    );
+    return arts.find((a) => a.isFilePresentForDownload && a.id) ?? arts.find((a) => a.id) ?? null;
   }, [run?.artifacts]);
 
   const handleDownloadPrimary = useCallback(async () => {
@@ -108,17 +107,17 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
   const artifactColumns: ColumnsType<BackupArtifactResponseDto> = useMemo(
     () => [
       {
-        title: t("backupDr.detailModal.artifacts.type"),
-        key: "type",
+        title: t('backupDr.detailModal.artifacts.type'),
+        key: 'type',
         render: (_: unknown, row: BackupArtifactResponseDto) => {
-          const key = `backupDr.runsTable.artifactType.${row.artifactType ?? ""}`;
+          const key = `backupDr.runsTable.artifactType.${row.artifactType ?? ''}`;
           const label = t(key);
-          return label === key ? String(row.artifactType ?? "—") : label;
+          return label === key ? String(row.artifactType ?? '—') : label;
         },
       },
       {
-        title: t("backupDr.detailModal.artifacts.size"),
-        key: "size",
+        title: t('backupDr.detailModal.artifacts.size'),
+        key: 'size',
         render: (_: unknown, row: BackupArtifactResponseDto) => {
           if (row.formattedSize?.trim()) return row.formattedSize.trim();
           const label = formatBackupBytes(row.byteSize ?? undefined, t);
@@ -126,7 +125,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
           if (bytes > 0) {
             return (
               <span>
-                {label}{" "}
+                {label}{' '}
                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                   ({bytes.toLocaleString(formatLocale)})
                 </Typography.Text>
@@ -137,33 +136,33 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
         },
       },
       {
-        title: t("backupDr.detailModal.artifacts.createdAt"),
-        dataIndex: "createdAt",
-        key: "createdAt",
+        title: t('backupDr.detailModal.artifacts.createdAt'),
+        dataIndex: 'createdAt',
+        key: 'createdAt',
         render: (v: string | undefined) => formatDateTime(v),
       },
       {
-        title: t("backupDr.detailModal.artifacts.lifecycle"),
-        dataIndex: "lifecycleState",
-        key: "lifecycle",
+        title: t('backupDr.detailModal.artifacts.lifecycle'),
+        dataIndex: 'lifecycleState',
+        key: 'lifecycle',
         render: (v: number | undefined) => {
-          if (v === undefined) return "—";
+          if (v === undefined) return '—';
           const key = `backupDr.lifecycle.${v}`;
           const label = t(key);
           return label === key ? String(v) : label;
         },
       },
       {
-        title: t("backupDr.detailModal.artifacts.onDisk"),
-        key: "onDisk",
+        title: t('backupDr.detailModal.artifacts.onDisk'),
+        key: 'onDisk',
         render: (_: unknown, row: BackupArtifactResponseDto) =>
           row.isFilePresentForDownload
-            ? t("backupDr.monitoring.configHealth.yes")
-            : t("backupDr.monitoring.configHealth.no"),
+            ? t('backupDr.monitoring.configHealth.yes')
+            : t('backupDr.monitoring.configHealth.no'),
       },
       {
-        title: t("backupDr.runsTable.actions"),
-        key: "actions",
+        title: t('backupDr.runsTable.actions'),
+        key: 'actions',
         render: (_: unknown, row: BackupArtifactResponseDto) =>
           run?.id && row.id && row.isFilePresentForDownload && canDownloadBackup ? (
             <Button
@@ -171,21 +170,17 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
               size="small"
               icon={<DownloadOutlined />}
               onClick={() =>
-                void downloadBackupArtifactFile(
-                  run.id!,
-                  row.id!,
-                  `backup-${run.id}-${row.id}`,
-                )
+                void downloadBackupArtifactFile(run.id!, row.id!, `backup-${run.id}-${row.id}`)
               }
             >
-              {t("backupDr.detailModal.download")}
+              {t('backupDr.detailModal.download')}
             </Button>
           ) : (
-            "—"
+            '—'
           ),
       },
     ],
-    [canDownloadBackup, formatDateTime, formatLocale, run?.id, t],
+    [canDownloadBackup, formatDateTime, formatLocale, run?.id, t]
   );
 
   const renderOverviewMetrics = useCallback(() => {
@@ -201,54 +196,52 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
 
     return (
       <Descriptions bordered column={2} size="small">
-        <Descriptions.Item label={t("backupDr.runsTable.statusColumn")}>
+        <Descriptions.Item label={t('backupDr.runsTable.statusColumn')}>
           <BackupStatusBadge status={run.status} />
         </Descriptions.Item>
-        <Descriptions.Item label={t("backupDr.detailModal.triggerLabel")}>
+        <Descriptions.Item label={t('backupDr.detailModal.triggerLabel')}>
           {t(backupTriggerSourceLabelKey(run.triggerSource))}
         </Descriptions.Item>
-        <Descriptions.Item label={t("backupDr.detailModal.startedAt")}>
+        <Descriptions.Item label={t('backupDr.detailModal.startedAt')}>
           {formatDateTime(run.startedAt)}
         </Descriptions.Item>
-        <Descriptions.Item label={t("backupDr.detailModal.completedAt")}>
+        <Descriptions.Item label={t('backupDr.detailModal.completedAt')}>
           {formatDateTime(run.completedAt)}
         </Descriptions.Item>
-        <Descriptions.Item label={t("backupDr.runsTable.duration")}>
+        <Descriptions.Item label={t('backupDr.runsTable.duration')}>
           <Typography.Text strong>{durationLabel}</Typography.Text>
         </Descriptions.Item>
-        <Descriptions.Item label={t("backupDr.detailModal.requestedAt")}>
+        <Descriptions.Item label={t('backupDr.detailModal.requestedAt')}>
           {formatDateTime(run.requestedAt)}
         </Descriptions.Item>
-        <Descriptions.Item label={t("backupDr.detailModal.totalSize")} span={2}>
+        <Descriptions.Item label={t('backupDr.detailModal.totalSize')} span={2}>
           <Typography.Text strong>{sizeLabel}</Typography.Text>
           {totalBytes > 0 ? (
             <Typography.Text type="secondary">
-              {" "}
-              {t("backupDr.detailModal.totalSizeBytes", {
+              {' '}
+              {t('backupDr.detailModal.totalSizeBytes', {
                 bytes: totalBytes.toLocaleString(formatLocale),
               })}
             </Typography.Text>
           ) : null}
         </Descriptions.Item>
         {compression != null ? (
-          <Descriptions.Item label={t("backupDr.detailModal.compression")} span={2}>
+          <Descriptions.Item label={t('backupDr.detailModal.compression')} span={2}>
             <Progress
               percent={compression}
               size="small"
-              status={compression < 50 ? "success" : "normal"}
-              format={() =>
-                t("backupDr.detailModal.compressionPercent", { percent: compression })
-              }
+              status={compression < 50 ? 'success' : 'normal'}
+              format={() => t('backupDr.detailModal.compressionPercent', { percent: compression })}
             />
           </Descriptions.Item>
         ) : null}
-        <Descriptions.Item label={t("backupDr.table.adapter")}>
-          {run.adapterKind ?? "—"}
+        <Descriptions.Item label={t('backupDr.table.adapter')}>
+          {run.adapterKind ?? '—'}
         </Descriptions.Item>
         {run.failureDetail || run.failureCode ? (
-          <Descriptions.Item label={t("backupDr.runsTable.error")} span={2}>
+          <Descriptions.Item label={t('backupDr.runsTable.error')} span={2}>
             <Typography.Text type="danger">
-              {[run.failureCode, run.failureDetail].filter(Boolean).join(" — ")}
+              {[run.failureCode, run.failureDetail].filter(Boolean).join(' — ')}
             </Typography.Text>
           </Descriptions.Item>
         ) : null}
@@ -260,9 +253,9 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
     if (!run) return null;
     return (
       <>
-        <Divider titlePlacement="left">{t("backupDr.detailModal.artifactsSection")}</Divider>
+        <Divider titlePlacement="left">{t('backupDr.detailModal.artifactsSection')}</Divider>
         <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
-          {t("backupDr.detailModal.artifacts.sizeBreakdownHint")}
+          {t('backupDr.detailModal.artifacts.sizeBreakdownHint')}
         </Typography.Paragraph>
         <Table<BackupArtifactResponseDto>
           rowKey={(r) => r.id ?? String(r.artifactType)}
@@ -270,7 +263,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
           pagination={false}
           dataSource={run.artifacts ?? []}
           columns={artifactColumns}
-          locale={{ emptyText: t("backupDr.detailModal.artifacts.empty") }}
+          locale={{ emptyText: t('backupDr.detailModal.artifacts.empty') }}
         />
       </>
     );
@@ -280,32 +273,34 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
     const list = run?.verifications ?? [];
     if (!list.length) {
       return (
-        <Typography.Text type="secondary">{t("backupDr.detailModal.verification.empty")}</Typography.Text>
+        <Typography.Text type="secondary">
+          {t('backupDr.detailModal.verification.empty')}
+        </Typography.Text>
       );
     }
     return (
       <Collapse
         items={list.map((v: BackupVerificationResponseDto) => ({
           key: v.id ?? `${v.startedAt}-${v.status}`,
-          label: `${t("backupDr.detailModal.verification.panelTitle")}: ${verificationStatusLabel(v.status, t)}`,
+          label: `${t('backupDr.detailModal.verification.panelTitle')}: ${verificationStatusLabel(v.status, t)}`,
           children: (
             <Descriptions column={1} size="small" bordered>
-              <Descriptions.Item label={t("backupDr.detailModal.verification.started")}>
+              <Descriptions.Item label={t('backupDr.detailModal.verification.started')}>
                 {formatDateTime(v.startedAt)}
               </Descriptions.Item>
-              <Descriptions.Item label={t("backupDr.detailModal.verification.completed")}>
+              <Descriptions.Item label={t('backupDr.detailModal.verification.completed')}>
                 {formatDateTime(v.completedAt)}
               </Descriptions.Item>
-              <Descriptions.Item label={t("backupDr.detailModal.verification.verifier")}>
-                {v.verifierSource ?? "—"}
+              <Descriptions.Item label={t('backupDr.detailModal.verification.verifier')}>
+                {v.verifierSource ?? '—'}
               </Descriptions.Item>
-              <Descriptions.Item label={t("backupDr.detailModal.verification.completeness")}>
+              <Descriptions.Item label={t('backupDr.detailModal.verification.completeness')}>
                 {v.completenessFlag
-                  ? t("backupDr.detailModal.verification.completenessOk")
-                  : t("backupDr.detailModal.verification.completenessMissing")}
+                  ? t('backupDr.detailModal.verification.completenessOk')
+                  : t('backupDr.detailModal.verification.completenessMissing')}
               </Descriptions.Item>
               {v.failureReason ? (
-                <Descriptions.Item label={t("backupDr.runsTable.error")}>
+                <Descriptions.Item label={t('backupDr.runsTable.error')}>
                   <Typography.Text type="danger">{v.failureReason}</Typography.Text>
                 </Descriptions.Item>
               ) : null}
@@ -321,8 +316,8 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
 
     return [
       {
-        key: "overview",
-        label: t("backupDr.detailModal.tabs.overview"),
+        key: 'overview',
+        label: t('backupDr.detailModal.tabs.overview'),
         children: (
           <>
             {simulated ? (
@@ -330,7 +325,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
                 type="warning"
                 showIcon
                 style={{ marginBottom: 12 }}
-                title={t("backupDr.management.runDetail.simulatedHint")}
+                title={t('backupDr.management.runDetail.simulatedHint')}
               />
             ) : null}
             {renderOverviewMetrics()}
@@ -339,10 +334,10 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
         ),
       },
       {
-        key: "artifacts",
-        label: t("backupDr.detailModal.tabs.artifacts"),
+        key: 'artifacts',
+        label: t('backupDr.detailModal.tabs.artifacts'),
         children: (
-          <Space orientation="vertical" style={{ width: "100%" }} size="middle">
+          <Space orientation="vertical" style={{ width: '100%' }} size="middle">
             {renderArtifactsBreakdown()}
             {run.id && (run.artifacts?.length ?? 0) > 0 ? (
               <BackupArtifactsDownloadCard
@@ -361,14 +356,16 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
         ),
       },
       {
-        key: "verification",
-        label: t("backupDr.detailModal.tabs.verification"),
+        key: 'verification',
+        label: t('backupDr.detailModal.tabs.verification'),
         children: (
-          <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
+          <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
             {verificationItems}
             {run.id && isBackupRunSucceeded(run.status) ? (
               <>
-                <Divider titlePlacement="left">{t("backupDr.verificationReport.sectionTitle")}</Divider>
+                <Divider titlePlacement="left">
+                  {t('backupDr.verificationReport.sectionTitle')}
+                </Divider>
                 <BackupVerificationReportPanel runId={run.id} enabled={open} />
               </>
             ) : null}
@@ -376,8 +373,8 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
         ),
       },
       {
-        key: "pipeline",
-        label: t("backupDr.detailModal.tabs.pipeline"),
+        key: 'pipeline',
+        label: t('backupDr.detailModal.tabs.pipeline'),
         children:
           pipelineResolved.steps.length > 0 ? (
             <Timeline
@@ -404,20 +401,22 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
               }))}
             />
           ) : (
-            <Typography.Text type="secondary">{t("backupDr.detailModal.pipeline.empty")}</Typography.Text>
+            <Typography.Text type="secondary">
+              {t('backupDr.detailModal.pipeline.empty')}
+            </Typography.Text>
           ),
       },
       {
-        key: "logs",
-        label: t("backupDr.detailModal.tabs.logs"),
+        key: 'logs',
+        label: t('backupDr.detailModal.tabs.logs'),
         children: (
           <pre
             style={{
-              background: "#f5f5f5",
+              background: '#f5f5f5',
               padding: 16,
               borderRadius: 8,
               fontSize: 11,
-              overflow: "auto",
+              overflow: 'auto',
               maxHeight: 384,
               margin: 0,
             }}
@@ -449,8 +448,8 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
     <Modal
       title={
         run?.id
-          ? t("backupDr.detailModal.title", { id: run.id })
-          : t("backupDr.detailModal.titleLoading")
+          ? t('backupDr.detailModal.title', { id: run.id })
+          : t('backupDr.detailModal.titleLoading')
       }
       open={open}
       onCancel={onClose}
@@ -458,10 +457,14 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
       destroyOnHidden
       footer={
         <Space>
-          <Button onClick={onClose}>{t("backupDr.detailModal.close")}</Button>
+          <Button onClick={onClose}>{t('backupDr.detailModal.close')}</Button>
           {showDownloadFooter ? (
-            <Button type="primary" loading={downloading} onClick={() => void handleDownloadPrimary()}>
-              {t("backupDr.detailModal.downloadBackup")}
+            <Button
+              type="primary"
+              loading={downloading}
+              onClick={() => void handleDownloadPrimary()}
+            >
+              {t('backupDr.detailModal.downloadBackup')}
             </Button>
           ) : null}
         </Space>
@@ -470,9 +473,9 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
       {!runId ? null : isLoading && !run ? (
         <CardSkeleton count={2} loading />
       ) : isError ? (
-        <Alert type="error" showIcon title={t("backupDr.errors.runDetailPartial")} />
+        <Alert type="error" showIcon title={t('backupDr.errors.runDetailPartial')} />
       ) : !run ? (
-        <Alert type="warning" showIcon title={t("backupDr.management.runDetail.notFound")} />
+        <Alert type="warning" showIcon title={t('backupDr.management.runDetail.notFound')} />
       ) : (
         <Tabs items={tabItems} />
       )}
@@ -480,11 +483,8 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
   );
 }
 
-function verificationStatusLabel(
-  status: number | undefined,
-  t: (key: string) => string,
-): string {
-  if (status === undefined) return t("backupDr.summary.unknown");
+function verificationStatusLabel(status: number | undefined, t: (key: string) => string): string {
+  if (status === undefined) return t('backupDr.summary.unknown');
   const key = `backupDr.verificationStatus.${status}`;
   const label = t(key);
   return label === key ? String(status) : label;

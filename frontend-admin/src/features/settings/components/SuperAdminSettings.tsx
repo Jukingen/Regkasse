@@ -1,616 +1,653 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
-import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Modal, Form, Input, Button, Card, Tabs, Row, Col, InputNumber, Switch, Divider, Descriptions, Typography, Alert, Empty, Badge } from 'antd';
-import { SaveOutlined, LockOutlined } from '@ant-design/icons';
+import { LockOutlined, SaveOutlined } from '@ant-design/icons';
 import { useMutation } from '@tanstack/react-query';
-import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { FormSkeleton } from '@/components/Skeleton';
 import {
-    useGetApiCompanySettings,
-    usePutApiCompanySettings,
+  Alert,
+  Badge,
+  Button,
+  Card,
+  Col,
+  Descriptions,
+  Divider,
+  Empty,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Row,
+  Switch,
+  Tabs,
+  Typography,
+} from 'antd';
+import { useSearchParams } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
+
+import {
+  useGetApiCompanySettings,
+  usePutApiCompanySettings,
 } from '@/api/generated/company-settings/company-settings';
-import {
-    mapSettingsToFormValues,
-    mapFormValuesToUpdateRequest,
-    type SettingsFormValues,
-} from '@/features/settings/types/settingsForm';
 import type { CompanySettings } from '@/api/generated/model';
+import { FormSkeleton } from '@/components/Skeleton';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ChangeMyPasswordForm } from '@/features/settings/components/ChangeMyPasswordForm';
+import { LanguageSelector } from '@/features/settings/components/LanguageSelector';
+import {
+  SETTINGS_HUB_TAB_KEYS,
+  resolveSettingsHubTabKey,
+} from '@/features/settings/constants/settingsHubTabs';
+import {
+  type SettingsFormValues,
+  mapFormValuesToUpdateRequest,
+  mapSettingsToFormValues,
+} from '@/features/settings/types/settingsForm';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { useI18n } from '@/i18n';
 import { customInstance } from '@/lib/axios';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { useI18n } from '@/i18n';
-import { LanguageSelector } from '@/features/settings/components/LanguageSelector';
-import { ChangeMyPasswordForm } from '@/features/settings/components/ChangeMyPasswordForm';
-import {
-    resolveSettingsHubTabKey,
-    SETTINGS_HUB_TAB_KEYS,
-} from '@/features/settings/constants/settingsHubTabs';
 
 const ATU_REGEX = /^ATU\d{8}$/;
 
 function getSettingsLoadErrorDescription(err: unknown, translate: (key: string) => string): string {
-    if (err instanceof Error && err.message.trim()) return err.message.trim();
-    const normalized = (err as { normalized?: { message?: string } })?.normalized;
-    if (normalized?.message?.trim()) return normalized.message.trim();
-    const msg = (err as { message?: string })?.message;
-    if (typeof msg === 'string' && msg.trim()) return msg.trim();
-    return translate('settings.page.loadErrorFallback');
+  if (err instanceof Error && err.message.trim()) return err.message.trim();
+  const normalized = (err as { normalized?: { message?: string } })?.normalized;
+  if (normalized?.message?.trim()) return normalized.message.trim();
+  const msg = (err as { message?: string })?.message;
+  if (typeof msg === 'string' && msg.trim()) return msg.trim();
+  return translate('settings.page.loadErrorFallback');
 }
 
 export function SuperAdminSettings() {
-    const { message } = useAntdApp();
-    const { t } = useI18n();
-    const searchParams = useSearchParams();
-    const mustChangePassword = searchParams.get('mustChangePassword') === '1';
-    const tabSlug = searchParams.get('tab');
-    const [settingsTab, setSettingsTab] = useState(() => resolveSettingsHubTabKey(tabSlug));
-    const { data: settings, isLoading, isError, error, refetch, isFetching, isSuccess } = useGetApiCompanySettings();
-    const updateMutation = usePutApiCompanySettings();
-    const [form] = Form.useForm<SettingsFormValues>();
+  const { message } = useAntdApp();
+  const { t } = useI18n();
+  const searchParams = useSearchParams();
+  const mustChangePassword = searchParams.get('mustChangePassword') === '1';
+  const tabSlug = searchParams.get('tab');
+  const [settingsTab, setSettingsTab] = useState(() => resolveSettingsHubTabKey(tabSlug));
+  const {
+    data: settings,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetching,
+    isSuccess,
+  } = useGetApiCompanySettings();
+  const updateMutation = usePutApiCompanySettings();
+  const [form] = Form.useForm<SettingsFormValues>();
 
-    useEffect(() => {
-        if (mustChangePassword) {
-            setSettingsTab(SETTINGS_HUB_TAB_KEYS.password);
-            return;
-        }
-        if (tabSlug) {
-            setSettingsTab(resolveSettingsHubTabKey(tabSlug));
-        }
-    }, [mustChangePassword, tabSlug]);
-
-    useEffect(() => {
-        if (settings) {
-            form.setFieldsValue(mapSettingsToFormValues(settings) as SettingsFormValues);
-        }
-    }, [settings, form]);
-
-    const handleSave = async (values: SettingsFormValues) => {
-        try {
-            const payload = mapFormValuesToUpdateRequest(values);
-            await updateMutation.mutateAsync({ data: payload });
-            message.success(t('settings.page.saveChanges'));
-        } catch {
-            message.error(t('settings.page.saveFailed'));
-        }
-    };
-
-    const headerBreadcrumbs = [adminOverviewCrumb(t), { title: t('settings.page.title') }];
-
-    if (isLoading) {
-        return (
-            <SpaceWrapper>
-                <Form form={form} style={{ display: 'none' }} preserve />
-                <AdminPageHeader title={t('settings.page.title')} breadcrumbs={[...headerBreadcrumbs]} />
-                <FormSkeleton fields={6} />
-            </SpaceWrapper>
-        );
+  useEffect(() => {
+    if (mustChangePassword) {
+      setSettingsTab(SETTINGS_HUB_TAB_KEYS.password);
+      return;
     }
-
-    if (isError) {
-        return (
-            <SpaceWrapper>
-                <Form form={form} style={{ display: 'none' }} preserve />
-                <AdminPageHeader title={t('settings.page.title')} breadcrumbs={[...headerBreadcrumbs]} />
-                <Alert
-                    type="error"
-                    title={t('settings.page.loadErrorTitle')}
-                    description={getSettingsLoadErrorDescription(error, t)}
-                    showIcon
-                    action={
-                        <Button size="small" type="primary" onClick={() => refetch()} loading={isFetching}>
-                            {t('common.buttons.retry')}
-                        </Button>
-                    }
-                />
-            </SpaceWrapper>
-        );
+    if (tabSlug) {
+      setSettingsTab(resolveSettingsHubTabKey(tabSlug));
     }
+  }, [mustChangePassword, tabSlug]);
 
-    if (isSuccess && (settings as CompanySettings | null) == null) {
-        return (
-            <SpaceWrapper>
-                <AdminPageHeader title={t('settings.page.title')} breadcrumbs={[...headerBreadcrumbs]} />
-                <Card>
-                    <Empty
-                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                        description={t('settings.page.empty')}
-                    >
-                        <Button type="primary" onClick={() => refetch()} loading={isFetching}>
-                            {t('common.buttons.retry')}
-                        </Button>
-                    </Empty>
-                </Card>
-            </SpaceWrapper>
-        );
+  useEffect(() => {
+    if (settings) {
+      form.setFieldsValue(mapSettingsToFormValues(settings) as SettingsFormValues);
     }
+  }, [settings, form]);
 
+  const handleSave = async (values: SettingsFormValues) => {
+    try {
+      const payload = mapFormValuesToUpdateRequest(values);
+      await updateMutation.mutateAsync({ data: payload });
+      message.success(t('settings.page.saveChanges'));
+    } catch {
+      message.error(t('settings.page.saveFailed'));
+    }
+  };
+
+  const headerBreadcrumbs = [adminOverviewCrumb(t), { title: t('settings.page.title') }];
+
+  if (isLoading) {
     return (
-        <SpaceWrapper>
-            <AdminPageHeader
-                title={t('settings.page.title')}
-                breadcrumbs={[...headerBreadcrumbs]}
-                actions={
-                    <Button
-                        type="primary"
-                        icon={<SaveOutlined />}
-                        onClick={() => form.submit()}
-                        loading={updateMutation.isPending}
-                    >
-                        {t('settings.page.saveChanges')}
-                    </Button>
-                }
-            />
-
-            <Form<SettingsFormValues>
-                form={form}
-                layout="vertical"
-                onFinish={handleSave}
-            >
-                {mustChangePassword ? (
-                    <Alert
-                        type="warning"
-                        showIcon
-                        title={t('settings.changePassword.requiredBanner')}
-                        style={{ marginBottom: 16 }}
-                    />
-                ) : null}
-                <Tabs
-                    activeKey={settingsTab}
-                    onChange={setSettingsTab}
-                    items={[
-                        {
-                            key: '1',
-                            label: t('settings.tabs.general'),
-                            children: <GeneralInfoTab />,
-                        },
-                        {
-                            key: '2',
-                            label: t('settings.tabs.localization'),
-                            children: <LocalizationTab />,
-                        },
-                        {
-                            key: '3',
-                            label: t('settings.tabs.finanzOnline'),
-                            children: <FinanzOnlineTab />,
-                        },
-                        {
-                            key: '4',
-                            label: t('settings.tabs.tse'),
-                            children: <TSETab />,
-                        },
-                        {
-                            key: '5',
-                            label: t('settings.tabs.password'),
-                            icon: <LockOutlined />,
-                            children: <ChangeMyPasswordForm />,
-                        },
-                        {
-                            key: '6',
-                            label: 'Demo Reset',
-                            children: <DemoResetTab />,
-                        },
-                    ]}
-                />
-            </Form>
-        </SpaceWrapper>
+      <SpaceWrapper>
+        <Form form={form} style={{ display: 'none' }} preserve />
+        <AdminPageHeader title={t('settings.page.title')} breadcrumbs={[...headerBreadcrumbs]} />
+        <FormSkeleton fields={6} />
+      </SpaceWrapper>
     );
+  }
+
+  if (isError) {
+    return (
+      <SpaceWrapper>
+        <Form form={form} style={{ display: 'none' }} preserve />
+        <AdminPageHeader title={t('settings.page.title')} breadcrumbs={[...headerBreadcrumbs]} />
+        <Alert
+          type="error"
+          title={t('settings.page.loadErrorTitle')}
+          description={getSettingsLoadErrorDescription(error, t)}
+          showIcon
+          action={
+            <Button size="small" type="primary" onClick={() => refetch()} loading={isFetching}>
+              {t('common.buttons.retry')}
+            </Button>
+          }
+        />
+      </SpaceWrapper>
+    );
+  }
+
+  if (isSuccess && (settings as CompanySettings | null) == null) {
+    return (
+      <SpaceWrapper>
+        <AdminPageHeader title={t('settings.page.title')} breadcrumbs={[...headerBreadcrumbs]} />
+        <Card>
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('settings.page.empty')}>
+            <Button type="primary" onClick={() => refetch()} loading={isFetching}>
+              {t('common.buttons.retry')}
+            </Button>
+          </Empty>
+        </Card>
+      </SpaceWrapper>
+    );
+  }
+
+  return (
+    <SpaceWrapper>
+      <AdminPageHeader
+        title={t('settings.page.title')}
+        breadcrumbs={[...headerBreadcrumbs]}
+        actions={
+          <Button
+            type="primary"
+            icon={<SaveOutlined />}
+            onClick={() => form.submit()}
+            loading={updateMutation.isPending}
+          >
+            {t('settings.page.saveChanges')}
+          </Button>
+        }
+      />
+
+      <Form<SettingsFormValues> form={form} layout="vertical" onFinish={handleSave}>
+        {mustChangePassword ? (
+          <Alert
+            type="warning"
+            showIcon
+            title={t('settings.changePassword.requiredBanner')}
+            style={{ marginBottom: 16 }}
+          />
+        ) : null}
+        <Tabs
+          activeKey={settingsTab}
+          onChange={setSettingsTab}
+          items={[
+            {
+              key: '1',
+              label: t('settings.tabs.general'),
+              children: <GeneralInfoTab />,
+            },
+            {
+              key: '2',
+              label: t('settings.tabs.localization'),
+              children: <LocalizationTab />,
+            },
+            {
+              key: '3',
+              label: t('settings.tabs.finanzOnline'),
+              children: <FinanzOnlineTab />,
+            },
+            {
+              key: '4',
+              label: t('settings.tabs.tse'),
+              children: <TSETab />,
+            },
+            {
+              key: '5',
+              label: t('settings.tabs.password'),
+              icon: <LockOutlined />,
+              children: <ChangeMyPasswordForm />,
+            },
+            {
+              key: '6',
+              label: 'Demo Reset',
+              children: <DemoResetTab />,
+            },
+          ]}
+        />
+      </Form>
+    </SpaceWrapper>
+  );
 }
 
 function SpaceWrapper({ children }: { children: React.ReactNode }) {
-    return <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>{children}</div>;
+  return <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>{children}</div>;
 }
 
 function GeneralInfoTab() {
-    const { t } = useI18n();
-    const g = (key: string) => t(`settings.form.general.${key}`);
-    return (
-        <Card title={g('cardTitle')}>
-            <Row gutter={24}>
-                <Col span={12}>
-                    <Form.Item
-                        label={g('companyName')}
-                        name="companyName"
-                        rules={[{ required: true, message: g('companyNameRequired') }]}
-                    >
-                        <Input />
-                    </Form.Item>
-                    <Form.Item
-                        label={g('companyAddress')}
-                        name="companyAddress"
-                        rules={[{ required: true, message: g('companyAddressRequired') }]}
-                    >
-                        <Input.TextArea rows={3} />
-                    </Form.Item>
-                    <Form.Item
-                        label={g('companyTaxNumber')}
-                        name="companyTaxNumber"
-                        rules={[
-                            { required: true, message: g('companyTaxNumberRequired') },
-                            { pattern: ATU_REGEX, message: g('companyTaxNumberPattern') },
-                        ]}
-                    >
-                        <Input placeholder={g('placeholderAtu')} />
-                    </Form.Item>
-                    <Form.Item
-                        label={g('companyVatNumber')}
-                        name="companyVatNumber"
-                        rules={[{ pattern: ATU_REGEX, message: g('companyTaxNumberPattern') }]}
-                    >
-                        <Input placeholder={g('placeholderAtu')} />
-                    </Form.Item>
-                </Col>
-                <Col span={12}>
-                    <Form.Item label={g('contactPerson')} name="contactPerson">
-                        <Input />
-                    </Form.Item>
-                    <Form.Item
-                        label={g('contactEmail')}
-                        name="contactEmail"
-                        rules={[{ type: 'email', message: g('contactEmailInvalid') }]}
-                    >
-                        <Input />
-                    </Form.Item>
-                    <Form.Item label={g('contactPhone')} name="contactPhone">
-                        <Input />
-                    </Form.Item>
-                    <Form.Item label={g('companyWebsite')} name="companyWebsite">
-                        <Input />
-                    </Form.Item>
-                </Col>
-            </Row>
+  const { t } = useI18n();
+  const g = (key: string) => t(`settings.form.general.${key}`);
+  return (
+    <Card title={g('cardTitle')}>
+      <Row gutter={24}>
+        <Col span={12}>
+          <Form.Item
+            label={g('companyName')}
+            name="companyName"
+            rules={[{ required: true, message: g('companyNameRequired') }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label={g('companyAddress')}
+            name="companyAddress"
+            rules={[{ required: true, message: g('companyAddressRequired') }]}
+          >
+            <Input.TextArea rows={3} />
+          </Form.Item>
+          <Form.Item
+            label={g('companyTaxNumber')}
+            name="companyTaxNumber"
+            rules={[
+              { required: true, message: g('companyTaxNumberRequired') },
+              { pattern: ATU_REGEX, message: g('companyTaxNumberPattern') },
+            ]}
+          >
+            <Input placeholder={g('placeholderAtu')} />
+          </Form.Item>
+          <Form.Item
+            label={g('companyVatNumber')}
+            name="companyVatNumber"
+            rules={[{ pattern: ATU_REGEX, message: g('companyTaxNumberPattern') }]}
+          >
+            <Input placeholder={g('placeholderAtu')} />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item label={g('contactPerson')} name="contactPerson">
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label={g('contactEmail')}
+            name="contactEmail"
+            rules={[{ type: 'email', message: g('contactEmailInvalid') }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item label={g('contactPhone')} name="contactPhone">
+            <Input />
+          </Form.Item>
+          <Form.Item label={g('companyWebsite')} name="companyWebsite">
+            <Input />
+          </Form.Item>
+        </Col>
+      </Row>
 
-            <Divider />
+      <Divider />
 
-            <Row gutter={24}>
-                <Col span={12}>
-                    <Form.Item label={g('bankName')} name="bankName">
-                        <Input />
-                    </Form.Item>
-                    <Form.Item label={g('bankAccountNumber')} name="bankAccountNumber">
-                        <Input />
-                    </Form.Item>
-                </Col>
-                <Col span={12}>
-                    <Form.Item label={g('bankSwiftCode')} name="bankSwiftCode">
-                        <Input />
-                    </Form.Item>
-                </Col>
-            </Row>
-        </Card>
-    );
+      <Row gutter={24}>
+        <Col span={12}>
+          <Form.Item label={g('bankName')} name="bankName">
+            <Input />
+          </Form.Item>
+          <Form.Item label={g('bankAccountNumber')} name="bankAccountNumber">
+            <Input />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item label={g('bankSwiftCode')} name="bankSwiftCode">
+            <Input />
+          </Form.Item>
+        </Col>
+      </Row>
+    </Card>
+  );
 }
 
 function LocalizationTab() {
-    const { t } = useI18n();
-    const l = (key: string) => t(`settings.form.localization.${key}`);
-    return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <Card title={t('settings.language.cardTitle')}>
-                <LanguageSelector />
-            </Card>
-            <Card title={l('cardTitle')}>
-            <Row gutter={24}>
-                <Col span={8}>
-                    <Form.Item
-                        label={l('defaultLanguage')}
-                        name="defaultLanguage"
-                        rules={[{ required: true, message: l('defaultLanguageRequired') }]}
-                    >
-                        <Input placeholder={l('placeholderDefaultLanguage')} />
-                    </Form.Item>
-                </Col>
-                <Col span={8}>
-                    <Form.Item
-                        label={l('defaultCurrency')}
-                        name="defaultCurrency"
-                        rules={[{ required: true, message: l('defaultCurrencyRequired') }]}
-                    >
-                        <Input placeholder={l('placeholderCurrency')} />
-                    </Form.Item>
-                </Col>
-                <Col span={8}>
-                    <Form.Item
-                        label={l('defaultTimeZone')}
-                        name="defaultTimeZone"
-                        rules={[{ required: true, message: l('defaultTimeZoneRequired') }]}
-                    >
-                        <Input placeholder={l('placeholderTimeZone')} />
-                    </Form.Item>
-                </Col>
-            </Row>
-            <Row gutter={24}>
-                <Col span={12}>
-                    <Form.Item
-                        label={l('defaultDateFormat')}
-                        name="defaultDateFormat"
-                        rules={[{ required: true, message: l('defaultDateFormatRequired') }]}
-                    >
-                        <Input placeholder={l('placeholderDateFormat')} />
-                    </Form.Item>
-                </Col>
-                <Col span={12}>
-                    <Form.Item
-                        label={l('defaultTimeFormat')}
-                        name="defaultTimeFormat"
-                        rules={[{ required: true, message: l('defaultTimeFormatRequired') }]}
-                    >
-                        <Input placeholder={l('placeholderTimeFormat')} />
-                    </Form.Item>
-                </Col>
-            </Row>
-            <Row gutter={24}>
-                <Col span={12}>
-                    <Form.Item
-                        label={l('receiptNumbering')}
-                        name="receiptNumbering"
-                        rules={[{ required: true, message: l('receiptNumberingRequired') }]}
-                    >
-                        <Input />
-                    </Form.Item>
-                </Col>
-                <Col span={12}>
-                    <Form.Item
-                        label={l('invoiceNumbering')}
-                        name="invoiceNumbering"
-                        rules={[{ required: true, message: l('invoiceNumberingRequired') }]}
-                    >
-                        <Input />
-                    </Form.Item>
-                </Col>
-            </Row>
-            </Card>
-        </div>
-    );
+  const { t } = useI18n();
+  const l = (key: string) => t(`settings.form.localization.${key}`);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <Card title={t('settings.language.cardTitle')}>
+        <LanguageSelector />
+      </Card>
+      <Card title={l('cardTitle')}>
+        <Row gutter={24}>
+          <Col span={8}>
+            <Form.Item
+              label={l('defaultLanguage')}
+              name="defaultLanguage"
+              rules={[{ required: true, message: l('defaultLanguageRequired') }]}
+            >
+              <Input placeholder={l('placeholderDefaultLanguage')} />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item
+              label={l('defaultCurrency')}
+              name="defaultCurrency"
+              rules={[{ required: true, message: l('defaultCurrencyRequired') }]}
+            >
+              <Input placeholder={l('placeholderCurrency')} />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item
+              label={l('defaultTimeZone')}
+              name="defaultTimeZone"
+              rules={[{ required: true, message: l('defaultTimeZoneRequired') }]}
+            >
+              <Input placeholder={l('placeholderTimeZone')} />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={24}>
+          <Col span={12}>
+            <Form.Item
+              label={l('defaultDateFormat')}
+              name="defaultDateFormat"
+              rules={[{ required: true, message: l('defaultDateFormatRequired') }]}
+            >
+              <Input placeholder={l('placeholderDateFormat')} />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              label={l('defaultTimeFormat')}
+              name="defaultTimeFormat"
+              rules={[{ required: true, message: l('defaultTimeFormatRequired') }]}
+            >
+              <Input placeholder={l('placeholderTimeFormat')} />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={24}>
+          <Col span={12}>
+            <Form.Item
+              label={l('receiptNumbering')}
+              name="receiptNumbering"
+              rules={[{ required: true, message: l('receiptNumberingRequired') }]}
+            >
+              <Input />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              label={l('invoiceNumbering')}
+              name="invoiceNumbering"
+              rules={[{ required: true, message: l('invoiceNumberingRequired') }]}
+            >
+              <Input />
+            </Form.Item>
+          </Col>
+        </Row>
+      </Card>
+    </div>
+  );
 }
 
 function FinanzOnlineTab() {
-    const { t } = useI18n();
-    const f = (key: string) => t(`settings.form.finanzOnline.${key}`);
-    const empty = t('settings.display.emptyValue');
-    return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <Card title={f('credentialsCardTitle')}>
-                <Row gutter={24}>
-                    <Col xs={24} md={12}>
-                        <Form.Item name="finanzOnlineEnabled" valuePropName="checked" label={f('integrationEnabled')}>
-                            <Switch />
-                        </Form.Item>
-                    </Col>
-                    <Col xs={24} md={12}>
-                        <Form.Item
-                            label={f('apiUrl')}
-                            name="finanzOnlineApiUrl"
-                            rules={[
-                                { max: 500, message: f('apiUrlMax') },
-                                { type: 'url', message: f('apiUrlInvalid') },
-                            ]}
-                        >
-                            <Input placeholder={f('placeholderApiUrl')} />
-                        </Form.Item>
-                    </Col>
-                    <Col xs={24} md={12}>
-                        <Form.Item
-                            label={f('participantId')}
-                            name="finanzOnlineParticipantId"
-                            rules={[{ max: 100, message: f('participantIdMax') }]}
-                            extra={f('participantIdExtra')}
-                        >
-                            <Input placeholder={f('placeholderParticipantId')} />
-                        </Form.Item>
-                    </Col>
-                    <Col xs={24} md={12}>
-                        <Form.Item
-                            label={f('pin')}
-                            name="finanzOnlinePin"
-                            rules={[{ max: 100, message: f('pinMax') }]}
-                            extra={f('pinExtra')}
-                        >
-                            <Input.Password placeholder={f('placeholderPin')} />
-                        </Form.Item>
-                    </Col>
-                </Row>
-            </Card>
+  const { t } = useI18n();
+  const f = (key: string) => t(`settings.form.finanzOnline.${key}`);
+  const empty = t('settings.display.emptyValue');
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <Card title={f('credentialsCardTitle')}>
+        <Row gutter={24}>
+          <Col xs={24} md={12}>
+            <Form.Item
+              name="finanzOnlineEnabled"
+              valuePropName="checked"
+              label={f('integrationEnabled')}
+            >
+              <Switch />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item
+              label={f('apiUrl')}
+              name="finanzOnlineApiUrl"
+              rules={[
+                { max: 500, message: f('apiUrlMax') },
+                { type: 'url', message: f('apiUrlInvalid') },
+              ]}
+            >
+              <Input placeholder={f('placeholderApiUrl')} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item
+              label={f('participantId')}
+              name="finanzOnlineParticipantId"
+              rules={[{ max: 100, message: f('participantIdMax') }]}
+              extra={f('participantIdExtra')}
+            >
+              <Input placeholder={f('placeholderParticipantId')} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item
+              label={f('pin')}
+              name="finanzOnlinePin"
+              rules={[{ max: 100, message: f('pinMax') }]}
+              extra={f('pinExtra')}
+            >
+              <Input.Password placeholder={f('placeholderPin')} />
+            </Form.Item>
+          </Col>
+        </Row>
+      </Card>
 
-            <Card title={f('deliveryCardTitle')}>
-                <Row gutter={24}>
-                    <Col xs={24} md={12}>
-                        <Form.Item
-                            label={f('sessionTimeout')}
-                            name="finanzOnlineSubmitInterval"
-                            rules={[{ type: 'number', min: 1, max: 1440, message: f('sessionTimeoutRange') }]}
-                        >
-                            <InputNumber style={{ width: '100%' }} min={1} max={1440} />
-                        </Form.Item>
-                    </Col>
-                    <Col xs={24} md={12}>
-                        <Form.Item name="finanzOnlineAutoSubmit" valuePropName="checked" label={f('autoSubmit')}>
-                            <Switch />
-                        </Form.Item>
-                    </Col>
-                </Row>
-            </Card>
+      <Card title={f('deliveryCardTitle')}>
+        <Row gutter={24}>
+          <Col xs={24} md={12}>
+            <Form.Item
+              label={f('sessionTimeout')}
+              name="finanzOnlineSubmitInterval"
+              rules={[{ type: 'number', min: 1, max: 1440, message: f('sessionTimeoutRange') }]}
+            >
+              <InputNumber style={{ width: '100%' }} min={1} max={1440} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item
+              name="finanzOnlineAutoSubmit"
+              valuePropName="checked"
+              label={f('autoSubmit')}
+            >
+              <Switch />
+            </Form.Item>
+          </Col>
+        </Row>
+      </Card>
 
-            <Card title={f('validationCardTitle')}>
-                <Row gutter={24}>
-                    <Col xs={24} md={12}>
-                        <Form.Item
-                            label={f('retryAttempts')}
-                            name="finanzOnlineRetryAttempts"
-                            rules={[{ type: 'number', min: 0, max: 20, message: f('retryAttemptsRange') }]}
-                        >
-                            <InputNumber style={{ width: '100%' }} min={0} max={20} />
-                        </Form.Item>
-                    </Col>
-                    <Col xs={24} md={12}>
-                        <Form.Item name="finanzOnlineEnableValidation" valuePropName="checked" label={f('payloadValidationEnabled')}>
-                            <Switch />
-                        </Form.Item>
-                    </Col>
-                </Row>
-            </Card>
+      <Card title={f('validationCardTitle')}>
+        <Row gutter={24}>
+          <Col xs={24} md={12}>
+            <Form.Item
+              label={f('retryAttempts')}
+              name="finanzOnlineRetryAttempts"
+              rules={[{ type: 'number', min: 0, max: 20, message: f('retryAttemptsRange') }]}
+            >
+              <InputNumber style={{ width: '100%' }} min={0} max={20} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item
+              name="finanzOnlineEnableValidation"
+              valuePropName="checked"
+              label={f('payloadValidationEnabled')}
+            >
+              <Switch />
+            </Form.Item>
+          </Col>
+        </Row>
+      </Card>
 
-            <Card title={f('runtimeCardTitle')}>
-                <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
-                    {f('runtimeCardDescription')}
-                </Typography.Paragraph>
-                <Descriptions size="small" bordered column={1}>
-                    <Descriptions.Item label={f('lastSyncLabel')}>
-                        <Form.Item noStyle shouldUpdate>
-                            {({ getFieldValue }) => {
-                                const v = getFieldValue('lastFinanzOnlineSync');
-                                return v ? String(v) : empty;
-                            }}
-                        </Form.Item>
-                    </Descriptions.Item>
-                    <Descriptions.Item label={f('pendingInvoicesLabel')}>
-                        <Form.Item noStyle shouldUpdate>
-                            {({ getFieldValue }) => {
-                                const v = getFieldValue('pendingInvoices');
-                                return typeof v === 'number' ? String(v) : empty;
-                            }}
-                        </Form.Item>
-                    </Descriptions.Item>
-                </Descriptions>
-            </Card>
-        </div>
-    );
+      <Card title={f('runtimeCardTitle')}>
+        <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
+          {f('runtimeCardDescription')}
+        </Typography.Paragraph>
+        <Descriptions size="small" bordered column={1}>
+          <Descriptions.Item label={f('lastSyncLabel')}>
+            <Form.Item noStyle shouldUpdate>
+              {({ getFieldValue }) => {
+                const v = getFieldValue('lastFinanzOnlineSync');
+                return v ? String(v) : empty;
+              }}
+            </Form.Item>
+          </Descriptions.Item>
+          <Descriptions.Item label={f('pendingInvoicesLabel')}>
+            <Form.Item noStyle shouldUpdate>
+              {({ getFieldValue }) => {
+                const v = getFieldValue('pendingInvoices');
+                return typeof v === 'number' ? String(v) : empty;
+              }}
+            </Form.Item>
+          </Descriptions.Item>
+        </Descriptions>
+      </Card>
+    </div>
+  );
 }
 
 function TSETab() {
-    const { t } = useI18n();
-    const ts = (key: string) => t(`settings.form.tse.${key}`);
-    return (
-        <Card title={ts('cardTitle')}>
-            <Form.Item name="tseAutoConnect" valuePropName="checked" label={ts('autoConnect')}>
-                <Switch />
-            </Form.Item>
+  const { t } = useI18n();
+  const ts = (key: string) => t(`settings.form.tse.${key}`);
+  return (
+    <Card title={ts('cardTitle')}>
+      <Form.Item name="tseAutoConnect" valuePropName="checked" label={ts('autoConnect')}>
+        <Switch />
+      </Form.Item>
 
-            <Form.Item
-                label={ts('defaultDeviceId')}
-                name="defaultTseDeviceId"
-                rules={[{ max: 100, message: ts('defaultDeviceIdMax') }]}
-            >
-                <Input />
-            </Form.Item>
+      <Form.Item
+        label={ts('defaultDeviceId')}
+        name="defaultTseDeviceId"
+        rules={[{ max: 100, message: ts('defaultDeviceIdMax') }]}
+      >
+        <Input />
+      </Form.Item>
 
-            <Form.Item
-                label={ts('connectionTimeout')}
-                name="tseConnectionTimeout"
-                rules={[{ type: 'number', min: 5, max: 120000, message: ts('connectionTimeoutRange') }]}
-            >
-                <InputNumber style={{ width: '100%' }} min={5} max={120000} />
-            </Form.Item>
-        </Card>
-    );
+      <Form.Item
+        label={ts('connectionTimeout')}
+        name="tseConnectionTimeout"
+        rules={[{ type: 'number', min: 5, max: 120000, message: ts('connectionTimeoutRange') }]}
+      >
+        <InputNumber style={{ width: '100%' }} min={5} max={120000} />
+      </Form.Item>
+    </Card>
+  );
 }
 
 type DemoResetApiResponse = {
-    success: boolean;
-    message: string;
-    resetAt?: string;
+  success: boolean;
+  message: string;
+  resetAt?: string;
 };
 
 function DemoResetTab() {
-    const { message } = useAntdApp();
-    const [confirmOpen, setConfirmOpen] = useState(false);
-    const [confirmText, setConfirmText] = useState('');
-    const isDevelopment = process.env.NODE_ENV !== 'production';
-    const canReset = isDevelopment;
+  const { message } = useAntdApp();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  const canReset = isDevelopment;
 
-    const resetMutation = useMutation({
-        mutationFn: async (): Promise<DemoResetApiResponse> =>
-            customInstance<DemoResetApiResponse>({
-                url: '/api/admin/demo/reset',
-                method: 'POST',
-            }),
-        onSuccess: (payload: DemoResetApiResponse) => {
-            message.success(`${payload.message} Bitte Seite neu laden.`);
+  const resetMutation = useMutation({
+    mutationFn: async (): Promise<DemoResetApiResponse> =>
+      customInstance<DemoResetApiResponse>({
+        url: '/api/admin/demo/reset',
+        method: 'POST',
+      }),
+    onSuccess: (payload: DemoResetApiResponse) => {
+      message.success(`${payload.message} Bitte Seite neu laden.`);
+      setConfirmOpen(false);
+      setConfirmText('');
+    },
+    onError: (err: unknown) => {
+      const apiMessage =
+        (err as { response?: { data?: { message?: string; detail?: string; title?: string } } })
+          ?.response?.data?.message ??
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
+        (err as { response?: { data?: { title?: string } } })?.response?.data?.title ??
+        (err as Error)?.message ??
+        'Demo reset failed.';
+      message.error(`Demo reset failed: ${apiMessage}`);
+    },
+  });
+
+  const openConfirmation = () => {
+    setConfirmText('');
+    setConfirmOpen(true);
+  };
+
+  const handleConfirm = async () => {
+    if (confirmText.trim() !== 'RESET') {
+      message.error("Bitte 'RESET' eingeben, um fortzufahren.");
+      return;
+    }
+
+    await resetMutation.mutateAsync();
+  };
+
+  return (
+    <Card title="Demo Database Reset">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div>
+          <Badge
+            status={canReset ? 'processing' : 'default'}
+            text={
+              canReset
+                ? 'Environment: Development (reset allowed)'
+                : 'Environment: Production (reset disabled)'
+            }
+          />
+        </div>
+
+        <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+          Dieser Vorgang löscht Zahlungs-, Beleg- und Gutschein-Daten und erstellt eine neue
+          Demo-Kasse samt Startbeleg.
+        </Typography.Paragraph>
+
+        <div>
+          <Button
+            danger
+            type="primary"
+            onClick={openConfirmation}
+            disabled={!canReset}
+            loading={resetMutation.isPending}
+          >
+            Demo Database Reset
+          </Button>
+        </div>
+      </div>
+
+      <Modal
+        title="Demo Database Reset bestätigen"
+        open={confirmOpen}
+        onCancel={() => {
+          if (!resetMutation.isPending) {
             setConfirmOpen(false);
             setConfirmText('');
-        },
-        onError: (err: unknown) => {
-            const apiMessage =
-                (err as { response?: { data?: { message?: string; detail?: string; title?: string } } })?.response?.data?.message
-                ?? (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-                ?? (err as { response?: { data?: { title?: string } } })?.response?.data?.title
-                ?? (err as Error)?.message
-                ?? 'Demo reset failed.';
-            message.error(`Demo reset failed: ${apiMessage}`);
-        },
-    });
-
-    const openConfirmation = () => {
-        setConfirmText('');
-        setConfirmOpen(true);
-    };
-
-    const handleConfirm = async () => {
-        if (confirmText.trim() !== 'RESET') {
-            message.error("Bitte 'RESET' eingeben, um fortzufahren.");
-            return;
-        }
-
-        await resetMutation.mutateAsync();
-    };
-
-    return (
-        <Card title="Demo Database Reset">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div>
-                    <Badge
-                        status={canReset ? 'processing' : 'default'}
-                        text={canReset ? 'Environment: Development (reset allowed)' : 'Environment: Production (reset disabled)'}
-                    />
-                </div>
-
-                <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-                    Dieser Vorgang löscht Zahlungs-, Beleg- und Gutschein-Daten und erstellt eine neue Demo-Kasse samt Startbeleg.
-                </Typography.Paragraph>
-
-                <div>
-                    <Button
-                        danger
-                        type="primary"
-                        onClick={openConfirmation}
-                        disabled={!canReset}
-                        loading={resetMutation.isPending}
-                    >
-                        Demo Database Reset
-                    </Button>
-                </div>
-            </div>
-
-            <Modal
-                title="Demo Database Reset bestätigen"
-                open={confirmOpen}
-                onCancel={() => {
-                    if (!resetMutation.isPending) {
-                        setConfirmOpen(false);
-                        setConfirmText('');
-                    }
-                }}
-                confirmLoading={resetMutation.isPending}
-                onOk={() => void handleConfirm()}
-                okText="Reset ausführen"
-                okButtonProps={{ danger: true }}
-                cancelText="Abbrechen"
-                mask={{ closable: !resetMutation.isPending }}
-                closable={!resetMutation.isPending}
-            >
-                <Typography.Paragraph>
-                    Are you sure? This will delete ALL payments, receipts, vouchers, and reset the cash register.
-                    This cannot be undone. Type {'RESET'} to confirm.
-                </Typography.Paragraph>
-                <Input
-                    autoFocus
-                    value={confirmText}
-                    onChange={(e) => setConfirmText(e.target.value)}
-                    placeholder="Type RESET"
-                    disabled={resetMutation.isPending}
-                />
-            </Modal>
-        </Card>
-    );
+          }
+        }}
+        confirmLoading={resetMutation.isPending}
+        onOk={() => void handleConfirm()}
+        okText="Reset ausführen"
+        okButtonProps={{ danger: true }}
+        cancelText="Abbrechen"
+        mask={{ closable: !resetMutation.isPending }}
+        closable={!resetMutation.isPending}
+      >
+        <Typography.Paragraph>
+          Are you sure? This will delete ALL payments, receipts, vouchers, and reset the cash
+          register. This cannot be undone. Type {'RESET'} to confirm.
+        </Typography.Paragraph>
+        <Input
+          autoFocus
+          value={confirmText}
+          onChange={(e) => setConfirmText(e.target.value)}
+          placeholder="Type RESET"
+          disabled={resetMutation.isPending}
+        />
+      </Modal>
+    </Card>
+  );
 }

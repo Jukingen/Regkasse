@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
+
+import { BackupScheduleFrequency } from '@/api/generated/model';
 import {
+  type BackupSchedulePlannerState,
   buildCronFromPlannerState,
   buildCronFromSchedule,
   parseCronToSchedule,
   plannerStateToPutSchedule,
-  type BackupSchedulePlannerState,
 } from '@/features/backup/logic/backupScheduleCronCodec';
-import { BackupScheduleFrequency } from '@/api/generated/model';
 
 describe('backupScheduleCronCodec', () => {
   it('buildCronFromSchedule daily', () => {
@@ -63,7 +64,7 @@ describe('backupScheduleCronCodec', () => {
       customCron: '0 2 * * 1',
     };
     expect(buildCronFromPlannerState(state)).toBe(
-      buildCronFromSchedule(plannerStateToPutSchedule(state)),
+      buildCronFromSchedule(plannerStateToPutSchedule(state))
     );
   });
 });

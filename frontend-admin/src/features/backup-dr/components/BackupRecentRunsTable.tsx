@@ -1,23 +1,24 @@
-"use client";
+'use client';
 
-import React, { useCallback, useMemo, useState } from "react";
-import { Button, Tag } from "antd";
-import { SafetyCertificateOutlined } from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table";
+import { SafetyCertificateOutlined } from '@ant-design/icons';
+import { Button, Tag } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import React, { useCallback, useMemo, useState } from 'react';
+
 import {
   useGetApiAdminBackupRuns,
   useGetApiAdminBackupStatusLatest,
-} from "@/api/generated/admin-backup/admin-backup";
-import type { BackupRunResponseDto } from "@/api/generated/model";
-import { RecentRunsTable } from "@/features/backup-dr/components/RecentRunsTable";
+} from '@/api/generated/admin-backup/admin-backup';
+import type { BackupRunResponseDto } from '@/api/generated/model';
+import { RecentRunsTable } from '@/features/backup-dr/components/RecentRunsTable';
 import {
   BACKUP_RECENT_RUNS_PAGE_SIZE,
   usePollAlignedWithLatestDashboardBackup,
   usePollBackupLatestDashboardInterval,
-} from "@/features/backup-dr/logic/backupDashboardQueryTiming";
-import { mapBackupRunStatusAntdColor } from "@/features/backup-dr/logic/backupDrMappers";
-import { apiNullableToUndefined } from "@/features/backup-dr/logic/backupDrDtoNormalize";
-import { isBackupRunEligibleForManualRestore } from "@/features/backup-dr/logic/manualRestorePresentation";
+} from '@/features/backup-dr/logic/backupDashboardQueryTiming';
+import { apiNullableToUndefined } from '@/features/backup-dr/logic/backupDrDtoNormalize';
+import { mapBackupRunStatusAntdColor } from '@/features/backup-dr/logic/backupDrMappers';
+import { isBackupRunEligibleForManualRestore } from '@/features/backup-dr/logic/manualRestorePresentation';
 
 export interface BackupRecentRunsTableProps {
   backupStatusLabel: (status: number | undefined, t: (k: string) => string) => string;
@@ -61,47 +62,47 @@ export function BackupRecentRunsTable({
         refetchInterval: pollAlignedRuns,
         refetchOnWindowFocus: true,
       },
-    },
+    }
   );
 
   const columns: ColumnsType<BackupRunResponseDto> = useMemo(
     () => [
       {
-        title: t("backupDr.table.requestedAt"),
-        dataIndex: "requestedAt",
-        key: "requestedAt",
+        title: t('backupDr.table.requestedAt'),
+        dataIndex: 'requestedAt',
+        key: 'requestedAt',
         render: (v: string) => formatDt(v, formatLocale),
       },
       {
-        title: t("backupDr.table.status"),
-        dataIndex: "status",
-        key: "status",
+        title: t('backupDr.table.status'),
+        dataIndex: 'status',
+        key: 'status',
         render: (s: number | undefined) => (
           <Tag color={mapBackupRunStatusAntdColor(s)}>{backupStatusLabel(s, t)}</Tag>
         ),
       },
       {
-        title: t("backupDr.table.adapter"),
-        dataIndex: "adapterKind",
-        key: "adapterKind",
+        title: t('backupDr.table.adapter'),
+        dataIndex: 'adapterKind',
+        key: 'adapterKind',
       },
       {
-        title: t("backupDr.table.completedAt"),
-        dataIndex: "completedAt",
-        key: "completedAt",
+        title: t('backupDr.table.completedAt'),
+        dataIndex: 'completedAt',
+        key: 'completedAt',
         render: (v: string | null) => formatDt(v, formatLocale),
       },
       {
-        title: t("backupDr.table.failure"),
-        dataIndex: "failureCode",
-        key: "failureCode",
-        render: (c: string | null) => c ?? "—",
+        title: t('backupDr.table.failure'),
+        dataIndex: 'failureCode',
+        key: 'failureCode',
+        render: (c: string | null) => c ?? '—',
       },
       ...(canRequestManualRestore && onRequestManualRestore
         ? [
             {
-              title: t("backupDr.manualRestore.table.actions"),
-              key: "manualRestore",
+              title: t('backupDr.manualRestore.table.actions'),
+              key: 'manualRestore',
               render: (_: unknown, row: BackupRunResponseDto) =>
                 isBackupRunEligibleForManualRestore(row.status) ? (
                   <Button
@@ -109,16 +110,16 @@ export function BackupRecentRunsTable({
                     icon={<SafetyCertificateOutlined />}
                     onClick={() => onRequestManualRestore(row)}
                   >
-                    {t("backupDr.manualRestore.table.requestRestore")}
+                    {t('backupDr.manualRestore.table.requestRestore')}
                   </Button>
                 ) : (
-                  "—"
+                  '—'
                 ),
             } satisfies ColumnsType<BackupRunResponseDto>[number],
           ]
         : []),
     ],
-    [backupStatusLabel, canRequestManualRestore, formatDt, formatLocale, onRequestManualRestore, t],
+    [backupStatusLabel, canRequestManualRestore, formatDt, formatLocale, onRequestManualRestore, t]
   );
 
   const totalCount = runsQuery.data?.totalCount ?? 0;
@@ -127,7 +128,7 @@ export function BackupRecentRunsTable({
 
   return (
     <RecentRunsTable
-      title={t("backupDr.runs.title")}
+      title={t('backupDr.runs.title')}
       rowKey="id"
       dataSource={runsQuery.data?.items ?? []}
       columns={columns}

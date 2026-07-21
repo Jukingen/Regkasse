@@ -1,11 +1,12 @@
-"use client";
+'use client';
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from '@tanstack/react-query';
+
 import {
+  type BackupComplianceStatusResponseDto,
   getBackupComplianceStatus,
   getBackupComplianceStatusQueryKey,
-  type BackupComplianceStatusResponseDto,
-} from "@/features/backup/logic/backupComplianceStatusApi";
+} from '@/features/backup/logic/backupComplianceStatusApi';
 
 export type UseComplianceStatusOptions = {
   enabled?: boolean;

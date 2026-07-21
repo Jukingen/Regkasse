@@ -14,6 +14,8 @@ describe('isValidPosCashRegisterId', () => {
 
   it('rejects empty GUID sentinel', () => {
     expect(isValidPosCashRegisterId('00000000-0000-0000-0000-000000000000')).toBe(false);
-    expect(isValidPosCashRegisterId('00000000-0000-0000-0000-000000000000'.toUpperCase())).toBe(false);
+    expect(isValidPosCashRegisterId('00000000-0000-0000-0000-000000000000'.toUpperCase())).toBe(
+      false
+    );
   });
 });

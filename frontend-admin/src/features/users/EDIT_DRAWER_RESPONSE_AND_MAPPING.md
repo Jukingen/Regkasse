@@ -108,11 +108,11 @@ Eğer backend bazı alanları null/boş gönderirse mapper boş string döner:
 
 ## 4. Olası bug noktaları
 
-| Sorun | Kontrol |
-|--------|--------|
-| Backend gerçekten camelCase mi dönüyor? | Tarayıcı Network → GET `/api/UserManagement/{id}` → Response body’de key’ler `firstName` mi `FirstName` mi? |
-| `user` drawer’a undefined/boş mu geliyor? | `UsersPage` içinde `user={editUserFull ?? undefined}`; `editUserFull` aynı GET cevabından gelmeli. |
-| Form key’leri uyuşuyor mu? | Form.Item `name`: `firstName`, `lastName`, `email`, `employeeNumber`, `role`, `taxNumber`, `notes` ↔ `userToFormValues` çıktısı aynı key’ler. |
-| Role string mi? | Backend `Role` string (örn. `"Admin"`); Select `options={roleOptions}` value’lar da string; mapper `role` string veriyor. |
+| Sorun                                     | Kontrol                                                                                                                                       |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backend gerçekten camelCase mi dönüyor?   | Tarayıcı Network → GET `/api/UserManagement/{id}` → Response body’de key’ler `firstName` mi `FirstName` mi?                                   |
+| `user` drawer’a undefined/boş mu geliyor? | `UsersPage` içinde `user={editUserFull ?? undefined}`; `editUserFull` aynı GET cevabından gelmeli.                                            |
+| Form key’leri uyuşuyor mu?                | Form.Item `name`: `firstName`, `lastName`, `email`, `employeeNumber`, `role`, `taxNumber`, `notes` ↔ `userToFormValues` çıktısı aynı key’ler. |
+| Role string mi?                           | Backend `Role` string (örn. `"Admin"`); Select `options={roleOptions}` value’lar da string; mapper `role` string veriyor.                     |
 
 Network’te body PascalCase ise gateway `normalizeUserInfo` ile yine camelCase `user` üretmeli; buna rağmen form boşsa, `user` prop’unun gerçekten dolu gelip gelmediği ve `userToFormValues(user)` çıktısının console ile doğrulanması gerekir.

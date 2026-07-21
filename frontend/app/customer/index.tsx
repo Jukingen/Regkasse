@@ -6,25 +6,30 @@
  * EXPO_PUBLIC_APP_SURFACE=customer.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import * as Linking from 'expo-linking';
+import { useLocalSearchParams } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+
 import { TenantApp } from '../../components/customerApp/TenantApp';
 import { TenantSelector } from '../../components/customerApp/TenantSelector';
 import {
   clearCustomerTenantSlug,
   getTenantSlug,
+  parseTenantSlugFromPayload,
   setCustomerTenantSlug,
 } from '../../services/customerApp/customerTenantStorage';
-import {
-  loadTenant,
-  type CustomerTenantProfile,
-} from '../../services/customerApp/publicTenantApi';
+import { loadTenant, type CustomerTenantProfile } from '../../services/customerApp/publicTenantApi';
+import { resolveDeepLink } from '../../services/linking/deepLinking';
 
 export default function CustomerAppEntry() {
+  const params = useLocalSearchParams<{ tenant?: string | string[] }>();
+  const linkingUrl = Linking.useLinkingURL();
   const [tenant, setTenant] = useState<CustomerTenantProfile | null>(null);
   const [booting, setBooting] = useState(true);
   const [loading, setLoading] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
+  const lastLinkSlug = useRef<string | null>(null);
 
   const selectSlug = useCallback(async (slug: string) => {
     setLoading(true);
@@ -49,9 +54,21 @@ export default function CustomerAppEntry() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const slug = await getTenantSlug();
+      const fromParam = Array.isArray(params.tenant) ? params.tenant[0] : params.tenant;
+      const fromParamSlug = parseTenantSlugFromPayload(fromParam) ?? null;
+
+      let fromLinkSlug: string | null = null;
+      if (linkingUrl) {
+        const intent = resolveDeepLink(linkingUrl);
+        if (intent?.type === 'customerTenant') fromLinkSlug = intent.slug;
+        if (intent?.type === 'customerHome' && intent.slug) fromLinkSlug = intent.slug;
+      }
+
+      const preferred = fromParamSlug ?? fromLinkSlug;
+      const slug = preferred ?? (await getTenantSlug());
       if (cancelled) return;
       if (slug) {
+        if (preferred) lastLinkSlug.current = preferred;
         await selectSlug(slug);
       } else {
         setBooting(false);
@@ -60,7 +77,22 @@ export default function CustomerAppEntry() {
     return () => {
       cancelled = true;
     };
-  }, [selectSlug]);
+  }, [selectSlug, params.tenant, linkingUrl]);
+
+  // Warm / cold deep links after first boot: apply new tenant from linking URL.
+  useEffect(() => {
+    if (booting || !linkingUrl) return;
+    const intent = resolveDeepLink(linkingUrl);
+    const slug =
+      intent?.type === 'customerTenant'
+        ? intent.slug
+        : intent?.type === 'customerHome'
+          ? intent.slug
+          : null;
+    if (!slug || slug === lastLinkSlug.current) return;
+    lastLinkSlug.current = slug;
+    void selectSlug(slug);
+  }, [linkingUrl, booting, selectSlug]);
 
   const onChangeTenant = useCallback(() => {
     void clearCustomerTenantSlug();
@@ -78,7 +110,11 @@ export default function CustomerAppEntry() {
 
   if (!tenant) {
     return (
-      <TenantSelector onSelect={(slug) => void selectSlug(slug)} isLoading={loading} errorKey={errorKey} />
+      <TenantSelector
+        onSelect={(slug) => void selectSlug(slug)}
+        isLoading={loading}
+        errorKey={errorKey}
+      />
     );
   }
 

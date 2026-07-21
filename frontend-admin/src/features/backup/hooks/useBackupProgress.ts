@@ -1,16 +1,16 @@
 /**
  * Polls GET /api/admin/backup/runs/{id} and maps it to a progress view-model.
  */
+import { useMemo } from 'react';
 
-import { useMemo } from "react";
-import { useGetApiAdminBackupStatusLatest } from "@/api/generated/admin-backup/admin-backup";
-import { BackupRunStatus } from "@/api/generated/model/backupRunStatus";
-import { useBackupRun } from "@/features/backup/hooks/useBackupRun";
+import { useGetApiAdminBackupStatusLatest } from '@/api/generated/admin-backup/admin-backup';
+import { BackupRunStatus } from '@/api/generated/model/backupRunStatus';
+import { useBackupRun } from '@/features/backup/hooks/useBackupRun';
+import { BACKUP_DASHBOARD_STATS_POLL_MS } from '@/features/backup/logic/backupDashboardStatsApi';
 import {
-  buildBackupProgressViewModel,
   type BackupProgressViewModel,
-} from "@/features/backup/logic/backupProgressPresentation";
-import { BACKUP_DASHBOARD_STATS_POLL_MS } from "@/features/backup/logic/backupDashboardStatsApi";
+  buildBackupProgressViewModel,
+} from '@/features/backup/logic/backupProgressPresentation';
 
 export type UseBackupProgressOptions = {
   /** When backupRunId is null, track the latest in-progress run from status/latest. */
@@ -28,7 +28,7 @@ function isInProgress(status: number | undefined): boolean {
 
 export function useBackupProgress(
   backupRunId: string | null | undefined,
-  options?: UseBackupProgressOptions,
+  options?: UseBackupProgressOptions
 ) {
   const autoTrack = options?.autoTrackLatestInProgress === true;
   const enabled = options?.enabled !== false;
@@ -43,7 +43,7 @@ export function useBackupProgress(
 
   const latestInProgressId =
     autoTrack && isInProgress(statusQuery.data?.latestRun?.status)
-      ? statusQuery.data?.latestRun?.id ?? null
+      ? (statusQuery.data?.latestRun?.id ?? null)
       : null;
 
   const resolvedId = backupRunId?.trim() || latestInProgressId || null;
@@ -56,16 +56,14 @@ export function useBackupProgress(
     () =>
       buildBackupProgressViewModel(runQuery.data, {
         averageSucceededDurationSeconds:
-          statusQuery.data?.averageSucceededBackupDurationSeconds ??
-          undefined,
-        estimatedRemainingSecondsFromApi:
-          statusQuery.data?.estimatedRemainingSeconds ?? undefined,
+          statusQuery.data?.averageSucceededBackupDurationSeconds ?? undefined,
+        estimatedRemainingSecondsFromApi: statusQuery.data?.estimatedRemainingSeconds ?? undefined,
       }),
     [
       runQuery.data,
       statusQuery.data?.averageSucceededBackupDurationSeconds,
       statusQuery.data?.estimatedRemainingSeconds,
-    ],
+    ]
   );
 
   return {

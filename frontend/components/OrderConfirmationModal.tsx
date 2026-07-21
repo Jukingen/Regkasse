@@ -9,11 +9,13 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  StyleSheet,
 } from 'react-native';
+
 import { Colors, Spacing, BorderRadius, Typography } from '../constants/Colors';
 import { orderService } from '../services/api/orderService';
+import { Cart } from '../services/api/cartService';
 import { WaveLoader } from '../src/components/common/WaveLoader';
-import { Cart, CartItem } from '../types/cart';
 
 interface OrderConfirmationModalProps {
   visible: boolean;
@@ -30,7 +32,7 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
   onSuccess,
   cart,
   tableNumber,
-  waiterName
+  waiterName,
 }) => {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -38,7 +40,7 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
   const [loading, setLoading] = useState(false);
 
   const handleConfirmOrder = async () => {
-    if (!cart || !cart.items || cart.items.length === 0) {
+    if (!cart?.items || cart.items.length === 0) {
       Alert.alert('Hata', 'Sepette ürün bulunamadı');
       return;
     }
@@ -63,42 +65,34 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
       );
 
       setLoading(false);
-      Alert.alert(
-        'Başarılı!',
-        `Sipariş oluşturuldu: ${orderResponse.orderId}`,
-        [
-          {
-            text: 'Tamam',
-            onPress: () => {
-              onSuccess(orderResponse.orderId);
-              onClose();
-              // Form'u temizle
-              setCustomerName('');
-              setCustomerPhone('');
-              setNotes('');
-            }
-          }
-        ]
-      );
+      Alert.alert('Başarılı!', `Sipariş oluşturuldu: ${orderResponse.orderId}`, [
+        {
+          text: 'Tamam',
+          onPress: () => {
+            onSuccess(orderResponse.orderId);
+            onClose();
+            // Form'u temizle
+            setCustomerName('');
+            setCustomerPhone('');
+            setNotes('');
+          },
+        },
+      ]);
     } catch (error: any) {
       setLoading(false);
-      const errorMessage = error.response?.data?.Message || error.message || 'Sipariş oluşturulurken hata oluştu';
+      const errorMessage =
+        error.response?.data?.Message || error.message || 'Sipariş oluşturulurken hata oluştu';
       Alert.alert('Hata', errorMessage);
     }
   };
 
   const calculateTotal = () => {
     if (!cart?.items) return 0;
-    return cart.items.reduce((total, item) => total + (item.totalAmount || 0), 0);
+    return cart.items.reduce((total, item) => total + (item.totalPrice || 0), 0);
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
           <View style={styles.header}>
@@ -159,13 +153,9 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
                       <Text style={styles.itemDetails}>
                         {item.quantity}x {item.unitPrice?.toFixed(2)}€
                       </Text>
-                      {item.notes && (
-                        <Text style={styles.itemNotes}>Not: {item.notes}</Text>
-                      )}
+                      {item.notes && <Text style={styles.itemNotes}>Not: {item.notes}</Text>}
                     </View>
-                    <Text style={styles.itemTotal}>
-                      {(item.totalAmount || 0).toFixed(2)}€
-                    </Text>
+                    <Text style={styles.itemTotal}>{(item.totalPrice || 0).toFixed(2)}€</Text>
                   </View>
                 ))}
               </View>
@@ -173,9 +163,7 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
 
             {/* Toplam */}
             <View style={styles.totalSection}>
-              <Text style={styles.totalText}>
-                Toplam: {calculateTotal().toFixed(2)}€
-              </Text>
+              <Text style={styles.totalText}>Toplam: {calculateTotal().toFixed(2)}€</Text>
             </View>
           </ScrollView>
 
@@ -184,16 +172,14 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
             <TouchableOpacity
               style={[styles.button, styles.cancelButton]}
               onPress={onClose}
-              disabled={loading}
-            >
+              disabled={loading}>
               <Text style={styles.cancelButtonText}>İptal</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={[styles.button, styles.confirmButton]}
               onPress={handleConfirmOrder}
-              disabled={loading}
-            >
+              disabled={loading}>
               {loading ? (
                 <WaveLoader size={18} color="#FFFFFF" />
               ) : (
@@ -207,19 +193,19 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
   );
 };
 
-const styles = {
+const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
   },
   modalContainer: {
     backgroundColor: Colors.light.background,
     borderRadius: BorderRadius.lg,
     width: '90%',
     maxHeight: '80%',
-    padding: 0
+    padding: 0,
   },
   header: {
     flexDirection: 'row',
@@ -227,30 +213,30 @@ const styles = {
     alignItems: 'center',
     padding: Spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border
+    borderBottomColor: Colors.light.border,
   },
   title: {
     ...Typography.h2,
-    color: Colors.light.text
+    color: Colors.light.text,
   },
   closeButton: {
-    padding: Spacing.sm
+    padding: Spacing.sm,
   },
   closeButtonText: {
     fontSize: 20,
-    color: Colors.light.textSecondary
+    color: Colors.light.textSecondary,
   },
   content: {
     flex: 1,
-    padding: Spacing.lg
+    padding: Spacing.lg,
   },
   section: {
-    marginBottom: Spacing.lg
+    marginBottom: Spacing.lg,
   },
   sectionTitle: {
     ...Typography.h3,
     color: Colors.light.text,
-    marginBottom: Spacing.md
+    marginBottom: Spacing.md,
   },
   input: {
     borderWidth: 1,
@@ -259,17 +245,17 @@ const styles = {
     padding: Spacing.md,
     marginBottom: Spacing.md,
     fontSize: 16,
-    color: Colors.light.text
+    color: Colors.light.text,
   },
   orderInfo: {
-    backgroundColor: Colors.light.backgroundSecondary,
+    backgroundColor: Colors.light.cartBackground,
     padding: Spacing.md,
-    borderRadius: BorderRadius.md
+    borderRadius: BorderRadius.md,
   },
   orderInfoText: {
     ...Typography.body,
     color: Colors.light.text,
-    marginBottom: Spacing.sm
+    marginBottom: Spacing.sm,
   },
   itemRow: {
     flexDirection: 'row',
@@ -277,74 +263,74 @@ const styles = {
     alignItems: 'flex-start',
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.borderLight
+    borderBottomColor: Colors.light.borderLight,
   },
   itemInfo: {
-    flex: 1
+    flex: 1,
   },
   itemName: {
     ...Typography.body,
     color: Colors.light.text,
-    fontWeight: '600'
+    fontWeight: '600',
   },
   itemDetails: {
     ...Typography.caption,
     color: Colors.light.textSecondary,
-    marginTop: 2
+    marginTop: 2,
   },
   itemNotes: {
     ...Typography.caption,
     color: Colors.light.primary,
     marginTop: 2,
-    fontStyle: 'italic'
+    fontStyle: 'italic',
   },
   itemTotal: {
     ...Typography.body,
     color: Colors.light.text,
-    fontWeight: '600'
+    fontWeight: '600',
   },
   totalSection: {
     alignItems: 'center',
     padding: Spacing.lg,
     backgroundColor: Colors.light.primary,
     borderRadius: BorderRadius.md,
-    marginTop: Spacing.md
+    marginTop: Spacing.md,
   },
   totalText: {
     ...Typography.h2,
     color: Colors.light.white,
-    fontWeight: 'bold'
+    fontWeight: 'bold',
   },
   buttonContainer: {
     flexDirection: 'row',
     padding: Spacing.lg,
     borderTopWidth: 1,
     borderTopColor: Colors.light.border,
-    gap: Spacing.md
+    gap: Spacing.md,
   },
   button: {
     flex: 1,
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: Colors.light.backgroundSecondary,
+    backgroundColor: Colors.light.cartBackground,
     borderWidth: 1,
-    borderColor: Colors.light.border
+    borderColor: Colors.light.border,
   },
   cancelButtonText: {
     ...Typography.body,
     color: Colors.light.textSecondary,
-    fontWeight: '600'
+    fontWeight: '600',
   },
   confirmButton: {
-    backgroundColor: Colors.light.primary
+    backgroundColor: Colors.light.primary,
   },
   confirmButtonText: {
     ...Typography.body,
     color: Colors.light.white,
-    fontWeight: '600'
-  }
-};
+    fontWeight: '600',
+  },
+});

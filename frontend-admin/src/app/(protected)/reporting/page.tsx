@@ -1,23 +1,35 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
-/**
- * POS payment–based operational reports: filters, tabs (summary, period, interim X, closing Z reference), CSV export.
- */
-import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, Button, Card, Col, DatePicker, Row, Select, Space, Spin, Switch, Table, Tabs, Typography } from 'antd';
+import { useMutation } from '@tanstack/react-query';
+import {
+  Alert,
+  Button,
+  Card,
+  Col,
+  DatePicker,
+  Row,
+  Select,
+  Space,
+  Spin,
+  Switch,
+  Table,
+  Tabs,
+  Typography,
+} from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { useSearchParams } from 'next/navigation';
-import { useMutation } from '@tanstack/react-query';
+/**
+ * POS payment–based operational reports: filters, tabs (summary, period, interim X, closing Z reference), CSV export.
+ */
+import React, { useCallback, useMemo, useState } from 'react';
 
-dayjs.extend(utc);
-import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { useI18n } from '@/i18n/I18nProvider';
-import { formatCurrency } from '@/i18n/formatting';
-import { CashRegisterSelector } from '@/components/CashRegisterSelector';
+import type {
+  CashierBucketDto,
+  ClosingReferenceRowDto,
+  PaymentMethodBucketDto,
+} from '@/api/generated/model';
 import {
   getApiReportsOperationalExportSummaryCsv,
   useGetApiReportsOperationalClosings,
@@ -25,12 +37,19 @@ import {
   useGetApiReportsOperationalPeriodic,
   useGetApiReportsOperationalSummary,
 } from '@/api/generated/operational-reports/operational-reports';
+import { CashRegisterSelector } from '@/components/CashRegisterSelector';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { useCashierFilterOptions } from '@/features/reporting/hooks/useCashierFilterOptions';
-import type { CashierBucketDto, ClosingReferenceRowDto, PaymentMethodBucketDto } from '@/api/generated/model';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { useI18n } from '@/i18n/I18nProvider';
+import { formatCurrency } from '@/i18n/formatting';
 import { AXIOS_INSTANCE } from '@/lib/axios';
-import { usePermissions } from '@/shared/auth/usePermissions';
-import { PERMISSIONS } from '@/shared/auth/permissions';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { PERMISSIONS } from '@/shared/auth/permissions';
+import { usePermissions } from '@/shared/auth/usePermissions';
+
+dayjs.extend(utc);
 
 const { RangePicker } = DatePicker;
 
@@ -61,7 +80,9 @@ export default function ReportingPage() {
 
   const initialTab = searchParams?.get('tab');
   const [tab, setTab] = useState<string>(
-    initialTab && ['summary', 'periodic', 'interim', 'closings'].includes(initialTab) ? initialTab : 'summary'
+    initialTab && ['summary', 'periodic', 'interim', 'closings'].includes(initialTab)
+      ? initialTab
+      : 'summary'
   );
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
     dayjs().startOf('month'),
@@ -88,7 +109,7 @@ export default function ReportingPage() {
       paymentMethod,
       activeOnly,
     }),
-    [startDate, endDate, cashRegisterId, cashierId, paymentMethod, activeOnly],
+    [startDate, endDate, cashRegisterId, cashierId, paymentMethod, activeOnly]
   );
 
   const interimParams = useMemo(
@@ -98,7 +119,7 @@ export default function ReportingPage() {
       paymentMethod,
       activeOnly,
     }),
-    [cashRegisterId, cashierId, paymentMethod, activeOnly],
+    [cashRegisterId, cashierId, paymentMethod, activeOnly]
   );
 
   const periodicParams = useMemo(() => {
@@ -121,11 +142,14 @@ export default function ReportingPage() {
       endDate,
       cashRegisterId,
     }),
-    [startDate, endDate, cashRegisterId],
+    [startDate, endDate, cashRegisterId]
   );
 
-  const { options: cashierOptions, loading: cashierOptionsLoading, onSearch: onCashierSearch } =
-    useCashierFilterOptions();
+  const {
+    options: cashierOptions,
+    loading: cashierOptionsLoading,
+    onSearch: onCashierSearch,
+  } = useCashierFilterOptions();
 
   const summaryQ = useGetApiReportsOperationalSummary(filterParams, {
     query: { enabled: tab === 'summary' },
@@ -157,7 +181,7 @@ export default function ReportingPage() {
 
   const closingsRows = useMemo(
     () => closingsQ.data?.dailyClosings ?? [],
-    [closingsQ.data?.dailyClosings],
+    [closingsQ.data?.dailyClosings]
   );
   const statusOptions = useMemo(() => {
     const s = new Set(closingsRows.map((r) => r.status).filter(Boolean) as string[]);
@@ -182,7 +206,9 @@ export default function ReportingPage() {
       // Browser globals (client-only handler; eslint env lacks DOM globals).
       const w = globalThis as unknown as {
         URL: { createObjectURL: (b: unknown) => string; revokeObjectURL: (u: string) => void };
-        document: { createElement: (t: string) => { href: string; download: string; click: () => void } };
+        document: {
+          createElement: (t: string) => { href: string; download: string; click: () => void };
+        };
       };
       const url = w.URL.createObjectURL(blob);
       const a = w.document.createElement('a');
@@ -296,7 +322,9 @@ export default function ReportingPage() {
                 </Button>
               </>
             ) : (
-              <Typography.Text type="secondary">{t('adminShell.reporting.exportNoPermission')}</Typography.Text>
+              <Typography.Text type="secondary">
+                {t('adminShell.reporting.exportNoPermission')}
+              </Typography.Text>
             )}
           </Space>
         }
@@ -306,12 +334,19 @@ export default function ReportingPage() {
         </Typography.Paragraph>
       </AdminPageHeader>
 
-      <Card size="small" style={{ marginBottom: 16 }} title={t('adminShell.reporting.filtersTitle')}>
+      <Card
+        size="small"
+        style={{ marginBottom: 16 }}
+        title={t('adminShell.reporting.filtersTitle')}
+      >
         <Row gutter={[16, 12]}>
           <Col xs={24} md={10}>
-            <Typography.Text type="secondary">{t('adminShell.reporting.dateRange')}</Typography.Text>
+            <Typography.Text type="secondary">
+              {t('adminShell.reporting.dateRange')}
+            </Typography.Text>
             <div style={{ marginTop: 4 }}>
-              <RangePicker format={DAYJS_DATE_FORMAT}
+              <RangePicker
+                format={DAYJS_DATE_FORMAT}
                 style={{ width: '100%' }}
                 value={dateRange}
                 onChange={(d) => {
@@ -349,7 +384,9 @@ export default function ReportingPage() {
             />
           </Col>
           <Col xs={24} md={8}>
-            <Typography.Text type="secondary">{t('adminShell.reporting.paymentMethod')}</Typography.Text>
+            <Typography.Text type="secondary">
+              {t('adminShell.reporting.paymentMethod')}
+            </Typography.Text>
             <Select
               allowClear
               placeholder={t('adminShell.reporting.paymentAll')}
@@ -360,7 +397,9 @@ export default function ReportingPage() {
             />
           </Col>
           <Col xs={24} md={8}>
-            <Typography.Text type="secondary">{t('adminShell.reporting.activeOnly')}</Typography.Text>
+            <Typography.Text type="secondary">
+              {t('adminShell.reporting.activeOnly')}
+            </Typography.Text>
             <div style={{ marginTop: 8 }}>
               <Switch checked={activeOnly} onChange={setActiveOnly} />
             </div>
@@ -378,12 +417,19 @@ export default function ReportingPage() {
             children: (
               <Spin spinning={!!loading}>
                 {activeSummary?.interimDisclaimer && (
-                  <Alert type="info" showIcon style={{ marginBottom: 12 }} title={activeSummary.interimDisclaimer} />
+                  <Alert
+                    type="info"
+                    showIcon
+                    style={{ marginBottom: 12 }}
+                    title={activeSummary.interimDisclaimer}
+                  />
                 )}
                 <Row gutter={16} style={{ marginBottom: 16 }}>
                   <Col xs={12} md={6}>
                     <Card size="small">
-                      <Typography.Text type="secondary">{t('adminShell.reporting.gross')}</Typography.Text>
+                      <Typography.Text type="secondary">
+                        {t('adminShell.reporting.gross')}
+                      </Typography.Text>
                       <div style={{ fontSize: 20, fontWeight: 600 }}>
                         {formatMoney(Number(activeSummary?.grossTotalAmount ?? 0))}
                       </div>
@@ -391,7 +437,9 @@ export default function ReportingPage() {
                   </Col>
                   <Col xs={12} md={6}>
                     <Card size="small">
-                      <Typography.Text type="secondary">{t('adminShell.reporting.tax')}</Typography.Text>
+                      <Typography.Text type="secondary">
+                        {t('adminShell.reporting.tax')}
+                      </Typography.Text>
                       <div style={{ fontSize: 20, fontWeight: 600 }}>
                         {formatMoney(Number(activeSummary?.taxTotalAmount ?? 0))}
                       </div>
@@ -399,7 +447,9 @@ export default function ReportingPage() {
                   </Col>
                   <Col xs={12} md={6}>
                     <Card size="small">
-                      <Typography.Text type="secondary">{t('adminShell.reporting.refunds')}</Typography.Text>
+                      <Typography.Text type="secondary">
+                        {t('adminShell.reporting.refunds')}
+                      </Typography.Text>
                       <div style={{ fontSize: 20, fontWeight: 600 }}>
                         {formatMoney(Number(activeSummary?.refundAmountTotal ?? 0))}
                       </div>
@@ -407,12 +457,18 @@ export default function ReportingPage() {
                   </Col>
                   <Col xs={12} md={6}>
                     <Card size="small">
-                      <Typography.Text type="secondary">{t('adminShell.reporting.rows')}</Typography.Text>
-                      <div style={{ fontSize: 20, fontWeight: 600 }}>{activeSummary?.paymentRowCount ?? 0}</div>
+                      <Typography.Text type="secondary">
+                        {t('adminShell.reporting.rows')}
+                      </Typography.Text>
+                      <div style={{ fontSize: 20, fontWeight: 600 }}>
+                        {activeSummary?.paymentRowCount ?? 0}
+                      </div>
                     </Card>
                   </Col>
                 </Row>
-                <Typography.Title level={5}>{t('adminShell.reporting.byPaymentTitle')}</Typography.Title>
+                <Typography.Title level={5}>
+                  {t('adminShell.reporting.byPaymentTitle')}
+                </Typography.Title>
                 <Table
                   size="small"
                   rowKey={(r) => `${r.methodKey}-${r.count}`}
@@ -440,7 +496,9 @@ export default function ReportingPage() {
               <Spin spinning={!!loading}>
                 <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                   <div>
-                    <Typography.Text type="secondary">{t('adminShell.reporting.periodPreset')}</Typography.Text>
+                    <Typography.Text type="secondary">
+                      {t('adminShell.reporting.periodPreset')}
+                    </Typography.Text>
                     <Select
                       style={{ width: '100%', maxWidth: 360, marginTop: 4, display: 'block' }}
                       value={periodPreset}
@@ -471,18 +529,25 @@ export default function ReportingPage() {
                   </Space>
                   {periodicQ.data?.summary && (
                     <>
-                      <Typography.Title level={5}>{t('adminShell.reporting.totalsTitle')}</Typography.Title>
+                      <Typography.Title level={5}>
+                        {t('adminShell.reporting.totalsTitle')}
+                      </Typography.Title>
                       <Row gutter={16}>
                         <Col span={8}>
                           {t('adminShell.reporting.gross')}:{' '}
-                          <strong>{formatMoney(Number(periodicQ.data.summary.grossTotalAmount ?? 0))}</strong>
+                          <strong>
+                            {formatMoney(Number(periodicQ.data.summary.grossTotalAmount ?? 0))}
+                          </strong>
                         </Col>
                         <Col span={8}>
                           {t('adminShell.reporting.refunds')}:{' '}
-                          <strong>{formatMoney(Number(periodicQ.data.summary.refundAmountTotal ?? 0))}</strong>
+                          <strong>
+                            {formatMoney(Number(periodicQ.data.summary.refundAmountTotal ?? 0))}
+                          </strong>
                         </Col>
                         <Col span={8}>
-                          {t('adminShell.reporting.rows')}: <strong>{periodicQ.data.summary.paymentRowCount}</strong>
+                          {t('adminShell.reporting.rows')}:{' '}
+                          <strong>{periodicQ.data.summary.paymentRowCount}</strong>
                         </Col>
                       </Row>
                       <Table
@@ -514,7 +579,9 @@ export default function ReportingPage() {
                 <Row gutter={16} style={{ marginBottom: 16 }}>
                   <Col xs={12} md={8}>
                     <Card size="small">
-                      <Typography.Text type="secondary">{t('adminShell.reporting.gross')}</Typography.Text>
+                      <Typography.Text type="secondary">
+                        {t('adminShell.reporting.gross')}
+                      </Typography.Text>
                       <div style={{ fontSize: 20, fontWeight: 600 }}>
                         {formatMoney(Number(interimQ.data?.summary?.grossTotalAmount ?? 0))}
                       </div>
@@ -522,8 +589,12 @@ export default function ReportingPage() {
                   </Col>
                   <Col xs={12} md={8}>
                     <Card size="small">
-                      <Typography.Text type="secondary">{t('adminShell.reporting.rows')}</Typography.Text>
-                      <div style={{ fontSize: 20, fontWeight: 600 }}>{interimQ.data?.summary?.paymentRowCount ?? 0}</div>
+                      <Typography.Text type="secondary">
+                        {t('adminShell.reporting.rows')}
+                      </Typography.Text>
+                      <div style={{ fontSize: 20, fontWeight: 600 }}>
+                        {interimQ.data?.summary?.paymentRowCount ?? 0}
+                      </div>
                     </Card>
                   </Col>
                 </Row>
@@ -543,10 +614,17 @@ export default function ReportingPage() {
             children: (
               <Spin spinning={!!loading}>
                 {closingsQ.data?.operatorNote && (
-                  <Alert type="info" showIcon style={{ marginBottom: 12 }} title={closingsQ.data.operatorNote} />
+                  <Alert
+                    type="info"
+                    showIcon
+                    style={{ marginBottom: 12 }}
+                    title={closingsQ.data.operatorNote}
+                  />
                 )}
                 <Space style={{ marginBottom: 12 }} wrap>
-                  <Typography.Text type="secondary">{t('adminShell.reporting.closingStatus')}</Typography.Text>
+                  <Typography.Text type="secondary">
+                    {t('adminShell.reporting.closingStatus')}
+                  </Typography.Text>
                   <Select
                     allowClear
                     placeholder={t('adminShell.reporting.cashierAll')}

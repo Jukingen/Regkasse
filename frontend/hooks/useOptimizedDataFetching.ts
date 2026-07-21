@@ -1,13 +1,15 @@
 // Bu hook, sürekli API çağrıları yerine sadece gerekli durumlarda fetch yapmak için kullanılır
 // RKSV uyumlu güvenlik kontrolü ve akıllı cache yönetimi sağlar
 
+import { useNetInfo } from '@react-native-community/netinfo';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+
 import { API_BASE_URL } from '../config';
+import { useAuth } from '../contexts/AuthContext';
 import { resolveTenantFetchHeaders } from '../services/api/config';
 import { normalizeToPosPaymentMethods } from '../services/api/normalizePosPaymentMethods';
 import { POS_PAYMENT_METHODS_PATH } from '../services/api/posPaymentPaths';
-import { useNetInfo } from '@react-native-community/netinfo';
+import { isNetworkOnline } from '../utils/isNetworkOnline';
 
 interface FetchOptions {
   enabled?: boolean;
@@ -38,6 +40,10 @@ export function useOptimizedDataFetching<T>(
 ) {
   const { user } = useAuth();
   const { isConnected, isInternetReachable } = useNetInfo();
+  const networkOnline = isNetworkOnline({
+    isConnected: isConnected ?? null,
+    isInternetReachable: isInternetReachable ?? null,
+  });
   const [state, setState] = useState<FetchState<T>>({
     data: null,
     loading: false,
@@ -45,7 +51,7 @@ export function useOptimizedDataFetching<T>(
     lastFetch: 0,
     isInitialized: false,
   });
-  
+
   const {
     enabled = true,
     refetchOnFocus = false,
@@ -55,6 +61,7 @@ export function useOptimizedDataFetching<T>(
   } = options;
 
   const mountedRef = useRef(true);
+  const inFlightRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Component unmount kontrolü
@@ -70,13 +77,23 @@ export function useOptimizedDataFetching<T>(
 
   // Data'nın fetch edilmesi gerekip gerekmediğini kontrol et
   const shouldFetch = useCallback(() => {
-    if (!enabled || !user || !isConnected || !isInternetReachable) {
+    if (!enabled || !user || !networkOnline) {
+      return false;
+    }
+
+    // Avoid effect↔setState loops while a request is already running
+    if (state.loading || inFlightRef.current) {
+      return false;
+    }
+
+    // After a failed attempt, require manual refresh (force) instead of auto-retry storms
+    if (state.error && !state.data) {
       return false;
     }
 
     const now = Date.now();
     const timeSinceLastFetch = now - state.lastFetch;
-    
+
     // Eğer data yoksa veya cache süresi dolmuşsa fetch yap
     if (!state.data || timeSinceLastFetch > cacheTime) {
       return true;
@@ -88,57 +105,79 @@ export function useOptimizedDataFetching<T>(
     }
 
     return false;
-  }, [enabled, user, isConnected, isInternetReachable, state.data, state.lastFetch, cacheTime, staleTime]);
+  }, [
+    enabled,
+    user,
+    networkOnline,
+    state.data,
+    state.lastFetch,
+    state.loading,
+    state.error,
+    cacheTime,
+    staleTime,
+  ]);
 
   // Ana fetch fonksiyonu
-  const fetchData = useCallback(async (force = false) => {
-    if (!enabled || !user) return state.data;
+  const fetchData = useCallback(
+    async (force = false) => {
+      if (!enabled || !user) return state.data;
 
-    // Force değilse ve fetch gerekmiyorsa cache'den döndür
-    if (!force && !shouldFetch()) {
-      console.log('🔄 Data already fresh, returning cached data');
-      return state.data;
-    }
-
-    // Önceki request'i iptal et
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    // Yeni abort controller oluştur
-    abortControllerRef.current = new AbortController();
-
-    try {
-      setState(prev => ({ ...prev, loading: true, error: null }));
-
-      console.log('🔄 Fetching fresh data...');
-      
-      const result = await fetchFn();
-      
-      if (mountedRef.current) {
-        setState(prev => ({
-          ...prev,
-          data: result,
-          loading: false,
-          lastFetch: Date.now(),
-          isInitialized: true,
-        }));
+      // Force değilse ve fetch gerekmiyorsa cache'den döndür
+      if (!force && !shouldFetch()) {
+        console.log('🔄 Data already fresh, returning cached data');
+        return state.data;
       }
 
-      return result;
-    } catch (error: any) {
-      if (mountedRef.current && !abortControllerRef.current.signal.aborted) {
-        const errorMessage = error?.message || 'Data fetch failed';
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: errorMessage,
-        }));
-        console.error('❌ Data fetch error:', errorMessage);
+      if (inFlightRef.current && !force) {
+        return state.data;
       }
-      return state.data; // Hata durumunda cache'den döndür
-    }
-  }, [enabled, user, shouldFetch, fetchFn, state.data]);
+
+      // Önceki request'i iptal et
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Yeni abort controller oluştur
+      abortControllerRef.current = new AbortController();
+      inFlightRef.current = true;
+
+      try {
+        setState((prev) => ({ ...prev, loading: true, error: null }));
+
+        console.log('🔄 Fetching fresh data...');
+
+        const result = await fetchFn();
+
+        if (mountedRef.current) {
+          setState((prev) => ({
+            ...prev,
+            data: result,
+            loading: false,
+            lastFetch: Date.now(),
+            isInitialized: true,
+          }));
+        }
+
+        return result;
+      } catch (error: any) {
+        if (mountedRef.current && !abortControllerRef.current?.signal.aborted) {
+          const errorMessage = error?.message || 'Data fetch failed';
+          setState((prev) => ({
+            ...prev,
+            loading: false,
+            error: errorMessage,
+            isInitialized: true,
+            lastFetch: Date.now(),
+          }));
+          console.error('❌ Data fetch error:', errorMessage);
+        }
+        return state.data; // Hata durumunda cache'den döndür
+      } finally {
+        inFlightRef.current = false;
+      }
+    },
+    [enabled, user, shouldFetch, fetchFn, state.data]
+  );
 
   // Manuel refresh fonksiyonu
   const refresh = useCallback(async () => {
@@ -155,11 +194,11 @@ export function useOptimizedDataFetching<T>(
 
   // Network durumu değiştiğinde kontrol et
   useEffect(() => {
-    if (isConnected && isInternetReachable && enabled && user && shouldFetch()) {
+    if (networkOnline && enabled && user && shouldFetch()) {
       console.log('🔄 Network restored, fetching fresh data...');
       fetchData();
     }
-  }, [isConnected, isInternetReachable, enabled, user, shouldFetch, fetchData]); // fetchData dependency'sini ekledik
+  }, [networkOnline, enabled, user, shouldFetch, fetchData]); // fetchData dependency'sini ekledik
 
   return {
     // State
@@ -168,14 +207,14 @@ export function useOptimizedDataFetching<T>(
     error: state.error,
     lastFetch: state.lastFetch,
     isInitialized: state.isInitialized,
-    
+
     // Actions
     fetchData,
     refresh,
-    
+
     // Helper functions
     shouldFetch: shouldFetch(),
-    isStale: state.data && (Date.now() - state.lastFetch) > staleTime,
+    isStale: state.data && Date.now() - state.lastFetch > staleTime,
   };
 }
 
@@ -184,22 +223,22 @@ export function useOptimizedDataFetching<T>(
  */
 export function useOptimizedTableOrdersRecovery() {
   const { user } = useAuth();
-  
+
   const fetchTableOrders = useCallback(async () => {
-    if (!user || !user.token) return null;
-    
+    if (!user?.token) return null;
+
     try {
       const response = await fetch('/api/pos/cart/table-orders-recovery', {
         headers: {
-          'Authorization': `Bearer ${user.token}`, // user.token JWT token, Bearer prefix ekle
+          Authorization: `Bearer ${user.token}`, // user.token JWT token, Bearer prefix ekle
           'Content-Type': 'application/json',
         },
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       return await response.json();
     } catch (error) {
       console.error('Table orders fetch failed:', error);
@@ -218,10 +257,10 @@ export function useOptimizedTableOrdersRecovery() {
  */
 export function useOptimizedPaymentMethods() {
   const { user } = useAuth();
-  
+
   const fetchPaymentMethods = useCallback(async () => {
-    if (!user || !user.token) return null;
-    
+    if (!user?.token) return null;
+
     try {
       const response = await fetch(`${API_BASE_URL}${POS_PAYMENT_METHODS_PATH}`, {
         headers: await resolveTenantFetchHeaders({
@@ -229,7 +268,7 @@ export function useOptimizedPaymentMethods() {
           'Content-Type': 'application/json',
         }),
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
@@ -244,6 +283,6 @@ export function useOptimizedPaymentMethods() {
 
   return useOptimizedDataFetching(fetchPaymentMethods, [user], {
     cacheTime: 10 * 60 * 1000, // 10 dakika cache (payment methods nadiren değişir)
-    staleTime: 5 * 60 * 1000,  // 5 dakika stale time
+    staleTime: 5 * 60 * 1000, // 5 dakika stale time
   });
 }

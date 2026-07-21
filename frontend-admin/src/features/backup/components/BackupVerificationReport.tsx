@@ -1,9 +1,5 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
-import React, { useCallback, useMemo } from 'react';
-import { Modal, Alert, Button, Col, Progress, Row, Space, Statistic, Table, Tag } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -11,21 +7,26 @@ import {
   SafetyCertificateOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
+import { Alert, Button, Col, Modal, Progress, Row, Space, Statistic, Table, Tag } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import React, { useCallback, useMemo } from 'react';
+
 import { CardSkeleton } from '@/components/Skeleton';
-import { useI18n } from '@/i18n';
-import { formatDateTime } from '@/i18n/formatting';
-import { useBackupVerificationReport } from '@/features/backup/hooks/useBackupVerificationReport';
 import { formatBackupBytes } from '@/features/backup-dr/logic/backupFormat';
+import { useBackupVerificationReport } from '@/features/backup/hooks/useBackupVerificationReport';
 import type {
   BackupTableStatistics,
   BackupVerificationReport as BackupVerificationReportData,
 } from '@/features/backup/logic/backupVerificationReportApi';
+import { exportBackupVerificationReportPdf } from '@/features/backup/logic/backupVerificationReportPdfExport';
 import {
   backupVerificationAlertType,
   getBackupVerificationRowDiff,
   isBackupVerificationRowMismatched,
 } from '@/features/backup/logic/backupVerificationReportPresentation';
-import { exportBackupVerificationReportPdf } from '@/features/backup/logic/backupVerificationReportPdfExport';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { useI18n } from '@/i18n';
+import { formatDateTime } from '@/i18n/formatting';
 
 export interface BackupVerificationReportProps {
   backupRunId: string;
@@ -123,7 +124,7 @@ export function BackupVerificationReport({
           ),
       },
     ],
-    [formatLocale, report, t],
+    [formatLocale, report, t]
   );
 
   const handleExportPdf = useCallback(() => {
@@ -174,12 +175,14 @@ export function BackupVerificationReport({
                 title={t('backupDr.verificationReport.score')}
                 value={report.verificationScore}
                 suffix="%"
-                styles={{ content: { 
-                  color:
-                    report.verificationScore >= 90
-                      ? 'var(--ant-color-success)'
-                      : 'var(--ant-color-error)',
-                 } }}
+                styles={{
+                  content: {
+                    color:
+                      report.verificationScore >= 90
+                        ? 'var(--ant-color-success)'
+                        : 'var(--ant-color-error)',
+                  },
+                }}
                 prefix={<StatusIcon status={report.status} />}
               />
               <Progress percent={report.verificationScore} style={{ marginTop: 8 }} />

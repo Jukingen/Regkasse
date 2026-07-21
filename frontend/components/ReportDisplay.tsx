@@ -1,9 +1,9 @@
 // Türkçe Açıklama: Rapor gösterim komponenti - farklı rapor tipleri için görsel gösterim ve filtreleme özellikleri.
 
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 
 import ReportFilterPanel, { ReportFilter } from './ReportFilterPanel';
 import { WaveLoader } from '../src/components/common/WaveLoader';
@@ -35,7 +35,7 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({
   onGenerateReport,
   onSaveReport,
   onExportReport,
-  userRole
+  userRole,
 }) => {
   const { t } = useTranslation();
   const [filter, setFilter] = useState<ReportFilter>({});
@@ -67,7 +67,7 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({
   const renderSalesReport = (data: any) => (
     <View style={styles.reportSection}>
       <Text style={styles.reportTitle}>{t('report.salesReport', 'Satış Raporu')}</Text>
-      
+
       {/* Özet Kartları */}
       <View style={styles.summaryCards}>
         <View style={styles.summaryCard}>
@@ -91,7 +91,9 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({
       {/* Kategori Bazlı Satışlar */}
       {data.salesByCategory && Object.keys(data.salesByCategory).length > 0 && (
         <View style={styles.detailSection}>
-          <Text style={styles.sectionTitle}>{t('report.salesByCategory', 'Kategori Bazlı Satışlar')}</Text>
+          <Text style={styles.sectionTitle}>
+            {t('report.salesByCategory', 'Kategori Bazlı Satışlar')}
+          </Text>
           {Object.entries(data.salesByCategory).map(([category, amount]) => (
             <View key={category} style={styles.detailRow}>
               <Text style={styles.detailLabel}>{category}</Text>
@@ -105,12 +107,14 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({
       {data.topProducts && Object.keys(data.topProducts).length > 0 && (
         <View style={styles.detailSection}>
           <Text style={styles.sectionTitle}>{t('report.topProducts', 'En Çok Satan Ürünler')}</Text>
-          {Object.entries(data.topProducts).slice(0, 5).map(([product, quantity]) => (
-            <View key={product} style={styles.detailRow}>
-              <Text style={styles.detailLabel}>{product}</Text>
-              <Text style={styles.detailValue}>{quantity} adet</Text>
-            </View>
-          ))}
+          {Object.entries(data.topProducts)
+            .slice(0, 5)
+            .map(([product, quantity]) => (
+              <View key={product} style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{product}</Text>
+                <Text style={styles.detailValue}>{String(quantity)} adet</Text>
+              </View>
+            ))}
         </View>
       )}
     </View>
@@ -119,7 +123,7 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({
   const renderProductReport = (data: any[]) => (
     <View style={styles.reportSection}>
       <Text style={styles.reportTitle}>{t('report.productReport', 'Ürün Raporu')}</Text>
-      
+
       <View style={styles.summaryCards}>
         <View style={styles.summaryCard}>
           <Text style={styles.summaryCardValue}>{data.length}</Text>
@@ -159,10 +163,8 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({
               </View>
               <View style={styles.productDetail}>
                 <Text style={styles.productDetailLabel}>{t('report.stock', 'Stok')}</Text>
-                <Text style={[
-                  styles.productDetailValue,
-                  product.isLowStock && styles.lowStockText
-                ]}>
+                <Text
+                  style={[styles.productDetailValue, product.isLowStock && styles.lowStockText]}>
                   {product.currentStock}
                 </Text>
               </View>
@@ -176,7 +178,7 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({
   const renderCategoryReport = (data: any[]) => (
     <View style={styles.reportSection}>
       <Text style={styles.reportTitle}>{t('report.categoryReport', 'Kategori Raporu')}</Text>
-      
+
       <View style={styles.summaryCards}>
         <View style={styles.summaryCard}>
           <Text style={styles.summaryCardValue}>{data.length}</Text>
@@ -211,7 +213,9 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({
                 <Text style={styles.categoryDetailValue}>{category.productCount}</Text>
               </View>
               <View style={styles.categoryDetail}>
-                <Text style={styles.categoryDetailLabel}>{t('report.soldQuantity', 'Satılan')}</Text>
+                <Text style={styles.categoryDetailLabel}>
+                  {t('report.soldQuantity', 'Satılan')}
+                </Text>
                 <Text style={styles.categoryDetailValue}>{category.soldQuantity}</Text>
               </View>
               <View style={styles.categoryDetail}>
@@ -228,7 +232,7 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({
   const renderInventoryReport = (data: any[]) => (
     <View style={styles.reportSection}>
       <Text style={styles.reportTitle}>{t('report.inventoryReport', 'Stok Raporu')}</Text>
-      
+
       <View style={styles.summaryCards}>
         <View style={styles.summaryCard}>
           <Text style={styles.summaryCardValue}>{data.length}</Text>
@@ -257,31 +261,31 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({
       {/* Stok Uyarıları */}
       <View style={styles.detailSection}>
         <Text style={styles.sectionTitle}>{t('report.stockAlerts', 'Stok Uyarıları')}</Text>
-        {data.filter((p: any) => p.isLowStock || p.isOutOfStock).map((product: any) => (
-          <View key={product.productId} style={[
-            styles.stockAlertCard,
-            product.isOutOfStock && styles.outOfStockCard
-          ]}>
-            <View style={styles.stockAlertHeader}>
-              <Text style={styles.stockAlertProduct}>{product.productName}</Text>
-              <Text style={styles.stockAlertCategory}>{product.category}</Text>
+        {data
+          .filter((p: any) => p.isLowStock || p.isOutOfStock)
+          .map((product: any) => (
+            <View
+              key={product.productId}
+              style={[styles.stockAlertCard, product.isOutOfStock && styles.outOfStockCard]}>
+              <View style={styles.stockAlertHeader}>
+                <Text style={styles.stockAlertProduct}>{product.productName}</Text>
+                <Text style={styles.stockAlertCategory}>{product.category}</Text>
+              </View>
+              <View style={styles.stockAlertDetails}>
+                <Text style={styles.stockAlertStatus}>
+                  {product.isOutOfStock
+                    ? t('report.outOfStock', 'Stok Yok')
+                    : t('report.lowStock', 'Düşük Stok')}
+                </Text>
+                <Text style={styles.stockAlertQuantity}>
+                  {t('report.currentStock', 'Mevcut Stok')}: {product.currentStock}
+                </Text>
+                <Text style={styles.stockAlertMin}>
+                  {t('report.minStock', 'Min Stok')}: {product.minStockLevel}
+                </Text>
+              </View>
             </View>
-            <View style={styles.stockAlertDetails}>
-              <Text style={styles.stockAlertStatus}>
-                {product.isOutOfStock 
-                  ? t('report.outOfStock', 'Stok Yok')
-                  : t('report.lowStock', 'Düşük Stok')
-                }
-              </Text>
-              <Text style={styles.stockAlertQuantity}>
-                {t('report.currentStock', 'Mevcut Stok')}: {product.currentStock}
-              </Text>
-              <Text style={styles.stockAlertMin}>
-                {t('report.minStock', 'Min Stok')}: {product.minStockLevel}
-              </Text>
-            </View>
-          </View>
-        ))}
+          ))}
       </View>
     </View>
   );
@@ -324,21 +328,17 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({
         <View style={styles.reportHeader}>
           <View style={styles.reportHeaderInfo}>
             <Text style={styles.reportHeaderTitle}>{reportData.title}</Text>
-            <Text style={styles.reportHeaderDate}>
-              {formatUserDate(reportData.generatedAt)}
-            </Text>
+            <Text style={styles.reportHeaderDate}>{formatUserDate(reportData.generatedAt)}</Text>
           </View>
           <View style={styles.reportHeaderActions}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={handleSaveReport}
-            >
+            <TouchableOpacity style={styles.actionButton} onPress={handleSaveReport}>
               <Ionicons name="save" size={20} color="#1976d2" />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => setShowExportOptions(true)}
-            >
+              onPress={() => {
+                setShowExportOptions(true);
+              }}>
               <Ionicons name="download" size={20} color="#1976d2" />
             </TouchableOpacity>
           </View>
@@ -360,8 +360,9 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity
             style={styles.retryButton}
-            onPress={() => onGenerateReport(filter)}
-          >
+            onPress={() => {
+              onGenerateReport(filter);
+            }}>
             <Text style={styles.retryButtonText}>{t('report.retry', 'Tekrar Dene')}</Text>
           </TouchableOpacity>
         </View>
@@ -381,29 +382,33 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({
             <Text style={styles.exportModalTitle}>{t('report.export', 'Dışa Aktar')}</Text>
             <TouchableOpacity
               style={styles.exportOption}
-              onPress={() => handleExport('pdf')}
-            >
+              onPress={() => {
+                handleExport('pdf');
+              }}>
               <Ionicons name="document-text" size={24} color="#d32f2f" />
               <Text style={styles.exportOptionText}>PDF</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.exportOption}
-              onPress={() => handleExport('excel')}
-            >
+              onPress={() => {
+                handleExport('excel');
+              }}>
               <Ionicons name="grid" size={24} color="#388e3c" />
               <Text style={styles.exportOptionText}>Excel</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.exportOption}
-              onPress={() => handleExport('csv')}
-            >
+              onPress={() => {
+                handleExport('csv');
+              }}>
               <Ionicons name="document" size={24} color="#1976d2" />
               <Text style={styles.exportOptionText}>CSV</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.cancelButton}
-              onPress={() => setShowExportOptions(false)}
-            >
+              onPress={() => {
+                setShowExportOptions(false);
+              }}>
               <Text style={styles.cancelButtonText}>{t('common.cancel', 'İptal')}</Text>
             </TouchableOpacity>
           </View>
@@ -729,4 +734,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ReportDisplay; 
+export default ReportDisplay;

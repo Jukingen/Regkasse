@@ -44,7 +44,7 @@ export function fetchPublicDevelopmentModeSettings(): Promise<DevelopmentModeSet
 }
 
 export function putDevelopmentModeSettings(
-  body: DevelopmentModeSettingsPutDto,
+  body: DevelopmentModeSettingsPutDto
 ): Promise<DevelopmentModeSettingsDto> {
   return customInstance<DevelopmentModeSettingsDto>({
     url: '/api/admin/development-mode/settings',

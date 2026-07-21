@@ -1,7 +1,7 @@
 import { storage } from '../../utils/storage';
-import { sessionManager } from '../session/sessionManager';
-
+import { secureStorage } from '../secureStorage';
 import type { TenantSwitcherListItem } from './tenantSwitcherApi';
+import { sessionManager } from '../session/sessionManager';
 
 /** Matches backend <see cref="SubdomainTenantProvider.DevTenantHeaderName"/> (value is tenant slug). */
 export const TENANT_HTTP_HEADER = 'X-Tenant-Id';
@@ -36,17 +36,18 @@ function normalizeApiBaseUrl(value: string | null | undefined): string | null {
   return trimmed && trimmed.length > 0 ? trimmed : null;
 }
 
+/** Sensitive tenant bootstrap lives in SecureStore; switcher list stays in AsyncStorage. */
 export const tenantStorage = {
   async getTenantId(): Promise<string | null> {
-    return normalizeGuid(await storage.getItem(TENANT_STORAGE_KEYS.tenantId));
+    return normalizeGuid(await secureStorage.getItem(TENANT_STORAGE_KEYS.tenantId));
   },
 
   async getTenantSlug(): Promise<string | null> {
-    return normalizeSlug(await storage.getItem(TENANT_STORAGE_KEYS.tenantSlug));
+    return normalizeSlug(await secureStorage.getItem(TENANT_STORAGE_KEYS.tenantSlug));
   },
 
   async getApiBaseUrl(): Promise<string | null> {
-    return normalizeApiBaseUrl(await storage.getItem(TENANT_STORAGE_KEYS.apiBaseUrl));
+    return normalizeApiBaseUrl(await secureStorage.getItem(TENANT_STORAGE_KEYS.apiBaseUrl));
   },
 
   async persistBootstrap(input: TenantBootstrap): Promise<void> {
@@ -55,18 +56,18 @@ export const tenantStorage = {
     const apiBaseUrl = normalizeApiBaseUrl(input.apiBaseUrl);
 
     if (tenantId) {
-      await storage.setItem(TENANT_STORAGE_KEYS.tenantId, tenantId);
+      await secureStorage.setItem(TENANT_STORAGE_KEYS.tenantId, tenantId);
     }
     if (tenantSlug) {
-      await storage.setItem(TENANT_STORAGE_KEYS.tenantSlug, tenantSlug);
+      await secureStorage.setItem(TENANT_STORAGE_KEYS.tenantSlug, tenantSlug);
     }
     if (apiBaseUrl) {
-      await storage.setItem(TENANT_STORAGE_KEYS.apiBaseUrl, apiBaseUrl);
+      await secureStorage.setItem(TENANT_STORAGE_KEYS.apiBaseUrl, apiBaseUrl);
     }
   },
 
   async clear(): Promise<void> {
-    await storage.multiRemove([
+    await secureStorage.multiRemove([
       TENANT_STORAGE_KEYS.tenantId,
       TENANT_STORAGE_KEYS.tenantSlug,
       TENANT_STORAGE_KEYS.apiBaseUrl,
@@ -89,7 +90,7 @@ export const tenantStorage = {
             typeof row === 'object' &&
             typeof (row as TenantSwitcherListItem).id === 'string' &&
             typeof (row as TenantSwitcherListItem).name === 'string' &&
-            typeof (row as TenantSwitcherListItem).slug === 'string',
+            typeof (row as TenantSwitcherListItem).slug === 'string'
         )
         .map((row) => ({
           id: row.id,
@@ -113,7 +114,7 @@ export const tenantStorage = {
 };
 
 export async function getCurrentTenantSlug(): Promise<string | null> {
-  return tenantStorage.getTenantSlug();
+  return await tenantStorage.getTenantSlug();
 }
 
 export type FetchFreshTenantsResult = {
@@ -133,7 +134,7 @@ async function resolveSwitcherListFromCache(): Promise<FetchFreshTenantsResult> 
 export async function fetchFreshTenants(): Promise<FetchFreshTenantsResult> {
   const token = await sessionManager.getAccessToken();
   if (!token || sessionManager.isExpired(token)) {
-    return resolveSwitcherListFromCache();
+    return await resolveSwitcherListFromCache();
   }
 
   const { fetchTenantSwitcherList } = await import('./tenantSwitcherApi');
@@ -143,7 +144,7 @@ export async function fetchFreshTenants(): Promise<FetchFreshTenantsResult> {
     await tenantStorage.setCachedSwitcherList(tenants);
     return { tenants, fromCache: false };
   } catch {
-    return resolveSwitcherListFromCache();
+    return await resolveSwitcherListFromCache();
   }
 }
 

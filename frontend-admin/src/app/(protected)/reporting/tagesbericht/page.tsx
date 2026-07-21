@@ -1,24 +1,25 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
-/**
- * Formal Tagesbericht: Liste, Erzeugung (provisorisch), Filter nach Datum und Kasse.
- */
-import React, { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Card, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import Link from 'next/link';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+/**
+ * Formal Tagesbericht: Liste, Erzeugung (provisorisch), Filter nach Datum und Kasse.
+ */
+import React, { useMemo, useState } from 'react';
+
+import { type ReportFilterValues, ReportFilters } from '@/components/ReportFilters';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { FormalReportLanguageNotice } from '@/components/reporting/FormalReportLanguageNotice';
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 import { formatDate, formatNumber } from '@/i18n/formatting';
 import { AXIOS_INSTANCE } from '@/lib/axios';
-import { ReportFilters, type ReportFilterValues } from '@/components/ReportFilters';
-import { usePermissions } from '@/shared/auth/usePermissions';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
-import { FormalReportLanguageNotice } from '@/components/reporting/FormalReportLanguageNotice';
+import { usePermissions } from '@/shared/auth/usePermissions';
 import { useFiscalReportText } from '@/shared/reporting/useFiscalReportText';
 
 type TagesberichtListItem = {
@@ -78,13 +79,16 @@ export default function TagesberichtListPage() {
   const listQ = useQuery({
     queryKey: ['tagesbericht', 'list', fromDate, toDate, cashRegisterId],
     queryFn: async () => {
-      const { data } = await AXIOS_INSTANCE.get<TagesberichtListItem[]>('/api/reports/tagesbericht', {
-        params: {
-          fromDate,
-          toDate,
-          cashRegisterId,
-        },
-      });
+      const { data } = await AXIOS_INSTANCE.get<TagesberichtListItem[]>(
+        '/api/reports/tagesbericht',
+        {
+          params: {
+            fromDate,
+            toDate,
+            cashRegisterId,
+          },
+        }
+      );
       return data;
     },
     enabled: Boolean(cashRegisterId),
@@ -150,7 +154,11 @@ export default function TagesberichtListPage() {
             <Space orientation="vertical" size={0}>
               <Tag>{row.submission.lifecycle}</Tag>
               {hint ? (
-                <Typography.Text type="secondary" style={{ fontSize: 12 }} title={fiscalTooltip(hint.contentLang)}>
+                <Typography.Text
+                  type="secondary"
+                  style={{ fontSize: 12 }}
+                  title={fiscalTooltip(hint.contentLang)}
+                >
                   {hint.text}
                 </Typography.Text>
               ) : null}
@@ -161,7 +169,8 @@ export default function TagesberichtListPage() {
       {
         title: t('reporting.listShared.columns.gross'),
         dataIndex: 'grossSalesAmount',
-        render: (v: number) => formatNumber(v, formatLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        render: (v: number) =>
+          formatNumber(v, formatLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       },
       {
         title: '',
@@ -171,7 +180,7 @@ export default function TagesberichtListPage() {
         ),
       },
     ],
-    [t, formatLocale, fiscalTooltip, resolveFiscal],
+    [t, formatLocale, fiscalTooltip, resolveFiscal]
   );
 
   return (

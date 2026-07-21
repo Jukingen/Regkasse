@@ -1,0 +1,29 @@
+/**
+ * Enter-only page transition (App Router). Exit is handled by unmount;
+ * duration kept short so navigation feels responsive.
+ */
+.root {
+  min-height: 0;
+}
+
+.enter {
+  animation: fa-page-enter 250ms ease-out both;
+}
+
+@keyframes fa-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enter {
+    animation: none;
+  }
+}

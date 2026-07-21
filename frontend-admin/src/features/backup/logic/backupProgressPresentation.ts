@@ -2,14 +2,13 @@
  * Maps a backup run (+ optional pipeline steps / avg duration) to UI progress fields.
  * Percent is indicative only — workers do not stream fine-grained progress.
  */
+import type { BackupRunResponseDto } from '@/api/generated/model';
+import { BackupRunStatus } from '@/api/generated/model/backupRunStatus';
+import type { DerivedPipelineStep } from '@/features/backup-dr/logic/backupPipelineDerived';
+import { resolveBackupPipelineStepsForUi } from '@/features/backup-dr/logic/backupPipelineDerived';
+import { isBackupPipelineClientFallbackEnabled } from '@/features/backup-dr/logic/backupPipelineEnv';
 
-import type { BackupRunResponseDto } from "@/api/generated/model";
-import { BackupRunStatus } from "@/api/generated/model/backupRunStatus";
-import type { DerivedPipelineStep } from "@/features/backup-dr/logic/backupPipelineDerived";
-import { resolveBackupPipelineStepsForUi } from "@/features/backup-dr/logic/backupPipelineDerived";
-import { isBackupPipelineClientFallbackEnabled } from "@/features/backup-dr/logic/backupPipelineEnv";
-
-export type BackupProgressBarStatus = "active" | "success" | "exception" | "normal";
+export type BackupProgressBarStatus = 'active' | 'success' | 'exception' | 'normal';
 
 export type BackupProgressViewModel = {
   percentage: number;
@@ -51,32 +50,32 @@ function isTerminalStatus(status: number | undefined): boolean {
 function statusTitleKey(status: number | undefined): string {
   switch (status) {
     case BackupRunStatus.NUMBER_0:
-      return "backupDr.progress.titleQueued";
+      return 'backupDr.progress.titleQueued';
     case BackupRunStatus.NUMBER_1:
-      return "backupDr.progress.titleRunning";
+      return 'backupDr.progress.titleRunning';
     case BackupRunStatus.NUMBER_2:
-      return "backupDr.progress.titleAwaiting";
+      return 'backupDr.progress.titleAwaiting';
     case BackupRunStatus.NUMBER_3:
-      return "backupDr.progress.finishedOk";
+      return 'backupDr.progress.finishedOk';
     case BackupRunStatus.NUMBER_4:
-      return "backupDr.progress.finishedFailed";
+      return 'backupDr.progress.finishedFailed';
     case BackupRunStatus.NUMBER_5:
-      return "backupDr.progress.finishedVerificationFailed";
+      return 'backupDr.progress.finishedVerificationFailed';
     case BackupRunStatus.NUMBER_6:
-      return "backupDr.progress.finishedCancelled";
+      return 'backupDr.progress.finishedCancelled';
     default:
-      return "backupDr.summary.unknown";
+      return 'backupDr.summary.unknown';
   }
 }
 
 function statusBodyKey(status: number | undefined): string | null {
   switch (status) {
     case BackupRunStatus.NUMBER_0:
-      return "backupDr.progress.bodyQueued";
+      return 'backupDr.progress.bodyQueued';
     case BackupRunStatus.NUMBER_1:
-      return "backupDr.progress.bodyRunning";
+      return 'backupDr.progress.bodyRunning';
     case BackupRunStatus.NUMBER_2:
-      return "backupDr.progress.bodyAwaiting";
+      return 'backupDr.progress.bodyAwaiting';
     default:
       return null;
   }
@@ -108,7 +107,7 @@ export function percentFromPipelineSteps(steps: DerivedPipelineStep[]): {
   totalSteps: number;
   currentStepTitleKey: string | null;
 } {
-  const applicable = steps.filter((s) => s.state !== "skipped");
+  const applicable = steps.filter((s) => s.state !== 'skipped');
   const totalSteps = applicable.length > 0 ? applicable.length : steps.length;
   if (totalSteps === 0) {
     return { percentage: 0, currentStep: 0, totalSteps: 0, currentStepTitleKey: null };
@@ -119,18 +118,18 @@ export function percentFromPipelineSteps(steps: DerivedPipelineStep[]): {
   let currentTitleKey: string | null = null;
 
   applicable.forEach((step, idx) => {
-    if (step.state === "success" || step.state === "degraded") {
+    if (step.state === 'success' || step.state === 'degraded') {
       completedWeight += 1;
       currentIndex = idx + 1;
       currentTitleKey = step.titleKey;
-    } else if (step.state === "running") {
+    } else if (step.state === 'running') {
       completedWeight += 0.5;
       currentIndex = idx + 1;
       currentTitleKey = step.titleKey;
-    } else if (step.state === "failed") {
+    } else if (step.state === 'failed') {
       currentIndex = idx + 1;
       currentTitleKey = step.titleKey;
-    } else if (step.state === "pending" && currentIndex === 0) {
+    } else if (step.state === 'pending' && currentIndex === 0) {
       currentIndex = idx + 1;
       currentTitleKey = step.titleKey;
     }
@@ -142,7 +141,12 @@ export function percentFromPipelineSteps(steps: DerivedPipelineStep[]): {
   }
 
   const percentage = Math.min(100, Math.round((completedWeight / totalSteps) * 100));
-  return { percentage, currentStep: currentIndex, totalSteps, currentStepTitleKey: currentTitleKey };
+  return {
+    percentage,
+    currentStep: currentIndex,
+    totalSteps,
+    currentStepTitleKey: currentTitleKey,
+  };
 }
 
 export function estimateRemainingMs(params: {
@@ -157,8 +161,7 @@ export function estimateRemainingMs(params: {
 
   const now = params.nowMs ?? Date.now();
   if (
-    (params.status === BackupRunStatus.NUMBER_1 ||
-      params.status === BackupRunStatus.NUMBER_2) &&
+    (params.status === BackupRunStatus.NUMBER_1 || params.status === BackupRunStatus.NUMBER_2) &&
     params.startedAt
   ) {
     const started = new Date(params.startedAt).getTime();
@@ -181,7 +184,7 @@ export function buildBackupProgressViewModel(
     estimatedRemainingSecondsFromApi?: number | null;
     nowMs?: number;
     allowClientPipelineFallback?: boolean;
-  },
+  }
 ): BackupProgressViewModel | null {
   if (!run?.id) return null;
 
@@ -213,11 +216,11 @@ export function buildBackupProgressViewModel(
     else if (isTerminalStatus(status)) currentStep = 3;
   }
 
-  let progressStatus: BackupProgressBarStatus = "active";
-  if (status === BackupRunStatus.NUMBER_3) progressStatus = "success";
-  else if (isErrorStatus(status)) progressStatus = "exception";
-  else if (status === BackupRunStatus.NUMBER_6) progressStatus = "normal";
-  else if (!isInProgressStatus(status)) progressStatus = "normal";
+  let progressStatus: BackupProgressBarStatus = 'active';
+  if (status === BackupRunStatus.NUMBER_3) progressStatus = 'success';
+  else if (isErrorStatus(status)) progressStatus = 'exception';
+  else if (status === BackupRunStatus.NUMBER_6) progressStatus = 'normal';
+  else if (!isInProgressStatus(status)) progressStatus = 'normal';
 
   const remainingFromApi = options?.estimatedRemainingSecondsFromApi;
   const estimatedRemainingMs =

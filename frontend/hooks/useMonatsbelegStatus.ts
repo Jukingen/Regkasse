@@ -57,12 +57,13 @@ export function useMonatsbelegStatus(): MonatsbelegStatusHookResult {
     const interval = setInterval(() => {
       void refresh();
     }, POLL_MS);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+    };
   }, [registerId, refresh]);
 
   const warningLevel = data?.warningLevel ?? null;
-  const isOverdue =
-    data?.currentMonthOverdue === true || warningLevel === 'red';
+  const isOverdue = data?.currentMonthOverdue === true || warningLevel === 'red';
   const requiresAttention =
     isOverdue ||
     warningLevel === 'yellow' ||

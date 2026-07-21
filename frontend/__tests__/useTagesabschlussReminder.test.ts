@@ -47,7 +47,7 @@ describe('resolveReminderHoursBeforeClose', () => {
       resolveReminderHoursBeforeClose({
         reminderHoursBeforeClose: 3,
         workingHours: sampleHours,
-      }),
+      })
     ).toBe(3);
   });
 

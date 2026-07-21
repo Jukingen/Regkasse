@@ -1,17 +1,14 @@
-"use client";
+'use client';
 
 /**
  * Super Admin: create validation-only manual restore request.
  * Thin adapter over {@link RestoreModal} for BackupRunResponseDto callers.
  */
+import React from 'react';
 
-import React from "react";
-import type { BackupRunResponseDto } from "@/api/generated/model";
-import {
-  RestoreModal,
-  type RestoreModalProps,
-} from "@/features/backup/components/RestoreModal";
-import type { RestoreRequestStatusDto } from "@/features/backup-dr/logic/manualRestoreApi";
+import type { BackupRunResponseDto } from '@/api/generated/model';
+import type { RestoreRequestStatusDto } from '@/features/backup-dr/logic/manualRestoreApi';
+import { RestoreModal, type RestoreModalProps } from '@/features/backup/components/RestoreModal';
 
 export interface RestoreRequestModalProps {
   backupRun: BackupRunResponseDto;
@@ -33,7 +30,7 @@ export function RestoreRequestModal({
     onClose,
     onRequestCreated,
     backup: {
-      backupRunId: backupRun.id ?? "",
+      backupRunId: backupRun.id ?? '',
       fileName: backupRun.id ?? null,
       tenantSlug: null,
     },

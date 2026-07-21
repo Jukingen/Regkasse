@@ -1,9 +1,6 @@
 import { describe, it, expect, jest } from '@jest/globals';
-import {
-  AuthAppError,
-  resolveLoginErrorMessage,
-  toAuthError,
-} from '../features/auth/authErrors';
+
+import { AuthAppError, resolveLoginErrorMessage, toAuthError } from '../features/auth/authErrors';
 
 jest.mock('../i18n', () => ({
   __esModule: true,
@@ -27,11 +24,11 @@ describe('auth login error messages', () => {
     const error = new AuthAppError(
       'POS_UNAUTHORIZED_USER',
       403,
-      'Bu kullanıcı bu uygulama için yetkili değil.',
+      'Bu kullanıcı bu uygulama için yetkili değil.'
     );
 
     expect(resolveLoginErrorMessage(error)).toBe(
-      'Sie haben keine Berechtigung für die POS-App. Bitte kontaktieren Sie Ihren Administrator.',
+      'Sie haben keine Berechtigung für die POS-App. Bitte kontaktieren Sie Ihren Administrator.'
     );
   });
 
@@ -39,16 +36,14 @@ describe('auth login error messages', () => {
     const error = new AuthAppError('INVALID_CREDENTIALS', 400, 'Geçersiz şifre');
 
     expect(resolveLoginErrorMessage(error)).toBe(
-      'Falsches Passwort. Bitte versuchen Sie es erneut.',
+      'Falsches Passwort. Bitte versuchen Sie es erneut.'
     );
   });
 
   it('maps user-not-found backend message to German copy', () => {
     const error = new AuthAppError('INVALID_CREDENTIALS', 400, 'Kullanıcı bulunamadı');
 
-    expect(resolveLoginErrorMessage(error)).toBe(
-      'Benutzername oder E-Mail nicht gefunden.',
-    );
+    expect(resolveLoginErrorMessage(error)).toBe('Benutzername oder E-Mail nicht gefunden.');
   });
 
   it('normalizes axios-style 403 payload without exposing stack traces', () => {
@@ -65,7 +60,7 @@ describe('auth login error messages', () => {
     expect(message).not.toContain('at ');
     expect(message).not.toContain('normalizeLoginError');
     expect(message).toBe(
-      'Sie haben keine Berechtigung für die POS-App. Bitte kontaktieren Sie Ihren Administrator.',
+      'Sie haben keine Berechtigung für die POS-App. Bitte kontaktieren Sie Ihren Administrator.'
     );
   });
 });

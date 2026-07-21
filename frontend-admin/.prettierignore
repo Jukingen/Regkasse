@@ -1,0 +1,26 @@
+# Dependencies & build output
+node_modules
+.next
+out
+dist
+build
+coverage
+playwright-report
+test-results
+
+# Generated / committed machine output
+src/api/generated
+src/i18n/generated
+next-env.d.ts
+
+# Static assets & lockfiles
+public
+package-lock.json
+*.min.js
+*.min.css
+
+# Local env / OS
+.env*
+!.env.example
+*.log
+.DS_Store

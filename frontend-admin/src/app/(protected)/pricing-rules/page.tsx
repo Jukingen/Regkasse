@@ -1,26 +1,40 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
+import { EditOutlined, PlusOutlined } from '@ant-design/icons';
+import {
+  Button,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Popconfirm,
+  Select,
+  Space,
+  Switch,
+  Table,
+  Tag,
+  Typography,
+} from 'antd';
+import type { ColumnType } from 'antd/es/table';
 /**
  * Admin: fiyat kuralları (MVP CRUD). Backend: /api/admin/pricing-rules
  */
 import React, { useState } from 'react';
-import { Modal, Button, Table, Space, Form, Input, InputNumber, Switch, Select, Tag, Typography, Popconfirm } from 'antd';
-import { PlusOutlined, EditOutlined } from '@ant-design/icons';
-import type { ColumnType } from 'antd/es/table';
+
 import {
+  type CreatePricingRuleRequest,
+  type PricingRuleAdmin,
   useAdminPricingRulesList,
   useCreateAdminPricingRule,
-  useUpdateAdminPricingRule,
   useDeleteAdminPricingRule,
-  type PricingRuleAdmin,
-  type CreatePricingRuleRequest,
+  useUpdateAdminPricingRule,
 } from '@/api/admin/pricing-rules';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { useI18n } from '@/i18n/I18nProvider';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { useI18n } from '@/i18n/I18nProvider';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
 
 const TARGET_OPTIONS = [
   { value: 0, labelKey: 'settings.pricingRules.form.targetScopeProduct' as const },
@@ -130,7 +144,12 @@ export default function PricingRulesPage() {
 
   const columns: ColumnType<PricingRuleAdmin>[] = [
     { title: t('settings.pricingRules.columns.name'), dataIndex: 'name', key: 'name' },
-    { title: t('settings.pricingRules.columns.priority'), dataIndex: 'priority', key: 'priority', width: 100 },
+    {
+      title: t('settings.pricingRules.columns.priority'),
+      dataIndex: 'priority',
+      key: 'priority',
+      width: 100,
+    },
     {
       title: t('settings.pricingRules.columns.active'),
       dataIndex: 'isActive',
@@ -152,7 +171,9 @@ export default function PricingRulesPage() {
       key: 'target',
       render: (_, r) => (
         <span>
-          {r.targetScope === 0 ? t('settings.pricingRules.form.targetScopeProduct') : t('settings.pricingRules.form.targetScopeCategory')}{' '}
+          {r.targetScope === 0
+            ? t('settings.pricingRules.form.targetScopeProduct')
+            : t('settings.pricingRules.form.targetScopeCategory')}{' '}
           <Typography.Text code copyable={{ text: r.targetId }}>
             {r.targetId.slice(0, 8)}…
           </Typography.Text>
@@ -174,7 +195,13 @@ export default function PricingRulesPage() {
       width: 200,
       render: (_, row) => (
         <Space>
-          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => openEdit(row)} disabled={!canManage}>
+          <Button
+            type="link"
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => openEdit(row)}
+            disabled={!canManage}
+          >
             Edit
           </Button>
           {canManage && (
@@ -204,7 +231,9 @@ export default function PricingRulesPage() {
   return (
     <div style={{ padding: 24 }}>
       <AdminPageHeader title={t('settings.pricingRules.title')} breadcrumbs={headerBreadcrumbs} />
-      <Typography.Paragraph type="secondary">{t('settings.pricingRules.subtitle')}</Typography.Paragraph>
+      <Typography.Paragraph type="secondary">
+        {t('settings.pricingRules.subtitle')}
+      </Typography.Paragraph>
       <Space style={{ marginBottom: 16 }}>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} disabled={!canManage}>
           {t('settings.pricingRules.add')}
@@ -224,38 +253,80 @@ export default function PricingRulesPage() {
         onCancel={() => setModalOpen(false)}
         onOk={handleSubmit}
         okButtonProps={{ loading: createMutation.isPending || updateMutation.isPending }}
-        title={editing ? t('settings.pricingRules.editTitle') : t('settings.pricingRules.createTitle')}
+        title={
+          editing ? t('settings.pricingRules.editTitle') : t('settings.pricingRules.createTitle')
+        }
         width={640}
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="name" label={t('settings.pricingRules.form.name')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
+          <Form.Item
+            name="name"
+            label={t('settings.pricingRules.form.name')}
+            rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
+          >
             <Input />
           </Form.Item>
-          <Form.Item name="priority" label={t('settings.pricingRules.form.priority')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
+          <Form.Item
+            name="priority"
+            label={t('settings.pricingRules.form.priority')}
+            rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
+          >
             <InputNumber style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="isActive" label={t('settings.pricingRules.form.active')} valuePropName="checked">
+          <Form.Item
+            name="isActive"
+            label={t('settings.pricingRules.form.active')}
+            valuePropName="checked"
+          >
             <Switch />
           </Form.Item>
-          <Form.Item name="validFromDate" label={t('settings.pricingRules.form.validFrom')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
+          <Form.Item
+            name="validFromDate"
+            label={t('settings.pricingRules.form.validFrom')}
+            rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
+          >
             <Input type="date" />
           </Form.Item>
-          <Form.Item name="validToDate" label={t('settings.pricingRules.form.validTo')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
+          <Form.Item
+            name="validToDate"
+            label={t('settings.pricingRules.form.validTo')}
+            rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
+          >
             <Input type="date" />
           </Form.Item>
-          <Form.Item name="daysOfWeekMask" label={t('settings.pricingRules.form.daysMask')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
+          <Form.Item
+            name="daysOfWeekMask"
+            label={t('settings.pricingRules.form.daysMask')}
+            rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
+          >
             <InputNumber min={1} max={127} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="timeWindowEnabled" label={t('settings.pricingRules.form.timeWindow')} valuePropName="checked">
+          <Form.Item
+            name="timeWindowEnabled"
+            label={t('settings.pricingRules.form.timeWindow')}
+            valuePropName="checked"
+          >
             <Switch />
           </Form.Item>
-          <Form.Item name="timeStartMinutes" label={t('settings.pricingRules.form.timeStart')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
+          <Form.Item
+            name="timeStartMinutes"
+            label={t('settings.pricingRules.form.timeStart')}
+            rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
+          >
             <InputNumber min={0} max={1439} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="timeEndMinutes" label={t('settings.pricingRules.form.timeEnd')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
+          <Form.Item
+            name="timeEndMinutes"
+            label={t('settings.pricingRules.form.timeEnd')}
+            rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
+          >
             <InputNumber min={0} max={1439} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="targetScope" label={t('settings.pricingRules.form.targetScope')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
+          <Form.Item
+            name="targetScope"
+            label={t('settings.pricingRules.form.targetScope')}
+            rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
+          >
             <Select
               options={TARGET_OPTIONS.map((o) => ({
                 value: o.value,
@@ -263,10 +334,18 @@ export default function PricingRulesPage() {
               }))}
             />
           </Form.Item>
-          <Form.Item name="targetId" label={t('settings.pricingRules.form.targetId')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
+          <Form.Item
+            name="targetId"
+            label={t('settings.pricingRules.form.targetId')}
+            rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
+          >
             <Input />
           </Form.Item>
-          <Form.Item name="actionType" label={t('settings.pricingRules.form.actionType')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
+          <Form.Item
+            name="actionType"
+            label={t('settings.pricingRules.form.actionType')}
+            rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
+          >
             <Select
               options={ACTION_OPTIONS.map((o) => ({
                 value: o.value,
@@ -274,7 +353,11 @@ export default function PricingRulesPage() {
               }))}
             />
           </Form.Item>
-          <Form.Item name="actionValue" label={t('settings.pricingRules.form.actionValue')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
+          <Form.Item
+            name="actionValue"
+            label={t('settings.pricingRules.form.actionValue')}
+            rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
+          >
             <InputNumber min={0} step={0.01} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="cashRegisterId" label={t('settings.pricingRules.form.cashRegisterId')}>

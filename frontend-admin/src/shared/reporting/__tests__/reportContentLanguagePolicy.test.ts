@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
+
 import type { TextLocale } from '@/i18n/config';
+
 import {
   FORMAL_REPORT_ALLOWED_CONTENT_LANGUAGES,
   FORMAL_REPORT_CONTENT_POLICY_VERSION,
+  type ReportContentLanguage,
   isReportContentLanguage,
   preferredReportContentLanguage,
-  type ReportContentLanguage,
 } from '../reportContentLanguagePolicy';
 
 describe('FORMAL_REPORT_CONTENT_POLICY_VERSION', () => {

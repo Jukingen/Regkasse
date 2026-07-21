@@ -1,16 +1,33 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
+import { CreditCardOutlined, InfoCircleOutlined, ReloadOutlined } from '@ant-design/icons';
+import { useMutation } from '@tanstack/react-query';
+import {
+  Alert,
+  Button,
+  Card,
+  Col,
+  Collapse,
+  Descriptions,
+  Drawer,
+  Empty,
+  Input,
+  InputNumber,
+  Row,
+  Space,
+  Statistic,
+  Table,
+  Tag,
+  Typography,
+} from 'antd';
+import dayjs from 'dayjs';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 /**
  * Admin odeme listesi ve detay cekmecesi; metinler payments namespace, sayi/tarih/para formatLocale ile.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Table, Card, Typography, Tag, Space, Button, Drawer, Descriptions, Alert, Statistic, Row, Col, Input, InputNumber, Collapse, Empty } from 'antd';
-import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
-import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { CreditCardOutlined, InfoCircleOutlined, ReloadOutlined } from '@ant-design/icons';
-import { OPERATOR_LINK_LABELS } from '@/shared/operatorTruthCopy';
+
 import {
   postApiAdminPaymentsIdRefund,
   useGetApiAdminPaymentsId,
@@ -18,9 +35,15 @@ import {
 } from '@/api/generated/admin/admin';
 import type { AdminPaymentDetailDto, AdminPaymentListItemDto } from '@/api/generated/model';
 import { RefundReasonCode } from '@/api/generated/model/refundReasonCode';
+import { VirtualTable } from '@/components/VirtualTable';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { AdminPageScopeSummary, AdminPageShell } from '@/components/admin-layout/AdminPageShell';
+import { adminTablePaginationDefaults } from '@/components/ui/adminTablePagination';
+import { useTenantLicenseStatus } from '@/features/license/hooks/useLicenseStatus';
 import { useAdminPaymentsList } from '@/features/payments/api/adminPaymentsListQuery';
+import { CancellationModal } from '@/features/payments/components/CancellationModal';
 import { PaymentFilterBar } from '@/features/payments/components/PaymentFilterBar';
-import { useKeysetCursors } from '@/shared/pagination/useKeysetPageStack';
+import { ReprintButton } from '@/features/payments/components/ReprintButton';
 import type { PaymentFilters } from '@/features/payments/types/paymentFilters';
 import { countActivePaymentFilters } from '@/features/payments/utils/countActivePaymentFilters';
 import {
@@ -30,32 +53,32 @@ import {
   parsePaymentPaginationFromSearchParams,
 } from '@/features/payments/utils/paymentFilterUrl';
 import { paymentFiltersToApiParams } from '@/features/payments/utils/paymentFiltersToApiParams';
-import dayjs from 'dayjs';
-import { useMutation } from '@tanstack/react-query';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import { usePermissions } from '@/shared/auth/usePermissions';
-import { PERMISSIONS } from '@/shared/auth/permissions';
 import { getReceiptByPaymentForensics } from '@/features/receipts/api/forensics-client';
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
-import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
-import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
-import { ReprintButton } from '@/features/payments/components/ReprintButton';
-import { CancellationModal } from '@/features/payments/components/CancellationModal';
-import { VirtualTable } from '@/components/VirtualTable';
-import { adminTablePaginationDefaults } from '@/components/ui/adminTablePagination';
 import {
   FORMAT_EMPTY_DISPLAY,
   createIntlFormatters,
   formatCurrency,
   formatDateTime,
 } from '@/i18n/formatting';
-import { useTenantLicenseStatus } from '@/features/license/hooks/useLicenseStatus';
-
+import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { PERMISSIONS } from '@/shared/auth/permissions';
+import { usePermissions } from '@/shared/auth/usePermissions';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
+import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
+import { OPERATOR_LINK_LABELS } from '@/shared/operatorTruthCopy';
+import { useKeysetCursors } from '@/shared/pagination/useKeysetPageStack';
 
 const DEFAULT_LIST_PAGE_SIZE = 50;
 
-const PAYMENT_STATUS_FILTER_VALUES = ['Success', 'Pending', 'Failed', 'Cancelled', 'Refunded'] as const;
+const PAYMENT_STATUS_FILTER_VALUES = [
+  'Success',
+  'Pending',
+  'Failed',
+  'Cancelled',
+  'Refunded',
+] as const;
 
 interface PaymentStatisticsShape {
   totalPayments?: number;
@@ -85,7 +108,8 @@ function getSettlementAmount(value: unknown, fallbackTotal: number): number {
 function formatDetailValue(value: unknown, fmt: IntlFormatters, yes: string, no: string): string {
   if (value === null || value === undefined) return FORMAT_EMPTY_DISPLAY;
   if (typeof value === 'boolean') return value ? yes : no;
-  if (typeof value === 'number') return Number.isFinite(value) ? fmt.formatNumber(value) : FORMAT_EMPTY_DISPLAY;
+  if (typeof value === 'number')
+    return Number.isFinite(value) ? fmt.formatNumber(value) : FORMAT_EMPTY_DISPLAY;
   if (typeof value === 'string') return value.trim() === '' ? FORMAT_EMPTY_DISPLAY : value;
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
@@ -118,7 +142,7 @@ export default function PaymentsPage() {
       const path = keyMap[s];
       return path ? t(path) : s;
     },
-    [t],
+    [t]
   );
 
   const finanzOnlineStatusUiLabel = useCallback(
@@ -134,12 +158,13 @@ export default function PaymentsPage() {
       const path = keyMap[s];
       return path ? t(path) : s;
     },
-    [t],
+    [t]
   );
 
   const detailStr = useCallback(
-    (value: unknown) => formatDetailValue(value, fmt, t('payments.display.yes'), t('payments.display.no')),
-    [fmt, t],
+    (value: unknown) =>
+      formatDetailValue(value, fmt, t('payments.display.yes'), t('payments.display.no')),
+    [fmt, t]
   );
 
   const { hasPermission } = usePermissions();
@@ -148,15 +173,14 @@ export default function PaymentsPage() {
   const canOpenReceipt = hasPermission(PERMISSIONS.SALE_VIEW);
   const { data: tenantLicense } = useTenantLicenseStatus();
   const isPaymentBlockedByLicense =
-    tenantLicense?.kind === 'grace_readonly' ||
-    tenantLicense?.kind === 'lockdown';
+    tenantLicense?.kind === 'grace_readonly' || tenantLicense?.kind === 'lockdown';
 
   const initialPagination = useMemo(
     () => parsePaymentPaginationFromSearchParams(searchParams ?? new URLSearchParams()),
-    [searchParams],
+    [searchParams]
   );
   const [filters, setFilters] = useState<PaymentFilters>(() =>
-    parsePaymentFiltersFromSearchParams(searchParams ?? new URLSearchParams()),
+    parsePaymentFiltersFromSearchParams(searchParams ?? new URLSearchParams())
   );
   const [page, setPage] = useState(initialPagination.page);
   const [pageSize, setPageSize] = useState(initialPagination.pageSize);
@@ -206,11 +230,11 @@ export default function PaymentsPage() {
         afterCursor: getAfterCursor(page),
         includeTotalCount: shouldIncludeTotalCount(page),
       }),
-    [filters, page, pageSize, getAfterCursor, shouldIncludeTotalCount],
+    [filters, page, pageSize, getAfterCursor, shouldIncludeTotalCount]
   );
 
-
-  const { data, isLoading, isPlaceholderData, isError, error, refetch } = useAdminPaymentsList(listParams);
+  const { data, isLoading, isPlaceholderData, isError, error, refetch } =
+    useAdminPaymentsList(listParams);
 
   useEffect(() => {
     if (!data) return;
@@ -224,7 +248,11 @@ export default function PaymentsPage() {
     startDate: listParams.startDate,
     endDate: listParams.endDate,
   });
-  const { data: paymentDetail, isLoading: detailLoading, refetch: refetchPaymentDetail } = useGetApiAdminPaymentsId(selectedPaymentId ?? '', {
+  const {
+    data: paymentDetail,
+    isLoading: detailLoading,
+    refetch: refetchPaymentDetail,
+  } = useGetApiAdminPaymentsId(selectedPaymentId ?? '', {
     query: { enabled: !!selectedPaymentId },
   });
   const paymentDetailData = paymentDetail as AdminPaymentDetailDto | undefined;
@@ -235,7 +263,8 @@ export default function PaymentsPage() {
   const stats: PaymentStatisticsShape | null =
     statsRaw && typeof statsRaw === 'object' ? (statsRaw as PaymentStatisticsShape) : null;
   const operationalDetail = paymentDetailData;
-  const safeOperationalDetail: AdminPaymentDetailDto = operationalDetail ?? ({} as AdminPaymentDetailDto);
+  const safeOperationalDetail: AdminPaymentDetailDto =
+    operationalDetail ?? ({} as AdminPaymentDetailDto);
 
   const paymentsScopeSummary = useMemo(() => {
     const start = filters.dateRange?.[0] ?? dayjs().subtract(30, 'day');
@@ -257,7 +286,8 @@ export default function PaymentsPage() {
   const refundMutation = useMutation({
     mutationFn: async () => {
       if (!selectedPaymentId) throw new Error(t('payments.messages.errorNoPaymentSelected'));
-      if (!refundAmount || refundAmount <= 0) throw new Error(t('payments.messages.errorRefundAmountPositive'));
+      if (!refundAmount || refundAmount <= 0)
+        throw new Error(t('payments.messages.errorRefundAmountPositive'));
       return postApiAdminPaymentsIdRefund(selectedPaymentId, {
         amount: refundAmount,
         reason: refundReason.trim(),
@@ -303,7 +333,9 @@ export default function PaymentsPage() {
   const availableMethods = useMemo(() => {
     const fromApi = data?.activeFilters?.availablePaymentMethods;
     if (fromApi && fromApi.length > 0) return fromApi;
-    const fromItems = Array.from(new Set(payments.map((p) => p.method).filter(Boolean))) as string[];
+    const fromItems = Array.from(
+      new Set(payments.map((p) => p.method).filter(Boolean))
+    ) as string[];
     return fromItems;
   }, [data?.activeFilters?.availablePaymentMethods, payments]);
 
@@ -319,13 +351,16 @@ export default function PaymentsPage() {
         title: t('payments.table.colTransactionId'),
         dataIndex: 'transactionId',
         key: 'transactionId',
-        render: (text: string) => <code style={{ fontSize: '12px' }}>{text || FORMAT_EMPTY_DISPLAY}</code>,
+        render: (text: string) => (
+          <code style={{ fontSize: '12px' }}>{text || FORMAT_EMPTY_DISPLAY}</code>
+        ),
       },
       {
         title: t('payments.table.colDate'),
         dataIndex: 'createdAt',
         key: 'createdAt',
-        render: (date: string) => (date ? formatDateTime(date, formatLocale) : FORMAT_EMPTY_DISPLAY),
+        render: (date: string) =>
+          date ? formatDateTime(date, formatLocale) : FORMAT_EMPTY_DISPLAY,
       },
       {
         title: t('payments.table.colAmount'),
@@ -347,7 +382,9 @@ export default function PaymentsPage() {
               {voucherRedeemed > 0 ? (
                 <Tag color="purple">
                   {t('payments.table.mixedVoucherTag', {
-                    amount: formatCurrency(voucherRedeemed, formatLocale, { currency: row.currency || 'EUR' }),
+                    amount: formatCurrency(voucherRedeemed, formatLocale, {
+                      currency: row.currency || 'EUR',
+                    }),
                   })}
                 </Tag>
               ) : null}
@@ -379,7 +416,9 @@ export default function PaymentsPage() {
           const pid = row.id?.trim();
           const foErr = row.finanzOnlineError?.trim();
           const hasLinks =
-            Boolean(row.receiptId) || Boolean(row.invoiceNumber) || Boolean(row.offlineReplayBatchCorrelationId);
+            Boolean(row.receiptId) ||
+            Boolean(row.invoiceNumber) ||
+            Boolean(row.offlineReplayBatchCorrelationId);
           const hasFo = Boolean(row.finanzOnlineStatus?.trim());
           const hasAny = Boolean(pid) || hasLinks || hasFo;
           if (!hasAny) {
@@ -407,7 +446,11 @@ export default function PaymentsPage() {
               {hasLinks ? (
                 <Space size={4} wrap>
                   {row.receiptId ? (
-                    <Link href={`/receipts/${row.receiptId}`} target="_blank" rel="noopener noreferrer">
+                    <Link
+                      href={`/receipts/${row.receiptId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       <Tag color="blue">
                         {t('payments.table.tagReceipt')}
                         {row.receiptNumber?.trim() ? (
@@ -444,7 +487,8 @@ export default function PaymentsPage() {
               {hasFo ? (
                 <Space orientation="vertical" size={2} style={{ width: '100%' }}>
                   <Tag color={foColor}>
-                    {t('payments.table.foTagPrefix')} {finanzOnlineStatusUiLabel(row.finanzOnlineStatus)}
+                    {t('payments.table.foTagPrefix')}{' '}
+                    {finanzOnlineStatusUiLabel(row.finanzOnlineStatus)}
                   </Tag>
                   {foErr ? (
                     <Typography.Text
@@ -467,7 +511,11 @@ export default function PaymentsPage() {
         title: t('payments.table.colActions'),
         key: 'actions',
         render: (_: unknown, row: AdminPaymentListItemDto) => (
-          <Button size="small" icon={<InfoCircleOutlined />} onClick={() => setSelectedPaymentId(row.id ?? null)}>
+          <Button
+            size="small"
+            icon={<InfoCircleOutlined />}
+            onClick={() => setSelectedPaymentId(row.id ?? null)}
+          >
             {t('payments.table.details')}
           </Button>
         ),
@@ -486,10 +534,7 @@ export default function PaymentsPage() {
             <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isLoading}>
               {t('payments.toolbar.refresh')}
             </Button>
-            <Button
-              icon={<CreditCardOutlined />}
-              href="/admin/payments/card-transactions"
-            >
+            <Button icon={<CreditCardOutlined />} href="/admin/payments/card-transactions">
               {t('payments.toolbar.terminalStatus')}
             </Button>
           </Space>
@@ -507,7 +552,9 @@ export default function PaymentsPage() {
         availableStatuses={availableStatuses}
       />
 
-      <AdminPageScopeSummary label={t('payments.scope.label')}>{paymentsScopeSummary}</AdminPageScopeSummary>
+      <AdminPageScopeSummary label={t('payments.scope.label')}>
+        {paymentsScopeSummary}
+      </AdminPageScopeSummary>
 
       {isError ? (
         <Alert
@@ -535,102 +582,102 @@ export default function PaymentsPage() {
       ) : null}
 
       {!isError ? (
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        <Col xs={24} sm={12} md={6}>
-          <Card size="small">
-            <Statistic
-              title={t('payments.stats.paymentCount')}
-              value={stats?.totalPayments ?? totalCount}
-              loading={statsLoading}
-              formatter={(v) => fmt.formatNumber(Number(v), { maximumFractionDigits: 0 })}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card size="small">
-            <Statistic
-              title={t('payments.stats.totalAmount')}
-              value={stats?.totalAmount ?? 0}
-              loading={statsLoading}
-              formatter={(v) => formatCurrency(Number(v), formatLocale)}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card size="small">
-            <Statistic
-              title={t('payments.stats.average')}
-              value={stats?.averageAmount ?? 0}
-              loading={statsLoading}
-              formatter={(v) => formatCurrency(Number(v), formatLocale)}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card size="small">
-            <Statistic
-              title={t('payments.stats.tseSigned')}
-              value={stats?.tseSignedPayments ?? 0}
-              loading={statsLoading}
-              formatter={(v) => fmt.formatNumber(Number(v), { maximumFractionDigits: 0 })}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card size="small">
-            <Statistic
-              title={t('payments.stats.finanzOnlineSent')}
-              value={stats?.finanzOnlineSentPayments ?? 0}
-              loading={statsLoading}
-              formatter={(v) => fmt.formatNumber(Number(v), { maximumFractionDigits: 0 })}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card size="small">
-            <Statistic
-              title={t('payments.stats.foSentAmount')}
-              value={stats?.finanzOnlineSentAmount ?? 0}
-              loading={statsLoading}
-              formatter={(v) => formatCurrency(Number(v), formatLocale)}
-            />
-          </Card>
-        </Col>
-      </Row>
+        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+          <Col xs={24} sm={12} md={6}>
+            <Card size="small">
+              <Statistic
+                title={t('payments.stats.paymentCount')}
+                value={stats?.totalPayments ?? totalCount}
+                loading={statsLoading}
+                formatter={(v) => fmt.formatNumber(Number(v), { maximumFractionDigits: 0 })}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card size="small">
+              <Statistic
+                title={t('payments.stats.totalAmount')}
+                value={stats?.totalAmount ?? 0}
+                loading={statsLoading}
+                formatter={(v) => formatCurrency(Number(v), formatLocale)}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card size="small">
+              <Statistic
+                title={t('payments.stats.average')}
+                value={stats?.averageAmount ?? 0}
+                loading={statsLoading}
+                formatter={(v) => formatCurrency(Number(v), formatLocale)}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card size="small">
+              <Statistic
+                title={t('payments.stats.tseSigned')}
+                value={stats?.tseSignedPayments ?? 0}
+                loading={statsLoading}
+                formatter={(v) => fmt.formatNumber(Number(v), { maximumFractionDigits: 0 })}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card size="small">
+              <Statistic
+                title={t('payments.stats.finanzOnlineSent')}
+                value={stats?.finanzOnlineSentPayments ?? 0}
+                loading={statsLoading}
+                formatter={(v) => fmt.formatNumber(Number(v), { maximumFractionDigits: 0 })}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card size="small">
+              <Statistic
+                title={t('payments.stats.foSentAmount')}
+                value={stats?.finanzOnlineSentAmount ?? 0}
+                loading={statsLoading}
+                formatter={(v) => formatCurrency(Number(v), formatLocale)}
+              />
+            </Card>
+          </Col>
+        </Row>
       ) : null}
 
       {!isError ? (
-      <VirtualTable
-        columns={columns}
-        dataSource={payments}
-        loading={isLoading && !isPlaceholderData}
-        rowKey="id"
-        scroll={{ x: 1280 }}
-        style={{
-          opacity: isPlaceholderData ? 0.6 : 1,
-          transition: 'opacity 0.2s',
-        }}
-        pagination={{
-          ...adminTablePaginationDefaults,
-          current: page,
-          pageSize,
-          total: totalCount,
-          pageSizeOptions: [25, 50, 100],
-          showQuickJumper: false,
-          onChange: (p, ps) => {
-            setPage(p);
-            if (ps != null) setPageSize(ps);
-          },
-        }}
-        locale={{
-          emptyText: (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={t('payments.empty.description')}
-            />
-          ),
-        }}
-      />
+        <VirtualTable
+          columns={columns}
+          dataSource={payments}
+          loading={isLoading && !isPlaceholderData}
+          rowKey="id"
+          scroll={{ x: 1280 }}
+          style={{
+            opacity: isPlaceholderData ? 0.6 : 1,
+            transition: 'opacity 0.2s',
+          }}
+          pagination={{
+            ...adminTablePaginationDefaults,
+            current: page,
+            pageSize,
+            total: totalCount,
+            pageSizeOptions: [25, 50, 100],
+            showQuickJumper: false,
+            onChange: (p, ps) => {
+              setPage(p);
+              if (ps != null) setPageSize(ps);
+            },
+          }}
+          locale={{
+            emptyText: (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={t('payments.empty.description')}
+              />
+            ),
+          }}
+        />
       ) : null}
 
       <Drawer
@@ -644,7 +691,11 @@ export default function PaymentsPage() {
           <Typography.Text type="secondary">{t('payments.drawer.loadingDetails')}</Typography.Text>
         ) : paymentDetailData ? (
           <>
-            <Card size="small" title={t('payments.detail.sectionCore')} style={{ marginBottom: 12 }}>
+            <Card
+              size="small"
+              title={t('payments.detail.sectionCore')}
+              style={{ marginBottom: 12 }}
+            >
               <Descriptions size="small" column={1} bordered>
                 <Descriptions.Item label={t('payments.detail.labelPaymentId')}>
                   <Typography.Text code copyable>
@@ -667,7 +718,8 @@ export default function PaymentsPage() {
                     : FORMAT_EMPTY_DISPLAY}
                 </Descriptions.Item>
                 <Descriptions.Item label={t('payments.detail.labelAmount')}>
-                  {paymentDetailData.totalAmount != null && Number.isFinite(paymentDetailData.totalAmount)
+                  {paymentDetailData.totalAmount != null &&
+                  Number.isFinite(paymentDetailData.totalAmount)
                     ? formatCurrency(paymentDetailData.totalAmount, formatLocale, {
                         currency: paymentDetailData.currency || 'EUR',
                       })
@@ -679,7 +731,10 @@ export default function PaymentsPage() {
                 {(() => {
                   const voucherRedeemed = getVoucherRedeemedAmount(paymentDetailData);
                   if (voucherRedeemed <= 0) return null;
-                  const settlementAmount = getSettlementAmount(paymentDetailData, Number(paymentDetailData.totalAmount ?? 0));
+                  const settlementAmount = getSettlementAmount(
+                    paymentDetailData,
+                    Number(paymentDetailData.totalAmount ?? 0)
+                  );
                   return (
                     <>
                       <Descriptions.Item label={t('payments.detail.labelVoucherRedeemed')}>
@@ -703,7 +758,9 @@ export default function PaymentsPage() {
                     {detailStr(paymentDetailData.cashRegisterId)}
                   </Typography.Text>
                 </Descriptions.Item>
-                <Descriptions.Item label={t('payments.detail.labelCustomerName')}>{detailStr(paymentDetailData.customerName)}</Descriptions.Item>
+                <Descriptions.Item label={t('payments.detail.labelCustomerName')}>
+                  {detailStr(paymentDetailData.customerName)}
+                </Descriptions.Item>
                 <Descriptions.Item label={t('payments.detail.labelIdempotencyKey')}>
                   <Typography.Text code copyable>
                     {detailStr(paymentDetailData.idempotencyKey)}
@@ -712,7 +769,11 @@ export default function PaymentsPage() {
               </Descriptions>
             </Card>
 
-            <Card size="small" title={t('payments.detail.sectionLinked')} style={{ marginBottom: 12 }}>
+            <Card
+              size="small"
+              title={t('payments.detail.sectionLinked')}
+              style={{ marginBottom: 12 }}
+            >
               <Descriptions size="small" column={1} bordered>
                 <Descriptions.Item label={t('payments.detail.labelPaymentId')}>
                   <Typography.Text code copyable>
@@ -722,8 +783,14 @@ export default function PaymentsPage() {
                 <Descriptions.Item label={t('payments.detail.labelReceiptId')}>
                   {safeOperationalDetail.receiptId ? (
                     <Space wrap>
-                      <Typography.Text code copyable>{safeOperationalDetail.receiptId}</Typography.Text>
-                      <Link href={`/receipts/${safeOperationalDetail.receiptId}`} target="_blank" rel="noopener noreferrer">
+                      <Typography.Text code copyable>
+                        {safeOperationalDetail.receiptId}
+                      </Typography.Text>
+                      <Link
+                        href={`/receipts/${safeOperationalDetail.receiptId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
                         {t('payments.detail.open')}
                       </Link>
                     </Space>
@@ -735,7 +802,8 @@ export default function PaymentsPage() {
                   {safeOperationalDetail.invoiceNumber || safeOperationalDetail.invoiceId ? (
                     <Space wrap>
                       <Typography.Text code copyable>
-                        {safeOperationalDetail.invoiceNumber ?? shortId(safeOperationalDetail.invoiceId)}
+                        {safeOperationalDetail.invoiceNumber ??
+                          shortId(safeOperationalDetail.invoiceId)}
                       </Typography.Text>
                       {safeOperationalDetail.invoiceNumber ? (
                         <Link
@@ -754,7 +822,9 @@ export default function PaymentsPage() {
                 <Descriptions.Item label={t('payments.detail.labelReplayCorrelation')}>
                   {safeOperationalDetail.offlineReplayBatchCorrelationId ? (
                     <Space wrap>
-                      <Typography.Text code copyable>{safeOperationalDetail.offlineReplayBatchCorrelationId}</Typography.Text>
+                      <Typography.Text code copyable>
+                        {safeOperationalDetail.offlineReplayBatchCorrelationId}
+                      </Typography.Text>
                       <Link
                         href={`/rksv/incident?correlationId=${encodeURIComponent(safeOperationalDetail.offlineReplayBatchCorrelationId)}`}
                         target="_blank"
@@ -777,7 +847,11 @@ export default function PaymentsPage() {
               </Descriptions>
             </Card>
 
-            <Card size="small" title={t('payments.detail.sectionOrigin')} style={{ marginBottom: 12 }}>
+            <Card
+              size="small"
+              title={t('payments.detail.sectionOrigin')}
+              style={{ marginBottom: 12 }}
+            >
               <Descriptions size="small" column={1} bordered>
                 <Descriptions.Item label={t('payments.detail.labelPaymentOrigin')}>
                   {safeOperationalDetail.isOfflineOrigin
@@ -785,7 +859,9 @@ export default function PaymentsPage() {
                     : t('payments.detail.originOnline')}
                 </Descriptions.Item>
                 <Descriptions.Item label={t('payments.detail.labelReceiptNumberSet')}>
-                  {safeOperationalDetail.receiptNumber ? t('payments.display.yes') : t('payments.display.no')}
+                  {safeOperationalDetail.receiptNumber
+                    ? t('payments.display.yes')
+                    : t('payments.display.no')}
                 </Descriptions.Item>
                 <Descriptions.Item label={t('payments.detail.labelReceiptIdShort')}>
                   <Typography.Text code copyable>
@@ -800,7 +876,11 @@ export default function PaymentsPage() {
               </Descriptions>
             </Card>
 
-            <Card size="small" title={t('payments.detail.sectionOfflineReplay')} style={{ marginBottom: 12 }}>
+            <Card
+              size="small"
+              title={t('payments.detail.sectionOfflineReplay')}
+              style={{ marginBottom: 12 }}
+            >
               <Typography.Paragraph type="secondary" style={{ marginBottom: 8, fontSize: 12 }}>
                 {t('payments.detail.offlineReplayIntro')}
               </Typography.Paragraph>
@@ -818,7 +898,11 @@ export default function PaymentsPage() {
               </Descriptions>
             </Card>
 
-            <Card size="small" title={t('payments.detail.sectionFinanzOnline')} style={{ marginBottom: 12 }}>
+            <Card
+              size="small"
+              title={t('payments.detail.sectionFinanzOnline')}
+              style={{ marginBottom: 12 }}
+            >
               <Descriptions size="small" column={1} bordered>
                 <Descriptions.Item label={t('payments.detail.labelFoStatus')}>
                   {finanzOnlineStatusUiLabel(safeOperationalDetail.finanzOnlineStatus)}
@@ -846,7 +930,9 @@ export default function PaymentsPage() {
                     ? formatDateTime(paymentDetailData.finanzOnlineLastAttemptAtUtc, formatLocale)
                     : FORMAT_EMPTY_DISPLAY}
                 </Descriptions.Item>
-                <Descriptions.Item label={t('payments.detail.labelFoRetries')}>{detailStr(paymentDetailData.finanzOnlineRetryCount)}</Descriptions.Item>
+                <Descriptions.Item label={t('payments.detail.labelFoRetries')}>
+                  {detailStr(paymentDetailData.finanzOnlineRetryCount)}
+                </Descriptions.Item>
               </Descriptions>
             </Card>
 
@@ -871,7 +957,10 @@ export default function PaymentsPage() {
                 <Button type="primary" onClick={openReceipt} disabled={!canOpenReceipt}>
                   {t('payments.detail.buttonOpenReceipt')}
                 </Button>
-                <ReprintButton paymentId={selectedPaymentId} receiptNumber={paymentDetailData?.receiptNumber} />
+                <ReprintButton
+                  paymentId={selectedPaymentId}
+                  receiptNumber={paymentDetailData?.receiptNumber}
+                />
               </Space>
 
               {isPaymentBlockedByLicense ? (

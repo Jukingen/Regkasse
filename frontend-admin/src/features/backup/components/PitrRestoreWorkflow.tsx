@@ -1,19 +1,23 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
-import React, { useCallback, useState } from 'react';
-import { Button, Space, Tooltip } from 'antd';
 import { ClockCircleOutlined } from '@ant-design/icons';
 import { useQueryClient } from '@tanstack/react-query';
-import { useI18n } from '@/i18n';
-import { PitrRestoreModal, type PitrRestorePayload } from '@/features/backup/components/PitrRestoreModal';
-import { RestoreApprovalModal } from '@/features/backup-dr/components/RestoreApprovalModal';
+import { Button, Space, Tooltip } from 'antd';
+import React, { useCallback, useState } from 'react';
+
 import { ManualRestoreRequestsTable } from '@/features/backup-dr/components/ManualRestoreRequestsTable';
+import { RestoreApprovalModal } from '@/features/backup-dr/components/RestoreApprovalModal';
+import { manualRestoreErrorMessage } from '@/features/backup-dr/logic/manualRestoreErrorMessage';
+import {
+  PitrRestoreModal,
+  type PitrRestorePayload,
+} from '@/features/backup/components/PitrRestoreModal';
 import {
   PitrRestoreApprovalError,
   triggerPitrRestoreWithApproval,
 } from '@/features/backup/logic/pitrRestoreApproval';
-import { manualRestoreErrorMessage } from '@/features/backup-dr/logic/manualRestoreErrorMessage';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { useI18n } from '@/i18n';
 
 export interface PitrRestoreWorkflowProps {
   canRestore: boolean;
@@ -59,7 +63,7 @@ export function PitrRestoreWorkflow({
         setSubmitting(false);
       }
     },
-    [queryClient, t],
+    [queryClient, t]
   );
 
   if (!canRestore) {

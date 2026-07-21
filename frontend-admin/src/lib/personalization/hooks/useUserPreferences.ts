@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
+
 import { usePersonalization } from '../PersonalizationProvider';
 import type {
   DateFormatPattern,
@@ -26,7 +27,7 @@ export function useUserPreferences() {
       timeFormat: preferences.timeFormat,
       reducedAnimations: preferences.reducedAnimations,
     }),
-    [preferences],
+    [preferences]
   );
 
   const updatePreferences = useCallback(
@@ -44,7 +45,7 @@ export function useUserPreferences() {
         setReducedAnimations(patch.reducedAnimations);
       }
     },
-    [setDefaultLandingPath, setDateFormat, setTimeFormat, setReducedAnimations],
+    [setDefaultLandingPath, setDateFormat, setTimeFormat, setReducedAnimations]
   );
 
   return {

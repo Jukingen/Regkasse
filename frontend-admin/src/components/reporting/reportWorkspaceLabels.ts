@@ -18,7 +18,10 @@ export type AntTagColor =
   | 'volcano';
 
 /** Tagesbericht / Monatsbericht / Jahresbericht — ReportStatus (Dokument). */
-export function documentStatusVisual(status: string | undefined): { color: AntTagColor; labelKey: string } {
+export function documentStatusVisual(status: string | undefined): {
+  color: AntTagColor;
+  labelKey: string;
+} {
   const s = (status ?? '').trim();
   switch (s) {
     case 'Provisional':
@@ -35,11 +38,15 @@ export function documentStatusVisual(status: string | undefined): { color: AntTa
 const inFlight = new Set(['queued', 'pending', 'awaiting_protocol', 'retry_pending']);
 
 /** submission.lifecycle aus List-DTOs (TagesberichtSubmissionStateDto). */
-export function submissionLifecycleVisual(lifecycle: string | undefined): { color: AntTagColor; labelKey: string } {
+export function submissionLifecycleVisual(lifecycle: string | undefined): {
+  color: AntTagColor;
+  labelKey: string;
+} {
   const l = (lifecycle ?? 'not_submitted').trim();
   if (l === 'not_submitted') return { color: 'default', labelKey: 'subNotSubmitted' };
   if (l === 'accepted') return { color: 'success', labelKey: 'subAccepted' };
-  if (l === 'rejected' || l === 'failed_terminal') return { color: 'error', labelKey: 'subRejected' };
+  if (l === 'rejected' || l === 'failed_terminal')
+    return { color: 'error', labelKey: 'subRejected' };
   if (l === 'correction_required') return { color: 'warning', labelKey: 'subNeedsReview' };
   if (inFlight.has(l)) return { color: 'processing', labelKey: 'subInFlight' };
   return { color: 'default', labelKey: 'subUnknown' };
@@ -54,7 +61,8 @@ export function isSubmissionAccepted(lifecycle: string | undefined): boolean {
   return (lifecycle ?? '').trim() === 'accepted';
 }
 
-export type SubmissionFilterKey = 'all' | 'notSubmitted' | 'inFlight' | 'accepted' | 'rejectedOrReview';
+export type SubmissionFilterKey =
+  'all' | 'notSubmitted' | 'inFlight' | 'accepted' | 'rejectedOrReview';
 
 export function matchesSubmissionFilter(
   lifecycle: string | undefined,
@@ -72,7 +80,10 @@ export function matchesSubmissionFilter(
 
 export type ReportDocFilterKey = 'all' | 'Provisional' | 'Finalized' | 'Superseded';
 
-export function matchesReportDocFilter(status: string | undefined, filter: ReportDocFilterKey): boolean {
+export function matchesReportDocFilter(
+  status: string | undefined,
+  filter: ReportDocFilterKey
+): boolean {
   if (filter === 'all') return true;
   return (status ?? '').trim() === filter;
 }

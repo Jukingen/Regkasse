@@ -3,7 +3,7 @@
   "status": "Status",
   "health": "Gesundheit",
   "logs": "Protokolle",
-  "backup": "Backup",
+  "backup": "Sicherung",
   "restore": "Wiederherstellen",
   "update": "Aktualisieren",
   "maintenance": "Wartung",

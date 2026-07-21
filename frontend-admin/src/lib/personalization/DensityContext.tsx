@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext } from 'react';
+
 import type { DensityMode } from './types';
 
 export type DensityContextValue = {

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { mapStatus, mapSyncHealth } from '@/features/offline/api/offlineMonitoringApi';
 
 describe('offlineMonitoringApi', () => {
@@ -17,7 +18,7 @@ describe('offlineMonitoringApi', () => {
         hasCriticalIssues: true,
         oldestPendingOrder: '2026-06-27T10:00:00.000Z',
       },
-      sync,
+      sync
     );
 
     expect(status.totalPendingOrders).toBe(5);

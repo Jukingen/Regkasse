@@ -1,9 +1,34 @@
-import { Platform } from 'react-native';
+import { Platform, type ViewStyle } from 'react-native';
 
 /**
- * Platform'a göre shadow stilini oluşturur
- * iOS: shadowColor, shadowOffset, shadowOpacity, shadowRadius
- * Android/Web: elevation (Android), boxShadow (Web)
+ * Expand #RGB / #RRGGBB (optional alpha) into rgba() for valid CSS box-shadow.
+ * Avoids invalid colors like `#00040` from appending alpha to short hex.
+ */
+export function hexToRgba(hex: string, alpha: number): string {
+  const raw = hex.trim().replace(/^#/, '');
+  let r = 0;
+  let g = 0;
+  let b = 0;
+
+  if (raw.length === 3) {
+    r = Number.parseInt(raw[0] + raw[0], 16);
+    g = Number.parseInt(raw[1] + raw[1], 16);
+    b = Number.parseInt(raw[2] + raw[2], 16);
+  } else if (raw.length === 6 || raw.length === 8) {
+    r = Number.parseInt(raw.slice(0, 2), 16);
+    g = Number.parseInt(raw.slice(2, 4), 16);
+    b = Number.parseInt(raw.slice(4, 6), 16);
+  } else {
+    return `rgba(0, 0, 0, ${alpha})`;
+  }
+
+  const clamped = Math.min(1, Math.max(0, alpha));
+  return `rgba(${r}, ${g}, ${b}, ${clamped})`;
+}
+
+/**
+ * Platform-aware shadow style.
+ * iOS: shadow*; Android: elevation; Web: boxShadow (rgba).
  */
 export const createShadowStyle = (
   shadowColor: string = '#000',
@@ -11,7 +36,7 @@ export const createShadowStyle = (
   shadowOpacity: number = 0.25,
   shadowRadius: number = 3.84,
   elevation: number = 5
-) => {
+): ViewStyle => {
   if (Platform.OS === 'ios') {
     return {
       shadowColor,
@@ -19,21 +44,17 @@ export const createShadowStyle = (
       shadowOpacity,
       shadowRadius,
     };
-  } else if (Platform.OS === 'android') {
+  }
+  if (Platform.OS === 'android') {
     return {
       elevation,
     };
-  } else {
-    // Web platform için boxShadow
-    const shadowX = shadowOffset.width;
-    const shadowY = shadowOffset.height;
-    const blurRadius = shadowRadius;
-    const spreadRadius = 0;
-    
-    return {
-      boxShadow: `${shadowX}px ${shadowY}px ${blurRadius}px ${spreadRadius}px ${shadowColor}${Math.round(shadowOpacity * 255).toString(16).padStart(2, '0')}`,
-    };
   }
+
+  // Web — use rgba(); RNW also accepts shadow* but callers often pass short hex.
+  return {
+    boxShadow: `${shadowOffset.width}px ${shadowOffset.height}px ${shadowRadius}px 0px ${hexToRgba(shadowColor, shadowOpacity)}`,
+  };
 };
 
 /**
@@ -59,11 +80,5 @@ export const convertShadowProps = (
   shadowRadius?: number,
   elevation?: number
 ) => {
-  return createShadowStyle(
-    shadowColor,
-    shadowOffset,
-    shadowOpacity,
-    shadowRadius,
-    elevation
-  );
+  return createShadowStyle(shadowColor, shadowOffset, shadowOpacity, shadowRadius, elevation);
 };

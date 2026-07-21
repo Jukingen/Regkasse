@@ -1,10 +1,11 @@
+/** @type {import('jest').Config} */
 module.exports = {
-  preset: 'ts-jest',
-  testEnvironment: 'jsdom',
-  setupFilesAfterEnv: ['<rootDir>/__tests__/jest-setup.test.ts'],
-  testMatch: [
-    '**/__tests__/**/*.test.ts',
-    '**/__tests__/**/*.test.tsx',
+  preset: 'jest-expo',
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+  testMatch: ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx'],
+  // Expo unit-testing docs pattern (+ local RN packages that need Babel).
+  transformIgnorePatterns: [
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|react-native-reanimated|react-native-worklets|react-native-gesture-handler|react-native-screens|react-native-safe-area-context|@react-native-async-storage|zustand)',
   ],
   collectCoverageFrom: [
     'app/**/*.{ts,tsx}',
@@ -23,16 +24,11 @@ module.exports = {
       statements: 70,
     },
   },
-  // Test ortamında network isteklerini engelle
-  testEnvironmentOptions: {
-    url: 'http://localhost',
-  },
-  // Test timeout'u artır
   testTimeout: 30000,
-  // Verbose output
   verbose: true,
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
     '^shared/(.*)$': '<rootDir>/shared/$1',
   },
+  testPathIgnorePatterns: ['/node_modules/', '/backup/', '<rootDir>/jest.setup.ts'],
 };

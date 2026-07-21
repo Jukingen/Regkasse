@@ -1,8 +1,8 @@
 import { authStorage } from '@/features/auth/services/authStorage';
 import { clearDevTenantOverride } from '@/features/auth/services/devTenant';
 import {
-    buildTenantSubdomainOrigin,
-    shouldUseProductionImpersonationRedirect,
+  buildTenantSubdomainOrigin,
+  shouldUseProductionImpersonationRedirect,
 } from '@/lib/auth/impersonationHandoff';
 
 const ADMIN_PLATFORM_SLUG = 'admin';
@@ -10,7 +10,7 @@ const ADMIN_TENANTS_PATH = '/admin/tenants';
 
 /** Super Admin FA origin (`https://admin.{baseDomain}`). */
 export function buildAdminPlatformOrigin(protocol: 'https' | 'http' = 'https'): string {
-    return buildTenantSubdomainOrigin(ADMIN_PLATFORM_SLUG, protocol);
+  return buildTenantSubdomainOrigin(ADMIN_PLATFORM_SLUG, protocol);
 }
 
 /**
@@ -18,18 +18,18 @@ export function buildAdminPlatformOrigin(protocol: 'https' | 'http' = 'https'): 
  * then navigates back to platform tenant management on the admin host (production) or same origin (dev).
  */
 export function exitImpersonation(): void {
-    if (typeof window === 'undefined') {
-        return;
-    }
+  if (typeof window === 'undefined') {
+    return;
+  }
 
-    authStorage.removeToken();
-    clearDevTenantOverride();
+  authStorage.removeToken();
+  clearDevTenantOverride();
 
-    if (shouldUseProductionImpersonationRedirect()) {
-        const protocol = window.location.protocol === 'http:' ? 'http' : 'https';
-        window.location.assign(`${buildAdminPlatformOrigin(protocol)}${ADMIN_TENANTS_PATH}`);
-        return;
-    }
+  if (shouldUseProductionImpersonationRedirect()) {
+    const protocol = window.location.protocol === 'http:' ? 'http' : 'https';
+    window.location.assign(`${buildAdminPlatformOrigin(protocol)}${ADMIN_TENANTS_PATH}`);
+    return;
+  }
 
-    window.location.assign(ADMIN_TENANTS_PATH);
+  window.location.assign(ADMIN_TENANTS_PATH);
 }

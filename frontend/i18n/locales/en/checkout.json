@@ -108,6 +108,7 @@
         "cartLoadFailedRefresh": "Could not load cart. Please refresh the page or try again.",
         "completeCartFailed": "Payment ok, but cart could not be completed. Please inform the administrator.",
         "printFailed": "Payment ok, printing failed.",
+        "shareUnavailable": "Sharing is not available on this device.",
         "genericFailed": "Payment failed. Please try again.",
         "fiscalNotConfirmed": "Payment not fiscally confirmed",
         "failed": "Payment failed"

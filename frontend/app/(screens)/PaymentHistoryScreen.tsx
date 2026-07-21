@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   FlatList,
@@ -13,12 +14,9 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTranslation } from 'react-i18next';
 
 import { usePosRegisterReadiness } from '../../contexts/PosRegisterReadinessContext';
 import { usePosStatusOverview } from '../../contexts/PosStatusOverviewContext';
-import { formatTime } from '../../i18n/formatting';
-import { getFormattingLocaleForTextLocale } from '../../i18n/localeUtils';
 import {
   usePaymentHistory,
   usePaymentHistoryLabels,
@@ -27,9 +25,12 @@ import {
   type PaymentHistoryAvailableAction,
   type PaymentHistoryItem,
 } from '../../hooks/usePaymentHistory';
+import { formatTime } from '../../i18n/formatting';
+import { getFormattingLocaleForTextLocale } from '../../i18n/localeUtils';
 import type { StornoResponsePayload } from '../../services/api/paymentHistoryService';
 import { receiptPrinter } from '../../services/receiptPrinter';
 import { WaveLoader } from '../../src/components/common/WaveLoader';
+import { isPrintCancelled } from '../../utils/expoPrintShare';
 import { formatPrice } from '../../utils/formatPrice';
 import {
   filterPaymentHistoryItems,
@@ -102,6 +103,15 @@ export default function PaymentHistoryScreen() {
   const stornoMutation = useStorno(refreshSilent);
   const refundMutation = useRefund(refreshSilent);
 
+  // Refetch when returning to this screen (blur cleanup via useFocusEffect return).
+  useFocusEffect(
+    useCallback(() => {
+      if (!registerId) return undefined;
+      void history.refresh({ silent: true });
+      return undefined;
+    }, [registerId, history.refresh])
+  );
+
   const [selectedPayment, setSelectedPayment] = useState<PaymentHistoryItem | null>(null);
   const [selectedAction, setSelectedAction] = useState<PaymentHistoryAvailableAction | null>(null);
   const [selectedReasonCode, setSelectedReasonCode] = useState('');
@@ -159,8 +169,10 @@ export default function PaymentHistoryScreen() {
             totalAmount: selectedPayment.totalAmount,
           }
         );
-      } catch {
-        Alert.alert(t('common:error'), t('paymentHistory:print.stornoFailed'));
+      } catch (err) {
+        if (!isPrintCancelled(err)) {
+          Alert.alert(t('common:error'), t('paymentHistory:print.stornoFailed'));
+        }
       }
     },
     [reasonText, selectedPayment, t]
@@ -185,8 +197,10 @@ export default function PaymentHistoryScreen() {
             totalAmount: selectedPayment.totalAmount,
           }
         );
-      } catch {
-        Alert.alert(t('common:error'), t('paymentHistory:print.refundFailed'));
+      } catch (err) {
+        if (!isPrintCancelled(err)) {
+          Alert.alert(t('common:error'), t('paymentHistory:print.refundFailed'));
+        }
       }
     },
     [refundAmount, reasonText, selectedPayment, selectedReasonCode, t]
@@ -318,12 +332,15 @@ export default function PaymentHistoryScreen() {
                 key={action.action}
                 style={[
                   styles.actionButton,
-                  action.action === 'refund' ? styles.actionButtonRefund : styles.actionButtonStorno,
+                  action.action === 'refund'
+                    ? styles.actionButtonRefund
+                    : styles.actionButtonStorno,
                 ]}
-                onPress={() => handleActionPress(item, action)}
+                onPress={() => {
+                  handleActionPress(item, action);
+                }}
                 accessibilityRole="button"
-                accessibilityLabel={resolveLabel(action.labelKey)}
-              >
+                accessibilityLabel={resolveLabel(action.labelKey)}>
                 <Text style={styles.actionText}>{resolveLabel(action.labelKey)}</Text>
               </Pressable>
             ))}
@@ -336,7 +353,7 @@ export default function PaymentHistoryScreen() {
 
   if (isRegisterResolving) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <View style={styles.centerContainer}>
           <WaveLoader />
           <Text style={styles.loadingText}>{t('paymentHistory:preparingRegister')}</Text>
@@ -347,14 +364,15 @@ export default function PaymentHistoryScreen() {
 
   if (!registerId) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <View style={styles.header}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => {
+              router.back();
+            }}
             style={styles.backButton}
             accessibilityRole="button"
-            accessibilityLabel={t('common:back')}
-          >
+            accessibilityLabel={t('common:back')}>
             <Ionicons name="arrow-back" size={24} color="#333" />
           </Pressable>
           <View style={styles.headerText}>
@@ -366,19 +384,23 @@ export default function PaymentHistoryScreen() {
           <Text style={styles.warningTitle}>{t('paymentHistory:noRegisterTitle')}</Text>
           <Text style={styles.warningText}>{t('paymentHistory:noRegister')}</Text>
           <Pressable
-            onPress={() => router.push('/(tabs)/settings' as const)}
+            onPress={() => {
+              router.push('/(tabs)/settings' as const);
+            }}
             style={styles.selectRegisterButton}
             accessibilityRole="button"
-            accessibilityLabel={t('paymentHistory:selectRegister')}
-          >
-            <Text style={styles.selectRegisterButtonText}>{t('paymentHistory:selectRegister')}</Text>
+            accessibilityLabel={t('paymentHistory:selectRegister')}>
+            <Text style={styles.selectRegisterButtonText}>
+              {t('paymentHistory:selectRegister')}
+            </Text>
           </Pressable>
           <Pressable
-            onPress={() => refreshRegister()}
+            onPress={() => {
+              refreshRegister();
+            }}
             style={styles.retryLinkButton}
             accessibilityRole="button"
-            accessibilityLabel={t('common:retry')}
-          >
+            accessibilityLabel={t('common:retry')}>
             <Text style={styles.retryLinkText}>{t('common:retry')}</Text>
           </Pressable>
         </View>
@@ -388,7 +410,7 @@ export default function PaymentHistoryScreen() {
 
   if (history.isLoading && history.payments.length === 0) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <View style={styles.centerContainer}>
           <WaveLoader />
           <Text style={styles.loadingText}>{t('common:loading')}</Text>
@@ -398,14 +420,15 @@ export default function PaymentHistoryScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => {
+            router.back();
+          }}
           style={styles.backButton}
           accessibilityRole="button"
-          accessibilityLabel={t('common:back')}
-        >
+          accessibilityLabel={t('common:back')}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </Pressable>
         <View style={styles.headerText}>
@@ -429,12 +452,13 @@ export default function PaymentHistoryScreen() {
           return (
             <Pressable
               key={option}
-              onPress={() => setFilterType(option)}
+              onPress={() => {
+                setFilterType(option);
+              }}
               style={[styles.filterChip, active && styles.filterChipActive]}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
-              accessibilityLabel={t(`paymentHistory:filters.${option}`)}
-            >
+              accessibilityLabel={t(`paymentHistory:filters.${option}`)}>
               <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
                 {t(`paymentHistory:filters.${option}`)}
               </Text>
@@ -501,8 +525,9 @@ export default function PaymentHistoryScreen() {
                       styles.reasonOption,
                       selectedReasonCode === opt.code && styles.reasonSelected,
                     ]}
-                    onPress={() => setSelectedReasonCode(opt.code)}
-                  >
+                    onPress={() => {
+                      setSelectedReasonCode(opt.code);
+                    }}>
                     <Text style={styles.reasonOptionText}>{resolveLabel(opt.labelKey)}</Text>
                   </Pressable>
                 ))}
@@ -540,8 +565,7 @@ export default function PaymentHistoryScreen() {
                 onPress={() => {
                   void handleSubmit();
                 }}
-                disabled={stornoMutation.isPending || refundMutation.isPending}
-              >
+                disabled={stornoMutation.isPending || refundMutation.isPending}>
                 <Text style={styles.confirmButtonText}>
                   {stornoMutation.isPending || refundMutation.isPending
                     ? t('common:loading')

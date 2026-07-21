@@ -1,18 +1,22 @@
 import '@testing-library/jest-dom';
 import { jest } from '@jest/globals';
 
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
+
 // Global test setup
 beforeAll(() => {
   // Global değişkenleri tanımla
   (global as any).__DEV__ = true;
-  
+
   // Console.log'ları test ortamında sustur
   jest.spyOn(console, 'log').mockImplementation(() => {});
   jest.spyOn(console, 'warn').mockImplementation(() => {});
-  
+
   // Network isteklerini engelle
   (global as any).fetch = jest.fn();
-  
+
   // Mock localStorage
   const localStorageMock = {
     getItem: jest.fn(),
@@ -23,7 +27,7 @@ beforeAll(() => {
     key: jest.fn(),
   };
   (global as any).localStorage = localStorageMock;
-  
+
   // Mock sessionStorage
   const sessionStorageMock = {
     getItem: jest.fn(),
@@ -34,11 +38,11 @@ beforeAll(() => {
     key: jest.fn(),
   };
   (global as any).sessionStorage = sessionStorageMock;
-  
+
   // Mock window.matchMedia
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
-    value: jest.fn().mockImplementation(query => ({
+    value: jest.fn().mockImplementation((query) => ({
       matches: false,
       media: query,
       onchange: null,
@@ -49,14 +53,14 @@ beforeAll(() => {
       dispatchEvent: jest.fn(),
     })),
   });
-  
+
   // Mock IntersectionObserver
   (global as any).IntersectionObserver = jest.fn().mockImplementation(() => ({
     observe: jest.fn(),
     unobserve: jest.fn(),
     disconnect: jest.fn(),
   }));
-  
+
   // Mock ResizeObserver
   (global as any).ResizeObserver = jest.fn().mockImplementation(() => ({
     observe: jest.fn(),

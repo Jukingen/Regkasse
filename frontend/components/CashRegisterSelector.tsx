@@ -1,10 +1,10 @@
 import React, { useCallback } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { usePosRegisterSelection } from '../hooks/usePosRegisterSelection';
-import { isValidPosCashRegisterId } from '../utils/posCashRegister';
 import { WaveLoader } from '../src/components/common/WaveLoader';
+import { isValidPosCashRegisterId } from '../utils/posCashRegister';
 
 function formatRegisterLabel(registerNumber: string, location?: string): string {
   const num = registerNumber.trim() || '—';
@@ -99,8 +99,7 @@ export function CashRegisterSelector() {
                   disabled && styles.optionRowDisabled,
                 ]}
                 accessibilityRole="button"
-                accessibilityState={{ selected }}
-              >
+                accessibilityState={{ selected }}>
                 <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
                   {formatRegisterLabel(register.registerNumber, register.location)}
                 </Text>
@@ -110,7 +109,9 @@ export function CashRegisterSelector() {
         </View>
       ) : null}
 
-      {!registersLoading && registers.length === 0 && !isValidPosCashRegisterId(effectiveRegisterId) ? (
+      {!registersLoading &&
+      registers.length === 0 &&
+      !isValidPosCashRegisterId(effectiveRegisterId) ? (
         <Text style={styles.empty}>{t('settings:cashRegister.noRegistersAvailable')}</Text>
       ) : null}
 

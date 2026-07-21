@@ -73,14 +73,14 @@ For medium or large changes, always provide:
 |-----------|---------|
 | Backend (.NET) | 10.0.8 |
 | EF Core | 10.0.8 |
-| Next.js | 16.2.6 |
-| React | 19.2.6 |
+| Next.js | 16.2.10 |
+| React | 19.2.7 |
 | Ant Design | 6.4.3 |
 | Expo | SDK 56 |
 | React Native | 0.85.3 |
 
-- Admin auth boundary: `frontend-admin/src/proxy.ts` (Next.js 16; replaces deprecated `middleware.ts`).
-- Ant Design 6: prefer `destroyOnHidden` (Modal/Drawer/Tabs), `popupRender` (Dropdown/Select), `titlePlacement` (Divider); `Card bordered={false}` → `variant="borderless"`; `Tag bordered={false}` → `variant="filled"`. **Never** use static `message` / `notification` / `Modal.confirm` from `antd` imports — use `useAntdApp()` (see Frontend-Admin conventions).
+- Admin auth boundary: `frontend-admin/src/proxy.ts` (Next.js 16; replaces deprecated `middleware.ts`). Fail-closed: non-public routes require a non-expired JWT cookie/header → else redirect `/login`. Permission RBAC is client-side (`PermissionRouteGuard` → inline 403), not in `proxy.ts`.
+- Ant Design 6: prefer `destroyOnHidden` (Modal/Drawer/Tabs), `popupRender` (Dropdown/Select), `titlePlacement` (Divider); `Card bordered={false}` → `variant="borderless"`; `Tag bordered={false}` → `variant="filled"`. **Never** use static `message` / `notification` / `Modal.confirm` from `antd` — toasts via `useNotify()` / `NotificationService`; modal via `useAntdApp()`.
 
 ### Packages
 - `backend/` - ASP.NET Core 10 API (auth, domain logic, fiscal/TSE/RKSV, reporting, OpenAPI)
@@ -703,16 +703,21 @@ Use `/ai` docs selectively based on the task:
 ## Frontend-Admin (FA) Conventions
 - Routes: `frontend-admin/src/app/(protected)/`
 - Features: `frontend-admin/src/features/{domain}/` (components, api hooks)
-- TanStack Query for server state; Zustand for UI prefs only — never store secrets in Zustand
-- Generate API client: `cd frontend-admin && npm run generate:api`
-- UI: Ant Design 6 + `@ant-design/nextjs-registry` for SSR; no official `@ant-design/codemod-v6` — migrate deprecated props manually (see stack table above)
-- **Ant Design 6 feedback APIs (message / notification / modal):** `<App>` wraps the tree in `ThemeProvider`; components/hooks use `useAntdApp()` from `frontend-admin/src/hooks/useAntdApp.ts` (thin wrapper over `App.useApp()`). Do **not** import `message`, `notification`, or call `Modal.confirm` statically from `antd`.
+- **Client state (do not invent a second source of truth):**
+  - **Server / API data:** TanStack Query (Orval hooks). Do not mirror API payloads in global client stores.
+  - **Auth:** `AuthProvider` + `useAuth` / `authStorage` (tokens in `localStorage` via `authStorage` only — never in a UI store).
+  - **UI preferences:** React context + `localStorage` today (`ThemeProvider` / personalization under `src/lib/personalization/`, sidebar width via `usePersistedAdminSiderWidth`, language via `languageStorage` / `I18nProvider`). Synced prefs use React Query (`useUserPreferences` → `/api/admin/user/preferences`).
+  - **Zustand:** used only for ephemeral UI prefs in `frontend-admin/src/stores/` (`uiPreferencesStore`, `siderWidthStore` — theme/density/landing/formats/a11y, sidebar width). **Never** put tokens, user profiles, tenant secrets, payment/RKSV payloads, or React Query cache duplicates in Zustand. Auth stays in `AuthProvider` + `authStorage` + React Query; tenant stays in `TenantProvider` + RQ; i18n stays in `I18nProvider`.
+- Generate API client: after OpenAPI changes run `node scripts/generate-backend-openapi.mjs`, then `cd frontend-admin && npm run generate:api`; verify with `node scripts/verify-api-client.mjs` (CI: `api-client-alignment.yml`; optional hook: `npm run install:git-hooks`)
+- UI: Ant Design 6 + `@ant-design/nextjs-registry` (`AntdRegistry` in `src/app/layout.tsx`); no official `@ant-design/codemod-v6` — migrate deprecated props manually (see stack table above)
+- **Toasts / notifications:** prefer `useNotify()` (`frontend-admin/src/hooks/useNotify.ts`) in React components; plain modules use `notifySuccess` / `notifyError` / … from `frontend-admin/src/lib/notificationService.ts` (registered by `AntdAppBridgeRegistrar` via `useAntdApp`). Defaults: message duration 3s, notification duration 8s, placement `topRight`. Pass already-translated strings or i18n keys (`successKey` / `errorKey` / dotted keys). Do **not** import static `message` / `notification` from `antd`. Keep `useAntdApp()` for `modal` (and rare escape hatches).
+- **Ant Design 6 feedback APIs (message / notification / modal):** `<App>` wraps the tree in `ThemeProvider`. Do **not** import `message`, `notification`, or call `Modal.confirm` statically from `antd`.
 
 ### Ant Design 6 — batch fix pattern (message / notification / modal)
 
-Static APIs cannot consume theme context. Replace as follows (FA standard: `useAntdApp()`; equivalent to inline `App.useApp()`).
+Static APIs cannot consume theme context. Replace as follows (FA standard: `useNotify()` for toasts; `useAntdApp()` for modal).
 
-**Message**
+**Message / notification toasts**
 
 ```tsx
 // Before (wrong)
@@ -720,27 +725,26 @@ import { message } from 'antd';
 message.success(t('common.auth.loginSuccess'));
 
 // After (correct)
-import { useAntdApp } from '@/hooks/useAntdApp';
+import { useNotify } from '@/hooks/useNotify';
 
-const { message } = useAntdApp();
-message.success(t('common.auth.loginSuccess'));
+const notify = useNotify();
+notify.successKey('common.auth.loginSuccess');
+// API errors (localized):
+notify.apiError(err, { logContext: 'Feature.action', fallbackKey: 'common.errorGeneric' });
 ```
 
-**Notification**
+**Notification panels (long errors)**
 
 ```tsx
-// Before (wrong)
-import { notification } from 'antd';
-notification.error({ message: 'Error', description: 'Something went wrong' });
-
-// After (correct)
-import { useAntdApp } from '@/hooks/useAntdApp';
-
-const { notification } = useAntdApp();
-notification.error({ message: 'Error', description: 'Something went wrong' });
+notify.error(t('common.errorLoadTitle'), {
+  mode: 'notification',
+  description: detail,
+});
+// or
+notify.apiErrorNotification(err, { logContext: '…', fallbackKey: '…' });
 ```
 
-**Modal static methods** (`confirm`, `success`, `warning`, `error`, `info`): use `modal` from `App.useApp()` (or `useAntdApp()`), not `Modal.confirm`. Keep `import { Modal } from 'antd'` only for JSX `<Modal>`.
+**Modal static methods** (`confirm`, `success`, `warning`, `error`, `info`): use `modal` from `useAntdApp()`, not `Modal.confirm`. Keep `import { Modal } from 'antd'` only for JSX `<Modal>`.
 
 ```tsx
 // Before (wrong)
@@ -748,14 +752,12 @@ import { Modal } from 'antd';
 Modal.confirm({ title: 'Confirm', content: 'Are you sure?', onOk: () => {} });
 
 // After (correct)
-import { App } from 'antd';
-const { modal } = App.useApp();
+import { useAntdApp } from '@/hooks/useAntdApp';
+const { modal } = useAntdApp();
 modal.confirm({ title: 'Confirm', content: 'Are you sure?', onOk: () => {} });
 ```
 
-**Non-React callers** (axios interceptors, query client defaults): `showAntdError` from `@/lib/antdAppBridge` (registered by `AntdAppBridgeRegistrar`).
-
-**Helpers** that accept `message.open`: pass `message.open` from `useAntdApp()` in the caller (e.g. `openApiErrorMessage(message.open, t, err, options)`).
+**Non-React callers** (axios interceptors, query client defaults): `notifyError` / `showAntdError` from `@/lib/notificationService` (via `@/lib/antdAppBridge` re-export; registered by `AntdAppBridgeRegistrar`).
 
 ## Frontend-POS (FE) Conventions
 - Routes: `frontend/app/(tabs)/`

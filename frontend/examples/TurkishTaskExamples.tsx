@@ -1,35 +1,29 @@
 /**
  * TurkishTaskExamples - Türkçe görev örnekleri
- * 
+ *
  * Bu component, Türkçe görev önerilerini test etmek ve örneklerini göstermek için
  * oluşturulmuştur. Task-Master AI sisteminin Türkçe desteğini sergiler.
- * 
+ *
  * @author Frontend Team
  * @version 1.0.0
  * @since 2025-01-10
  */
 
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Alert
-} from 'react-native';
-import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
-import useTaskMaster from '../hooks/useTaskMaster';
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+
 import useEnhancedTaskMaster from '../hooks/useEnhancedTaskMaster';
+import useTaskMaster from '../hooks/useTaskMaster';
 import { TaskCategory, TaskPriority } from '../services/TaskMasterService';
 
 const TurkishTaskExamples: React.FC = () => {
   const { i18n } = useTranslation();
   const { generateTaskSuggestions, createTask } = useTaskMaster();
   const { getAISuggestions, createEnhancedTask } = useEnhancedTaskMaster();
-  
-  const [turkishSuggestions, setTurkishSuggestions] = useState<{[key: string]: string[]}>({});
+
+  const [turkishSuggestions, setTurkishSuggestions] = useState<{ [key: string]: string[] }>({});
   const [loading, setLoading] = useState<boolean>(false);
 
   /**
@@ -38,39 +32,38 @@ const TurkishTaskExamples: React.FC = () => {
   const testTurkishSuggestions = async () => {
     try {
       setLoading(true);
-      
+
       // Dili Türkçe'ye değiştir
       await i18n.changeLanguage('tr');
       console.log('🇹🇷 Language switched to Turkish');
-      
+
       // Farklı kategorilerden örnekler al
       const categories = [
         TaskCategory.RKSV_COMPLIANCE,
         TaskCategory.TSE_INTEGRATION,
         TaskCategory.INVOICE_MANAGEMENT,
-        TaskCategory.PAYMENT_PROCESSING
+        TaskCategory.PAYMENT_PROCESSING,
       ];
-      
-      const newSuggestions: {[key: string]: string[]} = {};
-      
+
+      const newSuggestions: { [key: string]: string[] } = {};
+
       for (const category of categories) {
         // Basit öneriler
         const basicSuggestions = await generateTaskSuggestions(category);
         newSuggestions[`basic_${category}`] = basicSuggestions;
-        
+
         // AI önerileri
         const aiSuggestions = await getAISuggestions(category);
         newSuggestions[`ai_${category}`] = aiSuggestions;
       }
-      
+
       setTurkishSuggestions(newSuggestions);
-      
+
       Alert.alert(
         '🇹🇷 Türkçe Test Tamamlandı',
         'Türkçe görev önerileri başarıyla alındı!\n\n4 kategori x 2 tip = 8 farklı öneri grubu yüklendi.',
         [{ text: 'Harika!' }]
       );
-      
     } catch (error) {
       console.error('Turkish test failed:', error);
       Alert.alert('Hata', 'Türkçe test sırasında hata oluştu');
@@ -85,10 +78,10 @@ const TurkishTaskExamples: React.FC = () => {
   const createSampleTurkishTasks = async () => {
     try {
       setLoading(true);
-      
+
       // Dili Türkçe'ye ayarla
       await i18n.changeLanguage('tr');
-      
+
       // Örnek görevler
       const sampleTasks = [
         {
@@ -96,41 +89,40 @@ const TurkishTaskExamples: React.FC = () => {
           description: 'Günlük TSE cihaz imza kontrolünü gerçekleştir ve sonuçları kaydet',
           category: TaskCategory.TSE_INTEGRATION,
           priority: TaskPriority.HIGH,
-          tseRequired: true
+          tseRequired: true,
         },
         {
           title: 'RKSV uyumluluk raporu oluştur',
           description: 'Aylık RKSV uyumluluk raporunu hazırla ve mali müfettişlik için belgele',
           category: TaskCategory.RKSV_COMPLIANCE,
           priority: TaskPriority.CRITICAL,
-          tseRequired: true
+          tseRequired: true,
         },
         {
           title: 'Fatura şablonunu güncelle',
           description: 'Yeni RKSV gereksinimlerine göre fatura şablonunu güncelle',
           category: TaskCategory.INVOICE_MANAGEMENT,
           priority: TaskPriority.MEDIUM,
-          tseRequired: false
-        }
+          tseRequired: false,
+        },
       ];
-      
+
       const createdTasks = [];
-      
+
       for (const taskData of sampleTasks) {
         const task = await createTask({
           ...taskData,
           status: 'pending' as any,
-          tags: ['türkçe-test', 'örnek-görev']
+          tags: ['türkçe-test', 'örnek-görev'],
         });
         createdTasks.push(task);
       }
-      
+
       Alert.alert(
         '✅ Türkçe Görevler Oluşturuldu',
-        `${createdTasks.length} adet Türkçe örnek görev başarıyla oluşturuldu:\n\n${createdTasks.map(t => `• ${t?.title || 'Görev'}`).join('\n')}`,
+        `${createdTasks.length} adet Türkçe örnek görev başarıyla oluşturuldu:\n\n${createdTasks.map((t) => `• ${t?.title || 'Görev'}`).join('\n')}`,
         [{ text: 'Harika!' }]
       );
-      
     } catch (error) {
       console.error('Turkish task creation failed:', error);
       Alert.alert('Hata', 'Türkçe görev oluşturma sırasında hata oluştu');
@@ -145,16 +137,16 @@ const TurkishTaskExamples: React.FC = () => {
   const createEnhancedTurkishTasks = async () => {
     try {
       setLoading(true);
-      
+
       // Dili Türkçe'ye ayarla
       await i18n.changeLanguage('tr');
-      
+
       // AI önerisi al
       const aiSuggestions = await getAISuggestions(TaskCategory.RKSV_COMPLIANCE);
-      
+
       if (aiSuggestions.length > 0) {
         const selectedSuggestion = aiSuggestions[0];
-        
+
         // Enhanced görev oluştur
         const enhancedTask = await createEnhancedTask({
           title: selectedSuggestion,
@@ -164,16 +156,15 @@ const TurkishTaskExamples: React.FC = () => {
           status: 'pending' as any,
           tseRequired: true,
           dependencies: [],
-          tags: ['ai-türkçe', 'enhanced', 'rksv']
+          tags: ['ai-türkçe', 'enhanced', 'rksv'],
         });
-        
+
         Alert.alert(
           '🚀 Enhanced Türkçe Görev',
           `AI destekli Türkçe görev başarıyla oluşturuldu:\n\n"${selectedSuggestion}"\n\nGörev otomatik AI analizi ile geliştirildi.`,
           [{ text: 'Mükemmel!' }]
         );
       }
-      
     } catch (error) {
       console.error('Enhanced Turkish task creation failed:', error);
       Alert.alert('Hata', 'Enhanced Türkçe görev oluşturma hatası');
@@ -195,44 +186,42 @@ const TurkishTaskExamples: React.FC = () => {
       [TaskCategory.DATA_PROTECTION]: 'Veri Koruma',
       [TaskCategory.DEVELOPMENT]: 'Geliştirme',
       [TaskCategory.BUG_FIX]: 'Hata Düzeltme',
-      [TaskCategory.TESTING]: 'Test'
+      [TaskCategory.TESTING]: 'Test',
     };
-    
+
     const examples = {
       [TaskCategory.RKSV_COMPLIANCE]: [
         '🔍 TSE imza kontrolü yap',
         '📋 Mali müfettiş için belgeler hazırla',
         '📊 RKSV uyumluluk raporu oluştur',
-        '✅ Vergi numarası doğrulaması kontrol et'
+        '✅ Vergi numarası doğrulaması kontrol et',
       ],
       [TaskCategory.TSE_INTEGRATION]: [
         '🔌 TSE cihaz bağlantısını test et',
         '⚙️ Epson-TSE konfigürasyonunu kontrol et',
         '💾 TSE yedekleme işlemi yap',
-        '🔒 Gün sonu kapanışını gerçekleştir'
+        '🔒 Gün sonu kapanışını gerçekleştir',
       ],
       [TaskCategory.INVOICE_MANAGEMENT]: [
         '📄 Fatura şablonunu güncelle',
         '🔢 Fatura numarası formatını kontrol et',
         '📁 PDF dışa aktarma işlemini optimize et',
-        '💰 KDV hesaplama doğrulaması yap'
+        '💰 KDV hesaplama doğrulaması yap',
       ],
       [TaskCategory.PAYMENT_PROCESSING]: [
         '💳 Kart ödeme entegrasyonunu test et',
         '💵 Nakit ödeme iş akışını optimize et',
         '🌐 Ödeme geçidi bağlantısını kontrol et',
-        '📊 İşlem günlüklerini incele'
-      ]
+        '📊 İşlem günlüklerini incele',
+      ],
     };
-    
+
     const categoryExamples = examples[category] || [];
     const categoryName = categoryNames[category];
-    
-    Alert.alert(
-      `🇹🇷 ${categoryName} Örnekleri`,
-      categoryExamples.join('\n\n'),
-      [{ text: 'Anladım' }]
-    );
+
+    Alert.alert(`🇹🇷 ${categoryName} Örnekleri`, categoryExamples.join('\n\n'), [
+      { text: 'Anladım' },
+    ]);
   };
 
   return (
@@ -240,89 +229,76 @@ const TurkishTaskExamples: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>🇹🇷 Türkçe Görev Örnekleri</Text>
-        <Text style={styles.subtitle}>
-          Task-Master AI sisteminin Türkçe desteğini test edin
-        </Text>
+        <Text style={styles.subtitle}>Task-Master AI sisteminin Türkçe desteğini test edin</Text>
       </View>
 
       {/* Quick Test Actions */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>🚀 Hızlı Test İşlemleri</Text>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: '#e74c3c' }]}
           onPress={testTurkishSuggestions}
-          disabled={loading}
-        >
-          <Text style={styles.actionButtonText}>
-            🇹🇷 Türkçe Önerileri Test Et
-          </Text>
+          disabled={loading}>
+          <Text style={styles.actionButtonText}>🇹🇷 Türkçe Önerileri Test Et</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: '#3498db' }]}
           onPress={createSampleTurkishTasks}
-          disabled={loading}
-        >
-          <Text style={styles.actionButtonText}>
-            ✅ Örnek Türkçe Görevler Oluştur
-          </Text>
+          disabled={loading}>
+          <Text style={styles.actionButtonText}>✅ Örnek Türkçe Görevler Oluştur</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: '#9b59b6' }]}
           onPress={createEnhancedTurkishTasks}
-          disabled={loading}
-        >
-          <Text style={styles.actionButtonText}>
-            🚀 Enhanced Türkçe Görev Oluştur
-          </Text>
+          disabled={loading}>
+          <Text style={styles.actionButtonText}>🚀 Enhanced Türkçe Görev Oluştur</Text>
         </TouchableOpacity>
       </View>
 
       {/* Category Examples */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>📂 Kategori Örnekleri</Text>
-        
+
         <View style={styles.categoryGrid}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.categoryCard, { borderLeftColor: '#e74c3c' }]}
-            onPress={() => showCategoryExamples(TaskCategory.RKSV_COMPLIANCE)}
-          >
+            onPress={() => {
+              showCategoryExamples(TaskCategory.RKSV_COMPLIANCE);
+            }}>
             <Text style={styles.categoryTitle}>🛡️ RKSV Uyumluluk</Text>
             <Text style={styles.categoryDescription}>
               Yasal gereksinimler ve uyumluluk kontrolleri
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.categoryCard, { borderLeftColor: '#f39c12' }]}
-            onPress={() => showCategoryExamples(TaskCategory.TSE_INTEGRATION)}
-          >
+            onPress={() => {
+              showCategoryExamples(TaskCategory.TSE_INTEGRATION);
+            }}>
             <Text style={styles.categoryTitle}>🔧 TSE Entegrasyonu</Text>
-            <Text style={styles.categoryDescription}>
-              Teknik güvenlik cihazı işlemleri
-            </Text>
+            <Text style={styles.categoryDescription}>Teknik güvenlik cihazı işlemleri</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.categoryCard, { borderLeftColor: '#3498db' }]}
-            onPress={() => showCategoryExamples(TaskCategory.INVOICE_MANAGEMENT)}
-          >
+            onPress={() => {
+              showCategoryExamples(TaskCategory.INVOICE_MANAGEMENT);
+            }}>
             <Text style={styles.categoryTitle}>📄 Fatura Yönetimi</Text>
-            <Text style={styles.categoryDescription}>
-              Fatura oluşturma ve yönetim işlemleri
-            </Text>
+            <Text style={styles.categoryDescription}>Fatura oluşturma ve yönetim işlemleri</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.categoryCard, { borderLeftColor: '#27ae60' }]}
-            onPress={() => showCategoryExamples(TaskCategory.PAYMENT_PROCESSING)}
-          >
+            onPress={() => {
+              showCategoryExamples(TaskCategory.PAYMENT_PROCESSING);
+            }}>
             <Text style={styles.categoryTitle}>💳 Ödeme İşleme</Text>
-            <Text style={styles.categoryDescription}>
-              Ödeme sistemleri ve işlem yönetimi
-            </Text>
+            <Text style={styles.categoryDescription}>Ödeme sistemleri ve işlem yönetimi</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -331,22 +307,21 @@ const TurkishTaskExamples: React.FC = () => {
       {Object.keys(turkishSuggestions).length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>📋 Türkçe Öneriler Sonuçları</Text>
-          
+
           {Object.entries(turkishSuggestions).map(([key, suggestions]) => {
             const [type, category] = key.split('_');
             const isAI = type === 'ai';
-            
+
             return (
               <View key={key} style={styles.resultCard}>
                 <View style={styles.resultHeader}>
                   <Text style={styles.resultTitle}>
-                    {isAI ? '🤖 AI Önerileri' : '📝 Basit Öneriler'} - {category.replace('_', ' ').toUpperCase()}
+                    {isAI ? '🤖 AI Önerileri' : '📝 Basit Öneriler'} -{' '}
+                    {category.replace('_', ' ').toUpperCase()}
                   </Text>
-                  <Text style={styles.resultCount}>
-                    {suggestions.length} öneri
-                  </Text>
+                  <Text style={styles.resultCount}>{suggestions.length} öneri</Text>
                 </View>
-                
+
                 {suggestions.map((suggestion, index) => (
                   <View key={index} style={styles.suggestionItem}>
                     <Text style={styles.suggestionText}>
@@ -363,22 +338,24 @@ const TurkishTaskExamples: React.FC = () => {
       {/* Usage Guide */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>📖 Kullanım Kılavuzu</Text>
-        
+
         <View style={styles.guideCard}>
           <Text style={styles.guideTitle}>🎯 Türkçe Görev Önerilerini Nasıl Kullanırsınız?</Text>
-          
+
           <Text style={styles.guideStep}>
             1️⃣ <Text style={styles.guideBold}>Dil Değiştirin:</Text> i18n dil ayarını 'tr' yapın
           </Text>
-          
+
           <Text style={styles.guideStep}>
-            2️⃣ <Text style={styles.guideBold}>Önerileri Alın:</Text> generateTaskSuggestions() veya getAISuggestions() kullanın
+            2️⃣ <Text style={styles.guideBold}>Önerileri Alın:</Text> generateTaskSuggestions() veya
+            getAISuggestions() kullanın
           </Text>
-          
+
           <Text style={styles.guideStep}>
-            3️⃣ <Text style={styles.guideBold}>Görev Oluşturun:</Text> Türkçe önerilerden görev yaratın
+            3️⃣ <Text style={styles.guideBold}>Görev Oluşturun:</Text> Türkçe önerilerden görev
+            yaratın
           </Text>
-          
+
           <Text style={styles.guideStep}>
             4️⃣ <Text style={styles.guideBold}>Test Edin:</Text> Yukarıdaki butonlarla test yapın
           </Text>
@@ -387,7 +364,7 @@ const TurkishTaskExamples: React.FC = () => {
         <View style={styles.codeExample}>
           <Text style={styles.codeTitle}>💻 Kod Örneği:</Text>
           <Text style={styles.codeText}>
-{`// Dil değiştir
+            {`// Dil değiştir
 await i18n.changeLanguage('tr');
 
 // Türkçe öneriler al

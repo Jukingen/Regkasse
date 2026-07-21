@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 
-import { Invoice, InvoiceItem } from '../types/invoice';
 import { Colors, Spacing, BorderRadius } from '../constants/Colors';
-import { formatUserDate, formatUserDateTime } from '../utils/dateFormatter';
+import { RECEIPT_FONT_FAMILY } from '../constants/fonts';
+import { Invoice, InvoiceItem } from '../types/invoice';
+import { formatUserDate, formatUserTime } from '../utils/dateFormatter';
 
 interface ReceiptPrintProps {
   invoice: Invoice;
@@ -11,24 +12,20 @@ interface ReceiptPrintProps {
   isPreview?: boolean;
 }
 
-const ReceiptPrint: React.FC<ReceiptPrintProps> = ({
-  invoice,
-  items,
-  isPreview = true,
-}) => {
+const ReceiptPrint: React.FC<ReceiptPrintProps> = ({ invoice, items, isPreview = true }) => {
   const formatDate = (date: Date) => formatUserDate(date);
 
   const formatTime = (date: Date) => formatUserTime(date, { includeSeconds: true });
 
   const calculateTaxAmount = (items: InvoiceItem[], taxType: number) => {
     return items
-      .filter(item => item.taxType === taxType)
+      .filter((item) => item.taxType === taxType)
       .reduce((sum, item) => sum + item.taxAmount, 0);
   };
 
-  const standardTaxItems = items.filter(item => item.taxType === 20);
-  const reducedTaxItems = items.filter(item => item.taxType === 10);
-  const specialTaxItems = items.filter(item => item.taxType === 13);
+  const standardTaxItems = items.filter((item) => item.taxType === 20);
+  const reducedTaxItems = items.filter((item) => item.taxType === 10);
+  const specialTaxItems = items.filter((item) => item.taxType === 13);
 
   const standardTaxAmount = calculateTaxAmount(items, 20);
   const reducedTaxAmount = calculateTaxAmount(items, 10);
@@ -53,7 +50,10 @@ const ReceiptPrint: React.FC<ReceiptPrintProps> = ({
           <Text style={styles.receiptTitle}>KASSA BELEG</Text>
           <Text style={styles.receiptNumber}>Beleg-Nr: {invoice.receiptNumber}</Text>
           <Text style={styles.receiptDate}>
-            Datum: {invoice.createdAt ? formatDate(new Date(invoice.createdAt)) : formatUserDate(new Date())}
+            Datum:{' '}
+            {invoice.createdAt
+              ? formatDate(new Date(invoice.createdAt))
+              : formatUserDate(new Date())}
           </Text>
           <View style={styles.metaRow}>
             <Text style={styles.metaText}>
@@ -88,7 +88,9 @@ const ReceiptPrint: React.FC<ReceiptPrintProps> = ({
           {/* Fallback tax display if breakdown not available */}
           <View style={styles.taxRow}>
             <Text style={styles.taxLabel}>Steuer Gesamt:</Text>
-            <Text style={styles.taxAmount}>€{invoice.taxSummary.totalTaxAmount?.toFixed(2) || '0.00'}</Text>
+            <Text style={styles.taxAmount}>
+              €{invoice.taxSummary.totalTaxAmount?.toFixed(2) || '0.00'}
+            </Text>
           </View>
         </View>
 
@@ -110,7 +112,10 @@ const ReceiptPrint: React.FC<ReceiptPrintProps> = ({
           <Text style={styles.tseInfo}>TSE-Seriennummer: {invoice.tseSerialNumber}</Text>
           <Text style={styles.tseInfo}>TSE-Signatur: {invoice.tseSignature}</Text>
           <Text style={styles.tseInfo}>
-            TSE-Zeitstempel: {invoice.tseTime ? formatDate(new Date(invoice.tseTime)) + ' ' + formatTime(new Date(invoice.tseTime)) : '-'}
+            TSE-Zeitstempel:{' '}
+            {invoice.tseTime
+              ? formatDate(new Date(invoice.tseTime)) + ' ' + formatTime(new Date(invoice.tseTime))
+              : '-'}
           </Text>
           <Text style={styles.tseInfo}>TSE-Prozessart: {invoice.tseProcessType}</Text>
         </View>
@@ -119,7 +124,9 @@ const ReceiptPrint: React.FC<ReceiptPrintProps> = ({
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>{(invoice as any).footerText || 'Vielen Dank für Ihren Einkauf!'}</Text>
+          <Text style={styles.footerText}>
+            {(invoice as any).footerText || 'Vielen Dank für Ihren Einkauf!'}
+          </Text>
           <Text style={styles.footerText}>Bitte bewahren Sie diesen Beleg auf.</Text>
         </View>
 
@@ -153,20 +160,20 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   companyName: {
-    fontFamily: 'OCRA-B',
+    fontFamily: RECEIPT_FONT_FAMILY,
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: Spacing.xs,
   },
   address: {
-    fontFamily: 'OCRA-B',
+    fontFamily: RECEIPT_FONT_FAMILY,
     fontSize: 12,
     textAlign: 'center',
     marginBottom: Spacing.xs,
   },
   taxNumber: {
-    fontFamily: 'OCRA-B',
+    fontFamily: RECEIPT_FONT_FAMILY,
     fontSize: 12,
     textAlign: 'center',
   },
@@ -179,24 +186,24 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   receiptTitle: {
-    fontFamily: 'OCRA-B',
+    fontFamily: RECEIPT_FONT_FAMILY,
     fontSize: 14,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: Spacing.xs,
   },
   receiptNumber: {
-    fontFamily: 'OCRA-B',
+    fontFamily: RECEIPT_FONT_FAMILY,
     fontSize: 12,
     marginBottom: Spacing.xs,
   },
   receiptDate: {
-    fontFamily: 'OCRA-B',
+    fontFamily: RECEIPT_FONT_FAMILY,
     fontSize: 12,
     marginBottom: Spacing.xs,
   },
   receiptTime: {
-    fontFamily: 'OCRA-B',
+    fontFamily: RECEIPT_FONT_FAMILY,
     fontSize: 12,
   },
   metaRow: {
@@ -205,7 +212,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   metaText: {
-    fontFamily: 'OCRA-B',
+    fontFamily: RECEIPT_FONT_FAMILY,
     fontSize: 10,
     color: Colors.light.textSecondary,
   },
@@ -213,7 +220,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   sectionTitle: {
-    fontFamily: 'OCRA-B',
+    fontFamily: RECEIPT_FONT_FAMILY,
     fontSize: 12,
     fontWeight: 'bold',
     marginBottom: Spacing.xs,
@@ -228,17 +235,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemName: {
-    fontFamily: 'OCRA-B',
+    fontFamily: RECEIPT_FONT_FAMILY,
     fontSize: 11,
     fontWeight: '600',
   },
   itemDetails: {
-    fontFamily: 'OCRA-B',
+    fontFamily: RECEIPT_FONT_FAMILY,
     fontSize: 10,
     color: Colors.light.textSecondary,
   },
   itemTotal: {
-    fontFamily: 'OCRA-B',
+    fontFamily: RECEIPT_FONT_FAMILY,
     fontSize: 11,
     fontWeight: '600',
   },
@@ -251,11 +258,11 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   taxLabel: {
-    fontFamily: 'OCRA-B',
+    fontFamily: RECEIPT_FONT_FAMILY,
     fontSize: 11,
   },
   taxAmount: {
-    fontFamily: 'OCRA-B',
+    fontFamily: RECEIPT_FONT_FAMILY,
     fontSize: 11,
     fontWeight: '600',
   },
@@ -268,12 +275,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   totalLabel: {
-    fontFamily: 'OCRA-B',
+    fontFamily: RECEIPT_FONT_FAMILY,
     fontSize: 14,
     fontWeight: 'bold',
   },
   totalAmount: {
-    fontFamily: 'OCRA-B',
+    fontFamily: RECEIPT_FONT_FAMILY,
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -281,7 +288,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   tseInfo: {
-    fontFamily: 'OCRA-B',
+    fontFamily: RECEIPT_FONT_FAMILY,
     fontSize: 10,
     marginBottom: Spacing.xs,
   },
@@ -289,11 +296,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   footerText: {
-    fontFamily: 'OCRA-B',
+    fontFamily: RECEIPT_FONT_FAMILY,
     fontSize: 11,
     textAlign: 'center',
     marginBottom: Spacing.xs,
   },
 });
 
-export default ReceiptPrint; 
+export default ReceiptPrint;

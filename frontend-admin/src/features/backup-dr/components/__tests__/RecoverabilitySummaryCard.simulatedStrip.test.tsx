@@ -1,12 +1,13 @@
 /**
  * Simüle ortam şeridi: üst pano Fake bilgisi varken tekrar şerit gösterimini omit ile keser.
  */
-import React from 'react';
-import { describe, it, expect, beforeAll, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
-import { RecoverabilitySummaryCard } from '@/features/backup-dr/components/RecoverabilitySummaryCard';
+import React from 'react';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+
 import type { BackupRecoverabilitySummaryResponseDto } from '@/api/generated/model';
+import { RecoverabilitySummaryCard } from '@/features/backup-dr/components/RecoverabilitySummaryCard';
 
 beforeAll(() => {
   Object.defineProperty(window, 'matchMedia', {
@@ -56,9 +57,11 @@ describe('RecoverabilitySummaryCard — simulated strip dedupe', () => {
         simulatedOperationalMode
         omitSimulatedEnvironmentStrip
         t={t}
-      />,
+      />
     );
-    expect(screen.queryByText('backupDr.recoverability.simulatedEnvironmentStrip')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('backupDr.recoverability.simulatedEnvironmentStrip')
+    ).not.toBeInTheDocument();
   });
 
   it('shows simulatedEnvironmentStrip when simulatedOperationalMode without omit', () => {
@@ -72,8 +75,10 @@ describe('RecoverabilitySummaryCard — simulated strip dedupe', () => {
         restoreStatusLabel={() => 'ok'}
         simulatedOperationalMode
         t={t}
-      />,
+      />
     );
-    expect(screen.getByText('backupDr.recoverability.simulatedEnvironmentStrip')).toBeInTheDocument();
+    expect(
+      screen.getByText('backupDr.recoverability.simulatedEnvironmentStrip')
+    ).toBeInTheDocument();
   });
 });

@@ -1,8 +1,14 @@
 /**
  * Admin pricing rules — /api/admin/pricing-rules
  */
+import type {
+  UseMutationOptions,
+  UseMutationResult,
+  UseQueryOptions,
+  UseQueryResult,
+} from '@tanstack/react-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { UseMutationOptions, UseQueryOptions, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
+
 import { customInstance } from '@/lib/axios';
 
 const BASE = '/api/admin/pricing-rules';
@@ -57,8 +63,8 @@ export function getAdminPricingRules(
   options?: SecondParameter<typeof customInstance>,
   signal?: AbortSignal
 ): Promise<PricingRuleAdmin[]> {
-  return customInstance<PricingRuleAdmin[]>({ url: BASE, method: 'GET', signal }, options).then((res) =>
-    unwrapData<PricingRuleAdmin[]>(res)
+  return customInstance<PricingRuleAdmin[]>({ url: BASE, method: 'GET', signal }, options).then(
+    (res) => unwrapData<PricingRuleAdmin[]>(res)
   );
 }
 
@@ -83,10 +89,14 @@ export function updateAdminPricingRule(
   ).then((res) => unwrapData<PricingRuleAdmin>(res));
 }
 
-export function deleteAdminPricingRule(id: string, options?: SecondParameter<typeof customInstance>) {
-  return customInstance<{ id: string; message?: string }>({ url: `${BASE}/${id}`, method: 'DELETE' }, options).then((res) =>
-    unwrapData<{ id: string; message?: string }>(res)
-  );
+export function deleteAdminPricingRule(
+  id: string,
+  options?: SecondParameter<typeof customInstance>
+) {
+  return customInstance<{ id: string; message?: string }>(
+    { url: `${BASE}/${id}`, method: 'DELETE' },
+    options
+  ).then((res) => unwrapData<{ id: string; message?: string }>(res));
 }
 
 export const adminPricingRulesQueryKeys = {
@@ -116,7 +126,11 @@ export function useCreateAdminPricingRule(
 }
 
 export function useUpdateAdminPricingRule(
-  options?: UseMutationOptions<PricingRuleAdmin, Error, { id: string; data: UpdatePricingRuleRequest }>
+  options?: UseMutationOptions<
+    PricingRuleAdmin,
+    Error,
+    { id: string; data: UpdatePricingRuleRequest }
+  >
 ): UseMutationResult<PricingRuleAdmin, Error, { id: string; data: UpdatePricingRuleRequest }> {
   const qc = useQueryClient();
   return useMutation({

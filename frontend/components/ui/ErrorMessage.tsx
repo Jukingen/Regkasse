@@ -59,32 +59,20 @@ const ErrorMessage: React.FC<ErrorMessageProps> = ({
   return (
     <View style={[styles.container, { backgroundColor: getBackgroundColor() }]}>
       <View style={styles.content}>
-        <Ionicons 
-          name={getIconName() as any} 
-          size={20} 
-          color={getTextColor()} 
-        />
-        <Text style={[styles.message, { color: getTextColor() }]}>
-          {message}
-        </Text>
+        <Ionicons name={getIconName()} size={20} color={getTextColor()} />
+        <Text style={[styles.message, { color: getTextColor() }]}>{message}</Text>
       </View>
-      
+
       <View style={styles.actions}>
         {onRetry && (
           <TouchableOpacity style={styles.button} onPress={onRetry}>
-            <Text style={[styles.buttonText, { color: getTextColor() }]}>
-              Tekrar Dene
-            </Text>
+            <Text style={[styles.buttonText, { color: getTextColor() }]}>Tekrar Dene</Text>
           </TouchableOpacity>
         )}
-        
+
         {onDismiss && (
           <TouchableOpacity style={styles.button} onPress={onDismiss}>
-            <Ionicons 
-              name="close" 
-              size={16} 
-              color={getTextColor()} 
-            />
+            <Ionicons name="close" size={16} color={getTextColor()} />
           </TouchableOpacity>
         )}
       </View>
@@ -125,4 +113,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ErrorMessage; 
+export default ErrorMessage;

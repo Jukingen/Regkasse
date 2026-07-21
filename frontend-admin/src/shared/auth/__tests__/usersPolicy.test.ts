@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
+import { MANAGER_ADMIN_PERMISSIONS } from '@/shared/__tests__/fixtures/adminAppPermissionFixtures';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { getUsersPolicy } from '@/shared/auth/usersPolicy';
-import { MANAGER_ADMIN_PERMISSIONS } from '@/shared/__tests__/fixtures/adminAppPermissionFixtures';
 
 describe('getUsersPolicy', () => {
   it('allows Manager to view users via user.view permission', () => {

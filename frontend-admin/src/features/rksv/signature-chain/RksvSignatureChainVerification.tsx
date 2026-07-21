@@ -3,19 +3,6 @@
 /**
  * Dedicated RKSV signature chain verification (compliance-report API, chain + sequence + TSE scope).
  */
-
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  Button,
-  Card,
-  DatePicker,
-  Select,
-  Space,
-  Table,
-  Tag,
-  Typography,
-} from 'antd';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -24,31 +11,34 @@ import {
   SearchOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
+import { useQuery } from '@tanstack/react-query';
+import { Alert, Button, Card, DatePicker, Select, Space, Table, Tag, Typography } from 'antd';
+import dayjs, { type Dayjs } from 'dayjs';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import dayjs, { type Dayjs } from 'dayjs';
-import { useQuery } from '@tanstack/react-query';
-import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { useI18n } from '@/i18n';
-import { formatDate, formatDateTime } from '@/i18n/formatting';
-import { DAYJS_DATETIME_SECONDS_FORMAT } from '@/lib/dateFormatter';
-import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+
 import { getAdminCashRegisters, getRksvComplianceReportJson } from '@/api/admin-rksv/client';
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import type {
   RksvComplianceReport,
   RksvComplianceReportQueryParams,
   RksvComplianceSignatureChainItem,
 } from '@/features/rksv/compliance/types';
 import { exportSignatureChainIssuesFromChain } from '@/features/rksv/signature-chain/exportSignatureChainCsv';
+import styles from '@/features/rksv/signature-chain/signatureChainPage.module.css';
 import {
   computeSignatureChainOutcome,
   filterReportForRegister,
   formatSignaturePreview,
   prevSignatureMatches,
 } from '@/features/rksv/signature-chain/signatureChainUtils';
-import styles from '@/features/rksv/signature-chain/signatureChainPage.module.css';
+import { useI18n } from '@/i18n';
+import { formatDate, formatDateTime } from '@/i18n/formatting';
+import { DAYJS_DATETIME_SECONDS_FORMAT } from '@/lib/dateFormatter';
+import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 
 const { RangePicker } = DatePicker;
 
@@ -58,7 +48,11 @@ function chainStatusTag(status: string | undefined, t: (key: string) => string) 
   return <Tag color="error">{status ?? t('rksvHub.signatureChainPage.statusUnknown')}</Tag>;
 }
 
-export default function RksvSignatureChainVerification({ embedded = false }: { embedded?: boolean }) {
+export default function RksvSignatureChainVerification({
+  embedded = false,
+}: {
+  embedded?: boolean;
+}) {
   const { t } = useI18n();
   const searchParams = useSearchParams();
   const highlightReceiptId = searchParams.get('receiptId') ?? undefined;
@@ -68,7 +62,9 @@ export default function RksvSignatureChainVerification({ embedded = false }: { e
     dayjs().endOf('day'),
   ]);
   const [cashRegisterId, setCashRegisterId] = useState<string | undefined>(undefined);
-  const [verifiedParams, setVerifiedParams] = useState<RksvComplianceReportQueryParams | null>(null);
+  const [verifiedParams, setVerifiedParams] = useState<RksvComplianceReportQueryParams | null>(
+    null
+  );
 
   const applySearchParams = useCallback(() => {
     const reg = searchParams.get('cashRegisterId');
@@ -107,12 +103,12 @@ export default function RksvSignatureChainVerification({ embedded = false }: { e
 
   const { chain, chainIssues, sequenceGaps, tseMissing } = useMemo(
     () => filterReportForRegister(report, activeRegisterId),
-    [report, activeRegisterId],
+    [report, activeRegisterId]
   );
 
   const outcome = useMemo(
     () => computeSignatureChainOutcome(chainIssues, sequenceGaps, tseMissing),
-    [chainIssues, sequenceGaps, tseMissing],
+    [chainIssues, sequenceGaps, tseMissing]
   );
 
   const handleVerify = () => {
@@ -180,7 +176,9 @@ export default function RksvSignatureChainVerification({ embedded = false }: { e
           <Space size={4}>
             <Typography.Text code>{n}</Typography.Text>
             {row.receiptId && (
-              <Link href={`/receipts/${row.receiptId}`}>{t('rksvHub.signatureChainPage.viewReceipt')}</Link>
+              <Link href={`/receipts/${row.receiptId}`}>
+                {t('rksvHub.signatureChainPage.viewReceipt')}
+              </Link>
             )}
           </Space>
         ),
@@ -221,7 +219,7 @@ export default function RksvSignatureChainVerification({ embedded = false }: { e
         render: (issue: string | null) => issue ?? '—',
       },
     ],
-    [t],
+    [t]
   );
 
   return (
@@ -262,7 +260,9 @@ export default function RksvSignatureChainVerification({ embedded = false }: { e
                 label: r.registerNumber ? `${r.registerNumber} (${r.id?.slice(0, 8)}…)` : r.id,
               }))}
           />
-          <Typography.Text strong>{t('rksvHub.signatureChainPage.filterRangeLabel')}</Typography.Text>
+          <Typography.Text strong>
+            {t('rksvHub.signatureChainPage.filterRangeLabel')}
+          </Typography.Text>
           <RangePicker
             format={DAYJS_DATETIME_SECONDS_FORMAT}
             value={range}
@@ -324,7 +324,11 @@ export default function RksvSignatureChainVerification({ embedded = false }: { e
         <div id="signature-chain-print-area">
           <div style={{ marginBottom: 16 }}>{outcomeAlert}</div>
 
-          <Card size="small" style={{ marginBottom: 16 }} title={t('rksvHub.signatureChainPage.printMetaTitle')}>
+          <Card
+            size="small"
+            style={{ marginBottom: 16 }}
+            title={t('rksvHub.signatureChainPage.printMetaTitle')}
+          >
             <Typography.Paragraph style={{ marginBottom: 4 }}>
               {t('rksvHub.signatureChainPage.printRegister')}:{' '}
               <Typography.Text code>{activeRegisterId}</Typography.Text>
@@ -344,7 +348,11 @@ export default function RksvSignatureChainVerification({ embedded = false }: { e
             )}
           </Card>
 
-          <Card size="small" title={t('rksvHub.signatureChainPage.chainTableTitle')} style={{ marginBottom: 16 }}>
+          <Card
+            size="small"
+            title={t('rksvHub.signatureChainPage.chainTableTitle')}
+            style={{ marginBottom: 16 }}
+          >
             <Table
               size="small"
               pagination={{ pageSize: 20, showSizeChanger: true }}
@@ -393,13 +401,17 @@ export default function RksvSignatureChainVerification({ embedded = false }: { e
                     title: t('rksvHub.compliancePage.colPrevReceipt'),
                     dataIndex: 'previousReceiptNumber',
                     key: 'previousReceiptNumber',
-                    render: (n: string | null) => <Typography.Text code>{n ?? '—'}</Typography.Text>,
+                    render: (n: string | null) => (
+                      <Typography.Text code>{n ?? '—'}</Typography.Text>
+                    ),
                   },
                   {
                     title: t('rksvHub.compliancePage.colNextReceipt'),
                     dataIndex: 'nextReceiptNumber',
                     key: 'nextReceiptNumber',
-                    render: (n: string | null) => <Typography.Text code>{n ?? '—'}</Typography.Text>,
+                    render: (n: string | null) => (
+                      <Typography.Text code>{n ?? '—'}</Typography.Text>
+                    ),
                   },
                 ]}
               />
@@ -441,7 +453,6 @@ export default function RksvSignatureChainVerification({ embedded = false }: { e
           )}
         </div>
       )}
-
     </div>
   );
 }

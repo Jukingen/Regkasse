@@ -1,8 +1,8 @@
 import { useMutation } from '@tanstack/react-query';
 
 import {
-  resetUserPasswordWithGeneration,
   type TemporaryPasswordResponse,
+  resetUserPasswordWithGeneration,
 } from '@/features/users/api/usersGateway';
 
 export function useResetUserPassword() {

@@ -1,7 +1,8 @@
 import i18n from '../../i18n';
 import { mapBackendCashRegisterCodeToGerman } from '../../utils/posRegisterGateCopy';
 
-export type PaymentErrorCode = 'DEMO_PAYMENT_RESTRICTED' | 'BENEFIT_DAILY_ALLOWANCE_CONFLICT' | 'UNKNOWN_PAYMENT_ERROR';
+export type PaymentErrorCode =
+  'DEMO_PAYMENT_RESTRICTED' | 'BENEFIT_DAILY_ALLOWANCE_CONFLICT' | 'UNKNOWN_PAYMENT_ERROR';
 
 export class PaymentAppError extends Error {
   readonly code: PaymentErrorCode;

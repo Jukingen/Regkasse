@@ -1,27 +1,27 @@
-"use client";
+'use client';
 
 /**
  * Super Admin: RKSV-compliant validation restore request modal.
  * Requires dual acknowledgement before enqueueing dual-approval restore
  * into an isolated restore_validation_* database (never production).
  */
+import { DatabaseOutlined, WarningOutlined } from '@ant-design/icons';
+import { useQueryClient } from '@tanstack/react-query';
+import { Alert, Button, Checkbox, Divider, Form, Input, Modal, Space, Typography } from 'antd';
+import React, { useCallback, useEffect, useState } from 'react';
 
-import React, { useCallback, useEffect, useState } from "react";
-import { Alert, Button, Checkbox, Divider, Form, Input, Modal, Space, Typography } from "antd";
-import { DatabaseOutlined, WarningOutlined } from "@ant-design/icons";
-import { useQueryClient } from "@tanstack/react-query";
-import { useAntdApp } from "@/hooks/useAntdApp";
-import { useI18n } from "@/i18n";
 import {
-  postManualRestoreRequest,
   type RestoreRequestStatusDto,
-} from "@/features/backup-dr/logic/manualRestoreApi";
-import { manualRestoreErrorMessage } from "@/features/backup-dr/logic/manualRestoreErrorMessage";
+  postManualRestoreRequest,
+} from '@/features/backup-dr/logic/manualRestoreApi';
+import { manualRestoreErrorMessage } from '@/features/backup-dr/logic/manualRestoreErrorMessage';
 import {
   defaultValidationDatabaseName,
   isValidValidationDatabaseName,
-} from "@/features/backup-dr/logic/manualRestorePresentation";
-import { RestorePreview } from "@/features/backup/components/RestorePreview";
+} from '@/features/backup-dr/logic/manualRestorePresentation';
+import { RestorePreview } from '@/features/backup/components/RestorePreview';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { useI18n } from '@/i18n';
 
 export interface RestoreModalBackup {
   backupRunId: string;
@@ -47,8 +47,8 @@ export function RestoreModal({ backup, open, onClose, onRequestCreated }: Restor
   const { t } = useI18n();
   const queryClient = useQueryClient();
 
-  const [targetDatabase, setTargetDatabase] = useState("");
-  const [reason, setReason] = useState("");
+  const [targetDatabase, setTargetDatabase] = useState('');
+  const [reason, setReason] = useState('');
   const [confirmedSameTenant, setConfirmedSameTenant] = useState(false);
   const [acknowledgedRksv, setAcknowledgedRksv] = useState(false);
   const [complianceOk, setComplianceOk] = useState(false);
@@ -57,34 +57,31 @@ export function RestoreModal({ backup, open, onClose, onRequestCreated }: Restor
   useEffect(() => {
     if (!open) return;
     setTargetDatabase(defaultValidationDatabaseName());
-    setReason("");
+    setReason('');
     setConfirmedSameTenant(false);
     setAcknowledgedRksv(false);
     setComplianceOk(false);
   }, [open, backup.backupRunId]);
 
   const canSubmit =
-    confirmedSameTenant &&
-    acknowledgedRksv &&
-    complianceOk &&
-    Boolean(backup.backupRunId);
+    confirmedSameTenant && acknowledgedRksv && complianceOk && Boolean(backup.backupRunId);
 
   const handleRestore = useCallback(async () => {
     if (!backup.backupRunId) {
-      message.error(t("backupDr.manualRestore.errors.missingRunId"));
+      message.error(t('backupDr.manualRestore.errors.missingRunId'));
       return;
     }
     if (!confirmedSameTenant || !acknowledgedRksv) {
-      message.error(t("backupDr.manualRestore.errors.acknowledgementsRequired"));
+      message.error(t('backupDr.manualRestore.errors.acknowledgementsRequired'));
       return;
     }
     if (!complianceOk) {
-      message.error(t("backupDr.manualRestore.errors.complianceRequired"));
+      message.error(t('backupDr.manualRestore.errors.complianceRequired'));
       return;
     }
     const db = targetDatabase.trim().toLowerCase();
     if (!isValidValidationDatabaseName(db)) {
-      message.error(t("backupDr.manualRestore.errors.invalidTargetDb"));
+      message.error(t('backupDr.manualRestore.errors.invalidTargetDb'));
       return;
     }
 
@@ -96,8 +93,8 @@ export function RestoreModal({ backup, open, onClose, onRequestCreated }: Restor
         reason: reason.trim() || undefined,
         validationOnly: true,
       });
-      message.success(t("backupDr.manualRestore.messages.requestCreated"));
-      void queryClient.invalidateQueries({ queryKey: ["/api/admin/restore"] });
+      message.success(t('backupDr.manualRestore.messages.requestCreated'));
+      void queryClient.invalidateQueries({ queryKey: ['/api/admin/restore'] });
       onRequestCreated?.(result);
       onClose();
     } catch (err) {
@@ -121,7 +118,7 @@ export function RestoreModal({ backup, open, onClose, onRequestCreated }: Restor
 
   return (
     <Modal
-      title={t("backupDr.manualRestore.restoreModal.title")}
+      title={t('backupDr.manualRestore.restoreModal.title')}
       open={open}
       onCancel={onClose}
       width={800}
@@ -129,7 +126,7 @@ export function RestoreModal({ backup, open, onClose, onRequestCreated }: Restor
       footer={
         <Space>
           <Button key="cancel" onClick={onClose}>
-            {t("backupDr.manualRestore.actions.cancel")}
+            {t('backupDr.manualRestore.actions.cancel')}
           </Button>
           <Button
             key="restore"
@@ -139,7 +136,7 @@ export function RestoreModal({ backup, open, onClose, onRequestCreated }: Restor
             disabled={!canSubmit}
             onClick={() => void handleRestore()}
           >
-            {t("backupDr.manualRestore.actions.restore")}
+            {t('backupDr.manualRestore.actions.restore')}
           </Button>
         </Space>
       }
@@ -147,13 +144,13 @@ export function RestoreModal({ backup, open, onClose, onRequestCreated }: Restor
       <Alert
         type="warning"
         showIcon
-        title={t("backupDr.manualRestore.rksvAlert.title")}
+        title={t('backupDr.manualRestore.rksvAlert.title')}
         description={
-          <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
-            <li>{t("backupDr.manualRestore.rksvAlert.sameTenant")}</li>
-            <li>{t("backupDr.manualRestore.rksvAlert.originalTimestamps")}</li>
-            <li>{t("backupDr.manualRestore.rksvAlert.auditLogged")}</li>
-            <li>{t("backupDr.manualRestore.rksvAlert.validationOnly")}</li>
+          <ul style={{ margin: '8px 0 0', paddingLeft: 18 }}>
+            <li>{t('backupDr.manualRestore.rksvAlert.sameTenant')}</li>
+            <li>{t('backupDr.manualRestore.rksvAlert.originalTimestamps')}</li>
+            <li>{t('backupDr.manualRestore.rksvAlert.auditLogged')}</li>
+            <li>{t('backupDr.manualRestore.rksvAlert.validationOnly')}</li>
           </ul>
         }
       />
@@ -173,33 +170,33 @@ export function RestoreModal({ backup, open, onClose, onRequestCreated }: Restor
       </div>
 
       <Form layout="vertical" style={{ marginTop: 16 }}>
-        <Form.Item label={t("backupDr.manualRestore.fields.backup")} required>
+        <Form.Item label={t('backupDr.manualRestore.fields.backup')} required>
           <Input value={backup.backupRunId} disabled />
         </Form.Item>
         {backup.fileName || backup.tenantSlug ? (
           <Typography.Paragraph type="secondary" style={{ marginTop: -8 }}>
             {backup.fileName ? (
               <span>
-                {t("backupDr.manualRestore.fields.fileName")}: {backup.fileName}
+                {t('backupDr.manualRestore.fields.fileName')}: {backup.fileName}
               </span>
             ) : null}
             {backup.tenantSlug ? (
               <span>
-                {backup.fileName ? " · " : null}
-                {t("backupDr.manualRestore.fields.tenant")}: {backup.tenantSlug}
+                {backup.fileName ? ' · ' : null}
+                {t('backupDr.manualRestore.fields.tenant')}: {backup.tenantSlug}
               </span>
             ) : (
               <span>
-                {backup.fileName ? " · " : null}
-                {t("backupDr.manualRestore.fields.sharedDump")}
+                {backup.fileName ? ' · ' : null}
+                {t('backupDr.manualRestore.fields.sharedDump')}
               </span>
             )}
           </Typography.Paragraph>
         ) : null}
         <Form.Item
-          label={t("backupDr.manualRestore.fields.targetDatabase")}
+          label={t('backupDr.manualRestore.fields.targetDatabase')}
           required
-          help={t("backupDr.manualRestore.fields.targetDatabaseHelp")}
+          help={t('backupDr.manualRestore.fields.targetDatabaseHelp')}
         >
           <Input
             placeholder="restore_validation_20241231"
@@ -208,10 +205,10 @@ export function RestoreModal({ backup, open, onClose, onRequestCreated }: Restor
             prefix={<DatabaseOutlined />}
           />
         </Form.Item>
-        <Form.Item label={t("backupDr.manualRestore.fields.reason")}>
+        <Form.Item label={t('backupDr.manualRestore.fields.reason')}>
           <Input.TextArea
             rows={3}
-            placeholder={t("backupDr.manualRestore.fields.reasonPlaceholder")}
+            placeholder={t('backupDr.manualRestore.fields.reasonPlaceholder')}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
           />
@@ -223,7 +220,7 @@ export function RestoreModal({ backup, open, onClose, onRequestCreated }: Restor
           checked={confirmedSameTenant}
           onChange={(e) => setConfirmedSameTenant(e.target.checked)}
         >
-          {t("backupDr.manualRestore.acknowledgements.sameTenant")}
+          {t('backupDr.manualRestore.acknowledgements.sameTenant')}
         </Checkbox>
       </div>
       <div style={{ marginTop: 8 }}>
@@ -231,14 +228,14 @@ export function RestoreModal({ backup, open, onClose, onRequestCreated }: Restor
           checked={acknowledgedRksv}
           onChange={(e) => setAcknowledgedRksv(e.target.checked)}
         >
-          {t("backupDr.manualRestore.acknowledgements.rksvUnderstood")}
+          {t('backupDr.manualRestore.acknowledgements.rksvUnderstood')}
         </Checkbox>
       </div>
 
       <Divider />
       <Typography.Text type="secondary" style={{ fontSize: 13 }}>
         <WarningOutlined style={{ marginRight: 8 }} />
-        {t("backupDr.manualRestore.tokenHint")}
+        {t('backupDr.manualRestore.tokenHint')}
       </Typography.Text>
     </Modal>
   );

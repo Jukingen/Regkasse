@@ -62,12 +62,8 @@ const TableManager: React.FC<TableManagerProps> = ({
   tableOrders = {},
 }) => {
   const { t: _t } = useTranslation();
-  const {
-    isRecoveryCompleted,
-    recoveryData,
-    getOrderForTable,
-    hasActiveOrders,
-  } = useTableOrdersRecoveryOptimized();
+  const { isRecoveryCompleted, recoveryData, getOrderForTable, hasActiveOrders } =
+    useTableOrdersRecoveryOptimized();
   const [tables, setTables] = useState<Table[]>([]);
   const [showCustomerInput, setShowCustomerInput] = useState(false);
   const [editingTable, setEditingTable] = useState<string | null>(null);
@@ -78,30 +74,47 @@ const TableManager: React.FC<TableManagerProps> = ({
     const demoTables: Table[] = [
       { number: '1', status: 'empty' },
       { number: '2', status: 'empty' },
-      { number: '3', status: 'occupied', customerName: 'Maria Schmidt', startTime: new Date(Date.now() - 15 * 60 * 1000) },
+      {
+        number: '3',
+        status: 'occupied',
+        customerName: 'Maria Schmidt',
+        startTime: new Date(Date.now() - 15 * 60 * 1000),
+      },
       { number: '4', status: 'reserved', customerName: 'Reserviert' },
       { number: '5', status: 'empty' },
-      { number: '6', status: 'occupied', customerName: 'Peter Weber', startTime: new Date(Date.now() - 45 * 60 * 1000) },
+      {
+        number: '6',
+        status: 'occupied',
+        customerName: 'Peter Weber',
+        startTime: new Date(Date.now() - 45 * 60 * 1000),
+      },
       { number: '7', status: 'empty' },
-      { number: '8', status: 'occupied', customerName: 'Anna Fischer', startTime: new Date(Date.now() - 20 * 60 * 1000) },
+      {
+        number: '8',
+        status: 'occupied',
+        customerName: 'Anna Fischer',
+        startTime: new Date(Date.now() - 20 * 60 * 1000),
+      },
       { number: '9', status: 'empty' },
       { number: '10', status: 'reserved', customerName: 'Reserviert' },
     ];
 
     // Masaları güncel siparişlerle güncelle - önce local tableOrders, sonra recovery data
-    const tablesWithOrders = demoTables.map(table => {
+    const tablesWithOrders = demoTables.map((table) => {
       const currentTableOrders = tableOrders[table.number] || [];
       const tableNum = parseInt(table.number, 10);
-      
+
       // Local sipariş varsa o öncelikli
       if (currentTableOrders.length > 0) {
         // Güncel siparişlerden toplam hesapla
         const total = currentTableOrders.reduce((sum, item) => {
           const price = item.product?.price ?? item.price;
-          return sum + (price * item.quantity);
+          return sum + price * item.quantity;
         }, 0);
 
-        console.log(`Masa ${table.number} - Toplam: €${total.toFixed(2)}, Ürün sayısı: ${currentTableOrders.length}`);
+        console.log(
+          `Masa ${table.number} - Toplam: €${total.toFixed(2)}, Ürün sayısı: ${currentTableOrders.length}`
+        );
 
         const updatedOrder: TableOrder = {
           id: `order-${table.number}`,
@@ -111,7 +124,7 @@ const TableManager: React.FC<TableManagerProps> = ({
             productName: item.product?.name ?? item.productName,
             quantity: item.quantity,
             price: item.product?.price ?? item.price,
-            notes: item.notes
+            notes: item.notes,
           })),
           total,
           status: 'pending',
@@ -119,30 +132,40 @@ const TableManager: React.FC<TableManagerProps> = ({
           customerName: table.customerName,
           notes: 'Aktualisiert',
         };
-        
-        return { 
-          ...table, 
+
+        return {
+          ...table,
           currentOrder: updatedOrder,
-          status: 'occupied' as const
+          status: 'occupied' as const,
         };
       }
-      
+
       // Recovery data'dan sipariş varsa onu kullan (F5 sonrası)
       if (isRecoveryCompleted && recoveryData) {
         const recoveryOrder = getOrderForTable(tableNum);
         if (recoveryOrder && recoveryOrder.itemCount > 0) {
-          console.log(`🔄 Recovery: Masa ${table.number} - Toplam: €${recoveryOrder.totalAmount.toFixed(2)}, Ürün sayısı: ${recoveryOrder.itemCount}`);
-          
+          console.log(
+            `🔄 Recovery: Masa ${table.number} - Toplam: €${recoveryOrder.totalAmount.toFixed(2)}, Ürün sayısı: ${recoveryOrder.itemCount}`
+          );
+
           const currentOrder: TableOrder = {
             id: recoveryOrder.cartId,
             tableNumber: table.number,
-            items: recoveryOrder.items.map((item: { productId: string; productName: string; quantity: number; price: number; notes?: string }) => ({
-              productId: item.productId,
-              productName: item.productName,
-              quantity: item.quantity,
-              price: item.price,
-              notes: item.notes,
-            })),
+            items: recoveryOrder.items.map(
+              (item: {
+                productId: string;
+                productName: string;
+                quantity: number;
+                price: number;
+                notes?: string;
+              }) => ({
+                productId: item.productId,
+                productName: item.productName,
+                quantity: item.quantity,
+                price: item.price,
+                notes: item.notes,
+              })
+            ),
             total: recoveryOrder.totalAmount,
             status: 'pending', // Status mapping yapılabilir
             createdAt: new Date(recoveryOrder.createdAt),
@@ -158,66 +181,88 @@ const TableManager: React.FC<TableManagerProps> = ({
           };
         }
       }
-      
+
       // Boş masa
-      return { 
-        ...table, 
+      return {
+        ...table,
         currentOrder: undefined,
-        status: 'empty' as const
+        status: 'empty' as const,
       };
     });
 
     setTables(tablesWithOrders);
-    
+
     // Recovery tamamlandığında kullanıcıya bildirim göster
     if (isRecoveryCompleted && hasActiveOrders) {
-      console.log(`✅ Recovery completed: ${recoveryData?.totalActiveTables} active table orders restored`);
+      console.log(
+        `✅ Recovery completed: ${recoveryData?.totalActiveTables} active table orders restored`
+      );
     }
   }, [tableOrders, isRecoveryCompleted, recoveryData, getOrderForTable, hasActiveOrders]);
 
   const getTableStatusColor = (status: string) => {
     switch (status) {
-      case 'empty': return Colors.light.success;
-      case 'occupied': return Colors.light.warning;
-      case 'reserved': return Colors.light.info;
-      case 'cleaning': return Colors.light.textSecondary;
-      default: return Colors.light.textSecondary;
+      case 'empty':
+        return Colors.light.success;
+      case 'occupied':
+        return Colors.light.warning;
+      case 'reserved':
+        return Colors.light.info;
+      case 'cleaning':
+        return Colors.light.textSecondary;
+      default:
+        return Colors.light.textSecondary;
     }
   };
 
   const getTableStatusText = (status: string) => {
     switch (status) {
-      case 'empty': return 'Frei';
-      case 'occupied': return 'Besetzt';
-      case 'reserved': return 'Reserviert';
-      case 'cleaning': return 'Reinigung';
-      default: return 'Unbekannt';
+      case 'empty':
+        return 'Frei';
+      case 'occupied':
+        return 'Besetzt';
+      case 'reserved':
+        return 'Reserviert';
+      case 'cleaning':
+        return 'Reinigung';
+      default:
+        return 'Unbekannt';
     }
   };
 
   const getOrderStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return Colors.light.warning;
-      case 'preparing': return Colors.light.info;
-      case 'ready': return Colors.light.success;
-      case 'served': return Colors.light.textSecondary;
-      default: return Colors.light.textSecondary;
+      case 'pending':
+        return Colors.light.warning;
+      case 'preparing':
+        return Colors.light.info;
+      case 'ready':
+        return Colors.light.success;
+      case 'served':
+        return Colors.light.textSecondary;
+      default:
+        return Colors.light.textSecondary;
     }
   };
 
   const getOrderStatusText = (status: string) => {
     switch (status) {
-      case 'pending': return 'Wartend';
-      case 'preparing': return 'Zubereitung';
-      case 'ready': return 'Bereit';
-      case 'served': return 'Serviert';
-      default: return 'Unbekannt';
+      case 'pending':
+        return 'Wartend';
+      case 'preparing':
+        return 'Zubereitung';
+      case 'ready':
+        return 'Bereit';
+      case 'served':
+        return 'Serviert';
+      default:
+        return 'Unbekannt';
     }
   };
 
   const handleTablePress = (table: Table) => {
     Vibration.vibrate(25);
-    
+
     // Eğer masada güncel sipariş varsa onu kullan, yoksa tableOrders'dan al
     if (table.currentOrder) {
       onTableSelect(table.number, table.currentOrder);
@@ -228,18 +273,18 @@ const TableManager: React.FC<TableManagerProps> = ({
         // CartItem formatından TableOrder formatına dönüştür
         const total = currentTableOrders.reduce((sum, item) => {
           const price = item.product ? item.product.price : item.price;
-          return sum + (price * item.quantity);
+          return sum + price * item.quantity;
         }, 0);
 
         const tableOrder: TableOrder = {
           id: `order-${table.number}`,
           tableNumber: table.number,
-          items: currentTableOrders.map(item => ({
+          items: currentTableOrders.map((item) => ({
             productId: item.product ? item.product.id : item.productId,
             productName: item.product ? item.product.name : item.productName,
             quantity: item.quantity,
             price: item.product ? item.product.price : item.price,
-            notes: item.notes
+            notes: item.notes,
           })),
           total,
           status: 'pending',
@@ -247,7 +292,7 @@ const TableManager: React.FC<TableManagerProps> = ({
           customerName: table.customerName,
           notes: 'Aktualisiert',
         };
-        
+
         onTableSelect(table.number, tableOrder);
       } else {
         onTableSelect(table.number, undefined);
@@ -257,7 +302,7 @@ const TableManager: React.FC<TableManagerProps> = ({
 
   const handleQuickAction = (action: string, tableNumber: string) => {
     Vibration.vibrate(25);
-    
+
     switch (action) {
       case 'clear':
         Alert.alert(
@@ -268,35 +313,37 @@ const TableManager: React.FC<TableManagerProps> = ({
             {
               text: 'Temizle',
               onPress: () => {
-                setTables(prev => prev.map(table => 
-                  table.number === tableNumber 
-                    ? { 
-                        ...table, 
-                        status: 'cleaning', 
-                        customerName: undefined, 
-                        startTime: undefined, 
-                        currentOrder: undefined,
-                        lastOrderTime: table.lastOrderTime,
-                        totalPaid: table.totalPaid,
-                        orderHistory: table.orderHistory
-                      }
-                    : table
-                ));
-                
+                setTables((prev) =>
+                  prev.map((table) =>
+                    table.number === tableNumber
+                      ? {
+                          ...table,
+                          status: 'cleaning',
+                          customerName: undefined,
+                          startTime: undefined,
+                          currentOrder: undefined,
+                          lastOrderTime: table.lastOrderTime,
+                          totalPaid: table.totalPaid,
+                          orderHistory: table.orderHistory,
+                        }
+                      : table
+                  )
+                );
+
                 // 5 saniye sonra masayı boş olarak işaretle
                 setTimeout(() => {
-                  setTables(prev => prev.map(table => 
-                    table.number === tableNumber 
-                      ? { ...table, status: 'empty' }
-                      : table
-                  ));
+                  setTables((prev) =>
+                    prev.map((table) =>
+                      table.number === tableNumber ? { ...table, status: 'empty' } : table
+                    )
+                  );
                 }, 5000);
-              }
-            }
+              },
+            },
           ]
         );
         break;
-        
+
       case 'reserve':
         Alert.alert(
           'Rezervasyon',
@@ -306,51 +353,74 @@ const TableManager: React.FC<TableManagerProps> = ({
             {
               text: 'Rezerve Et',
               onPress: () => {
-                setTables(prev => prev.map(table => 
-                  table.number === tableNumber 
-                    ? { ...table, status: 'reserved', customerName: 'Reserviert' }
-                    : table
-                ));
-              }
-            }
+                setTables((prev) =>
+                  prev.map((table) =>
+                    table.number === tableNumber
+                      ? { ...table, status: 'reserved', customerName: 'Reserviert' }
+                      : table
+                  )
+                );
+              },
+            },
           ]
         );
         break;
-        
+
       case 'customer':
         setEditingTable(tableNumber);
         setCustomerName('');
         setShowCustomerInput(true);
         break;
-        
+
       case 'status':
-        Alert.alert(
-          'Sipariş Durumu',
-          `Tisch ${tableNumber} sipariş durumunu seçin:`,
-          [
-            { text: 'İptal', style: 'cancel' },
-            { text: 'Wartend', onPress: () => updateOrderStatus(tableNumber, 'pending') },
-            { text: 'Zubereitung', onPress: () => updateOrderStatus(tableNumber, 'preparing') },
-            { text: 'Bereit', onPress: () => updateOrderStatus(tableNumber, 'ready') },
-            { text: 'Serviert', onPress: () => updateOrderStatus(tableNumber, 'served') },
-          ]
-        );
+        Alert.alert('Sipariş Durumu', `Tisch ${tableNumber} sipariş durumunu seçin:`, [
+          { text: 'İptal', style: 'cancel' },
+          {
+            text: 'Wartend',
+            onPress: () => {
+              updateOrderStatus(tableNumber, 'pending');
+            },
+          },
+          {
+            text: 'Zubereitung',
+            onPress: () => {
+              updateOrderStatus(tableNumber, 'preparing');
+            },
+          },
+          {
+            text: 'Bereit',
+            onPress: () => {
+              updateOrderStatus(tableNumber, 'ready');
+            },
+          },
+          {
+            text: 'Serviert',
+            onPress: () => {
+              updateOrderStatus(tableNumber, 'served');
+            },
+          },
+        ]);
         break;
     }
   };
 
-  const updateOrderStatus = (tableNumber: string, status: 'pending' | 'preparing' | 'ready' | 'served') => {
-    setTables(prev => prev.map(table => 
-      table.number === tableNumber && table.currentOrder
-        ? { 
-            ...table, 
-            currentOrder: { 
-              ...table.currentOrder, 
-              status 
-            } 
-          }
-        : table
-    ));
+  const updateOrderStatus = (
+    tableNumber: string,
+    status: 'pending' | 'preparing' | 'ready' | 'served'
+  ) => {
+    setTables((prev) =>
+      prev.map((table) =>
+        table.number === tableNumber && table.currentOrder
+          ? {
+              ...table,
+              currentOrder: {
+                ...table.currentOrder,
+                status,
+              },
+            }
+          : table
+      )
+    );
   };
 
   const handleOrderComplete = (orderId: string) => {
@@ -364,16 +434,16 @@ const TableManager: React.FC<TableManagerProps> = ({
           onPress: () => {
             onOrderComplete(orderId);
             Vibration.vibrate(25);
-          }
-        }
+          },
+        },
       ]
     );
   };
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('de-DE', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return date.toLocaleTimeString('de-DE', {
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
 
@@ -392,11 +462,11 @@ const TableManager: React.FC<TableManagerProps> = ({
   // Müşteri adı kaydetme işlemi
   const handleSaveCustomerName = () => {
     if (customerName && customerName.trim() && editingTable) {
-      setTables(prev => prev.map(table => 
-        table.number === editingTable 
-          ? { ...table, customerName: customerName.trim() }
-          : table
-      ));
+      setTables((prev) =>
+        prev.map((table) =>
+          table.number === editingTable ? { ...table, customerName: customerName.trim() } : table
+        )
+      );
     }
     setShowCustomerInput(false);
     setEditingTable(null);
@@ -408,8 +478,7 @@ const TableManager: React.FC<TableManagerProps> = ({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
+      onRequestClose={onClose}>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -428,58 +497,60 @@ const TableManager: React.FC<TableManagerProps> = ({
                 style={[
                   styles.tableCard,
                   { borderColor: getTableStatusColor(table.status) },
-                  selectedTable === table.number && styles.selectedTableCard
-                ]}
-              >
+                  selectedTable === table.number && styles.selectedTableCard,
+                ]}>
                 <TouchableOpacity
                   style={styles.tableContent}
-                  onPress={() => handleTablePress(table)}
-                >
+                  onPress={() => {
+                    handleTablePress(table);
+                  }}>
                   <View style={styles.tableHeader}>
                     <Text style={styles.tableNumber}>Tisch {table.number}</Text>
-                    <View style={[
-                      styles.statusIndicator,
-                      { backgroundColor: getTableStatusColor(table.status) }
-                    ]} />
+                    <View
+                      style={[
+                        styles.statusIndicator,
+                        { backgroundColor: getTableStatusColor(table.status) },
+                      ]}
+                    />
                   </View>
-                  
-                  <Text style={styles.tableStatus}>
-                    {getTableStatusText(table.status)}
-                  </Text>
-                  
+
+                  <Text style={styles.tableStatus}>{getTableStatusText(table.status)}</Text>
+
                   {table.customerName && (
                     <Text style={styles.customerName} numberOfLines={1}>
                       {table.customerName}
                     </Text>
                   )}
-                  
+
                   {table.startTime && (
                     <Text style={styles.startTime}>
                       {formatTime(table.startTime)} ({getElapsedTime(table.startTime)})
                     </Text>
                   )}
-                  
+
                   {table.lastOrderTime && (
                     <Text style={styles.lastOrderTime}>
-                      Letzte Bestellung: {formatTime(table.lastOrderTime)} ({getLastOrderTime(table.lastOrderTime)})
+                      Letzte Bestellung: {formatTime(table.lastOrderTime)} (
+                      {getLastOrderTime(table.lastOrderTime)})
                     </Text>
                   )}
-                  
+
                   {table.totalPaid && table.totalPaid > 0 && (
                     <Text style={styles.totalPaid}>
                       Gesamt bezahlt: €{table.totalPaid.toFixed(2)}
                     </Text>
                   )}
-                  
+
                   {table.currentOrder && (
                     <View style={styles.tableOrderInfo}>
                       <Text style={styles.tableOrderTotal}>
                         €{table.currentOrder.total.toFixed(2)}
                       </Text>
-                      <View style={[
-                        styles.orderStatus,
-                        { backgroundColor: getOrderStatusColor(table.currentOrder.status) }
-                      ]}>
+                      <View
+                        style={[
+                          styles.orderStatus,
+                          { backgroundColor: getOrderStatusColor(table.currentOrder.status) },
+                        ]}>
                         <Text style={styles.orderStatusText}>
                           {getOrderStatusText(table.currentOrder.status)}
                         </Text>
@@ -494,8 +565,9 @@ const TableManager: React.FC<TableManagerProps> = ({
                   {table.status === 'occupied' && (
                     <TouchableOpacity
                       style={[styles.quickActionButton, styles.clearButton]}
-                      onPress={() => handleQuickAction('clear', table.number)}
-                    >
+                      onPress={() => {
+                        handleQuickAction('clear', table.number);
+                      }}>
                       <Ionicons name="trash-outline" size={16} color="white" />
                     </TouchableOpacity>
                   )}
@@ -504,8 +576,9 @@ const TableManager: React.FC<TableManagerProps> = ({
                   {table.status === 'empty' && (
                     <TouchableOpacity
                       style={[styles.quickActionButton, styles.reserveButton]}
-                      onPress={() => handleQuickAction('reserve', table.number)}
-                    >
+                      onPress={() => {
+                        handleQuickAction('reserve', table.number);
+                      }}>
                       <Ionicons name="calendar-outline" size={16} color="white" />
                     </TouchableOpacity>
                   )}
@@ -514,8 +587,9 @@ const TableManager: React.FC<TableManagerProps> = ({
                   {table.status === 'occupied' && (
                     <TouchableOpacity
                       style={[styles.quickActionButton, styles.customerButton]}
-                      onPress={() => handleQuickAction('customer', table.number)}
-                    >
+                      onPress={() => {
+                        handleQuickAction('customer', table.number);
+                      }}>
                       <Ionicons name="person-outline" size={16} color="white" />
                     </TouchableOpacity>
                   )}
@@ -524,8 +598,9 @@ const TableManager: React.FC<TableManagerProps> = ({
                   {table.currentOrder && (
                     <TouchableOpacity
                       style={[styles.quickActionButton, styles.statusButton]}
-                      onPress={() => handleQuickAction('status', table.number)}
-                    >
+                      onPress={() => {
+                        handleQuickAction('status', table.number);
+                      }}>
                       <Ionicons name="time-outline" size={16} color="white" />
                     </TouchableOpacity>
                   )}
@@ -540,14 +615,13 @@ const TableManager: React.FC<TableManagerProps> = ({
           visible={showCustomerInput}
           transparent
           animationType="fade"
-          onRequestClose={() => setShowCustomerInput(false)}
-        >
+          onRequestClose={() => {
+            setShowCustomerInput(false);
+          }}>
           <View style={styles.customerInputOverlay}>
             <View style={styles.customerInputContainer}>
-              <Text style={styles.customerInputTitle}>
-                Tisch {editingTable} - Müşteri Adı
-              </Text>
-              
+              <Text style={styles.customerInputTitle}>Tisch {editingTable} - Müşteri Adı</Text>
+
               <TextInput
                 style={styles.customerInputField}
                 placeholder="Müşteri adını girin..."
@@ -555,7 +629,7 @@ const TableManager: React.FC<TableManagerProps> = ({
                 onChangeText={setCustomerName}
                 autoFocus
               />
-              
+
               <View style={styles.customerInputActions}>
                 <TouchableOpacity
                   style={[styles.customerInputButton, styles.cancelButton]}
@@ -563,15 +637,13 @@ const TableManager: React.FC<TableManagerProps> = ({
                     setShowCustomerInput(false);
                     setEditingTable(null);
                     setCustomerName('');
-                  }}
-                >
+                  }}>
                   <Text style={styles.cancelButtonText}>İptal</Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   style={[styles.customerInputButton, styles.saveButton]}
-                  onPress={handleSaveCustomerName}
-                >
+                  onPress={handleSaveCustomerName}>
                   <Text style={styles.saveButtonText}>Kaydet</Text>
                 </TouchableOpacity>
               </View>
@@ -899,4 +971,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default TableManager; 
+export default TableManager;

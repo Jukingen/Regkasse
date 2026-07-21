@@ -26,8 +26,7 @@ export function OfflineStatusChip() {
     <View
       style={[styles.chip, { borderColor: color }]}
       accessibilityRole="summary"
-      accessibilityLabel={`Offline-Warteschlange ${pendingCount} von ${maxLimit}`}
-    >
+      accessibilityLabel={`Offline-Warteschlange ${pendingCount} von ${maxLimit}`}>
       <View style={[styles.dot, { backgroundColor: color }]} />
       <Text style={styles.text} numberOfLines={1}>
         {label}

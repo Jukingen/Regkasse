@@ -1,14 +1,15 @@
-"use client";
+'use client';
 
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useI18n } from "@/i18n";
+import { useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
+
 import {
   BACKUP_DASHBOARD_STATS_POLL_MS,
   getBackupDashboardStats,
   getBackupDashboardStatsQueryKey,
-} from "@/features/backup/logic/backupDashboardStatsApi";
-import { mapDashboardStatsToPerformance } from "@/features/backup/logic/backupPerformancePresentation";
+} from '@/features/backup/logic/backupDashboardStatsApi';
+import { mapDashboardStatsToPerformance } from '@/features/backup/logic/backupPerformancePresentation';
+import { useI18n } from '@/i18n';
 
 /** Performance metrics from GET /api/admin/backup/dashboard/stats. */
 export function useBackupPerformance(options?: { enabled?: boolean }) {
@@ -25,7 +26,7 @@ export function useBackupPerformance(options?: { enabled?: boolean }) {
 
   const data = useMemo(
     () => mapDashboardStatsToPerformance(statsQuery.data, formatLocale, t),
-    [formatLocale, statsQuery.data, t],
+    [formatLocale, statsQuery.data, t]
   );
 
   return {

@@ -75,7 +75,7 @@ export const GUEST_CUSTOMER_ID = WALK_IN_CUSTOMER_ID_FALLBACK;
 export { isWalkInCustomerId, resolveWalkInCustomerId, WALK_IN_CUSTOMER_ID_FALLBACK };
 
 class CustomerService {
-  private baseUrl = '/Customer';
+  private readonly baseUrl = '/Customer';
 
   // Get all customers
   async getAll(): Promise<Customer[]> {
@@ -136,9 +136,11 @@ class CustomerService {
     const trimmed = String(customerNumber ?? '').trim();
     if (!trimmed) return null;
     try {
-      const response = await apiClient.get<any>(`${this.baseUrl}/number/${encodeURIComponent(trimmed)}`);
+      const response = await apiClient.get<any>(
+        `${this.baseUrl}/number/${encodeURIComponent(trimmed)}`
+      );
       // Backend SuccessResponse returns { success, message, data }; interceptor returns response.data
-      const customer = (response as any)?.data ?? response;
+      const customer = response?.data ?? response;
       return customer as Customer;
     } catch (e: any) {
       if (e?.response?.status === 404) return null;
@@ -147,7 +149,7 @@ class CustomerService {
   }
 
   async getGuestCustomer(): Promise<string> {
-    return resolveWalkInCustomerId();
+    return await resolveWalkInCustomerId();
   }
 
   // Create new customer
@@ -165,7 +167,7 @@ class CustomerService {
     if (!trimmed) return null;
     try {
       const response = await apiClient.get<any>(`${this.baseUrl}/${trimmed}/benefit-summary`);
-      const data = (response as any)?.data ?? response;
+      const data = response?.data ?? response;
       const count = data?.assignedBenefitCount;
       return typeof count === 'number' ? { assignedBenefitCount: count } : null;
     } catch (e: any) {
@@ -189,7 +191,7 @@ class CustomerService {
         `${this.baseUrl}/${encodeURIComponent(trimmed)}/benefit-eligibility-preview`,
         { items }
       );
-      const data = (response as any)?.data ?? response;
+      const data = response?.data ?? response;
       if (!data || typeof data.subtotalBeforeBenefits !== 'number') return null;
       return {
         subtotalBeforeBenefits: data.subtotalBeforeBenefits ?? 0,

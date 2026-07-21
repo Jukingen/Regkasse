@@ -17,9 +17,10 @@ import {
   Alert,
   Pressable,
 } from 'react-native';
+
+import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
 import { type Customer } from '../services/api/customerService';
 import { employeeService, type EmployeeSummary } from '../services/api/employeeService';
-import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
 import { WaveLoader } from '../src/components/common/WaveLoader';
 
 interface EmployeeIdentificationSheetProps {
@@ -115,15 +116,13 @@ export default function EmployeeIdentificationSheet({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
+      onRequestClose={onClose}>
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity
             onPress={onClose}
             style={styles.closeBtn}
-            accessibilityLabel={t('employees:selectionSheet.closeA11y')}
-          >
+            accessibilityLabel={t('employees:selectionSheet.closeA11y')}>
             <Ionicons name="close" size={24} color={SoftColors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.title}>{t('employees:selectionSheet.title')}</Text>
@@ -146,8 +145,7 @@ export default function EmployeeIdentificationSheet({
             <Pressable
               style={[styles.primaryBtn, lookupLoading && styles.btnDisabled]}
               onPress={handleSearchByNumber}
-              disabled={lookupLoading || !employeeNumber.trim()}
-            >
+              disabled={lookupLoading || !employeeNumber.trim()}>
               {lookupLoading ? (
                 <WaveLoader size={18} color={SoftColors.textInverse} />
               ) : (
@@ -165,9 +163,15 @@ export default function EmployeeIdentificationSheet({
         </View>
 
         {!showList ? (
-          <Pressable style={styles.secondaryBtn} onPress={() => setShowList(true)}>
+          <Pressable
+            style={styles.secondaryBtn}
+            onPress={() => {
+              setShowList(true);
+            }}>
             <Ionicons name="list" size={20} color={SoftColors.accent} />
-            <Text style={styles.secondaryBtnText}>{t('employees:selectionSheet.chooseFromList')}</Text>
+            <Text style={styles.secondaryBtnText}>
+              {t('employees:selectionSheet.chooseFromList')}
+            </Text>
           </Pressable>
         ) : (
           <View style={styles.listSection}>
@@ -179,7 +183,11 @@ export default function EmployeeIdentificationSheet({
                 value={listFilter}
                 onChangeText={setListFilter}
               />
-              <TouchableOpacity onPress={() => setShowList(false)} style={styles.backToListBtn}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowList(false);
+                }}
+                style={styles.backToListBtn}>
                 <Text style={styles.backToListText}>{t('employees:selectionSheet.back')}</Text>
               </TouchableOpacity>
             </View>
@@ -196,8 +204,9 @@ export default function EmployeeIdentificationSheet({
                 renderItem={({ item }) => (
                   <Pressable
                     style={styles.listItem}
-                    onPress={() => handleSelectEmployee(item)}
-                  >
+                    onPress={() => {
+                      handleSelectEmployee(item);
+                    }}>
                     <Text style={styles.listItemName}>{item.name}</Text>
                     {item.employeeNumber ? (
                       <Text style={styles.listItemNumber}>

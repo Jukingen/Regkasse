@@ -1,6 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import { OFFLINE_CONFIG } from '@/constants/offlineConfig';
+import { storage } from '@/utils/storage';
 
 type OfflineConfigState = {
   [K in keyof typeof OFFLINE_CONFIG]: (typeof OFFLINE_CONFIG)[K];
@@ -32,9 +31,8 @@ export class OfflineConfigService {
   /** Load user-specific config from storage */
   private async loadUserConfig(): Promise<void> {
     try {
-      const userConfig = await AsyncStorage.getItem(USER_CONFIG_STORAGE_KEY);
-      if (userConfig) {
-        const parsed = JSON.parse(userConfig) as Partial<OfflineConfigState>;
+      const parsed = await storage.getJson<Partial<OfflineConfigState>>(USER_CONFIG_STORAGE_KEY);
+      if (parsed) {
         this.config = { ...this.config, ...parsed };
       }
     } catch (error) {
@@ -45,7 +43,7 @@ export class OfflineConfigService {
   /** Save user-specific config */
   async saveUserConfig(config: Partial<typeof OFFLINE_CONFIG>): Promise<void> {
     this.config = { ...this.config, ...config };
-    await AsyncStorage.setItem(USER_CONFIG_STORAGE_KEY, JSON.stringify(this.config));
+    await storage.setJson(USER_CONFIG_STORAGE_KEY, this.config);
   }
 
   /** Expiry time in milliseconds */

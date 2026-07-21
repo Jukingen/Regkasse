@@ -9,29 +9,29 @@ dayjs.extend(utc);
 
 /** Maps wizard draft to POST /api/admin/tenants body. */
 export function buildCreateTenantRequest(data: CreateTenantWizardData): CreateAdminTenantRequest {
-    const slug = normalizeTenantSlugInput(data.slug);
-    const licenseValidUntilUtc = dayjs
-        .utc(data.licenseStartDate, 'YYYY-MM-DD')
-        .add(data.licenseDays, 'day')
-        .endOf('day')
-        .toISOString();
+  const slug = normalizeTenantSlugInput(data.slug);
+  const licenseValidUntilUtc = dayjs
+    .utc(data.licenseStartDate, 'YYYY-MM-DD')
+    .add(data.licenseDays, 'day')
+    .endOf('day')
+    .toISOString();
 
-    const password =
-        data.passwordMode === 'manual' || data.adminPassword.trim()
-            ? data.adminPassword.trim() || undefined
-            : undefined;
+  const password =
+    data.passwordMode === 'manual' || data.adminPassword.trim()
+      ? data.adminPassword.trim() || undefined
+      : undefined;
 
-    return {
-        name: data.name.trim(),
-        slug,
-        email: data.email.trim(),
-        phone: data.phone?.trim() || undefined,
-        address: data.address?.trim() || undefined,
-        adminEmail: data.adminEmail.trim(),
-        adminPassword: password,
-        grantTrialLicense: true,
-        licenseValidUntilUtc,
-        importDemoMenu: data.importDemoProducts,
-        cashRegisterNumber: data.registerNumber.trim() || undefined,
-    };
+  return {
+    name: data.name.trim(),
+    slug,
+    email: data.email.trim(),
+    phone: data.phone?.trim() || undefined,
+    address: data.address?.trim() || undefined,
+    adminEmail: data.adminEmail.trim(),
+    adminPassword: password,
+    grantTrialLicense: true,
+    licenseValidUntilUtc,
+    importDemoMenu: data.importDemoProducts,
+    cashRegisterNumber: data.registerNumber.trim() || undefined,
+  };
 }

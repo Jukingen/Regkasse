@@ -1,30 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-} from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Alert } from 'react-native';
+
+import { POS_ENSURE_READY_ON_ENTRY } from '../constants/posFeatureFlags';
 import { useAuth } from '../contexts/AuthContext';
 import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
-import { POS_ENSURE_READY_ON_ENTRY } from '../constants/posFeatureFlags';
-import { isReadinessMonatsbelegGateActive } from '../utils/posRegisterGateCopy';
-import { WaveLoader } from '../src/components/common/WaveLoader';
-
-/** Local time window where daily register close often collides with RKSV month-end duties. */
-function isClosingMidnightWarnHour(d: Date): boolean {
-  const h = d.getHours();
-  return h >= 22 || h <= 2;
-}
-
-function isLastTwoDaysOfMonth(d: Date): boolean {
-  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-  return d.getDate() >= last - 1;
-}
 import {
   performDailyClosing,
   performMonthlyClosing,
@@ -40,10 +20,24 @@ import {
   type DailyClosingRequest,
   type TagesabschlussResult,
   type ClosingHistoryItem,
-  type ClosingStatistics
+  type ClosingStatistics,
 } from '../services/api/tagesabschlussService';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 import { printDailyClosingReportPdf } from '../utils/dailyClosingReportPrint';
+import { isPrintCancelled } from '../utils/expoPrintShare';
+import { isReadinessMonatsbelegGateActive } from '../utils/posRegisterGateCopy';
 import { resolveAlreadyClosedDailyMessage } from '../utils/resolveDailyClosingStatusMessage';
+
+/** Local time window where daily register close often collides with RKSV month-end duties. */
+function isClosingMidnightWarnHour(d: Date): boolean {
+  const h = d.getHours();
+  return h >= 22 || h <= 2;
+}
+
+function isLastTwoDaysOfMonth(d: Date): boolean {
+  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  return d.getDate() >= last - 1;
+}
 
 interface TagesabschlussModalProps {
   visible: boolean;
@@ -54,7 +48,7 @@ interface TagesabschlussModalProps {
 const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
   visible,
   onClose,
-  cashRegisterId
+  cashRegisterId,
 }) => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
@@ -70,7 +64,9 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
   /** Backend message (why closing is blocked or already performed). */
   const [canCloseMessage, setCanCloseMessage] = useState<string>('');
   /** Count of payments without invoice when canClose is false (from can-close or from close failure). */
-  const [paymentsWithoutInvoiceCount, setPaymentsWithoutInvoiceCount] = useState<number | null>(null);
+  const [paymentsWithoutInvoiceCount, setPaymentsWithoutInvoiceCount] = useState<number | null>(
+    null
+  );
   const [closingHistory, setClosingHistory] = useState<ClosingHistoryItem[]>([]);
   const [statistics, setStatistics] = useState<ClosingStatistics | null>(null);
   const [activeTab, setActiveTab] = useState<'closing' | 'history' | 'statistics'>('closing');
@@ -86,8 +82,12 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
   useEffect(() => {
     if (!visible) return;
     setClosingWarnClock(new Date());
-    const id = setInterval(() => setClosingWarnClock(new Date()), 60_000);
-    return () => clearInterval(id);
+    const id = setInterval(() => {
+      setClosingWarnClock(new Date());
+    }, 60_000);
+    return () => {
+      clearInterval(id);
+    };
   }, [visible]);
 
   const checkClosingStatus = async () => {
@@ -100,7 +100,9 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
       setLastClosingPerformedAt(response.lastClosingPerformedAt || null);
       setCanCloseMessage(response.message || '');
       setPaymentsWithoutInvoiceCount(
-        typeof response.paymentsWithoutInvoiceCount === 'number' ? response.paymentsWithoutInvoiceCount : null
+        typeof response.paymentsWithoutInvoiceCount === 'number'
+          ? response.paymentsWithoutInvoiceCount
+          : null
       );
     } catch (error) {
       console.error('Failed to check closing status:', error);
@@ -132,7 +134,8 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
     try {
       const pdf = await downloadClosingReportPdf(closingId, i18n.language);
       await printDailyClosingReportPdf(pdf, closingId);
-    } catch {
+    } catch (err) {
+      if (isPrintCancelled(err)) return;
       Alert.alert(
         t('tagesabschluss.error', 'Error'),
         t('tagesabschluss.printFailed', 'Bericht konnte nicht gedruckt werden.')
@@ -163,23 +166,30 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
         Alert.alert(
           t('tagesabschluss.success', 'Success'),
           t('tagesabschluss.dailyClosingSuccess', 'Daily closing completed successfully!'),
-          [{ text: 'OK', onPress: () => {
-            checkClosingStatus();
-            loadClosingHistory();
-            loadStatistics();
-          }}]
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                checkClosingStatus();
+                loadClosingHistory();
+                loadStatistics();
+              },
+            },
+          ]
         );
       } else {
         if (typeof result.paymentsWithoutInvoiceCount === 'number') {
           setPaymentsWithoutInvoiceCount(result.paymentsWithoutInvoiceCount);
         }
         setCanCloseMessage(result.errorMessage || '');
-        const detail = typeof result.paymentsWithoutInvoiceCount === 'number'
-          ? ` (${result.paymentsWithoutInvoiceCount} ${t('tagesabschluss.paymentsWithoutInvoice', 'payment(s) without invoice')})`
-          : '';
+        const detail =
+          typeof result.paymentsWithoutInvoiceCount === 'number'
+            ? ` (${result.paymentsWithoutInvoiceCount} ${t('tagesabschluss.paymentsWithoutInvoice', 'payment(s) without invoice')})`
+            : '';
         Alert.alert(
           t('tagesabschluss.error', 'Error'),
-          (result.errorMessage || t('tagesabschluss.dailyClosingFailed', 'Daily closing failed.')) + detail
+          (result.errorMessage || t('tagesabschluss.dailyClosingFailed', 'Daily closing failed.')) +
+            detail
         );
       }
     } catch (error) {
@@ -196,7 +206,10 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
     if (!canCloseMonthly) {
       Alert.alert(
         t('tagesabschluss.alreadyClosed', 'Already Closed'),
-        t('tagesabschluss.monthlyAlreadyClosed', 'Monatsabschluss für diesen Monat bereits durchgeführt.')
+        t(
+          'tagesabschluss.monthlyAlreadyClosed',
+          'Monatsabschluss für diesen Monat bereits durchgeführt.'
+        )
       );
       return;
     }
@@ -213,23 +226,30 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
         Alert.alert(
           t('tagesabschluss.success', 'Success'),
           t('tagesabschluss.monthlyClosingSuccess', 'Monthly closing completed successfully!'),
-          [{ text: 'OK', onPress: () => {
-            checkClosingStatus();
-            loadClosingHistory();
-            loadStatistics();
-          }}]
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                checkClosingStatus();
+                loadClosingHistory();
+                loadStatistics();
+              },
+            },
+          ]
         );
       } else {
         if (typeof result.paymentsWithoutInvoiceCount === 'number') {
           setPaymentsWithoutInvoiceCount(result.paymentsWithoutInvoiceCount);
         }
         setCanCloseMessage(result.errorMessage || '');
-        const detail = typeof result.paymentsWithoutInvoiceCount === 'number'
-          ? ` (${result.paymentsWithoutInvoiceCount} ${t('tagesabschluss.paymentsWithoutInvoice', 'payment(s) without invoice')})`
-          : '';
+        const detail =
+          typeof result.paymentsWithoutInvoiceCount === 'number'
+            ? ` (${result.paymentsWithoutInvoiceCount} ${t('tagesabschluss.paymentsWithoutInvoice', 'payment(s) without invoice')})`
+            : '';
         Alert.alert(
           t('tagesabschluss.error', 'Error'),
-          (result.errorMessage || t('tagesabschluss.monthlyClosingFailed', 'Monthly closing failed.')) + detail
+          (result.errorMessage ||
+            t('tagesabschluss.monthlyClosingFailed', 'Monthly closing failed.')) + detail
         );
       }
     } catch (error) {
@@ -246,7 +266,10 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
     if (!canCloseYearly) {
       Alert.alert(
         t('tagesabschluss.alreadyClosed', 'Already Closed'),
-        t('tagesabschluss.yearlyAlreadyClosed', 'Jahresabschluss für dieses Jahr bereits durchgeführt.')
+        t(
+          'tagesabschluss.yearlyAlreadyClosed',
+          'Jahresabschluss für dieses Jahr bereits durchgeführt.'
+        )
       );
       return;
     }
@@ -263,23 +286,30 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
         Alert.alert(
           t('tagesabschluss.success', 'Success'),
           t('tagesabschluss.yearlyClosingSuccess', 'Yearly closing completed successfully!'),
-          [{ text: 'OK', onPress: () => {
-            checkClosingStatus();
-            loadClosingHistory();
-            loadStatistics();
-          }}]
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                checkClosingStatus();
+                loadClosingHistory();
+                loadStatistics();
+              },
+            },
+          ]
         );
       } else {
         if (typeof result.paymentsWithoutInvoiceCount === 'number') {
           setPaymentsWithoutInvoiceCount(result.paymentsWithoutInvoiceCount);
         }
         setCanCloseMessage(result.errorMessage || '');
-        const detail = typeof result.paymentsWithoutInvoiceCount === 'number'
-          ? ` (${result.paymentsWithoutInvoiceCount} ${t('tagesabschluss.paymentsWithoutInvoice', 'payment(s) without invoice')})`
-          : '';
+        const detail =
+          typeof result.paymentsWithoutInvoiceCount === 'number'
+            ? ` (${result.paymentsWithoutInvoiceCount} ${t('tagesabschluss.paymentsWithoutInvoice', 'payment(s) without invoice')})`
+            : '';
         Alert.alert(
           t('tagesabschluss.error', 'Error'),
-          (result.errorMessage || t('tagesabschluss.yearlyClosingFailed', 'Yearly closing failed.')) + detail
+          (result.errorMessage ||
+            t('tagesabschluss.yearlyClosingFailed', 'Yearly closing failed.')) + detail
         );
       }
     } catch (error) {
@@ -297,132 +327,130 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
       ensureReadyEnabled: POS_ENSURE_READY_ON_ENTRY,
     });
     const showMidnightMonatsbelegBanner =
-      isClosingMidnightWarnHour(closingWarnClock) && (monatsbelegGate || isLastTwoDaysOfMonth(closingWarnClock));
+      isClosingMidnightWarnHour(closingWarnClock) &&
+      (monatsbelegGate || isLastTwoDaysOfMonth(closingWarnClock));
 
     return (
-    <View style={styles.tabContent}>
-      {showMidnightMonatsbelegBanner ? (
-        <View style={styles.rksvWarnBanner} accessibilityRole="alert">
-          <Text style={styles.rksvWarnBannerText}>
-            {monatsbelegGate
-              ? 'Hinweis: Monatsbeleg (RKSV) ist noch ausständig — bitte vor Schließung der Kasse erledigen.'
-              : 'Hinweis: Monatsende naht — Monatsbeleg (RKSV) vor Tagesabschluss prüfen.'}
-          </Text>
-        </View>
-      ) : null}
-      <View style={styles.statusSection}>
-        <Text style={styles.statusTitle}>
-          {t('tagesabschluss.status', 'Status')}
-        </Text>
-        <Text style={styles.scopeHint}>
-          {t(
-            'tagesabschluss.scopeRegisterClose',
-            'Schließbereitschaft und letzter Abschluss beziehen sich auf diese Kasse.'
-          )}
-        </Text>
-        <View style={styles.statusRow}>
-          <Text style={styles.statusLabel}>
-            {t('tagesabschluss.canClose', 'Can Close:')}
-          </Text>
-          <Text style={[styles.statusValue, { color: canClose ? '#4CAF50' : '#F44336' }]}>
-            {canClose ? t('common.yes', 'Yes') : t('common.no', 'No')}
-          </Text>
-        </View>
-        <View style={styles.statusRow}>
-          <Text style={styles.statusLabel}>
-            {t('tagesabschluss.canCloseMonthly', 'Monatsabschluss:')}
-          </Text>
-          <Text style={[styles.statusValue, { color: canCloseMonthly ? '#4CAF50' : '#F44336' }]}>
-            {canCloseMonthly ? t('common.yes', 'Yes') : t('common.no', 'No')}
-          </Text>
-        </View>
-        <View style={styles.statusRow}>
-          <Text style={styles.statusLabel}>
-            {t('tagesabschluss.canCloseYearly', 'Jahresabschluss:')}
-          </Text>
-          <Text style={[styles.statusValue, { color: canCloseYearly ? '#4CAF50' : '#F44336' }]}>
-            {canCloseYearly ? t('common.yes', 'Yes') : t('common.no', 'No')}
-          </Text>
-        </View>
-        {(lastClosingPerformedAt || lastClosingDate) && (
-          <View style={styles.statusRow}>
-            <Text style={styles.statusLabel}>
-              {t('tagesabschluss.lastClosing', 'Letzter Abschluss:')}
-            </Text>
-            <Text style={styles.statusValue}>
-              {lastClosingPerformedAt
-                ? formatClosingDateTime(lastClosingPerformedAt)
-                : formatClosingDate(lastClosingDate!)}
-            </Text>
-          </View>
-        )}
-        {canCloseMessage ? (
-          <View style={styles.statusRow}>
-            <Text style={styles.statusLabel}>
-              {t('tagesabschluss.reason', 'Reason')}
-            </Text>
-            <Text style={[styles.statusValue, styles.statusMessage]} numberOfLines={3}>
-              {canCloseMessage}
+      <View style={styles.tabContent}>
+        {showMidnightMonatsbelegBanner ? (
+          <View style={styles.rksvWarnBanner} accessibilityRole="alert">
+            <Text style={styles.rksvWarnBannerText}>
+              {monatsbelegGate
+                ? 'Hinweis: Monatsbeleg (RKSV) ist noch ausständig — bitte vor Schließung der Kasse erledigen.'
+                : 'Hinweis: Monatsende naht — Monatsbeleg (RKSV) vor Tagesabschluss prüfen.'}
             </Text>
           </View>
         ) : null}
-        {paymentsWithoutInvoiceCount != null && paymentsWithoutInvoiceCount > 0 && (
-          <View style={[styles.statusRow, { marginTop: 4 }]}>
-            <Text style={[styles.statusLabel, { color: '#B71C1C' }]}>
-              {t('tagesabschluss.paymentsWithoutInvoiceCount', 'Payments without invoice:')}
+        <View style={styles.statusSection}>
+          <Text style={styles.statusTitle}>{t('tagesabschluss.status', 'Status')}</Text>
+          <Text style={styles.scopeHint}>
+            {t(
+              'tagesabschluss.scopeRegisterClose',
+              'Schließbereitschaft und letzter Abschluss beziehen sich auf diese Kasse.'
+            )}
+          </Text>
+          <View style={styles.statusRow}>
+            <Text style={styles.statusLabel}>{t('tagesabschluss.canClose', 'Can Close:')}</Text>
+            <Text style={[styles.statusValue, { color: canClose ? '#4CAF50' : '#F44336' }]}>
+              {canClose ? t('common.yes', 'Yes') : t('common.no', 'No')}
             </Text>
-            <Text style={[styles.statusValue, { color: '#B71C1C' }]}>
-              {paymentsWithoutInvoiceCount}
+          </View>
+          <View style={styles.statusRow}>
+            <Text style={styles.statusLabel}>
+              {t('tagesabschluss.canCloseMonthly', 'Monatsabschluss:')}
+            </Text>
+            <Text style={[styles.statusValue, { color: canCloseMonthly ? '#4CAF50' : '#F44336' }]}>
+              {canCloseMonthly ? t('common.yes', 'Yes') : t('common.no', 'No')}
+            </Text>
+          </View>
+          <View style={styles.statusRow}>
+            <Text style={styles.statusLabel}>
+              {t('tagesabschluss.canCloseYearly', 'Jahresabschluss:')}
+            </Text>
+            <Text style={[styles.statusValue, { color: canCloseYearly ? '#4CAF50' : '#F44336' }]}>
+              {canCloseYearly ? t('common.yes', 'Yes') : t('common.no', 'No')}
+            </Text>
+          </View>
+          {(lastClosingPerformedAt || lastClosingDate) && (
+            <View style={styles.statusRow}>
+              <Text style={styles.statusLabel}>
+                {t('tagesabschluss.lastClosing', 'Letzter Abschluss:')}
+              </Text>
+              <Text style={styles.statusValue}>
+                {lastClosingPerformedAt
+                  ? formatClosingDateTime(lastClosingPerformedAt)
+                  : formatClosingDate(lastClosingDate!)}
+              </Text>
+            </View>
+          )}
+          {canCloseMessage ? (
+            <View style={styles.statusRow}>
+              <Text style={styles.statusLabel}>{t('tagesabschluss.reason', 'Reason')}</Text>
+              <Text style={[styles.statusValue, styles.statusMessage]} numberOfLines={3}>
+                {canCloseMessage}
+              </Text>
+            </View>
+          ) : null}
+          {paymentsWithoutInvoiceCount != null && paymentsWithoutInvoiceCount > 0 && (
+            <View style={[styles.statusRow, { marginTop: 4 }]}>
+              <Text style={[styles.statusLabel, { color: '#B71C1C' }]}>
+                {t('tagesabschluss.paymentsWithoutInvoiceCount', 'Payments without invoice:')}
+              </Text>
+              <Text style={[styles.statusValue, { color: '#B71C1C' }]}>
+                {paymentsWithoutInvoiceCount}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.actionsSection}>
+          <Text style={styles.sectionTitle}>{t('tagesabschluss.actions', 'Actions')}</Text>
+
+          <TouchableOpacity
+            style={[styles.actionButton, !canClose && styles.actionButtonDisabled]}
+            onPress={handleDailyClosing}
+            disabled={!canClose || loading}>
+            <Text style={styles.actionButtonText}>
+              {t('tagesabschluss.performDaily', 'Perform Daily Closing')}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              styles.actionButtonSecondary,
+              (!canCloseMonthly || loading) && styles.actionButtonDisabled,
+            ]}
+            onPress={handleMonthlyClosing}
+            disabled={!canCloseMonthly || loading}>
+            <Text style={styles.actionButtonText}>
+              {t('tagesabschluss.performMonthly', 'Perform Monthly Closing')}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              styles.actionButtonSecondary,
+              (!canCloseYearly || loading) && styles.actionButtonDisabled,
+            ]}
+            onPress={handleYearlyClosing}
+            disabled={!canCloseYearly || loading}>
+            <Text style={styles.actionButtonText}>
+              {t('tagesabschluss.performYearly', 'Perform Yearly Closing')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {loading && (
+          <View style={styles.loadingContainer}>
+            <WaveLoader size={32} color="#007AFF" />
+            <Text style={styles.loadingText}>
+              {t('tagesabschluss.processing', 'Processing...')}
             </Text>
           </View>
         )}
       </View>
-
-      <View style={styles.actionsSection}>
-        <Text style={styles.sectionTitle}>
-          {t('tagesabschluss.actions', 'Actions')}
-        </Text>
-        
-        <TouchableOpacity
-          style={[styles.actionButton, !canClose && styles.actionButtonDisabled]}
-          onPress={handleDailyClosing}
-          disabled={!canClose || loading}
-        >
-          <Text style={styles.actionButtonText}>
-            {t('tagesabschluss.performDaily', 'Perform Daily Closing')}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.actionButton, styles.actionButtonSecondary, (!canCloseMonthly || loading) && styles.actionButtonDisabled]}
-          onPress={handleMonthlyClosing}
-          disabled={!canCloseMonthly || loading}
-        >
-          <Text style={styles.actionButtonText}>
-            {t('tagesabschluss.performMonthly', 'Perform Monthly Closing')}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.actionButton, styles.actionButtonSecondary, (!canCloseYearly || loading) && styles.actionButtonDisabled]}
-          onPress={handleYearlyClosing}
-          disabled={!canCloseYearly || loading}
-        >
-          <Text style={styles.actionButtonText}>
-            {t('tagesabschluss.performYearly', 'Perform Yearly Closing')}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {loading && (
-        <View style={styles.loadingContainer}>
-          <WaveLoader size={32} color="#007AFF" />
-          <Text style={styles.loadingText}>
-            {t('tagesabschluss.processing', 'Processing...')}
-          </Text>
-        </View>
-      )}
-    </View>
     );
   };
 
@@ -437,7 +465,7 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
           'Einträge: Abschlüsse dieser Kasse für den angemeldeten Benutzer.'
         )}
       </Text>
-      
+
       {closingHistory.length === 0 ? (
         <Text style={styles.noDataText}>
           {t('tagesabschluss.noHistory', 'No closing history available.')}
@@ -450,15 +478,17 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
                 <Text style={styles.historyType}>
                   {getClosingTypeDisplayName(item.closingType)}
                 </Text>
-                <Text style={[styles.historyStatus, { color: item.status === 'Completed' ? '#4CAF50' : '#F44336' }]}>
+                <Text
+                  style={[
+                    styles.historyStatus,
+                    { color: item.status === 'Completed' ? '#4CAF50' : '#F44336' },
+                  ]}>
                   {getClosingStatusDisplayName(item.status)}
                 </Text>
               </View>
-              
-              <Text style={styles.historyDate}>
-                {formatClosingDate(item.closingDate)}
-              </Text>
-              
+
+              <Text style={styles.historyDate}>{formatClosingDate(item.closingDate)}</Text>
+
               <View style={styles.historyDetails}>
                 <Text style={styles.historyDetail}>
                   {t('tagesabschluss.totalAmount', 'Total:')} €{item.totalAmount.toFixed(2)}
@@ -467,7 +497,7 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
                   {t('tagesabschluss.transactions', 'Transactions:')} {item.transactionCount}
                 </Text>
               </View>
-              
+
               {item.finanzOnlineStatus && (
                 <Text style={styles.finanzOnlineStatus}>
                   FinanzOnline: {item.finanzOnlineStatus}
@@ -482,10 +512,8 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
 
   const renderStatisticsTab = () => (
     <View style={styles.tabContent}>
-      <Text style={styles.sectionTitle}>
-        {t('tagesabschluss.statistics', 'Statistics')}
-      </Text>
-      
+      <Text style={styles.sectionTitle}>{t('tagesabschluss.statistics', 'Statistics')}</Text>
+
       {statistics ? (
         <View style={styles.statisticsContainer}>
           <View style={styles.statRow}>
@@ -494,43 +522,37 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
             </Text>
             <Text style={styles.statValue}>{statistics.totalClosings}</Text>
           </View>
-          
+
           <View style={styles.statRow}>
-            <Text style={styles.statLabel}>
-              {t('tagesabschluss.totalAmount', 'Total Amount:')}
-            </Text>
+            <Text style={styles.statLabel}>{t('tagesabschluss.totalAmount', 'Total Amount:')}</Text>
             <Text style={styles.statValue}>€{statistics.totalAmount.toFixed(2)}</Text>
           </View>
-          
+
           <View style={styles.statRow}>
-            <Text style={styles.statLabel}>
-              {t('tagesabschluss.totalTax', 'Total Tax:')}
-            </Text>
+            <Text style={styles.statLabel}>{t('tagesabschluss.totalTax', 'Total Tax:')}</Text>
             <Text style={styles.statValue}>€{statistics.totalTaxAmount.toFixed(2)}</Text>
           </View>
-          
+
           <View style={styles.statRow}>
             <Text style={styles.statLabel}>
               {t('tagesabschluss.totalTransactions', 'Total Transactions:')}
             </Text>
             <Text style={styles.statValue}>{statistics.totalTransactions}</Text>
           </View>
-          
+
           <View style={styles.statRow}>
             <Text style={styles.statLabel}>
               {t('tagesabschluss.averageDaily', 'Average Daily:')}
             </Text>
             <Text style={styles.statValue}>€{statistics.averageDailyAmount.toFixed(2)}</Text>
           </View>
-          
+
           {statistics.lastClosingDate && (
             <View style={styles.statRow}>
               <Text style={styles.statLabel}>
                 {t('tagesabschluss.lastClosing', 'Last Closing:')}
               </Text>
-              <Text style={styles.statValue}>
-                {formatClosingDate(statistics.lastClosingDate)}
-              </Text>
+              <Text style={styles.statValue}>{formatClosingDate(statistics.lastClosingDate)}</Text>
             </View>
           )}
         </View>
@@ -547,13 +569,10 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
+      onRequestClose={onClose}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>
-            {t('tagesabschluss.title', 'Tagesabschluss')}
-          </Text>
+          <Text style={styles.title}>{t('tagesabschluss.title', 'Tagesabschluss')}</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Text style={styles.closeButtonText}>✕</Text>
           </TouchableOpacity>
@@ -562,26 +581,29 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
         <View style={styles.tabBar}>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'closing' && styles.activeTab]}
-            onPress={() => setActiveTab('closing')}
-          >
+            onPress={() => {
+              setActiveTab('closing');
+            }}>
             <Text style={[styles.tabText, activeTab === 'closing' && styles.activeTabText]}>
               {t('tagesabschluss.closing', 'Closing')}
             </Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[styles.tab, activeTab === 'history' && styles.activeTab]}
-            onPress={() => setActiveTab('history')}
-          >
+            onPress={() => {
+              setActiveTab('history');
+            }}>
             <Text style={[styles.tabText, activeTab === 'history' && styles.activeTabText]}>
               {t('tagesabschluss.history', 'History')}
             </Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[styles.tab, activeTab === 'statistics' && styles.activeTab]}
-            onPress={() => setActiveTab('statistics')}
-          >
+            onPress={() => {
+              setActiveTab('statistics');
+            }}>
             <Text style={[styles.tabText, activeTab === 'statistics' && styles.activeTabText]}>
               {t('tagesabschluss.statistics', 'Statistics')}
             </Text>

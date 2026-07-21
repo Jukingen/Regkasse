@@ -46,17 +46,17 @@ return <span>{fmt.formatCurrency(row.amount)}</span>;
 
 ## Runtime namespace ↔ dosya adı (kebab / camel)
 
-| Runtime (`t` ilk segmenti, `AdminNamespace`) | Locale dosyası (`de/…`) | Not |
-|-----------------------------------------------|-------------------------|-----|
-| `adminShell` | `admin-shell.json` | Tek istisna: dosya **kebab-case**, catalog anahtarı **camelCase**. |
-| `common` | `common.json` | |
-| `nav` | `nav.json` | |
-| `users` | `users.json` | |
-| `settings` | `settings.json` | |
-| `products` | `products.json` | |
-| `finanzOnlineOutbox` | `finanzOnlineOutbox.json` | |
-| `finanzOnlineReconciliation` | `finanzOnlineReconciliation.json` | |
-| `rksvHub` | `rksvHub.json` | |
+| Runtime (`t` ilk segmenti, `AdminNamespace`) | Locale dosyası (`de/…`)           | Not                                                                |
+| -------------------------------------------- | --------------------------------- | ------------------------------------------------------------------ |
+| `adminShell`                                 | `admin-shell.json`                | Tek istisna: dosya **kebab-case**, catalog anahtarı **camelCase**. |
+| `common`                                     | `common.json`                     |                                                                    |
+| `nav`                                        | `nav.json`                        |                                                                    |
+| `users`                                      | `users.json`                      |                                                                    |
+| `settings`                                   | `settings.json`                   |                                                                    |
+| `products`                                   | `products.json`                   |                                                                    |
+| `finanzOnlineOutbox`                         | `finanzOnlineOutbox.json`         |                                                                    |
+| `finanzOnlineReconciliation`                 | `finanzOnlineReconciliation.json` |                                                                    |
+| `rksvHub`                                    | `rksvHub.json`                    |                                                                    |
 
 **`localization/namespace-manifest.json`** içindeki `frontend-admin.namespaces` değerleri **dosya kök adı**dır (`admin-shell`, `finanzOnlineOutbox`, …); runtime string ile karakter bazında her zaman aynı değildir — `admin-shell` ↔ `adminShell` eşlemesi validate ve import/export script’lerinde kebab/camel ile hizalanır.
 

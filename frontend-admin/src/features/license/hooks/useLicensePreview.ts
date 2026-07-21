@@ -3,16 +3,16 @@
 import { useMutation } from '@tanstack/react-query';
 
 import {
-    previewTenantLicense,
-    type PreviewTenantLicenseRequest,
-    type TenantLicensePreviewResult,
+  type PreviewTenantLicenseRequest,
+  type TenantLicensePreviewResult,
+  previewTenantLicense,
 } from '@/features/license/api/tenantLicense';
 
 export function useLicensePreview() {
-    return useMutation<TenantLicensePreviewResult, unknown, PreviewTenantLicenseRequest>({
-        mutationFn: (body) =>
-            previewTenantLicense({
-                licenseKey: body.licenseKey.trim(),
-            }),
-    });
+  return useMutation<TenantLicensePreviewResult, unknown, PreviewTenantLicenseRequest>({
+    mutationFn: (body) =>
+      previewTenantLicense({
+        licenseKey: body.licenseKey.trim(),
+      }),
+  });
 }

@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+
 import { usePermission } from './usePermission';
 import { secureApi } from '../services/api/secureApiService';
 import { UserRole } from '../types/auth';
@@ -102,12 +103,12 @@ export const useSecureApi = () => {
     securePut,
     secureDelete,
     criticalOperation,
-    
+
     // Güvenlik kontrolleri
     checkDemoRestriction,
     checkTokenStatus,
-    
+
     // Permission hook'undan gelen özellikler
-    ...permissionHook
+    ...permissionHook,
   };
-}; 
+};

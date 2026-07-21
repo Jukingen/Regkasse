@@ -16,6 +16,7 @@
   "no": "Nein",
   "step": "Schritt",
   "ok": "OK",
+  "selectDate": "Datum wählen",
   "retry": "Wiederholen",
   "errorLoadingProducts": "Fehler beim Laden der Produkte",
   "loadingMore": "Lade mehr...",
@@ -38,10 +39,20 @@
   "noAccess": "Sie haben keinen Zugriff auf diesen Bildschirm",
   "tableRestoring": "Tische werden wiederhergestellt",
   "table": "Tisch",
+  "tax": {
+    "standard": "Standard",
+    "reduced": "Ermäßigt",
+    "special": "Spezial",
+    "exempt": "Befreit"
+  },
   "barcodeScanner": {
     "closeA11y": "Schließen",
     "webFallback": "Kamera-Scan ist im Browser nicht verfügbar. Bitte Code manuell eingeben.",
     "cameraRequired": "Kamerazugriff wird benötigt.",
-    "allowCamera": "Kamera erlauben"
+    "allowCamera": "Kamera erlauben",
+    "permissionBlocked": "Kamerazugriff wurde dauerhaft verweigert. Bitte in den Geräteeinstellungen aktivieren.",
+    "openSettings": "Einstellungen öffnen",
+    "cameraUnavailable": "Kamera ist nicht verfügbar. Bitte Gerät neu starten oder manuell eingeben.",
+    "loading": "Kamera wird vorbereitet…"
   }
 }

@@ -1,4 +1,8 @@
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -14,17 +18,15 @@ import {
   ScrollView,
   Vibration,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { StatusBar } from 'expo-status-bar';
-import { storage } from '../../utils/storage';
-import { useAuth } from '../../contexts/AuthContext';
-import { getLoginFailure } from '@/utils/loginErrorHandler';
-import { validateUsername, validatePassword } from '../../utils/validation';
-import { useTranslation } from 'react-i18next';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useAuth } from '../../contexts/AuthContext';
 import { WaveLoader } from '../../src/components/common/WaveLoader';
+import { storage } from '../../utils/storage';
+import { validateUsername, validatePassword } from '../../utils/validation';
+
 import { getEnvironmentBadge } from '@/shared/config/environmentBadge';
+import { getLoginFailure } from '@/utils/loginErrorHandler';
 
 const { height } = Dimensions.get('window');
 
@@ -214,27 +216,24 @@ export default function LoginScreen() {
   }
 
   return (
-    <>
+    <SafeAreaView style={styles.safeRoot} edges={['top', 'bottom']}>
       <StatusBar style="light" />
       <TouchableWithoutFeedback onPress={handleDismissKeyboard} accessible={false}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.container}
-        >
+          style={styles.container}>
           {/* Branded gradient header */}
           <LinearGradient
             colors={['#FF8C42', '#F54EA2', '#9B59B6']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.gradientHeader}
-          >
+            style={styles.gradientHeader}>
             <View
               style={styles.headerContent}
               accessibilityRole="header"
-              accessibilityLabel={`${t('brandName')}. ${t('brandSubtitle')}`}
-            >
+              accessibilityLabel={`${t('brandName')}. ${t('brandSubtitle')}`}>
               <Image
-                source={require('../../assets/images/logo.png')}
+                source={require('../../assets/images/logo.webp')}
                 style={styles.logoImage}
                 resizeMode="contain"
                 accessibilityIgnoresInvertColors
@@ -246,8 +245,7 @@ export default function LoginScreen() {
                 <View
                   style={styles.devBadge}
                   accessibilityRole="text"
-                  accessibilityLabel={environmentBadge.text}
-                >
+                  accessibilityLabel={environmentBadge.text}>
                   <Text style={styles.devBadgeText}>{environmentBadge.text}</Text>
                 </View>
               ) : null}
@@ -261,185 +259,170 @@ export default function LoginScreen() {
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
             showsVerticalScrollIndicator={false}
-            bounces={false}
-          >
-              <Text style={styles.loginTitle}>{t('loginTitle')}</Text>
+            bounces={false}>
+            <Text style={styles.loginTitle}>{t('loginTitle')}</Text>
 
-              {error && (
-                <View style={styles.errorContainer}>
-                  <Text style={styles.errorBannerText}>❌ {error}</Text>
-                </View>
+            {error && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorBannerText}>❌ {error}</Text>
+              </View>
+            )}
+
+            {/* Email or username */}
+            <View style={styles.inputContainer}>
+              <TextInput
+                ref={usernameInputRef}
+                style={styles.input}
+                placeholder={t('loginIdentifierPlaceholder')}
+                placeholderTextColor="#999"
+                value={loginIdentifier}
+                onChangeText={(text) => {
+                  setLoginIdentifier(text);
+                  setError(null);
+                  setErrors((prev) => ({ ...prev, loginIdentifier: undefined }));
+                }}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="username"
+                textContentType="username"
+                editable={!isLoading}
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => passwordInputRef.current?.focus()}
+              />
+              <View style={styles.inputLine} />
+              {errors.loginIdentifier && (
+                <Text style={styles.errorText}>{errors.loginIdentifier}</Text>
               )}
+              <View
+                style={styles.hintContainer}
+                accessibilityRole="text"
+                accessibilityLabel={t('loginIdentifierCaseHint')}>
+                <Ionicons
+                  name="information-circle"
+                  size={18}
+                  color="#475569"
+                  style={styles.hintIcon}
+                />
+                <Text style={styles.hintText}>{t('loginIdentifierCaseHint')}</Text>
+              </View>
+              <View style={styles.exampleContainer}>
+                <Text style={styles.exampleLabel}>{t('loginIdentifierExampleLabel')}</Text>
+                <View style={styles.exampleValues}>
+                  {USERNAME_CASE_EXAMPLES.map((example) => (
+                    <View key={example} style={styles.exampleTag}>
+                      <Text style={styles.exampleTagText}>{example}</Text>
+                    </View>
+                  ))}
+                </View>
+                <Text style={styles.exampleNote}>{t('loginIdentifierExampleNote')}</Text>
+              </View>
+            </View>
 
-              {/* Email or username */}
-              <View style={styles.inputContainer}>
+            {/* Password Input */}
+            <View style={styles.inputContainer}>
+              <View style={styles.passwordRow}>
                 <TextInput
-                  ref={usernameInputRef}
-                  style={styles.input}
-                  placeholder={t('loginIdentifierPlaceholder')}
+                  ref={passwordInputRef}
+                  style={[styles.input, styles.passwordInput]}
+                  placeholder={t('passwordPlaceholder')}
                   placeholderTextColor="#999"
-                  value={loginIdentifier}
+                  value={password}
                   onChangeText={(text) => {
-                    setLoginIdentifier(text);
+                    setPassword(text);
                     setError(null);
-                    setErrors((prev) => ({ ...prev, loginIdentifier: undefined }));
+                    setErrors((prev) => ({ ...prev, password: undefined }));
                   }}
+                  secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
-                  autoComplete="username"
-                  textContentType="username"
+                  autoComplete="password"
+                  textContentType="password"
                   editable={!isLoading}
-                  returnKeyType="next"
-                  blurOnSubmit={false}
-                  onSubmitEditing={() => passwordInputRef.current?.focus()}
+                  returnKeyType="go"
+                  enablesReturnKeyAutomatically
+                  onSubmitEditing={() => {
+                    void handleLogin();
+                  }}
+                  onKeyPress={handlePasswordKeyPress}
+                  onBlur={handlePasswordBlur}
+                  {...(Platform.OS === 'web'
+                    ? {
+                        // RN Web: absolute Caps Lock via DOM KeyboardEvent
+                        onKeyDown: handlePasswordKeyDownWeb,
+                      }
+                    : {})}
                 />
-                <View style={styles.inputLine} />
-                {errors.loginIdentifier && (
-                  <Text style={styles.errorText}>{errors.loginIdentifier}</Text>
-                )}
-                <View
-                  style={styles.hintContainer}
-                  accessibilityRole="text"
-                  accessibilityLabel={t('loginIdentifierCaseHint')}
-                >
+                <Pressable
+                  style={({ pressed }) => [styles.eyeButton, pressed && styles.eyeButtonPressed]}
+                  onPress={togglePasswordVisibility}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? t('hidePassword') : t('showPassword')}
+                  disabled={isLoading}>
                   <Ionicons
-                    name="information-circle"
-                    size={18}
-                    color="#475569"
-                    style={styles.hintIcon}
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={22}
+                    color="#666"
                   />
-                  <Text style={styles.hintText}>{t('loginIdentifierCaseHint')}</Text>
-                </View>
-                <View style={styles.exampleContainer}>
-                  <Text style={styles.exampleLabel}>{t('loginIdentifierExampleLabel')}</Text>
-                  <View style={styles.exampleValues}>
-                    {USERNAME_CASE_EXAMPLES.map((example) => (
-                      <View key={example} style={styles.exampleTag}>
-                        <Text style={styles.exampleTagText}>{example}</Text>
-                      </View>
-                    ))}
-                  </View>
-                  <Text style={styles.exampleNote}>{t('loginIdentifierExampleNote')}</Text>
-                </View>
+                </Pressable>
               </View>
-
-              {/* Password Input */}
-              <View style={styles.inputContainer}>
-                <View style={styles.passwordRow}>
-                  <TextInput
-                    ref={passwordInputRef}
-                    style={[styles.input, styles.passwordInput]}
-                    placeholder={t('passwordPlaceholder')}
-                    placeholderTextColor="#999"
-                    value={password}
-                    onChangeText={(text) => {
-                      setPassword(text);
-                      setError(null);
-                      setErrors((prev) => ({ ...prev, password: undefined }));
-                    }}
-                    secureTextEntry={!showPassword}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    autoComplete="password"
-                    textContentType="password"
-                    editable={!isLoading}
-                    returnKeyType="go"
-                    enablesReturnKeyAutomatically
-                    onSubmitEditing={() => {
-                      void handleLogin();
-                    }}
-                    onKeyPress={handlePasswordKeyPress}
-                    onBlur={handlePasswordBlur}
-                    {...(Platform.OS === 'web'
-                      ? {
-                          // RN Web: absolute Caps Lock via DOM KeyboardEvent
-                          onKeyDown: handlePasswordKeyDownWeb,
-                        }
-                      : {})}
-                  />
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.eyeButton,
-                      pressed && styles.eyeButtonPressed,
-                    ]}
-                    onPress={togglePasswordVisibility}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      showPassword ? t('hidePassword') : t('showPassword')
-                    }
-                    disabled={isLoading}
-                  >
-                    <Ionicons
-                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                      size={22}
-                      color="#666"
-                    />
-                  </Pressable>
+              <View style={styles.inputLine} />
+              {capsLockOn && (
+                <View
+                  style={styles.capsLockWarning}
+                  accessibilityRole="alert"
+                  accessibilityLiveRegion="polite">
+                  <Text style={styles.capsLockText}>⚠️ {t('capsLockOn')}</Text>
                 </View>
-                <View style={styles.inputLine} />
-                {capsLockOn && (
-                  <View
-                    style={styles.capsLockWarning}
-                    accessibilityRole="alert"
-                    accessibilityLiveRegion="polite"
-                  >
-                    <Text style={styles.capsLockText}>
-                      ⚠️ {t('capsLockOn')}
+              )}
+              {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+            </View>
+
+            {/* Login Button */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.loginButton,
+                pressed && !isLoading && styles.loginButtonPressed,
+                isLoading && styles.loginButtonDisabled,
+              ]}
+              onPress={() => {
+                void handleLogin();
+              }}
+              disabled={isLoading}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isLoading, busy: isLoading }}
+              accessibilityLabel={isLoading ? t('loginButtonLoading') : t('loginButton')}>
+              {({ pressed }) =>
+                isLoading ? (
+                  <View style={styles.loadingContainer}>
+                    <WaveLoader size={18} color="#666" />
+                    <Text style={[styles.loginButtonText, styles.loginButtonLoadingText]}>
+                      {t('loginButtonLoading')}
                     </Text>
                   </View>
-                )}
-                {errors.password && (
-                  <Text style={styles.errorText}>{errors.password}</Text>
-                )}
-              </View>
+                ) : (
+                  <Text style={[styles.loginButtonText, pressed && styles.loginButtonTextPressed]}>
+                    {t('loginButton')}
+                  </Text>
+                )
+              }
+            </Pressable>
 
-              {/* Login Button */}
-              <Pressable
-                style={({ pressed }) => [
-                  styles.loginButton,
-                  pressed && !isLoading && styles.loginButtonPressed,
-                  isLoading && styles.loginButtonDisabled,
-                ]}
-                onPress={() => {
-                  void handleLogin();
-                }}
-                disabled={isLoading}
-                accessibilityRole="button"
-                accessibilityState={{ disabled: isLoading, busy: isLoading }}
-                accessibilityLabel={isLoading ? t('loginButtonLoading') : t('loginButton')}
-              >
-                {({ pressed }) =>
-                  isLoading ? (
-                    <View style={styles.loadingContainer}>
-                      <WaveLoader size={18} color="#666" />
-                      <Text style={[styles.loginButtonText, styles.loginButtonLoadingText]}>
-                        {t('loginButtonLoading')}
-                      </Text>
-                    </View>
-                  ) : (
-                    <Text
-                      style={[
-                        styles.loginButtonText,
-                        pressed && styles.loginButtonTextPressed,
-                      ]}
-                    >
-                      {t('loginButton')}
-                    </Text>
-                  )
-                }
-              </Pressable>
-
-              {/* Footer Text */}
-              <Text style={styles.footerText}>{t('signinHint')}</Text>
+            {/* Footer Text */}
+            <Text style={styles.footerText}>{t('signinHint')}</Text>
           </ScrollView>
         </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
-    </>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeRoot: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',

@@ -19,6 +19,7 @@
   "noSearchResults": "Arama sonucu bulunamadı",
   "discount": "İndirim",
   "errorLoading": "Müşteriler yüklenemedi.",
+  "loadingCustomers": "Müşteriler yükleniyor…",
   "selectionSheet": {
     "title": "Müşteri",
     "customerNumberLabel": "Müşteri no.",

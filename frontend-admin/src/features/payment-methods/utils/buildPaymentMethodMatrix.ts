@@ -28,7 +28,7 @@ export type PaymentMethodRegisterSummary = {
 
 export function buildPaymentMethodMatrix(
   registers: AdminCashRegisterListItem[],
-  methodsByRegisterId: Record<string, PaymentMethodDefinitionAdmin[] | undefined>,
+  methodsByRegisterId: Record<string, PaymentMethodDefinitionAdmin[] | undefined>
 ): { rows: PaymentMethodMatrixRow[]; summaries: PaymentMethodRegisterSummary[] } {
   const codeMeta = new Map<string, { label: string; sortOrder: number }>();
 
@@ -48,7 +48,7 @@ export function buildPaymentMethodMatrix(
   }
 
   const sortedCodes = [...codeMeta.entries()].sort(
-    (a, b) => a[1].sortOrder - b[1].sortOrder || a[0].localeCompare(b[0]),
+    (a, b) => a[1].sortOrder - b[1].sortOrder || a[0].localeCompare(b[0])
   );
 
   const rows: PaymentMethodMatrixRow[] = sortedCodes.map(([code, meta]) => {
@@ -71,8 +71,12 @@ export function buildPaymentMethodMatrix(
 
   const summaries: PaymentMethodRegisterSummary[] = registers.map((register) => {
     const methods = methodsByRegisterId[register.id] ?? [];
-    const active = methods.filter((m) => m.isActive).sort((a, b) => a.displayOrder - b.displayOrder);
-    const inactive = methods.filter((m) => !m.isActive).sort((a, b) => a.displayOrder - b.displayOrder);
+    const active = methods
+      .filter((m) => m.isActive)
+      .sort((a, b) => a.displayOrder - b.displayOrder);
+    const inactive = methods
+      .filter((m) => !m.isActive)
+      .sort((a, b) => a.displayOrder - b.displayOrder);
     return {
       registerId: register.id,
       registerNumber: register.registerNumber,

@@ -1,13 +1,14 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
 import {
+  type DigitalServiceType,
+  type TenantDigitalServiceRow,
   fetchTenantDigitalService,
   fetchTenantDigitalServices,
   toggleTenantDigitalService,
   updateTenantDigitalServicePrice,
-  type DigitalServiceType,
-  type TenantDigitalServiceRow,
 } from '@/features/digital-services/api/tenantDigitalServicesApi';
 import { useAuthorizationGate } from '@/hooks/useAuthorizedQuery';
 import { PERMISSIONS } from '@/shared/auth/permissions';
@@ -57,10 +58,13 @@ export function useToggleTenantDigitalService() {
       reason?: string;
     }) => toggleTenantDigitalService(args.tenantId, args.serviceType, args.active, args.reason),
     onSuccess: (row) => {
-      queryClient.setQueryData<TenantDigitalServiceRow[]>(TENANT_DIGITAL_SERVICES_QUERY_KEY, (prev) => {
-        if (!prev) return [row];
-        return prev.map((r) => (r.tenantId === row.tenantId ? row : r));
-      });
+      queryClient.setQueryData<TenantDigitalServiceRow[]>(
+        TENANT_DIGITAL_SERVICES_QUERY_KEY,
+        (prev) => {
+          if (!prev) return [row];
+          return prev.map((r) => (r.tenantId === row.tenantId ? row : r));
+        }
+      );
     },
   });
 }
@@ -74,10 +78,13 @@ export function useUpdateTenantDigitalServicePrice() {
       customPrice: number | null;
     }) => updateTenantDigitalServicePrice(args.tenantId, args.serviceType, args.customPrice),
     onSuccess: (row) => {
-      queryClient.setQueryData<TenantDigitalServiceRow[]>(TENANT_DIGITAL_SERVICES_QUERY_KEY, (prev) => {
-        if (!prev) return [row];
-        return prev.map((r) => (r.tenantId === row.tenantId ? row : r));
-      });
+      queryClient.setQueryData<TenantDigitalServiceRow[]>(
+        TENANT_DIGITAL_SERVICES_QUERY_KEY,
+        (prev) => {
+          if (!prev) return [row];
+          return prev.map((r) => (r.tenantId === row.tenantId ? row : r));
+        }
+      );
     },
   });
 }

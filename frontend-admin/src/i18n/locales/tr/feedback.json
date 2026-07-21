@@ -1,0 +1,64 @@
+{
+  "fabLabel": "Geri bildirim",
+  "fabAria": "Geri bildirim formunu aç",
+  "drawerTitle": "Geri bildirim gönder",
+  "drawerSubtitle": "Kullanım kolaylığı, performans, özellik istekleri veya hatalar hakkında yazın. Gönderileri haftalık inceliyoruz.",
+  "tabs": {
+    "submit": "Yeni geri bildirim",
+    "mine": "Geri bildirimlerim"
+  },
+  "form": {
+    "category": "Kategori",
+    "categoryRequired": "Lütfen bir kategori seçin",
+    "title": "Başlık",
+    "titleRequired": "Lütfen kısa bir başlık girin",
+    "message": "Ayrıntılar",
+    "messageRequired": "Lütfen geri bildiriminizi yazın (en az 10 karakter)",
+    "rating": "Puan (isteğe bağlı)",
+    "ratingHelp": "1 = zayıf, 5 = mükemmel (kullanım kolaylığı / performans)",
+    "includePage": "Geçerli sayfayı ekle",
+    "submit": "Gönder",
+    "success": "Teşekkürler — geri bildiriminiz gönderildi.",
+    "error": "Geri bildirim gönderilemedi. Tekrar deneyin."
+  },
+  "categories": {
+    "EaseOfUse": "Kullanım kolaylığı",
+    "Performance": "Performans",
+    "FeatureRequest": "Özellik isteği",
+    "Bug": "Hata"
+  },
+  "statuses": {
+    "UnderReview": "İncelemede",
+    "InProgress": "Devam ediyor",
+    "Implemented": "Uygulandı",
+    "Declined": "Reddedildi",
+    "Duplicate": "Yinelenen"
+  },
+  "mine": {
+    "empty": "Henüz geri bildirim göndermediniz.",
+    "loadError": "Geri bildirimleriniz yüklenemedi.",
+    "reviewerNote": "Ekip notu",
+    "updated": "Güncellendi"
+  },
+  "inbox": {
+    "pageTitle": "Kullanıcı geri bildirimi",
+    "pageSubtitle": "Haftalık inceleme kutusu — gönderenlerin widget’ta ilerlemeyi görmesi için durumu güncelleyin.",
+    "filterStatus": "Durum",
+    "filterCategory": "Kategori",
+    "all": "Tümü",
+    "tenant": "Kiracı",
+    "submitter": "Gönderen",
+    "created": "Oluşturuldu",
+    "actions": "İşlemler",
+    "updateStatus": "Durumu güncelle",
+    "note": "İnceleme notu (gönderene görünür)",
+    "save": "Kaydet",
+    "saved": "Durum güncellendi.",
+    "loadError": "Geri bildirim kutusu yüklenemedi.",
+    "empty": "Henüz geri bildirim yok."
+  },
+  "process": {
+    "weeklyTitle": "Haftalık geri bildirim incelemesi",
+    "weeklyHint": "Her Pazartesi: İncelemede olanları triyajlayın; Devam ediyor / Uygulandı / Reddedildi olarak işaretleyin ve kısa not bırakın."
+  }
+}

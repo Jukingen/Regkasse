@@ -2,13 +2,13 @@
  * Offline order queue — full order snapshots (items, modifiers, totals) for POS reconnect replay.
  * Complements pendingPaymentQueue (payment-intent only). Invariant: no voucher plaintext in local storage.
  */
-import { apiClient } from '../api/config';
-import { storage } from '../../utils/storage';
 import {
   paymentPayloadContainsVoucherSecrets,
   VOUCHER_OFFLINE_NOT_ALLOWED_MESSAGE_DE,
   type PendingPaymentPayload,
 } from './pendingPaymentQueue';
+import { storage } from '../../utils/storage';
+import { apiClient } from '../api/config';
 
 const STORAGE_KEY = '@regkasse/offline_orders_v1';
 
@@ -17,14 +17,14 @@ export type OfflineOrderStatus = 'pending' | 'synced' | 'failed' | 'uploaded';
 /** Full offline order snapshot sent to backend order_data JSONB. */
 export type OfflineOrderSnapshot = {
   paymentRequest: PendingPaymentPayload;
-  items?: Array<{
+  items?: {
     productId: string;
     productName?: string;
     quantity: number;
     unitPrice?: number;
     taxType?: string;
-    modifiers?: Array<{ modifierId?: string; name?: string; price?: number }>;
-  }>;
+    modifiers?: { modifierId?: string; name?: string; price?: number }[];
+  }[];
   tableNumber?: number;
   notes?: string;
 };
@@ -168,9 +168,7 @@ export async function getOfflineOrderQueue(): Promise<OfflineOrderQueueEntry[]> 
 
 export async function getAllOfflineOrderEntries(): Promise<OfflineOrderQueueEntry[]> {
   const queue = (await readQueue()).map(normalizeEntry);
-  return queue.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  return queue.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 export async function removeOfflineOrderByLocalId(localId: string): Promise<void> {
@@ -189,7 +187,7 @@ async function uploadEntryToServer(entry: OfflineOrderQueueEntry): Promise<Offli
   };
 
   const raw = await apiClient.post<OfflineOrderSaveResponse>('/pos/offline-orders', body);
-  const data = raw?.data ?? (raw as OfflineOrderSaveResponse)?.data;
+  const data = raw?.data ?? raw?.data;
   if (!data?.offlineOrderId) {
     throw new Error('offline_order_save_incomplete');
   }
@@ -231,8 +229,7 @@ export async function syncOfflineOrderQueue(): Promise<{
       queue[idx] = updated;
       uploaded++;
     } catch (err) {
-      queue[idx].lastError =
-        err instanceof Error ? err.message : 'offline_order_upload_failed';
+      queue[idx].lastError = err instanceof Error ? err.message : 'offline_order_upload_failed';
       failed++;
     }
   }
@@ -282,7 +279,10 @@ export async function retrySingleOfflineOrder(localId: string): Promise<{
 }> {
   const queue = (await readQueue()).map(normalizeEntry);
   const entry = queue.find((e) => e.localId === localId);
-  if (!entry || (entry.status !== 'pending' && entry.status !== 'uploaded' && entry.status !== 'failed')) {
+  if (
+    !entry ||
+    (entry.status !== 'pending' && entry.status !== 'uploaded' && entry.status !== 'failed')
+  ) {
     return { uploaded: 0, replayed: 0, failed: 0 };
   }
 

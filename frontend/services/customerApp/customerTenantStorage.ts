@@ -1,8 +1,6 @@
 import { storage } from '../../utils/storage';
-import {
-  normalizeCustomerTenantSlug,
-  parseTenantSlugFromPayload,
-} from './customerTenantSlug';
+import { secureStorage } from '../secureStorage';
+import { normalizeCustomerTenantSlug, parseTenantSlugFromPayload } from './customerTenantSlug';
 
 export { parseTenantSlugFromPayload } from './customerTenantSlug';
 
@@ -17,7 +15,7 @@ export async function getTenantSlug(qrOrLink?: string | null): Promise<string | 
   const fromQr = parseTenantSlugFromPayload(qrOrLink);
   if (fromQr) return fromQr;
 
-  const stored = normalizeCustomerTenantSlug(await storage.getItem(CUSTOMER_TENANT_SLUG_KEY));
+  const stored = normalizeCustomerTenantSlug(await secureStorage.getItem(CUSTOMER_TENANT_SLUG_KEY));
   if (stored) return stored;
 
   if (__DEV__) {
@@ -31,12 +29,14 @@ export async function getTenantSlug(qrOrLink?: string | null): Promise<string | 
 export async function setCustomerTenantSlug(slug: string | null): Promise<void> {
   const normalized = normalizeCustomerTenantSlug(slug);
   if (normalized) {
-    await storage.setItem(CUSTOMER_TENANT_SLUG_KEY, normalized);
+    await secureStorage.setItem(CUSTOMER_TENANT_SLUG_KEY, normalized);
   } else {
-    await storage.removeItem(CUSTOMER_TENANT_SLUG_KEY);
+    await secureStorage.removeItem(CUSTOMER_TENANT_SLUG_KEY);
   }
 }
 
 export async function clearCustomerTenantSlug(): Promise<void> {
+  await secureStorage.removeItem(CUSTOMER_TENANT_SLUG_KEY);
+  // Clear any pre-migration AsyncStorage copy
   await storage.removeItem(CUSTOMER_TENANT_SLUG_KEY);
 }

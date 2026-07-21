@@ -1,25 +1,35 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
+import {
+  Alert,
+  Button,
+  Card,
+  Checkbox,
+  Descriptions,
+  Radio,
+  Skeleton,
+  Space,
+  Tag,
+  Typography,
+} from 'antd';
+import axios from 'axios';
 /**
  * Kalıcı yedek çalıştırma modu: istenen / etkin / yapılandırma varsayılanı, Real önkoşul tanıları, onay modalları.
  */
-
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Card, Checkbox, Descriptions, Radio, Skeleton, Space, Tag, Typography } from 'antd';
+
 import { SimpleList as List } from '@/components/ui/SimpleList';
-import axios from 'axios';
 import {
-  getBackupExecutionMode,
-  putBackupExecutionMode,
-  type BackupExecutionModeResponseDto,
-} from '@/features/backup-dr/logic/backupExecutionModeApi';
-import {
+  type BackupExecutionModeRadioValue,
   fakeSwitchNeedsStrongWarning,
   findSelectableRow,
   isRealRequestedNonRunnableState,
-  type BackupExecutionModeRadioValue,
 } from '@/features/backup-dr/logic/backupDrExecutionModePresentation';
+import {
+  type BackupExecutionModeResponseDto,
+  getBackupExecutionMode,
+  putBackupExecutionMode,
+} from '@/features/backup-dr/logic/backupExecutionModeApi';
 import {
   healthLevelLabel,
   isRealModeSelectableNow,
@@ -27,6 +37,7 @@ import {
   presentRealModeDiagnostics,
   realReadinessSummaryCopy,
 } from '@/features/backup-dr/logic/backupRealModeReadinessPresentation';
+import { useAntdApp } from '@/hooks/useAntdApp';
 
 export type BackupExecutionModeUiValue = BackupExecutionModeRadioValue;
 
@@ -36,7 +47,11 @@ export interface BackupExecutionModeCardProps {
   onModeSaved?: () => void;
 }
 
-export function BackupExecutionModeCard({ canManage, t, onModeSaved }: BackupExecutionModeCardProps) {
+export function BackupExecutionModeCard({
+  canManage,
+  t,
+  onModeSaved,
+}: BackupExecutionModeCardProps) {
   const { modal } = useAntdApp();
 
   const [loading, setLoading] = useState(true);
@@ -64,7 +79,10 @@ export function BackupExecutionModeCard({ canManage, t, onModeSaved }: BackupExe
     void load();
   }, [load]);
 
-  const dirty = useMemo(() => data != null && initialSelection(data) !== selected, [data, selected]);
+  const dirty = useMemo(
+    () => data != null && initialSelection(data) !== selected,
+    [data, selected]
+  );
 
   const performSave = useCallback(async () => {
     if (!canManage || !data) return;
@@ -106,7 +124,9 @@ export function BackupExecutionModeCard({ canManage, t, onModeSaved }: BackupExe
         {wantsFake ? (
           <>
             <Typography.Paragraph style={{ marginBottom: 0 }}>
-              {strongFake ? t('backupDr.executionMode.saveConfirmBodyFakeStrong') : t('backupDr.executionMode.saveConfirmBodyFake')}
+              {strongFake
+                ? t('backupDr.executionMode.saveConfirmBodyFakeStrong')
+                : t('backupDr.executionMode.saveConfirmBodyFake')}
             </Typography.Paragraph>
             {!strongFake ? (
               <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 13 }}>
@@ -137,9 +157,11 @@ export function BackupExecutionModeCard({ canManage, t, onModeSaved }: BackupExe
     });
   }, [canManage, data, dirty, performSave, saving, selected, t]);
 
-  const inheritSelectable = findSelectableRow(data?.selectableModes, 'UseConfigurationDefault')?.selectable !== false;
+  const inheritSelectable =
+    findSelectableRow(data?.selectableModes, 'UseConfigurationDefault')?.selectable !== false;
   const fakeSelectable = findSelectableRow(data?.selectableModes, 'Fake')?.selectable === true;
-  const realSelectable = findSelectableRow(data?.selectableModes, 'RealPgDump')?.selectable === true;
+  const realSelectable =
+    findSelectableRow(data?.selectableModes, 'RealPgDump')?.selectable === true;
 
   const realReadiness = useMemo(() => {
     if (!data) return null;
@@ -209,12 +231,18 @@ export function BackupExecutionModeCard({ canManage, t, onModeSaved }: BackupExe
               />
               <div>
                 <Space align="center" wrap style={{ marginBottom: 8 }}>
-                  <Typography.Text strong>{t('backupDr.executionMode.realReadiness.panelTitle')}</Typography.Text>
+                  <Typography.Text strong>
+                    {t('backupDr.executionMode.realReadiness.panelTitle')}
+                  </Typography.Text>
                   <Tag>{healthLevelLabel(realReadiness.hypoLevel, t)}</Tag>
                   {realReadiness.selectable ? (
-                    <Tag color="success">{t('backupDr.executionMode.realReadiness.realRowSelectableYes')}</Tag>
+                    <Tag color="success">
+                      {t('backupDr.executionMode.realReadiness.realRowSelectableYes')}
+                    </Tag>
                   ) : (
-                    <Tag color="error">{t('backupDr.executionMode.realReadiness.realRowSelectableNo')}</Tag>
+                    <Tag color="error">
+                      {t('backupDr.executionMode.realReadiness.realRowSelectableNo')}
+                    </Tag>
                   )}
                 </Space>
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 8, fontSize: 12 }}>
@@ -234,13 +262,17 @@ export function BackupExecutionModeCard({ canManage, t, onModeSaved }: BackupExe
                                 ? t('backupDr.executionMode.realReadiness.tier.blocking')
                                 : t('backupDr.executionMode.realReadiness.tier.advisory')}
                             </Tag>
-                            <Tag>{t(`backupDr.executionMode.realReadiness.category.${item.category}`)}</Tag>
+                            <Tag>
+                              {t(`backupDr.executionMode.realReadiness.category.${item.category}`)}
+                            </Tag>
                             <Typography.Text type="secondary" code style={{ fontSize: 11 }}>
                               {item.code}
                             </Typography.Text>
                           </Space>
                           <Typography.Text strong>{item.title}</Typography.Text>
-                          <Typography.Paragraph style={{ marginBottom: 0 }}>{item.action}</Typography.Paragraph>
+                          <Typography.Paragraph style={{ marginBottom: 0 }}>
+                            {item.action}
+                          </Typography.Paragraph>
                           {item.configKeys.length > 0 ? (
                             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                               {t('backupDr.executionMode.realReadiness.configKeysLabel')}{' '}
@@ -250,8 +282,12 @@ export function BackupExecutionModeCard({ canManage, t, onModeSaved }: BackupExe
                             </Typography.Text>
                           ) : null}
                           {item.serverMessage && item.serverMessage !== item.action ? (
-                            <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 11 }}>
-                              {t('backupDr.executionMode.realReadiness.serverDetailLabel')} {item.serverMessage}
+                            <Typography.Paragraph
+                              type="secondary"
+                              style={{ marginBottom: 0, fontSize: 11 }}
+                            >
+                              {t('backupDr.executionMode.realReadiness.serverDetailLabel')}{' '}
+                              {item.serverMessage}
                             </Typography.Paragraph>
                           ) : null}
                         </Space>
@@ -299,7 +335,8 @@ export function BackupExecutionModeCard({ canManage, t, onModeSaved }: BackupExe
                     {labelUserFacingMode(data.effectiveUserFacingMode, t)}
                   </Tag>
                   <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                    {t('backupDr.executionMode.adapterInternal')}: {data.effectiveExecutionAdapterKind}
+                    {t('backupDr.executionMode.adapterInternal')}:{' '}
+                    {data.effectiveExecutionAdapterKind}
                   </Typography.Text>
                   {showRealRunnableTag ? (
                     <Tag color={realRunnable ? 'success' : 'warning'}>
@@ -314,7 +351,8 @@ export function BackupExecutionModeCard({ canManage, t, onModeSaved }: BackupExe
                 <Space wrap>
                   <Tag>{labelUserFacingMode(data.configurationDefaultUserFacingMode, t)}</Tag>
                   <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                    {t('backupDr.executionMode.adapterInternal')}: {data.configurationExecutionAdapterKind}
+                    {t('backupDr.executionMode.adapterInternal')}:{' '}
+                    {data.configurationExecutionAdapterKind}
                   </Typography.Text>
                 </Space>
               </Descriptions.Item>
@@ -323,7 +361,9 @@ export function BackupExecutionModeCard({ canManage, t, onModeSaved }: BackupExe
 
           {data?.effectiveModeResolutionSummaryEnglish ? (
             <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
-              <Typography.Text strong>{t('backupDr.executionMode.resolutionSummaryLabel')}</Typography.Text>{' '}
+              <Typography.Text strong>
+                {t('backupDr.executionMode.resolutionSummaryLabel')}
+              </Typography.Text>{' '}
               <Typography.Text code style={{ fontSize: 12, whiteSpace: 'pre-wrap' }}>
                 {data.effectiveModeResolutionSummaryEnglish}
               </Typography.Text>
@@ -352,7 +392,10 @@ export function BackupExecutionModeCard({ canManage, t, onModeSaved }: BackupExe
             disabled={!canManage || saving}
           >
             <Space orientation="vertical">
-              <Radio value="InheritFromConfiguration" disabled={inheritSelectable ? undefined : true}>
+              <Radio
+                value="InheritFromConfiguration"
+                disabled={inheritSelectable ? undefined : true}
+              >
                 {t('backupDr.executionMode.optionInherit')}
               </Radio>
               <Radio value="SimulatedFake" disabled={fakeSelectable ? undefined : true}>
@@ -366,7 +409,8 @@ export function BackupExecutionModeCard({ canManage, t, onModeSaved }: BackupExe
               <Radio value="PostgreSqlPgDump" disabled={realSelectable ? undefined : true}>
                 {t('backupDr.executionMode.optionPgDump')}
               </Radio>
-              {!realSelectable && findSelectableRow(data?.selectableModes, 'RealPgDump')?.blockReason ? (
+              {!realSelectable &&
+              findSelectableRow(data?.selectableModes, 'RealPgDump')?.blockReason ? (
                 <Typography.Text type="secondary" style={{ fontSize: 12, marginLeft: 24 }}>
                   {findSelectableRow(data?.selectableModes, 'RealPgDump')?.blockReason}
                 </Typography.Text>
@@ -422,7 +466,8 @@ function initialSelection(d: BackupExecutionModeResponseDto): BackupExecutionMod
   if (u === 'RealPgDump') return 'PostgreSqlPgDump';
   if (u === 'UseConfigurationDefault') return 'InheritFromConfiguration';
   const x = (d.storedMode ?? '').trim();
-  if (x === 'SimulatedFake' || x === 'PostgreSqlPgDump' || x === 'InheritFromConfiguration') return x;
+  if (x === 'SimulatedFake' || x === 'PostgreSqlPgDump' || x === 'InheritFromConfiguration')
+    return x;
   return 'InheritFromConfiguration';
 }
 

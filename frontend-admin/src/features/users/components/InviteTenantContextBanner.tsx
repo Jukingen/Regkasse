@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
-import { Alert, Typography } from 'antd';
 import { MailOutlined } from '@ant-design/icons';
+import { Alert, Typography } from 'antd';
+import React from 'react';
 
 import { buildTenantPortalUrl } from '@/features/super-admin/api/adminTenants';
 import { getMandantLicenseBadgeDisplay } from '@/features/tenant/utils/mandantLicenseBadge';
@@ -11,75 +11,76 @@ import { formatInviteTenantLicenseShort } from '@/features/users/utils/inviteTen
 import { useI18n } from '@/i18n';
 
 export type InviteTenantContextBannerProps = {
-    tenant: InviteTenantContextFields;
-    /** Compact strip inside modal vs full alert on tenant users tab */
-    variant?: 'modal' | 'page';
+  tenant: InviteTenantContextFields;
+  /** Compact strip inside modal vs full alert on tenant users tab */
+  variant?: 'modal' | 'page';
 };
 
-export function InviteTenantContextBanner({ tenant, variant = 'modal' }: InviteTenantContextBannerProps) {
-    const { t } = useI18n();
-    const portalUrl = buildTenantPortalUrl(tenant.slug);
-    const licenseBadge = getMandantLicenseBadgeDisplay(
-        tenant.licenseValidUntilUtc,
-        tenant.licenseKey,
-        t,
-    );
-    const licenseLine =
-        licenseBadge?.label ??
-        formatInviteTenantLicenseShort(tenant, t);
+export function InviteTenantContextBanner({
+  tenant,
+  variant = 'modal',
+}: InviteTenantContextBannerProps) {
+  const { t } = useI18n();
+  const portalUrl = buildTenantPortalUrl(tenant.slug);
+  const licenseBadge = getMandantLicenseBadgeDisplay(
+    tenant.licenseValidUntilUtc,
+    tenant.licenseKey,
+    t
+  );
+  const licenseLine = licenseBadge?.label ?? formatInviteTenantLicenseShort(tenant, t);
 
-    const message = t('users.create.targetTenant.title', {
-        name: tenant.name,
-        slug: tenant.slug,
-    });
+  const message = t('users.create.targetTenant.title', {
+    name: tenant.name,
+    slug: tenant.slug,
+  });
 
-    const description = (
-        <>
-            <Typography.Link href={portalUrl} target="_blank" rel="noopener noreferrer">
-                {portalUrl}
-            </Typography.Link>
-            <br />
-            <Typography.Text type="secondary">
-                {t('users.create.targetTenant.licenseLine', { license: licenseLine })}
-            </Typography.Text>
-        </>
-    );
+  const description = (
+    <>
+      <Typography.Link href={portalUrl} target="_blank" rel="noopener noreferrer">
+        {portalUrl}
+      </Typography.Link>
+      <br />
+      <Typography.Text type="secondary">
+        {t('users.create.targetTenant.licenseLine', { license: licenseLine })}
+      </Typography.Text>
+    </>
+  );
 
-    if (variant === 'page') {
-        return (
-            <Alert
-                type="info"
-                showIcon
-                icon={<MailOutlined />}
-                title={message}
-                description={description}
-                style={{ marginBottom: 0 }}
-            />
-        );
-    }
-
+  if (variant === 'page') {
     return (
-        <Alert
-            type="info"
-            showIcon
-            icon={<MailOutlined />}
-            title={t('users.create.targetTenant.modalLabel')}
-            description={
-                <>
-                    <Typography.Text strong>
-                        {tenant.name} ({tenant.slug})
-                    </Typography.Text>
-                    <br />
-                    <Typography.Link href={portalUrl} target="_blank" rel="noopener noreferrer">
-                        {portalUrl}
-                    </Typography.Link>
-                    <br />
-                    <Typography.Text type="secondary">
-                        {t('users.create.targetTenant.licenseLine', { license: licenseLine })}
-                    </Typography.Text>
-                </>
-            }
-            style={{ marginBottom: 16 }}
-        />
+      <Alert
+        type="info"
+        showIcon
+        icon={<MailOutlined />}
+        title={message}
+        description={description}
+        style={{ marginBottom: 0 }}
+      />
     );
+  }
+
+  return (
+    <Alert
+      type="info"
+      showIcon
+      icon={<MailOutlined />}
+      title={t('users.create.targetTenant.modalLabel')}
+      description={
+        <>
+          <Typography.Text strong>
+            {tenant.name} ({tenant.slug})
+          </Typography.Text>
+          <br />
+          <Typography.Link href={portalUrl} target="_blank" rel="noopener noreferrer">
+            {portalUrl}
+          </Typography.Link>
+          <br />
+          <Typography.Text type="secondary">
+            {t('users.create.targetTenant.licenseLine', { license: licenseLine })}
+          </Typography.Text>
+        </>
+      }
+      style={{ marginBottom: 16 }}
+    />
+  );
 }

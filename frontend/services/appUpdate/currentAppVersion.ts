@@ -2,13 +2,18 @@
  * Yerel POS uygulama sürümü meta verisi.
  *
  * Bu dosya, in-app güncelleme denetleyicisi (settings ▸ "Auf Updates prüfen") için
- * runtime sürüm karşılaştırmasının TEK kaynağıdır. `app.json` (`expo.version`,
- * `expo.runtimeVersion` ve EAS tarafından enjekte edilen Android `versionCode`) ile
- * SENKRON tutulmalıdır. Yeni bir release yayımlarken her iki tarafı da bump et.
+ * runtime sürüm karşılaştırmasının TEK kaynağıdır.
+ *
+ * - `APP_VERSION_NAME`: `Constants.expoConfig.version` (`app.json` → `expo.version`)
+ *   ile hizalanır; config yoksa fallback kullanılır. Deprecated `Constants.manifest` kullanılmaz.
+ * - `APP_VERSION_CODE`: monoton tamsayı — her release'de (yama dahil) +1 bump et;
+ *   EAS `android.versionCode` ile senkron tutulmalıdır.
  */
 
-/** Kullanıcıya gösterilen sürüm adı. `app.json` -> `expo.version` ile aynı olmalı. */
-export const APP_VERSION_NAME = '1.0.0';
+import { getExpoAppVersionName } from '../../constants/expoAppConstants';
+
+/** Kullanıcıya gösterilen sürüm adı (`app.json` → `expo.version`). */
+export const APP_VERSION_NAME = getExpoAppVersionName('1.0.0');
 
 /**
  * Backend'den dönen `latestVersionCode` ile karşılaştırılan monoton tamsayı.

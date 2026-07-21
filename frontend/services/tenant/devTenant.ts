@@ -1,5 +1,5 @@
 import { canonicalDevTenantSlug } from '../../constants/devTenantCatalog';
-import { storage } from '../../utils/storage';
+import { secureStorage } from '../secureStorage';
 import { TENANT_HTTP_HEADER } from './tenantStorage';
 
 /** Runtime dev override (takes precedence over {@link DEV_TENANT_ENV_KEY}). */
@@ -33,13 +33,13 @@ export function getEnvDevTenantSlug(): string | null {
 export async function getDevTenantSlugOverride(): Promise<string | null> {
   if (!isDev) return null;
 
-  const primary = normalizeSlug(await storage.getItem(DEV_TENANT_LOCAL_STORAGE_KEY));
+  const primary = normalizeSlug(await secureStorage.getItem(DEV_TENANT_LOCAL_STORAGE_KEY));
   if (primary) return primary;
 
-  const legacy = normalizeSlug(await storage.getItem(LEGACY_DEV_TENANT_SLUG_STORAGE_KEY));
+  const legacy = normalizeSlug(await secureStorage.getItem(LEGACY_DEV_TENANT_SLUG_STORAGE_KEY));
   if (legacy) {
-    await storage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, legacy);
-    await storage.removeItem(LEGACY_DEV_TENANT_SLUG_STORAGE_KEY);
+    await secureStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, legacy);
+    await secureStorage.removeItem(LEGACY_DEV_TENANT_SLUG_STORAGE_KEY);
     return legacy;
   }
 
@@ -50,11 +50,11 @@ export async function setDevTenantSlugOverride(slug: string | null): Promise<voi
   if (!isDev) return;
   const normalized = normalizeSlug(slug);
   if (normalized) {
-    await storage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, normalized);
-    await storage.removeItem(LEGACY_DEV_TENANT_SLUG_STORAGE_KEY);
+    await secureStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, normalized);
+    await secureStorage.removeItem(LEGACY_DEV_TENANT_SLUG_STORAGE_KEY);
   } else {
-    await storage.removeItem(DEV_TENANT_LOCAL_STORAGE_KEY);
-    await storage.removeItem(LEGACY_DEV_TENANT_SLUG_STORAGE_KEY);
+    await secureStorage.removeItem(DEV_TENANT_LOCAL_STORAGE_KEY);
+    await secureStorage.removeItem(LEGACY_DEV_TENANT_SLUG_STORAGE_KEY);
   }
 }
 
@@ -78,7 +78,7 @@ export async function resolveDevTenantSlug(): Promise<string | null> {
  * Dev: dev override/env → license/login persistence. Prod: persisted bootstrap only.
  */
 export async function resolveEffectiveTenantSlug(
-  persistedSlug: string | null | undefined,
+  persistedSlug: string | null | undefined
 ): Promise<string | null> {
   const devSlug = await resolveDevTenantSlug();
   if (devSlug) return devSlug;
@@ -105,7 +105,7 @@ export function appendTenantQueryParam(baseUrl: string, tenantSlug: string): str
 
 export function applyTenantHeader(
   headers: Record<string, unknown> | undefined,
-  tenantSlug: string,
+  tenantSlug: string
 ): Record<string, unknown> {
   const next = { ...(headers ?? {}) };
   next[TENANT_HTTP_HEADER] = tenantSlug;

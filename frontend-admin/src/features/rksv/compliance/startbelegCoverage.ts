@@ -1,5 +1,5 @@
-import type { CashRegisterRow } from '@/features/tagesabschluss/normalizers';
 import type { RksvComplianceSpecialReceipt } from '@/features/rksv/compliance/types';
+import type { CashRegisterRow } from '@/features/tagesabschluss/normalizers';
 
 export const RKSV_KIND_STARTBELEG = 'Startbeleg';
 
@@ -15,7 +15,7 @@ export type StartbelegMissingRegister = {
 export function findRegistersMissingStartbeleg(
   registers: CashRegisterRow[],
   specialReceipts: RksvComplianceSpecialReceipt[],
-  scopedCashRegisterId?: string,
+  scopedCashRegisterId?: string
 ): StartbelegMissingRegister[] {
   const inScope = scopedCashRegisterId
     ? registers.filter((r) => r.id === scopedCashRegisterId)
@@ -24,7 +24,7 @@ export function findRegistersMissingStartbeleg(
   const withStartbeleg = new Set(
     specialReceipts
       .filter((s) => s.kind === RKSV_KIND_STARTBELEG && s.cashRegisterId)
-      .map((s) => s.cashRegisterId as string),
+      .map((s) => s.cashRegisterId as string)
   );
 
   return inScope

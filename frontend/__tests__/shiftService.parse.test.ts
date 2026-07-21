@@ -1,5 +1,13 @@
 import { describe, expect, it, jest } from '@jest/globals';
 
+import {
+  parseCashierShiftDto,
+  parseCurrentShiftResponse,
+  parseEndShiftResponse,
+  parsePosDailyClosingResult,
+  parsePosDailyClosingStatus,
+} from '../services/api/shiftService';
+
 jest.mock('../services/api/config', () => ({
   apiClient: {
     get: jest.fn(),
@@ -14,14 +22,6 @@ jest.mock('../services/session/sessionManager', () => ({
     getAccessToken: jest.fn(async () => 'token'),
   },
 }));
-
-import {
-  parseCashierShiftDto,
-  parseCurrentShiftResponse,
-  parseEndShiftResponse,
-  parsePosDailyClosingResult,
-  parsePosDailyClosingStatus,
-} from '../services/api/shiftService';
 
 describe('shiftService parsers', () => {
   it('parseCurrentShiftResponse reads camelCase active shift', () => {

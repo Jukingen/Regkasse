@@ -1,35 +1,48 @@
-"use client";
+'use client';
 
 /**
  * Paginated backup runs table (GET /api/admin/backup/runs) with operator columns.
  */
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  Alert,
+  App,
+  Badge,
+  Button,
+  Popconfirm,
+  Progress,
+  Select,
+  Space,
+  Table,
+  Tooltip,
+  Typography,
+} from 'antd';
+import type { ColumnsType, TableProps } from 'antd/es/table';
+import React, { useCallback, useMemo, useState } from 'react';
 
-import React, { useCallback, useMemo, useState } from "react";
-import { App, Alert, Badge, Button, Popconfirm, Progress, Select, Space, Table, Tooltip, Typography } from 'antd';
-import type { ColumnsType, TableProps } from "antd/es/table";
-import { useGetApiAdminBackupStatusLatest } from "@/api/generated/admin-backup/admin-backup";
-import { backupQueryKeys, useBackupRuns, useTriggerBackup } from "@/features/backup/api/backupHooks";
-import type { BackupRunResponseDto } from "@/api/generated/model";
-import { BackupRunStatus } from "@/api/generated/model/backupRunStatus";
-import { useI18n } from "@/i18n";
-import { formatDateTime as formatDisplayDateTime } from "@/i18n/formatting";
-import { formatUserTime } from "@/lib/dateFormatter";
-import { useQueryClient } from "@tanstack/react-query";
-import { triggerErrorMessageBackupDashboard } from "@/features/backup-dr/logic/backupManualTriggerMessaging";
-import { describeBackupTriggerOutcome } from "@/features/backup-dr/logic/backupTriggerOutcome";
-import { useBackupPermissions } from "@/features/backup/hooks/useBackupPermissions";
-import { useTenants } from "@/features/backup/hooks/useTenants";
+import { useGetApiAdminBackupStatusLatest } from '@/api/generated/admin-backup/admin-backup';
+import type { BackupRunResponseDto } from '@/api/generated/model';
+import { BackupRunStatus } from '@/api/generated/model/backupRunStatus';
 import {
   BACKUP_RECENT_RUNS_PAGE_SIZE,
   usePollAlignedWithLatestDashboardBackup,
   usePollBackupLatestDashboardInterval,
-} from "@/features/backup-dr/logic/backupDashboardQueryTiming";
-import { apiNullableToUndefined } from "@/features/backup-dr/logic/backupDrDtoNormalize";
-import { formatBackupBytes } from "@/features/backup-dr/logic/backupFormat";
-import { BackupDetailModal } from "@/features/backup/components/BackupDetailModal";
-import { BackupVerificationReport } from "@/features/backup/components/BackupVerificationReport";
-import { isBackupRunSucceeded } from "@/features/backup/logic/backupRunDetailPresentation";
-import { BackupStatusBadge } from "@/features/backup/components/BackupStatusBadge";
+} from '@/features/backup-dr/logic/backupDashboardQueryTiming';
+import { apiNullableToUndefined } from '@/features/backup-dr/logic/backupDrDtoNormalize';
+import { formatBackupBytes } from '@/features/backup-dr/logic/backupFormat';
+import { triggerErrorMessageBackupDashboard } from '@/features/backup-dr/logic/backupManualTriggerMessaging';
+import { describeBackupTriggerOutcome } from '@/features/backup-dr/logic/backupTriggerOutcome';
+import {
+  backupQueryKeys,
+  useBackupRuns,
+  useTriggerBackup,
+} from '@/features/backup/api/backupHooks';
+import { BackupDetailModal } from '@/features/backup/components/BackupDetailModal';
+import { BackupStatusBadge } from '@/features/backup/components/BackupStatusBadge';
+import { BackupVerificationReport } from '@/features/backup/components/BackupVerificationReport';
+import { useBackupPermissions } from '@/features/backup/hooks/useBackupPermissions';
+import { useTenants } from '@/features/backup/hooks/useTenants';
+import { isBackupRunSucceeded } from '@/features/backup/logic/backupRunDetailPresentation';
 import {
   compareBackupRunsByRequestedAtDesc,
   filterBackupRunsByTenantIdempotency,
@@ -37,7 +50,10 @@ import {
   resolveBackupRunDurationLabel,
   resolveBackupRunSizeLabel,
   resolveBackupRunTotalBytes,
-} from "@/features/backup/logic/backupRunTablePresentation";
+} from '@/features/backup/logic/backupRunTablePresentation';
+import { useI18n } from '@/i18n';
+import { formatDateTime as formatDisplayDateTime } from '@/i18n/formatting';
+import { formatUserTime } from '@/lib/dateFormatter';
 
 export interface BackupRunsTableProps {
   onViewDetails?: (run: BackupRunResponseDto) => void;
@@ -74,17 +90,17 @@ export function BackupRunsTable({
     async (res: Awaited<ReturnType<typeof triggerBackup.mutateAsync>>) => {
       const fb = describeBackupTriggerOutcome(res);
       const suffix = res.orchestrationState?.trim()
-        ? ` ${t("backupDr.messages.orchestrationStateSuffix", { state: res.orchestrationState })}`
-        : "";
+        ? ` ${t('backupDr.messages.orchestrationStateSuffix', { state: res.orchestrationState })}`
+        : '';
       const text = `${t(fb.messageKey)}${suffix}`;
-      if (fb.level === "success") message.success(text);
+      if (fb.level === 'success') message.success(text);
       else message.info(text);
       await queryClient.invalidateQueries({ queryKey: backupQueryKeys.all });
       await queryClient.invalidateQueries({ queryKey: backupQueryKeys.dashboardStats() });
       await queryClient.invalidateQueries({ queryKey: backupQueryKeys.recoverability() });
       if (onRetryInvalidate) await onRetryInvalidate();
     },
-    [onRetryInvalidate, queryClient, t],
+    [onRetryInvalidate, queryClient, t]
   );
 
   const pollPeek = usePollBackupLatestDashboardInterval();
@@ -100,33 +116,33 @@ export function BackupRunsTable({
       pageSize: BACKUP_RECENT_RUNS_PAGE_SIZE,
       tenantId: canFilterRunsByTenant ? selectedTenantId : undefined,
     },
-    { refetchInterval: pollAlignedRuns },
+    { refetchInterval: pollAlignedRuns }
   );
 
   const formatDateTime = useCallback(
     (iso: string | undefined | null) => {
-      if (!iso) return t("backupDr.runsTable.noValue");
+      if (!iso) return t('backupDr.runsTable.noValue');
       return formatDisplayDateTime(iso, formatLocale);
     },
-    [formatLocale, t],
+    [formatLocale, t]
   );
 
   const formatTime = useCallback(
     (iso: string | undefined | null) => {
-      if (!iso) return t("backupDr.runsTable.noValue");
+      if (!iso) return t('backupDr.runsTable.noValue');
       return formatUserTime(iso) || iso;
     },
-    [t],
+    [t]
   );
 
   const artifactTypeLabel = useCallback(
     (type: number | undefined) => {
-      if (type === undefined) return t("backupDr.runsTable.noValue");
+      if (type === undefined) return t('backupDr.runsTable.noValue');
       const key = `backupDr.runsTable.artifactType.${type}`;
       const label = t(key);
       return label === key ? String(type) : label;
     },
-    [t],
+    [t]
   );
 
   const viewDetails = useCallback(
@@ -140,44 +156,44 @@ export function BackupRunsTable({
         setDetailModalOpen(true);
       }
     },
-    [onViewDetails],
+    [onViewDetails]
   );
 
   const columns: ColumnsType<BackupRunResponseDto> = useMemo(
     () => [
       {
-        title: t("backupDr.runsTable.startTime"),
-        dataIndex: "requestedAt",
-        key: "requestedAt",
+        title: t('backupDr.runsTable.startTime'),
+        dataIndex: 'requestedAt',
+        key: 'requestedAt',
         render: (v: string | undefined) => formatDateTime(v),
         sorter: (a, b) => compareBackupRunsByRequestedAtDesc(a, b) * -1,
-        defaultSortOrder: "descend",
+        defaultSortOrder: 'descend',
       },
       {
-        title: t("backupDr.runsTable.statusColumn"),
-        dataIndex: "status",
-        key: "status",
+        title: t('backupDr.runsTable.statusColumn'),
+        dataIndex: 'status',
+        key: 'status',
         render: (status: number | undefined) => <BackupStatusBadge status={status} />,
         filters: [
-          { text: t("backupDr.runsTable.statusLabels.succeeded"), value: BackupRunStatus.NUMBER_3 },
-          { text: t("backupDr.runsTable.statusLabels.failed"), value: BackupRunStatus.NUMBER_4 },
+          { text: t('backupDr.runsTable.statusLabels.succeeded'), value: BackupRunStatus.NUMBER_3 },
+          { text: t('backupDr.runsTable.statusLabels.failed'), value: BackupRunStatus.NUMBER_4 },
           {
-            text: t("backupDr.runsTable.statusLabels.verificationFailed"),
+            text: t('backupDr.runsTable.statusLabels.verificationFailed'),
             value: BackupRunStatus.NUMBER_5,
           },
-          { text: t("backupDr.runsTable.statusLabels.running"), value: BackupRunStatus.NUMBER_1 },
-          { text: t("backupDr.runsTable.statusLabels.queued"), value: BackupRunStatus.NUMBER_0 },
+          { text: t('backupDr.runsTable.statusLabels.running'), value: BackupRunStatus.NUMBER_1 },
+          { text: t('backupDr.runsTable.statusLabels.queued'), value: BackupRunStatus.NUMBER_0 },
         ],
         onFilter: (value, record) => record.status === value,
       },
       {
-        title: t("backupDr.runsTable.duration"),
-        key: "duration",
+        title: t('backupDr.runsTable.duration'),
+        key: 'duration',
         render: (_: unknown, record: BackupRunResponseDto) => {
           const label = resolveBackupRunDurationLabel(record, t);
           return (
             <Tooltip
-              title={t("backupDr.runsTable.durationTooltip", {
+              title={t('backupDr.runsTable.durationTooltip', {
                 start: formatTime(record.startedAt),
                 end: formatTime(record.completedAt),
               })}
@@ -188,14 +204,14 @@ export function BackupRunsTable({
         },
       },
       {
-        title: t("backupDr.runsTable.size"),
-        key: "size",
+        title: t('backupDr.runsTable.size'),
+        key: 'size',
         render: (_: unknown, record: BackupRunResponseDto) => {
           const label = resolveBackupRunSizeLabel(record, t);
           const bytes = resolveBackupRunTotalBytes(record);
           const tooltip =
             bytes > 0
-              ? t("backupDr.runsTable.sizeBytesTooltip", {
+              ? t('backupDr.runsTable.sizeBytesTooltip', {
                   bytes: bytes.toLocaleString(formatLocale),
                 })
               : undefined;
@@ -207,30 +223,30 @@ export function BackupRunsTable({
         },
       },
       {
-        title: t("backupDr.runsTable.compression"),
-        key: "compression",
+        title: t('backupDr.runsTable.compression'),
+        key: 'compression',
         render: (_: unknown, record: BackupRunResponseDto) => {
           const ratio = record.compressionRatio;
           if (ratio == null || Number.isNaN(ratio)) {
-            return t("backupDr.runsTable.noValue");
+            return t('backupDr.runsTable.noValue');
           }
           const percent = Math.round(ratio);
           return (
             <Progress
               percent={percent}
               size="small"
-              status={percent < 50 ? "success" : "normal"}
+              status={percent < 50 ? 'success' : 'normal'}
               format={() => `${percent}%`}
             />
           );
         },
       },
       {
-        title: t("backupDr.runsTable.artifacts"),
-        key: "artifacts",
+        title: t('backupDr.runsTable.artifacts'),
+        key: 'artifacts',
         render: (_: unknown, record: BackupRunResponseDto) => {
           const list = record.artifacts ?? [];
-          if (!list.length) return t("backupDr.runsTable.noValue");
+          if (!list.length) return t('backupDr.runsTable.noValue');
           return (
             <Space size={[4, 4]} wrap>
               {list.map((artifact) => {
@@ -240,11 +256,11 @@ export function BackupRunsTable({
                   formatBackupBytes(artifact.byteSize ?? undefined, t);
                 return (
                   <Tooltip
-                    key={artifact.id ?? `${typeLabel}-${artifact.storageLocator ?? ""}`}
+                    key={artifact.id ?? `${typeLabel}-${artifact.storageLocator ?? ''}`}
                     title={`${typeLabel}: ${sizeLabel}`}
                   >
                     <Badge
-                      status={(artifact.byteSize ?? 0) > 0 ? "success" : "default"}
+                      status={(artifact.byteSize ?? 0) > 0 ? 'success' : 'default'}
                       text={<Typography.Text style={{ fontSize: 12 }}>{typeLabel}</Typography.Text>}
                     />
                   </Tooltip>
@@ -255,13 +271,13 @@ export function BackupRunsTable({
         },
       },
       {
-        title: t("backupDr.runsTable.error"),
-        dataIndex: "failureDetail",
-        key: "failureDetail",
+        title: t('backupDr.runsTable.error'),
+        dataIndex: 'failureDetail',
+        key: 'failureDetail',
         ellipsis: true,
         render: (text: string | null | undefined, record: BackupRunResponseDto) => {
           const detail = text?.trim() || record.failureCode?.trim();
-          if (!detail) return t("backupDr.runsTable.noValue");
+          if (!detail) return t('backupDr.runsTable.noValue');
           return (
             <Typography.Text type="danger" ellipsis={{ tooltip: detail }}>
               {detail}
@@ -270,8 +286,8 @@ export function BackupRunsTable({
         },
       },
       {
-        title: t("backupDr.runsTable.actions"),
-        key: "actions",
+        title: t('backupDr.runsTable.actions'),
+        key: 'actions',
         render: (_: unknown, record: BackupRunResponseDto) => (
           <Space
             size="small"
@@ -280,7 +296,7 @@ export function BackupRunsTable({
             onKeyDown={(e) => e.stopPropagation()}
           >
             <Button type="link" size="small" onClick={() => viewDetails(record)}>
-              {t("backupDr.runsTable.details")}
+              {t('backupDr.runsTable.details')}
             </Button>
             {record.id && isBackupRunSucceeded(record.status) ? (
               <Button
@@ -291,15 +307,15 @@ export function BackupRunsTable({
                   setVerificationReportOpen(true);
                 }}
               >
-                {t("backupDr.verificationReport.openReportShort")}
+                {t('backupDr.verificationReport.openReportShort')}
               </Button>
             ) : null}
             {isBackupRunFailed(record.status) && canTrigger ? (
               <Popconfirm
-                title={t("backupDr.runsTable.retryConfirmTitle")}
-                description={t("backupDr.runsTable.retryConfirmDescription")}
-                okText={t("backupDr.manual.confirmBackupOk")}
-                cancelText={t("backupDr.manual.confirmBackupCancel")}
+                title={t('backupDr.runsTable.retryConfirmTitle')}
+                description={t('backupDr.runsTable.retryConfirmDescription')}
+                okText={t('backupDr.manual.confirmBackupOk')}
+                cancelText={t('backupDr.manual.confirmBackupCancel')}
                 onConfirm={() =>
                   void triggerBackup
                     .mutateAsync({ tenantId: selectedTenantId })
@@ -313,14 +329,14 @@ export function BackupRunsTable({
                   loading={triggerBackup.isPending}
                   disabled={triggerBackup.isPending}
                 >
-                  {t("backupDr.runsTable.retry")}
+                  {t('backupDr.runsTable.retry')}
                 </Button>
               </Popconfirm>
             ) : null}
             {isSuperAdmin ? (
-              <Tooltip title={t("backupDr.runsTable.deleteUnavailable")}>
+              <Tooltip title={t('backupDr.runsTable.deleteUnavailable')}>
                 <Button type="link" size="small" danger disabled>
-                  {t("backupDr.runsTable.delete")}
+                  {t('backupDr.runsTable.delete')}
                 </Button>
               </Tooltip>
             ) : null}
@@ -340,7 +356,7 @@ export function BackupRunsTable({
       t,
       triggerBackup.isPending,
       viewDetails,
-    ],
+    ]
   );
 
   const tenantOptions = useMemo(
@@ -349,7 +365,7 @@ export function BackupRunsTable({
         label: `${row.name} (${row.slug})`,
         value: row.id,
       })),
-    [tenants],
+    [tenants]
   );
 
   const dataSource = useMemo(() => {
@@ -364,8 +380,8 @@ export function BackupRunsTable({
   }, [onRetryInvalidate, runsQuery]);
 
   const tableProps: TableProps<BackupRunResponseDto> = {
-    rowKey: (r) => r.id ?? r.requestedAt ?? "",
-    size: "small",
+    rowKey: (r) => r.id ?? r.requestedAt ?? '',
+    size: 'small',
     loading: runsQuery.isFetching,
     dataSource,
     columns,
@@ -378,7 +394,7 @@ export function BackupRunsTable({
     },
     onRow: (record) => ({
       onClick: () => viewDetails(record),
-      style: { cursor: "pointer" },
+      style: { cursor: 'pointer' },
     }),
   };
 
@@ -389,34 +405,36 @@ export function BackupRunsTable({
           type="error"
           showIcon
           style={{ marginBottom: 12 }}
-          title={t("backupDr.errors.partialTable")}
+          title={t('backupDr.errors.partialTable')}
           action={
             <Button type="link" size="small" onClick={() => void onRetry()}>
-              {t("backupDr.actions.refresh")}
+              {t('backupDr.actions.refresh')}
             </Button>
           }
         />
       ) : null}
       {!hideTitle ? (
         <Typography.Title level={5} style={{ marginTop: 0 }}>
-          {t("backupDr.adminBackup.recentBackupsTitle")}
+          {t('backupDr.adminBackup.recentBackupsTitle')}
         </Typography.Title>
       ) : null}
       <Alert
         type="info"
         showIcon
         style={{ marginBottom: 12 }}
-        title={t("backupDr.runsTable.instanceScopeTitle")}
-        description={t("backupDr.runsTable.instanceScopeDescription")}
+        title={t('backupDr.runsTable.instanceScopeTitle')}
+        description={t('backupDr.runsTable.instanceScopeDescription')}
       />
       {canFilterRunsByTenant ? (
         <Space style={{ marginBottom: 12 }} wrap>
-          <Typography.Text type="secondary">{t("backupDr.runsTable.tenantFilterLabel")}</Typography.Text>
+          <Typography.Text type="secondary">
+            {t('backupDr.runsTable.tenantFilterLabel')}
+          </Typography.Text>
           <Select
             allowClear
             showSearch
             style={{ minWidth: 280 }}
-            placeholder={t("backupDr.runsTable.tenantFilterPlaceholder")}
+            placeholder={t('backupDr.runsTable.tenantFilterPlaceholder')}
             value={selectedTenantId}
             onChange={(v) => {
               setSelectedTenantId(v);
@@ -430,7 +448,7 @@ export function BackupRunsTable({
       ) : null}
       <Table<BackupRunResponseDto> {...tableProps} />
       <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
-        {t("backupDr.runs.statusHint")}
+        {t('backupDr.runs.statusHint')}
       </Typography.Paragraph>
       <BackupDetailModal
         runId={detailRunId}

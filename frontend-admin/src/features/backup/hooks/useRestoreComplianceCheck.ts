@@ -1,11 +1,12 @@
-"use client";
+'use client';
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from '@tanstack/react-query';
+
 import {
+  type RestoreComplianceCheckResponseDto,
   getRestoreComplianceCheck,
   getRestoreComplianceCheckQueryKey,
-  type RestoreComplianceCheckResponseDto,
-} from "@/features/backup-dr/logic/manualRestoreApi";
+} from '@/features/backup-dr/logic/manualRestoreApi';
 
 export type UseRestoreComplianceCheckOptions = {
   enabled?: boolean;
@@ -19,13 +20,13 @@ export type UseRestoreComplianceCheckOptions = {
  */
 export function useRestoreComplianceCheck(
   backupRunId: string | null | undefined,
-  options?: UseRestoreComplianceCheckOptions,
+  options?: UseRestoreComplianceCheckOptions
 ) {
   const enabled = options?.enabled !== false && Boolean(backupRunId?.trim());
   const tenantId = options?.tenantId ?? null;
 
   const query = useQuery({
-    queryKey: getRestoreComplianceCheckQueryKey(backupRunId ?? "", tenantId),
+    queryKey: getRestoreComplianceCheckQueryKey(backupRunId ?? '', tenantId),
     queryFn: () => getRestoreComplianceCheck(backupRunId!.trim(), tenantId),
     enabled,
     staleTime: 30_000,

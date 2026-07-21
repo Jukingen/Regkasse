@@ -9,12 +9,12 @@ Operational RBAC surfaces for tenant admins are grouped under **Verwaltung → Z
 
 ## Routes
 
-| Route | Purpose | Route guard (`routePermissions.ts`) |
-|-------|---------|-------------------------------------|
-| `/admin/access` | Hub landing (overview cards) | `USER_VIEW` |
-| `/admin/users` | Tenant user lifecycle (list, create, deactivate, …) | `USER_VIEW` |
-| `/admin/access/roles` | Role CRUD + permission editor (full page) | `ROLE_MANAGE` |
-| `/admin/access/matrix` | Read-only role ↔ permission matrix summary | `ROLE_VIEW` |
+| Route                  | Purpose                                             | Route guard (`routePermissions.ts`) |
+| ---------------------- | --------------------------------------------------- | ----------------------------------- |
+| `/admin/access`        | Hub landing (overview cards)                        | `USER_VIEW`                         |
+| `/admin/users`         | Tenant user lifecycle (list, create, deactivate, …) | `USER_VIEW`                         |
+| `/admin/access/roles`  | Role CRUD + permission editor (full page)           | `ROLE_MANAGE`                       |
+| `/admin/access/matrix` | Read-only role ↔ permission matrix summary          | `ROLE_VIEW`                         |
 
 Super Admin platform mode uses **`/users`** (redirects to `/admin/users` when needed) with `UnifiedAdminUsersView`; the access hub secondary nav is hidden for Super Admin layout.
 
@@ -42,14 +42,14 @@ Secondary tabs on hub pages: `AccessSecondaryNav` (Settings-style horizontal nav
 
 Do **not** duplicate RBAC logic in the hub UI.
 
-| Layer | Responsibility |
-|-------|----------------|
-| Backend | `RolePermissionMatrix.cs` — canonical role → permission keys |
+| Layer              | Responsibility                                                                                                                    |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| Backend            | `RolePermissionMatrix.cs` — canonical role → permission keys                                                                      |
 | Admin login filter | `AdminAppPermissionProfile.cs` — JWT + `/me` permissions when `app_context=admin` (strips POS-only keys; Cashier admin whitelist) |
-| Frontend `/me` | Same filtered permission list as JWT |
-| Menus | `adminSidebarRegistry.ts` + `usePermissions()` |
-| Routes | `routePermissions.ts` |
-| Page actions | `usersPolicy`, `usePermissions()`, feature-level guards |
+| Frontend `/me`     | Same filtered permission list as JWT                                                                                              |
+| Menus              | `adminSidebarRegistry.ts` + `usePermissions()`                                                                                    |
+| Routes             | `routePermissions.ts`                                                                                                             |
+| Page actions       | `usersPolicy`, `usePermissions()`, feature-level guards                                                                           |
 
 Contract tests:
 

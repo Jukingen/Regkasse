@@ -44,27 +44,24 @@ export function ActionSheet({
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
-            <View style={[
-              styles.container,
-              {
-                backgroundColor: colorScheme === 'dark' ? '#1C1C1E' : '#FFFFFF',
-              },
-            ]}>
+            <View
+              style={[
+                styles.container,
+                {
+                  backgroundColor: colorScheme === 'dark' ? '#1C1C1E' : '#FFFFFF',
+                },
+              ]}>
               {title && (
                 <View style={styles.titleContainer}>
-                  <Text style={[
-                    styles.title,
-                    { color: colorScheme === 'dark' ? '#FFFFFF' : '#000000' }
-                  ]}>
+                  <Text
+                    style={[
+                      styles.title,
+                      { color: colorScheme === 'dark' ? '#FFFFFF' : '#000000' },
+                    ]}>
                     {title}
                   </Text>
                 </View>
@@ -78,8 +75,9 @@ export function ActionSheet({
                     index === 0 && styles.firstOption,
                     index === options.length - 1 && styles.lastOption,
                   ]}
-                  onPress={() => handleSelect(option)}
-                >
+                  onPress={() => {
+                    handleSelect(option);
+                  }}>
                   {option.icon && (
                     <Ionicons
                       name={option.icon as any}
@@ -88,14 +86,15 @@ export function ActionSheet({
                       style={styles.optionIcon}
                     />
                   )}
-                  <Text style={[
-                    styles.optionText,
-                    {
-                      color: option.destructive
-                        ? '#FF3B30'
-                        : option.color || (colorScheme === 'dark' ? '#FFFFFF' : '#000000'),
-                    },
-                  ]}>
+                  <Text
+                    style={[
+                      styles.optionText,
+                      {
+                        color: option.destructive
+                          ? '#FF3B30'
+                          : option.color || (colorScheme === 'dark' ? '#FFFFFF' : '#000000'),
+                      },
+                    ]}>
                     {option.title}
                   </Text>
                 </TouchableOpacity>
@@ -167,4 +166,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-}); 
+});

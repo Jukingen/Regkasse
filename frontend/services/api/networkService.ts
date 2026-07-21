@@ -27,7 +27,7 @@ export interface HealthStatus {
 }
 
 class NetworkService {
-  private baseUrl = '/api/network';
+  private readonly baseUrl = '/api/network';
 
   // Network durumunu getir
   async getNetworkStatus(): Promise<NetworkStatus> {
@@ -44,13 +44,18 @@ class NetworkService {
         status: 'DISCONNECTED',
         canProcessInvoices: false,
         canSubmitToFinanzOnline: false,
-        recommendations: ['İnternet bağlantısını kontrol edin', 'TSE cihazının bağlı olduğundan emin olun']
+        recommendations: [
+          'İnternet bağlantısını kontrol edin',
+          'TSE cihazının bağlı olduğundan emin olun',
+        ],
       };
     }
   }
 
   // Bağlantı testi yap
-  async testConnection(url: string): Promise<{ url: string; isAvailable: boolean; message: string }> {
+  async testConnection(
+    url: string
+  ): Promise<{ url: string; isAvailable: boolean; message: string }> {
     try {
       const response = await apiClient.post<{ url: string; isAvailable: boolean; message: string }>(
         `${this.baseUrl}/test`,
@@ -77,7 +82,9 @@ class NetworkService {
   // Monitoring başlat (Admin only)
   async startMonitoring(): Promise<{ message: string }> {
     try {
-      const response = await apiClient.post<{ message: string }>(`${this.baseUrl}/monitoring/start`);
+      const response = await apiClient.post<{ message: string }>(
+        `${this.baseUrl}/monitoring/start`
+      );
       return response;
     } catch (error) {
       console.error('Start monitoring failed:', error);
@@ -97,7 +104,10 @@ class NetworkService {
   }
 
   // Periyodik network durumu kontrolü
-  async startPeriodicCheck(callback: (status: NetworkStatus) => void, intervalMs: number = 2 * 60 * 1000): Promise<number> {
+  async startPeriodicCheck(
+    callback: (status: NetworkStatus) => void,
+    intervalMs: number = 2 * 60 * 1000
+  ): Promise<ReturnType<typeof setTimeout>> {
     const checkStatus = async () => {
       try {
         const status = await this.getNetworkStatus();
@@ -109,7 +119,7 @@ class NetworkService {
 
     // İlk kontrolü hemen yap
     await checkStatus();
-    
+
     // Periyodik kontrolü başlat
     return setInterval(checkStatus, intervalMs);
   }
@@ -139,4 +149,4 @@ class NetworkService {
   }
 }
 
-export const networkService = new NetworkService(); 
+export const networkService = new NetworkService();

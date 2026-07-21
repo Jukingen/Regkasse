@@ -1,7 +1,6 @@
 /**
  * Artefakt indirme satırı / çalıştırma bağlamı için operatör-güvenli anlam modeli (DTO + recoverability sinyali).
  */
-
 import type { BackupArtifactResponseDto } from '@/api/generated/model';
 import { BackupArtifactResponseDtoArtifactType } from '@/api/generated/model/backupArtifactResponseDtoArtifactType';
 import { isSimulatedBackupAdapterKind } from '@/features/backup-dr/logic/backupDrMappers';
@@ -79,7 +78,7 @@ export function inferSourceExecutionReality(ctx: RunDownloadContext): SourceExec
 
 export function inferRecoverabilityUse(
   source: SourceExecutionReality,
-  realPg: boolean | null | undefined,
+  realPg: boolean | null | undefined
 ): RecoverabilityUseKind {
   if (source === 'simulated_stub') return 'not_dr_evidence_simulated';
   if (source === 'unknown') return 'unknown_recovery_value';
@@ -89,7 +88,7 @@ export function inferRecoverabilityUse(
 }
 
 export function inferFilePresenceKind(
-  isFilePresentForDownload: boolean | undefined,
+  isFilePresentForDownload: boolean | undefined
 ): FilePresenceForDownloadKind {
   if (isFilePresentForDownload === true) return 'reported_present';
   if (isFilePresentForDownload === false) return 'reported_absent';
@@ -102,7 +101,7 @@ export function inferFilePresenceKind(
  */
 export function inferNonFakeArtifactSuspicion(
   artifact: BackupArtifactResponseDto,
-  source: SourceExecutionReality,
+  source: SourceExecutionReality
 ): NonFakeArtifactSuspicion {
   if (source === 'simulated_stub') return 'none';
   if (artifact.isFilePresentForDownload !== true) return 'none';
@@ -116,7 +115,8 @@ export function inferNonFakeArtifactSuspicion(
   }
   if (source !== 'non_simulated') return 'none';
   if (artifact.artifactType === BackupArtifactResponseDtoArtifactType.NUMBER_0) {
-    if (raw > 0 && raw < TINY_LOGICAL_DUMP_SUSPICION_BYTES_THRESHOLD) return 'tiny_reported_logical_dump';
+    if (raw > 0 && raw < TINY_LOGICAL_DUMP_SUSPICION_BYTES_THRESHOLD)
+      return 'tiny_reported_logical_dump';
   }
   return 'none';
 }
@@ -127,7 +127,7 @@ export function shouldShowIntegrityPrecheckDisclaimer(source: SourceExecutionRea
 
 /** i18n: `backupDr.download.suspicion.<kind>.short` / `.detail` — kind `none` için null. */
 export function nonFakeSuspicionMessageKeys(
-  kind: NonFakeArtifactSuspicion,
+  kind: NonFakeArtifactSuspicion
 ): { short: string; detail: string } | null {
   if (kind === 'none') return null;
   return {
@@ -142,12 +142,13 @@ export function nonFakeSuspicionMessageKeys(
 export function artifactClassLabelKeyForType(
   artifactType: number | undefined,
   source: SourceExecutionReality,
-  realPg: boolean | null | undefined,
+  realPg: boolean | null | undefined
 ): string {
   const t = artifactType ?? -1;
   if (t === BackupArtifactResponseDtoArtifactType.NUMBER_0) {
     if (source === 'simulated_stub') return 'backupDr.download.types.logicalDumpStub';
-    if (realPg === true && source === 'non_simulated') return 'backupDr.download.types.logicalDumpOperational';
+    if (realPg === true && source === 'non_simulated')
+      return 'backupDr.download.types.logicalDumpOperational';
     return 'backupDr.download.types.logicalDumpNotProven';
   }
   if (t === BackupArtifactResponseDtoArtifactType.NUMBER_4) {
@@ -168,13 +169,16 @@ export function artifactClassLabelKeyForType(
 export function artifactContentExpectationKey(
   artifactType: number | undefined,
   source: SourceExecutionReality,
-  realPg: boolean | null | undefined,
+  realPg: boolean | null | undefined
 ): string {
   const t = artifactType ?? -1;
   if (source === 'simulated_stub') {
-    if (t === BackupArtifactResponseDtoArtifactType.NUMBER_0) return 'backupDr.download.contentExpect.stubLogicalDumpFakeAdapter';
-    if (t === BackupArtifactResponseDtoArtifactType.NUMBER_4) return 'backupDr.download.contentExpect.stubManifestFakeAdapter';
-    if (Number.isInteger(t) && t >= 1 && t <= 5) return `backupDr.download.contentExpect.stubTyped.${t}`;
+    if (t === BackupArtifactResponseDtoArtifactType.NUMBER_0)
+      return 'backupDr.download.contentExpect.stubLogicalDumpFakeAdapter';
+    if (t === BackupArtifactResponseDtoArtifactType.NUMBER_4)
+      return 'backupDr.download.contentExpect.stubManifestFakeAdapter';
+    if (Number.isInteger(t) && t >= 1 && t <= 5)
+      return `backupDr.download.contentExpect.stubTyped.${t}`;
     return 'backupDr.download.contentExpect.stubOther';
   }
   if (t === BackupArtifactResponseDtoArtifactType.NUMBER_0) {
@@ -195,7 +199,9 @@ export function artifactContentExpectationKey(
 }
 
 /** Çoklu artefakt tablosunda: mantıksal döküm önce, manifest sonra (Fake çifti okunaklı olsun). */
-export function sortArtifactsForOperatorDisplay(artifacts: BackupArtifactResponseDto[]): BackupArtifactResponseDto[] {
+export function sortArtifactsForOperatorDisplay(
+  artifacts: BackupArtifactResponseDto[]
+): BackupArtifactResponseDto[] {
   const rank = (artifactType: number | undefined): number => {
     const x = artifactType ?? 999;
     if (x === BackupArtifactResponseDtoArtifactType.NUMBER_0) return 0;
@@ -218,7 +224,7 @@ export function artifactRealityBadgeKey(source: SourceExecutionReality): string 
  */
 export function artifactByteSizeFootnoteKey(
   artifactType: number | undefined,
-  source: SourceExecutionReality,
+  source: SourceExecutionReality
 ): string | null {
   if (source === 'simulated_stub') return 'backupDr.download.byteSizeFootnote.stubExpectedTiny';
   const t = artifactType ?? -1;
@@ -232,7 +238,7 @@ export function artifactByteSizeFootnoteKey(
 export function contentExpectationTableSummaryKey(
   artifactType: number | undefined,
   source: SourceExecutionReality,
-  realPg: boolean | null | undefined,
+  realPg: boolean | null | undefined
 ): string | null {
   if (source === 'simulated_stub') {
     if (artifactType === BackupArtifactResponseDtoArtifactType.NUMBER_0) {
@@ -242,10 +248,17 @@ export function contentExpectationTableSummaryKey(
       return 'backupDr.download.contentExpectSummary.stubManifestFakeAdapter';
     }
   }
-  if (artifactType === BackupArtifactResponseDtoArtifactType.NUMBER_4 && source === 'non_simulated') {
+  if (
+    artifactType === BackupArtifactResponseDtoArtifactType.NUMBER_4 &&
+    source === 'non_simulated'
+  ) {
     return 'backupDr.download.contentExpectSummary.manifestNonStub';
   }
-  if (artifactType === BackupArtifactResponseDtoArtifactType.NUMBER_0 && source === 'non_simulated' && realPg === true) {
+  if (
+    artifactType === BackupArtifactResponseDtoArtifactType.NUMBER_0 &&
+    source === 'non_simulated' &&
+    realPg === true
+  ) {
     return 'backupDr.download.contentExpectSummary.logicalDumpOperationalShort';
   }
   return null;
@@ -253,7 +266,7 @@ export function contentExpectationTableSummaryKey(
 
 export function shouldConfirmDownloadUnprovenLogicalDump(
   artifact: BackupArtifactResponseDto,
-  truth: ArtifactDownloadRowTruth,
+  truth: ArtifactDownloadRowTruth
 ): boolean {
   if (truth.sourceExecutionReality !== 'non_simulated') return false;
   if (artifact.artifactType !== BackupArtifactResponseDtoArtifactType.NUMBER_0) return false;
@@ -262,9 +275,12 @@ export function shouldConfirmDownloadUnprovenLogicalDump(
 
 export function recoverabilityUseShortKey(use: RecoverabilityUseKind): string {
   const m: Record<RecoverabilityUseKind, string> = {
-    not_dr_evidence_simulated: 'backupDr.download.recoverabilityUse.short.not_dr_evidence_simulated',
-    not_dr_evidence_unverified_adapter: 'backupDr.download.recoverabilityUse.short.not_dr_evidence_unverified_adapter',
-    possible_operational_artifact: 'backupDr.download.recoverabilityUse.short.possible_operational_artifact',
+    not_dr_evidence_simulated:
+      'backupDr.download.recoverabilityUse.short.not_dr_evidence_simulated',
+    not_dr_evidence_unverified_adapter:
+      'backupDr.download.recoverabilityUse.short.not_dr_evidence_unverified_adapter',
+    possible_operational_artifact:
+      'backupDr.download.recoverabilityUse.short.possible_operational_artifact',
     unknown_recovery_value: 'backupDr.download.recoverabilityUse.short.unknown_recovery_value',
   };
   return m[use];
@@ -272,7 +288,7 @@ export function recoverabilityUseShortKey(use: RecoverabilityUseKind): string {
 
 export function buildArtifactDownloadRowTruth(
   artifact: BackupArtifactResponseDto,
-  ctx: RunDownloadContext,
+  ctx: RunDownloadContext
 ): ArtifactDownloadRowTruth {
   const source = inferSourceExecutionReality(ctx);
   const recoverabilityUse = inferRecoverabilityUse(source, ctx.realPostgreSqlLogicalDumpConfigured);
@@ -280,20 +296,26 @@ export function buildArtifactDownloadRowTruth(
 
   let download: DownloadEligibility = { state: 'eligible' };
   if (!ctx.canManage) download = { state: 'blocked', reason: 'no_manage' };
-  else if (filePresence === 'reported_absent') download = { state: 'blocked', reason: 'file_not_on_server' };
-  else if (filePresence === 'unknown') download = { state: 'blocked', reason: 'file_presence_unknown' };
+  else if (filePresence === 'reported_absent')
+    download = { state: 'blocked', reason: 'file_not_on_server' };
+  else if (filePresence === 'unknown')
+    download = { state: 'blocked', reason: 'file_presence_unknown' };
 
   const nonFakeSuspicion = inferNonFakeArtifactSuspicion(artifact, source);
   const showIntegrityPrecheckDisclaimer = shouldShowIntegrityPrecheckDisclaimer(source);
   const contentExpectationKey = artifactContentExpectationKey(
     artifact.artifactType,
     source,
-    ctx.realPostgreSqlLogicalDumpConfigured,
+    ctx.realPostgreSqlLogicalDumpConfigured
   );
 
   return {
     artifactId: artifact.id,
-    artifactClassLabelKey: artifactClassLabelKeyForType(artifact.artifactType, source, ctx.realPostgreSqlLogicalDumpConfigured),
+    artifactClassLabelKey: artifactClassLabelKeyForType(
+      artifact.artifactType,
+      source,
+      ctx.realPostgreSqlLogicalDumpConfigured
+    ),
     contentExpectationKey,
     sourceExecutionReality: source,
     recoverabilityUse,
@@ -311,7 +333,7 @@ export function buildArtifactDownloadRowTruth(
  */
 export function formatArtifactByteSize(
   n: number | null | undefined,
-  t: (key: string, options?: Record<string, string | number>) => string,
+  t: (key: string, options?: Record<string, string | number>) => string
 ): string {
   if (n == null || Number.isNaN(n)) return '—';
   if (n < 1024) return t('backupDr.latestRun.bytesB', { n: String(Math.round(n)) });
@@ -329,9 +351,7 @@ export function shouldOfferLastKnownGoodArtifactDownload(params: {
   const lkg = params.lastSuccessfulBackupRunId?.trim();
   if (!lkg) return false;
   const failed =
-    params.latestStatus === 4 ||
-    params.latestStatus === 5 ||
-    params.latestStatus === 6;
+    params.latestStatus === 4 || params.latestStatus === 5 || params.latestStatus === 6;
   if (!failed) return false;
   if (params.latestRunId && lkg === params.latestRunId) return false;
   return true;

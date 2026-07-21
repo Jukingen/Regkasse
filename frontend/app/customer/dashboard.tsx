@@ -5,6 +5,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Alert,
@@ -15,7 +16,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useTranslation } from 'react-i18next';
+
 import { useCustomerDashboard } from '../../hooks/useCustomerDashboard';
 import { getEnvDevTenantSlug } from '../../services/tenant/devTenant';
 
@@ -91,8 +92,7 @@ export default function CustomerDashboardPage() {
       <TouchableOpacity
         style={[styles.button, isLoading && styles.buttonDisabled]}
         onPress={onSearch}
-        disabled={isLoading}
-      >
+        disabled={isLoading}>
         {isLoading ? (
           <ActivityIndicator color="#fff" />
         ) : (

@@ -5,11 +5,11 @@ import { SuperAdminDashboard } from '@/features/dashboard/components/SuperAdminD
 import { usePermissions } from '@/hooks/usePermissions';
 
 export default function DashboardPage() {
-    const { isSuperAdmin } = usePermissions();
+  const { isSuperAdmin } = usePermissions();
 
-    if (isSuperAdmin) {
-        return <SuperAdminDashboard />;
-    }
+  if (isSuperAdmin) {
+    return <SuperAdminDashboard />;
+  }
 
-    return <ManagerDashboard />;
+  return <ManagerDashboard />;
 }

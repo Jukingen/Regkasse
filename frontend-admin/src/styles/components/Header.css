@@ -190,7 +190,9 @@
 .cash-register-quick-switch-trigger-wrap {
   display: inline-flex;
   border-radius: 8px;
-  transition: box-shadow 0.15s ease, background-color 0.15s ease;
+  transition:
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .cash-register-quick-switch-trigger-wrap--active {

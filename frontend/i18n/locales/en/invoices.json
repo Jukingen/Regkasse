@@ -27,7 +27,8 @@
   "errors": {
     "loadInvoices": "An error occurred while loading invoices",
     "loadDetail": "An error occurred while loading invoice details",
-    "downloadPdf": "An error occurred while downloading PDF"
+    "downloadPdf": "An error occurred while downloading PDF",
+    "shareUnavailable": "Sharing is not available on this device"
   },
   "statusLabels": {
     "paid": "Paid",

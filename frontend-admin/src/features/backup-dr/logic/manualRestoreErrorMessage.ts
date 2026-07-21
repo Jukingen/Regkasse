@@ -1,9 +1,6 @@
 import axios from 'axios';
 
-export function manualRestoreErrorMessage(
-  err: unknown,
-  t: (k: string) => string,
-): string {
+export function manualRestoreErrorMessage(err: unknown, t: (k: string) => string): string {
   if (axios.isAxiosError(err)) {
     const data = err.response?.data as { error?: string; code?: string } | undefined;
     if (typeof data?.error === 'string' && data.error.trim()) return data.error;

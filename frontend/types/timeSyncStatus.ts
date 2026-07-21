@@ -39,7 +39,11 @@ export function normalizeSystemTimeStatusDto(raw: unknown): SystemTimeStatusDto 
 
   const sysRaw = o.systemTimeUtc ?? o.SystemTimeUtc;
   const systemTimeUtc =
-    typeof sysRaw === 'string' ? sysRaw : sysRaw instanceof Date ? sysRaw.toISOString() : new Date().toISOString();
+    typeof sysRaw === 'string'
+      ? sysRaw
+      : sysRaw instanceof Date
+        ? sysRaw.toISOString()
+        : new Date().toISOString();
 
   const ntpRaw = o.ntpTimeUtc ?? o.NtpTimeUtc;
   let ntpTimeUtc: string | null = null;
@@ -73,20 +77,15 @@ export function deriveTimeSyncUiFlags(status: SystemTimeStatusDto | null): {
   }
 
   const off = status.offsetSeconds;
-  const abs =
-    typeof off === 'number' && Number.isFinite(off)
-      ? Math.abs(off)
-      : null;
+  const abs = typeof off === 'number' && Number.isFinite(off) ? Math.abs(off) : null;
 
   const criticalByLevel = status.warningLevel === 'critical';
   const warnByLevel = status.warningLevel === 'warning';
 
-  const timeSyncCritical =
-    criticalByLevel || (abs != null && abs > 60);
+  const timeSyncCritical = criticalByLevel || (abs != null && abs > 60);
 
   const timeSyncWarningBand =
-    !timeSyncCritical &&
-    (warnByLevel || (abs != null && abs > 5 && abs <= 60));
+    !timeSyncCritical && (warnByLevel || (abs != null && abs > 5 && abs <= 60));
 
   return {
     absOffsetSeconds: abs,

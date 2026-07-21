@@ -6,12 +6,12 @@ import { billingQueryKeys } from '@/features/billing/constants/billingQueryKeys'
 import { useBillingAccess } from '@/features/billing/hooks/useBillingAccess';
 
 export function useBillingAuditLogs(filters: BillingAuditLogsFilters = {}) {
-    const canAccess = useBillingAccess();
+  const canAccess = useBillingAccess();
 
-    return billingApi.useAudit(filters, {
-        query: {
-            enabled: canAccess,
-            queryKey: billingQueryKeys.auditList(filters),
-        },
-    });
+  return billingApi.useAudit(filters, {
+    query: {
+      enabled: canAccess,
+      queryKey: billingQueryKeys.auditList(filters),
+    },
+  });
 }

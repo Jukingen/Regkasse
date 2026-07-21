@@ -10,25 +10,25 @@
 
 ### Frontend-admin
 
-| File | Responsibility |
-|------|----------------|
-| `src/app/(protected)/users/page.tsx` | Users list, edit/create state, `editUserId`, `useRoles()`, `roleOptions`, passes data to drawers |
-| `src/features/users/components/UserFormDrawer.tsx` | Create/Edit user form; **single role** `Select`; receives `roleOptions` and `user` |
-| `src/features/users/components/UserDetailDrawer.tsx` | View user + activity; displays `user.role` (read-only) |
+| File                                                     | Responsibility                                                                                                                                 |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app/(protected)/users/page.tsx`                     | Users list, edit/create state, `editUserId`, `useRoles()`, `roleOptions`, passes data to drawers                                               |
+| `src/features/users/components/UserFormDrawer.tsx`       | Create/Edit user form; **single role** `Select`; receives `roleOptions` and `user`                                                             |
+| `src/features/users/components/UserDetailDrawer.tsx`     | View user + activity; displays `user.role` (read-only)                                                                                         |
 | `src/features/users/components/RoleManagementDrawer.tsx` | **Role ↔ permissions** editor (left: role list, right: permission checklist). **No “selected user”** – manages roles, not user→role assignment |
-| `src/features/users/api/usersGateway.ts` | `getRoles()`, `getUserById()`, `rolesQueryKey`, `getUserByIdQueryKey(id)` |
-| `src/features/users/api/roleManagementApi.ts` | `getRolesWithPermissions()`, `getPermissionsCatalog()` – used by **Role Management** drawer only |
-| `src/features/users/hooks/useRoles.ts` | `useQuery(rolesQueryKey, getRoles)` – list of role **names** (string[]) |
-| `src/features/users/hooks/useRolesWithPermissions.ts` | Used by Role Management drawer (roles + permissions), not by user edit form |
-| `src/api/generated/model/userInfo.ts` | `UserInfo` with `role?: string \| null` (single role) |
+| `src/features/users/api/usersGateway.ts`                 | `getRoles()`, `getUserById()`, `rolesQueryKey`, `getUserByIdQueryKey(id)`                                                                      |
+| `src/features/users/api/roleManagementApi.ts`            | `getRolesWithPermissions()`, `getPermissionsCatalog()` – used by **Role Management** drawer only                                               |
+| `src/features/users/hooks/useRoles.ts`                   | `useQuery(rolesQueryKey, getRoles)` – list of role **names** (string[])                                                                        |
+| `src/features/users/hooks/useRolesWithPermissions.ts`    | Used by Role Management drawer (roles + permissions), not by user edit form                                                                    |
+| `src/api/generated/model/userInfo.ts`                    | `UserInfo` with `role?: string \| null` (single role)                                                                                          |
 
 ### Backend
 
-| File | Responsibility |
-|------|----------------|
+| File                                      | Responsibility                                                                                                                                       |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Controllers/UserManagementController.cs` | `GET /api/UserManagement/roles` → all role names; `GET /api/UserManagement/{id}` → `UserInfo` (single `Role`); `PUT {id}` → `UpdateUserRequest.Role` |
-| `Controllers/UserManagementController.cs` | `GET roles/with-permissions` → full role catalog with permissions (for Role Management drawer) |
-| `Services/RoleManagementService.cs` | `GetRolesWithPermissionsAsync()` → all roles from `_roleManager.Roles` |
+| `Controllers/UserManagementController.cs` | `GET roles/with-permissions` → full role catalog with permissions (for Role Management drawer)                                                       |
+| `Services/RoleManagementService.cs`       | `GetRolesWithPermissionsAsync()` → all roles from `_roleManager.Roles`                                                                               |
 
 ---
 
@@ -112,11 +112,11 @@
 
 ## 6. Frontend Impact
 
-| Area | Change |
-|------|--------|
-| `users/page.tsx` | Ensure `roleOptions` always from catalog; optional: enable `useRoles` when edit drawer open; invalidate `getUserByIdQueryKey` on successful update; optionally use `roleOptions` for filter Select. |
-| `UserFormDrawer.tsx` | Keep key by user; ensure form reset when `user` or `open`/mode changes; no use of `user.role` to build options. |
-| Hooks / API | No change to `getRoles` or `getUserById`; optional refetch of roles when opening edit. |
+| Area                 | Change                                                                                                                                                                                              |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `users/page.tsx`     | Ensure `roleOptions` always from catalog; optional: enable `useRoles` when edit drawer open; invalidate `getUserByIdQueryKey` on successful update; optionally use `roleOptions` for filter Select. |
+| `UserFormDrawer.tsx` | Keep key by user; ensure form reset when `user` or `open`/mode changes; no use of `user.role` to build options.                                                                                     |
+| Hooks / API          | No change to `getRoles` or `getUserById`; optional refetch of roles when opening edit.                                                                                                              |
 
 ---
 
@@ -150,6 +150,7 @@
 ## 10. Implementation Summary (Done)
 
 ### Files changed
+
 - **`frontend-admin/src/features/users/components/UserFormDrawer.tsx`**  
   Role selection is now catalog-driven: full `roleOptions` rendered as `Radio.Group`; only the user's role is checked (form value `role`). Added `rolesLoading` prop; when catalog is loading and options empty, show `usersCopy.rolesLoading` instead of a subset.
 - **`frontend-admin/src/app/(protected)/users/page.tsx`**  
@@ -158,18 +159,22 @@
   Added `rolesLoading: 'Rollen werden geladen…'`.
 
 ### Root cause
+
 - Frontend rendered role options from the same source as the selected value; in edge cases (slow catalog, or dropdown showing only the selected value) it looked like "only assigned". Fix: always render from **full catalog** (roleOptions) and let **assigned state** only set the checked/selected value (Radio.Group value = `user.role`).
 - Stale state on user switch: form was keyed by `user.id`; added invalidation of user-detail query on save so re-opening the same user gets fresh data.
 
 ### Endpoint contract
+
 - No backend or API contract change. Still single `UserInfo.role`; GET `/api/UserManagement/roles` and GET `/{id}` unchanged.
 
 ### Queries/mutations/state
+
 - **useRoles:** `enabled: policy.canView || !!editUserId` so catalog loads when edit drawer opens.
 - **updateMutation.onSuccess:** `queryClient.invalidateQueries({ queryKey: getUserByIdQueryKey(id) })` plus existing list invalidation.
 - **UserFormDrawer:** Key `edit-${user.id}` unchanged (resets form when switching users); role UI = Radio.Group with options from catalog, value from form.
 
 ### Manual verification
+
 1. Open Users → Edit a user: all roles from catalog appear as radio list; only that user's role is selected.
 2. Switch to another user (without closing drawer): form remounts (key change), new user's role is selected.
 3. Change role, Save: list and cache update; open same user again, role is updated.

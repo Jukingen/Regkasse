@@ -1,16 +1,17 @@
 'use client';
 
-import { Alert, Button } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
+import { Alert, Button } from 'antd';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { TenantDataManagementPanel } from '@/features/data-management/components/TenantDataManagementPanel';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
-import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
 
 /**
  * GDPR customer data rights + expired-license data management:

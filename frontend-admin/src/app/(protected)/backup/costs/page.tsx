@@ -1,9 +1,10 @@
-"use client";
+'use client';
 
-import React from "react";
-import { BackupPageShell } from "@/features/backup/components/BackupPageShell";
-import { BackupStorageCostsDashboard } from "@/features/backup/components/BackupStorageCostsDashboard";
-import { BACKUP_COSTS_PATH } from "@/shared/backupAreaRoutes";
+import React from 'react';
+
+import { BackupPageShell } from '@/features/backup/components/BackupPageShell';
+import { BackupStorageCostsDashboard } from '@/features/backup/components/BackupStorageCostsDashboard';
+import { BACKUP_COSTS_PATH } from '@/shared/backupAreaRoutes';
 
 export default function BackupCostsPage() {
   return (

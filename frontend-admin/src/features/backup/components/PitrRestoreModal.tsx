@@ -1,24 +1,38 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
-import { useCallback, useEffect, useState } from 'react';
-import { Modal, Alert, Button, Col, DatePicker, Row, Space, Spin, Statistic, Tag, Timeline, Typography } from 'antd';
 import {
   CalendarOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
+import {
+  Alert,
+  Button,
+  Col,
+  DatePicker,
+  Modal,
+  Row,
+  Space,
+  Spin,
+  Statistic,
+  Tag,
+  Timeline,
+  Typography,
+} from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
-import { useI18n } from '@/i18n';
-import { formatDateTime } from '@/i18n/formatting';
+import { useCallback, useEffect, useState } from 'react';
+
 import {
   usePitrAvailability,
   useValidatePitrRestorePoint,
 } from '@/features/backup/hooks/useBackupPitr';
 import type { RestorePointValidationResult } from '@/features/backup/logic/backupPitrApi';
-import { normalizeApiError } from '@/shared/errors/normalizedApiError';
 import { buildPitrDateTimeConstraints } from '@/features/backup/logic/pitrDateTimeConstraints';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { useI18n } from '@/i18n';
+import { formatDateTime } from '@/i18n/formatting';
+import { normalizeApiError } from '@/shared/errors/normalizedApiError';
 
 export type PitrRestorePayload = {
   targetTime: Date;
@@ -88,7 +102,7 @@ export function PitrRestoreModal({
         });
       }
     },
-    [validateMutation, t],
+    [validateMutation, t]
   );
 
   const handleRestore = () => {
@@ -121,7 +135,7 @@ export function PitrRestoreModal({
 
   const { disabledDate, disabledTime } = buildPitrDateTimeConstraints(
     availability?.earliestRestorePointUtc,
-    availability?.latestRestorePointUtc,
+    availability?.latestRestorePointUtc
   );
 
   const supportedPoints = availability?.supportedTimePointsUtc ?? [];
@@ -198,7 +212,13 @@ export function PitrRestoreModal({
             />
           ) : null}
 
-          <div style={{ marginBottom: 24, padding: 16, background: 'var(--ant-color-fill-quaternary)' }}>
+          <div
+            style={{
+              marginBottom: 24,
+              padding: 16,
+              background: 'var(--ant-color-fill-quaternary)',
+            }}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
               <span>
                 <ClockCircleOutlined /> {t('backupDr.pitr.availablePointsTitle')}
@@ -276,7 +296,9 @@ export function PitrRestoreModal({
               {validation.isValid ? (
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
-                    <CheckCircleOutlined style={{ color: 'var(--ant-color-success)', marginRight: 8 }} />
+                    <CheckCircleOutlined
+                      style={{ color: 'var(--ant-color-success)', marginRight: 8 }}
+                    />
                     <Typography.Text strong>{t('backupDr.pitr.validationOkTitle')}</Typography.Text>
                   </div>
                   <Row gutter={16}>
@@ -284,14 +306,14 @@ export function PitrRestoreModal({
                       <Statistic
                         title={t('backupDr.pitr.baseBackup')}
                         value={formatPitrDateTime(validation.baseBackupTimeUtc, formatLocale)}
-                        styles={{ content: {  fontSize: 14  } }}
+                        styles={{ content: { fontSize: 14 } }}
                       />
                     </Col>
                     <Col span={12}>
                       <Statistic
                         title={t('backupDr.pitr.targetTime')}
                         value={formatPitrDateTime(validation.targetTimeUtc, formatLocale)}
-                        styles={{ content: {  fontSize: 14  } }}
+                        styles={{ content: { fontSize: 14 } }}
                       />
                     </Col>
                   </Row>
@@ -314,7 +336,9 @@ export function PitrRestoreModal({
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
                     <WarningOutlined style={{ color: 'var(--ant-color-error)', marginRight: 8 }} />
-                    <Typography.Text strong>{t('backupDr.pitr.validationFailedTitle')}</Typography.Text>
+                    <Typography.Text strong>
+                      {t('backupDr.pitr.validationFailedTitle')}
+                    </Typography.Text>
                   </div>
                   <Typography.Paragraph style={{ marginBottom: 0 }}>
                     {validation.message ?? t('backupDr.pitr.validationFailedGeneric')}

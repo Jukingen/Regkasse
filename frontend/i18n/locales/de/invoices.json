@@ -27,7 +27,8 @@
   "errors": {
     "loadInvoices": "Beim Laden der Rechnungen ist ein Fehler aufgetreten",
     "loadDetail": "Beim Laden der Rechnungsdetails ist ein Fehler aufgetreten",
-    "downloadPdf": "Beim Herunterladen des PDFs ist ein Fehler aufgetreten"
+    "downloadPdf": "Beim Herunterladen des PDFs ist ein Fehler aufgetreten",
+    "shareUnavailable": "Teilen ist auf diesem Gerät nicht verfügbar"
   },
   "statusLabels": {
     "paid": "Bezahlt",

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
 import { usePosStatusOverview } from '../contexts/PosStatusOverviewContext';
@@ -40,7 +40,9 @@ export function useShift(explicitRegisterId?: string | null) {
       : null);
 
   const [activeShift, setActiveShift] = useState<CashierShiftDto | null>(null);
-  const [dailyClosingStatus, setDailyClosingStatus] = useState<PosDailyClosingStatusDto | null>(null);
+  const [dailyClosingStatus, setDailyClosingStatus] = useState<PosDailyClosingStatusDto | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dailyClosingRefreshInFlightRef = useRef(false);
@@ -69,10 +71,7 @@ export function useShift(explicitRegisterId?: string | null) {
     if (dailyClosingRefreshInFlightRef.current) return;
     dailyClosingRefreshInFlightRef.current = true;
     try {
-      const [status, shiftRes] = await Promise.all([
-        getDailyClosingStatus(),
-        fetchCurrentShift(),
-      ]);
+      const [status, shiftRes] = await Promise.all([getDailyClosingStatus(), fetchCurrentShift()]);
       setDailyClosingStatus(status);
       if (shiftRes.hasActiveShift && shiftRes.shift) {
         setActiveShift(shiftRes.shift);
@@ -168,10 +167,7 @@ export function useShift(explicitRegisterId?: string | null) {
         await refresh();
         return result;
       } catch (e) {
-        const msg =
-          e instanceof DailyClosingApiError
-            ? e.message
-            : readApiErrorMessage(e);
+        const msg = e instanceof DailyClosingApiError ? e.message : readApiErrorMessage(e);
         setError(msg);
         if (e instanceof DailyClosingApiError) throw e;
         throw new Error(msg);

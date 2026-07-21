@@ -4,6 +4,7 @@
  * Türkçe: process.env doğrudan başka yerde okunmaz; strict state makinesi.
  * Üretim derlemesi: `next.config.mjs` aynı değişkeni `next build` öncesi doğrular (sessiz artefakt önlenir).
  */
+import { technicalConsole } from '@/shared/dev/technicalConsole';
 
 /** Next.js public env anahtarı — projede yalnızca bu modül okur. */
 export const RKSV_PUBLIC_ENV_VAR_NAME = 'NEXT_PUBLIC_RKSV_ENVIRONMENT' as const;
@@ -156,8 +157,8 @@ export function buildRksvEnvironmentDevParseDebug(): RksvEnvironmentDevParseDebu
 }
 
 export function logRksvEnvironmentDevParseDebug(debug: RksvEnvironmentDevParseDebug | null): void {
-  if (!debug || typeof console === 'undefined') return;
-  console.info('[RKSV env dev debug]', debug);
+  if (!debug) return;
+  technicalConsole.devLog('[RKSV env dev debug]', debug);
 }
 
 /**
@@ -188,42 +189,52 @@ export function parseRksvPublicEnvironment(): StrictParsedRksvPublicEnvironment 
   return parseStrictRksvPublicEnvironment();
 }
 
-export type RksvPublicEnvironmentIssue =
-  | { code: 'missing' }
-  | { code: 'invalid'; raw: string };
+export type RksvPublicEnvironmentIssue = { code: 'missing' } | { code: 'invalid'; raw: string };
 
 export function isRksvPublicEnvironmentConfigured(
   parsed: StrictParsedRksvPublicEnvironment
-): parsed is { state: typeof RksvPublicEnvironmentState.TEST } | { state: typeof RksvPublicEnvironmentState.PROD } {
-  return parsed.state === RksvPublicEnvironmentState.TEST || parsed.state === RksvPublicEnvironmentState.PROD;
+): parsed is
+  | { state: typeof RksvPublicEnvironmentState.TEST }
+  | { state: typeof RksvPublicEnvironmentState.PROD } {
+  return (
+    parsed.state === RksvPublicEnvironmentState.TEST ||
+    parsed.state === RksvPublicEnvironmentState.PROD
+  );
 }
 
-export function getRksvPublicEnvironmentIssue(parsed: StrictParsedRksvPublicEnvironment): RksvPublicEnvironmentIssue | null {
+export function getRksvPublicEnvironmentIssue(
+  parsed: StrictParsedRksvPublicEnvironment
+): RksvPublicEnvironmentIssue | null {
   if (parsed.state === RksvPublicEnvironmentState.UNCONFIGURED) return { code: 'missing' };
-  if (parsed.state === RksvPublicEnvironmentState.INVALID) return { code: 'invalid', raw: parsed.sanitizedRaw };
+  if (parsed.state === RksvPublicEnvironmentState.INVALID)
+    return { code: 'invalid', raw: parsed.sanitizedRaw };
   return null;
 }
 
 let rksvPublicEnvConsoleWarnEmitted = false;
 
-export function warnRksvPublicEnvironmentInConsole(parsed: StrictParsedRksvPublicEnvironment): void {
-  if (typeof console === 'undefined' || rksvPublicEnvConsoleWarnEmitted) return;
+export function warnRksvPublicEnvironmentInConsole(
+  parsed: StrictParsedRksvPublicEnvironment
+): void {
+  if (rksvPublicEnvConsoleWarnEmitted) return;
   if (isRksvPublicEnvironmentConfigured(parsed)) return;
   rksvPublicEnvConsoleWarnEmitted = true;
   const allowed = RKSV_ENV_ACCEPTED_PUBLIC.join('|');
   const name = RKSV_PUBLIC_ENV_VAR_NAME;
   if (parsed.state === RksvPublicEnvironmentState.UNCONFIGURED) {
-    console.warn(
+    technicalConsole.warn(
       `[RKSV Admin] ${name} missing in client bundle (compile-time). Fix: frontend-admin/.env.local (same folder as package.json, not monorepo root). Line: NEXT_PUBLIC_RKSV_ENVIRONMENT=TEST or PROD. cd frontend-admin && npm run dev — if still UNCONFIGURED: npm run dev:clean. NEXT_PUBLIC_* is inlined at next dev/build, not at runtime.`
     );
   } else {
-    console.warn(
+    technicalConsole.warn(
       `[RKSV Admin] ${name} is invalid (display-safe: "${parsed.sanitizedRaw}"). Allowed: ${allowed}. Update .env / CI secrets and rebuild the admin client.`
     );
   }
 }
 
-export function getRksvEnvironmentDisplayLabelKey(parsed: StrictParsedRksvPublicEnvironment): RksvEnvironmentDisplayLabelKey {
+export function getRksvEnvironmentDisplayLabelKey(
+  parsed: StrictParsedRksvPublicEnvironment
+): RksvEnvironmentDisplayLabelKey {
   switch (parsed.state) {
     case RksvPublicEnvironmentState.TEST:
       return RKSV_ENV_I18N_KEYS.displayLabel.test;
@@ -268,7 +279,9 @@ export function getRksvEnvironmentBannerKeys(parsed: StrictParsedRksvPublicEnvir
   }
 }
 
-export function getRksvEnvironmentAlertType(parsed: StrictParsedRksvPublicEnvironment): RksvEnvironmentAlertType {
+export function getRksvEnvironmentAlertType(
+  parsed: StrictParsedRksvPublicEnvironment
+): RksvEnvironmentAlertType {
   switch (parsed.state) {
     case RksvPublicEnvironmentState.TEST:
       return 'warning';
@@ -280,7 +293,9 @@ export function getRksvEnvironmentAlertType(parsed: StrictParsedRksvPublicEnviro
   }
 }
 
-export function getRksvEnvironmentBadgeColor(parsed: StrictParsedRksvPublicEnvironment): RksvEnvironmentBadgeColor {
+export function getRksvEnvironmentBadgeColor(
+  parsed: StrictParsedRksvPublicEnvironment
+): RksvEnvironmentBadgeColor {
   switch (parsed.state) {
     case RksvPublicEnvironmentState.TEST:
       return 'warning';

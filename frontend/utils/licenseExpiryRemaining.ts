@@ -3,7 +3,7 @@ const HOUR_MS = 60 * 60 * 1000;
 /** Wall-clock hours until expiry (ceil). Null when expiry is missing/invalid. */
 export function getLicenseHoursRemaining(
   expiresAt: string | null | undefined,
-  nowMs = Date.now(),
+  nowMs = Date.now()
 ): number | null {
   if (!expiresAt?.trim()) {
     return null;
@@ -31,8 +31,7 @@ export function normalizeLicenseDaysRemaining(value: number | null | undefined):
 }
 
 export type LicenseRemainingPreference =
-  | { kind: 'hours'; hours: number }
-  | { kind: 'days'; days: number };
+  { kind: 'hours'; hours: number } | { kind: 'days'; days: number };
 
 /**
  * Prefer hours when less than one day remains so POS matches FA header/page copy.
@@ -40,7 +39,7 @@ export type LicenseRemainingPreference =
 export function preferLicenseHoursRemaining(
   daysRemaining: number,
   expiresAt: string | null | undefined,
-  nowMs = Date.now(),
+  nowMs = Date.now()
 ): LicenseRemainingPreference | null {
   const hours = getLicenseHoursRemaining(expiresAt, nowMs);
   if (hours !== null && hours > 0 && hours < 24 && daysRemaining >= 0) {
@@ -58,7 +57,7 @@ export function preferLicenseHoursRemaining(
 export function formatLicenseRemainingDe(
   daysRemaining: number,
   expiresAt: string | null | undefined,
-  nowMs = Date.now(),
+  nowMs = Date.now()
 ): string | null {
   const pref = preferLicenseHoursRemaining(daysRemaining, expiresAt, nowMs);
   if (!pref) return null;

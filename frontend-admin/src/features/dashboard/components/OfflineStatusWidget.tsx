@@ -1,23 +1,19 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import { CheckCircleOutlined, CloudSyncOutlined, WarningOutlined } from '@ant-design/icons';
 import { Badge, Button, Progress, Space, Statistic } from 'antd';
-import {
-  CheckCircleOutlined,
-  CloudSyncOutlined,
-  WarningOutlined,
-} from '@ant-design/icons';
-import Link from 'next/link';
 import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/de';
 import 'dayjs/locale/en';
 import 'dayjs/locale/tr';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import Link from 'next/link';
+import React, { useMemo } from 'react';
 
-import { OFFLINE_PENDING_ORDERS_CAP } from '@/features/offline/api/offlineMonitoringApi';
-import { useOfflineMonitoring } from '@/features/offline/hooks/useOfflineMonitoring';
 import type { WidgetShellProps } from '@/features/dashboard/components/WidgetShell';
 import { WidgetShell } from '@/features/dashboard/components/WidgetShell';
+import { OFFLINE_PENDING_ORDERS_CAP } from '@/features/offline/api/offlineMonitoringApi';
+import { useOfflineMonitoring } from '@/features/offline/hooks/useOfflineMonitoring';
 import { useI18n } from '@/i18n/I18nProvider';
 
 dayjs.extend(relativeTime);
@@ -50,7 +46,8 @@ export function OfflineStatusWidget({ title, dragHandleProps, onRefresh }: Props
   const relativeLocale = dayjsLocale(textLocale);
 
   const badge = useMemo(() => {
-    if (!data) return { color: 'green' as const, text: t('dashboard.offlineStatusWidget.badge_healthy') };
+    if (!data)
+      return { color: 'green' as const, text: t('dashboard.offlineStatusWidget.badge_healthy') };
     const pendingCount = data.totalPendingOrders + data.totalPendingTransactions;
     if (data.hasCriticalIssues) {
       return { color: 'red' as const, text: t('dashboard.offlineStatusWidget.badge_critical') };
@@ -104,9 +101,7 @@ export function OfflineStatusWidget({ title, dragHandleProps, onRefresh }: Props
           <Statistic
             title={t('dashboard.offlineStatusWidget.pending_orders')}
             value={data.totalPendingOrders}
-            prefix={
-              data.totalPendingOrders > 0 ? <WarningOutlined /> : <CheckCircleOutlined />
-            }
+            prefix={data.totalPendingOrders > 0 ? <WarningOutlined /> : <CheckCircleOutlined />}
             styles={{ content: { color: pendingOrdersColor(data.totalPendingOrders) } }}
             loading={query.isLoading}
           />

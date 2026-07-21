@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -7,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useTranslation } from 'react-i18next';
+
 import { parseTenantSlugFromPayload } from '../../services/customerApp/customerTenantStorage';
 
 type Props = {
@@ -51,8 +52,7 @@ export function TenantSelector({ onSelect, isLoading, errorKey }: Props) {
       <TouchableOpacity
         style={[styles.button, isLoading && styles.buttonDisabled]}
         onPress={onConfirm}
-        disabled={isLoading}
-      >
+        disabled={isLoading}>
         {isLoading ? (
           <ActivityIndicator color="#fff" />
         ) : (

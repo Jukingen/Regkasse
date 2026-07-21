@@ -1,11 +1,11 @@
 /**
  * Kurtarılabilirlik özeti hata yüzeyi — son çalıştırma kartı ile karıştırılmaz.
  */
-
-import React from 'react';
 import '@testing-library/jest-dom';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
+import React from 'react';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+
 import { RecoverabilitySummaryCard } from '@/features/backup-dr/components/RecoverabilitySummaryCard';
 
 beforeAll(() => {
@@ -39,7 +39,7 @@ describe('RecoverabilitySummaryCard — query error', () => {
         backupStatusLabel={() => 'x'}
         restoreStatusLabel={() => 'y'}
         t={(k) => k}
-      />,
+      />
     );
 
     expect(screen.getByText('backupDr.errors.recoverabilityLoadFailed')).toBeInTheDocument();

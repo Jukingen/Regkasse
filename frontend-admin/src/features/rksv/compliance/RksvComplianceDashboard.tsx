@@ -3,8 +3,9 @@
 /**
  * RKSV diagnostic compliance report (5 checks). Read-only; not a legal Finanzamt proof.
  */
-
-import React, { useMemo, useState } from 'react';
+import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
+import { useQuery } from '@tanstack/react-query';
+import type { MenuProps } from 'antd';
 import {
   Alert,
   Button,
@@ -19,26 +20,18 @@ import {
   Tag,
   Typography,
 } from 'antd';
-import type { MenuProps } from 'antd';
-import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
-import Link from 'next/link';
 import dayjs, { type Dayjs } from 'dayjs';
-import type { TranslateFn } from '@/shared/errors/userFacingApiError';
-import { useQuery } from '@tanstack/react-query';
-import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
-import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { formatDate, formatDateTime, useI18n } from '@/i18n';
-import { DAYJS_DATETIME_SECONDS_FORMAT } from '@/lib/dateFormatter';
-import { useCanAccessPath } from '@/hooks/useCanAccessPath';
-import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
-import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
+import Link from 'next/link';
+import React, { useMemo, useState } from 'react';
+
 import {
   downloadRksvComplianceReportPdf,
   getAdminCashRegisters,
   getRksvComplianceReportJson,
 } from '@/api/admin-rksv/client';
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 import {
   exportComplianceReportCsv,
   exportComplianceReportJson,
@@ -49,6 +42,13 @@ import type {
   RksvComplianceReportQueryParams,
   RksvComplianceSignatureChainItem,
 } from '@/features/rksv/compliance/types';
+import { useCanAccessPath } from '@/hooks/useCanAccessPath';
+import { formatDate, formatDateTime, useI18n } from '@/i18n';
+import { DAYJS_DATETIME_SECONDS_FORMAT } from '@/lib/dateFormatter';
+import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
+import type { TranslateFn } from '@/shared/errors/userFacingApiError';
 
 const { RangePicker } = DatePicker;
 
@@ -73,17 +73,9 @@ function CheckStatusBadge({
     return <Tag color="success">{t('rksvHub.compliancePage.statusOk')}</Tag>;
   }
   if (severity === 'warn') {
-    return (
-      <Tag color="warning">
-        {t('rksvHub.compliancePage.statusReview', { count })}
-      </Tag>
-    );
+    return <Tag color="warning">{t('rksvHub.compliancePage.statusReview', { count })}</Tag>;
   }
-  return (
-    <Tag color="error">
-      {t('rksvHub.compliancePage.statusAction', { count })}
-    </Tag>
-  );
+  return <Tag color="error">{t('rksvHub.compliancePage.statusAction', { count })}</Tag>;
 }
 
 function chainStatusTag(status: string | undefined, t: (key: string) => string) {
@@ -118,7 +110,7 @@ export default function RksvComplianceDashboard() {
       fromUtc,
       toUtc,
     }),
-    [cashRegisterId, fromUtc, toUtc],
+    [cashRegisterId, fromUtc, toUtc]
   );
 
   const { data: cashRegisters, isLoading: registersLoading } = useQuery({
@@ -141,14 +133,14 @@ export default function RksvComplianceDashboard() {
       findRegistersMissingStartbeleg(
         cashRegisters ?? [],
         report?.specialReceipts ?? [],
-        cashRegisterId,
+        cashRegisterId
       ),
-    [cashRegisters, report?.specialReceipts, cashRegisterId],
+    [cashRegisters, report?.specialReceipts, cashRegisterId]
   );
 
   const chainIssues = useMemo(
     () => (report?.signatureChain ?? []).filter((c) => c.status && c.status !== 'Pass'),
-    [report?.signatureChain],
+    [report?.signatureChain]
   );
 
   const checkSeverities = useMemo(
@@ -158,10 +150,10 @@ export default function RksvComplianceDashboard() {
       sequence: severityFromCount(summary?.sequenceGapCount ?? 0),
       tse: severityFromCount(summary?.tseSignatureMissingCount ?? 0),
       qr: severityFromCount(
-        (summary?.qrFormatInvalidCount ?? 0) + (summary?.qrFormatMissingCount ?? 0),
+        (summary?.qrFormatInvalidCount ?? 0) + (summary?.qrFormatMissingCount ?? 0)
       ),
     }),
-    [startbelegMissing.length, summary, chainIssues.length],
+    [startbelegMissing.length, summary, chainIssues.length]
   );
 
   const handlePdfDownload = async () => {
@@ -201,7 +193,7 @@ export default function RksvComplianceDashboard() {
         onClick: () => void handlePdfDownload(),
       },
     ],
-    [t, report, fromUtc, toUtc, pdfLoading, queryParams],
+    [t, report, fromUtc, toUtc, pdfLoading, queryParams]
   );
 
   const collapseItems = [
@@ -209,8 +201,14 @@ export default function RksvComplianceDashboard() {
       key: 'startbeleg',
       label: (
         <Space>
-          <Typography.Text strong>{t('rksvHub.compliancePage.checkStartbelegTitle')}</Typography.Text>
-          <CheckStatusBadge severity={checkSeverities.startbeleg} count={startbelegMissing.length} t={t} />
+          <Typography.Text strong>
+            {t('rksvHub.compliancePage.checkStartbelegTitle')}
+          </Typography.Text>
+          <CheckStatusBadge
+            severity={checkSeverities.startbeleg}
+            count={startbelegMissing.length}
+            t={t}
+          />
         </Space>
       ),
       children: (
@@ -235,7 +233,9 @@ export default function RksvComplianceDashboard() {
                   title: t('rksvHub.compliancePage.colRegister'),
                   key: 'reg',
                   render: (_: unknown, row) => (
-                    <Typography.Text code>{row.registerNumber ?? row.cashRegisterId.slice(0, 8)}</Typography.Text>
+                    <Typography.Text code>
+                      {row.registerNumber ?? row.cashRegisterId.slice(0, 8)}
+                    </Typography.Text>
                   ),
                 },
                 {
@@ -247,7 +247,11 @@ export default function RksvComplianceDashboard() {
               ]}
             />
           ) : (
-            <Alert type="success" showIcon title={t('rksvHub.compliancePage.startbelegAllPresent')} />
+            <Alert
+              type="success"
+              showIcon
+              title={t('rksvHub.compliancePage.startbelegAllPresent')}
+            />
           )}
           {(report?.specialReceipts?.length ?? 0) > 0 && (
             <Table
@@ -301,40 +305,42 @@ export default function RksvComplianceDashboard() {
       children: (
         <>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
-            <Link href="/rksv/signature-chain">{t('rksvHub.compliancePage.linkSignatureChainTool')}</Link>
+            <Link href="/rksv/signature-chain">
+              {t('rksvHub.compliancePage.linkSignatureChainTool')}
+            </Link>
           </Typography.Paragraph>
           {chainIssues.length > 0 ? (
-        <Table
-          size="small"
-          pagination={{ pageSize: 10 }}
-          rowKey={(r: RksvComplianceSignatureChainItem) => r.receiptId ?? r.receiptNumber ?? ''}
-          dataSource={chainIssues}
-          {...complianceTableVirtualProps(chainIssues.length, 1100)}
-          columns={[
-            {
-              title: t('rksvHub.compliancePage.colReceiptNumber'),
-              dataIndex: 'receiptNumber',
-              key: 'receiptNumber',
-              render: (n: string) => <Typography.Text code>{n}</Typography.Text>,
-            },
-            {
-              title: t('rksvHub.compliancePage.colStatus'),
-              dataIndex: 'status',
-              key: 'status',
-              render: (s: string) => chainStatusTag(s, t),
-            },
-            { title: t('rksvHub.compliancePage.colIssue'), dataIndex: 'issue', key: 'issue' },
-            {
-              title: t('rksvHub.compliancePage.colIssuedUtc'),
-              dataIndex: 'issuedAtUtc',
-              key: 'issuedAtUtc',
-              render: (v: string) => (v ? formatDateTime(v, '', { second: '2-digit' }) : '—'),
-            },
-          ]}
-        />
-      ) : (
-        <Alert type="success" showIcon title={t('rksvHub.compliancePage.chainOk')} />
-      )}
+            <Table
+              size="small"
+              pagination={{ pageSize: 10 }}
+              rowKey={(r: RksvComplianceSignatureChainItem) => r.receiptId ?? r.receiptNumber ?? ''}
+              dataSource={chainIssues}
+              {...complianceTableVirtualProps(chainIssues.length, 1100)}
+              columns={[
+                {
+                  title: t('rksvHub.compliancePage.colReceiptNumber'),
+                  dataIndex: 'receiptNumber',
+                  key: 'receiptNumber',
+                  render: (n: string) => <Typography.Text code>{n}</Typography.Text>,
+                },
+                {
+                  title: t('rksvHub.compliancePage.colStatus'),
+                  dataIndex: 'status',
+                  key: 'status',
+                  render: (s: string) => chainStatusTag(s, t),
+                },
+                { title: t('rksvHub.compliancePage.colIssue'), dataIndex: 'issue', key: 'issue' },
+                {
+                  title: t('rksvHub.compliancePage.colIssuedUtc'),
+                  dataIndex: 'issuedAtUtc',
+                  key: 'issuedAtUtc',
+                  render: (v: string) => (v ? formatDateTime(v, '', { second: '2-digit' }) : '—'),
+                },
+              ]}
+            />
+          ) : (
+            <Alert type="success" showIcon title={t('rksvHub.compliancePage.chainOk')} />
+          )}
         </>
       ),
     },
@@ -343,99 +349,109 @@ export default function RksvComplianceDashboard() {
       label: (
         <Space>
           <Typography.Text strong>{t('rksvHub.compliancePage.checkSequenceTitle')}</Typography.Text>
-          <CheckStatusBadge severity={checkSeverities.sequence} count={summary?.sequenceGapCount ?? 0} t={t} />
+          <CheckStatusBadge
+            severity={checkSeverities.sequence}
+            count={summary?.sequenceGapCount ?? 0}
+            t={t}
+          />
         </Space>
       ),
-      children: (report?.sequenceGaps?.length ?? 0) > 0 ? (
-        <Table
-          size="small"
-          pagination={{ pageSize: 10 }}
-          rowKey={(r) =>
-            `${r.cashRegisterId}-${r.sequenceDateUtc}-${r.expectedSequence}-${r.previousReceiptNumber}`
-          }
-          dataSource={report?.sequenceGaps}
-          {...complianceTableVirtualProps(report?.sequenceGaps?.length ?? 0, 1000)}
-          columns={[
-            {
-              title: t('rksvHub.compliancePage.colRegister'),
-              key: 'reg',
-              render: (_: unknown, r) => r.registerNumber ?? '—',
-            },
-            {
-              title: t('rksvHub.compliancePage.colSequenceDate'),
-              dataIndex: 'sequenceDateUtc',
-              key: 'sequenceDateUtc',
-              render: (v: string) => (v ? formatDate(v, '') : '—'),
-            },
-            {
-              title: t('rksvHub.compliancePage.colExpectedSeq'),
-              dataIndex: 'expectedSequence',
-              key: 'expectedSequence',
-            },
-            {
-              title: t('rksvHub.compliancePage.colPrevReceipt'),
-              dataIndex: 'previousReceiptNumber',
-              key: 'previousReceiptNumber',
-              render: (n: string | null) => <Typography.Text code>{n ?? '—'}</Typography.Text>,
-            },
-            {
-              title: t('rksvHub.compliancePage.colNextReceipt'),
-              dataIndex: 'nextReceiptNumber',
-              key: 'nextReceiptNumber',
-              render: (n: string | null) => <Typography.Text code>{n ?? '—'}</Typography.Text>,
-            },
-          ]}
-        />
-      ) : (
-        <Alert type="success" showIcon title={t('rksvHub.compliancePage.sequenceOk')} />
-      ),
+      children:
+        (report?.sequenceGaps?.length ?? 0) > 0 ? (
+          <Table
+            size="small"
+            pagination={{ pageSize: 10 }}
+            rowKey={(r) =>
+              `${r.cashRegisterId}-${r.sequenceDateUtc}-${r.expectedSequence}-${r.previousReceiptNumber}`
+            }
+            dataSource={report?.sequenceGaps}
+            {...complianceTableVirtualProps(report?.sequenceGaps?.length ?? 0, 1000)}
+            columns={[
+              {
+                title: t('rksvHub.compliancePage.colRegister'),
+                key: 'reg',
+                render: (_: unknown, r) => r.registerNumber ?? '—',
+              },
+              {
+                title: t('rksvHub.compliancePage.colSequenceDate'),
+                dataIndex: 'sequenceDateUtc',
+                key: 'sequenceDateUtc',
+                render: (v: string) => (v ? formatDate(v, '') : '—'),
+              },
+              {
+                title: t('rksvHub.compliancePage.colExpectedSeq'),
+                dataIndex: 'expectedSequence',
+                key: 'expectedSequence',
+              },
+              {
+                title: t('rksvHub.compliancePage.colPrevReceipt'),
+                dataIndex: 'previousReceiptNumber',
+                key: 'previousReceiptNumber',
+                render: (n: string | null) => <Typography.Text code>{n ?? '—'}</Typography.Text>,
+              },
+              {
+                title: t('rksvHub.compliancePage.colNextReceipt'),
+                dataIndex: 'nextReceiptNumber',
+                key: 'nextReceiptNumber',
+                render: (n: string | null) => <Typography.Text code>{n ?? '—'}</Typography.Text>,
+              },
+            ]}
+          />
+        ) : (
+          <Alert type="success" showIcon title={t('rksvHub.compliancePage.sequenceOk')} />
+        ),
     },
     {
       key: 'tse',
       label: (
         <Space>
           <Typography.Text strong>{t('rksvHub.compliancePage.checkTseTitle')}</Typography.Text>
-          <CheckStatusBadge severity={checkSeverities.tse} count={summary?.tseSignatureMissingCount ?? 0} t={t} />
+          <CheckStatusBadge
+            severity={checkSeverities.tse}
+            count={summary?.tseSignatureMissingCount ?? 0}
+            t={t}
+          />
         </Space>
       ),
-      children: (report?.tseSignatureMissing?.length ?? 0) > 0 ? (
-        <Table
-          size="small"
-          pagination={{ pageSize: 10 }}
-          rowKey={(r) => r.paymentId ?? r.receiptNumber ?? ''}
-          dataSource={report?.tseSignatureMissing}
-          {...complianceTableVirtualProps(report?.tseSignatureMissing?.length ?? 0, 900)}
-          columns={[
-            {
-              title: t('rksvHub.compliancePage.colReceiptNumber'),
-              dataIndex: 'receiptNumber',
-              key: 'receiptNumber',
-              render: (n: string) => <Typography.Text code>{n}</Typography.Text>,
-            },
-            {
-              title: t('rksvHub.compliancePage.colRegister'),
-              key: 'reg',
-              render: (_: unknown, r) => r.registerNumber ?? '—',
-            },
-            {
-              title: t('rksvHub.compliancePage.colTseSources'),
-              key: 'src',
-              render: (_: unknown, r) => (
-                <Space size={4} wrap>
-                  {r.paymentSignatureMissing && (
-                    <Tag>{t('rksvHub.compliancePage.tseSourcePayment')}</Tag>
-                  )}
-                  {r.receiptSignatureMissing && (
-                    <Tag>{t('rksvHub.compliancePage.tseSourceReceipt')}</Tag>
-                  )}
-                </Space>
-              ),
-            },
-          ]}
-        />
-      ) : (
-        <Alert type="success" showIcon title={t('rksvHub.compliancePage.tseOk')} />
-      ),
+      children:
+        (report?.tseSignatureMissing?.length ?? 0) > 0 ? (
+          <Table
+            size="small"
+            pagination={{ pageSize: 10 }}
+            rowKey={(r) => r.paymentId ?? r.receiptNumber ?? ''}
+            dataSource={report?.tseSignatureMissing}
+            {...complianceTableVirtualProps(report?.tseSignatureMissing?.length ?? 0, 900)}
+            columns={[
+              {
+                title: t('rksvHub.compliancePage.colReceiptNumber'),
+                dataIndex: 'receiptNumber',
+                key: 'receiptNumber',
+                render: (n: string) => <Typography.Text code>{n}</Typography.Text>,
+              },
+              {
+                title: t('rksvHub.compliancePage.colRegister'),
+                key: 'reg',
+                render: (_: unknown, r) => r.registerNumber ?? '—',
+              },
+              {
+                title: t('rksvHub.compliancePage.colTseSources'),
+                key: 'src',
+                render: (_: unknown, r) => (
+                  <Space size={4} wrap>
+                    {r.paymentSignatureMissing && (
+                      <Tag>{t('rksvHub.compliancePage.tseSourcePayment')}</Tag>
+                    )}
+                    {r.receiptSignatureMissing && (
+                      <Tag>{t('rksvHub.compliancePage.tseSourceReceipt')}</Tag>
+                    )}
+                  </Space>
+                ),
+              },
+            ]}
+          />
+        ) : (
+          <Alert type="success" showIcon title={t('rksvHub.compliancePage.tseOk')} />
+        ),
     },
     {
       key: 'qr',
@@ -449,42 +465,43 @@ export default function RksvComplianceDashboard() {
           />
         </Space>
       ),
-      children: (report?.qrPayloadValidation?.length ?? 0) > 0 ? (
-        <Table
-          size="small"
-          pagination={{ pageSize: 10 }}
-          rowKey={(r) => r.receiptId ?? r.receiptNumber ?? ''}
-          dataSource={report?.qrPayloadValidation}
-          {...complianceTableVirtualProps(report?.qrPayloadValidation?.length ?? 0, 800)}
-          columns={[
-            {
-              title: t('rksvHub.compliancePage.colReceiptNumber'),
-              dataIndex: 'receiptNumber',
-              key: 'receiptNumber',
-              render: (n: string) => <Typography.Text code>{n}</Typography.Text>,
-            },
-            {
-              title: t('rksvHub.compliancePage.colQrStatus'),
-              key: 'qr',
-              render: (_: unknown, r) =>
-                r.qrPayloadMissing ? (
-                  <Tag color="error">{t('rksvHub.compliancePage.qrMissing')}</Tag>
-                ) : r.isValidFormat ? (
-                  <Tag color="success">{t('rksvHub.compliancePage.qrValid')}</Tag>
-                ) : (
-                  <Tag color="error">{t('rksvHub.compliancePage.qrInvalid')}</Tag>
-                ),
-            },
-            {
-              title: t('rksvHub.compliancePage.colQrErrors'),
-              key: 'errors',
-              render: (_: unknown, r) => (r.errors?.length ? r.errors.join('; ') : '—'),
-            },
-          ]}
-        />
-      ) : (
-        <Alert type="success" showIcon title={t('rksvHub.compliancePage.qrOk')} />
-      ),
+      children:
+        (report?.qrPayloadValidation?.length ?? 0) > 0 ? (
+          <Table
+            size="small"
+            pagination={{ pageSize: 10 }}
+            rowKey={(r) => r.receiptId ?? r.receiptNumber ?? ''}
+            dataSource={report?.qrPayloadValidation}
+            {...complianceTableVirtualProps(report?.qrPayloadValidation?.length ?? 0, 800)}
+            columns={[
+              {
+                title: t('rksvHub.compliancePage.colReceiptNumber'),
+                dataIndex: 'receiptNumber',
+                key: 'receiptNumber',
+                render: (n: string) => <Typography.Text code>{n}</Typography.Text>,
+              },
+              {
+                title: t('rksvHub.compliancePage.colQrStatus'),
+                key: 'qr',
+                render: (_: unknown, r) =>
+                  r.qrPayloadMissing ? (
+                    <Tag color="error">{t('rksvHub.compliancePage.qrMissing')}</Tag>
+                  ) : r.isValidFormat ? (
+                    <Tag color="success">{t('rksvHub.compliancePage.qrValid')}</Tag>
+                  ) : (
+                    <Tag color="error">{t('rksvHub.compliancePage.qrInvalid')}</Tag>
+                  ),
+              },
+              {
+                title: t('rksvHub.compliancePage.colQrErrors'),
+                key: 'errors',
+                render: (_: unknown, r) => (r.errors?.length ? r.errors.join('; ') : '—'),
+              },
+            ]}
+          />
+        ) : (
+          <Alert type="success" showIcon title={t('rksvHub.compliancePage.qrOk')} />
+        ),
     },
   ];
 
@@ -509,7 +526,9 @@ export default function RksvComplianceDashboard() {
 
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space wrap align="center">
-          <Typography.Text strong>{t('rksvHub.compliancePage.filterRegisterLabel')}</Typography.Text>
+          <Typography.Text strong>
+            {t('rksvHub.compliancePage.filterRegisterLabel')}
+          </Typography.Text>
           <Select
             allowClear
             showSearch
@@ -533,7 +552,11 @@ export default function RksvComplianceDashboard() {
             allowClear={false}
             showTime
           />
-          <Button icon={<ReloadOutlined />} loading={isLoading || isFetching} onClick={() => refetch()}>
+          <Button
+            icon={<ReloadOutlined />}
+            loading={isLoading || isFetching}
+            onClick={() => refetch()}
+          >
             {t('common.buttons.refresh')}
           </Button>
           <Dropdown menu={{ items: exportMenu }}>
@@ -571,9 +594,19 @@ export default function RksvComplianceDashboard() {
       {!error && report && (
         <>
           {summary?.overallPass ? (
-            <Alert type="success" showIcon style={{ marginBottom: 16 }} title={t('rksvHub.compliancePage.overallPass')} />
+            <Alert
+              type="success"
+              showIcon
+              style={{ marginBottom: 16 }}
+              title={t('rksvHub.compliancePage.overallPass')}
+            />
           ) : (
-            <Alert type="warning" showIcon style={{ marginBottom: 16 }} title={t('rksvHub.compliancePage.overallFail')} />
+            <Alert
+              type="warning"
+              showIcon
+              style={{ marginBottom: 16 }}
+              title={t('rksvHub.compliancePage.overallFail')}
+            />
           )}
 
           <Card size="small" style={{ marginBottom: 16 }}>

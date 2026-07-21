@@ -8,7 +8,6 @@ export function reloadApp(): void {
   }
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { DevSettings } = require('react-native') as typeof import('react-native');
     if (DevSettings?.reload) {
       DevSettings.reload();

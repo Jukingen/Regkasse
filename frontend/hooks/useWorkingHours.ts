@@ -46,7 +46,7 @@ export function useWorkingHours(): UseWorkingHoursResult {
 
   useEffect(() => {
     const tick = () => {
-      const workingHours = (settings?.workingHours ?? null) as PosWorkingHoursExtended | null;
+      const workingHours = settings?.workingHours ?? null;
       const next = computePosWorkingHoursStatus({
         now: new Date(),
         timeZone: settings?.timeZone,
@@ -58,7 +58,9 @@ export function useWorkingHours(): UseWorkingHoursResult {
 
     tick();
     const interval = setInterval(tick, TICK_MS);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+    };
   }, [settings]);
 
   return { ...status, posOperationsAllowed: true, loading };

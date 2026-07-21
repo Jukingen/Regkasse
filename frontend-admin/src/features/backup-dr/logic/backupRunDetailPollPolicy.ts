@@ -1,7 +1,6 @@
 /**
  * Run-by-id sorgusu için refetch aralığı: terminal geçişte detail API bazen geride kalır — eşleşene kadar kısa aralık, sonra dur.
  */
-
 import type { BackupRunResponseDto } from '@/api/generated/model';
 import { BackupRunResponseDtoStatus } from '@/api/generated/model';
 

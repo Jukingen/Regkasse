@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
+
+import { apiClient } from '../services/api/config';
 import {
   isRecord,
   normalizeToPosPaymentMethods,
   type NormalizedPosPaymentMethod,
 } from '../services/api/normalizePosPaymentMethods';
 import { posPaymentMethodsPath } from '../services/api/posPaymentPaths';
-import { apiClient } from '../services/api/config';
 import { sessionManager } from '../services/session/sessionManager';
 
 // English Description: Hook for fetching and managing payment methods from backend. Also checks TSE status.
@@ -83,7 +84,9 @@ export function usePaymentMethods(user: any, cashRegisterId?: string | null) {
       setError(null);
       console.log('🔄 Fetching payment methods from backend...');
       console.log('🔐 Using token:', token ? 'Available' : 'Missing');
-      const json: unknown = await apiClient.get<unknown>(posPaymentMethodsPath(cashRegisterId.trim()));
+      const json: unknown = await apiClient.get<unknown>(
+        posPaymentMethodsPath(cashRegisterId.trim())
+      );
       const methods = normalizeToPosPaymentMethods(json);
       const env = isRecord(json) ? json : null;
 
@@ -122,7 +125,7 @@ export function usePaymentMethods(user: any, cashRegisterId?: string | null) {
           requiresTse: true,
           icon: 'cash-outline',
           minAmount: 0.01,
-          maxAmount: 100000.0
+          maxAmount: 100000.0,
         },
         {
           method: 'card',
@@ -132,7 +135,7 @@ export function usePaymentMethods(user: any, cashRegisterId?: string | null) {
           requiresTse: true,
           icon: 'card-outline',
           minAmount: 0.01,
-          maxAmount: 100000.0
+          maxAmount: 100000.0,
         },
         {
           method: 'voucher',
@@ -142,7 +145,7 @@ export function usePaymentMethods(user: any, cashRegisterId?: string | null) {
           requiresTse: false,
           icon: 'gift-outline',
           minAmount: 0.01,
-          maxAmount: 100000.0
+          maxAmount: 100000.0,
         },
         {
           method: 'transfer',
@@ -152,8 +155,8 @@ export function usePaymentMethods(user: any, cashRegisterId?: string | null) {
           requiresTse: true,
           icon: 'swap-horizontal-outline',
           minAmount: 0.01,
-          maxAmount: 100000.0
-        }
+          maxAmount: 100000.0,
+        },
       ]);
       setIsInitialized(true); // Hata durumunda da initialized olarak işaretle
     } finally {
@@ -179,28 +182,32 @@ export function usePaymentMethods(user: any, cashRegisterId?: string | null) {
   }, [user, cashRegisterId, isInitialized, fetchPaymentMethods]);
 
   // Get specific payment method
-  const getPaymentMethod = useCallback((method: string): PaymentMethodInfo | undefined => {
-    return paymentMethods.find(pm => pm.method === method);
-  }, [paymentMethods]);
+  const getPaymentMethod = useCallback(
+    (method: string): PaymentMethodInfo | undefined => {
+      return paymentMethods.find((pm) => pm.method === method);
+    },
+    [paymentMethods]
+  );
 
   // Get active payment methods
   const getActivePaymentMethods = useCallback((): PaymentMethodInfo[] => {
-    return paymentMethods.filter(pm => pm.isEnabled);
+    return paymentMethods.filter((pm) => pm.isEnabled);
   }, [paymentMethods]);
 
   // Get TSE required payment methods
   const getTseRequiredMethods = useCallback((): PaymentMethodInfo[] => {
-    return paymentMethods.filter(pm => pm.requiresTse && pm.isEnabled);
+    return paymentMethods.filter((pm) => pm.requiresTse && pm.isEnabled);
   }, [paymentMethods]);
 
   // Get available methods for specific amount
-  const getAvailableMethodsForAmount = useCallback((amount: number): PaymentMethodInfo[] => {
-    return paymentMethods.filter(pm =>
-      pm.isEnabled &&
-      amount >= pm.minAmount &&
-      amount <= pm.maxAmount
-    );
-  }, [paymentMethods]);
+  const getAvailableMethodsForAmount = useCallback(
+    (amount: number): PaymentMethodInfo[] => {
+      return paymentMethods.filter(
+        (pm) => pm.isEnabled && amount >= pm.minAmount && amount <= pm.maxAmount
+      );
+    },
+    [paymentMethods]
+  );
 
   // Clear error
   const clearError = useCallback(() => {
@@ -225,6 +232,6 @@ export function usePaymentMethods(user: any, cashRegisterId?: string | null) {
     getTseRequiredMethods,
     getAvailableMethodsForAmount,
     clearError,
-    refreshPaymentMethods
+    refreshPaymentMethods,
   };
-} 
+}

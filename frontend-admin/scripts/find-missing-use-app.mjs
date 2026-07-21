@@ -15,8 +15,11 @@ function walk(dir, out = []) {
 
 for (const file of walk(srcRoot)) {
   const code = fs.readFileSync(file, 'utf8');
-  if (!/\bmessage\.(success|error|warning|info|loading|open)\b/.test(code) &&
-      !/\bmodal\.(confirm|success|warning|error|info)\b/.test(code)) continue;
+  if (
+    !/\bmessage\.(success|error|warning|info|loading|open)\b/.test(code) &&
+    !/\bmodal\.(confirm|success|warning|error|info)\b/.test(code)
+  )
+    continue;
   if (code.includes('App.useApp()')) continue;
   if (file.includes('antdAppBridge')) continue;
   console.log(path.relative(srcRoot, file));

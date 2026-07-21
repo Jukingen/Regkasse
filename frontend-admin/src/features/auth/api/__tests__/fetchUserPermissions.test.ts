@@ -1,4 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { fetchUserPermissions } from '@/features/auth/api/fetchUserPermissions';
 
 const mockFetchAuthUser = vi.fn();

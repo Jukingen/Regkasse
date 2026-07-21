@@ -1,51 +1,49 @@
 'use client';
 
+import { Input, Select, Space } from 'antd';
 import React from 'react';
-import { Select, Input, Space } from 'antd';
-import { useReceiptTemplateFilters } from '../hooks/useReceiptTemplates';
+
 import { useI18n } from '@/i18n';
 
+import { useReceiptTemplateFilters } from '../hooks/useReceiptTemplates';
+
 export default function ReceiptFilters() {
-    const { t } = useI18n();
-    const { filters, setParams, setParam } = useReceiptTemplateFilters();
+  const { t } = useI18n();
+  const { filters, setParams, setParam } = useReceiptTemplateFilters();
 
-    // Default to 'all' if undefined
-    const mode = filters.mode || 'all';
-    const value = filters.value || '';
+  // Default to 'all' if undefined
+  const mode = filters.mode || 'all';
+  const value = filters.value || '';
 
-    const handleModeChange = (newMode: 'all' | 'language' | 'type') => {
-        setParams({ mode: newMode, value: '' });
-    };
+  const handleModeChange = (newMode: 'all' | 'language' | 'type') => {
+    setParams({ mode: newMode, value: '' });
+  };
 
-    return (
-        <Space style={{ marginBottom: 16 }}>
-            <Select
-                value={mode}
-                onChange={handleModeChange}
-                style={{ width: 150 }}
-            >
-                <Select.Option value="all">{t('receiptTemplates.filters.all')}</Select.Option>
-                <Select.Option value="language">{t('receiptTemplates.filters.byLanguage')}</Select.Option>
-                <Select.Option value="type">{t('receiptTemplates.filters.byType')}</Select.Option>
-            </Select>
+  return (
+    <Space style={{ marginBottom: 16 }}>
+      <Select value={mode} onChange={handleModeChange} style={{ width: 150 }}>
+        <Select.Option value="all">{t('receiptTemplates.filters.all')}</Select.Option>
+        <Select.Option value="language">{t('receiptTemplates.filters.byLanguage')}</Select.Option>
+        <Select.Option value="type">{t('receiptTemplates.filters.byType')}</Select.Option>
+      </Select>
 
-            {mode === 'language' && (
-                <Input
-                    placeholder={t('receiptTemplates.filters.placeholderLang')}
-                    value={value}
-                    onChange={(e) => setParam('value', e.target.value)}
-                    style={{ width: 200 }}
-                />
-            )}
+      {mode === 'language' && (
+        <Input
+          placeholder={t('receiptTemplates.filters.placeholderLang')}
+          value={value}
+          onChange={(e) => setParam('value', e.target.value)}
+          style={{ width: 200 }}
+        />
+      )}
 
-            {mode === 'type' && (
-                <Input
-                    placeholder={t('receiptTemplates.filters.placeholderType')}
-                    value={value}
-                    onChange={(e) => setParam('value', e.target.value)}
-                    style={{ width: 200 }}
-                />
-            )}
-        </Space>
-    );
+      {mode === 'type' && (
+        <Input
+          placeholder={t('receiptTemplates.filters.placeholderType')}
+          value={value}
+          onChange={(e) => setParam('value', e.target.value)}
+          style={{ width: 200 }}
+        />
+      )}
+    </Space>
+  );
 }

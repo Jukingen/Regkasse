@@ -16,6 +16,7 @@
   "no": "Hayır",
   "step": "Adım",
   "ok": "Tamam",
+  "selectDate": "Tarih seçin",
   "retry": "Tekrar Dene",
   "errorLoadingProducts": "Ürünler yüklenemedi",
   "loadingMore": "Daha fazla yükleniyor...",
@@ -38,10 +39,20 @@
   "noAccess": "Bu ekrana erişim yetkiniz bulunmamaktadır",
   "tableRestoring": "Masalar geri yukleniyor",
   "table": "Masa",
+  "tax": {
+    "standard": "Standart",
+    "reduced": "İndirimli",
+    "special": "Özel",
+    "exempt": "Muaf"
+  },
   "barcodeScanner": {
     "closeA11y": "Kapat",
     "webFallback": "Tarayıcıda kamera taraması kullanılamaz. Lütfen kodu manuel girin.",
     "cameraRequired": "Kamera erişimi gerekli.",
-    "allowCamera": "Kameraya izin ver"
+    "allowCamera": "Kameraya izin ver",
+    "permissionBlocked": "Kamera erişimi kalıcı olarak reddedildi. Lütfen cihaz ayarlarından etkinleştirin.",
+    "openSettings": "Ayarları aç",
+    "cameraUnavailable": "Kamera kullanılamıyor. Lütfen cihazı yeniden başlatın veya kodu manuel girin.",
+    "loading": "Kamera hazırlanıyor…"
   }
 }

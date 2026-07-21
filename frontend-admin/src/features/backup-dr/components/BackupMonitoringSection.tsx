@@ -1,20 +1,15 @@
-"use client";
+'use client';
 
 /**
  * Backup izleme panosu: metrikler, grafikler, yapılandırma sağlığı, RPO/RTO.
  */
+import { useQuery } from '@tanstack/react-query';
+import { Col, Row } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import { useRouter } from 'next/navigation';
+import React, { useMemo } from 'react';
 
-import React, { useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { Col, Row } from "antd";
-import { useQuery } from "@tanstack/react-query";
-import { useGetApiAdminBackupRuns } from "@/api/generated/admin-backup/admin-backup";
-import {
-  BACKUP_DASHBOARD_STATS_POLL_MS,
-  getBackupDashboardStats,
-  getBackupDashboardStatsQueryKey,
-} from "@/features/backup/logic/backupDashboardStatsApi";
-import { mapDashboardHistoryToChartRows } from "@/features/backup/logic/backupDashboardStatsMapper";
+import { useGetApiAdminBackupRuns } from '@/api/generated/admin-backup/admin-backup';
 import type {
   BackupArtifactPipelinePolicyResponseDto,
   BackupConfigurationHealthResponseDto,
@@ -23,16 +18,21 @@ import type {
   BackupRunResponseDto,
   RestoreVerificationReadinessResponseDto,
   RestoreVerificationRunResponseDto,
-} from "@/api/generated/model";
-import { BackupConfigurationHealthCard } from "@/features/backup-dr/components/BackupConfigurationHealthCard";
-import { BackupHistoryChart } from "@/features/backup-dr/components/BackupHistoryChart";
-import { BackupMonitoringMetricsRow } from "@/features/backup-dr/components/BackupMonitoringMetricsRow";
-import { BackupRestoreReadinessCard } from "@/features/backup-dr/components/BackupRestoreReadinessCard";
-import { BackupStatusHeader } from "@/features/backup-dr/components/BackupStatusHeader";
-import { BackupDrSection } from "@/features/backup-dr/components/BackupDrSection";
-import { RecentRunsTable } from "@/features/backup-dr/components/RecentRunsTable";
-import { BACKUP_METRICS_RUNS_PAGE_SIZE } from "@/features/backup-dr/logic/backupDashboardQueryTiming";
-import type { ColumnsType } from "antd/es/table";
+} from '@/api/generated/model';
+import { BackupConfigurationHealthCard } from '@/features/backup-dr/components/BackupConfigurationHealthCard';
+import { BackupDrSection } from '@/features/backup-dr/components/BackupDrSection';
+import { BackupHistoryChart } from '@/features/backup-dr/components/BackupHistoryChart';
+import { BackupMonitoringMetricsRow } from '@/features/backup-dr/components/BackupMonitoringMetricsRow';
+import { BackupRestoreReadinessCard } from '@/features/backup-dr/components/BackupRestoreReadinessCard';
+import { BackupStatusHeader } from '@/features/backup-dr/components/BackupStatusHeader';
+import { RecentRunsTable } from '@/features/backup-dr/components/RecentRunsTable';
+import { BACKUP_METRICS_RUNS_PAGE_SIZE } from '@/features/backup-dr/logic/backupDashboardQueryTiming';
+import {
+  BACKUP_DASHBOARD_STATS_POLL_MS,
+  getBackupDashboardStats,
+  getBackupDashboardStatsQueryKey,
+} from '@/features/backup/logic/backupDashboardStatsApi';
+import { mapDashboardHistoryToChartRows } from '@/features/backup/logic/backupDashboardStatsMapper';
 
 export interface BackupMonitoringSectionProps {
   statusPayload: BackupLatestStatusResponseDto | undefined;
@@ -88,7 +88,7 @@ export function BackupMonitoringSection({
 
   const chartRowsFromStats = useMemo(
     () => mapDashboardHistoryToChartRows(statsQuery.data?.history30Days, formatLocale),
-    [statsQuery.data?.history30Days, formatLocale],
+    [statsQuery.data?.history30Days, formatLocale]
   );
 
   const metricsRunsQuery = useGetApiAdminBackupRuns(
@@ -98,7 +98,7 @@ export function BackupMonitoringSection({
         refetchInterval: metricsPollInterval,
         refetchOnWindowFocus: true,
       },
-    },
+    }
   );
 
   const runsForMetrics = metricsRunsQuery.data?.items ?? [];
@@ -106,22 +106,22 @@ export function BackupMonitoringSection({
   const recentColumns: ColumnsType<BackupRunResponseDto> = useMemo(
     () => [
       {
-        title: t("backupDr.monitoring.recentTable.requested"),
-        dataIndex: "requestedAt",
+        title: t('backupDr.monitoring.recentTable.requested'),
+        dataIndex: 'requestedAt',
         render: (v: string | undefined) => formatDt(v, formatLocale),
       },
       {
-        title: t("backupDr.monitoring.recentTable.status"),
-        dataIndex: "status",
+        title: t('backupDr.monitoring.recentTable.status'),
+        dataIndex: 'status',
         render: (s: number | undefined) => backupStatusLabel(s),
       },
       {
-        title: t("backupDr.monitoring.recentTable.adapter"),
-        dataIndex: "adapterKind",
+        title: t('backupDr.monitoring.recentTable.adapter'),
+        dataIndex: 'adapterKind',
         ellipsis: true,
       },
     ],
-    [backupStatusLabel, formatDt, formatLocale, t],
+    [backupStatusLabel, formatDt, formatLocale, t]
   );
 
   const recentRows = runsForMetrics.slice(0, 8);
@@ -159,15 +159,13 @@ export function BackupMonitoringSection({
         <Col xs={24}>
           <BackupHistoryChart
             runs={runsForMetrics}
-            chartData={
-              chartRowsFromStats.length > 0 ? chartRowsFromStats : undefined
-            }
+            chartData={chartRowsFromStats.length > 0 ? chartRowsFromStats : undefined}
             formatLocale={formatLocale}
-            title={t("backupDr.monitoring.charts.history30d")}
-            successLabel={t("backupDr.monitoring.charts.legendSuccess")}
-            failedLabel={t("backupDr.monitoring.charts.legendFailed")}
-            durationLabel={t("backupDr.monitoring.charts.legendDuration")}
-            durationSuffix={t("backupDr.monitoring.charts.durationSuffix")}
+            title={t('backupDr.monitoring.charts.history30d')}
+            successLabel={t('backupDr.monitoring.charts.legendSuccess')}
+            failedLabel={t('backupDr.monitoring.charts.legendFailed')}
+            durationLabel={t('backupDr.monitoring.charts.legendDuration')}
+            durationSuffix={t('backupDr.monitoring.charts.durationSuffix')}
             onBarClick={(runId) =>
               router.push(`/backup/dashboard?runId=${encodeURIComponent(runId)}`)
             }
@@ -202,7 +200,7 @@ export function BackupMonitoringSection({
       </Row>
 
       <RecentRunsTable
-        title={t("backupDr.monitoring.recentTable.title")}
+        title={t('backupDr.monitoring.recentTable.title')}
         rowKey="id"
         dataSource={recentRows}
         columns={recentColumns}

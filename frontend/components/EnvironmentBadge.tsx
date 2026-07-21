@@ -43,15 +43,24 @@ export function EnvironmentBadge({ settings }: Props) {
       : null;
 
   const devSuffix =
-    settings?.enabled && active.length > 0 ? ` · DEV (${active.join(', ')})` : settings?.enabled ? ' · DEV' : '';
+    settings?.enabled && active.length > 0
+      ? ` · DEV (${active.join(', ')})`
+      : settings?.enabled
+        ? ' · DEV'
+        : '';
 
   const chip = (
     <Pressable
-      onPress={settings?.enabled ? () => setOpen(true) : undefined}
+      onPress={
+        settings?.enabled
+          ? () => {
+              setOpen(true);
+            }
+          : undefined
+      }
       style={[styles.chip, rksv?.isSimulated ? styles.demoBadge : styles.prodBadge]}
       accessibilityRole={settings?.enabled ? 'button' : 'text'}
-      accessibilityLabel={environmentLabel ? `${environmentLabel}${devSuffix}` : 'RKSV-Umgebung'}
-    >
+      accessibilityLabel={environmentLabel ? `${environmentLabel}${devSuffix}` : 'RKSV-Umgebung'}>
       <Text style={styles.chipText}>
         {environmentLabel}
         {devSuffix}
@@ -66,9 +75,23 @@ export function EnvironmentBadge({ settings }: Props) {
   return (
     <>
       {chip}
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
-          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+      <Modal
+        visible={open}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setOpen(false);
+        }}>
+        <Pressable
+          style={styles.backdrop}
+          onPress={() => {
+            setOpen(false);
+          }}>
+          <Pressable
+            style={styles.sheet}
+            onPress={(e) => {
+              e.stopPropagation();
+            }}>
             <Text style={styles.title}>Entwicklungsmodus</Text>
             {environmentLabel ? (
               <Text style={styles.line}>
@@ -81,7 +104,11 @@ export function EnvironmentBadge({ settings }: Props) {
                 {line}
               </Text>
             ))}
-            <Pressable style={styles.closeBtn} onPress={() => setOpen(false)}>
+            <Pressable
+              style={styles.closeBtn}
+              onPress={() => {
+                setOpen(false);
+              }}>
               <Text style={styles.closeText}>Schließen</Text>
             </Pressable>
           </Pressable>

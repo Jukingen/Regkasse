@@ -1,7 +1,6 @@
 /**
  * Manuel yedek / restore tatbikatı tetikleri — etkin çalıştırma modu ve son çalıştırma adaptörüne göre onay metinleri.
  */
-
 import type { BackupExecutionModeTruth } from '@/features/backup-dr/logic/backupDrExecutionModeTruth';
 import { isSimulatedBackupAdapterKind } from '@/features/backup-dr/logic/backupDrMappers';
 
@@ -27,7 +26,10 @@ export interface ManualActionsModeConfirmations {
   cardAlert: { severity: 'warning' | 'error'; message: string } | null;
 }
 
-function labelUserFacing(mode: string | undefined, t: (k: string, o?: Record<string, string | number>) => string): string {
+function labelUserFacing(
+  mode: string | undefined,
+  t: (k: string, o?: Record<string, string | number>) => string
+): string {
   const m = (mode ?? '').trim();
   if (m === 'Fake') return t('backupDr.executionMode.userFacing.fake');
   if (m === 'RealPgDump') return t('backupDr.executionMode.userFacing.realPgDump');
@@ -37,7 +39,7 @@ function labelUserFacing(mode: string | undefined, t: (k: string, o?: Record<str
 }
 
 function classifyLatestRunForDrill(
-  latest: LatestRunSnapshot | null | undefined,
+  latest: LatestRunSnapshot | null | undefined
 ): 'none' | 'simulated' | 'real' | 'unknown' {
   if (!latest?.id) return 'none';
   const k = (latest.adapterKind ?? '').trim();
@@ -53,12 +55,14 @@ export function buildManualActionsConfirmations(
   em: BackupExecutionModeTruth,
   latestRun: LatestRunSnapshot | null | undefined,
   t: (k: string, o?: Record<string, string | number>) => string,
-  options?: ManualActionsPresentationOptions,
+  options?: ManualActionsPresentationOptions
 ): ManualActionsModeConfirmations {
   const healthAdapter = (options?.healthEffectiveAdapterKind ?? '').trim();
   const effectiveUf = labelUserFacing(em.loaded ? em.effectiveUserFacingMode : undefined, t);
   const requestedUf = labelUserFacing(em.loaded ? em.requestedUserFacingMode : undefined, t);
-  const effAdapter = em.loaded ? (em.effectiveExecutionAdapterKind || '—').trim() : healthAdapter || '—';
+  const effAdapter = em.loaded
+    ? (em.effectiveExecutionAdapterKind || '—').trim()
+    : healthAdapter || '—';
 
   const effectiveLine = em.loaded
     ? t('backupDr.manual.effectiveExecutionLine', {
@@ -76,7 +80,7 @@ export function buildManualActionsConfirmations(
       t('backupDr.manual.confirmBackupMismatchRequestedRealEffectiveSimulated', {
         requested: requestedUf,
         effective: effectiveUf,
-      }),
+      })
     );
   }
   if (em.loaded && em.requestedRealButBlocked) {
@@ -88,7 +92,9 @@ export function buildManualActionsConfirmations(
   } else if (em.loaded && em.effectiveIsPgDumpAdapter) {
     backupParts.push(t('backupDr.manual.confirmBackupBehaviorRealPgDump'));
   } else if (em.loaded) {
-    backupParts.push(t('backupDr.manual.confirmBackupBehaviorOtherAdapter', { adapter: effAdapter || '—' }));
+    backupParts.push(
+      t('backupDr.manual.confirmBackupBehaviorOtherAdapter', { adapter: effAdapter || '—' })
+    );
   } else {
     backupParts.push(t('backupDr.manual.confirmBackupBehaviorUnknown'));
   }
@@ -102,12 +108,16 @@ export function buildManualActionsConfirmations(
     restoreParts.push(
       t('backupDr.manual.confirmRestoreLatestSimulated', {
         adapter: (latestRun?.adapterKind ?? '—').trim() || '—',
-      }),
+      })
     );
   } else if (drill === 'real') {
     restoreParts.push(t('backupDr.manual.confirmRestoreLatestReal'));
   } else {
-    restoreParts.push(t('backupDr.manual.confirmRestoreLatestAmbiguous', { adapter: (latestRun?.adapterKind ?? '—').trim() || '—' }));
+    restoreParts.push(
+      t('backupDr.manual.confirmRestoreLatestAmbiguous', {
+        adapter: (latestRun?.adapterKind ?? '—').trim() || '—',
+      })
+    );
   }
 
   restoreParts.push(t('backupDr.manual.confirmRestoreDrillFootnote'));
@@ -116,7 +126,10 @@ export function buildManualActionsConfirmations(
   if (em.loaded && em.requestedRealButEffectiveSimulated) {
     cardAlert = {
       severity: 'error',
-      message: t('backupDr.manual.cardAlertRequestedRealEffectiveSimulated', { requested: requestedUf, effective: effectiveUf }),
+      message: t('backupDr.manual.cardAlertRequestedRealEffectiveSimulated', {
+        requested: requestedUf,
+        effective: effectiveUf,
+      }),
     };
   } else if (em.loaded && em.requestedRealButBlocked) {
     cardAlert = {

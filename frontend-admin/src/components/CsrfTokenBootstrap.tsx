@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+
 import { ensureCsrfToken } from '@/lib/csrf';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 

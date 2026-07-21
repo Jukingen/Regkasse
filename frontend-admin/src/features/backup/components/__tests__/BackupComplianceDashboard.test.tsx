@@ -1,53 +1,54 @@
 /**
  * @vitest-environment jsdom
  */
-import React from "react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
-import "@testing-library/jest-dom/vitest";
-import { App } from "antd";
-import { BackupComplianceDashboard } from "@/features/backup/components/BackupComplianceDashboard";
+import '@testing-library/jest-dom/vitest';
+import { render, screen } from '@testing-library/react';
+import { App } from 'antd';
+import React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { BackupComplianceDashboard } from '@/features/backup/components/BackupComplianceDashboard';
 
 const useComplianceStatusMock = vi.fn();
 
-vi.mock("@/features/backup/hooks/useComplianceStatus", () => ({
+vi.mock('@/features/backup/hooks/useComplianceStatus', () => ({
   useComplianceStatus: (...args: unknown[]) => useComplianceStatusMock(...args),
 }));
 
-vi.mock("@/i18n", () => ({
+vi.mock('@/i18n', () => ({
   useI18n: () => ({
     t: (key: string) => key,
-    formatLocale: "de-AT",
+    formatLocale: 'de-AT',
   }),
 }));
 
-describe("BackupComplianceDashboard", () => {
+describe('BackupComplianceDashboard', () => {
   beforeEach(() => {
     useComplianceStatusMock.mockReset();
   });
 
-  it("shows warning when not all compliant", () => {
+  it('shows warning when not all compliant', () => {
     useComplianceStatusMock.mockReturnValue({
       data: {
         total: 2,
         compliant: 1,
         nonCompliant: 1,
         allCompliant: false,
-        lastCheckUtc: "2026-07-17T12:00:00Z",
+        lastCheckUtc: '2026-07-17T12:00:00Z',
         backups: [
           {
-            backupRunId: "a",
-            date: "2026-07-16T10:00:00Z",
-            status: "Succeeded",
+            backupRunId: 'a',
+            date: '2026-07-16T10:00:00Z',
+            status: 'Succeeded',
             compliant: true,
-            reason: "system_dump_hash_present",
+            reason: 'system_dump_hash_present',
           },
           {
-            backupRunId: "b",
-            date: "2026-07-15T10:00:00Z",
-            status: "Succeeded",
+            backupRunId: 'b',
+            date: '2026-07-15T10:00:00Z',
+            status: 'Succeeded',
             compliant: false,
-            reason: "missing_sha256",
+            reason: 'missing_sha256',
           },
         ],
       },
@@ -58,10 +59,10 @@ describe("BackupComplianceDashboard", () => {
     render(
       <App>
         <BackupComplianceDashboard />
-      </App>,
+      </App>
     );
 
-    expect(screen.getByText("backupDr.compliance.warningTitle")).toBeInTheDocument();
-    expect(screen.getByText("backupDr.compliance.listTitle")).toBeInTheDocument();
+    expect(screen.getByText('backupDr.compliance.warningTitle')).toBeInTheDocument();
+    expect(screen.getByText('backupDr.compliance.listTitle')).toBeInTheDocument();
   });
 });

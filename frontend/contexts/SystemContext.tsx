@@ -1,32 +1,11 @@
-import { storage } from '../utils/storage';
-import { Platform } from 'react-native';
-
-// Safe Native Module Imports
-let NetInfo: any = {
-  addEventListener: (cb: (state: any) => void) => {
-    // Mock listener for web/ssr
-    return () => { };
-  },
-  fetch: async () => ({ isConnected: true })
-};
-
-if (Platform.OS !== 'web') {
-  try {
-    const NativeNetInfo = require('@react-native-community/netinfo').default;
-    if (NativeNetInfo) {
-      NetInfo = NativeNetInfo;
-    }
-  } catch (e) {
-    console.warn('NetInfo require failed:', e);
-  }
-}
+import NetInfo from '@react-native-community/netinfo';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Alert } from 'react-native';
 
 import { defaultSystemConfig, type SystemConfiguration } from './systemConfiguration';
-import {
-  isDevSimulatePosNetworkOffline,
-} from '../constants/devSimulatePosOffline';
+import { isDevSimulatePosNetworkOffline } from '../constants/devSimulatePosOffline';
+import { fetchIsNetworkOnline, isNetworkOnline } from '../utils/isNetworkOnline';
+import { storage } from '../utils/storage';
 
 export type { SystemConfiguration } from './systemConfiguration';
 
@@ -58,20 +37,43 @@ export const SystemProvider: React.FC<SystemProviderProps> = ({ children }) => {
   const [systemConfig, setSystemConfig] = useState<SystemConfiguration>(defaultSystemConfig);
   const [loading, setLoading] = useState(true);
 
-  // Ağ durumunu izle
   useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener((state: any) => {
-      if (isDevSimulatePosNetworkOffline()) {
-        setIsOnline(false);
-        return;
+    let mounted = true;
+
+    const applyOnline = (online: boolean) => {
+      if (mounted) {
+        setIsOnline(online);
       }
-      setIsOnline(state.isConnected ?? false);
+    };
+
+    void fetchIsNetworkOnline().then(applyOnline);
+
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      applyOnline(isNetworkOnline(state));
     });
 
-    return () => unsubscribe();
+    const handleBrowserOnline = () => {
+      void fetchIsNetworkOnline().then(applyOnline);
+    };
+    const handleBrowserOffline = () => {
+      applyOnline(false);
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', handleBrowserOnline);
+      window.addEventListener('offline', handleBrowserOffline);
+    }
+
+    return () => {
+      mounted = false;
+      unsubscribe();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('online', handleBrowserOnline);
+        window.removeEventListener('offline', handleBrowserOffline);
+      }
+    };
   }, []);
 
-  // Sistem konfigürasyonunu yükle
   const loadSystemConfig = async () => {
     try {
       setLoading(true);
@@ -87,7 +89,6 @@ export const SystemProvider: React.FC<SystemProviderProps> = ({ children }) => {
     }
   };
 
-  // Sistem konfigürasyonunu güncelle
   const updateSystemConfig = async (newConfig: Partial<SystemConfiguration>) => {
     try {
       const updatedConfig = { ...systemConfig, ...newConfig };
@@ -99,21 +100,10 @@ export const SystemProvider: React.FC<SystemProviderProps> = ({ children }) => {
     }
   };
 
-  // Bağlantı durumunu kontrol et
   const checkConnectivity = async (): Promise<boolean> => {
-    if (isDevSimulatePosNetworkOffline()) {
-      return false;
-    }
-    try {
-      const state = await NetInfo.fetch();
-      return state.isConnected ?? false;
-    } catch (error) {
-      console.error('Connectivity check failed:', error);
-      return false;
-    }
+    return await fetchIsNetworkOnline();
   };
 
-  // İlk yükleme
   useEffect(() => {
     loadSystemConfig();
   }, []);
@@ -127,9 +117,5 @@ export const SystemProvider: React.FC<SystemProviderProps> = ({ children }) => {
     checkConnectivity,
   };
 
-  return (
-    <SystemContext.Provider value={value}>
-      {children}
-    </SystemContext.Provider>
-  );
-}; 
+  return <SystemContext.Provider value={value}>{children}</SystemContext.Provider>;
+};

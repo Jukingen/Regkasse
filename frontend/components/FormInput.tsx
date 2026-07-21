@@ -1,6 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { View, TextInput, Text, StyleSheet, TextInputProps } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 interface FormInputProps extends TextInputProps {
   label?: string;
@@ -27,31 +27,36 @@ export const FormInput: React.FC<FormInputProps> = ({
   return (
     <View style={styles.container}>
       {label && <Text style={styles.label}>{label}</Text>}
-      <View style={[
-        styles.inputContainer,
-        isFocused && styles.inputContainerFocused,
-        hasError && styles.inputContainerError
-      ]}>
+      <View
+        style={[
+          styles.inputContainer,
+          isFocused && styles.inputContainerFocused,
+          hasError && styles.inputContainerError,
+        ]}>
         {leftIcon && (
-          <Ionicons 
-            name={leftIcon} 
-            size={20} 
-            color={isFocused ? '#007AFF' : '#666'} 
+          <Ionicons
+            name={leftIcon}
+            size={20}
+            color={isFocused ? '#007AFF' : '#666'}
             style={styles.leftIcon}
           />
         )}
         <TextInput
           style={[styles.input, style]}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onFocus={() => {
+            setIsFocused(true);
+          }}
+          onBlur={() => {
+            setIsFocused(false);
+          }}
           placeholderTextColor="#999"
           {...props}
         />
         {rightIcon && (
-          <Ionicons 
-            name={rightIcon} 
-            size={20} 
-            color="#666" 
+          <Ionicons
+            name={rightIcon}
+            size={20}
+            color="#666"
             style={styles.rightIcon}
             onTouchEnd={onRightIconPress}
           />

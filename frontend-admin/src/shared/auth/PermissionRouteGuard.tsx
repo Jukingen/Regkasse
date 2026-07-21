@@ -1,15 +1,17 @@
 'use client';
 
-import React, { ReactNode, useEffect, useMemo } from 'react';
+import { Spin } from 'antd';
 import { usePathname } from 'next/navigation';
-import { useAuth, AuthStatus } from '@/features/auth/hooks/useAuth';
-import { getRequiredPermissionForPath, permissionsSatisfyRoute } from './routePermissions';
-import { ALLOW_EMPTY_PERMISSIONS_FOR_ROUTE_ACCESS } from './routeGuardConfig';
+import React, { ReactNode, useEffect, useMemo } from 'react';
+
 import { isChangePasswordPath } from '@/features/auth/constants/changePasswordRoute';
-import { technicalConsole } from '@/shared/dev/technicalConsole';
+import { AuthStatus, useAuth } from '@/features/auth/hooks/useAuth';
 import { ForbiddenAccessView } from '@/shared/auth/ForbiddenAccessView';
 import { rememberAllowedAdminPath } from '@/shared/auth/useSafeNavigateBack';
-import { Spin } from 'antd';
+import { technicalConsole } from '@/shared/dev/technicalConsole';
+
+import { ALLOW_EMPTY_PERMISSIONS_FOR_ROUTE_ACCESS } from './routeGuardConfig';
+import { getRequiredPermissionForPath, permissionsSatisfyRoute } from './routePermissions';
 
 interface PermissionRouteGuardProps {
   children: ReactNode;
@@ -54,12 +56,19 @@ export function PermissionRouteGuard({ children }: PermissionRouteGuardProps) {
     }
     if (!checkRoutePermission(pathname, permissions)) return 'insufficient';
     return 'allowed';
-  }, [isAuthInitializing, authStatus, permissions, pathname, allowEmptyPermissionsForRouteAccess, user?.mustChangePasswordOnNextLogin]);
+  }, [
+    isAuthInitializing,
+    authStatus,
+    permissions,
+    pathname,
+    allowEmptyPermissionsForRouteAccess,
+    user?.mustChangePasswordOnNextLogin,
+  ]);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== 'production') {
       technicalConsole.devLog(
-        `[PermissionRouteGuard] path=${pathname} state=${state} permissionCount=${permissions.length} authStatus=${authStatus} initializing=${isAuthInitializing}`,
+        `[PermissionRouteGuard] path=${pathname} state=${state} permissionCount=${permissions.length} authStatus=${authStatus} initializing=${isAuthInitializing}`
       );
     }
   }, [pathname, state, permissions.length, authStatus, isAuthInitializing]);

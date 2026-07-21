@@ -1,20 +1,12 @@
 import React, { useCallback, useState } from 'react';
-import {
-  Alert,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { DailyClosingModal } from './DailyClosingModal';
-import {
-  downloadDailyClosingReportPdf,
-} from '../services/api/shiftService';
 import { useShift } from '../hooks/useShift';
-import { WaveLoader } from '../src/components/common/WaveLoader';
 import { getFormattingLocaleForTextLocale } from '../i18n/localeUtils';
+import { downloadDailyClosingReportPdf } from '../services/api/shiftService';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 import {
   printDailyClosingReport,
   printDailyClosingReportPdf,
@@ -23,6 +15,7 @@ import {
   extractDailyClosingErrorDetails,
   getDailyClosingErrorMessage,
 } from '../utils/errorMessages';
+import { isPrintCancelled } from '../utils/expoPrintShare';
 import { formatPrice } from '../utils/formatPrice';
 import { resolveDailyClosingStatusMessage } from '../utils/resolveDailyClosingStatusMessage';
 
@@ -150,8 +143,10 @@ export function ShiftManager() {
             getFormattingLocaleForTextLocale(i18n.language)
           );
         }
-      } catch {
-        Alert.alert(t('settings:shift.errorTitle'), t('settings:shift.dailyClosing.printFailed'));
+      } catch (printErr) {
+        if (!isPrintCancelled(printErr)) {
+          Alert.alert(t('settings:shift.errorTitle'), t('settings:shift.dailyClosing.printFailed'));
+        }
       }
       Alert.alert(
         t('settings:shift.dailyClosing.successTitle'),
@@ -184,9 +179,7 @@ export function ShiftManager() {
     refreshDailyClosingStatus,
   ]);
 
-  const canRunDailyClosing = Boolean(
-    activeShift && dailyClosingStatus?.canClose && !isLoading
-  );
+  const canRunDailyClosing = Boolean(activeShift && dailyClosingStatus?.canClose && !isLoading);
   const shiftStatus = activeShift ? 'open' : 'closed';
 
   if (isLoading && !activeShift && !showDailyClosingModal) {
@@ -231,19 +224,21 @@ export function ShiftManager() {
               style={[
                 styles.statusHint,
                 dailyClosingStatus.canClose ? styles.statusHintReady : styles.statusHintBlocked,
-              ]}
-            >
+              ]}>
               {resolveDailyClosingStatusMessage(dailyClosingStatus, t)}
             </Text>
           ) : null}
           <Pressable
-            style={[styles.primaryBtn, styles.closingBtn, !canRunDailyClosing && styles.btnDisabled]}
+            style={[
+              styles.primaryBtn,
+              styles.closingBtn,
+              !canRunDailyClosing && styles.btnDisabled,
+            ]}
             onPress={openDailyClosingModal}
             // Keep pressable while gated so __DEV__ click logs still fire (disabled swallows onPress).
             accessibilityState={{ disabled: !canRunDailyClosing }}
             accessibilityRole="button"
-            accessibilityLabel={t('settings:shift.dailyClosing.button')}
-          >
+            accessibilityLabel={t('settings:shift.dailyClosing.button')}>
             <Text style={styles.primaryBtnText}>{t('settings:shift.dailyClosing.button')}</Text>
           </Pressable>
         </View>

@@ -1,4 +1,6 @@
+import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   ScrollView,
@@ -7,10 +9,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import type { CustomerTenantProfile } from '../../services/customerApp/publicTenantApi';
-import { loadTenantMenu, type CustomerTenantMenu } from '../../services/customerApp/publicTenantApi';
+
+import type { CustomerTenantProfile, CustomerTenantMenu } from '../../services/customerApp/publicTenantApi';
+import { loadTenantMenu } from '../../services/customerApp/publicTenantApi';
 
 type Props = {
   tenant: CustomerTenantProfile;
@@ -65,9 +66,7 @@ export function TenantApp({ tenant, onChangeTenant }: Props) {
     <ScrollView contentContainerStyle={styles.container}>
       <View style={[styles.hero, { backgroundColor: tenant.primaryColor }]}>
         <Text style={styles.heroTitle}>{tenant.displayName}</Text>
-        {tenant.description ? (
-          <Text style={styles.heroDesc}>{tenant.description}</Text>
-        ) : null}
+        {tenant.description ? <Text style={styles.heroDesc}>{tenant.description}</Text> : null}
       </View>
 
       <View style={styles.actions}>
@@ -93,9 +92,7 @@ export function TenantApp({ tenant, onChangeTenant }: Props) {
           <View key={item.id || item.name} style={styles.menuRow}>
             <View style={styles.menuMain}>
               <Text style={styles.menuName}>{item.name}</Text>
-              {item.categoryName ? (
-                <Text style={styles.menuCat}>{item.categoryName}</Text>
-              ) : null}
+              {item.categoryName ? <Text style={styles.menuCat}>{item.categoryName}</Text> : null}
             </View>
             <Text style={styles.menuPrice}>{money(item.price, menu.currency)}</Text>
           </View>

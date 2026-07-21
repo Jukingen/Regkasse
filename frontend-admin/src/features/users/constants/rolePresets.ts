@@ -2,7 +2,6 @@
  * Role permission presets – predefined permission sets for quick apply in role management.
  * Keys must exist in backend permission catalog; apply only updates local draft, not backend.
  */
-
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
 export interface RolePreset {

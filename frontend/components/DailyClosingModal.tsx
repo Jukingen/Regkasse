@@ -1,13 +1,6 @@
 import React, { useEffect } from 'react';
-import {
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 export type DailyClosingModalProps = {
   visible: boolean;
@@ -45,12 +38,7 @@ export function DailyClosingModal({
   }, [visible]);
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
         <View style={styles.modalCard}>
           <Text style={styles.modalTitle}>{t('settings:shift.dailyClosing.modalTitle')}</Text>
@@ -87,8 +75,7 @@ export function DailyClosingModal({
               onPress={onConfirm}
               disabled={isLoading}
               accessibilityRole="button"
-              accessibilityLabel={t('settings:shift.dailyClosing.confirm')}
-            >
+              accessibilityLabel={t('settings:shift.dailyClosing.confirm')}>
               <Text style={styles.primaryBtnText}>
                 {isLoading ? t('settings:shift.working') : t('settings:shift.dailyClosing.confirm')}
               </Text>

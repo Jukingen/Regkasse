@@ -61,7 +61,10 @@ export async function getRolesWithPermissions(): Promise<RoleWithPermissionsDto[
   return Array.isArray(data) ? data : [];
 }
 
-export async function updateRolePermissions(roleName: string, permissions: string[]): Promise<void> {
+export async function updateRolePermissions(
+  roleName: string,
+  permissions: string[]
+): Promise<void> {
   await customInstance<void>({
     url: `/api/UserManagement/roles/${encodeURIComponent(roleName)}/permissions`,
     method: 'PUT',

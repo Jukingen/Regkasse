@@ -1,0 +1,14 @@
+.fab {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1000;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+}
+
+@media (max-width: 576px) {
+  .fab {
+    right: 16px;
+    bottom: 16px;
+  }
+}

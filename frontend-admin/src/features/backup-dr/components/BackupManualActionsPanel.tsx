@@ -1,32 +1,31 @@
-"use client";
+'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
+import { useQueryClient } from '@tanstack/react-query';
+import React, { useCallback } from 'react';
 
-import React, { useCallback } from "react";
-
-import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetApiAdminBackupRecoverabilitySummaryQueryKey,
   usePostApiAdminBackupTrigger,
-} from "@/api/generated/admin-backup/admin-backup";
-import { buildBackupTriggerRequestBody } from "@/features/backup/api/backupHooks";
-import { useCurrentTenant } from "@/hooks/useCurrentTenant";
+} from '@/api/generated/admin-backup/admin-backup';
 import {
   getGetApiAdminRestoreVerificationReadinessQueryKey,
   getGetApiAdminRestoreVerificationRunsLatestQueryKey,
   usePostApiAdminRestoreVerificationTrigger,
-} from "@/api/generated/admin-restore-verification/admin-restore-verification";
-import { RestoreVerificationTriggerOrchestrationState } from "@/api/generated/model";
+} from '@/api/generated/admin-restore-verification/admin-restore-verification';
+import { RestoreVerificationTriggerOrchestrationState } from '@/api/generated/model';
 import {
   ManualActionsPanel,
   type ManualActionsPanelProps,
-} from "@/features/backup-dr/components/ManualActionsPanel";
-import { triggerErrorMessageBackupDashboard } from "@/features/backup-dr/logic/backupManualTriggerMessaging";
-import { describeBackupTriggerOutcome } from "@/features/backup-dr/logic/backupTriggerOutcome";
+} from '@/features/backup-dr/components/ManualActionsPanel';
+import { triggerErrorMessageBackupDashboard } from '@/features/backup-dr/logic/backupManualTriggerMessaging';
+import { describeBackupTriggerOutcome } from '@/features/backup-dr/logic/backupTriggerOutcome';
+import { buildBackupTriggerRequestBody } from '@/features/backup/api/backupHooks';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { useCurrentTenant } from '@/hooks/useCurrentTenant';
 
 export interface BackupManualActionsPanelProps extends Omit<
   ManualActionsPanelProps,
-  "backupTrigger" | "restoreTrigger"
+  'backupTrigger' | 'restoreTrigger'
 > {}
 
 /** Manual enqueue controls: preserves legacy mutation invalidate + toast semantics. */
@@ -48,13 +47,13 @@ export function BackupManualActionsPanel(props: BackupManualActionsPanelProps) {
       onSuccess: async (res) => {
         const fb = describeBackupTriggerOutcome(res);
         const suffix = res.orchestrationState?.trim()
-          ? ` ${t("backupDr.messages.orchestrationStateSuffix", { state: res.orchestrationState })}`
-          : "";
+          ? ` ${t('backupDr.messages.orchestrationStateSuffix', { state: res.orchestrationState })}`
+          : '';
         const text = `${t(fb.messageKey)}${suffix}`;
-        if (fb.level === "success") message.success(text);
+        if (fb.level === 'success') message.success(text);
         else message.info(text);
         await queryClient.invalidateQueries({
-          queryKey: ["/api/admin/backup"],
+          queryKey: ['/api/admin/backup'],
         });
         await queryClient.invalidateQueries({
           queryKey: getGetApiAdminBackupRecoverabilitySummaryQueryKey(),
@@ -69,21 +68,19 @@ export function BackupManualActionsPanel(props: BackupManualActionsPanelProps) {
     mutation: {
       onSuccess: async (res) => {
         if (res.newQueuedRunCreated) {
-          message.success(t("backupDr.messages.restoreDrillEnqueued"));
+          message.success(t('backupDr.messages.restoreDrillEnqueued'));
         } else if (res.existingRunReturned) {
-          if (
-            res.orchestrationState === RestoreVerificationTriggerOrchestrationState.NUMBER_1
-          ) {
-            message.info(t("backupDr.messages.restoreDrillIdempotent"));
+          if (res.orchestrationState === RestoreVerificationTriggerOrchestrationState.NUMBER_1) {
+            message.info(t('backupDr.messages.restoreDrillIdempotent'));
           } else {
-            message.info(t("backupDr.messages.restoreDrillExistingActive"));
+            message.info(t('backupDr.messages.restoreDrillExistingActive'));
           }
         }
         await queryClient.invalidateQueries({
           queryKey: getGetApiAdminRestoreVerificationRunsLatestQueryKey(),
         });
         await queryClient.invalidateQueries({
-          queryKey: ["/api/admin/restore-verification/runs"],
+          queryKey: ['/api/admin/restore-verification/runs'],
         });
         await queryClient.invalidateQueries({
           queryKey: getGetApiAdminBackupRecoverabilitySummaryQueryKey(),
@@ -101,7 +98,7 @@ export function BackupManualActionsPanel(props: BackupManualActionsPanelProps) {
         isPending: backupTrigger.isPending,
         mutate: () => backupTrigger.mutate({ data: buildBackupTriggerRequestBody({}, tenantId) }),
       }}
-      restoreTrigger={restoreTrigger as ManualActionsPanelProps["restoreTrigger"]}
+      restoreTrigger={restoreTrigger as ManualActionsPanelProps['restoreTrigger']}
     />
   );
 }

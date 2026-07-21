@@ -1,11 +1,12 @@
-"use client";
+'use client';
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from '@tanstack/react-query';
+
 import {
-  getManualRestoreHistory,
   MANUAL_RESTORE_HISTORY_PATH,
   type RestoreRequestHistoryResponseDto,
-} from "@/features/backup-dr/logic/manualRestoreApi";
+  getManualRestoreHistory,
+} from '@/features/backup-dr/logic/manualRestoreApi';
 
 export type UseRestoreHistoryOptions = {
   enabled?: boolean;

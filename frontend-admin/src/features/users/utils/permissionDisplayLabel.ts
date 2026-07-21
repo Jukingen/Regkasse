@@ -10,7 +10,7 @@ export function permissionCodeToLabelLeaf(code: string): string {
  */
 export function resolvePermissionDisplayLabel(
   code: string,
-  t: (key: string, options?: Record<string, string | number>) => string,
+  t: (key: string, options?: Record<string, string | number>) => string
 ): string {
   const leaf = permissionCodeToLabelLeaf(code);
   const resolved = t(`users.roleDrawer.permissionLabels.${leaf}`);

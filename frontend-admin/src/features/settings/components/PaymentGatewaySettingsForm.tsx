@@ -1,23 +1,13 @@
 'use client';
 
 import { CreditCardOutlined } from '@ant-design/icons';
-import {
-  Alert,
-  Button,
-  Card,
-  Checkbox,
-  Descriptions,
-  Form,
-  Input,
-  Space,
-  Tag,
-} from 'antd';
+import { Alert, Button, Card, Checkbox, Descriptions, Form, Input, Space, Tag } from 'antd';
 import Link from 'next/link';
 import { useEffect } from 'react';
 
 import {
-  buildWebhookUrl,
   type PaymentGatewaySettings,
+  buildWebhookUrl,
 } from '@/features/settings/api/paymentGatewaySettingsApi';
 import {
   usePaymentGatewaySettings,
@@ -81,12 +71,7 @@ export function PaymentGatewaySettingsForm() {
 
       {data ? <GatewayStatusBlock data={data} webhookUrl={webhookUrl} /> : null}
 
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={handleSubmit}
-        style={{ marginTop: 24 }}
-      >
+      <Form form={form} layout="vertical" onFinish={handleSubmit} style={{ marginTop: 24 }}>
         <Form.Item label={t('settings.paymentGateway.stripeKeyLabel')}>
           <Input.Password
             value={data?.apiKeyConfigured ? '••••••••••••••••' : ''}
@@ -114,11 +99,7 @@ export function PaymentGatewaySettingsForm() {
         </Form.Item>
 
         <Space wrap>
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={updateSettings.isPending}
-          >
+          <Button type="primary" htmlType="submit" loading={updateSettings.isPending}>
             {t('settings.paymentGateway.save')}
           </Button>
           <Link href="/settings/payment-methods">
@@ -139,12 +120,7 @@ function GatewayStatusBlock({
 }) {
   const { t } = useI18n();
   return (
-    <Descriptions
-      bordered
-      size="small"
-      column={1}
-      title={t('settings.paymentGateway.statusTitle')}
-    >
+    <Descriptions bordered size="small" column={1} title={t('settings.paymentGateway.statusTitle')}>
       <Descriptions.Item label={t('settings.paymentGateway.providerLabel')}>
         <Tag color={data.isStripeProvider ? 'blue' : 'default'}>{data.provider}</Tag>
       </Descriptions.Item>

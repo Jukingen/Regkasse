@@ -1,9 +1,9 @@
-import i18n from '../i18n';
 import {
   type AuthErrorCode,
   resolveLoginErrorMessage,
   toAuthError,
 } from '../features/auth/authErrors';
+import i18n from '../i18n';
 
 export interface LoginError {
   userMessage: string;
@@ -24,8 +24,7 @@ function extractHttpStatus(error: unknown): number | undefined {
 function extractBackendMessage(error: unknown): string {
   if (!error || typeof error !== 'object') return '';
   const candidate = error as Record<string, unknown>;
-  const data =
-    (candidate.response as Record<string, unknown> | undefined)?.data ?? candidate.data;
+  const data = (candidate.response as Record<string, unknown> | undefined)?.data ?? candidate.data;
   if (!data || typeof data !== 'object') return '';
 
   const body = data as Record<string, unknown>;
@@ -38,7 +37,7 @@ function extractBackendMessage(error: unknown): string {
 
 function sanitizeTechnicalMessage(
   backendMessage: string | undefined,
-  error: unknown,
+  error: unknown
 ): string | undefined {
   if (backendMessage?.trim()) return backendMessage;
 
@@ -102,9 +101,7 @@ export const handleLoginError = (error: unknown): LoginError => {
         errorCode: 'INVALID_CREDENTIALS',
       };
     }
-    if (
-      includesAny(errorMessage, ['benutzer', 'user', 'bulunamadı', 'not found'])
-    ) {
+    if (includesAny(errorMessage, ['benutzer', 'user', 'bulunamadı', 'not found'])) {
       return {
         userMessage: i18n.t('auth:errors.userNotFound'),
         technicalMessage,
@@ -113,9 +110,7 @@ export const handleLoginError = (error: unknown): LoginError => {
     }
 
     return {
-      userMessage:
-        resolveLoginErrorMessage(authError) ||
-        i18n.t('auth:errors.credentialsCheck'),
+      userMessage: resolveLoginErrorMessage(authError) || i18n.t('auth:errors.credentialsCheck'),
       technicalMessage,
       errorCode: authError.code,
     };

@@ -1,0 +1,247 @@
+# Frontend Admin — build image + deploy staging / production
+#
+# Staging: after Frontend Admin CI succeeds on main/master (workflow_run), or workflow_dispatch.
+# Production: workflow_dispatch only + GitHub Environment `frontend-admin-production`
+#   (configure required reviewers under Settings → Environments).
+#
+# Docs: frontend-admin/docs/CI_CD.md
+# Image: ghcr.io/<owner>/regkasse-frontend-admin:<tag>
+#
+# Required for image push: packages:write (GITHUB_TOKEN default on github.com).
+# Optional deploy hooks (HTTP POST after push):
+#   secrets.FA_STAGING_DEPLOY_WEBHOOK_URL
+#   secrets.FA_PRODUCTION_DEPLOY_WEBHOOK_URL
+# Optional Slack on failure: secrets.SLACK_WEBHOOK_URL
+# Build-time public env (repo Variables or Secrets):
+#   vars.FA_STAGING_API_BASE_URL / FA_PRODUCTION_API_BASE_URL
+#   vars.FA_STAGING_RKSV_ENVIRONMENT (default TEST) / FA_PRODUCTION_RKSV_ENVIRONMENT (default PROD)
+
+name: Frontend Admin Deploy
+
+on:
+  workflow_run:
+    workflows:
+      - Frontend Admin CI
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Deploy target
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+        default: staging
+
+concurrency:
+  group: frontend-admin-deploy-${{ github.event.inputs.target || 'staging' }}-${{ github.event.workflow_run.head_branch || github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '22'
+  IMAGE_NAME: regkasse-frontend-admin
+
+jobs:
+  build-and-push:
+    name: Build & push Docker image
+    # Auto-staging only after green CI on default branches; production is dispatch-only.
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.workflow_run.conclusion == 'success' &&
+        (
+          github.event.workflow_run.head_branch == 'main' ||
+          github.event.workflow_run.head_branch == 'master'
+        )
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+      digest: ${{ steps.build.outputs.digest }}
+      tag: ${{ steps.meta.outputs.tag }}
+      git_sha: ${{ steps.meta.outputs.git_sha }}
+    env:
+      TARGET: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.target || 'staging' }}
+    steps:
+      - name: Resolve commit SHA
+        id: rev
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            SHA="${{ github.event.workflow_run.head_sha }}"
+          else
+            SHA="${{ github.sha }}"
+          fi
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "short=$(echo "$SHA" | cut -c1-7)" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.rev.outputs.sha }}
+
+      - name: Resolve build-time public env
+        id: env
+        run: |
+          TARGET="${{ env.TARGET }}"
+          if [ "$TARGET" = "production" ]; then
+            API="${{ vars.FA_PRODUCTION_API_BASE_URL }}"
+            RKSV="${{ vars.FA_PRODUCTION_RKSV_ENVIRONMENT }}"
+            API="${API:-https://api.regkasse.at}"
+            RKSV="${RKSV:-PROD}"
+          else
+            API="${{ vars.FA_STAGING_API_BASE_URL }}"
+            RKSV="${{ vars.FA_STAGING_RKSV_ENVIRONMENT }}"
+            API="${API:-https://api.regkasse.at}"
+            RKSV="${RKSV:-TEST}"
+          fi
+          echo "api_base_url=${API}" >> "$GITHUB_OUTPUT"
+          echo "rksv_environment=${RKSV}" >> "$GITHUB_OUTPUT"
+          echo "target=${TARGET}" >> "$GITHUB_OUTPUT"
+          echo "Resolved TARGET=${TARGET} RKSV=${RKSV} API=${API}"
+
+      - name: Image metadata
+        id: meta
+        run: |
+          OWNER_LC=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+          SHORT_SHA='${{ steps.rev.outputs.short }}'
+          FULL_SHA='${{ steps.rev.outputs.sha }}'
+          TARGET='${{ steps.env.outputs.target }}'
+          TAG="${TARGET}-${SHORT_SHA}"
+          IMAGE="ghcr.io/${OWNER_LC}/${{ env.IMAGE_NAME }}"
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "git_sha=${FULL_SHA}" >> "$GITHUB_OUTPUT"
+          echo "owner=${OWNER_LC}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend-admin
+          file: frontend-admin/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}
+            ${{ steps.meta.outputs.image }}:${{ steps.env.outputs.target }}
+            ${{ steps.meta.outputs.image }}:sha-${{ steps.rev.outputs.sha }}
+          build-args: |
+            NODE_VERSION=${{ env.NODE_VERSION }}
+            NEXT_PUBLIC_API_BASE_URL=${{ steps.env.outputs.api_base_url }}
+            NEXT_PUBLIC_RKSV_ENVIRONMENT=${{ steps.env.outputs.rksv_environment }}
+            NEXT_PUBLIC_SENTRY_DSN=${{ vars.FA_SENTRY_DSN }}
+            NEXT_PUBLIC_SENTRY_ENVIRONMENT=${{ steps.env.outputs.target }}
+            NEXT_PUBLIC_SENTRY_RELEASE=${{ steps.rev.outputs.sha }}
+          cache-from: type=gha,scope=fa-${{ steps.env.outputs.target }}
+          cache-to: type=gha,mode=max,scope=fa-${{ steps.env.outputs.target }}
+
+  deploy-staging:
+    name: Deploy staging
+    needs: build-and-push
+    if: >
+      needs.build-and-push.result == 'success' && (
+        github.event_name == 'workflow_run' ||
+        (github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'staging')
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: frontend-admin-staging
+      url: ${{ vars.FA_STAGING_URL }}
+    steps:
+      - name: Call staging deploy webhook (optional)
+        env:
+          WEBHOOK_URL: ${{ secrets.FA_STAGING_DEPLOY_WEBHOOK_URL }}
+          IMAGE: ${{ needs.build-and-push.outputs.image }}:${{ needs.build-and-push.outputs.tag }}
+          GIT_SHA: ${{ needs.build-and-push.outputs.git_sha }}
+        run: |
+          if [ -z "${WEBHOOK_URL}" ]; then
+            echo "FA_STAGING_DEPLOY_WEBHOOK_URL not set."
+            echo "Image is available: ${IMAGE}"
+            echo "Pull on the staging host, e.g.:"
+            echo "  docker pull ${IMAGE}"
+            echo "  # or use :staging tag after retag on host"
+            exit 0
+          fi
+          curl -sS -X POST \
+            -H 'Content-Type: application/json' \
+            --data "{\"image\":\"${IMAGE}\",\"environment\":\"staging\",\"sha\":\"${GIT_SHA}\",\"ref\":\"${{ github.event.workflow_run.head_branch || github.ref_name }}\"}" \
+            "${WEBHOOK_URL}"
+          echo "Staging webhook invoked."
+
+  deploy-production:
+    name: Deploy production (manual approval)
+    needs: build-and-push
+    if: >
+      needs.build-and-push.result == 'success' &&
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.target == 'production'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: frontend-admin-production
+      url: ${{ vars.FA_PRODUCTION_URL }}
+    steps:
+      - name: Call production deploy webhook (optional)
+        env:
+          WEBHOOK_URL: ${{ secrets.FA_PRODUCTION_DEPLOY_WEBHOOK_URL }}
+          IMAGE: ${{ needs.build-and-push.outputs.image }}:${{ needs.build-and-push.outputs.tag }}
+          GIT_SHA: ${{ needs.build-and-push.outputs.git_sha }}
+        run: |
+          if [ -z "${WEBHOOK_URL}" ]; then
+            echo "FA_PRODUCTION_DEPLOY_WEBHOOK_URL not set."
+            echo "Image is available: ${IMAGE}"
+            echo "After GitHub Environment approval, pull on the production host:"
+            echo "  docker pull ${IMAGE}"
+            exit 0
+          fi
+          curl -sS -X POST \
+            -H 'Content-Type: application/json' \
+            --data "{\"image\":\"${IMAGE}\",\"environment\":\"production\",\"sha\":\"${GIT_SHA}\",\"ref\":\"${{ github.ref_name }}\"}" \
+            "${WEBHOOK_URL}"
+          echo "Production webhook invoked."
+
+  notify-failure:
+    name: Notify on failure
+    needs: [build-and-push, deploy-staging, deploy-production]
+    if: >-
+      always() && (
+        needs.build-and-push.result == 'failure' ||
+        needs.deploy-staging.result == 'failure' ||
+        needs.deploy-production.result == 'failure'
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Slack webhook (optional)
+        continue-on-error: true
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          WORKFLOW: ${{ github.workflow }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REF: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          if [ -z "${SLACK_WEBHOOK_URL}" ]; then
+            echo "SLACK_WEBHOOK_URL not set — skipping. Enable GitHub Actions failure emails for watchers."
+            exit 0
+          fi
+          payload=$(printf '%s' "{
+            \"text\": \":rotating_light: *Frontend Admin Deploy failed*\\n*Workflow:* ${WORKFLOW}\\n*Branch:* ${REF}\\n*Actor:* ${ACTOR}\\n<${RUN_URL}|Open run>\"
+          }")
+          curl -sS -X POST -H 'Content-type: application/json' --data "${payload}" "${SLACK_WEBHOOK_URL}"

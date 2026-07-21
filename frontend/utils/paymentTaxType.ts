@@ -11,7 +11,9 @@ export function normalizeCartLineTaxTypeForPayment(
     if (raw === 3) return 'special';
     return 'standard';
   }
-  const r = String(raw ?? '').trim().toLowerCase();
+  const r = String(raw ?? '')
+    .trim()
+    .toLowerCase();
   if (r === 'reduced' || r === '10') return 'reduced';
   if (r === 'special' || r === '13') return 'special';
   return 'standard';
@@ -29,8 +31,8 @@ export type PosPaymentItemTaxInput = {
  * so HTTP and offline queue always see enum strings.
  */
 export function normalizePosPaymentItemsForRequest(
-  items: ReadonlyArray<PosPaymentItemTaxInput>
-): Array<{ productId: string; quantity: number; taxType: 'standard' | 'reduced' | 'special' }> {
+  items: readonly PosPaymentItemTaxInput[]
+): { productId: string; quantity: number; taxType: 'standard' | 'reduced' | 'special' }[] {
   return items.map((item) => ({
     productId: item.productId,
     quantity: item.quantity,

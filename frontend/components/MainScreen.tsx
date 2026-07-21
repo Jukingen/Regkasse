@@ -1,8 +1,9 @@
 // Bu komponent, 1-9 arası numaralı butonlarla hızlı masa/satış seçimi yapılmasını sağlar. Her buton bir masa/satış slotunu temsil eder. Dokunmatik uyumlu ve sade bir ana ekrandır.
 import React, { useContext } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { TableSlotContext } from '../contexts/TableSlotContext';
 import { useTranslation } from 'react-i18next';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+
+import { TableSlotContext } from '../contexts/TableSlotContext';
 
 const SLOT_COUNT = 9;
 
@@ -21,8 +22,7 @@ const MainScreen = () => {
             <TouchableOpacity
               key={slotNumber}
               style={[styles.button, isActive && styles.activeButton]}
-              onPress={() => setActiveSlot(slotNumber)}
-            >
+              onPress={() => setActiveSlot(slotNumber)}>
               <Text style={styles.buttonText}>{slotNumber}</Text>
               {slots[slotNumber]?.isOpen && (
                 <Text style={styles.openText}>{t('mainScreen.open', 'Açık')}</Text>
@@ -78,4 +78,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default MainScreen; 
+export default MainScreen;

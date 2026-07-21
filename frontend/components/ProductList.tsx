@@ -1,6 +1,7 @@
 // Soft minimal product list with grid/list view modes.
 // POS: Tek tıkla sepete ekleme; Extras tıklanabilir chip ile seçilir (onAddProduct + onToggleModifier).
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -11,13 +12,20 @@ import {
   useWindowDimensions,
   Platform,
 } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { Product } from '../services/api/productService';
-import { useProductsUnified } from '../hooks/useProductsUnified';
-import { SoftColors, SoftSpacing, SoftRadius, SoftState, SoftTypography, SoftShadows } from '../constants/SoftTheme';
-import { getContentPaddingHorizontal } from '../constants/breakpoints';
-import { ProductRow, type ModifierChipItem, type OnAddAddOn } from './ProductRow';
+
 import { ProductGridCard } from './ProductGridCard';
+import { ProductRow, type ModifierChipItem, type OnAddAddOn } from './ProductRow';
+import {
+  SoftColors,
+  SoftSpacing,
+  SoftRadius,
+  SoftState,
+  SoftTypography,
+  SoftShadows,
+} from '../constants/SoftTheme';
+import { getContentPaddingHorizontal } from '../constants/breakpoints';
+import { useProductsUnified } from '../hooks/useProductsUnified';
+import { Product } from '../services/api/productService';
 import { WaveLoader } from '../src/components/common/WaveLoader';
 
 /** Breakpoint: tablet = 768+ for grid columns. */
@@ -63,7 +71,7 @@ export const ProductList: React.FC<ProductListProps> = ({
   showStockInfo = false,
   showTaxInfo = true,
   ListHeaderComponent,
-  ListFooterComponent
+  ListFooterComponent,
 }) => {
   const { t } = useTranslation();
   const { width: screenWidth } = useWindowDimensions();
@@ -77,14 +85,14 @@ export const ProductList: React.FC<ProductListProps> = ({
     error: cacheError,
     refreshData,
     searchProducts,
-    getProductsByCategory
+    getProductsByCategory,
   } = useProductsUnified();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
-  const getGridColumns = () => isTablet ? 3 : 2;
+  const getGridColumns = () => (isTablet ? 3 : 2);
 
   const loadProducts = useCallback(async () => {
     try {
@@ -93,22 +101,28 @@ export const ProductList: React.FC<ProductListProps> = ({
       if (searchQuery) {
         productsData = searchProducts(searchQuery);
         if (categoryFilterId != null && categoryFilterId !== '') {
-          productsData = productsData.filter(p => (p as Product & { categoryId?: string }).categoryId === categoryFilterId);
+          productsData = productsData.filter(
+            (p) => (p as Product & { categoryId?: string }).categoryId === categoryFilterId
+          );
         }
       } else if (categoryFilterId != null && categoryFilterId !== '') {
         productsData = getProductsByCategory(categoryFilterId);
       } else if (categoryFilter) {
-        productsData = cachedProducts.filter(p => {
+        productsData = cachedProducts.filter((p) => {
           const productCategory = p.productCategory || p.category;
           return productCategory === categoryFilter;
         });
       } else if (stockStatusFilter) {
-        productsData = cachedProducts.filter(p => {
+        productsData = cachedProducts.filter((p) => {
           switch (stockStatusFilter) {
-            case 'in-stock': return p.stockQuantity > (p.minStockLevel || 0);
-            case 'out-of-stock': return p.stockQuantity === 0;
-            case 'low-stock': return p.stockQuantity <= (p.minStockLevel || 0) && p.stockQuantity > 0;
-            default: return true;
+            case 'in-stock':
+              return p.stockQuantity > (p.minStockLevel || 0);
+            case 'out-of-stock':
+              return p.stockQuantity === 0;
+            case 'low-stock':
+              return p.stockQuantity <= (p.minStockLevel || 0) && p.stockQuantity > 0;
+            default:
+              return true;
           }
         });
       } else {
@@ -119,7 +133,15 @@ export const ProductList: React.FC<ProductListProps> = ({
     } catch (err) {
       console.error('Error loading products:', err);
     }
-  }, [categoryFilterId, categoryFilter, stockStatusFilter, searchQuery, cachedProducts, searchProducts, getProductsByCategory]);
+  }, [
+    categoryFilterId,
+    categoryFilter,
+    stockStatusFilter,
+    searchQuery,
+    cachedProducts,
+    searchProducts,
+    getProductsByCategory,
+  ]);
 
   useEffect(() => {
     if (cachedProducts.length > 0) loadProducts();
@@ -162,28 +184,22 @@ export const ProductList: React.FC<ProductListProps> = ({
     }
     return (
       <Pressable
-        style={({ pressed }) => [
-          styles.gridCard,
-          pressed && styles.cardPressed,
-        ]}
-        onPress={() => handleProductSelect(item)}
-      >
+        style={({ pressed }) => [styles.gridCard, pressed && styles.cardPressed]}
+        onPress={() => {
+          handleProductSelect(item);
+        }}>
         <View style={styles.gridImageWrapper}>
           <Text style={styles.gridImageEmoji}>
             {getCategoryEmoji(item.productCategory || item.category)}
           </Text>
         </View>
         <View style={styles.gridContent}>
-          <Text style={styles.gridCategory}>
-            {item.productCategory || item.category}
-          </Text>
+          <Text style={styles.gridCategory}>{item.productCategory || item.category}</Text>
           <Text style={styles.gridName} numberOfLines={2}>
             {item.name}
           </Text>
           <View style={styles.priceBadge}>
-            <Text style={styles.priceText}>
-              €{item.price?.toFixed(2) || '0.00'}
-            </Text>
+            <Text style={styles.priceText}>€{item.price?.toFixed(2) || '0.00'}</Text>
           </View>
         </View>
       </Pressable>
@@ -207,19 +223,19 @@ export const ProductList: React.FC<ProductListProps> = ({
     }
     return (
       <Pressable
-        style={({ pressed }) => [
-          styles.listCard,
-          pressed && styles.cardPressed,
-        ]}
-        onPress={() => handleProductSelect(item)}
-      >
+        style={({ pressed }) => [styles.listCard, pressed && styles.cardPressed]}
+        onPress={() => {
+          handleProductSelect(item);
+        }}>
         <View style={styles.listThumbnail}>
           <Text style={styles.listEmoji}>
             {getCategoryEmoji(item.productCategory || item.category)}
           </Text>
         </View>
         <View style={styles.listInfo}>
-          <Text style={styles.listName} numberOfLines={1}>{item.name}</Text>
+          <Text style={styles.listName} numberOfLines={1}>
+            {item.name}
+          </Text>
           {item.description && (
             <Text style={styles.listDescription} numberOfLines={1}>
               {item.description}
@@ -240,35 +256,35 @@ export const ProductList: React.FC<ProductListProps> = ({
     <View style={styles.viewToggleContainer}>
       <View style={styles.viewToggle} accessibilityRole="tablist">
         <Pressable
-          style={({ pressed, focused }) => [
+          style={({ pressed }) => [
             styles.toggleBtn,
             viewMode === 'list' && styles.toggleBtnActive,
             pressed && SoftState.pressedScale,
-            focused && SoftState.focusVisible,
           ]}
-          onPress={() => setViewMode('list')}
+          onPress={() => {
+            setViewMode('list');
+          }}
           accessibilityRole="tab"
           accessibilityState={{ selected: viewMode === 'list' }}
           accessibilityLabel={viewMode === 'list' ? 'Listenansicht, ausgewählt' : 'Listenansicht'}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Text style={[styles.toggleBtnText, viewMode === 'list' && styles.toggleBtnTextActive]}>
             Liste
           </Text>
         </Pressable>
         <Pressable
-          style={({ pressed, focused }) => [
+          style={({ pressed }) => [
             styles.toggleBtn,
             viewMode === 'grid' && styles.toggleBtnActive,
             pressed && SoftState.pressedScale,
-            focused && SoftState.focusVisible,
           ]}
-          onPress={() => setViewMode('grid')}
+          onPress={() => {
+            setViewMode('grid');
+          }}
           accessibilityRole="tab"
           accessibilityState={{ selected: viewMode === 'grid' }}
           accessibilityLabel={viewMode === 'grid' ? 'Rasteransicht, ausgewählt' : 'Rasteransicht'}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Text style={[styles.toggleBtnText, viewMode === 'grid' && styles.toggleBtnTextActive]}>
             Raster
           </Text>
@@ -327,12 +343,15 @@ export const ProductList: React.FC<ProductListProps> = ({
           <View
             style={styles.listHeaderWrap}
             pointerEvents="box-none"
-            collapsable={Platform.OS === 'android' ? false : undefined}
-          >
-            {ListHeaderComponent}
+            collapsable={Platform.OS === 'android' ? false : undefined}>
+            {typeof ListHeaderComponent === 'function'
+              ? React.createElement(ListHeaderComponent)
+              : ListHeaderComponent}
             <View style={styles.productsSectionHeader}>
               <Text style={styles.stepLabel}>3</Text>
-              <Text style={styles.productsSectionTitle} accessibilityRole="header">Produkte</Text>
+              <Text style={styles.productsSectionTitle} accessibilityRole="header">
+                Produkte
+              </Text>
             </View>
             {renderViewModeToggle()}
           </View>
@@ -361,18 +380,18 @@ export const ProductList: React.FC<ProductListProps> = ({
 // Helper: category emoji mapping
 const getCategoryEmoji = (category?: string): string => {
   const map: Record<string, string> = {
-    'Getränke': '🍹',
-    'Speisen': '🍽️',
-    'Desserts': '🍰',
-    'Snacks': '🍿',
+    Getränke: '🍹',
+    Speisen: '🍽️',
+    Desserts: '🍰',
+    Snacks: '🍿',
     'Kaffee & Tee': '☕',
-    'Hauptgerichte': '🍛',
+    Hauptgerichte: '🍛',
     'Alkoholische Getränke': '🍷',
-    'Suppen': '🥣',
-    'Vorspeisen': '🥗',
-    'Salate': '🥗',
-    'Süßigkeiten': '🍬',
-    'Spezialitäten': '⭐',
+    Suppen: '🥣',
+    Vorspeisen: '🥗',
+    Salate: '🥗',
+    Süßigkeiten: '🍬',
+    Spezialitäten: '⭐',
     'Brot & Gebäck': '🥐',
   };
   return map[category || ''] || '📦';
@@ -606,4 +625,4 @@ const styles = StyleSheet.create({
     color: SoftColors.textMuted,
     textAlign: 'center',
   },
-}); 
+});

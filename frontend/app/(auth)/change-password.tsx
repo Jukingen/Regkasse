@@ -1,4 +1,8 @@
+import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -10,14 +14,11 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { StatusBar } from 'expo-status-bar';
-import { router } from 'expo-router';
-import { useTranslation } from 'react-i18next';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { WaveLoader } from '../../src/components/common/WaveLoader';
 import { useAuth } from '../../contexts/AuthContext';
 import { changeMyPassword } from '../../services/api/authService';
+import { WaveLoader } from '../../src/components/common/WaveLoader';
 import { validatePassword } from '../../utils/validation';
 
 export default function ChangePasswordScreen() {
@@ -69,71 +70,75 @@ export default function ChangePasswordScreen() {
   }, [confirmPassword, currentPassword, newPassword, refreshUserFromBackend, t]);
 
   return (
-    <TouchableWithoutFeedback onPress={handleDismissKeyboard} accessible={false}>
-      <LinearGradient colors={['#1a1a2e', '#16213e', '#0f3460']} style={styles.container}>
-        <StatusBar style="light" />
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.inner}
-        >
-          <Text style={styles.title}>{t('changePassword.title')}</Text>
-          <Text style={styles.subtitle}>{t('changePassword.subtitle')}</Text>
+    <SafeAreaView style={styles.safeRoot} edges={['top', 'bottom']}>
+      <TouchableWithoutFeedback onPress={handleDismissKeyboard} accessible={false}>
+        <LinearGradient colors={['#1a1a2e', '#16213e', '#0f3460']} style={styles.container}>
+          <StatusBar style="light" />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.inner}>
+            <Text style={styles.title}>{t('changePassword.title')}</Text>
+            <Text style={styles.subtitle}>{t('changePassword.subtitle')}</Text>
 
-          <TextInput
-            style={styles.input}
-            value={currentPassword}
-            onChangeText={setCurrentPassword}
-            placeholder={t('changePassword.currentPlaceholder')}
-            placeholderTextColor="#8892a6"
-            secureTextEntry
-            autoCapitalize="none"
-            editable={!isLoading}
-          />
-          <TextInput
-            style={styles.input}
-            value={newPassword}
-            onChangeText={setNewPassword}
-            placeholder={t('changePassword.newPlaceholder')}
-            placeholderTextColor="#8892a6"
-            secureTextEntry
-            autoCapitalize="none"
-            editable={!isLoading}
-          />
-          <TextInput
-            style={styles.input}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            placeholder={t('changePassword.confirmPlaceholder')}
-            placeholderTextColor="#8892a6"
-            secureTextEntry
-            autoCapitalize="none"
-            editable={!isLoading}
-          />
+            <TextInput
+              style={styles.input}
+              value={currentPassword}
+              onChangeText={setCurrentPassword}
+              placeholder={t('changePassword.currentPlaceholder')}
+              placeholderTextColor="#8892a6"
+              secureTextEntry
+              autoCapitalize="none"
+              editable={!isLoading}
+            />
+            <TextInput
+              style={styles.input}
+              value={newPassword}
+              onChangeText={setNewPassword}
+              placeholder={t('changePassword.newPlaceholder')}
+              placeholderTextColor="#8892a6"
+              secureTextEntry
+              autoCapitalize="none"
+              editable={!isLoading}
+            />
+            <TextInput
+              style={styles.input}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholder={t('changePassword.confirmPlaceholder')}
+              placeholderTextColor="#8892a6"
+              secureTextEntry
+              autoCapitalize="none"
+              editable={!isLoading}
+            />
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+            {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          <TouchableOpacity
-            style={[styles.button, isLoading && styles.buttonDisabled]}
-            onPress={() => void handleSubmit()}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <WaveLoader size={24} color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>{t('changePassword.submit')}</Text>
-            )}
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, isLoading && styles.buttonDisabled]}
+              onPress={() => void handleSubmit()}
+              disabled={isLoading}>
+              {isLoading ? (
+                <WaveLoader size={24} color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>{t('changePassword.submit')}</Text>
+              )}
+            </TouchableOpacity>
 
-          <TouchableOpacity style={styles.logoutLink} onPress={() => void logout()} disabled={isLoading}>
-            <Text style={styles.logoutText}>{t('logout')}</Text>
-          </TouchableOpacity>
-        </KeyboardAvoidingView>
-      </LinearGradient>
-    </TouchableWithoutFeedback>
+            <TouchableOpacity
+              style={styles.logoutLink}
+              onPress={() => void logout()}
+              disabled={isLoading}>
+              <Text style={styles.logoutText}>{t('logout')}</Text>
+            </TouchableOpacity>
+          </KeyboardAvoidingView>
+        </LinearGradient>
+      </TouchableWithoutFeedback>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeRoot: { flex: 1, backgroundColor: '#1a1a2e' },
   container: { flex: 1 },
   inner: {
     flex: 1,

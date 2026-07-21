@@ -22,10 +22,11 @@ import {
   LICENSE_SUPPORT_EMAIL,
 } from '../../../constants/licenseRenewal';
 import { type LicenseStatus } from '../../../hooks/useLicenseStatus';
-import { openAdmin, openLicenseExtension } from '@/src/features/admin-navigation/openAdmin';
-import { openMailtoUrl } from '../../../utils/openLink';
 import { formatUserDateTime } from '../../../utils/dateFormatter';
 import { preferLicenseHoursRemaining } from '../../../utils/licenseExpiryRemaining';
+import { openMailtoUrl } from '../../../utils/openLink';
+
+import { openAdmin, openLicenseExtension } from '@/src/features/admin-navigation/openAdmin';
 
 const LICENSE_KEY_PATTERN = /^REGK-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$/i;
 
@@ -54,19 +55,22 @@ function readApiErrorMessage(err: unknown): string | undefined {
 
 function mapActivationFailureToGerman(
   serverMsg: string | undefined,
-  t: (key: string, opts?: Record<string, string>) => string,
+  t: (key: string, opts?: Record<string, string>) => string
 ): string {
   if (!serverMsg) return t('license:activationFailed');
   const m = serverMsg.trim();
   if (m.includes('Invalid license key format')) return t('license:activationInvalidFormat');
   if (m.includes('LicenseKey is required')) return t('license:activationKeyRequired');
-  if (m.includes('Machine fingerprint does not match')) return t('license:activationFingerprintMismatch');
+  if (m.includes('Machine fingerprint does not match'))
+    return t('license:activationFingerprintMismatch');
   if (m.includes('transferred or revoked')) return t('license:activationRevokedOrTransferred');
   if (m.includes('Remote license server')) return t('license:activationRemoteRejected');
   if (m.includes('OpenAPI export mode')) return t('license:activationDisabledExport');
-  if (m.includes('could not be recorded in the database')) return t('license:activationDbRecordFailed');
+  if (m.includes('could not be recorded in the database'))
+    return t('license:activationDbRecordFailed');
   if (m.includes('internal error')) return t('license:activationInternalError');
-  if (m.includes('OfflineVerificationPublicKeyPem is not configured')) return t('license:activationOfflinePemMissing');
+  if (m.includes('OfflineVerificationPublicKeyPem is not configured'))
+    return t('license:activationOfflinePemMissing');
   return t('license:activationFailed');
 }
 
@@ -82,21 +86,29 @@ export type LicenseModalProps = {
 /**
  * POS license detail sheet: status, optional REGK activation (POST /api/license/activate), renewal shortcuts.
  */
-export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid, refetch }: LicenseModalProps) {
+export function LicenseModal({
+  visible,
+  onClose,
+  status,
+  loading,
+  unlimitedPaid,
+  refetch,
+}: LicenseModalProps) {
   const router = useRouter();
   const { t } = useTranslation(['license', 'common']);
   const [techDetailsOpen, setTechDetailsOpen] = useState(false);
   const [licenseKey, setLicenseKey] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [activationFeedback, setActivationFeedback] = useState<{ kind: 'success' | 'error'; text: string } | null>(
-    null,
-  );
+  const [activationFeedback, setActivationFeedback] = useState<{
+    kind: 'success' | 'error';
+    text: string;
+  } | null>(null);
 
   const hasConfiguredExtensionUrl = useMemo(() => true, []);
 
   /** Active paid license (not trial, not expired) — hide key entry per product rules. */
   const isLicensedActive = Boolean(
-    status && status.isValid && !status.isTrial && !status.isExpired,
+    status && status.isValid && !status.isTrial && !status.isExpired
   );
 
   const handleExtendLicense = useCallback(async () => {
@@ -123,7 +135,7 @@ export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid,
             isTrial: status.isTrial,
             isExpired: status.isExpired,
           }
-        : null,
+        : null
     );
     const ok = await openMailtoUrl(mailto);
     if (!ok) {
@@ -160,14 +172,20 @@ export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid,
       setActivationFeedback({ kind: 'error', text: t('license:activationFailed') });
     } catch (err: unknown) {
       const st =
-        err && typeof err === 'object' && 'status' in err && typeof (err as ApiErrorShape).status === 'number'
+        err &&
+        typeof err === 'object' &&
+        'status' in err &&
+        typeof (err as ApiErrorShape).status === 'number'
           ? (err as ApiErrorShape).status
           : undefined;
       const serverMsg = readApiErrorMessage(err);
       const noResponse = st === undefined;
       setActivationFeedback({
         kind: 'error',
-        text: noResponse && !serverMsg ? t('license:activationNetwork') : mapActivationFailureToGerman(serverMsg, t),
+        text:
+          noResponse && !serverMsg
+            ? t('license:activationNetwork')
+            : mapActivationFailureToGerman(serverMsg, t),
       });
     } finally {
       setSubmitting(false);
@@ -182,7 +200,7 @@ export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid,
   }, [onClose]);
 
   const openFullActivationScreen = useCallback(() => {
-    router.push('/(screens)/license-activate' as any);
+    router.push('/(screens)/license-activate');
     handleClose();
   }, [handleClose, router]);
 
@@ -202,10 +220,12 @@ export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid,
             <ScrollView
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContent}
-            >
+              contentContainerStyle={styles.scrollContent}>
               {!status && loading ? (
-                <ActivityIndicator style={{ marginVertical: SoftSpacing.md }} color={SoftColors.accentDark} />
+                <ActivityIndicator
+                  style={{ marginVertical: SoftSpacing.md }}
+                  color={SoftColors.accentDark}
+                />
               ) : null}
 
               {!status && !loading ? (
@@ -231,7 +251,9 @@ export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid,
                   <View style={styles.row}>
                     <Text style={styles.label}>{t('license:expiryLabel')}</Text>
                     <Text style={styles.value}>
-                      {status.expiryDate ? formatExpiryDeAt(status.expiryDate) : t('license:expiryNone')}
+                      {status.expiryDate
+                        ? formatExpiryDeAt(status.expiryDate)
+                        : t('license:expiryNone')}
                     </Text>
                   </View>
 
@@ -243,7 +265,7 @@ export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid,
                         : (() => {
                             const remaining = preferLicenseHoursRemaining(
                               status.daysRemaining,
-                              status.expiryDate,
+                              status.expiryDate
                             );
                             if (remaining?.kind === 'hours') {
                               return t('license:hoursRemainingValue', { count: remaining.hours });
@@ -256,12 +278,15 @@ export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid,
                   {status.machineHash?.trim() ? (
                     <>
                       <Pressable
-                        onPress={() => setTechDetailsOpen((v) => !v)}
+                        onPress={() => {
+                          setTechDetailsOpen((v) => !v);
+                        }}
                         style={({ pressed }) => [styles.techToggle, pressed && { opacity: 0.75 }]}
-                        accessibilityRole="button"
-                      >
+                        accessibilityRole="button">
                         <Text style={styles.techToggleText}>
-                          {techDetailsOpen ? t('license:technicalToggleHide') : t('license:technicalToggleShow')}
+                          {techDetailsOpen
+                            ? t('license:technicalToggleHide')
+                            : t('license:technicalToggleShow')}
                         </Text>
                       </Pressable>
                       {techDetailsOpen ? (
@@ -285,24 +310,36 @@ export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid,
                     <>
                       {status && !isLicensedActive ? (
                         <Pressable
-                          style={({ pressed }) => [styles.openFullActivationBtn, pressed && { opacity: 0.88 }]}
+                          style={({ pressed }) => [
+                            styles.openFullActivationBtn,
+                            pressed && { opacity: 0.88 },
+                          ]}
                           onPress={openFullActivationScreen}
                           accessibilityRole="button"
-                          accessibilityLabel={t('license:openActivationFromModal')}
-                        >
-                          <Ionicons name="document-text-outline" size={18} color={SoftColors.accentDark} />
-                          <Text style={styles.openFullActivationBtnText}>{t('license:openActivationFromModal')}</Text>
+                          accessibilityLabel={t('license:openActivationFromModal')}>
+                          <Ionicons
+                            name="document-text-outline"
+                            size={18}
+                            color={SoftColors.accentDark}
+                          />
+                          <Text style={styles.openFullActivationBtnText}>
+                            {t('license:openActivationFromModal')}
+                          </Text>
                         </Pressable>
                       ) : null}
 
                       {isLicensedActive ? (
                         <View style={styles.alreadyLicensedBox}>
                           <Ionicons name="checkmark-circle" size={18} color="#2E7D32" />
-                          <Text style={styles.alreadyLicensedText}>{t('license:modalAlreadyLicensed')}</Text>
+                          <Text style={styles.alreadyLicensedText}>
+                            {t('license:modalAlreadyLicensed')}
+                          </Text>
                         </View>
                       ) : (
                         <View style={styles.activationBlock}>
-                          <Text style={styles.activationLabel}>{t('license:modalActivationInputLabel')}</Text>
+                          <Text style={styles.activationLabel}>
+                            {t('license:modalActivationInputLabel')}
+                          </Text>
                           <View style={styles.activationRow}>
                             <TextInput
                               value={licenseKey}
@@ -320,16 +357,19 @@ export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid,
                               onPress={() => void onActivate()}
                               disabled={submitting}
                               accessibilityRole="button"
-                              accessibilityLabel={t('license:activationSubmit')}
-                            >
+                              accessibilityLabel={t('license:activationSubmit')}>
                               {submitting ? (
                                 <ActivityIndicator size="small" color={SoftColors.textInverse} />
                               ) : (
-                                <Text style={styles.activateBtnText}>{t('license:activationSubmit')}</Text>
+                                <Text style={styles.activateBtnText}>
+                                  {t('license:activationSubmit')}
+                                </Text>
                               )}
                             </TouchableOpacity>
                           </View>
-                          <Text style={styles.activationHint}>{t('license:activationKeyHint')}</Text>
+                          <Text style={styles.activationHint}>
+                            {t('license:activationKeyHint')}
+                          </Text>
                         </View>
                       )}
 
@@ -337,21 +377,27 @@ export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid,
                         <View
                           style={[
                             styles.feedbackBox,
-                            activationFeedback.kind === 'success' ? styles.feedbackOk : styles.feedbackErr,
+                            activationFeedback.kind === 'success'
+                              ? styles.feedbackOk
+                              : styles.feedbackErr,
                           ]}
-                          accessibilityLiveRegion="polite"
-                        >
+                          accessibilityLiveRegion="polite">
                           <Ionicons
-                            name={activationFeedback.kind === 'success' ? 'checkmark-circle' : 'alert-circle'}
+                            name={
+                              activationFeedback.kind === 'success'
+                                ? 'checkmark-circle'
+                                : 'alert-circle'
+                            }
                             size={16}
                             color={activationFeedback.kind === 'success' ? '#1b5e20' : '#b71c1c'}
                           />
                           <Text
                             style={[
                               styles.feedbackText,
-                              activationFeedback.kind === 'success' ? styles.feedbackTextOk : styles.feedbackTextErr,
-                            ]}
-                          >
+                              activationFeedback.kind === 'success'
+                                ? styles.feedbackTextOk
+                                : styles.feedbackTextErr,
+                            ]}>
                             {activationFeedback.text}
                           </Text>
                         </View>
@@ -359,8 +405,7 @@ export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid,
 
                       <Pressable
                         style={({ pressed }) => [styles.ctaPrimary, pressed && { opacity: 0.88 }]}
-                        onPress={() => void handleExtendLicense()}
-                      >
+                        onPress={() => void handleExtendLicense()}>
                         <Ionicons
                           name={hasConfiguredExtensionUrl ? 'open-outline' : 'mail-outline'}
                           size={18}
@@ -371,13 +416,15 @@ export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid,
                       <Pressable
                         onPress={() => void handleExtendLicense()}
                         hitSlop={12}
-                        style={({ pressed }) => [styles.ctaHintPressable, pressed && { opacity: 0.7 }]}
-                      >
+                        style={({ pressed }) => [
+                          styles.ctaHintPressable,
+                          pressed && { opacity: 0.7 },
+                        ]}>
                         <Text style={styles.ctaHint}>
                           {t(
                             hasConfiguredExtensionUrl
                               ? 'license:renewPrimaryHintBrowser'
-                              : 'license:renewPrimaryHintMail',
+                              : 'license:renewPrimaryHintMail'
                           )}
                         </Text>
                       </Pressable>
@@ -391,7 +438,9 @@ export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid,
                     </>
                   ) : null}
 
-                  <Text style={styles.contactFoot}>{t('license:contactBody', { email: LICENSE_SUPPORT_EMAIL })}</Text>
+                  <Text style={styles.contactFoot}>
+                    {t('license:contactBody', { email: LICENSE_SUPPORT_EMAIL })}
+                  </Text>
                 </>
               ) : null}
             </ScrollView>
@@ -406,8 +455,7 @@ export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid,
                   void refetch();
                 }}
                 accessibilityRole="button"
-                accessibilityLabel={t('common:retry')}
-              >
+                accessibilityLabel={t('common:retry')}>
                 <Ionicons name="refresh" size={22} color={SoftColors.accentDark} />
               </Pressable>
             </View>
@@ -423,7 +471,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modalBackdropFill: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.45)',
   },
   modalLayerAboveBackdrop: {

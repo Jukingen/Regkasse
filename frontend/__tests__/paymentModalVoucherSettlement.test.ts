@@ -46,11 +46,15 @@ function computeVoucherPlusCashCoversTotal(input: {
 }
 
 /** Same logic as PaymentModal `totalAmount` IIFE (grandTotalGross + cartLineSumGross). */
-function resolveTotalAmountLikePaymentModal(grandTotalGross: number | undefined | null, cartLineSumGross: number): number {
+function resolveTotalAmountLikePaymentModal(
+  grandTotalGross: number | undefined | null,
+  cartLineSumGross: number
+): number {
   if (grandTotalGross != null && Number.isFinite(grandTotalGross)) {
     if (grandTotalGross > 0) return grandTotalGross;
     if (grandTotalGross === 0 && cartLineSumGross <= PAYMENT_COVERAGE_TOLERANCE_EUR) return 0;
-    if (grandTotalGross === 0 && cartLineSumGross > PAYMENT_COVERAGE_TOLERANCE_EUR) return cartLineSumGross;
+    if (grandTotalGross === 0 && cartLineSumGross > PAYMENT_COVERAGE_TOLERANCE_EUR)
+      return cartLineSumGross;
   }
   return cartLineSumGross;
 }
@@ -121,9 +125,13 @@ describe('PaymentModal voucher / settlement mirrors (fix regression)', () => {
     });
     expect(settlementValid).toBe(true);
 
-    expect(passesFiscalTotalGateLikePaymentModal({ totalAmount, voucherEnabled: true, voucherSettlementValid: settlementValid })).toBe(
-      true
-    );
+    expect(
+      passesFiscalTotalGateLikePaymentModal({
+        totalAmount,
+        voucherEnabled: true,
+        voucherSettlementValid: settlementValid,
+      })
+    ).toBe(true);
   });
 
   it('2) Cart 50 €, Gutschein 30 € → Restbetrag 20 €, coverage OK with card (30 + 20)', () => {
@@ -169,7 +177,13 @@ describe('PaymentModal voucher / settlement mirrors (fix regression)', () => {
     expect(coverage.sumPaid).toBe(50);
     expect(coverage.coversTotal).toBe(true);
 
-    expect(passesFiscalTotalGateLikePaymentModal({ totalAmount, voucherEnabled: false, voucherSettlementValid: true })).toBe(true);
+    expect(
+      passesFiscalTotalGateLikePaymentModal({
+        totalAmount,
+        voucherEnabled: false,
+        voucherSettlementValid: true,
+      })
+    ).toBe(true);
   });
 
   it('4) Cart total 0 € without Gutschein → fiscal total gate fails (no validateAmount bypass)', () => {

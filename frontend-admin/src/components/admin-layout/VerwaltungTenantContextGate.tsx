@@ -8,19 +8,19 @@ import { isVerwaltungAdminPath, normalizeAdminPathname } from '@/shared/adminSid
 
 /** Tenant info card on Verwaltung routes when a mandant context is active (not blocked by SuperAdminTenantGate). */
 export function VerwaltungTenantContextGate() {
-    const pathname = usePathname();
-    const { requiresTenantSelection } = useSuperAdminTenantMode();
+  const pathname = usePathname();
+  const { requiresTenantSelection } = useSuperAdminTenantMode();
 
-    const p = normalizeAdminPathname(pathname);
-    if (!isVerwaltungAdminPath(pathname)) {
-        return null;
-    }
-    if (p === '/admin' || p.startsWith('/admin/')) {
-        return null;
-    }
-    if (requiresTenantSelection) {
-        return null;
-    }
+  const p = normalizeAdminPathname(pathname);
+  if (!isVerwaltungAdminPath(pathname)) {
+    return null;
+  }
+  if (p === '/admin' || p.startsWith('/admin/')) {
+    return null;
+  }
+  if (requiresTenantSelection) {
+    return null;
+  }
 
-    return <TenantInfoCard />;
+  return <TenantInfoCard />;
 }

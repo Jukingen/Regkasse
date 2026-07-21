@@ -12,16 +12,20 @@ import {
   View,
 } from 'react-native';
 
-import { canonicalDevTenantSlug, getDevTenantPresetName, isSameDevTenantPreset } from '../../../constants/devTenantCatalog';
+import { reloadApp } from './reloadApp';
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../../../constants/SoftTheme';
+import {
+  canonicalDevTenantSlug,
+  getDevTenantPresetName,
+  isSameDevTenantPreset,
+} from '../../../constants/devTenantCatalog';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useTenants } from '../../../hooks/useTenants';
+import { sessionManager } from '../../../services/session/sessionManager';
 import {
   getDevTenantSlugOverride,
   setDevTenantAndPersist,
 } from '../../../services/tenant/devTenant';
-import { useTenants } from '../../../hooks/useTenants';
-import { sessionManager } from '../../../services/session/sessionManager';
-import { reloadApp } from './reloadApp';
 
 const isDev = __DEV__;
 
@@ -72,19 +76,34 @@ export function DevTenantSwitcher() {
   return (
     <>
       <Pressable
-        onPress={() => setOpen(true)}
+        onPress={() => {
+          setOpen(true);
+        }}
         style={styles.chip}
         accessibilityRole="button"
-        accessibilityLabel="Mandant (Entwicklung)"
-      >
+        accessibilityLabel="Mandant (Entwicklung)">
         <Text style={styles.chipText} numberOfLines={1}>
           Mandant: {currentLabel}
         </Text>
       </Pressable>
 
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
-          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+      <Modal
+        visible={open}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setOpen(false);
+        }}>
+        <Pressable
+          style={styles.backdrop}
+          onPress={() => {
+            setOpen(false);
+          }}>
+          <Pressable
+            style={styles.sheet}
+            onPress={(e) => {
+              e.stopPropagation();
+            }}>
             <Text style={styles.title}>Mandant (Entwicklung)</Text>
             <Text style={styles.hint}>
               {Platform.OS === 'web'
@@ -97,8 +116,7 @@ export function DevTenantSwitcher() {
                 style={styles.refreshBtn}
                 onPress={() => void refreshTenants()}
                 accessibilityRole="button"
-                accessibilityLabel="Mandantenliste aktualisieren"
-              >
+                accessibilityLabel="Mandantenliste aktualisieren">
                 <Text style={styles.refreshText}>
                   {isLoading ? 'Wird aktualisiert…' : 'Aktualisieren'}
                 </Text>
@@ -114,9 +132,7 @@ export function DevTenantSwitcher() {
             ) : isLoading ? (
               <ActivityIndicator color={SoftColors.accent} style={styles.loader} />
             ) : isError ? (
-              <Text style={styles.emptyText}>
-                Mandantenliste konnte nicht geladen werden.
-              </Text>
+              <Text style={styles.emptyText}>Mandantenliste konnte nicht geladen werden.</Text>
             ) : tenants.length === 0 ? (
               <Text style={styles.emptyText}>Keine Mandanten verfügbar.</Text>
             ) : (
@@ -127,14 +143,13 @@ export function DevTenantSwitcher() {
                     styles.option,
                     isSameDevTenantPreset(tenant.slug, currentTenant) && styles.optionSelected,
                   ]}
-                  onPress={() => void onSelect(tenant.slug)}
-                >
+                  onPress={() => void onSelect(tenant.slug)}>
                   <Text
                     style={[
                       styles.optionText,
-                      isSameDevTenantPreset(tenant.slug, currentTenant) && styles.optionTextSelected,
-                    ]}
-                  >
+                      isSameDevTenantPreset(tenant.slug, currentTenant) &&
+                        styles.optionTextSelected,
+                    ]}>
                     {tenant.name}
                   </Text>
                   <Text style={styles.optionSlug}>{canonicalDevTenantSlug(tenant.slug)}</Text>
@@ -142,7 +157,11 @@ export function DevTenantSwitcher() {
               ))
             )}
 
-            <Pressable style={styles.cancelBtn} onPress={() => setOpen(false)}>
+            <Pressable
+              style={styles.cancelBtn}
+              onPress={() => {
+                setOpen(false);
+              }}>
               <Text style={styles.cancelText}>Abbrechen</Text>
             </Pressable>
           </Pressable>

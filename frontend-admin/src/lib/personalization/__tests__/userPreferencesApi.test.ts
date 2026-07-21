@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { mapApiToPersonalization, mapPersonalizationToApi } from '../userPreferencesApi';
+
 import { DEFAULT_PERSONALIZATION } from '../types';
+import { mapApiToPersonalization, mapPersonalizationToApi } from '../userPreferencesApi';
 
 describe('userPreferencesApi mappers', () => {
   it('maps API response to personalization defaults', () => {

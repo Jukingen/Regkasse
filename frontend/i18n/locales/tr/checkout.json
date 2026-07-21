@@ -108,6 +108,7 @@
         "cartLoadFailedRefresh": "Sepet yuklenemedi. Lutfen sayfayi yenileyin veya tekrar deneyin.",
         "completeCartFailed": "Odeme tamam, ancak sepet kapatilamadi. Lutfen yoneticiye bilgi verin.",
         "printFailed": "Odeme tamam, yazdirma basarisiz.",
+        "shareUnavailable": "Bu cihazda paylasim kullanilamiyor.",
         "genericFailed": "Odeme basarisiz. Lutfen tekrar deneyin.",
         "fiscalNotConfirmed": "Odeme mali olarak dogrulanmadi",
         "failed": "Odeme basarisiz"

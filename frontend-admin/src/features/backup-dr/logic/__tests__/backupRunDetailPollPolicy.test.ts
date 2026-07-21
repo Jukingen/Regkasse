@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { BackupRunResponseDtoStatus } from '@/api/generated/model';
 import {
   BACKUP_ACTIVE_POLL_MS,
@@ -14,7 +15,7 @@ describe('computeRunDetailRefetchIntervalMs (staleness / post-terminal catch-up)
         latestRunId: 'run-1',
         latestStatus: BackupRunResponseDtoStatus.NUMBER_3,
         detail: { status: BackupRunResponseDtoStatus.NUMBER_3 } as never,
-      }),
+      })
     ).toBe(false);
   });
 
@@ -24,7 +25,7 @@ describe('computeRunDetailRefetchIntervalMs (staleness / post-terminal catch-up)
         latestRunId: 'run-1',
         latestStatus: BackupRunResponseDtoStatus.NUMBER_3,
         detail: undefined,
-      }),
+      })
     ).toBe(RUN_DETAIL_CATCH_UP_POLL_MS);
   });
 
@@ -34,7 +35,7 @@ describe('computeRunDetailRefetchIntervalMs (staleness / post-terminal catch-up)
         latestRunId: 'run-1',
         latestStatus: BackupRunResponseDtoStatus.NUMBER_3,
         detail: { status: BackupRunResponseDtoStatus.NUMBER_2 } as never,
-      }),
+      })
     ).toBe(RUN_DETAIL_CATCH_UP_POLL_MS);
   });
 
@@ -44,7 +45,7 @@ describe('computeRunDetailRefetchIntervalMs (staleness / post-terminal catch-up)
         latestRunId: 'run-1',
         latestStatus: BackupRunResponseDtoStatus.NUMBER_1,
         detail: { status: BackupRunResponseDtoStatus.NUMBER_1 } as never,
-      }),
+      })
     ).toBe(BACKUP_ACTIVE_POLL_MS);
   });
 
@@ -54,7 +55,7 @@ describe('computeRunDetailRefetchIntervalMs (staleness / post-terminal catch-up)
         latestRunId: undefined,
         latestStatus: BackupRunResponseDtoStatus.NUMBER_3,
         detail: undefined,
-      }),
+      })
     ).toBe(false);
   });
 });

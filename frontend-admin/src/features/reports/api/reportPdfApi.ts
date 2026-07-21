@@ -45,7 +45,7 @@ export function reportPdfTypeFromSpecialReceiptKind(kind?: string | null): Repor
 export const downloadReportPdf = async (
   reportType: string,
   reportId: string,
-  options?: DownloadReportPdfOptions,
+  options?: DownloadReportPdfOptions
 ): Promise<Blob> => {
   const trimmedType = reportType.trim();
   const trimmedId = reportId.trim();
@@ -63,7 +63,8 @@ export const downloadReportPdf = async (
 };
 
 export function triggerReportPdfBlobDownload(blob: Blob, fileName: string): void {
-  const pdfBlob = blob instanceof Blob ? blob : new Blob([blob as BlobPart], { type: 'application/pdf' });
+  const pdfBlob =
+    blob instanceof Blob ? blob : new Blob([blob as BlobPart], { type: 'application/pdf' });
   const url = window.URL.createObjectURL(pdfBlob);
   const link = document.createElement('a');
   link.href = url;

@@ -9,7 +9,10 @@ import {
 } from '../services/api/cashRegisterService';
 import { getUserSettings, updateCashRegisterConfig } from '../services/api/userSettingsService';
 import { isValidPosCashRegisterId } from '../utils/posCashRegister';
-import { classifyRegisterListError, type RegisterListFailureKind } from '../utils/registerListError';
+import {
+  classifyRegisterListError,
+  type RegisterListFailureKind,
+} from '../utils/registerListError';
 
 export type UsePosRegisterSelectionResult = {
   /** Resolved register id (settings assignment or ensure-ready effective id). */
@@ -51,7 +54,9 @@ export function usePosRegisterSelection(): UsePosRegisterSelectionResult {
   const [registers, setRegisters] = useState<CashRegisterSelectableRow[]>([]);
   const [registersLoading, setRegistersLoading] = useState(false);
   const [registersEmptyReason, setRegistersEmptyReason] = useState<PosSelectableEmptyReason>(null);
-  const [registersListFailure, setRegistersListFailure] = useState<RegisterListFailureKind | null>(null);
+  const [registersListFailure, setRegistersListFailure] = useState<RegisterListFailureKind | null>(
+    null
+  );
   const [registersRetryToken, setRegistersRetryToken] = useState(0);
   const [savingRegisterId, setSavingRegisterId] = useState<string | null>(null);
 

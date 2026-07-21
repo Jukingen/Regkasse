@@ -5,16 +5,34 @@
  * Orval üretimi axios üzerinden yan etki verdiği için importOriginal kullanılmaz;
  * yalnızca dashboard’un ihtiyaç duyduğu export’lar sahte modülde tanımlanır.
  */
-
-import React from 'react';
-import '@testing-library/jest-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import '@testing-library/jest-dom';
 import { render, screen, within } from '@testing-library/react';
+import React from 'react';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  useGetApiAdminBackupRecoverabilitySummary,
+  useGetApiAdminBackupRuns,
+  useGetApiAdminBackupRunsId,
+  useGetApiAdminBackupStatusLatest,
+  useGetApiAdminBackupVerificationLatest,
+  usePostApiAdminBackupTrigger,
+} from '@/api/generated/admin-backup/admin-backup';
+import {
+  useGetApiAdminRestoreVerificationReadiness,
+  useGetApiAdminRestoreVerificationRuns,
+  useGetApiAdminRestoreVerificationRunsLatest,
+  usePostApiAdminRestoreVerificationTrigger,
+} from '@/api/generated/admin-restore-verification/admin-restore-verification';
+import { BackupDrDashboard } from '@/features/backup-dr/components/BackupDrDashboard';
 
 /** Gerçek axios modülü test ortamında baseURL yokken fırlatır; kart zinciri yüklenmesi için. */
 vi.mock('@/lib/axios', () => ({
-  AXIOS_INSTANCE: { get: vi.fn(), interceptors: { request: { use: vi.fn() }, response: { use: vi.fn() } } },
+  AXIOS_INSTANCE: {
+    get: vi.fn(),
+    interceptors: { request: { use: vi.fn() }, response: { use: vi.fn() } },
+  },
   customInstance: vi.fn(),
 }));
 
@@ -40,27 +58,11 @@ vi.mock('@/features/backup-dr/logic/backupExecutionModeApi', async () => {
         realModeBlockingDiagnostics: [],
         selectableModes: [],
         effectiveConfigurationHealth: {},
-      }),
+      })
     ),
     putBackupExecutionMode: vi.fn(),
   };
 });
-
-import {
-  useGetApiAdminBackupRecoverabilitySummary,
-  useGetApiAdminBackupRuns,
-  useGetApiAdminBackupRunsId,
-  useGetApiAdminBackupStatusLatest,
-  useGetApiAdminBackupVerificationLatest,
-  usePostApiAdminBackupTrigger,
-} from '@/api/generated/admin-backup/admin-backup';
-import {
-  useGetApiAdminRestoreVerificationReadiness,
-  useGetApiAdminRestoreVerificationRuns,
-  useGetApiAdminRestoreVerificationRunsLatest,
-  usePostApiAdminRestoreVerificationTrigger,
-} from '@/api/generated/admin-restore-verification/admin-restore-verification';
-import { BackupDrDashboard } from '@/features/backup-dr/components/BackupDrDashboard';
 
 const t = (k: string) => k;
 
@@ -84,11 +86,13 @@ vi.mock('@/features/backup-dr/logic/backupPipelineEnv', () => ({
 }));
 
 vi.mock('@/api/generated/admin-backup/admin-backup', () => ({
-  getGetApiAdminBackupRecoverabilitySummaryQueryKey: () => ['/api/admin/backup/recoverability-summary'] as const,
+  getGetApiAdminBackupRecoverabilitySummaryQueryKey: () =>
+    ['/api/admin/backup/recoverability-summary'] as const,
   getGetApiAdminBackupRunsIdQueryKey: (id: string) => [`/api/admin/backup/runs/${id}`] as const,
   getGetApiAdminBackupRunsQueryKey: (params?: { page?: number; pageSize?: number }) =>
     ['/api/admin/backup/runs', ...(params ? [params] : [])] as const,
-  getGetApiAdminBackupVerificationLatestQueryKey: () => ['/api/admin/backup/verification/latest'] as const,
+  getGetApiAdminBackupVerificationLatestQueryKey: () =>
+    ['/api/admin/backup/verification/latest'] as const,
   useGetApiAdminBackupStatusLatest: vi.fn(),
   useGetApiAdminBackupRuns: vi.fn(),
   useGetApiAdminBackupVerificationLatest: vi.fn(),
@@ -98,8 +102,10 @@ vi.mock('@/api/generated/admin-backup/admin-backup', () => ({
 }));
 
 vi.mock('@/api/generated/admin-restore-verification/admin-restore-verification', () => ({
-  getGetApiAdminRestoreVerificationReadinessQueryKey: () => ['/api/admin/restore-verification/readiness'] as const,
-  getGetApiAdminRestoreVerificationRunsLatestQueryKey: () => ['/api/admin/restore-verification/runs/latest'] as const,
+  getGetApiAdminRestoreVerificationReadinessQueryKey: () =>
+    ['/api/admin/restore-verification/readiness'] as const,
+  getGetApiAdminRestoreVerificationRunsLatestQueryKey: () =>
+    ['/api/admin/restore-verification/runs/latest'] as const,
   getGetApiAdminRestoreVerificationRunsQueryKey: (params?: { page?: number; pageSize?: number }) =>
     ['/api/admin/restore-verification/runs', ...(params ? [params] : [])] as const,
   useGetApiAdminRestoreVerificationReadiness: vi.fn(),

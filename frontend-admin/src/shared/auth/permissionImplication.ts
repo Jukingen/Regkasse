@@ -31,7 +31,7 @@ const CHILD_TO_PARENT: Readonly<Record<string, string>> = Object.entries(PARENT_
     }
     return acc;
   },
-  {} as Record<string, string>,
+  {} as Record<string, string>
 );
 
 function toSet(effective: Iterable<string>): Set<string> {

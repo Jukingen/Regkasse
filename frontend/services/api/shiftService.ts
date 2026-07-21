@@ -1,7 +1,7 @@
-import { classifyDailyClosingError } from '../../utils/errorMessages';
 import { apiClient, API_BASE_URL, resolveTenantFetchHeaders } from './config';
-import { sessionManager } from '../session/sessionManager';
 import { isRecord, unwrapApiResponseLayer } from './normalizePosPaymentMethods';
+import { classifyDailyClosingError } from '../../utils/errorMessages';
+import { sessionManager } from '../session/sessionManager';
 
 export interface CashierShiftDto {
   id: string;
@@ -108,10 +108,14 @@ export function parseEndShiftResponse(raw: unknown): EndShiftResponse | null {
     receipt: {
       shiftId: readString(receiptRaw.shiftId ?? receiptRaw.ShiftId, shift.id),
       cashierName: readString(receiptRaw.cashierName ?? receiptRaw.CashierName, shift.cashierName),
-      registerNumber: (receiptRaw.registerNumber ?? receiptRaw.RegisterNumber ?? null) as string | null,
+      registerNumber: (receiptRaw.registerNumber ?? receiptRaw.RegisterNumber ?? null) as
+        string | null,
       startedAt: readString(receiptRaw.startedAt ?? receiptRaw.StartedAt, shift.startedAt),
       endedAt: readString(receiptRaw.endedAt ?? receiptRaw.EndedAt),
-      startBalance: readNumber(receiptRaw.startBalance ?? receiptRaw.StartBalance, shift.startBalance),
+      startBalance: readNumber(
+        receiptRaw.startBalance ?? receiptRaw.StartBalance,
+        shift.startBalance
+      ),
       endBalance: readNumber(receiptRaw.endBalance ?? receiptRaw.EndBalance, shift.endBalance),
       totalSales: readNumber(receiptRaw.totalSales ?? receiptRaw.TotalSales, shift.totalSales),
       totalCash: readNumber(receiptRaw.totalCash ?? receiptRaw.TotalCash, shift.totalCash),
@@ -128,7 +132,10 @@ export async function fetchCurrentShift(): Promise<CurrentShiftResponse> {
   return parseCurrentShiftResponse(raw);
 }
 
-export async function startShiftApi(cashRegisterId: string, startBalance: number): Promise<CashierShiftDto> {
+export async function startShiftApi(
+  cashRegisterId: string,
+  startBalance: number
+): Promise<CashierShiftDto> {
   const raw = await apiClient.post<unknown>('/pos/shift/start', {
     cashRegisterId,
     startBalance,
@@ -375,16 +382,12 @@ function parsePosDailyClosingReportDto(raw: unknown): PosDailyClosingReportDto |
     tseStatusBadge: readString(raw.tseStatusBadge ?? raw.TseStatusBadge) || undefined,
     rksvFooterLabel: readString(raw.rksvFooterLabel ?? raw.RksvFooterLabel) || undefined,
     qrPayload: (raw.qrPayload ?? raw.QrPayload ?? null) as string | null,
-    snapshotDisclaimerDe: readString(
-      raw.snapshotDisclaimerDe ?? raw.SnapshotDisclaimerDe,
-      ''
-    ),
+    snapshotDisclaimerDe: readString(raw.snapshotDisclaimerDe ?? raw.SnapshotDisclaimerDe, ''),
     salesFiscalReconciliationNote: (raw.salesFiscalReconciliationNote ??
       raw.SalesFiscalReconciliationNote ??
       null) as string | null,
     differenceScopeNote: (raw.differenceScopeNote ?? raw.DifferenceScopeNote ?? null) as
-      | string
-      | null,
+      string | null,
     transactionBreakdown: parseTransactionBreakdown(
       raw.transactionBreakdown ?? raw.TransactionBreakdown
     ),
@@ -401,7 +404,10 @@ export function parsePosDailyClosingResult(raw: unknown): PosDailyClosingResult 
   const reportRaw = layer.report ?? layer.Report;
   return {
     success,
-    errorMessage: readString(layer.errorMessage ?? layer.ErrorMessage ?? layer.error ?? layer.Error, ''),
+    errorMessage: readString(
+      layer.errorMessage ?? layer.ErrorMessage ?? layer.error ?? layer.Error,
+      ''
+    ),
     paymentsWithoutInvoiceCount: readNumber(
       layer.paymentsWithoutInvoiceCount ?? layer.PaymentsWithoutInvoiceCount,
       0
@@ -428,9 +434,9 @@ export function parsePosDailyClosingStatus(raw: unknown): PosDailyClosingStatusD
     message: readString(layer.message ?? layer.Message),
     blockReason: readString(layer.blockReason ?? layer.BlockReason) || null,
     lastClosingDate: (layer.lastClosingDate ?? layer.LastClosingDate ?? null) as string | null,
-    lastClosingPerformedAt: (layer.lastClosingPerformedAt ?? layer.LastClosingPerformedAt ?? null) as
-      | string
-      | null,
+    lastClosingPerformedAt: (layer.lastClosingPerformedAt ??
+      layer.LastClosingPerformedAt ??
+      null) as string | null,
     paymentsWithoutInvoiceCount: readNumber(
       layer.paymentsWithoutInvoiceCount ?? layer.PaymentsWithoutInvoiceCount,
       0
@@ -453,9 +459,7 @@ export async function downloadDailyClosingReportPdf(
     `${API_BASE_URL}/pos/shift/daily-closing/${encodeURIComponent(dailyClosingId)}/report.pdf?language=${lang}`,
     {
       method: 'GET',
-      headers: await resolveTenantFetchHeaders(
-        token ? { Authorization: `Bearer ${token}` } : {}
-      ),
+      headers: await resolveTenantFetchHeaders(token ? { Authorization: `Bearer ${token}` } : {}),
     }
   );
   if (!response.ok) {

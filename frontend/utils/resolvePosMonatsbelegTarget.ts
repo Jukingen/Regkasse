@@ -1,11 +1,11 @@
 /** Minimal status fields needed to pick the Monatsbeleg target month. */
 export type PosMonatsbelegTargetStatus = {
   nextRequiredMonth: string | null;
-  missingMonths: Array<{
+  missingMonths: {
     year: number;
     month: number;
     isOverdue: boolean;
-  }>;
+  }[];
 };
 
 /** Europe/Vienna calendar year and month (matches server Monatsbeleg guard). */
@@ -26,9 +26,10 @@ export function getViennaYearMonth(now: Date = new Date()): { year: number; mont
  * Prefers the earliest overdue missing month, then any missing month / nextRequiredMonth,
  * otherwise the current Vienna month (same default as the session block modal).
  */
-export function resolvePosMonatsbelegTarget(
-  status?: PosMonatsbelegTargetStatus | null,
-): { year: number; month: number } {
+export function resolvePosMonatsbelegTarget(status?: PosMonatsbelegTargetStatus | null): {
+  year: number;
+  month: number;
+} {
   const missing = status?.missingMonths;
   if (missing && missing.length > 0) {
     const overdue = missing.find((m) => m.isOverdue);

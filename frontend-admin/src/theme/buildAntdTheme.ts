@@ -1,6 +1,8 @@
-import { theme as antdTheme, type ThemeConfig } from 'antd';
+import { type ThemeConfig, theme as antdTheme } from 'antd';
+
 import { antdFontSizeForDensity, antdTablePaddingForDensity } from '@/lib/personalization/density';
 import type { DensityMode, ResolvedTheme } from '@/lib/personalization/types';
+
 import baseTheme from './themeConfig';
 
 const { defaultAlgorithm, darkAlgorithm } = antdTheme;

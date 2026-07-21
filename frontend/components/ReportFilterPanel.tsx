@@ -1,10 +1,20 @@
-// Türkçe Açıklama: Rapor filtreleme paneli - tarih, kategori, ürün ve diğer filtreleme seçenekleri için dinamik komponent.
+// Rapor filtreleme paneli — tarih (shared DatePicker incl. web), kategori ve diğer filtreler.
 
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { formatUserDate } from '../utils/dateFormatter';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Modal,
+  ScrollView,
+  TextInput,
+} from 'react-native';
+
+import { DatePicker, POS_DATE_TIME_ZONE } from './DatePicker';
+import { endOfLocalDay, normalizePickerSelection, startOfLocalDay } from '../utils/dateFormatter';
 
 export interface ReportFilter {
   startDate?: Date;
@@ -28,10 +38,17 @@ interface ReportFilterPanelProps {
   onFilterChange: (filter: ReportFilter) => void;
   onApplyFilter: () => void;
   onResetFilter: () => void;
-  categories?: Array<{ id: string; name: string }>;
-  products?: Array<{ id: string; name: string }>;
+  categories?: { id: string; name: string }[];
+  products?: { id: string; name: string }[];
   paymentMethods?: string[];
   showAdvancedFilters?: boolean;
+}
+
+function applyQuickRange(from: Date, to: Date): Pick<ReportFilter, 'startDate' | 'endDate'> {
+  return {
+    startDate: startOfLocalDay(from),
+    endDate: endOfLocalDay(to),
+  };
 }
 
 const ReportFilterPanel: React.FC<ReportFilterPanelProps> = ({
@@ -42,27 +59,10 @@ const ReportFilterPanel: React.FC<ReportFilterPanelProps> = ({
   categories = [],
   products = [],
   paymentMethods = ['Cash', 'Card', 'Voucher'],
-  showAdvancedFilters = false
+  showAdvancedFilters: _showAdvancedFilters = false,
 }) => {
-  const { t } = useTranslation();
-  const [showDatePicker, setShowDatePicker] = useState<'start' | 'end' | null>(null);
+  const { t } = useTranslation(['reports', 'common']);
   const [showAdvancedModal, setShowAdvancedModal] = useState(false);
-
-  const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(null);
-    if (selectedDate) {
-      if (showDatePicker === 'start') {
-        onFilterChange({ ...filter, startDate: selectedDate });
-      } else if (showDatePicker === 'end') {
-        onFilterChange({ ...filter, endDate: selectedDate });
-      }
-    }
-  };
-
-  const formatDate = (date?: Date) => {
-    if (!date) return '';
-    return formatUserDate(date);
-  };
 
   const getActiveFilterCount = () => {
     let count = 0;
@@ -86,29 +86,43 @@ const ReportFilterPanel: React.FC<ReportFilterPanelProps> = ({
     <View style={styles.container}>
       {/* Ana Filtre Alanı */}
       <View style={styles.mainFilterArea}>
-        {/* Tarih Filtreleri */}
+        {/* Tarih Filtreleri — shared DatePicker (iOS modal + Android dialog) */}
         <View style={styles.dateSection}>
-          <Text style={styles.sectionTitle}>{t('report.dateRange', 'Tarih Aralığı')}</Text>
+          <Text style={styles.sectionTitle}>{t('reports:dateRange', 'Datumsbereich')}</Text>
           <View style={styles.dateRow}>
-            <TouchableOpacity
-              style={styles.dateButton}
-              onPress={() => setShowDatePicker('start')}
-            >
-              <Ionicons name="calendar" size={16} color="#666" />
-              <Text style={styles.dateButtonText}>
-                {filter.startDate ? formatDate(filter.startDate) : t('report.startDate', 'Başlangıç')}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.datePickerSlot}>
+              <DatePicker
+                value={filter.startDate ?? null}
+                onChange={(date) => {
+                  onFilterChange({
+                    ...filter,
+                    startDate: date ? normalizePickerSelection(date, 'start') : undefined,
+                  });
+                }}
+                mode="date"
+                placeholder={t('reports:startDate', 'Von')}
+                maximumDate={filter.endDate}
+                timeZoneName={POS_DATE_TIME_ZONE}
+                style={styles.datePicker}
+              />
+            </View>
             <Text style={styles.dateSeparator}>-</Text>
-            <TouchableOpacity
-              style={styles.dateButton}
-              onPress={() => setShowDatePicker('end')}
-            >
-              <Ionicons name="calendar" size={16} color="#666" />
-              <Text style={styles.dateButtonText}>
-                {filter.endDate ? formatDate(filter.endDate) : t('report.endDate', 'Bitiş')}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.datePickerSlot}>
+              <DatePicker
+                value={filter.endDate ?? null}
+                onChange={(date) => {
+                  onFilterChange({
+                    ...filter,
+                    endDate: date ? normalizePickerSelection(date, 'end') : undefined,
+                  });
+                }}
+                mode="date"
+                placeholder={t('reports:endDate', 'Bis')}
+                minimumDate={filter.startDate}
+                timeZoneName={POS_DATE_TIME_ZONE}
+                style={styles.datePicker}
+              />
+            </View>
           </View>
         </View>
 
@@ -119,40 +133,49 @@ const ReportFilterPanel: React.FC<ReportFilterPanelProps> = ({
               style={styles.quickDateButton}
               onPress={() => {
                 const today = new Date();
-                onFilterChange({ ...filter, startDate: today, endDate: today });
-              }}
-            >
-              <Text style={styles.quickDateButtonText}>{t('report.today', 'Bugün')}</Text>
+                onFilterChange({ ...filter, ...applyQuickRange(today, today) });
+              }}>
+              <Text style={styles.quickDateButtonText}>{t('reports:today', 'Heute')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.quickDateButton}
               onPress={() => {
                 const yesterday = new Date();
                 yesterday.setDate(yesterday.getDate() - 1);
-                onFilterChange({ ...filter, startDate: yesterday, endDate: yesterday });
-              }}
-            >
-              <Text style={styles.quickDateButtonText}>{t('report.yesterday', 'Dün')}</Text>
+                onFilterChange({
+                  ...filter,
+                  ...applyQuickRange(yesterday, yesterday),
+                });
+              }}>
+              <Text style={styles.quickDateButtonText}>{t('reports:yesterday', 'Gestern')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.quickDateButton}
               onPress={() => {
                 const weekAgo = new Date();
                 weekAgo.setDate(weekAgo.getDate() - 7);
-                onFilterChange({ ...filter, startDate: weekAgo, endDate: new Date() });
-              }}
-            >
-              <Text style={styles.quickDateButtonText}>{t('report.lastWeek', 'Son 7 Gün')}</Text>
+                onFilterChange({
+                  ...filter,
+                  ...applyQuickRange(weekAgo, new Date()),
+                });
+              }}>
+              <Text style={styles.quickDateButtonText}>
+                {t('reports:lastWeek', 'Letzte 7 Tage')}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.quickDateButton}
               onPress={() => {
                 const monthAgo = new Date();
                 monthAgo.setMonth(monthAgo.getMonth() - 1);
-                onFilterChange({ ...filter, startDate: monthAgo, endDate: new Date() });
-              }}
-            >
-              <Text style={styles.quickDateButtonText}>{t('report.lastMonth', 'Son 30 Gün')}</Text>
+                onFilterChange({
+                  ...filter,
+                  ...applyQuickRange(monthAgo, new Date()),
+                });
+              }}>
+              <Text style={styles.quickDateButtonText}>
+                {t('reports:lastMonth', 'Letzte 30 Tage')}
+              </Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -163,15 +186,18 @@ const ReportFilterPanel: React.FC<ReportFilterPanelProps> = ({
             <Ionicons name="search" size={16} color="#666" style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder={t('report.searchPlaceholder', 'Ara...')}
+              placeholder={t('reports:searchPlaceholder', 'Suchen…')}
               value={filter.searchTerm}
-              onChangeText={(text) => onFilterChange({ ...filter, searchTerm: text })}
+              onChangeText={(text) => {
+                onFilterChange({ ...filter, searchTerm: text });
+              }}
             />
             {filter.searchTerm && (
               <TouchableOpacity
-                onPress={() => onFilterChange({ ...filter, searchTerm: '' })}
-                style={styles.clearButton}
-              >
+                onPress={() => {
+                  onFilterChange({ ...filter, searchTerm: '' });
+                }}
+                style={styles.clearButton}>
                 <Ionicons name="close-circle" size={16} color="#666" />
               </TouchableOpacity>
             )}
@@ -182,11 +208,12 @@ const ReportFilterPanel: React.FC<ReportFilterPanelProps> = ({
         <View style={styles.filterButtonsRow}>
           <TouchableOpacity
             style={styles.advancedFilterButton}
-            onPress={() => setShowAdvancedModal(true)}
-          >
+            onPress={() => {
+              setShowAdvancedModal(true);
+            }}>
             <Ionicons name="options" size={16} color="#1976d2" />
             <Text style={styles.advancedFilterButtonText}>
-              {t('report.advancedFilters', 'Gelişmiş Filtreler')}
+              {t('reports:advancedFilters', 'Erweiterte Filter')}
             </Text>
             {getActiveFilterCount() > 0 && (
               <View style={styles.filterBadge}>
@@ -195,18 +222,12 @@ const ReportFilterPanel: React.FC<ReportFilterPanelProps> = ({
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.applyButton}
-            onPress={onApplyFilter}
-          >
-            <Text style={styles.applyButtonText}>{t('report.apply', 'Uygula')}</Text>
+          <TouchableOpacity style={styles.applyButton} onPress={onApplyFilter}>
+            <Text style={styles.applyButtonText}>{t('reports:apply', 'Anwenden')}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.resetButton}
-            onPress={resetFilter}
-          >
-            <Text style={styles.resetButtonText}>{t('report.reset', 'Sıfırla')}</Text>
+          <TouchableOpacity style={styles.resetButton} onPress={resetFilter}>
+            <Text style={styles.resetButtonText}>{t('reports:reset', 'Zurücksetzen')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -216,16 +237,20 @@ const ReportFilterPanel: React.FC<ReportFilterPanelProps> = ({
         visible={showAdvancedModal}
         animationType="slide"
         transparent
-        onRequestClose={() => setShowAdvancedModal(false)}
-      >
+        onRequestClose={() => {
+          setShowAdvancedModal(false);
+        }}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('report.advancedFilters', 'Gelişmiş Filtreler')}</Text>
+              <Text style={styles.modalTitle}>
+                {t('reports:advancedFilters', 'Erweiterte Filter')}
+              </Text>
               <TouchableOpacity
-                onPress={() => setShowAdvancedModal(false)}
-                style={styles.closeButton}
-              >
+                onPress={() => {
+                  setShowAdvancedModal(false);
+                }}
+                style={styles.closeButton}>
                 <Ionicons name="close" size={24} color="#666" />
               </TouchableOpacity>
             </View>
@@ -236,16 +261,15 @@ const ReportFilterPanel: React.FC<ReportFilterPanelProps> = ({
                 <Text style={styles.filterLabel}>{t('report.category', 'Kategori')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <TouchableOpacity
-                    style={[
-                      styles.filterChip,
-                      !filter.categoryId && styles.filterChipActive
-                    ]}
-                    onPress={() => onFilterChange({ ...filter, categoryId: undefined })}
-                  >
-                    <Text style={[
-                      styles.filterChipText,
-                      !filter.categoryId && styles.filterChipTextActive
-                    ]}>
+                    style={[styles.filterChip, !filter.categoryId && styles.filterChipActive]}
+                    onPress={() => {
+                      onFilterChange({ ...filter, categoryId: undefined });
+                    }}>
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        !filter.categoryId && styles.filterChipTextActive,
+                      ]}>
                       {t('report.allCategories', 'Tümü')}
                     </Text>
                   </TouchableOpacity>
@@ -254,14 +278,16 @@ const ReportFilterPanel: React.FC<ReportFilterPanelProps> = ({
                       key={category.id}
                       style={[
                         styles.filterChip,
-                        filter.categoryId === category.id && styles.filterChipActive
+                        filter.categoryId === category.id && styles.filterChipActive,
                       ]}
-                      onPress={() => onFilterChange({ ...filter, categoryId: category.id })}
-                    >
-                      <Text style={[
-                        styles.filterChipText,
-                        filter.categoryId === category.id && styles.filterChipTextActive
-                      ]}>
+                      onPress={() => {
+                        onFilterChange({ ...filter, categoryId: category.id });
+                      }}>
+                      <Text
+                        style={[
+                          styles.filterChipText,
+                          filter.categoryId === category.id && styles.filterChipTextActive,
+                        ]}>
                         {category.name}
                       </Text>
                     </TouchableOpacity>
@@ -274,16 +300,15 @@ const ReportFilterPanel: React.FC<ReportFilterPanelProps> = ({
                 <Text style={styles.filterLabel}>{t('report.paymentMethod', 'Ödeme Yöntemi')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <TouchableOpacity
-                    style={[
-                      styles.filterChip,
-                      !filter.paymentMethod && styles.filterChipActive
-                    ]}
-                    onPress={() => onFilterChange({ ...filter, paymentMethod: undefined })}
-                  >
-                    <Text style={[
-                      styles.filterChipText,
-                      !filter.paymentMethod && styles.filterChipTextActive
-                    ]}>
+                    style={[styles.filterChip, !filter.paymentMethod && styles.filterChipActive]}
+                    onPress={() => {
+                      onFilterChange({ ...filter, paymentMethod: undefined });
+                    }}>
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        !filter.paymentMethod && styles.filterChipTextActive,
+                      ]}>
                       {t('report.allMethods', 'Tümü')}
                     </Text>
                   </TouchableOpacity>
@@ -292,14 +317,16 @@ const ReportFilterPanel: React.FC<ReportFilterPanelProps> = ({
                       key={method}
                       style={[
                         styles.filterChip,
-                        filter.paymentMethod === method && styles.filterChipActive
+                        filter.paymentMethod === method && styles.filterChipActive,
                       ]}
-                      onPress={() => onFilterChange({ ...filter, paymentMethod: method })}
-                    >
-                      <Text style={[
-                        styles.filterChipText,
-                        filter.paymentMethod === method && styles.filterChipTextActive
-                      ]}>
+                      onPress={() => {
+                        onFilterChange({ ...filter, paymentMethod: method });
+                      }}>
+                      <Text
+                        style={[
+                          styles.filterChipText,
+                          filter.paymentMethod === method && styles.filterChipTextActive,
+                        ]}>
                         {method}
                       </Text>
                     </TouchableOpacity>
@@ -346,40 +373,42 @@ const ReportFilterPanel: React.FC<ReportFilterPanelProps> = ({
                 <Text style={styles.filterLabel}>{t('report.sortBy', 'Sıralama')}</Text>
                 <View style={styles.sortRow}>
                   <TouchableOpacity
-                    style={[
-                      styles.sortButton,
-                      filter.sortBy === 'date' && styles.sortButtonActive
-                    ]}
-                    onPress={() => onFilterChange({ ...filter, sortBy: 'date' })}
-                  >
-                    <Text style={[
-                      styles.sortButtonText,
-                      filter.sortBy === 'date' && styles.sortButtonTextActive
-                    ]}>
+                    style={[styles.sortButton, filter.sortBy === 'date' && styles.sortButtonActive]}
+                    onPress={() => {
+                      onFilterChange({ ...filter, sortBy: 'date' });
+                    }}>
+                    <Text
+                      style={[
+                        styles.sortButtonText,
+                        filter.sortBy === 'date' && styles.sortButtonTextActive,
+                      ]}>
                       {t('report.sortByDate', 'Tarih')}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[
                       styles.sortButton,
-                      filter.sortBy === 'amount' && styles.sortButtonActive
+                      filter.sortBy === 'amount' && styles.sortButtonActive,
                     ]}
-                    onPress={() => onFilterChange({ ...filter, sortBy: 'amount' })}
-                  >
-                    <Text style={[
-                      styles.sortButtonText,
-                      filter.sortBy === 'amount' && styles.sortButtonTextActive
-                    ]}>
+                    onPress={() => {
+                      onFilterChange({ ...filter, sortBy: 'amount' });
+                    }}>
+                    <Text
+                      style={[
+                        styles.sortButtonText,
+                        filter.sortBy === 'amount' && styles.sortButtonTextActive,
+                      ]}>
                       {t('report.sortByAmount', 'Tutar')}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.sortOrderButton}
-                    onPress={() => onFilterChange({
-                      ...filter,
-                      sortOrder: filter.sortOrder === 'asc' ? 'desc' : 'asc'
-                    })}
-                  >
+                    onPress={() => {
+                      onFilterChange({
+                        ...filter,
+                        sortOrder: filter.sortOrder === 'asc' ? 'desc' : 'asc',
+                      });
+                    }}>
                     <Ionicons
                       name={filter.sortOrder === 'asc' ? 'arrow-up' : 'arrow-down'}
                       size={16}
@@ -391,35 +420,23 @@ const ReportFilterPanel: React.FC<ReportFilterPanelProps> = ({
             </ScrollView>
 
             <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={styles.modalResetButton}
-                onPress={resetFilter}
-              >
-                <Text style={styles.modalResetButtonText}>{t('report.reset', 'Sıfırla')}</Text>
+              <TouchableOpacity style={styles.modalResetButton} onPress={resetFilter}>
+                <Text style={styles.modalResetButtonText}>
+                  {t('reports:reset', 'Zurücksetzen')}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.modalApplyButton}
                 onPress={() => {
                   onApplyFilter();
                   setShowAdvancedModal(false);
-                }}
-              >
-                <Text style={styles.modalApplyButtonText}>{t('report.apply', 'Uygula')}</Text>
+                }}>
+                <Text style={styles.modalApplyButtonText}>{t('reports:apply', 'Anwenden')}</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-
-      {/* Tarih Seçici */}
-      {showDatePicker && (
-        <DateTimePicker
-          value={showDatePicker === 'start' ? (filter.startDate || new Date()) : (filter.endDate || new Date())}
-          mode="date"
-          display="default"
-          onChange={handleDateChange}
-        />
-      )}
     </View>
   );
 };
@@ -445,27 +462,19 @@ const styles = StyleSheet.create({
   },
   dateRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 8,
   },
-  dateButton: {
+  datePickerSlot: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 6,
-    gap: 6,
   },
-  dateButtonText: {
-    fontSize: 14,
-    color: '#333',
+  datePicker: {
+    marginBottom: 0,
   },
   dateSeparator: {
     fontSize: 16,
     color: '#666',
+    marginTop: 14,
   },
   quickDateSection: {
     marginBottom: 12,
@@ -712,4 +721,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ReportFilterPanel; 
+export default ReportFilterPanel;

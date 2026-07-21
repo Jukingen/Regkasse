@@ -1,17 +1,18 @@
 'use client';
 
-import { Alert, Button, Tabs } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
+import { Alert, Button, Tabs } from 'antd';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
-import { TenantCustomizationPanel } from '@/features/website-generator/components/TenantCustomizationPanel';
-import { useAuth } from '@/features/auth/hooks/useAuth';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { TenantCustomizationPanel } from '@/features/website-generator/components/TenantCustomizationPanel';
 import { useI18n } from '@/i18n';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
+import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
 
 /**
  * Super Admin website/app branding for a specific tenant.
@@ -71,9 +72,7 @@ export default function TenantCustomizePage() {
           {
             key: 'website',
             label: t('tenants.customization.websiteTitle'),
-            children: (
-              <TenantCustomizationPanel surface="website" tenantId={tenantId} showIntro />
-            ),
+            children: <TenantCustomizationPanel surface="website" tenantId={tenantId} showIntro />,
           },
           {
             key: 'app',

@@ -1,24 +1,25 @@
 'use client';
 
-import { useAntdApp } from '@/hooks/useAntdApp';
-/**
- * Formal Jahresbericht: list, year filter, provisional generation/update.
- */
-import React, { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Card, DatePicker, Select, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import Link from 'next/link';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+/**
+ * Formal Jahresbericht: list, year filter, provisional generation/update.
+ */
+import React, { useMemo, useState } from 'react';
+
+import { CashRegisterSelector } from '@/components/CashRegisterSelector';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { FormalReportLanguageNotice } from '@/components/reporting/FormalReportLanguageNotice';
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 import { formatNumber } from '@/i18n/formatting';
 import { AXIOS_INSTANCE } from '@/lib/axios';
-import { CashRegisterSelector } from '@/components/CashRegisterSelector';
-import { usePermissions } from '@/shared/auth/usePermissions';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
-import { FormalReportLanguageNotice } from '@/components/reporting/FormalReportLanguageNotice';
+import { usePermissions } from '@/shared/auth/usePermissions';
 import { useFiscalReportText } from '@/shared/reporting/useFiscalReportText';
 
 type JahresberichtListItem = {
@@ -65,16 +66,26 @@ export default function JahresberichtListPage() {
   const [cashRegisterId, setCashRegisterId] = useState<string | undefined>();
 
   const listQ = useQuery({
-    queryKey: ['jahresbericht', 'list', fromYear.format('YYYY'), toYear.format('YYYY'), scopeKind, cashRegisterId],
+    queryKey: [
+      'jahresbericht',
+      'list',
+      fromYear.format('YYYY'),
+      toYear.format('YYYY'),
+      scopeKind,
+      cashRegisterId,
+    ],
     queryFn: async () => {
-      const { data } = await AXIOS_INSTANCE.get<JahresberichtListItem[]>('/api/reports/jahresbericht', {
-        params: {
-          fromYear: fromYear.format('YYYY-01-01'),
-          toYear: toYear.format('YYYY-01-01'),
-          scopeKind,
-          cashRegisterId: scopeKind === 'Register' ? cashRegisterId : undefined,
-        },
-      });
+      const { data } = await AXIOS_INSTANCE.get<JahresberichtListItem[]>(
+        '/api/reports/jahresbericht',
+        {
+          params: {
+            fromYear: fromYear.format('YYYY-01-01'),
+            toYear: toYear.format('YYYY-01-01'),
+            scopeKind,
+            cashRegisterId: scopeKind === 'Register' ? cashRegisterId : undefined,
+          },
+        }
+      );
       return data;
     },
   });
@@ -119,7 +130,7 @@ export default function JahresberichtListPage() {
         render: (v: string | null | undefined, r) =>
           r.scopeKind === 'Company'
             ? t('reporting.listShared.emptyDash')
-            : v ?? r.cashRegisterId?.slice(0, 8) ?? t('reporting.listShared.emptyDash'),
+            : (v ?? r.cashRegisterId?.slice(0, 8) ?? t('reporting.listShared.emptyDash')),
       },
       {
         title: t('reporting.listShared.columns.status'),
@@ -139,7 +150,11 @@ export default function JahresberichtListPage() {
             <Space orientation="vertical" size={0}>
               <Tag>{row.submission.lifecycle}</Tag>
               {hint ? (
-                <Typography.Text type="secondary" style={{ fontSize: 12 }} title={fiscalTooltip(hint.contentLang)}>
+                <Typography.Text
+                  type="secondary"
+                  style={{ fontSize: 12 }}
+                  title={fiscalTooltip(hint.contentLang)}
+                >
                   {hint.text}
                 </Typography.Text>
               ) : null}
@@ -150,15 +165,18 @@ export default function JahresberichtListPage() {
       {
         title: t('reporting.jahresbericht.list.columnGross'),
         dataIndex: 'grossSalesAmount',
-        render: (v: number) => formatNumber(v, formatLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        render: (v: number) =>
+          formatNumber(v, formatLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       },
       {
         title: '',
         key: 'a',
-        render: (_, r) => <Link href={`/reporting/jahresbericht/${r.id}`}>{t('reporting.listShared.details')}</Link>,
+        render: (_, r) => (
+          <Link href={`/reporting/jahresbericht/${r.id}`}>{t('reporting.listShared.details')}</Link>
+        ),
       },
     ],
-    [t, formatLocale, fiscalTooltip, resolveFiscal],
+    [t, formatLocale, fiscalTooltip, resolveFiscal]
   );
 
   return (
@@ -173,8 +191,16 @@ export default function JahresberichtListPage() {
       <FormalReportLanguageNotice />
       <Card style={{ marginBottom: 16 }}>
         <Space wrap>
-          <DatePicker picker="year" value={fromYear} onChange={(v) => v && setFromYear(v.startOf('year'))} />
-          <DatePicker picker="year" value={toYear} onChange={(v) => v && setToYear(v.startOf('year'))} />
+          <DatePicker
+            picker="year"
+            value={fromYear}
+            onChange={(v) => v && setFromYear(v.startOf('year'))}
+          />
+          <DatePicker
+            picker="year"
+            value={toYear}
+            onChange={(v) => v && setToYear(v.startOf('year'))}
+          />
           <Select
             style={{ minWidth: 140 }}
             value={scopeKind}
@@ -210,10 +236,19 @@ export default function JahresberichtListPage() {
             <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
               {t('reporting.jahresbericht.list.yearPickerLabel')}
             </Typography.Text>
-            <DatePicker picker="year" value={reportYear} onChange={(v) => v && setReportYear(v.startOf('year'))} />
+            <DatePicker
+              picker="year"
+              value={reportYear}
+              onChange={(v) => v && setReportYear(v.startOf('year'))}
+            />
           </div>
           {canExport ? (
-            <Button type="primary" loading={generateMut.isPending} onClick={() => generateMut.mutate()} style={{ marginTop: 22 }}>
+            <Button
+              type="primary"
+              loading={generateMut.isPending}
+              onClick={() => generateMut.mutate()}
+              style={{ marginTop: 22 }}
+            >
               {t('reporting.jahresbericht.list.generateButton')}
             </Button>
           ) : null}

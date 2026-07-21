@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { View, Text, StyleSheet } from 'react-native';
 
 interface CartFooterProps {
   subtotal: number;
@@ -33,52 +33,6 @@ const CartFooter: React.FC<CartFooterProps> = ({ subtotal, vat, serviceFee, gran
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  footerBox: {
-    backgroundColor: '#f5f5f5',
-    borderTopWidth: 1,
-    borderColor: '#e0e0e0',
-    padding: 14,
-    borderRadius: 12,
-    marginTop: 10,
-    marginBottom: 4,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  rowTotal: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-    borderTopWidth: 1,
-    borderColor: '#ccc',
-    paddingTop: 8,
-  },
-  label: {
-    fontSize: 16,
-    color: '#444',
-  },
-  value: {
-    fontSize: 16,
-    color: '#222',
-    fontWeight: 'bold',
-  },
-  totalLabel: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1976d2',
-  },
-  totalValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1976d2',
-  },
-});
-
-export default CartFooter;
 
 const styles = StyleSheet.create({
   footerBox: {

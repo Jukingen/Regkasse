@@ -1,25 +1,29 @@
 /**
  * RKSV / TSE QR on payment success (PaymentModal success UI).
  *
- * Server PNG: GET `{API_BASE_URL}/pos/payment/{paymentId}/qr.png`
- * (`API_BASE_URL` is configured with trailing `/api`, so this equals `/api/pos/payment/...` on the server.)
- * React Native `Image` cannot send auth headers to remote URLs; we fetch with `Authorization`
- * and display the bytes as a data URL on `Image`.
+ * Client: `react-native-qrcode-svg` encodes `tse.qrPayload` (exact machine code).
+ * ECC M→L selection via `resolveRksvQrEcl` (aligned with backend QrImageService).
  *
- * Optional: if `tse.qrPayload` exists, a client-side QR is rendered first; server PNG is still
- * fetched as fallback when `fetchServerPng` is true.
+ * Server PNG fallback: GET `{API_BASE_URL}/pos/payment/{paymentId}/qr.png`
+ * (`API_BASE_URL` includes trailing `/api`). React Native `Image` cannot send auth
+ * headers to remote URLs; we fetch with `Authorization` and show a data URL.
+ *
+ * Gutschein redemptions: server may compact with `|G:` on the PNG endpoint; the
+ * client still renders the payment response payload as-is when present.
  */
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { Buffer } from 'buffer';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { View, Text, StyleSheet, Image, ActivityIndicator, Platform } from 'react-native';
 
 import { API_BASE_URL } from '../config';
-import type { PaymentTseInfo } from '../services/api/paymentService';
+import { RksvQrCodeSvg } from './RksvQrCodeSvg';
 import { resolveTenantFetchHeaders } from '../services/api/config';
-import { sessionManager } from '../services/session/sessionManager';
+import type { PaymentTseInfo } from '../services/api/paymentService';
 import { posPaymentQrPngAbsoluteUrl } from '../services/api/posPaymentPaths';
+import { sessionManager } from '../services/session/sessionManager';
 import { debugPosPaymentTrace } from '../utils/debugPosPaymentTrace';
+import { resolveRksvQrEcl } from '../utils/rksvQrEncode';
 
 interface PaymentSuccessQrProps {
   tse?: PaymentTseInfo | null;
@@ -33,9 +37,7 @@ async function fetchQrPngAsDataUrl(paymentId: string): Promise<string | null> {
   const token = await sessionManager.getAccessToken();
   const url = posPaymentQrPngAbsoluteUrl(API_BASE_URL, paymentId);
   const res = await fetch(url, {
-    headers: await resolveTenantFetchHeaders(
-      token ? { Authorization: `Bearer ${token}` } : {},
-    ),
+    headers: await resolveTenantFetchHeaders(token ? { Authorization: `Bearer ${token}` } : {}),
   });
   if (!res.ok) {
     console.warn('[PaymentSuccessQr] QR PNG HTTP error:', res.status, url);
@@ -53,41 +55,24 @@ export function PaymentSuccessQr({
   size = 160,
 }: PaymentSuccessQrProps) {
   const { t } = useTranslation(['payment']);
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const [payloadQrFailed, setPayloadQrFailed] = useState(false);
   const [serverPngDataUrl, setServerPngDataUrl] = useState<string | null>(null);
   const [pngLoading, setPngLoading] = useState(false);
 
-  const qrPayload = tse?.qrPayload;
+  const qrPayload = tse?.qrPayload?.trim() || '';
   const isDemoFiscal = tse?.isDemoFiscal === true;
 
-  useEffect(() => {
-    if (!qrPayload) {
-      setQrDataUrl(null);
-      setPayloadQrFailed(false);
-      return;
-    }
-    setPayloadQrFailed(false);
-    let cancelled = false;
-    import('qrcode')
-      .then((QRCode) => QRCode.toDataURL(qrPayload, { width: size, margin: 2 }))
-      .then((url: string) => {
-        if (!cancelled) setQrDataUrl(url);
-      })
-      .catch((err) => {
-        console.warn('[PaymentSuccessQr] QR toDataURL failed:', err);
-        if (!cancelled) {
-          setQrDataUrl(null);
-          setPayloadQrFailed(true);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [qrPayload, size]);
+  const clientEcl = useMemo(() => (qrPayload ? resolveRksvQrEcl(qrPayload) : null), [qrPayload]);
+
+  const showClientSvg = !!qrPayload && !!clientEcl;
 
   useEffect(() => {
     if (!fetchServerPng || !paymentId) {
+      setServerPngDataUrl(null);
+      setPngLoading(false);
+      return;
+    }
+    // Exact client SVG wins when encodeable; server PNG covers oversized / Gutschein-compact cases.
+    if (clientEcl) {
       setServerPngDataUrl(null);
       setPngLoading(false);
       return;
@@ -100,7 +85,11 @@ export function PaymentSuccessQr({
         if (cancelled) return;
         if (url) {
           setServerPngDataUrl(url);
-          debugPosPaymentTrace('success_flow_qr_ready', { source: 'qr_png_endpoint', paymentId });
+          debugPosPaymentTrace('success_flow_qr_ready', {
+            source: 'qr_png_endpoint',
+            paymentId,
+            platform: Platform.OS,
+          });
         }
       })
       .catch((err) => {
@@ -112,44 +101,56 @@ export function PaymentSuccessQr({
     return () => {
       cancelled = true;
     };
-  }, [fetchServerPng, paymentId]);
+  }, [fetchServerPng, paymentId, clientEcl]);
 
-  const imageUri = qrDataUrl || serverPngDataUrl || null;
-  const isPayloadGenerating = !!qrPayload && !qrDataUrl && !payloadQrFailed;
-  const settledNoImage =
-    !pngLoading && !isPayloadGenerating && !imageUri && !!(paymentId || qrPayload);
+  const imageUri = !showClientSvg ? serverPngDataUrl : null;
+  const settledNoImage = !pngLoading && !showClientSvg && !imageUri && !!(paymentId || qrPayload);
 
   if (!paymentId && !qrPayload && !pngLoading) {
     return null;
   }
 
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      accessibilityLabel={t('tse.qrAccessibilityLabel', 'RKSV QR-Code')}
+      testID="payment-success-qr">
       {isDemoFiscal && (
         <View style={styles.demoBanner}>
           <Text style={styles.demoText}>{t('tse.demoFiscalWarning', 'DEMO / FISKAL DEĞİL')}</Text>
         </View>
       )}
       <View style={styles.qrWrapper}>
-        {imageUri ? (
-          <Image source={{ uri: imageUri }} style={[styles.qrImage, { width: size, height: size }]} />
+        {showClientSvg && clientEcl ? (
+          <View
+            style={[styles.qrImage, { width: size, height: size }]}
+            accessibilityRole="image"
+            accessibilityLabel={t('tse.qrAccessibilityLabel', 'RKSV QR-Code')}>
+            <RksvQrCodeSvg
+              value={qrPayload}
+              ecl={clientEcl}
+              size={size}
+              quietZone={8}
+              testID={`payment-success-qr-svg-${Platform.OS}`}
+            />
+          </View>
+        ) : imageUri ? (
+          <Image
+            source={{ uri: imageUri }}
+            style={[styles.qrImage, { width: size, height: size }]}
+            accessibilityLabel={t('tse.qrAccessibilityLabel', 'RKSV QR-Code')}
+            testID={`payment-success-qr-png-${Platform.OS}`}
+          />
         ) : (
           <View style={[styles.qrPlaceholder, { width: size, height: size }]}>
-            {(pngLoading || isPayloadGenerating) && (
-              <ActivityIndicator size="small" color="#666" />
-            )}
+            {pngLoading && <ActivityIndicator size="small" color="#666" />}
           </View>
         )}
       </View>
-      {isPayloadGenerating ? (
-        <Text style={styles.hintText}>RKSV-QR wird erzeugt…</Text>
-      ) : null}
-      {pngLoading && !imageUri && !isPayloadGenerating ? (
+      {pngLoading && !showClientSvg && !imageUri ? (
         <Text style={styles.hintText}>RKSV-QR wird geladen…</Text>
       ) : null}
-      {settledNoImage ? (
-        <Text style={styles.unavailableText}>QR Code nicht verfügbar</Text>
-      ) : null}
+      {settledNoImage ? <Text style={styles.unavailableText}>QR Code nicht verfügbar</Text> : null}
     </View>
   );
 }
@@ -181,6 +182,8 @@ const styles = StyleSheet.create({
   },
   qrImage: {
     resizeMode: 'contain',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   qrPlaceholder: {
     backgroundColor: '#f5f5f5',

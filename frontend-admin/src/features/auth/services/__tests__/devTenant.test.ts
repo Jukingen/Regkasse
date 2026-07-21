@@ -2,9 +2,9 @@ import {
   DEV_TENANT_CHANGED_EVENT,
   getDevTenant,
   getEffectiveTenantSlug,
-  resolveTenantSlugForApiRequest,
   getTenantSlugFromSubdomain,
   isLocalDevHostname,
+  resolveTenantSlugForApiRequest,
   writeDevTenantSlug,
 } from '../devTenant';
 

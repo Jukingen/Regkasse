@@ -1,12 +1,10 @@
-"use client";
+'use client';
 
 /**
  * 30 günlük backup geçmişi: başarı/başarısızlık çubukları + süre çizgisi (çift Y ekseni).
  */
-
-import React, { useMemo, useState } from "react";
-import { Card, Empty } from "antd";
-import type { BackupRunResponseDto } from "@/api/generated/model";
+import { Card, Empty } from 'antd';
+import React, { useMemo, useState } from 'react';
 import {
   Bar,
   Brush,
@@ -18,9 +16,11 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from "recharts";
-import { buildBackupHistory30DayChartData } from "@/features/backup-dr/logic/backupMonitoringMetrics";
-import { formatUserMonthDay } from "@/lib/dateFormatter";
+} from 'recharts';
+
+import type { BackupRunResponseDto } from '@/api/generated/model';
+import { buildBackupHistory30DayChartData } from '@/features/backup-dr/logic/backupMonitoringMetrics';
+import { formatUserMonthDay } from '@/lib/dateFormatter';
 
 export interface BackupHistoryChartPoint {
   key: string;
@@ -56,7 +56,7 @@ export function BackupHistoryChart({
   durationSuffix,
   onBarClick,
 }: BackupHistoryChartProps) {
-  const formatDate = (iso: string) => formatUserMonthDay(iso) || "—";
+  const formatDate = (iso: string) => formatUserMonthDay(iso) || '—';
 
   const chartData = useMemo(() => {
     if (chartDataProp && chartDataProp.length > 0) return [...chartDataProp];
@@ -86,12 +86,7 @@ export function BackupHistoryChart({
           <ComposedChart data={displayData} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
-            <YAxis
-              yAxisId="left"
-              allowDecimals={false}
-              domain={[0, 1]}
-              tick={{ fontSize: 11 }}
-            />
+            <YAxis yAxisId="left" allowDecimals={false} domain={[0, 1]} tick={{ fontSize: 11 }} />
             <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
             <Tooltip
               formatter={(value, name) => {
@@ -109,7 +104,7 @@ export function BackupHistoryChart({
               stroke="#1677ff"
               travellerWidth={8}
               onChange={(range) => {
-                if (range && typeof range.startIndex === "number") {
+                if (range && typeof range.startIndex === 'number') {
                   setBrushRange({
                     startIndex: range.startIndex,
                     endIndex: range.endIndex,
@@ -123,7 +118,7 @@ export function BackupHistoryChart({
               fill="#52c41a"
               name={successLabel}
               radius={[2, 2, 0, 0]}
-              cursor={onBarClick ? "pointer" : undefined}
+              cursor={onBarClick ? 'pointer' : undefined}
               onClick={(data) => handleBarClick(data as unknown as BackupHistoryChartPoint)}
             />
             <Bar
@@ -132,7 +127,7 @@ export function BackupHistoryChart({
               fill="#ff4d4f"
               name={failedLabel}
               radius={[2, 2, 0, 0]}
-              cursor={onBarClick ? "pointer" : undefined}
+              cursor={onBarClick ? 'pointer' : undefined}
               onClick={(data) => handleBarClick(data as unknown as BackupHistoryChartPoint)}
             />
             <Line

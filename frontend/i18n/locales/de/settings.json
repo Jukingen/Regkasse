@@ -206,7 +206,7 @@
       "removeItemFailed": "Artikel konnte nicht entfernt werden.",
       "clearTableFailed": "Tisch {{tableId}} konnte nicht geleert werden",
       "emptyCart": "Warenkorb ist leer. Bitte zuerst Artikel hinzufügen.",
-      "addOnFailed": "Add-on konnte nicht hinzugefügt werden.",
+      "addOnFailed": "Zusatzartikel konnte nicht hinzugefügt werden.",
       "addFailed": "Fehler beim Hinzufügen"
     },
     "success": {

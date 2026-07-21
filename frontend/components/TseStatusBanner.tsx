@@ -9,8 +9,7 @@ import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constant
 import { useTseHealth } from '../hooks/useTseHealth';
 
 /** Operator-facing offline copy — keep in sync with contract test. */
-export const TSE_OFFLINE_BANNER_LABEL =
-  'OFFLINE MODUS – NUR BARZAHLUNG, KEINE GUTSCHEINE';
+export const TSE_OFFLINE_BANNER_LABEL = 'OFFLINE MODUS – NUR BARZAHLUNG, KEINE GUTSCHEINE';
 
 /** Compact header chip: green/amber/red dot + TSE status + latency. */
 export function TseStatusBanner() {
@@ -32,11 +31,7 @@ export function TseStatusBanner() {
         : 'TSE online';
 
   return (
-    <View
-      style={styles.chip}
-      accessibilityRole="summary"
-      accessibilityLabel={statusText}
-    >
+    <View style={styles.chip} accessibilityRole="summary" accessibilityLabel={statusText}>
       <View style={[styles.dot, { backgroundColor: dotColor }]} />
       <Text style={styles.chipText} numberOfLines={1}>
         {statusText}

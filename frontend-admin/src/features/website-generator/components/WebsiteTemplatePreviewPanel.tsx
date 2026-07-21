@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Card, Space, Tabs, Tag, Typography } from 'antd';
+import { useEffect, useRef, useState } from 'react';
+
+import { OptimizedImage } from '@/components/OptimizedImage';
 import { CardSkeleton, PageSkeleton } from '@/components/Skeleton';
 import {
   findPendingRequest,
@@ -15,15 +17,14 @@ import {
   canRequestDigitalWeb,
 } from '@/features/digital/digitalServicePermissions';
 import {
+  type WebsiteTemplate,
   buildWebsitePreviewBlobUrl,
   fetchWebsiteTemplates,
   previewWebsite,
-  type WebsiteTemplate,
 } from '@/features/website-generator/api/websiteGeneratorApi';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
-import { OptimizedImage } from '@/components/OptimizedImage';
 
 const { Paragraph, Text } = Typography;
 
@@ -66,8 +67,11 @@ export function WebsiteTemplatePreviewPanel({ tenantId }: WebsiteTemplatePreview
   const { user, isSuperAdmin } = usePermissions();
   const userPerms = user ? { permissions: user.permissions } : null;
 
-  const { data: status, isLoading: statusLoading, isError: statusError } =
-    useTenantDigitalService(tenantId);
+  const {
+    data: status,
+    isLoading: statusLoading,
+    isError: statusError,
+  } = useTenantDigitalService(tenantId);
   const { data: requests } = useTenantDigitalServiceRequests(tenantId);
   const requestMutation = useRequestDigitalService();
 
@@ -118,7 +122,7 @@ export function WebsiteTemplatePreviewPanel({ tenantId }: WebsiteTemplatePreview
           const nextUrl = buildWebsitePreviewBlobUrl(
             response.html,
             response.css,
-            response.js ?? '',
+            response.js ?? ''
           );
           if (cancelled) {
             URL.revokeObjectURL(nextUrl);
@@ -154,8 +158,7 @@ export function WebsiteTemplatePreviewPanel({ tenantId }: WebsiteTemplatePreview
   }, []);
 
   const pendingWeb = findPendingRequest(requests, 'website');
-  const isPublished =
-    website?.status === 'published' && Boolean(website.url?.trim());
+  const isPublished = website?.status === 'published' && Boolean(website.url?.trim());
   const templateChanged = selectedTemplate !== currentTemplateId;
 
   const handleRequestTemplateChange = async () => {
@@ -167,9 +170,7 @@ export function WebsiteTemplatePreviewPanel({ tenantId }: WebsiteTemplatePreview
       });
       message.success(t('tenants.websitePreview.requestSuccess'));
     } catch (err) {
-      message.error(
-        err instanceof Error ? err.message : t('tenants.websitePreview.requestFailed'),
-      );
+      message.error(err instanceof Error ? err.message : t('tenants.websitePreview.requestFailed'));
     }
   };
 
@@ -183,11 +184,7 @@ export function WebsiteTemplatePreviewPanel({ tenantId }: WebsiteTemplatePreview
 
   if (!canPreview) {
     return (
-      <Alert
-        type="warning"
-        showIcon
-        message={t('tenants.digitalServices.webNoPermissionBody')}
-      />
+      <Alert type="warning" showIcon message={t('tenants.digitalServices.webNoPermissionBody')} />
     );
   }
 
@@ -274,9 +271,7 @@ export function WebsiteTemplatePreviewPanel({ tenantId }: WebsiteTemplatePreview
                       <CardSkeleton count={1} loading />
                     </div>
                   ) : null}
-                  {previewError ? (
-                    <Alert type="warning" showIcon message={previewError} />
-                  ) : null}
+                  {previewError ? <Alert type="warning" showIcon message={previewError} /> : null}
                   {!previewLoading && previewUrl && selectedTemplate === tpl.id ? (
                     <iframe
                       title={t('tenants.websitePreview.iframeTitle', { name: tpl.name })}
@@ -302,10 +297,7 @@ export function WebsiteTemplatePreviewPanel({ tenantId }: WebsiteTemplatePreview
                       ? t('tenants.websitePreview.selected')
                       : t('tenants.websitePreview.select')}
                   </Button>
-                  {canRequest &&
-                  selectedTemplate === tpl.id &&
-                  templateChanged &&
-                  !pendingWeb ? (
+                  {canRequest && selectedTemplate === tpl.id && templateChanged && !pendingWeb ? (
                     <Button
                       type="primary"
                       loading={requestMutation.isPending}

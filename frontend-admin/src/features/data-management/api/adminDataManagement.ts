@@ -1,8 +1,8 @@
-import { AXIOS_INSTANCE } from '@/lib/axios';
 import type {
   TenantDataLifecycleState,
   TenantDataManagementSummary,
 } from '@/features/data-management/api/tenantDataManagement';
+import { AXIOS_INSTANCE } from '@/lib/axios';
 
 export type TenantDataManagementOverviewItem = {
   tenantId: string;
@@ -37,7 +37,7 @@ export type RksvRetentionReport = NonNullable<TenantDataManagementSummary['reten
 
 export async function listDataManagementOverview(): Promise<TenantDataManagementOverview> {
   const { data } = await AXIOS_INSTANCE.get<TenantDataManagementOverview>(
-    '/api/admin/data-management',
+    '/api/admin/data-management'
   );
   return data;
 }

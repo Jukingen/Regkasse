@@ -12,7 +12,7 @@ export type PitrDateTimeConstraints = {
 /** Restrict DatePicker to the PITR window (day + hour/minute/second on boundary days). */
 export function buildPitrDateTimeConstraints(
   earliestUtc: string | null | undefined,
-  latestUtc: string | null | undefined,
+  latestUtc: string | null | undefined
 ): PitrDateTimeConstraints {
   if (!earliestUtc || !latestUtc) {
     return {

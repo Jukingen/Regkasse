@@ -2,7 +2,6 @@
  * Belirleyici (deterministik) Backup & DR çelişkili durum paketleri — entegrasyon testlerinde
  * `buildBackupOperatorTruthModel` girdileri olarak kullanılır. Tek gerçek kaynak: buradaki fabrikalar.
  */
-
 import type {
   BackupConfigurationHealthResponseDto,
   BackupRecoverabilitySummaryResponseDto,
@@ -12,21 +11,21 @@ import type {
   RestoreVerificationReadinessResponseDto,
   RestoreVerificationRunResponseDto,
 } from '@/api/generated/model';
-import { BackupArtifactResponseDtoArtifactType } from '@/api/generated/model/backupArtifactResponseDtoArtifactType';
 import {
   BackupRunResponseDtoStatus,
   BackupVerificationResponseDtoStatus,
   RestoreVerificationRunResponseDtoStatus,
 } from '@/api/generated/model';
-import type { BuildBackupOperatorTruthModelParams } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
+import { BackupArtifactResponseDtoArtifactType } from '@/api/generated/model/backupArtifactResponseDtoArtifactType';
 import type { ExternalCopyVariant } from '@/features/backup-dr/logic/backupDrMappers';
+import type { BuildBackupOperatorTruthModelParams } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
 import type { BackupExecutionModeResponseDto } from '@/features/backup-dr/logic/backupExecutionModeApi';
 
 export const identityT: BuildBackupOperatorTruthModelParams['t'] = (k) => k;
 
 /** Gerçekçi minimum execution-mode gövdesi — alanlar bilinçli boş bırakılabilir. */
 export function baseExecutionModeDto(
-  over: Partial<BackupExecutionModeResponseDto> = {},
+  over: Partial<BackupExecutionModeResponseDto> = {}
 ): BackupExecutionModeResponseDto {
   return {
     storedMode: 'InheritFromConfiguration',
@@ -49,7 +48,7 @@ export function baseExecutionModeDto(
 }
 
 function baseParams(
-  over: Partial<BuildBackupOperatorTruthModelParams>,
+  over: Partial<BuildBackupOperatorTruthModelParams>
 ): BuildBackupOperatorTruthModelParams {
   return {
     t: identityT,
@@ -81,7 +80,10 @@ export function bundleLatestSuccessWeakLastKnownGoodProof(): BuildBackupOperator
   return baseParams({
     health: { realPostgreSqlLogicalDumpConfigured: true } as BackupConfigurationHealthResponseDto,
     healthLv: 'healthy',
-    restoreReady: { level: 'healthy', workerEnabled: true } as RestoreVerificationReadinessResponseDto,
+    restoreReady: {
+      level: 'healthy',
+      workerEnabled: true,
+    } as RestoreVerificationReadinessResponseDto,
     restoreLv: 'healthy',
     latest,
     detailForPipeline: null,
@@ -133,7 +135,10 @@ export function bundleLatestSuccessFailedLatestDrill(): BuildBackupOperatorTruth
   return baseParams({
     health: { realPostgreSqlLogicalDumpConfigured: true } as BackupConfigurationHealthResponseDto,
     healthLv: 'healthy',
-    restoreReady: { level: 'healthy', workerEnabled: true } as RestoreVerificationReadinessResponseDto,
+    restoreReady: {
+      level: 'healthy',
+      workerEnabled: true,
+    } as RestoreVerificationReadinessResponseDto,
     restoreLv: 'healthy',
     latest,
     detailForPipeline: detailWithLogicalDump,
@@ -179,7 +184,10 @@ export function bundleSimulatedSuccessHealthyApiCapsReadiness(): BuildBackupOper
       issues: [],
     } as BackupConfigurationHealthResponseDto,
     healthLv: 'healthy',
-    restoreReady: { level: 'healthy', workerEnabled: true } as RestoreVerificationReadinessResponseDto,
+    restoreReady: {
+      level: 'healthy',
+      workerEnabled: true,
+    } as RestoreVerificationReadinessResponseDto,
     restoreLv: 'healthy',
     latest,
     detailForPipeline: null,
@@ -208,7 +216,10 @@ export function bundleExternalLifecycleOkButRecoverabilityProofGaps(): BuildBack
   return baseParams({
     health: { realPostgreSqlLogicalDumpConfigured: true } as BackupConfigurationHealthResponseDto,
     healthLv: 'healthy',
-    restoreReady: { level: 'healthy', workerEnabled: true } as RestoreVerificationReadinessResponseDto,
+    restoreReady: {
+      level: 'healthy',
+      workerEnabled: true,
+    } as RestoreVerificationReadinessResponseDto,
     restoreLv: 'healthy',
     latest,
     detailForPipeline: null,
@@ -216,7 +227,9 @@ export function bundleExternalLifecycleOkButRecoverabilityProofGaps(): BuildBack
       status: BackupVerificationResponseDtoStatus.NUMBER_1,
       backupRunId: 'run-ext-1',
     } as BackupVerificationResponseDto,
-    restoreLatest: { status: RestoreVerificationRunResponseDtoStatus.NUMBER_2 } as RestoreVerificationRunResponseDto,
+    restoreLatest: {
+      status: RestoreVerificationRunResponseDtoStatus.NUMBER_2,
+    } as RestoreVerificationRunResponseDto,
     recoverabilitySummary: {
       realPostgreSqlLogicalDumpConfigured: true,
       lastSuccessfulBackupAt: '2026-01-01T00:00:00Z',
@@ -256,7 +269,10 @@ export function bundleProofGapsAndFailedDrill(): BuildBackupOperatorTruthModelPa
   return baseParams({
     health: { realPostgreSqlLogicalDumpConfigured: true } as BackupConfigurationHealthResponseDto,
     healthLv: 'healthy',
-    restoreReady: { level: 'healthy', workerEnabled: true } as RestoreVerificationReadinessResponseDto,
+    restoreReady: {
+      level: 'healthy',
+      workerEnabled: true,
+    } as RestoreVerificationReadinessResponseDto,
     restoreLv: 'healthy',
     latest,
     detailForPipeline: detailWithLogicalDump,
@@ -296,7 +312,10 @@ export function bundleVerificationRunMismatch(): BuildBackupOperatorTruthModelPa
   return baseParams({
     health: { realPostgreSqlLogicalDumpConfigured: true } as BackupConfigurationHealthResponseDto,
     healthLv: 'healthy',
-    restoreReady: { level: 'healthy', workerEnabled: true } as RestoreVerificationReadinessResponseDto,
+    restoreReady: {
+      level: 'healthy',
+      workerEnabled: true,
+    } as RestoreVerificationReadinessResponseDto,
     restoreLv: 'healthy',
     latest,
     detailForPipeline: null,
@@ -332,7 +351,10 @@ export function bundleEmptyEffectiveAdapterKind(): BuildBackupOperatorTruthModel
   return baseParams({
     health: { realPostgreSqlLogicalDumpConfigured: true } as BackupConfigurationHealthResponseDto,
     healthLv: 'healthy',
-    restoreReady: { level: 'healthy', workerEnabled: true } as RestoreVerificationReadinessResponseDto,
+    restoreReady: {
+      level: 'healthy',
+      workerEnabled: true,
+    } as RestoreVerificationReadinessResponseDto,
     restoreLv: 'healthy',
     latest,
     detailForPipeline: null,
@@ -372,7 +394,10 @@ export function bundleUnknownAdapterKindPartialDto(): BuildBackupOperatorTruthMo
       realPostgreSqlLogicalDumpConfigured: true,
     } as BackupConfigurationHealthResponseDto,
     healthLv: 'healthy',
-    restoreReady: { level: 'healthy', workerEnabled: true } as RestoreVerificationReadinessResponseDto,
+    restoreReady: {
+      level: 'healthy',
+      workerEnabled: true,
+    } as RestoreVerificationReadinessResponseDto,
     restoreLv: 'healthy',
     latest,
     detailForPipeline: null,
@@ -424,7 +449,10 @@ export function bundleStaleLatestVersusDetailRunId(): BuildBackupOperatorTruthMo
   return baseParams({
     health: { realPostgreSqlLogicalDumpConfigured: true } as BackupConfigurationHealthResponseDto,
     healthLv: 'healthy',
-    restoreReady: { level: 'healthy', workerEnabled: true } as RestoreVerificationReadinessResponseDto,
+    restoreReady: {
+      level: 'healthy',
+      workerEnabled: true,
+    } as RestoreVerificationReadinessResponseDto,
     restoreLv: 'healthy',
     latest,
     detailForPipeline: detailStaleOtherRun,
