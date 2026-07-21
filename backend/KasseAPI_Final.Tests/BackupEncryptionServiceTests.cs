@@ -93,8 +93,10 @@ public sealed class BackupEncryptionServiceTests
         }
         finally
         {
-            if (File.Exists(src)) File.Delete(src);
-            if (File.Exists(dest)) File.Delete(dest);
+            if (File.Exists(src))
+                File.Delete(src);
+            if (File.Exists(dest))
+                File.Delete(dest);
         }
     }
 }

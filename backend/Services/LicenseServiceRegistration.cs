@@ -1,7 +1,3 @@
-using KasseAPI_Final;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.DependencyInjection;
-
 namespace KasseAPI_Final.Services;
 
 /// <summary>

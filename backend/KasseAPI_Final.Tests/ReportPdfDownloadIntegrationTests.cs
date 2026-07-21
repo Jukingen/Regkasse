@@ -11,6 +11,7 @@ using Xunit;
 
 namespace KasseAPI_Final.Tests;
 
+[Collection("OpenApiExportWebHost")]
 public sealed class ReportPdfDownloadIntegrationTests : IClassFixture<ManagerOversightWebApplicationFactory>
 {
     private readonly ManagerOversightWebApplicationFactory _factory;

@@ -1,6 +1,5 @@
-using System;
-using System.Threading.Tasks;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Testcontainers.PostgreSql;
@@ -119,7 +118,7 @@ public sealed class PostgreSqlReplayFixture : IAsyncLifetime
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseAppNpgsql(connectionString)
             .Options;
-        await using var ctx = new AppDbContext(options);
+        await using var ctx = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
 
         if (ShouldResetIntegrationDatabase(connectionString))
             await ctx.Database.EnsureDeletedAsync().ConfigureAwait(false);

@@ -1,10 +1,8 @@
-using System.Linq;
 using System.Diagnostics;
 using System.Text.Json;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services.Backup.PgDump;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Npgsql;
 

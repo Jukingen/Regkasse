@@ -1,5 +1,4 @@
 using System.Collections.Frozen;
-using System.Linq;
 
 namespace KasseAPI_Final.Authorization;
 
@@ -22,17 +21,18 @@ public static class RolePermissionMatrix
     private static readonly FrozenDictionary<string, FrozenSet<string>> RolePermissions = BuildMatrix();
 
     /// <summary>
-    /// Returns true if the role has the given permission. Role name is case-insensitive.
+    /// Returns true if the role effectively has the given permission (matrix grant + <see cref="PermissionImplication"/>).
+    /// Role name is case-insensitive.
     /// </summary>
     public static bool RoleHasPermission(string roleName, string permission)
     {
         if (string.IsNullOrEmpty(roleName) || string.IsNullOrEmpty(permission))
             return false;
 
-        if (RolePermissions.TryGetValue(roleName, out var set))
-            return set.Contains(permission);
+        if (!RolePermissions.TryGetValue(roleName, out var set))
+            return false;
 
-        return false;
+        return PermissionImplication.IsSatisfied(permission, set);
     }
 
     /// <summary>
@@ -60,7 +60,8 @@ public static class RolePermissionMatrix
 
         foreach (var role in roleNames)
         {
-            if (string.IsNullOrEmpty(role)) continue;
+            if (string.IsNullOrEmpty(role))
+                continue;
             if (RolePermissions.TryGetValue(role, out var set))
             {
                 foreach (var p in set)
@@ -109,8 +110,10 @@ public static class RolePermissionMatrix
 
             [Roles.Manager] = new[]
             {
-                // Tenant user lifecycle (Mandanten-Admin): view + manage; password reset also via UserResetPassword.
-                AppPermissions.UserView, AppPermissions.UserManage, AppPermissions.UserResetPassword, AppPermissions.RoleView,
+                // Tenant user lifecycle (Mandanten-Admin). user.reset.password / digital.view|preview|request /
+                // digital.orders.view / cash_register.view / daily-closing.view are implied (see PermissionImplication).
+                // Keep table.view explicit: table.manage is stripped from admin JWTs (POS terminal write strip).
+                AppPermissions.UserView, AppPermissions.UserManage, AppPermissions.RoleView,
                 AppPermissions.ProductView, AppPermissions.ProductManage,
                 AppPermissions.CategoryView, AppPermissions.CategoryManage,
                 AppPermissions.ModifierView, AppPermissions.ModifierManage,
@@ -121,7 +124,7 @@ public static class RolePermissionMatrix
                 AppPermissions.PaymentView, AppPermissions.PaymentCancel,
                 AppPermissions.RefundCreate,
                 AppPermissions.DiscountApply, AppPermissions.PriceOverride,
-                AppPermissions.CashRegisterView, AppPermissions.CashRegisterManage,
+                AppPermissions.CashRegisterManage,
                 AppPermissions.CashRegisterDecommission,
                 AppPermissions.ShiftView, AppPermissions.ShiftManage,
                 AppPermissions.ShiftOpen, AppPermissions.ShiftClose,
@@ -132,7 +135,7 @@ public static class RolePermissionMatrix
                 AppPermissions.CustomerView, AppPermissions.CustomerManage,
                 AppPermissions.InvoiceView, AppPermissions.InvoiceManage, AppPermissions.InvoiceExport,
                 AppPermissions.ReportView, AppPermissions.ReportExport,
-                AppPermissions.DailyClosingView, AppPermissions.DailyClosingExecute,
+                AppPermissions.DailyClosingExecute,
                 AppPermissions.FiscalExportCompliance,
                 AppPermissions.FinanzOnlineView,
                 AppPermissions.FinanzOnlineManage,
@@ -148,12 +151,7 @@ public static class RolePermissionMatrix
                 AppPermissions.SettingsView,
                 AppPermissions.BackupManage,
                 AppPermissions.WebsiteManage,
-                // Digital services: view / preview / request only (no create/publish/delete).
-                AppPermissions.DigitalView,
-                AppPermissions.DigitalPreview,
-                AppPermissions.DigitalRequest,
-                // Online orders (website/app): status lifecycle only — not POS cart bridge.
-                AppPermissions.DigitalOrdersView,
+                // Online orders: manage implies view — not POS cart bridge (approve).
                 AppPermissions.DigitalOrdersManage,
                 AppPermissions.LicenseManage,
                 AppPermissions.KitchenView, AppPermissions.KitchenUpdate,

@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using KasseAPI_Final.Data;
-using KasseAPI_Final.Models.Reports;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
@@ -114,61 +113,61 @@ public sealed class AdminOperationalReportExportService : IAdminOperationalRepor
         switch (reportType)
         {
             case AdminOperationalReportType.DailyReconciliation:
-            {
-                var r = await _compliance.GetDailyReconciliationAsync(businessDate ?? startDate, cashRegisterId, cancellationToken);
-                rows.Add(("BusinessDate", r.BusinessDate.ToString("yyyy-MM-dd", inv)));
-                rows.Add(("CashTotal", r.CashTotal.ToString(inv)));
-                rows.Add(("CardTotal", r.CardTotal.ToString(inv)));
-                rows.Add(("ExpectedCash", r.ExpectedCash.ToString(inv)));
-                rows.Add(("ActualCash", r.ActualCash?.ToString(inv) ?? "—"));
-                rows.Add(("IsReconciled", r.IsReconciled.ToString(inv)));
-                break;
-            }
+                {
+                    var r = await _compliance.GetDailyReconciliationAsync(businessDate ?? startDate, cashRegisterId, cancellationToken);
+                    rows.Add(("BusinessDate", r.BusinessDate.ToString("yyyy-MM-dd", inv)));
+                    rows.Add(("CashTotal", r.CashTotal.ToString(inv)));
+                    rows.Add(("CardTotal", r.CardTotal.ToString(inv)));
+                    rows.Add(("ExpectedCash", r.ExpectedCash.ToString(inv)));
+                    rows.Add(("ActualCash", r.ActualCash?.ToString(inv) ?? "—"));
+                    rows.Add(("IsReconciled", r.IsReconciled.ToString(inv)));
+                    break;
+                }
             case AdminOperationalReportType.TseContinuity:
-            {
-                var r = await _compliance.GetTseChainContinuityAsync(startDate, endDate, cashRegisterId, cancellationToken);
-                rows.Add(("ReceiptsChecked", r.TotalReceiptsChecked.ToString(inv)));
-                rows.Add(("BreakCount", r.BreakCount.ToString(inv)));
-                foreach (var reg in r.Registers.Take(20))
                 {
-                    rows.Add(($"Register {reg.RegisterNumber}", $"gaps={reg.GapsCount}, chainBreaks={reg.ChainBreakCount}"));
+                    var r = await _compliance.GetTseChainContinuityAsync(startDate, endDate, cashRegisterId, cancellationToken);
+                    rows.Add(("ReceiptsChecked", r.TotalReceiptsChecked.ToString(inv)));
+                    rows.Add(("BreakCount", r.BreakCount.ToString(inv)));
+                    foreach (var reg in r.Registers.Take(20))
+                    {
+                        rows.Add(($"Register {reg.RegisterNumber}", $"gaps={reg.GapsCount}, chainBreaks={reg.ChainBreakCount}"));
+                    }
+                    break;
                 }
-                break;
-            }
             case AdminOperationalReportType.OfflineRecovery:
-            {
-                var r = await _compliance.GetOfflineRecoveryAsync(startDate, endDate, cashRegisterId, 50, cancellationToken);
-                rows.Add(("PendingAtEnd", r.PendingAtEnd.ToString(inv)));
-                rows.Add(("RecoveredSuccessfully", r.RecoveredSuccessfully.ToString(inv)));
-                rows.Add(("PermanentlyFailed", r.PermanentlyFailed.ToString(inv)));
-                break;
-            }
-            case AdminOperationalReportType.UserPerformance:
-            {
-                var r = await _operational.GetUserPerformanceAsync(startDate, endDate, cashRegisterId, null, null, true, cancellationToken: cancellationToken);
-                foreach (var u in r.PerUser.Take(50))
                 {
-                    rows.Add((u.UserName, $"tx={u.TransactionCount}, stornoRate={u.StornoRate.ToString("P1", inv)}"));
+                    var r = await _compliance.GetOfflineRecoveryAsync(startDate, endDate, cashRegisterId, 50, cancellationToken);
+                    rows.Add(("PendingAtEnd", r.PendingAtEnd.ToString(inv)));
+                    rows.Add(("RecoveredSuccessfully", r.RecoveredSuccessfully.ToString(inv)));
+                    rows.Add(("PermanentlyFailed", r.PermanentlyFailed.ToString(inv)));
+                    break;
                 }
-                break;
-            }
+            case AdminOperationalReportType.UserPerformance:
+                {
+                    var r = await _operational.GetUserPerformanceAsync(startDate, endDate, cashRegisterId, null, null, true, cancellationToken: cancellationToken);
+                    foreach (var u in r.PerUser.Take(50))
+                    {
+                        rows.Add((u.UserName, $"tx={u.TransactionCount}, stornoRate={u.StornoRate.ToString("P1", inv)}"));
+                    }
+                    break;
+                }
             case AdminOperationalReportType.PeakHours:
-            {
-                var r = await _peakHours.GetPeakHoursAsync(startDate, endDate, cashRegisterId, cancellationToken);
-                if (r.BusiestHour != null)
-                    rows.Add(("Busiest", $"day={r.BusiestHour.Day} hour={r.BusiestHour.Hour} count={r.BusiestHour.TransactionCount}"));
-                rows.Add(("AvgPerHour", r.AverageTransactionsPerHour.ToString("F2", inv)));
-                break;
-            }
+                {
+                    var r = await _peakHours.GetPeakHoursAsync(startDate, endDate, cashRegisterId, cancellationToken);
+                    if (r.BusiestHour != null)
+                        rows.Add(("Busiest", $"day={r.BusiestHour.Day} hour={r.BusiestHour.Hour} count={r.BusiestHour.TransactionCount}"));
+                    rows.Add(("AvgPerHour", r.AverageTransactionsPerHour.ToString("F2", inv)));
+                    break;
+                }
             case AdminOperationalReportType.ProductMovement:
-            {
-                var r = await _productMovement.GetProductMovementAsync(startDate, endDate, cancellationToken);
-                rows.Add(("StockTurnover", r.StockTurnoverRate.ToString("F4", inv)));
-                rows.Add(("DaysOnHand", r.DaysOfInventoryOnHand.ToString("F1", inv)));
-                foreach (var p in r.TopSellingByRevenue.Take(20))
-                    rows.Add((p.ProductName, $"qty={p.QuantitySold}, revenue={p.Revenue.ToString(inv)}"));
-                break;
-            }
+                {
+                    var r = await _productMovement.GetProductMovementAsync(startDate, endDate, cancellationToken);
+                    rows.Add(("StockTurnover", r.StockTurnoverRate.ToString("F4", inv)));
+                    rows.Add(("DaysOnHand", r.DaysOfInventoryOnHand.ToString("F1", inv)));
+                    foreach (var p in r.TopSellingByRevenue.Take(20))
+                        rows.Add((p.ProductName, $"qty={p.QuantitySold}, revenue={p.Revenue.ToString(inv)}"));
+                    break;
+                }
         }
 
         return rows;

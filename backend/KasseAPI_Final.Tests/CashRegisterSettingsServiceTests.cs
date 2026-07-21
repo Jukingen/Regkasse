@@ -5,7 +5,6 @@ using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using Moq;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;

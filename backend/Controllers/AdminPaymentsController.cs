@@ -1,9 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
@@ -14,7 +9,6 @@ using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -96,59 +90,6 @@ public class AdminPaymentsController : ControllerBase
             _logger.LogError(ex, "Admin payments list failed");
             return StatusCode(500, new { message = "Failed to retrieve admin payments list", code = "ADMIN_PAYMENTS_LIST_ERROR" });
         }
-    }
-
-    private static int GetActiveFilterCount(PaymentFilterDto filter)
-    {
-        var count = 0;
-        if (filter.StartDate.HasValue) count++;
-        if (filter.EndDate.HasValue) count++;
-        if (filter.MinAmount.HasValue) count++;
-        if (filter.MaxAmount.HasValue) count++;
-        if (filter.PaymentMethods.Count > 0) count++;
-        if (filter.Statuses.Count > 0) count++;
-        if (filter.CashRegisterId.HasValue) count++;
-        if (!string.IsNullOrEmpty(filter.CustomerName)) count++;
-        if (!string.IsNullOrEmpty(filter.CustomerEmail)) count++;
-        if (!string.IsNullOrEmpty(filter.CashierId)) count++;
-        if (!string.IsNullOrEmpty(filter.ReceiptNumber)) count++;
-        if (filter.IsStorno.HasValue) count++;
-        if (filter.IsRefund.HasValue) count++;
-        return count;
-    }
-
-    private static Dictionary<string, object> GetAppliedFilters(PaymentFilterDto filter)
-    {
-        var applied = new Dictionary<string, object>();
-
-        if (filter.StartDate.HasValue)
-            applied["startDate"] = filter.StartDate.Value;
-        if (filter.EndDate.HasValue)
-            applied["endDate"] = filter.EndDate.Value;
-        if (filter.MinAmount.HasValue)
-            applied["minAmount"] = filter.MinAmount.Value;
-        if (filter.MaxAmount.HasValue)
-            applied["maxAmount"] = filter.MaxAmount.Value;
-        if (filter.PaymentMethods.Count > 0)
-            applied["paymentMethods"] = filter.PaymentMethods;
-        if (filter.Statuses.Count > 0)
-            applied["statuses"] = filter.Statuses;
-        if (filter.CashRegisterId.HasValue)
-            applied["cashRegisterId"] = filter.CashRegisterId.Value;
-        if (!string.IsNullOrEmpty(filter.CustomerName))
-            applied["customerName"] = filter.CustomerName;
-        if (!string.IsNullOrEmpty(filter.CustomerEmail))
-            applied["customerEmail"] = filter.CustomerEmail;
-        if (!string.IsNullOrEmpty(filter.CashierId))
-            applied["cashierId"] = filter.CashierId;
-        if (!string.IsNullOrEmpty(filter.ReceiptNumber))
-            applied["receiptNumber"] = filter.ReceiptNumber;
-        if (filter.IsStorno.HasValue)
-            applied["isStorno"] = filter.IsStorno.Value;
-        if (filter.IsRefund.HasValue)
-            applied["isRefund"] = filter.IsRefund.Value;
-
-        return applied;
     }
 
     private static void MergeLegacyListParams(
@@ -772,6 +713,10 @@ public class AdminPaymentDetailDto
     public bool InvoicePersisted { get; set; }
     public decimal VoucherRedeemedAmount { get; set; }
     public decimal SettlementAmount { get; set; }
+
+    /// <summary>Derived from <see cref="VoucherRedeemedAmount"/> &gt; 0; prefer the amount field.</summary>
+    [Obsolete("Redundant with voucherRedeemedAmount. Planned removal after 2026-12-31.")]
+    [System.Text.Json.Serialization.JsonPropertyName("hasVoucherRedemption")]
     public bool HasVoucherRedemption { get; set; }
     public AdminPaymentStornoRefundAuditDto? StornoRefundAudit { get; set; }
     /// <summary>True when a fiscal storno reversal row exists for this original sale.</summary>

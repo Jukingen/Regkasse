@@ -1,10 +1,9 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Net;
 using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using System.Text.Json;
-using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
@@ -14,8 +13,8 @@ using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminCashRegisters;
 using KasseAPI_Final.Services.AdminTenants;
-using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Services.Pricing;
+using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -38,6 +37,7 @@ namespace KasseAPI_Final.Tests;
 /// Uses in-memory EF (no Docker). PostgreSQL integration can extend via <see cref="PostgreSqlReplayFixture"/>.
 /// HTTP pipeline coverage via <see cref="TenantIsolationWebApplicationFactory"/>.
 /// </summary>
+[Collection("OpenApiExportWebHost")]
 public sealed class TenantIsolationTests : IClassFixture<TenantIsolationWebApplicationFactory>
 {
     private readonly TenantIsolationWebApplicationFactory _factory;
@@ -684,7 +684,7 @@ public sealed class TenantIsolationTests : IClassFixture<TenantIsolationWebAppli
         var httpContextAccessor = new Mock<IHttpContextAccessor>();
         httpContextAccessor.Setup(a => a.HttpContext).Returns(httpContext);
 
-        return new CurrentTenantService(tenantContextService, httpContextAccessor.Object);
+        return new CurrentTenantService(tenantContextService, httpContextAccessor.Object, environment.Object);
     }
 }
 

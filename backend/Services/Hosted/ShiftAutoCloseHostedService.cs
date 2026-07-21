@@ -1,8 +1,5 @@
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Tenancy;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.Hosted;

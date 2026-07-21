@@ -1,12 +1,9 @@
 using System.Collections.Concurrent;
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using KasseAPI_Final.Configuration;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Tse.Fiskaly;

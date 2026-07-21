@@ -1,5 +1,3 @@
-using KasseAPI_Final.Models;
-
 namespace KasseAPI_Final.Models.DTOs;
 
 /// <summary>Query filters for audit log list, export, and scheduled reports.</summary>

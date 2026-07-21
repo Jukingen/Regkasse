@@ -1,10 +1,7 @@
-using System;
 using System.Data;
-using System.Threading.Tasks;
 using KasseAPI_Final.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Services
 {

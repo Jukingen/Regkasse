@@ -2,6 +2,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
@@ -16,7 +17,7 @@ public sealed class BackupRunQueryServicePgDumpTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(dbName)
             .Options;
-        await using var db = new AppDbContext(options);
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
         var pg = Guid.NewGuid();
         var fake = Guid.NewGuid();
         db.BackupRuns.Add(new BackupRun

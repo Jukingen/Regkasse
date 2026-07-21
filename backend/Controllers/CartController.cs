@@ -1,22 +1,28 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Pricing;
-using KasseAPI_Final.Security;
 using KasseAPI_Final.Tenancy;
-using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Controllers
 {
     /// <summary>
-    /// Sepet işlemleri (POS). Legacy: api/Cart/* deprecated; use api/pos/cart/*.
-    /// TODO: Drop `api/Cart` alias when metrics show zero legacy traffic (POS uses `api/pos/cart`).
+    /// POS cart handlers. Canonical route: <c>api/pos/cart/*</c>.
+    /// Legacy alias <c>api/Cart/*</c> maps to the same actions; deprecation headers via <see cref="LegacyRouteDeprecationFilter"/>.
+    /// Drop the <c>api/Cart</c> route when metrics show zero legacy traffic (and FA generated clients are migrated).
+    /// New cart features go on these shared actions (canonical <c>/api/pos/cart</c>), never legacy-only. Sunset: 2026-09-30.
     /// </summary>
+    [Obsolete(
+        "Legacy HTTP alias /api/Cart/* is deprecated; clients must call /api/pos/cart/*. " +
+        "This type still hosts the canonical /api/pos/cart routes (dual [Route]). " +
+        "Do not add new endpoints that exist only on the legacy prefix. Sunset: 2026-09-30.",
+        error: false)]
     [HasPermission(AppPermissions.CartManage)]
     [ApiController]
     [Route("api/[controller]")]
@@ -65,7 +71,7 @@ namespace KasseAPI_Final.Controllers
                     .Include(c => c.Items)
                     .ThenInclude(i => i.Modifiers)
                     .Include(c => c.Customer)
-                    .Where(c => c.TableNumber == tableNumber && 
+                    .Where(c => c.TableNumber == tableNumber &&
                                c.Status == CartStatus.Active &&
                                c.UserId == userId) // 🔒 Güvenlik: UserId kontrolü eklendi
                     .FirstOrDefaultAsync();
@@ -77,14 +83,14 @@ namespace KasseAPI_Final.Controllers
                         .Where(c => c.TableNumber == tableNumber && c.Status == CartStatus.Active)
                         .Select(c => new { c.CartId, c.UserId, c.CreatedAt, c.Items.Count })
                         .ToListAsync();
-                    
-                    _logger.LogInformation("No cart found for user {UserId} at table {TableNumber}. Available carts: {Carts}", 
-                        userId, tableNumber, 
+
+                    _logger.LogInformation("No cart found for user {UserId} at table {TableNumber}. Available carts: {Carts}",
+                        userId, tableNumber,
                         string.Join(", ", allCartsForTable.Select(c => $"CartId={c.CartId}, UserId={c.UserId}, Items={c.Count}")));
-                    
+
                     // 🆕 YENİ ÖZELLİK: Kullanıcının o masada sepeti yoksa otomatik oluştur
                     _logger.LogInformation("Creating new cart for user {UserId} at table {TableNumber}", userId, tableNumber);
-                    
+
                     var newCart = new Cart
                     {
                         CartId = Guid.NewGuid().ToString(),
@@ -96,13 +102,13 @@ namespace KasseAPI_Final.Controllers
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
                     };
-                    
+
                     _context.Carts.Add(newCart);
                     await _context.SaveChangesAsync();
-                    
-                    _logger.LogInformation("New cart created: {CartId} for user {UserId} at table {TableNumber}", 
+
+                    _logger.LogInformation("New cart created: {CartId} for user {UserId} at table {TableNumber}",
                         newCart.CartId, userId, tableNumber);
-                    
+
                     // Yeni oluşturulan sepeti döndür
                     var emptyCartResponse = new CartResponse
                     {
@@ -118,29 +124,32 @@ namespace KasseAPI_Final.Controllers
                         ExpiresAt = newCart.ExpiresAt,
                         Items = new List<CartItemResponse>(),
                         TotalItems = 0,
-                        SubtotalGross = 0, SubtotalNet = 0, IncludedTaxTotal = 0, GrandTotalGross = 0,
+                        SubtotalGross = 0,
+                        SubtotalNet = 0,
+                        IncludedTaxTotal = 0,
+                        GrandTotalGross = 0,
                         TaxSummary = new List<CartTaxSummaryLine>()
                     };
-                    
+
                     return Ok(emptyCartResponse);
                 }
 
                 // Debug: Cart ve CartItem'ları kontrol et
-                _logger.LogInformation("GetCurrentUserCart: Table={TableNumber}, CartId={CartId}, ItemsCount={ItemsCount}, CreatedAt={CreatedAt}", 
+                _logger.LogInformation("GetCurrentUserCart: Table={TableNumber}, CartId={CartId}, ItemsCount={ItemsCount}, CreatedAt={CreatedAt}",
                     tableNumber, cart.CartId, cart.Items.Count, cart.CreatedAt);
-                
+
                 // 🔍 DEBUG: Tüm cart'ları listele (sadece debug için)
                 var allCarts = await _context.Carts
                     .Where(c => c.TableNumber == tableNumber && c.Status == CartStatus.Active)
                     .Select(c => new { c.CartId, c.UserId, c.CreatedAt, c.Items.Count })
                     .ToListAsync();
-                
-                _logger.LogInformation("All carts for table {TableNumber} (debug): {Carts}", tableNumber, 
+
+                _logger.LogInformation("All carts for table {TableNumber} (debug): {Carts}", tableNumber,
                     string.Join(", ", allCarts.Select(c => $"CartId={c.CartId}, UserId={c.UserId}, Items={c.Count}")));
-                
+
                 foreach (var item in cart.Items)
                 {
-                    _logger.LogInformation("CartItem in GetCurrentUserCart: Id={Id}, ProductId={ProductId}, Quantity={Quantity}", 
+                    _logger.LogInformation("CartItem in GetCurrentUserCart: Id={Id}, ProductId={ProductId}, Quantity={Quantity}",
                         item.Id, item.ProductId, item.Quantity);
                 }
 
@@ -239,8 +248,9 @@ namespace KasseAPI_Final.Controllers
 
                 _logger.LogInformation("Cart created successfully: {CartId} by user {UserId}", cartId, userId);
 
-                return Ok(new { 
-                    message = "Cart created successfully", 
+                return Ok(new
+                {
+                    message = "Cart created successfully",
                     cartId = cart.CartId,
                     expiresAt = cart.ExpiresAt
                 });
@@ -266,11 +276,11 @@ namespace KasseAPI_Final.Controllers
 
                 // Kullanıcının belirli masadaki aktif sepetini bul veya oluştur
                 var tableNumber = request.TableNumber ?? 1;
-                
+
                 // ✅ GÜVENLİK: SADECE KULLANICININ KENDİ SEPETİNİ GÖRMESİ
                 var cart = await _context.Carts
-                    .Where(c => c.TableNumber == tableNumber && 
-                               c.Status == CartStatus.Active && 
+                    .Where(c => c.TableNumber == tableNumber &&
+                               c.Status == CartStatus.Active &&
                                c.UserId == userId) // 🔒 Güvenlik: UserId kontrolü
                     .FirstOrDefaultAsync();
 
@@ -288,14 +298,14 @@ namespace KasseAPI_Final.Controllers
                         Status = CartStatus.Active
                     };
                     _context.Carts.Add(cart);
-                    
-                    _logger.LogInformation("New cart created for table {TableNumber}: {CartId} by user {UserId}", 
+
+                    _logger.LogInformation("New cart created for table {TableNumber}: {CartId} by user {UserId}",
                         tableNumber, cartId, userId);
                 }
                 else
                 {
                     // Bu masada mevcut sepet bulundu
-                    _logger.LogInformation("Existing cart found for table {TableNumber}: {CartId}, ItemsCount={ItemsCount}, UserId={UserId}", 
+                    _logger.LogInformation("Existing cart found for table {TableNumber}: {CartId}, ItemsCount={ItemsCount}, UserId={UserId}",
                         tableNumber, cart.CartId, cart.Items?.Count ?? 0, cart.UserId);
                 }
 
@@ -394,12 +404,12 @@ namespace KasseAPI_Final.Controllers
                     .FirstOrDefaultAsync(c => c.CartId == cart.CartId);
 
                 // Debug: CartItem'ları kontrol et
-                _logger.LogInformation("Updated cart retrieved: CartId={CartId}, ItemsCount={ItemsCount}, UserId={UserId}", 
+                _logger.LogInformation("Updated cart retrieved: CartId={CartId}, ItemsCount={ItemsCount}, UserId={UserId}",
                     updatedCart.CartId, updatedCart.Items.Count, userId);
-                
+
                 foreach (var item in updatedCart.Items)
                 {
-                    _logger.LogInformation("CartItem: Id={Id}, ProductId={ProductId}, Quantity={Quantity}, UnitPrice={UnitPrice}", 
+                    _logger.LogInformation("CartItem: Id={Id}, ProductId={ProductId}, Quantity={Quantity}, UnitPrice={UnitPrice}",
                         item.Id, item.ProductId, item.Quantity, item.UnitPrice);
                 }
 
@@ -411,11 +421,12 @@ namespace KasseAPI_Final.Controllers
 
                 var cartResponse = BuildCartResponse(updatedCart, products);
 
-                _logger.LogInformation("Item added to cart: Product {ProductId}, Quantity {Quantity}, Cart {CartId}, UserId: {UserId}", 
+                _logger.LogInformation("Item added to cart: Product {ProductId}, Quantity {Quantity}, Cart {CartId}, UserId: {UserId}",
                     request.ProductId, request.Quantity, cart.CartId, userId);
 
-                return Ok(new { 
-                    message = "Item added to cart successfully", 
+                return Ok(new
+                {
+                    message = "Item added to cart successfully",
                     cart = cartResponse
                 });
             }
@@ -440,7 +451,7 @@ namespace KasseAPI_Final.Controllers
                 // ✅ Cart'ın bu kullanıcıya ait olduğunu kontrol et
                 var cart = await _context.Carts
                     .FirstOrDefaultAsync(c => c.CartId == cartId && c.UserId == userId && c.Status == CartStatus.Active);
-                
+
                 if (cart == null)
                     return NotFound(new { message = $"Cart {cartId} not found or not accessible" });
 
@@ -505,7 +516,7 @@ namespace KasseAPI_Final.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "User not authenticated" });
 
-                _logger.LogInformation("UpdateCartItemSimple called - ItemId: {ItemId}, Quantity: {Quantity}, UserId: {UserId}", 
+                _logger.LogInformation("UpdateCartItemSimple called - ItemId: {ItemId}, Quantity: {Quantity}, UserId: {UserId}",
                     itemId, request.Quantity, userId);
 
                 // CartItem'ı bul (Modifiers ile) ve kullanıcı doğrulaması yap
@@ -594,7 +605,7 @@ namespace KasseAPI_Final.Controllers
                 // ✅ Cart'ın bu kullanıcıya ait olduğunu kontrol et
                 var cart = await _context.Carts
                     .FirstOrDefaultAsync(c => c.CartId == cartId && c.UserId == userId);
-                
+
                 if (cart == null)
                     return NotFound(new { message = $"Cart {cartId} not found or not accessible" });
 
@@ -632,7 +643,7 @@ namespace KasseAPI_Final.Controllers
                 // ✅ Cart'ın bu kullanıcıya ait olduğunu kontrol et
                 var cart = await _context.Carts
                     .FirstOrDefaultAsync(c => c.CartId == cartId && c.UserId == userId);
-                
+
                 if (cart == null)
                     return NotFound(new { message = $"Cart {cartId} not found or not accessible" });
 
@@ -667,7 +678,7 @@ namespace KasseAPI_Final.Controllers
                 // ✅ Cart'ın bu kullanıcıya ait olduğunu kontrol et
                 var cart = await _context.Carts
                     .FirstOrDefaultAsync(c => c.CartId == cartId && c.UserId == userId);
-                
+
                 if (cart == null)
                     return NotFound(new { message = $"Cart {cartId} not found or not accessible" });
 
@@ -751,20 +762,20 @@ namespace KasseAPI_Final.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "User not authenticated" });
 
-                _logger.LogInformation("🧹 Clearing cart for table: TableNumber={TableNumber}, UserId={UserId}", 
+                _logger.LogInformation("🧹 Clearing cart for table: TableNumber={TableNumber}, UserId={UserId}",
                     tableNumber, userId);
 
                 // ✅ GÜVENLİK: SADECE KULLANICININ KENDİ SEPETİNİ TEMİZLEMESİ
                 var carts = await _context.Carts
                     .Include(c => c.Items)
-                    .Where(c => c.TableNumber == tableNumber && 
-                               c.Status == CartStatus.Active && 
+                    .Where(c => c.TableNumber == tableNumber &&
+                               c.Status == CartStatus.Active &&
                                c.UserId == userId) // 🔒 Güvenlik: UserId kontrolü
                     .ToListAsync();
 
                 if (!carts.Any())
                 {
-                    _logger.LogInformation("ℹ️ No active carts found for user {UserId} at table: TableNumber={TableNumber}", 
+                    _logger.LogInformation("ℹ️ No active carts found for user {UserId} at table: TableNumber={TableNumber}",
                         userId, tableNumber);
                     return Ok(new { message = $"No active carts found for table {tableNumber}", clearedCount = 0 });
                 }
@@ -774,8 +785,8 @@ namespace KasseAPI_Final.Controllers
                     .Where(c => c.TableNumber == tableNumber && c.Status == CartStatus.Active)
                     .Select(c => new { c.CartId, c.UserId, c.CreatedAt, c.Items.Count })
                     .ToListAsync();
-                
-                _logger.LogInformation("🔍 All carts for table {TableNumber} (debug): {Carts}", tableNumber, 
+
+                _logger.LogInformation("🔍 All carts for table {TableNumber} (debug): {Carts}", tableNumber,
                     string.Join(", ", allCartsForTable.Select(c => $"CartId={c.CartId}, UserId={c.UserId}, Items={c.Count}")));
 
                 int totalItemsCleared = 0;
@@ -788,23 +799,24 @@ namespace KasseAPI_Final.Controllers
                     {
                         totalItemsCleared += cart.Items.Count;
                         _context.CartItems.RemoveRange(cart.Items);
-                        _logger.LogInformation("🧹 Cleared {ItemsCount} items from cart: CartId={CartId}, TableNumber={TableNumber}, UserId={UserId}", 
+                        _logger.LogInformation("🧹 Cleared {ItemsCount} items from cart: CartId={CartId}, TableNumber={TableNumber}, UserId={UserId}",
                             cart.Items.Count, cart.CartId, tableNumber, cart.UserId);
                     }
 
                     // Sepeti sil
                     _context.Carts.Remove(cart);
                     totalCartsCleared++;
-                    _logger.LogInformation("🗑️ Removed cart: CartId={CartId}, TableNumber={TableNumber}, UserId={UserId}", 
+                    _logger.LogInformation("🗑️ Removed cart: CartId={CartId}, TableNumber={TableNumber}, UserId={UserId}",
                         cart.CartId, tableNumber, cart.UserId);
                 }
 
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("✅ Successfully cleared {CartsCount} carts with {ItemsCount} total items for user {UserId} at table: TableNumber={TableNumber}", 
+                _logger.LogInformation("✅ Successfully cleared {CartsCount} carts with {ItemsCount} total items for user {UserId} at table: TableNumber={TableNumber}",
                     totalCartsCleared, totalItemsCleared, userId, tableNumber);
 
-                return Ok(new { 
+                return Ok(new
+                {
                     message = $"Successfully cleared {totalCartsCleared} carts with {totalItemsCleared} total items for table {tableNumber}",
                     clearedCarts = totalCartsCleared,
                     clearedItems = totalItemsCleared,
@@ -827,7 +839,7 @@ namespace KasseAPI_Final.Controllers
             {
                 var userId = User.GetActorUserId();
                 var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-                
+
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "User not authenticated" });
 
@@ -842,8 +854,9 @@ namespace KasseAPI_Final.Controllers
                 if (!allUserCarts.Any())
                 {
                     _logger.LogInformation("ℹ️ No active carts found for user {UserId}", userId);
-                    return Ok(new { 
-                        message = "No active carts found to clear", 
+                    return Ok(new
+                    {
+                        message = "No active carts found to clear",
                         clearedCarts = 0,
                         clearedItems = 0,
                         affectedTables = new List<int>()
@@ -860,7 +873,8 @@ namespace KasseAPI_Final.Controllers
                     totalItemsCleared += itemsCount;
                     totalCartsCleared++;
 
-                    clearedTablesInfo.Add(new {
+                    clearedTablesInfo.Add(new
+                    {
                         tableNumber = cart.TableNumber,
                         cartId = cart.CartId,
                         itemsCount = itemsCount,
@@ -871,13 +885,13 @@ namespace KasseAPI_Final.Controllers
                     if (cart.Items.Any())
                     {
                         _context.CartItems.RemoveRange(cart.Items);
-                        _logger.LogInformation("🧹 Cleared {ItemsCount} items from table {TableNumber}, CartId: {CartId}, UserId: {UserId}", 
+                        _logger.LogInformation("🧹 Cleared {ItemsCount} items from table {TableNumber}, CartId: {CartId}, UserId: {UserId}",
                             itemsCount, cart.TableNumber, cart.CartId, userId);
                     }
 
                     // Sepeti sil
                     _context.Carts.Remove(cart);
-                    _logger.LogInformation("🗑️ Removed cart from table {TableNumber}, CartId: {CartId}, UserId: {UserId}", 
+                    _logger.LogInformation("🗑️ Removed cart from table {TableNumber}, CartId: {CartId}, UserId: {UserId}",
                         cart.TableNumber, cart.CartId, userId);
                 }
 
@@ -886,10 +900,11 @@ namespace KasseAPI_Final.Controllers
 
                 var affectedTables = allUserCarts.Select(c => c.TableNumber).Distinct().OrderBy(t => t).ToList();
 
-                _logger.LogInformation("✅ ALL CARTS CLEARED: {CartsCount} carts, {ItemsCount} items from {TablesCount} tables by UserId: {UserId}. Affected tables: {Tables}", 
+                _logger.LogInformation("✅ ALL CARTS CLEARED: {CartsCount} carts, {ItemsCount} items from {TablesCount} tables by UserId: {UserId}. Affected tables: {Tables}",
                     totalCartsCleared, totalItemsCleared, affectedTables.Count, userId, string.Join(", ", affectedTables));
 
-                return Ok(new { 
+                return Ok(new
+                {
                     message = $"Successfully cleared all carts: {totalCartsCleared} carts with {totalItemsCleared} items from {affectedTables.Count} tables",
                     clearedCarts = totalCartsCleared,
                     clearedItems = totalItemsCleared,
@@ -915,7 +930,7 @@ namespace KasseAPI_Final.Controllers
                 var userId = User.GetActorUserId() ?? "Unknown";
                 var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? "Unknown";
 
-                _logger.LogInformation("Resetting cart after payment: CartId={CartId}, UserId={UserId}, UserRole={UserRole}", 
+                _logger.LogInformation("Resetting cart after payment: CartId={CartId}, UserId={UserId}, UserRole={UserRole}",
                     cartId, userId, userRole);
 
                 var cart = await _context.Carts
@@ -959,10 +974,11 @@ namespace KasseAPI_Final.Controllers
 
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Cart reset after payment completed: OldCartId={OldCartId}, NewCartId={NewCartId}, TableNumber={TableNumber}", 
+                _logger.LogInformation("Cart reset after payment completed: OldCartId={OldCartId}, NewCartId={NewCartId}, TableNumber={TableNumber}",
                     cartId, newCart.CartId, cart.TableNumber);
 
-                return Ok(new { 
+                return Ok(new
+                {
                     message = "Cart reset after payment completed successfully",
                     oldCartId = cartId,
                     newCartId = newCart.CartId,
@@ -1008,8 +1024,9 @@ namespace KasseAPI_Final.Controllers
 
                 var totalAmount = cart.Items.Sum(ci =>
                     ci.Quantity * ci.UnitPrice + (ci.Modifiers ?? Enumerable.Empty<CartItemModifier>()).Sum(m => m.Price * m.Quantity));
-                return Ok(new { 
-                    message = "Cart completed successfully", 
+                return Ok(new
+                {
+                    message = "Cart completed successfully",
                     cartId = cart.CartId,
                     totalItems = cart.Items.Sum(ci => ci.Quantity),
                     totalAmount = totalAmount
@@ -1114,11 +1131,11 @@ namespace KasseAPI_Final.Controllers
             {
                 var userId = User.GetActorUserId();
                 var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-                
+
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "User not authenticated" });
 
-                _logger.LogInformation("🧹 Force cart cleanup requested by UserId: {UserId}, Role: {UserRole}, Reason: {Reason}", 
+                _logger.LogInformation("🧹 Force cart cleanup requested by UserId: {UserId}, Role: {UserRole}, Reason: {Reason}",
                     userId, userRole, request.Reason);
 
                 // Authorization: SuperAdmin, Manager, Cashier may run force cleanup.
@@ -1144,7 +1161,7 @@ namespace KasseAPI_Final.Controllers
                 {
                     var tableCarts = await _context.Carts
                         .Include(c => c.Items)
-                        .Where(c => c.TableNumber == request.TableNumber.Value && 
+                        .Where(c => c.TableNumber == request.TableNumber.Value &&
                                    c.Status == CartStatus.Active)
                         .ToListAsync();
 
@@ -1168,7 +1185,7 @@ namespace KasseAPI_Final.Controllers
                         // Sepeti sil
                         _context.Carts.Remove(cart);
 
-                        _logger.LogInformation("🧹 Force cleanup: Cart {CartId} at table {TableNumber} cleaned (Items: {ItemsCount})", 
+                        _logger.LogInformation("🧹 Force cleanup: Cart {CartId} at table {TableNumber} cleaned (Items: {ItemsCount})",
                             cart.CartId, cart.TableNumber, itemsCount);
                     }
                 }
@@ -1200,7 +1217,7 @@ namespace KasseAPI_Final.Controllers
                         // Sepeti sil
                         _context.Carts.Remove(cart);
 
-                        _logger.LogInformation("🧹 Force cleanup: Cart {CartId} at table {TableNumber} cleaned (Items: {ItemsCount})", 
+                        _logger.LogInformation("🧹 Force cleanup: Cart {CartId} at table {TableNumber} cleaned (Items: {ItemsCount})",
                             cart.CartId, cart.TableNumber, itemsCount);
                     }
                 }
@@ -1208,7 +1225,7 @@ namespace KasseAPI_Final.Controllers
                 // Değişiklikleri kaydet
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("✅ Force cart cleanup completed: {CartsCount} carts, {ItemsCount} items cleaned by UserId: {UserId}", 
+                _logger.LogInformation("✅ Force cart cleanup completed: {CartsCount} carts, {ItemsCount} items cleaned by UserId: {UserId}",
                     cleanupResult.TotalCartsCleared, cleanupResult.TotalItemsCleaned, userId);
 
                 return Ok(cleanupResult);
@@ -1234,7 +1251,7 @@ namespace KasseAPI_Final.Controllers
 
                 var tenantIdRecovery = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
 
-                                               // Kullanıcının tüm aktif masa siparişlerini getir - RKSV uyumlu güvenlik kontrolü
+                // Kullanıcının tüm aktif masa siparişlerini getir - RKSV uyumlu güvenlik kontrolü
                 // Önce TableOrder'lardan kontrol et, yoksa Cart'tan al
                 var userActiveTableOrders = await _context.TableOrders
                     .Include(to => to.Items)
@@ -1395,7 +1412,7 @@ namespace KasseAPI_Final.Controllers
                 var allTableOrders = tableOrderResponses.Concat(cartBasedOrders).ToList();
 
                 // İngilizce teknik log - RKSV uyumlu
-                _logger.LogInformation("Table orders recovery completed for user {UserId}: {TableOrderCount} TableOrders + {CartCount} Cart-based orders = {TotalCount} total active table orders", 
+                _logger.LogInformation("Table orders recovery completed for user {UserId}: {TableOrderCount} TableOrders + {CartCount} Cart-based orders = {TotalCount} total active table orders",
                     userId, tableOrderResponses.Count, cartBasedOrders.Count(), allTableOrders.Count);
 
                 return Ok(new
@@ -1405,7 +1422,7 @@ namespace KasseAPI_Final.Controllers
                     userId = userId,
                     tableOrders = allTableOrders,
                     totalActiveTables = allTableOrders.Count,
-                    dataSource = new 
+                    dataSource = new
                     {
                         tableOrdersCount = tableOrderResponses.Count,
                         cartBasedCount = cartBasedOrders.Count(),
@@ -1428,7 +1445,8 @@ namespace KasseAPI_Final.Controllers
                     _logger.LogWarning(ex,
                         "⚠️ TABLE_ORDERS_MISSING: Relation does not exist - UserId: {UserId}, Message: {Message}, Inner: {Inner}. Run: SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename IN ('table_orders','table_order_items','carts','cart_items','customers');",
                         userIdStr, ex.Message, innerMsg);
-                    return StatusCode(503, new {
+                    return StatusCode(503, new
+                    {
                         success = false,
                         message = "Table orders infrastructure is currently being provisioned.",
                         errorCode = "TABLE_ORDERS_MISSING",
@@ -1438,9 +1456,10 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 _logger.LogError(ex, "🚨 Database error retrieving table orders for recovery - UserId: {UserId}", userIdStr);
-                
-                return StatusCode(500, new { 
-                    success = false, 
+
+                return StatusCode(500, new
+                {
+                    success = false,
                     message = "Internal database error during table orders recovery.",
                     errorCode = "DATABASE_ERROR",
                     isTransient = false,
@@ -1479,7 +1498,7 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var (cartItem, cart, userId, error) = await GetOwnedCartItemAsync(itemId);
-                
+
                 if (error != null)
                 {
                     if (error == "User not authenticated")
@@ -1495,7 +1514,8 @@ namespace KasseAPI_Final.Controllers
                 _logger.LogInformation("Item quantity incremented: ItemId={ItemId}, NewQuantity={Quantity}, UserId={UserId}",
                     itemId, cartItem.Quantity, userId);
 
-                return Ok(new { 
+                return Ok(new
+                {
                     message = "Quantity incremented successfully",
                     itemId = itemId,
                     newQuantity = cartItem.Quantity
@@ -1515,7 +1535,7 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var (cartItem, cart, userId, error) = await GetOwnedCartItemAsync(itemId);
-                
+
                 if (error != null)
                 {
                     if (error == "User not authenticated")
@@ -1528,7 +1548,8 @@ namespace KasseAPI_Final.Controllers
                 if (cartItem!.Quantity <= 1)
                 {
                     // Cannot decrement below 1 - frontend should use DELETE instead
-                    return Conflict(new { 
+                    return Conflict(new
+                    {
                         message = "Cannot decrement below 1. Use DELETE to remove item.",
                         requiresRemoval = true,
                         currentQuantity = cartItem.Quantity
@@ -1541,7 +1562,8 @@ namespace KasseAPI_Final.Controllers
                 _logger.LogInformation("Item quantity decremented: ItemId={ItemId}, NewQuantity={Quantity}, UserId={UserId}",
                     itemId, cartItem.Quantity, userId);
 
-                return Ok(new { 
+                return Ok(new
+                {
                     message = "Quantity decremented successfully",
                     itemId = itemId,
                     newQuantity = cartItem.Quantity

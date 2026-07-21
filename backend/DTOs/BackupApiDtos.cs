@@ -2,8 +2,6 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.RestoreVerification;
 using KasseAPI_Final.Services.Backup;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.DTOs;
 

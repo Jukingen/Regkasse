@@ -1,8 +1,6 @@
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
-using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Data;
 

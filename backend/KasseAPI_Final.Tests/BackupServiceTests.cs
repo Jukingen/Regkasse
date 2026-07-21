@@ -4,9 +4,9 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
-using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Services.RestoreVerification;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -209,6 +209,7 @@ public sealed class BackupServiceTests
             Id = backupId,
             TenantId = backupTenant,
             Status = BackupRunStatus.Succeeded,
+            Strategy = BackupStrategyKind.System,
             TriggerSource = BackupTriggerSource.Manual,
             AdapterKind = "PgDump",
             RequestedAt = DateTime.UtcNow,
@@ -262,6 +263,7 @@ public sealed class BackupServiceTests
             Id = backupId,
             TenantId = tenantId,
             Status = BackupRunStatus.Succeeded,
+            Strategy = BackupStrategyKind.System,
             TriggerSource = BackupTriggerSource.Manual,
             AdapterKind = "PgDump",
             RequestedAt = DateTime.UtcNow,
@@ -293,7 +295,7 @@ public sealed class BackupServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(dbName)
             .Options;
-        var db = new AppDbContext(options);
+        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
 
         var triggerMock = new Mock<IBackupManualTriggerService>();
         trigger?.Invoke(triggerMock);

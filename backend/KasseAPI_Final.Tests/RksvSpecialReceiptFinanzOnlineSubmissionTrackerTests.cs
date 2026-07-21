@@ -1,6 +1,7 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
@@ -13,17 +14,17 @@ public sealed class RksvSpecialReceiptFinanzOnlineSubmissionTrackerTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"FonTrack_{System.Guid.NewGuid():N}")
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     [Fact]
-    public void CreateInitialNotRequiredRow_Startbeleg_Succeeds()
+    public void CreateInitialPendingRow_Startbeleg_Succeeds()
     {
         var tracker = new RksvSpecialReceiptFinanzOnlineSubmissionTracker(CreateContext());
         var pid = Guid.NewGuid();
         var rid = Guid.NewGuid();
         var reg = Guid.NewGuid();
-        var row = tracker.CreateInitialNotRequiredRow(pid, rid, reg, RksvSpecialReceiptKinds.Startbeleg);
+        var row = tracker.CreateInitialPendingRow(pid, rid, reg, RksvSpecialReceiptKinds.Startbeleg);
         Assert.Equal(pid, row.PaymentId);
         Assert.Equal(rid, row.ReceiptId);
         Assert.Equal(reg, row.CashRegisterId);
@@ -32,10 +33,10 @@ public sealed class RksvSpecialReceiptFinanzOnlineSubmissionTrackerTests
     }
 
     [Fact]
-    public void CreateInitialNotRequiredRow_InvalidKind_Throws()
+    public void CreateInitialPendingRow_InvalidKind_Throws()
     {
         var tracker = new RksvSpecialReceiptFinanzOnlineSubmissionTracker(CreateContext());
         Assert.Throws<ArgumentException>(() =>
-            tracker.CreateInitialNotRequiredRow(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), RksvSpecialReceiptKinds.Nullbeleg));
+            tracker.CreateInitialPendingRow(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), RksvSpecialReceiptKinds.Nullbeleg));
     }
 }

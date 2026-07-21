@@ -1,5 +1,4 @@
 using KasseAPI_Final.DTOs;
-using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Reports;
 
 namespace KasseAPI_Final.Services.Reports;

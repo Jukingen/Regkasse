@@ -3,6 +3,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Services.RestoreVerification;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -16,7 +17,7 @@ public sealed class RestoreVerificationDumpPathResolverTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"rv_dump_{Guid.NewGuid():N}")
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static BackupRun RunSucc(Guid id, DateTime requestedAt) => new()

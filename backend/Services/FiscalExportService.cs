@@ -1,13 +1,11 @@
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Text;
-using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Export;
 using KasseAPI_Final.Time;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services;
 
@@ -507,7 +505,8 @@ public class FiscalExportService : IFiscalExportService
 
     private static string Csv(string? value)
     {
-        if (string.IsNullOrEmpty(value)) return "\"\"";
+        if (string.IsNullOrEmpty(value))
+            return "\"\"";
         if (value.Contains('"', StringComparison.Ordinal) || value.Contains(',', StringComparison.Ordinal) ||
             value.Contains('\n', StringComparison.Ordinal) || value.Contains('\r', StringComparison.Ordinal))
             return "\"" + value.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"";

@@ -1,7 +1,6 @@
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Services.Billing;
 using KasseAPI_Final.Services.Offline;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;

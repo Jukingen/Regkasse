@@ -1,9 +1,9 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Order;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
-
 namespace KasseAPI_Final.Tests;
 
 public sealed class PublicCustomerDashboardServiceTests
@@ -14,7 +14,7 @@ public sealed class PublicCustomerDashboardServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
             .Options;
-        var db = new AppDbContext(options);
+        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
         var factory = new Factory(options);
         var tenantId = Guid.NewGuid();
 
@@ -72,7 +72,7 @@ public sealed class PublicCustomerDashboardServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
             .Options;
-        var db = new AppDbContext(options);
+        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
         var factory = new Factory(options);
         db.Tenants.Add(new Tenant
         {
@@ -94,6 +94,6 @@ public sealed class PublicCustomerDashboardServiceTests
         public Factory(DbContextOptions<AppDbContext> options) => _options = options;
         public AppDbContext CreateDbContext() => new(_options);
         public ValueTask<AppDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
-            new(new AppDbContext(_options));
+            new(new AppDbContext(_options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary)));
     }
 }

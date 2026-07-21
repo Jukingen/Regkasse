@@ -2,6 +2,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
@@ -17,7 +18,7 @@ public sealed class BackupSucceededRunRetentionCleanerTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(name)
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private sealed class TestHostEnvironment : IHostEnvironment
@@ -115,5 +116,53 @@ public sealed class BackupSucceededRunRetentionCleanerTests
         await db.SaveChangesAsync();
         Assert.NotNull(await db.BackupRuns.FindAsync(dailyId));
         Assert.Null(await db.BackupRuns.FindAsync(ancientId));
+    }
+
+    [Fact]
+    public async Task Smart_mode_does_not_thin_system_against_tenant_in_same_week()
+    {
+        await using var db = CreateDb(nameof(Smart_mode_does_not_thin_system_against_tenant_in_same_week));
+        var tenantRunId = Guid.NewGuid();
+        var systemRunId = Guid.NewGuid();
+        // Both outside the daily window, same ISO week — pooled GFS would keep only the newer run.
+        var older = DateTime.UtcNow.AddDays(-10);
+        var newer = DateTime.UtcNow.AddDays(-9);
+        db.BackupRuns.AddRange(
+            new BackupRun
+            {
+                Id = tenantRunId,
+                Status = BackupRunStatus.Succeeded,
+                TriggerSource = BackupTriggerSource.Manual,
+                AdapterKind = "Fake",
+                Strategy = BackupStrategyKind.Tenant,
+                TenantId = Guid.NewGuid(),
+                RequestedAt = older,
+                CompletedAt = older,
+            },
+            new BackupRun
+            {
+                Id = systemRunId,
+                Status = BackupRunStatus.Succeeded,
+                TriggerSource = BackupTriggerSource.Scheduled,
+                AdapterKind = "Fake",
+                Strategy = BackupStrategyKind.System,
+                RequestedAt = newer,
+                CompletedAt = newer,
+            });
+        await db.SaveChangesAsync();
+
+        var removed = await BackupSucceededRunRetentionCleaner.DeleteExpiredSucceededRunsAsync(
+            db,
+            new BackupOptions { SmartRetentionEnabled = true },
+            new TestHostEnvironment(),
+            NullLogger.Instance,
+            tenantRetentionDays: 30,
+            systemRetentionDays: 90,
+            smartRetention: new SmartRetentionService());
+
+        Assert.Equal(0, removed);
+        await db.SaveChangesAsync();
+        Assert.NotNull(await db.BackupRuns.FindAsync(tenantRunId));
+        Assert.NotNull(await db.BackupRuns.FindAsync(systemRunId));
     }
 }

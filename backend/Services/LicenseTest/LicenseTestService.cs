@@ -2,10 +2,7 @@ using System.Text.RegularExpressions;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.AdminTenants;
-using KasseAPI_Final.Services.Tenancy;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Services.LicenseTest;
 
@@ -125,7 +122,8 @@ public sealed class LicenseTestService : ILicenseTestService
         EnsureDevelopmentHost();
 
         var expiry = ResolveScenarioExpiryUtc(request.Scenario);
-        var setRequest = new LicenseTestSetExpiryRequest { ValidUntilUtc = expiry };
+
+        _ = new LicenseTestSetExpiryRequest { ValidUntilUtc = expiry };
 
         if (request.Scope is LicenseTestScope.Tenant or LicenseTestScope.Both)
         {

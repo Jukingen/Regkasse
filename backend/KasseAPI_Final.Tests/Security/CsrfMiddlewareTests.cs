@@ -20,10 +20,13 @@ public sealed class CsrfMiddlewareTests
     [InlineData("/api/Auth/login")]
     [InlineData("/api/auth/refresh")]
     [InlineData("/api/Auth/refresh")]
+    [InlineData("/api/auth/verify-2fa")]
+    [InlineData("/api/Auth/verify-2fa")]
     [InlineData("/health")]
     [InlineData("/api/health")]
     [InlineData("/swagger")]
     [InlineData("/metrics")]
+    [InlineData("/api/webhooks")]
     [InlineData("/api/webhooks/stripe")]
     [InlineData("/api/csrf/token")]
     public void IsExemptPath_skips_public_and_ops_endpoints(string path)

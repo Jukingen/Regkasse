@@ -1,10 +1,6 @@
-using KasseAPI_Final;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services;

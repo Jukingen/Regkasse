@@ -1,16 +1,12 @@
-using System;
-using System.Linq;
 using System.Text.Json;
-using System.Threading.Tasks;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
-
-using KasseAPI_Final.Tenancy;
 
 namespace KasseAPI_Final.Tests;
 
@@ -25,7 +21,7 @@ public class IntegrityCheckServiceTests
             .UseInMemoryDatabase(databaseName: $"Integrity_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static IntegrityCheckService CreateService(AppDbContext ctx) =>

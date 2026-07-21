@@ -89,7 +89,8 @@ public sealed class JahresbelegClosingServiceTests
                 It.IsAny<string>(),
                 It.IsAny<DateTime>(),
                 It.IsAny<decimal>(),
-                It.IsAny<int>()))
+                It.IsAny<int>(),
+                It.IsAny<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction?>()))
             .ReturnsAsync("eyJhbGciOiJFUzI1NiJ9.eyJ.test.jahr.closing");
         return mock;
     }

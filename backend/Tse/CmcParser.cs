@@ -78,10 +78,13 @@ namespace KasseAPI_Final.Tse
 
         private static bool ByteArraysEqual(byte[]? a, byte[]? b)
         {
-            if (a == null && b == null) return true;
-            if (a == null || b == null || a.Length != b.Length) return false;
+            if (a == null && b == null)
+                return true;
+            if (a == null || b == null || a.Length != b.Length)
+                return false;
             for (int i = 0; i < a.Length; i++)
-                if (a[i] != b[i]) return false;
+                if (a[i] != b[i])
+                    return false;
             return true;
         }
     }

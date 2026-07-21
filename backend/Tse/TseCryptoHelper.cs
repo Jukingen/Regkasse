@@ -8,7 +8,6 @@ namespace KasseAPI_Final.Tse
     /// </summary>
     public static class TseCryptoHelper
     {
-        private const string Base64UrlAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
         private static readonly char[] PaddingChars = ['='];
 
         /// <summary>

@@ -1,9 +1,7 @@
 using KasseAPI_Final.Authorization;
-using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.LicenseTest;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Hosting;
 
 namespace KasseAPI_Final.Controllers;
 

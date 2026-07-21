@@ -2,7 +2,6 @@ using System.Reflection;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Controllers.Base;
-using KasseAPI_Final.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Xunit;
 

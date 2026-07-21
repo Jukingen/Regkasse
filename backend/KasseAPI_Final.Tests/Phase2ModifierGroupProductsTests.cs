@@ -16,7 +16,7 @@ public class Phase2ModifierGroupProductsTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: $"ModifierGroupProducts_{Guid.NewGuid()}")
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     [Fact]

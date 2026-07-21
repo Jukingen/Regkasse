@@ -71,7 +71,7 @@ public sealed class ReminderServiceTests
     [Fact]
     public async Task SendPendingRemindersAsync_MarksPendingAsSent()
     {
-        var (db, factory) = await CreateDbAsync();
+        var (db, _) = await CreateDbAsync();
         await using var _ = db;
 
         var tenant = SeedTenant(db, email: "tenant@regkasse.test");

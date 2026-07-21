@@ -1,13 +1,13 @@
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
-using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -297,6 +297,6 @@ public sealed class BackupRunServiceTests
             .UseInMemoryDatabase($"backup_run_svc_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(opts);
+        return new AppDbContext(opts, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 }

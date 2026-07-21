@@ -1,12 +1,11 @@
 using KasseAPI_Final.Authorization;
-using KasseAPI_Final.Security;
 using KasseAPI_Final.Models.DTOs;
+using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Services.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Hosting;
 
 namespace KasseAPI_Final.Controllers;
 

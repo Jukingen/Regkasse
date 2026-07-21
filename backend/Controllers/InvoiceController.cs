@@ -1,20 +1,18 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Fiscal;
 using KasseAPI_Final.Localization;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Localization;
-using KasseAPI_Final.Fiscal;
-using KasseAPI_Final.Security;
 using KasseAPI_Final.Time;
 using Microsoft.AspNetCore.Authorization;
-using System.Text.Json;
-using System.Linq;
-using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -68,9 +66,12 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                if (page < 1) page = 1;
-                if (pageSize < 1) pageSize = 50;
-                if (pageSize > 200) pageSize = 200;
+                if (page < 1)
+                    page = 1;
+                if (pageSize < 1)
+                    pageSize = 50;
+                if (pageSize > 200)
+                    pageSize = 200;
 
                 var queryable = _context.Invoices.AsNoTracking().Where(i => i.IsActive);
 
@@ -135,13 +136,13 @@ namespace KasseAPI_Final.Controllers
                     })
                     .ToListAsync();
 
-                return Ok(new PagedResult<InvoiceListItemDto> 
-                { 
-                    Items = items, 
-                    Page = page, 
-                    PageSize = pageSize, 
-                    TotalCount = totalCount, 
-                    TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize) 
+                return Ok(new PagedResult<InvoiceListItemDto>
+                {
+                    Items = items,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalCount = totalCount,
+                    TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
                 });
             }
             catch (Exception ex)
@@ -166,9 +167,12 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                if (page < 1) page = 1;
-                if (pageSize < 1) pageSize = 50;
-                if (pageSize > 200) pageSize = 200;
+                if (page < 1)
+                    page = 1;
+                if (pageSize < 1)
+                    pageSize = 50;
+                if (pageSize > 200)
+                    pageSize = 200;
 
                 var queryable = _context.PaymentDetails.AsNoTracking().Where(p => p.IsActive);
 
@@ -212,8 +216,8 @@ namespace KasseAPI_Final.Controllers
                 queryable = sortBy.ToLower() switch
                 {
                     "invoicenumber" => isAsc ? queryable.OrderBy(p => p.ReceiptNumber) : queryable.OrderByDescending(p => p.ReceiptNumber),
-                    "totalamount"   => isAsc ? queryable.OrderBy(p => p.TotalAmount) : queryable.OrderByDescending(p => p.TotalAmount),
-                    _               => isAsc ? queryable.OrderBy(p => p.CreatedAt) : queryable.OrderByDescending(p => p.CreatedAt)
+                    "totalamount" => isAsc ? queryable.OrderBy(p => p.TotalAmount) : queryable.OrderByDescending(p => p.TotalAmount),
+                    _ => isAsc ? queryable.OrderBy(p => p.CreatedAt) : queryable.OrderByDescending(p => p.CreatedAt)
                 };
 
                 var items = await queryable
@@ -278,8 +282,10 @@ namespace KasseAPI_Final.Controllers
                     var (_, toExclusiveUtc) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(toDay);
                     queryable = queryable.Where(i => i.InvoiceDate < toExclusiveUtc);
                 }
-                if (status.HasValue) queryable = queryable.Where(i => i.Status == status.Value);
-                if (cashRegisterId.HasValue) queryable = queryable.Where(i => i.CashRegisterId == cashRegisterId.Value);
+                if (status.HasValue)
+                    queryable = queryable.Where(i => i.Status == status.Value);
+                if (cashRegisterId.HasValue)
+                    queryable = queryable.Where(i => i.CashRegisterId == cashRegisterId.Value);
 
                 if (!string.IsNullOrWhiteSpace(query))
                 {
@@ -309,8 +315,8 @@ namespace KasseAPI_Final.Controllers
 
                 foreach (var i in queryable)
                 {
-                     var line = $"{i.InvoiceNumber};{i.InvoiceDate:yyyy-MM-dd HH:mm};{EscapeCsv(i.CustomerName)};{EscapeCsv(i.CompanyName)};{i.TotalAmount:F2};{i.Status};{i.DocumentType};{i.OriginalInvoiceId};{i.KassenId};{i.TseSignature}";
-                     await writer.WriteLineAsync(line);
+                    var line = $"{i.InvoiceNumber};{i.InvoiceDate:yyyy-MM-dd HH:mm};{EscapeCsv(i.CustomerName)};{EscapeCsv(i.CompanyName)};{i.TotalAmount:F2};{i.Status};{i.DocumentType};{i.OriginalInvoiceId};{i.KassenId};{i.TseSignature}";
+                    await writer.WriteLineAsync(line);
                 }
 
                 await writer.FlushAsync();
@@ -327,7 +333,8 @@ namespace KasseAPI_Final.Controllers
 
         private string EscapeCsv(string? value)
         {
-            if (string.IsNullOrEmpty(value)) return "";
+            if (string.IsNullOrEmpty(value))
+                return "";
             if (value.Contains(";") || value.Contains("\"") || value.Contains("\n"))
             {
                 return $"\"{value.Replace("\"", "\"\"")}\"";
@@ -374,9 +381,9 @@ namespace KasseAPI_Final.Controllers
                 if (!string.IsNullOrWhiteSpace(query))
                 {
                     query = query.ToLower();
-                    queryable = queryable.Where(i => 
-                        i.InvoiceNumber.ToLower().Contains(query) || 
-                        (i.CustomerName != null && i.CustomerName.ToLower().Contains(query)) || 
+                    queryable = queryable.Where(i =>
+                        i.InvoiceNumber.ToLower().Contains(query) ||
+                        (i.CustomerName != null && i.CustomerName.ToLower().Contains(query)) ||
                         (i.CompanyName != null && i.CompanyName.ToLower().Contains(query)));
                 }
 
@@ -435,9 +442,12 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(ModelState);
                 }
 
-                if (string.IsNullOrWhiteSpace(request.CompanyName)) return BadRequest(_messages.Get(ApiMessageKeys.CompanyNameRequired));
-                if (string.IsNullOrWhiteSpace(request.CompanyTaxNumber)) return BadRequest(_messages.Get(ApiMessageKeys.CompanyTaxNumberRequired));
-                if (!request.CompanyTaxNumber.StartsWith("ATU") || request.CompanyTaxNumber.Length != 11) return BadRequest(_messages.Get(ApiMessageKeys.CompanyTaxNumberInvalidFormat));
+                if (string.IsNullOrWhiteSpace(request.CompanyName))
+                    return BadRequest(_messages.Get(ApiMessageKeys.CompanyNameRequired));
+                if (string.IsNullOrWhiteSpace(request.CompanyTaxNumber))
+                    return BadRequest(_messages.Get(ApiMessageKeys.CompanyTaxNumberRequired));
+                if (!request.CompanyTaxNumber.StartsWith("ATU") || request.CompanyTaxNumber.Length != 11)
+                    return BadRequest(_messages.Get(ApiMessageKeys.CompanyTaxNumberInvalidFormat));
                 if (request.CashRegisterId == Guid.Empty)
                     return BadRequest("CashRegisterId is required.");
                 var cashRegCreate = await _context.CashRegisters.AsNoTracking().FirstOrDefaultAsync(r => r.Id == request.CashRegisterId);
@@ -447,7 +457,8 @@ namespace KasseAPI_Final.Controllers
                 var invoiceNumber = string.IsNullOrEmpty(request.InvoiceNumber) ? GenerateInvoiceNumber() : request.InvoiceNumber;
 
                 var existingInvoice = await _context.Invoices.FirstOrDefaultAsync(i => i.InvoiceNumber == invoiceNumber && i.IsActive);
-                if (existingInvoice != null) return BadRequest("Bu fatura numarası zaten kullanılıyor");
+                if (existingInvoice != null)
+                    return BadRequest("Bu fatura numarası zaten kullanılıyor");
 
                 var invoice = new Invoice
                 {
@@ -503,7 +514,8 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var existingInvoice = await _context.Invoices.FindAsync(id);
-                if (existingInvoice == null || !existingInvoice.IsActive) return NotFound(_messages.Get(ApiMessageKeys.InvoiceNotFound));
+                if (existingInvoice == null || !existingInvoice.IsActive)
+                    return NotFound(_messages.Get(ApiMessageKeys.InvoiceNotFound));
 
                 // Fiscal immutability: POS-originated invoices must not be updated (TSE/receipt chain integrity).
                 if (existingInvoice.SourcePaymentId.HasValue)
@@ -560,7 +572,8 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var invoice = await _context.Invoices.FindAsync(id);
-                if (invoice == null || !invoice.IsActive) return NotFound(_messages.Get(ApiMessageKeys.InvoiceNotFound));
+                if (invoice == null || !invoice.IsActive)
+                    return NotFound(_messages.Get(ApiMessageKeys.InvoiceNotFound));
 
                 // Fiscal immutability: POS-originated and finalized invoices must not be soft-deleted (audit integrity).
                 if (invoice.SourcePaymentId.HasValue)
@@ -594,7 +607,8 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var original = await _context.Invoices.FindAsync(id);
-                if (original == null || !original.IsActive) return NotFound(_messages.Get(ApiMessageKeys.OriginalInvoiceNotFound));
+                if (original == null || !original.IsActive)
+                    return NotFound(_messages.Get(ApiMessageKeys.OriginalInvoiceNotFound));
 
                 var newInvoice = new Invoice
                 {
@@ -608,7 +622,7 @@ namespace KasseAPI_Final.Controllers
                     TotalAmount = original.TotalAmount,
                     PaidAmount = 0,
                     RemainingAmount = original.TotalAmount,
-                    
+
                     // Copy Customer & Company info
                     CustomerName = original.CustomerName,
                     CustomerEmail = original.CustomerEmail,
@@ -629,7 +643,7 @@ namespace KasseAPI_Final.Controllers
 
                     InvoiceItems = original.InvoiceItems,
                     TaxDetails = original.TaxDetails,
-                    
+
                     CreatedAt = DateTime.UtcNow,
                     IsActive = true
                 };
@@ -841,8 +855,8 @@ namespace KasseAPI_Final.Controllers
         [HttpGet("search")]
         public async Task<ActionResult<IEnumerable<Invoice>>> SearchInvoices([FromQuery] string query)
         {
-             // Backward compatibility wrapper around GetInvoices
-             return await GetInvoices(query: query, page: 1, pageSize: 20);
+            // Backward compatibility wrapper around GetInvoices
+            return await GetInvoices(query: query, page: 1, pageSize: 20);
         }
 
         [HasPermission(AppPermissions.InvoiceView)]

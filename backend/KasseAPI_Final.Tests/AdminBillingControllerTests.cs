@@ -14,7 +14,6 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
-using IBillingTenantLicenseService = KasseAPI_Final.Services.Billing.ITenantLicenseService;
 
 namespace KasseAPI_Final.Tests;
 
@@ -165,6 +164,7 @@ public sealed class AdminBillingControllerTests
                 BillingTestDoubles.CreateReminderScopeFactory(),
                 environment.Object,
                 PdfGeneratorMock.Object,
+                new InvoiceNumberGenerator(_db),
                 BillingTestDoubles.DisabledBackupOptions,
                 NullLogger<BillingService>.Instance);
 
@@ -281,6 +281,7 @@ public sealed class AdminBillingControllerTests
                 BillingTestDoubles.CreateReminderScopeFactory(),
                 environment.Object,
                 PdfGeneratorMock.Object,
+                new InvoiceNumberGenerator(_db),
                 BillingTestDoubles.DisabledBackupOptions,
                 NullLogger<BillingService>.Instance);
 

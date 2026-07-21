@@ -1,7 +1,36 @@
 # Backend configuration (secrets and environment)
 
-Technical documentation (English). Do not commit real secrets; `appsettings.json` and `appsettings.*.json` under `backend/` are gitignored by design.
+Technical documentation (English). Do not commit real secrets; `appsettings.json` and `appsettings.*.json` under `backend/` are gitignored by design. Tracked sources of truth: `appsettings.example.json`, `appsettings.Development.example.json`, `appsettings.Production.example.json`.
 
+## Environment layering (`ASPNETCORE_ENVIRONMENT`)
+
+| Layer | File | Role |
+|-------|------|------|
+| Base | `appsettings.json` | Safe shared defaults (no DB password, no JWT secret, no PEM/API keys) |
+| Development | `appsettings.Development.json` | Demo/Fake TSE, FinanzOnline simulation, 2FA off + bypass, CSRF off, NTP bypass |
+| Production | `appsettings.Production.json` | Real RKSV/FO flags, CSRF on, rate limit on, SuperAdmin 2FA on — **still no secrets** |
+| Secrets | User secrets / env vars | `ConnectionStrings:DefaultConnection`, `JwtSettings:SecretKey`, Fiskaly keys, license PEMs (or `LicenseSettings` file paths under gitignored `App_Data/`) |
+
+Load order (ASP.NET Core): base → environment overlay → user secrets (Development) → environment variables.
+
+### Hosting model (Program / ApplicationHost)
+
+- **No `Startup.cs`** — .NET 10 `WebApplication.CreateBuilder` / `WebApplication` pipeline in `ApplicationHost.cs`; `Program.cs` only builds and runs the host.
+- Controllers for domain APIs; health probes via `HealthController` + `HealthChecks/*` (see `docs/HEALTH_GUARDRAILS.md`).
+- Auth: `AddAuthentication().AddJwtBearer` + `AddAppAuthorization()` (`AddAuthorization` with permission policies).
+- EF: `AddDbContext` + scoped `AddDbContextFactory` (required for singleton services that open scopes).
+- CORS policy `RegkasseClients`: Development trusts local/LAN/`*.local`; Production requires `Cors:AllowedOrigins` and also allows HTTPS `*.regkasse.at` (POS / FA / Sites / tenant slug hosts). Custom website domains must be listed in `Cors:AllowedOrigins`.
+
+### Required sections (presence checklist)
+
+| Section | Base | Development | Production | Notes |
+|---------|------|-------------|------------|--------|
+| `TwoFactorAuth` | yes | yes (Enabled=false) | yes (Enabled=true) | See `docs/AUTH_TWO_FACTOR.md` |
+| `Backup` | yes (Fake) | yes (Fake) | yes (PgDump paths) | Staging/archive roots via secrets in Dev |
+| `FinanzOnline` (+ Outbox/RetryJob) | yes | simulation | real | Credentials from DB / secrets, not tracked JSON |
+| `Security:Csrf` | yes | disabled | enabled | |
+| `JwtSettings` Issuer/Audience | yes | inherit | yes | **SecretKey never in JSON** |
+| `ConnectionStrings` | omit | omit | omit | User secrets / env only |
 ## Required secrets (local, staging, production)
 
 | Setting | JSON path | Environment variable (override) | Notes |
@@ -55,7 +84,7 @@ Product rows keep `StockQuantity` / `MinStockLevel` in the database; this sectio
 
 | Setting | JSON path | Environment variable | Default | Effect when `false` |
 |--------|------------|----------------------|---------|---------------------|
-| Enforce stock on payment | `Inventory:EnforceStockAvailability` | `Inventory__EnforceStockAvailability` | `true` | POS payment does **not** reject for low stock and does **not** change `Product.StockQuantity` on payment, storno, or refund (symmetric). |
+| Enforce stock on payment | `Inventory:EnforceStockOnSales` | `Inventory__EnforceStockOnSales` | `false` | When `false`, POS payment does **not** reject for low stock and does **not** change `Product.StockQuantity` on payment, storno, or refund. |
 
 Operator-facing Lager UI in **frontend-admin** is controlled separately via **Next.js** `NEXT_PUBLIC_*` variables (baked at build). See repository `docs/inventory-lager-optional.md` (includes smoke checklist and restart/rebuild table).
 

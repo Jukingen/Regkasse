@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Http;
-
 namespace KasseAPI_Final.Tenancy;
 
 /// <inheritdoc />

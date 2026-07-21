@@ -135,7 +135,8 @@ internal static class TseChainContinuityAnalyzer
 
     private static string? TruncateSig(string? sig)
     {
-        if (string.IsNullOrEmpty(sig)) return sig;
+        if (string.IsNullOrEmpty(sig))
+            return sig;
         return sig.Length <= 48 ? sig : sig[..48] + "…";
     }
 }

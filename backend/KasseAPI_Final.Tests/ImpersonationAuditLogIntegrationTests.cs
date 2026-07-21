@@ -20,7 +20,7 @@ public sealed class ImpersonationAuditLogIntegrationTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"ImpersonationAudit_{Guid.NewGuid():N}")
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static AuditLogService CreateAuditService(AppDbContext context, ClaimsPrincipal? user = null)
@@ -73,7 +73,7 @@ public sealed class ImpersonationAuditLogIntegrationTests
             "super-1",
             Roles.SuperAdmin);
 
-        var row = await context.AuditLogs.AsNoTracking().SingleAsync();
+        var row = await context.AuditLogs.IgnoreQueryFilters().AsNoTracking().SingleAsync();
         Assert.Equal("super-1", row.ImpersonatedBy);
         Assert.Equal(tenantId, row.ImpersonatedTenantId);
     }
@@ -93,7 +93,7 @@ public sealed class ImpersonationAuditLogIntegrationTests
             tenantId,
             "dev");
 
-        var row = await context.AuditLogs.AsNoTracking().SingleAsync();
+        var row = await context.AuditLogs.IgnoreQueryFilters().AsNoTracking().SingleAsync();
         Assert.Equal(AuditLogActions.TENANT_IMPERSONATION_STARTED, row.Action);
         Assert.Equal("super-2", row.ImpersonatedBy);
         Assert.Equal(tenantId, row.ImpersonatedTenantId);

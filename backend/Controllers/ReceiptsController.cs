@@ -1,12 +1,9 @@
-using System;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
 using KasseAPI_Final.Authorization;
-using KasseAPI_Final.Services;
-using KasseAPI_Final.Services.Tse;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
-using Microsoft.Extensions.Logging;
+using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Tse;
+using Microsoft.AspNetCore.Mvc;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -99,7 +96,7 @@ namespace KasseAPI_Final.Controllers
         [HttpPost("create-from-payment/{paymentId}")]
         public async Task<ActionResult<ReceiptDTO>> CreateFromPayment(Guid paymentId)
         {
-             try
+            try
             {
                 var receipt = await _receiptService.CreateReceiptFromPaymentAsync(paymentId);
                 return Ok(receipt);

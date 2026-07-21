@@ -6,7 +6,6 @@ using KasseAPI_Final.Services.Localization;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.Auth;

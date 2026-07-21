@@ -24,7 +24,7 @@ public sealed class CashRegisterManagementServiceTests
             .UseInMemoryDatabase($"CashRegMgmt_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        var ctx = new AppDbContext(options);
+        var ctx = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
         ctx.Tenants.AddRange(
             new Tenant { Id = PrimaryTenantId, Name = "Primary", Slug = "primary" },
             new Tenant { Id = OtherTenantId, Name = "Other", Slug = "other" });

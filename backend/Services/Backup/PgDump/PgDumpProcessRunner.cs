@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Text;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Services.Backup.PgDump;
 
@@ -57,11 +56,13 @@ public sealed class PgDumpProcessRunner : IPgDumpProcessRunner
         var stdout = new StringBuilder();
         proc.ErrorDataReceived += (_, e) =>
         {
-            if (e.Data != null) stderr.AppendLine(e.Data);
+            if (e.Data != null)
+                stderr.AppendLine(e.Data);
         };
         proc.OutputDataReceived += (_, e) =>
         {
-            if (e.Data != null) stdout.AppendLine(e.Data);
+            if (e.Data != null)
+                stdout.AppendLine(e.Data);
         };
 
         _logger.LogInformation(

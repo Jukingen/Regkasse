@@ -1,10 +1,10 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Website;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
-
 namespace KasseAPI_Final.Tests;
 
 public sealed class TenantCustomizationServiceTests
@@ -12,7 +12,7 @@ public sealed class TenantCustomizationServiceTests
     [Fact]
     public async Task Upsert_and_get_applies_theme_fields()
     {
-        var (sut, db, tenantId) = await CreateSutAsync();
+        var (sut, _, tenantId) = await CreateSutAsync();
 
         var result = await sut.UpsertAsync(
             tenantId,
@@ -66,7 +66,7 @@ public sealed class TenantCustomizationServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
             .Options;
-        var db = new AppDbContext(options);
+        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
         var factory = new Factory(options);
         var tenantId = Guid.NewGuid();
         db.Tenants.Add(new Tenant
@@ -92,6 +92,6 @@ public sealed class TenantCustomizationServiceTests
         public Factory(DbContextOptions<AppDbContext> options) => _options = options;
         public AppDbContext CreateDbContext() => new(_options);
         public ValueTask<AppDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
-            new(new AppDbContext(_options));
+            new(new AppDbContext(_options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary)));
     }
 }

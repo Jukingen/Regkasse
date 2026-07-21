@@ -1,5 +1,4 @@
 using System.Text.Json;
-using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
@@ -215,6 +214,8 @@ public sealed class AdminPaymentListFilterTests
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, tenantAccessor);
+        return new AppDbContext(
+            options,
+            tenantAccessor ?? TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 }

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Shared MSBuild defaults for projects under backend/ (API + tests).
+  Project-specific settings stay in each .csproj (TFM, Web SDK, UserSecretsId, output paths).
+-->
+<Project>
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+
+    <!-- Supply-chain: surface known vulnerable packages during restore/build. -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditLevel>moderate</NuGetAuditLevel>
+    <NuGetAuditMode>all</NuGetAuditMode>
+
+    <!-- Reproducible outputs in CI (GitHub Actions sets GITHUB_ACTIONS / CI). -->
+    <ContinuousIntegrationBuild Condition="'$(ContinuousIntegrationBuild)' == '' and ('$(CI)' == 'true' or '$(GITHUB_ACTIONS)' == 'true')">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+</Project>

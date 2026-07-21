@@ -1,6 +1,4 @@
 using KasseAPI_Final.Configuration;
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.Activity;

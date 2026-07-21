@@ -1,9 +1,9 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.DataRetention;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
-
 namespace KasseAPI_Final.Tests;
 
 public sealed class RksvDataRetentionServiceTests
@@ -153,7 +153,7 @@ public sealed class RksvDataRetentionServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
             .Options;
-        return (new AppDbContext(options), new Factory(options));
+        return (new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary)), new Factory(options));
     }
 
     private sealed class Factory : IDbContextFactory<AppDbContext>
@@ -165,6 +165,6 @@ public sealed class RksvDataRetentionServiceTests
         public AppDbContext CreateDbContext() => new(_options);
 
         public ValueTask<AppDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
-            new(new AppDbContext(_options));
+            new(new AppDbContext(_options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary)));
     }
 }

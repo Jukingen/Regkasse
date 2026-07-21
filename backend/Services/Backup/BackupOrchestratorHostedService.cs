@@ -5,9 +5,6 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services.OperationalRuns;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.Backup;
@@ -258,418 +255,284 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
         var adminModeExec = prefExec?.Mode ?? AdminBackupRuntimeExecutionMode.InheritFromConfiguration;
         var effectiveKindExec = BackupEffectiveExecutionAdapterResolver.ResolveEffectiveAdapterKind(opts, adminModeExec);
         var adapter = SelectAdapter(effectiveKindExec, run.Strategy);
-            run.AdapterKind = adapter.AdapterKind;
-            var tenantSlugForFileName = await BackupRunTenantSlugResolver.ResolveSlugAsync(run, db, ct);
-            var artifactFileNameTimestampUtc = DateTime.UtcNow;
-            DateTime? incrementalSinceUtc = null;
-            if (BackupIncrementalPackageMetadata.TryReadIncrementalSinceUtc(run.ConfigSnapshotJson, out var sinceUtc))
-                incrementalSinceUtc = sinceUtc;
+        run.AdapterKind = adapter.AdapterKind;
+        var tenantSlugForFileName = await BackupRunTenantSlugResolver.ResolveSlugAsync(run, db, ct);
+        var artifactFileNameTimestampUtc = DateTime.UtcNow;
+        DateTime? incrementalSinceUtc = null;
+        if (BackupIncrementalPackageMetadata.TryReadIncrementalSinceUtc(run.ConfigSnapshotJson, out var sinceUtc))
+            incrementalSinceUtc = sinceUtc;
 
-            var execContext = new BackupExecutionContext(
+        var execContext = new BackupExecutionContext(
+            run.Id,
+            run.CorrelationId,
+            adapter.AdapterKind,
+            ct,
+            tenantSlugForFileName,
+            artifactFileNameTimestampUtc,
+            run.Strategy,
+            run.TenantId,
+            incrementalSinceUtc);
+
+        BackupExecutionResult result;
+        try
+        {
+            result = await adapter.ExecuteAsync(execContext);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            run.Status = BackupRunStatus.Cancelled;
+            run.CompletedAt = DateTime.UtcNow;
+            run.FailureCode = "CANCELLED";
+            run.FailureDetail = "Backup run cancelled before adapter completed.";
+            BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
+            await db.SaveChangesAsync(ct);
+            return;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Backup adapter threw for run {RunId}", run.Id);
+            run.Status = BackupRunStatus.Failed;
+            run.CompletedAt = DateTime.UtcNow;
+            run.FailureCode = "UNHANDLED_EXCEPTION";
+            run.FailureDetail = ex.Message;
+            BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
+            await db.SaveChangesAsync(ct);
+            await BackupAutomaticRetryCoordinator.TrySchedulePendingRetryAfterTerminalSaveAsync(
+                db, run, opts, DateTime.UtcNow, _logger, ct);
+            _alerts.Publish(new BackupAlertEvent(
+                BackupAlertKind.BackupFailed,
                 run.Id,
                 run.CorrelationId,
-                adapter.AdapterKind,
-                ct,
-                tenantSlugForFileName,
-                artifactFileNameTimestampUtc,
-                run.Strategy,
-                run.TenantId,
-                incrementalSinceUtc);
+                "Adapter threw before completion.",
+                new Dictionary<string, string>
+                {
+                    ["failureStage"] = "unhandled_exception_adapter",
+                    ["tenantSlug"] = tenantSlugForFileName,
+                }));
+            return;
+        }
 
-            BackupExecutionResult result;
-            try
-            {
-                result = await adapter.ExecuteAsync(execContext);
-            }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        if (!result.Success)
+        {
+            if (string.Equals(result.ErrorCode, "PG_DUMP_CANCELLED", StringComparison.Ordinal))
             {
                 run.Status = BackupRunStatus.Cancelled;
                 run.CompletedAt = DateTime.UtcNow;
-                run.FailureCode = "CANCELLED";
-                run.FailureDetail = "Backup run cancelled before adapter completed.";
-                BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
-                await db.SaveChangesAsync(ct);
-                return;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Backup adapter threw for run {RunId}", run.Id);
-                run.Status = BackupRunStatus.Failed;
-                run.CompletedAt = DateTime.UtcNow;
-                run.FailureCode = "UNHANDLED_EXCEPTION";
-                run.FailureDetail = ex.Message;
-                BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
-                await db.SaveChangesAsync(ct);
-                await BackupAutomaticRetryCoordinator.TrySchedulePendingRetryAfterTerminalSaveAsync(
-                    db, run, opts, DateTime.UtcNow, _logger, ct);
-                _alerts.Publish(new BackupAlertEvent(
-                    BackupAlertKind.BackupFailed,
-                    run.Id,
-                    run.CorrelationId,
-                    "Adapter threw before completion.",
-                    new Dictionary<string, string>
-                    {
-                        ["failureStage"] = "unhandled_exception_adapter",
-                        ["tenantSlug"] = tenantSlugForFileName,
-                    }));
-                return;
-            }
-
-            if (!result.Success)
-            {
-                if (string.Equals(result.ErrorCode, "PG_DUMP_CANCELLED", StringComparison.Ordinal))
-                {
-                    run.Status = BackupRunStatus.Cancelled;
-                    run.CompletedAt = DateTime.UtcNow;
-                    run.FailureCode = result.ErrorCode;
-                    run.FailureDetail = result.ErrorDetail;
-                    BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
-                    await db.SaveChangesAsync(ct);
-                    return;
-                }
-
-                run.Status = BackupRunStatus.Failed;
-                run.CompletedAt = DateTime.UtcNow;
-                run.FailureCode = result.ErrorCode ?? "EXECUTION_FAILED";
+                run.FailureCode = result.ErrorCode;
                 run.FailureDetail = result.ErrorDetail;
                 BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
                 await db.SaveChangesAsync(ct);
-                await BackupAutomaticRetryCoordinator.TrySchedulePendingRetryAfterTerminalSaveAsync(
-                    db, run, opts, DateTime.UtcNow, _logger, ct);
-                _logger.LogWarning(
-                    "Backup execution failed: runId={RunId}, adapterKind={AdapterKind}, code={Code}, detail={Detail}",
-                    run.Id,
-                    adapter.AdapterKind,
-                    run.FailureCode,
-                    run.FailureDetail);
-                _alerts.Publish(new BackupAlertEvent(
-                    BackupAlertKind.BackupFailed,
-                    run.Id,
-                    run.CorrelationId,
-                    result.ErrorDetail ?? "Backup execution failed.",
-                    new Dictionary<string, string>
-                    {
-                        ["errorCode"] = run.FailureCode ?? "",
-                        ["adapterKind"] = adapter.AdapterKind,
-                        ["tenantSlug"] = tenantSlugForFileName,
-                    }));
                 return;
             }
 
-            var artifactEntities = new List<BackupArtifact>();
-            foreach (var d in result.Artifacts)
-            {
-                var row = new BackupArtifact
-                {
-                    BackupRunId = run.Id,
-                    ArtifactType = d.ArtifactType,
-                    StorageDescriptor = d.StorageDescriptor,
-                    ByteSize = d.ByteSize,
-                    ContentHashSha256 = d.ContentHashSha256,
-                    MetadataJson = d.MetadataJson,
-                    CreatedAt = DateTime.UtcNow,
-                    LifecycleState = BackupArtifactLifecycleState.Staging
-                };
-                artifactEntities.Add(row);
-                db.BackupArtifacts.Add(row);
-            }
-
-            run.Status = BackupRunStatus.AwaitingVerification;
-            var leaseNow = DateTime.UtcNow;
-            run.LastHeartbeatAtUtc = leaseNow;
-            run.LeaseExpiresAtUtc = leaseNow + opts.RunLeaseTimeout;
+            run.Status = BackupRunStatus.Failed;
+            run.CompletedAt = DateTime.UtcNow;
+            run.FailureCode = result.ErrorCode ?? "EXECUTION_FAILED";
+            run.FailureDetail = result.ErrorDetail;
+            BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
             await db.SaveChangesAsync(ct);
+            await BackupAutomaticRetryCoordinator.TrySchedulePendingRetryAfterTerminalSaveAsync(
+                db, run, opts, DateTime.UtcNow, _logger, ct);
+            _logger.LogWarning(
+                "Backup execution failed: runId={RunId}, adapterKind={AdapterKind}, code={Code}, detail={Detail}",
+                run.Id,
+                adapter.AdapterKind,
+                run.FailureCode,
+                run.FailureDetail);
+            _alerts.Publish(new BackupAlertEvent(
+                BackupAlertKind.BackupFailed,
+                run.Id,
+                run.CorrelationId,
+                result.ErrorDetail ?? "Backup execution failed.",
+                new Dictionary<string, string>
+                {
+                    ["errorCode"] = run.FailureCode ?? "",
+                    ["adapterKind"] = adapter.AdapterKind,
+                    ["tenantSlug"] = tenantSlugForFileName,
+                }));
+            return;
+        }
 
-            var verification = new BackupVerification
+        var artifactEntities = new List<BackupArtifact>();
+        foreach (var d in result.Artifacts)
+        {
+            var row = new BackupArtifact
             {
                 BackupRunId = run.Id,
-                Status = BackupVerificationStatus.Pending,
-                StartedAt = DateTime.UtcNow,
-                VerifierSource = "ArtifactMetadataVerifier.Phase3Pipeline",
-                CompletenessFlag = false
+                ArtifactType = d.ArtifactType,
+                StorageDescriptor = d.StorageDescriptor,
+                ByteSize = d.ByteSize,
+                ContentHashSha256 = d.ContentHashSha256,
+                MetadataJson = d.MetadataJson,
+                CreatedAt = DateTime.UtcNow,
+                LifecycleState = BackupArtifactLifecycleState.Staging
             };
-            db.BackupVerifications.Add(verification);
-            await db.SaveChangesAsync(ct);
+            artifactEntities.Add(row);
+            db.BackupArtifacts.Add(row);
+        }
 
-            BackupVerificationOutcome vOutcome;
-            try
-            {
-                vOutcome = await verifier.VerifyArtifactsAsync(run.Id, result.Artifacts, ct);
-            }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested)
-            {
-                run.Status = BackupRunStatus.Cancelled;
-                run.CompletedAt = DateTime.UtcNow;
-                run.FailureCode = "CANCELLED";
-                run.FailureDetail = "Backup run cancelled during artifact verification.";
-                verification.Status = BackupVerificationStatus.Failed;
-                verification.CompletedAt = DateTime.UtcNow;
-                verification.FailureReason = run.FailureDetail;
-                verification.DetailsJson = JsonSerializer.Serialize(new { error = "cancelled_during_verification" });
-                BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
-                await db.SaveChangesAsync(ct);
-                return;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Verifier threw for run {RunId}", run.Id);
-                verification.Status = BackupVerificationStatus.Failed;
-                verification.CompletedAt = DateTime.UtcNow;
-                verification.FailureReason = ex.Message;
-                verification.DetailsJson = JsonSerializer.Serialize(new { error = "verifier_exception" });
-                run.Status = BackupRunStatus.VerificationFailed;
-                run.CompletedAt = DateTime.UtcNow;
-                run.FailureCode = "VERIFIER_EXCEPTION";
-                run.FailureDetail = ex.Message;
-                BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
-                await db.SaveChangesAsync(ct);
-                await BackupAutomaticRetryCoordinator.TrySchedulePendingRetryAfterTerminalSaveAsync(
-                    db, run, opts, DateTime.UtcNow, _logger, ct);
-                _alerts.Publish(new BackupAlertEvent(
-                    BackupAlertKind.VerificationFailed,
-                    run.Id,
-                    run.CorrelationId,
-                    "Artifact metadata verifier threw.",
-                    new Dictionary<string, string>
-                    {
-                        ["failureStage"] = "verifier_exception",
-                        ["tenantSlug"] = tenantSlugForFileName,
-                    }));
-                return;
-            }
+        run.Status = BackupRunStatus.AwaitingVerification;
+        var leaseNow = DateTime.UtcNow;
+        run.LastHeartbeatAtUtc = leaseNow;
+        run.LeaseExpiresAtUtc = leaseNow + opts.RunLeaseTimeout;
+        await db.SaveChangesAsync(ct);
 
+        var verification = new BackupVerification
+        {
+            BackupRunId = run.Id,
+            Status = BackupVerificationStatus.Pending,
+            StartedAt = DateTime.UtcNow,
+            VerifierSource = "ArtifactMetadataVerifier.Phase3Pipeline",
+            CompletenessFlag = false
+        };
+        db.BackupVerifications.Add(verification);
+        await db.SaveChangesAsync(ct);
+
+        BackupVerificationOutcome vOutcome;
+        try
+        {
+            vOutcome = await verifier.VerifyArtifactsAsync(run.Id, result.Artifacts, ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            run.Status = BackupRunStatus.Cancelled;
+            run.CompletedAt = DateTime.UtcNow;
+            run.FailureCode = "CANCELLED";
+            run.FailureDetail = "Backup run cancelled during artifact verification.";
+            verification.Status = BackupVerificationStatus.Failed;
             verification.CompletedAt = DateTime.UtcNow;
-            verification.CompletenessFlag = vOutcome.CompletenessFlag;
-
-            if (!vOutcome.Passed)
-            {
-                verification.Status = BackupVerificationStatus.Failed;
-                verification.FailureReason = vOutcome.FailureReason;
-                verification.DetailsJson = vOutcome.DetailsJson;
-                run.Status = BackupRunStatus.VerificationFailed;
-                run.CompletedAt = DateTime.UtcNow;
-                run.FailureCode = "VERIFICATION_FAILED";
-                run.FailureDetail = vOutcome.FailureReason;
-                _logger.LogWarning(
-                    "Backup artifact metadata verification failed: runId={RunId}, reason={Reason}",
-                    run.Id,
-                    vOutcome.FailureReason);
-                _alerts.Publish(new BackupAlertEvent(
-                    BackupAlertKind.VerificationFailed,
-                    run.Id,
-                    run.CorrelationId,
-                    vOutcome.FailureReason ?? "Artifact metadata verification failed.",
-                    new Dictionary<string, string>
-                    {
-                        ["failureStage"] = "artifact_metadata_verification",
-                        ["tenantSlug"] = tenantSlugForFileName,
-                    }));
-                BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
-                await db.SaveChangesAsync(ct);
-                await BackupAutomaticRetryCoordinator.TrySchedulePendingRetryAfterTerminalSaveAsync(
-                    db, run, opts, DateTime.UtcNow, _logger, ct);
-                return;
-            }
-
-            var completenessFailure = BackupCompletenessSuccessPolicy.GetIncompleteVerifiedArtifactSetFailureReason(
-                opts.ExecutionAdapterKind,
-                vOutcome);
-            if (completenessFailure != null)
-            {
-                var gateDetails = string.IsNullOrWhiteSpace(vOutcome.DetailsJson)
-                    ? new JsonObject()
-                    : JsonNode.Parse(vOutcome.DetailsJson)!.AsObject();
-                gateDetails["completenessGate"] = JsonSerializer.SerializeToNode(new
+            verification.FailureReason = run.FailureDetail;
+            verification.DetailsJson = JsonSerializer.Serialize(new { error = "cancelled_during_verification" });
+            BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
+            await db.SaveChangesAsync(ct);
+            return;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Verifier threw for run {RunId}", run.Id);
+            verification.Status = BackupVerificationStatus.Failed;
+            verification.CompletedAt = DateTime.UtcNow;
+            verification.FailureReason = ex.Message;
+            verification.DetailsJson = JsonSerializer.Serialize(new { error = "verifier_exception" });
+            run.Status = BackupRunStatus.VerificationFailed;
+            run.CompletedAt = DateTime.UtcNow;
+            run.FailureCode = "VERIFIER_EXCEPTION";
+            run.FailureDetail = ex.Message;
+            BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
+            await db.SaveChangesAsync(ct);
+            await BackupAutomaticRetryCoordinator.TrySchedulePendingRetryAfterTerminalSaveAsync(
+                db, run, opts, DateTime.UtcNow, _logger, ct);
+            _alerts.Publish(new BackupAlertEvent(
+                BackupAlertKind.VerificationFailed,
+                run.Id,
+                run.CorrelationId,
+                "Artifact metadata verifier threw.",
+                new Dictionary<string, string>
                 {
-                    failed = true,
-                    requiredLogicalDumpInVerifiedSet = true,
-                    executionAdapterKind = opts.ExecutionAdapterKind.ToString()
-                });
-                verification.Status = BackupVerificationStatus.Failed;
-                verification.FailureReason = completenessFailure;
-                verification.DetailsJson = gateDetails.ToJsonString();
-                run.Status = BackupRunStatus.VerificationFailed;
-                run.CompletedAt = DateTime.UtcNow;
-                run.FailureCode = "INCOMPLETE_VERIFIED_ARTIFACT_SET";
-                run.FailureDetail = completenessFailure;
-                _logger.LogWarning(
-                    "Backup completeness gate failed: runId={RunId}, adapterKind={AdapterKind}, reason={Reason}",
-                    run.Id,
-                    opts.ExecutionAdapterKind,
-                    completenessFailure);
-                _alerts.Publish(new BackupAlertEvent(
-                    BackupAlertKind.VerificationFailed,
-                    run.Id,
-                    run.CorrelationId,
-                    completenessFailure,
-                    new Dictionary<string, string>
-                    {
-                        ["failureStage"] = "incomplete_verified_artifact_set",
-                        ["tenantSlug"] = tenantSlugForFileName,
-                    }));
-                BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
-                await db.SaveChangesAsync(ct);
-                await BackupAutomaticRetryCoordinator.TrySchedulePendingRetryAfterTerminalSaveAsync(
-                    db, run, opts, DateTime.UtcNow, _logger, ct);
-                return;
-            }
+                    ["failureStage"] = "verifier_exception",
+                    ["tenantSlug"] = tenantSlugForFileName,
+                }));
+            return;
+        }
 
-            var detailsRoot = string.IsNullOrWhiteSpace(vOutcome.DetailsJson)
+        verification.CompletedAt = DateTime.UtcNow;
+        verification.CompletenessFlag = vOutcome.CompletenessFlag;
+
+        if (!vOutcome.Passed)
+        {
+            verification.Status = BackupVerificationStatus.Failed;
+            verification.FailureReason = vOutcome.FailureReason;
+            verification.DetailsJson = vOutcome.DetailsJson;
+            run.Status = BackupRunStatus.VerificationFailed;
+            run.CompletedAt = DateTime.UtcNow;
+            run.FailureCode = "VERIFICATION_FAILED";
+            run.FailureDetail = vOutcome.FailureReason;
+            _logger.LogWarning(
+                "Backup artifact metadata verification failed: runId={RunId}, reason={Reason}",
+                run.Id,
+                vOutcome.FailureReason);
+            _alerts.Publish(new BackupAlertEvent(
+                BackupAlertKind.VerificationFailed,
+                run.Id,
+                run.CorrelationId,
+                vOutcome.FailureReason ?? "Artifact metadata verification failed.",
+                new Dictionary<string, string>
+                {
+                    ["failureStage"] = "artifact_metadata_verification",
+                    ["tenantSlug"] = tenantSlugForFileName,
+                }));
+            BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
+            await db.SaveChangesAsync(ct);
+            await BackupAutomaticRetryCoordinator.TrySchedulePendingRetryAfterTerminalSaveAsync(
+                db, run, opts, DateTime.UtcNow, _logger, ct);
+            return;
+        }
+
+        var completenessFailure = BackupCompletenessSuccessPolicy.GetIncompleteVerifiedArtifactSetFailureReason(
+            opts.ExecutionAdapterKind,
+            vOutcome);
+        if (completenessFailure != null)
+        {
+            var gateDetails = string.IsNullOrWhiteSpace(vOutcome.DetailsJson)
                 ? new JsonObject()
                 : JsonNode.Parse(vOutcome.DetailsJson)!.AsObject();
-
-            foreach (var row in artifactEntities)
+            gateDetails["completenessGate"] = JsonSerializer.SerializeToNode(new
             {
-                row.LifecycleState = BackupArtifactLifecycleState.StagingVerified;
-                row.MetadataJson = BackupArtifactMetadataExtensions.MergePipelineFragment(
-                    row.MetadataJson,
-                    new { stagingVerification = "passed" });
-            }
-
-            var adapterKind = opts.ExecutionAdapterKind;
-            if (!BackupArtifactPipelinePolicyEvaluator.ShouldRunExternalArchiveAfterStagingVerification(
-                    adapterKind,
-                    _hostEnvironment,
-                    opts))
-            {
-                detailsRoot["externalArchive"] = JsonSerializer.SerializeToNode(new
-                {
-                    skipped = true,
-                    reason = "adapter_not_pg_dump_or_development_without_external_root"
-                });
-                verification.Status = BackupVerificationStatus.Passed;
-                verification.FailureReason = null;
-                verification.DetailsJson = detailsRoot.ToJsonString();
-                run.Status = BackupRunStatus.Succeeded;
-                run.CompletedAt = DateTime.UtcNow;
-                run.FailureCode = null;
-                run.FailureDetail = null;
-                BackupAutomaticRetryCoordinator.ClearAutomaticRetryPlanningFieldsOnSuccess(run);
-                await db.SaveChangesAsync(ct);
-                try
-                {
-                    await postSuccess.NotifySucceededAsync(db, run, ct);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex,
-                        "Backup post-success hook failed after terminal success runId={RunId}",
-                        run.Id);
-                }
-                _logger.LogInformation(
-                    "Backup run succeeded (staging verification; external archive skipped): runId={RunId}, adapterKind={AdapterKind}",
-                    run.Id,
-                    adapter.AdapterKind);
-                return;
-            }
-
-            var stagingRootFull = string.IsNullOrWhiteSpace(opts.ArtifactStagingRoot)
-                ? null
-                : Path.GetFullPath(opts.ArtifactStagingRoot.Trim());
-            if (string.IsNullOrWhiteSpace(stagingRootFull))
-            {
-                foreach (var row in artifactEntities)
-                {
-                    row.LifecycleState = BackupArtifactLifecycleState.ExternalCopyFailed;
-                    row.MetadataJson = BackupArtifactMetadataExtensions.MergePipelineFragment(
-                        row.MetadataJson,
-                        new { externalCopy = "failed", code = "MISSING_STAGING_ROOT" });
-                }
-
-                verification.Status = BackupVerificationStatus.Failed;
-                verification.FailureReason = "External archive requires Backup:ArtifactStagingRoot.";
-                detailsRoot["externalArchive"] = JsonSerializer.SerializeToNode(new { success = false, code = "MISSING_STAGING_ROOT" });
-                verification.DetailsJson = detailsRoot.ToJsonString();
-                run.Status = BackupRunStatus.VerificationFailed;
-                run.CompletedAt = DateTime.UtcNow;
-                run.FailureCode = "EXTERNAL_ARCHIVE_FAILED";
-                run.FailureDetail = verification.FailureReason;
-                BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
-                await db.SaveChangesAsync(ct);
-                await BackupAutomaticRetryCoordinator.TrySchedulePendingRetryAfterTerminalSaveAsync(
-                    db, run, opts, DateTime.UtcNow, _logger, ct);
-                _alerts.Publish(new BackupAlertEvent(
-                    BackupAlertKind.VerificationFailed,
-                    run.Id,
-                    run.CorrelationId,
-                    verification.FailureReason,
-                    new Dictionary<string, string>
-                    {
-                        ["failureStage"] = "external_archive_precheck",
-                        ["tenantSlug"] = tenantSlugForFileName,
-                    }));
-                return;
-            }
-
-            var extRoot = Path.GetFullPath(opts.ExternalArchiveRoot!.Trim());
-            var extOutcome = await _externalArchive.CopyStagingArtifactsAsync(
+                failed = true,
+                requiredLogicalDumpInVerifiedSet = true,
+                executionAdapterKind = opts.ExecutionAdapterKind.ToString()
+            });
+            verification.Status = BackupVerificationStatus.Failed;
+            verification.FailureReason = completenessFailure;
+            verification.DetailsJson = gateDetails.ToJsonString();
+            run.Status = BackupRunStatus.VerificationFailed;
+            run.CompletedAt = DateTime.UtcNow;
+            run.FailureCode = "INCOMPLETE_VERIFIED_ARTIFACT_SET";
+            run.FailureDetail = completenessFailure;
+            _logger.LogWarning(
+                "Backup completeness gate failed: runId={RunId}, adapterKind={AdapterKind}, reason={Reason}",
                 run.Id,
-                stagingRootFull,
-                extRoot,
-                result.Artifacts,
-                ct);
-
-            if (!extOutcome.Success)
-            {
-                foreach (var row in artifactEntities)
+                opts.ExecutionAdapterKind,
+                completenessFailure);
+            _alerts.Publish(new BackupAlertEvent(
+                BackupAlertKind.VerificationFailed,
+                run.Id,
+                run.CorrelationId,
+                completenessFailure,
+                new Dictionary<string, string>
                 {
-                    row.LifecycleState = BackupArtifactLifecycleState.ExternalCopyFailed;
-                    row.MetadataJson = BackupArtifactMetadataExtensions.MergePipelineFragment(
-                        row.MetadataJson,
-                        new { externalCopy = "failed", code = extOutcome.ErrorCode });
-                }
+                    ["failureStage"] = "incomplete_verified_artifact_set",
+                    ["tenantSlug"] = tenantSlugForFileName,
+                }));
+            BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
+            await db.SaveChangesAsync(ct);
+            await BackupAutomaticRetryCoordinator.TrySchedulePendingRetryAfterTerminalSaveAsync(
+                db, run, opts, DateTime.UtcNow, _logger, ct);
+            return;
+        }
 
-                verification.Status = BackupVerificationStatus.Failed;
-                verification.FailureReason = extOutcome.ErrorDetail;
-                detailsRoot["externalArchive"] = JsonSerializer.SerializeToNode(new
-                {
-                    success = false,
-                    code = extOutcome.ErrorCode
-                });
-                verification.DetailsJson = detailsRoot.ToJsonString();
-                run.Status = BackupRunStatus.VerificationFailed;
-                run.CompletedAt = DateTime.UtcNow;
-                run.FailureCode = "EXTERNAL_ARCHIVE_FAILED";
-                run.FailureDetail = extOutcome.ErrorDetail;
-                BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
-                await db.SaveChangesAsync(ct);
-                await BackupAutomaticRetryCoordinator.TrySchedulePendingRetryAfterTerminalSaveAsync(
-                    db, run, opts, DateTime.UtcNow, _logger, ct);
-                _logger.LogWarning(
-                    "Backup external archive failed: runId={RunId}, code={Code}, detail={Detail}",
-                    run.Id,
-                    extOutcome.ErrorCode,
-                    extOutcome.ErrorDetail);
-                _alerts.Publish(new BackupAlertEvent(
-                    BackupAlertKind.VerificationFailed,
-                    run.Id,
-                    run.CorrelationId,
-                    extOutcome.ErrorDetail ?? "External archive failed.",
-                    new Dictionary<string, string>
-                    {
-                        ["failureStage"] = "external_archive_copy",
-                        ["errorCode"] = extOutcome.ErrorCode ?? "",
-                        ["tenantSlug"] = tenantSlugForFileName,
-                    }));
-                return;
-            }
+        var detailsRoot = string.IsNullOrWhiteSpace(vOutcome.DetailsJson)
+            ? new JsonObject()
+            : JsonNode.Parse(vOutcome.DetailsJson)!.AsObject();
 
-            foreach (var row in artifactEntities)
-            {
-                row.LifecycleState = BackupArtifactLifecycleState.ExternalCopyVerified;
-                if (extOutcome.RedactedLocators.TryGetValue(row.ArtifactType, out var loc))
-                {
-                    row.ExternalRedactedLocator = loc;
-                    row.MetadataJson = BackupArtifactMetadataExtensions.MergePipelineFragment(
-                        row.MetadataJson,
-                        new { externalCopy = "verified", redactedLocator = loc });
-                }
-            }
+        foreach (var row in artifactEntities)
+        {
+            row.LifecycleState = BackupArtifactLifecycleState.StagingVerified;
+            row.MetadataJson = BackupArtifactMetadataExtensions.MergePipelineFragment(
+                row.MetadataJson,
+                new { stagingVerification = "passed" });
+        }
 
+        var adapterKind = opts.ExecutionAdapterKind;
+        if (!BackupArtifactPipelinePolicyEvaluator.ShouldRunExternalArchiveAfterStagingVerification(
+                adapterKind,
+                _hostEnvironment,
+                opts))
+        {
             detailsRoot["externalArchive"] = JsonSerializer.SerializeToNode(new
             {
-                success = true,
-                postCopyHashVerified = true
+                skipped = true,
+                reason = "adapter_not_pg_dump_or_development_without_external_root"
             });
             verification.Status = BackupVerificationStatus.Passed;
             verification.FailureReason = null;
@@ -690,10 +553,144 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
                     "Backup post-success hook failed after terminal success runId={RunId}",
                     run.Id);
             }
-
             _logger.LogInformation(
-                "Backup run succeeded after staging + external archive verification: runId={RunId}, adapterKind={AdapterKind}",
+                "Backup run succeeded (staging verification; external archive skipped): runId={RunId}, adapterKind={AdapterKind}",
                 run.Id,
                 adapter.AdapterKind);
+            return;
+        }
+
+        var stagingRootFull = string.IsNullOrWhiteSpace(opts.ArtifactStagingRoot)
+            ? null
+            : Path.GetFullPath(opts.ArtifactStagingRoot.Trim());
+        if (string.IsNullOrWhiteSpace(stagingRootFull))
+        {
+            foreach (var row in artifactEntities)
+            {
+                row.LifecycleState = BackupArtifactLifecycleState.ExternalCopyFailed;
+                row.MetadataJson = BackupArtifactMetadataExtensions.MergePipelineFragment(
+                    row.MetadataJson,
+                    new { externalCopy = "failed", code = "MISSING_STAGING_ROOT" });
+            }
+
+            verification.Status = BackupVerificationStatus.Failed;
+            verification.FailureReason = "External archive requires Backup:ArtifactStagingRoot.";
+            detailsRoot["externalArchive"] = JsonSerializer.SerializeToNode(new { success = false, code = "MISSING_STAGING_ROOT" });
+            verification.DetailsJson = detailsRoot.ToJsonString();
+            run.Status = BackupRunStatus.VerificationFailed;
+            run.CompletedAt = DateTime.UtcNow;
+            run.FailureCode = "EXTERNAL_ARCHIVE_FAILED";
+            run.FailureDetail = verification.FailureReason;
+            BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
+            await db.SaveChangesAsync(ct);
+            await BackupAutomaticRetryCoordinator.TrySchedulePendingRetryAfterTerminalSaveAsync(
+                db, run, opts, DateTime.UtcNow, _logger, ct);
+            _alerts.Publish(new BackupAlertEvent(
+                BackupAlertKind.VerificationFailed,
+                run.Id,
+                run.CorrelationId,
+                verification.FailureReason,
+                new Dictionary<string, string>
+                {
+                    ["failureStage"] = "external_archive_precheck",
+                    ["tenantSlug"] = tenantSlugForFileName,
+                }));
+            return;
+        }
+
+        var extRoot = Path.GetFullPath(opts.ExternalArchiveRoot!.Trim());
+        var extOutcome = await _externalArchive.CopyStagingArtifactsAsync(
+            run.Id,
+            stagingRootFull,
+            extRoot,
+            result.Artifacts,
+            ct);
+
+        if (!extOutcome.Success)
+        {
+            foreach (var row in artifactEntities)
+            {
+                row.LifecycleState = BackupArtifactLifecycleState.ExternalCopyFailed;
+                row.MetadataJson = BackupArtifactMetadataExtensions.MergePipelineFragment(
+                    row.MetadataJson,
+                    new { externalCopy = "failed", code = extOutcome.ErrorCode });
+            }
+
+            verification.Status = BackupVerificationStatus.Failed;
+            verification.FailureReason = extOutcome.ErrorDetail;
+            detailsRoot["externalArchive"] = JsonSerializer.SerializeToNode(new
+            {
+                success = false,
+                code = extOutcome.ErrorCode
+            });
+            verification.DetailsJson = detailsRoot.ToJsonString();
+            run.Status = BackupRunStatus.VerificationFailed;
+            run.CompletedAt = DateTime.UtcNow;
+            run.FailureCode = "EXTERNAL_ARCHIVE_FAILED";
+            run.FailureDetail = extOutcome.ErrorDetail;
+            BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
+            await db.SaveChangesAsync(ct);
+            await BackupAutomaticRetryCoordinator.TrySchedulePendingRetryAfterTerminalSaveAsync(
+                db, run, opts, DateTime.UtcNow, _logger, ct);
+            _logger.LogWarning(
+                "Backup external archive failed: runId={RunId}, code={Code}, detail={Detail}",
+                run.Id,
+                extOutcome.ErrorCode,
+                extOutcome.ErrorDetail);
+            _alerts.Publish(new BackupAlertEvent(
+                BackupAlertKind.VerificationFailed,
+                run.Id,
+                run.CorrelationId,
+                extOutcome.ErrorDetail ?? "External archive failed.",
+                new Dictionary<string, string>
+                {
+                    ["failureStage"] = "external_archive_copy",
+                    ["errorCode"] = extOutcome.ErrorCode ?? "",
+                    ["tenantSlug"] = tenantSlugForFileName,
+                }));
+            return;
+        }
+
+        foreach (var row in artifactEntities)
+        {
+            row.LifecycleState = BackupArtifactLifecycleState.ExternalCopyVerified;
+            if (extOutcome.RedactedLocators.TryGetValue(row.ArtifactType, out var loc))
+            {
+                row.ExternalRedactedLocator = loc;
+                row.MetadataJson = BackupArtifactMetadataExtensions.MergePipelineFragment(
+                    row.MetadataJson,
+                    new { externalCopy = "verified", redactedLocator = loc });
+            }
+        }
+
+        detailsRoot["externalArchive"] = JsonSerializer.SerializeToNode(new
+        {
+            success = true,
+            postCopyHashVerified = true
+        });
+        verification.Status = BackupVerificationStatus.Passed;
+        verification.FailureReason = null;
+        verification.DetailsJson = detailsRoot.ToJsonString();
+        run.Status = BackupRunStatus.Succeeded;
+        run.CompletedAt = DateTime.UtcNow;
+        run.FailureCode = null;
+        run.FailureDetail = null;
+        BackupAutomaticRetryCoordinator.ClearAutomaticRetryPlanningFieldsOnSuccess(run);
+        await db.SaveChangesAsync(ct);
+        try
+        {
+            await postSuccess.NotifySucceededAsync(db, run, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Backup post-success hook failed after terminal success runId={RunId}",
+                run.Id);
+        }
+
+        _logger.LogInformation(
+            "Backup run succeeded after staging + external archive verification: runId={RunId}, adapterKind={AdapterKind}",
+            run.Id,
+            adapter.AdapterKind);
     }
 }

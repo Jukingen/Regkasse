@@ -20,8 +20,6 @@ public interface IBulkUserImportService
 public sealed class BulkUserImportService : IBulkUserImportService
 {
     public const int BatchSize = 100;
-    private const int MaxErrorsInPollPayload = 100;
-
     private static readonly HashSet<string> AllowedRoles = new(StringComparer.OrdinalIgnoreCase)
     {
         Roles.Manager,

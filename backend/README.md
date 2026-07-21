@@ -1,215 +1,267 @@
 # Regkasse Backend (KasseAPI)
 
-ASP.NET Core Web API (`net10.0`), EF Core + PostgreSQL, JWT auth, RKSV/TSE/fiscal services.
+ASP.NET Core Web API for Regkasse POS / Admin: multi-tenant auth, payments, RKSV/TSE fiscal flows, backup, and billing.
 
-## Quick start (local)
+## Tech Stack
+
+| Layer | Choice |
+|-------|--------|
+| Runtime | .NET **10** (`net10.0`) |
+| Host | `WebApplication` in `ApplicationHost.cs` (`Program.cs` boots only — no `Startup.cs`) |
+| Data | EF Core **10** + **Npgsql** / PostgreSQL |
+| Auth | ASP.NET Identity + JWT Bearer; permission policies (`Authorization/`) |
+| API docs | Swashbuckle / OpenAPI 3 — Dev UI at `/swagger` ([`docs/SWAGGER_GUARDRAILS.md`](docs/SWAGGER_GUARDRAILS.md)) |
+| Health | `GET /api/health`, `/api/health/live`, `/api/health/ready` |
+| Cache | Redis (`ICacheService`) + process `IMemoryCache` for lockout/rate-limit |
+| Observability | prometheus-net; structured logging |
+| Build config | [`nuget.config`](nuget.config) (nuget.org only), [`Directory.Build.props`](Directory.Build.props), [`.editorconfig`](.editorconfig) |
+| Container | Multi-stage [`Dockerfile`](Dockerfile) → `aspnet:10.0`, port **8080** |
+| Tests | xUnit + FluentAssertions + Moq; `Microsoft.AspNetCore.Mvc.Testing`; Testcontainers (PostgreSQL) |
+
+Package versions are pinned in `KasseAPI_Final.csproj` (e.g. EF/Identity `10.0.10`, Swashbuckle `10.2.3`).
+
+## Setup
+
+### Prerequisites
+
+- .NET SDK **10.x**
+- PostgreSQL **16+** (local or Docker)
+- Optional: Redis (see [`CONFIGURATION.md`](CONFIGURATION.md)), Docker Desktop (image build / Testcontainers)
+
+### Configure
 
 ```powershell
-dotnet run --project backend/KasseAPI_Final.csproj
+cd backend
+# First time: copy templates (real appsettings*.json are gitignored)
+copy appsettings.example.json appsettings.json
+copy appsettings.Development.example.json appsettings.Development.json
+
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=kasse_db;Username=postgres;Password=YOUR_PASSWORD"
+dotnet user-secrets set "JwtSettings:SecretKey" "YOUR_RANDOM_KEY_AT_LEAST_32_CHARS"
 ```
 
-Default development URL is configured in `appsettings.Development.json` (typically `http://localhost:5184`).
+| Layer | File | Role |
+|-------|------|------|
+| Base | `appsettings.json` | Safe defaults (no DB password / JWT secret / PEMs) |
+| Development | `appsettings.Development.json` | Fake TSE, FO simulation, 2FA/CSRF off or bypass |
+| Production | `appsettings.Production.json` | Real RKSV/FO flags — **still no secrets** |
+| Secrets | User secrets / env | `ConnectionStrings__DefaultConnection`, `JwtSettings__SecretKey`, … |
 
-## Development Setup for Multi-Tenant Testing
+Tracked templates: `appsettings*.example.json`. Full map: [`CONFIGURATION.md`](CONFIGURATION.md).
 
-Requires `ASPNETCORE_ENVIRONMENT=Development` and a matching `tenants.slug` row in the database.
+### Restore, build, run
 
-### Option 1: Header-based (simplest)
+```powershell
+dotnet restore KasseAPI_Final.csproj
+dotnet build KasseAPI_Final.csproj
+dotnet run --project KasseAPI_Final.csproj
+```
+
+- Default Dev URL: **`http://localhost:5184`**
+- Swagger (Development only): **`http://localhost:5184/swagger`**
+- OpenAPI JSON: `/swagger/v1/swagger.json`
+- CORS policy `RegkasseClients`: Dev = local/LAN; Prod = `Cors:AllowedOrigins` + HTTPS `*.regkasse.at`
+
+### Format
+
+```powershell
+dotnet format KasseAPI_Final.sln
+dotnet format whitespace KasseAPI_Final.sln --verify-no-changes
+dotnet format style KasseAPI_Final.sln --severity warn --verify-no-changes
+```
+
+Rules live in [`.editorconfig`](.editorconfig) (4-space C#, file-scoped namespaces preferred; Migrations marked `generated_code`).
+
+### Multi-tenant local smoke
+
+Requires `ASPNETCORE_ENVIRONMENT=Development` and a matching `tenants.slug` row.
 
 ```bash
+# Header (simplest)
 curl -H "X-Tenant-Id: dev" http://localhost:5184/api/health
-```
 
-### Option 2: Query string
-
-```bash
+# Query
 curl "http://localhost:5184/api/admin/payments?tenant=dev"
 ```
 
-### Option 3: Localhost subdomains (hosts file)
+Hosts-file option: `127.0.0.1 dev.localhost` → `http://dev.localhost:5184`. FA/POS switchers: repo root `REGKASSE_AI_ONBOARDING.md`.
 
-```text
-127.0.0.1 dev.localhost
-127.0.0.1 prod.localhost
+### Configuration notes (2026-07-21)
+
+Base overlays include `TwoFactorAuth`, `Security:Csrf`, `FinanzOnline*`, `Backup`, `Monitoring`, `License` (no PEMs in JSON). JWT secret and connection strings must come from user secrets / env — never commit them.
+
+## Testing
+
+Project: `KasseAPI_Final.Tests/` (xUnit). Test `obj`/`bin` live under `backend/obj/Tests` and `backend/bin/Tests` (see `KasseAPI_Final.Tests/Directory.Build.props`).
+
+```powershell
+cd backend
+
+# Default local / CI unit + in-memory suite (skip PostgreSQL-tagged)
+dotnet test KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj --filter "Category!=PostgreSql"
+
+# PostgreSQL-tagged (Testcontainers if Docker is up, or set REGKASSE_TEST_POSTGRES)
+dotnet test KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj --filter "Category=PostgreSql"
+
+# Narrow filters (examples)
+dotnet test --filter "FullyQualifiedName~TenantIsolation"
+dotnet test --filter "FullyQualifiedName~OpenApiSchemaIdSelectorTests"
 ```
 
-Then: `http://dev.localhost:5184` (slug = first host label: `dev`).
+| CI workflow | What it runs |
+|-------------|--------------|
+| `.github/workflows/backend-unit-tests.yml` | `Category!=PostgreSql` |
+| `.github/workflows/backend-postgres-integration-tests.yml` | `Category=PostgreSql` |
+| `.github/workflows/api-contract-tests.yml` | Contract-related tests |
 
-FA/POS UI switchers and POS `.env`: `REGKASSE_AI_ONBOARDING.md`.
+Clear `REGKASSE_OPENAPI_EXPORT` / accidental OpenAPI-export env when running normal tests (CI does this). Details: [`docs/backend-postgresql-integration-tests.md`](../docs/backend-postgresql-integration-tests.md).
 
-## Multi-Tenant Architecture
+OpenAPI contract (repo root):
 
-Regkasse uses a multi-tenant architecture where a single backend instance serves multiple tenants (companies/customers).
+```bash
+node scripts/generate-backend-openapi.mjs
+node scripts/validate-critical-openapi-paths.mjs
+```
 
-### Tenant Identification
+## Deployment
 
-- Tenants are identified by subdomain: `{tenant}.regkasse.at`
-- Examples: `dev.regkasse.at`, `prod.regkasse.at`, `market.regkasse.at`
-- Super Admin accesses `admin.regkasse.at`
+### Docker
 
-### Data Isolation
+Multi-stage image: `restore` → `build` → `publish` → `aspnet` runtime.  
+**Build context must be the repository root** (`ProjectReference` → `tools/LicenseGenerator.Core`).
 
-- Tenant-scoped entities implement `ITenantEntity` with non-null `tenant_id`
-- Entity Framework global query filters in `AppDbContext` filter by `ICurrentTenantAccessor.TenantId`
-- Tenants can NEVER see other tenants' data
-- Cross-tenant access attempts return HTTP 404
+```bash
+# From repository root
+docker build -f backend/Dockerfile -t regkasse-api:local .
 
-### Development Mode
+docker run --rm -p 5184:8080 \
+  -e ASPNETCORE_ENVIRONMENT=Production \
+  -e ConnectionStrings__DefaultConnection="Host=host.docker.internal;Port=5432;Database=kasse_db;Username=postgres;Password=YOUR_PASSWORD" \
+  -e JwtSettings__SecretKey="YOUR_RANDOM_KEY_AT_LEAST_32_CHARS" \
+  --name regkasse-api \
+  regkasse-api:local
+```
 
-- Localhost: use `X-Tenant-Id` header or `?tenant=` query parameter (`Tenancy/SubdomainTenantProvider.cs`)
-- Or use hosts-file domains: `*.regkasse.local` / `*.local` (`Tenancy/TenantHostNames.cs`)
+| Detail | Value |
+|--------|--------|
+| Listen | **8080** inside the container (`ASPNETCORE_URLS`) |
+| Healthcheck | `GET /api/health/live` |
+| Config in image | Copied from `appsettings*.example.json` only (secrets via env) |
+| Ignore files | `.dockerignore`, `Dockerfile.dockerignore` (BuildKit) |
 
-## API Headers
+Smoke:
 
-### Tenant Identification
+```bash
+curl -fsS http://localhost:5184/api/health/live
+curl -fsS http://localhost:5184/api/health/ready   # needs PostgreSQL
+```
 
-- **Production:** Tenant from `Host` subdomain (automatic).
-- **Development:** `X-Tenant-Id: {slug}` (tenant slug, not UUID).
-- **Development:** `?tenant={slug}` query parameter.
+Without Docker: `dotnet publish -c Release -o ./artifacts/docker-publish /p:UseAppHost=false`.
 
-### Super Admin Endpoints
+### Production hosts & DNS
 
-- `/api/admin/tenants/*` — `SuperAdmin` role required.
-- Operates on global `tenants` table (not `ITenantEntity` filtered).
-- Use `POST /api/admin/tenants/{tenantId}/impersonate` for tenant-scoped operational APIs.
+| Surface | Typical host |
+|---------|----------------|
+| API | `https://api.regkasse.at` |
+| Admin (FA) | `https://admin.regkasse.at` |
+| POS UI | `https://pos.regkasse.at` (single POS UI — JWT `tenant_id`) |
 
-### Super Admin
+- Wildcard **A** / TLS for `*.regkasse.at` where subdomain routing is used.
+- Reverse proxy must forward the original `Host` header.
+- Authenticated API traffic is scoped by JWT `tenant_id`; do not rely on `X-Tenant-Id` in Production.
 
-Access: `admin.regkasse.at`. Role: **`SuperAdmin`** on all `/api/admin/tenants/*` routes.
+### Required environment (Production)
+
+| Variable | Purpose |
+|----------|---------|
+| `ASPNETCORE_ENVIRONMENT` | `Production` |
+| `ConnectionStrings__DefaultConnection` | PostgreSQL (prefer pooling options — see `CONFIGURATION.md`) |
+| `JwtSettings__SecretKey` | ≥ 32 characters |
+| `JwtSettings__Issuer` / `JwtSettings__Audience` | If not baked in config |
+| `Cors__AllowedOrigins__*` | Explicit origins as needed (custom website domains) |
+
+Apply migrations before traffic:
+
+```bash
+dotnet ef database update --project KasseAPI_Final.csproj --startup-project KasseAPI_Final.csproj
+```
+
+## Multi-tenant architecture
+
+- Tenant-scoped entities implement `ITenantEntity` with non-null `tenant_id`.
+- EF global query filters in `AppDbContext` use `ICurrentTenantAccessor.TenantId`.
+- Cross-tenant access by id → **HTTP 404** (not 403).
+- **Development:** `X-Tenant-Id` / `?tenant={slug}` or `*.local` hosts.
+- **Production:** no Dev header/query overrides; JWT + host rules per [`../docs/MULTI_TENANT.md`](../docs/MULTI_TENANT.md).
+
+### Super Admin (`SuperAdmin`)
 
 | Method | Route | Purpose |
 |--------|-------|---------|
-| `GET` | `/api/admin/tenants` | List tenants (`?includeDeleted=`) |
+| `GET` | `/api/admin/tenants` | List (`?includeDeleted=`) |
 | `GET` | `/api/admin/tenants/{tenantId}` | Detail |
 | `POST` | `/api/admin/tenants` | Create |
 | `PUT` | `/api/admin/tenants/{tenantId}` | Update / suspend / reactivate |
 | `DELETE` | `/api/admin/tenants/{tenantId}` | Soft-delete |
-| `POST` | `/api/admin/tenants/{tenantId}/impersonate` | Support JWT scoped to tenant |
+| `POST` | `/api/admin/tenants/{tenantId}/impersonate` | Support JWT with `tenant_impersonation=true` |
 
-Impersonation: JWT includes target `tenant_id` and claim `tenant_impersonation=true`. Cannot impersonate suspended/deleted tenants.
+Code: `Services/AdminTenants/`, `Controllers/AdminTenantsController.cs`.
 
-See `Services/AdminTenants/`, `docs/MULTI_TENANT.md`.
+### Isolation guarantees
 
-## Multi-Tenant Security
+- Filters on `ITenantEntity` are not bypassable via client query parameters.
+- `IgnoreQueryFilters()` only for intentional Super Admin / platform paths.
+- Singletons that touch EF must open an **`IServiceScopeFactory`** scope (never resolve scoped services from the root provider).
 
-### Tenant isolation guarantees
+**Known gap:** JWT `tenant_id` may override host-resolved tenant after auth; host↔JWT binding middleware is not complete — see `docs/MULTI_TENANT.md`.
 
-- EF global query filters on `ITenantEntity` — not bypassable by API query parameters.
-- Cross-tenant access by id → **404** (`TenantIsolationTests`).
-- `offline_transactions.tenant_id` NOT NULL; derived on insert from cash register.
-
-### Tenant spoofing prevention
-
-- **Production:** subdomain/`Host` only (`SubdomainTenantProvider`; no dev header/query).
-- **Super Admin:** `[Authorize(Roles = SuperAdmin)]` on `AdminTenantsController`.
-
-**Known gap:** JWT `tenant_id` may override host-resolved tenant after auth; host↔JWT binding middleware not yet present. See `docs/MULTI_TENANT.md`.
-
-## Migrating existing databases
-
-Use the existing EF migration chain (waves), not a single `AddTenantIdToAllTables`:
+## Database & migrations
 
 ```bash
-dotnet ef database update --project backend/KasseAPI_Final.csproj --startup-project backend/KasseAPI_Final.csproj
+dotnet ef database update --project KasseAPI_Final.csproj --startup-project KasseAPI_Final.csproj
 ```
 
-Key migrations: `AddTenantsAndSettingsTenantId`, Wave2/3A/3B, `AddTenantIdToFiscalAndAuditTables`, `ExtendTenantsForSuperAdmin`. Legacy rows default to `LegacyDefaultTenantIds.Primary` (Guid).
+Legacy backfills use `LegacyDefaultTenantIds.Primary`. Contracts: `ai/02_DATABASE_CONTRACT.md`, [`../docs/MULTI_TENANT.md`](../docs/MULTI_TENANT.md).
 
-Details: `ai/02_DATABASE_CONTRACT.md`, `docs/MULTI_TENANT.md`.
+### Migration inventory & squash (high risk)
 
-## Database Schema
+| Metric | Approx. (2026-07-21) |
+|--------|----------------------|
+| Migration `Up` files | ~240 |
+| EF-discovered migrations | ~221 |
+| `Migrations/` folder | ~50 MB |
 
-### Multi-Tenant Columns
+Squash is planned only via Staging → DB-copy → Production runbook — **not** applied on `main` yet.
 
-Tenant-scoped tables (`ITenantEntity`):
+- Runbook: [`docs/MIGRATION_SQUASH.md`](docs/MIGRATION_SQUASH.md)
+- Scripts: `backend/scripts/migration-squash/` (see runbook)
 
-- `tenant_id uuid NOT NULL` (PostgreSQL), FK to `tenants.id`
-- Indexed in `AppDbContext`
-- Populated from request tenant resolution (subdomain slug → Guid on `ICurrentTenantAccessor`)
+### Schema / DI reminders
 
-### Global Query Filters
-
-EF Core adds `WHERE tenant_id = @currentTenantId` to all `ITenantEntity` queries via `AppDbContext` global filters (`CreateTenantQueryFilter`).
-
-Filter expression: `_tenantAccessor.TenantId == null || e.TenantId == _tenantAccessor.TenantId` (null accessor disables filter — use only on intentional paths).
-
-### Scoped service resolution (singletons + EF)
-
-`AppDbContext` and `ICurrentTenantAccessor` are **scoped**. Singletons (e.g. `LicenseService`) must use **`IServiceScopeFactory`**:
-
-```csharp
-using var scope = _scopeFactory.CreateScope();
-var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
-using var db = factory.CreateDbContext();
-```
-
-Do **not** inject `IDbContextFactory` into a singleton and call `CreateDbContext()` on the root provider.
-
-**`AppDbContext` constructors:**
-
-- Design-time: `AppDbContext(options)` — migrations (`DesignTimeDbContextFactory`).
-- Runtime: `AppDbContext(options, ICurrentTenantAccessor)` — `[ActivatorUtilitiesConstructor]`.
-
-DbContext registration: `ApplicationHost` → `ConfigureAppDbContextOptions` (Npgsql + interceptors). `services.AddMemoryCache()` is registered for other components; **`LicenseService` uses an in-memory snapshot, not `IMemoryCache`**.
-
-### License service
-
-| Registration | `AddSingleton<LicenseService>()` + `ILicenseService` → `ProductionLicenseService` |
-| DB access | `IServiceScopeFactory` per operation |
-| Startup | `EvaluateOnStartup()` — DB read in scope; failure → trial/file fallback, warning log, host still starts |
-
-### Key code locations
+- `tenant_id uuid NOT NULL` + indexes on tenant-scoped tables.
+- Filter: `_tenantAccessor.TenantId == null || e.TenantId == _tenantAccessor.TenantId`.
+- `AppDbContext`: design-time ctor + `[ActivatorUtilitiesConstructor]` runtime ctor.
+- `LicenseService`: singleton + scope-per-operation; startup evaluate fails soft to trial/file.
 
 | Area | Path |
 |------|------|
 | Host → slug | `Tenancy/TenantHostNames.cs`, `Tenancy/SubdomainTenantProvider.cs` |
-| Resolve slug → Guid | `Tenancy/CurrentTenantService.cs` |
-| Middleware order | `Middleware/TenantResolutionMiddleware.cs`, `Middleware/TenantContextMiddleware.cs` |
-| Query filters | `Data/AppDbContext.cs` (`ITenantEntity` + `CreateTenantQueryFilter`) |
-| Tenant admin | `Services/AdminTenants/`, `Controllers/AdminTenantsController.cs` |
-| Tests | `KasseAPI_Final.Tests/TenantIsolationTests.cs`, `SubdomainTenantProviderTests.cs` |
-
-## Deployment Requirements
-
-### DNS Configuration
-
-- Wildcard **A** record: `*.regkasse.at` → server IP (multi-tenant subdomain resolution).
-- TLS certificate must include `*.regkasse.at` (and apex if needed).
-- Proxy must forward the original `Host` header.
-
-### Environment Variables
-
-- **`ASPNETCORE_ENVIRONMENT`**
-  - `Development` — `X-Tenant-Id` / `?tenant=` slug overrides enabled.
-  - `Production` (and non-Development) — subdomain/`Host` resolution only.
-
-## Troubleshooting
-
-### `Cannot resolve scoped service 'ICurrentTenantAccessor' from root provider`
-
-Singleton called `IDbContextFactory<AppDbContext>.CreateDbContext()` without a scope. Fix: `IServiceScopeFactory` — see `Services/LicenseService.cs`.
-
-### `Multiple constructors` on `AppDbContext`
-
-Use design-time ctor + single `[ActivatorUtilitiesConstructor]` runtime ctor. See `Data/AppDbContext.cs`.
+| Slug → Guid | `Tenancy/CurrentTenantService.cs` |
+| Middleware | `Middleware/` — see [`docs/MIDDLEWARE_GUARDRAILS.md`](docs/MIDDLEWARE_GUARDRAILS.md) |
+| Query filters | `Data/AppDbContext.cs` |
+| Tests | `KasseAPI_Final.Tests/TenantIsolationTests.cs` |
 
 ## RKSV / TSE
 
-Fiscal signing, special receipts (Startbeleg, Monatsbeleg, etc.), TSE chain continuity, and FinanzOnline outbox live under `Services/`, `Tse/`, and `Controllers/`. See `ai/05_SECURITY_COMPLIANCE.md` and `AGENTS.md` (Fiscal Rules).
+Fiscal signing, special receipts, TSE chain, and FinanzOnline outbox: `Services/`, `Tse/`, `Controllers/`. See `ai/05_SECURITY_COMPLIANCE.md`, root `AGENTS.md`, [`docs/FISCAL_TSE_GUARDRAILS.md`](docs/FISCAL_TSE_GUARDRAILS.md).
 
 ### DEP §7 Export
 
-**Status:** ✅ Implemented (F1–F5 complete)
+**Status:** Implemented (F1–F5). BMF `Belege-Gruppe` JSON, certificate grouping, compact JWS, RKSV §9 machine code.
 
-BMF-compliant DEP (Datenerfassungsprotokoll / Signaturjournal) export for tax audits: `Belege-Gruppe` JSON, certificate grouping, normal + special receipts + daily closings, compact JWS (not QR), RKSV §9 machine-code payload for Prüftool.
-
-**Endpoint:** `GET /api/admin/rksv/dep-export`
-
-**Permissions:** `ReportExport` + `AuditView` (audit log entry `RksvDepExportJson` on every export).
-
-**Query parameters:** `cashRegisterId`, `fromUtc`, `toUtc`, `includeSpecialReceipts` (default `true`), `includeDailyClosings` (default `true`).
-
-**Example:**
+- **Endpoint:** `GET /api/admin/rksv/dep-export`
+- **Permissions:** `report.export` + `audit.view` (audit `RksvDepExportJson`)
+- **Params:** `cashRegisterId`, `fromUtc`, `toUtc`, `includeSpecialReceipts`, `includeDailyClosings`
 
 ```bash
 curl -H "Authorization: Bearer {token}" \
@@ -217,17 +269,74 @@ curl -H "Authorization: Bearer {token}" \
      "http://localhost:5184/api/admin/rksv/dep-export?cashRegisterId={guid}&fromUtc=2026-01-01T00:00:00Z&toUtc=2026-01-31T23:59:59Z"
 ```
 
-**Verification with BMF Prüftool:**
-
 ```powershell
+# From repository root
 .\scripts\verify-rksv-dep-export.ps1 -DepExportPath "./dep-export.json" -CryptoMaterialPath "./crypto-material.json"
 ```
 
-Implementation: `Controllers/AdminRksvDepExportController.cs`, `Services/RksvDepExportService.cs`, `Tse/BelegdatenPayload*.cs`, `Tse/SignaturePipeline.cs`. Full guide: `docs/DEP_EXPORT_DEVELOPMENT.md`.
+Guide: [`../docs/DEP_EXPORT_DEVELOPMENT.md`](../docs/DEP_EXPORT_DEVELOPMENT.md).
+
+## Troubleshooting
+
+### `Cannot resolve scoped service 'ICurrentTenantAccessor' from root provider`
+
+A singleton called `IDbContextFactory<AppDbContext>.CreateDbContext()` without a scope. Use `IServiceScopeFactory.CreateScope()` — see `Services/LicenseService.cs`.
+
+### `Multiple constructors` on `AppDbContext`
+
+Keep design-time ctor + one `[ActivatorUtilitiesConstructor]` runtime ctor (`Data/AppDbContext.cs`).
+
+### Restore fails / unexpected NuGet feeds
+
+`backend/nuget.config` clears inherited sources and allows only **nuget.org**. Confirm with:
+
+```powershell
+dotnet nuget list source --configfile nuget.config
+```
+
+### Swagger 404 at `/` or missing UI
+
+In Development, UI is at **`/swagger`** (not site root). JSON: `/swagger/v1/swagger.json`. Production does not map Swagger by default.
+
+### Docker build cannot find `LicenseGenerator.Core`
+
+Build from **repo root** with `-f backend/Dockerfile`, not `cd backend && docker build .`.
+
+### Docker / API starts but `ready` is 503
+
+Liveness (`/api/health/live`) does not need DB; readiness does. Check `ConnectionStrings__DefaultConnection`, network (`host.docker.internal`), and migrations.
+
+### Tests skip or fail after OpenAPI export
+
+Unset `REGKASSE_OPENAPI_EXPORT` (and related test host env). CI clears these; a leftover shell env can force export/in-memory host modes.
+
+### `dotnet format --verify-no-changes` exits non-zero
+
+Prefer:
+
+```powershell
+dotnet format whitespace KasseAPI_Final.sln --verify-no-changes
+dotnet format style KasseAPI_Final.sln --severity warn --verify-no-changes
+```
+
+IDE0052 (unread private fields) is suggestion-only — often intentional DI; no automatic code fix.
+
+### Port 5184 already in use
+
+Stop the other `KasseAPI_Final` / `dotnet run` process, or change `Urls` in Development config.
 
 ## Further reading
 
-- `docs/MULTI_TENANT.md` (architecture, setup, API, troubleshooting)
-- `REGKASSE_AI_ONBOARDING.md` (repo root)
-- `ai/01_BACKEND_CONTRACT.md`, `ai/02_DATABASE_CONTRACT.md`
-- OpenAPI: `backend/swagger.json`
+| Doc | Topic |
+|-----|--------|
+| [`CONFIGURATION.md`](CONFIGURATION.md) | Secrets, env layering, Redis |
+| [`docs/SWAGGER_GUARDRAILS.md`](docs/SWAGGER_GUARDRAILS.md) | OpenAPI inclusion / regenerate |
+| [`docs/MIDDLEWARE_GUARDRAILS.md`](docs/MIDDLEWARE_GUARDRAILS.md) | Pipeline order |
+| [`docs/HEALTH_GUARDRAILS.md`](docs/HEALTH_GUARDRAILS.md) | Live / ready probes |
+| [`docs/HELPERS_AND_EXTENSIONS.md`](docs/HELPERS_AND_EXTENSIONS.md) | Shared helpers |
+| [`docs/SERVICES_LAYER.md`](docs/SERVICES_LAYER.md) | DI boundaries |
+| [`docs/MIGRATION_SQUASH.md`](docs/MIGRATION_SQUASH.md) | EF squash runbook |
+| [`../docs/MULTI_TENANT.md`](../docs/MULTI_TENANT.md) | Tenancy (repo) |
+| [`../REGKASSE_AI_ONBOARDING.md`](../REGKASSE_AI_ONBOARDING.md) | Project brief |
+| `ai/01_BACKEND_CONTRACT.md`, `ai/02_DATABASE_CONTRACT.md` | Contracts |
+| `backend/swagger.json` | Committed OpenAPI artifact |

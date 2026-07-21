@@ -2,6 +2,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.RestoreVerification;
 using KasseAPI_Final.Services.OperationalRuns;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Xunit;
@@ -18,7 +19,7 @@ public sealed class StaleRunReaperTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"stale_reaper_{Guid.NewGuid():N}")
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     [Fact]

@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Text;
-using Microsoft.AspNetCore.Hosting;
 
 namespace KasseAPI_Final.Services;
 

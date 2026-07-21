@@ -221,7 +221,8 @@ public sealed class LicenseReminderEmailSender : ILicenseReminderEmailSender
         foreach (var p in parts)
         {
             var t = p.Trim();
-            if (t.Length == 0) continue;
+            if (t.Length == 0)
+                continue;
             try
             {
                 list.Add(new MailAddress(t));

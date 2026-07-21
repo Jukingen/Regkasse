@@ -1,5 +1,3 @@
-using KasseAPI_Final.Models;
-
 namespace KasseAPI_Final.Services.DataRetention;
 
 public sealed class RksvColdArchiveResult

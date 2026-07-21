@@ -1,26 +1,28 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Controllers.Base;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Controllers.Base;
-using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.Services;
-using ProductLocalizationService = KasseAPI_Final.Services.ProductLocalization;
 using KasseAPI_Final.Tenancy;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using ProductLocalizationService = KasseAPI_Final.Services.ProductLocalization;
 
 namespace KasseAPI_Final.Controllers
 {
     /// <summary>
-    /// Ürün yönetimi için controller - RKSV uyumlu ürün işlemleri.
-    /// Legacy: api/Product/* deprecated; use api/pos/* for POS. Admin: use api/admin/products.
-    /// TODO: api/Product route kaldırılamıyor — FE-Admin (admin/products.ts mutations) ve POS (apiPaths) hâlâ kullanıyor. Tüm client'lar api/pos veya api/admin/products'a geçince kaldır.
+    /// POS product read/catalog handlers. Canonical route: <c>api/pos/*</c> (product actions on this controller).
+    /// Legacy alias <c>api/Product/*</c> maps to the same actions; deprecation headers via <see cref="LegacyRouteDeprecationFilter"/>.
+    /// Admin catalog CRUD belongs on <see cref="AdminProductsController"/> (<c>/api/admin/products</c>) — do not add new admin features here.
+    /// Mutations remaining on this controller are compatibility surface only. Sunset for legacy alias: 2026-09-30.
     /// </summary>
+    [Obsolete(
+        "Legacy HTTP alias /api/Product/* is deprecated; POS clients must call /api/pos/*, Admin must use /api/admin/products. " +
+        "This type still hosts canonical /api/pos product routes (dual [Route]). " +
+        "Do not add new endpoints that exist only on the legacy prefix. Sunset: 2026-09-30.",
+        error: false)]
     [Route("api/Product")]
     [Route("api/pos")]
     [ApiController]
@@ -196,7 +198,8 @@ namespace KasseAPI_Final.Controllers
                     pid => pid,
                     pid =>
                     {
-                        if (!productToGroupIds.TryGetValue(pid, out var gids)) return emptyGroups;
+                        if (!productToGroupIds.TryGetValue(pid, out var gids))
+                            return emptyGroups;
                         return gids
                             .Select(gid => groupDict.TryGetValue(gid, out var grp) ? grp : null)
                             .Where(g => g != null)
@@ -335,7 +338,7 @@ namespace KasseAPI_Final.Controllers
 
                 // İngilizce teknik log
                 _logger.LogInformation($"Retrieved {products.Count} active products grouped by {groupedProducts.Count} categories");
-                
+
                 return SuccessResponse(groupedProducts, $"Retrieved {products.Count} active products grouped by {groupedProducts.Count} categories");
             }
             catch (Exception ex)
@@ -359,10 +362,10 @@ namespace KasseAPI_Final.Controllers
                     .ToListAsync();
                 var activeProducts = allProducts.Where(p => p.IsActive).ToList();
                 var inactiveProducts = allProducts.Where(p => !p.IsActive).ToList();
-                
+
                 var categories = allProducts.Select(p => p.Category).Distinct().OrderBy(c => c).ToList();
                 var activeCategories = activeProducts.Select(p => p.Category).Distinct().OrderBy(c => c).ToList();
-                
+
                 var categoryProductCounts = categories.Select(cat => new
                 {
                     Category = cat,
@@ -419,7 +422,7 @@ namespace KasseAPI_Final.Controllers
 
                 // İngilizce teknik log
                 _logger.LogInformation($"Retrieved {categories.Count} unique categories");
-                
+
                 return SuccessResponse(categories, $"Retrieved {categories.Count} categories");
             }
             catch (Exception ex)
@@ -486,19 +489,19 @@ namespace KasseAPI_Final.Controllers
                         .Where(p => p.TenantId == tenantId && p.StockQuantity > p.MinStockLevel && p.IsActive)
                         .OrderBy(p => p.Name)
                         .ToListAsync(),
-                    
+
                     "out-of-stock" => await _context.Products
                         .AsNoTracking()
                         .Where(p => p.TenantId == tenantId && p.StockQuantity == 0 && p.IsActive)
                         .OrderBy(p => p.Name)
                         .ToListAsync(),
-                    
+
                     "low-stock" => await _context.Products
                         .AsNoTracking()
                         .Where(p => p.TenantId == tenantId && p.StockQuantity <= p.MinStockLevel && p.StockQuantity > 0 && p.IsActive)
                         .OrderBy(p => p.Name)
                         .ToListAsync(),
-                    
+
                     _ => throw new ArgumentException("Invalid stock status. Use: in-stock, out-of-stock, or low-stock")
                 };
 
@@ -627,7 +630,8 @@ namespace KasseAPI_Final.Controllers
                     int sortOrder = 0;
                     foreach (var gid in groupIds)
                     {
-                        if (!existingGroups.Contains(gid)) continue;
+                        if (!existingGroups.Contains(gid))
+                            continue;
                         _context.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment
                         {
                             ProductId = id,
@@ -649,7 +653,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Yeni ürün oluştur
+        /// Create product (compatibility). Prefer <c>POST /api/admin/products</c> (<see cref="AdminProductsController"/>) for new Admin features.
         /// </summary>
         [HasPermission(AppPermissions.ProductManage)]
         [HttpPost]

@@ -1,20 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
-using System.Threading.Tasks;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Rksv;
-using KasseAPI_Final.Tenancy;
-using KasseAPI_Final.Time;
 using KasseAPI_Final.Services.Reports;
 using KasseAPI_Final.Services.Rksv;
+using KasseAPI_Final.Tenancy;
+using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services
@@ -89,6 +82,7 @@ namespace KasseAPI_Final.Services
             _hostEnvironment = hostEnvironment;
             _configuration = configuration ?? new ConfigurationBuilder().Build();
             _tseOptions = tseOptions?.Value ?? new TseOptions();
+            // Prefer DI; tests may omit — fall back to ambient host/config without constructing via service locator.
             _rksvEnvironment = rksvEnvironment
                                ?? new RksvEnvironmentService(_configuration, hostEnvironment);
             _reportText = reportText;
@@ -157,11 +151,13 @@ namespace KasseAPI_Final.Services
 
             // 2. Fetch payment (using repository or context)
             var payment = await _context.PaymentDetails.FirstOrDefaultAsync(p => p.Id == paymentId);
-            if (payment == null) throw new KeyNotFoundException($"Payment {paymentId} not found");
+            if (payment == null)
+                throw new KeyNotFoundException($"Payment {paymentId} not found");
 
             var paymentInTenant = await _context.CashRegisters.AsNoTracking()
                 .AnyAsync(cr => cr.Id == payment.CashRegisterId && cr.TenantId == effectiveTenantId);
-            if (!paymentInTenant) throw new KeyNotFoundException($"Payment {paymentId} not found");
+            if (!paymentInTenant)
+                throw new KeyNotFoundException($"Payment {paymentId} not found");
 
             // 3. Parse items
             var items = new List<PaymentItem>();
@@ -362,7 +358,7 @@ namespace KasseAPI_Final.Services
         /// <inheritdoc />
         public async Task AddReceiptFromPaymentToContextAsync(PaymentDetails payment)
         {
-            var registerNumberCtx = await ResolveRegisterNumberAsync(payment.CashRegisterId);
+            _ = await ResolveRegisterNumberAsync(payment.CashRegisterId);
             var signatureValue = payment.TseSignature ?? string.Empty;
             var prevSignatureValue = payment.PrevSignatureValueUsed ?? await GetLastSignatureValueForCashRegisterAsync(payment.CashRegisterId);
             var qrPayload = BuildReceiptQrPayload(signatureValue);
@@ -502,9 +498,12 @@ namespace KasseAPI_Final.Services
 
         public async Task<PagedResult<ReceiptListItemDto>> GetReceiptListAsync(int page, int pageSize, string? sort, string? receiptNumber, string? cashRegisterId, string? cashierId, DateTime? issuedFrom, DateTime? issuedTo)
         {
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 25;
-            if (pageSize > 100) pageSize = 100;
+            if (page < 1)
+                page = 1;
+            if (pageSize < 1)
+                pageSize = 25;
+            if (pageSize > 100)
+                pageSize = 100;
 
             var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
             var queryable = _context.Receipts.AsNoTracking()
@@ -540,8 +539,10 @@ namespace KasseAPI_Final.Services
             if (!string.IsNullOrWhiteSpace(sort))
             {
                 var parts = sort.Trim().Split(':');
-                if (parts.Length >= 1 && !string.IsNullOrEmpty(parts[0])) sortField = parts[0].ToLowerInvariant();
-                if (parts.Length >= 2 && !string.IsNullOrEmpty(parts[1])) sortDir = parts[1].ToLowerInvariant();
+                if (parts.Length >= 1 && !string.IsNullOrEmpty(parts[0]))
+                    sortField = parts[0].ToLowerInvariant();
+                if (parts.Length >= 2 && !string.IsNullOrEmpty(parts[1]))
+                    sortDir = parts[1].ToLowerInvariant();
             }
 
             var isAsc = sortDir == "asc";
@@ -620,7 +621,8 @@ namespace KasseAPI_Final.Services
         /// <summary>Last signature for chain display: signature_chain_state then latest receipt for same register.</summary>
         private async Task<string> GetLastSignatureValueForCashRegisterAsync(Guid cashRegisterId)
         {
-            if (cashRegisterId == Guid.Empty) return string.Empty;
+            if (cashRegisterId == Guid.Empty)
+                return string.Empty;
             var fromChain = await _context.SignatureChainState
                 .AsNoTracking()
                 .Where(s => s.CashRegisterId == cashRegisterId)
@@ -809,10 +811,10 @@ namespace KasseAPI_Final.Services
                 KassenID = registerDisplay,
                 DisplayRegisterNumber = registerDisplay,
                 TableNumber = receipt.Payment?.TableNumber,
-                
+
                 Company = company,
                 Header = header,
-                
+
                 Items = receipt.Items.Select(i => new ReceiptItemDTO
                 {
                     ItemId = i.ItemId,
@@ -829,7 +831,7 @@ namespace KasseAPI_Final.Services
                     ParentItemId = i.ParentItemId,
                     IsModifierLine = i.ParentItemId != null
                 }).ToList(),
-                
+
                 SubTotal = receipt.SubTotal,
                 TaxAmount = receipt.TaxTotal,
                 GrandTotal = receipt.GrandTotal,
@@ -839,7 +841,7 @@ namespace KasseAPI_Final.Services
                     TotalVat = receipt.TaxTotal,
                     TotalGross = receipt.GrandTotal
                 },
-                
+
                 TaxRates = receipt.TaxLines.Select(t => new ReceiptTaxLineDTO
                 {
                     TaxType = t.TaxType,
@@ -849,7 +851,7 @@ namespace KasseAPI_Final.Services
                     TaxAmount = t.TaxAmount,
                     NetAmount = t.NetAmount
                 }).ToList(),
-                
+
                 Payments = new List<ReceiptPaymentDTO>
                 {
                     new ReceiptPaymentDTO
@@ -860,7 +862,7 @@ namespace KasseAPI_Final.Services
                         Change = 0
                     }
                 },
-                
+
                 Signature = signature,
                 FooterText = footerText,
                 RksvFooterLabel = GetRksvFooter(_hostEnvironment),

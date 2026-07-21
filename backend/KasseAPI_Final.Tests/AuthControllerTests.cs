@@ -1,9 +1,5 @@
-using System.Collections.Generic;
-using System.IO;
 using System.Security.Claims;
 using System.Text.Json;
-using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Controllers;
@@ -16,7 +12,9 @@ using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Services.Token;
 using KasseAPI_Final.Services.TwoFactor;
 using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -69,7 +67,8 @@ public class AuthControllerTests
         var loginUsers = new List<ApplicationUser>();
         void TrackUser(ApplicationUser? u)
         {
-            if (u == null) return;
+            if (u == null)
+                return;
             if (string.IsNullOrEmpty(u.NormalizedUserName) && !string.IsNullOrEmpty(u.UserName))
                 u.NormalizedUserName = keyNormalizer.NormalizeName(u.UserName);
             if (string.IsNullOrEmpty(u.NormalizedEmail) && !string.IsNullOrEmpty(u.Email))

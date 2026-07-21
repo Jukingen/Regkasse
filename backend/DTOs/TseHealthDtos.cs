@@ -1,5 +1,3 @@
-using System;
-
 namespace KasseAPI_Final.DTOs;
 
 /// <summary>Cached TSE connectivity snapshot for POS dashboards.</summary>

@@ -1,6 +1,5 @@
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Services.AdminTenants;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.Tenancy;

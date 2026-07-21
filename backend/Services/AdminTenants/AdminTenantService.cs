@@ -2,12 +2,10 @@ using System.Security.Claims;
 using System.Text.RegularExpressions;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.AdminCashRegisters;
 using KasseAPI_Final.Services.Tenancy;
-using KasseAPI_Final.Models;
-using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -121,6 +119,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
         var items = await ListAsync(includeDeleted: false, cancellationToken).ConfigureAwait(false);
 
         var memberTenantIds = await _db.UserTenantMemberships
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .Where(m => m.UserId == actorUserId && m.IsActive)
             .Join(
@@ -160,11 +159,13 @@ public sealed partial class AdminTenantService : IAdminTenantService
             return null;
 
         var activeUserCount = await _db.UserTenantMemberships
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .CountAsync(m => m.TenantId == tenantId && m.IsActive, cancellationToken)
             .ConfigureAwait(false);
 
         var registerStats = await _db.CashRegisters
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .Where(cr => cr.TenantId == tenantId)
             .GroupBy(_ => 1)
@@ -176,7 +177,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        var lastReceiptAt = await _db.Receipts.AsNoTracking()
+        var lastReceiptAt = await _db.Receipts.IgnoreQueryFilters().AsNoTracking()
             .Where(r => r.TenantId == tenantId)
             .MaxAsync(r => (DateTime?)r.IssuedAt, cancellationToken)
             .ConfigureAwait(false);
@@ -215,6 +216,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
             return null;
 
         return await _db.CashRegisters
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .Where(cr => cr.TenantId == tenantId)
             .OrderBy(cr => cr.RegisterNumber)
@@ -581,27 +583,6 @@ public sealed partial class AdminTenantService : IAdminTenantService
 
         targetIdentity.AddClaim(new Claim(ScopeCheckService.TenantIdClaim, tenantId.ToString("D")));
         return clone;
-    }
-
-    private static string NormalizeSlug(string raw) =>
-        raw.Trim().ToLowerInvariant().Replace(' ', '_');
-
-    private static bool TryValidateSlug(string slug, out string? error)
-    {
-        if (string.IsNullOrWhiteSpace(slug))
-        {
-            error = "Slug is required.";
-            return false;
-        }
-
-        if (!SlugRegex.IsMatch(slug))
-        {
-            error = "Slug must be lowercase alphanumeric with optional hyphens/underscores.";
-            return false;
-        }
-
-        error = null;
-        return true;
     }
 
     private static string? TrimOrNull(string? value)

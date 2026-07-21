@@ -1,7 +1,6 @@
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using KasseAPI_Final.Data;
-using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Export;
 using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Tse;

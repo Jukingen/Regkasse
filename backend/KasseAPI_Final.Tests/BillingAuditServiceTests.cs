@@ -4,7 +4,6 @@ using KasseAPI_Final.Services.Billing;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
@@ -14,7 +13,7 @@ public sealed class BillingAuditServiceTests
     [Fact]
     public async Task LogAsync_CreatesAuditEntry()
     {
-        var (db, factory) = CreateDb();
+        var (db, _) = CreateDb();
         await using var _ = db;
 
         var service = CreateAuditService(db);
@@ -38,7 +37,7 @@ public sealed class BillingAuditServiceTests
     [Fact]
     public async Task LogAsync_PersistsAuditRow()
     {
-        var (db, factory) = CreateDb();
+        var (db, _) = CreateDb();
         await using var _ = db;
 
         var tenant = SeedTenant(db);
@@ -64,7 +63,7 @@ public sealed class BillingAuditServiceTests
     [Fact]
     public async Task ListAsync_FiltersByTenantAndAction()
     {
-        var (db, factory) = CreateDb();
+        var (db, _) = CreateDb();
         await using var _ = db;
 
         var tenantA = SeedTenant(db, "cafe-a");

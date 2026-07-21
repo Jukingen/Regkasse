@@ -1,26 +1,24 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using KasseAPI_Final;
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using KasseAPI_Final.Auth;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Helpers;
+using KasseAPI_Final.Localization;
+using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
-using KasseAPI_Final.DTOs;
-using KasseAPI_Final.Localization;
-using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Services.Localization;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Validators;
-using System.Security.Claims;
-using System.ComponentModel.DataAnnotations;
-using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -417,8 +415,10 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                if (page < 1) page = 1;
-                if (pageSize < 1 || pageSize > 100) pageSize = 20;
+                if (page < 1)
+                    page = 1;
+                if (pageSize < 1 || pageSize > 100)
+                    pageSize = 20;
 
                 var q = _context.Users.AsNoTracking();
 
@@ -593,9 +593,9 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = "The specified role does not exist.", code = "ROLE_NOT_FOUND", errors = new { Role = new[] { "Role does not exist." } } });
                 }
 
-                // Kullanıcı adı kontrol et
-                var existingUser = await _userManager.FindByNameAsync(request.UserName);
-                if (existingUser != null)
+                // Kullanıcı adı kontrol et (case-insensitive + legacy NormalizedUserName fallback)
+                if (await _uniquenessValidation.IsUserNameTakenByOtherUserAsync(request.UserName, excludeUserId: null)
+                        .ConfigureAwait(false))
                 {
                     return BadRequest(new { message = "Username already exists" });
                 }

@@ -1,8 +1,8 @@
 using System.Text.Json;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
-using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
@@ -27,7 +27,7 @@ public sealed class AdminProductsBulkDeactivateTests
             .UseInMemoryDatabase($"AdminProductsBulkDeactivate_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static AdminProductsController CreateController(AppDbContext ctx) =>

@@ -1,9 +1,8 @@
-using System.Collections.Generic;
 using System.Text;
-using KasseAPI_Final;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Cache;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
@@ -16,6 +15,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
+using StackExchange.Redis;
 
 namespace KasseAPI_Final.Tests;
 
@@ -39,11 +39,22 @@ public sealed class TenantIsolationWebApplicationFactory : WebApplicationFactory
     internal static readonly Guid CafeTenantId = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
 
     private readonly string _databaseName = $"TenantIsolation_{Guid.NewGuid():N}";
+    private readonly string? _previousOpenApiExportFlag;
+    private readonly string? _previousInMemoryDbName;
 
     public TenantIsolationWebApplicationFactory()
     {
+        _previousOpenApiExportFlag = Environment.GetEnvironmentVariable(OpenApiExportMode.EnvironmentVariableName);
+        _previousInMemoryDbName = Environment.GetEnvironmentVariable(OpenApiExportMode.IntegrationTestInMemoryDatabaseEnvironmentVariable);
         Environment.SetEnvironmentVariable(OpenApiExportMode.EnvironmentVariableName, "true");
         Environment.SetEnvironmentVariable(OpenApiExportMode.IntegrationTestInMemoryDatabaseEnvironmentVariable, _databaseName);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        Environment.SetEnvironmentVariable(OpenApiExportMode.EnvironmentVariableName, null);
+        Environment.SetEnvironmentVariable(OpenApiExportMode.IntegrationTestInMemoryDatabaseEnvironmentVariable, null);
+        base.Dispose(disposing);
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -73,6 +84,11 @@ public sealed class TenantIsolationWebApplicationFactory : WebApplicationFactory
                 options.TokenValidationParameters.ValidAudience = JwtAudience;
             });
 
+            // Avoid Redis Connect during isolation tests (products path uses ICacheService).
+            services.RemoveAll<IConnectionMultiplexer>();
+            services.RemoveAll<ICacheService>();
+            services.AddScoped<ICacheService, MemoryCacheService>();
+
             ReplaceWithInMemoryDatabase(services);
         });
     }
@@ -97,7 +113,7 @@ public sealed class TenantIsolationWebApplicationFactory : WebApplicationFactory
         {
             options.UseInMemoryDatabase(databaseName);
             options.ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning));
-        }, ServiceLifetime.Scoped, ServiceLifetime.Singleton);
+        }, ServiceLifetime.Scoped, ServiceLifetime.Scoped);
 
         services.AddDbContextFactory<AppDbContext>((_, options) =>
         {

@@ -1,7 +1,6 @@
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Reports;
-using KasseAPI_Final.Services;
 
 namespace KasseAPI_Final.Services.Reports;
 
@@ -74,12 +73,18 @@ public static class DailyClosingReportComposer
         decimal totalCard;
         decimal totalVoucher;
         decimal totalOther;
-        PaymentBreakdown paymentBreakdown = new();
-        TransactionBreakdown transactionBreakdown = new();
+
+        _ = new PaymentBreakdown();
+
+        _ = new TransactionBreakdown();
         DailyClosingTaxBreakdownDto taxBreakdown = new();
         string? reconciliationNote = null;
         string? differenceNote = null;
 
+
+        PaymentBreakdown paymentBreakdown;
+
+        TransactionBreakdown transactionBreakdown;
         if (isDaily && daySummary != null)
         {
             totalSales = daySummary.TotalSales;

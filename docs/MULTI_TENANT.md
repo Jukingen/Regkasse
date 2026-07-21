@@ -127,13 +127,16 @@ Code:
 
 ## Request pipeline
 
-Order in `ApplicationHost.cs`:
+Order in `ApplicationHost.cs` (simplified; see `backend/docs/MIDDLEWARE_GUARDRAILS.md`):
 
-1. `TenantResolutionMiddleware` — host (or dev header/query) → slug → load tenant → set `ICurrentTenantAccessor`
-2. `UseAuthentication`
-3. `TenantContextMiddleware` — if JWT contains `tenant_id` claim, **override** accessor
-4. `UseAuthorization` + controllers
-5. `AppDbContext` — global query filters on `ITenantEntity`
+1. `CsrfMiddleware` — double-submit CSRF (before tenant work; no tenant dependency)
+2. `TenantResolutionMiddleware` — host (or Dev header/query) → ambient `ICurrentTenantAccessor` (platform hosts left unset)
+3. `TokenValidationMiddleware` + `UseAuthentication`
+4. `TenantContextMiddleware` — Production: JWT `tenant_id` only; Development: header/query override wins
+5. `TenantValidationMiddleware` — fail-closed 404 when ambient tenant missing (public/ops paths exempt)
+6. `LicenseMiddleware` — deployment + mandant lockdown (needs JWT + ambient tenant)
+7. `UseAuthorization` + controllers
+8. `AppDbContext` — global query filters on `ITenantEntity`
 
 ---
 

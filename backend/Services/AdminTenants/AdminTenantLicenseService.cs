@@ -2,11 +2,9 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Services.Tenancy;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.AdminTenants;
@@ -288,47 +286,6 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Audit log failed for tenant license extend TenantId={TenantId}", tenantId);
-        }
-
-        _ = cancellationToken;
-    }
-
-    private async Task LogLicenseUpdatedAuditAsync(
-        Guid tenantId,
-        string? actorUserId,
-        string? actorRole,
-        string? previousKey,
-        DateTime? previousValidUntilUtc,
-        string? newKey,
-        DateTime? newValidUntilUtc,
-        CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(actorUserId))
-            return;
-
-        try
-        {
-            await _auditLogService.LogSystemOperationAsync(
-                AuditLogActions.LICENSE_UPDATED,
-                AuditLogEntityTypes.SYSTEM_CONFIG,
-                actorUserId,
-                actorRole ?? "Manager",
-                description: "Tenant license updated.",
-                requestData: new
-                {
-                    tenantId,
-                    old_key = MaskLicenseKeyForAudit(previousKey),
-                    new_key = MaskLicenseKeyForAudit(newKey),
-                    old_valid_until_utc = previousValidUntilUtc,
-                    new_valid_until_utc = newValidUntilUtc,
-                },
-                actionType: AuditEventType.LicenseUpdated,
-                entityId: tenantId,
-                tenantId: tenantId).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Audit log failed for tenant license update TenantId={TenantId}", tenantId);
         }
 
         _ = cancellationToken;

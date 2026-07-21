@@ -1,5 +1,3 @@
-using System.IO;
-using System.Linq;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -231,9 +229,12 @@ public sealed class LicenseStorageService : ILicenseStorageService
 
     private static string GetPlatformTag()
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return "WIN";
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) return "LINUX";
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) return "MAC";
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return "WIN";
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            return "LINUX";
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            return "MAC";
         return "OTHER";
     }
 
@@ -248,8 +249,10 @@ public sealed class LicenseStorageService : ILicenseStorageService
                          .OrderBy(n => n.Id, StringComparer.Ordinal))
             {
                 var addressBytes = ni.GetPhysicalAddress().GetAddressBytes();
-                if (addressBytes.Length < 6) continue;
-                if (addressBytes.All(x => x == 0)) continue;
+                if (addressBytes.Length < 6)
+                    continue;
+                if (addressBytes.All(x => x == 0))
+                    continue;
                 return BitConverter.ToString(addressBytes).Replace("-", ":", StringComparison.Ordinal);
             }
         }

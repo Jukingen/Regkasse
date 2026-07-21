@@ -1,20 +1,19 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using System.ComponentModel.DataAnnotations;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Controllers.Base;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
-using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Controllers.Base;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminProducts;
 using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -672,7 +671,8 @@ namespace KasseAPI_Final.Controllers
                     int sortOrder = 0;
                     foreach (var gid in groupIds)
                     {
-                        if (!existingGroups.Contains(gid)) continue;
+                        if (!existingGroups.Contains(gid))
+                            continue;
                         _context.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment
                         {
                             ProductId = id,

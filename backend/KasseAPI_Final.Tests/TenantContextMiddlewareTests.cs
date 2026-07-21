@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
@@ -10,7 +11,6 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using System.Security.Claims;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
@@ -99,7 +99,7 @@ public sealed class TenantContextMiddlewareTests
             _ => Task.CompletedTask,
             environment.Object);
 
-        await middleware.InvokeAsync(httpContext, accessor, tenantContextService);
+        await middleware.InvokeAsync(httpContext, tenantContextService);
 
         Assert.Equal(DemoTenantIds.Dev, accessor.TenantId);
     }
@@ -142,9 +142,44 @@ public sealed class TenantContextMiddlewareTests
             _ => Task.CompletedTask,
             environment.Object);
 
-        await middleware.InvokeAsync(httpContext, accessor, tenantContextService);
+        await middleware.InvokeAsync(httpContext, tenantContextService);
 
         Assert.Equal(LegacyDefaultTenantIds.Primary, accessor.TenantId);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Production_MissingJwtTenantId_ClearsAmbientTenant()
+    {
+        await using var db = CreateContext();
+        TenantTestDoubles.EnsureDefaultTenant(db);
+
+        var accessor = new CurrentTenantAccessor { TenantId = LegacyDefaultTenantIds.Primary };
+        var environment = new Mock<IWebHostEnvironment>();
+        environment.SetupGet(e => e.EnvironmentName).Returns(Environments.Production);
+
+        var tenantContextService = new TenantContextService(
+            db,
+            accessor,
+            environment.Object,
+            Mock.Of<KasseAPI_Final.Services.Tenancy.ITenantDomainService>(),
+            NullLogger<TenantContextService>.Instance);
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Host = new HostString("api.regkasse.at");
+        httpContext.Request.Headers[SubdomainTenantProvider.DevTenantHeaderName] = "dev";
+        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(
+        [
+            new Claim(ClaimTypes.Name, "user"),
+        ],
+        authenticationType: "Test"));
+
+        var middleware = new TenantContextMiddleware(
+            _ => Task.CompletedTask,
+            environment.Object);
+
+        await middleware.InvokeAsync(httpContext, tenantContextService);
+
+        Assert.Null(accessor.TenantId);
     }
 
     [Fact]
@@ -185,7 +220,7 @@ public sealed class TenantContextMiddlewareTests
             _ => Task.CompletedTask,
             environment.Object);
 
-        await middleware.InvokeAsync(httpContext, accessor, tenantContextService);
+        await middleware.InvokeAsync(httpContext, tenantContextService);
 
         Assert.Equal(DemoTenantIds.Dev, accessor.TenantId);
     }
@@ -196,6 +231,6 @@ public sealed class TenantContextMiddlewareTests
             .UseInMemoryDatabase($"TenantContextMiddleware_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 }

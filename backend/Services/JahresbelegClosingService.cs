@@ -8,9 +8,6 @@ using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using KasseAPI_Final.Tse;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services;
@@ -156,7 +153,12 @@ public sealed class JahresbelegClosingService : IJahresbelegClosingService
             _configuration,
             rksvEnvironment: _rksvEnvironment);
 
+        await using var fiscalTx = await _context.Database.BeginTransactionAsync(cancellationToken);
         string tseSignature;
+        DateTime signedAtUtc;
+        string? thumbprint;
+        DailyClosing dailyClosing;
+        Jahresbeleg jahresbeleg;
         try
         {
             tseSignature = await _tseService.CreateYearlyClosingSignatureAsync(
@@ -164,87 +166,88 @@ public sealed class JahresbelegClosingService : IJahresbelegClosingService
                 register.RegisterNumber,
                 targetYearLocal,
                 summary.TotalGross,
-                summary.TransactionCount);
+                summary.TransactionCount,
+                fiscalTx);
+
+            signedAtUtc = DateTime.UtcNow;
+            thumbprint = _tseKeyProvider.GetCurrentCertificateThumbprint();
+            var monthlyReferencesJson = JahresbelegYearlyAggregator.SerializeMonthlyReferences(summary.MonthlyReferences);
+
+            dailyClosing = new DailyClosing
+            {
+                Id = Guid.NewGuid(),
+                CashRegisterId = request.CashRegisterId,
+                UserId = actorUserId,
+                ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(targetYearLocal),
+                ClosingType = "Yearly",
+                TotalAmount = summary.TotalGross,
+                TotalTaxAmount = summary.TotalTax,
+                TransactionCount = summary.TransactionCount,
+                TseSignature = tseSignature,
+                CertificateThumbprint = thumbprint,
+                Status = "Completed",
+                CreatedAt = signedAtUtc,
+            };
+
+            await DailyClosingOperationalResolver.StampOperationalFieldsAsync(
+                _context,
+                dailyClosing,
+                request.CashRegisterId,
+                actorUserId,
+                cancellationToken: cancellationToken);
+
+            jahresbeleg = new Jahresbeleg
+            {
+                CashRegisterId = request.CashRegisterId,
+                Year = year,
+                TotalCash = summary.TotalCash,
+                TotalCard = summary.TotalCard,
+                TotalVoucher = summary.TotalVoucher,
+                TotalOther = summary.TotalOther,
+                TotalGross = summary.TotalGross,
+                TotalTax = summary.TotalTax,
+                TaxRate20 = summary.TaxRate20,
+                TaxRate10 = summary.TaxRate10,
+                TaxRate0 = summary.TaxRate0,
+                TransactionCount = summary.TransactionCount,
+                MonthlyReferences = monthlyReferencesJson,
+                TseSignature = tseSignature,
+                TseSignatureTimestamp = signedAtUtc.ToString("O"),
+                TseCertificateThumbprint = thumbprint,
+                PreviousSignature = previousSignature,
+                SignatureChainLength = chainLength,
+                IsSimulated = fiscalEnvironment.IsDemoFiscal,
+                Environment = fiscalEnvironment.EnvironmentName,
+                IsDecemberMonatsbeleg = summary.IsDecemberMonatsbeleg,
+                CreatedByUserId = actorUserId,
+                CreatedAtUtc = signedAtUtc,
+                UpdatedAtUtc = signedAtUtc,
+                DailyClosingId = dailyClosing.Id,
+            };
+
+            _context.DailyClosings.Add(dailyClosing);
+            _context.Jahresbelege.Add(jahresbeleg);
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            var cashReg = await _context.CashRegisters
+                .FirstAsync(r => r.Id == request.CashRegisterId, cancellationToken);
+            cashReg.LastJahresbelegUtc = signedAtUtc;
+            await _context.SaveChangesAsync(cancellationToken);
+            await fiscalTx.CommitAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (IsDuplicateClosing(ex))
+        {
+            await fiscalTx.RollbackAsync(cancellationToken);
+            return Fail($"Yearly closing already exists for {year}");
         }
         catch (Exception ex)
         {
+            await fiscalTx.RollbackAsync(cancellationToken);
             _logger.LogError(ex, "Jahresbeleg TSE signing failed for register {RegisterId} year {Year}",
                 request.CashRegisterId, year);
             return Fail(ex.Message);
         }
-
-        var signedAtUtc = DateTime.UtcNow;
-        var thumbprint = _tseKeyProvider.GetCurrentCertificateThumbprint();
-        var monthlyReferencesJson = JahresbelegYearlyAggregator.SerializeMonthlyReferences(summary.MonthlyReferences);
-
-        var dailyClosing = new DailyClosing
-        {
-            Id = Guid.NewGuid(),
-            CashRegisterId = request.CashRegisterId,
-            UserId = actorUserId,
-            ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(targetYearLocal),
-            ClosingType = "Yearly",
-            TotalAmount = summary.TotalGross,
-            TotalTaxAmount = summary.TotalTax,
-            TransactionCount = summary.TransactionCount,
-            TseSignature = tseSignature,
-            CertificateThumbprint = thumbprint,
-            Status = "Completed",
-            CreatedAt = signedAtUtc,
-        };
-
-        await DailyClosingOperationalResolver.StampOperationalFieldsAsync(
-            _context,
-            dailyClosing,
-            request.CashRegisterId,
-            actorUserId,
-            cancellationToken: cancellationToken);
-
-        var jahresbeleg = new Jahresbeleg
-        {
-            CashRegisterId = request.CashRegisterId,
-            Year = year,
-            TotalCash = summary.TotalCash,
-            TotalCard = summary.TotalCard,
-            TotalVoucher = summary.TotalVoucher,
-            TotalOther = summary.TotalOther,
-            TotalGross = summary.TotalGross,
-            TotalTax = summary.TotalTax,
-            TaxRate20 = summary.TaxRate20,
-            TaxRate10 = summary.TaxRate10,
-            TaxRate0 = summary.TaxRate0,
-            TransactionCount = summary.TransactionCount,
-            MonthlyReferences = monthlyReferencesJson,
-            TseSignature = tseSignature,
-            TseSignatureTimestamp = signedAtUtc.ToString("O"),
-            TseCertificateThumbprint = thumbprint,
-            PreviousSignature = previousSignature,
-            SignatureChainLength = chainLength,
-            IsSimulated = fiscalEnvironment.IsDemoFiscal,
-            Environment = fiscalEnvironment.EnvironmentName,
-            IsDecemberMonatsbeleg = summary.IsDecemberMonatsbeleg,
-            CreatedByUserId = actorUserId,
-            CreatedAtUtc = signedAtUtc,
-            UpdatedAtUtc = signedAtUtc,
-            DailyClosingId = dailyClosing.Id,
-        };
-
-        _context.DailyClosings.Add(dailyClosing);
-        _context.Jahresbelege.Add(jahresbeleg);
-
-        try
-        {
-            await _context.SaveChangesAsync(cancellationToken);
-        }
-        catch (DbUpdateException ex) when (IsDuplicateClosing(ex))
-        {
-            return Fail($"Yearly closing already exists for {year}");
-        }
-
-        var cashReg = await _context.CashRegisters
-            .FirstAsync(r => r.Id == request.CashRegisterId, cancellationToken);
-        cashReg.LastJahresbelegUtc = signedAtUtc;
-        await _context.SaveChangesAsync(cancellationToken);
 
         var report = await _reportService.ComposeReportDtoAsync(
             jahresbeleg,

@@ -1,14 +1,14 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Inventory;
-using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -40,16 +40,16 @@ namespace KasseAPI_Final.Controllers
         /// <summary>Active inventory row whose product belongs to the tenant (read / mutating ops gate).</summary>
         private Task<bool> ActiveInventoryItemBelongsToTenantAsync(Guid inventoryItemId, Guid tenantId, CancellationToken cancellationToken = default) =>
             (from i in _context.Inventory.AsNoTracking()
-                join p in _context.Products.AsNoTracking() on i.ProductId equals p.Id
-                where i.Id == inventoryItemId && i.IsActive && p.TenantId == tenantId
-                select 1).AnyAsync(cancellationToken);
+             join p in _context.Products.AsNoTracking() on i.ProductId equals p.Id
+             where i.Id == inventoryItemId && i.IsActive && p.TenantId == tenantId
+             select 1).AnyAsync(cancellationToken);
 
         /// <summary>Any inventory row (active or not) linked to a product in the tenant — e.g. soft delete.</summary>
         private Task<bool> InventoryRowLinkedToTenantProductAsync(Guid inventoryItemId, Guid tenantId, CancellationToken cancellationToken = default) =>
             (from i in _context.Inventory.AsNoTracking()
-                join p in _context.Products.AsNoTracking() on i.ProductId equals p.Id
-                where i.Id == inventoryItemId && p.TenantId == tenantId
-                select 1).AnyAsync(cancellationToken);
+             join p in _context.Products.AsNoTracking() on i.ProductId equals p.Id
+             where i.Id == inventoryItemId && p.TenantId == tenantId
+             select 1).AnyAsync(cancellationToken);
 
         /// <summary>
         /// Audit trail for stock-changing operations (best-effort: failure does not roll back stock).

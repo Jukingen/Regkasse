@@ -1,6 +1,7 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.DigitalServices;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -218,7 +219,7 @@ public sealed class TenantServiceStatusServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(name + Guid.NewGuid().ToString("N"))
             .Options;
-        var db = new AppDbContext(options);
+        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
         var sut = new TenantServiceStatusService(
             db,
             new DigitalServicePricingService(),

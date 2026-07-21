@@ -4,7 +4,6 @@ using System.Text;
 using System.Text.Json;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 

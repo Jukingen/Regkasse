@@ -47,7 +47,11 @@ public static class AppPermissions
     public const string PaymentView = "payment.view";
     public const string PaymentTake = "payment.take";
     public const string PaymentCancel = "payment.cancel";
+
+    /// <summary>Reserved — no live endpoint gate. Prefer report.export for payment CSV/PDF exports.</summary>
+    [Obsolete("Unused catalog key; no controller gate. Planned removal after 2026-12-31.")]
     public const string PaymentExport = "payment.export";
+
     public const string RefundCreate = "refund.create";
 
     /// <summary>Apply discount to sale (e.g. manual discount, voucher).</summary>
@@ -96,6 +100,9 @@ public static class AppPermissions
     public const string InvoiceView = "invoice.view";
     public const string InvoiceManage = "invoice.manage";
     public const string InvoiceExport = "invoice.export";
+
+    /// <summary>Reserved — credit notes use <see cref="InvoiceManage"/> on the live API.</summary>
+    [Obsolete("Unused; CreateCreditNote is gated by invoice.manage. Planned removal after 2026-12-31.")]
     public const string CreditNoteCreate = "creditnote.create";
 
     // --- Settings, Localization, ReceiptTemplate ---
@@ -218,6 +225,9 @@ public static class AppPermissions
     public const string AuditCleanup = "audit.cleanup";
     public const string ReportView = "report.view";
     public const string ReportExport = "report.export";
+
+    /// <summary>Reserved — operational/audit schedules do not use this permission key.</summary>
+    [Obsolete("Unused catalog key; no controller gate. Planned removal after 2026-12-31.")]
     public const string ReportSchedule = "report.schedule";
 
     // --- Daily closing (Tagesabschluss) ---
@@ -235,12 +245,15 @@ public static class AppPermissions
     public const string FinanzOnlineManage = "finanzonline.manage";
     public const string FinanzOnlineSubmit = "finanzonline.submit";
 
-    // --- Kitchen (order display / status updates) ---
+    // --- Kitchen (order display / status updates; GRANT_ONLY until KDS endpoints gate these) ---
     public const string KitchenView = "kitchen.view";
     public const string KitchenUpdate = "kitchen.update";
 
     // --- TSE (fiscal signing) ---
     public const string TseSign = "tse.sign";
+
+    /// <summary>Reserved for future TSE diagnostics admin API; SuperAdmin-only via catalog today.</summary>
+    [Obsolete("No live controller gate yet; keep for SuperAdmin policy tests. Planned removal or wire-up after 2026-12-31.")]
     public const string TseDiagnostics = "tse.diagnostics";
 
     /// <summary>RKSV Monats-Nullbeleg (zero TSE receipt) — admin API only; not POS <see cref="PaymentTake"/>.</summary>

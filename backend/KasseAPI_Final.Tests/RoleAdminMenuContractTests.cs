@@ -72,7 +72,7 @@ public class RoleAdminMenuContractTests
             new[] { role },
             effective);
 
-        Assert.Contains(permission, filtered);
+        Assert.True(PermissionImplication.IsSatisfied(permission, filtered));
     }
 
     [Fact]
@@ -86,8 +86,8 @@ public class RoleAdminMenuContractTests
 
         foreach (var viewKey in AdminAppPermissionProfile.ManagerOversightViewPermissions)
         {
-            Assert.Contains(viewKey, effective);
-            Assert.Contains(viewKey, filtered);
+            Assert.True(PermissionImplication.IsSatisfied(viewKey, effective));
+            Assert.True(PermissionImplication.IsSatisfied(viewKey, filtered));
         }
 
         Assert.DoesNotContain(AppPermissions.PaymentTake, filtered);

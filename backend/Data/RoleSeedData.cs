@@ -1,5 +1,5 @@
-using Microsoft.AspNetCore.Identity;
 using KasseAPI_Final.Authorization;
+using Microsoft.AspNetCore.Identity;
 
 namespace KasseAPI_Final.Data;
 

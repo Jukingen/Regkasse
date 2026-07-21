@@ -136,24 +136,24 @@ public sealed class ProductServiceTests
         string name,
         decimal price,
         bool isActive = true) => new()
-    {
-        Id = id,
-        TenantId = tenantId,
-        Name = name,
-        Price = price,
-        CategoryId = categoryId,
-        Category = "legacy",
-        StockQuantity = 5,
-        MinStockLevel = 0,
-        Unit = "Stk",
-        TaxType = TaxTypes.Standard,
-        TaxRate = TaxTypes.GetTaxRate(TaxTypes.Standard),
-        Barcode = $"bc-{id:N}",
-        IsFiscalCompliant = true,
-        IsTaxable = true,
-        RksvProductType = RksvProductTypes.Standard,
-        IsActive = isActive,
-    };
+        {
+            Id = id,
+            TenantId = tenantId,
+            Name = name,
+            Price = price,
+            CategoryId = categoryId,
+            Category = "legacy",
+            StockQuantity = 5,
+            MinStockLevel = 0,
+            Unit = "Stk",
+            TaxType = TaxTypes.Standard,
+            TaxRate = TaxTypes.GetTaxRate(TaxTypes.Standard),
+            Barcode = $"bc-{id:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
+            IsActive = isActive,
+        };
 
     private static AppDbContext CreateContext()
     {

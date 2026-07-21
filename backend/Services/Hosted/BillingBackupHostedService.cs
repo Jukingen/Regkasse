@@ -1,6 +1,4 @@
 using KasseAPI_Final.Services.Billing;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.Hosted;

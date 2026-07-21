@@ -1,6 +1,6 @@
+using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
-using KasseAPI_Final.Services.FinanzOnlineIntegration;
 
 namespace KasseAPI_Final.HealthChecks;
 

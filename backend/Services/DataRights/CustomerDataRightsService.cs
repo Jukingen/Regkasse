@@ -6,7 +6,6 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.DataDeletion;
 using KasseAPI_Final.Services.DataExport;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.DataRights;
@@ -502,17 +501,6 @@ public sealed class CustomerDataRightsService : ICustomerDataRightsService
         if (!exists)
             throw new InvalidOperationException($"Tenant {tenantId} not found.");
     }
-
-    private static string MapDeletionStatusToRights(string deletionStatus) =>
-        deletionStatus switch
-        {
-            TenantDataDeletionRequestStatuses.Pending => TenantDataRightsRequestStatuses.PendingApproval,
-            TenantDataDeletionRequestStatuses.ExportReady => TenantDataRightsRequestStatuses.PendingApproval,
-            TenantDataDeletionRequestStatuses.Confirmed => TenantDataRightsRequestStatuses.Confirmed,
-            TenantDataDeletionRequestStatuses.Completed => TenantDataRightsRequestStatuses.Completed,
-            TenantDataDeletionRequestStatuses.Cancelled => TenantDataRightsRequestStatuses.Cancelled,
-            _ => TenantDataRightsRequestStatuses.PendingApproval,
-        };
 
     private TenantDataRightsRequestDto Map(
         TenantDataRightsRequest row,

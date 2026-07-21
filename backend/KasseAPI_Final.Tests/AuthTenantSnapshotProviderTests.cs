@@ -14,7 +14,7 @@ public class AuthTenantSnapshotProviderTests
     public async Task GetSnapshotAsync_Without_Claim_Uses_Legacy_Default_And_Db_Name()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
-        await using var db = new AppDbContext(options);
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
         db.Tenants.Add(new Tenant
         {
             Id = LegacyDefaultTenantIds.Primary,
@@ -36,7 +36,7 @@ public class AuthTenantSnapshotProviderTests
     {
         var otherId = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
         var options = new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
-        await using var db = new AppDbContext(options);
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
         db.Tenants.Add(new Tenant { Id = LegacyDefaultTenantIds.Primary, Name = "Default", Slug = "default" });
         db.Tenants.Add(new Tenant { Id = otherId, Name = "Other", Slug = "other" });
         await db.SaveChangesAsync();
@@ -57,7 +57,7 @@ public class AuthTenantSnapshotProviderTests
     public async Task GetSnapshotAsync_Invalid_Claim_Falls_Back_To_Default()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
-        await using var db = new AppDbContext(options);
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
         db.Tenants.Add(new Tenant { Id = LegacyDefaultTenantIds.Primary, Name = "Default", Slug = "default" });
         await db.SaveChangesAsync();
 
@@ -78,7 +78,7 @@ public class AuthTenantSnapshotProviderTests
         var persistedId = Guid.Parse("11111111-1111-1111-1111-111111111111");
         var claimId = Guid.Parse("22222222-2222-2222-2222-222222222222");
         var options = new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
-        await using var db = new AppDbContext(options);
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
         db.Tenants.Add(new Tenant { Id = persistedId, Name = "From Session", Slug = "from-session" });
         db.Tenants.Add(new Tenant { Id = claimId, Name = "From Jwt", Slug = "from-jwt" });
         await db.SaveChangesAsync();
@@ -100,7 +100,7 @@ public class AuthTenantSnapshotProviderTests
     {
         var claimId = Guid.Parse("33333333-3333-3333-3333-333333333333");
         var options = new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
-        await using var db = new AppDbContext(options);
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
         db.Tenants.Add(new Tenant { Id = LegacyDefaultTenantIds.Primary, Name = "Default", Slug = "default" });
         db.Tenants.Add(new Tenant { Id = claimId, Name = "Claim Org", Slug = "claim-org" });
         await db.SaveChangesAsync();

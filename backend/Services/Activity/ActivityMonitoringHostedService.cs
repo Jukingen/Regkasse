@@ -1,11 +1,9 @@
-using KasseAPI_Final;
 using KasseAPI_Final.Configuration;
-using static KasseAPI_Final.Configuration.LicenseGracePeriodConfig;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Services.AdminTenants;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using static KasseAPI_Final.Configuration.LicenseGracePeriodConfig;
 
 namespace KasseAPI_Final.Services.Activity;
 

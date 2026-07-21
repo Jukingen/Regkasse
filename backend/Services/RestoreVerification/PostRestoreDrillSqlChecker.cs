@@ -1,7 +1,5 @@
 using System.Diagnostics;
-using System.Linq;
 using KasseAPI_Final.Models.RestoreVerification;
-using Microsoft.Extensions.Logging;
 using Npgsql;
 
 namespace KasseAPI_Final.Services.RestoreVerification;

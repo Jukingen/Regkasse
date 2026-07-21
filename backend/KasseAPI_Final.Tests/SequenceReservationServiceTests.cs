@@ -24,7 +24,7 @@ public sealed class SequenceReservationServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseAppNpgsql(_fixture.ConnectionString)
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static async Task<Guid> SeedRegisterAsync(AppDbContext ctx)

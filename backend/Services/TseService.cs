@@ -1,17 +1,12 @@
-using System;
 using System.Data;
-using System.Linq;
-using System.Threading.Tasks;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Time;
 using KasseAPI_Final.Tse;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.Extensions.Logging;
-using KasseAPI_Final.Configuration;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using KasseAPI_Final;
 
 namespace KasseAPI_Final.Services
 {
@@ -115,7 +110,8 @@ namespace KasseAPI_Final.Services
             try
             {
                 var device = await GetTseDeviceAsync(deviceId);
-                if (device.Id == Guid.Empty) return false;
+                if (device.Id == Guid.Empty)
+                    return false;
                 device.IsConnected = true;
                 device.LastFinanzOnlineSync = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
@@ -129,7 +125,8 @@ namespace KasseAPI_Final.Services
             try
             {
                 var device = await GetTseDeviceAsync(deviceId);
-                if (device.Id == Guid.Empty) return false;
+                if (device.Id == Guid.Empty)
+                    return false;
                 device.IsConnected = false;
                 await _context.SaveChangesAsync();
                 return true;
@@ -328,11 +325,22 @@ namespace KasseAPI_Final.Services
             var aesKey = _keyProvider.GetTurnoverCounterAesKeyBytes()
                 ?? throw new InvalidOperationException("Turnover counter AES key is not configured.");
             var certSerial = _keyProvider.GetCertificateSerialNumber() ?? "UNKNOWN";
-            var ts = closingDate.Date.AddHours(23).AddMinutes(59).AddSeconds(59);
+            // Vienna business-day end (23:59:59) as real UTC — same rule as Nullbeleg issuedAtUtc.
+            // Do not SpecifyKind(..., Utc) on local wall components (that shifted BelegDatumUhrzeit by +1 day).
+            var viennaMidnight = PostgreSqlUtcDateTime.ViennaCalendarMidnightContainingInstant(closingDate);
+            var localEod = new DateTime(
+                viennaMidnight.Year,
+                viennaMidnight.Month,
+                viennaMidnight.Day,
+                23,
+                59,
+                59,
+                DateTimeKind.Unspecified);
+            var tsUtc = TimeZoneInfo.ConvertTimeToUtc(localEod, PostgreSqlUtcDateTime.AustriaTimeZone);
             var payload = BelegdatenPayloadBuilder.Build(
                 kassenId,
                 belegnummer,
-                DateTime.SpecifyKind(ts, DateTimeKind.Utc),
+                tsUtc,
                 taxSets,
                 newTurnover,
                 string.IsNullOrEmpty(previousCompactJws) ? null : previousCompactJws,
@@ -342,89 +350,66 @@ namespace KasseAPI_Final.Services
             return (payload, newTurnover);
         }
 
-        public async Task<string> CreateDailyClosingSignatureAsync(Guid cashRegisterId, string registerNumber, DateTime closingDate, decimal totalAmount, int transactionCount)
-        {
-            if (cashRegisterId == Guid.Empty)
-                throw new ArgumentException("cashRegisterId must not be empty.", nameof(cashRegisterId));
-            if (string.IsNullOrWhiteSpace(registerNumber))
-                throw new ArgumentException("registerNumber is required.", nameof(registerNumber));
-            if (!await _tseProvider.IsReadyAsync())
-                throw new InvalidOperationException("TSE is not ready for closing signing.");
-            var kId = registerNumber.Trim();
-            await using var transaction = await _context.Database.BeginTransactionAsync();
-            try
-            {
-                var (prevSig, _, turnoverCents) = await EnsureChainRowAndLockAsync(transaction, cashRegisterId);
-                var correlationId = Guid.NewGuid().ToString("N")[..12];
-                var belegNr = $"DAILY_{closingDate:yyyyMMdd}";
-                var (payload, newTurnover) = BuildClosingPayload(kId, belegNr, closingDate, totalAmount, prevSig, turnoverCents, incrementTurnover: true);
-                var signResult = await _tseProvider.SignAsync(payload, correlationId);
-                var compactJws = signResult.CompactJws;
-                _context.TseSignatures.Add(new TseSignature
-                {
-                    Id = Guid.NewGuid(),
-                    Signature = compactJws,
-                    CashRegisterId = cashRegisterId,
-                    InvoiceNumber = belegNr,
-                    Amount = totalAmount,
-                    CreatedAt = DateTime.UtcNow,
-                    SignatureType = "DailyClosing",
-                    CertificateNumber = signResult.CertificateSerialNumber
-                });
-                await UpdateChainWithNewSignatureAsync(transaction, cashRegisterId, compactJws, newTurnover);
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-                return compactJws;
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
-        }
+        public Task<string> CreateDailyClosingSignatureAsync(
+            Guid cashRegisterId,
+            string registerNumber,
+            DateTime closingDate,
+            decimal totalAmount,
+            int transactionCount,
+            IDbContextTransaction? dbTransaction = null) =>
+            CreateClosingSignatureCoreAsync(
+                cashRegisterId,
+                registerNumber,
+                closingDate,
+                totalAmount,
+                signatureType: "DailyClosing",
+                belegNr: $"DAILY_{closingDate:yyyyMMdd}",
+                dbTransaction);
 
-        public async Task<string> CreateMonthlyClosingSignatureAsync(Guid cashRegisterId, string registerNumber, DateTime closingDate, decimal totalAmount, int transactionCount)
-        {
-            if (cashRegisterId == Guid.Empty)
-                throw new ArgumentException("cashRegisterId must not be empty.", nameof(cashRegisterId));
-            if (string.IsNullOrWhiteSpace(registerNumber))
-                throw new ArgumentException("registerNumber is required.", nameof(registerNumber));
-            if (!await _tseProvider.IsReadyAsync())
-                throw new InvalidOperationException("TSE is not ready for closing signing.");
-            var kId = registerNumber.Trim();
-            await using var transaction = await _context.Database.BeginTransactionAsync();
-            try
-            {
-                var (prevSig, _, turnoverCents) = await EnsureChainRowAndLockAsync(transaction, cashRegisterId);
-                var correlationId = Guid.NewGuid().ToString("N")[..12];
-                var belegNr = $"MONTHLY_{closingDate:yyyyMM}";
-                var (payload, newTurnover) = BuildClosingPayload(kId, belegNr, closingDate, totalAmount, prevSig, turnoverCents, incrementTurnover: true);
-                var signResult = await _tseProvider.SignAsync(payload, correlationId);
-                var compactJws = signResult.CompactJws;
-                _context.TseSignatures.Add(new TseSignature
-                {
-                    Id = Guid.NewGuid(),
-                    Signature = compactJws,
-                    CashRegisterId = cashRegisterId,
-                    InvoiceNumber = belegNr,
-                    Amount = totalAmount,
-                    CreatedAt = DateTime.UtcNow,
-                    SignatureType = "MonthlyClosing",
-                    CertificateNumber = signResult.CertificateSerialNumber
-                });
-                await UpdateChainWithNewSignatureAsync(transaction, cashRegisterId, compactJws, newTurnover);
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-                return compactJws;
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
-        }
+        public Task<string> CreateMonthlyClosingSignatureAsync(
+            Guid cashRegisterId,
+            string registerNumber,
+            DateTime closingDate,
+            decimal totalAmount,
+            int transactionCount,
+            IDbContextTransaction? dbTransaction = null) =>
+            CreateClosingSignatureCoreAsync(
+                cashRegisterId,
+                registerNumber,
+                closingDate,
+                totalAmount,
+                signatureType: "MonthlyClosing",
+                belegNr: $"MONTHLY_{closingDate:yyyyMM}",
+                dbTransaction);
 
-        public async Task<string> CreateYearlyClosingSignatureAsync(Guid cashRegisterId, string registerNumber, DateTime closingDate, decimal totalAmount, int transactionCount)
+        public Task<string> CreateYearlyClosingSignatureAsync(
+            Guid cashRegisterId,
+            string registerNumber,
+            DateTime closingDate,
+            decimal totalAmount,
+            int transactionCount,
+            IDbContextTransaction? dbTransaction = null) =>
+            CreateClosingSignatureCoreAsync(
+                cashRegisterId,
+                registerNumber,
+                closingDate,
+                totalAmount,
+                signatureType: "YearlyClosing",
+                belegNr: $"YEARLY_{closingDate:yyyy}",
+                dbTransaction);
+
+        /// <summary>
+        /// Signs a closing and advances the signature chain. When <paramref name="dbTransaction"/> is set,
+        /// chain + <c>tse_signatures</c> enlist in the caller TX (atomic with DailyClosing/Monatsbeleg persistence).
+        /// </summary>
+        private async Task<string> CreateClosingSignatureCoreAsync(
+            Guid cashRegisterId,
+            string registerNumber,
+            DateTime closingDate,
+            decimal totalAmount,
+            string signatureType,
+            string belegNr,
+            IDbContextTransaction? dbTransaction)
         {
             if (cashRegisterId == Guid.Empty)
                 throw new ArgumentException("cashRegisterId must not be empty.", nameof(cashRegisterId));
@@ -432,14 +417,24 @@ namespace KasseAPI_Final.Services
                 throw new ArgumentException("registerNumber is required.", nameof(registerNumber));
             if (!await _tseProvider.IsReadyAsync())
                 throw new InvalidOperationException("TSE is not ready for closing signing.");
+
             var kId = registerNumber.Trim();
-            await using var transaction = await _context.Database.BeginTransactionAsync();
+            var ownTransaction = dbTransaction == null;
+            if (ownTransaction)
+                dbTransaction = await _context.Database.BeginTransactionAsync();
+
             try
             {
-                var (prevSig, _, turnoverCents) = await EnsureChainRowAndLockAsync(transaction, cashRegisterId);
+                var (prevSig, _, turnoverCents) = await EnsureChainRowAndLockAsync(dbTransaction!, cashRegisterId);
                 var correlationId = Guid.NewGuid().ToString("N")[..12];
-                var belegNr = $"YEARLY_{closingDate:yyyy}";
-                var (payload, newTurnover) = BuildClosingPayload(kId, belegNr, closingDate, totalAmount, prevSig, turnoverCents, incrementTurnover: true);
+                var (payload, newTurnover) = BuildClosingPayload(
+                    kId,
+                    belegNr,
+                    closingDate,
+                    totalAmount,
+                    prevSig,
+                    turnoverCents,
+                    incrementTurnover: true);
                 var signResult = await _tseProvider.SignAsync(payload, correlationId);
                 var compactJws = signResult.CompactJws;
                 _context.TseSignatures.Add(new TseSignature
@@ -450,18 +445,25 @@ namespace KasseAPI_Final.Services
                     InvoiceNumber = belegNr,
                     Amount = totalAmount,
                     CreatedAt = DateTime.UtcNow,
-                    SignatureType = "YearlyClosing",
+                    SignatureType = signatureType,
                     CertificateNumber = signResult.CertificateSerialNumber
                 });
-                await UpdateChainWithNewSignatureAsync(transaction, cashRegisterId, compactJws, newTurnover);
+                await UpdateChainWithNewSignatureAsync(dbTransaction!, cashRegisterId, compactJws, newTurnover);
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                if (ownTransaction)
+                    await dbTransaction!.CommitAsync();
                 return compactJws;
             }
             catch
             {
-                await transaction.RollbackAsync();
+                if (ownTransaction)
+                    await dbTransaction!.RollbackAsync();
                 throw;
+            }
+            finally
+            {
+                if (ownTransaction)
+                    await dbTransaction!.DisposeAsync();
             }
         }
 
@@ -470,7 +472,8 @@ namespace KasseAPI_Final.Services
             try
             {
                 var dbRecord = await _context.TseSignatures.FirstOrDefaultAsync(t => t.Signature == signature);
-                if (dbRecord != null) return true;
+                if (dbRecord != null)
+                    return true;
 
                 if (_keyProvider is SoftwareTseKeyProvider softProvider)
                 {
@@ -623,7 +626,8 @@ namespace KasseAPI_Final.Services
             try
             {
                 var tseSignature = await _context.TseSignatures.FirstOrDefaultAsync(t => t.Signature == signature);
-                if (tseSignature == null) return false;
+                if (tseSignature == null)
+                    return false;
                 tseSignature.IsValid = false;
                 tseSignature.ValidationError = "Invoice cancellation requested";
                 await _context.SaveChangesAsync();

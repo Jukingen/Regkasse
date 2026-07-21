@@ -1,6 +1,5 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models;
-using Microsoft.AspNetCore.Http;
 
 namespace KasseAPI_Final.Middleware;
 

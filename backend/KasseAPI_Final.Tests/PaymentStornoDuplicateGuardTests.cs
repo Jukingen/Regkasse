@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text.Json;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Constants;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
@@ -8,7 +9,6 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Tenancy;
-using KasseAPI_Final.Configuration;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;

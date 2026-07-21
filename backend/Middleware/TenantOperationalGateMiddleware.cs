@@ -3,13 +3,10 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Localization;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
-using KasseAPI_Final.Services.Auth;
 using KasseAPI_Final.Services.Localization;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Middleware;

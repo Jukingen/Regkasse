@@ -1,17 +1,9 @@
-using System;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.FinanzOnlineIntegration;
@@ -44,7 +36,8 @@ public sealed class FinanzOnlineOutboxOptions
     public const string SectionName = "FinanzOnlineOutbox";
     public bool Enabled { get; set; } = true;
     public TimeSpan PollInterval { get; set; } = TimeSpan.FromSeconds(10);
-    public int MaxAttempts { get; set; } = 8;
+    /// <summary>Max submit attempts before DeadLetter (AGENTS: exponential backoff, maximum 5).</summary>
+    public int MaxAttempts { get; set; } = 5;
     public int BaseDelaySeconds { get; set; } = 30;
     public int BackoffCapSeconds { get; set; } = 3600;
     public int JitterMaxSeconds { get; set; } = 15;
@@ -139,12 +132,46 @@ public sealed class FinanzOnlineOutboxService : IFinanzOnlineOutboxService
         };
 
         _context.FinanzOnlineOutboxMessages.Add(item);
-        if (persistImmediately)
+        if (!persistImmediately)
+        {
+            _logger.LogInformation("FinanzOnline outbox enqueued MessageType={MessageType} AggregateType={AggregateType} AggregateId={AggregateId} CorrelationId={CorrelationId} PersistImmediately={PersistImmediately}",
+                messageType, aggregateType, aggregateId, item.CorrelationId, persistImmediately);
+            return item;
+        }
+
+        try
+        {
             await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (DbUpdateException)
+        {
+            // Concurrent enqueue: unique IdempotencyKey — return the winner, drop the local insert.
+            _context.Entry(item).State = EntityState.Detached;
+            var raced = await TryGetByIdempotencyKeyAsync(idempotencyKey, cancellationToken).ConfigureAwait(false);
+            if (raced != null)
+            {
+                _logger.LogInformation(
+                    "FinanzOnline outbox idempotent race resolved MessageType={MessageType} AggregateId={AggregateId} ExistingId={ExistingId}",
+                    messageType,
+                    aggregateId,
+                    raced.Id);
+                return raced;
+            }
+
+            throw;
+        }
+
         _logger.LogInformation("FinanzOnline outbox enqueued MessageType={MessageType} AggregateType={AggregateType} AggregateId={AggregateId} CorrelationId={CorrelationId} PersistImmediately={PersistImmediately}",
             messageType, aggregateType, aggregateId, item.CorrelationId, persistImmediately);
         return item;
     }
+
+    private async Task<FinanzOnlineOutboxMessage?> TryGetByIdempotencyKeyAsync(
+        string idempotencyKey,
+        CancellationToken cancellationToken) =>
+        await _context.FinanzOnlineOutboxMessages.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey, cancellationToken)
+            .ConfigureAwait(false);
 
     private static string ComputeSha256(string raw)
     {

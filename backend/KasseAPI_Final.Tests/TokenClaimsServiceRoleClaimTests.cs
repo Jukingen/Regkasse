@@ -1,6 +1,4 @@
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
-using System.Security.Claims;
 using System.Text;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models;

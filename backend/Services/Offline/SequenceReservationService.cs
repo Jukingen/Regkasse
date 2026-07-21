@@ -1,7 +1,6 @@
 using System.Data;
 using KasseAPI_Final.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Services.Offline;
 

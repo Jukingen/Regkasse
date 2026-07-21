@@ -1,15 +1,11 @@
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
-using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
-using System.Security.Claims;
-using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services
 {
@@ -20,26 +16,26 @@ namespace KasseAPI_Final.Services
     /// </summary>
     public interface IAuditLogService
     {
-        Task<AuditLog> LogPaymentOperationAsync(string action, string entityType, Guid? entityId, 
-            string userId, string userRole, decimal? amount = null, string? paymentMethod = null, 
+        Task<AuditLog> LogPaymentOperationAsync(string action, string entityType, Guid? entityId,
+            string userId, string userRole, decimal? amount = null, string? paymentMethod = null,
             string? tseSignature = null, string? transactionId = null, string? correlationId = null,
             object? requestData = null, object? responseData = null, string? description = null,
-            string? notes = null, AuditLogStatus status = AuditLogStatus.Success, 
+            string? notes = null, AuditLogStatus status = AuditLogStatus.Success,
             string? errorDetails = null, double? processingTimeMs = null);
 
-        Task<AuditLog> LogEntityChangeAsync(string action, string entityType, Guid entityId, 
+        Task<AuditLog> LogEntityChangeAsync(string action, string entityType, Guid entityId,
             string userId, string userRole, object? oldValues = null, object? newValues = null,
             string? description = null, string? notes = null, AuditLogStatus status = AuditLogStatus.Success,
             string? errorDetails = null);
 
-        Task<AuditLog> LogSystemOperationAsync(string action, string entityType, string userId, 
-            string userRole, string? description = null, string? notes = null, 
+        Task<AuditLog> LogSystemOperationAsync(string action, string entityType, string userId,
+            string userRole, string? description = null, string? notes = null,
             AuditLogStatus status = AuditLogStatus.Success, string? errorDetails = null,
             object? requestData = null, object? responseData = null, string? correlationIdOverride = null,
             ImpersonationAuditContext.Snapshot? impersonationSnapshot = null,
             AuditEventType? actionType = null, Guid? entityId = null, Guid? tenantId = null);
 
-        Task<AuditLog> LogUserActivityAsync(string action, string userId, string userRole, 
+        Task<AuditLog> LogUserActivityAsync(string action, string userId, string userRole,
             string? description = null, string? notes = null, AuditLogStatus status = AuditLogStatus.Success,
             string? errorDetails = null, object? requestData = null, object? responseData = null);
 
@@ -85,10 +81,10 @@ namespace KasseAPI_Final.Services
             int page = 1,
             bool includeTotalCount = false);
 
-        Task<IEnumerable<AuditLog>> GetPaymentAuditLogsAsync(Guid paymentId, DateTime? startDate = null, 
+        Task<IEnumerable<AuditLog>> GetPaymentAuditLogsAsync(Guid paymentId, DateTime? startDate = null,
             DateTime? endDate = null, int page = 1, int pageSize = 50);
 
-        Task<IEnumerable<AuditLog>> GetUserAuditLogsAsync(string userId, DateTime? startDate = null, 
+        Task<IEnumerable<AuditLog>> GetUserAuditLogsAsync(string userId, DateTime? startDate = null,
             DateTime? endDate = null, int page = 1, int pageSize = 50);
 
         /// <summary>Count of user lifecycle events where the user is the target (EntityName).</summary>
@@ -180,6 +176,7 @@ namespace KasseAPI_Final.Services
                 var auditLog = new AuditLog
                 {
                     Id = Guid.NewGuid(),
+                    TenantId = ResolveAuditTenantId(null),
                     SessionId = sessionId,
                     UserId = AuditLogPersistenceSanitizer.TruncateUserId(userId),
                     UserRole = userRoleCol,
@@ -214,14 +211,14 @@ namespace KasseAPI_Final.Services
                 _context.AuditLogs.Add(auditLog);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Payment audit log created: {Action} on {EntityType} by user {UserId}", 
+                _logger.LogInformation("Payment audit log created: {Action} on {EntityType} by user {UserId}",
                     action, entityType, userId);
 
                 return auditLog;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create payment audit log for action {Action} by user {UserId}", 
+                _logger.LogError(ex, "Failed to create payment audit log for action {Action} by user {UserId}",
                     action, userId);
                 throw;
             }
@@ -246,12 +243,14 @@ namespace KasseAPI_Final.Services
                 var auditLog = new AuditLog
                 {
                     Id = Guid.NewGuid(),
+                    TenantId = ResolveAuditTenantId(null),
                     SessionId = sessionId,
                     UserId = AuditLogPersistenceSanitizer.TruncateUserId(userId),
                     UserRole = userRoleCol,
                     Action = actionCol,
                     EntityType = entityTypeCol,
                     EntityId = entityId,
+                    ActionType = MapActionToEventTypeOrNull(actionCol),
                     OldValues = AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(oldValues),
                     NewValues = AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(newValues),
                     RequestData = null,
@@ -280,14 +279,14 @@ namespace KasseAPI_Final.Services
                 _context.AuditLogs.Add(auditLog);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Entity change audit log created: {Action} on {EntityType} {EntityId} by user {UserId}", 
+                _logger.LogInformation("Entity change audit log created: {Action} on {EntityType} {EntityId} by user {UserId}",
                     action, entityType, entityId, userId);
 
                 return auditLog;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create entity change audit log for action {Action} on {EntityType} {EntityId} by user {UserId}", 
+                _logger.LogError(ex, "Failed to create entity change audit log for action {Action} on {EntityType} {EntityId} by user {UserId}",
                     action, entityType, entityId, userId);
                 throw;
             }
@@ -353,14 +352,14 @@ namespace KasseAPI_Final.Services
                 _context.AuditLogs.Add(auditLog);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("System operation audit log created: {Action} on {EntityType} by user {UserId}", 
+                _logger.LogInformation("System operation audit log created: {Action} on {EntityType} by user {UserId}",
                     action, entityType, userId);
 
                 return auditLog;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create system operation audit log for action {Action} on {EntityType} by user {UserId}", 
+                _logger.LogError(ex, "Failed to create system operation audit log for action {Action} on {EntityType} by user {UserId}",
                     action, entityType, userId);
                 throw;
             }
@@ -383,12 +382,14 @@ namespace KasseAPI_Final.Services
                 var auditLog = new AuditLog
                 {
                     Id = Guid.NewGuid(),
+                    TenantId = ResolveAuditTenantId(null),
                     SessionId = sessionId,
                     UserId = AuditLogPersistenceSanitizer.TruncateUserId(userId),
                     UserRole = userRoleCol,
                     Action = actionCol,
                     EntityType = AuditLogPersistenceSanitizer.TruncateForEntityType(AuditLogEntityTypes.USER),
                     EntityId = null,
+                    ActionType = MapActionToEventTypeOrNull(actionCol),
                     OldValues = null,
                     NewValues = null,
                     RequestData = AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(requestData),
@@ -417,14 +418,14 @@ namespace KasseAPI_Final.Services
                 _context.AuditLogs.Add(auditLog);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("User activity audit log created: {Action} by user {UserId}", 
+                _logger.LogInformation("User activity audit log created: {Action} by user {UserId}",
                     action, userId);
 
                 return auditLog;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create user activity audit log for action {Action} by user {UserId}", 
+                _logger.LogError(ex, "Failed to create user activity audit log for action {Action} by user {UserId}",
                     action, userId);
                 throw;
             }
@@ -604,7 +605,7 @@ namespace KasseAPI_Final.Services
                 AuditEventType.RolePermissionsUpdated => AuditLogActions.ROLE_PERMISSIONS_UPDATE,
                 AuditEventType.RoleDeleted => AuditLogActions.ROLE_DELETE,
                 AuditEventType.LoginSuccess => AuditLogActions.USER_LOGIN,
-                AuditEventType.LoginFailed => AuditLogActions.USER_LOGIN,
+                AuditEventType.LoginFailed => AuditLogActions.USER_LOGIN_FAILED,
                 AuditEventType.UserLogout => AuditLogActions.USER_LOGOUT,
                 AuditEventType.UserDeleted => AuditLogActions.USER_DELETE,
                 AuditEventType.UserTenantMembershipChanged => AuditLogActions.USER_TENANT_MEMBERSHIP_CHANGED,
@@ -620,14 +621,23 @@ namespace KasseAPI_Final.Services
                 AuditEventType.LicenseExtended => AuditLogActions.LICENSE_EXTENDED,
                 AuditEventType.LicenseUpdated => AuditLogActions.LICENSE_UPDATED,
                 AuditEventType.InvoiceResent => AuditLogActions.INVOICE_RESENT,
+                AuditEventType.UserPermissionOverridesChanged => AuditLogActions.USER_PERMISSION_OVERRIDES_CHANGED,
+                AuditEventType.ReportPdfDownloaded => AuditLogActions.REPORT_PDF_DOWNLOADED,
                 _ => AuditLogActions.USER_UPDATE
             };
+        }
+
+        private static AuditEventType? MapActionToEventTypeOrNull(string action)
+        {
+            var mapped = MapActionToEventType(action);
+            return mapped == AuditEventType.Other ? null : mapped;
         }
 
         /// <summary>Maps legacy action string to AuditEventType. Used when reading old logs or from legacy callers.</summary>
         private static AuditEventType MapActionToEventType(string action)
         {
-            if (string.IsNullOrEmpty(action)) return AuditEventType.Other;
+            if (string.IsNullOrEmpty(action))
+                return AuditEventType.Other;
             return action switch
             {
                 AuditLogActions.USER_CREATE => AuditEventType.UserCreated,
@@ -642,6 +652,7 @@ namespace KasseAPI_Final.Services
                 AuditLogActions.ROLE_PERMISSIONS_UPDATE => AuditEventType.RolePermissionsUpdated,
                 AuditLogActions.ROLE_DELETE => AuditEventType.RoleDeleted,
                 AuditLogActions.USER_LOGIN => AuditEventType.LoginSuccess,
+                AuditLogActions.USER_LOGIN_FAILED => AuditEventType.LoginFailed,
                 AuditLogActions.USER_LOGOUT => AuditEventType.UserLogout,
                 AuditLogActions.USER_DELETE => AuditEventType.UserDeleted,
                 AuditLogActions.USER_TENANT_MEMBERSHIP_CHANGED => AuditEventType.UserTenantMembershipChanged,
@@ -657,6 +668,8 @@ namespace KasseAPI_Final.Services
                 AuditLogActions.LICENSE_EXTENDED => AuditEventType.LicenseExtended,
                 AuditLogActions.LICENSE_UPDATED => AuditEventType.LicenseUpdated,
                 AuditLogActions.INVOICE_RESENT => AuditEventType.InvoiceResent,
+                AuditLogActions.USER_PERMISSION_OVERRIDES_CHANGED => AuditEventType.UserPermissionOverridesChanged,
+                AuditLogActions.REPORT_PDF_DOWNLOADED => AuditEventType.ReportPdfDownloaded,
                 AuditLogActions.MANUAL_RESTORE_REQUEST_CREATED => AuditEventType.RestoreRequested,
                 AuditLogActions.MANUAL_RESTORE_REQUEST_APPROVED => AuditEventType.RestoreApproved,
                 AuditLogActions.MANUAL_RESTORE_REQUEST_REJECTED => AuditEventType.RestoreRejected,
@@ -760,7 +773,7 @@ namespace KasseAPI_Final.Services
                 var skip = (page - 1) * pageSize;
                 var auditLogs = await query.Skip(skip).Take(pageSize).ToListAsync();
 
-                _logger.LogInformation("Retrieved {Count} payment audit logs for payment {PaymentId}", 
+                _logger.LogInformation("Retrieved {Count} payment audit logs for payment {PaymentId}",
                     auditLogs.Count, paymentId);
 
                 return auditLogs;
@@ -794,7 +807,7 @@ namespace KasseAPI_Final.Services
                 var skip = (page - 1) * pageSize;
                 var auditLogs = await query.Skip(skip).Take(pageSize).ToListAsync();
 
-                _logger.LogInformation("Retrieved {Count} user lifecycle audit logs for user {UserId}", 
+                _logger.LogInformation("Retrieved {Count} user lifecycle audit logs for user {UserId}",
                     auditLogs.Count, userId);
 
                 return auditLogs;
@@ -884,7 +897,7 @@ namespace KasseAPI_Final.Services
                     .OrderBy(a => a.Timestamp)
                     .ToListAsync();
 
-                _logger.LogInformation("Retrieved {Count} audit logs for correlation ID {CorrelationId}", 
+                _logger.LogInformation("Retrieved {Count} audit logs for correlation ID {CorrelationId}",
                     auditLogs.Count, correlationId);
 
                 return auditLogs;
@@ -908,7 +921,7 @@ namespace KasseAPI_Final.Services
                     .OrderBy(a => a.Timestamp)
                     .ToListAsync();
 
-                _logger.LogInformation("Retrieved {Count} audit logs for transaction ID {TransactionId}", 
+                _logger.LogInformation("Retrieved {Count} audit logs for transaction ID {TransactionId}",
                     auditLogs.Count, transactionId);
 
                 return auditLogs;
@@ -1033,7 +1046,7 @@ namespace KasseAPI_Final.Services
 
                 statistics["Total"] = actionStats.Sum(s => s.Count);
 
-                _logger.LogInformation("Retrieved audit log statistics: {Statistics}", 
+                _logger.LogInformation("Retrieved audit log statistics: {Statistics}",
                     string.Join(", ", statistics.Select(kvp => $"{kvp.Key}: {kvp.Value}")));
 
                 return statistics;
@@ -1093,7 +1106,8 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                if (httpContext == null) return "Unknown";
+                if (httpContext == null)
+                    return "Unknown";
 
                 string? raw = null;
                 var forwardedHeader = httpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault();
@@ -1102,7 +1116,8 @@ namespace KasseAPI_Final.Services
                 else
                     raw = httpContext.Connection.RemoteIpAddress?.ToString();
 
-                if (string.IsNullOrEmpty(raw)) return "Unknown";
+                if (string.IsNullOrEmpty(raw))
+                    return "Unknown";
                 return AuditLogPersistenceSanitizer.Truncate(raw, AuditLogPersistenceSanitizer.IpAddressMaxLength) ?? raw;
             }
             catch
@@ -1128,7 +1143,8 @@ namespace KasseAPI_Final.Services
         {
             const int maxLength = 200;
             var raw = GetUserAgent(httpContext);
-            if (string.IsNullOrEmpty(raw) || raw == "Unknown") return raw ?? "Unknown";
+            if (string.IsNullOrEmpty(raw) || raw == "Unknown")
+                return raw ?? "Unknown";
             return raw.Length <= maxLength ? raw : raw.Substring(0, maxLength);
         }
 

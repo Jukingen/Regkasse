@@ -23,7 +23,9 @@ public class RksvStartbelegServiceTests
             .UseInMemoryDatabase($"Startbeleg_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(
+            options,
+            TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static RksvSpecialReceiptService CreateService(
@@ -101,7 +103,7 @@ public class RksvStartbelegServiceTests
                 It.IsAny<DateTime?>(),
                 It.IsAny<string?>(),
                 It.IsAny<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction?>()))
-            .ReturnsAsync(new TseSignatureResult("eyJhbGciOiJFUzI1NiJ9.eyJ.test.start", "prev-sb"));
+            .ReturnsAsync(new TseSignatureResult(RksvTestSignatures.CreateDemoCompactJws(), "prev-sb"));
         tseMock.Setup(x => x.GetTseCertificateInfoAsync(It.IsAny<string>()))
             .ReturnsAsync(new TseCertificateInfo { CertificateNumber = "cert-test" });
 

@@ -1,11 +1,10 @@
+using System.ComponentModel.DataAnnotations;
+using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using KasseAPI_Final.Authorization;
-using KasseAPI_Final.Data;
-using KasseAPI_Final.Models;
-using KasseAPI_Final.Tenancy;
-using System.ComponentModel.DataAnnotations;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -49,12 +48,12 @@ namespace KasseAPI_Final.Controllers
                         DefaultCurrency = "EUR",
                         SupportedCurrencies = new List<string> { "EUR", "USD", "TRY" },
                         DefaultTimeZone = "Europe/Vienna",
-                        SupportedTimeZones = new List<string> 
-                        { 
-                            "Europe/Vienna", 
-                            "Europe/Berlin", 
-                            "Europe/Istanbul", 
-                            "America/New_York" 
+                        SupportedTimeZones = new List<string>
+                        {
+                            "Europe/Vienna",
+                            "Europe/Berlin",
+                            "Europe/Istanbul",
+                            "America/New_York"
                         },
                         DefaultDateFormat = "dd.MM.yyyy",
                         DefaultTimeFormat = "HH:mm:ss",
@@ -219,11 +218,11 @@ namespace KasseAPI_Final.Controllers
                 var languageFormat = new LanguageFormat
                 {
                     Language = language,
-                    DateFormat = settings.DateFormatOptions.ContainsKey(language) 
-                        ? settings.DateFormatOptions[language] 
+                    DateFormat = settings.DateFormatOptions.ContainsKey(language)
+                        ? settings.DateFormatOptions[language]
                         : settings.DefaultDateFormat,
-                    TimeFormat = settings.TimeFormatOptions.ContainsKey(language) 
-                        ? settings.TimeFormatOptions[language] 
+                    TimeFormat = settings.TimeFormatOptions.ContainsKey(language)
+                        ? settings.TimeFormatOptions[language]
                         : settings.DefaultTimeFormat,
                     DecimalPlaces = settings.DefaultDecimalPlaces,
                     NumberFormat = settings.NumberFormat
@@ -253,8 +252,8 @@ namespace KasseAPI_Final.Controllers
                 var currencyInfo = new CurrencyInfo
                 {
                     Code = currency,
-                    Symbol = settings.CurrencySymbols.ContainsKey(currency) 
-                        ? settings.CurrencySymbols[currency] 
+                    Symbol = settings.CurrencySymbols.ContainsKey(currency)
+                        ? settings.CurrencySymbols[currency]
                         : currency,
                     DecimalPlaces = settings.DefaultDecimalPlaces,
                     IsSupported = settings.SupportedCurrencies.Contains(currency)

@@ -5,6 +5,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.RestoreVerification;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Xunit;
@@ -55,7 +56,7 @@ public sealed class BackupRecoverabilitySummaryServiceTests
         IBackupOperationalReadiness? readiness = null)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(dbName).Options;
-        var db = new AppDbContext(options);
+        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
         var time = new FixedUtcTimeProvider(utcNow);
         var svc = new BackupRecoverabilitySummaryService(db, time, readiness ?? StubReadiness());
         return (svc, db);

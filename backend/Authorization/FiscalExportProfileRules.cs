@@ -62,10 +62,12 @@ public static class FiscalExportProfileRules
     /// </summary>
     public static bool CanExport(ClaimsPrincipal? user, FiscalExportProfile profile)
     {
-        if (user == null) return false;
+        if (user == null)
+            return false;
 
         var re = user.HasPermissionClaim(AppPermissions.ReportExport);
-        if (!re) return false;
+        if (!re)
+            return false;
 
         return profile switch
         {

@@ -1,17 +1,15 @@
 using System.Text;
-using KasseAPI_Final;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Tenancy;
+using KasseAPI_Final.Services.Backup;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using KasseAPI_Final.Configuration;
-using KasseAPI_Final.Services.Backup;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
@@ -36,16 +34,39 @@ public sealed class BackupImportWebApplicationFactory : WebApplicationFactory<Pr
 
     private readonly string _databaseName = $"BackupImport_{Guid.NewGuid():N}";
     private readonly string _stagingRoot;
+    private readonly string? _previousOpenApiExportFlag;
+    private readonly string? _previousInMemoryDbName;
 
     public BackupImportWebApplicationFactory()
     {
         _stagingRoot = Path.Combine(Path.GetTempPath(), "bk_import_" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_stagingRoot);
 
+        _previousOpenApiExportFlag = Environment.GetEnvironmentVariable(OpenApiExportMode.EnvironmentVariableName);
+        _previousInMemoryDbName = Environment.GetEnvironmentVariable(OpenApiExportMode.IntegrationTestInMemoryDatabaseEnvironmentVariable);
         Environment.SetEnvironmentVariable(OpenApiExportMode.EnvironmentVariableName, "true");
         Environment.SetEnvironmentVariable(
             OpenApiExportMode.IntegrationTestInMemoryDatabaseEnvironmentVariable,
             _databaseName);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        Environment.SetEnvironmentVariable(OpenApiExportMode.EnvironmentVariableName, null);
+        Environment.SetEnvironmentVariable(
+            OpenApiExportMode.IntegrationTestInMemoryDatabaseEnvironmentVariable,
+            null);
+        try
+        {
+            if (Directory.Exists(_stagingRoot))
+                Directory.Delete(_stagingRoot, recursive: true);
+        }
+        catch
+        {
+            // best-effort temp cleanup
+        }
+
+        base.Dispose(disposing);
     }
 
     public string StagingRoot => _stagingRoot;
@@ -145,14 +166,23 @@ public sealed class BackupImportWebApplicationFactory : WebApplicationFactory<Pr
         await userManager.CreateAsync(manager, ManagerPassword).ConfigureAwait(false);
         await userManager.AddToRoleAsync(manager, Roles.Manager).ConfigureAwait(false);
 
-        db.UserTenantMemberships.Add(new UserTenantMembership
-        {
-            UserId = manager.Id,
-            TenantId = TenantAId,
-            IsActive = true,
-            IsOwner = true,
-            CreatedAtUtc = now,
-        });
+        db.UserTenantMemberships.AddRange(
+            new UserTenantMembership
+            {
+                UserId = manager.Id,
+                TenantId = TenantAId,
+                IsActive = true,
+                IsOwner = true,
+                CreatedAtUtc = now,
+            },
+            new UserTenantMembership
+            {
+                UserId = manager.Id,
+                TenantId = TenantBId,
+                IsActive = true,
+                IsOwner = true,
+                CreatedAtUtc = now,
+            });
 
         await db.SaveChangesAsync().ConfigureAwait(false);
     }

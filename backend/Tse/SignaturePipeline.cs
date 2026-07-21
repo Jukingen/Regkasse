@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Tse
 {
@@ -262,8 +261,10 @@ namespace KasseAPI_Final.Tse
             {
                 foreach (var p in parts)
                 {
-                    if (string.IsNullOrEmpty(p)) return ("FAIL", "Empty part");
-                    if (p.Contains('=')) return ("FAIL", "Part contains padding (see Base64URL step)");
+                    if (string.IsNullOrEmpty(p))
+                        return ("FAIL", "Empty part");
+                    if (p.Contains('='))
+                        return ("FAIL", "Part contains padding (see Base64URL step)");
                     _ = TseCryptoHelper.FromBase64UrlNoPadding(p);
                 }
                 return ("PASS", "header.payload.signature valid");
@@ -377,12 +378,15 @@ namespace KasseAPI_Final.Tse
                 throw new TsePipelineException("INVALID_SIGNATURE_FORMAT", "DER signature too short");
 
             int offset = 0;
-            if (der[offset++] != 0x30) throw new TsePipelineException("INVALID_SIGNATURE_FORMAT", "Invalid DER: expected SEQUENCE");
+            if (der[offset++] != 0x30)
+                throw new TsePipelineException("INVALID_SIGNATURE_FORMAT", "Invalid DER: expected SEQUENCE");
             int seqLen = ReadDerLength(der, ref offset);
-            if (offset + seqLen > der.Length) throw new TsePipelineException("INVALID_SIGNATURE_FORMAT", "Invalid DER: truncated");
+            if (offset + seqLen > der.Length)
+                throw new TsePipelineException("INVALID_SIGNATURE_FORMAT", "Invalid DER: truncated");
 
-            int rLen = ReadDerInteger(der, ref offset, out byte[] r);
-            int sLen = ReadDerInteger(der, ref offset, out byte[] s);
+            _ = ReadDerInteger(der, ref offset, out byte[] r);
+
+            _ = ReadDerInteger(der, ref offset, out byte[] s);
 
             const int coordinateSize = 32;
             var result = new byte[64];
@@ -393,9 +397,11 @@ namespace KasseAPI_Final.Tse
 
         private static int ReadDerLength(byte[] data, ref int offset)
         {
-            if (offset >= data.Length) return 0;
+            if (offset >= data.Length)
+                return 0;
             byte b = data[offset++];
-            if (b < 0x80) return b;
+            if (b < 0x80)
+                return b;
             int lenLen = b & 0x7F;
             int len = 0;
             for (int i = 0; i < lenLen && offset < data.Length; i++)

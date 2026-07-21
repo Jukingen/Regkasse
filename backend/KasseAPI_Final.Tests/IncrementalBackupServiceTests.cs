@@ -3,6 +3,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -34,7 +35,7 @@ public sealed class IncrementalBackupServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"incr_count_{Guid.NewGuid():N}")
             .Options;
-        await using var db = new AppDbContext(options);
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
 
         db.Tenants.Add(new Tenant
         {
@@ -90,7 +91,7 @@ public sealed class IncrementalBackupServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"incr_enq_{Guid.NewGuid():N}")
             .Options;
-        await using var db = new AppDbContext(options);
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
 
         db.Tenants.Add(new Tenant
         {
@@ -183,7 +184,7 @@ public sealed class TenantScopedBackupExporterIncrementalTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"incr_export_{Guid.NewGuid():N}")
             .Options;
-        await using var db = new AppDbContext(options);
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
 
         db.Tenants.Add(new Tenant
         {

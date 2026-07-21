@@ -4,12 +4,12 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.App;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
-
 namespace KasseAPI_Final.Tests;
 
 public sealed class TenantAppGeneratorTests
@@ -163,7 +163,7 @@ public sealed class TenantAppGeneratorTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(name + Guid.NewGuid().ToString("N"))
             .Options;
-        var db = new AppDbContext(options);
+        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
         var websiteOpts = Options.Create(new WebsiteGeneratorOptions
         {
             Enabled = true,
@@ -206,7 +206,7 @@ public sealed class TenantAppGeneratorTests
         public Factory(DbContextOptions<AppDbContext> options) => _options = options;
         public AppDbContext CreateDbContext() => new(_options);
         public ValueTask<AppDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
-            ValueTask.FromResult(new AppDbContext(_options));
+            ValueTask.FromResult(new AppDbContext(_options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary)));
     }
 
     private sealed class Env : IHostEnvironment

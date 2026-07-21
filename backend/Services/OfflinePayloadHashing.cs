@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -71,8 +69,10 @@ public static class OfflinePayloadHashing
             var newArr = new JsonArray();
             foreach (var item in arr)
             {
-                if (item == null) newArr.Add((JsonNode?)null);
-                else newArr.Add(NormalizeNode(item));
+                if (item == null)
+                    newArr.Add((JsonNode?)null);
+                else
+                    newArr.Add(NormalizeNode(item));
             }
             return newArr;
         }

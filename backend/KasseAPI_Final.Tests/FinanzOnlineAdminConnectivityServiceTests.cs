@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using Microsoft.Extensions.Caching.Memory;

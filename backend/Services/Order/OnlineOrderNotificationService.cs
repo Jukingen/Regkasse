@@ -1,7 +1,6 @@
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.Email;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Services.Order;
 

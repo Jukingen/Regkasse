@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Mail;
 using KasseAPI_Final.Configuration;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.DataDeletion;

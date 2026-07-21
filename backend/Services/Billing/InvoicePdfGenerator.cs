@@ -1,5 +1,4 @@
 using KasseAPI_Final.Models;
-using Microsoft.Extensions.DependencyInjection;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;

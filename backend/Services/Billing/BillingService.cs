@@ -1,7 +1,6 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.Billing;
@@ -25,6 +24,7 @@ public sealed class BillingService : IBillingService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IWebHostEnvironment _environment;
     private readonly IInvoicePdfGenerator _invoicePdfGenerator;
+    private readonly IInvoiceNumberGenerator _invoiceNumberGenerator;
     private readonly BillingBackupConfig _backupConfig;
     private readonly ILogger<BillingService> _logger;
 
@@ -35,6 +35,7 @@ public sealed class BillingService : IBillingService
         IServiceScopeFactory scopeFactory,
         IWebHostEnvironment environment,
         IInvoicePdfGenerator invoicePdfGenerator,
+        IInvoiceNumberGenerator invoiceNumberGenerator,
         IOptions<BillingBackupConfig> backupConfig,
         ILogger<BillingService> logger)
     {
@@ -44,6 +45,7 @@ public sealed class BillingService : IBillingService
         _scopeFactory = scopeFactory;
         _environment = environment;
         _invoicePdfGenerator = invoicePdfGenerator;
+        _invoiceNumberGenerator = invoiceNumberGenerator;
         _backupConfig = backupConfig.Value;
         _logger = logger;
     }
@@ -63,7 +65,7 @@ public sealed class BillingService : IBillingService
         ValidatePricing(request.PriceNet, request.VatRate);
         var (validFrom, validUntil) = GetValidityPeriod(tenant, request.LicensePlan, request.CustomValidUntilUtc);
         var licenseKey = _licenseKeyGenerator.GenerateLicenseKey(tenant.Slug, validUntil);
-        var invoiceNumber = await AllocateInvoiceNumberAsync(db, DateTime.UtcNow, ct).ConfigureAwait(false);
+        var invoiceNumber = await _invoiceNumberGenerator.AllocateAsync(DateTime.UtcNow, ct).ConfigureAwait(false);
         var (vatAmount, priceGross) = CalculateAmounts(request.PriceNet, request.VatRate);
         var durationDays = ResolveDurationDays(request.LicensePlan, validFrom, validUntil);
         var billingProfile = await LoadTenantBillingProfileAsync(db, tenant, ct).ConfigureAwait(false);
@@ -124,7 +126,7 @@ public sealed class BillingService : IBillingService
                 throw new InvalidOperationException("Generated license key cannot be assigned.");
 
             var soldAtUtc = DateTime.UtcNow;
-            var invoiceNumber = await AllocateInvoiceNumberAsync(db, soldAtUtc, ct).ConfigureAwait(false);
+            var invoiceNumber = await _invoiceNumberGenerator.AllocateAsync(soldAtUtc, ct).ConfigureAwait(false);
             var (vatAmount, priceGross) = CalculateAmounts(request.PriceNet, request.VatRate);
             var plan = request.LicensePlan.Trim();
 
@@ -430,7 +432,7 @@ public sealed class BillingService : IBillingService
     public async Task<string> GetNextInvoiceNumberAsync(DateTime date)
     {
         var db = _dbContext;
-        return await AllocateInvoiceNumberAsync(db, date).ConfigureAwait(false);
+        return await _invoiceNumberGenerator.AllocateAsync(date).ConfigureAwait(false);
     }
 
     public async Task<byte[]> GenerateInvoicePdfAsync(
@@ -534,57 +536,6 @@ public sealed class BillingService : IBillingService
 
         if (vatRate < 0)
             throw new ArgumentException("VatRate cannot be negative.", nameof(vatRate));
-    }
-
-    private async Task<string> AllocateInvoiceNumberAsync(
-        AppDbContext db,
-        DateTime date,
-        CancellationToken ct = default)
-    {
-        var utc = ToUtcInstant(date);
-        var year = utc.Year;
-        var month = utc.Month;
-
-        var ownsTransaction = db.Database.CurrentTransaction == null;
-        await using var transaction = ownsTransaction
-            ? await db.Database.BeginTransactionAsync(
-                System.Data.IsolationLevel.Serializable,
-                ct).ConfigureAwait(false)
-            : null;
-        try
-        {
-            var sequence = await db.InvoiceSequences
-                .FirstOrDefaultAsync(s => s.Year == year && s.Month == month, ct)
-                .ConfigureAwait(false);
-
-            if (sequence == null)
-            {
-                sequence = new InvoiceSequence
-                {
-                    Id = Guid.NewGuid(),
-                    Year = year,
-                    Month = month,
-                    LastSequence = 0,
-                    UpdatedAt = DateTime.UtcNow,
-                };
-                db.InvoiceSequences.Add(sequence);
-            }
-
-            sequence.LastSequence++;
-            sequence.UpdatedAt = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct).ConfigureAwait(false);
-
-            if (ownsTransaction)
-                await transaction!.CommitAsync(ct).ConfigureAwait(false);
-
-            return FormattableString.Invariant($"RE{year:D4}{month:D2}{sequence.LastSequence}");
-        }
-        catch
-        {
-            if (ownsTransaction && transaction != null)
-                await transaction.RollbackAsync(ct).ConfigureAwait(false);
-            throw;
-        }
     }
 
     private async Task<bool> IsLicenseKeyAvailableAsync(

@@ -167,7 +167,7 @@ public sealed class QuickUserGeneratorServiceTests
 
         Assert.Null(error);
         Assert.NotNull(plan);
-        Assert.Matches(@"^manager_[a-z0-9]{6}@cafe\.regkasse\.at$", plan!.Email);
+        Assert.Matches(@"^manager_[a-z0-9]{6}@dev\.regkasse\.at$", plan!.Email);
         Assert.Equal(12, plan.Password.Length);
     }
 }

@@ -1,13 +1,12 @@
+using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.DataExport;
 using KasseAPI_Final.Services.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using KasseAPI_Final.Authorization;
-using KasseAPI_Final.Configuration;
 
 namespace KasseAPI_Final.Services.DataDeletion;
 

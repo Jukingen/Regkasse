@@ -45,7 +45,8 @@ public static class UserPreferencesNormalizer
 
     public static string NormalizeDefaultPage(string? value)
     {
-        if (string.IsNullOrWhiteSpace(value)) return "/dashboard";
+        if (string.IsNullOrWhiteSpace(value))
+            return "/dashboard";
         var trimmed = value.Trim();
         return trimmed switch
         {
@@ -58,7 +59,8 @@ public static class UserPreferencesNormalizer
 
     public static string? NormalizeDateFormat(string? value)
     {
-        if (string.IsNullOrWhiteSpace(value)) return "DD.MM.YYYY";
+        if (string.IsNullOrWhiteSpace(value))
+            return "DD.MM.YYYY";
         var trimmed = value.Trim();
         return trimmed switch
         {
@@ -72,7 +74,8 @@ public static class UserPreferencesNormalizer
 
     public static string? NormalizeTimeFormat(string? value)
     {
-        if (string.IsNullOrWhiteSpace(value)) return null;
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
         var trimmed = value.Trim();
         return AllowedTimeFormats.Contains(trimmed) ? trimmed.ToLowerInvariant() : null;
     }

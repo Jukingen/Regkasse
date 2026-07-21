@@ -24,7 +24,7 @@ public sealed class PaymentReversalApprovalServiceTests
             .UseInMemoryDatabase($"rev_approval_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static IOptionsMonitor<T> MonitorOf<T>(T value) where T : class

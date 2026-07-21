@@ -149,25 +149,25 @@ public sealed class AdminProductListFilterTests
         int stock = 5,
         int minStock = 0,
         int? maxStock = null) => new()
-    {
-        Id = id,
-        TenantId = LegacyDefaultTenantIds.Primary,
-        Name = name,
-        Price = price,
-        CategoryId = categoryId,
-        Category = "C",
-        StockQuantity = stock,
-        MinStockLevel = minStock,
-        MaxStockLevel = maxStock,
-        Unit = "Stk",
-        TaxType = taxType,
-        TaxRate = TaxTypes.GetTaxRate(taxType),
-        Barcode = $"bc-{id:N}",
-        IsFiscalCompliant = true,
-        IsTaxable = true,
-        RksvProductType = RksvProductTypes.Standard,
-        IsActive = true,
-    };
+        {
+            Id = id,
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Name = name,
+            Price = price,
+            CategoryId = categoryId,
+            Category = "C",
+            StockQuantity = stock,
+            MinStockLevel = minStock,
+            MaxStockLevel = maxStock,
+            Unit = "Stk",
+            TaxType = taxType,
+            TaxRate = TaxTypes.GetTaxRate(taxType),
+            Barcode = $"bc-{id:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
+            IsActive = true,
+        };
 
     private static AppDbContext CreateContext()
     {
@@ -175,7 +175,7 @@ public sealed class AdminProductListFilterTests
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        var ctx = new AppDbContext(options);
+        var ctx = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
         TenantTestDoubles.EnsureDefaultTenant(ctx);
         return ctx;
     }

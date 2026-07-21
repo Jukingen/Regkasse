@@ -1,13 +1,12 @@
 using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Authorization;
+using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
+using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
-using KasseAPI_Final.Data;
-using KasseAPI_Final.Models;
-using KasseAPI_Final.Authorization;
-using KasseAPI_Final.Services;
-using KasseAPI_Final.Tenancy;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -104,7 +103,7 @@ namespace KasseAPI_Final.Controllers
 
                 // Benzersiz order_id oluştur
                 var orderId = GenerateOrderId();
-                
+
                 var order = new Order
                 {
                     OrderId = orderId,

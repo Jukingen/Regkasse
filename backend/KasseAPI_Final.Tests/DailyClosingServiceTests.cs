@@ -1,8 +1,8 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Services;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
@@ -21,6 +21,7 @@ public sealed class DailyClosingServiceTests
         await using var ctx = new AppDbContext(
             new DbContextOptionsBuilder<AppDbContext>()
                 .UseInMemoryDatabase($"DailyClosing_{Guid.NewGuid():N}")
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
                 .Options,
             // Customer is tenant-scoped; run under the seeded tenant so the customer is visible.
             TenantTestDoubles.TenantAccessorReturning(tenantId));
@@ -117,6 +118,7 @@ public sealed class DailyClosingServiceTests
         await using var ctx = new AppDbContext(
             new DbContextOptionsBuilder<AppDbContext>()
                 .UseInMemoryDatabase($"DailyClosingFiscal_{Guid.NewGuid():N}")
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
                 .Options,
             TenantTestDoubles.TenantAccessorReturning(tenantId));
 
@@ -211,6 +213,7 @@ public sealed class DailyClosingServiceTests
         await using var ctx = new AppDbContext(
             new DbContextOptionsBuilder<AppDbContext>()
                 .UseInMemoryDatabase($"DailyClosingTax_{Guid.NewGuid():N}")
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
                 .Options,
             TenantTestDoubles.TenantAccessorReturning(tenantId));
 
@@ -294,6 +297,7 @@ public sealed class DailyClosingServiceTests
         await using var ctx = new AppDbContext(
             new DbContextOptionsBuilder<AppDbContext>()
                 .UseInMemoryDatabase($"DailyClosingCreate_{Guid.NewGuid():N}")
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
                 .Options,
             TenantTestDoubles.TenantAccessorReturning(tenantId));
 
@@ -390,6 +394,7 @@ public sealed class DailyClosingServiceTests
         await using var ctx = new AppDbContext(
             new DbContextOptionsBuilder<AppDbContext>()
                 .UseInMemoryDatabase($"DailyClosingBackdated_{Guid.NewGuid():N}")
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
                 .Options,
             TenantTestDoubles.TenantAccessorReturning(tenantId));
 
@@ -485,6 +490,7 @@ public sealed class DailyClosingServiceTests
         await using var ctx = new AppDbContext(
             new DbContextOptionsBuilder<AppDbContext>()
                 .UseInMemoryDatabase($"DailyClosingFuture_{Guid.NewGuid():N}")
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
                 .Options,
             TenantTestDoubles.TenantAccessorReturning(tenantId));
 

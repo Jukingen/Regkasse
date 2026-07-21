@@ -33,7 +33,7 @@ public sealed class AdminBackupPutExecutionModeTests
             .UseInMemoryDatabase($"admin_backup_exec_mode_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static IOptionsMonitor<BackupOptions> OptionsMonitor(BackupOptions value)

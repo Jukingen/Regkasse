@@ -4,13 +4,13 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Services.Website;
 using KasseAPI_Final.Sites;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
-
 namespace KasseAPI_Final.Tests;
 
 public sealed class TenantDomainServiceTests
@@ -18,7 +18,7 @@ public sealed class TenantDomainServiceTests
     [Fact]
     public async Task Add_verify_and_resolve_by_host()
     {
-        var (sut, db, tenantId) = await CreateSutAsync();
+        var (sut, _, tenantId) = await CreateSutAsync();
 
         var add = await sut.AddDomainAsync(tenantId, "Cafe-Muster.at");
         Assert.True(add.Succeeded);
@@ -82,7 +82,9 @@ public sealed class TenantDomainServiceTests
         }
         finally
         {
-            try { Directory.Delete(root, true); } catch { /* ignore */ }
+            try
+            { Directory.Delete(root, true); }
+            catch { /* ignore */ }
         }
     }
 
@@ -92,7 +94,7 @@ public sealed class TenantDomainServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
             .Options;
-        var db = new AppDbContext(options);
+        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
         var factory = new Factory(options);
         var tenantId = Guid.NewGuid();
 
@@ -132,6 +134,6 @@ public sealed class TenantDomainServiceTests
         public Factory(DbContextOptions<AppDbContext> options) => _options = options;
         public AppDbContext CreateDbContext() => new(_options);
         public ValueTask<AppDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
-            new(new AppDbContext(_options));
+            new(new AppDbContext(_options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary)));
     }
 }

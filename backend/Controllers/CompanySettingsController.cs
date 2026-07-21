@@ -1,13 +1,13 @@
+using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
+using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
+using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using KasseAPI_Final.Data;
-using KasseAPI_Final.Models;
-using KasseAPI_Final.Authorization;
-using KasseAPI_Final.Services;
-using KasseAPI_Final.Tenancy;
-using System.ComponentModel.DataAnnotations;
-using System.Security.Claims;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -121,17 +121,28 @@ namespace KasseAPI_Final.Controllers
                 settings.ReceiptNumbering = request.ReceiptNumbering;
                 settings.DefaultPaymentMethod = request.DefaultPaymentMethod;
                 // TODO: optional – tenant/branch restriction if multi-tenant; FinanzOnline config is typically tenant-wide.
-                if (request.FinanzOnlineUsername != null) settings.FinanzOnlineUsername = request.FinanzOnlineUsername;
-                if (request.FinanzOnlinePassword != null) settings.FinanzOnlinePassword = request.FinanzOnlinePassword;
-                if (request.FinanzOnlineApiUrl != null) settings.FinanzOnlineApiUrl = request.FinanzOnlineApiUrl;
-                if (request.FinanzOnlineEnabled.HasValue) settings.FinanzOnlineEnabled = request.FinanzOnlineEnabled.Value;
-                if (request.FinanzOnlineAutoSubmit.HasValue) settings.FinanzOnlineAutoSubmit = request.FinanzOnlineAutoSubmit.Value;
-                if (request.FinanzOnlineSubmitInterval.HasValue) settings.FinanzOnlineSubmitInterval = request.FinanzOnlineSubmitInterval.Value;
-                if (request.FinanzOnlineRetryAttempts.HasValue) settings.FinanzOnlineRetryAttempts = request.FinanzOnlineRetryAttempts.Value;
-                if (request.FinanzOnlineEnableValidation.HasValue) settings.FinanzOnlineEnableValidation = request.FinanzOnlineEnableValidation.Value;
-                if (request.DefaultTseDeviceId != null) settings.DefaultTseDeviceId = request.DefaultTseDeviceId;
-                if (request.TseAutoConnect.HasValue) settings.TseAutoConnect = request.TseAutoConnect.Value;
-                if (request.TseConnectionTimeout.HasValue) settings.TseConnectionTimeout = request.TseConnectionTimeout.Value;
+                if (request.FinanzOnlineUsername != null)
+                    settings.FinanzOnlineUsername = request.FinanzOnlineUsername;
+                if (request.FinanzOnlinePassword != null)
+                    settings.FinanzOnlinePassword = request.FinanzOnlinePassword;
+                if (request.FinanzOnlineApiUrl != null)
+                    settings.FinanzOnlineApiUrl = request.FinanzOnlineApiUrl;
+                if (request.FinanzOnlineEnabled.HasValue)
+                    settings.FinanzOnlineEnabled = request.FinanzOnlineEnabled.Value;
+                if (request.FinanzOnlineAutoSubmit.HasValue)
+                    settings.FinanzOnlineAutoSubmit = request.FinanzOnlineAutoSubmit.Value;
+                if (request.FinanzOnlineSubmitInterval.HasValue)
+                    settings.FinanzOnlineSubmitInterval = request.FinanzOnlineSubmitInterval.Value;
+                if (request.FinanzOnlineRetryAttempts.HasValue)
+                    settings.FinanzOnlineRetryAttempts = request.FinanzOnlineRetryAttempts.Value;
+                if (request.FinanzOnlineEnableValidation.HasValue)
+                    settings.FinanzOnlineEnableValidation = request.FinanzOnlineEnableValidation.Value;
+                if (request.DefaultTseDeviceId != null)
+                    settings.DefaultTseDeviceId = request.DefaultTseDeviceId;
+                if (request.TseAutoConnect.HasValue)
+                    settings.TseAutoConnect = request.TseAutoConnect.Value;
+                if (request.TseConnectionTimeout.HasValue)
+                    settings.TseConnectionTimeout = request.TseConnectionTimeout.Value;
                 // Defense in depth: never persist under a tenant other than the resolved effective tenant.
                 settings.TenantId = tenantId;
                 settings.UpdatedAt = DateTime.UtcNow;

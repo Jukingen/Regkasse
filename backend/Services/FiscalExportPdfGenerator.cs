@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Linq;
 using KasseAPI_Final.Models.Export;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;

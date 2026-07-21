@@ -3,10 +3,8 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
-using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Services.Offline;
 
@@ -259,9 +257,9 @@ public sealed class OfflineOrderService : IOfflineOrderService
         var pageSize = Math.Clamp(query.PageSize, 1, 200);
 
         var joined = from o in _context.OfflineOrders.AsNoTracking()
-            join cr in _context.CashRegisters.AsNoTracking() on o.CashRegisterId equals cr.Id
-            where o.TenantId == tenantId && cr.TenantId == tenantId
-            select new { Order = o, Register = cr };
+                     join cr in _context.CashRegisters.AsNoTracking() on o.CashRegisterId equals cr.Id
+                     where o.TenantId == tenantId && cr.TenantId == tenantId
+                     select new { Order = o, Register = cr };
 
         if (query.CashRegisterId.HasValue && query.CashRegisterId.Value != Guid.Empty)
             joined = joined.Where(x => x.Order.CashRegisterId == query.CashRegisterId.Value);

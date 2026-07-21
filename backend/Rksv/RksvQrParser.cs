@@ -135,12 +135,18 @@ public static class RksvQrParser
         var a2 = bodyParts[4];
         var cert = bodyParts[5];
 
-        if (string.IsNullOrWhiteSpace(kassen)) errors.Add("Cash register id segment is empty.");
-        if (string.IsNullOrWhiteSpace(beleg)) errors.Add("Receipt number segment is empty.");
-        if (string.IsNullOrWhiteSpace(ts)) errors.Add("Timestamp segment is empty.");
-        if (string.IsNullOrWhiteSpace(a1)) errors.Add("First amount segment is empty.");
-        if (string.IsNullOrWhiteSpace(a2)) errors.Add("Second amount segment is empty.");
-        if (string.IsNullOrWhiteSpace(cert)) errors.Add("Certificate serial segment is empty.");
+        if (string.IsNullOrWhiteSpace(kassen))
+            errors.Add("Cash register id segment is empty.");
+        if (string.IsNullOrWhiteSpace(beleg))
+            errors.Add("Receipt number segment is empty.");
+        if (string.IsNullOrWhiteSpace(ts))
+            errors.Add("Timestamp segment is empty.");
+        if (string.IsNullOrWhiteSpace(a1))
+            errors.Add("First amount segment is empty.");
+        if (string.IsNullOrWhiteSpace(a2))
+            errors.Add("Second amount segment is empty.");
+        if (string.IsNullOrWhiteSpace(cert))
+            errors.Add("Certificate serial segment is empty.");
 
         if (errors.Count > 0)
             return RksvQrParseResult.Fail(errors);
@@ -196,12 +202,18 @@ public static class RksvQrParser
         var cert = bodyParts[9];
         var prev = bodyParts[10];
 
-        if (string.IsNullOrWhiteSpace(kassen)) errors.Add("Cash register id segment is empty.");
-        if (string.IsNullOrWhiteSpace(beleg)) errors.Add("Receipt number segment is empty.");
-        if (string.IsNullOrWhiteSpace(ts)) errors.Add("Timestamp segment is empty.");
-        if (string.IsNullOrWhiteSpace(enc)) errors.Add("Encrypted turnover counter segment is empty.");
-        if (string.IsNullOrWhiteSpace(cert)) errors.Add("Certificate serial segment is empty.");
-        if (string.IsNullOrWhiteSpace(prev)) errors.Add("Previous signature segment is empty.");
+        if (string.IsNullOrWhiteSpace(kassen))
+            errors.Add("Cash register id segment is empty.");
+        if (string.IsNullOrWhiteSpace(beleg))
+            errors.Add("Receipt number segment is empty.");
+        if (string.IsNullOrWhiteSpace(ts))
+            errors.Add("Timestamp segment is empty.");
+        if (string.IsNullOrWhiteSpace(enc))
+            errors.Add("Encrypted turnover counter segment is empty.");
+        if (string.IsNullOrWhiteSpace(cert))
+            errors.Add("Certificate serial segment is empty.");
+        if (string.IsNullOrWhiteSpace(prev))
+            errors.Add("Previous signature segment is empty.");
 
         if (errors.Count > 0)
             return RksvQrParseResult.Fail(errors);

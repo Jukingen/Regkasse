@@ -1,12 +1,10 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
-using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Services.Billing;
-using AdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.TenantLicenseService;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
+using AdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.TenantLicenseService;
 
 namespace KasseAPI_Final.Tests;
 

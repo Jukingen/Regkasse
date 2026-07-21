@@ -535,7 +535,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
 
             var receiptIdForTracking = ResolveReceiptIdFromChangeTracker(paymentId);
             _db.RksvSpecialReceiptFinanzOnlineSubmissions.Add(
-                _fonSubmissionTracker.CreateInitialNotRequiredRow(
+                _fonSubmissionTracker.CreateInitialPendingRow(
                     paymentId,
                     receiptIdForTracking,
                     request.CashRegisterId,
@@ -1015,7 +1015,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
 
             var receiptIdForTrackingJb = ResolveReceiptIdFromChangeTracker(paymentId);
             _db.RksvSpecialReceiptFinanzOnlineSubmissions.Add(
-                _fonSubmissionTracker.CreateInitialNotRequiredRow(
+                _fonSubmissionTracker.CreateInitialPendingRow(
                     paymentId,
                     receiptIdForTrackingJb,
                     request.CashRegisterId,

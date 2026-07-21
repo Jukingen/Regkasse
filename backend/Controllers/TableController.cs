@@ -1,7 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
 using KasseAPI_Final.Authorization;
-using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc;
 
 namespace KasseAPI_Final.Controllers
 {

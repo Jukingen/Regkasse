@@ -341,7 +341,8 @@ public static class LegalExportCompletenessEvaluator
             return;
 
         var hasBlock = issues.Any(i => i.Severity == SeverityBlock);
-        if (!hasBlock && !issues.Any(i => i.Severity == SeverityWarn)) return;
+        if (!hasBlock && !issues.Any(i => i.Severity == SeverityWarn))
+            return;
 
         issues.Add(Warn(
             LegalExportCompletenessCodes.SubmissionNotProofOfCompleteness,

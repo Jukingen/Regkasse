@@ -1,20 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using System.ComponentModel.DataAnnotations;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Npgsql;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Activity;
+using KasseAPI_Final.Services.Reports;
 using KasseAPI_Final.Time;
 using KasseAPI_Final.Tse;
-using KasseAPI_Final.Services.Reports;
-using KasseAPI_Final.Services.Activity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Npgsql;
 
 namespace KasseAPI_Final.Services
 {
@@ -272,72 +265,93 @@ namespace KasseAPI_Final.Services
                     .FirstOrDefaultAsync(r => r.Id == cashRegisterId)
                     ?? throw new InvalidOperationException($"Cash register {cashRegisterId} not found.");
 
-                var tseSignature = await _tseService.CreateDailyClosingSignatureAsync(
-                    cashRegisterId,
-                    register.RegisterNumber,
-                    businessDay,
-                    totalAmount,
-                    transactionCount);
-
-                // ClosingDate = business day; CreatedAt = real UTC now (never backdated), same honesty as Monatsbeleg nachträglich.
-                var closingAnchorUtc = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(businessDay);
-                var dailyClosing = new DailyClosing
+                await using var fiscalTx = await _context.Database.BeginTransactionAsync();
+                string tseSignature;
+                DailyClosing dailyClosing;
+                try
                 {
-                    Id = Guid.NewGuid(),
-                    CashRegisterId = cashRegisterId,
-                    UserId = userId,
-                    ClosingDate = closingAnchorUtc,
-                    IsBackdated = isBackdated,
-                    LateCreationReason = isBackdated ? lateReason : null,
-                    ClosingType = "Daily",
-                    TotalAmount = totalAmount,
-                    TotalTaxAmount = totalTaxAmount,
-                    TransactionCount = transactionCount,
-                    TseSignature = tseSignature,
-                    CertificateThumbprint = _tseKeyProvider.GetCurrentCertificateThumbprint(),
-                    Status = "Completed",
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                await DailyClosingOperationalResolver.StampOperationalFieldsAsync(
-                    _context,
-                    dailyClosing,
-                    cashRegisterId,
-                    userId);
-
-                _context.DailyClosings.Add(dailyClosing);
-
-                if (isBackdated)
-                {
-                    _logger.LogInformation(
-                        "Backdated (nachträglich) daily closing for CashRegisterId={CashRegisterId} BusinessDay={BusinessDay:yyyy-MM-dd} ActorUserId={UserId}; CreatedAt remains real UTC; ReasonLength={ReasonLength}",
+                    tseSignature = await _tseService.CreateDailyClosingSignatureAsync(
                         cashRegisterId,
+                        register.RegisterNumber,
                         businessDay,
-                        userId,
-                        lateReason?.Length ?? 0);
-                }
+                        totalAmount,
+                        transactionCount,
+                        fiscalTx);
 
-                // Submit to FinanzOnline if enabled
-                if (await _finanzOnlineService.IsEnabledAsync())
+                    // ClosingDate = business day; CreatedAt = real UTC now (never backdated), same honesty as Monatsbeleg nachträglich.
+                    var closingAnchorUtc = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(businessDay);
+                    dailyClosing = new DailyClosing
+                    {
+                        Id = Guid.NewGuid(),
+                        CashRegisterId = cashRegisterId,
+                        UserId = userId,
+                        ClosingDate = closingAnchorUtc,
+                        IsBackdated = isBackdated,
+                        LateCreationReason = isBackdated ? lateReason : null,
+                        ClosingType = "Daily",
+                        TotalAmount = totalAmount,
+                        TotalTaxAmount = totalTaxAmount,
+                        TransactionCount = transactionCount,
+                        TseSignature = tseSignature,
+                        CertificateThumbprint = _tseKeyProvider.GetCurrentCertificateThumbprint(),
+                        Status = "Completed",
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    await DailyClosingOperationalResolver.StampOperationalFieldsAsync(
+                        _context,
+                        dailyClosing,
+                        cashRegisterId,
+                        userId);
+
+                    _context.DailyClosings.Add(dailyClosing);
+
+                    if (isBackdated)
+                    {
+                        _logger.LogInformation(
+                            "Backdated (nachträglich) daily closing for CashRegisterId={CashRegisterId} BusinessDay={BusinessDay:yyyy-MM-dd} ActorUserId={UserId}; CreatedAt remains real UTC; ReasonLength={ReasonLength}",
+                            cashRegisterId,
+                            businessDay,
+                            userId,
+                            lateReason?.Length ?? 0);
+                    }
+
+                    // Submit to FinanzOnline if enabled (simulate path; status stamped before commit).
+                    if (await _finanzOnlineService.IsEnabledAsync())
+                    {
+                        try
+                        {
+                            var fon = await _finanzOnlineService.SubmitDailyClosingAsync(dailyClosing);
+                            dailyClosing.FinanzOnlineStatus = fon.Success
+                                ? (string.IsNullOrWhiteSpace(fon.Status) ? "Submitted" : fon.Status)
+                                : "Failed";
+                            if (!fon.Success)
+                                dailyClosing.FinanzOnlineError = fon.ErrorMessage;
+                        }
+                        catch (Exception ex)
+                        {
+                            dailyClosing.FinanzOnlineStatus = "Failed";
+                            dailyClosing.FinanzOnlineError = ex.Message;
+                        }
+                    }
+
+                    var duplicateResult = await TrySaveClosingOrReturnDuplicateAsync(
+                        dailyClosing.ClosingType,
+                        isBackdated,
+                        businessDay);
+                    if (duplicateResult != null)
+                    {
+                        await fiscalTx.RollbackAsync();
+                        return duplicateResult;
+                    }
+
+                    await fiscalTx.CommitAsync();
+                }
+                catch
                 {
-                    try
-                    {
-                        await _finanzOnlineService.SubmitDailyClosingAsync(dailyClosing);
-                        dailyClosing.FinanzOnlineStatus = "Submitted";
-                    }
-                    catch (Exception ex)
-                    {
-                        dailyClosing.FinanzOnlineStatus = "Failed";
-                        dailyClosing.FinanzOnlineError = ex.Message;
-                    }
+                    await fiscalTx.RollbackAsync();
+                    throw;
                 }
-
-                var duplicateResult = await TrySaveClosingOrReturnDuplicateAsync(
-                    dailyClosing.ClosingType,
-                    isBackdated,
-                    businessDay);
-                if (duplicateResult != null)
-                    return duplicateResult;
 
                 await TryAuditDailyClosingCreatedAsync(
                     userId,
@@ -355,7 +369,7 @@ namespace KasseAPI_Final.Services
                 {
                     Success = true,
                     ClosingId = dailyClosing.Id,
-                    ClosingDate = closingAnchorUtc,
+                    ClosingDate = dailyClosing.ClosingDate,
                     ClosingType = "Daily",
                     TotalAmount = totalAmount,
                     TotalTaxAmount = totalTaxAmount,
@@ -475,39 +489,56 @@ namespace KasseAPI_Final.Services
                     .FirstOrDefaultAsync(r => r.Id == cashRegisterId)
                     ?? throw new InvalidOperationException($"Cash register {cashRegisterId} not found.");
 
-                var tseSignature = await _tseService.CreateMonthlyClosingSignatureAsync(
-                    cashRegisterId,
-                    registerM.RegisterNumber,
-                    currentMonthLocal,
-                    totalAmount,
-                    transactionCount);
-
-                var monthlyClosing = new DailyClosing
+                await using var fiscalTx = await _context.Database.BeginTransactionAsync();
+                string tseSignature;
+                DailyClosing monthlyClosing;
+                try
                 {
-                    Id = Guid.NewGuid(),
-                    CashRegisterId = cashRegisterId,
-                    UserId = userId,
-                    ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(currentMonthLocal),
-                    ClosingType = "Monthly",
-                    TotalAmount = totalAmount,
-                    TotalTaxAmount = totalTaxAmount,
-                    TransactionCount = transactionCount,
-                    TseSignature = tseSignature,
-                    CertificateThumbprint = _tseKeyProvider.GetCurrentCertificateThumbprint(),
-                    Status = "Completed",
-                    CreatedAt = DateTime.UtcNow
-                };
+                    tseSignature = await _tseService.CreateMonthlyClosingSignatureAsync(
+                        cashRegisterId,
+                        registerM.RegisterNumber,
+                        currentMonthLocal,
+                        totalAmount,
+                        transactionCount,
+                        fiscalTx);
 
-                await DailyClosingOperationalResolver.StampOperationalFieldsAsync(
-                    _context,
-                    monthlyClosing,
-                    cashRegisterId,
-                    userId);
+                    monthlyClosing = new DailyClosing
+                    {
+                        Id = Guid.NewGuid(),
+                        CashRegisterId = cashRegisterId,
+                        UserId = userId,
+                        ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(currentMonthLocal),
+                        ClosingType = "Monthly",
+                        TotalAmount = totalAmount,
+                        TotalTaxAmount = totalTaxAmount,
+                        TransactionCount = transactionCount,
+                        TseSignature = tseSignature,
+                        CertificateThumbprint = _tseKeyProvider.GetCurrentCertificateThumbprint(),
+                        Status = "Completed",
+                        CreatedAt = DateTime.UtcNow
+                    };
 
-                _context.DailyClosings.Add(monthlyClosing);
-                var duplicateResult = await TrySaveClosingOrReturnDuplicateAsync(monthlyClosing.ClosingType);
-                if (duplicateResult != null)
-                    return duplicateResult;
+                    await DailyClosingOperationalResolver.StampOperationalFieldsAsync(
+                        _context,
+                        monthlyClosing,
+                        cashRegisterId,
+                        userId);
+
+                    _context.DailyClosings.Add(monthlyClosing);
+                    var duplicateResult = await TrySaveClosingOrReturnDuplicateAsync(monthlyClosing.ClosingType);
+                    if (duplicateResult != null)
+                    {
+                        await fiscalTx.RollbackAsync();
+                        return duplicateResult;
+                    }
+
+                    await fiscalTx.CommitAsync();
+                }
+                catch
+                {
+                    await fiscalTx.RollbackAsync();
+                    throw;
+                }
 
                 await _reportPdfCapture.TryCaptureClosingReportAsync(monthlyClosing.Id, userId);
 
@@ -626,39 +657,56 @@ namespace KasseAPI_Final.Services
                     .FirstOrDefaultAsync(r => r.Id == cashRegisterId)
                     ?? throw new InvalidOperationException($"Cash register {cashRegisterId} not found.");
 
-                var tseSignature = await _tseService.CreateYearlyClosingSignatureAsync(
-                    cashRegisterId,
-                    registerY.RegisterNumber,
-                    currentYearLocal,
-                    totalAmount,
-                    transactionCount);
-
-                var yearlyClosing = new DailyClosing
+                await using var fiscalTx = await _context.Database.BeginTransactionAsync();
+                string tseSignature;
+                DailyClosing yearlyClosing;
+                try
                 {
-                    Id = Guid.NewGuid(),
-                    CashRegisterId = cashRegisterId,
-                    UserId = userId,
-                    ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(currentYearLocal),
-                    ClosingType = "Yearly",
-                    TotalAmount = totalAmount,
-                    TotalTaxAmount = totalTaxAmount,
-                    TransactionCount = transactionCount,
-                    TseSignature = tseSignature,
-                    CertificateThumbprint = _tseKeyProvider.GetCurrentCertificateThumbprint(),
-                    Status = "Completed",
-                    CreatedAt = DateTime.UtcNow
-                };
+                    tseSignature = await _tseService.CreateYearlyClosingSignatureAsync(
+                        cashRegisterId,
+                        registerY.RegisterNumber,
+                        currentYearLocal,
+                        totalAmount,
+                        transactionCount,
+                        fiscalTx);
 
-                await DailyClosingOperationalResolver.StampOperationalFieldsAsync(
-                    _context,
-                    yearlyClosing,
-                    cashRegisterId,
-                    userId);
+                    yearlyClosing = new DailyClosing
+                    {
+                        Id = Guid.NewGuid(),
+                        CashRegisterId = cashRegisterId,
+                        UserId = userId,
+                        ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(currentYearLocal),
+                        ClosingType = "Yearly",
+                        TotalAmount = totalAmount,
+                        TotalTaxAmount = totalTaxAmount,
+                        TransactionCount = transactionCount,
+                        TseSignature = tseSignature,
+                        CertificateThumbprint = _tseKeyProvider.GetCurrentCertificateThumbprint(),
+                        Status = "Completed",
+                        CreatedAt = DateTime.UtcNow
+                    };
 
-                _context.DailyClosings.Add(yearlyClosing);
-                var duplicateResult = await TrySaveClosingOrReturnDuplicateAsync(yearlyClosing.ClosingType);
-                if (duplicateResult != null)
-                    return duplicateResult;
+                    await DailyClosingOperationalResolver.StampOperationalFieldsAsync(
+                        _context,
+                        yearlyClosing,
+                        cashRegisterId,
+                        userId);
+
+                    _context.DailyClosings.Add(yearlyClosing);
+                    var duplicateResult = await TrySaveClosingOrReturnDuplicateAsync(yearlyClosing.ClosingType);
+                    if (duplicateResult != null)
+                    {
+                        await fiscalTx.RollbackAsync();
+                        return duplicateResult;
+                    }
+
+                    await fiscalTx.CommitAsync();
+                }
+                catch
+                {
+                    await fiscalTx.RollbackAsync();
+                    throw;
+                }
 
                 await _reportPdfCapture.TryCaptureClosingReportAsync(yearlyClosing.Id, userId);
 

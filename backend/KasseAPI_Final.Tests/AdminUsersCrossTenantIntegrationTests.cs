@@ -9,6 +9,7 @@ namespace KasseAPI_Final.Tests;
 /// <summary>
 /// HTTP integration tests: AdminUsers mutation endpoints reject cross-tenant targets with 404.
 /// </summary>
+[Collection("OpenApiExportWebHost")]
 public sealed class AdminUsersCrossTenantIntegrationTests : IClassFixture<AdminUsersCrossTenantWebApplicationFactory>
 {
     private readonly AdminUsersCrossTenantWebApplicationFactory _factory;
@@ -196,7 +197,7 @@ public sealed class AdminUsersCrossTenantIntegrationTests : IClassFixture<AdminU
         var response = await client.GetAsync(
             $"/api/admin/tenants/{AdminUsersCrossTenantWebApplicationFactory.TenantBId}/users");
 
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]

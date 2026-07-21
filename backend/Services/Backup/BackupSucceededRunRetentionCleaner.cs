@@ -2,8 +2,6 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.Backup;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Services.Backup;
 
@@ -51,7 +49,8 @@ public static class BackupSucceededRunRetentionCleaner
 
         if (backupOptions.SmartRetentionEnabled)
         {
-            var smart = smartRetention ?? new SmartRetentionService();
+            ArgumentNullException.ThrowIfNull(smartRetention);
+            var smart = smartRetention;
             var succeeded = await db.BackupRuns
                 .Include(r => r.Artifacts)
                 .Include(r => r.Verifications)
@@ -62,16 +61,23 @@ public static class BackupSucceededRunRetentionCleaner
             if (succeeded.Count == 0)
                 return 0;
 
-            var deleteIds = new HashSet<Guid>(
-                smart.SelectRunsToDelete(
-                    succeeded
-                        .Select(r => new BackupRetentionCandidate(r.Id, r.CompletedAt!.Value))
-                        .ToList()));
+            // Apply GFS independently per strategy so Tenant ZIPs never thin System pg_dumps (and vice versa).
+            var deleteIds = new HashSet<Guid>();
+            foreach (var group in succeeded.GroupBy(r => r.Strategy))
+            {
+                foreach (var id in smart.SelectRunsToDelete(
+                             group
+                                 .Select(r => new BackupRetentionCandidate(r.Id, r.CompletedAt!.Value))
+                                 .ToList()))
+                {
+                    deleteIds.Add(id);
+                }
+            }
 
             candidates = succeeded.Where(r => deleteIds.Contains(r.Id)).ToList();
-            policyLabel = "smart-gfs";
+            policyLabel = "smart-gfs-per-strategy";
             logger.LogInformation(
-                "Backup retention (smart GFS): succeeded={Succeeded}, selectedForDelete={DeleteCount}",
+                "Backup retention (smart GFS per strategy): succeeded={Succeeded}, selectedForDelete={DeleteCount}",
                 succeeded.Count,
                 candidates.Count);
         }

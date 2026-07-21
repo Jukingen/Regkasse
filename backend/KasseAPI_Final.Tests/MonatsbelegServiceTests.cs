@@ -1,12 +1,10 @@
-using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Tenancy;
-using KasseAPI_Final.Tenancy;
-using KasseAPI_Final.Tse;
 using KasseAPI_Final.Time;
+using KasseAPI_Final.Tse;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
@@ -55,7 +53,8 @@ public sealed class MonatsbelegServiceTests
                 It.IsAny<string>(),
                 It.IsAny<DateTime>(),
                 It.IsAny<decimal>(),
-                It.IsAny<int>()))
+                It.IsAny<int>(),
+                It.IsAny<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction?>()))
             .ReturnsAsync("eyJhbGciOiJFUzI1NiJ9.eyJ.test.monats.rksv");
         return mock;
     }

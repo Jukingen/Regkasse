@@ -1,6 +1,5 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
 using KasseAPI_Final.Tenancy;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 

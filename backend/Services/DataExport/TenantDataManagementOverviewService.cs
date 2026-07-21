@@ -110,10 +110,14 @@ public sealed class TenantDataManagementOverviewService : ITenantDataManagementO
                 ? Math.Max(0, LicenseGracePeriodConfig.GracePeriodDays - daysOverdue)
                 : 0;
 
-            if (isGrace) inGrace++;
-            if (isLocked) locked++;
-            if (hasPending) pendingDeletion++;
-            if (t.CustomerDataPurgedAtUtc.HasValue) purged++;
+            if (isGrace)
+                inGrace++;
+            if (isLocked)
+                locked++;
+            if (hasPending)
+                pendingDeletion++;
+            if (t.CustomerDataPurgedAtUtc.HasValue)
+                purged++;
 
             paymentStats.TryGetValue(t.Id, out var pay);
             deletionByTenant.TryGetValue(t.Id, out var del);

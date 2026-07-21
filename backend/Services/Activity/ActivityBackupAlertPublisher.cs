@@ -2,7 +2,6 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Tenancy;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace KasseAPI_Final.Services.Activity;
 

@@ -106,6 +106,7 @@ public sealed class InvoicePdfGeneratorTests
             BillingTestDoubles.CreateReminderScopeFactory(),
             environment.Object,
             generator,
+            new InvoiceNumberGenerator(_db),
             BillingTestDoubles.DisabledBackupOptions,
             NullLogger<BillingService>.Instance);
 

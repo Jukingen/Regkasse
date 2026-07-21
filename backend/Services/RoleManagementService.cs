@@ -102,7 +102,8 @@ public sealed class RoleManagementService : IRoleManagementService
         var keys = permissionKeys ?? Array.Empty<string>();
         foreach (var key in keys.Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            if (string.IsNullOrWhiteSpace(key)) continue;
+            if (string.IsNullOrWhiteSpace(key))
+                continue;
             await _roleManager.AddClaimAsync(role, new Claim(PermissionCatalog.PermissionClaimType, key));
         }
 
@@ -209,7 +210,8 @@ public sealed class RoleManagementService : IRoleManagementService
         var byGroup = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
         foreach (var key in permissionKeys)
         {
-            if (string.IsNullOrWhiteSpace(key)) continue;
+            if (string.IsNullOrWhiteSpace(key))
+                continue;
             var groupKey = PermissionCatalogMetadata.GetGroupKeyForPermission(key);
             if (!byGroup.TryGetValue(groupKey, out var list))
             {

@@ -1,5 +1,5 @@
-using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Auth;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;

@@ -2,45 +2,45 @@ namespace KasseAPI_Final.Models.DTOs;
 
 public sealed class ActiveSessionDto
 {
-    public Guid Id { get; set; }
-    public string UserId { get; set; } = string.Empty;
-    public string ClientApp { get; set; } = string.Empty;
-    public string? DeviceId { get; set; }
-    public string? DeviceName { get; set; }
-    public string? Browser { get; set; }
-    public string? OS { get; set; }
-    public string? IpAddress { get; set; }
-    public string? UserAgent { get; set; }
-    public DateTime StartedAtUtc { get; set; }
-    public DateTime LastActivityAtUtc { get; set; }
-    public DateTime? ExpiresAtUtc { get; set; }
-    public bool IsActive { get; set; }
-    public bool IsCurrent { get; set; }
+    public Guid Id { get; init; }
+    public string UserId { get; init; } = string.Empty;
+    public string ClientApp { get; init; } = string.Empty;
+    public string? DeviceId { get; init; }
+    public string? DeviceName { get; init; }
+    public string? Browser { get; init; }
+    public string? OS { get; init; }
+    public string? IpAddress { get; init; }
+    public string? UserAgent { get; init; }
+    public DateTime StartedAtUtc { get; init; }
+    public DateTime LastActivityAtUtc { get; init; }
+    public DateTime? ExpiresAtUtc { get; init; }
+    public bool IsActive { get; init; }
+    public bool IsCurrent { get; init; }
 }
 
 /// <summary>
-/// Sketch-aligned device session DTO (no access-token field).
-/// Mapped from <see cref="ActiveSessionDto"/> / <c>auth_sessions</c>.
+/// Device-session list shape for <c>/api/user/sessions/devices</c>
+/// (mapped from <see cref="ActiveSessionDto"/>).
 /// </summary>
 public sealed class UserSessionDto
 {
-    public Guid Id { get; set; }
-    public string? DeviceName { get; set; }
-    public string? Browser { get; set; }
-    public string? OS { get; set; }
-    public string? IPAddress { get; set; }
-    public DateTime LastActiveAt { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime? ExpiresAt { get; set; }
-    public bool IsCurrent { get; set; }
-    public bool IsActive { get; set; }
-    public string ClientApp { get; set; } = string.Empty;
+    public Guid Id { get; init; }
+    public string? DeviceName { get; init; }
+    public string? Browser { get; init; }
+    public string? OS { get; init; }
+    public string? IPAddress { get; init; }
+    public DateTime LastActiveAt { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime? ExpiresAt { get; init; }
+    public bool IsCurrent { get; init; }
+    public bool IsActive { get; init; }
+    public string ClientApp { get; init; } = string.Empty;
 }
 
 public sealed class TenantSessionPolicyDto
 {
-    public int SessionTimeoutMinutes { get; set; } = 30;
-    public int WarningBeforeTimeoutMinutes { get; set; } = 5;
-    public bool KeepCartAfterTimeout { get; set; } = true;
-    public bool IdleTimeoutEnabled { get; set; } = true;
+    public int SessionTimeoutMinutes { get; init; } = 30;
+    public int WarningBeforeTimeoutMinutes { get; init; } = 5;
+    public bool KeepCartAfterTimeout { get; init; } = true;
+    public bool IdleTimeoutEnabled { get; init; } = true;
 }

@@ -21,7 +21,7 @@ public sealed class AuditLogServiceLogSystemOperationBoundsTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"AuditBounds_{Guid.NewGuid():N}")
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public sealed class AuditLogServiceLogSystemOperationBoundsTests
             responseData: new { echo = huge },
             correlationIdOverride: null);
 
-        var row = await context.AuditLogs.AsNoTracking().SingleAsync();
+        var row = await context.AuditLogs.IgnoreQueryFilters().AsNoTracking().SingleAsync();
         Assert.NotNull(row.RequestData);
         Assert.NotNull(row.ResponseData);
         Assert.True(row.RequestData!.Length <= AuditLogPersistenceSanitizer.JsonPayloadMaxLength);

@@ -9,7 +9,7 @@ namespace KasseAPI_Final.Helpers;
 /// </summary>
 public static class IdentityLoginLookup
 {
-    public static string NormalizeUserName(UserManager<ApplicationUser> userManager, string userName) =>
+    private static string NormalizeUserName(UserManager<ApplicationUser> userManager, string userName) =>
         userManager.NormalizeName(userName.Trim());
 
     /// <summary>Resolve user by email (normalized) or username (case-insensitive).</summary>

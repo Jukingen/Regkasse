@@ -101,6 +101,7 @@ public sealed class TenantLicenseServiceTests
             BillingTestDoubles.CreateReminderScopeFactory(),
             environment.Object,
             pdfGenerator,
+            new InvoiceNumberGenerator(_db),
             BillingTestDoubles.DisabledBackupOptions,
             NullLogger<BillingService>.Instance);
 

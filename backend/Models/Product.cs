@@ -1,4 +1,3 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -146,9 +145,9 @@ namespace KasseAPI_Final.Models
         public const int Reduced = 2;     // %10 (gıda, kitap, vb.)
         public const int Special = 3;     // %13 (konaklama, vb.)
         public const int ZeroRate = 4;    // %0 (Österreich 2026 - 0% MwSt., nicht Exempt)
-        
+
         public static readonly int[] All = { Standard, Reduced, Special, ZeroRate };
-        
+
         public static decimal GetTaxRate(int taxType)
         {
             return taxType switch
@@ -178,9 +177,9 @@ namespace KasseAPI_Final.Models
         public const string Exempt = "Exempt";            // Vergi muaf
         public const string Service = "Service";          // Hizmet
         public const string Digital = "Digital";          // Dijital ürün
-        
+
         public static readonly string[] All = { Standard, Reduced, Special, Exempt, Service, Digital };
-        
+
         public static bool IsValidRksvType(string rksvType)
         {
             return All.Contains(rksvType);

@@ -11,7 +11,6 @@ using KasseAPI_Final.Services.DataRights;
 using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Services.Tenancy;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.DataExport;

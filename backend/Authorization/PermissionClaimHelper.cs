@@ -24,7 +24,8 @@ public static class PermissionClaimHelper
             return PermissionImplication.IsSatisfied(permission, permissionClaims);
 
         var roles = GetRolesFromPrincipal(user);
-        return RolePermissionMatrix.GetPermissionsForRoles(roles).Contains(permission);
+        var fromRoles = RolePermissionMatrix.GetPermissionsForRoles(roles);
+        return PermissionImplication.IsSatisfied(permission, fromRoles);
     }
 
     public static IReadOnlyList<string> GetRolesFromPrincipal(ClaimsPrincipal user)

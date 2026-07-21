@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Reports;

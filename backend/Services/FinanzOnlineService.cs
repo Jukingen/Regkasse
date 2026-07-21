@@ -1,19 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Text.Json;
 using System.Security.Cryptography;
+using System.Text.Json;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services
@@ -23,6 +15,7 @@ namespace KasseAPI_Final.Services
         private readonly AppDbContext _context;
         private readonly IFinanzOnlineOutboxService _outboxService;
         private readonly IOptionsMonitor<FinanzOnlineCutoverGuardOptions> _cutoverOptions;
+        private readonly IOptionsMonitor<FinanzOnlineModeOptions> _modeOptions;
         private readonly IHostEnvironment _hostEnvironment;
         private readonly ILogger<FinanzOnlineService> _logger;
         private readonly IFinanzOnlineAdminConnectivityService _adminConnectivity;
@@ -32,6 +25,7 @@ namespace KasseAPI_Final.Services
             AppDbContext context,
             IFinanzOnlineOutboxService outboxService,
             IOptionsMonitor<FinanzOnlineCutoverGuardOptions> cutoverOptions,
+            IOptionsMonitor<FinanzOnlineModeOptions> modeOptions,
             IHostEnvironment hostEnvironment,
             ILogger<FinanzOnlineService> logger,
             IFinanzOnlineAdminConnectivityService adminConnectivity,
@@ -40,6 +34,7 @@ namespace KasseAPI_Final.Services
             _context = context;
             _outboxService = outboxService;
             _cutoverOptions = cutoverOptions;
+            _modeOptions = modeOptions;
             _hostEnvironment = hostEnvironment;
             _logger = logger;
             _adminConnectivity = adminConnectivity;
@@ -77,7 +72,8 @@ namespace KasseAPI_Final.Services
                     AutoSubmit = companySettings.FinanzOnlineAutoSubmit,
                     SubmitIntervalMinutes = companySettings.FinanzOnlineSubmitInterval,
                     MaxRetryAttempts = companySettings.FinanzOnlineRetryAttempts,
-                    EnableValidation = companySettings.FinanzOnlineEnableValidation
+                    EnableValidation = companySettings.FinanzOnlineEnableValidation,
+                    Environment = FinanzOnlineModeResolver.ToConfigEnvironmentLabel(_modeOptions.CurrentValue.Mode)
                 };
             }
             catch
@@ -239,7 +235,11 @@ namespace KasseAPI_Final.Services
             {
                 var config = await GetConfigAsync().ConfigureAwait(false);
                 var payloadHash = ComputeSha256Hex(requestPayload);
-                var mode = ResolveMode(config.Environment);
+                // Prefer FinanzOnline:Mode; fall back to config.Environment for callers that override GetConfig.
+                var modeSource = !string.IsNullOrWhiteSpace(_modeOptions.CurrentValue.Mode)
+                    ? _modeOptions.CurrentValue.Mode
+                    : config.Environment;
+                var mode = ResolveMode(modeSource);
                 var businessKey = string.IsNullOrWhiteSpace(invoice.InvoiceNumber) ? invoice.Id.ToString("N") : invoice.InvoiceNumber;
                 var rkdbBelegpruefung = await TryResolveRkdbBelegpruefungAsync(invoice).ConfigureAwait(false);
                 var request = new FinanzOnlineRegisterSubmissionRequest
@@ -360,33 +360,41 @@ namespace KasseAPI_Final.Services
 
         private static string TruncateErrorMessage(string message, int maxLen)
         {
-            if (string.IsNullOrEmpty(message)) return "";
+            if (string.IsNullOrEmpty(message))
+                return "";
             return message.Length <= maxLen ? message : message.Substring(0, maxLen - 3) + "...";
         }
 
         private FinanzOnlineIntegrationMode ResolveMode(string? mode)
         {
-            var requestedProd =
-                string.Equals(mode, "Production", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(mode, "Prod", StringComparison.OrdinalIgnoreCase);
-            if (!requestedProd)
-                return FinanzOnlineIntegrationMode.TEST;
+            try
+            {
+                var resolved = FinanzOnlineModeResolver.ResolveOutboxMode(
+                    mode,
+                    _cutoverOptions.CurrentValue,
+                    out var label);
+                if (FinanzOnlineModeResolver.IsProduction(label))
+                {
+                    _logger.LogWarning(
+                        "FinanzOnline PROD mode enabled by explicit cutover guard. Environment={EnvironmentName}",
+                        _hostEnvironment.EnvironmentName);
+                }
+                else if (FinanzOnlineModeResolver.IsSimulation(label))
+                {
+                    _logger.LogDebug(
+                        "FinanzOnline Mode=Simulation → outbox TEST messages (transports use UseSimulation flags). Host={EnvironmentName}",
+                        _hostEnvironment.EnvironmentName);
+                }
 
-            var guard = _cutoverOptions.CurrentValue;
-            var approved = guard.AllowProdMode &&
-                           (!guard.RequireExplicitProdApproval || !string.IsNullOrWhiteSpace(guard.ProdApprovalToken));
-            if (!approved)
+                return resolved;
+            }
+            catch (InvalidOperationException)
             {
                 _logger.LogWarning(
                     "FinanzOnline PROD mode request blocked by cutover guard. Environment={EnvironmentName}",
                     _hostEnvironment.EnvironmentName);
-                throw new InvalidOperationException("PROD mode is blocked by cutover guard configuration.");
+                throw;
             }
-
-            _logger.LogWarning(
-                "FinanzOnline PROD mode enabled by explicit cutover guard. Environment={EnvironmentName}",
-                _hostEnvironment.EnvironmentName);
-            return FinanzOnlineIntegrationMode.PROD;
         }
 
         private static string ComputeSha256Hex(string payload)
@@ -399,11 +407,10 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                // Simulate FinanzOnline daily closing submission (Vienna business date label, not UTC calendar day of stored instant).
+                // Local stamp only — closing aggregates do not enqueue real SOAP (invoice / RKSV special-receipt outbox does).
                 var referenceId =
                     $"FIN_DAILY_{PostgreSqlUtcDateTime.FormatViennaUtcInstantAsYyyyMmDd(dailyClosing.ClosingDate)}_{dailyClosing.CashRegisterId}";
-                
-                // Update company settings
+
                 var companySettings = await GetCompanySettingsForEffectiveTenantAsync().ConfigureAwait(false);
                 if (companySettings != null)
                 {
@@ -415,7 +422,7 @@ namespace KasseAPI_Final.Services
                 {
                     Success = true,
                     ReferenceId = referenceId,
-                    Status = "Submitted",
+                    Status = "Simulated",
                     SubmittedAt = DateTime.UtcNow
                 };
             }
@@ -435,15 +442,14 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                // Simulate FinanzOnline monthly closing submission (Vienna local year-month, aligned with daily/yearly helpers).
                 var referenceId =
                     $"FIN_MONTHLY_{PostgreSqlUtcDateTime.FormatViennaUtcInstantAsYyyyMm(monthlyClosing.ClosingDate)}_{monthlyClosing.CashRegisterId}";
-                
+
                 return new FinanzOnlineSubmitResponse
                 {
                     Success = true,
                     ReferenceId = referenceId,
-                    Status = "Submitted",
+                    Status = "Simulated",
                     SubmittedAt = DateTime.UtcNow
                 };
             }
@@ -463,15 +469,14 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                // Simulate FinanzOnline yearly closing submission (Vienna local year).
                 var referenceId =
                     $"FIN_YEARLY_{PostgreSqlUtcDateTime.FormatViennaUtcInstantAsYyyy(yearlyClosing.ClosingDate)}_{yearlyClosing.CashRegisterId}";
-                
+
                 return new FinanzOnlineSubmitResponse
                 {
                     Success = true,
                     ReferenceId = referenceId,
-                    Status = "Submitted",
+                    Status = "Simulated",
                     SubmittedAt = DateTime.UtcNow
                 };
             }

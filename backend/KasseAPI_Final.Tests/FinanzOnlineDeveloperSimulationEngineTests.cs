@@ -1,5 +1,3 @@
-using System.Threading;
-using System.Threading.Tasks;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

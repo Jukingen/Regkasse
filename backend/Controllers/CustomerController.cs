@@ -1,15 +1,14 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Constants;
+using KasseAPI_Final.Controllers.Base;
 using KasseAPI_Final.Data;
-using KasseAPI_Final.Models;
+using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Loyalty;
-using Microsoft.AspNetCore.Authorization;
-using KasseAPI_Final.Controllers.Base;
-using KasseAPI_Final.Data.Repositories;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -217,8 +216,8 @@ namespace KasseAPI_Final.Controllers
                 customer.IsSystem = false;
 
                 var createdCustomer = await _customerRepository.AddAsync(customer);
-                
-                return CreatedAtAction(nameof(GetById), new { id = createdCustomer.Id }, 
+
+                return CreatedAtAction(nameof(GetById), new { id = createdCustomer.Id },
                     SuccessResponse(createdCustomer, "Customer created successfully"));
             }
             catch (Exception ex)
@@ -266,7 +265,7 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 var updatedCustomer = await _customerRepository.UpdateAsync(customer);
-                
+
                 return SuccessResponse(updatedCustomer, "Customer updated successfully");
             }
             catch (Exception ex)
@@ -291,10 +290,10 @@ namespace KasseAPI_Final.Controllers
             if (!string.IsNullOrEmpty(customer.CustomerNumber))
             {
                 var existingCustomer = await _context.Customers
-                    .FirstOrDefaultAsync(c => c.CustomerNumber == customer.CustomerNumber && 
-                                            c.IsActive && 
+                    .FirstOrDefaultAsync(c => c.CustomerNumber == customer.CustomerNumber &&
+                                            c.IsActive &&
                                             c.Id != excludeId);
-                
+
                 if (existingCustomer != null)
                 {
                     errors.Add("This customer number is already in use");
@@ -305,10 +304,10 @@ namespace KasseAPI_Final.Controllers
             if (!string.IsNullOrEmpty(customer.Email))
             {
                 var existingCustomer = await _context.Customers
-                    .FirstOrDefaultAsync(c => c.Email == customer.Email && 
-                                            c.IsActive && 
+                    .FirstOrDefaultAsync(c => c.Email == customer.Email &&
+                                            c.IsActive &&
                                             c.Id != excludeId);
-                
+
                 if (existingCustomer != null)
                 {
                     errors.Add("This email address is already in use");
@@ -319,10 +318,10 @@ namespace KasseAPI_Final.Controllers
             if (!string.IsNullOrEmpty(customer.TaxNumber))
             {
                 var existingCustomer = await _context.Customers
-                    .FirstOrDefaultAsync(c => c.TaxNumber == customer.TaxNumber && 
-                                            c.IsActive && 
+                    .FirstOrDefaultAsync(c => c.TaxNumber == customer.TaxNumber &&
+                                            c.IsActive &&
                                             c.Id != excludeId);
-                
+
                 if (existingCustomer != null)
                 {
                     errors.Add("This tax number is already in use");

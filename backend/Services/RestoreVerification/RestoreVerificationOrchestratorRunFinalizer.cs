@@ -3,7 +3,6 @@ using System.Text.Json.Nodes;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.RestoreVerification;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Services.RestoreVerification;
 

@@ -3,6 +3,7 @@ using System.Text.Json;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -159,7 +160,7 @@ public class MustChangePasswordMiddlewareTests
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
 
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static DefaultHttpContext CreateAuthenticatedContext(string userId, string path)

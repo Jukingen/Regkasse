@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace KasseAPI_Final.Models;
 
 /// <summary>Tenant-scoped notification channels and per-event-type rules (FA admin).</summary>

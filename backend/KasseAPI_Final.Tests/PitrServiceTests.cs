@@ -2,6 +2,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -64,7 +65,7 @@ public sealed class PitrServiceTests
         db.BackupRuns.Add(run);
         await db.SaveChangesAsync();
 
-        var target = baseTime.AddHours(6);
+        var target = baseTime;
         var svc = CreateSut(db, new DateTime(2026, 5, 30, 12, 0, 0, DateTimeKind.Utc));
 
         var result = await svc.ValidateRestorePointAsync(null, target, CancellationToken.None);
@@ -72,7 +73,7 @@ public sealed class PitrServiceTests
         Assert.True(result.IsValid);
         Assert.Equal(run.Id, result.BaseBackupId);
         Assert.Equal(PitrService.RecoveryMethodFullBackupOnly, result.RecoveryMethod);
-        Assert.Equal(6 * 3600, result.EstimatedDataLossSeconds);
+        Assert.Equal(0, result.EstimatedDataLossSeconds);
     }
 
     [Fact]
@@ -85,7 +86,7 @@ public sealed class PitrServiceTests
         await db.SaveChangesAsync();
 
         var opts = new BackupOptions { PitrWalArchivingDeclaredEnabled = true, PitrWalArchiveDeclaredLagMinutes = 10 };
-        var target = baseTime.AddHours(1);
+        var target = baseTime.AddMinutes(5);
         var svc = CreateSut(db, new DateTime(2026, 5, 30, 12, 0, 0, DateTimeKind.Utc), opts);
 
         var result = await svc.ValidateRestorePointAsync(null, target, CancellationToken.None);
@@ -123,6 +124,7 @@ public sealed class PitrServiceTests
     {
         Id = Guid.NewGuid(),
         Status = BackupRunStatus.Succeeded,
+        Strategy = BackupStrategyKind.System,
         TriggerSource = BackupTriggerSource.Scheduled,
         AdapterKind = "Fake",
         RequestedAt = completedAt.AddMinutes(-5),
@@ -142,6 +144,6 @@ public sealed class PitrServiceTests
         var opts = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"pitr_{Guid.NewGuid():N}")
             .Options;
-        return new AppDbContext(opts);
+        return new AppDbContext(opts, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 }

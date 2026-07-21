@@ -1,16 +1,11 @@
-using System;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Controllers;
 
@@ -21,6 +16,7 @@ namespace KasseAPI_Final.Controllers;
 [ApiController]
 [Route("api/admin/finanzonline-dev-test")]
 [Produces("application/json")]
+[ApiExplorerSettings(IgnoreApi = true)]
 public sealed class FinanzOnlineDevTestController : ControllerBase
 {
     private readonly IWebHostEnvironment _env;

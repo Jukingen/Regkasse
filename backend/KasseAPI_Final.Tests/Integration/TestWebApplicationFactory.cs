@@ -1,15 +1,12 @@
 using System.Text;
-using KasseAPI_Final;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -20,7 +17,7 @@ namespace KasseAPI_Final.Tests.Integration;
 /// <summary>
 /// Minimal HTTP pipeline host for Auth login integration tests (in-memory DB + seeded SuperAdmin).
 /// </summary>
-public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
+public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, IDisposable
 {
     internal const string AdminEmail = "admin@admin.com";
     internal const string AdminPassword = "Admin123!";
@@ -31,13 +28,22 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     private static readonly Guid TenantId = Guid.Parse("a1111111-1111-1111-1111-111111111111");
 
     private readonly string _databaseName = $"AuthIntegration_{Guid.NewGuid():N}";
+    private readonly string? _previousOpenApiExportFlag;
 
     public TestWebApplicationFactory()
     {
+        _previousOpenApiExportFlag = Environment.GetEnvironmentVariable(OpenApiExportMode.EnvironmentVariableName);
         Environment.SetEnvironmentVariable(OpenApiExportMode.EnvironmentVariableName, "true");
         Environment.SetEnvironmentVariable(
             OpenApiExportMode.IntegrationTestInMemoryDatabaseEnvironmentVariable,
             _databaseName);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        Environment.SetEnvironmentVariable(OpenApiExportMode.EnvironmentVariableName, null);
+        Environment.SetEnvironmentVariable(OpenApiExportMode.IntegrationTestInMemoryDatabaseEnvironmentVariable, null);
+        base.Dispose(disposing);
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)

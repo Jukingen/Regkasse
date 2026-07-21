@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using KasseAPI_Final.Configuration;
@@ -19,13 +18,11 @@ public sealed class FakeBackupExecutionAdapter : IBackupExecutionAdapter
     public FakeBackupExecutionAdapter(
         IOptionsMonitor<BackupOptions> options,
         IBackupChecksumService checksum,
-        IBackupEncryptionService? encryption = null)
+        IBackupEncryptionService encryption)
     {
         _options = options;
         _checksum = checksum;
-        _encryption = encryption ?? new BackupEncryptionService(
-            options,
-            Microsoft.Extensions.Logging.Abstractions.NullLogger<BackupEncryptionService>.Instance);
+        _encryption = encryption;
     }
 
     public string AdapterKind => "Fake";

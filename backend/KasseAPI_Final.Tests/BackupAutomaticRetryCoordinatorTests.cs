@@ -3,6 +3,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Services.OperationalRuns;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -14,7 +15,7 @@ public sealed class BackupAutomaticRetryCoordinatorTests
     private static AppDbContext CreateDb(string name)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(name).Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static BackupOptions RetryOpts(int max, bool allowVerificationRetry = false) => new()

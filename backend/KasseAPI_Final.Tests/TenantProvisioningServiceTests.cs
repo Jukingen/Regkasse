@@ -1,5 +1,6 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
@@ -20,7 +21,7 @@ public sealed class TenantProvisioningServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"tenant_provision_{Guid.NewGuid():N}")
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static Mock<UserManager<ApplicationUser>> CreateUserManagerMock()
@@ -48,10 +49,10 @@ public sealed class TenantProvisioningServiceTests
     }
 
     [Fact]
-    public void GenerateCompliantPassword_MeetsIdentityRules()
+    public void GenerateSecurePassword_MeetsIdentityRules()
     {
-        var password = TenantProvisioningService.GenerateCompliantPassword();
-        Assert.True(password.Length >= 8);
+        var password = PasswordGenerator.GenerateSecurePassword(16);
+        Assert.True(password.Length >= 12);
         Assert.Contains(password, c => char.IsLower(c));
         Assert.Contains(password, c => char.IsUpper(c));
         Assert.Contains(password, c => char.IsDigit(c));

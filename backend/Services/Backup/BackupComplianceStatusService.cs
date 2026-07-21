@@ -55,8 +55,10 @@ public sealed class BackupComplianceStatusService : IBackupComplianceStatusServi
         foreach (var run in runs)
         {
             var (ok, reason) = EvaluateRestoreReadiness(run);
-            if (ok) compliant++;
-            else nonCompliant++;
+            if (ok)
+                compliant++;
+            else
+                nonCompliant++;
 
             string? tenantName = null;
             if (run.TenantId is Guid tid && tenantNames.TryGetValue(tid, out var name))

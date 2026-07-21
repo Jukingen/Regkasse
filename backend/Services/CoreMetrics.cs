@@ -1,4 +1,3 @@
-using System;
 using Prometheus;
 
 namespace KasseAPI_Final.Services;
@@ -162,7 +161,8 @@ public sealed class CoreMetrics : ICoreMetrics
 
     public void RecordFinanzOnlineFailed(FinanzOnlineFailureKind kind, int count = 1)
     {
-        if (count <= 0) return;
+        if (count <= 0)
+            return;
         var label = kind switch
         {
             FinanzOnlineFailureKind.Transient => "transient",
@@ -174,7 +174,8 @@ public sealed class CoreMetrics : ICoreMetrics
 
     public void RecordLegacyRouteHit(string legacyFamily, string routePattern, string httpMethod, int count = 1)
     {
-        if (count <= 0) return;
+        if (count <= 0)
+            return;
         var family = string.IsNullOrWhiteSpace(legacyFamily) ? "unknown" : legacyFamily.Trim().ToLowerInvariant();
         var pattern = string.IsNullOrWhiteSpace(routePattern) ? "unknown" : routePattern;
         var method = string.IsNullOrWhiteSpace(httpMethod) ? "unknown" : httpMethod.ToUpperInvariant();

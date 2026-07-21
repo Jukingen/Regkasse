@@ -22,7 +22,7 @@ public class CatalogStructureTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: $"CatalogStructure_{Guid.NewGuid()}")
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static void SetAuth(ProductController controller, string userId = "u1")
@@ -38,11 +38,13 @@ public class CatalogStructureTests
     /// <summary>Extract CatalogResponseDto from SuccessResponse wrapper. Anonymous type property name may vary.</summary>
     private static object? GetCatalogDataFromResponse(object? response)
     {
-        if (response == null) return null;
+        if (response == null)
+            return null;
         foreach (var prop in response.GetType().GetProperties())
         {
             var val = prop.GetValue(response);
-            if (val?.GetType().GetProperty("Products") != null) return val;
+            if (val?.GetType().GetProperty("Products") != null)
+                return val;
         }
         return null;
     }
@@ -145,7 +147,8 @@ public class CatalogStructureTests
         foreach (var p in data.Products)
         {
             var mg = modifierGroupsProp.GetValue(p) as System.Collections.IList;
-            if (mg != null && mg.Count > 0) { modifierGroups = mg; break; }
+            if (mg != null && mg.Count > 0)
+            { modifierGroups = mg; break; }
         }
         Assert.NotNull(modifierGroups);
         Assert.Single(modifierGroups);
@@ -260,7 +263,8 @@ public class CatalogStructureTests
         foreach (var p in data.Products)
         {
             var mg = modifierGroupsProp.GetValue(p) as System.Collections.IList;
-            if (mg != null && mg.Count > 0) { modifierGroups = mg; break; }
+            if (mg != null && mg.Count > 0)
+            { modifierGroups = mg; break; }
         }
         Assert.NotNull(modifierGroups);
         var group = modifierGroups![0];

@@ -1,0 +1,44 @@
+# Backend unit / in-memory integration tests (excludes PostgreSQL-tagged).
+# Full suite local: scripts/run-all-tests.sh or `dotnet test` in backend/.
+# PostgreSQL-tagged: backend-postgres-integration-tests.yml
+
+name: Backend unit tests
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: backend-unit-tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  CI: 'true'
+  # Do not inherit developer REGKASSE_* env that would force OpenAPI/in-memory host mode.
+  REGKASSE_OPENAPI_EXPORT: ''
+  REGKASSE_TEST_INMEMORY_DB: ''
+
+jobs:
+  unit-tests:
+    name: dotnet test (exclude Category=PostgreSql)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Run unit / in-memory tests
+        working-directory: backend
+        run: >-
+          dotnet test KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj
+          --configuration Release
+          --filter "Category!=PostgreSql"
+          --verbosity minimal

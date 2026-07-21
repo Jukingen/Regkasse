@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using KasseAPI_Final.Tse;
 using Microsoft.Extensions.Logging;
 using Moq;

@@ -1,5 +1,3 @@
-using KasseAPI_Final.Models;
-
 namespace KasseAPI_Final.Models.Reports;
 
 /// <summary>Überlagerung: untergeordnete Korrektur betrifft Aggregation — getrennt von FinanzOnline-Submission.</summary>

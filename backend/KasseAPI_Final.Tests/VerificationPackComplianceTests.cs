@@ -7,7 +7,6 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Filters;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
-using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using KasseAPI_Final.Tse;
@@ -50,7 +49,7 @@ public sealed class VerificationPackComplianceTests
             .UseInMemoryDatabase($"VerifyPack_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     /// <summary>VERIFICATION: daily closing succeeds with more than ten reconciled (invoiced) payments for Vienna “today”.</summary>
@@ -152,7 +151,8 @@ public sealed class VerificationPackComplianceTests
                 It.IsAny<string>(),
                 It.IsAny<DateTime>(),
                 It.IsAny<decimal>(),
-                It.IsAny<int>()))
+                It.IsAny<int>(),
+                It.IsAny<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction?>()))
             .ReturnsAsync("daily-closing-jws-test");
 
         var finanz = new Mock<IFinanzOnlineService>();

@@ -3,10 +3,10 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Metrics;
 using KasseAPI_Final.Services.Order;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
-
 namespace KasseAPI_Final.Tests;
 
 public sealed class OnlineOrderIntakeServiceTests
@@ -14,7 +14,7 @@ public sealed class OnlineOrderIntakeServiceTests
     [Fact]
     public async Task CreateAsync_rejects_when_closed_special_day()
     {
-        var (sut, tenantId, productId) = await CreateSutAsync(
+        var (sut, _, productId) = await CreateSutAsync(
             hours: ClosedChristmasHours(),
             utcNow: new DateTimeOffset(2026, 12, 24, 11, 0, 0, TimeSpan.Zero));
 
@@ -27,7 +27,7 @@ public sealed class OnlineOrderIntakeServiceTests
     [Fact]
     public async Task CreateAsync_accepts_during_open_hours()
     {
-        var (sut, tenantId, productId) = await CreateSutAsync(
+        var (sut, _, productId) = await CreateSutAsync(
             hours: WorkingHoursSettings.CreateDefault(),
             // Monday 2026-07-20 12:00 Vienna = 10:00 UTC
             utcNow: new DateTimeOffset(2026, 7, 20, 10, 0, 0, TimeSpan.Zero));
@@ -86,7 +86,7 @@ public sealed class OnlineOrderIntakeServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
             .Options;
-        var db = new AppDbContext(options);
+        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
         var factory = new Factory(options);
         var tenantId = Guid.NewGuid();
         var productId = Guid.NewGuid();
@@ -151,6 +151,6 @@ public sealed class OnlineOrderIntakeServiceTests
         public Factory(DbContextOptions<AppDbContext> options) => _options = options;
         public AppDbContext CreateDbContext() => new(_options);
         public ValueTask<AppDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
-            new(new AppDbContext(_options));
+            new(new AppDbContext(_options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary)));
     }
 }

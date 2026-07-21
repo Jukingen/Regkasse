@@ -8,6 +8,7 @@ namespace KasseAPI_Final.Tests.Integration;
 /// <summary>
 /// HTTP integration coverage for <c>POST /api/Auth/login</c> (valid + invalid credentials).
 /// </summary>
+[Collection("OpenApiExportWebHost")]
 public sealed class AuthControllerTests : IClassFixture<TestWebApplicationFactory>
 {
     private readonly HttpClient _client;

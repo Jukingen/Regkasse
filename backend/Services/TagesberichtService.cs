@@ -2,12 +2,12 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Reports;
-using KasseAPI_Final.Time;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
+using KasseAPI_Final.Time;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services;
 
@@ -386,139 +386,139 @@ public sealed class TagesberichtService : ITagesberichtService
         TagesberichtReport? row = null;
         try
         {
-        row = await _db.Set<TagesberichtReport>().FirstOrDefaultAsync(x => x.Id == reportId, cancellationToken)
-            ?? throw new InvalidOperationException("Tagesbericht not found.");
+            row = await _db.Set<TagesberichtReport>().FirstOrDefaultAsync(x => x.Id == reportId, cancellationToken)
+                ?? throw new InvalidOperationException("Tagesbericht not found.");
 
-        if (row.ReportStatus != TagesberichtReportStatuses.Finalized)
-        {
-            await AuditReportMutationFailureAsync(
-                "TagesberichtFinanzOnlineSubmitFailed",
-                actorUserId,
-                "Tagesbericht outbox enqueue failed",
-                "Only finalized Tagesbericht can be submitted to FinanzOnline.",
-                row,
-                new { reportId });
-            throw new InvalidOperationException("Only finalized Tagesbericht can be submitted to FinanzOnline.");
-        }
-
-        var pre = await FormalReportSubmissionGuards.EvaluateSubmitPrecheckAsync(
-            _db,
-            "TagesberichtReport",
-            row.Id,
-            row.ReportStatus,
-            row.SupersededByReportId,
-            row.LastFinanzOnlineOutboxMessageId,
-            cancellationToken);
-        if (pre == FormalReportSubmitPrecheckDecision.RejectSuperseded)
-        {
-            await AuditReportMutationFailureAsync(
-                "TagesberichtFinanzOnlineSubmitFailed",
-                actorUserId,
-                "Tagesbericht outbox enqueue failed",
-                "Superseded Tagesbericht cannot be submitted; use successor report.",
-                row,
-                new { reportId });
-            throw new InvalidOperationException("Superseded Tagesbericht cannot be submitted. Use the successor report in the correction chain.");
-        }
-        if (pre == FormalReportSubmitPrecheckDecision.RejectAlreadyAccepted)
-        {
-            await AuditReportMutationFailureAsync(
-                "TagesberichtFinanzOnlineSubmitFailed",
-                actorUserId,
-                "Tagesbericht outbox enqueue failed",
-                "FinanzOnline submission already accepted for this report artefact.",
-                row,
-                new { reportId, row.LastFinanzOnlineOutboxMessageId });
-            throw new InvalidOperationException(
-                "FinanzOnline submission already accepted for this report. Create a correction report for a new submission chain.");
-        }
-        if (pre == FormalReportSubmitPrecheckDecision.ReturnExistingWithoutEnqueue)
-            return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
-
-        var summary = JsonSerializer.Deserialize<TagesberichtSummaryDto>(row.SnapshotJson, JsonOpts)
-            ?? throw new InvalidOperationException("Snapshot corrupt.");
-
-        var register = await _db.CashRegisters.AsNoTracking().FirstAsync(x => x.Id == row.CashRegisterId, cancellationToken);
-        // Bilgilendirici özet hattı: gerçek RKDB üretimi yok; PROD kesim koruması ve SOAP zorunluluğundan kaçınmak için TEST modu.
-        var mode = FinanzOnlineIntegrationMode.TEST;
-
-        var submissionAttemptIndex = await FormalReportSubmissionGuards.CountOutboxMessagesForAggregateAsync(
-            _db, "TagesberichtReport", row.Id, cancellationToken);
-
-        var payloadJson = JsonSerializer.Serialize(new
-        {
-            kind = "TagesberichtDailySummary",
-            reportId = row.Id,
-            snapshotHash = row.SnapshotHash,
-            schemaVersion = row.SnapshotSchemaVersion,
-            viennaDate = row.ViennaBusinessDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-            registerNumber = register.RegisterNumber,
-            gross = summary.GrossSalesAmount,
-            tax = summary.TaxTotalAmount,
-            refunds = summary.RefundAmountTotal,
-            submissionAttemptIndex,
-        }, JsonOpts);
-
-        var hashHex = ComputeSha256Hex(payloadJson);
-        var businessKey = ReportFinanzOnlineBusinessKeys.Tagesbericht(
-            row.CashRegisterId,
-            NormalizeViennaDate(row.ViennaBusinessDate),
-            row.Id,
-            submissionAttemptIndex);
-
-        var previousOutboxId = row.LastFinanzOnlineOutboxMessageId;
-        var previousStatus = row.LastSubmissionStatusCode;
-        var msg = await _outbox.EnqueueSubmissionAsync(
-            aggregateType: "TagesberichtReport",
-            aggregateId: row.Id,
-            messageType: FinanzOnlineTagesberichtMessageTypes.TagesberichtDailySummary,
-            businessKey: businessKey,
-            payload: new FinanzOnlineOutboxPayload
+            if (row.ReportStatus != TagesberichtReportStatuses.Finalized)
             {
-                Mode = mode,
-                Scope = new FinanzOnlineScope
-                {
-                    RegisterId = register.RegisterNumber
-                },
-                Correlation = new FinanzOnlineCorrelationContext
-                {
-                    BusinessKey = businessKey,
-                    PayloadHash = hashHex,
-                    CorrelationId = row.Id.ToString("N")
-                },
-                SubmissionKind = FinanzOnlineSubmissionKind.Register,
-                PayloadJson = payloadJson
-            },
-            cancellationToken);
+                await AuditReportMutationFailureAsync(
+                    "TagesberichtFinanzOnlineSubmitFailed",
+                    actorUserId,
+                    "Tagesbericht outbox enqueue failed",
+                    "Only finalized Tagesbericht can be submitted to FinanzOnline.",
+                    row,
+                    new { reportId });
+                throw new InvalidOperationException("Only finalized Tagesbericht can be submitted to FinanzOnline.");
+            }
 
-        row.LastFinanzOnlineOutboxMessageId = msg.Id;
-        row.LastSubmissionStatusCode = msg.Status;
-        row.LastSubmissionError = msg.LastErrorMessage;
-        row.SubmissionImpact = ReportSubmissionImpacts.RequiresResubmission;
-        await _db.SaveChangesAsync(cancellationToken);
-
-        await AuditReportMutationSuccessAsync(
-            "TagesberichtFinanzOnlineSubmit",
-            actorUserId,
-            "Tagesbericht submission enqueued to FinanzOnline outbox",
-            row,
-            new
+            var pre = await FormalReportSubmissionGuards.EvaluateSubmitPrecheckAsync(
+                _db,
+                "TagesberichtReport",
+                row.Id,
+                row.ReportStatus,
+                row.SupersededByReportId,
+                row.LastFinanzOnlineOutboxMessageId,
+                cancellationToken);
+            if (pre == FormalReportSubmitPrecheckDecision.RejectSuperseded)
             {
+                await AuditReportMutationFailureAsync(
+                    "TagesberichtFinanzOnlineSubmitFailed",
+                    actorUserId,
+                    "Tagesbericht outbox enqueue failed",
+                    "Superseded Tagesbericht cannot be submitted; use successor report.",
+                    row,
+                    new { reportId });
+                throw new InvalidOperationException("Superseded Tagesbericht cannot be submitted. Use the successor report in the correction chain.");
+            }
+            if (pre == FormalReportSubmitPrecheckDecision.RejectAlreadyAccepted)
+            {
+                await AuditReportMutationFailureAsync(
+                    "TagesberichtFinanzOnlineSubmitFailed",
+                    actorUserId,
+                    "Tagesbericht outbox enqueue failed",
+                    "FinanzOnline submission already accepted for this report artefact.",
+                    row,
+                    new { reportId, row.LastFinanzOnlineOutboxMessageId });
+                throw new InvalidOperationException(
+                    "FinanzOnline submission already accepted for this report. Create a correction report for a new submission chain.");
+            }
+            if (pre == FormalReportSubmitPrecheckDecision.ReturnExistingWithoutEnqueue)
+                return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
+
+            var summary = JsonSerializer.Deserialize<TagesberichtSummaryDto>(row.SnapshotJson, JsonOpts)
+                ?? throw new InvalidOperationException("Snapshot corrupt.");
+
+            var register = await _db.CashRegisters.AsNoTracking().FirstAsync(x => x.Id == row.CashRegisterId, cancellationToken);
+            // Bilgilendirici özet hattı: gerçek RKDB üretimi yok; PROD kesim koruması ve SOAP zorunluluğundan kaçınmak için TEST modu.
+            var mode = FinanzOnlineIntegrationMode.TEST;
+
+            var submissionAttemptIndex = await FormalReportSubmissionGuards.CountOutboxMessagesForAggregateAsync(
+                _db, "TagesberichtReport", row.Id, cancellationToken);
+
+            var payloadJson = JsonSerializer.Serialize(new
+            {
+                kind = "TagesberichtDailySummary",
                 reportId = row.Id,
-                previousOutboxId,
-                previousStatus,
-                retrySubmissionAttempt = previousOutboxId != null
-            },
-            new
-            {
-                outboxMessageId = msg.Id,
-                outboxStatus = msg.Status,
-                correlationId = msg.CorrelationId,
-                businessKey = msg.BusinessKey
-            },
-            msg.CorrelationId);
+                snapshotHash = row.SnapshotHash,
+                schemaVersion = row.SnapshotSchemaVersion,
+                viennaDate = row.ViennaBusinessDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                registerNumber = register.RegisterNumber,
+                gross = summary.GrossSalesAmount,
+                tax = summary.TaxTotalAmount,
+                refunds = summary.RefundAmountTotal,
+                submissionAttemptIndex,
+            }, JsonOpts);
 
-        return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
+            var hashHex = ComputeSha256Hex(payloadJson);
+            var businessKey = ReportFinanzOnlineBusinessKeys.Tagesbericht(
+                row.CashRegisterId,
+                NormalizeViennaDate(row.ViennaBusinessDate),
+                row.Id,
+                submissionAttemptIndex);
+
+            var previousOutboxId = row.LastFinanzOnlineOutboxMessageId;
+            var previousStatus = row.LastSubmissionStatusCode;
+            var msg = await _outbox.EnqueueSubmissionAsync(
+                aggregateType: "TagesberichtReport",
+                aggregateId: row.Id,
+                messageType: FinanzOnlineTagesberichtMessageTypes.TagesberichtDailySummary,
+                businessKey: businessKey,
+                payload: new FinanzOnlineOutboxPayload
+                {
+                    Mode = mode,
+                    Scope = new FinanzOnlineScope
+                    {
+                        RegisterId = register.RegisterNumber
+                    },
+                    Correlation = new FinanzOnlineCorrelationContext
+                    {
+                        BusinessKey = businessKey,
+                        PayloadHash = hashHex,
+                        CorrelationId = row.Id.ToString("N")
+                    },
+                    SubmissionKind = FinanzOnlineSubmissionKind.Register,
+                    PayloadJson = payloadJson
+                },
+                cancellationToken);
+
+            row.LastFinanzOnlineOutboxMessageId = msg.Id;
+            row.LastSubmissionStatusCode = msg.Status;
+            row.LastSubmissionError = msg.LastErrorMessage;
+            row.SubmissionImpact = ReportSubmissionImpacts.RequiresResubmission;
+            await _db.SaveChangesAsync(cancellationToken);
+
+            await AuditReportMutationSuccessAsync(
+                "TagesberichtFinanzOnlineSubmit",
+                actorUserId,
+                "Tagesbericht submission enqueued to FinanzOnline outbox",
+                row,
+                new
+                {
+                    reportId = row.Id,
+                    previousOutboxId,
+                    previousStatus,
+                    retrySubmissionAttempt = previousOutboxId != null
+                },
+                new
+                {
+                    outboxMessageId = msg.Id,
+                    outboxStatus = msg.Status,
+                    correlationId = msg.CorrelationId,
+                    businessKey = msg.BusinessKey
+                },
+                msg.CorrelationId);
+
+            return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
         }
         catch (Exception ex)
         {
@@ -798,42 +798,11 @@ public sealed class TagesberichtService : ITagesberichtService
         return _submissionCompat.ToLegacySubmissionState(envelope);
     }
 
-    private static string MapOutboxToLifecycle(string status)
-    {
-        return status switch
-        {
-            FinanzOnlineOutboxStatuses.Pending => "queued",
-            FinanzOnlineOutboxStatuses.Processing => "pending",
-            FinanzOnlineOutboxStatuses.RetryableFailure => "retry_pending",
-            FinanzOnlineOutboxStatuses.AwaitingProtocol => "awaiting_protocol",
-            FinanzOnlineOutboxStatuses.ProtocolSuccess => "accepted",
-            FinanzOnlineOutboxStatuses.ProtocolFailure => "rejected",
-            FinanzOnlineOutboxStatuses.PermanentFailure => "rejected",
-            FinanzOnlineOutboxStatuses.ManualReviewRequired => "correction_required",
-            FinanzOnlineOutboxStatuses.DeadLetter => "failed_terminal",
-            _ => "unknown"
-        };
-    }
-
-    private static string? MapOperatorHintDe(string status, string? err)
-    {
-        if (status == FinanzOnlineOutboxStatuses.ProtocolSuccess)
-            return "Übermittlung erfolgreich (Outbox).";
-        if (status == FinanzOnlineOutboxStatuses.RetryableFailure)
-            return "Vorübergehender Fehler — automatischer Wiederholungsversuch läuft.";
-        if (status is FinanzOnlineOutboxStatuses.DeadLetter or FinanzOnlineOutboxStatuses.PermanentFailure or FinanzOnlineOutboxStatuses.ProtocolFailure)
-            return string.IsNullOrWhiteSpace(err) ? "Dauerhafte Ablehnung oder Fehler — bitte prüfen." : err;
-        if (status == FinanzOnlineOutboxStatuses.ManualReviewRequired)
-            return "Manuelle Prüfung erforderlich.";
-        if (status == FinanzOnlineOutboxStatuses.AwaitingProtocol)
-            return "Warte auf Protokollbestätigung.";
-        return null;
-    }
-
     private async Task<TagesberichtDto?> MapToDtoAsync(Guid id, CancellationToken cancellationToken)
     {
         var row = await _db.Set<TagesberichtReport>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-        if (row == null) return null;
+        if (row == null)
+            return null;
 
         var summary = JsonSerializer.Deserialize<TagesberichtSummaryDto>(row.SnapshotJson, JsonOpts) ?? new TagesberichtSummaryDto();
         var reg = await _db.CashRegisters.AsNoTracking().FirstOrDefaultAsync(x => x.Id == row.CashRegisterId, cancellationToken);

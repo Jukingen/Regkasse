@@ -74,14 +74,17 @@ public class AdminAppPermissionProfileTests
             new[] { Roles.Manager },
             effective);
 
-        Assert.Contains(AppPermissions.CashRegisterView, result);
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.CashRegisterView, result));
         Assert.Contains(AppPermissions.CashRegisterManage, result);
         Assert.Contains(AppPermissions.CashRegisterDecommission, result);
         Assert.Contains(AppPermissions.ReportExport, result);
         Assert.Contains(AppPermissions.UserView, result);
-        Assert.Contains(AppPermissions.UserResetPassword, result);
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.UserResetPassword, result));
         Assert.Contains(AppPermissions.TableView, result);
         Assert.Contains(AppPermissions.SaleView, result);
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalView, result));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalOrdersView, result));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DailyClosingView, result));
         Assert.DoesNotContain(AppPermissions.PaymentTake, result);
         Assert.DoesNotContain(AppPermissions.CartManage, result);
         Assert.DoesNotContain(AppPermissions.TseSign, result);
@@ -95,14 +98,14 @@ public class AdminAppPermissionProfileTests
     public void Filter_Admin_Manager_PreservesOversightViewPermissions(string permission)
     {
         var effective = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Manager });
-        Assert.Contains(permission, effective);
+        Assert.True(PermissionImplication.IsSatisfied(permission, effective));
 
         var result = AdminAppPermissionProfile.Filter(
             ClientAppPolicy.Admin,
             new[] { Roles.Manager },
             effective);
 
-        Assert.Contains(permission, result);
+        Assert.True(PermissionImplication.IsSatisfied(permission, result));
     }
 
     public static IEnumerable<object[]> ManagerOversightViewPermissionCases() =>
@@ -113,14 +116,14 @@ public class AdminAppPermissionProfileTests
     public void Filter_Admin_Manager_PreservesCashRegisterAdminPermissions(string permission)
     {
         var effective = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Manager });
-        Assert.Contains(permission, effective);
+        Assert.True(PermissionImplication.IsSatisfied(permission, effective));
 
         var result = AdminAppPermissionProfile.Filter(
             ClientAppPolicy.Admin,
             new[] { Roles.Manager },
             effective);
 
-        Assert.Contains(permission, result);
+        Assert.True(PermissionImplication.IsSatisfied(permission, result));
     }
 
     public static IEnumerable<object[]> ManagerCashRegisterAdminPermissionCases() =>

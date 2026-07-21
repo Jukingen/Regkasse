@@ -1,7 +1,6 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Billing;
-using KasseAPI_Final.Services.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services.AdminTenants;

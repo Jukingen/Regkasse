@@ -1,11 +1,10 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Xunit;
-
-using KasseAPI_Final.Tenancy;
 
 namespace KasseAPI_Final.Tests;
 
@@ -22,7 +21,7 @@ public sealed class TimestamptzWriteNormalizationInMemoryTests
             .UseInMemoryDatabase($"tz_write_norm_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static void AssertTimestamptzInstantNormalized(

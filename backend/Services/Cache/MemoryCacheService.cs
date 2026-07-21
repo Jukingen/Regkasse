@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using KasseAPI_Final.Services.Metrics;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Services.Cache;
 

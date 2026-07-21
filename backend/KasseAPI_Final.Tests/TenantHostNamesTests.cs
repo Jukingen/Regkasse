@@ -17,6 +17,21 @@ public sealed class TenantHostNamesTests
     }
 
     [Theory]
+    [InlineData("regkasse.at", true)]
+    [InlineData("pos.regkasse.at", true)]
+    [InlineData("admin.regkasse.at", true)]
+    [InlineData("www.regkasse.at", true)]
+    [InlineData("cafe.regkasse.at", true)]
+    [InlineData("evil.example.com", false)]
+    [InlineData("regkasse.at.evil.com", false)]
+    [InlineData(null, false)]
+    [InlineData("", false)]
+    public void IsRegkassePlatformWebOriginHost_MatchesPlatformHosts(string? host, bool expected)
+    {
+        Assert.Equal(expected, TenantHostNames.IsRegkassePlatformWebOriginHost(host));
+    }
+
+    [Theory]
     [InlineData("admin", true)]
     [InlineData("www", true)]
     [InlineData("pos", true)]

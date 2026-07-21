@@ -1,12 +1,12 @@
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using KasseAPI_Final.Auth;
+using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
+using KasseAPI_Final.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using KasseAPI_Final.Services;
-using KasseAPI_Final.Models.DTOs;
-using KasseAPI_Final.Models;
-using KasseAPI_Final.Authorization;
-using System.ComponentModel.DataAnnotations;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -74,8 +74,10 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                if (page < 1) page = 1;
-                if (pageSize < 1 || pageSize > 100) pageSize = 50;
+                if (page < 1)
+                    page = 1;
+                if (pageSize < 1 || pageSize > 100)
+                    pageSize = 50;
 
                 var filters = AuditLogQueryExtensions.ToFilters(
                     startDate, endDate, userId, userRole, targetUserId, action, entityType, entityId,
@@ -159,8 +161,10 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                if (page < 1) page = 1;
-                if (pageSize < 1 || pageSize > 100) pageSize = 50;
+                if (page < 1)
+                    page = 1;
+                if (pageSize < 1 || pageSize > 100)
+                    pageSize = 50;
 
                 var auditLogs = await _auditLogService.GetPaymentAuditLogsAsync(
                     paymentId, startDate, endDate, page, pageSize);
@@ -177,7 +181,7 @@ namespace KasseAPI_Final.Controllers
                     Message = $"Payment audit logs for payment {paymentId} retrieved successfully"
                 };
 
-                _logger.LogInformation("Retrieved {Count} payment audit logs for payment {PaymentId}", 
+                _logger.LogInformation("Retrieved {Count} payment audit logs for payment {PaymentId}",
                     paymentList.Count, paymentId);
 
                 return Ok(response);
@@ -207,8 +211,10 @@ namespace KasseAPI_Final.Controllers
             }
             try
             {
-                if (page < 1) page = 1;
-                if (pageSize < 1 || pageSize > 100) pageSize = 50;
+                if (page < 1)
+                    page = 1;
+                if (pageSize < 1 || pageSize > 100)
+                    pageSize = 50;
 
                 var auditLogs = await _auditLogService.GetUserAuditLogsAsync(
                     userId, startDate, endDate, page, pageSize);
@@ -230,7 +236,7 @@ namespace KasseAPI_Final.Controllers
                     Message = $"User audit logs for user {userId} retrieved successfully"
                 };
 
-                _logger.LogInformation("Retrieved {Count} user audit logs for user {UserId} (page {Page} of {TotalPages})", 
+                _logger.LogInformation("Retrieved {Count} user audit logs for user {UserId} (page {Page} of {TotalPages})",
                     list.Count, userId, page, response.TotalPages);
 
                 return Ok(response);
@@ -265,7 +271,7 @@ namespace KasseAPI_Final.Controllers
                     Message = $"Audit logs for correlation ID {correlationId} retrieved successfully"
                 };
 
-                _logger.LogInformation("Retrieved {Count} audit logs for correlation ID {CorrelationId}", 
+                _logger.LogInformation("Retrieved {Count} audit logs for correlation ID {CorrelationId}",
                     corrList.Count, correlationId);
 
                 return Ok(response);
@@ -331,7 +337,7 @@ namespace KasseAPI_Final.Controllers
                     Message = $"Audit logs for transaction ID {transactionId} retrieved successfully"
                 };
 
-                _logger.LogInformation("Retrieved {Count} audit logs for transaction ID {TransactionId}", 
+                _logger.LogInformation("Retrieved {Count} audit logs for transaction ID {TransactionId}",
                     txList.Count, transactionId);
 
                 return Ok(response);
@@ -365,7 +371,7 @@ namespace KasseAPI_Final.Controllers
                     Message = "Audit log statistics retrieved successfully"
                 };
 
-                _logger.LogInformation("Retrieved audit log statistics for period {StartDate} to {EndDate}", 
+                _logger.LogInformation("Retrieved audit log statistics for period {StartDate} to {EndDate}",
                     startDate, endDate);
 
                 return Ok(response);

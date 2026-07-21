@@ -24,7 +24,9 @@ public class RksvNullbelegServiceTests
             .UseInMemoryDatabase($"Nullbeleg_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(
+            options,
+            TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static RksvSpecialReceiptService CreateService(
@@ -93,6 +95,7 @@ public class RksvNullbelegServiceTests
         });
         await context.SaveChangesAsync();
 
+        var demoJws = RksvTestSignatures.CreateDemoCompactJws();
         var tseMock = new Mock<ITseService>();
         tseMock.Setup(x => x.CreateInvoiceSignatureAsync(
                 It.IsAny<Guid>(),
@@ -103,7 +106,7 @@ public class RksvNullbelegServiceTests
                 It.IsAny<DateTime?>(),
                 It.IsAny<string?>(),
                 It.IsAny<IDbContextTransaction?>()))
-            .ReturnsAsync(new TseSignatureResult("eyJhbGciOiJFUzI1NiJ9.eyJ.test.sign", "chain-prev"));
+            .ReturnsAsync(new TseSignatureResult(demoJws, "chain-prev"));
         tseMock.Setup(x => x.GetTseCertificateInfoAsync(It.IsAny<string>()))
             .ReturnsAsync(new TseCertificateInfo { CertificateNumber = "cert-test" });
 

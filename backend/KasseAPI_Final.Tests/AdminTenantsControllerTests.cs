@@ -1,3 +1,6 @@
+using System.Runtime.CompilerServices;
+using System.Security.Claims;
+using System.Text.Json;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Controllers;
@@ -7,8 +10,8 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminCashRegisters;
 using KasseAPI_Final.Services.AdminTenants;
-using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Services.Email;
+using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -20,9 +23,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using System.Runtime.CompilerServices;
-using System.Security.Claims;
-using System.Text.Json;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
@@ -751,7 +751,8 @@ public sealed class AdminTenantsControllerTests
         var list = await service.ListAsync(false);
 
         Assert.Equal("admin@prod.regkasse.at", list.Single(x => x.Slug == "prod").OwnerAdminEmail);
-        Assert.Equal("admin@dev.regkasse.at", list.Single(x => x.Slug == "dev").OwnerAdminEmail);
+        // Two rows share slug "dev" in this fixture (seeded cafe + DemoTenantIds.Dev); assert owner via tenant id.
+        Assert.Equal("admin@dev.regkasse.at", list.Single(x => x.Id == cafeId).OwnerAdminEmail);
     }
 
     [Fact]
@@ -1213,7 +1214,8 @@ public sealed class AdminTenantsControllerTests
         Assert.Equal(TenantStatuses.Active, tenant.Status);
         Assert.True(tenant.IsActive);
         Assert.Null(tenant.DeletedAtUtc);
-        var membership = await db.UserTenantMemberships.SingleAsync(m => m.UserId == "u1");
+        var membership = await db.UserTenantMemberships.IgnoreQueryFilters()
+            .SingleAsync(m => m.UserId == "u1");
         Assert.True(membership.IsActive);
     }
 

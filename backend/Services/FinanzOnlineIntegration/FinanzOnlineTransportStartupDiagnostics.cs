@@ -1,6 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.FinanzOnlineIntegration;
@@ -25,6 +22,7 @@ public static class FinanzOnlineTransportStartupDiagnostics
         var tx = sp.GetRequiredService<IOptionsMonitor<FinanzOnlineTransmissionQueryOptions>>().CurrentValue;
         var outbox = sp.GetRequiredService<IOptionsMonitor<FinanzOnlineOutboxOptions>>().CurrentValue;
         var cutover = sp.GetRequiredService<IOptionsMonitor<FinanzOnlineCutoverGuardOptions>>().CurrentValue;
+        var modeOpts = sp.GetRequiredService<IOptionsMonitor<FinanzOnlineModeOptions>>().CurrentValue;
         var connectivity = sp.GetRequiredService<IOptionsMonitor<FinanzOnlineConnectivityOptions>>().CurrentValue;
         var devTest = sp.GetRequiredService<IOptionsMonitor<FinanzOnlineDevTestOptions>>().CurrentValue;
         var simDev = sp.GetRequiredService<IOptionsMonitor<FinanzOnlineSimulationDeveloperOptions>>().CurrentValue;
@@ -38,7 +36,8 @@ public static class FinanzOnlineTransportStartupDiagnostics
 
         // Yapılandırılmış alanlar: şablon içindeki {Name} anahtarları log sağlayıcısına özellik olarak gider (şifre/token değeri yok).
         logger.LogInformation(
-            "FinanzOnline startup snapshot: SessionUseSimulation={SessionUseSimulation} RegistrierkassenUseSimulation={RegistrierkassenUseSimulation} RegistrierkassenEnableRealTestSubmission={RegistrierkassenEnableRealTestSubmission} TransmissionQueryUseSimulation={TransmissionQueryUseSimulation} TransmissionQueryEnableRealTestQuery={TransmissionQueryEnableRealTestQuery} OutboxEnabled={OutboxEnabled} SoapModes={SoapModes} CutoverAllowProdMode={CutoverAllowProdMode} CutoverRequireExplicitProdApproval={CutoverRequireExplicitProdApproval} CutoverProdApprovalConfigured={CutoverProdApprovalConfigured} ConnectivityUseCompanySettings={ConnectivityUseCompanySettings} DevTestAllowEnqueueSmokeTest={DevTestAllowEnqueueSmokeTest} SimulationDeveloperBehaviorProfile={SimulationDeveloperBehaviorProfile} SimulationScenarioConfigured={SimulationScenarioConfigured} SimulationScenarioEffective={SimulationScenarioEffective} SimulationFixedDelayMs={SimulationFixedDelayMs} SimulationSeed={SimulationSeed}",
+            "FinanzOnline startup snapshot: Mode={FinanzOnlineMode} SessionUseSimulation={SessionUseSimulation} RegistrierkassenUseSimulation={RegistrierkassenUseSimulation} RegistrierkassenEnableRealTestSubmission={RegistrierkassenEnableRealTestSubmission} TransmissionQueryUseSimulation={TransmissionQueryUseSimulation} TransmissionQueryEnableRealTestQuery={TransmissionQueryEnableRealTestQuery} OutboxEnabled={OutboxEnabled} SoapModes={SoapModes} CutoverAllowProdMode={CutoverAllowProdMode} CutoverRequireExplicitProdApproval={CutoverRequireExplicitProdApproval} CutoverProdApprovalConfigured={CutoverProdApprovalConfigured} ConnectivityUseCompanySettings={ConnectivityUseCompanySettings} DevTestAllowEnqueueSmokeTest={DevTestAllowEnqueueSmokeTest} SimulationDeveloperBehaviorProfile={SimulationDeveloperBehaviorProfile} SimulationScenarioConfigured={SimulationScenarioConfigured} SimulationScenarioEffective={SimulationScenarioEffective} SimulationFixedDelayMs={SimulationFixedDelayMs} SimulationSeed={SimulationSeed}",
+            FinanzOnlineModeResolver.ToConfigEnvironmentLabel(modeOpts.Mode),
             session.UseSimulation,
             reg.UseSimulation,
             reg.EnableRealTestSubmission,

@@ -1,8 +1,5 @@
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Services.Security;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Middleware;
@@ -97,10 +94,12 @@ public class CsrfMiddleware
 
         return path.StartsWith("/api/auth/login", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/api/auth/refresh", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/api/auth/verify-2fa", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/api/health", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/health", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/metrics", StringComparison.OrdinalIgnoreCase)
+            || path.Equals("/api/webhooks", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/api/webhooks/", StringComparison.OrdinalIgnoreCase)
             || path.Equals("/api/csrf/token", StringComparison.OrdinalIgnoreCase);
     }

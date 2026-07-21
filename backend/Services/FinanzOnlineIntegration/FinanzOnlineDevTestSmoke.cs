@@ -1,5 +1,3 @@
-using System.Linq;
-
 namespace KasseAPI_Final.Services.FinanzOnlineIntegration;
 
 /// <summary>

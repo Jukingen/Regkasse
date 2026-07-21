@@ -22,7 +22,9 @@ public sealed class RksvSpecialReceiptFinanzOnlineOutboxHandlerTests
             .UseInMemoryDatabase($"RksvFonHandler_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(
+            options,
+            TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static async Task<RksvSpecialReceiptFinanzOnlineOutboxScenario> SeedMinimalScenarioAsync(AppDbContext db)

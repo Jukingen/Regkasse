@@ -117,10 +117,22 @@ public sealed class EffectivePermissionResolverTests
 public sealed class PermissionImplicationTests
 {
     [Fact]
-    public void UserManage_Satisfies_UserCreate()
+    public void UserManage_Satisfies_UserView_ResetPassword_And_UserDelete()
     {
         var effective = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { AppPermissions.UserManage };
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.UserView, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.UserResetPassword, effective));
         Assert.True(PermissionImplication.IsSatisfied(AppPermissions.UserCreate, effective));
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.UserDelete, effective));
+    }
+
+    [Fact]
+    public void ReportExport_Satisfies_ReportView()
+    {
+        var effective = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { AppPermissions.ReportExport };
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.ReportView, effective));
+        Assert.False(PermissionImplication.IsSatisfied(AppPermissions.ReportExport,
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase) { AppPermissions.ReportView }));
     }
 
     [Fact]

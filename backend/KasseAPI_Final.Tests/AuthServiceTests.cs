@@ -21,7 +21,7 @@ public sealed class AuthServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"auth_service_{Guid.NewGuid():N}")
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static async Task SeedMembershipAsync(AppDbContext db, DateTime? validUntilUtc)

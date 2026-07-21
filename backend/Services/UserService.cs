@@ -1,7 +1,6 @@
-using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Data.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services
 {
@@ -149,7 +148,7 @@ namespace KasseAPI_Final.Services
                     _ => false
                 };
 
-                _logger.LogDebug("User {UserId} permission check: {Permission} = {HasPermission}", 
+                _logger.LogDebug("User {UserId} permission check: {Permission} = {HasPermission}",
                     userId, permission, roleHasPermission);
 
                 return roleHasPermission;

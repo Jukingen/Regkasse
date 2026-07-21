@@ -1,5 +1,4 @@
 using KasseAPI_Final.Data;
-using KasseAPI_Final.DTOs.Rksv;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Reports;
@@ -9,9 +8,7 @@ using KasseAPI_Final.Tse;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -59,7 +56,8 @@ public sealed class RksvJahresbelegDomainServiceTests
                 It.IsAny<string>(),
                 It.IsAny<DateTime>(),
                 It.IsAny<decimal>(),
-                It.IsAny<int>()))
+                It.IsAny<int>(),
+                It.IsAny<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction?>()))
             .ReturnsAsync("eyJhbGciOiJFUzI1NiJ9.eyJ.test.domain.jahr");
         return mock;
     }

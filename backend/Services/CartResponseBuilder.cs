@@ -1,7 +1,7 @@
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
-using PosCartResponse = KasseAPI_Final.Controllers.CartResponse;
 using PosCartItemResponse = KasseAPI_Final.Controllers.CartItemResponse;
+using PosCartResponse = KasseAPI_Final.Controllers.CartResponse;
 using PosCartTaxSummaryLine = KasseAPI_Final.Controllers.CartTaxSummaryLine;
 
 namespace KasseAPI_Final.Services;

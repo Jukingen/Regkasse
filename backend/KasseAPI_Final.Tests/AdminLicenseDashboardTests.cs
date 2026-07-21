@@ -6,10 +6,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
-using KasseAPI_Final.Services.Billing;
 using KasseAPI_Final.Tenancy;
-using IAdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.ITenantLicenseService;
-using IBillingTenantLicenseService = KasseAPI_Final.Services.Billing.ITenantLicenseService;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,6 +14,8 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
+using IAdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.ITenantLicenseService;
+using IBillingTenantLicenseService = KasseAPI_Final.Services.Billing.ITenantLicenseService;
 
 namespace KasseAPI_Final.Tests;
 
@@ -31,7 +30,11 @@ public sealed class AdminLicenseDashboardTests
             .UseInMemoryDatabase($"LicDash_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, NullCurrentTenantAccessor.Instance);
+        // License audit rows are stamped with LegacyDefaultTenantIds.Primary; ambient must match
+        // so fail-closed tenant filters expose them to dashboard queries.
+        return new AppDbContext(
+            options,
+            new CurrentTenantAccessor { TenantId = LegacyDefaultTenantIds.Primary });
     }
 
     private static AdminLicenseController CreateController(AppDbContext db, string actorId, string actorRole)

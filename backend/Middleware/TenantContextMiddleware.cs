@@ -1,15 +1,15 @@
-using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Hosting;
 
 namespace KasseAPI_Final.Middleware;
 
 /// <summary>
-/// After authentication, re-resolves tenant via <see cref="ITenantContextService"/> (JWT-first).
-/// Development: when <see cref="SubdomainTenantProvider.DevTenantHeaderName"/> / <c>?tenant=</c> is present,
-/// re-binds tenant from the dev override via <see cref="ITenantContextService.ApplyFromRequestAsync"/> so it wins over JWT <c>tenant_id</c>.
+/// After authentication, re-binds ambient tenant.
+/// <list type="bullet">
+/// <item><description>Development: when <see cref="SubdomainTenantProvider.DevTenantHeaderName"/> / <c>?tenant=</c> is present (and not platform <c>admin</c>), that override wins over JWT.</description></item>
+/// <item><description>Production/Staging: authenticated requests use JWT <c>tenant_id</c> only — header/query are ignored; missing/invalid claim clears ambient tenant (fail-closed).</description></item>
+/// </list>
+/// Pipeline: runs immediately after <c>UseAuthentication</c> and before license / authorization gates.
 /// </summary>
 public sealed class TenantContextMiddleware
 {
@@ -24,7 +24,6 @@ public sealed class TenantContextMiddleware
 
     public async Task InvokeAsync(
         HttpContext context,
-        ICurrentTenantAccessor tenantAccessor,
         ITenantContextService tenantContextService)
     {
         // Development: dev header/query always wins over JWT tenant_id (local mandant switching).
@@ -39,10 +38,9 @@ public sealed class TenantContextMiddleware
 
         if (context.User?.Identity?.IsAuthenticated == true)
         {
-            var resolved = await tenantContextService
-                .ResolveTenantContextAsync(context, context.RequestAborted)
+            await tenantContextService
+                .ApplyAuthenticatedTenantAsync(context, context.RequestAborted)
                 .ConfigureAwait(false);
-            tenantAccessor.TenantId = resolved.Id;
         }
 
         await _next(context).ConfigureAwait(false);
@@ -51,6 +49,7 @@ public sealed class TenantContextMiddleware
     /// <summary>
     /// True when Development mandant switching should win over JWT.
     /// Platform slug <c>admin</c> is not a mandant override (FA localhost / admin host).
+    /// Callers must also gate on Development — this helper does not check environment.
     /// </summary>
     public static bool HasDevTenantOverride(HttpContext context)
     {

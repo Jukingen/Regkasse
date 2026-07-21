@@ -24,6 +24,9 @@ public class LegacySwaggerPathExclusionsTests
     [InlineData("api/company/settings")]
     [InlineData("api/company/settings/business-hours")]
     [InlineData("api/admin/payments")]
+    [InlineData("api/admin/feedback")]
+    [InlineData("api/health")]
+    [InlineData("api/Auth/login")]
     [InlineData("api/FinanzOnline/config")]
     public void ShouldExclude_ReturnsFalse_ForCurrentPaths(string relativePath) =>
         Assert.False(LegacySwaggerPathExclusions.ShouldExclude(relativePath));

@@ -1,9 +1,5 @@
-using System.Threading;
 using KasseAPI_Final.Configuration;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Middleware;

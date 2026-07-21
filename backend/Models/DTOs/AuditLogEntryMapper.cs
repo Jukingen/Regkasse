@@ -1,5 +1,3 @@
-using KasseAPI_Final.Models;
-
 namespace KasseAPI_Final.Models.DTOs
 {
     /// <summary>Maps AuditLog entity to AuditLogEntryDto for API response. Resolves actor display name via optional dictionary.</summary>
@@ -7,7 +5,8 @@ namespace KasseAPI_Final.Models.DTOs
     {
         public static AuditLogEntryDto ToDto(AuditLog log, string? actorDisplayName = null)
         {
-            if (log == null) throw new ArgumentNullException(nameof(log));
+            if (log == null)
+                throw new ArgumentNullException(nameof(log));
             return new AuditLogEntryDto
             {
                 Id = log.Id,
@@ -56,7 +55,8 @@ namespace KasseAPI_Final.Models.DTOs
             IEnumerable<AuditLog> logs,
             IReadOnlyDictionary<string, string>? actorDisplayNames = null)
         {
-            if (logs == null) return new List<AuditLogEntryDto>();
+            if (logs == null)
+                return new List<AuditLogEntryDto>();
             return logs.Select(log => ToDto(log, actorDisplayNames?.GetValueOrDefault(log.UserId))).ToList();
         }
     }

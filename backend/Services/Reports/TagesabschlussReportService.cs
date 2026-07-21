@@ -1,12 +1,9 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Reports;
-using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.Reports;

@@ -1,6 +1,3 @@
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
-
 namespace KasseAPI_Final.Middleware;
 
 /// <summary>

@@ -1,13 +1,11 @@
+using System.ComponentModel.DataAnnotations;
+using KasseAPI_Final.Data;
+using KasseAPI_Final.Models;
+using KasseAPI_Final.Security;
+using KasseAPI_Final.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using KasseAPI_Final.Data;
-using KasseAPI_Final.Models;
-using KasseAPI_Final.Services;
-using KasseAPI_Final.Security;
-using System.Security.Claims;
-using System.ComponentModel.DataAnnotations;
-using System;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -38,17 +36,17 @@ namespace KasseAPI_Final.Controllers
             {
                 // Debug: Tüm claims'leri logla
                 _logger.LogInformation("User claims: {Claims}", string.Join(", ", User.Claims.Select(c => $"{c.Type}: {c.Value}")));
-                
+
                 var userId = User.GetActorUserId();
                 _logger.LogInformation("Extracted userId from NameIdentifier: {UserId}", userId);
-                
+
                 // Alternatif olarak user_id custom claim'den de dene
                 if (string.IsNullOrEmpty(userId))
                 {
                     userId = User.FindFirst("user_id")?.Value;
                     _logger.LogInformation("Extracted userId from user_id claim: {UserId}", userId);
                 }
-                
+
                 if (string.IsNullOrEmpty(userId))
                 {
                     _logger.LogWarning("No user ID found in claims");
@@ -135,28 +133,50 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 // Ayarları güncelle
-                if (request.Language != null) userSettings.Language = request.Language;
-                if (request.Currency != null) userSettings.Currency = request.Currency;
-                if (request.DateFormat != null) userSettings.DateFormat = request.DateFormat;
-                if (request.TimeFormat != null) userSettings.TimeFormat = request.TimeFormat;
-                if (request.DefaultTaxRate.HasValue) userSettings.DefaultTaxRate = request.DefaultTaxRate.Value;
-                if (request.EnableDiscounts.HasValue) userSettings.EnableDiscounts = request.EnableDiscounts.Value;
-                if (request.EnableCoupons.HasValue) userSettings.EnableCoupons = request.EnableCoupons.Value;
-                if (request.AutoPrintReceipts.HasValue) userSettings.AutoPrintReceipts = request.AutoPrintReceipts.Value;
-                if (request.ReceiptHeader != null) userSettings.ReceiptHeader = request.ReceiptHeader;
-                if (request.ReceiptFooter != null) userSettings.ReceiptFooter = request.ReceiptFooter;
-                if (request.FinanzOnlineEnabled.HasValue) userSettings.FinanzOnlineEnabled = request.FinanzOnlineEnabled.Value;
-                if (request.SessionTimeout.HasValue) userSettings.SessionTimeout = request.SessionTimeout.Value;
-                if (request.RequirePinForRefunds.HasValue) userSettings.RequirePinForRefunds = request.RequirePinForRefunds.Value;
-                if (request.MaxDiscountPercentage.HasValue) userSettings.MaxDiscountPercentage = request.MaxDiscountPercentage.Value;
-                if (request.Theme != null) userSettings.Theme = request.Theme;
-                if (request.CompactMode.HasValue) userSettings.CompactMode = request.CompactMode.Value;
-                if (request.ShowProductImages.HasValue) userSettings.ShowProductImages = request.ShowProductImages.Value;
-                if (request.EnableNotifications.HasValue) userSettings.EnableNotifications = request.EnableNotifications.Value;
-                if (request.LowStockAlert.HasValue) userSettings.LowStockAlert = request.LowStockAlert.Value;
-                if (request.DefaultPaymentMethod != null) userSettings.DefaultPaymentMethod = request.DefaultPaymentMethod;
-                if (request.DefaultTableNumber != null) userSettings.DefaultTableNumber = request.DefaultTableNumber;
-                if (request.DefaultWaiterName != null) userSettings.DefaultWaiterName = request.DefaultWaiterName;
+                if (request.Language != null)
+                    userSettings.Language = request.Language;
+                if (request.Currency != null)
+                    userSettings.Currency = request.Currency;
+                if (request.DateFormat != null)
+                    userSettings.DateFormat = request.DateFormat;
+                if (request.TimeFormat != null)
+                    userSettings.TimeFormat = request.TimeFormat;
+                if (request.DefaultTaxRate.HasValue)
+                    userSettings.DefaultTaxRate = request.DefaultTaxRate.Value;
+                if (request.EnableDiscounts.HasValue)
+                    userSettings.EnableDiscounts = request.EnableDiscounts.Value;
+                if (request.EnableCoupons.HasValue)
+                    userSettings.EnableCoupons = request.EnableCoupons.Value;
+                if (request.AutoPrintReceipts.HasValue)
+                    userSettings.AutoPrintReceipts = request.AutoPrintReceipts.Value;
+                if (request.ReceiptHeader != null)
+                    userSettings.ReceiptHeader = request.ReceiptHeader;
+                if (request.ReceiptFooter != null)
+                    userSettings.ReceiptFooter = request.ReceiptFooter;
+                if (request.FinanzOnlineEnabled.HasValue)
+                    userSettings.FinanzOnlineEnabled = request.FinanzOnlineEnabled.Value;
+                if (request.SessionTimeout.HasValue)
+                    userSettings.SessionTimeout = request.SessionTimeout.Value;
+                if (request.RequirePinForRefunds.HasValue)
+                    userSettings.RequirePinForRefunds = request.RequirePinForRefunds.Value;
+                if (request.MaxDiscountPercentage.HasValue)
+                    userSettings.MaxDiscountPercentage = request.MaxDiscountPercentage.Value;
+                if (request.Theme != null)
+                    userSettings.Theme = request.Theme;
+                if (request.CompactMode.HasValue)
+                    userSettings.CompactMode = request.CompactMode.Value;
+                if (request.ShowProductImages.HasValue)
+                    userSettings.ShowProductImages = request.ShowProductImages.Value;
+                if (request.EnableNotifications.HasValue)
+                    userSettings.EnableNotifications = request.EnableNotifications.Value;
+                if (request.LowStockAlert.HasValue)
+                    userSettings.LowStockAlert = request.LowStockAlert.Value;
+                if (request.DefaultPaymentMethod != null)
+                    userSettings.DefaultPaymentMethod = request.DefaultPaymentMethod;
+                if (request.DefaultTableNumber != null)
+                    userSettings.DefaultTableNumber = request.DefaultTableNumber;
+                if (request.DefaultWaiterName != null)
+                    userSettings.DefaultWaiterName = request.DefaultWaiterName;
                 // Same semantics as PUT cash-register: allow generic settings save to persist register assignment (POS / admin partial updates).
                 if (request.CashRegisterId != null)
                 {
@@ -174,7 +194,7 @@ namespace KasseAPI_Final.Controllers
                 userSettings.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
-                
+
                 _logger.LogInformation("Updated user settings for user: {UserId}", userId);
                 return Ok(userSettings);
             }
@@ -214,7 +234,7 @@ namespace KasseAPI_Final.Controllers
                 userSettings.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
-                
+
                 _logger.LogInformation("Updated language for user: {UserId} to {Language}", userId, request.Language);
                 return Ok(userSettings);
             }
@@ -263,17 +283,23 @@ namespace KasseAPI_Final.Controllers
                     var trimmed = request.CashRegisterId.Trim();
                     userSettings.CashRegisterId = string.IsNullOrEmpty(trimmed) ? null : trimmed;
                 }
-                if (request.DefaultTaxRate.HasValue) userSettings.DefaultTaxRate = request.DefaultTaxRate.Value;
-                if (request.EnableDiscounts.HasValue) userSettings.EnableDiscounts = request.EnableDiscounts.Value;
-                if (request.EnableCoupons.HasValue) userSettings.EnableCoupons = request.EnableCoupons.Value;
-                if (request.AutoPrintReceipts.HasValue) userSettings.AutoPrintReceipts = request.AutoPrintReceipts.Value;
-                if (request.ReceiptHeader != null) userSettings.ReceiptHeader = request.ReceiptHeader;
-                if (request.ReceiptFooter != null) userSettings.ReceiptFooter = request.ReceiptFooter;
+                if (request.DefaultTaxRate.HasValue)
+                    userSettings.DefaultTaxRate = request.DefaultTaxRate.Value;
+                if (request.EnableDiscounts.HasValue)
+                    userSettings.EnableDiscounts = request.EnableDiscounts.Value;
+                if (request.EnableCoupons.HasValue)
+                    userSettings.EnableCoupons = request.EnableCoupons.Value;
+                if (request.AutoPrintReceipts.HasValue)
+                    userSettings.AutoPrintReceipts = request.AutoPrintReceipts.Value;
+                if (request.ReceiptHeader != null)
+                    userSettings.ReceiptHeader = request.ReceiptHeader;
+                if (request.ReceiptFooter != null)
+                    userSettings.ReceiptFooter = request.ReceiptFooter;
 
                 userSettings.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
-                
+
                 _logger.LogInformation("Updated cash register config for user: {UserId}", userId);
                 return Ok(userSettings);
             }
@@ -310,14 +336,17 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 // TSE ayarlarını güncelle
-                if (request.TseDeviceId != null) userSettings.TseDeviceId = request.TseDeviceId;
-                if (request.FinanzOnlineEnabled.HasValue) userSettings.FinanzOnlineEnabled = request.FinanzOnlineEnabled.Value;
-                if (request.FinanzOnlineUsername != null) userSettings.FinanzOnlineUsername = request.FinanzOnlineUsername;
+                if (request.TseDeviceId != null)
+                    userSettings.TseDeviceId = request.TseDeviceId;
+                if (request.FinanzOnlineEnabled.HasValue)
+                    userSettings.FinanzOnlineEnabled = request.FinanzOnlineEnabled.Value;
+                if (request.FinanzOnlineUsername != null)
+                    userSettings.FinanzOnlineUsername = request.FinanzOnlineUsername;
 
                 userSettings.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
-                
+
                 _logger.LogInformation("Updated TSE settings for user: {UserId}", userId);
                 return Ok(userSettings);
             }
@@ -354,14 +383,17 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 // Güvenlik ayarlarını güncelle
-                if (request.SessionTimeout.HasValue) userSettings.SessionTimeout = request.SessionTimeout.Value;
-                if (request.RequirePinForRefunds.HasValue) userSettings.RequirePinForRefunds = request.RequirePinForRefunds.Value;
-                if (request.MaxDiscountPercentage.HasValue) userSettings.MaxDiscountPercentage = request.MaxDiscountPercentage.Value;
+                if (request.SessionTimeout.HasValue)
+                    userSettings.SessionTimeout = request.SessionTimeout.Value;
+                if (request.RequirePinForRefunds.HasValue)
+                    userSettings.RequirePinForRefunds = request.RequirePinForRefunds.Value;
+                if (request.MaxDiscountPercentage.HasValue)
+                    userSettings.MaxDiscountPercentage = request.MaxDiscountPercentage.Value;
 
                 userSettings.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
-                
+
                 _logger.LogInformation("Updated security settings for user: {UserId}", userId);
                 return Ok(userSettings);
             }
@@ -419,7 +451,7 @@ namespace KasseAPI_Final.Controllers
                 userSettings.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
-                
+
                 _logger.LogInformation("Reset user settings for user: {UserId}", userId);
                 return Ok(userSettings);
             }

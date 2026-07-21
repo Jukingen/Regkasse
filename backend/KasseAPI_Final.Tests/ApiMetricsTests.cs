@@ -1,6 +1,5 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Middleware;
-using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Metrics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;

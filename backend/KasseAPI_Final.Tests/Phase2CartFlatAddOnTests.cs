@@ -88,7 +88,7 @@ public class Phase2CartFlatAddOnTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: $"CartFlatAddOn_{Guid.NewGuid()}")
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     /// <summary>Add-item with IsSellableAddOn product creates one CartItem and zero CartItemModifiers.</summary>

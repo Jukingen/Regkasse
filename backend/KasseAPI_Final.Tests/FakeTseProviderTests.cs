@@ -46,7 +46,7 @@ public sealed class FakeTseProviderTests
     [Fact]
     public void BuildDeterministicPseudoJws_ChangesWithPrevSignature()
     {
-        var keyProvider = new SoftwareTseKeyProvider();
+        _ = new SoftwareTseKeyProvider();
         var p1 = BelegdatenPayloadBuilder.Build(
             "K1", "Y", new DateTime(2025, 1, 1, 22, 59, 59, DateTimeKind.Utc),
             new RksvTaxSetAmounts { Normal = 1.00m }, 100, null, "SIM", DevAesKey);

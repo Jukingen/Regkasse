@@ -1,4 +1,3 @@
-using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -6,29 +5,22 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace KasseAPI_Final.Migrations
 {
     /// <inheritdoc />
+    /// <remarks>
+    /// Duplicate of <c>tenant_notification_configs</c> created in <c>20260527212105_AddOperationalReportSchedules</c>.
+    /// Kept as a no-op for greenfield + already-applied history compatibility.
+    /// </remarks>
     public partial class AddTenantNotificationConfigs : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "tenant_notification_configs",
-                columns: table => new
-                {
-                    tenant_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    config = table.Column<string>(type: "jsonb", nullable: false),
-                    updated_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_tenant_notification_configs", x => x.tenant_id);
-                });
+            // No-op: table created earlier in AddOperationalReportSchedules.
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(name: "tenant_notification_configs");
+            // No-op: drop ownership remains on AddOperationalReportSchedules.Down.
         }
     }
 }

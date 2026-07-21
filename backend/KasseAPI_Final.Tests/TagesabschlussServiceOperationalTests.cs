@@ -218,7 +218,8 @@ public sealed class TagesabschlussServiceOperationalTests
                 It.IsAny<string>(),
                 It.IsAny<DateTime>(),
                 It.IsAny<decimal>(),
-                It.IsAny<int>()))
+                It.IsAny<int>(),
+                It.IsAny<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction?>()))
             .ReturnsAsync("dev-daily-closing-jws");
 
         var devMode = Mock.Of<IDevelopmentModeService>(d => d.ShouldBypassTseCheck() == true);
@@ -480,7 +481,8 @@ public sealed class TagesabschlussServiceOperationalTests
                 It.IsAny<string>(),
                 It.IsAny<DateTime>(),
                 It.IsAny<decimal>(),
-                It.IsAny<int>()))
+                It.IsAny<int>(),
+                It.IsAny<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction?>()))
             .ReturnsAsync("backdated-daily-closing-jws");
 
         var sut = new TagesabschlussService(

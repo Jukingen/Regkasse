@@ -8,9 +8,6 @@ using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using KasseAPI_Final.Tse;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services;
@@ -163,7 +160,12 @@ public sealed class MonatsbelegClosingService : IMonatsbelegClosingService
             _configuration,
             rksvEnvironment: _rksvEnvironment);
 
+        await using var fiscalTx = await _context.Database.BeginTransactionAsync(cancellationToken);
         string tseSignature;
+        DateTime signedAtUtc;
+        string? thumbprint;
+        DailyClosing dailyClosing;
+        Monatsbeleg monatsbeleg;
         try
         {
             tseSignature = await _tseService.CreateMonthlyClosingSignatureAsync(
@@ -171,80 +173,81 @@ public sealed class MonatsbelegClosingService : IMonatsbelegClosingService
                 register.RegisterNumber,
                 targetMonthLocal,
                 summary.TotalGross,
-                summary.TransactionCount);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Monatsbeleg TSE signing failed for register {RegisterId} {Year}-{Month}",
-                request.CashRegisterId, year, month);
-            return Fail(ex.Message);
-        }
+                summary.TransactionCount,
+                fiscalTx);
 
-        var signedAtUtc = DateTime.UtcNow;
-        var thumbprint = _tseKeyProvider.GetCurrentCertificateThumbprint();
+            signedAtUtc = DateTime.UtcNow;
+            thumbprint = _tseKeyProvider.GetCurrentCertificateThumbprint();
 
-        var dailyClosing = new DailyClosing
-        {
-            Id = Guid.NewGuid(),
-            CashRegisterId = request.CashRegisterId,
-            UserId = actorUserId,
-            ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(targetMonthLocal),
-            ClosingType = "Monthly",
-            TotalAmount = summary.TotalGross,
-            TotalTaxAmount = summary.TotalTax,
-            TransactionCount = summary.TransactionCount,
-            TseSignature = tseSignature,
-            CertificateThumbprint = thumbprint,
-            Status = "Completed",
-            CreatedAt = signedAtUtc,
-        };
+            dailyClosing = new DailyClosing
+            {
+                Id = Guid.NewGuid(),
+                CashRegisterId = request.CashRegisterId,
+                UserId = actorUserId,
+                ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(targetMonthLocal),
+                ClosingType = "Monthly",
+                TotalAmount = summary.TotalGross,
+                TotalTaxAmount = summary.TotalTax,
+                TransactionCount = summary.TransactionCount,
+                TseSignature = tseSignature,
+                CertificateThumbprint = thumbprint,
+                Status = "Completed",
+                CreatedAt = signedAtUtc,
+            };
 
-        await DailyClosingOperationalResolver.StampOperationalFieldsAsync(
-            _context,
-            dailyClosing,
-            request.CashRegisterId,
-            actorUserId,
-            cancellationToken: cancellationToken);
+            await DailyClosingOperationalResolver.StampOperationalFieldsAsync(
+                _context,
+                dailyClosing,
+                request.CashRegisterId,
+                actorUserId,
+                cancellationToken: cancellationToken);
 
-        var monatsbeleg = new Monatsbeleg
-        {
-            CashRegisterId = request.CashRegisterId,
-            Year = year,
-            Month = month,
-            TotalCash = summary.TotalCash,
-            TotalCard = summary.TotalCard,
-            TotalVoucher = summary.TotalVoucher,
-            TotalOther = summary.TotalOther,
-            TotalGross = summary.TotalGross,
-            TotalTax = summary.TotalTax,
-            TaxRate20 = summary.TaxRate20,
-            TaxRate10 = summary.TaxRate10,
-            TaxRate0 = summary.TaxRate0,
-            TransactionCount = summary.TransactionCount,
-            DailyClosingCount = summary.DailyClosingCount,
-            TseSignature = tseSignature,
-            TseSignatureTimestamp = signedAtUtc.ToString("O"),
-            TseCertificateThumbprint = thumbprint,
-            PreviousSignature = previousSignature,
-            SignatureChainLength = chainLength,
-            IsSimulated = fiscalEnvironment.IsDemoFiscal,
-            Environment = fiscalEnvironment.EnvironmentName,
-            CreatedByUserId = actorUserId,
-            CreatedAtUtc = signedAtUtc,
-            UpdatedAtUtc = signedAtUtc,
-            DailyClosingId = dailyClosing.Id,
-        };
+            monatsbeleg = new Monatsbeleg
+            {
+                CashRegisterId = request.CashRegisterId,
+                Year = year,
+                Month = month,
+                TotalCash = summary.TotalCash,
+                TotalCard = summary.TotalCard,
+                TotalVoucher = summary.TotalVoucher,
+                TotalOther = summary.TotalOther,
+                TotalGross = summary.TotalGross,
+                TotalTax = summary.TotalTax,
+                TaxRate20 = summary.TaxRate20,
+                TaxRate10 = summary.TaxRate10,
+                TaxRate0 = summary.TaxRate0,
+                TransactionCount = summary.TransactionCount,
+                DailyClosingCount = summary.DailyClosingCount,
+                TseSignature = tseSignature,
+                TseSignatureTimestamp = signedAtUtc.ToString("O"),
+                TseCertificateThumbprint = thumbprint,
+                PreviousSignature = previousSignature,
+                SignatureChainLength = chainLength,
+                IsSimulated = fiscalEnvironment.IsDemoFiscal,
+                Environment = fiscalEnvironment.EnvironmentName,
+                CreatedByUserId = actorUserId,
+                CreatedAtUtc = signedAtUtc,
+                UpdatedAtUtc = signedAtUtc,
+                DailyClosingId = dailyClosing.Id,
+            };
 
-        _context.DailyClosings.Add(dailyClosing);
-        _context.Set<Monatsbeleg>().Add(monatsbeleg);
+            _context.DailyClosings.Add(dailyClosing);
+            _context.Set<Monatsbeleg>().Add(monatsbeleg);
 
-        try
-        {
             await _context.SaveChangesAsync(cancellationToken);
+            await fiscalTx.CommitAsync(cancellationToken);
         }
         catch (DbUpdateException ex) when (IsDuplicateClosing(ex))
         {
+            await fiscalTx.RollbackAsync(cancellationToken);
             return Fail($"Monthly closing already exists for {year}-{month:00}");
+        }
+        catch (Exception ex)
+        {
+            await fiscalTx.RollbackAsync(cancellationToken);
+            _logger.LogError(ex, "Monatsbeleg TSE signing failed for register {RegisterId} {Year}-{Month}",
+                request.CashRegisterId, year, month);
+            return Fail(ex.Message);
         }
 
         var report = await _reportService.ComposeReportDtoAsync(

@@ -22,7 +22,7 @@ public sealed class BackupPhase1OrchestrationTests
             .UseInMemoryDatabase($"backup_phase1_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static IOptionsMonitor<BackupOptions> OptionsMonitor(BackupOptions value)
@@ -230,7 +230,7 @@ public sealed class BackupPhase1OrchestrationTests
     public async Task Fake_adapter_and_verifier_success_path()
     {
         var checksum = new BackupChecksumService();
-        var adapter = new FakeBackupExecutionAdapter(OptionsMonitor(new BackupOptions()), checksum);
+        var adapter = new FakeBackupExecutionAdapter(OptionsMonitor(new BackupOptions()), checksum, new BackupEncryptionService(OptionsMonitor(new BackupOptions()), Microsoft.Extensions.Logging.Abstractions.NullLogger<BackupEncryptionService>.Instance));
         var ctx = new BackupExecutionContext(Guid.NewGuid(), "c", adapter.AdapterKind, default);
         var exec = await adapter.ExecuteAsync(ctx);
         Assert.True(exec.Success);
@@ -268,7 +268,7 @@ public sealed class BackupPhase1OrchestrationTests
     public async Task Verifier_fails_when_forced_by_options()
     {
         var checksum = new BackupChecksumService();
-        var adapter = new FakeBackupExecutionAdapter(OptionsMonitor(new BackupOptions()), checksum);
+        var adapter = new FakeBackupExecutionAdapter(OptionsMonitor(new BackupOptions()), checksum, new BackupEncryptionService(OptionsMonitor(new BackupOptions()), Microsoft.Extensions.Logging.Abstractions.NullLogger<BackupEncryptionService>.Instance));
         var ctx = new BackupExecutionContext(Guid.NewGuid(), "c", adapter.AdapterKind, default);
         var exec = await adapter.ExecuteAsync(ctx);
 

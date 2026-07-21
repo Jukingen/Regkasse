@@ -58,7 +58,8 @@ public static class PermissionCatalogMetadata
     /// </summary>
     public static string GetGroupKey(string groupDisplayName)
     {
-        if (string.IsNullOrWhiteSpace(groupDisplayName)) return "other";
+        if (string.IsNullOrWhiteSpace(groupDisplayName))
+            return "other";
         var s = groupDisplayName.Trim()
             .Replace(" & ", "_", StringComparison.Ordinal)
             .Replace(" ", "_", StringComparison.Ordinal);
@@ -84,7 +85,8 @@ public static class PermissionCatalogMetadata
     /// </summary>
     public static string GetGroupKeyForPermission(string permissionKey)
     {
-        if (string.IsNullOrWhiteSpace(permissionKey)) return "other";
+        if (string.IsNullOrWhiteSpace(permissionKey))
+            return "other";
         return PermissionKeyToGroupKey.Value.TryGetValue(permissionKey, out var key) ? key : "other";
     }
 
@@ -109,9 +111,11 @@ public static class PermissionCatalogMetadata
 
     private static (string resource, string action) ParseKey(string key)
     {
-        if (string.IsNullOrEmpty(key)) return ("", "");
+        if (string.IsNullOrEmpty(key))
+            return ("", "");
         var i = key.IndexOf('.');
-        if (i <= 0) return (key, "");
+        if (i <= 0)
+            return (key, "");
         return (key[..i], key[(i + 1)..]);
     }
 
@@ -162,7 +166,8 @@ public static class PermissionCatalogMetadata
     /// </summary>
     public static bool IsValidPermissionKey(string key)
     {
-        if (string.IsNullOrWhiteSpace(key)) return false;
+        if (string.IsNullOrWhiteSpace(key))
+            return false;
         return PermissionCatalog.All.Contains(key, StringComparer.OrdinalIgnoreCase);
     }
 }

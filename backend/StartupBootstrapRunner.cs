@@ -1,21 +1,15 @@
-using System;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final
 {
     /// <summary>
     /// Orchestrates all startup bootstrap responsibilities: database migration,
     /// pending migration gate, role/user seeding, demo data, product seed, guest customer seed,
-        /// and (Development only) default cash registers for active tenants that do not yet have one.
+    /// and (Development only) default cash registers for active tenants that do not yet have one.
     /// </summary>
     public static class StartupBootstrapRunner
     {

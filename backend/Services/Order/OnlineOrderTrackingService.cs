@@ -1,6 +1,5 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
-using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 

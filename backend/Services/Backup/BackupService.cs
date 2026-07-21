@@ -171,8 +171,7 @@ public sealed class BackupService : IBackupService
                 };
             }
 
-            query = query.Where(r =>
-                r.Strategy == BackupStrategyKind.Tenant && r.TenantId == tid);
+            query = BackupRunAccessEvaluator.ApplyTenantScopeFilter(query, tid);
         }
 
         var total = await query.CountAsync(ct);

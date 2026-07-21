@@ -1,29 +1,31 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using KasseAPI_Final.Authorization;
-using Microsoft.EntityFrameworkCore;
-using KasseAPI_Final.Data;
-using KasseAPI_Final.Models;
-using KasseAPI_Final.Services;
-using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text;
-using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Controllers.Base;
-using KasseAPI_Final.Tse;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Security;
+using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Rksv;
+using KasseAPI_Final.Tse;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace KasseAPI_Final.Controllers
 {
     /// <summary>
-    /// Ödeme işlemleri için controller - Service layer kullanarak.
-    /// Legacy: api/Payment/* mirrors this controller; preferred client path is api/pos/payment/*.
-    /// Mobile POS uses api/pos/payment (see frontend paymentService). Admin may still call legacy paths via explicit wrappers.
+    /// POS payment handlers. Canonical route: <c>api/pos/payment/*</c>.
+    /// Legacy alias <c>api/Payment/*</c> is the same actions (not a separate implementation) and emits
+    /// deprecation headers via <see cref="LegacyRouteDeprecationFilter"/>.
+    /// Do not add new features for the legacy alias only — extend the shared actions (served as <c>/api/pos/payment</c>)
+    /// or add admin-only APIs under <c>/api/admin/*</c>. Sunset for legacy alias: 2026-09-30.
     /// </summary>
+    [Obsolete(
+        "Legacy HTTP alias /api/Payment/* is deprecated; clients must call /api/pos/payment/*. " +
+        "This type still hosts the canonical /api/pos/payment routes (dual [Route]). " +
+        "Do not add new endpoints that exist only on the legacy prefix. Sunset: 2026-09-30.",
+        error: false)]
     [Route("api/[controller]")]
     [Route("api/pos/payment")]
     [ApiController]
@@ -47,7 +49,7 @@ namespace KasseAPI_Final.Controllers
             SignaturePipeline signaturePipeline,
             IAuthorizationService authorizationService,
             IRksvEnvironmentService rksvEnvironment,
-            ILogger<PaymentController> logger) 
+            ILogger<PaymentController> logger)
             : base(logger)
         {
             _paymentService = paymentService;
@@ -327,7 +329,7 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var payment = await _paymentService.GetPaymentAsync(id);
-                
+
                 if (payment == null)
                 {
                     return ErrorResponse($"Payment with ID {id} not found", 404);
@@ -351,9 +353,9 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var (validPageNumber, validPageSize) = ValidatePagination(pageNumber, pageSize);
-                
+
                 var payments = await _paymentService.GetCustomerPaymentsAsync(customerId, validPageNumber, validPageSize);
-                
+
                 var response = new
                 {
                     items = payments,
@@ -383,9 +385,9 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var (validPageNumber, validPageSize) = ValidatePagination(pageNumber, pageSize);
-                
+
                 var payments = await _paymentService.GetPaymentsByMethodAsync(paymentMethod, validPageNumber, validPageSize);
-                
+
                 var response = new
                 {
                     items = payments,
@@ -411,9 +413,9 @@ namespace KasseAPI_Final.Controllers
         [HttpGet("date-range")]
         [HasPermission(AppPermissions.PaymentView)]
         public async Task<IActionResult> GetPaymentsByDateRange(
-            [FromQuery] DateTime startDate, 
+            [FromQuery] DateTime startDate,
             [FromQuery] DateTime endDate,
-            [FromQuery] int pageNumber = 1, 
+            [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 20)
         {
             try
@@ -424,9 +426,9 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 var (validPageNumber, validPageSize) = ValidatePagination(pageNumber, pageSize);
-                
+
                 var payments = await _paymentService.GetPaymentsByDateRangeAsync(startDate, endDate, validPageNumber, validPageSize);
-                
+
                 var response = new
                 {
                     items = payments,
@@ -476,7 +478,7 @@ namespace KasseAPI_Final.Controllers
                     request.IdempotencyKey?.Trim(),
                     request.ReasonCode,
                     request.ApprovalToken?.Trim());
-                
+
                 if (result.Success)
                 {
                     return SuccessResponse(result, "Payment cancelled successfully");
@@ -521,7 +523,7 @@ namespace KasseAPI_Final.Controllers
                     request.IdempotencyKey?.Trim(),
                     request.ReasonCode,
                     request.ApprovalToken?.Trim());
-                
+
                 if (result.Success)
                 {
                     return SuccessResponse(result, "Refund processed successfully");
@@ -543,7 +545,7 @@ namespace KasseAPI_Final.Controllers
         [HttpGet("statistics")]
         [HasPermission(AppPermissions.PaymentView)]
         public async Task<IActionResult> GetPaymentStatistics(
-            [FromQuery] string? startDate, 
+            [FromQuery] string? startDate,
             [FromQuery] string? endDate)
         {
             try
@@ -595,7 +597,7 @@ namespace KasseAPI_Final.Controllers
 
                 // Date-only and ISO inputs: PaymentService maps calendar Y/M/D to Austria inclusive day range (UTC half-open).
                 var statistics = await _paymentService.GetPaymentStatisticsAsync(parsedStart, parsedEnd);
-                
+
                 return SuccessResponse(statistics, $"Retrieved payment statistics from {parsedStart:yyyy-MM-dd HH:mm} to {parsedEnd:yyyy-MM-dd HH:mm}");
             }
             catch (Exception ex)
@@ -694,7 +696,7 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 var signature = await _paymentService.GenerateTseSignatureAsync(payment);
-                
+
                 return SuccessResponse(new { tseSignature = signature }, "TSE signature generated successfully");
             }
             catch (Exception ex)
@@ -757,10 +759,12 @@ namespace KasseAPI_Final.Controllers
         /// </summary>
         private static object? SanitizePaymentForResponse(Models.PaymentDetails? payment)
         {
-            if (payment == null) return null;
+            if (payment == null)
+                return null;
             var json = JsonSerializer.Serialize(payment, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
             var node = JsonNode.Parse(json);
-            if (node is JsonObject obj) obj.Remove("tseSignature");
+            if (node is JsonObject obj)
+                obj.Remove("tseSignature");
             return node;
         }
 
@@ -813,8 +817,8 @@ namespace KasseAPI_Final.Controllers
         }
     }
 
-        /// <summary>
-        /// Manuel JWS doğrulama request.
+    /// <summary>
+    /// Manuel JWS doğrulama request.
     /// Swagger örnek: { "compactJws": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJrYXNzZW5JZCI6IktBU1NFLTAwMSJ9.signature..." }
     /// </summary>
     public class VerifySignatureRequest

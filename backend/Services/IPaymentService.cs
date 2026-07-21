@@ -1,5 +1,5 @@
-using KasseAPI_Final.Models;
 using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 
 namespace KasseAPI_Final.Services
@@ -17,27 +17,27 @@ namespace KasseAPI_Final.Services
             string userId,
             Guid? offlineTransactionId = null,
             Guid? offlineReplayBatchCorrelationId = null);
-        
+
         /// <summary>
         /// Ödeme detaylarını getir
         /// </summary>
         Task<PaymentDetails?> GetPaymentAsync(Guid paymentId);
-        
+
         /// <summary>
         /// Müşteri ödemelerini getir
         /// </summary>
         Task<IEnumerable<PaymentDetails>> GetCustomerPaymentsAsync(Guid customerId, int pageNumber = 1, int pageSize = 20);
-        
+
         /// <summary>
         /// Ödeme yöntemine göre ödemeleri getir
         /// </summary>
         Task<IEnumerable<PaymentDetails>> GetPaymentsByMethodAsync(string paymentMethod, int pageNumber = 1, int pageSize = 20);
-        
+
         /// <summary>
         /// Tarih aralığına göre ödemeleri getir
         /// </summary>
         Task<IEnumerable<PaymentDetails>> GetPaymentsByDateRangeAsync(DateTime startDate, DateTime endDate, int pageNumber = 1, int pageSize = 20);
-        
+
         /// <summary>
         /// Ödeme iptal et. Sprint 6: optional idempotencyKey for retry-safe cancel.
         /// </summary>
@@ -48,7 +48,7 @@ namespace KasseAPI_Final.Services
             string? idempotencyKey = null,
             CancellationReasonCode reasonCode = CancellationReasonCode.Other,
             string? approvalToken = null);
-        
+
         /// <summary>
         /// Ödeme iade et. Sprint 6: optional idempotencyKey — retries with same key return existing refund (no duplicate BelegNr/stock).
         /// </summary>
@@ -60,12 +60,12 @@ namespace KasseAPI_Final.Services
             string? idempotencyKey = null,
             RefundReasonCode reasonCode = RefundReasonCode.Other,
             string? approvalToken = null);
-        
+
         /// <summary>
         /// Ödeme istatistiklerini getir
         /// </summary>
         Task<PaymentStatistics> GetPaymentStatisticsAsync(DateTime startDate, DateTime endDate);
-        
+
         /// <summary>
         /// Get formatted receipt data for payment. When userId is provided, audit is written for ReceiptGenerated or ReceiptReprinted.
         /// Backoffice-Nachdruck: Vorschau ohne Audit über Receipts-API; Bestätigung nur über <see cref="ConfirmReceiptReprintAsync"/>.
@@ -76,12 +76,12 @@ namespace KasseAPI_Final.Services
         /// Bestätigter Nachdruck (Backoffice): validiert Begründung, schreibt eine Audit-Zeile (ReceiptReprintConfirmed / ReceiptReprintRejected), kein TSE-Recreate.
         /// </summary>
         Task<ReceiptReprintOperationResult> ConfirmReceiptReprintAsync(Guid paymentId, ReceiptReprintRequest? request, string userId, CancellationToken cancellationToken = default);
-        
+
         /// <summary>
         /// TSE imzası oluştur
         /// </summary>
         Task<string> GenerateTseSignatureAsync(PaymentDetails payment);
-        
+
         /// <summary>
         /// FinanzOnline entegrasyonu
         /// </summary>

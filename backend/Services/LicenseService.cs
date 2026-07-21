@@ -1,12 +1,10 @@
 using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
-using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
-using KasseAPI_Final;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
@@ -15,8 +13,6 @@ using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -1476,60 +1472,60 @@ public sealed class LicenseService : ILicenseService
 
         await WithDbContextAsync(async (db, ct) =>
         {
-        var customerName = await db.IssuedLicenses.AsNoTracking()
-            .Where(il => EF.Functions.ILike(il.LicenseKey, normalizedKeyUpper))
-            .OrderByDescending(il => il.IssuedAtUtc)
-            .Select(il => il.CustomerName)
-            .FirstOrDefaultAsync(ct)
-            .ConfigureAwait(false);
+            var customerName = await db.IssuedLicenses.AsNoTracking()
+                .Where(il => EF.Functions.ILike(il.LicenseKey, normalizedKeyUpper))
+                .OrderByDescending(il => il.IssuedAtUtc)
+                .Select(il => il.CustomerName)
+                .FirstOrDefaultAsync(ct)
+                .ConfigureAwait(false);
 
-        string? displayCustomer = string.IsNullOrWhiteSpace(customerName) ? null : customerName.Trim();
+            string? displayCustomer = string.IsNullOrWhiteSpace(customerName) ? null : customerName.Trim();
 
-        var stale = await db.ActivatedLicenses
-            .Where(a => a.MachineFingerprint == machine && a.IsActive)
-            .Where(a => !EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper))
-            .ToListAsync(ct)
-            .ConfigureAwait(false);
+            var stale = await db.ActivatedLicenses
+                .Where(a => a.MachineFingerprint == machine && a.IsActive)
+                .Where(a => !EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper))
+                .ToListAsync(ct)
+                .ConfigureAwait(false);
 
-        foreach (var row in stale)
-            row.IsActive = false;
+            foreach (var row in stale)
+                row.IsActive = false;
 
-        var existing = await db.ActivatedLicenses
-            .Where(a => a.MachineFingerprint == machine && EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper))
-            .FirstOrDefaultAsync(ct)
-            .ConfigureAwait(false);
+            var existing = await db.ActivatedLicenses
+                .Where(a => a.MachineFingerprint == machine && EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper))
+                .FirstOrDefaultAsync(ct)
+                .ConfigureAwait(false);
 
-        var now = DateTime.UtcNow;
-        if (existing is null)
-        {
-            db.ActivatedLicenses.Add(new ActivatedLicense
+            var now = DateTime.UtcNow;
+            if (existing is null)
             {
-                Id = Guid.NewGuid(),
-                LicenseKey = normalizedKeyUpper,
-                CustomerName = displayCustomer,
-                ValidUntilUtc = validUntil,
-                MachineFingerprint = machine,
-                ActivatedAtUtc = now,
-                LastSeenAtUtc = now,
-                FeaturesJson = featuresJson,
-                IsActive = true,
-                CreatedByUserId = clientInfo?.InitiatingUserId,
-            });
-        }
-        else
-        {
-            existing.ValidUntilUtc = validUntil;
-            existing.ActivatedAtUtc = now;
-            existing.LastSeenAtUtc = now;
-            existing.FeaturesJson = featuresJson;
-            existing.IsActive = true;
-            if (!string.IsNullOrWhiteSpace(customerName))
-                existing.CustomerName = displayCustomer;
-            if (existing.CreatedByUserId is null && clientInfo?.InitiatingUserId is { } uid)
-                existing.CreatedByUserId = uid;
-        }
+                db.ActivatedLicenses.Add(new ActivatedLicense
+                {
+                    Id = Guid.NewGuid(),
+                    LicenseKey = normalizedKeyUpper,
+                    CustomerName = displayCustomer,
+                    ValidUntilUtc = validUntil,
+                    MachineFingerprint = machine,
+                    ActivatedAtUtc = now,
+                    LastSeenAtUtc = now,
+                    FeaturesJson = featuresJson,
+                    IsActive = true,
+                    CreatedByUserId = clientInfo?.InitiatingUserId,
+                });
+            }
+            else
+            {
+                existing.ValidUntilUtc = validUntil;
+                existing.ActivatedAtUtc = now;
+                existing.LastSeenAtUtc = now;
+                existing.FeaturesJson = featuresJson;
+                existing.IsActive = true;
+                if (!string.IsNullOrWhiteSpace(customerName))
+                    existing.CustomerName = displayCustomer;
+                if (existing.CreatedByUserId is null && clientInfo?.InitiatingUserId is { } uid)
+                    existing.CreatedByUserId = uid;
+            }
 
-        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
         }, cancellationToken).ConfigureAwait(false);
     }
 
@@ -1884,8 +1880,12 @@ public sealed class LicenseService : ILicenseService
         var s = segment.Replace("-", "+", StringComparison.Ordinal).Replace("_", "/", StringComparison.Ordinal);
         switch (s.Length % 4)
         {
-            case 2: s += "=="; break;
-            case 3: s += "="; break;
+            case 2:
+                s += "==";
+                break;
+            case 3:
+                s += "=";
+                break;
         }
 
         return Convert.FromBase64String(s);

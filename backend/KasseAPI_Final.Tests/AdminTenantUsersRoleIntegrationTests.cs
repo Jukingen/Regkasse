@@ -3,14 +3,11 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using KasseAPI_Final.Authorization;
-using KasseAPI_Final.Data;
-using KasseAPI_Final.Models;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
 
+[Collection("OpenApiExportWebHost")]
 public sealed class AdminTenantUsersRoleIntegrationTests : IClassFixture<AdminUsersCrossTenantWebApplicationFactory>
 {
     private readonly AdminUsersCrossTenantWebApplicationFactory _factory;

@@ -1,8 +1,6 @@
 using System.Text.Json;
-using KasseAPI_Final;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Models.Export;
 using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -253,7 +251,10 @@ public sealed class DepExportSchedulerHostedService : BackgroundService
                 using var scope = _scopeFactory.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 var scheduler = scope.ServiceProvider.GetRequiredService<IDepExportScheduler>();
+                // Cross-tenant due discovery: ambient tenant is unset. Keep IgnoreQueryFilters if schedules
+                // ever become ITenantEntity (fail-closed filter would otherwise return no rows).
                 var dueTenantIds = await db.DepExportSchedules
+                    .IgnoreQueryFilters()
                     .Where(s => s.IsActive && s.NextRunAt != null && s.NextRunAt <= DateTime.UtcNow)
                     .Select(s => s.TenantId)
                     .Distinct()

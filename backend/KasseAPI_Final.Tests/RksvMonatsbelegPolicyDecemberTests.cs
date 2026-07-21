@@ -16,7 +16,7 @@ public class RksvMonatsbelegPolicyDecemberTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"MonPolDec_{Guid.NewGuid():N}")
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static async Task<Guid> SeedRegisterAsync(AppDbContext ctx)

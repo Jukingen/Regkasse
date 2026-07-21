@@ -1,7 +1,4 @@
-using System.Linq;
 using KasseAPI_Final.Services.Rksv;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Services.Tse;
 

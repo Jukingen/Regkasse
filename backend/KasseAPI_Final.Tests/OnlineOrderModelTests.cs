@@ -1,5 +1,6 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
@@ -14,7 +15,7 @@ public sealed class OnlineOrderModelTests
             .UseInMemoryDatabase(nameof(OnlineOrder_persists_items_and_modifiers_with_cascade) + Guid.NewGuid())
             .Options;
 
-        await using var db = new AppDbContext(options);
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
         var tenantId = Guid.NewGuid();
         db.Tenants.Add(new Tenant
         {

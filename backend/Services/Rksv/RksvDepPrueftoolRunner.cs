@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Text.Json;
-using Microsoft.Extensions.Hosting;
 
 namespace KasseAPI_Final.Services.Rksv;
 

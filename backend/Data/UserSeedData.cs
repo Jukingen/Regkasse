@@ -1,10 +1,8 @@
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Data
 {
@@ -108,7 +106,7 @@ namespace KasseAPI_Final.Data
                 catch (DbUpdateException ex)
                 {
                     Console.WriteLine($"Admin user seed skipped (database conflict): {ex.InnerException?.Message ?? ex.Message}");
-                    adminUser = await userManager.FindByEmailAsync("admin@admin.com");
+                    _ = await userManager.FindByEmailAsync("admin@admin.com");
                 }
             }
             else

@@ -2,11 +2,8 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Models;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;

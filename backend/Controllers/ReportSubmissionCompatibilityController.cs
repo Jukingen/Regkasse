@@ -38,7 +38,8 @@ public class ReportSubmissionCompatibilityController : ControllerBase
         if (string.Equals(reportType, "tagesbericht", StringComparison.OrdinalIgnoreCase))
         {
             var row = await _db.Set<TagesberichtReport>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == reportId, cancellationToken);
-            if (row == null) return NotFound();
+            if (row == null)
+                return NotFound();
             req = new BuildReportSubmissionEnvelopeRequest
             {
                 ReportType = "Tagesbericht",
@@ -52,7 +53,8 @@ public class ReportSubmissionCompatibilityController : ControllerBase
         else if (string.Equals(reportType, "monatsbericht", StringComparison.OrdinalIgnoreCase))
         {
             var row = await _db.Set<MonatsberichtReport>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == reportId, cancellationToken);
-            if (row == null) return NotFound();
+            if (row == null)
+                return NotFound();
             req = new BuildReportSubmissionEnvelopeRequest
             {
                 ReportType = "Monatsbericht",
@@ -66,7 +68,8 @@ public class ReportSubmissionCompatibilityController : ControllerBase
         else if (string.Equals(reportType, "jahresbericht", StringComparison.OrdinalIgnoreCase))
         {
             var row = await _db.Set<JahresberichtReport>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == reportId, cancellationToken);
-            if (row == null) return NotFound();
+            if (row == null)
+                return NotFound();
             req = new BuildReportSubmissionEnvelopeRequest
             {
                 ReportType = "Jahresbericht",

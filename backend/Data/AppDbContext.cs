@@ -1,13 +1,6 @@
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.Json;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.RestoreVerification;
@@ -15,6 +8,11 @@ using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace KasseAPI_Final.Data
 {
@@ -149,7 +147,7 @@ namespace KasseAPI_Final.Data
 
         /// <summary>Append-only ledger for voucher balance changes.</summary>
         public DbSet<VoucherLedgerEntry> VoucherLedgerEntries { get; set; }
-        
+
         // Masa siparişleri için yeni tablolar
         public DbSet<TableOrder> TableOrders { get; set; }
         public DbSet<TableOrderItem> TableOrderItems { get; set; }
@@ -251,7 +249,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.Notes).HasMaxLength(500);
                 entity.Property(e => e.DeactivatedBy).HasMaxLength(450);
                 entity.Property(e => e.DeactivationReason).HasMaxLength(500);
-                
+
                 entity.HasIndex(e => e.EmployeeNumber).IsUnique();
                 entity.HasIndex(e => e.TaxNumber)
                     .IsUnique()
@@ -414,7 +412,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.UpdatedBy).HasMaxLength(100);
                 entity.Property(e => e.IsActive).IsRequired();
                 entity.Property(e => e.IsSellableAddOn).HasColumnName("is_sellable_addon").HasDefaultValue(false);
-                
+
                 // Indexes
                 entity.HasIndex(e => e.Name);
                 entity.HasIndex(e => e.Category);
@@ -427,7 +425,7 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => new { e.TenantId, e.Barcode })
                     .IsUnique()
                     .HasFilter("barcode IS NOT NULL AND barcode <> ''");
-                
+
                 // Composite FK: product category must belong to the same tenant
                 entity.HasOne(p => p.CategoryNavigation)
                       .WithMany(c => c.Products)
@@ -438,9 +436,9 @@ namespace KasseAPI_Final.Data
 
                 // Enables composite FKs from modifier join tables (id + tenant must match parent rows).
                 entity.HasAlternateKey(e => new { e.Id, e.TenantId });
-                
+
                 // Constraints
-                entity.ToTable("products", t => 
+                entity.ToTable("products", t =>
                 {
                     t.HasCheckConstraint("CK_products_price_positive", "price >= 0");
                     t.HasCheckConstraint("CK_products_stock_quantity_non_negative", "stock_quantity >= 0");
@@ -482,7 +480,7 @@ namespace KasseAPI_Final.Data
                     .HasFilter("tax_number <> ''");
                 entity.HasIndex(e => e.TenantId);
                 entity.HasIndex(e => e.ApplicationUserId);
-                
+
                 entity.HasOne(c => c.ApplicationUser)
                     .WithMany()
                     .HasForeignKey(c => c.ApplicationUserId)
@@ -612,8 +610,13 @@ namespace KasseAPI_Final.Data
                     .HasConversion(
                         v => v.RootElement.GetRawText(),
                         v => string.IsNullOrEmpty(v) ? JsonDocument.Parse("{}") : JsonDocument.Parse(v));
-                
-                entity.HasIndex(e => e.InvoiceNumber).IsUnique();
+
+                // B-tree uniqueness and GIN trigram search must be separate indexes.
+                // Calling HasIndex(InvoiceNumber) twice without distinct database names merges into one
+                // UNIQUE GIN index, which PostgreSQL rejects (blocks greenfield / squashed baseline apply).
+                entity.HasIndex(e => e.InvoiceNumber)
+                    .IsUnique()
+                    .HasDatabaseName("ix_invoices_invoice_number");
                 // entity.HasIndex(e => e.InvoiceDate); // Covered by composite index
                 // entity.HasIndex(e => e.Status); // Covered by composite index
                 // Dropped IX_invoices_TseSignature: B-tree cannot index full JWS strings (>2704 bytes per row in PostgreSQL).
@@ -628,10 +631,19 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => new { e.IsActive, e.InvoiceDate }).IsDescending(false, true);
                 entity.HasIndex(e => new { e.Status, e.InvoiceDate }).IsDescending(false, true);
 
-                // GIN Indexes for ILIKE search
-                entity.HasIndex(e => e.InvoiceNumber).HasMethod("GIN").HasOperators("gin_trgm_ops");
-                entity.HasIndex(e => e.CustomerName).HasMethod("GIN").HasOperators("gin_trgm_ops");
-                entity.HasIndex(e => e.CompanyName).HasMethod("GIN").HasOperators("gin_trgm_ops");
+                // GIN Indexes for ILIKE search (requires pg_trgm)
+                entity.HasIndex(e => e.InvoiceNumber)
+                    .HasMethod("GIN")
+                    .HasOperators("gin_trgm_ops")
+                    .HasDatabaseName("ix_invoices_invoice_number_trgm");
+                entity.HasIndex(e => e.CustomerName)
+                    .HasMethod("GIN")
+                    .HasOperators("gin_trgm_ops")
+                    .HasDatabaseName("ix_invoices_customer_name_trgm");
+                entity.HasIndex(e => e.CompanyName)
+                    .HasMethod("GIN")
+                    .HasOperators("gin_trgm_ops")
+                    .HasDatabaseName("ix_invoices_company_name_trgm");
 
                 // Partial unique index: one Invoice per source payment (nulls allowed for manual invoices)
                 entity.HasIndex(e => e.SourcePaymentId)
@@ -876,17 +888,17 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.CustomerName).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TaxAmount).HasColumnType("decimal(18,2)");
-                
+
                 // Map PaymentMethodRaw to DB varchar column "PaymentMethod"
                 entity.Property(e => e.PaymentMethodRaw)
                     .IsRequired()
                     .HasMaxLength(50)
                     .HasColumnName("PaymentMethod")
                     .HasColumnType("character varying");
-                
+
                 // Ignore the NotMapped enum helper property
                 entity.Ignore(e => e.PaymentMethod);
-                
+
                 entity.Property(e => e.Notes).HasColumnType("text");
                 entity.Property(e => e.ReceiptNumber).IsRequired().HasColumnType("text");
                 entity.Property(e => e.CancellationReason).HasColumnType("text");
@@ -918,7 +930,7 @@ namespace KasseAPI_Final.Data
                     .HasConversion(
                         v => v == null ? (string?)null : v.RootElement.GetRawText(),
                         v => string.IsNullOrEmpty(v) ? null : JsonDocument.Parse(v));
-                
+
                 entity.HasIndex(e => e.CustomerId);
                 entity.HasIndex(e => e.PaymentMethodRaw); // Index on raw property
                 entity.HasIndex(e => e.CreatedAt);
@@ -927,7 +939,7 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.IdempotencyKey).IsUnique().HasFilter("\"idempotency_key\" IS NOT NULL");
                 entity.Property(e => e.CancelIdempotencyKey).HasMaxLength(64);
                 entity.HasIndex(e => e.CancelIdempotencyKey).IsUnique().HasFilter("\"cancel_idempotency_key\" IS NOT NULL");
-                
+
                 // Strengthen data integrity for POS/receipt numbering.
                 // Unique over real receipt numbers only (ignore empty/draft values).
                 entity.HasIndex(e => e.ReceiptNumber)
@@ -1150,7 +1162,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.UnitCost).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.LastRestocked);
                 entity.Property(e => e.Notes).HasMaxLength(500);
-                
+
                 entity.HasIndex(e => e.ProductId).IsUnique();
                 entity.HasIndex(e => e.CurrentStock);
                 entity.HasIndex(e => e.MinStockLevel);
@@ -1167,7 +1179,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.TotalCost).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.Notes).HasMaxLength(500);
                 entity.Property(e => e.TransactionDate).IsRequired();
-                
+
                 entity.HasIndex(e => e.InventoryId);
                 entity.HasIndex(e => e.TransactionType);
                 entity.HasIndex(e => e.TransactionDate);
@@ -1818,7 +1830,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.OnlineCheckoutPaymentMethods)
                     .HasColumnName("online_checkout_payment_methods")
                     .HasMaxLength(100);
-                
+
                 entity.HasIndex(e => new { e.TenantId, e.CompanyTaxNumber }).IsUnique();
             });
 
@@ -1957,7 +1969,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.InvoiceNumbering).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.ReceiptNumbering).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.DefaultPaymentMethod).IsRequired().HasMaxLength(50);
-                
+
                 entity.HasIndex(e => new { e.TenantId, e.CompanyTaxNumber }).IsUnique();
                 entity.HasIndex(e => new { e.TenantId, e.CompanyRegistrationNumber }).IsUnique();
                 entity.HasIndex(e => new { e.TenantId, e.CompanyVatNumber }).IsUnique();
@@ -2010,7 +2022,7 @@ namespace KasseAPI_Final.Data
                     .HasConversion(
                         v => JsonSerializer.Serialize(v),
                         v => string.IsNullOrEmpty(v) ? new Dictionary<string, string>() : JsonSerializer.Deserialize<Dictionary<string, string>>(v)!);
-                
+
                 entity.HasIndex(e => e.DefaultLanguage);
                 entity.HasIndex(e => e.DefaultCurrency);
             });
@@ -2036,7 +2048,7 @@ namespace KasseAPI_Final.Data
                         v => v == null ? "{}" : JsonSerializer.Serialize(v),
                         v => string.IsNullOrEmpty(v) ? null : JsonSerializer.Deserialize<Dictionary<string, string>>(v));
                 entity.Property(e => e.IsDefault).IsRequired();
-                
+
                 entity.HasIndex(e => e.Language);
                 entity.HasIndex(e => e.TemplateType);
                 entity.HasIndex(e => e.TemplateName);
@@ -2075,11 +2087,11 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.DefaultWaiterName).HasMaxLength(100);
                 entity.Property(e => e.CreatedAt).IsRequired();
                 entity.Property(e => e.UpdatedAt).IsRequired();
-                
+
                 entity.HasIndex(e => e.UserId).IsUnique();
                 entity.HasIndex(e => e.Language);
                 entity.HasIndex(e => e.Currency);
-                
+
                 // Foreign key relationship
                 entity.HasOne(e => e.User)
                       .WithMany()
@@ -2172,12 +2184,12 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.TemplateType).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.GeneratedContent).IsRequired().HasColumnType("text");
                 entity.Property(e => e.GeneratedAt).IsRequired();
-                
+
                 entity.HasIndex(e => e.TemplateId);
                 entity.HasIndex(e => e.Language);
                 entity.HasIndex(e => e.TemplateType);
                 entity.HasIndex(e => e.GeneratedAt);
-                
+
                 // Foreign key relationship
                 entity.HasOne(e => e.Template)
                       .WithMany()
@@ -2629,13 +2641,13 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.Notes).HasMaxLength(500);
                 entity.Property(e => e.ExpiresAt).IsRequired();
                 entity.Property(e => e.Status).IsRequired();
-                
+
                 // Foreign key relationships - Model'de ForeignKey attribute kullanıldığı için sadece User konfigürasyonu
                 entity.HasOne(e => e.User)
                     .WithMany()
                     .HasForeignKey(e => e.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
-                
+
                 // Customer navigation property model'de ForeignKey attribute ile konfigüre edildi
                 // Bu şekilde shadow property oluşmaz
             });
@@ -2732,7 +2744,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.SpecialNotes).HasMaxLength(500);
                 entity.Property(e => e.ProductCategory).HasMaxLength(100);
-                
+
                 // Add mapping to prevent shadow OrderId1 property
                 entity.HasOne(e => e.Order)
                       .WithMany(o => o.Items)
@@ -2788,7 +2800,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.TaxType).IsRequired();
                 entity.Property(e => e.TaxRate).HasColumnType("decimal(5,2)");
                 entity.Property(e => e.Status).IsRequired();
-                
+
                 // Foreign key ilişkisi - TableOrderId string olarak tanımlanmış
                 entity.HasOne(e => e.TableOrder)
                       .WithMany(o => o.Items)
@@ -2815,20 +2827,20 @@ namespace KasseAPI_Final.Data
             // Receipt configuration
             builder.Entity<Receipt>(entity =>
             {
-               entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
-               entity.HasOne(e => e.Tenant)
-                   .WithMany()
-                   .HasForeignKey(e => e.TenantId)
-                   .OnDelete(DeleteBehavior.Restrict);
-               entity.HasIndex(e => e.TenantId);
-               entity.HasIndex(e => e.ReceiptNumber).IsUnique();
-               entity.HasIndex(e => e.PaymentId);
-               entity.Property(e => e.ReceiptNumber).IsRequired().HasColumnType("text");
-               entity.Property(e => e.JwsHeader).HasColumnType("text");
-               entity.Property(e => e.JwsPayload).HasColumnType("text");
-               entity.Property(e => e.JwsSignature).HasColumnType("text");
-               entity.Property(e => e.SignatureValue).HasColumnType("text");
-               entity.Property(e => e.PrevSignatureValue).HasColumnType("text");
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.TenantId);
+                entity.HasIndex(e => e.ReceiptNumber).IsUnique();
+                entity.HasIndex(e => e.PaymentId);
+                entity.Property(e => e.ReceiptNumber).IsRequired().HasColumnType("text");
+                entity.Property(e => e.JwsHeader).HasColumnType("text");
+                entity.Property(e => e.JwsPayload).HasColumnType("text");
+                entity.Property(e => e.JwsSignature).HasColumnType("text");
+                entity.Property(e => e.SignatureValue).HasColumnType("text");
+                entity.Property(e => e.PrevSignatureValue).HasColumnType("text");
             });
 
             // Receipt sequence: one row per (CashRegisterId, date).
@@ -3251,9 +3263,16 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.InvoiceId);
             });
 
+            // Defensive: every ITenantEntity must have TenantId as PK or as the leading column of an index.
+            // Explicit HasIndex calls above already cover current entities; this catches regressions.
+            EnsureTenantIdIndexesForITenantEntities(builder);
+
             // Global query filter: fail-closed — no ambient tenant means no tenant-scoped rows (never expose all tenants).
             // Customer is excluded here and gets a dedicated filter below that also passes system rows (walk-in guest)
             // so the single shared guest customer stays resolvable under every tenant (POS payments, RKSV special receipts).
+            //
+            // Do not implement ITenantEntity on cross-tenant scheduler tables (e.g. AuditReportSchedule,
+            // DepExportSchedule) without updating hosted services to IgnoreQueryFilters() when discovering due work.
             foreach (var entityType in builder.Model.GetEntityTypes()
                 .Where(t => t.ClrType?.GetInterface(nameof(ITenantEntity)) != null
                     && t.ClrType != typeof(Customer)))
@@ -3272,6 +3291,38 @@ namespace KasseAPI_Final.Data
                 c.IsSystem || (_tenantAccessor.TenantId != null && c.TenantId == _tenantAccessor.TenantId));
 
             _logger.LogDebug("AppDbContext model configuration completed with TableOrder support");
+        }
+
+        /// <summary>
+        /// Ensures each <see cref="ITenantEntity"/> has an index that starts with <c>TenantId</c>
+        /// (or a TenantId-only primary key). Does not add a redundant standalone index when a composite
+        /// already leads with TenantId.
+        /// </summary>
+        private static void EnsureTenantIdIndexesForITenantEntities(ModelBuilder builder)
+        {
+            foreach (var entityType in builder.Model.GetEntityTypes())
+            {
+                var clr = entityType.ClrType;
+                if (clr is null || clr.GetInterface(nameof(ITenantEntity)) is null)
+                    continue;
+
+                var tenantProp = entityType.FindProperty(nameof(ITenantEntity.TenantId));
+                if (tenantProp is null)
+                    continue;
+
+                var pk = entityType.FindPrimaryKey();
+                if (pk is not null
+                    && pk.Properties.Count == 1
+                    && pk.Properties[0] == tenantProp)
+                    continue;
+
+                var hasLeadingTenantIndex = entityType.GetIndexes()
+                    .Any(ix => ix.Properties.Count > 0 && ix.Properties[0] == tenantProp);
+                if (hasLeadingTenantIndex)
+                    continue;
+
+                builder.Entity(clr).HasIndex(nameof(ITenantEntity.TenantId));
+            }
         }
 
         private Expression<Func<TEntity, bool>> CreateTenantQueryFilter<TEntity>()

@@ -26,7 +26,7 @@ public sealed class AdminBackupTriggerTenantScopingTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static IOptionsMonitor<T> OptionsMonitor<T>(T value) where T : class

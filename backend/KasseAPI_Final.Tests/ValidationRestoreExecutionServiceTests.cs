@@ -50,7 +50,7 @@ public sealed class ValidationRestoreExecutionServiceTests
 
         var config = new ConfigurationBuilder().Build();
         var hostEnv = new Mock<IHostEnvironment>();
-        hostEnv.Setup(h => h.IsProduction()).Returns(false);
+        hostEnv.Setup(h => h.EnvironmentName).Returns(Environments.Development);
         hostEnv.Setup(h => h.ContentRootPath).Returns(Directory.GetCurrentDirectory());
 
         var backupOpts = Options.Create(new BackupOptions());

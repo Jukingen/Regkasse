@@ -1,32 +1,28 @@
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
-using KasseAPI_Final.Auth;
-using KasseAPI_Final.Configuration;
-using KasseAPI_Final.Data;
-using KasseAPI_Final.Models;
-using KasseAPI_Final.Models.DTOs;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.Extensions.Logging;
+using KasseAPI_Final.Auth;
+using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Data;
+using KasseAPI_Final.Helpers;
+using KasseAPI_Final.Localization;
+using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
+using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Auth;
 using KasseAPI_Final.Services.Email;
+using KasseAPI_Final.Services.Localization;
 using KasseAPI_Final.Services.Token;
 using KasseAPI_Final.Services.TwoFactor;
-using KasseAPI_Final.Authorization;
-using KasseAPI_Final.Helpers;
-using KasseAPI_Final.Localization;
-using KasseAPI_Final.Security;
-using KasseAPI_Final.Services.Localization;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -244,6 +240,9 @@ namespace KasseAPI_Final.Controllers
         }
 
         [HttpPost("login")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Login(LoginModel model)
         {
             string? loginIdentifier = null;
@@ -308,21 +307,21 @@ namespace KasseAPI_Final.Controllers
                 if (user == null)
                 {
                     _accountLockoutService.RecordFailedAttempt(loginIdentifier);
-                    return InvalidLoginCredentials(
+                    return await InvalidLoginCredentialsAsync(
                         "User not found",
                         loginMasked: MaskLoginIdentifier(loginIdentifier));
                 }
 
                 if (!user.IsActive)
                 {
-                    return InvalidLoginCredentials("Inactive user", userId: user.Id);
+                    return await InvalidLoginCredentialsAsync("Inactive user", userId: user.Id);
                 }
 
                 var passwordValid = await _userManager.CheckPasswordAsync(user, model.Password);
                 if (!passwordValid)
                 {
                     _accountLockoutService.RecordFailedAttempt(loginIdentifier);
-                    return InvalidLoginCredentials("Invalid password", userId: user.Id);
+                    return await InvalidLoginCredentialsAsync("Invalid password", userId: user.Id);
                 }
 
                 _accountLockoutService.ResetAttempts(loginIdentifier);
@@ -412,6 +411,9 @@ namespace KasseAPI_Final.Controllers
         /// </summary>
         [AllowAnonymous]
         [HttpPost("verify-2fa")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> VerifyTwoFactor([FromBody] VerifyTwoFactorModel? model)
         {
             if (model is null
@@ -643,6 +645,15 @@ namespace KasseAPI_Final.Controllers
                 "Login successful for user: {LoginMasked}, clientApp: {ClientApp}",
                 MaskLoginIdentifier(loginIdentifier),
                 resolvedClientApp ?? "legacy");
+
+            await TryLogLoginAuditAsync(
+                AuditEventType.LoginSuccess,
+                user.Id,
+                canonicalRole,
+                sessionTenantKey,
+                description: $"Login success (clientApp={resolvedClientApp ?? "legacy"})",
+                status: AuditLogStatus.Success).ConfigureAwait(false);
+
             return Ok(response);
         }
 
@@ -734,9 +745,9 @@ namespace KasseAPI_Final.Controllers
                 var userId = User.GetActorUserId()
                     ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                     ?? "Unknown";
-                _logger.LogError(ex, "Logout error for user: {UserId}. Exception: {ExceptionType}, Message: {ExceptionMessage}", 
+                _logger.LogError(ex, "Logout error for user: {UserId}. Exception: {ExceptionType}, Message: {ExceptionMessage}",
                     userId, ex.GetType().Name, ex.Message);
-                
+
                 return StatusCode(500, new { message = "Logout failed due to a server error." });
             }
         }
@@ -744,6 +755,8 @@ namespace KasseAPI_Final.Controllers
         /// <summary>GET /me — returns current user; 401 if token missing/invalid or no user id claims.</summary>
         [Authorize]
         [HttpGet("me")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetCurrentUser()
         {
             try
@@ -834,9 +847,9 @@ namespace KasseAPI_Final.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "GetCurrentUser error. Exception: {ExceptionType}, Message: {ExceptionMessage}", 
+                _logger.LogError(ex, "GetCurrentUser error. Exception: {ExceptionType}, Message: {ExceptionMessage}",
                     ex.GetType().Name, ex.Message);
-                
+
                 return StatusCode(500, new { message = "Error retrieving user information" });
             }
         }
@@ -910,9 +923,9 @@ namespace KasseAPI_Final.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Refresh token error. Exception: {ExceptionType}, Message: {ExceptionMessage}", 
+                _logger.LogError(ex, "Refresh token error. Exception: {ExceptionType}, Message: {ExceptionMessage}",
                     ex.GetType().Name, ex.Message);
-                
+
                 return StatusCode(500, new { message = "Error during token refresh" });
             }
         }
@@ -986,7 +999,7 @@ namespace KasseAPI_Final.Controllers
                     EmployeeNumber = model.EmployeeNumber ?? string.Empty,
                     IsActive = true
                 };
-                
+
                 await using var tx = await _context.Database.BeginTransactionAsync(regCt);
                 try
                 {
@@ -1096,6 +1109,37 @@ namespace KasseAPI_Final.Controllers
             _tokenBlacklistService.BlacklistToken(token, expiry);
         }
 
+        private async Task TryLogLoginAuditAsync(
+            AuditEventType actionType,
+            string actorUserId,
+            string actorRole,
+            Guid? tenantId,
+            string description,
+            AuditLogStatus status,
+            string? reason = null)
+        {
+            try
+            {
+                await _auditLogService.LogUserLifecycleAsync(
+                    actionType,
+                    actorUserId,
+                    actorRole,
+                    actorUserId,
+                    tenantId,
+                    reason: reason,
+                    description: description,
+                    status: status).ConfigureAwait(false);
+            }
+            catch (Exception auditEx)
+            {
+                _logger.LogWarning(
+                    auditEx,
+                    "Failed to write login audit {ActionType} for user {UserId}",
+                    actionType,
+                    actorUserId);
+            }
+        }
+
         private async Task TryLogLogoutAuditAsync(string userId, string reason)
         {
             try
@@ -1174,7 +1218,10 @@ namespace KasseAPI_Final.Controllers
             string.Equals(error.Code, "DuplicateEmail", StringComparison.Ordinal)
             || string.Equals(error.Code, "DuplicateUserName", StringComparison.Ordinal);
 
-        private IActionResult InvalidLoginCredentials(string logReason, string? loginMasked = null, string? userId = null)
+        private async Task<IActionResult> InvalidLoginCredentialsAsync(
+            string logReason,
+            string? loginMasked = null,
+            string? userId = null)
         {
             if (!string.IsNullOrEmpty(userId))
             {
@@ -1187,6 +1234,15 @@ namespace KasseAPI_Final.Controllers
                     logReason,
                     loginMasked ?? "unknown");
             }
+
+            await TryLogLoginAuditAsync(
+                AuditEventType.LoginFailed,
+                actorUserId: string.IsNullOrEmpty(userId) ? "anonymous" : userId,
+                actorRole: Roles.FallbackUnknown,
+                tenantId: null,
+                description: $"Login failed ({logReason})",
+                status: AuditLogStatus.Failed,
+                reason: logReason).ConfigureAwait(false);
 
             return Unauthorized(new ApiErrorResponse
             {

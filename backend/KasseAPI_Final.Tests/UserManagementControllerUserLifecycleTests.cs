@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Security.Claims;
 using System.Text.Json;
 using KasseAPI_Final.Authorization;
@@ -12,6 +11,7 @@ using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +19,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Tests;
 
@@ -33,7 +32,7 @@ public class UserManagementControllerUserLifecycleTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: $"UserMgmt_{Guid.NewGuid()}")
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static (UserManager<ApplicationUser> UserManager, RoleManager<IdentityRole> RoleManager) CreateMockUserAndRoleManagers(
@@ -772,7 +771,10 @@ public class UserManagementControllerUserLifecycleTests
 
         var result = await controller.UpdateUser("u1", new UpdateUserRequest
         {
-            FirstName = "A", LastName = "B", EmployeeNumber = "EN-001", Role = "SuperAdmin"
+            FirstName = "A",
+            LastName = "B",
+            EmployeeNumber = "EN-001",
+            Role = "SuperAdmin"
         });
 
         var ok = Assert.IsAssignableFrom<ObjectResult>(result);
@@ -789,7 +791,10 @@ public class UserManagementControllerUserLifecycleTests
 
         var result = await controller.UpdateUser("u1", new UpdateUserRequest
         {
-            FirstName = "A", LastName = "B", EmployeeNumber = "EN-999", Role = "SuperAdmin"
+            FirstName = "A",
+            LastName = "B",
+            EmployeeNumber = "EN-999",
+            Role = "SuperAdmin"
         });
 
         var ok = Assert.IsAssignableFrom<ObjectResult>(result);
@@ -807,7 +812,10 @@ public class UserManagementControllerUserLifecycleTests
 
         var result = await controller.UpdateUser("u1", new UpdateUserRequest
         {
-            FirstName = "A", LastName = "B", EmployeeNumber = "EN-002", Role = "SuperAdmin"
+            FirstName = "A",
+            LastName = "B",
+            EmployeeNumber = "EN-002",
+            Role = "SuperAdmin"
         });
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
@@ -852,7 +860,11 @@ public class UserManagementControllerUserLifecycleTests
 
         var result = await controller.UpdateUser("u1", new UpdateUserRequest
         {
-            FirstName = "A", LastName = "B", Email = "same@test.com", EmployeeNumber = "E1", Role = "SuperAdmin"
+            FirstName = "A",
+            LastName = "B",
+            Email = "same@test.com",
+            EmployeeNumber = "E1",
+            Role = "SuperAdmin"
         });
 
         var ok = Assert.IsAssignableFrom<ObjectResult>(result);
@@ -869,7 +881,11 @@ public class UserManagementControllerUserLifecycleTests
 
         var result = await controller.UpdateUser("u1", new UpdateUserRequest
         {
-            FirstName = "A", LastName = "B", Email = "newunique@test.com", EmployeeNumber = "E1", Role = "SuperAdmin"
+            FirstName = "A",
+            LastName = "B",
+            Email = "newunique@test.com",
+            EmployeeNumber = "E1",
+            Role = "SuperAdmin"
         });
 
         var ok = Assert.IsAssignableFrom<ObjectResult>(result);
@@ -887,7 +903,11 @@ public class UserManagementControllerUserLifecycleTests
 
         var result = await controller.UpdateUser("u1", new UpdateUserRequest
         {
-            FirstName = "A", LastName = "B", Email = "two@test.com", EmployeeNumber = "E1", Role = "SuperAdmin"
+            FirstName = "A",
+            LastName = "B",
+            Email = "two@test.com",
+            EmployeeNumber = "E1",
+            Role = "SuperAdmin"
         });
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
@@ -1251,7 +1271,7 @@ public class UserManagementControllerUserLifecycleTests
             .UseInMemoryDatabase(databaseName: dbName)
             .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        var context = new AppDbContext(options);
+        var context = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
         foreach (var u in users)
         {
             EnsureNormalizedFields(u);

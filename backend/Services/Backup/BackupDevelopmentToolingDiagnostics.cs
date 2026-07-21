@@ -1,8 +1,5 @@
 using System.Diagnostics;
-using System.Linq;
 using KasseAPI_Final.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Services.Backup;
 

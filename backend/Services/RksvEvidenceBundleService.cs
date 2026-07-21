@@ -5,7 +5,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
-using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services;
@@ -493,7 +492,8 @@ public sealed class RksvEvidenceBundleService : IRksvEvidenceBundleService
 
     private static string Csv(string? value)
     {
-        if (string.IsNullOrEmpty(value)) return "\"\"";
+        if (string.IsNullOrEmpty(value))
+            return "\"\"";
         var v = value.Replace("\"", "\"\"", StringComparison.Ordinal);
         return $"\"{v}\"";
     }

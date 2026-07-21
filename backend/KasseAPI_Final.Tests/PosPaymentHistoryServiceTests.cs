@@ -56,24 +56,24 @@ public sealed class PosPaymentHistoryServiceTests
         DateTime createdAt,
         string receiptNumber,
         decimal amount = 10m) => new()
-    {
-        Id = id,
-        CustomerId = Guid.NewGuid(),
-        CustomerName = "Guest",
-        TableNumber = 5,
-        CashierId = CashierId,
-        TotalAmount = amount,
-        TaxAmount = 1m,
-        PaymentMethodRaw = ((int)PaymentMethod.Cash).ToString(),
-        Steuernummer = "ATU12345678",
-        TseSignature = "sig",
-        TseTimestamp = createdAt,
-        CashRegisterId = registerId,
-        ReceiptNumber = receiptNumber,
-        CreatedAt = createdAt,
-        UpdatedAt = createdAt,
-        IsActive = true,
-    };
+        {
+            Id = id,
+            CustomerId = Guid.NewGuid(),
+            CustomerName = "Guest",
+            TableNumber = 5,
+            CashierId = CashierId,
+            TotalAmount = amount,
+            TaxAmount = 1m,
+            PaymentMethodRaw = ((int)PaymentMethod.Cash).ToString(),
+            Steuernummer = "ATU12345678",
+            TseSignature = "sig",
+            TseTimestamp = createdAt,
+            CashRegisterId = registerId,
+            ReceiptNumber = receiptNumber,
+            CreatedAt = createdAt,
+            UpdatedAt = createdAt,
+            IsActive = true,
+        };
 
     [Fact]
     public async Task GetRecentPayments_NoRegister_ReturnsError()
@@ -138,7 +138,7 @@ public sealed class PosPaymentHistoryServiceTests
     [Fact]
     public async Task GetRecentPayments_ResolvesRegisterFromActiveShift()
     {
-        var (ctx, factory) = CreateContextWithFactory();
+        var (ctx, _) = CreateContextWithFactory();
         await using (ctx)
         {
             var registerId = Guid.NewGuid();

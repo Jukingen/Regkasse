@@ -57,9 +57,12 @@ internal sealed class FiscalExportAuditLogReader : IFiscalExportAuditLogReader
         int pageSize,
         CancellationToken cancellationToken = default)
     {
-        if (page < 1) page = 1;
-        if (pageSize < 1) pageSize = 25;
-        if (pageSize > 100) pageSize = 100;
+        if (page < 1)
+            page = 1;
+        if (pageSize < 1)
+            pageSize = 25;
+        if (pageSize > 100)
+            pageSize = 100;
 
         exportType = string.IsNullOrWhiteSpace(exportType)
             ? FiscalExportAuditExportTypeFilter.All
@@ -99,8 +102,10 @@ internal sealed class FiscalExportAuditLogReader : IFiscalExportAuditLogReader
         int maxRows,
         CancellationToken cancellationToken = default)
     {
-        if (maxRows < 1) maxRows = 1;
-        if (maxRows > 50_000) maxRows = 50_000;
+        if (maxRows < 1)
+            maxRows = 1;
+        if (maxRows > 50_000)
+            maxRows = 50_000;
 
         exportType = string.IsNullOrWhiteSpace(exportType)
             ? FiscalExportAuditExportTypeFilter.All
@@ -141,7 +146,8 @@ internal sealed class FiscalExportAuditLogReader : IFiscalExportAuditLogReader
             .Where(a => a.Id == id && a.EntityType == AuditLogEntityTypes.FISCAL_EXPORT)
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
-        if (row == null) return null;
+        if (row == null)
+            return null;
 
         var map = await ResolveUsernamesAsync(new[] { row }, cancellationToken).ConfigureAwait(false);
         var detail = MapDetail(row, map);
@@ -427,8 +433,10 @@ internal static class FiscalExportAuditParse
 
     private static DateTime? ReadDateUtc(JsonElement e)
     {
-        if (e.ValueKind == JsonValueKind.Null) return null;
-        if (e.ValueKind != JsonValueKind.String) return null;
+        if (e.ValueKind == JsonValueKind.Null)
+            return null;
+        if (e.ValueKind != JsonValueKind.String)
+            return null;
         var s = e.GetString();
         return string.IsNullOrWhiteSpace(s) ? null : DateTime.Parse(s!, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
     }
@@ -451,7 +459,8 @@ internal static class FiscalExportAuditParse
 
     public static bool IsLongRangeBulk(DateTime? fromUtc, DateTime? toUtc)
     {
-        if (!fromUtc.HasValue || !toUtc.HasValue) return false;
+        if (!fromUtc.HasValue || !toUtc.HasValue)
+            return false;
         var span = toUtc.Value - fromUtc.Value;
         return span.TotalDays > 365;
     }

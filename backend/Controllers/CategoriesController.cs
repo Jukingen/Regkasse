@@ -1,24 +1,14 @@
-using Microsoft.AspNetCore.Mvc;
-
-using Microsoft.EntityFrameworkCore;
-
-using KasseAPI_Final.Authorization;
-
-using KasseAPI_Final.Data;
-
-using KasseAPI_Final.DTOs;
-
-using KasseAPI_Final.Models;
-
-using KasseAPI_Final.Services;
-
-using KasseAPI_Final.Tenancy;
-
 using System.ComponentModel.DataAnnotations;
-
 using System.Security.Claims;
-
 using System.Text.Json.Serialization;
+using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 
 
@@ -782,11 +772,11 @@ namespace KasseAPI_Final.Controllers
 
         private IQueryable<CategoryDto> QueryCategoryDtos(Guid tenantId) =>
 
-            from c in _context.Categories.AsNoTracking()
+            from c in _context.Categories.IgnoreQueryFilters().AsNoTracking()
 
             where c.TenantId == tenantId && c.IsActive
 
-            let productCount = _context.Products.Count(p =>
+            let productCount = _context.Products.IgnoreQueryFilters().Count(p =>
 
                 p.TenantId == tenantId && p.IsActive && p.CategoryId == c.Id)
 

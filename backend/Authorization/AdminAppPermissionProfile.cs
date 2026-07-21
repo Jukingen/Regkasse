@@ -74,14 +74,15 @@ public static class AdminAppPermissionProfile
         RolePermissionMatrix.GetPermissionsForRole(Roles.Cashier);
 
     /// <summary>
-    /// Manager admin oversight reads that must survive <see cref="Filter"/> when present in the role matrix.
+    /// Manager admin oversight reads that must remain <em>effectively</em> available after <see cref="Filter"/>
+    /// (direct JWT claim or via <see cref="PermissionImplication"/>).
     /// Used by contract tests; not an allowlist (Manager keeps all non-stripped matrix permissions).
     /// </summary>
     public static readonly IReadOnlyList<string> ManagerOversightViewPermissions =
     [
         AppPermissions.UserView,
         AppPermissions.UserManage,
-        AppPermissions.UserResetPassword,
+        AppPermissions.UserResetPassword, // implied by UserManage when not embedded
         AppPermissions.RoleView,
         AppPermissions.PaymentView,
         AppPermissions.SaleView,
@@ -89,13 +90,14 @@ public static class AdminAppPermissionProfile
         AppPermissions.ReportExport,
         AppPermissions.AuditView,
         AppPermissions.SettingsView,
-        AppPermissions.CashRegisterView,
+        AppPermissions.CashRegisterView, // implied by CashRegisterManage when not embedded
         AppPermissions.FinanzOnlineView,
         AppPermissions.FinanzOnlineManage,
     ];
 
     /// <summary>
-    /// Manager FA Kassenverwaltung keys that must survive <see cref="Filter"/> (blacklist does not strip them).
+    /// Manager FA Kassenverwaltung keys that must remain effectively available after <see cref="Filter"/>.
+    /// <see cref="AppPermissions.CashRegisterView"/> may be implied by manage/decommission.
     /// Contract-tested; mirror in <c>frontend-admin</c> <c>MANAGER_ADMIN_PERMISSIONS</c>.
     /// </summary>
     public static readonly IReadOnlyList<string> ManagerCashRegisterAdminPermissions =

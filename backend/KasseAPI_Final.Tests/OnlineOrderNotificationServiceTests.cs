@@ -1,10 +1,7 @@
-using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Services.Order;
-using KasseAPI_Final.Tenancy;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;

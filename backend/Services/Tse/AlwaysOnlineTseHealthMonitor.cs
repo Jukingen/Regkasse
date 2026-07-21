@@ -1,4 +1,3 @@
-using System;
 using KasseAPI_Final.Models;
 
 namespace KasseAPI_Final.Services.Tse;

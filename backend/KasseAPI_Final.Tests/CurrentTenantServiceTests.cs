@@ -21,7 +21,7 @@ public sealed class CurrentTenantServiceTests
             .UseInMemoryDatabase($"CurrentTenant_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static (CurrentTenantService Service, CurrentTenantAccessor Accessor, DefaultHttpContext HttpContext) CreateHarness(
@@ -45,7 +45,7 @@ public sealed class CurrentTenantServiceTests
         var httpContextAccessor = new Mock<IHttpContextAccessor>();
         httpContextAccessor.Setup(a => a.HttpContext).Returns(httpContext);
 
-        var service = new CurrentTenantService(tenantContextService, httpContextAccessor.Object);
+        var service = new CurrentTenantService(tenantContextService, httpContextAccessor.Object, environment.Object);
         return (service, accessor, httpContext);
     }
 
@@ -109,18 +109,29 @@ public sealed class CurrentTenantServiceTests
     }
 
     [Fact]
-    public async Task ApplyCurrentTenantAsync_UnknownSlug_FallsBackToLegacyDefault()
+    public async Task ApplyDevTenantOverrideAsync_Throws_OutsideDevelopment()
     {
         await using var db = CreateContext();
         TenantTestDoubles.EnsureDefaultTenant(db);
 
-        var (service, accessor, _) = CreateHarness(db, ctx =>
-        {
-            ctx.Request.Headers[SubdomainTenantProvider.DevTenantHeaderName] = "unknown-tenant";
-        });
+        var accessor = new CurrentTenantAccessor();
+        var environment = new Mock<IWebHostEnvironment>();
+        environment.SetupGet(e => e.EnvironmentName).Returns(Environments.Production);
 
-        await service.ApplyCurrentTenantAsync();
+        var tenantContextService = new TenantContextService(
+            db,
+            accessor,
+            environment.Object,
+            Mock.Of<KasseAPI_Final.Services.Tenancy.ITenantDomainService>(),
+            NullLogger<TenantContextService>.Instance);
 
-        Assert.Equal(LegacyDefaultTenantIds.Primary, accessor.TenantId);
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers[SubdomainTenantProvider.DevTenantHeaderName] = "dev";
+        var httpContextAccessor = new Mock<IHttpContextAccessor>();
+        httpContextAccessor.Setup(a => a.HttpContext).Returns(httpContext);
+
+        var service = new CurrentTenantService(tenantContextService, httpContextAccessor.Object, environment.Object);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.ApplyDevTenantOverrideAsync());
     }
 }

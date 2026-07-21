@@ -33,10 +33,10 @@ namespace KasseAPI_Final.Models
         // Navigation properties - Doğru ForeignKey konfigürasyonu ile
         [ForeignKey("CustomerId")]
         public virtual Customer? Customer { get; set; }
-        
+
         [ForeignKey("UserId")]
         public virtual ApplicationUser User { get; set; } = null!;
-        
+
         public virtual ICollection<CartItem> Items { get; set; } = new List<CartItem>();
     }
 

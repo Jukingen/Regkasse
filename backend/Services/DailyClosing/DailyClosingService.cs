@@ -8,7 +8,6 @@ using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using KasseAPI_Final.Tse;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Services;
 
@@ -338,6 +337,7 @@ public sealed class DailyClosingService : IDailyClosingService
         var environmentName = isDemo ? "Demo" : "Production";
 
         string tseSignature;
+        await using var fiscalTx = await _db.Database.BeginTransactionAsync(cancellationToken);
         try
         {
             tseSignature = await _tseService.CreateDailyClosingSignatureAsync(
@@ -345,10 +345,12 @@ public sealed class DailyClosingService : IDailyClosingService
                 register.RegisterNumber,
                 businessDay,
                 totalAmount,
-                transactionCount);
+                transactionCount,
+                fiscalTx);
         }
         catch (Exception ex)
         {
+            await fiscalTx.RollbackAsync(cancellationToken);
             return Fail(ex.Message);
         }
 
@@ -392,9 +394,11 @@ public sealed class DailyClosingService : IDailyClosingService
         try
         {
             await _db.SaveChangesAsync(cancellationToken);
+            await fiscalTx.CommitAsync(cancellationToken);
         }
         catch (DbUpdateException ex) when (IsDuplicateDailyClosing(ex))
         {
+            await fiscalTx.RollbackAsync(cancellationToken);
             return Fail(
                 computedBackdated
                     ? $"Closing already exists for {businessDay:dd.MM.yyyy}."

@@ -1,5 +1,4 @@
 using KasseAPI_Final.Auth;
-using KasseAPI_Final.Authorization;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;

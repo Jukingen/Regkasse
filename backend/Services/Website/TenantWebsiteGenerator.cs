@@ -2,8 +2,6 @@ using System.IO.Compression;
 using System.Text;
 using System.Text.RegularExpressions;
 using KasseAPI_Final.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.Website;

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -97,7 +97,7 @@ namespace KasseAPI_Final.Migrations
         {
             // Down migration not strictly necessary for this stabilization but kept for structure
             migrationBuilder.Sql("DROP INDEX IF EXISTS \"IX_products_barcode\"");
-            
+
             migrationBuilder.Sql(@"
                 DO $$ 
                 BEGIN

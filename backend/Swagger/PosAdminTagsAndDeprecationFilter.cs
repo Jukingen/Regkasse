@@ -1,4 +1,3 @@
-using System.Text.Json.Nodes;
 using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
@@ -6,7 +5,7 @@ namespace KasseAPI_Final.Swagger;
 
 /// <summary>
 /// Assigns POS / Admin tags for <c>/api/pos/*</c> and <c>/api/admin/*</c>. Legacy alias routes are omitted from OpenAPI via
-/// <see cref="LegacySwaggerPathExclusions"/> (DocInclusionPredicate in <c>Program.cs</c>).
+/// <see cref="LegacySwaggerPathExclusions"/> (DocInclusionPredicate in <c>ApplicationHost</c>).
 /// </summary>
 public class PosAdminTagsAndDeprecationFilter : IOperationFilter
 {

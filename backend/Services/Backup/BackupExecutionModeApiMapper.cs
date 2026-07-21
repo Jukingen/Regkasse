@@ -1,6 +1,5 @@
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.DTOs;
-using Microsoft.Extensions.Hosting;
 
 namespace KasseAPI_Final.Services.Backup;
 

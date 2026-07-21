@@ -5,7 +5,6 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
-using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
@@ -106,7 +105,7 @@ public class RksvMonatsbelegServiceTests
                 It.IsAny<string?>(),
                 It.IsAny<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction?>()))
             .ReturnsAsync((Guid _, string _, decimal _, string _, string? prev, DateTime? _, string? _, Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? _) =>
-                new TseSignatureResult("eyJhbGciOiJFUzI1NiJ9.eyJ.test.monat", prev ?? "chain-root"));
+                new TseSignatureResult(RksvTestSignatures.CreateDemoCompactJws(), prev ?? "chain-root"));
         tseMock.Setup(x => x.GetTseCertificateInfoAsync(It.IsAny<string>()))
             .ReturnsAsync(new TseCertificateInfo { CertificateNumber = "cert-test" });
 

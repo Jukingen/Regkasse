@@ -2,7 +2,6 @@ using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Services.LicenseTest;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;

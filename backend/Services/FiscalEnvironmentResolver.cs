@@ -1,8 +1,6 @@
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Services.Rksv;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 
 namespace KasseAPI_Final.Services;
 

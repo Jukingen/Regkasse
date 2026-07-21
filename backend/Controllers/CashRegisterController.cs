@@ -1,22 +1,21 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using KasseAPI_Final.Authorization;
-using Microsoft.Extensions.Logging;
-using KasseAPI_Final.Data;
-using KasseAPI_Final.DTOs;
-using KasseAPI_Final.Models;
-using KasseAPI_Final.Time;
-using KasseAPI_Final.Services;
-using KasseAPI_Final.Models.DTOs;
-using KasseAPI_Final.Services.AdminCashRegisters;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Localization;
+using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Security;
+using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.AdminCashRegisters;
 using KasseAPI_Final.Services.Localization;
 using KasseAPI_Final.Tenancy;
+using KasseAPI_Final.Time;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Controllers
 {

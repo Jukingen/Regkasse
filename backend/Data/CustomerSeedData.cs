@@ -8,13 +8,13 @@ namespace KasseAPI_Final.Data
     public static class CustomerSeedData
     {
         public static readonly Guid GUEST_CUSTOMER_ID = WalkInCustomerConstants.GuestCustomerId;
-        
+
         public static async Task SeedGuestCustomerAsync(AppDbContext context)
         {
             // Check if guest customer already exists
             var existingGuest = await context.Customers
                 .FirstOrDefaultAsync(c => c.Id == WalkInCustomerConstants.GuestCustomerId);
-            
+
             if (existingGuest != null)
             {
                 if (!existingGuest.IsSystem)
@@ -25,7 +25,7 @@ namespace KasseAPI_Final.Data
                 }
                 return;
             }
-            
+
             var guestCustomer = new Customer
             {
                 Id = WalkInCustomerConstants.GuestCustomerId,
@@ -49,7 +49,7 @@ namespace KasseAPI_Final.Data
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
-            
+
             await context.Customers.AddAsync(guestCustomer);
             await context.SaveChangesAsync();
         }

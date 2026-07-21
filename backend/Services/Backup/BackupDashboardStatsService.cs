@@ -102,7 +102,8 @@ public sealed class BackupDashboardStatsService : IBackupDashboardStatsService
         {
             var proofAt = lastSuccess.CompletedAt ?? lastSuccess.RequestedAt;
             rpoHours = Math.Round((nowUtc - proofAt).TotalHours, 2);
-            if (rpoHours < 0) rpoHours = 0;
+            if (rpoHours < 0)
+                rpoHours = 0;
         }
 
         var restoreDrills = await _db.RestoreVerificationRuns.AsNoTracking()

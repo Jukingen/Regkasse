@@ -1,6 +1,5 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.DependencyInjection;
 using KasseAPI_Final.Middleware;
+using Microsoft.AspNetCore.Authorization;
 
 namespace KasseAPI_Final.Authorization;
 

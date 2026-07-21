@@ -1,5 +1,3 @@
-using System;
-using System.Threading.Tasks;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;

@@ -1,4 +1,3 @@
-﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -164,7 +163,7 @@ namespace KasseAPI_Final.Migrations
                 {
                     table.PrimaryKey("PK_TseDevices", x => x.id);
                 });
- 
+
             // UserSettings tablosu zaten mevcut, oluşturmaya gerek yok
 
             migrationBuilder.CreateIndex(

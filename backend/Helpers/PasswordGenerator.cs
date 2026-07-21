@@ -12,14 +12,6 @@ public static class PasswordGenerator
     private const int MinLength = 12;
 
     /// <summary>
-    /// At least 12 characters with upper, lower, digit, and special character.
-    /// </summary>
-    public static string GenerateRandomPassword(int length = 14)
-    {
-        return GenerateSecurePassword(length);
-    }
-
-    /// <summary>
     /// Cryptographically secure password with at least one upper, lower, digit, and special (default 12 chars).
     /// </summary>
     public static string GenerateSecurePassword(int length = 12)

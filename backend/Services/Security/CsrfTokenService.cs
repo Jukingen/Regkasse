@@ -1,9 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
+using KasseAPI_Final.Configuration;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
-using KasseAPI_Final.Configuration;
 
 namespace KasseAPI_Final.Services.Security;
 

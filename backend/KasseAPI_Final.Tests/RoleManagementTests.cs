@@ -495,7 +495,7 @@ public class RoleManagementTests
     private static async Task<(AppDbContext, UserManager<ApplicationUser>, RoleManager<IdentityRole>)> CreateInMemorySetupAsync()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString()).Options;
-        var context = new AppDbContext(options);
+        var context = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
         var store = new Microsoft.AspNetCore.Identity.EntityFrameworkCore.UserStore<ApplicationUser, IdentityRole, AppDbContext>(context, null);
         var userManager = new UserManager<ApplicationUser>(store, null!, null!, null!, null!, null!, null!, null!, null!);
         var roleStore = new Microsoft.AspNetCore.Identity.EntityFrameworkCore.RoleStore<IdentityRole>(context);

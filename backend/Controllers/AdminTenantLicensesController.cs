@@ -5,10 +5,10 @@ using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Services.Billing;
 using KasseAPI_Final.Tenancy;
-using IAdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.ITenantLicenseService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using IAdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.ITenantLicenseService;
 
 namespace KasseAPI_Final.Controllers;
 

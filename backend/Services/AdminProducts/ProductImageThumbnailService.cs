@@ -1,9 +1,8 @@
-using Microsoft.Extensions.Logging;
+using KasseAPI_Final.Configuration;
 using Microsoft.Extensions.Options;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
-using KasseAPI_Final.Configuration;
 
 namespace KasseAPI_Final.Services.AdminProducts;
 

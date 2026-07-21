@@ -65,7 +65,9 @@ public sealed class FiskalyDepExportPrueftoolTests
         }
         finally
         {
-            try { Directory.Delete(tempDir, recursive: true); } catch { /* best effort */ }
+            try
+            { Directory.Delete(tempDir, recursive: true); }
+            catch { /* best effort */ }
         }
     }
 

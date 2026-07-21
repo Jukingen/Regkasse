@@ -1,9 +1,8 @@
-using System.Security.Cryptography;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
-using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
@@ -64,7 +63,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
             return (null, $"Admin email '{resolvedEmail}' is already in use.");
 
         var password = string.IsNullOrWhiteSpace(adminPassword)
-            ? GenerateCompliantPassword()
+            ? PasswordGenerator.GenerateSecurePassword(16)
             : adminPassword.Trim();
 
         if (password.Length < 8)
@@ -294,29 +293,4 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         };
     }
 
-    internal static string GenerateCompliantPassword()
-    {
-        const string lowers = "abcdefghjkmnpqrstuvwxyz";
-        const string uppers = "ABCDEFGHJKMNPQRSTUVWXYZ";
-        const string digits = "23456789";
-        const string symbols = "!@#$%&*";
-        const string all = lowers + uppers + digits + symbols;
-
-        Span<char> buffer = stackalloc char[16];
-        buffer[0] = lowers[RandomNumberGenerator.GetInt32(lowers.Length)];
-        buffer[1] = uppers[RandomNumberGenerator.GetInt32(uppers.Length)];
-        buffer[2] = digits[RandomNumberGenerator.GetInt32(digits.Length)];
-        buffer[3] = symbols[RandomNumberGenerator.GetInt32(symbols.Length)];
-        for (var i = 4; i < buffer.Length; i++)
-            buffer[i] = all[RandomNumberGenerator.GetInt32(all.Length)];
-
-        // Fisher–Yates shuffle
-        for (var i = buffer.Length - 1; i > 0; i--)
-        {
-            var j = RandomNumberGenerator.GetInt32(i + 1);
-            (buffer[i], buffer[j]) = (buffer[j], buffer[i]);
-        }
-
-        return new string(buffer);
-    }
 }

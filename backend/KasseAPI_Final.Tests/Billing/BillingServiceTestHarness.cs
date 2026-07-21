@@ -123,6 +123,7 @@ internal static class BillingServiceTestInfrastructure
             BillingTestDoubles.CreateReminderScopeFactory(),
             environment.Object,
             pdfGenerator,
+            new InvoiceNumberGenerator(db),
             BillingTestDoubles.DisabledBackupOptions,
             NullLogger<BillingService>.Instance);
 

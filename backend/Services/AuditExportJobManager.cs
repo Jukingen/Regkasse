@@ -163,7 +163,10 @@ public sealed class AuditExportJobManager : IAuditExportJobManager
 
     private static void TryDeleteFile(string? path)
     {
-        if (string.IsNullOrEmpty(path)) return;
-        try { File.Delete(path); } catch { /* best effort */ }
+        if (string.IsNullOrEmpty(path))
+            return;
+        try
+        { File.Delete(path); }
+        catch { /* best effort */ }
     }
 }

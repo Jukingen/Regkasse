@@ -251,7 +251,7 @@ public class ReportPdfController : ControllerBase
         try
         {
             await _auditLogService.LogSystemOperationAsync(
-                    "ReportPdfDownloaded",
+                    AuditLogActions.REPORT_PDF_DOWNLOADED,
                     ReportPdfEntityType,
                     User.GetActorUserId() ?? "unknown",
                     User.GetActorRole() ?? "Unknown",

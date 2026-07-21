@@ -1,8 +1,5 @@
 using KasseAPI_Final.Services.Billing;
 using KasseAPI_Final.Services.License;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Services.Hosted;
 

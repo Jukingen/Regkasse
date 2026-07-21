@@ -10,6 +10,7 @@ namespace KasseAPI_Final.Tests;
 /// <summary>
 /// HTTP integration tests: Manager admin JWT can read oversight APIs but cannot take POS payments.
 /// </summary>
+[Collection("OpenApiExportWebHost")]
 public sealed class ManagerOversightApiTests : IClassFixture<ManagerOversightWebApplicationFactory>
 {
     private readonly ManagerOversightWebApplicationFactory _factory;
@@ -69,9 +70,15 @@ public sealed class ManagerOversightApiTests : IClassFixture<ManagerOversightWeb
 
         foreach (var oversight in AdminAppPermissionProfile.ManagerOversightViewPermissions)
         {
+            var present = permissions.Contains(oversight)
+                || (string.Equals(oversight, AppPermissions.UserResetPassword, StringComparison.OrdinalIgnoreCase)
+                    && permissions.Contains(AppPermissions.UserManage))
+                || (string.Equals(oversight, AppPermissions.CashRegisterView, StringComparison.OrdinalIgnoreCase)
+                    && (permissions.Contains(AppPermissions.CashRegisterManage)
+                        || permissions.Contains(AppPermissions.CashRegisterDecommission)));
             Assert.True(
-                permissions.Contains(oversight),
-                $"Manager admin login should include oversight permission '{oversight}'.");
+                present,
+                $"Manager admin login should include oversight permission '{oversight}' (or an implying manage permission).");
         }
     }
 

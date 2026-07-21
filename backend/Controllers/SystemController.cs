@@ -1,7 +1,5 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.DTOs;
-using KasseAPI_Final.Models;
-using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

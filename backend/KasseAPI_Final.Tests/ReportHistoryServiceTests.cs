@@ -1,8 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Reports;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
@@ -118,7 +119,7 @@ public class ReportHistoryServiceTests
         var opts = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
             .Options;
-        return new AppDbContext(opts);
+        return new AppDbContext(opts, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private sealed class FakeSubmissionCompatService : IReportSubmissionCompatibilityService

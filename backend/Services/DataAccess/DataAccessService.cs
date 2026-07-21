@@ -1,6 +1,5 @@
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.DataRights;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Services.DataAccess;
 

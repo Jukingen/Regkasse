@@ -43,14 +43,14 @@ public class PosCompanyControllerTests
         var (db, tenantAccessor) = CreateContext(TenantId);
         await using (db)
         {
-        var controller = new PosCompanyController(db, tenantAccessor);
+            var controller = new PosCompanyController(db, tenantAccessor);
 
-        var result = await controller.GetCompanyInfo(CancellationToken.None);
+            var result = await controller.GetCompanyInfo(CancellationToken.None);
 
-        var ok = Assert.IsType<OkObjectResult>(result.Result);
-        var dto = Assert.IsType<PosCompanyInfoDto>(ok.Value);
-        Assert.Equal(string.Empty, dto.CompanyName);
-        Assert.Equal(string.Empty, dto.TaxNumber);
+            var ok = Assert.IsType<OkObjectResult>(result.Result);
+            var dto = Assert.IsType<PosCompanyInfoDto>(ok.Value);
+            Assert.Equal(string.Empty, dto.CompanyName);
+            Assert.Equal(string.Empty, dto.TaxNumber);
         }
     }
 
@@ -60,38 +60,39 @@ public class PosCompanyControllerTests
         var (db, tenantAccessor) = CreateContext(TenantId);
         await using (db)
         {
-        db.CompanySettings.Add(new CompanySettings
-        {
-            TenantId = TenantId,
-            CompanyName = "Cafe Wien GmbH",
-            CompanyAddress = "Hauptstraße 1, 1010 Wien",
-            CompanyTaxNumber = "ATU12345678",
-            CompanyDescription = "Danke für Ihren Besuch!",
-            BusinessHours = new Dictionary<string, string>(),
-            Currency = "EUR",
-            Language = "de-DE",
-            TimeZone = "Europe/Vienna",
-            DateFormat = "dd.MM.yyyy",
-            TimeFormat = "HH:mm:ss",
-            TaxCalculationMethod = "Standard",
-            InvoiceNumbering = "Sequential",
-            ReceiptNumbering = "Sequential",
-            DefaultPaymentMethod = "Cash",
-        });
-        await db.SaveChangesAsync();
+            db.CompanySettings.Add(new CompanySettings
+            {
+                TenantId = TenantId,
+                CompanyName = "Cafe Wien GmbH",
+                CompanyAddress = "Hauptstraße 1, 1010 Wien",
+                CompanyTaxNumber = "ATU12345678",
+                CompanyDescription = "Danke für Ihren Besuch!",
+                BusinessHours = new Dictionary<string, string>(),
+                Currency = "EUR",
+                Language = "de-DE",
+                TimeZone = "Europe/Vienna",
+                DateFormat = "dd.MM.yyyy",
+                TimeFormat = "HH:mm:ss",
+                TaxCalculationMethod = "Standard",
+                InvoiceNumbering = "Sequential",
+                ReceiptNumbering = "Sequential",
+                DefaultPaymentMethod = "Cash",
+            });
+            await db.SaveChangesAsync();
 
-        var controller = new PosCompanyController(db, tenantAccessor);
-        var result = await controller.GetCompanyInfo(CancellationToken.None);
+            var controller = new PosCompanyController(db, tenantAccessor);
+            var result = await controller.GetCompanyInfo(CancellationToken.None);
 
-        var ok = Assert.IsType<OkObjectResult>(result.Result);
-        var dto = Assert.IsType<PosCompanyInfoDto>(ok.Value);
-        Assert.Equal("Cafe Wien GmbH", dto.CompanyName);
-        Assert.Equal("Hauptstraße 1, 1010 Wien", dto.CompanyAddress);
-        Assert.Equal("ATU12345678", dto.TaxNumber);
-        Assert.Equal("Danke für Ihren Besuch!", dto.ReceiptFooter);
-        Assert.Equal("Europe/Vienna", dto.TimeZone);
-        Assert.Equal(1, dto.WorkingHours.ReminderHoursBeforeClosing);
-        Assert.False(dto.WorkingHours.Monday.IsClosed);
-        Assert.Equal("22:00", dto.WorkingHours.Monday.CloseTime);
-        }    }
+            var ok = Assert.IsType<OkObjectResult>(result.Result);
+            var dto = Assert.IsType<PosCompanyInfoDto>(ok.Value);
+            Assert.Equal("Cafe Wien GmbH", dto.CompanyName);
+            Assert.Equal("Hauptstraße 1, 1010 Wien", dto.CompanyAddress);
+            Assert.Equal("ATU12345678", dto.TaxNumber);
+            Assert.Equal("Danke für Ihren Besuch!", dto.ReceiptFooter);
+            Assert.Equal("Europe/Vienna", dto.TimeZone);
+            Assert.Equal(1, dto.WorkingHours.ReminderHoursBeforeClosing);
+            Assert.False(dto.WorkingHours.Monday.IsClosed);
+            Assert.Equal("22:00", dto.WorkingHours.Monday.CloseTime);
+        }
+    }
 }

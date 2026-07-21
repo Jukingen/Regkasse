@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using KasseAPI_Final.Authorization;
-using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
@@ -443,8 +442,10 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
     private static string? NormalizePersistedPreferenceRegisterId(string? raw)
     {
         var t = raw?.Trim();
-        if (string.IsNullOrEmpty(t)) return null;
-        if (!Guid.TryParse(t, out var g) || g == Guid.Empty) return null;
+        if (string.IsNullOrEmpty(t))
+            return null;
+        if (!Guid.TryParse(t, out var g) || g == Guid.Empty)
+            return null;
         return g.ToString("D");
     }
 

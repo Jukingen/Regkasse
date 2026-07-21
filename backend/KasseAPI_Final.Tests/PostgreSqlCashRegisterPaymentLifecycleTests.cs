@@ -1,10 +1,12 @@
 using System.Security.Claims;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Pricing;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -12,9 +14,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
-
-using KasseAPI_Final.Tenancy;
-using KasseAPI_Final.Configuration;
 
 namespace KasseAPI_Final.Tests;
 
@@ -389,10 +388,10 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
         };
 
         var result = await paymentService.CreatePaymentAsync(request, "u1");
-        
+
         Assert.True(result.Success);
         Assert.NotNull(result.Payment);
-        
+
         await using var verifyCtx = CreateContext();
         var savedPayment = await verifyCtx.PaymentDetails.AnyAsync(p => p.Id == result.PaymentId);
         Assert.True(savedPayment, "Payment MUST exist in DB despite audit failure");

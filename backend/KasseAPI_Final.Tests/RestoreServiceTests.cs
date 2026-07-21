@@ -65,6 +65,7 @@ public sealed class RestoreServiceTests
         {
             Id = Guid.NewGuid(),
             Status = BackupRunStatus.Failed,
+            Strategy = BackupStrategyKind.System,
             TriggerSource = BackupTriggerSource.Scheduled,
             AdapterKind = "PgDump",
             RequestedAt = DateTime.UtcNow
@@ -76,6 +77,26 @@ public sealed class RestoreServiceTests
     }
 
     [Fact]
+    public void EnsureCanStartValidationRestore_rejects_tenant_zip_package()
+    {
+        var tenantId = Guid.NewGuid();
+        var backup = new BackupRun
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            Status = BackupRunStatus.Succeeded,
+            Strategy = BackupStrategyKind.Tenant,
+            TriggerSource = BackupTriggerSource.Manual,
+            AdapterKind = "TenantLogical",
+            RequestedAt = DateTime.UtcNow
+        };
+
+        var result = _sut.EnsureCanStartValidationRestore(backup, tenantId, validationOnly: true);
+        Assert.False(result.Succeeded);
+        Assert.Equal(ComplianceCheckService.TenantPackageRestoreCode, result.Code);
+    }
+
+    [Fact]
     public void EnsureCanStartValidationRestore_ok_for_validation_same_tenant()
     {
         var tenantId = Guid.NewGuid();
@@ -84,6 +105,7 @@ public sealed class RestoreServiceTests
             Id = Guid.NewGuid(),
             TenantId = tenantId,
             Status = BackupRunStatus.Succeeded,
+            Strategy = BackupStrategyKind.System,
             TriggerSource = BackupTriggerSource.Manual,
             AdapterKind = "PgDump",
             RequestedAt = DateTime.UtcNow

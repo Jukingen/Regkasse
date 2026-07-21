@@ -2,6 +2,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Xunit;
@@ -33,7 +34,7 @@ public sealed class BackupArtifactFileNameBuilderTests
     public void BuildLogicalDumpFileName_sanitizes_slug()
     {
         Assert.Equal(
-            "backup_dev_alpha_20260703_150100.dump",
+            "backup_cafe_alpha_20260703_150100.dump",
             BackupArtifactFileNameBuilder.BuildLogicalDumpFileName("Cafe Alpha", FixedUtc));
     }
 }
@@ -46,7 +47,7 @@ public sealed class BackupRunTenantSlugResolverTests
             .UseInMemoryDatabase($"backup_slug_resolver_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     [Fact]

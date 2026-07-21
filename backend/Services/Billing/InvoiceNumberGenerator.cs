@@ -1,18 +1,21 @@
 using System.Globalization;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services.Billing;
 
 public interface IInvoiceNumberGenerator
 {
-    string GenerateInvoiceNumber(DateTime date);
+    /// <summary>Allocates the next <c>RE{yyyy}{MM}{n}</c> number for the UTC calendar month of <paramref name="date"/>.</summary>
+    Task<string> AllocateAsync(DateTime date, CancellationToken cancellationToken = default);
+
     (int Year, int Month, int Sequence) ParseInvoiceNumber(string invoiceNumber);
 }
 
 /// <summary>
 /// Super Admin license billing invoice numbers: <c>RE{yyyy}{MM}{sequence}</c>
-/// (e.g. <c>RE20260841</c> = 2026, August, sequence 41). Sequence resets each calendar month.
+/// (e.g. <c>RE20260841</c> = 2026, August, sequence 41). Sequence resets each calendar month via <see cref="InvoiceSequence"/>.
 /// </summary>
 public sealed class InvoiceNumberGenerator : IInvoiceNumberGenerator
 {
@@ -21,21 +24,49 @@ public sealed class InvoiceNumberGenerator : IInvoiceNumberGenerator
 
     public InvoiceNumberGenerator(AppDbContext db) => _db = db;
 
-    public string GenerateInvoiceNumber(DateTime date)
+    /// <inheritdoc />
+    public async Task<string> AllocateAsync(DateTime date, CancellationToken cancellationToken = default)
     {
         var (year, month) = ResolveYearMonth(date);
-        var prefix = FormatPrefix(year, month);
 
-        using var transaction = _db.Database.BeginTransaction(System.Data.IsolationLevel.Serializable);
+        var ownsTransaction = _db.Database.CurrentTransaction == null;
+        await using var transaction = ownsTransaction
+            ? await _db.Database.BeginTransactionAsync(
+                System.Data.IsolationLevel.Serializable,
+                cancellationToken).ConfigureAwait(false)
+            : null;
         try
         {
-            var nextSequence = GetNextSequence(prefix);
-            transaction.Commit();
-            return FormatInvoiceNumber(year, month, nextSequence);
+            var sequence = await _db.InvoiceSequences
+                .FirstOrDefaultAsync(s => s.Year == year && s.Month == month, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (sequence == null)
+            {
+                sequence = new InvoiceSequence
+                {
+                    Id = Guid.NewGuid(),
+                    Year = year,
+                    Month = month,
+                    LastSequence = 0,
+                    UpdatedAt = DateTime.UtcNow,
+                };
+                _db.InvoiceSequences.Add(sequence);
+            }
+
+            sequence.LastSequence++;
+            sequence.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+            if (ownsTransaction)
+                await transaction!.CommitAsync(cancellationToken).ConfigureAwait(false);
+
+            return FormatInvoiceNumber(year, month, sequence.LastSequence);
         }
         catch
         {
-            transaction.Rollback();
+            if (ownsTransaction && transaction != null)
+                await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
             throw;
         }
     }
@@ -99,27 +130,5 @@ public sealed class InvoiceNumberGenerator : IInvoiceNumberGenerator
         };
 
         return (utc.Year, utc.Month);
-    }
-
-    private int GetNextSequence(string prefix)
-    {
-        var existing = _db.LicenseSales
-            .IgnoreQueryFilters()
-            .AsNoTracking()
-            .Where(s => s.InvoiceNumber.StartsWith(prefix))
-            .Select(s => s.InvoiceNumber)
-            .ToList();
-
-        if (existing.Count == 0)
-            return 1;
-
-        var max = 0;
-        foreach (var number in existing)
-        {
-            if (TryParseSequence(number, prefix, out var seq) && seq > max)
-                max = seq;
-        }
-
-        return max + 1;
     }
 }

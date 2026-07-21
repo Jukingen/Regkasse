@@ -12,7 +12,8 @@ public static class RoleMetadata
     /// </summary>
     public static string GetRoleKey(string roleName)
     {
-        if (string.IsNullOrWhiteSpace(roleName)) return string.Empty;
+        if (string.IsNullOrWhiteSpace(roleName))
+            return string.Empty;
         return roleName.Trim();
     }
 
@@ -30,8 +31,10 @@ public static class RoleMetadata
     /// </summary>
     public static string GetDisplayName(string roleName)
     {
-        if (string.IsNullOrWhiteSpace(roleName)) return string.Empty;
-        if (DisplayNames.TryGetValue(roleName, out var display)) return display;
+        if (string.IsNullOrWhiteSpace(roleName))
+            return string.Empty;
+        if (DisplayNames.TryGetValue(roleName, out var display))
+            return display;
         return roleName;
     }
 
@@ -40,7 +43,8 @@ public static class RoleMetadata
     /// </summary>
     public static string? GetDescription(string roleName)
     {
-        if (string.IsNullOrWhiteSpace(roleName)) return null;
+        if (string.IsNullOrWhiteSpace(roleName))
+            return null;
         return Descriptions.TryGetValue(roleName, out var d) ? d : null;
     }
 

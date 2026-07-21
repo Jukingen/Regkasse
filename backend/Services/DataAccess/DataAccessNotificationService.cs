@@ -3,7 +3,6 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.DataDeletion;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Services.DataAccess;
 

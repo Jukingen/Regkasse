@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Rksv;
@@ -7,7 +8,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Moq;
-using System.Security.Claims;
 
 namespace KasseAPI_Final.Tests;
 
@@ -55,7 +55,8 @@ internal static class DailyClosingTestDoubles
                 It.IsAny<string>(),
                 It.IsAny<DateTime>(),
                 It.IsAny<decimal>(),
-                It.IsAny<int>()))
+                It.IsAny<int>(),
+                It.IsAny<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction?>()))
             .ReturnsAsync("eyJhbGciOiJFUzI1NiJ9.eyJ.test.daily.closing");
         return mock;
     }

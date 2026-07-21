@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using KasseAPI_Final.Authorization;
 using Microsoft.AspNetCore.Identity;
 
@@ -22,23 +21,27 @@ public sealed class RolePermissionResolver : IRolePermissionResolver
         CancellationToken cancellationToken = default)
     {
         var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        if (roleNames == null) return result;
+        if (roleNames == null)
+            return result;
 
         foreach (var roleName in roleNames)
         {
-            if (string.IsNullOrWhiteSpace(roleName)) continue;
+            if (string.IsNullOrWhiteSpace(roleName))
+                continue;
 
             if (IsSystemRole(roleName))
             {
                 // All canonical roles: matrix-only at runtime. System roles are immutable; claims on
                 // system roles (if any legacy data) are ignored so effective permissions stay code-defined.
                 var fromMatrix = RolePermissionMatrix.GetPermissionsForRoles(new[] { roleName });
-                foreach (var p in fromMatrix) result.Add(p);
+                foreach (var p in fromMatrix)
+                    result.Add(p);
             }
             else
             {
                 var role = await _roleManager.FindByNameAsync(roleName);
-                if (role == null) continue;
+                if (role == null)
+                    continue;
 
                 var claims = await _roleManager.GetClaimsAsync(role);
                 foreach (var c in claims)

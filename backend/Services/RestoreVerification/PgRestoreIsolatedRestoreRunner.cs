@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Text;
 using KasseAPI_Final.Services.Backup;
-using Microsoft.Extensions.Logging;
 using Npgsql;
 
 namespace KasseAPI_Final.Services.RestoreVerification;

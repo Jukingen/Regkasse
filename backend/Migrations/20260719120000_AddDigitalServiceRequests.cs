@@ -1,7 +1,6 @@
-using System;
+using KasseAPI_Final.Data;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
-using KasseAPI_Final.Data;
 
 #nullable disable
 

@@ -1,5 +1,3 @@
-using System.Linq;
-using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using Xunit;

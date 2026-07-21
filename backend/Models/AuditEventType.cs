@@ -20,7 +20,8 @@ public enum AuditEventType
     LoginSuccess = 10,
     UserLogout = 11,
     UserDeleted = 12,
-    LoginFailed = 14,  // New; 11–12 preserved for existing logs
+    /// <summary>Failed login. Backing value 14 (13 unused — preserved for existing stored enums).</summary>
+    LoginFailed = 14,
     UserTenantMembershipChanged = 15,
     UserNameChanged = 16,
     /// <summary>Super Admin requested validation-only manual restore (second approval required).</summary>

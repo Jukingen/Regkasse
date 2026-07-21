@@ -1,4 +1,3 @@
-using System;
 using System.Text.Json.Serialization;
 
 namespace KasseAPI_Final.Models.DTOs;
@@ -18,7 +17,7 @@ public class LoginModel
     public string? ClientApp { get; set; }
 
     /// <summary>Legacy field; used when <see cref="LoginIdentifier"/> is empty.</summary>
-    [Obsolete("Use LoginIdentifier instead. Kept for backward compatibility.")]
+    [Obsolete("Use LoginIdentifier instead. Kept for backward compatibility. Planned removal after 2026-12-31.")]
     [JsonPropertyName("email")]
     public string? Email { get; set; }
 

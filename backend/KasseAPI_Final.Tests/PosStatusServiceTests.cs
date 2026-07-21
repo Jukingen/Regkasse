@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
-using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Rksv;

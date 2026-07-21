@@ -1,7 +1,5 @@
 using System.Text.Json;
 using KasseAPI_Final.Tenancy;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Middleware;
 
@@ -10,13 +8,17 @@ public class TenantValidationMiddleware
     private readonly RequestDelegate _next;
     private readonly ILogger<TenantValidationMiddleware> _logger;
 
-    // Public endpoints that don't require tenant context
+    // Public endpoints that don't require tenant context (platform hosts leave ambient unset until JWT).
     private static readonly HashSet<string> PublicPaths = new(StringComparer.OrdinalIgnoreCase)
     {
         "/api/auth/login",
         "/api/auth/refresh",
+        "/api/auth/verify-2fa",
+        "/api/csrf",
         "/api/health",
         "/api/public",
+        "/health",
+        "/metrics",
         "/swagger",
         "/swagger/index.html",
     };

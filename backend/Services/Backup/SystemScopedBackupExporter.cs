@@ -2,7 +2,6 @@ using System.IO.Compression;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using KasseAPI_Final.Data;
-using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services.Backup;

@@ -1,5 +1,4 @@
 using KasseAPI_Final.Services;
-using KasseAPI_Final.Tse;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;

@@ -2,11 +2,11 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Reports;
 using KasseAPI_Final.Time;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services;
 
@@ -207,7 +207,8 @@ public sealed class OperationalReportingService : IOperationalReportingService
         CancellationToken cancellationToken = default)
     {
         var today = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
-        var (fromUtc, toExclusive) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(today);
+
+        var (fromUtc, _) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(today);
         var nowUtc = DateTime.UtcNow;
         var disclaimer =
             "INTERIM (operator X): Totals since start of Austria business day in UTC window — not a hardware TSE X report; use for shift checks only.";
@@ -584,8 +585,10 @@ public sealed class OperationalReportingService : IOperationalReportingService
         var now = DateTime.UtcNow;
         var scopeKind = request.CashRegisterId.HasValue ? "Register" : "Company";
         var warnings = new List<string>();
-        if (!string.IsNullOrWhiteSpace(summary.InterimDisclaimer)) warnings.Add(summary.InterimDisclaimer);
-        if (!string.IsNullOrWhiteSpace(summary.ClosingDisclaimer)) warnings.Add(summary.ClosingDisclaimer);
+        if (!string.IsNullOrWhiteSpace(summary.InterimDisclaimer))
+            warnings.Add(summary.InterimDisclaimer);
+        if (!string.IsNullOrWhiteSpace(summary.ClosingDisclaimer))
+            warnings.Add(summary.ClosingDisclaimer);
 
         var queryParams = new
         {
@@ -729,7 +732,8 @@ public sealed class OperationalReportingService : IOperationalReportingService
         CancellationToken cancellationToken = default)
     {
         var run = await _db.PeriodenberichtRuns.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-        if (run == null) return null;
+        if (run == null)
+            return null;
         return await MapFrozenRunAsync(run, cancellationToken);
     }
 

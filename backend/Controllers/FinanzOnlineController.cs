@@ -1,15 +1,14 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using KasseAPI_Final.Data;
-using KasseAPI_Final.Models;
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.Localization;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using KasseAPI_Final.Services.Localization;
 using KasseAPI_Final.Tenancy;
-using System.Text.Json;
-using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -194,7 +193,8 @@ namespace KasseAPI_Final.Controllers
                 // TODO: scope – tenant/branch if multi-tenant; submit is typically tenant-scoped.
                 // Find invoice to link if possible (optional, but good for tracking)
                 var invoice = await _context.Invoices.FirstOrDefaultAsync(i => i.InvoiceNumber == request.InvoiceNumber);
-                if (invoice != null) submission.InvoiceId = invoice.Id;
+                if (invoice != null)
+                    submission.InvoiceId = invoice.Id;
 
                 var tseDevice = await _context.TseDevices
                     .Where(t => t.IsActive && t.FinanzOnlineEnabled && t.IsConnected)
@@ -232,7 +232,7 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "FinanzOnline invoice submission failed");
-                
+
                 submission.Success = false;
                 submission.ResponseStatusCode = "500";
                 submission.ErrorMessage = ex.Message;
@@ -385,10 +385,10 @@ namespace KasseAPI_Final.Controllers
     {
         [Required]
         public string ApiUrl { get; set; } = string.Empty;
-        
+
         [Required]
         public string Username { get; set; } = string.Empty;
-        
+
         public bool AutoSubmit { get; set; } = false;
         public int SubmitInterval { get; set; } = 60; // dakika
         public int RetryAttempts { get; set; } = 3;
@@ -432,19 +432,19 @@ namespace KasseAPI_Final.Controllers
     {
         [Required]
         public string InvoiceNumber { get; set; } = string.Empty;
-        
+
         [Required]
         public decimal TotalAmount { get; set; }
-        
+
         [Required]
         public string TseSignature { get; set; } = string.Empty;
-        
+
         [Required]
         public string TaxDetails { get; set; } = string.Empty;
-        
+
         [Required]
         public DateTime InvoiceDate { get; set; }
-        
+
         [Required]
         public string KassenId { get; set; } = string.Empty;
     }

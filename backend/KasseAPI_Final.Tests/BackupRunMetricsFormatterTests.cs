@@ -24,7 +24,7 @@ public sealed class BackupRunMetricsFormatterTests
     {
         Assert.Equal("512 B", BackupRunMetricsFormatter.FormatBytes(512));
         Assert.Equal("1.5 KB", BackupRunMetricsFormatter.FormatBytes(1536));
-        Assert.Equal("2.00 MB", BackupRunMetricsFormatter.FormatBytes(2 * 1024 * 1024));
+        Assert.Equal("2 MB", BackupRunMetricsFormatter.FormatBytes(2 * 1024 * 1024));
     }
 
     [Fact]
@@ -75,11 +75,11 @@ public sealed class BackupRunMetricsFormatterTests
         var dto = BackupRunMapper.ToDto(run, includeChildren: true, materializedChildren: true);
 
         Assert.Equal(2048, dto.TotalSizeBytes);
-        Assert.Equal("2.00 KB", dto.TotalSizeFormatted);
+        Assert.Equal("2.0 KB", dto.TotalSizeFormatted);
         Assert.NotNull(dto.DurationSeconds);
         Assert.NotNull(dto.DurationFormatted);
         Assert.Single(dto.Artifacts!);
-        Assert.Equal("2.00 KB", dto.Artifacts![0].FormattedSize);
+        Assert.Equal("2.0 KB", dto.Artifacts![0].FormattedSize);
         Assert.Equal(completed, dto.Artifacts![0].CreatedAt);
     }
 }

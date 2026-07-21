@@ -1,9 +1,5 @@
-using System.Threading;
-using KasseAPI_Final;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.DTOs;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services;

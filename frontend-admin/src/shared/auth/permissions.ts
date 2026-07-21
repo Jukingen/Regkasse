@@ -8,6 +8,8 @@
  * UI decisions (route guard, menu, buttons) should use permissions, not roles.
  */
 
+import { permissionImplied } from './permissionImplication';
+
 /** Backend-aligned permission keys (PascalCase) — extend per domain as needed. */
 export const AppPermissions = {
   CashRegisterView: 'cash_register.view',
@@ -172,13 +174,13 @@ export interface UserWithPermissions {
   permissions?: string[];
 }
 
-/** Single permission check. */
+/** Single permission check (mirrors backend PermissionImplication). */
 export function hasPermission(
   user: UserWithPermissions | null | undefined,
   permission: string
 ): boolean {
   if (!user?.permissions?.length) return false;
-  return user.permissions.includes(permission);
+  return permissionImplied(permission, user.permissions);
 }
 
 /** True if user has at least one of the given permissions. */
@@ -187,7 +189,7 @@ export function hasAnyPermission(
   permissions: string[]
 ): boolean {
   if (!user?.permissions?.length || !permissions.length) return false;
-  return permissions.some((p) => user!.permissions!.includes(p));
+  return permissions.some((p) => permissionImplied(p, user!.permissions!));
 }
 
 /** True if user has all of the given permissions. */
@@ -196,5 +198,5 @@ export function hasAllPermissions(
   permissions: string[]
 ): boolean {
   if (!user?.permissions?.length || !permissions.length) return false;
-  return permissions.every((p) => user!.permissions!.includes(p));
+  return permissions.every((p) => permissionImplied(p, user!.permissions!));
 }

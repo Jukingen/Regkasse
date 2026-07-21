@@ -1,4 +1,3 @@
-using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Reports;
 
 namespace KasseAPI_Final.Models;

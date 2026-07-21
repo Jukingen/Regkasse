@@ -7,7 +7,6 @@ using KasseAPI_Final.Services.Metrics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
 
 namespace KasseAPI_Final.Controllers;
 

@@ -11,7 +11,6 @@ using KasseAPI_Final.Validators;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Controllers;
 

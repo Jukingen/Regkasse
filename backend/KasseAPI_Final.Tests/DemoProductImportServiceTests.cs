@@ -32,7 +32,7 @@ public sealed class DemoProductImportServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"demo_import_{Guid.NewGuid():N}")
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static DemoProductImportService CreateService(AppDbContext db)
@@ -221,7 +221,7 @@ public sealed class DemoProductImportServiceTests
         Skip.If(string.IsNullOrWhiteSpace(cs), "Set ConnectionStrings__DefaultConnection for local PG verification.");
 
         var options = new DbContextOptionsBuilder<AppDbContext>().UseAppNpgsql(cs).Options;
-        await using var db = new AppDbContext(options);
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
         var tenantId = DemoTenantIds.Prod;
         Skip.If(!await db.Tenants.IgnoreQueryFilters().AnyAsync(t => t.Id == tenantId), "Cafe tenant missing; run migrations first.");
 

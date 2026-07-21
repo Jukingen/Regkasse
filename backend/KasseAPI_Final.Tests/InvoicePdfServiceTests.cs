@@ -1,5 +1,4 @@
 using System.Text.Json;
-using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
@@ -8,8 +7,8 @@ using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
-using Xunit;
 using Moq;
+using Xunit;
 
 namespace KasseAPI_Final.Tests;
 

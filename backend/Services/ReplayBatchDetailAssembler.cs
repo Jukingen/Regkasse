@@ -1,11 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services;
 

@@ -1,14 +1,11 @@
-using System.Text.Json;
 using KasseAPI_Final.Auth;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
-using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Tenancy;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,7 +13,6 @@ namespace KasseAPI_Final.Services.AdminTenants;
 
 public sealed class TenantUserService : ITenantUserService
 {
-    private const string AuditEntityType = "TenantUser";
     private const string ActionTenantUserCreated = "TENANT_USER_CREATED";
     private const string ActionTenantQuickUserCreated = AuditLogActions.TENANT_QUICK_USER_CREATED;
 
@@ -441,7 +437,7 @@ public sealed class TenantUserService : ITenantUserService
                 EntityType = AuditLogEntityTypes.USER,
                 EntityId = entityId,
                 EntityName = targetUserId.Length > 100 ? targetUserId[..100] : targetUserId,
-                RequestData = JsonSerializer.Serialize(details),
+                RequestData = AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(details),
                 Status = AuditLogStatus.Success,
                 Timestamp = now,
                 CreatedAt = now,
@@ -553,7 +549,7 @@ public sealed class TenantUserService : ITenantUserService
         if (tenant == null)
             return (null, "Tenant not found.");
 
-        var generatedPassword = PasswordGenerator.GenerateRandomPassword();
+        var generatedPassword = PasswordGenerator.GenerateSecurePassword();
         var token = await _userManager.GeneratePasswordResetTokenAsync(user).ConfigureAwait(false);
         var reset = await _userManager.ResetPasswordAsync(user, token, generatedPassword).ConfigureAwait(false);
         if (!reset.Succeeded)
@@ -569,6 +565,23 @@ public sealed class TenantUserService : ITenantUserService
 
         const string deliveryNote =
             "Share the password manually. User must change password on next login.";
+
+        try
+        {
+            await _auditLog.LogUserLifecycleAsync(
+                AuditEventType.PasswordResetForced,
+                ResolveActorUserId(),
+                ResolveActorRole(),
+                userId,
+                tenantId,
+                reason: "Tenant user password reset (generated one-time password)",
+                description: "Admin force password reset for tenant user",
+                status: AuditLogStatus.Success).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Audit log failed for password reset user {UserId} tenant {TenantId}", userId, tenantId);
+        }
 
         _logger.LogInformation(
             "Super-admin reset password for user {UserId} on tenant {TenantId}",

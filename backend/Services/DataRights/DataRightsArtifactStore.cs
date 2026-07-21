@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Hosting;
-
 namespace KasseAPI_Final.Services.DataRights;
 
 /// <summary>Filesystem store for GDPR export ZIP artifacts under App_Data/data-exports.</summary>

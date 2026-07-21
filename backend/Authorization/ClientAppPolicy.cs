@@ -75,7 +75,8 @@ public static class ClientAppPolicy
     /// </summary>
     public static bool CanLoginToPos(string roleName)
     {
-        if (string.IsNullOrWhiteSpace(roleName)) return false;
+        if (string.IsNullOrWhiteSpace(roleName))
+            return false;
         var canonical = Auth.RoleCanonicalization.GetCanonicalRole(roleName);
         return PosAllowedRoles.Contains(canonical);
     }
@@ -86,7 +87,8 @@ public static class ClientAppPolicy
     /// </summary>
     public static bool CanLoginToAdmin(string roleName)
     {
-        if (string.IsNullOrWhiteSpace(roleName)) return false;
+        if (string.IsNullOrWhiteSpace(roleName))
+            return false;
         var canonical = Auth.RoleCanonicalization.GetCanonicalRole(roleName);
         return AdminAllowedRoles.Contains(canonical);
     }

@@ -2,10 +2,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Localization;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Tenancy;
 

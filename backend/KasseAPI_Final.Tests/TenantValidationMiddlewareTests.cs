@@ -30,7 +30,12 @@ public sealed class TenantValidationMiddlewareTests
     [Theory]
     [InlineData("/api/auth/login")]
     [InlineData("/api/auth/refresh")]
+    [InlineData("/api/auth/verify-2fa")]
+    [InlineData("/api/csrf/token")]
     [InlineData("/api/health")]
+    [InlineData("/api/health/live")]
+    [InlineData("/health")]
+    [InlineData("/metrics")]
     [InlineData("/swagger/index.html")]
     public async Task InvokeAsync_SkipsPublicPaths(string path)
     {
@@ -77,8 +82,6 @@ public sealed class TenantValidationMiddlewareTests
     [InlineData("/api/pos/cart/current")]
     [InlineData("/api/admin/products")]
     [InlineData("/api/license/status")]
-    [InlineData("/health")]
-    [InlineData("/metrics")]
     public async Task InvokeAsync_Returns404_WhenTenantMissingOnProtectedPath(string path)
     {
         var accessor = new CurrentTenantAccessor { TenantId = null };

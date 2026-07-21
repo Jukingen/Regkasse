@@ -1,11 +1,9 @@
-using System.IO;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
-using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.DataProtection;
@@ -76,6 +74,23 @@ public sealed class TenantUserServiceTests
             sessionInvalidation ?? Mock.Of<IUserSessionInvalidation>(),
             Mock.Of<ILogger<UserRoleChangeService>>());
 
+        var httpContext = new DefaultHttpContext
+        {
+            User = new System.Security.Claims.ClaimsPrincipal(
+                new System.Security.Claims.ClaimsIdentity(
+                    [
+                        new System.Security.Claims.Claim(
+                            System.Security.Claims.ClaimTypes.Role,
+                            Roles.SuperAdmin),
+                        new System.Security.Claims.Claim(
+                            System.Security.Claims.ClaimTypes.NameIdentifier,
+                            "test-super-admin"),
+                    ],
+                    authenticationType: "test"))
+        };
+        var http = new Mock<IHttpContextAccessor>();
+        http.Setup(x => x.HttpContext).Returns(httpContext);
+
         return new TenantUserService(
             db,
             userManager,
@@ -89,7 +104,7 @@ public sealed class TenantUserServiceTests
                 CreateUserCreationService(db, userManager, uniqueness)),
             CreateUserCreationService(db, userManager, uniqueness),
             audit,
-            Mock.Of<IHttpContextAccessor>(),
+            http.Object,
             tenantAccessor ?? NullCurrentTenantAccessor.Instance,
             ActivityEventTestSupport.CreateRecorder(),
             roleChange,
@@ -118,6 +133,20 @@ public sealed class TenantUserServiceTests
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<UserCreatedAuditDetails?>()))
+            .ReturnsAsync(new AuditLog { Id = Guid.NewGuid() });
+        m.Setup(x => x.LogUserLifecycleAsync(
+                It.IsAny<AuditEventType>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Guid?>(),
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
                 It.IsAny<AuditLogStatus>(),
@@ -212,9 +241,9 @@ public sealed class TenantUserServiceTests
     }
 
     [Fact]
-    public void GenerateRandomPassword_MeetsRules()
+    public void GenerateSecurePassword_MeetsRules()
     {
-        var password = PasswordGenerator.GenerateRandomPassword();
+        var password = PasswordGenerator.GenerateSecurePassword();
         Assert.True(password.Length >= 12);
         Assert.Matches(@"[A-Z]", password);
         Assert.Matches(@"[a-z]", password);
@@ -345,7 +374,7 @@ public sealed class TenantUserServiceTests
         Assert.Null(error);
         Assert.NotNull(result);
         Assert.True(result!.Success);
-        Assert.Matches(@"^cashier_[a-z0-9]{6}@cafe\.regkasse\.at$", result.Email);
+        Assert.Matches(@"^cashier_[a-z0-9]{6}@dev\.regkasse\.at$", result.Email);
         Assert.Matches(@"^cashier\d+$", result.UserName);
         Assert.NotEqual(result.Email, result.UserName);
 
@@ -357,12 +386,15 @@ public sealed class TenantUserServiceTests
         Assert.True(result.ForcePasswordChangeOnNextLogin);
         Assert.Equal(Roles.Cashier, result.Role);
 
-        var auditRow = await db.AuditLogs.SingleAsync(a => a.Action == AuditLogActions.TENANT_QUICK_USER_CREATED);
+        var auditRow = await db.AuditLogs.IgnoreQueryFilters()
+            .SingleAsync(a => a.Action == AuditLogActions.TENANT_QUICK_USER_CREATED);
         Assert.Equal(AuditLogEntityTypes.USER, auditRow.EntityType);
         Assert.Equal(tenantId, auditRow.TenantId);
         Assert.Equal(actorId, auditRow.UserId);
         Assert.Contains("Schnell-Benutzer", auditRow.Description);
-        Assert.Contains("***HIDDEN***", auditRow.RequestData);
+        Assert.Contains("generatedPassword", auditRow.RequestData);
+        Assert.Contains(AuditLogPersistenceSanitizer.RedactedPlaceholder, auditRow.RequestData);
+        Assert.DoesNotContain("HIDDEN", auditRow.RequestData ?? "", StringComparison.Ordinal);
         Assert.Contains("quick_generate", auditRow.RequestData);
         Assert.Contains("userName", auditRow.RequestData);
     }
@@ -452,7 +484,7 @@ public sealed class TenantUserServiceTests
     public void QuickUserEmailGenerator_BuildEmail_Uses_Role_Prefix_And_Six_Char_Suffix()
     {
         var email = QuickUserEmailGenerator.BuildEmail("Manager", "dev");
-        Assert.Matches(@"^manager_[a-z0-9]{6}@cafe\.regkasse\.at$", email);
+        Assert.Matches(@"^manager_[a-z0-9]{6}@dev\.regkasse\.at$", email);
     }
 
     [Fact]
@@ -572,12 +604,28 @@ public sealed class TenantUserServiceTests
         });
         await db.SaveChangesAsync();
 
-        var service = CreateService(db, userManager);
+        var audit = CreateAuditMock();
+        var service = CreateService(db, userManager, auditLog: audit.Object);
         var (result, error) = await service.ResetPasswordAsync(tenantId, user.Id);
 
         Assert.Null(error);
         Assert.NotNull(result);
         Assert.False(string.IsNullOrEmpty(result!.GeneratedPassword));
+        audit.Verify(
+            x => x.LogUserLifecycleAsync(
+                AuditEventType.PasswordResetForced,
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                user.Id,
+                tenantId,
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                AuditLogStatus.Success,
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<UserCreatedAuditDetails?>()),
+            Times.Once);
     }
 
     [Fact]

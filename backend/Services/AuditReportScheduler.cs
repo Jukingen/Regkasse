@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Cronos;
-using KasseAPI_Final;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
@@ -203,7 +202,10 @@ public sealed class AuditReportSchedulerHostedService : BackgroundService
                 using var scope = _scopeFactory.CreateScope();
                 var schedules = scope.ServiceProvider.GetRequiredService<IAuditReportScheduler>();
                 var tenants = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                // Cross-tenant due discovery: ambient tenant is unset. Keep IgnoreQueryFilters if schedules
+                // ever become ITenantEntity (fail-closed filter would otherwise return no rows).
                 var dueTenantIds = await tenants.AuditReportSchedules
+                    .IgnoreQueryFilters()
                     .Where(s => s.IsActive && s.NextRunUtc != null && s.NextRunUtc <= DateTime.UtcNow)
                     .Select(s => s.TenantId)
                     .Distinct()

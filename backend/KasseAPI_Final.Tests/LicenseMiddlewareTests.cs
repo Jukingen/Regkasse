@@ -12,8 +12,14 @@ using Xunit;
 
 namespace KasseAPI_Final.Tests;
 
+[Collection("OpenApiExportWebHost")]
 public sealed class LicenseMiddlewareTests
 {
+    public LicenseMiddlewareTests()
+    {
+        OpenApiExportHostGate.EnsureExportModeDisabled();
+    }
+
     private static readonly Guid TenantId = Guid.Parse("88888888-8888-8888-8888-888888888888");
     private static readonly DateTime Now = new(2026, 5, 25, 0, 0, 0, DateTimeKind.Utc);
 

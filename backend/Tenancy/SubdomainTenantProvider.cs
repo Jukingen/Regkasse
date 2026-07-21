@@ -2,7 +2,8 @@ namespace KasseAPI_Final.Tenancy;
 
 /// <summary>
 /// Maps request host subdomain to a tenant slug (e.g. <c>companyA.regkasse.at</c> → <c>companyA</c>).
-/// Development: override via <see cref="DevTenantHeaderName"/> or <c>?tenant=slug</c>.
+/// <see cref="DevTenantHeaderName"/> / <see cref="DevTenantQueryName"/> are read only when
+/// <see cref="IHostEnvironment.IsDevelopment"/> — ignored in Production/Staging.
 /// </summary>
 public sealed class SubdomainTenantProvider : ITenantProvider
 {
@@ -22,6 +23,7 @@ public sealed class SubdomainTenantProvider : ITenantProvider
     public string GetCurrentTenantId()
     {
         var httpContext = _httpContextAccessor.HttpContext;
+        // Fail-closed: never honor client-supplied tenant overrides outside Development.
         if (_environment.IsDevelopment() && httpContext != null)
         {
             if (httpContext.Request.Headers.TryGetValue(DevTenantHeaderName, out var headerTenant)

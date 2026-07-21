@@ -38,7 +38,7 @@ public class SettingsTenantWave1Tests
     {
         var dbName = Guid.NewGuid().ToString();
         var options = new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(dbName).Options;
-        await using var db = new AppDbContext(options);
+        await using var db = new AppDbContext(options, NullCurrentTenantAccessor.Instance);
 
         var tenantA = Guid.NewGuid();
         var tenantB = Guid.NewGuid();
@@ -49,8 +49,8 @@ public class SettingsTenantWave1Tests
         db.SystemSettings.Add(MinimalSystemSettings(tenantB, "Beta Co", "ATU22222222"));
         await db.SaveChangesAsync();
 
-        var rowA = await db.SystemSettings.AsNoTracking().FirstOrDefaultAsync(s => s.TenantId == tenantA);
-        var rowB = await db.SystemSettings.AsNoTracking().FirstOrDefaultAsync(s => s.TenantId == tenantB);
+        var rowA = await db.SystemSettings.IgnoreQueryFilters().AsNoTracking().FirstOrDefaultAsync(s => s.TenantId == tenantA);
+        var rowB = await db.SystemSettings.IgnoreQueryFilters().AsNoTracking().FirstOrDefaultAsync(s => s.TenantId == tenantB);
 
         Assert.NotNull(rowA);
         Assert.NotNull(rowB);
@@ -63,7 +63,7 @@ public class SettingsTenantWave1Tests
     {
         var dbName = Guid.NewGuid().ToString();
         var options = new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(dbName).Options;
-        await using var db = new AppDbContext(options);
+        await using var db = new AppDbContext(options, NullCurrentTenantAccessor.Instance);
 
         var tenantA = Guid.NewGuid();
         var tenantB = Guid.NewGuid();
@@ -73,8 +73,8 @@ public class SettingsTenantWave1Tests
         db.CompanySettings.Add(MinimalCompanySettings(tenantB, "ATU20000002"));
         await db.SaveChangesAsync();
 
-        var onlyA = await db.CompanySettings.AsNoTracking().SingleOrDefaultAsync(c => c.TenantId == tenantA);
-        var onlyB = await db.CompanySettings.AsNoTracking().SingleOrDefaultAsync(c => c.TenantId == tenantB);
+        var onlyA = await db.CompanySettings.IgnoreQueryFilters().AsNoTracking().SingleOrDefaultAsync(c => c.TenantId == tenantA);
+        var onlyB = await db.CompanySettings.IgnoreQueryFilters().AsNoTracking().SingleOrDefaultAsync(c => c.TenantId == tenantB);
 
         Assert.Equal("ATU10000001", onlyA!.CompanyTaxNumber);
         Assert.Equal("ATU20000002", onlyB!.CompanyTaxNumber);

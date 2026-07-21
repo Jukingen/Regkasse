@@ -1,4 +1,3 @@
-using System.Linq;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
@@ -27,7 +26,7 @@ public sealed class PricingRuleTenantizationTests
             .UseInMemoryDatabase($"PricingTenant_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static void EnsureTenants(AppDbContext ctx)
@@ -135,17 +134,17 @@ public sealed class PricingRuleTenantizationTests
         PricingRuleTargetScope scope,
         Guid targetId,
         Guid? cashRegisterId = null) => new()
-    {
-        Name = "rule",
-        Priority = 50,
-        ValidFromDate = today,
-        ValidToDate = today.AddDays(7),
-        TargetScope = scope,
-        TargetId = targetId,
-        ActionType = PricingRuleActionType.FixedGrossPrice,
-        ActionValue = 5.55m,
-        CashRegisterId = cashRegisterId
-    };
+        {
+            Name = "rule",
+            Priority = 50,
+            ValidFromDate = today,
+            ValidToDate = today.AddDays(7),
+            TargetScope = scope,
+            TargetId = targetId,
+            ActionType = PricingRuleActionType.FixedGrossPrice,
+            ActionValue = 5.55m,
+            CashRegisterId = cashRegisterId
+        };
 
     [Fact]
     public async Task Admin_GetAll_AsTenantA_ExcludesTenantBRule()

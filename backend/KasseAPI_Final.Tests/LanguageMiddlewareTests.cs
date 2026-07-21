@@ -1,7 +1,5 @@
 using KasseAPI_Final.Localization;
 using KasseAPI_Final.Middleware;
-using KasseAPI_Final.Services;
-using KasseAPI_Final.Services.Localization;
 using Microsoft.AspNetCore.Http;
 using Xunit;
 

@@ -37,39 +37,52 @@ public sealed class InvoiceNumberGeneratorTests
     }
 
     [Fact]
-    public void GenerateInvoiceNumber_ReturnsFirstSequenceForMonth()
+    public async Task AllocateAsync_ReturnsFirstSequenceForMonth()
     {
-        using var db = CreateDb();
+        await using var db = CreateDb();
         var generator = new InvoiceNumberGenerator(db);
 
-        var invoiceNumber = generator.GenerateInvoiceNumber(new DateTime(2026, 8, 15, 12, 0, 0, DateTimeKind.Utc));
+        var invoiceNumber = await generator.AllocateAsync(new DateTime(2026, 8, 15, 12, 0, 0, DateTimeKind.Utc));
 
         Assert.Equal("RE2026081", invoiceNumber);
     }
 
     [Fact]
-    public void GenerateInvoiceNumber_IncrementsWithinSameMonth()
+    public async Task AllocateAsync_IncrementsWithinSameMonth()
     {
-        using var db = CreateDb();
-        db.LicenseSales.Add(CreateSale("RE20260841"));
-        db.LicenseSales.Add(CreateSale("RE2026087"));
-        db.SaveChanges();
+        await using var db = CreateDb();
+        db.InvoiceSequences.Add(new InvoiceSequence
+        {
+            Id = Guid.NewGuid(),
+            Year = 2026,
+            Month = 8,
+            LastSequence = 41,
+            UpdatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
 
         var generator = new InvoiceNumberGenerator(db);
-        var invoiceNumber = generator.GenerateInvoiceNumber(new DateTime(2026, 8, 20, 0, 0, 0, DateTimeKind.Utc));
+        var invoiceNumber = await generator.AllocateAsync(new DateTime(2026, 8, 20, 0, 0, 0, DateTimeKind.Utc));
 
         Assert.Equal("RE20260842", invoiceNumber);
     }
 
     [Fact]
-    public void GenerateInvoiceNumber_ResetsSequenceForNewMonth()
+    public async Task AllocateAsync_ResetsSequenceForNewMonth()
     {
-        using var db = CreateDb();
-        db.LicenseSales.Add(CreateSale("RE20260841"));
-        db.SaveChanges();
+        await using var db = CreateDb();
+        db.InvoiceSequences.Add(new InvoiceSequence
+        {
+            Id = Guid.NewGuid(),
+            Year = 2026,
+            Month = 8,
+            LastSequence = 41,
+            UpdatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
 
         var generator = new InvoiceNumberGenerator(db);
-        var invoiceNumber = generator.GenerateInvoiceNumber(new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc));
+        var invoiceNumber = await generator.AllocateAsync(new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc));
 
         Assert.Equal("RE2026091", invoiceNumber);
     }
@@ -125,21 +138,4 @@ public sealed class InvoiceNumberGeneratorTests
 
         return new AppDbContext(options, NullCurrentTenantAccessor.Instance);
     }
-
-    private static LicenseSale CreateSale(string invoiceNumber) =>
-        new()
-        {
-            TenantId = Guid.NewGuid(),
-            LicenseKey = "REGK-20261231-dev-A7F3K2D9",
-            LicensePlan = LicenseSalePlans.TwelveMonths,
-            ValidFromUtc = DateTime.UtcNow,
-            ValidUntilUtc = DateTime.UtcNow.AddYears(1),
-            PriceNet = 100m,
-            VatRate = 20m,
-            VatAmount = 20m,
-            PriceGross = 120m,
-            SoldAtUtc = DateTime.UtcNow,
-            SoldByUserId = Guid.NewGuid(),
-            InvoiceNumber = invoiceNumber,
-        };
 }

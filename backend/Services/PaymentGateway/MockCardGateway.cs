@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using KasseAPI_Final.Configuration;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.PaymentGateway;

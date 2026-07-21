@@ -2,8 +2,8 @@ using System.IO.Compression;
 using System.Text.Json;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
@@ -19,7 +19,7 @@ public sealed class TenantScopedBackupExporterTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(nameof(ExportAsync_writes_only_matching_tenant_rows_and_excludes_other_tenant) + Guid.NewGuid())
             .Options;
-        await using var db = new AppDbContext(options);
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
 
         db.Tenants.AddRange(
             new Tenant { Id = tenantA, Name = "A", Slug = "a", IsActive = true, CreatedAt = DateTime.UtcNow },

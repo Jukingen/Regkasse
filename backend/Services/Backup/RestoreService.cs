@@ -65,6 +65,14 @@ public sealed class RestoreService : IRestoreService
                 "ValidationOnly must be true; production restore is not supported.");
         }
 
+        // Tenant JSON ZIP is not a pg_restore input (content policy / restore-boundary-notes).
+        if (backup.Strategy == BackupStrategyKind.Tenant)
+        {
+            return RestoreResult.Fail(
+                ComplianceCheckService.TenantPackageRestoreCode,
+                "Tenant JSON ZIP packages are not restored via pg_restore; use a System validation dump.");
+        }
+
         if (backup.Status != BackupRunStatus.Succeeded)
         {
             return RestoreResult.Fail(

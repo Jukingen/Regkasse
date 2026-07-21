@@ -1,4 +1,4 @@
-using KasseAPI_Final.Models;
+using System.Text.Json.Serialization;
 
 namespace KasseAPI_Final.Models.DTOs;
 
@@ -28,7 +28,12 @@ public class PaymentListItemDto
     public int FinanzOnlineRetryCount { get; set; }
     public bool InvoicePersisted { get; set; }
     public decimal VoucherRedeemedAmount { get; set; }
+
+    /// <summary>Derived from <see cref="VoucherRedeemedAmount"/> &gt; 0; clients should use the amount field.</summary>
+    [Obsolete("Redundant with voucherRedeemedAmount. Planned removal after 2026-12-31.")]
+    [JsonPropertyName("hasVoucherRedemption")]
     public bool HasVoucherRedemption { get; set; }
+
     public bool IsStorno { get; set; }
     public bool IsRefund { get; set; }
     public StornoReason? StornoReason { get; set; }

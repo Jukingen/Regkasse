@@ -18,8 +18,14 @@ using Xunit;
 
 namespace KasseAPI_Final.Tests;
 
+[Collection("OpenApiExportWebHost")]
 public sealed class TenantOperationalGateMiddlewareTests
 {
+    public TenantOperationalGateMiddlewareTests()
+    {
+        OpenApiExportHostGate.EnsureExportModeDisabled();
+    }
+
     private static readonly Guid TenantId = Guid.Parse("77777777-7777-7777-7777-777777777777");
     private static readonly DateTime Now = new(2026, 5, 25, 0, 0, 0, DateTimeKind.Utc);
 
@@ -28,7 +34,7 @@ public sealed class TenantOperationalGateMiddlewareTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"tenant_gate_{Guid.NewGuid():N}")
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static async Task SeedTenantAsync(AppDbContext db, DateTime? validUntilUtc)

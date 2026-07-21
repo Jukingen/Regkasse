@@ -1,38 +1,25 @@
-using System.Net.Http;
+using System.Globalization;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
-using Npgsql;
-using KasseAPI_Final;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
-using KasseAPI_Final.Models;
-using KasseAPI_Final.DTOs;
-using AuditLogStatus = KasseAPI_Final.Models.AuditLogStatus;
-using KasseAPI_Final.Models.DTOs;
-using KasseAPI_Final.Fiscal;
 using KasseAPI_Final.Data.Repositories;
+using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Fiscal;
+using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
+using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Services.Pricing;
+using KasseAPI_Final.Services.Tenancy;
+using KasseAPI_Final.Services.Tse;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
-using KasseAPI_Final.Configuration;
-using Microsoft.Extensions.Options;
-using KasseAPI_Final.Rksv;
-using System.Text.RegularExpressions;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Collections.Generic;
-using System;
-using System.Threading.Tasks;
-using System.Threading;
-using Microsoft.Extensions.Logging;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Text;
-using System.Globalization;
-using KasseAPI_Final.Services.Tse;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.Extensions.Hosting;
-using KasseAPI_Final.Services.Tenancy;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Npgsql;
+using AuditLogStatus = KasseAPI_Final.Models.AuditLogStatus;
 
 namespace KasseAPI_Final.Services
 {
@@ -831,231 +818,231 @@ namespace KasseAPI_Final.Services
                         await ApplyBenefitUsageMutationsAsync(benefitResult.UsageDeltas);
                     }
 
-                // Fiscal total authority: `totalAmount` is computed from catalog lines (and benefits); `request.TotalAmount` is only a client parity probe — persisted rows use `totalAmount`.
-                const decimal amountTolerance = 0.01m;
-                if (Math.Abs(totalAmount - request.TotalAmount) > amountTolerance)
-                {
-                    _logger.LogWarning(
-                        "Payment total mismatch: calculated={Calculated}, request={Request}. Rejecting for fiscal integrity.",
-                        totalAmount, request.TotalAmount);
-                    await transaction.RollbackAsync();
-                    _context.ChangeTracker.Clear();
-                    return new PaymentResult
+                    // Fiscal total authority: `totalAmount` is computed from catalog lines (and benefits); `request.TotalAmount` is only a client parity probe — persisted rows use `totalAmount`.
+                    const decimal amountTolerance = 0.01m;
+                    if (Math.Abs(totalAmount - request.TotalAmount) > amountTolerance)
                     {
-                        Success = false,
-                        Message = "Total amount mismatch between client and server calculation.",
-                        Errors = { "Total amount mismatch between client and server calculation." }
-                    };
-                }
+                        _logger.LogWarning(
+                            "Payment total mismatch: calculated={Calculated}, request={Request}. Rejecting for fiscal integrity.",
+                            totalAmount, request.TotalAmount);
+                        await transaction.RollbackAsync();
+                        _context.ChangeTracker.Clear();
+                        return new PaymentResult
+                        {
+                            Success = false,
+                            Message = "Total amount mismatch between client and server calculation.",
+                            Errors = { "Total amount mismatch between client and server calculation." }
+                        };
+                    }
 
-                var methodResolution = await _paymentMethodCatalog.ResolveForPaymentAsync(
-                    request.Payment.Method,
-                    cashRegisterId);
-                if (!methodResolution.Ok)
-                {
-                    await transaction.RollbackAsync();
-                    _context.ChangeTracker.Clear();
-                    return new PaymentResult
+                    var methodResolution = await _paymentMethodCatalog.ResolveForPaymentAsync(
+                        request.Payment.Method,
+                        cashRegisterId);
+                    if (!methodResolution.Ok)
                     {
-                        Success = false,
-                        Message = methodResolution.ErrorMessage ?? "Invalid payment method.",
-                        Errors = { methodResolution.ErrorMessage ?? "Invalid payment method." }
-                    };
-                }
+                        await transaction.RollbackAsync();
+                        _context.ChangeTracker.Clear();
+                        return new PaymentResult
+                        {
+                            Success = false,
+                            Message = methodResolution.ErrorMessage ?? "Invalid payment method.",
+                            Errors = { methodResolution.ErrorMessage ?? "Invalid payment method." }
+                        };
+                    }
 
-                // POS sends method code "voucher". If tenant catalog maps code voucher to a non-voucher legacy value, reject before committing (no silent skip of Gutschein redemption).
-                if (voucherLikelyFromClientMethod
-                    && methodResolution.MatchedPaymentMethodDefinition
-                    && !IsVoucherLegacyPayment(methodResolution.LegacyRaw))
-                {
-                    var expectedLegacy = ((int)PaymentMethod.Voucher).ToString(CultureInfo.InvariantCulture);
-                    _logger.LogError(
-                        "Payment rejected: payment_method_definitions has code voucher but legacy_payment_method_value={Legacy} (expected {Expected}). Fix tenant catalog.",
-                        methodResolution.LegacyRaw,
-                        expectedLegacy);
-                    await transaction.RollbackAsync();
-                    _context.ChangeTracker.Clear();
-                    return new PaymentResult
+                    // POS sends method code "voucher". If tenant catalog maps code voucher to a non-voucher legacy value, reject before committing (no silent skip of Gutschein redemption).
+                    if (voucherLikelyFromClientMethod
+                        && methodResolution.MatchedPaymentMethodDefinition
+                        && !IsVoucherLegacyPayment(methodResolution.LegacyRaw))
                     {
-                        Success = false,
-                        Message =
-                            $"Voucher payment method is misconfigured: catalog code \"voucher\" must map to legacy value {expectedLegacy} (PaymentMethod.Voucher).",
-                        Errors =
+                        var expectedLegacy = ((int)PaymentMethod.Voucher).ToString(CultureInfo.InvariantCulture);
+                        _logger.LogError(
+                            "Payment rejected: payment_method_definitions has code voucher but legacy_payment_method_value={Legacy} (expected {Expected}). Fix tenant catalog.",
+                            methodResolution.LegacyRaw,
+                            expectedLegacy);
+                        await transaction.RollbackAsync();
+                        _context.ChangeTracker.Clear();
+                        return new PaymentResult
+                        {
+                            Success = false,
+                            Message =
+                                $"Voucher payment method is misconfigured: catalog code \"voucher\" must map to legacy value {expectedLegacy} (PaymentMethod.Voucher).",
+                            Errors =
                         {
                             $"Voucher catalog misconfiguration: code voucher must use legacy_payment_method_value {expectedLegacy}."
                         },
-                        IsDeterministicFailure = true,
-                        DiagnosticCode = "VOUCHER_LEGACY_MISMATCH"
-                    };
-                }
+                            IsDeterministicFailure = true,
+                            DiagnosticCode = "VOUCHER_LEGACY_MISMATCH"
+                        };
+                    }
 
-                CardPaymentTransaction? validatedCardTransaction = null;
-                if (IsCardLegacyPayment(methodResolution.LegacyRaw) && _cardPaymentService != null)
-                {
-                    var cardIntentId = request.Payment.CardPaymentIntentId;
-                    if (cardIntentId.HasValue && cardIntentId.Value != Guid.Empty)
+                    CardPaymentTransaction? validatedCardTransaction = null;
+                    if (IsCardLegacyPayment(methodResolution.LegacyRaw) && _cardPaymentService != null)
                     {
-                        var (cardOk, cardTxn, cardErrCode, cardErrMsg) = await _cardPaymentService
-                            .ValidateForFiscalPaymentAsync(cardIntentId.Value, totalAmount, cashRegisterId)
-                            .ConfigureAwait(false);
-                        if (!cardOk)
+                        var cardIntentId = request.Payment.CardPaymentIntentId;
+                        if (cardIntentId.HasValue && cardIntentId.Value != Guid.Empty)
                         {
-                            await transaction.RollbackAsync();
-                            _context.ChangeTracker.Clear();
-                            return new PaymentResult
+                            var (cardOk, cardTxn, cardErrCode, cardErrMsg) = await _cardPaymentService
+                                .ValidateForFiscalPaymentAsync(cardIntentId.Value, totalAmount, cashRegisterId)
+                                .ConfigureAwait(false);
+                            if (!cardOk)
                             {
-                                Success = false,
-                                Message = cardErrMsg ?? "Card payment intent validation failed.",
-                                Errors = { cardErrMsg ?? "Card payment intent validation failed." },
-                                IsDeterministicFailure = true,
-                                DiagnosticCode = cardErrCode ?? "CARD_INTENT_INVALID"
-                            };
-                        }
+                                await transaction.RollbackAsync();
+                                _context.ChangeTracker.Clear();
+                                return new PaymentResult
+                                {
+                                    Success = false,
+                                    Message = cardErrMsg ?? "Card payment intent validation failed.",
+                                    Errors = { cardErrMsg ?? "Card payment intent validation failed." },
+                                    IsDeterministicFailure = true,
+                                    DiagnosticCode = cardErrCode ?? "CARD_INTENT_INVALID"
+                                };
+                            }
 
-                        validatedCardTransaction = cardTxn;
-                    }
-                    else
-                    {
-                        var (cardOk, _, cardErrCode, cardErrMsg) = await _cardPaymentService
-                            .ValidateForFiscalPaymentAsync(Guid.Empty, totalAmount, cashRegisterId)
-                            .ConfigureAwait(false);
-                        if (!cardOk)
-                        {
-                            await transaction.RollbackAsync();
-                            _context.ChangeTracker.Clear();
-                            return new PaymentResult
-                            {
-                                Success = false,
-                                Message = cardErrMsg ?? "Card payment requires a confirmed card payment intent.",
-                                Errors = { cardErrMsg ?? "Card payment requires a confirmed card payment intent." },
-                                IsDeterministicFailure = true,
-                                DiagnosticCode = cardErrCode ?? "CARD_INTENT_REQUIRED"
-                            };
-                        }
-                    }
-                }
-
-                var isVoucherMethodResolved = IsVoucherLegacyPayment(methodResolution.LegacyRaw);
-                var expectedVoucherTotal = decimal.Round(totalAmount, 2, MidpointRounding.AwayFromZero);
-                if (!isVoucherMethodResolved && hasVoucherPayload)
-                {
-                    if (!request.Payment.Amount.HasValue)
-                    {
-                        await transaction.RollbackAsync();
-                        _context.ChangeTracker.Clear();
-                        return new PaymentResult
-                        {
-                            Success = false,
-                            Message = "Settlement amount is required when voucher redemption is combined with a non-voucher payment method.",
-                            Errors =
-                            {
-                                "Settlement amount is required when voucher redemption is combined with a non-voucher payment method."
-                            },
-                            IsDeterministicFailure = true,
-                            DiagnosticCode = "VOUCHER_MIXED_SETTLEMENT_AMOUNT_REQUIRED"
-                        };
-                    }
-
-                    var settlementAmount = decimal.Round(request.Payment.Amount.Value, 2, MidpointRounding.AwayFromZero);
-                    if (settlementAmount < 0)
-                    {
-                        await transaction.RollbackAsync();
-                        _context.ChangeTracker.Clear();
-                        return new PaymentResult
-                        {
-                            Success = false,
-                            Message = "Settlement amount cannot be negative.",
-                            Errors = { "Settlement amount cannot be negative." },
-                            IsDeterministicFailure = true,
-                            DiagnosticCode = "VOUCHER_MIXED_SETTLEMENT_NEGATIVE"
-                        };
-                    }
-
-                    if (settlementAmount > totalAmount + 0.01m)
-                    {
-                        await transaction.RollbackAsync();
-                        _context.ChangeTracker.Clear();
-                        return new PaymentResult
-                        {
-                            Success = false,
-                            Message = "Settlement amount cannot exceed total amount.",
-                            Errors = { "Settlement amount cannot exceed total amount." },
-                            IsDeterministicFailure = true,
-                            DiagnosticCode = "VOUCHER_MIXED_SETTLEMENT_EXCEEDS_TOTAL"
-                        };
-                    }
-
-                    expectedVoucherTotal = decimal.Round(totalAmount - settlementAmount, 2, MidpointRounding.AwayFromZero);
-                    if (expectedVoucherTotal <= 0)
-                    {
-                        await transaction.RollbackAsync();
-                        _context.ChangeTracker.Clear();
-                        return new PaymentResult
-                        {
-                            Success = false,
-                            Message = "Voucher redemption amount must be greater than zero in mixed voucher payments.",
-                            Errors = { "Voucher redemption amount must be greater than zero in mixed voucher payments." },
-                            IsDeterministicFailure = true,
-                            DiagnosticCode = "VOUCHER_MIXED_ZERO_REDEEM"
-                        };
-                    }
-                }
-
-                // Voucher redemption when method is voucher, or when voucher payload is explicitly combined with a non-voucher settlement.
-                if (isVoucherMethodResolved || hasVoucherPayload)
-                {
-                    effectiveTseRequired = !_tseOptions.IsOff;
-                    var (voucherPlanError, voucherLines) = await BuildVoucherRedemptionPlanAsync(
-                        effectiveTenantId,
-                        cashRegisterId,
-                        expectedVoucherTotal,
-                        request.Payment,
-                        CancellationToken.None);
-                    if (voucherPlanError != null)
-                    {
-                        await transaction.RollbackAsync();
-                        _context.ChangeTracker.Clear();
-                        return voucherPlanError;
-                    }
-
-                    voucherRedeemLinesForCommit = voucherLines;
-                }
-
-                var ntpEff = await _ntpEffectiveSettings.GetEffectiveAsync(CancellationToken.None)
-                    .ConfigureAwait(false);
-                if (effectiveTseRequired && ntpEff.Enabled)
-                {
-                    if (!_ntpTimeSyncStatus.ShouldAllowOnlineFiscalPayment(
-                            ntpEff,
-                            out var clockMsg))
-                    {
-                        if (offlineTransactionId.HasValue)
-                        {
-                            timeSyncWarningForPayment = true;
-                            _logger.LogWarning(
-                                "Fiscal payment from offline replay accepted with NTP drift flag (TimeSyncWarning). OfflineTransactionId={OfflineId}",
-                                offlineTransactionId);
+                            validatedCardTransaction = cardTxn;
                         }
                         else
                         {
+                            var (cardOk, _, cardErrCode, cardErrMsg) = await _cardPaymentService
+                                .ValidateForFiscalPaymentAsync(Guid.Empty, totalAmount, cashRegisterId)
+                                .ConfigureAwait(false);
+                            if (!cardOk)
+                            {
+                                await transaction.RollbackAsync();
+                                _context.ChangeTracker.Clear();
+                                return new PaymentResult
+                                {
+                                    Success = false,
+                                    Message = cardErrMsg ?? "Card payment requires a confirmed card payment intent.",
+                                    Errors = { cardErrMsg ?? "Card payment requires a confirmed card payment intent." },
+                                    IsDeterministicFailure = true,
+                                    DiagnosticCode = cardErrCode ?? "CARD_INTENT_REQUIRED"
+                                };
+                            }
+                        }
+                    }
+
+                    var isVoucherMethodResolved = IsVoucherLegacyPayment(methodResolution.LegacyRaw);
+                    var expectedVoucherTotal = decimal.Round(totalAmount, 2, MidpointRounding.AwayFromZero);
+                    if (!isVoucherMethodResolved && hasVoucherPayload)
+                    {
+                        if (!request.Payment.Amount.HasValue)
+                        {
                             await transaction.RollbackAsync();
                             _context.ChangeTracker.Clear();
-                            _logger.LogWarning("Payment rejected: NTP/system time outside RKSV tolerance.");
                             return new PaymentResult
                             {
                                 Success = false,
-                                Message = clockMsg ?? "Systemzeit nicht synchronisiert – bitte Administrator kontaktieren",
-                                Errors = { clockMsg ?? "Systemzeit nicht synchronisiert – bitte Administrator kontaktieren" },
+                                Message = "Settlement amount is required when voucher redemption is combined with a non-voucher payment method.",
+                                Errors =
+                            {
+                                "Settlement amount is required when voucher redemption is combined with a non-voucher payment method."
+                            },
                                 IsDeterministicFailure = true,
-                                DiagnosticCode = "NTP_TIME_SYNC"
+                                DiagnosticCode = "VOUCHER_MIXED_SETTLEMENT_AMOUNT_REQUIRED"
+                            };
+                        }
+
+                        var settlementAmount = decimal.Round(request.Payment.Amount.Value, 2, MidpointRounding.AwayFromZero);
+                        if (settlementAmount < 0)
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "Settlement amount cannot be negative.",
+                                Errors = { "Settlement amount cannot be negative." },
+                                IsDeterministicFailure = true,
+                                DiagnosticCode = "VOUCHER_MIXED_SETTLEMENT_NEGATIVE"
+                            };
+                        }
+
+                        if (settlementAmount > totalAmount + 0.01m)
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "Settlement amount cannot exceed total amount.",
+                                Errors = { "Settlement amount cannot exceed total amount." },
+                                IsDeterministicFailure = true,
+                                DiagnosticCode = "VOUCHER_MIXED_SETTLEMENT_EXCEEDS_TOTAL"
+                            };
+                        }
+
+                        expectedVoucherTotal = decimal.Round(totalAmount - settlementAmount, 2, MidpointRounding.AwayFromZero);
+                        if (expectedVoucherTotal <= 0)
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "Voucher redemption amount must be greater than zero in mixed voucher payments.",
+                                Errors = { "Voucher redemption amount must be greater than zero in mixed voucher payments." },
+                                IsDeterministicFailure = true,
+                                DiagnosticCode = "VOUCHER_MIXED_ZERO_REDEEM"
                             };
                         }
                     }
-                }
 
-                // Single database transaction: register row lock + stock + BelegNr + payment + invoice + receipt commit together.
-                PaymentDetails? payment = null;
-                Invoice? posInvoice = null;
+                    // Voucher redemption when method is voucher, or when voucher payload is explicitly combined with a non-voucher settlement.
+                    if (isVoucherMethodResolved || hasVoucherPayload)
+                    {
+                        effectiveTseRequired = !_tseOptions.IsOff;
+                        var (voucherPlanError, voucherLines) = await BuildVoucherRedemptionPlanAsync(
+                            effectiveTenantId,
+                            cashRegisterId,
+                            expectedVoucherTotal,
+                            request.Payment,
+                            CancellationToken.None);
+                        if (voucherPlanError != null)
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return voucherPlanError;
+                        }
+
+                        voucherRedeemLinesForCommit = voucherLines;
+                    }
+
+                    var ntpEff = await _ntpEffectiveSettings.GetEffectiveAsync(CancellationToken.None)
+                        .ConfigureAwait(false);
+                    if (effectiveTseRequired && ntpEff.Enabled)
+                    {
+                        if (!_ntpTimeSyncStatus.ShouldAllowOnlineFiscalPayment(
+                                ntpEff,
+                                out var clockMsg))
+                        {
+                            if (offlineTransactionId.HasValue)
+                            {
+                                timeSyncWarningForPayment = true;
+                                _logger.LogWarning(
+                                    "Fiscal payment from offline replay accepted with NTP drift flag (TimeSyncWarning). OfflineTransactionId={OfflineId}",
+                                    offlineTransactionId);
+                            }
+                            else
+                            {
+                                await transaction.RollbackAsync();
+                                _context.ChangeTracker.Clear();
+                                _logger.LogWarning("Payment rejected: NTP/system time outside RKSV tolerance.");
+                                return new PaymentResult
+                                {
+                                    Success = false,
+                                    Message = clockMsg ?? "Systemzeit nicht synchronisiert – bitte Administrator kontaktieren",
+                                    Errors = { clockMsg ?? "Systemzeit nicht synchronisiert – bitte Administrator kontaktieren" },
+                                    IsDeterministicFailure = true,
+                                    DiagnosticCode = "NTP_TIME_SYNC"
+                                };
+                            }
+                        }
+                    }
+
+                    // Single database transaction: register row lock + stock + BelegNr + payment + invoice + receipt commit together.
+                    PaymentDetails? payment = null;
+                    Invoice? posInvoice = null;
 
                     // Sprint 1: Allocate BelegNr within this transaction so it commits or rolls back with payment/invoice/receipt/stock.
                     var preReceiptNumber = !string.IsNullOrWhiteSpace(request.ReservedReceiptNumber)
@@ -1407,12 +1394,14 @@ namespace KasseAPI_Final.Services
 
             foreach (var item in request.Items ?? new List<BenefitEligibilityPreviewItemRequest>())
             {
-                if (item.Quantity < 1) continue;
+                if (item.Quantity < 1)
+                    continue;
                 var product = await _context.Products
                     .Include(p => p.CategoryNavigation)
                     .AsNoTracking()
                     .FirstOrDefaultAsync(p => p.Id == item.ProductId && p.TenantId == effectiveTenantId);
-                if (product?.CategoryNavigation == null) continue;
+                if (product?.CategoryNavigation == null)
+                    continue;
 
                 var priceRes = await _pricingRuleResolver.ResolveUnitGrossAsync(
                     product.Price,
@@ -1524,7 +1513,8 @@ namespace KasseAPI_Final.Services
         public async Task<(string? QrPayload, DateTime? UpdatedAt)?> GetQrPayloadForPaymentAsync(Guid paymentId)
         {
             var payment = await GetPaymentAsync(paymentId);
-            if (payment == null) return null;
+            if (payment == null)
+                return null;
             var effectiveTseRequired = !string.IsNullOrEmpty(payment.TseSignature);
             var (qrPayload, _, _) = await BuildQrPayloadAndFlagsAsync(payment, effectiveTseRequired);
             var updatedAt = payment.UpdatedAt ?? payment.CreatedAt;
@@ -1582,13 +1572,13 @@ namespace KasseAPI_Final.Services
                 }
 
                 var (items, totalCount) = await _paymentRepository.GetPagedAsync(
-                    pageNumber, 
-                    pageSize, 
+                    pageNumber,
+                    pageSize,
                     p => p.CustomerId == customerId && p.IsActive,
                     p => p.CreatedAt,
                     false);
 
-                _logger.LogDebug("Retrieved {Count} payments for customer {CustomerId} (page {PageNumber}/{TotalPages})", 
+                _logger.LogDebug("Retrieved {Count} payments for customer {CustomerId} (page {PageNumber}/{TotalPages})",
                     items.Count(), customerId, pageNumber, Math.Ceiling((double)totalCount / pageSize));
 
                 return items;
@@ -1623,13 +1613,13 @@ namespace KasseAPI_Final.Services
                 var methodRaw = await _paymentMethodCatalog.ResolveRawForFilterAsync(paymentMethod);
 
                 var (items, totalCount) = await _paymentRepository.GetPagedAsync(
-                    pageNumber, 
-                    pageSize, 
+                    pageNumber,
+                    pageSize,
                     p => p.PaymentMethodRaw == methodRaw && p.IsActive,
                     p => p.CreatedAt,
                     false);
 
-                _logger.LogDebug("Retrieved {Count} payments for method {PaymentMethod} (page {PageNumber}/{TotalPages})", 
+                _logger.LogDebug("Retrieved {Count} payments for method {PaymentMethod} (page {PageNumber}/{TotalPages})",
                     items.Count(), paymentMethod, pageNumber, Math.Ceiling((double)totalCount / pageSize));
 
                 return items;
@@ -1659,7 +1649,7 @@ namespace KasseAPI_Final.Services
                 var maxDateRange = TimeSpan.FromDays(365 * 7);
                 if (endDate - startDate > maxDateRange)
                 {
-                    _logger.LogWarning("Date range too large: {Days} days. Maximum allowed: {MaxDays} days", 
+                    _logger.LogWarning("Date range too large: {Days} days. Maximum allowed: {MaxDays} days",
                         (endDate - startDate).Days, maxDateRange.Days);
                     return Enumerable.Empty<PaymentDetails>();
                 }
@@ -1687,7 +1677,7 @@ namespace KasseAPI_Final.Services
                     p => p.CreatedAt,
                     false);
 
-                _logger.LogDebug("Retrieved {Count} payments for date range {StartDate} to {EndDate} (page {PageNumber}/{TotalPages})", 
+                _logger.LogDebug("Retrieved {Count} payments for date range {StartDate} to {EndDate} (page {PageNumber}/{TotalPages})",
                     items.Count(), startDate, endDate, pageNumber, Math.Ceiling((double)totalCount / pageSize));
 
                 return items;
@@ -2788,8 +2778,8 @@ namespace KasseAPI_Final.Services
             if (payments.Any())
             {
                 var firstPayment = payments.First();
-                _logger.LogInformation("DIAGNOSTIC: PaymentMethodRaw type={Type}, value={Value}", 
-                    firstPayment.PaymentMethodRaw?.GetType().Name ?? "null", 
+                _logger.LogInformation("DIAGNOSTIC: PaymentMethodRaw type={Type}, value={Value}",
+                    firstPayment.PaymentMethodRaw?.GetType().Name ?? "null",
                     firstPayment.PaymentMethodRaw ?? "null");
             }
 
@@ -2806,8 +2796,8 @@ namespace KasseAPI_Final.Services
 
             // Group by payment method - parse varchar numeric strings to enum names
             var paymentMethodGroups = payments
-                .Select(p => new 
-                { 
+                .Select(p => new
+                {
                     Payment = p,
                     MethodName = ParsePaymentMethodName(p.PaymentMethodRaw)
                 })
@@ -2823,13 +2813,13 @@ namespace KasseAPI_Final.Services
             // Group by tax type (safe JSON parsing)
             foreach (var payment in payments)
             {
-                try 
+                try
                 {
                     if (payment.PaymentItems != null && payment.PaymentItems.RootElement.ValueKind != JsonValueKind.Undefined)
                     {
                         var jsonText = payment.PaymentItems.RootElement.GetRawText();
                         var paymentItems = JsonSerializer.Deserialize<List<PaymentItem>>(jsonText);
-                        
+
                         if (paymentItems != null)
                         {
                             foreach (var item in paymentItems)
@@ -2853,7 +2843,7 @@ namespace KasseAPI_Final.Services
             statistics.TseSignedPayments = tsePayments.Count;
             statistics.TseSignedAmount = tsePayments.Sum(p => p.TotalAmount);
 
-            _logger.LogInformation("Payment statistics: {StartDate} to {EndDate}, {Count} payments, {Amount} total", 
+            _logger.LogInformation("Payment statistics: {StartDate} to {EndDate}, {Count} payments, {Amount} total",
                 startDate, endDate, statistics.TotalPayments, statistics.TotalAmount);
 
             return statistics;
@@ -2882,35 +2872,35 @@ namespace KasseAPI_Final.Services
                 // TseMode=Device iken cihaz kontrolü; Demo modda atlanır
                 if (!_tseOptions.UseSoftTseWhenNoDevice)
                 {
-                var tseStatus = await _tseService.GetDeviceStatusAsync();
-                if (!tseStatus.IsConnected)
-                {
-                    // Bypass: allow operation when signing mode is explicitly Fake/Simulation.
-                    var isFakeOrSimulationMode =
-                        _tseOptions.IsFakeSigningMode ||
-                        string.Equals(_tseOptions.Mode, "Simulation", StringComparison.OrdinalIgnoreCase);
-
-                    if (isFakeOrSimulationMode)
+                    var tseStatus = await _tseService.GetDeviceStatusAsync();
+                    if (!tseStatus.IsConnected)
                     {
-                        // Do not block in simulated environments; continue with warning for operator visibility.
-                        _logger.LogWarning(
-                            "TSE device is not connected, but operation is allowed because TSE mode is {TseMode} for payment {PaymentId}.",
-                            _tseOptions.Mode,
-                            payment.Id);
-                    }
-                    else
-                    {
-                        _logger.LogError("TSE device not connected. Cannot generate signature for payment {PaymentId}", payment.Id);
-                        throw new InvalidOperationException("TSE device is not connected");
-                    }
-                }
+                        // Bypass: allow operation when signing mode is explicitly Fake/Simulation.
+                        var isFakeOrSimulationMode =
+                            _tseOptions.IsFakeSigningMode ||
+                            string.Equals(_tseOptions.Mode, "Simulation", StringComparison.OrdinalIgnoreCase);
 
-                // TSE cihazı hazır mı kontrolü
-                if (!tseStatus.IsReady)
-                {
-                    _logger.LogWarning("TSE device not ready. Status: {Status}", tseStatus.Status);
-                    throw new InvalidOperationException($"TSE device is not ready. Status: {tseStatus.Status}");
-                }
+                        if (isFakeOrSimulationMode)
+                        {
+                            // Do not block in simulated environments; continue with warning for operator visibility.
+                            _logger.LogWarning(
+                                "TSE device is not connected, but operation is allowed because TSE mode is {TseMode} for payment {PaymentId}.",
+                                _tseOptions.Mode,
+                                payment.Id);
+                        }
+                        else
+                        {
+                            _logger.LogError("TSE device not connected. Cannot generate signature for payment {PaymentId}", payment.Id);
+                            throw new InvalidOperationException("TSE device is not connected");
+                        }
+                    }
+
+                    // TSE cihazı hazır mı kontrolü
+                    if (!tseStatus.IsReady)
+                    {
+                        _logger.LogWarning("TSE device not ready. Status: {Status}", tseStatus.Status);
+                        throw new InvalidOperationException($"TSE device is not ready. Status: {tseStatus.Status}");
+                    }
                 }
 
                 if (payment.CashRegisterId == Guid.Empty)
@@ -2928,7 +2918,7 @@ namespace KasseAPI_Final.Services
                         TaxDetailsJson: payment.TaxDetails?.RootElement.GetRawText()));
                 var signature = sigResult.CompactJws;
 
-                _logger.LogInformation("TSE signature generated successfully for payment {PaymentId}: {Signature}", 
+                _logger.LogInformation("TSE signature generated successfully for payment {PaymentId}: {Signature}",
                     payment.Id, signature);
 
                 return signature;
@@ -2985,14 +2975,14 @@ namespace KasseAPI_Final.Services
                 };
 
                 var result = await _finanzOnlineService.SubmitInvoiceAsync(invoice);
-                
+
                 if (result.Success)
                 {
                     _logger.LogInformation("Payment {PaymentId} successfully sent to FinanzOnline", payment.Id);
                 }
                 else
                 {
-                    _logger.LogWarning("Failed to send payment {PaymentId} to FinanzOnline: {Error}", 
+                    _logger.LogWarning("Failed to send payment {PaymentId} to FinanzOnline: {Error}",
                         payment.Id, result.ErrorMessage);
                 }
 
@@ -3130,7 +3120,8 @@ namespace KasseAPI_Final.Services
             const int maxNote = 500;
             static string? TrimCap(string? s, int max)
             {
-                if (string.IsNullOrWhiteSpace(s)) return null;
+                if (string.IsNullOrWhiteSpace(s))
+                    return null;
                 s = s.Trim();
                 return s.Length <= max ? s : s.Substring(0, max);
             }
@@ -3294,11 +3285,6 @@ namespace KasseAPI_Final.Services
                 _logger.LogWarning(ex, "Audit log write failed for receipt reprint {Action} PaymentId={PaymentId}", action, paymentId);
                 return null;
             }
-        }
-
-        private decimal GetTaxRate(int taxType)
-        {
-            return TaxTypes.GetTaxRate(taxType) / 100.0m; // Convert 20.0 to 0.20
         }
 
         private bool IsValidAustrianTaxNumber(string taxNumber)
@@ -3502,12 +3488,14 @@ namespace KasseAPI_Final.Services
             try
             {
                 var payment = await _context.PaymentDetails.FindAsync(paymentId).ConfigureAwait(false);
-                if (payment == null) return;
+                if (payment == null)
+                    return;
 
                 payment.FinanzOnlineLastAttemptAtUtc = result.SubmittedAt;
                 payment.FinanzOnlineError = result.Success ? null : TruncateForDb(result.ErrorMessage, 500);
                 payment.FinanzOnlineReferenceId = result.ReferenceId;
-                if (isRetry) payment.FinanzOnlineRetryCount++;
+                if (isRetry)
+                    payment.FinanzOnlineRetryCount++;
 
                 payment.FinanzOnlineStatus = result.Success
                     ? "Submitted"
@@ -3568,7 +3556,8 @@ namespace KasseAPI_Final.Services
 
         private static string? TruncateForDb(string? value, int maxLen)
         {
-            if (string.IsNullOrEmpty(value)) return null;
+            if (string.IsNullOrEmpty(value))
+                return null;
             return value.Length <= maxLen ? value : value.Substring(0, maxLen - 3) + "...";
         }
 
@@ -3862,7 +3851,8 @@ namespace KasseAPI_Final.Services
                 decimal discountAmount = 0;
                 foreach (var pi in eligibleItems)
                 {
-                    if (remainingToClaim <= 0) break;
+                    if (remainingToClaim <= 0)
+                        break;
                     var n = Math.Min(pi.Quantity, remainingToClaim);
                     discountAmount += pi.UnitPrice * n;
                     remainingToClaim -= n;
@@ -3983,7 +3973,8 @@ namespace KasseAPI_Final.Services
 
             foreach (var match in evaluation.Matches)
             {
-                if (match.IsBlocked) continue;
+                if (match.IsBlocked)
+                    continue;
 
                 var totalBeforeDiscount = currentTotalAmount;
                 currentTotalAmount -= match.DiscountAmount;
@@ -4021,7 +4012,7 @@ namespace KasseAPI_Final.Services
             {
                 var usageRow = await _context.BenefitDailyUsages
                     .FirstOrDefaultAsync(u => u.CustomerId == delta.CustomerId && u.BenefitDefinitionId == delta.BenefitDefinitionId && u.UsageDate == delta.UsageDate);
-                
+
                 if (usageRow == null)
                 {
                     usageRow = new BenefitDailyUsage

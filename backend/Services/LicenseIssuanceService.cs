@@ -1194,7 +1194,8 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
         {
             var c = s[i];
             var ok = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
-            if (!ok) return false;
+            if (!ok)
+                return false;
         }
         return true;
     }

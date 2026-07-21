@@ -172,7 +172,7 @@ namespace KasseAPI_Final.DTOs
             IsRefund = false,
         };
     }
-    
+
     /// <summary>
     /// Phase 2 deprecated: Satır bazlı extra/modifier. Yeni akış: add-on = ayrı PaymentItem (productId). Legacy compat için hâlâ kabul edilir.
     /// </summary>
@@ -218,7 +218,7 @@ namespace KasseAPI_Final.DTOs
         [Obsolete("Add-ons as separate items. Kept for backward compat.", false)]
         public List<PaymentItemModifierRequest>? Modifiers { get; set; }
     }
-    
+
     /// <summary>
     /// Ödeme yöntemi request'i
     /// </summary>
@@ -226,10 +226,10 @@ namespace KasseAPI_Final.DTOs
     {
         [Required]
         public string Method { get; set; } = "cash"; // cash, card, voucher
-        
+
         [Required]
         public bool TseRequired { get; set; } = true;
-        
+
         public decimal? Amount { get; set; }
 
         /// <summary>Plaintext voucher code for single-voucher payment (never stored on <see cref="PaymentDetails"/>).</summary>
@@ -242,7 +242,7 @@ namespace KasseAPI_Final.DTOs
         /// <summary>Confirmed card payment intent id when method is card (Stripe-ready two-step flow).</summary>
         public Guid? CardPaymentIntentId { get; set; }
     }
-    
+
     /// <summary>
     /// Ödeme sonucu
     /// </summary>
@@ -295,7 +295,7 @@ namespace KasseAPI_Final.DTOs
         /// <summary>True when the payment was stored while NTP clock drift was outside tolerance (typically offline replay only).</summary>
         public bool TimeSyncWarning { get; set; }
     }
-    
+
     /// <summary>
     /// Ödeme istatistikleri
     /// </summary>
@@ -309,7 +309,7 @@ namespace KasseAPI_Final.DTOs
         public Dictionary<string, int> PaymentsByMethod { get; set; } = new();
         public Dictionary<string, decimal> AmountByMethod { get; set; } = new();
         public Dictionary<string, int> PaymentsByTaxType { get; set; } = new();
-        
+
         // TSE ve FinanzOnline istatistikleri
         public int TseSignedPayments { get; set; }
         public decimal TseSignedAmount { get; set; }

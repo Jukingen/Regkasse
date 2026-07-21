@@ -1,4 +1,3 @@
-using System.Threading;
 using KasseAPI_Final.Configuration;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;

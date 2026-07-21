@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Logging;
-
 namespace KasseAPI_Final.Services.Backup;
 
 public sealed class LoggingBackupAlertPublisher : IBackupAlertPublisher

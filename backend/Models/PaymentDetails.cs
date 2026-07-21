@@ -9,7 +9,7 @@ namespace KasseAPI_Final.Models
     {
         [Required]
         public Guid CustomerId { get; set; }
-        
+
         [Required]
         [MaxLength(100)]
         public string CustomerName { get; set; } = string.Empty;
@@ -17,7 +17,7 @@ namespace KasseAPI_Final.Models
         // Yeni eklenen alanlar - Frontend PaymentModal'dan gelen
         [Required]
         public int TableNumber { get; set; } // Masa numarası
-        
+
         [Required]
         [MaxLength(100)]
         public string CashierId { get; set; } = string.Empty; // Kasiyer ID
@@ -25,17 +25,17 @@ namespace KasseAPI_Final.Models
         [Required]
         [Column(TypeName = "decimal(18,2)")]
         public decimal TotalAmount { get; set; }
-        
+
         [Required]
         [Column(TypeName = "decimal(18,2)")]
         public decimal TaxAmount { get; set; }
-        
+
         // DB column "PaymentMethod" is varchar storing numeric strings like '0', '1', etc.
         [Required]
         [MaxLength(50)]
         [Column("PaymentMethod")]
         public string PaymentMethodRaw { get; set; } = "0";
-        
+
         // Enum helper for type-safe access (not mapped to DB)
         [NotMapped]
         public PaymentMethod PaymentMethod
@@ -51,7 +51,7 @@ namespace KasseAPI_Final.Models
                 PaymentMethodRaw = ((int)value).ToString();
             }
         }
-        
+
         // Avusturya yasal gereksinimleri (RKSV & DSGVO)
         [Required]
         [MaxLength(12)]
@@ -65,7 +65,7 @@ namespace KasseAPI_Final.Models
         /// <summary>RKSV §8 snapshot: Sitz der gewerblichen Betriebsstätte at payment time (from <see cref="CompanySettings"/>).</summary>
         [MaxLength(200)]
         public string? CompanyAddress { get; set; }
-        
+
         /// <summary>FK to cash_registers. Required; no Guid.Empty. Fiscal display id (Kassen-ID) comes from CashRegister.RegisterNumber.</summary>
         [Required]
         [Column("cash_register_id")]
@@ -76,10 +76,10 @@ namespace KasseAPI_Final.Models
 
         [Column(TypeName = "text")]
         public string? Notes { get; set; }
-        
+
         [MaxLength(100)]
         public string? TransactionId { get; set; }
-        
+
         [Required]
         [Column(TypeName = "text")]
         public string TseSignature { get; set; } = string.Empty; // RKSV §6 COMPACT JWS
@@ -88,10 +88,10 @@ namespace KasseAPI_Final.Models
         [MaxLength(64)]
         [Column("certificate_thumbprint")]
         public string? CertificateThumbprint { get; set; }
-        
+
         [Column(TypeName = "text")]
         public string? PrevSignatureValueUsed { get; set; } // Imza zinciri için önceki signature
-        
+
         [Required]
         public DateTime TseTimestamp { get; set; } // TSE zaman damgası
 
@@ -149,20 +149,20 @@ namespace KasseAPI_Final.Models
         [MaxLength(100)]
         [Column("correlation_id")]
         public string? CorrelationId { get; set; }
-        
+
         // Tax details as JSONB (PostgreSQL)
         [Column(TypeName = "jsonb")]
         public JsonDocument TaxDetails { get; set; } = JsonDocument.Parse("{}");
-        
+
         // Payment items as JSONB
         [Column(TypeName = "jsonb")]
         public JsonDocument PaymentItems { get; set; } = JsonDocument.Parse("[]");
-        
+
         // Receipt/Invoice fields
         [Required]
         [Column(TypeName = "text")]
         public string ReceiptNumber { get; set; } = string.Empty; // Format: AT-{TSE_ID}-{YYYYMMDD}-{SEQ}
-        
+
         public bool IsPrinted { get; set; } = false;
 
         /// <summary>Immutable snapshot of customer benefits applied at payment time (e.g. percentage discount, free allowance). Null when no benefits applied.</summary>

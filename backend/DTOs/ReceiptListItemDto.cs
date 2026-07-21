@@ -1,5 +1,3 @@
-using System;
-
 namespace KasseAPI_Final.DTOs
 {
     /// <summary>

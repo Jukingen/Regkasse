@@ -181,7 +181,11 @@ namespace KasseAPI_Final.Models
 
         // User operations
         public const string USER_LOGIN = "USER_LOGIN";
+        /// <summary>Failed authentication attempt (distinct from <see cref="USER_LOGIN"/> for reports).</summary>
+        public const string USER_LOGIN_FAILED = "USER_LOGIN_FAILED";
         public const string USER_LOGOUT = "USER_LOGOUT";
+        public const string USER_PERMISSION_OVERRIDES_CHANGED = "USER_PERMISSION_OVERRIDES_CHANGED";
+        public const string REPORT_PDF_DOWNLOADED = "REPORT_PDF_DOWNLOADED";
         public const string USER_CREATE = "USER_CREATE";
         /// <summary>Preferred action label for direct user provisioning (no invitation email).</summary>
         public const string USER_CREATED = "USER_CREATED";
@@ -252,20 +256,20 @@ namespace KasseAPI_Final.Models
         /// <summary>Cash register stammdaten updated (PUT /api/admin/cash-registers/{id}).</summary>
         public const string CASH_REGISTER_UPDATED = "CASH_REGISTER_UPDATED";
 
-    /// <summary>Admin category metadata updated (display name, icon, sort order, etc.).</summary>
-    public const string CATEGORY_UPDATED = "CATEGORY_UPDATED";
+        /// <summary>Admin category metadata updated (display name, icon, sort order, etc.).</summary>
+        public const string CATEGORY_UPDATED = "CATEGORY_UPDATED";
 
-    /// <summary>Bulk reset of demo category display names to original demo labels.</summary>
-    public const string CATEGORY_DEMO_RESET = "CATEGORY_DEMO_RESET";
+        /// <summary>Bulk reset of demo category display names to original demo labels.</summary>
+        public const string CATEGORY_DEMO_RESET = "CATEGORY_DEMO_RESET";
 
-    /// <summary>Super Admin renewed mandant license (grace-period days may be deducted).</summary>
-    public const string LICENSE_RENEWED = "LICENSE_RENEWED";
+        /// <summary>Super Admin renewed mandant license (grace-period days may be deducted).</summary>
+        public const string LICENSE_RENEWED = "LICENSE_RENEWED";
 
-    /// <summary>Mandant license extended via REGK key and/or valid-until update.</summary>
-    public const string LICENSE_EXTENDED = "LICENSE_EXTENDED";
+        /// <summary>Mandant license extended via REGK key and/or valid-until update.</summary>
+        public const string LICENSE_EXTENDED = "LICENSE_EXTENDED";
 
-    /// <summary>Mandant license key and/or validity updated (masked keys in audit payload).</summary>
-    public const string LICENSE_UPDATED = "LICENSE_UPDATED";
+        /// <summary>Mandant license key and/or validity updated (masked keys in audit payload).</summary>
+        public const string LICENSE_UPDATED = "LICENSE_UPDATED";
 
         /// <summary>Super Admin manual validation restore request created (pending approval).</summary>
         public const string RESTORE_REQUESTED = "RESTORE_REQUESTED";
@@ -288,35 +292,35 @@ namespace KasseAPI_Final.Models
         public const string MANUAL_RESTORE_REQUEST_REJECTED = "MANUAL_RESTORE_REQUEST_REJECTED";
     }
 
-            // Entity types for audit logging
-        public static class AuditLogEntityTypes
-        {
-            public const string PAYMENT = "Payment";
-            public const string INVOICE = "Invoice";
-            public const string CART = "Cart";
-            public const string CART_ITEM = "CartItem";
-            public const string CUSTOMER = "Customer";
-            public const string USER = "User";
-            public const string ROLE = "Role";
-            public const string PAYMENT_SESSION = "PaymentSession";
-            public const string PAYMENT_LOG = "PaymentLog";
-            public const string AUDIT_LOG = "AuditLog";
-            public const string SYSTEM_CONFIG = "SystemConfig";
-            public const string TSE_DEVICE = "TseDevice";
-            public const string RECEIPT = "Receipt";
+    // Entity types for audit logging
+    public static class AuditLogEntityTypes
+    {
+        public const string PAYMENT = "Payment";
+        public const string INVOICE = "Invoice";
+        public const string CART = "Cart";
+        public const string CART_ITEM = "CartItem";
+        public const string CUSTOMER = "Customer";
+        public const string USER = "User";
+        public const string ROLE = "Role";
+        public const string PAYMENT_SESSION = "PaymentSession";
+        public const string PAYMENT_LOG = "PaymentLog";
+        public const string AUDIT_LOG = "AuditLog";
+        public const string SYSTEM_CONFIG = "SystemConfig";
+        public const string TSE_DEVICE = "TseDevice";
+        public const string RECEIPT = "Receipt";
 
-            /// <summary>Structured POS operator audit rows (payment outcome, ensure-ready, Sonderbelege).</summary>
-            public const string POS_CRITICAL = "PosCritical";
+        /// <summary>Structured POS operator audit rows (payment outcome, ensure-ready, Sonderbelege).</summary>
+        public const string POS_CRITICAL = "PosCritical";
 
-            /// <summary>RKSV DEP / fiscal diagnostic export access (see <c>FiscalExportController</c> audit rows).</summary>
-            public const string FISCAL_EXPORT = "FiscalExport";
+        /// <summary>RKSV DEP / fiscal diagnostic export access (see <c>FiscalExportController</c> audit rows).</summary>
+        public const string FISCAL_EXPORT = "FiscalExport";
 
-            public const string CASH_REGISTER = "CashRegister";
+        public const string CASH_REGISTER = "CashRegister";
 
-            public const string CATEGORY = "Category";
+        public const string CATEGORY = "Category";
 
-            public const string COMPANY_SETTINGS = "CompanySettings";
+        public const string COMPANY_SETTINGS = "CompanySettings";
 
-            public const string MANUAL_RESTORE_REQUEST = "ManualRestoreRequest";
-        }
+        public const string MANUAL_RESTORE_REQUEST = "ManualRestoreRequest";
+    }
 }

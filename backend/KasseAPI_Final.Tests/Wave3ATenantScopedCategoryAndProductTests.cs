@@ -1,7 +1,7 @@
-using System.Linq;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
@@ -27,7 +27,7 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
             .UseInMemoryDatabase($"Wave3A_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static readonly Guid TenantA = LegacyDefaultTenantIds.Primary;
@@ -155,7 +155,7 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
         ctx.Categories.Add(new Category { TenantId = TenantA, Name = "Food", VatRate = 10m });
         ctx.Categories.Add(new Category { TenantId = TenantB, Name = "Food", VatRate = 10m });
         await ctx.SaveChangesAsync();
-        Assert.Equal(2, await ctx.Categories.CountAsync(c => c.Name == "Food"));
+        Assert.Equal(2, await ctx.Categories.IgnoreQueryFilters().CountAsync(c => c.Name == "Food"));
     }
 
     [Fact]
@@ -260,8 +260,9 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
             Mock.Of<ICategoryDemoResetService>());
         var res = await controller.CreateCategory(new CreateCategoryRequest { Name = "Fresh", VatRate = 10m });
         var created = Assert.IsType<CreatedAtActionResult>(res.Result);
-        var cat = Assert.IsType<Category>(created.Value);
-        Assert.Equal(TenantB, cat.TenantId);
+        var cat = Assert.IsType<CategoryDto>(created.Value);
+        var stored = await ctx.Categories.IgnoreQueryFilters().SingleAsync(c => c.Id == cat.Id);
+        Assert.Equal(TenantB, stored.TenantId);
     }
 
     [Fact]

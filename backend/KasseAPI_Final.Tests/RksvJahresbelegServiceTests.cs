@@ -24,7 +24,9 @@ public class RksvJahresbelegServiceTests
             .UseInMemoryDatabase($"Jahresbeleg_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(
+            options,
+            TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static RksvSpecialReceiptService CreateService(
@@ -103,7 +105,7 @@ public class RksvJahresbelegServiceTests
                 It.IsAny<string?>(),
                 It.IsAny<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction?>()))
             .ReturnsAsync((Guid _, string _, decimal _, string _, string? prev, DateTime? _, string? _, Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? _) =>
-                new TseSignatureResult("eyJhbGciOiJFUzI1NiJ9.eyJ.test.jahr", prev ?? "chain-root"));
+                new TseSignatureResult(RksvTestSignatures.CreateDemoCompactJws(), prev ?? "chain-root"));
         tseMock.Setup(x => x.GetTseCertificateInfoAsync(It.IsAny<string>()))
             .ReturnsAsync(new TseCertificateInfo { CertificateNumber = "cert-test" });
 

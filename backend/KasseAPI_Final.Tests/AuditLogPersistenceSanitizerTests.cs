@@ -44,6 +44,25 @@ public sealed class AuditLogPersistenceSanitizerTests
     }
 
     [Fact]
+    public void SerializeObjectToJsonColumn_redacts_password_and_voucher_code()
+    {
+        var payload = new
+        {
+            userName = "cashier1",
+            password = "Secret123!",
+            voucherCode = "GIFT-ABC-999",
+            amount = 12.5m,
+        };
+
+        var json = AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(payload);
+        Assert.NotNull(json);
+        Assert.DoesNotContain("Secret123!", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("GIFT-ABC-999", json, StringComparison.Ordinal);
+        Assert.Contains(AuditLogPersistenceSanitizer.RedactedPlaceholder, json, StringComparison.Ordinal);
+        Assert.Contains("cashier1", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TruncateForAction_entityType_userRole_respect_model_limits()
     {
         Assert.Equal(50, AuditLogPersistenceSanitizer.TruncateForAction(new string('a', 80)).Length);

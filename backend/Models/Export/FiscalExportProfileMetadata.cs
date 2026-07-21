@@ -50,7 +50,8 @@ public static class FiscalExportProfileMetadata
             _ => null,
         };
 
-        if (extra == null) return;
+        if (extra == null)
+            return;
 
         var list = package.ExportScopeWarnings.ToList();
         list.Add(extra);

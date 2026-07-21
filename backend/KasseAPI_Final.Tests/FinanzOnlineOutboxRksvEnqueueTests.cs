@@ -1,6 +1,7 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
@@ -18,7 +19,7 @@ public sealed class FinanzOnlineOutboxRksvEnqueueTests
             .UseInMemoryDatabase($"FonOutboxIdem_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        await using var ctx = new AppDbContext(options);
+        await using var ctx = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
         var svc = new FinanzOnlineOutboxService(ctx, new Mock<ILogger<FinanzOnlineOutboxService>>().Object);
         var receiptId = Guid.NewGuid();
         var paymentId = Guid.NewGuid();

@@ -2,13 +2,13 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.DataRetention;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
-
 namespace KasseAPI_Final.Tests;
 
 public sealed class RksvDataCleanupServiceTests
@@ -146,7 +146,7 @@ public sealed class RksvDataCleanupServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
             .Options;
-        return (new Factory(options), new AppDbContext(options));
+        return (new Factory(options), new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary)));
     }
 
     private sealed class Factory : IDbContextFactory<AppDbContext>
@@ -158,6 +158,6 @@ public sealed class RksvDataCleanupServiceTests
         public AppDbContext CreateDbContext() => new(_options);
 
         public ValueTask<AppDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
-            new(new AppDbContext(_options));
+            new(new AppDbContext(_options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary)));
     }
 }

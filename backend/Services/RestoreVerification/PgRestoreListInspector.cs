@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Text;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Services.Backup;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.RestoreVerification;

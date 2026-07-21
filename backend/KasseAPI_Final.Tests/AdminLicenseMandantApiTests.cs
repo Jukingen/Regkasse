@@ -5,10 +5,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
-using KasseAPI_Final.Services.Billing;
 using KasseAPI_Final.Tenancy;
-using IAdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.ITenantLicenseService;
-using IBillingTenantLicenseService = KasseAPI_Final.Services.Billing.ITenantLicenseService;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +13,8 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
+using IAdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.ITenantLicenseService;
+using IBillingTenantLicenseService = KasseAPI_Final.Services.Billing.ITenantLicenseService;
 
 namespace KasseAPI_Final.Tests;
 

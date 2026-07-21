@@ -1,11 +1,8 @@
-using System.Collections.Generic;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.RestoreVerification;
-using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Services.Backup.PgDump;
 using KasseAPI_Final.Services.RestoreVerification;
@@ -57,6 +54,7 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
         db.BackupRuns.Add(new BackupRun
         {
             Status = BackupRunStatus.Queued,
+            Strategy = BackupStrategyKind.System,
             TriggerSource = BackupTriggerSource.Manual,
             AdapterKind = "Fake",
             RequestedAt = DateTime.UtcNow
@@ -133,7 +131,7 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
     {
         var dbName = $"orch_bk_{Guid.NewGuid():N}";
         var checksum = new BackupChecksumService();
-        var fake = new FakeBackupExecutionAdapter(OptionsMonitorOf(new BackupOptions()), checksum)
+        var fake = new FakeBackupExecutionAdapter(OptionsMonitorOf(new BackupOptions()), checksum, new BackupEncryptionService(OptionsMonitorOf(new BackupOptions()), NullLogger<BackupEncryptionService>.Instance))
         {
             ThrowOnExecuteForTests = new InvalidOperationException("adapter boom")
         };
@@ -161,7 +159,7 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
     {
         var dbName = $"orch_bk_v_{Guid.NewGuid():N}";
         var checksum = new BackupChecksumService();
-        var fake = new FakeBackupExecutionAdapter(OptionsMonitorOf(new BackupOptions()), checksum);
+        var fake = new FakeBackupExecutionAdapter(OptionsMonitorOf(new BackupOptions()), checksum, new BackupEncryptionService(OptionsMonitorOf(new BackupOptions()), NullLogger<BackupEncryptionService>.Instance));
         var verifier = new ThrowingBackupVerificationService();
 
         var scopeFactory = CreateScopeFactory(dbName, s => s.AddSingleton<IBackupVerificationService>(_ => verifier));
@@ -184,7 +182,7 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
     {
         var dbName = $"orch_bk_j_{Guid.NewGuid():N}";
         var checksum = new BackupChecksumService();
-        var fake = new FakeBackupExecutionAdapter(OptionsMonitorOf(new BackupOptions()), checksum);
+        var fake = new FakeBackupExecutionAdapter(OptionsMonitorOf(new BackupOptions()), checksum, new BackupEncryptionService(OptionsMonitorOf(new BackupOptions()), NullLogger<BackupEncryptionService>.Instance));
         var verifier = new MalformedDetailsJsonVerificationService();
 
         var scopeFactory = CreateScopeFactory(dbName, s => s.AddSingleton<IBackupVerificationService>(_ => verifier));

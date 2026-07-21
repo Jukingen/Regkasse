@@ -59,7 +59,9 @@ public static class PermissionCatalog
         AppPermissions.PaymentView,
         AppPermissions.PaymentTake,
         AppPermissions.PaymentCancel,
+#pragma warning disable CS0618 // Reserved catalog keys until removal window
         AppPermissions.PaymentExport,
+#pragma warning restore CS0618
         AppPermissions.RefundCreate,
         AppPermissions.DiscountApply,
         // CashRegister, Cashdrawer, Shift
@@ -90,7 +92,9 @@ public static class PermissionCatalog
         AppPermissions.InvoiceView,
         AppPermissions.InvoiceManage,
         AppPermissions.InvoiceExport,
+#pragma warning disable CS0618
         AppPermissions.CreditNoteCreate,
+#pragma warning restore CS0618
         // Settings, Localization, ReceiptTemplate
         AppPermissions.SettingsView,
         AppPermissions.SettingsManage,
@@ -135,7 +139,9 @@ public static class PermissionCatalog
         AppPermissions.AuditCleanup,
         AppPermissions.ReportView,
         AppPermissions.ReportExport,
+#pragma warning disable CS0618
         AppPermissions.ReportSchedule,
+#pragma warning restore CS0618
         AppPermissions.DailyClosingView,
         AppPermissions.DailyClosingExecute,
         AppPermissions.FiscalExportCompliance,
@@ -148,7 +154,9 @@ public static class PermissionCatalog
         AppPermissions.KitchenUpdate,
         // TSE, system-critical
         AppPermissions.TseSign,
+#pragma warning disable CS0618
         AppPermissions.TseDiagnostics,
+#pragma warning restore CS0618
         AppPermissions.RksvNullbelegCreate,
         AppPermissions.RksvStartbelegCreate,
         AppPermissions.RksvMonatsbelegCreate,

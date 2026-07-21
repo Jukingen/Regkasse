@@ -2,7 +2,6 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Billing;
 using KasseAPI_Final.Services.License;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;

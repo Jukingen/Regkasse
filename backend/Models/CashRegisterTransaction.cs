@@ -8,7 +8,7 @@ namespace KasseAPI_Final.Models
     {
         [Required]
         public Guid CashRegisterId { get; set; }
-        
+
         [Required]
         public TransactionType TransactionType { get; set; }
 

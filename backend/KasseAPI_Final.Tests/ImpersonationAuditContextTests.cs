@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
-using KasseAPI_Final.Tenancy;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;

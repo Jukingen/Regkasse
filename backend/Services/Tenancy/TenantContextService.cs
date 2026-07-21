@@ -1,16 +1,14 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
 
 namespace KasseAPI_Final.Services.Tenancy;
 
 /// <summary>
 /// Resolves tenant id/slug/name for the current HTTP request and binds <see cref="ICurrentTenantAccessor"/>.
-/// Priority: JWT → dev header/query (development) → host slug → admin/default fallback.
+/// Priority: JWT → (Development only) header/query → host slug → admin/default fallback.
+/// Production authenticated binding uses <see cref="ApplyAuthenticatedTenantAsync"/> (JWT only).
 /// </summary>
 public sealed class TenantContextService : ITenantContextService
 {
@@ -48,6 +46,13 @@ public sealed class TenantContextService : ITenantContextService
             {
                 return fromJwt;
             }
+
+            // Claim present but inactive/missing — do not fall back to Host in Production (isolation).
+            if (!_environment.IsDevelopment())
+            {
+                throw new InvalidOperationException(
+                    $"JWT tenant_id '{jwtTenantId.Value:D}' could not be resolved to an active tenant");
+            }
         }
 
         if (_environment.IsDevelopment())
@@ -83,6 +88,32 @@ public sealed class TenantContextService : ITenantContextService
         }
 
         throw new InvalidOperationException("No tenant context could be resolved");
+    }
+
+    /// <inheritdoc />
+    public async Task ApplyAuthenticatedTenantAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken = default)
+    {
+        if (_environment.IsDevelopment())
+        {
+            var resolved = await ResolveTenantContextAsync(httpContext, cancellationToken)
+                .ConfigureAwait(false);
+            _tenantAccessor.TenantId = resolved.Id;
+            return;
+        }
+
+        // Production / Staging: JWT tenant_id only (ignore Host and any X-Tenant-Id / ?tenant=).
+        var jwtTenantId = GetJwtTenantId(httpContext);
+        if (!jwtTenantId.HasValue)
+        {
+            _tenantAccessor.TenantId = null;
+            return;
+        }
+
+        var fromJwt = await TryResolveActiveTenantByIdAsync(jwtTenantId.Value, cancellationToken)
+            .ConfigureAwait(false);
+        _tenantAccessor.TenantId = fromJwt?.Id;
     }
 
     /// <inheritdoc />

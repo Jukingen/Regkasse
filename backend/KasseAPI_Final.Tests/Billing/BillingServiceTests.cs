@@ -1,4 +1,3 @@
-using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Billing;
 using Microsoft.EntityFrameworkCore;
@@ -161,7 +160,7 @@ public sealed class BillingServiceTests
     [Fact]
     public async Task PreviewLicenseSaleAsync_ComputesTwelveMonthPricing()
     {
-        var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
+        var (db, _) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
         var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         var service = BillingServiceTestInfrastructure.CreateService(db);
@@ -187,7 +186,7 @@ public sealed class BillingServiceTests
     [Fact]
     public async Task PreviewLicenseSaleAsync_CustomPlan_UsesProvidedValidUntil()
     {
-        var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
+        var (db, _) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
         var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         var service = BillingServiceTestInfrastructure.CreateService(db);
@@ -410,7 +409,7 @@ public sealed class BillingServiceTests
     [Fact]
     public async Task ListLicenseSalesAsync_FiltersByTenantStatusAndSearch()
     {
-        var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
+        var (db, _) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
         var devTenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         var prodTenant = BillingServiceTestInfrastructure.SeedTenant(db, "prod");
@@ -500,7 +499,7 @@ public sealed class BillingServiceTests
     [Fact]
     public async Task ListLicenseSalesAsync_PaginatesResults()
     {
-        var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
+        var (db, _) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
         var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         var userId = BillingServiceTestInfrastructure.SeedUser(db);
@@ -704,7 +703,7 @@ public sealed class BillingServiceTests
     [Fact]
     public async Task IsLicenseKeyValidAsync_ReturnsTrueForUnusedValidKey()
     {
-        var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
+        var (db, _) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
         var service = BillingServiceTestInfrastructure.CreateService(db);
 
@@ -717,7 +716,7 @@ public sealed class BillingServiceTests
     [InlineData("")]
     public async Task IsLicenseKeyValidAsync_RejectsInvalidFormat(string key)
     {
-        var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
+        var (db, _) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
         var service = BillingServiceTestInfrastructure.CreateService(db);
 
@@ -727,7 +726,7 @@ public sealed class BillingServiceTests
     [Fact]
     public async Task IsLicenseKeyValidAsync_RejectsReservedBillingKeyAlreadyActiveOnTenant()
     {
-        var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
+        var (db, _) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
         var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         tenant.LicenseKey = "REGK-20261231-dev-A7F3K2D9";
@@ -742,7 +741,7 @@ public sealed class BillingServiceTests
     [Fact]
     public async Task IsLicenseKeyValidAsync_RejectsActiveSaleRecord()
     {
-        var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
+        var (db, _) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
         var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         var userId = BillingServiceTestInfrastructure.SeedUser(db);
@@ -763,7 +762,7 @@ public sealed class BillingServiceTests
     [Fact]
     public async Task GetSaleByLicenseKeyAsync_ReturnsSaleWhenFound()
     {
-        var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
+        var (db, _) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
         var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         var userId = BillingServiceTestInfrastructure.SeedUser(db);
@@ -787,7 +786,7 @@ public sealed class BillingServiceTests
     [Fact]
     public async Task GetSaleByLicenseKeyAsync_ReturnsNullWhenMissing()
     {
-        var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
+        var (db, _) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
         var service = BillingServiceTestInfrastructure.CreateService(db);
 
@@ -797,7 +796,7 @@ public sealed class BillingServiceTests
     [Fact]
     public async Task GetNextInvoiceNumberAsync_ReturnsFormattedNumber()
     {
-        var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
+        var (db, _) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
         var service = BillingServiceTestInfrastructure.CreateService(db);
 
@@ -809,7 +808,7 @@ public sealed class BillingServiceTests
     [Fact]
     public async Task GetLicenseSaleStatsAsync_CountsActiveRevenueOnly()
     {
-        var (db, factory) = BillingServiceTestInfrastructure.CreateDb();
+        var (db, _) = BillingServiceTestInfrastructure.CreateDb();
         await using var _db = db;
         var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
         var userId = BillingServiceTestInfrastructure.SeedUser(db);

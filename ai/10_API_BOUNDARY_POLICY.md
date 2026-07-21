@@ -26,6 +26,8 @@
 3. Legacy route sadece geçiş uyumluluğu içindir; yeni feature eklenmez.
 4. Contract değişikliği OpenAPI diff ile review edilir.
 
+**Timeline / Sunset:** [`docs/API_LEGACY_DEPRECATION.md`](../docs/API_LEGACY_DEPRECATION.md) (soft Sunset **2026-09-30**).
+
 ## Explicit exceptions (shared surfaces)
 Aşağıdaki yüzeyler boundary dışı ama bilinçli şekilde paylaşılıyor veya geçişte:
 - `/api/Auth/*`

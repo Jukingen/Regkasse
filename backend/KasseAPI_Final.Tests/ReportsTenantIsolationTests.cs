@@ -25,7 +25,7 @@ public sealed class ReportsTenantIsolationTests
             .UseInMemoryDatabase($"RepTenant_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static void EnsureTenants(AppDbContext ctx)

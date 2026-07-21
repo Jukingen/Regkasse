@@ -40,7 +40,8 @@ public sealed class ScopeCheckService : IScopeCheckService
         var userId = GetUserId(user);
         var role = GetRole(user);
 
-        if (string.IsNullOrEmpty(userId)) return false;
+        if (string.IsNullOrEmpty(userId))
+            return false;
 
         if (string.IsNullOrEmpty(userBranchId))
             return true;
@@ -64,7 +65,8 @@ public sealed class ScopeCheckService : IScopeCheckService
         var userBranchId = GetCurrentBranchId(user);
         var userId = GetUserId(user);
 
-        if (string.IsNullOrEmpty(userId)) return false;
+        if (string.IsNullOrEmpty(userId))
+            return false;
 
         if (string.IsNullOrEmpty(userBranchId))
             return true;
@@ -86,9 +88,11 @@ public sealed class ScopeCheckService : IScopeCheckService
     /// <inheritdoc />
     public bool CanAccessBranch(ClaimsPrincipal user, string branchId)
     {
-        if (string.IsNullOrEmpty(branchId)) return true;
+        if (string.IsNullOrEmpty(branchId))
+            return true;
         var userBranchId = GetCurrentBranchId(user);
-        if (string.IsNullOrEmpty(userBranchId)) return true;
+        if (string.IsNullOrEmpty(userBranchId))
+            return true;
         return string.Equals(userBranchId, branchId, StringComparison.OrdinalIgnoreCase);
     }
 }

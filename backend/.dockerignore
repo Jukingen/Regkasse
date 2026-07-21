@@ -1,0 +1,59 @@
+# Used when the build context is `backend/` (not recommended — ProjectReference
+# to ../tools/LicenseGenerator.Core requires a repo-root context).
+# Prefer: docker build -f backend/Dockerfile -t regkasse-api:local .
+# with backend/Dockerfile.dockerignore (BuildKit) for root-context builds.
+
+**/bin/
+**/obj/
+**/artifacts/
+**/_test_build_out/
+**/_testout/
+**/_ef_build/
+**/_build_out/
+**/verify-build/
+**/verify-obj/
+**/ntp-bypass-build/
+**/build-migrate-out/
+**/build-test-out/
+**/tmp-build-out/
+**/tmp-pdf-verify/
+**/publish/
+
+KasseAPI_Final.Tests/
+Tests/
+TestResults/
+coverage/
+*.trx
+*.coverage
+*.coveragexml
+
+# Secrets / local overlays (examples stay in the context)
+appsettings.json
+appsettings.*.json
+!appsettings.*.example.json
+.env
+.env.*
+!.env.example
+**/App_Data/
+**/*.pem
+**/*.key
+**/secrets/
+
+.git/
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.swp
+
+*.md
+!README.md
+docs/
+swagger.json
+**/nupkg/
+**/packages/
+
+Dockerfile*
+docker-compose*.yml
+.dockerignore

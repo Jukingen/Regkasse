@@ -1,5 +1,4 @@
 using KasseAPI_Final.Configuration;
-using Microsoft.Extensions.Hosting;
 
 namespace KasseAPI_Final.Services.RestoreVerification;
 

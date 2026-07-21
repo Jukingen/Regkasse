@@ -1,5 +1,6 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
@@ -73,7 +74,7 @@ public sealed class TenantServiceStatusModelTests
             .UseInMemoryDatabase(nameof(Persists_unique_per_tenant_and_service_type) + Guid.NewGuid())
             .Options;
 
-        await using var db = new AppDbContext(options);
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
         var tenantId = Guid.NewGuid();
         db.Tenants.Add(new Tenant
         {
@@ -120,7 +121,7 @@ public sealed class TenantServiceStatusModelTests
             .UseInMemoryDatabase(nameof(Ef_model_has_unique_tenant_service_type_index) + Guid.NewGuid())
             .Options;
 
-        using var db = new AppDbContext(options);
+        using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
         var entity = db.Model.FindEntityType(typeof(TenantServiceStatus));
         Assert.NotNull(entity);
 

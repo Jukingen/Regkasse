@@ -1,9 +1,6 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using KasseAPI_Final.Services.Metrics;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.Logging;
 using Prometheus;
 
 namespace KasseAPI_Final.Middleware;
@@ -111,6 +108,7 @@ public class MetricsMiddleware
         return path.Equals("/metrics", StringComparison.OrdinalIgnoreCase)
             || path.Equals("/health", StringComparison.OrdinalIgnoreCase)
             || path.Equals("/api/health", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/api/health/", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/health/", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase)
             || path.Equals("/favicon.ico", StringComparison.OrdinalIgnoreCase);

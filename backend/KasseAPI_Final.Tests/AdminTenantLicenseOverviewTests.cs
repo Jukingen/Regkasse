@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Controllers;
@@ -6,8 +7,6 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Services.Billing;
-using AdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.TenantLicenseService;
-using IAdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.ITenantLicenseService;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
@@ -19,8 +18,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
-using System.Security.Claims;
 using Xunit;
+using AdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.TenantLicenseService;
 
 namespace KasseAPI_Final.Tests;
 

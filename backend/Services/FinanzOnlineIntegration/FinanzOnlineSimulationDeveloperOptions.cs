@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Hosting;
-
 namespace KasseAPI_Final.Services.FinanzOnlineIntegration;
 
 /// <summary>
