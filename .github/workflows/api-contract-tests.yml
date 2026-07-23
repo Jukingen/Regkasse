@@ -37,10 +37,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           # @testing-library/jest-dom@7 requires Node >= 22
           node-version: ${{ env.NODE_VERSION }}
@@ -51,7 +51,7 @@ jobs:
 
       - name: Cache frontend-admin node_modules
         id: cache-fa-nm
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: frontend-admin/node_modules
           key: ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-nm-${{ hashFiles('frontend-admin/package-lock.json') }}
@@ -60,7 +60,7 @@ jobs:
 
       - name: Cache POS node_modules
         id: cache-pos-nm
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: frontend/node_modules
           key: ${{ runner.os }}-node${{ env.NODE_VERSION }}-pos-nm-${{ hashFiles('frontend/package-lock.json') }}
@@ -71,12 +71,12 @@ jobs:
         run: node scripts/validate-critical-openapi-paths.mjs
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Cache NuGet packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('backend/**/*.csproj', 'backend/**/*.sln') }}
