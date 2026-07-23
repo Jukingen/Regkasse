@@ -470,7 +470,11 @@ export default function UsersPage() {
     await submitEditUser(values, editUserId);
   };
 
-  const handleCreateRoleConfirm = (payload: { name: string; inheritFromRole?: string }) => {
+  const handleCreateRoleConfirm = (payload: {
+    name: string;
+    inheritFromRole?: string;
+    presetId?: string;
+  }) => {
     if (!policy.canCreateRole) {
       message.error(t('users.messages.noPermission'));
       return;

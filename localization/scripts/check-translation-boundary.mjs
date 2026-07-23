@@ -6,12 +6,13 @@ import {
   readJsonFileIfExists,
   readManifest,
   resolveAppConfig,
+  listActiveAppIds,
   writeReport,
 } from './_shared.mjs';
 
 const args = parseArgs(process.argv);
 const manifest = await readManifest();
-const appIds = args.app ? [args.app] : Object.keys(manifest.apps);
+const appIds = args.app ? [args.app] : listActiveAppIds(manifest);
 const warnOnly = args['warn-only'] === 'true';
 
 const failures = [];
@@ -59,6 +60,10 @@ const SOURCE_PATTERNS = [
 
 for (const appId of appIds) {
   const app = resolveAppConfig(manifest, appId);
+  if (app.deferred) {
+    console.log(`Skipping deferred app "${appId}" (no locale catalog yet).`);
+    continue;
+  }
   const appRoot = path.dirname(app.localesDirAbs);
   await scanSource(app.id, appRoot);
   await scanLocaleKeys(app.id, app.localesDirAbs, manifest.defaultLocale);

@@ -1,15 +1,35 @@
 # Dependencies
 node_modules/
+**/node_modules/
 .pnp/
 .pnp.js
+
+# Lockfiles — DO NOT ignore (must stay committed for reproducible CI)
+# frontend/package-lock.json
+# frontend-admin/package-lock.json
+# frontend-sites/package-lock.json
+# package-lock.json (root)
 
 # Testing
 coverage/
 
-# Production
+# Production / build outputs
 build/
 dist/
+**/dist/
 out/
+
+# Monorepo package build outputs (explicit — also covered by bin/obj/.next/.expo/dist above)
+backend/bin/
+backend/obj/
+backend/**/bin/
+backend/**/obj/
+frontend/.expo/
+frontend/dist/
+frontend-admin/.next/
+frontend-admin/**/.next/
+frontend-sites/.next/
+frontend-sites/**/.next/
 
 # Development
 .env
@@ -80,8 +100,9 @@ obj/
 # License generator tooling (never commit private keys)
 tools/**/license_private.pem
 
-# Expo
+# Expo (POS and any Expo app)
 .expo/
+**/.expo/
 web-build/
 *.jks
 *.p8
@@ -216,8 +237,6 @@ backend/**/swagger.json
 # Backend - Geçici Dosyalar
 # Ephemeral OpenAPI baseline for scripts/validate-api-contract.mjs (CI or local)
 backend/swagger-old.json
-backend/**/bin/
-backend/**/obj/
 # Accidental nested dotnet/ef output (causes MSB3030 staticwebassets copy errors)
 backend/_ef_build/
 backend/**/.vs/
@@ -278,7 +297,6 @@ tools/**/appsettings.json
 # Local-only dev scripts (passwords, tokens, machine paths) — keep on disk, never commit
 scripts/local/
 scripts/dev-purge-tenant-catalog.*
-scripts/parse-demo-menu-html.*
 
 # Root HTTP client scratch files (manual API testing; may embed bearer tokens)
 /*.http

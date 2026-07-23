@@ -216,7 +216,8 @@ namespace KasseAPI_Final.Models
         public const string UPDATE = "UPDATE";
         public const string DELETE = "DELETE";
 
-        // Role management (custom role delete, permission update)
+        // Role management (custom role create/delete, permission update)
+        public const string ROLE_CREATE = "ROLE_CREATE";
         public const string ROLE_DELETE = "ROLE_DELETE";
         public const string ROLE_PERMISSIONS_UPDATE = "ROLE_PERMISSIONS_UPDATE";
 

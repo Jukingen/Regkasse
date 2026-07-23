@@ -18,10 +18,14 @@ import {
 
 const args = parseArgs(process.argv);
 const appId = args.app;
-if (!appId) throw new Error('Usage: node localization/scripts/import-translations.mjs --app <frontend|frontend-admin> [--input <csv>] [--dry-run]');
+if (!appId) throw new Error('Usage: node localization/scripts/import-translations.mjs --app <frontend|frontend-admin|frontend-sites> [--input <csv>] [--dry-run]');
 
 const manifest = await readManifest();
 const app = resolveAppConfig(manifest, appId);
+if (app.deferred) {
+  console.log(`Skipping deferred app "${appId}" (no locale catalog yet).`);
+  process.exit(0);
+}
 const locales = manifest.locales;
 const validators = createValidators(manifest, app);
 

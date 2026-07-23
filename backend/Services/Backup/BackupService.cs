@@ -13,6 +13,8 @@ namespace KasseAPI_Final.Services.Backup;
 /// Facade over manual backup enqueue + RKSV validation-only restore request.
 /// Tenant strategy enqueues a worker job that exports tenant-only JSON ZIP (no Identity).
 /// System strategy enqueues instance-wide <c>pg_dump</c>. Never runs dump/export on the HTTP thread.
+/// Artifact file names: <c>backup_{tenantSlug}_{tenant|system}_{yyyyMMdd_HHmmss}.{ext}</c>
+/// (see <see cref="BackupArtifactFileNameBuilder"/>).
 /// </summary>
 public sealed class BackupService : IBackupService
 {

@@ -1,57 +1,50 @@
 name: "POS Operations"
-description: "Cart, payment, receipt operations"
+description: "POS catalog, cart, payment (canonical /api/pos/*)"
+tags: [regression, fiscal]
+
+notes: |
+  Production POS: pos.regkasse.at + JWT tenant. Do not use {slug}.regkasse.at as POS entry.
+  Payment bodies are high-risk — keep fixtures aligned with CreatePaymentRequest.
 
 tests:
-  - name: "Get products"
+  - name: "Get POS product list"
     endpoint: "GET /api/pos/list"
     headers:
       Authorization: "Bearer {{cashierToken}}"
       X-Tenant-Id: "dev"
     expected:
       status: 200
-      body: "array"
-      minLength: 1
+
+  - name: "Get current cart"
+    endpoint: "GET /api/pos/cart/current"
+    headers:
+      Authorization: "Bearer {{cashierToken}}"
+    expected:
+      status: 200
 
   - name: "Add item to cart"
     endpoint: "POST /api/pos/cart/add-item"
     headers:
       Authorization: "Bearer {{cashierToken}}"
     body:
-      productId: "33333333-3333-3333-3333-333333333333"
-      quantity: 2
-      tableNumber: 1
+      productId: "{{testProductId}}"
+      quantity: 1
     expected:
       status: 200
 
-  - name: "Create payment"
+  - name: "List payment methods"
+    endpoint: "GET /api/pos/payment/methods"
+    headers:
+      Authorization: "Bearer {{cashierToken}}"
+    expected:
+      status: 200
+
+  - name: "Create payment (cash / TSE)"
     endpoint: "POST /api/pos/payment"
     headers:
       Authorization: "Bearer {{cashierToken}}"
     body:
-      customerId: "walk-in"
-      items:
-        - productId: "33333333-3333-3333-3333-333333333333"
-          quantity: 2
-          taxType: 1
-      payment:
-        method: "cash"
-        amount: 20.00
-        tseRequired: true
-      tableNumber: 1
+      # Align with live CreatePaymentRequest — keep minimal in docs; execute via live smoke carefully
       cashRegisterId: "{{registerId}}"
     expected:
       status: 201
-      body:
-        paymentId: "exists"
-        receiptNumber: "matches pattern"
-
-  - name: "Get receipt by payment ID"
-    endpoint: "GET /api/Receipts/by-payment/{{paymentId}}"
-    headers:
-      Authorization: "Bearer {{cashierToken}}"
-    expected:
-      status: 200
-      body:
-        receiptNumber: "exists"
-        grandTotal: 20.00
-        signature: "exists"

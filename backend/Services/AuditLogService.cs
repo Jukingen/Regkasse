@@ -33,7 +33,8 @@ namespace KasseAPI_Final.Services
             AuditLogStatus status = AuditLogStatus.Success, string? errorDetails = null,
             object? requestData = null, object? responseData = null, string? correlationIdOverride = null,
             ImpersonationAuditContext.Snapshot? impersonationSnapshot = null,
-            AuditEventType? actionType = null, Guid? entityId = null, Guid? tenantId = null);
+            AuditEventType? actionType = null, Guid? entityId = null, Guid? tenantId = null,
+            object? oldValues = null, object? newValues = null, string? entityName = null);
 
         Task<AuditLog> LogUserActivityAsync(string action, string userId, string userRole,
             string? description = null, string? notes = null, AuditLogStatus status = AuditLogStatus.Success,
@@ -300,7 +301,8 @@ namespace KasseAPI_Final.Services
             AuditLogStatus status = AuditLogStatus.Success, string? errorDetails = null,
             object? requestData = null, object? responseData = null, string? correlationIdOverride = null,
             ImpersonationAuditContext.Snapshot? impersonationSnapshot = null,
-            AuditEventType? actionType = null, Guid? entityId = null, Guid? tenantId = null)
+            AuditEventType? actionType = null, Guid? entityId = null, Guid? tenantId = null,
+            object? oldValues = null, object? newValues = null, string? entityName = null)
         {
             try
             {
@@ -320,10 +322,11 @@ namespace KasseAPI_Final.Services
                     Action = actionCol,
                     EntityType = entityTypeCol,
                     EntityId = entityId,
+                    EntityName = AuditLogPersistenceSanitizer.Truncate(entityName, AuditLogPersistenceSanitizer.EntityNameMaxLength),
                     ActionType = resolvedActionType == AuditEventType.Other ? null : resolvedActionType,
                     TenantId = ResolveAuditTenantId(tenantId),
-                    OldValues = null,
-                    NewValues = null,
+                    OldValues = AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(oldValues),
+                    NewValues = AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(newValues),
                     RequestData = AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(requestData),
                     ResponseData = AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(responseData),
                     Status = status,
@@ -604,6 +607,7 @@ namespace KasseAPI_Final.Services
                 AuditEventType.UserPasswordReset => AuditLogActions.USER_PASSWORD_RESET,
                 AuditEventType.RolePermissionsUpdated => AuditLogActions.ROLE_PERMISSIONS_UPDATE,
                 AuditEventType.RoleDeleted => AuditLogActions.ROLE_DELETE,
+                AuditEventType.RoleCreated => AuditLogActions.ROLE_CREATE,
                 AuditEventType.LoginSuccess => AuditLogActions.USER_LOGIN,
                 AuditEventType.LoginFailed => AuditLogActions.USER_LOGIN_FAILED,
                 AuditEventType.UserLogout => AuditLogActions.USER_LOGOUT,
@@ -651,6 +655,7 @@ namespace KasseAPI_Final.Services
                 AuditLogActions.USER_PASSWORD_RESET => AuditEventType.UserPasswordReset,
                 AuditLogActions.ROLE_PERMISSIONS_UPDATE => AuditEventType.RolePermissionsUpdated,
                 AuditLogActions.ROLE_DELETE => AuditEventType.RoleDeleted,
+                AuditLogActions.ROLE_CREATE => AuditEventType.RoleCreated,
                 AuditLogActions.USER_LOGIN => AuditEventType.LoginSuccess,
                 AuditLogActions.USER_LOGIN_FAILED => AuditEventType.LoginFailed,
                 AuditLogActions.USER_LOGOUT => AuditEventType.UserLogout,

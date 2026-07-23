@@ -22,6 +22,9 @@ export type CreateTenantWizardData = {
   /** Local calendar date YYYY-MM-DD */
   licenseStartDate: string;
   importDemoProducts: boolean;
+  /** restaurant | retail | hotel | none */
+  industryTemplateId: string;
+  seedIndustryStarterUsers: boolean;
 };
 
 export type CreateTenantFormValues = CreateTenantWizardData & {
@@ -51,6 +54,8 @@ export function createEmptyWizardData(): CreateTenantWizardData {
     licenseDays: 365,
     licenseStartDate: `${yyyy}-${mm}-${dd}`,
     importDemoProducts: true,
+    industryTemplateId: 'none',
+    seedIndustryStarterUsers: true,
   };
 }
 

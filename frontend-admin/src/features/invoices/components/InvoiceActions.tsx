@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type { InvoiceStatus } from '@/api/generated/model';
 import { InvoiceStatus as InvoiceStatusEnum } from '@/api/generated/model';
+import { useTenant } from '@/features/tenancy/providers/TenantProvider';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 import { createIntlFormatters } from '@/i18n/formatting';
@@ -15,6 +16,7 @@ import {
 } from '@/shared/contract/httpErrorShape';
 
 import { getInvoicePdf, getInvoicePreview, resendInvoiceEmail } from '../api/invoiceService';
+import { buildInvoicePdfFileName } from '../utils/invoiceExportFileName';
 import {
   isValidInvoiceRecipientEmail,
   resolveInvoiceRecipientEmail,
@@ -23,6 +25,7 @@ import {
 export type InvoiceActionsInvoice = {
   id: string;
   invoiceNumber?: string | null;
+  kassenId?: string | null;
   totalAmount?: number;
   status?: InvoiceStatus;
   customerEmail?: string | null;
@@ -56,6 +59,7 @@ export const InvoiceActions: React.FC<InvoiceActionsProps> = ({
 }) => {
   const { message } = useAntdApp();
   const { t, formatLocale } = useI18n();
+  const { tenant } = useTenant();
   const fmt = useMemo(() => createIntlFormatters(formatLocale), [formatLocale]);
   const statusMap = useMemo(() => buildStatusMap(t), [t]);
 
@@ -119,7 +123,11 @@ export const InvoiceActions: React.FC<InvoiceActionsProps> = ({
       const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
       const link = document.createElement('a');
       link.href = url;
-      link.download = `Rechnung_${displayNumber}.pdf`;
+      link.download = buildInvoicePdfFileName(
+        tenant?.slug,
+        invoice.kassenId,
+        invoice.invoiceNumber ?? displayNumber
+      );
       document.body.appendChild(link);
       link.click();
       link.remove();

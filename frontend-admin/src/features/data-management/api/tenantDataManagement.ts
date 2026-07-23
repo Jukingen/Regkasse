@@ -77,10 +77,13 @@ export async function getTenantDataManagementSummary(
   return data;
 }
 
-export async function downloadTenantDataExport(tenantId: string): Promise<Blob> {
+export async function downloadTenantDataExport(
+  tenantId: string,
+  securityHeaders?: Record<string, string>
+): Promise<Blob> {
   const { data } = await AXIOS_INSTANCE.get<Blob>(
     `/api/admin/tenants/${tenantId}/data-management/export`,
-    { responseType: 'blob' }
+    { responseType: 'blob', headers: securityHeaders }
   );
   return data;
 }
@@ -207,10 +210,14 @@ export async function createDataRightsRequest(
   return data.rights;
 }
 
-export async function downloadDataRightsExport(tenantId: string, requestId: string): Promise<Blob> {
+export async function downloadDataRightsExport(
+  tenantId: string,
+  requestId: string,
+  securityHeaders?: Record<string, string>
+): Promise<Blob> {
   const { data } = await AXIOS_INSTANCE.get<Blob>(
     `/api/admin/tenants/${tenantId}/data-management/requests/${requestId}/download`,
-    { responseType: 'blob' }
+    { responseType: 'blob', headers: securityHeaders }
   );
   return data;
 }

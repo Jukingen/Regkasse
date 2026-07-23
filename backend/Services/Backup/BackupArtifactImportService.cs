@@ -217,20 +217,22 @@ public sealed class BackupArtifactImportService : IBackupArtifactImportService
         if (string.IsNullOrWhiteSpace(baseName))
         {
             return isManifest
-                ? BackupArtifactFileNameBuilder.BuildManifestFileName(tenantSlug, timestampUtc)
-                : BackupArtifactFileNameBuilder.BuildLogicalDumpFileName(tenantSlug, timestampUtc);
+                ? BackupArtifactFileNameBuilder.BuildManifestFileName(tenantSlug, timestampUtc, BackupStrategyKind.Tenant)
+                : BackupArtifactFileNameBuilder.BuildLogicalDumpFileName(tenantSlug, timestampUtc, BackupStrategyKind.Tenant);
         }
 
         var ext = Path.GetExtension(baseName);
         if (isManifest)
         {
             if (!ext.Equals(".json", StringComparison.OrdinalIgnoreCase))
-                return BackupArtifactFileNameBuilder.BuildManifestFileName(tenantSlug, timestampUtc);
+                return BackupArtifactFileNameBuilder.BuildManifestFileName(tenantSlug, timestampUtc, BackupStrategyKind.Tenant);
         }
         else if (!ext.Equals(".dump", StringComparison.OrdinalIgnoreCase)
-                 && !ext.Equals(".sql", StringComparison.OrdinalIgnoreCase))
+                 && !ext.Equals(".sql", StringComparison.OrdinalIgnoreCase)
+                 && !baseName.EndsWith(".tenant.zip", StringComparison.OrdinalIgnoreCase)
+                 && !baseName.EndsWith(".system.zip", StringComparison.OrdinalIgnoreCase))
         {
-            return BackupArtifactFileNameBuilder.BuildLogicalDumpFileName(tenantSlug, timestampUtc);
+            return BackupArtifactFileNameBuilder.BuildLogicalDumpFileName(tenantSlug, timestampUtc, BackupStrategyKind.Tenant);
         }
 
         return Path.GetFileName(baseName.Replace('\\', '/').Split('/').Last());

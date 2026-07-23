@@ -28,6 +28,8 @@ import { AuditLogsSubNav } from '@/features/audit/components/AuditLogsSubNav';
 import { AuditRetentionPanel } from '@/features/audit/components/AuditRetentionPanel';
 import { ManagerAuditLogsDefaultTab } from '@/features/audit/components/ManagerAuditLogsDefaultTab';
 import { ScheduleReportModal } from '@/features/audit/components/ScheduleReportModal';
+import { useKeyboardShortcutLabels } from '@/components/KeyboardShortcutsProvider';
+import { useExportDownloadShortcutHandlers } from '@/hooks/useExportDownloadShortcutHandlers';
 import { useI18n } from '@/i18n';
 import { formatDate, formatNumber } from '@/i18n/formatting';
 import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -40,6 +42,7 @@ function getAuditListErrorMessage(error: unknown, translate: (key: string) => st
 
 function AuditLogsPageContent() {
   const { t, formatLocale } = useI18n();
+  const { getShortcutLabel } = useKeyboardShortcutLabels();
   const { params, setParams, resetFilters } = useAuditLogSearchParams();
   const { getAfterCursor, shouldIncludeTotalCount, cachedTotal, ingestPageMeta, resetCursors } =
     useKeysetCursors();
@@ -115,6 +118,18 @@ function AuditLogsPageContent() {
   const [exportOpen, setExportOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [detailRecord, setDetailRecord] = useState<AuditLogEntryDto | null>(null);
+
+  useExportDownloadShortcutHandlers({
+    onOpenExportModal: () => setExportOpen(true),
+    onDownloadExport: () => setExportOpen(true),
+  });
+
+  const exportShortcutTitle = t('keyboardShortcuts.openExportModalWithShortcut', {
+    shortcut: getShortcutLabel('openExportModal'),
+  });
+  const downloadShortcutTitle = t('keyboardShortcuts.downloadExportWithShortcut', {
+    shortcut: getShortcutLabel('downloadExport'),
+  });
 
   const dateRange = useMemo((): [Dayjs | null, Dayjs | null] | null => {
     if (!params.startDate && !params.endDate) return null;
@@ -208,13 +223,16 @@ function AuditLogsPageContent() {
                 {t('common.buttons.refresh')}
               </Button>
             </Tooltip>
-            <Button
-              icon={<DownloadOutlined />}
-              onClick={() => setExportOpen(true)}
-              disabled={isLoading}
-            >
-              {t('common.auditLogs.exportButton')}
-            </Button>
+            <Tooltip title={downloadShortcutTitle}>
+              <Button
+                icon={<DownloadOutlined />}
+                onClick={() => setExportOpen(true)}
+                disabled={isLoading}
+                title={exportShortcutTitle}
+              >
+                {t('common.auditLogs.exportButton')}
+              </Button>
+            </Tooltip>
             <Button icon={<CalendarOutlined />} onClick={() => setScheduleOpen(true)}>
               {t('common.auditLogs.scheduleButton')}
             </Button>

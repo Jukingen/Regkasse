@@ -23,7 +23,7 @@ vi.mock('@/hooks/useAntdApp', () => ({
 }));
 
 vi.mock('@/i18n', () => ({
-  useI18n: () => ({ t: mockT }),
+  useI18n: () => ({ t: mockT, textLocale: 'en' }),
 }));
 
 describe('useKeyboardShortcuts', () => {
@@ -125,5 +125,33 @@ describe('useKeyboardShortcuts', () => {
     const { result } = renderHook(() => useKeyboardShortcuts());
     expect(result.current.getShortcutLabel('openSearch')).toMatch(/K/);
     expect(result.current.getShortcutLabel('logout')).toMatch(/L/);
+  });
+
+  it('navigates to download history on Ctrl+Shift+H', () => {
+    renderHook(() => useKeyboardShortcuts());
+    dispatchKey({ key: 'h', ctrlKey: true, shiftKey: true });
+    expect(mockPush).toHaveBeenCalledWith('/admin/download-history');
+  });
+
+  it('dispatches downloadExport on Ctrl+Shift+D', () => {
+    const onDownload = vi.fn();
+    document.addEventListener(KEYBOARD_SHORTCUT_EVENTS.downloadExport, onDownload);
+
+    renderHook(() => useKeyboardShortcuts());
+    dispatchKey({ key: 'd', ctrlKey: true, shiftKey: true });
+
+    expect(onDownload).toHaveBeenCalledTimes(1);
+    document.removeEventListener(KEYBOARD_SHORTCUT_EVENTS.downloadExport, onDownload);
+  });
+
+  it('dispatches openDownloadPreview on Ctrl+Shift+P', () => {
+    const onPreview = vi.fn();
+    document.addEventListener(KEYBOARD_SHORTCUT_EVENTS.openDownloadPreview, onPreview);
+
+    renderHook(() => useKeyboardShortcuts());
+    dispatchKey({ key: 'p', ctrlKey: true, shiftKey: true });
+
+    expect(onPreview).toHaveBeenCalledTimes(1);
+    document.removeEventListener(KEYBOARD_SHORTCUT_EVENTS.openDownloadPreview, onPreview);
   });
 });

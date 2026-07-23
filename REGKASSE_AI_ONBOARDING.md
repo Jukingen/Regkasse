@@ -6,6 +6,8 @@
 
 > **Legal safety:** Nothing here is a legal compliance guarantee. Fiscal export output is diagnostic / internal analysis only, not an official RKSV proof.
 
+> **Last reviewed:** 2026-07-21 — stack versions, monorepo/CI DX, digital Sites runtime, backup FA extras; see **Recent Improvements** below.
+
 ---
 
 ## 1. Project Identity
@@ -70,57 +72,51 @@ The project aims to provide a production-grade POS system that can:
 
 ## 3. Technical Stack
 
+Pinned / package evidence (FA `package.json`, POS `package.json`, `backend/KasseAPI_Final.csproj`). Prefer local files if versions drift.
+
+| Layer | Stack | Version |
+|-------|--------|---------|
+| Backend | ASP.NET Core / C# / EF Core / Npgsql | **.NET 10** (`net10.0`), EF **10.0.10** |
+| POS | Expo / React Native / TypeScript / Zustand / i18next | Expo SDK **56**, RN **0.85.3**, React **19.2.3** |
+| Admin (FA) | Next.js App Router / Ant Design / TanStack Query / Orval | Next **16.2.10**, React **19.2.7**, Ant Design **6.4.3** |
+| Sites | Next.js (tenant storefronts) | Next **~16.2.6**, React **~19.2.6** |
+| Database | PostgreSQL | **16+** typical |
+
 ### Backend
 
-- Language: **C#**
-- Runtime / target framework: **.NET 10**
-- Web framework: **ASP.NET Core Web API**
-- ORM: **Entity Framework Core**
-- Database provider: **Npgsql / PostgreSQL**
-- Architecture: **monolithic layered API**
-- Key backend areas:
-  - Controllers
-  - Services
-  - EF `AppDbContext`
-  - Models / DTOs
-  - Hosted services
-  - Fiscal / TSE signing services
-  - FinanzOnline / outbox services
+- Architecture: **monolithic layered API** (`ApplicationHost.cs`)
+- Key areas: Controllers, Services, `AppDbContext`, Models/DTOs, hosted services, TSE/RKSV, FinanzOnline outbox
 
 ### Frontend POS
 
-- Framework: **Expo / React Native**
-- Router: **expo-router**
-- Language: **TypeScript**
-- State management: **Zustand**
-- i18n: **i18next / react-i18next**
-- Purpose:
-  - Cashier-facing POS
-  - Cart and payment flow
-  - Receipt printing / display
-  - Register readiness and guardrail messaging
+- Router: **expo-router**; cashier cart/payment/receipts; German UI (`de-DE`)
 
 ### Frontend Admin
 
-- Framework: **Next.js 16**
-- Routing: **Next.js App Router**
-- UI library: **Ant Design**
-- Data fetching: **TanStack Query**
-- API client generation: **Orval** from `backend/swagger.json`
-- HTTP client: axios mutator pattern
-- Purpose:
-  - Backoffice/admin operations
-  - Reports
-  - Voucher management
-  - Receipt/payment inspection
-  - RKSV Sonderbelege UI
-  - FinanzOnline/outbox/reconciliation views
+- Auth boundary: `frontend-admin/src/proxy.ts` (not `middleware.ts`)
+- API client: **Orval** from `backend/swagger.json` → `frontend-admin/src/api/generated/**`
+- After OpenAPI changes: regenerate swagger + `npm run generate:api`; verify with `node scripts/verify-api-client.mjs` (Husky pre-commit + CI)
+
+### Frontend Sites
+
+- Package `frontend-sites/` — shared multi-tenant customer websites (`/[slug]`), public catalog + online-order UI
+- Not fiscal; working hours gate intake only
+- Dev: `npm run dev:sites` (port **3001**)
 
 ### Database
 
-- PostgreSQL
-- EF Core migrations
-- Important: migrations must be treated carefully because fiscal records and receipt sequences are legally sensitive.
+- PostgreSQL + EF Core migrations — treat carefully (fiscal sequences / RKSV retention)
+
+## Recent Improvements (2026-07)
+
+- **Monorepo DX:** Root `README.md`, `CONTRIBUTING.md`, npm **workspaces**, `npm run dev` / `build` / `test` / `lint` from root; package READMEs.
+- **CI:** Backend unit + PostgreSQL integration, FA (incl. Playwright E2E), POS, Sites; caches; optional Slack `SLACK_WEBHOOK_URL`. Inventory: `.github/workflows/README.md`.
+- **API client:** `verify-api-client.mjs`; Husky pre-commit; `api-client-auto-generate.yml` commits Orval output when `backend/swagger.json` lands on `main`/`master`.
+- **i18n:** Hard gate in `localization-validation.yml` + FA/POS CI (`--strictMissing true`; admin `--orphanPolicy error`). Sites i18n **deferred** in `namespace-manifest.json`.
+- **Digital:** Shared Sites runtime (`frontend-sites`) for tenant storefronts + public APIs.
+- **Backup FA:** Role-aware hub plus `/backup/costs`, `/backup/compliance`; smart retention / tiers / auto-cleanup remain optional config flags.
+
+---
 
 ## Database Schema
 
@@ -485,6 +481,7 @@ Regkasse offers **website** and **mobile app** digital services for tenants, man
 - i18n also labels Bistro / Gourmet / Street Food for UI catalog expansion — do not assume those generators exist until listed by `/api/admin/website/templates`.
 - **Manager:** preview templates, request creation or template change (`digital.view` / `preview` / `request`). FA: `/settings/digital`, `/tenant/{id}/website-preview`.
 - **Super Admin:** create / publish / edit / delete; approve requests. FA: `/admin/digital`, `/admin/digital/requests`.
+- **Runtime host:** shared Next app `frontend-sites/` serves `/[slug]` storefronts (public catalog + order UI). Custom hosts via verified `TenantDomain` (`ITenantDomainService`). Public APIs: `/api/public/tenants/*`, `/api/sites/{slug}/status`, `/api/public/online-orders`.
 
 ### Mobile app
 
@@ -555,38 +552,34 @@ Hub: [`docs/WORKING_HOURS.md`](docs/WORKING_HOURS.md). Always-applied: [`AGENTS.
 ### FA (role-aware)
 
 - `/backup` hub: `TenantBackupView` (Mandanten-Admin) vs `SystemBackupView` (Super Admin).
-- Detail: `/backup/dashboard`, runs, configuration, audit.
+- Detail: `/backup/dashboard`, runs, configuration, audit, **`/backup/costs`**, **`/backup/compliance`**.
 
 ---
 
 ## 4. Repository Structure
 
-Typical high-level structure:
-
 ```text
-backend/                  ASP.NET Core API, EF Core, fiscal services, Tenancy/
-frontend/                 Expo / React Native POS app
-frontend-admin/           Next.js admin panel
-docs/                     RKSV, operations, receipt, audit, workflow docs
-localization/             Translation tooling and validation scripts
-scripts/                  API client validation and helper scripts
-.github/workflows/        CI workflows
-ai/                       AI/project context files, if present
+backend/                  ASP.NET Core API, EF Core, fiscal services, Tenancy/ (+ npm workspace wrapper)
+frontend/                 Expo / React Native POS (cash-register)
+frontend-admin/           Next.js admin panel (registrierkasse-admin)
+frontend-sites/           Shared tenant websites / online-order UI (regkasse-sites)
+localization/             i18n validate/export/usage (POS + FA; Sites deferred)
+scripts/                  OpenAPI verify, seeds, Husky install, helpers
+tools/                    License generator utilities
+docs/                     Human docs (backup, digital, RKSV, …)
+ai/                       AI contracts / do-not-touch
+.github/workflows/        CI inventory in workflows/README.md
+README.md / CONTRIBUTING.md / AGENTS.md
 ```
 
-The backend OpenAPI contract is generated into:
+OpenAPI → Orval:
 
 ```text
 backend/swagger.json
-```
-
-The frontend-admin API client is generated into:
-
-```text
 frontend-admin/src/api/generated/**
 ```
 
-Whenever backend API changes affect frontend-admin, update both `backend/swagger.json` and the generated Orval client.
+Whenever backend API changes affect FA: refresh `backend/swagger.json`, run `npm run generate:api`, commit generated output, confirm with `node scripts/verify-api-client.mjs`. CI may auto-commit generated client when swagger is pushed to `main`/`master`.
 
 ---
 
@@ -1414,9 +1407,10 @@ Use this at the top of a new AI/Cursor chat:
 You are working on Regkasse, a full-stack Austrian RKSV-compliant POS cash register system.
 
 Stack:
-- Backend: ASP.NET Core / C# / EF Core / PostgreSQL
-- POS frontend: Expo React Native / TypeScript / Zustand / i18n
-- Admin frontend: Next.js 16 / Ant Design 6 / TanStack Query / Orval generated API client
+- Backend: ASP.NET Core 10 / C# / EF Core 10.0.10 / PostgreSQL
+- POS: Expo SDK 56 / React Native 0.85 / TypeScript / Zustand / i18n (de-DE UI)
+- Admin: Next.js 16.2 / Ant Design 6 / TanStack Query / Orval client
+- Sites: Next.js frontend-sites (tenant storefronts; non-fiscal)
 
 Critical domain rules:
 - Fiscal payments require TSE/RKSV signing and signature chaining.
@@ -1428,13 +1422,15 @@ Critical domain rules:
 - Backend is final authority; frontend guardrails are UX only.
 - Do not claim legal compliance guarantees.
 - Backup: Tenant (Manager) vs System (Super Admin); Identity only in System; no production restore via API; cross-tenant restore forbidden.
+- Digital Sites / online orders are not POS/RKSV; working hours gate websites only.
 
 Development rules:
 - Keep changes minimal and scoped.
 - Do not refactor unrelated code.
 - Do analysis before implementation for fiscal changes.
-- Update swagger + Orval client if backend API changes.
-- Run targeted tests.
+- Update swagger + Orval client if backend API changes (`verify-api-client` / Husky).
+- Prefer root npm workspace scripts (`npm run dev`, `test`, …) and AGENTS.md.
+- Run targeted tests and i18n hard gates when touching locales.
 ```
 
 ---

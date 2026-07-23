@@ -140,6 +140,13 @@ public sealed class CreateAdminTenantRequest
     /// <summary>Optional cash register number for provisioning (default: KASSE-001).</summary>
     [MaxLength(20)]
     public string? CashRegisterNumber { get; set; }
+
+    /// <summary>Industry template id (restaurant|retail|hotel) or null/none.</summary>
+    [MaxLength(32)]
+    public string? IndustryTemplateId { get; set; }
+
+    /// <summary>When true and an industry template is set, seed deactivated starter users for template slots.</summary>
+    public bool SeedIndustryStarterUsers { get; set; } = true;
 }
 
 public sealed class HardDeleteAdminTenantRequest

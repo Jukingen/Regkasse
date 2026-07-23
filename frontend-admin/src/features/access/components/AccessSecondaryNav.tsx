@@ -1,6 +1,15 @@
 'use client';
 
-import { AuditOutlined, KeyOutlined, SafetyOutlined, TeamOutlined } from '@ant-design/icons';
+import {
+  AppstoreOutlined,
+  AuditOutlined,
+  CloudUploadOutlined,
+  HistoryOutlined,
+  KeyOutlined,
+  PieChartOutlined,
+  SafetyOutlined,
+  TeamOutlined,
+} from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { Menu } from 'antd';
 import Link from 'next/link';
@@ -15,8 +24,13 @@ import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
 const ACCESS_TAB_META: Record<AccessAreaRoutePath, { labelKey: string; Icon: ComponentType }> = {
   '/admin/access': { labelKey: 'nav.accessOverview', Icon: KeyOutlined },
   '/admin/users': { labelKey: 'nav.users', Icon: TeamOutlined },
-  '/admin/access/roles': { labelKey: 'nav.accessRoles', Icon: SafetyOutlined },
+  '/admin/access/roles': { labelKey: 'nav.rolesPermissions', Icon: SafetyOutlined },
   '/admin/access/matrix': { labelKey: 'nav.accessMatrix', Icon: AuditOutlined },
+  '/admin/access/permission-history': { labelKey: 'nav.permissionHistory', Icon: HistoryOutlined },
+  '/admin/access/permission-requests': { labelKey: 'nav.permissionRequests', Icon: AuditOutlined },
+  '/admin/access/permission-packages': { labelKey: 'nav.permissionPackages', Icon: AppstoreOutlined },
+  '/admin/access/permission-backups': { labelKey: 'nav.permissionBackups', Icon: CloudUploadOutlined },
+  '/admin/access/permission-stats': { labelKey: 'nav.permissionStats', Icon: PieChartOutlined },
 };
 
 export function AccessSecondaryNav() {

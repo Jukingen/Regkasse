@@ -6,7 +6,14 @@ name: Backend unit tests
 
 on:
   pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-unit-tests.yml'
   push:
+    branches: [main, master]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-unit-tests.yml'
   workflow_dispatch:
 
 concurrency:
@@ -22,7 +29,7 @@ env:
 
 jobs:
   unit-tests:
-    name: dotnet test (exclude Category=PostgreSql)
+    name: dotnet build + test (exclude Category=PostgreSql)
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -35,10 +42,36 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Run unit / in-memory tests
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('backend/**/*.csproj', 'backend/**/*.sln') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore
+        working-directory: backend
+        run: dotnet restore KasseAPI_Final.sln
+
+      - name: Build
+        working-directory: backend
+        run: dotnet build KasseAPI_Final.sln --configuration Release --no-restore
+
+      - name: Test
         working-directory: backend
         run: >-
           dotnet test KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj
           --configuration Release
+          --no-build
           --filter "Category!=PostgreSql"
           --verbosity minimal
+
+  notify-failure:
+    name: Notify on failure
+    needs: [unit-tests]
+    if: failure()
+    uses: ./.github/workflows/notify-failure.yml
+    with:
+      title: Backend unit tests failed
+    secrets: inherit

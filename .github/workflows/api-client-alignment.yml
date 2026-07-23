@@ -1,24 +1,39 @@
 name: API client alignment (OpenAPI / Orval)
 
 # Ensures frontend-admin Orval output matches committed backend/swagger.json.
-# Optional: narrow with `paths:` on pull_request to reduce runs (trade-off: stale spec may slip).
 
 on:
   pull_request:
+    paths:
+      - 'backend/swagger.json'
+      - 'frontend-admin/**'
+      - 'scripts/verify-api-client.mjs'
+      - 'scripts/validate-critical-openapi-paths.mjs'
+      - '.github/workflows/api-client-alignment.yml'
   push:
+    branches: [main, master]
+    paths:
+      - 'backend/swagger.json'
+      - 'frontend-admin/**'
+      - 'scripts/verify-api-client.mjs'
+      - 'scripts/validate-critical-openapi-paths.mjs'
+      - '.github/workflows/api-client-alignment.yml'
   workflow_dispatch:
 
 concurrency:
   group: api-client-alignment-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  NODE_VERSION: '22'
+  CI: 'true'
+  NEXT_TELEMETRY_DISABLED: '1'
+
 jobs:
   verify-orval:
     name: Orval drift check + admin smoke
     runs-on: ubuntu-latest
-    env:
-      NEXT_TELEMETRY_DISABLED: '1'
-      CI: 'true'
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
@@ -27,11 +42,21 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: frontend-admin/package-lock.json
 
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: frontend-admin/node_modules
+          key: ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-nm-${{ hashFiles('frontend-admin/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-nm-
+
       - name: Install frontend-admin dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
         working-directory: frontend-admin
         run: npm ci
 
@@ -46,3 +71,12 @@ jobs:
           NEXT_PUBLIC_RKSV_ENVIRONMENT: TEST
           NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:5184
         run: npm run build
+
+  notify-failure:
+    name: Notify on failure
+    needs: [verify-orval]
+    if: failure()
+    uses: ./.github/workflows/notify-failure.yml
+    with:
+      title: API client alignment failed
+    secrets: inherit

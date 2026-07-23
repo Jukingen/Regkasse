@@ -1,3 +1,10 @@
+#!/usr/bin/env node
+/**
+ * Thin wrapper → localization/scripts/export-translations.mjs
+ * Prefer: cd localization && npm run export
+ *
+ * Usage: node tools/i18n/export-csv.mjs --project <frontend|frontend-admin> [--dry-run]
+ */
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { parseArgs } from './utils.mjs';

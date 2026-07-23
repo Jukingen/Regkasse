@@ -29,6 +29,7 @@ public sealed class AdminTenantDataManagementController : ControllerBase
     private readonly IDataAccessService _dataAccess;
     private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly IAuditLogService _audit;
+    private readonly IDownloadSecurityService _downloadSecurity;
 
     public AdminTenantDataManagementController(
         IDataExportService export,
@@ -37,7 +38,8 @@ public sealed class AdminTenantDataManagementController : ControllerBase
         ICustomerDataRightsService rights,
         IDataAccessService dataAccess,
         ICurrentTenantAccessor tenantAccessor,
-        IAuditLogService audit)
+        IAuditLogService audit,
+        IDownloadSecurityService downloadSecurity)
     {
         _export = export;
         _deletion = deletion;
@@ -46,6 +48,7 @@ public sealed class AdminTenantDataManagementController : ControllerBase
         _dataAccess = dataAccess;
         _tenantAccessor = tenantAccessor;
         _audit = audit;
+        _downloadSecurity = downloadSecurity;
     }
 
     [HttpGet]
@@ -173,6 +176,46 @@ public sealed class AdminTenantDataManagementController : ControllerBase
         try
         {
             var file = await _rights.DownloadExportAsync(tenantId, requestId, ct).ConfigureAwait(false);
+            var userId = User.GetActorUserId() ?? User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "unknown";
+            var role = User.GetActorRole() ?? "Unknown";
+            var isSuperAdmin = User.IsInRole(Roles.SuperAdmin);
+            var gate = await _downloadSecurity.EvaluateAsync(
+                new DownloadSecurityEvaluateRequest
+                {
+                    UserId = userId,
+                    UserRole = role,
+                    TenantId = tenantId,
+                    ExportKind = SensitiveExportKinds.GdprDataExport,
+                    ResourceId = requestId.ToString("D"),
+                    FileSizeBytes = file.Data?.LongLength,
+                    PrivacyAck = DownloadSecurityHttp.ReadPrivacyAck(Request),
+                    TwoFactorCode = DownloadSecurityHttp.ReadTwoFactorCode(Request),
+                    ApprovalId = DownloadSecurityHttp.ReadApprovalId(Request),
+                    DownloadTicket = DownloadSecurityHttp.ReadDownloadTicket(Request),
+                    IsSuperAdmin = isSuperAdmin,
+                },
+                ct).ConfigureAwait(false);
+            if (!gate.Allowed)
+                return StatusCode(gate.StatusCode, gate.Body);
+
+            if (!string.IsNullOrWhiteSpace(gate.DownloadTicket))
+            {
+                Response.Headers[DownloadSecurityService.HeaderDownloadTicket] = gate.DownloadTicket;
+                if (gate.TicketExpiresAtUtc.HasValue)
+                    Response.Headers["X-Download-Ticket-Expires"] = gate.TicketExpiresAtUtc.Value.ToString("O");
+            }
+
+            await _downloadSecurity.LogDownloadAuditAsync(
+                userId,
+                role,
+                tenantId,
+                SensitiveExportKinds.GdprDataExport,
+                file.FileName,
+                file.Data?.LongLength,
+                requestId.ToString("D"),
+                null,
+                ct).ConfigureAwait(false);
+
             return File(file.Data, "application/zip", file.FileName);
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
@@ -262,22 +305,82 @@ public sealed class AdminTenantDataManagementController : ControllerBase
             if (rights.CanDownload)
             {
                 var file = await _rights.DownloadExportAsync(tenantId, rights.Id, ct).ConfigureAwait(false);
+                var role = User.GetActorRole() ?? "Unknown";
+                var isSuperAdmin = User.IsInRole(Roles.SuperAdmin);
+                var gate = await _downloadSecurity.EvaluateAsync(
+                    new DownloadSecurityEvaluateRequest
+                    {
+                        UserId = userId,
+                        UserRole = role,
+                        TenantId = tenantId,
+                        ExportKind = SensitiveExportKinds.GdprDataExport,
+                        ResourceId = rights.Id.ToString("D"),
+                        FileSizeBytes = file.Data?.LongLength,
+                        PrivacyAck = DownloadSecurityHttp.ReadPrivacyAck(Request),
+                        TwoFactorCode = DownloadSecurityHttp.ReadTwoFactorCode(Request),
+                        ApprovalId = DownloadSecurityHttp.ReadApprovalId(Request),
+                        DownloadTicket = DownloadSecurityHttp.ReadDownloadTicket(Request),
+                        IsSuperAdmin = isSuperAdmin,
+                    },
+                    ct).ConfigureAwait(false);
+                if (!gate.Allowed)
+                    return StatusCode(gate.StatusCode, gate.Body);
+
+                if (!string.IsNullOrWhiteSpace(gate.DownloadTicket))
+                {
+                    Response.Headers[DownloadSecurityService.HeaderDownloadTicket] = gate.DownloadTicket;
+                    if (gate.TicketExpiresAtUtc.HasValue)
+                        Response.Headers["X-Download-Ticket-Expires"] = gate.TicketExpiresAtUtc.Value.ToString("O");
+                }
+
+                await _downloadSecurity.LogDownloadAuditAsync(
+                    userId,
+                    role,
+                    tenantId,
+                    SensitiveExportKinds.GdprDataExport,
+                    file.FileName,
+                    file.Data?.LongLength,
+                    rights.Id.ToString("D"),
+                    null,
+                    ct).ConfigureAwait(false);
+
                 await _deletionRequests.MarkExportCompletedAsync(tenantId, ct).ConfigureAwait(false);
                 return File(file.Data, "application/zip", file.FileName);
             }
 
             // Fallback: immediate sync export if artifact not ready yet.
             var result = await _export.ExportAllDataAsync(tenantId, ct).ConfigureAwait(false);
+            var roleFallback = User.GetActorRole() ?? "Unknown";
+            var isSuperAdminFallback = User.IsInRole(Roles.SuperAdmin);
+            var gateFallback = await _downloadSecurity.EvaluateAsync(
+                new DownloadSecurityEvaluateRequest
+                {
+                    UserId = userId,
+                    UserRole = roleFallback,
+                    TenantId = tenantId,
+                    ExportKind = SensitiveExportKinds.GdprDataExport,
+                    ResourceId = null,
+                    FileSizeBytes = result.Data?.LongLength,
+                    PrivacyAck = DownloadSecurityHttp.ReadPrivacyAck(Request),
+                    TwoFactorCode = DownloadSecurityHttp.ReadTwoFactorCode(Request),
+                    ApprovalId = DownloadSecurityHttp.ReadApprovalId(Request),
+                    DownloadTicket = DownloadSecurityHttp.ReadDownloadTicket(Request),
+                    IsSuperAdmin = isSuperAdminFallback,
+                },
+                ct).ConfigureAwait(false);
+            if (!gateFallback.Allowed)
+                return StatusCode(gateFallback.StatusCode, gateFallback.Body);
+
             await _deletionRequests.MarkExportCompletedAsync(tenantId, ct).ConfigureAwait(false);
 
-            var role = User.GetActorRole() ?? "Unknown";
             await _audit.LogSystemOperationAsync(
                 action: "TENANT_DATA_EXPORT",
                 entityType: AuditLogEntityTypes.SYSTEM_CONFIG,
                 userId: userId,
-                userRole: role,
+                userRole: roleFallback,
                 description: $"Tenant data export ZIP ({result.FileName})",
                 status: AuditLogStatus.Success,
+                actionType: AuditEventType.GdprDataExportDownloaded,
                 tenantId: tenantId).ConfigureAwait(false);
 
             return File(result.Data, "application/zip", result.FileName);

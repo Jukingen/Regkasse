@@ -43,7 +43,21 @@ public sealed class NotificationConfigEvaluatorTests
             config, ActivityEventType.BackupFailed, ActivitySeverityNames.Critical));
         Assert.True(NotificationConfigEvaluator.ShouldDeliverEmail(
             config, ActivityEventType.LicenseExpired, ActivitySeverityNames.Critical));
+        Assert.True(NotificationConfigEvaluator.ShouldDeliverEmail(
+            config, ActivityEventType.RoleDeleted, ActivitySeverityNames.Critical));
+        Assert.True(NotificationConfigEvaluator.ShouldDeliverEmail(
+            config, ActivityEventType.SystemPermissionChange, ActivitySeverityNames.Critical));
         Assert.False(NotificationConfigEvaluator.ShouldDeliverEmail(
             config, ActivityEventType.UserCreated, ActivitySeverityNames.Info));
+    }
+
+    [Fact]
+    public void CreateDefault_disables_system_permission_change_by_default()
+    {
+        var config = NotificationConfig.CreateDefault();
+        Assert.False(NotificationConfigEvaluator.IsEventTypeEnabled(
+            config, ActivityEventType.SystemPermissionChange));
+        Assert.True(NotificationConfigEvaluator.IsEventTypeEnabled(
+            config, ActivityEventType.RolePermissionsUpdated));
     }
 }

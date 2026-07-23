@@ -7,7 +7,7 @@ Bu dosya, şema detayını değil sistemin ana veri bölgelerini hızlı anlamak
 ### Multi-Tenant Columns
 
 - Kiracı kapsamlı tablolar: `tenant_id uuid NOT NULL` (+ index), FK `tenants.id`
-- İstek bağlamı: subdomain / `X-Tenant-Id` slug → Guid accessor; satırlar bu Guid ile yazılır/okunur
+- İstek bağlamı: JWT `tenant_id` (shared POS/API hosts) / Dev `X-Tenant-Id` slug / Host (`TenantDomain` veya legacy slug) → Guid accessor; satırlar bu Guid ile yazılır/okunur
 
 ### Global Query Filters
 

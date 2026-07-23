@@ -49,6 +49,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         bool grantTrialLicense,
         bool importDemoMenu = false,
         string? cashRegisterNumber = null,
+        bool seedIndustryStarterUsers = true,
         CancellationToken cancellationToken = default)
     {
         var resolvedEmail = ResolveAdminEmail(tenant, adminEmail);
@@ -204,6 +205,12 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
             .EnsureDefaultsForCashRegisterAsync(tenant.Id, cashRegister.Id, cancellationToken)
             .ConfigureAwait(false);
 
+        if (seedIndustryStarterUsers)
+        {
+            await SeedIndustryStarterUsersAsync(tenant, cashRegister.Id, now, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         _logger.LogInformation(
             "Provisioned tenant {TenantId} slug {Slug}: register {RegisterId}, admin {AdminUserId}, {ProductCount} demo products (importDemoMenu={ImportDemoMenu})",
             tenant.Id,
@@ -224,6 +231,59 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
             ProductIds = productIds,
             TrialLicenseValidUntilUtc = trialUntil,
         }, null);
+    }
+
+    private async Task SeedIndustryStarterUsersAsync(
+        Tenant tenant,
+        Guid cashRegisterId,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var template = IndustryPermissionTemplates.Get(tenant.IndustryTemplateId);
+        if (template is null)
+            return;
+
+        foreach (var slot in template.Slots.Where(s => s.SeedStarterUser))
+        {
+            var email = $"{slot.Key}@{tenant.Slug}.regkasse.at";
+            if (await _userManager.FindByEmailAsync(email).ConfigureAwait(false) != null)
+                continue;
+
+            var password = PasswordGenerator.GenerateSecurePassword(16);
+            var user = new ApplicationUser
+            {
+                UserName = email,
+                Email = email,
+                FirstName = slot.DisplayNameDe,
+                LastName = tenant.Name.Length > 40 ? tenant.Name[..40] : tenant.Name,
+                EmployeeNumber = $"SEED-{slot.Key}".ToUpperInvariant(),
+                Role = slot.SystemRole,
+                Notes = $"Industry template starter ({template.Id}/{slot.Key})",
+                IsActive = false,
+                EmailConfirmed = true,
+                AccountType = "Staff",
+                IsDemo = false,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CashRegisterId = cashRegisterId,
+                MustChangePasswordOnNextLogin = true,
+            };
+
+            var create = await _userManager.CreateAsync(user, password).ConfigureAwait(false);
+            if (!create.Succeeded)
+            {
+                _logger.LogWarning(
+                    "Industry starter user create failed for {Email}: {Errors}",
+                    email,
+                    string.Join("; ", create.Errors.Select(e => e.Description)));
+                continue;
+            }
+
+            await _userManager.AddToRoleAsync(user, slot.SystemRole).ConfigureAwait(false);
+            await _membershipProvisioner
+                .ProvisionActiveMembershipAsync(user.Id, tenant.Id, isOwner: false, cancellationToken)
+                .ConfigureAwait(false);
+        }
     }
 
     private static string ResolveAdminEmail(Tenant tenant, string? adminEmail)

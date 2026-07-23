@@ -227,6 +227,8 @@
     "offlineTransactions": "Offline-Transaktionen (TSE)",
     "signatureVerify": "Signatur Prüfung",
     "fiscalExportAudit": "Fiscal-Export Audit",
+    "downloadHistory": "Download-Verlauf",
+    "downloadAnalytics": "Download-Statistiken",
     "status": "Systemstatus",
     "cmcCertificate": "CMC / Zertifikat",
     "finanzOnlineOps": "FinanzOnline · Integration"
@@ -285,6 +287,7 @@
     "tabVerify": "Verifikation",
     "tabCertificate": "Zertifikate",
     "tabHistory": "📜 Verlauf",
+    "tabDownloads": "📋 Download-Verlauf",
     "cashRegisterLabel": "Kasse",
     "cashRegisterPlaceholder": "Kasse auswählen",
     "dateRangeLabel": "Zeitraum (UTC)",

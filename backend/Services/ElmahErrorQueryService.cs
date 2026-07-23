@@ -79,6 +79,50 @@ public sealed class ElmahErrorQueryService : IElmahErrorQueryService
         };
     }
 
+    public async Task<IReadOnlyList<ElmahErrorListItemDto>> ListForExportAsync(
+        string applicationName,
+        int maxRows,
+        CancellationToken cancellationToken = default)
+    {
+        maxRows = Math.Clamp(maxRows, 1, 50_000);
+        var connectionString = RequireConnectionString();
+        await using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+
+        var items = new List<ElmahErrorListItemDto>();
+        await using var command = new NpgsqlCommand(
+            """
+            SELECT errorid, application, host, type, source, message, "user", statuscode, timeutc, allxml
+            FROM elmah_error
+            WHERE application = @application
+            ORDER BY sequence DESC
+            LIMIT @limit
+            """,
+            connection);
+        command.Parameters.AddWithValue("application", applicationName);
+        command.Parameters.AddWithValue("limit", maxRows);
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            items.Add(new ElmahErrorListItemDto
+            {
+                ErrorId = reader.GetGuid(0),
+                Application = reader.GetString(1),
+                Host = reader.GetString(2),
+                Type = reader.GetString(3),
+                Source = reader.GetString(4),
+                Message = reader.GetString(5),
+                User = reader.IsDBNull(6) ? null : reader.GetString(6),
+                StatusCode = reader.GetInt32(7),
+                TimeUtc = reader.GetDateTime(8),
+                AllXml = reader.IsDBNull(9) ? null : reader.GetString(9),
+            });
+        }
+
+        return items;
+    }
+
     public async Task<int> ClearAsync(string applicationName, CancellationToken cancellationToken = default)
     {
         var connectionString = RequireConnectionString();

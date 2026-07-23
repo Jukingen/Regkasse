@@ -57,6 +57,8 @@ dotnet build KasseAPI_Final.csproj
 dotnet run --project KasseAPI_Final.csproj
 ```
 
+From repo root: `npm run dev:backend`, `npm run build:backend`, `npm run test:backend` (see [`CONTRIBUTING.md`](../CONTRIBUTING.md)).
+
 - Default Dev URL: **`http://localhost:5184`**
 - Swagger (Development only): **`http://localhost:5184/swagger`**
 - OpenAPI JSON: `/swagger/v1/swagger.json`
@@ -340,3 +342,7 @@ Stop the other `KasseAPI_Final` / `dotnet run` process, or change `Urls` in Deve
 | [`../REGKASSE_AI_ONBOARDING.md`](../REGKASSE_AI_ONBOARDING.md) | Project brief |
 | `ai/01_BACKEND_CONTRACT.md`, `ai/02_DATABASE_CONTRACT.md` | Contracts |
 | `backend/swagger.json` | Committed OpenAPI artifact |
+
+## License
+
+Proprietary — All rights reserved. See [`../LICENSE`](../LICENSE).

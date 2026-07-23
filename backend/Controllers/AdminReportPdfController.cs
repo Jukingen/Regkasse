@@ -86,7 +86,15 @@ public class AdminReportPdfController : ControllerBase
         if (pdf is null or { Length: 0 })
             return NotFound();
 
-        var fileName = ReportPdfStorageService.BuildDownloadFileName(reportType, closingId);
+        var tenantSlug = await _context.Tenants.AsNoTracking()
+            .Where(t => t.Id == closing.TenantId)
+            .Select(t => t.Slug)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        var fileName = ReportPdfStorageService.BuildDownloadFileName(
+            reportType,
+            tenantSlug,
+            closing.ClosingDate);
         return File(pdf, "application/pdf", fileName);
     }
 
@@ -138,7 +146,8 @@ public class AdminReportPdfController : ControllerBase
                 paymentId,
                 includeReprintWatermark: false,
                 cancellationToken).ConfigureAwait(false);
-            var fileName = ReportPdfStorageService.BuildDownloadFileName(reportType, paymentId);
+            var fileName = await _storage.ResolveDownloadFileNameAsync(reportType, paymentId, cancellationToken)
+                .ConfigureAwait(false);
             return File(pdf, "application/pdf", fileName);
         }
         catch (KeyNotFoundException ex)

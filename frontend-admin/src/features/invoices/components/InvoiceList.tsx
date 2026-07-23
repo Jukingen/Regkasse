@@ -55,9 +55,11 @@ import { DocumentType, InvoiceStatus } from '@/api/generated/model';
 import { VirtualTable } from '@/components/VirtualTable';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
+import { DownloadPreviewModal } from '@/components/ui/DownloadPreviewModal';
 import { adminTablePaginationDefaults } from '@/components/ui/adminTablePagination';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useDownloadPreview } from '@/hooks/useDownloadPreview';
 import { useI18n } from '@/i18n';
 import {
   FORMAT_EMPTY_DISPLAY,
@@ -65,7 +67,10 @@ import {
   formatDate,
   formatDateTime,
 } from '@/i18n/formatting';
+import { useTenant } from '@/features/tenancy/providers/TenantProvider';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
+import { estimateTabularExportBytes } from '@/lib/download/downloadPreview';
+import { triggerBlobDownload } from '@/lib/download/exportDownload';
 import { withTenantScope } from '@/lib/queryKeys';
 import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { AdminTruthBadge } from '@/shared/adminTruthBadges';
@@ -117,6 +122,10 @@ import {
   coerceInvoiceListSortField,
 } from '../types';
 import { normalizeFromDate, normalizeToDate, validateDateRange } from '../utils/dateUtils';
+import {
+  buildInvoiceListFileName,
+  buildInvoicePdfFileName,
+} from '../utils/invoiceExportFileName';
 import { InvoiceActions } from './InvoiceActions';
 
 const { RangePicker } = DatePicker;
@@ -197,6 +206,7 @@ export const InvoiceList: React.FC = () => {
   const { token } = theme.useToken();
   const queryClient = useQueryClient();
   const { formatLocale, t } = useI18n();
+  const { tenant } = useTenant();
   const fmt = useMemo(() => createIntlFormatters(formatLocale), [formatLocale]);
   const invoiceStatusMap = useMemo(() => buildInvoiceStatusMap(t), [t]);
 
@@ -215,6 +225,7 @@ export const InvoiceList: React.FC = () => {
   const [sortField, setSortField] = useState<InvoiceListSortBy>('invoiceDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [exportLoading, setExportLoading] = useState(false);
+  const downloadPreview = useDownloadPreview();
   const [batchLoading, setBatchLoading] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
@@ -427,10 +438,14 @@ export const InvoiceList: React.FC = () => {
     for (const key of selectedRowKeys) {
       try {
         const blob = await getInvoicePdf(key.toString());
+        const row = data?.items?.find((item) => item.id === key);
         const blobUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
         const link = document.createElement('a');
         link.href = blobUrl;
-        link.setAttribute('download', `Rechnung_${String(key)}.pdf`);
+        link.setAttribute(
+          'download',
+          buildInvoicePdfFileName(tenant?.slug, row?.kassenId, row?.invoiceNumber ?? String(key))
+        );
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -469,7 +484,10 @@ export const InvoiceList: React.FC = () => {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `Stapel_Export_${dayjs().format('YYYYMMDD_HHmm')}.csv`);
+      link.setAttribute(
+        'download',
+        buildInvoiceListFileName(tenant?.slug, queryParams.from, queryParams.to, 'csv')
+      );
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -573,33 +591,44 @@ export const InvoiceList: React.FC = () => {
     });
   };
 
-  const handleExport = async () => {
-    try {
-      setExportLoading(true);
-      const blob = await orvalExportInvoices({
-        from: queryParams.from,
-        to: queryParams.to,
-        status: queryParams.status,
-        query: queryParams.query,
-        sortBy: queryParams.sortBy,
-        sortDir: queryParams.sortDir,
-        cashRegisterId: queryParams.cashRegisterId,
-      });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `Rechnungen_${dayjs().format('YYYYMMDD_HHmm')}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-      message.success(t('invoices.messages.exportCsvOk'));
-    } catch (error) {
-      technicalConsole.error('[InvoiceList] CSV export failed', error);
-      message.error(t('invoices.messages.exportCsvFailed'));
-    } finally {
-      setExportLoading(false);
-    }
+  const handleExport = () => {
+    const rowCount = pagination.total ?? 0;
+    const fileName = buildInvoiceListFileName(
+      tenant?.slug,
+      queryParams.from,
+      queryParams.to,
+      'csv'
+    );
+    downloadPreview.requestPreview({
+      fileName,
+      fileType: 'CSV',
+      sizeBytes: estimateTabularExportBytes(rowCount, 'csv'),
+      isSizeEstimate: true,
+      contentSummary: t('common.exportDownload.contentRows', { count: rowCount }),
+      tenantName: tenant?.name ?? tenant?.slug,
+      execute: async () => {
+        try {
+          setExportLoading(true);
+          const blob = await orvalExportInvoices({
+            from: queryParams.from,
+            to: queryParams.to,
+            status: queryParams.status,
+            query: queryParams.query,
+            sortBy: queryParams.sortBy,
+            sortDir: queryParams.sortDir,
+            cashRegisterId: queryParams.cashRegisterId,
+          });
+          triggerBlobDownload(blob, fileName);
+          message.success(t('invoices.messages.exportCsvOk'));
+        } catch (error) {
+          technicalConsole.error('[InvoiceList] CSV export failed', error);
+          message.error(t('invoices.messages.exportCsvFailed'));
+          throw error;
+        } finally {
+          setExportLoading(false);
+        }
+      },
+    });
   };
 
   const handlePrint = async (id: string) => {
@@ -875,6 +904,7 @@ export const InvoiceList: React.FC = () => {
             invoice={{
               id: record.id,
               invoiceNumber: record.invoiceNumber,
+              kassenId: record.kassenId,
               totalAmount: record.totalAmount,
               status: record.status,
             }}
@@ -1306,6 +1336,7 @@ export const InvoiceList: React.FC = () => {
               invoice={{
                 id: detailInvoice.id,
                 invoiceNumber: detailInvoice.invoiceNumber,
+                kassenId: detailInvoice.kassenId,
                 totalAmount: detailInvoice.totalAmount,
                 status: detailInvoice.status,
                 customerEmail: detailInvoice.customerEmail,
@@ -1748,6 +1779,7 @@ export const InvoiceList: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
+      <DownloadPreviewModal {...downloadPreview.modalProps} />
     </React.Fragment>
   );
 };

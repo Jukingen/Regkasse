@@ -2,11 +2,14 @@
   "name": "regkasse-sites",
   "version": "1.0.0",
   "private": true,
+  "license": "UNLICENSED",
   "scripts": {
     "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start -p 3001",
-    "typecheck": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "tsc --noEmit"
   },
   "dependencies": {
     "next": "^16.2.6",

@@ -1,9 +1,11 @@
 /**
  * Mirrors backend `PermissionImplication` for admin UI (route/menu/effective display).
  * Keep in sync with `backend/Authorization/PermissionImplication.cs`.
+ *
+ * Public implication map + helpers: `./permissionImplications.ts`
  */
 
-const PARENT_TO_CHILDREN: Readonly<Record<string, readonly string[]>> = {
+export const PARENT_TO_CHILDREN: Readonly<Record<string, readonly string[]>> = {
   'user.manage': [
     'user.create',
     'user.edit',
@@ -53,7 +55,7 @@ const PARENT_TO_CHILDREN: Readonly<Record<string, readonly string[]>> = {
 };
 
 /** One-way: holder satisfies required read (manage → view), not the reverse. */
-const HOLDER_TO_IMPLIED_READS: Readonly<Record<string, readonly string[]>> = {
+export const HOLDER_TO_IMPLIED_READS: Readonly<Record<string, readonly string[]>> = {
   'user.manage': ['user.view'],
   'product.manage': ['product.view'],
   'category.manage': ['category.view'],
@@ -190,4 +192,39 @@ export function permissionImplied(required: string, effective: Iterable<string>)
   if (parent && set.has(parent)) return true;
 
   return false;
+}
+
+/**
+ * Held permissions that alone satisfy `required` via implication (excludes direct grant).
+ * Useful for UI “Implied by …” indicators.
+ */
+export function findImplicationSources(
+  required: string,
+  effective: Iterable<string>
+): string[] {
+  const set = toSet(effective);
+  if (set.size === 0 || set.has(required)) return [];
+
+  const sources: string[] = [];
+  for (const held of set) {
+    if (held === required) continue;
+    if (held === 'system.critical') {
+      sources.push(held);
+      continue;
+    }
+    if (permissionImplied(required, [held])) {
+      sources.push(held);
+    }
+  }
+  return sources.sort((a, b) => a.localeCompare(b));
+}
+
+/** Whether `required` is satisfied only via implication (not listed directly in effective). */
+export function isPermissionImpliedOnly(
+  required: string,
+  effective: Iterable<string>
+): boolean {
+  const set = toSet(effective);
+  if (set.has(required)) return false;
+  return permissionImplied(required, set);
 }

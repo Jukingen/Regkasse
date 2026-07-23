@@ -2,8 +2,8 @@
 
 ## Multi-Tenant Architecture
 
-- **Tanımlama:** Üretim hedefi **Single POS UI** — `pos.regkasse.at` / `api.regkasse.at` / `admin.regkasse.at`; kiracı JWT `tenant_id` (`docs/POS_PRODUCTION_ARCHITECTURE.md`). Eski/geçiş: `{slug}.regkasse.at` + `SubdomainTenantProvider`. Geliştirmede `X-Tenant-Id` / `?tenant=` (slug).
-- **Middleware:** `TenantResolutionMiddleware` (host → `CurrentTenantService` → accessor), ardından auth sonrası `TenantContextMiddleware` (JWT `tenant_id` — POS için otoriter).
+- **Tanımlama:** Üretim hedefi **Single POS UI** — `pos.regkasse.at` / `api.regkasse.at` / `admin.regkasse.at`; kiracı JWT `tenant_id` (`docs/POS_PRODUCTION_ARCHITECTURE.md`). `{slug}.regkasse.at` **POS girişi değildir** (legacy / geçiş veya müşteri sitesi Host’u olabilir). Geliştirmede `X-Tenant-Id` / `?tenant=` (slug).
+- **Middleware:** `TenantResolutionMiddleware` — Dev override → reserved `pos`/`api`/`admin`/`www` için pre-auth bind atlanır → aksi halde Host (`SubdomainTenantProvider`, `TenantDomain` / custom site host) → `CurrentTenantService` → accessor; ardından auth sonrası `TenantContextMiddleware` (JWT `tenant_id` — POS/API için otoriter).
 - **Veri:** `AppDbContext` içinde `ITenantEntity` için global query filter; çapraz kiracı kaynak erişimi **404**.
 - **Super Admin:** `Roles.SuperAdmin`, `/api/admin/tenants`, impersonation `POST .../impersonate` — `AdminTenantsController`, `AdminTenantService`.
 - **Testler:** `TenantIsolationTests`, `SubdomainTenantProviderTests`, `SettingsTenantResolverTests`.
@@ -31,10 +31,11 @@ Ayrıntı: `docs/MULTI_TENANT.md`, `docs/POS_PRODUCTION_ARCHITECTURE.md`, `REGKA
 
 ## API Headers
 
-- Production (POS/API target): JWT `tenant_id` after login; reserved hosts `pos` / `api` / `admin` are not tenant slugs.
-- Production (legacy slug host): subdomain → slug → `CurrentTenantService` → accessor Guid.
+- Production (POS/API): JWT `tenant_id` after login; reserved hosts `pos` / `api` / `admin` / `www` are not tenant slugs.
+- Host slug / `TenantDomain`: optional legacy slug host or **customer websites** (`frontend-sites`) — not the POS production entry.
 - Development: `X-Tenant-Id` / `?tenant=` (slug only; `IsDevelopment()`).
 - `/api/admin/tenants`: `[Authorize(Roles = SuperAdmin)]`; global `tenants` table; impersonation for scoped business data.
+- Public / sites (non-POS, non-admin storefront): `/api/public/*`, `/api/sites/*` — see `docs/DIGITAL_SERVICES.md`, `docs/WORKING_HOURS.md`.
 
 ## Deployment Requirements
 
@@ -64,9 +65,11 @@ Ayrıntı: `docs/MULTI_TENANT.md`, `docs/POS_PRODUCTION_ARCHITECTURE.md`, `REGKA
 - Yeni endpointlerde legacy prefix açma; canonical prefix kullan.
 
 ## Yüksek riskli route aileleri (değişiklik öncesi ekstra dikkat)
-- `/api/pos/payment*`, `/api/offline-transactions/*`, TSE ve kasa oturumu ile ilgili POS uçları.
+- `/api/pos/payment*`, TSE ve kasa oturumu ile ilgili POS uçları.
+- Offline **iki sistem** (birleştirme): `/api/offline-transactions/*` (legacy TSE intents) vs `/api/pos/offline-orders/*` + `/api/admin/offline-orders/*` (full snapshots).
 - `/api/rksv/*` (Nullbeleg, Startbeleg, Monatsbeleg, Jahresbeleg, Schlussbeleg).
-- `/api/admin/fiscal-export*`, FinanzOnline/outbox ile ilgili admin uçları.
+- `/api/admin/fiscal-export*`, `/api/admin/rksv/dep-export*`, FinanzOnline/outbox.
+- Backup/restore: `/api/admin/backup*` (Tenant vs System; no production restore).
 
 ## Response/contract kuralları
 - Contract değişikliği varsa aynı PR’da `backend/swagger.json` güncel olmalı.

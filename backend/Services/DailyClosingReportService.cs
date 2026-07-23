@@ -207,7 +207,12 @@ public sealed class DailyClosingReportService : IDailyClosingReportService
         CancellationToken cancellationToken)
     {
         var userId = ResolveActorUserId(closing, actorUserId);
-        var fileName = ReportPdfArchiveNames.ForReport(reportType, closingId);
+        var tenantSlug = await _context.Tenants.AsNoTracking()
+            .Where(t => t.Id == closing.TenantId)
+            .Select(t => t.Slug)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        var fileName = ReportPdfArchiveNames.ForReport(reportType, tenantSlug, closing.ClosingDate);
         var normalizedLanguage = DailyClosingReportTemplates.NormalizeLanguage(language);
 
         if (string.Equals(normalizedLanguage, "de", StringComparison.OrdinalIgnoreCase))

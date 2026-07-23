@@ -247,6 +247,7 @@ public sealed class AdminLicenseMandantApiTests
             tenantResolver ?? TenantTestDoubles.SettingsResolverReturning(Guid.Empty),
             Mock.Of<ILicenseReminderNotificationStore>(),
             Mock.Of<IAuditLogService>(),
+            Mock.Of<ILicenseExportService>(),
             NullLogger<AdminLicenseController>.Instance);
 
         var claims = new List<Claim>

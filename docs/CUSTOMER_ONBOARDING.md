@@ -81,7 +81,7 @@ After success, Super Admin (or SMTP) delivers:
 |------|--------|
 | **Admin email** | Wizard Step 2 / `provisioning.adminEmail` |
 | **Temporary password** | Shown **once** on Step 5 (and in welcome email if SMTP works) |
-| **Portal / handoff URL** | Built as `https://{slug}.regkasse.at` in FA (`buildTenantPortalUrl`) |
+| **Portal / handoff URL** | Prefer `https://admin.regkasse.at` (shared FA). FA helper `buildTenantPortalUrl` may still emit `https://{slug}.regkasse.at` — align with [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md) when retiring slug hosts |
 | **Force password change** | `MustChangePasswordOnNextLogin = true` |
 
 ### Welcome email (SMTP)

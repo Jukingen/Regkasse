@@ -294,6 +294,9 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IRksvEnvironmentService, RksvEnvironmentService>();
         builder.Services.Configure<FiskalyOptions>(builder.Configuration.GetSection(FiskalyOptions.SectionName));
         builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.SectionName));
+        builder.Services.Configure<SessionPolicyOptions>(builder.Configuration.GetSection(SessionPolicyOptions.SectionName));
+        builder.Services.Configure<TemporaryPermissionsOptions>(
+            builder.Configuration.GetSection(TemporaryPermissionsOptions.SectionName));
         builder.Services.Configure<TwoFactorAuthOptions>(builder.Configuration.GetSection(TwoFactorAuthOptions.SectionName));
         builder.Services.Configure<AccountLockoutOptions>(builder.Configuration.GetSection(AccountLockoutOptions.SectionName));
         builder.Services.AddSingleton<IAccountLockoutService, AccountLockoutService>();
@@ -330,6 +333,7 @@ internal static class ApplicationHost
             .AddCheck<BackupHealthCheck>("backup")
             .AddCheck<ElmahHealthCheck>("elmah");
         builder.Services.AddScoped<IElmahErrorQueryService, ElmahErrorQueryService>();
+        builder.Services.AddScoped<ILogExportService, LogExportService>();
 
         builder.Services.Configure<NtpSettings>(builder.Configuration.GetSection(NtpSettings.SectionName));
         builder.Services.Configure<DevelopmentOptions>(builder.Configuration.GetSection(DevelopmentOptions.SectionName));
@@ -371,6 +375,7 @@ internal static class ApplicationHost
         builder.Services.AddHostedService<LicenseReminderHostedService>();
         builder.Services.Configure<LicenseReportEmailOptions>(builder.Configuration.GetSection(LicenseReportEmailOptions.SectionName));
         builder.Services.AddScoped<ILicenseExportReportService, LicenseExportReportService>();
+        builder.Services.AddScoped<ILicenseExportService, LicenseExportService>();
         builder.Services.AddHostedService<LicenseScheduledReportsHostedService>();
         builder.Services.AddSingleton<INtpTimeSyncStatus, NtpTimeSyncStatus>();
         // Singleton + IDisposable: 30s timer refresh + immediate refresh on update (see DevelopmentModeService.CacheTtl).
@@ -609,9 +614,16 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IRolePermissionResolver, RolePermissionResolver>();
         builder.Services.AddScoped<IEffectivePermissionResolver, EffectivePermissionResolver>();
         builder.Services.AddScoped<IUserPermissionOverrideService, UserPermissionOverrideService>();
+        builder.Services.AddScoped<IPermissionRequestService, PermissionRequestService>();
+        builder.Services.AddScoped<IPermissionPackageService, PermissionPackageService>();
+        builder.Services.AddScoped<IRolePermissionSimulateService, RolePermissionSimulateService>();
+        builder.Services.AddScoped<IPermissionConfigBackupService, PermissionConfigBackupService>();
+        builder.Services.AddScoped<IPermissionAnalyticsService, PermissionAnalyticsService>();
         builder.Services.AddScoped<IUserRoleChangeService, UserRoleChangeService>();
         builder.Services.AddScoped<IPermissionService, PermissionService>();
         builder.Services.AddScoped<IRoleManagementService, RoleManagementService>();
+        builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.TemporaryPermissionExpiryHostedService>();
+        builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.PermissionAnalyticsSnapshotHostedService>();
         builder.Services.AddScoped<ITokenClaimsService, TokenClaimsService>();
         builder.Services.AddScoped<IJwtAccessTokenIssuer, JwtAccessTokenIssuer>();
         builder.Services.AddScoped<ITenantHardDeletePolicy, TenantHardDeletePolicy>();
@@ -671,6 +683,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IDemoProductImportService, DemoProductImportService>();
         builder.Services.AddScoped<ICategoryDemoResetService, CategoryDemoResetService>();
         builder.Services.AddScoped<ITenantProvisioningService, TenantProvisioningService>();
+        builder.Services.AddScoped<IIndustryTemplateStarterSeeder, IndustryTemplateStarterSeeder>();
         builder.Services.AddScoped<ITenantOnboardingService, TenantOnboardingService>();
         builder.Services.AddScoped<IWelcomeEmailService, WelcomeEmailService>();
         builder.Services.AddScoped<IOnlineOrderCustomerEmailService, OnlineOrderCustomerEmailService>();
@@ -695,6 +708,8 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IUserTenantMembershipProvisioner, UserTenantMembershipProvisioner>();
         builder.Services.AddScoped<ISettingsTenantResolver, SettingsTenantResolver>();
         builder.Services.AddScoped<ICurrentTenantAccessor, CurrentTenantAccessor>();
+        builder.Services.AddScoped<FileNamingService>();
+        builder.Services.AddScoped<IFileNamingService>(sp => sp.GetRequiredService<FileNamingService>());
         builder.Services.AddScoped<ITenantProvider, SubdomainTenantProvider>();
         // Request tenant resolution: JWT → dev header/query → host slug → admin fallback.
         builder.Services.AddScoped<ITenantContextService, TenantContextService>();
@@ -978,6 +993,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IVoucherService, VoucherService>();
         builder.Services.AddScoped<IAdminVoucherService, AdminVoucherService>();
         builder.Services.AddScoped<IVoucherIssuanceService, VoucherIssuanceService>();
+        builder.Services.AddScoped<IVoucherExportService, VoucherExportService>();
         builder.Services.Configure<PaymentGatewayOptions>(builder.Configuration.GetSection(PaymentGatewayOptions.SectionName));
         builder.Services.AddStripePaymentGateway();
         // Payment Gateway: Mock in Development, Stripe in non-Development hosts.
@@ -997,6 +1013,8 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IPaymentTrendAnalysisService, PaymentTrendAnalysisService>();
         builder.Services.AddScoped<IAdminProductListService, AdminProductListService>();
         builder.Services.AddScoped<IProductService, ProductService>();
+        builder.Services.AddScoped<IProductExportService, ProductExportService>();
+        builder.Services.AddScoped<ICustomerExportService, CustomerExportService>();
         builder.Services.AddScoped<IRksvSpecialReceiptFinanzOnlineSubmissionTracker, RksvSpecialReceiptFinanzOnlineSubmissionTracker>();
         builder.Services.AddScoped<IRksvSpecialReceiptService, RksvSpecialReceiptService>();
         builder.Services.AddScoped<IRksvStartbelegPolicy, RksvStartbelegPolicy>();
@@ -1062,6 +1080,8 @@ internal static class ApplicationHost
         builder.Services.AddScoped<KasseAPI_Final.Services.Session.IDeviceSessionService, KasseAPI_Final.Services.Session.DeviceSessionService>();
         builder.Services.AddScoped<IUserActivityReportService, UserActivityReportService>();
         builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+        builder.Services.AddScoped<IPermissionAuditService, PermissionAuditService>();
+        builder.Services.AddScoped<IPermissionAuditReportService, PermissionAuditReportService>();
         builder.Services.AddScoped<IAuditExportService, AuditExportService>();
         builder.Services.AddSingleton<IAuditExportJobManager, AuditExportJobManager>();
         builder.Services.AddScoped<IAuditReportScheduler, AuditReportScheduler>();
@@ -1223,6 +1243,18 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IDepExportHistoryService, DepExportHistoryService>();
         builder.Services.AddScoped<IDepExportScheduler, DepExportScheduler>();
         builder.Services.AddHostedService<DepExportSchedulerHostedService>();
+        builder.Services.Configure<DownloadHistoryOptions>(
+            builder.Configuration.GetSection(DownloadHistoryOptions.SectionName));
+        builder.Services.AddScoped<IDownloadHistoryService, DownloadHistoryService>();
+        builder.Services.AddHostedService<DownloadHistoryCleanupHostedService>();
+        builder.Services.Configure<ExportEmailOptions>(
+            builder.Configuration.GetSection(ExportEmailOptions.SectionName));
+        builder.Services.AddScoped<IExportEmailSmtpService, ExportEmailSmtpService>();
+        builder.Services.AddScoped<IExportEmailDeliveryService, ExportEmailDeliveryService>();
+        builder.Services.AddHostedService<ExportEmailSchedulerHostedService>();
+        builder.Services.Configure<DownloadSecurityOptions>(
+            builder.Configuration.GetSection(DownloadSecurityOptions.SectionName));
+        builder.Services.AddScoped<IDownloadSecurityService, DownloadSecurityService>();
         builder.Services.AddScoped<ILegalExportCompletenessService, LegalExportCompletenessService>();
         builder.Services.AddScoped<IActorDisplayNameResolver, ActorDisplayNameResolver>();
         builder.Services.AddScoped<IUserUniquenessValidationService, UserUniquenessValidationService>();

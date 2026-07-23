@@ -95,9 +95,9 @@ Production build must bake env at **compile time** (EAS / CI). See [`frontend/.e
 
 Build-time env: [`frontend-admin/docs/DEPLOYMENT_BUILD_TIME_ENV.md`](../frontend-admin/docs/DEPLOYMENT_BUILD_TIME_ENV.md).
 
-- [ ] `NEXT_PUBLIC_API_BASE_URL` → production API origin (e.g. `https://admin.regkasse.at` or shared API host)
+- [ ] `NEXT_PUBLIC_API_BASE_URL` → production API origin (`https://api.regkasse.at`)
 - [ ] `NEXT_PUBLIC_RKSV_ENVIRONMENT=PRODUCTION` (or org-standard value) set **before** `npm run build`
-- [ ] Wildcard DNS + TLS for `*.regkasse.at` and `admin.regkasse.at`
+- [ ] DNS + TLS for `pos.regkasse.at`, `admin.regkasse.at`, `api.regkasse.at` (optional `*.regkasse.at` if legacy hosts remain)
 - [ ] **Offline settings** page: `/settings/offline` — requires `settings.manage` (Manager / tenant admin; not Super Admin only)
 - [ ] **Offline orders** page: `/rksv/offline-orders` — requires `payment.view`
 - [ ] **Legacy TSE queue** (if still used): `/admin/tse/offline-transactions` — requires `payment.view`
@@ -149,7 +149,7 @@ Set production API URL **before** build (inlined at compile time). See [`fronten
 ```bash
 cd frontend
 
-export EXPO_PUBLIC_API_BASE_URL=https://{slug}.regkasse.at/api
+export EXPO_PUBLIC_API_BASE_URL=https://api.regkasse.at/api
 
 npm ci
 
@@ -165,7 +165,7 @@ npx expo export -p web
 
 > **Note:** `frontend/package.json` has no `npm run build` script. Production POS uses **EAS** (mobile) or **`npx expo export -p web`** (web). Do not ship a dev `expo start` bundle to production.
 
-- [ ] `EXPO_PUBLIC_API_BASE_URL` points to tenant production API (`https://{slug}.regkasse.at/api`)
+- [ ] `EXPO_PUBLIC_API_BASE_URL` points to shared production API (`https://api.regkasse.at/api`) — tenant from JWT after login (see [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md))
 - [ ] Roll out to pilot registers first (1–2 devices)
 - [ ] Confirm app version recorded in release notes / support channel
 
@@ -176,7 +176,7 @@ Build-time env must be set **before** `npm run build`. See [`frontend-admin/docs
 ```bash
 cd frontend-admin
 
-export NEXT_PUBLIC_API_BASE_URL=https://{slug}.regkasse.at
+export NEXT_PUBLIC_API_BASE_URL=https://api.regkasse.at
 export NEXT_PUBLIC_RKSV_ENVIRONMENT=PRODUCTION
 
 npm ci
@@ -199,7 +199,7 @@ Complete these checks on **staging first**, then repeat on production after depl
 
 ```bash
 curl -sS -o /dev/null -w "%{http_code}\n" \
-  "https://{slug}.regkasse.at/api/health"
+  "https://api.regkasse.at/api/health"
 # Expected: 200
 ```
 
@@ -207,11 +207,11 @@ curl -sS -o /dev/null -w "%{http_code}\n" \
 
 ```bash
 curl -sS -H "Authorization: Bearer $TOKEN" \
-  "https://{slug}.regkasse.at/api/admin/offline-orders?status=pending&page=1&pageSize=20"
+  "https://api.regkasse.at/api/admin/offline-orders?status=pending&page=1&pageSize=20"
 # Expected: HTTP 200 + JSON list (items may be empty)
 
 curl -sS -H "Authorization: Bearer $TOKEN" \
-  "https://{slug}.regkasse.at/api/admin/offline-monitoring/status"
+  "https://api.regkasse.at/api/admin/offline-monitoring/status"
 # Expected: HTTP 200 + status payload
 ```
 
@@ -219,18 +219,18 @@ Optional POS endpoint (cashier JWT with `payment.take`):
 
 ```bash
 curl -sS -H "Authorization: Bearer $CASHIER_TOKEN" \
-  "https://{slug}.regkasse.at/api/pos/offline-orders/pending"
+  "https://api.regkasse.at/api/pos/offline-orders/pending"
 # Expected: HTTP 200
 ```
 
 #### Frontend Admin (browser)
 
-Log in as **Manager** on `https://{slug}.regkasse.at` (production uses subdomain tenant resolution — no `X-Tenant-Id` header).
+Log in as **Manager** on `https://admin.regkasse.at` (production: JWT `tenant_id`; no `X-Tenant-Id` header).
 
-- [ ] **Offline settings page loads** — `https://{slug}.regkasse.at/settings/offline`  
+- [ ] **Offline settings page loads** — `https://admin.regkasse.at/settings/offline`  
   Requires `settings.manage`. Form renders; save succeeds if `GET/PUT /api/admin/settings/offline` is deployed (404 on save = backend gap — log defect; POS defaults still apply).
 
-- [ ] **Offline orders page loads** — `https://{slug}.regkasse.at/rksv/offline-orders`  
+- [ ] **Offline orders page loads** — `https://admin.regkasse.at/rksv/offline-orders`  
   Requires `payment.view`. Table loads without 403; Network tab shows `GET /api/admin/offline-orders` → 200.
 
 - [ ] **Dashboard offline widget** (optional) — enable widget `offline-system-status` if using saved layout; loads `/api/admin/offline-monitoring/status` + `/sync-health`.
@@ -264,14 +264,14 @@ Use section **4. Verify (release gate)** above for the minimum gate. Additional 
 ```bash
 # System status (requires payment.view JWT on tenant subdomain)
 curl -sS -H "Authorization: Bearer $TOKEN" \
-  "https://{slug}.regkasse.at/api/admin/offline-monitoring/status" | jq .
+  "https://api.regkasse.at/api/admin/offline-monitoring/status" | jq .
 
 curl -sS -H "Authorization: Bearer $TOKEN" \
-  "https://{slug}.regkasse.at/api/admin/offline-monitoring/sync-health" | jq .
+  "https://api.regkasse.at/api/admin/offline-monitoring/sync-health" | jq .
 
 # Pending orders list
 curl -sS -H "Authorization: Bearer $TOKEN" \
-  "https://{slug}.regkasse.at/api/admin/offline-orders?status=pending&page=1&pageSize=20" | jq .
+  "https://api.regkasse.at/api/admin/offline-orders?status=pending&page=1&pageSize=20" | jq .
 ```
 
 ### Admin UI (extended)
@@ -292,7 +292,7 @@ curl -sS -H "Authorization: Bearer $TOKEN" \
 ```bash
 node scripts/test-offline-system.mjs
 # Optional with live API:
-# node scripts/test-offline-system.mjs --with-api --base-url https://{slug}.regkasse.at --token "$TOKEN"
+# node scripts/test-offline-system.mjs --with-api --base-url https://api.regkasse.at --token "$TOKEN"
 ```
 
 ### Legacy regression (if TSE offline intents still in use)
@@ -317,7 +317,7 @@ Check every **2–4 hours** during business hours; once overnight.
 
 ```bash
 curl -sS -H "Authorization: Bearer $TOKEN" \
-  "https://{slug}.regkasse.at/api/admin/offline-monitoring/orders/stats" | jq .
+  "https://api.regkasse.at/api/admin/offline-monitoring/orders/stats" | jq .
 ```
 
 - [ ] Server logs: no spike in `400`/`409` on `POST /api/pos/offline-orders` or replay errors
@@ -329,7 +329,7 @@ curl -sS -H "Authorization: Bearer $TOKEN" \
 
 ```bash
 curl -sS -H "Authorization: Bearer $TOKEN" \
-  "https://{slug}.regkasse.at/api/admin/offline-monitoring/sync-health" | jq .
+  "https://api.regkasse.at/api/admin/offline-monitoring/sync-health" | jq .
 ```
 
 - [ ] Pending queue drains after connectivity returns on pilot registers (pending → `synced`)
@@ -341,7 +341,7 @@ curl -sS -H "Authorization: Bearer $TOKEN" \
 
 ```bash
 curl -sS -H "Authorization: Bearer $TOKEN" \
-  "https://{slug}.regkasse.at/api/admin/offline-monitoring/anomalies" | jq .
+  "https://api.regkasse.at/api/admin/offline-monitoring/anomalies" | jq .
 ```
 
 - [ ] Admin activity feed — no new critical offline events:
@@ -376,11 +376,11 @@ Daily check; deeper review on day 7.
 ```bash
 # Daily status + stats bundle
 curl -sS -H "Authorization: Bearer $TOKEN" \
-  "https://{slug}.regkasse.at/api/admin/offline-monitoring/status" | jq .
+  "https://api.regkasse.at/api/admin/offline-monitoring/status" | jq .
 curl -sS -H "Authorization: Bearer $TOKEN" \
-  "https://{slug}.regkasse.at/api/admin/offline-monitoring/orders/stats" | jq .
+  "https://api.regkasse.at/api/admin/offline-monitoring/orders/stats" | jq .
 curl -sS -H "Authorization: Bearer $TOKEN" \
-  "https://{slug}.regkasse.at/api/admin/offline-monitoring/transactions/stats" | jq .
+  "https://api.regkasse.at/api/admin/offline-monitoring/transactions/stats" | jq .
 ```
 
 #### Check alert logs

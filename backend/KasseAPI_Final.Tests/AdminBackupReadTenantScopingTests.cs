@@ -78,7 +78,8 @@ public sealed class AdminBackupReadTenantScopingTests
             Mock.Of<ICurrentTenantAccessor>(a => a.TenantId == tenantId),
             tenantAccess,
             Mock.Of<IBackupArtifactImportService>(),
-            Mock.Of<IBackupTimeEstimator>());
+            Mock.Of<IBackupTimeEstimator>(),
+            Mock.Of<IDownloadSecurityService>());
 
         var claims = new List<Claim>
         {

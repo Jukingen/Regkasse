@@ -595,6 +595,12 @@
         "label": "Import demo products automatically",
         "tooltip": "Imports the full demo menu (salads, pizzas, pasta, kebab, …) instead of only three sample products"
       }
+    },
+    "industry": {
+      "title": "Industry template",
+      "intro": "Choose a template for starter roles and packages.",
+      "none": "No template",
+      "seedStarters": "Seed starter users"
     }
   },
   "provisioning": {
@@ -1240,5 +1246,16 @@
       "not_impersonation": "Token is not an impersonation token.",
       "expired": "Impersonation token has expired. Start again from admin.regkasse.at."
     }
+  },
+  "industry": {
+    "pageTitle": "Industry template",
+    "intro": "Set the industry template for this tenant and seed missing starters.",
+    "templateLabel": "Template",
+    "seedMissing": "Seed missing starter users",
+    "saveSuccess": "Saved ({{count}} starters created)",
+    "saveError": "Save failed"
+  },
+  "list": {
+    "pageTitle": "Tenants"
   }
 }

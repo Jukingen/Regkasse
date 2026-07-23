@@ -2,11 +2,20 @@
 
 /**
  * Permission-filtered admin sidebar menu.
- * Built from `adminSidebarRegistry` + RKSV plugin; filtered via `filterSidebarMenuItems` / `usePermissions`.
+ * Built from `adminSidebarRegistry` + RKSV plugin; filtered via `filterSidebarMenuItems`.
+ * Known IA areas resolve through `menuPermissionRegistry` (`useMenuPermissions` / `tryRegistryMenuVisibility`).
  */
 import { Menu, type MenuProps, Typography } from 'antd';
 import { usePathname, useSearchParams } from 'next/navigation';
-import React, { Suspense, useLayoutEffect, useMemo, useState } from 'react';
+import React, {
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 
 import sidebarStyles from '@/app/(protected)/protected-layout-sidebar.module.css';
 import {
@@ -29,9 +38,22 @@ import {
   resolveAdminMenuSelectedKeys,
 } from '@/shared/adminSidebarNavigation';
 import { isMenuItemAllowed, isRksvMenuAreaAllowed } from '@/shared/auth/menuPermissions';
+import { logMenuPermissionMappingWarnings } from '@/shared/auth/menuPermissionMappingValidation';
+import { tryRegistryMenuVisibility } from '@/shared/auth/menuPermissionRegistry';
+import { SIDEBAR_NAV_ITEM_CATALOG, logSidebarMenuPermissionMapWarnings } from '@/shared/adminSidebarRegistry';
 import { buildAdminSidebarMenuItems } from '@/shared/buildAdminSidebar';
 import { OPERATOR_VERIFICATIONS_COPY } from '@/shared/operatorTruthCopy';
 import type { RksvMenuGroup } from '@/shared/rksvMenuModel';
+import { MenuPermissionGroupDebugPanel } from '@/components/MenuPermissionGroupDebugPanel';
+import { PermissionExplorerDrawer } from '@/components/admin-layout/PermissionExplorerDrawer';
+import {
+  runAndLogMenuPermissionConsistencyCheck,
+  shouldRunDailyConsistencyCheck,
+} from '@/features/users/utils/menuPermissionConsistency';
+import {
+  getRoleMenuPreviewSession,
+  subscribeRoleMenuPreview,
+} from '@/features/users/utils/roleMenuPreviewSession';
 
 const EMPTY_PERMISSIONS: string[] = [];
 
@@ -64,11 +86,34 @@ export type UseAdminSidebarMenuResult = {
 export function useAdminSidebarMenu(): UseAdminSidebarMenuResult {
   const pathname = usePathname();
   const { user } = useAuth();
-  const { userPermissions } = usePermissions();
+  const { userPermissions, isSuperAdmin: superAdmin } = usePermissions();
   const { t } = useI18n();
 
-  const permissions = userPermissions.length > 0 ? userPermissions : EMPTY_PERMISSIONS;
+  const previewSession = useSyncExternalStore(
+    subscribeRoleMenuPreview,
+    getRoleMenuPreviewSession,
+    () => null
+  );
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return;
+    logMenuPermissionMappingWarnings(SIDEBAR_NAV_ITEM_CATALOG);
+    logSidebarMenuPermissionMapWarnings();
+  }, []);
+
+  useEffect(() => {
+    if (!shouldRunDailyConsistencyCheck()) return;
+    runAndLogMenuPermissionConsistencyCheck();
+  }, []);
+
+  const permissions =
+    previewSession?.permissions?.length
+      ? previewSession.permissions
+      : userPermissions.length > 0
+        ? userPermissions
+        : EMPTY_PERMISSIONS;
   const usePermissionFirst = permissions.length > 0;
+  const effectiveRole = previewSession?.roleName || user?.role || '';
   const { isSuperAdminUser } = useCurrentTenant();
   const { data: tenantLicense } = useTenantLicenseStatus();
   const hideKassenverwaltungMenu = isTenantLicenseBlockingModule(tenantLicense, isSuperAdminUser);
@@ -83,22 +128,42 @@ export function useAdminSidebarMenu(): UseAdminSidebarMenuResult {
   );
 
   const canSeeRksv = useMemo(
-    () => isRksvMenuAreaAllowed(usePermissionFirst ? permissions : undefined, user?.role),
-    [usePermissionFirst, permissions, user?.role]
+    () => isRksvMenuAreaAllowed(usePermissionFirst ? permissions : undefined, effectiveRole),
+    [usePermissionFirst, permissions, effectiveRole]
+  );
+
+  /**
+   * Prefer `menuPermissionRegistry` for mapped IA keys/paths (same rules as `useMenuPermissions`).
+   * Unmapped leaves keep path-level `ROUTE_PERMISSIONS` via `isMenuItemAllowed`.
+   * Tagesabschluss → `daily-closing.view` via registry area `tagesabschluss`.
+   */
+  const isMenuItemAllowedWithRegistry = useCallback(
+    (key: string, perms: string[] | undefined): boolean => {
+      const registryVisible = tryRegistryMenuVisibility(
+        key,
+        { permissions: perms },
+        { isSuperAdmin: isSuperAdmin(effectiveRole) || (previewSession ? false : superAdmin) }
+      );
+      if (registryVisible !== undefined) {
+        return registryVisible;
+      }
+      return isMenuItemAllowed(key, perms);
+    },
+    [superAdmin, effectiveRole, previewSession]
   );
 
   const sidebarPermissionCtx = useMemo<SidebarPermissionContext>(
     () => ({
       usePermissionFirst,
       permissions,
-      userRole: user?.role ?? '',
-      isMenuItemAllowed,
+      userRole: effectiveRole,
+      isMenuItemAllowed: isMenuItemAllowedWithRegistry,
       canViewUsers,
       canShowRksvMenu,
       canShowPlatformAdminMenu,
       isSuperAdminRole: isSuperAdmin,
     }),
-    [usePermissionFirst, permissions, user?.role]
+    [usePermissionFirst, permissions, effectiveRole, isMenuItemAllowedWithRegistry]
   );
 
   const menuItems = useMemo(() => {
@@ -291,12 +356,14 @@ export function AdminSidebar({
   return (
     <>
       <AdminSidebarBrand collapsed={collapsed} isMobile={isMobile} />
+      <MenuPermissionGroupDebugPanel />
       <AdminSidebarMenuPanel
         menuTheme={menuTheme}
         menuInlineCollapsed={menuInlineCollapsed}
         isMobile={isMobile}
         onNavigate={onNavigate}
       />
+      <PermissionExplorerDrawer />
     </>
   );
 }

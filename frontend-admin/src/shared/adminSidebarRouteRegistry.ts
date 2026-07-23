@@ -26,4 +26,7 @@ export const ROUTE_GUARD_PATHS_WITHOUT_SIDEBAR_LEAF = [
   /** New sale wizard — catalog entry is `sidebarHidden`; reached from overview/sales/tenant hub. */
   '/admin/billing/sales/new',
   /** Sale detail `/admin/billing/sales/{id}` — prefix-guarded via `/admin/billing/sales` (no sidebar leaf). */
+  /** Export download metadata history (hub + DEP page link). */
+  '/admin/download-history',
+  '/admin/download-history/analytics',
 ] as const;

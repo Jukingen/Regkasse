@@ -1,13 +1,14 @@
 {
-  "name": "scripts",
+  "name": "@regkasse/scripts",
+  "private": true,
+  "license": "UNLICENSED",
   "version": "1.0.0",
-  "description": "",
-  "main": "migrate_i18n.js",
+  "type": "module",
+  "description": "Cross-repo validation and helper scripts (invoke from repo root)",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs"
+    "verify:api-client": "node verify-api-client.mjs",
+    "verify:openapi": "node validate-critical-openapi-paths.mjs",
+    "seed:test-data": "node seed-test-data.mjs",
+    "install:git-hooks": "node install-git-hooks.mjs"
+  }
 }

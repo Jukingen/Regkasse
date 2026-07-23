@@ -45,10 +45,11 @@ export function useNotify() {
 
   const show = useCallback(
     (kind: Kind, content: string, options?: NotifyOptions) => {
-      if (options?.mode === 'notification' || options?.description != null) {
+      if (options?.mode === 'notification' || options?.description != null || options?.btn != null) {
         notification[kind]({
           message: content,
           description: options?.description,
+          btn: options?.btn,
           duration: options?.duration ?? NOTIFY_DEFAULTS.notificationDuration,
           placement: options?.placement ?? NOTIFY_DEFAULTS.placement,
           key: options?.key,

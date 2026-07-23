@@ -22,6 +22,8 @@ export type NotifyOptions = {
   placement?: NotifyPlacement;
   /** Extra body for notification panel. */
   description?: ReactNode;
+  /** Action buttons / footer for notification panels. */
+  btn?: ReactNode;
   /** Ant Design message/notification key (dedupe / update). */
   key?: string;
   /**
@@ -93,6 +95,7 @@ function emit(
     apis.notification[kind]({
       message: content,
       description: options?.description,
+      btn: options?.btn,
       duration,
       placement,
       key: options?.key,

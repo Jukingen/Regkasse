@@ -19,8 +19,7 @@
     <Compile Remove="_test_build_out\**" />
     <Compile Remove="_testout\**" />
     <Compile Remove="_ef_build\**" />
-    <Compile Remove="_build_out\**" />
-    <Content Remove="KasseAPI_Final.Tests\**" />
+    <Compile Remove="_build_out\**" />    <Content Remove="KasseAPI_Final.Tests\**" />
     <Content Remove="artifacts\**" />
     <Content Remove="_test_build_out\**" />
     <Content Remove="_testout\**" />

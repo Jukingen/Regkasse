@@ -36,34 +36,37 @@ export type KeyboardShortcutsHelpProps = {
   triggerSize?: 'small' | 'middle' | 'large';
 };
 
+type HelpActionId =
+  | 'search'
+  | 'newTenant'
+  | 'openPermissionHistory'
+  | 'save'
+  | 'closeModal'
+  | 'logout'
+  | 'navigate'
+  | 'downloadExport'
+  | 'openExportModal'
+  | 'openDownloadHistory'
+  | 'openDownloadPreview'
+  | 'openBatchDownload';
+
 const HELP_ACTIONS: Array<{
-  id: 'search' | 'newTenant' | 'save' | 'closeModal' | 'logout' | 'navigate';
-  shortcut: () => string;
+  id: HelpActionId;
+  parts?: { ctrl?: boolean; shift?: boolean; alt?: boolean; key: string };
+  navigateTabs?: boolean;
 }> = [
-  {
-    id: 'search',
-    shortcut: () => formatShortcutLabel({ ctrl: true, key: 'k' }),
-  },
-  {
-    id: 'newTenant',
-    shortcut: () => formatShortcutLabel({ ctrl: true, key: 'n' }),
-  },
-  {
-    id: 'save',
-    shortcut: () => formatShortcutLabel({ ctrl: true, key: 's' }),
-  },
-  {
-    id: 'closeModal',
-    shortcut: () => formatShortcutLabel({ key: 'Escape' }),
-  },
-  {
-    id: 'logout',
-    shortcut: () => formatShortcutLabel({ ctrl: true, shift: true, key: 'l' }),
-  },
-  {
-    id: 'navigate',
-    shortcut: () => formatNavigateTabsShortcutLabel(),
-  },
+  { id: 'search', parts: { ctrl: true, key: 'k' } },
+  { id: 'newTenant', parts: { ctrl: true, key: 'n' } },
+  { id: 'openPermissionHistory', parts: { ctrl: true, key: 'h' } },
+  { id: 'save', parts: { ctrl: true, key: 's' } },
+  { id: 'closeModal', parts: { key: 'Escape' } },
+  { id: 'logout', parts: { ctrl: true, shift: true, key: 'l' } },
+  { id: 'navigate', navigateTabs: true },
+  { id: 'downloadExport', parts: { ctrl: true, shift: true, key: 'd' } },
+  { id: 'openExportModal', parts: { ctrl: true, shift: true, key: 'e' } },
+  { id: 'openDownloadPreview', parts: { ctrl: true, shift: true, key: 'p' } },
+  { id: 'openDownloadHistory', parts: { ctrl: true, shift: true, key: 'h' } },
+  { id: 'openBatchDownload', parts: { ctrl: true, shift: true, key: 'b' } },
 ];
 
 /** Opens the shell-mounted shortcuts help modal. */
@@ -79,7 +82,7 @@ export function KeyboardShortcutsHelp({
   triggerClassName,
   triggerSize = 'small',
 }: KeyboardShortcutsHelpProps) {
-  const { t } = useI18n();
+  const { t, textLocale } = useI18n();
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
 
   const isControlled = controlledOpen !== undefined;
@@ -103,25 +106,27 @@ export function KeyboardShortcutsHelp({
     () =>
       HELP_ACTIONS.map((item) => ({
         key: item.id,
-        shortcut: item.shortcut(),
+        shortcut: item.navigateTabs
+          ? formatNavigateTabsShortcutLabel(textLocale)
+          : formatShortcutLabel(item.parts!, textLocale),
         action: t(`keyboardShortcuts.${item.id}`),
       })),
-    [t]
+    [t, textLocale]
   );
 
   const columns: ColumnsType<ShortcutHelpRow> = useMemo(
     () => [
       {
-        title: t('keyboardShortcuts.columnShortcut'),
-        dataIndex: 'shortcut',
-        key: 'shortcut',
-        width: 140,
-        render: (value: string) => <kbd className="keyboard-shortcuts-help-kbd">{value}</kbd>,
-      },
-      {
         title: t('keyboardShortcuts.columnAction'),
         dataIndex: 'action',
         key: 'action',
+      },
+      {
+        title: t('keyboardShortcuts.columnShortcut'),
+        dataIndex: 'shortcut',
+        key: 'shortcut',
+        width: 160,
+        render: (value: string) => <kbd className="keyboard-shortcuts-help-kbd">{value}</kbd>,
       },
     ],
     [t]
@@ -150,9 +155,12 @@ export function KeyboardShortcutsHelp({
         open={open}
         onCancel={close}
         footer={null}
-        width={520}
+        width={560}
         destroyOnHidden
       >
+        <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
+          {t('keyboardShortcuts.sectionExport')}
+        </Typography.Paragraph>
         <Table<ShortcutHelpRow>
           dataSource={rows}
           columns={columns}

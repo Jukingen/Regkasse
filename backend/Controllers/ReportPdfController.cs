@@ -87,7 +87,8 @@ public class ReportPdfController : ControllerBase
                 .ConfigureAwait(false);
             await LogDownloadAuditAsync(normalizedType, reportId, normalizedLanguage, cancellationToken)
                 .ConfigureAwait(false);
-            var fileName = ReportPdfArchiveNames.ForReport(normalizedType, reportId);
+            var fileName = await _storage.ResolveDownloadFileNameAsync(normalizedType, reportId, cancellationToken)
+                .ConfigureAwait(false);
             return File(pdfBytes, "application/pdf", fileName);
         }
 
@@ -143,7 +144,8 @@ public class ReportPdfController : ControllerBase
                 .ConfigureAwait(false);
             await LogDownloadAuditAsync(normalizedType, reportId, normalizedLanguage, cancellationToken)
                 .ConfigureAwait(false);
-            var fileName = ReportPdfArchiveNames.ForReport(normalizedType, reportId);
+            var fileName = await _storage.ResolveDownloadFileNameAsync(normalizedType, reportId, cancellationToken)
+                .ConfigureAwait(false);
             return File(pdfBytes, "application/pdf", fileName);
         }
 
@@ -190,7 +192,8 @@ public class ReportPdfController : ControllerBase
         {
             await LogDownloadAuditAsync(normalizedType, reportId, normalizedLanguage, cancellationToken)
                 .ConfigureAwait(false);
-            var fileName = ReportPdfStorageService.BuildDownloadFileName(normalizedType, reportId);
+            var fileName = await _storage.ResolveDownloadFileNameAsync(normalizedType, reportId, cancellationToken)
+                .ConfigureAwait(false);
             return File(generatedPdf, "application/pdf", fileName);
         }
 

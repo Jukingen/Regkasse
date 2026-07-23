@@ -8,6 +8,7 @@
 import type { BackupArtifactResponseDto } from './backupArtifactResponseDto';
 import type { BackupPipelineSnapshotDto } from './backupPipelineSnapshotDto';
 import type { BackupRunStatus } from './backupRunStatus';
+import type { BackupStrategyKind } from './backupStrategyKind';
 import type { BackupTriggerSource } from './backupTriggerSource';
 import type { BackupVerificationResponseDto } from './backupVerificationResponseDto';
 
@@ -58,6 +59,7 @@ export interface BackupRunResponseDto {
   /** @nullable */
   startedAt?: string | null;
   status?: BackupRunStatus;
+  strategy?: BackupStrategyKind;
   /** @nullable */
   totalSizeBytes?: number | null;
   /** @nullable */

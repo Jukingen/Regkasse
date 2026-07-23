@@ -32,6 +32,45 @@ public sealed class EffectivePermissionResolver : IEffectivePermissionResolver
         var overrides = await _db.UserPermissionOverrides
             .AsNoTracking()
             .Where(o => o.UserId == userId
+                && (o.ValidFrom == null || o.ValidFrom <= now)
+                && (o.ExpiresAt == null || o.ExpiresAt > now)
+                && (o.TenantId == null || o.TenantId == tenantId))
+            .OrderByDescending(o => o.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        foreach (var group in overrides.GroupBy(o => o.Permission, StringComparer.OrdinalIgnoreCase))
+        {
+            var latest = group.First();
+            if (!PermissionCatalogMetadata.IsValidPermissionKey(latest.Permission))
+                continue;
+
+            if (latest.IsGranted)
+                result.Add(latest.Permission);
+            else
+                result.Remove(latest.Permission);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Dry-run effective set using a proposed role permission set instead of DB role claims/matrix.
+    /// </summary>
+    public async Task<IReadOnlySet<string>> GetEffectivePermissionsWithRoleOverrideAsync(
+        string userId,
+        IReadOnlySet<string> proposedRolePermissions,
+        Guid? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var result = new HashSet<string>(proposedRolePermissions, StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(userId))
+            return result;
+
+        var now = DateTime.UtcNow;
+        var overrides = await _db.UserPermissionOverrides
+            .AsNoTracking()
+            .Where(o => o.UserId == userId
+                && (o.ValidFrom == null || o.ValidFrom <= now)
                 && (o.ExpiresAt == null || o.ExpiresAt > now)
                 && (o.TenantId == null || o.TenantId == tenantId))
             .OrderByDescending(o => o.CreatedAt)

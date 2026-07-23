@@ -12,9 +12,10 @@ const DEFAULT_POLICY: TenantSessionPolicy = {
   keepCartAfterTimeout: true,
 };
 
+/** Paths are relative to axios `baseURL` (…/api) — do not prefix with `/api` again. */
 export async function fetchTenantSessionPolicy(): Promise<TenantSessionPolicy> {
   try {
-    const res = await axiosInstance.get<TenantSessionPolicy>('/api/user/session-policy');
+    const res = await axiosInstance.get<TenantSessionPolicy>('/user/session-policy');
     return {
       sessionTimeoutMinutes: res.data.sessionTimeoutMinutes ?? DEFAULT_POLICY.sessionTimeoutMinutes,
       warningBeforeTimeoutMinutes:
@@ -28,7 +29,7 @@ export async function fetchTenantSessionPolicy(): Promise<TenantSessionPolicy> {
 
 export async function sendSessionHeartbeat(): Promise<void> {
   try {
-    await axiosInstance.post('/api/user/sessions/heartbeat');
+    await axiosInstance.post('/user/sessions/heartbeat');
   } catch {
     /* best effort */
   }

@@ -8,6 +8,26 @@
   "sidebar": {
     "noAccessibleMenus": "Keine Menüpunkte verfügbar."
   },
+  "menuPermission": {
+    "popoverTitle": "Welche Berechtigung steuert dieses Menü?",
+    "permissionLabel": "Berechtigung:",
+    "groupLabel": "Gruppe:",
+    "requiredIntro": "Um dieses Menü zu sehen, sind folgende Berechtigungen relevant:",
+    "noRequirements": "Keine spezifische Berechtigung (authentifizierter Zugriff).",
+    "primaryGate": "Primär",
+    "editPermission": "Berechtigung bearbeiten",
+    "openExplorer": "Permission Explorer",
+    "infoAria": "Berechtigungsinfo für {{menu}}",
+    "missingMapping": "Keine Berechtigung zugeordnet",
+    "missingMappingDevHint": "Development: Menü ohne Permission-Mapping",
+    "explorerTitle": "Permission Explorer",
+    "explorerSearch": "Menü suchen…",
+    "explorerEmpty": "Keine Menüs gefunden.",
+    "explorerSelectHint": "Wählen Sie ein Menü aus der Liste.",
+    "rolesHolding": "Rollen mit dieser Berechtigung:",
+    "rolesNone": "Keine Rolle besitzt diese Berechtigung.",
+    "rolesUnavailable": "Rollenliste nicht geladen (Zugriff erforderlich)."
+  },
   "nav": {
     "dashboard": "Dashboard",
     "licenseManagement": "Lizenzverwaltung",
@@ -69,6 +89,7 @@
     "users": "Benutzer",
     "rolesPermissions": "Rollen & Berechtigungen",
     "permissionsOverview": "Berechtigungsübersicht",
+    "permissionHistory": "📜 Berechtigungs-Historie",
     "tenants": "Mandanten",
     "billing": "Lizenzverkauf",
     "billingOverview": "Übersicht",
@@ -95,7 +116,12 @@
     "clearConfirmTitle": "Error-Logs leeren?",
     "clearConfirmBody": "Alle Elmah-Einträge für diese Anwendung werden dauerhaft gelöscht.",
     "clearSuccess": "Error-Logs wurden geleert.",
-    "clearFailed": "Error-Logs konnten nicht geleert werden."
+    "clearFailed": "Error-Logs konnten nicht geleert werden.",
+    "exportTxt": "TXT exportieren",
+    "exportCsv": "CSV exportieren",
+    "exportJson": "JSON exportieren",
+    "exportSuccess": "Export heruntergeladen.",
+    "exportFailed": "Export fehlgeschlagen."
   },
   "aria": {
     "openNav": "Navigationsmenü öffnen",

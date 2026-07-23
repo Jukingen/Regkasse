@@ -33,5 +33,10 @@ export function buildCreateTenantRequest(data: CreateTenantWizardData): CreateAd
     licenseValidUntilUtc,
     importDemoMenu: data.importDemoProducts,
     cashRegisterNumber: data.registerNumber.trim() || undefined,
+    industryTemplateId:
+      data.industryTemplateId && data.industryTemplateId !== 'none'
+        ? data.industryTemplateId
+        : null,
+    seedIndustryStarterUsers: data.seedIndustryStarterUsers,
   };
 }

@@ -36,4 +36,17 @@ describe('menuPermissions RKSV helpers', () => {
     expect(isRksvRouteKeyAllowed('/rksv/operations', undefined, 'Manager')).toBe(true);
     expect(isRksvRouteKeyAllowed('/rksv/operations', undefined, 'Cashier')).toBe(false);
   });
+
+  it('requires daily-closing.view claim for Tagesabschluss sidebar (implication-aware)', () => {
+    // Menu uses permissionImplied — execute → view.
+    expect(isMenuItemAllowed('/tagesabschluss', [PERMISSIONS.DAILY_CLOSING_EXECUTE])).toBe(true);
+    expect(isMenuItemAllowed('/tagesabschluss', [PERMISSIONS.DAILY_CLOSING_VIEW])).toBe(true);
+    expect(
+      isMenuItemAllowed('/tagesabschluss', [
+        PERMISSIONS.DAILY_CLOSING_VIEW,
+        PERMISSIONS.DAILY_CLOSING_EXECUTE,
+      ])
+    ).toBe(true);
+    expect(isMenuItemAllowed('/tagesabschluss', [PERMISSIONS.SALE_VIEW])).toBe(false);
+  });
 });

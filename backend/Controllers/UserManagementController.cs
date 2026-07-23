@@ -11,6 +11,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Services.Localization;
 using KasseAPI_Final.Tenancy;
@@ -27,6 +28,8 @@ namespace KasseAPI_Final.Controllers
     [Route("api/[controller]")]
     public class UserManagementController : ControllerBase
     {
+        private const int MassPermissionChangeThreshold = 10;
+
         private readonly AppDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
@@ -44,6 +47,7 @@ namespace KasseAPI_Final.Controllers
         private readonly PasswordErrorTranslator _passwordErrors;
         private readonly IUserUsernameHistoryService _usernameHistory;
         private readonly IUsernameChangeEmailService _usernameChangeEmail;
+        private readonly ActivityEventRecorder? _activityEvents;
 
         public UserManagementController(
             AppDbContext context,
@@ -62,7 +66,8 @@ namespace KasseAPI_Final.Controllers
             II18nErrorService i18nErrorService,
             PasswordErrorTranslator passwordErrors,
             IUserUsernameHistoryService usernameHistory,
-            IUsernameChangeEmailService usernameChangeEmail)
+            IUsernameChangeEmailService usernameChangeEmail,
+            ActivityEventRecorder? activityEvents = null)
         {
             _context = context;
             _userManager = userManager;
@@ -81,10 +86,57 @@ namespace KasseAPI_Final.Controllers
             _passwordErrors = passwordErrors;
             _usernameHistory = usernameHistory;
             _usernameChangeEmail = usernameChangeEmail;
+            _activityEvents = activityEvents;
         }
 
         private string? GetCurrentUserId() => User.GetActorUserId();
         private string GetCurrentUserRole() => User.GetActorRole() ?? "Unknown";
+
+        private Guid ResolveActivityTenantId() =>
+            _tenantAccessor.TenantId is Guid tid && tid != Guid.Empty
+                ? tid
+                : LegacyDefaultTenantIds.Primary;
+
+        private async Task PublishPermissionActivityAsync(
+            ActivityEventType type,
+            object metadata,
+            string? actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            if (_activityEvents == null)
+                return;
+            try
+            {
+                await _activityEvents.TryPublishAsync(
+                    ResolveActivityTenantId(),
+                    type,
+                    metadata,
+                    actorUserId,
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Permission activity publish failed Type={Type}", type);
+            }
+        }
+
+        private static string BuildRolePermissionWhatChanged(
+            string[] oldPermissions,
+            string[] newPermissions)
+        {
+            var oldSet = new HashSet<string>(oldPermissions ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+            var newSet = new HashSet<string>(newPermissions ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+            var added = newSet.Except(oldSet, StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToArray();
+            var removed = oldSet.Except(newSet, StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToArray();
+            var parts = new List<string>();
+            if (added.Length > 0)
+                parts.Add($"Added: {string.Join(", ", added.Take(8))}{(added.Length > 8 ? "…" : "")}");
+            if (removed.Length > 0)
+                parts.Add($"Removed: {string.Join(", ", removed.Take(8))}{(removed.Length > 8 ? "…" : "")}");
+            if (parts.Count == 0)
+                return "No net permission key changes.";
+            return string.Join(" · ", parts);
+        }
 
         /// <summary>Returns 403 if current user is not SuperAdmin. Used for role permission update and role delete.</summary>
         private bool IsCurrentUserSuperAdmin()
@@ -1198,7 +1250,12 @@ namespace KasseAPI_Final.Controllers
                 return NotFound(new { message = "User not found" });
 
             var tenantScope = ResolveActorTenantScope();
-            var overrides = await _permissionOverrideService.ListOverridesAsync(id, tenantScope, cancellationToken);
+            var includeExpired = string.Equals(
+                HttpContext.Request.Query["includeExpired"].FirstOrDefault(),
+                "true",
+                StringComparison.OrdinalIgnoreCase);
+            var overrides = await _permissionOverrideService.ListOverridesAsync(
+                id, tenantScope, includeExpired, cancellationToken);
             return Ok(overrides);
         }
 
@@ -1245,6 +1302,13 @@ namespace KasseAPI_Final.Controllers
                 return Unauthorized(new { message = "User not authenticated", code = "UNAUTHORIZED" });
 
             var tenantScope = ResolveActorTenantScope();
+            var existingOverrides = await _permissionOverrideService.ListOverridesAsync(
+                id, tenantScope, includeExpired: false, cancellationToken);
+            var previous = existingOverrides.FirstOrDefault(o =>
+                string.Equals(o.Permission, request.Permission, StringComparison.OrdinalIgnoreCase)
+                && ((o.TenantId == null && request.TenantId == null)
+                    || (o.TenantId.HasValue && request.TenantId.HasValue && o.TenantId == request.TenantId)));
+
             var result = await _permissionOverrideService.UpsertOverrideAsync(
                 id, request, actorId, tenantScope, cancellationToken);
             if (result == null)
@@ -1259,14 +1323,39 @@ namespace KasseAPI_Final.Controllers
                 HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string,
                 AuditLogStatus.Success,
                 $"Permission override {(request.IsGranted ? "granted" : "denied")}: {request.Permission}",
-                oldValues: null,
+                oldValues: previous == null
+                    ? null
+                    : new
+                    {
+                        previous.Permission,
+                        previous.IsGranted,
+                        previous.TenantId,
+                        previous.ExpiresAt,
+                        previous.Id,
+                    },
                 newValues: new
                 {
                     request.Permission,
                     request.IsGranted,
                     request.TenantId,
                     request.ExpiresAt,
+                    result.Id,
                 });
+
+            await PublishPermissionActivityAsync(
+                ActivityEventType.UserPermissionOverridesChanged,
+                new
+                {
+                    TargetUserId = id,
+                    PermissionKey = request.Permission,
+                    IsGranted = request.IsGranted,
+                    ActorId = actorId,
+                    ActorName = User.Identity?.Name,
+                    WhatChanged = previous == null
+                        ? $"Override added: {request.Permission} → {(request.IsGranted ? "allowed" : "denied")}"
+                        : $"Override changed: {request.Permission} → {(request.IsGranted ? "allowed" : "denied")}",
+                },
+                actorId);
 
             await _sessionInvalidation.InvalidateSessionsForUserAsync(id);
             return Ok(result);
@@ -1289,6 +1378,10 @@ namespace KasseAPI_Final.Controllers
 
             var actorId = GetCurrentUserId();
             var tenantScope = ResolveActorTenantScope();
+            var existingOverrides = await _permissionOverrideService.ListOverridesAsync(
+                id, tenantScope, includeExpired: false, cancellationToken);
+            var previous = existingOverrides.FirstOrDefault(o => o.Id == overrideId);
+
             var deleted = await _permissionOverrideService.DeleteOverrideAsync(id, overrideId, tenantScope, cancellationToken);
             if (!deleted)
                 return NotFound(new { message = "Permission override not found" });
@@ -1303,7 +1396,35 @@ namespace KasseAPI_Final.Controllers
                     null,
                     HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string,
                     AuditLogStatus.Success,
-                    $"Permission override removed: {overrideId}");
+                    previous != null
+                        ? $"Permission override removed: {previous.Permission}"
+                        : $"Permission override removed: {overrideId}",
+                    oldValues: previous == null
+                        ? new { OverrideId = overrideId }
+                        : new
+                        {
+                            previous.Permission,
+                            previous.IsGranted,
+                            previous.TenantId,
+                            previous.ExpiresAt,
+                            previous.Id,
+                        },
+                    newValues: new { Removed = true, OverrideId = overrideId });
+
+                await PublishPermissionActivityAsync(
+                    ActivityEventType.UserPermissionOverridesChanged,
+                    new
+                    {
+                        TargetUserId = id,
+                        PermissionKey = previous?.Permission,
+                        IsGranted = (bool?)null,
+                        ActorId = actorId,
+                        ActorName = User.Identity?.Name,
+                        WhatChanged = previous != null
+                            ? $"Override removed: {previous.Permission}"
+                            : $"Override removed: {overrideId}",
+                    },
+                    actorId);
             }
 
             await _sessionInvalidation.InvalidateSessionsForUserAsync(id);
@@ -1366,6 +1487,28 @@ namespace KasseAPI_Final.Controllers
             return Ok(list);
         }
 
+        // POST: api/usermanagement/roles/{roleName}/permissions/simulate — dry-run impact of proposed role permissions.
+        [HttpPost("roles/{roleName}/permissions/simulate")]
+        [HasPermission(AppPermissions.RoleView)]
+        public async Task<ActionResult<RolePermissionSimulateResultDto>> SimulateRolePermissions(
+            string roleName,
+            [FromBody] RolePermissionSimulateRequest? request,
+            [FromServices] IRolePermissionSimulateService simulateService,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(roleName))
+                return BadRequest(new { message = "Role name is required.", code = "VALIDATION_ERROR" });
+
+            request ??= new RolePermissionSimulateRequest();
+            var result = await simulateService.SimulateAsync(
+                roleName,
+                request.ProposedPermissions,
+                request.Page,
+                request.PageSize,
+                cancellationToken);
+            return Ok(result);
+        }
+
         // PUT: api/usermanagement/roles/{roleName}/permissions — SuperAdmin only; custom roles only (system roles immutable).
         [HttpPut("roles/{roleName}/permissions")]
         [HasPermission(AppPermissions.UserManage)]
@@ -1390,6 +1533,17 @@ namespace KasseAPI_Final.Controllers
             request ??= new UpdateRolePermissionsRequest();
             IReadOnlyList<string> keys = request.Permissions != null ? request.Permissions : Array.Empty<string>();
 
+            var oldPermissions = Array.Empty<string>();
+            var existingRole = await _roleManager.FindByNameAsync(roleName);
+            if (existingRole != null)
+            {
+                oldPermissions = (await _roleManager.GetClaimsAsync(existingRole))
+                    .Where(c => string.Equals(c.Type, PermissionCatalog.PermissionClaimType, StringComparison.OrdinalIgnoreCase))
+                    .Select(c => c.Value)
+                    .OrderBy(v => v, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+            }
+
             var result = await _roleManagementService.SetRolePermissionsAsync(roleName, keys, cancellationToken);
             switch (result)
             {
@@ -1403,6 +1557,12 @@ namespace KasseAPI_Final.Controllers
                     break;
             }
 
+            var newPermissions = keys
+                .Where(k => !string.IsNullOrWhiteSpace(k))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(v => v, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
             var actorId = GetCurrentUserId();
             var actorRole = GetCurrentUserRole();
             if (!string.IsNullOrEmpty(actorId))
@@ -1415,7 +1575,38 @@ namespace KasseAPI_Final.Controllers
                         actorId,
                         actorRole,
                         description: $"Role permissions updated: {roleName}",
-                        requestData: new { roleName, permissionCount = keys.Count });
+                        requestData: new { roleName, permissionCount = newPermissions.Length },
+                        actionType: AuditEventType.RolePermissionsUpdated,
+                        oldValues: new { roleName, permissions = oldPermissions },
+                        newValues: new { roleName, permissions = newPermissions },
+                        entityName: roleName);
+
+                    var oldSet = new HashSet<string>(oldPermissions ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+                    var newSet = new HashSet<string>(newPermissions, StringComparer.OrdinalIgnoreCase);
+                    var addedCount = newSet.Count(k => !oldSet.Contains(k));
+                    var removedCount = oldSet.Count(k => !newSet.Contains(k));
+                    var changeTotal = addedCount + removedCount;
+                    var whatChanged = BuildRolePermissionWhatChanged(oldPermissions ?? Array.Empty<string>(), newPermissions);
+                    var isSuperAdminRole = string.Equals(roleName, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase);
+                    var isMass = changeTotal >= MassPermissionChangeThreshold;
+                    var activityType = isSuperAdminRole || isMass
+                        ? ActivityEventType.SystemPermissionChange
+                        : ActivityEventType.RolePermissionsUpdated;
+                    await PublishPermissionActivityAsync(
+                        activityType,
+                        new
+                        {
+                            RoleName = roleName,
+                            ActorId = actorId,
+                            ActorName = User.Identity?.Name,
+                            ActorEmail = User.FindFirst("email")?.Value,
+                            AddedCount = addedCount,
+                            RemovedCount = removedCount,
+                            WhatChanged = whatChanged,
+                            IsMassUpdate = isMass,
+                            IsSuperAdminRole = isSuperAdminRole,
+                        },
+                        actorId);
                 }
                 catch (Exception ex)
                 {
@@ -1446,6 +1637,17 @@ namespace KasseAPI_Final.Controllers
 
             if (string.IsNullOrWhiteSpace(roleName))
                 return BadRequest(new { message = "Role name is required.", code = "VALIDATION_ERROR" });
+
+            string[] deletedPermissions = Array.Empty<string>();
+            var roleBeforeDelete = await _roleManager.FindByNameAsync(roleName);
+            if (roleBeforeDelete != null)
+            {
+                deletedPermissions = (await _roleManager.GetClaimsAsync(roleBeforeDelete))
+                    .Where(c => string.Equals(c.Type, PermissionCatalog.PermissionClaimType, StringComparison.OrdinalIgnoreCase))
+                    .Select(c => c.Value)
+                    .OrderBy(v => v, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+            }
 
             var result = await _roleManagementService.DeleteRoleAsync(roleName, cancellationToken);
             switch (result)
@@ -1478,7 +1680,22 @@ namespace KasseAPI_Final.Controllers
                         AuditLogEntityTypes.ROLE,
                         actorId,
                         actorRole,
-                        description: $"Role deleted: {roleName}");
+                        description: $"Role deleted: {roleName}",
+                        requestData: new { roleName, permissionCount = deletedPermissions.Length },
+                        actionType: AuditEventType.RoleDeleted,
+                        oldValues: new { roleName, permissions = deletedPermissions },
+                        entityName: roleName);
+
+                    await PublishPermissionActivityAsync(
+                        ActivityEventType.RoleDeleted,
+                        new
+                        {
+                            RoleName = roleName,
+                            ActorId = actorId,
+                            ActorName = User.Identity?.Name,
+                            WhatChanged = $"Role deleted. Previous permissions: {deletedPermissions.Length}.",
+                        },
+                        actorId);
                 }
                 catch (Exception ex)
                 {
@@ -1535,9 +1752,70 @@ namespace KasseAPI_Final.Controllers
                     .CreateRoleAsync(request.Name, request.InheritFromRole, CancellationToken.None)
                     .ConfigureAwait(false);
 
+                if (result == CreateRoleResult.Success)
+                {
+                    var createdName = request.Name.Trim();
+                    var actorId = GetCurrentUserId();
+                    var actorRole = GetCurrentUserRole();
+                    if (!string.IsNullOrEmpty(actorId))
+                    {
+                        try
+                        {
+                            string[] createdPermissions = Array.Empty<string>();
+                            var createdRole = await _roleManager.FindByNameAsync(createdName);
+                            if (createdRole != null)
+                            {
+                                createdPermissions = (await _roleManager.GetClaimsAsync(createdRole))
+                                    .Where(c => string.Equals(c.Type, PermissionCatalog.PermissionClaimType, StringComparison.OrdinalIgnoreCase))
+                                    .Select(c => c.Value)
+                                    .OrderBy(v => v, StringComparer.OrdinalIgnoreCase)
+                                    .ToArray();
+                            }
+
+                            await _auditLogService.LogSystemOperationAsync(
+                                AuditLogActions.ROLE_CREATE,
+                                AuditLogEntityTypes.ROLE,
+                                actorId,
+                                actorRole,
+                                description: $"Role created: {createdName}",
+                                requestData: new
+                                {
+                                    roleName = createdName,
+                                    inheritFromRole = request.InheritFromRole,
+                                    permissionCount = createdPermissions.Length,
+                                },
+                                actionType: AuditEventType.RoleCreated,
+                                newValues: new { roleName = createdName, permissions = createdPermissions },
+                                entityName: createdName);
+
+                            await PublishPermissionActivityAsync(
+                                ActivityEventType.RoleCreated,
+                                new
+                                {
+                                    RoleName = createdName,
+                                    ActorId = actorId,
+                                    ActorName = User.Identity?.Name,
+                                    InheritFromRole = request.InheritFromRole,
+                                    WhatChanged = createdPermissions.Length == 0
+                                        ? "Role created with default (empty) permissions."
+                                        : $"Role created with {createdPermissions.Length} permission(s)"
+                                          + (string.IsNullOrWhiteSpace(request.InheritFromRole)
+                                              ? "."
+                                              : $" (inherited from {request.InheritFromRole})."),
+                                },
+                                actorId);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Role create audit failed. Role: {RoleName}", createdName);
+                        }
+                    }
+
+                    return Ok(new { message = "Role created successfully" });
+                }
+
                 return result switch
                 {
-                    CreateRoleResult.Success => Ok(new { message = "Role created successfully" }),
                     CreateRoleResult.ReservedName => BadRequest(new
                     {
                         message = "Role name is reserved for system roles. Choose a different name for a custom role.",

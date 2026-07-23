@@ -80,6 +80,12 @@
         "dataManagement",
         "keyboardShortcuts"
       ]
+    },
+    "frontend-sites": {
+      "deferred": true,
+      "localesDir": "frontend-sites/src/i18n/locales",
+      "csvPath": "localization/out/frontend-sites.csv",
+      "namespaces": []
     }
   }
 }

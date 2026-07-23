@@ -1,13 +1,17 @@
 {
   "name": "cash-register",
   "version": "1.0.0",
+  "private": true,
+  "license": "UNLICENSED",
   "main": "expo-router/entry",
   "scripts": {
+    "dev": "expo start --max-workers=2",
     "start": "expo start --max-workers=2",
     "start:clean": "expo start --clear --max-workers=2",
     "android": "expo start --android --max-workers=2",
     "ios": "expo start --ios --max-workers=2",
     "web": "expo start --web --max-workers=2",
+    "build": "expo export",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "jest",
@@ -92,7 +96,7 @@
     "prettier": "^3.9.6",
     "test-renderer": "^1.2.0",
     "ts-jest": "^29.4.11",
-    "typescript": "^7.0.2"
+    "typescript": "~5.9.3"
   },
   "private": true
 }

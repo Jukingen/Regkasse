@@ -27,6 +27,7 @@ public class AdminRksvDepExportController : ControllerBase
     private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly IAuditLogService _auditLogService;
     private readonly IRksvEnvironmentService _rksvEnv;
+    private readonly IDownloadHistoryService _downloadHistory;
 
     public AdminRksvDepExportController(
         IRksvDepExportService depExportService,
@@ -34,7 +35,8 @@ public class AdminRksvDepExportController : ControllerBase
         IDepExportScheduler scheduler,
         ICurrentTenantAccessor tenantAccessor,
         IAuditLogService auditLogService,
-        IRksvEnvironmentService rksvEnv)
+        IRksvEnvironmentService rksvEnv,
+        IDownloadHistoryService downloadHistory)
     {
         _depExportService = depExportService;
         _historyService = historyService;
@@ -42,6 +44,7 @@ public class AdminRksvDepExportController : ControllerBase
         _tenantAccessor = tenantAccessor;
         _auditLogService = auditLogService;
         _rksvEnv = rksvEnv;
+        _downloadHistory = downloadHistory;
     }
 
     [HttpGet]
@@ -63,6 +66,11 @@ public class AdminRksvDepExportController : ControllerBase
 
         try
         {
+            var fileName = await _historyService
+                .BuildFileNameAsync(tenantId.Value, cashRegisterId, cancellationToken)
+                .ConfigureAwait(false);
+            Response.Headers.ContentDisposition = $"attachment; filename=\"{fileName}\"";
+
             if (includeEnvelope)
             {
                 var build = await _depExportService.GenerateDepExportWithValidationAsync(
@@ -87,6 +95,7 @@ public class AdminRksvDepExportController : ControllerBase
                         includeSpecialReceipts,
                         includeDailyClosings,
                         build.Root,
+                        fileName,
                         cancellationToken)
                     .ConfigureAwait(false);
 
@@ -124,6 +133,7 @@ public class AdminRksvDepExportController : ControllerBase
                     includeSpecialReceipts,
                     includeDailyClosings,
                     export,
+                    fileName,
                     cancellationToken)
                 .ConfigureAwait(false);
 
@@ -243,7 +253,8 @@ public class AdminRksvDepExportController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DownloadHistory(Guid id, CancellationToken cancellationToken = default)
     {
-        if (_tenantAccessor.TenantId is null)
+        var tenantId = _tenantAccessor.TenantId;
+        if (tenantId is null)
             return NotFound();
 
         var file = await _historyService.TryOpenDownloadAsync(id, cancellationToken).ConfigureAwait(false);
@@ -251,6 +262,30 @@ public class AdminRksvDepExportController : ControllerBase
             return NotFound(new { message = "Stored export file not available.", code = "RKSV_DEP_EXPORT_FILE_NOT_FOUND" });
 
         var (stream, fileName, contentType) = file.Value;
+        try
+        {
+            await _downloadHistory.RecordAsync(
+                    new DownloadHistoryRecordRequest
+                    {
+                        TenantId = tenantId.Value,
+                        UserId = User.GetActorUserId() ?? "unknown",
+                        FileName = fileName,
+                        FileType = "json",
+                        FileSize = stream.CanSeek ? stream.Length : null,
+                        DownloadUrl = $"/api/admin/rksv/dep-export/history/{id}/download",
+                        IpAddress = ResolveClientIpAddress(),
+                        UserAgent = ResolveUserAgent(),
+                        SourceKind = "dep-export",
+                        SourceId = id,
+                    },
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch
+        {
+            // Download must still succeed if history write fails.
+        }
+
         return File(stream, contentType, fileName);
     }
 
@@ -327,6 +362,7 @@ public class AdminRksvDepExportController : ControllerBase
         bool includeSpecialReceipts,
         bool includeDailyClosings,
         RksvDepExportRootDto export,
+        string fileName,
         CancellationToken cancellationToken)
     {
         await _historyService.RecordCompletedAsync(
@@ -340,6 +376,7 @@ public class AdminRksvDepExportController : ControllerBase
                     Export = export,
                     IncludeSpecialReceipts = includeSpecialReceipts,
                     IncludeDailyClosings = includeDailyClosings,
+                    FileName = fileName,
                 },
                 cancellationToken)
             .ConfigureAwait(false);
@@ -367,6 +404,21 @@ public class AdminRksvDepExportController : ControllerBase
             NextRunAt = schedule.NextRunAt,
             CreatedAt = schedule.CreatedAt,
         };
+
+    private string? ResolveClientIpAddress()
+    {
+        var forwarded = Request.Headers["X-Forwarded-For"].FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(forwarded))
+            return forwarded.Split(',')[0].Trim();
+
+        return HttpContext.Connection.RemoteIpAddress?.ToString();
+    }
+
+    private string? ResolveUserAgent()
+    {
+        var ua = Request.Headers.UserAgent.ToString();
+        return string.IsNullOrWhiteSpace(ua) ? null : ua;
+    }
 }
 
 public record ValidateExportRequest

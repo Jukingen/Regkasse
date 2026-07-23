@@ -47,5 +47,12 @@ public class TokenClaimsServiceTenantClaimTests
             Guid? tenantId = null,
             CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlySet<string>>(_perms);
+
+        public Task<IReadOnlySet<string>> GetEffectivePermissionsWithRoleOverrideAsync(
+            string userId,
+            IReadOnlySet<string> rolePermissions,
+            Guid? tenantId = null,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlySet<string>>(_perms);
     }
 }

@@ -8,13 +8,14 @@ import {
   readJsonFileIfExists,
   readManifest,
   resolveAppConfig,
+  listActiveAppIds,
   tupleKey,
   writeReport,
 } from './_shared.mjs';
 
 const args = parseArgs(process.argv);
 const manifest = await readManifest();
-const appIds = (args.app ? [args.app] : Object.keys(manifest.apps)).sort((a, b) => a.localeCompare(b));
+const appIds = (args.app ? [args.app] : listActiveAppIds(manifest)).sort((a, b) => a.localeCompare(b));
 const strictMissing = args.strictMissing === 'true';
 const keyMode = args.keyMode ?? 'compat';
 if (keyMode !== 'compat' && keyMode !== 'target') {
@@ -170,6 +171,10 @@ async function extractAdminRuntimeNamespaces(root) {
 
 for (const appId of appIds) {
   const app = resolveAppConfig(manifest, appId);
+  if (app.deferred) {
+    console.log(`Skipping deferred app "${appId}" (no locale catalog yet).`);
+    continue;
+  }
   const validators = createValidators(manifest, app);
   const locales = manifest.locales;
   const defaultLocale = manifest.defaultLocale;

@@ -9,11 +9,11 @@
 
 ### Tenant Identification
 
-- **Production (hedef):** Shared hosts `api.regkasse.at` / `pos.regkasse.at` — kiracı JWT `tenant_id` (`docs/POS_PRODUCTION_ARCHITECTURE.md`). Eski: `{slug}.regkasse.at` Host slug.
-- **Development:** `X-Tenant-Id: {slug}` — değer kiracı **slug**’ıdır (UUID değil).
-- **Development:** `?tenant={slug}` query parametresi (header ile aynı anlam).
+- **Production (hedef):** Shared hosts `api.regkasse.at` / `pos.regkasse.at` / `admin.regkasse.at` — kiracı JWT `tenant_id` (`docs/POS_PRODUCTION_ARCHITECTURE.md`).
+- **Host slug:** `{slug}.regkasse.at` **POS production entry değildir** (legacy / geçiş veya `TenantDomain` müşteri sitesi).
+- **Development only:** `X-Tenant-Id: {slug}` veya `?tenant={slug}` — değer kiracı **slug**’ıdır (UUID değil); Production’da yok.
 
-JWT: auth sonrası `tenant_id` claim (Guid) + `TenantContextMiddleware` (POS için otoriter).
+JWT: auth sonrası `tenant_id` claim (Guid) + `TenantContextMiddleware` (POS/API için otoriter).
 
 ### Super Admin Endpoints
 
@@ -29,6 +29,7 @@ JWT: auth sonrası `tenant_id` claim (Guid) + `TenantContextMiddleware` (POS iç
 ## Boundary kuralı
 - Admin: `/api/admin/*`
 - POS: `/api/pos/*`
+- Sites / public (storefront, online order intake): `/api/public/*`, `/api/sites/*` — POS/FA boundary’sine karıştırma; working hours yalnızca bu yüzeyi etkiler.
 - RKSV özel fişler: `/api/rksv/*` (canonical; yüksek risk).
 - Legacy prefix (`/api/Payment`, `/api/Cart`, `/api/Product`) yeni işlev için kullanılmaz.
 
@@ -57,15 +58,20 @@ JWT: auth sonrası `tenant_id` claim (Guid) + `TenantContextMiddleware` (POS iç
 curl -H "X-Tenant-Id: dev" http://localhost:5184/api/health
 ```
 
-### Option 2: Query string
+### Option 2: Query string (Dev-only)
 
 ```bash
-curl "http://localhost:5184/api/admin/payments?tenant=dev"
+curl "http://localhost:5184/api/health?tenant=dev"
 ```
 
 ### Option 3: Hosts file
 
-`127.0.0.1 dev.localhost` → `http://dev.localhost:5184` (slug: `dev`).
+```text
+127.0.0.1 admin.regkasse.local
+127.0.0.1 dev.regkasse.local
+```
+
+Örnek: FA `http://admin.regkasse.local:3000`; API slug host (opsiyonel) `http://dev.regkasse.local:5184`.
 
 ### Option 4: FA tenant switcher
 

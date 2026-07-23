@@ -54,14 +54,11 @@ describe('sidebarRegistryCatalog', () => {
 
   it('hides Super Admin-only sidebar leaves from Manager permissions', () => {
     const managerPerms = [...MANAGER_ADMIN_PERMISSIONS];
-    for (const key of [
-      '/admin/tenants',
-      '/admin/billing',
-      '/admin/cash-registers',
-      '/admin/licenses',
-    ]) {
+    for (const key of ['/admin/tenants', '/admin/billing', '/admin/cash-registers']) {
       expect(isMenuItemAllowed(key, managerPerms), key).toBe(false);
     }
+    // license.manage → license.view (implication); platform shell still gates /admin/licenses via role.
+    expect(isMenuItemAllowed('/admin/licenses', managerPerms)).toBe(true);
     expect(isMenuItemAllowed('/admin/license', managerPerms)).toBe(true);
   });
 

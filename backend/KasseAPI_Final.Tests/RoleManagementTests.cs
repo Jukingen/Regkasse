@@ -375,16 +375,32 @@ public class RoleManagementTests
     [Fact]
     public void PermissionCatalogMetadata_GetGroupKey_ReturnsSlug()
     {
-        Assert.Equal("cash_shift", PermissionCatalogMetadata.GetGroupKey("Cash & Shift"));
-        Assert.Equal("user_role", PermissionCatalogMetadata.GetGroupKey("User & Role"));
+        Assert.Equal("kassenverwaltung", PermissionCatalogMetadata.GetGroupKey("Kassenverwaltung"));
+        Assert.Equal("mitarbeiter", PermissionCatalogMetadata.GetGroupKey("Mitarbeiter"));
+        Assert.Equal("rksv_finanzonline", PermissionCatalogMetadata.GetGroupKey("RKSV & FinanzOnline"));
+        Assert.Equal("tagesabschluss", PermissionCatalogMetadata.GetGroupKey("Tagesabschluss"));
+        Assert.Equal("backup_disaster_recovery", PermissionCatalogMetadata.GetGroupKey("Backup & Disaster Recovery"));
+        Assert.Equal("digitale_dienste", PermissionCatalogMetadata.GetGroupKey("Digitale Dienste"));
         Assert.Equal("other", PermissionCatalogMetadata.GetGroupKey(""));
     }
 
     [Fact]
     public void PermissionCatalogMetadata_GetGroupKeyForPermission_ReturnsConsistentGroupKey()
     {
-        Assert.Equal("cash_shift", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.CashRegisterView));
-        Assert.Equal("user_role", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.UserView));
+        Assert.Equal("kassenverwaltung", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.CashRegisterView));
+        Assert.Equal("mitarbeiter", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.UserView));
+        Assert.Equal("bestellung_verkauf", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.InvoiceView));
+        Assert.Equal("rksv_finanzonline", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.TseSign));
+        Assert.Equal("rksv_finanzonline", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.FinanzOnlineView));
+        Assert.Equal("bestellung_verkauf", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.KitchenView));
+        Assert.Equal("tagesabschluss", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.DailyClosingView));
+        Assert.Equal("tagesabschluss", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.DailyClosingExecute));
+        Assert.Equal("backup_disaster_recovery", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.BackupManage));
+        Assert.Equal("backup_disaster_recovery", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.SettingsBackup));
+        Assert.Equal("digitale_dienste", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.DigitalView));
+        Assert.Equal("digitale_dienste", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.DigitalOrdersManage));
+        Assert.Equal("zahlung", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.VoucherRead));
+        Assert.Equal("einstellungen", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.SettingsView));
     }
 
     [Fact]

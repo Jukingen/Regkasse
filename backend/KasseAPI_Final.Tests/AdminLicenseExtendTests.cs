@@ -160,6 +160,7 @@ public sealed class AdminLicenseExtendTests
             tenantResolver,
             Mock.Of<ILicenseReminderNotificationStore>(),
             Mock.Of<IAuditLogService>(),
+            Mock.Of<ILicenseExportService>(),
             NullLogger<AdminLicenseController>.Instance);
 
         controller.ControllerContext = new ControllerContext

@@ -66,6 +66,8 @@ public sealed class BackupRunResponseDto
 {
     public Guid Id { get; init; }
     public BackupRunStatus Status { get; init; }
+    /// <summary>Tenant vs System strategy (drives sensitive download gates for System).</summary>
+    public BackupStrategyKind Strategy { get; init; }
     public BackupTriggerSource TriggerSource { get; init; }
     public string AdapterKind { get; init; } = string.Empty;
     public string? IdempotencyKey { get; init; }
@@ -746,6 +748,7 @@ public static class BackupRunMapper
         {
             Id = run.Id,
             Status = run.Status,
+            Strategy = run.Strategy,
             TriggerSource = run.TriggerSource,
             AdapterKind = run.AdapterKind,
             IdempotencyKey = run.IdempotencyKey,

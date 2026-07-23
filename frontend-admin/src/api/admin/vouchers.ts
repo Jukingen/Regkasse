@@ -4,7 +4,9 @@
 import type { UseMutationOptions, UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { customInstance } from '@/lib/axios';
+import { AXIOS_INSTANCE, customInstance } from '@/lib/axios';
+import { buildVoucherExportFileName } from '@/features/vouchers/utils/voucherExportFileName';
+import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
 
 const BASE = '/api/admin/vouchers';
 
@@ -178,6 +180,29 @@ export function verifyAdminVoucherCode(
     },
     options
   ).then((res) => unwrapData<VerifyAdminVoucherCodeResponse>(res));
+}
+
+export type AdminVoucherExportFormat = 'json' | 'csv';
+
+/** Download voucher export; prefers Content-Disposition filename from the API. */
+export async function downloadAdminVoucherExport(
+  format: AdminVoucherExportFormat,
+  options?: { status?: string }
+): Promise<void> {
+  const res = await AXIOS_INSTANCE.get<Blob>(`${BASE}/export`, {
+    params: { format, status: options?.status },
+    responseType: 'blob',
+  });
+  const disposition = res.headers['content-disposition'] as string | undefined;
+  const match = disposition?.match(/filename="?([^";]+)"?/i);
+  const fileName =
+    match?.[1] ?? buildVoucherExportFileName(getEffectiveTenantSlug(), format);
+  const url = URL.createObjectURL(res.data);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export const adminVouchersQueryKeys = {

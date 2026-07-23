@@ -9,6 +9,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Localization;
+using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -29,6 +30,8 @@ namespace KasseAPI_Final.Controllers
         private readonly ITseService _tseService;
         private readonly IInvoicePdfService _invoicePdfService;
         private readonly IApiMessageLocalizer _messages;
+        private readonly ICurrentTenantAccessor _tenantAccessor;
+        private readonly IFileNamingService _fileNaming;
 
         public InvoiceController(
             AppDbContext context,
@@ -38,7 +41,9 @@ namespace KasseAPI_Final.Controllers
             IReceiptSequenceService receiptSequenceService,
             ITseService tseService,
             IInvoicePdfService invoicePdfService,
-            IApiMessageLocalizer messages)
+            IApiMessageLocalizer messages,
+            ICurrentTenantAccessor tenantAccessor,
+            IFileNamingService fileNaming)
         {
             _context = context;
             _logger = logger;
@@ -48,6 +53,8 @@ namespace KasseAPI_Final.Controllers
             _tseService = tseService;
             _invoicePdfService = invoicePdfService;
             _messages = messages;
+            _tenantAccessor = tenantAccessor;
+            _fileNaming = fileNaming;
         }
 
         // GET: api/Invoice/list
@@ -322,7 +329,14 @@ namespace KasseAPI_Final.Controllers
                 await writer.FlushAsync();
                 stream.Position = 0;
 
-                return File(stream, "text/csv", $"invoices_{DateTime.Now:yyyyMMdd_HHmm}.csv");
+                var tenantSlug = await ResolveTenantSlugAsync(HttpContext.RequestAborted).ConfigureAwait(false);
+                var fileName = _fileNaming.GenerateFileName(
+                    InvoiceExportFileNames.ListPrefix,
+                    "csv",
+                    registerId: ExportFileNameSegments.DateOnly(from),
+                    additional: ExportFileNameSegments.DateOnly(to),
+                    tenantSlug: tenantSlug);
+                return File(stream, "text/csv", fileName);
             }
             catch (Exception ex)
             {
@@ -786,8 +800,19 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                var naming = await ResolveInvoicePdfNamingAsync(id, HttpContext.RequestAborted)
+                    .ConfigureAwait(false);
+                if (naming is null)
+                    return NotFound("Invoice not found");
+
                 var pdf = await _invoicePdfService.GenerateInvoicePdfAsync(id, cancellationToken: HttpContext.RequestAborted);
-                return File(pdf, "application/pdf", $"Rechnung_{id}.pdf");
+                var fileName = _fileNaming.GenerateFileName(
+                    InvoiceExportFileNames.PdfPrefix,
+                    "pdf",
+                    registerId: naming.Value.RegisterNumber,
+                    additional: naming.Value.InvoiceNumber,
+                    tenantSlug: naming.Value.TenantSlug);
+                return File(pdf, "application/pdf", fileName);
             }
             catch (KeyNotFoundException)
             {
@@ -998,6 +1023,60 @@ namespace KasseAPI_Final.Controllers
             var random = new Random();
             var sequence = random.Next(1000, 9999);
             return $"INV-{date}-{sequence}";
+        }
+
+        private async Task<string?> ResolveTenantSlugAsync(CancellationToken cancellationToken)
+        {
+            var tenantId = _tenantAccessor.TenantId;
+            if (tenantId is null)
+                return null;
+
+            return await _context.Tenants
+                .AsNoTracking()
+                .Where(t => t.Id == tenantId.Value)
+                .Select(t => t.Slug)
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        private async Task<(string? TenantSlug, string? RegisterNumber, string InvoiceNumber)?> ResolveInvoicePdfNamingAsync(
+            Guid invoiceId,
+            CancellationToken cancellationToken)
+        {
+            var row = await _context.Invoices
+                .AsNoTracking()
+                .Where(i => i.Id == invoiceId)
+                .Select(i => new
+                {
+                    i.InvoiceNumber,
+                    i.KassenId,
+                    i.CashRegisterId,
+                    i.TenantId,
+                })
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (row is null)
+                return null;
+
+            var tenantSlug = await _context.Tenants
+                .AsNoTracking()
+                .Where(t => t.Id == row.TenantId)
+                .Select(t => t.Slug)
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            var registerNumber = await _context.CashRegisters
+                .AsNoTracking()
+                .Where(c => c.Id == row.CashRegisterId)
+                .Select(c => c.RegisterNumber)
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            return (
+                tenantSlug,
+                string.IsNullOrWhiteSpace(registerNumber) ? row.KassenId : registerNumber,
+                row.InvoiceNumber);
         }
     }
 

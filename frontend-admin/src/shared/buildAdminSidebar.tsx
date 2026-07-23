@@ -3,12 +3,16 @@
 /**
  * Builds Ant Design `Menu` items from `adminSidebarRegistry` + composed RKSV groups.
  * Layout stays a thin shell: call `buildAdminSidebarMenuItems` and pass to `filterSidebarMenuItems`.
+ *
+ * Permission-group sync (labels/order/menu areas): `permissionGroupRegistry.getSidebarPermissionGroupSyncRows()`.
+ * Full IA remains `SIDEBAR_LAYOUT_ROWS`; do not invent a second sidebar tree.
  */
 import * as Icons from '@ant-design/icons';
 import { type MenuProps, Tag, Tooltip } from 'antd';
 import React from 'react';
 
 import { AdminSidebarLeafLink } from '@/components/admin-layout/AdminSidebarLeafLink';
+import { MenuPermissionInfoTrigger } from '@/components/admin-layout/MenuPermissionInfoTrigger';
 import sidebarStyles from '@/components/admin-layout/adminSidebarFiscal.module.css';
 import {
   SIDEBAR_GROUP_META,
@@ -24,6 +28,7 @@ import {
   FISCAL_RKSV_CLOSING_SIDEBAR_LEAVES,
   fiscalRksvClosingBadgeLabel,
 } from '@/shared/fiscalRksvClosingSidebar';
+import { getSidebarPermissionGroupSyncRows } from '@/shared/auth/permissionGroupRegistry';
 import type { RksvMenuGroup } from '@/shared/rksvMenuModel';
 
 const ICON_MAP: Record<SidebarIconToken, React.ComponentType> = {
@@ -78,11 +83,35 @@ const ICON_MAP: Record<SidebarIconToken, React.ComponentType> = {
   BugOutlined: Icons.BugOutlined,
 };
 
-function iconEl(token?: SidebarIconToken): React.ReactNode {
+/** Shared icon token → component map (sidebar + permission UI). */
+export const SIDEBAR_ICON_COMPONENTS = ICON_MAP;
+
+export function resolveSidebarIconElement(token?: SidebarIconToken): React.ReactNode {
   if (!token) return undefined;
   const C = ICON_MAP[token];
   if (!C) return undefined;
   return <C />;
+}
+
+function iconEl(token?: SidebarIconToken): React.ReactNode {
+  return resolveSidebarIconElement(token);
+}
+
+/**
+ * When exactly one permission group owns a sidebar shell id, prefer its registry icon
+ * so sidebar chrome stays synced with `PERMISSION_GROUPS`.
+ */
+function resolveSidebarGroupIcon(
+  sidebarGroupId: keyof typeof SIDEBAR_GROUP_META,
+  fallback: SidebarIconToken
+): SidebarIconToken {
+  const matches = getSidebarPermissionGroupSyncRows().filter((row) =>
+    row.sidebarGroupIds.includes(sidebarGroupId)
+  );
+  if (matches.length === 1) {
+    return matches[0]!.group.icon;
+  }
+  return fallback;
 }
 
 function visibleCatalogIds(catalogIds: readonly SidebarCatalogId[]): SidebarCatalogId[] {
@@ -120,11 +149,24 @@ function catalogLeaf(
 ): NonNullable<MenuProps['items']>[number] {
   const def = SIDEBAR_NAV_ITEM_CATALOG[catalogId];
   const text = t(def.labelKey);
+  const missingPermission =
+    process.env.NODE_ENV === 'development' &&
+    (def.permission === undefined ||
+      (Array.isArray(def.permission) && def.permission.length === 0));
+
   return {
     key: def.menuKey,
     icon: iconEl(def.icon),
     title: text,
-    label: <AdminSidebarLeafLink href={def.href}>{text}</AdminSidebarLeafLink>,
+    label: (
+      <MenuPermissionInfoTrigger
+        menuKey={def.menuKey}
+        menuLabel={text}
+        missingPermission={missingPermission}
+      >
+        <AdminSidebarLeafLink href={def.href}>{text}</AdminSidebarLeafLink>
+      </MenuPermissionInfoTrigger>
+    ),
   };
 }
 
@@ -257,7 +299,7 @@ export function buildAdminSidebarMenuItems(params: {
     const groupLabel = t(meta.labelKey);
     menuItems.push({
       key: meta.menuKey,
-      icon: iconEl(meta.icon),
+      icon: iconEl(resolveSidebarGroupIcon(row.group, meta.icon)),
       label: groupLabel,
       title: groupLabel,
       children: buildDomainBlocks(t, row.blocks, rksvMenuGroups),

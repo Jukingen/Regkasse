@@ -37,9 +37,22 @@ public sealed class UserSessionDto
     public string ClientApp { get; init; } = string.Empty;
 }
 
+/// <summary>
+/// Effective session policy for <c>GET /api/user/session-policy</c> and Auth <c>/me</c>.
+/// Concurrent-session limits come from <c>SessionPolicy</c> configuration;
+/// idle-timeout fields may be overridden per tenant via <c>SystemSettings</c>.
+/// </summary>
 public sealed class TenantSessionPolicyDto
 {
+    /// <summary>Maximum concurrent active sessions per user (from <c>SessionPolicy:MaxConcurrentSessions</c>).</summary>
+    public int MaxConcurrentSessions { get; init; } = 1;
+
+    /// <summary>Idle / inactivity timeout in minutes.</summary>
     public int SessionTimeoutMinutes { get; init; } = 30;
+
+    /// <summary>When false, additional devices should be rejected once the concurrent limit is reached.</summary>
+    public bool AllowMultipleDevices { get; init; } = false;
+
     public int WarningBeforeTimeoutMinutes { get; init; } = 5;
     public bool KeepCartAfterTimeout { get; init; } = true;
     public bool IdleTimeoutEnabled { get; init; } = true;

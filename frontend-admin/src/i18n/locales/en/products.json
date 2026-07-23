@@ -94,7 +94,11 @@
     "deactivateAllDescription": "{{count}} active products will be deactivated. Products are not deleted: signed RKSV receipts and the audit trail remain unchanged. You can then re-import a demo menu (with overwrite) if needed.",
     "deactivateAllSuccess": "{{count}} product(s) deactivated.",
     "deactivateAllNone": "No active products to deactivate.",
-    "deactivateAllError": "Catalog deactivation failed."
+    "deactivateAllError": "Catalog deactivation failed.",
+    "exportCsv": "Export CSV",
+    "exportJson": "Export JSON",
+    "exportSuccess": "Export downloaded.",
+    "exportFailed": "Export failed."
   },
   "devPurge": {
     "button": "Dev: Delete catalog",

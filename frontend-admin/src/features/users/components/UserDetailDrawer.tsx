@@ -11,10 +11,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 import type { UserInfo } from '@/api/generated/model';
 import type { UpdateAdminUsernameResponse } from '@/features/users/api/users';
+import { TemporaryPermissionsPanel } from '@/features/users/components/TemporaryPermissionsPanel';
 import { useAdminUserTenants } from '@/features/users/hooks/useAdminUserTenants';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatDateTime } from '@/i18n/formatting';
 import { useStaffPolicy } from '@/shared/auth/staffPolicy';
+import { useUsersPolicy } from '@/shared/auth/usersPolicy';
 
 import { EditUsernameModal } from './EditUsernameModal';
 import { UserActivityReportPanel } from './UserActivityReportPanel';
@@ -66,6 +68,7 @@ export function UserDetailDrawer({
   context = 'admin',
 }: Props) {
   const staffPolicy = useStaffPolicy();
+  const usersPolicy = useUsersPolicy();
   const [activeTab, setActiveTab] = useState('details');
   const [usernameModalOpen, setUsernameModalOpen] = useState(false);
   const { t, formatLocale } = useI18n();
@@ -187,6 +190,14 @@ export function UserDetailDrawer({
       ),
     });
 
+    if (usersPolicy.canManagePermissions && user.id) {
+      items.push({
+        key: 'temporaryPermissions',
+        label: t('users.temporaryPermissions.tabLabel'),
+        children: <TemporaryPermissionsPanel userId={user.id} />,
+      });
+    }
+
     return items;
   }, [
     canEditUsername,
@@ -195,6 +206,7 @@ export function UserDetailDrawer({
     memberships,
     staffPolicy.canViewActivity,
     staffPolicy.canViewActivityReport,
+    usersPolicy.canManagePermissions,
     t,
     tenantsLoading,
     user,

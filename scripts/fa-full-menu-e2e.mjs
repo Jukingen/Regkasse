@@ -83,7 +83,7 @@ async function injectDevSession(page, token, refreshToken) {
 async function apiImpersonateDevToken() {
   const loginRes = await fetch(`${API}/api/Auth/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Tenant-Id': 'default' },
+    headers: { 'Content-Type': 'application/json', 'X-Tenant-Id': TENANT },
     body: JSON.stringify({ loginIdentifier: EMAIL, password: PASSWORD, clientApp: 'admin' }),
   });
   if (!loginRes.ok) throw new Error(`Login API failed: ${loginRes.status}`);
@@ -93,7 +93,7 @@ async function apiImpersonateDevToken() {
     headers: {
       Authorization: `Bearer ${loginJson.token}`,
       'Content-Type': 'application/json',
-      'X-Tenant-Id': 'default',
+      'X-Tenant-Id': TENANT,
     },
     body: '{}',
   });

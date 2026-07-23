@@ -74,6 +74,8 @@ npm install
 npm run dev                  # http://localhost:3000 — API must be on :5184
 ```
 
+From repo root: `npm run dev:admin`, `npm run test:admin`, `npm run build:admin`. See [`CONTRIBUTING.md`](../CONTRIBUTING.md).
+
 Buddy / tech lead: walk auth layers (`proxy.ts` → `AuthGate` → `PermissionRouteGuard`) in the first weekly session. Prefer a small first PR (docs, test, i18n) before RKSV/payment/backup changes.
 
 ## Recent Improvements
@@ -988,3 +990,7 @@ Actions → Deploy production → Environment approval → prod image (+ webhook
 | [Dependabot](../.github/dependabot.yml) | Weekly npm (and monorepo) version updates |
 
 Repo-wide detail: [`docs/MULTI_TENANT.md`](../docs/MULTI_TENANT.md), [`REGKASSE_AI_ONBOARDING.md`](../REGKASSE_AI_ONBOARDING.md), [`AGENTS.md`](../AGENTS.md), [`docs/ADMIN_FA_DEPLOY.md`](../docs/ADMIN_FA_DEPLOY.md).
+
+## License
+
+Proprietary — All rights reserved. See [`../LICENSE`](../LICENSE).

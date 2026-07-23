@@ -31,6 +31,16 @@ internal static class ActivityEventSeverityRules
             ActivityEventType.DigitalServiceRequested => ActivitySeverityNames.Info,
             ActivityEventType.DataAccessDeleteRequested => ActivitySeverityNames.Warning,
             ActivityEventType.DataExportReady => ActivitySeverityNames.Info,
+            ActivityEventType.RoleCreated => ActivitySeverityNames.Warning,
+            ActivityEventType.RoleDeleted => ActivitySeverityNames.Critical,
+            ActivityEventType.RolePermissionsUpdated => ActivitySeverityNames.Warning,
+            ActivityEventType.UserPermissionOverridesChanged => ActivitySeverityNames.Info,
+            ActivityEventType.SystemPermissionChange => ActivitySeverityNames.Critical,
+            ActivityEventType.PermissionRequested => ActivitySeverityNames.Info,
+            ActivityEventType.PermissionRequestApproved => ActivitySeverityNames.Info,
+            ActivityEventType.PermissionRequestRejected => ActivitySeverityNames.Info,
+            ActivityEventType.UserPermissionOverrideExpiringSoon => ActivitySeverityNames.Warning,
+            ActivityEventType.UserPermissionOverrideExpired => ActivitySeverityNames.Info,
             _ => ActivitySeverityNames.Info,
         };
 

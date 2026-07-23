@@ -6,6 +6,7 @@
   "empty": "Keine aktuellen Meldungen.",
   "emptyUnread": "Keine ungelesenen Meldungen.",
   "byActor": "von {{name}}",
+  "whatChangedLabel": "Was hat sich geändert?",
   "settingsLoadError": "Benachrichtigungseinstellungen konnten nicht geladen werden.",
   "settingsSaved": "Einstellungen gespeichert.",
   "settingsSaveError": "Speichern fehlgeschlagen.",
@@ -19,14 +20,30 @@
     "emailSection": "E-Mail",
     "emailEnabled": "E-Mail-Benachrichtigungen aktiv",
     "emailRecipients": "Empfänger (eine Adresse pro Zeile)",
+    "criticalEmailNote": "Kritische Änderungen (Rollenlöschung, SuperAdmin-/System-Berechtigungen, Massenänderungen) lösen bei hinterlegten Empfängern sofort eine E-Mail aus.",
     "webhookSection": "Webhook (Slack / Discord)",
     "webhookEnabled": "Webhook aktiv",
     "webhookUrl": "Webhook-URL",
     "webhookSecret": "Webhook-Geheimnis",
-    "eventsSection": "Ereignistypen",
+    "permissionChangesSection": "Berechtigungsänderungen",
+    "notifyOnPermissionChanges": "Benachrichtige mich bei Änderungen an:",
+    "permissionGroups": {
+      "roles": "Rollen",
+      "userPermissions": "Benutzer-Berechtigungen",
+      "systemChanges": "System-Änderungen"
+    },
+    "eventsSection": "Weitere Ereignistypen",
     "enabledEvents": "Ereignisse aktivieren",
     "severityThreshold": "Mindest-Schweregrad pro Ereignis",
     "severityDefault": "Standard (kein zusätzlicher Filter)"
+  },
+  "permissionTitles": {
+    "defaultActor": "Admin",
+    "RoleCreated": "{{actor}} hat '{{role}}' Rolle erstellt",
+    "RoleDeleted": "{{actor}} hat '{{role}}' Rolle gelöscht",
+    "RolePermissionsUpdated": "{{actor}} hat '{{role}}' Rolle aktualisiert",
+    "UserPermissionOverridesChanged": "{{actor}} hat Benutzer-Berechtigung '{{permission}}' geändert",
+    "SystemPermissionChange": "{{actor}} hat System-Berechtigung für '{{role}}' geändert"
   },
   "eventTypes": {
     "UserCreated": "Benutzer erstellt",
@@ -48,6 +65,12 @@
     "OnlineOrderPushedToPos": "Online-Bestellung an Kasse übergeben",
     "OnlineOrderPaid": "Online-Bestellung bezahlt",
     "OnlineOrderStatusChanged": "Online-Bestellstatus geändert",
-    "OnlineOrderConfirmed": "Online-Bestellung bestätigt"
+    "OnlineOrderConfirmed": "Online-Bestellung bestätigt",
+    "DigitalServiceRequested": "Digitale Dienste angefordert",
+    "RoleCreated": "Rolle erstellt",
+    "RoleDeleted": "Rolle gelöscht",
+    "RolePermissionsUpdated": "Rollen-Berechtigungen aktualisiert",
+    "UserPermissionOverridesChanged": "Benutzer-Berechtigungen geändert",
+    "SystemPermissionChange": "System-Berechtigungsänderung"
   }
 }

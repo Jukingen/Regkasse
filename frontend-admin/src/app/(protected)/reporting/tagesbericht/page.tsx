@@ -8,11 +8,12 @@ import Link from 'next/link';
 /**
  * Formal Tagesbericht: Liste, Erzeugung (provisorisch), Filter nach Datum und Kasse.
  */
-import React, { useMemo, useState } from 'react';
+import React, { Suspense, useMemo, useState } from 'react';
 
 import { type ReportFilterValues, ReportFilters } from '@/components/ReportFilters';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { FormalReportLanguageNotice } from '@/components/reporting/FormalReportLanguageNotice';
+import { ExportTemplateApplyBanner } from '@/features/exports/components/ExportTemplateApplyBanner';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 import { formatDate, formatNumber } from '@/i18n/formatting';
@@ -192,6 +193,12 @@ export default function TagesberichtListPage() {
           { title: t('reporting.tagesbericht.list.breadcrumb'), href: '/reporting/tagesbericht' },
         ]}
       />
+      <Suspense fallback={null}>
+        <ExportTemplateApplyBanner
+          expectedKind="tagesbericht"
+          onTagesberichtRange={(next) => setRange(next)}
+        />
+      </Suspense>
       <FormalReportLanguageNotice />
       <Card style={{ marginBottom: 16 }} title={t('adminShell.reporting.filtersTitle')}>
         <ReportFilters

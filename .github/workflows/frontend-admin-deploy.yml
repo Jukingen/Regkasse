@@ -225,23 +225,7 @@ jobs:
         needs.deploy-staging.result == 'failure' ||
         needs.deploy-production.result == 'failure'
       )
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Slack webhook (optional)
-        continue-on-error: true
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          WORKFLOW: ${{ github.workflow }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          REF: ${{ github.event.workflow_run.head_branch || github.ref_name }}
-          ACTOR: ${{ github.actor }}
-        run: |
-          if [ -z "${SLACK_WEBHOOK_URL}" ]; then
-            echo "SLACK_WEBHOOK_URL not set — skipping. Enable GitHub Actions failure emails for watchers."
-            exit 0
-          fi
-          payload=$(printf '%s' "{
-            \"text\": \":rotating_light: *Frontend Admin Deploy failed*\\n*Workflow:* ${WORKFLOW}\\n*Branch:* ${REF}\\n*Actor:* ${ACTOR}\\n<${RUN_URL}|Open run>\"
-          }")
-          curl -sS -X POST -H 'Content-type: application/json' --data "${payload}" "${SLACK_WEBHOOK_URL}"
+    uses: ./.github/workflows/notify-failure.yml
+    with:
+      title: Frontend Admin Deploy failed
+    secrets: inherit

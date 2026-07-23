@@ -41,8 +41,8 @@ Cannot access other tenants or platform-wide Super Admin surfaces (`/admin/tenan
 A **Mandant** is one SaaS customer company in Regkasse:
 
 - **Row:** `tenants` (UUID `id`, unique `slug`, contact fields, status, Mandantenlizenz columns)
-- **URL:** `https://{slug}.regkasse.at` (POS + tenant admin)
-- **Data:** All business tables with `tenant_id` (products, registers, receipts, …) are isolated via EF global filters
+- **Production hosts:** POS `https://pos.regkasse.at` (JWT `tenant_id` after login); FA `https://admin.regkasse.at`; API `https://api.regkasse.at`. Customer websites via `frontend-sites` (`/[slug]` or verified `TenantDomain`). **Not** `{slug}.regkasse.at` as POS/FA entry — see [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md).
+- **Data:** All business tables with `tenant_id` (products, registers, receipts, customers, …) are isolated via EF global filters
 
 **Super Admin** works on `admin.regkasse.at` without mandant business context until **impersonation** or (dev only) header switcher selects a slug.
 
@@ -65,7 +65,7 @@ A **Mandant** is one SaaS customer company in Regkasse:
 ### Access
 
 - **Route:** `/admin/tenants` — `frontend-admin/src/app/(protected)/admin/tenants/page.tsx`
-- **Detail:** `/admin/tenants/[tenantId]` — tabs: overview, users, cash registers, license, settings
+- **Detail:** `/admin/tenants/[tenantId]` — tabs: overview, users, cash registers, license, settings; also **digital** (`/tenant/{id}/digital`) and **data-management** (`/tenant/{id}/data-management`) for GDPR / expired-license flows
 - **Role:** `SuperAdmin` or permission `system.critical`
 - **API module:** `frontend-admin/src/features/super-admin/api/adminTenants.ts` → `GET|POST|PUT|DELETE /api/admin/tenants`
 
@@ -80,6 +80,8 @@ A **Mandant** is one SaaS customer company in Regkasse:
 | **Kassen** | Registers, decommission — see [`CASH_REGISTER_LIFECYCLE.md`](CASH_REGISTER_LIFECYCLE.md) |
 | **Lizenz** | Mandantenlizenz (`LicenseManager`) — see [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md) |
 | **Einstellungen** | Address, status, danger zone (archive / permanent delete) |
+| **Digitale Dienste** (related routes) | `/tenant/{id}/digital`, website preview — see [`DIGITAL_SERVICES.md`](DIGITAL_SERVICES.md) |
+| **Datenverwaltung** (related routes) | `/tenant/{id}/data-management` — expired-license GDPR export/delete — see [`AGENTS.md`](../AGENTS.md) § Expired license |
 
 Route: `/admin/tenants/[tenantId]` — query `?tab=users|registers|license|settings`.
 
@@ -174,7 +176,7 @@ Payment receipts, daily closings, audit logs, and related fiscal data are subjec
 ### Impersonate (“Login as”)
 
 - List, detail header, `SuperAdminTenantSelector`, and dev switcher no-admin flow.
-- **Production:** redirect to `https://{slug}.regkasse.at/impersonate-callback#impersonate_token=…`
+- **Production:** issue JWT with target `tenant_id` + `tenant_impersonation=true`; prefer staying on FA / documented handoff. POS remains `https://pos.regkasse.at` with JWT tenant (not `{slug}` POS hosts). Legacy slug callback URLs may still exist in FA code — treat as technical debt vs [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md) / [`AGENTS.md`](../AGENTS.md).
 - **Development:** same-origin token + `dev_tenant_id` reload.
 
 `ImpersonationRedirectOverlay` — `frontend-admin/src/features/super-admin/components/ImpersonationRedirectOverlay.tsx`
@@ -266,7 +268,7 @@ Dev switcher / tenant list still use `mandantLicenseBadge.ts` → `mapTenantLice
 
 | Environment | Mechanism |
 |-------------|-----------|
-| **Production** | **Als Mandant anmelden** (impersonate) → redirect `https://{slug}.regkasse.at/impersonate-callback#impersonate_token=…` |
+| **Production** | **Als Mandant anmelden** (impersonate) → FA/JWT handoff; POS stays on `pos.regkasse.at`. Legacy `{slug}.regkasse.at/impersonate-callback#…` may still appear in older FA flows — see [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md). |
 | **Development** | Header **Firma wechseln** (`HeaderDevTenantSwitch`) → `GET /api/tenants/switcher` → `localStorage.dev_tenant_id` + reload |
 | **Platform home** | `/admin` — `SuperAdminTenantSelector` search + impersonate |
 

@@ -22,6 +22,16 @@ module.exports = defineConfig([
     '**/backup/**',
     '**/coverage/**',
     '**/*.tsbuildinfo',
+    // Intentionally excluded from tsconfig — typed lint cannot project-service them
+    'examples/**',
+    'components/VoiceCommands.tsx',
+    'components/TaskMasterDashboard.tsx',
+    'components/SimpleTodo.tsx',
+    'components/TaskSuggestionsDemo.tsx',
+    'hooks/useTaskMaster.ts',
+    'hooks/useEnhancedTaskMaster.ts',
+    'services/EnhancedTaskMasterService.ts',
+    'services/TaskMasterService.ts',
   ]),
 
   universeNative,

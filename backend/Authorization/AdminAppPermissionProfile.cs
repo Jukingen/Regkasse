@@ -88,6 +88,7 @@ public static class AdminAppPermissionProfile
         AppPermissions.SaleView,
         AppPermissions.ReportView,
         AppPermissions.ReportExport,
+        AppPermissions.DailyClosingView, // FA /tagesabschluss sidebar + route (keep explicit in JWT)
         AppPermissions.AuditView,
         AppPermissions.SettingsView,
         AppPermissions.CashRegisterView, // implied by CashRegisterManage when not embedded

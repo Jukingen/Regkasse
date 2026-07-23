@@ -42,6 +42,7 @@ export const MENU_PERMISSIONS: Record<string, string | string[] | undefined> = {
   '/admin/access': PERMISSIONS.USER_VIEW,
   '/admin/access/roles': PERMISSIONS.ROLE_MANAGE,
   '/admin/access/matrix': PERMISSIONS.ROLE_VIEW,
+  '/admin/access/permission-history': PERMISSIONS.AUDIT_VIEW,
 
   // Tenant management (Super Admin)
   '/admin/tenants': PERMISSIONS.SYSTEM_CRITICAL,

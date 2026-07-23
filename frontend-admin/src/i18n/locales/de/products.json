@@ -94,7 +94,11 @@
     "deactivateAllDescription": "{{count}} aktive Produkte werden deaktiviert. Produkte werden nicht gelöscht: signierte RKSV-Belege und der Belegverlauf bleiben unverändert. Danach können Sie z. B. eine Demo-Karte neu importieren (mit Überschreiben).",
     "deactivateAllSuccess": "{{count}} Produkt(e) deaktiviert.",
     "deactivateAllNone": "Keine aktiven Produkte vorhanden.",
-    "deactivateAllError": "Katalog-Deaktivierung fehlgeschlagen."
+    "deactivateAllError": "Katalog-Deaktivierung fehlgeschlagen.",
+    "exportCsv": "CSV exportieren",
+    "exportJson": "JSON exportieren",
+    "exportSuccess": "Export heruntergeladen.",
+    "exportFailed": "Export fehlgeschlagen."
   },
   "devPurge": {
     "button": "Dev: Katalog löschen",

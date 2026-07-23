@@ -1,6 +1,7 @@
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
 import type { CommandItem } from '@/features/command-palette/types';
+import { KEYBOARD_SHORTCUT_EVENTS, dispatchShortcutEvent } from '@/shared/keyboardShortcuts';
 
 export type DefaultCommandsContext = {
   t: (key: string) => string;
@@ -167,6 +168,29 @@ export function buildDefaultCommands(ctx: DefaultCommandsContext): CommandItem[]
       menuKey: '/reporting/report-center',
       action: go('/reporting/report-center'),
     },
+    ...(process.env.NODE_ENV === 'development'
+      ? [
+          {
+            id: 'action:debug-menu-permissions',
+            type: 'action' as const,
+            label: 'Debug Menu Permissions',
+            description: 'Ctrl+Alt+Shift+P — MENU_PERMISSION_MAP overlay',
+            group: 'Actions' as const,
+            keywords: [
+              'debug',
+              'menu',
+              'permissions',
+              'mapping',
+              'sidebar',
+              'berechtigung',
+            ],
+            action: () => {
+              ctx.closePalette();
+              dispatchShortcutEvent(KEYBOARD_SHORTCUT_EVENTS.debugMenuPermissions);
+            },
+          },
+        ]
+      : []),
   ];
 }
 

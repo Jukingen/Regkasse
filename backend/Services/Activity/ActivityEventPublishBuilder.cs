@@ -93,8 +93,47 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.DigitalServiceRequested => "Digital service creation requested",
             ActivityEventType.DataAccessDeleteRequested => "Data deletion request (GDPR)",
             ActivityEventType.DataExportReady => "Data export ready",
+            ActivityEventType.RoleCreated => ResolveRoleActivityTitle(metadata, "created"),
+            ActivityEventType.RoleDeleted => ResolveRoleActivityTitle(metadata, "deleted"),
+            ActivityEventType.RolePermissionsUpdated => ResolveRoleActivityTitle(metadata, "updated"),
+            ActivityEventType.UserPermissionOverridesChanged => ResolveOverrideTitle(metadata),
+            ActivityEventType.SystemPermissionChange => ResolveRoleActivityTitle(metadata, "system"),
+            ActivityEventType.PermissionRequested => "Permission requested",
+            ActivityEventType.PermissionRequestApproved => "Permission request approved",
+            ActivityEventType.PermissionRequestRejected => "Permission request rejected",
+            ActivityEventType.UserPermissionOverrideExpiringSoon => "Temporary permission expiring soon",
+            ActivityEventType.UserPermissionOverrideExpired => "Temporary permission expired",
             _ => type.ToString(),
         };
+
+    private static string ResolveRoleActivityTitle(IReadOnlyDictionary<string, object>? metadata, string kind)
+    {
+        var roleName = metadata == null ? null : TryGetString(metadata, "RoleName");
+        var actorName = metadata == null
+            ? null
+            : TryGetString(metadata, "ActorName") ?? TryGetString(metadata, "ActorEmail");
+        var rolePart = string.IsNullOrWhiteSpace(roleName) ? "role" : $"'{roleName}'";
+        var who = string.IsNullOrWhiteSpace(actorName) ? "Admin" : actorName;
+        return kind switch
+        {
+            "created" => $"{who} created role {rolePart}",
+            "deleted" => $"{who} deleted role {rolePart}",
+            "system" => $"{who} made a system permission change on {rolePart}",
+            _ => $"{who} updated role {rolePart}",
+        };
+    }
+
+    private static string ResolveOverrideTitle(IReadOnlyDictionary<string, object>? metadata)
+    {
+        var permission = metadata == null ? null : TryGetString(metadata, "PermissionKey");
+        var actorName = metadata == null
+            ? null
+            : TryGetString(metadata, "ActorName") ?? TryGetString(metadata, "ActorEmail");
+        var who = string.IsNullOrWhiteSpace(actorName) ? "Admin" : actorName;
+        if (!string.IsNullOrWhiteSpace(permission))
+            return $"{who} changed user permission '{permission}'";
+        return $"{who} changed a user permission override";
+    }
 
     private static string ResolveLicenseExpiringTitle(IReadOnlyDictionary<string, object>? metadata)
     {
@@ -133,6 +172,14 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.DataExportReady =>
                 TryGetString(metadata, "Message")
                 ?? TryGetString(metadata, "Subject"),
+            ActivityEventType.RoleCreated
+                or ActivityEventType.RoleDeleted
+                or ActivityEventType.RolePermissionsUpdated
+                or ActivityEventType.UserPermissionOverridesChanged
+                or ActivityEventType.SystemPermissionChange =>
+                TryGetString(metadata, "WhatChanged")
+                ?? TryGetString(metadata, "Message")
+                ?? TryGetString(metadata, "Description"),
             _ => TryGetString(metadata, "ErrorMessage")
                 ?? TryGetString(metadata, "Message")
                 ?? TryGetString(metadata, "Description"),
@@ -244,6 +291,13 @@ internal static class ActivityEventPublishBuilder
                 => ("tenant_data_rights_request", TryGetString(metadata, "RequestId")),
             ActivityEventType.DataExportReady
                 => ("tenant_data_rights_request", TryGetString(metadata, "RequestId")),
+            ActivityEventType.RoleCreated
+                or ActivityEventType.RoleDeleted
+                or ActivityEventType.RolePermissionsUpdated
+                or ActivityEventType.SystemPermissionChange
+                => ("role", TryGetString(metadata, "RoleName")),
+            ActivityEventType.UserPermissionOverridesChanged
+                => ("user", TryGetString(metadata, "TargetUserId")),
             _ => (null, null),
         };
     }

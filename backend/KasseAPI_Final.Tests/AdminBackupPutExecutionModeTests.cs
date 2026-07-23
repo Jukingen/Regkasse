@@ -94,7 +94,8 @@ public sealed class AdminBackupPutExecutionModeTests
             Mock.Of<ICurrentTenantAccessor>(),
             Mock.Of<IBackupRunTenantAccessService>(),
             Mock.Of<IBackupArtifactImportService>(),
-            Mock.Of<IBackupTimeEstimator>());
+            Mock.Of<IBackupTimeEstimator>(),
+            Mock.Of<IDownloadSecurityService>());
 
         var http = new DefaultHttpContext
         {

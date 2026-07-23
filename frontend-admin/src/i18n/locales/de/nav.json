@@ -83,6 +83,7 @@
   "accessRoles": "Zugriff & Rollen",
   "rolesPermissions": "Rollen & Berechtigungen",
   "permissionsOverview": "Berechtigungsübersicht",
+  "permissionHistory": "📜 Berechtigungs-Historie",
   "tenants": "Mandanten",
   "dataManagement": "Datenverwaltung",
   "errorLogs": "Error Logs (Elmah)",
@@ -190,5 +191,9 @@
   "rksvBelegcheckFieldSecondAmount": "Betrag (2)",
   "rksvBelegcheckFieldCertificate": "Zertifikat-Seriennummer",
   "rksvBelegcheckFieldPrevSignature": "Vorgänger-Signatur",
-  "rksvBelegcheckNoPrev": "—"
+  "rksvBelegcheckNoPrev": "—",
+  "permissionRequests": "Berechtigungsanfragen",
+  "permissionPackages": "Berechtigungspakete",
+  "permissionBackups": "Berechtigungs-Backups",
+  "permissionStats": "Berechtigungsstatistik"
 }

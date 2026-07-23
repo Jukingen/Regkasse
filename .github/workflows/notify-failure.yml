@@ -1,0 +1,55 @@
+# Reusable failure notification (Slack webhook + GitHub email note)
+#
+# Usage from another workflow:
+#   notify-failure:
+#     needs: [job-a]
+#     if: failure()
+#     uses: ./.github/workflows/notify-failure.yml
+#     with:
+#       title: Backend unit tests failed
+#     secrets: inherit
+
+name: Notify failure
+
+on:
+  workflow_call:
+    inputs:
+      title:
+        description: Short failure title for Slack
+        required: false
+        type: string
+        default: CI failed
+    secrets:
+      SLACK_WEBHOOK_URL:
+        required: false
+
+jobs:
+  notify:
+    name: Slack / email hint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Slack webhook (optional)
+        continue-on-error: true
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          TITLE: ${{ inputs.title }}
+          WORKFLOW: ${{ github.workflow }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REF: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "SLACK_WEBHOOK_URL secret not set — skipping Slack notify."
+            echo "GitHub still emails users who watch this repository / have Actions failure notifications enabled."
+            exit 0
+          fi
+          payload=$(printf '%s' "{
+            \"text\": \":x: *${TITLE}*\\n*Workflow:* ${WORKFLOW}\\n*Branch:* ${REF}\\n*Actor:* ${ACTOR}\\n*Commit:* \`${SHA:0:7}\`\\n<${RUN_URL}|Open run>\"
+          }")
+          curl -sS -X POST -H 'Content-type: application/json' --data "${payload}" "${SLACK_WEBHOOK_URL}"
+          echo "Slack notification sent."

@@ -111,7 +111,9 @@ public static class RolePermissionMatrix
             [Roles.Manager] = new[]
             {
                 // Tenant user lifecycle (Mandanten-Admin). user.reset.password / digital.view|preview|request /
-                // digital.orders.view / cash_register.view / daily-closing.view are implied (see PermissionImplication).
+                // digital.orders.view / cash_register.view are implied (see PermissionImplication).
+                // Keep daily-closing.view explicit: FA sidebar/route guards use exact JWT claim match
+                // (execute→view implication is API-only; without the claim, /tagesabschluss stays hidden).
                 // Keep table.view explicit: table.manage is stripped from admin JWTs (POS terminal write strip).
                 AppPermissions.UserView, AppPermissions.UserManage, AppPermissions.RoleView,
                 AppPermissions.ProductView, AppPermissions.ProductManage,
@@ -135,7 +137,7 @@ public static class RolePermissionMatrix
                 AppPermissions.CustomerView, AppPermissions.CustomerManage,
                 AppPermissions.InvoiceView, AppPermissions.InvoiceManage, AppPermissions.InvoiceExport,
                 AppPermissions.ReportView, AppPermissions.ReportExport,
-                AppPermissions.DailyClosingExecute,
+                AppPermissions.DailyClosingView, AppPermissions.DailyClosingExecute,
                 AppPermissions.FiscalExportCompliance,
                 AppPermissions.FinanzOnlineView,
                 AppPermissions.FinanzOnlineManage,

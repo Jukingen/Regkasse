@@ -1,197 +1,90 @@
-# TestSprite Test Suite for Regkasse
+# TestSprite test suite for Regkasse
 
-## Quick Start
+Human-readable **YAML contracts** under `api/` and `e2e/`, plus **executable Node runners** that work without a proprietary `testsprite-cli` (that package is not on npm).
 
-### Prerequisites
+**Last reviewed:** 2026-07-21
+
+## Inventory
+
+| Path | Role |
+|------|------|
+| [`api/*.yml`](api/) | API behaviour specs (validated vs `backend/swagger.json` in CI) |
+| [`e2e/*.yml`](e2e/) | Admin UI flow specs (manual / MCP / Playwright reference) |
+| [`validate-specs.mjs`](validate-specs.mjs) | **CI gate** — every `endpoint:` must exist in OpenAPI |
+| [`run-api-smoke.mjs`](run-api-smoke.mjs) | Live HTTP smoke against a running API |
+| [`PROMPTS.md`](PROMPTS.md) | Cursor / TestSprite MCP prompt pack |
+| [`../testsprite.config.json`](../testsprite.config.json) | Base URLs + default credentials (dev) |
+
+Related MCP/generated artefacts (separate): `testsprite_tests/` at repo root.
+
+## Quick start
+
 ```bash
-# Install TestSprite CLI
-npm install -g testsprite-cli
+# Always (no server required)
+npm run testsprite:validate
+# or: node testsprite/validate-specs.mjs
 
-# Start all services
-cd backend && dotnet run &
-cd frontend-admin && npm run dev &
-cd frontend && npm start &
+# Live smoke (API must be up)
+npm run testsprite:smoke
+# or: node testsprite/run-api-smoke.mjs
 ```
 
-### Run Tests
-```bash
-# Run all API tests
-testsprite run --suite api
+Env for live smoke:
 
-# Run specific suite
-testsprite run --suite api --filter tenant-isolation
+| Variable | Default |
+|----------|---------|
+| `TESTSPRITE_API_URL` | `http://localhost:5184` |
+| `TESTSPRITE_LOGIN` | from `testsprite.config.json` (`admin@admin.com`) |
+| `TESTSPRITE_PASSWORD` | from config |
+| `TESTSPRITE_TENANT` | `dev` (`X-Tenant-Id`, Development only) |
 
-# Run E2E tests
-testsprite run --suite e2e
+## API suites (`api/`)
 
-# Run smoke tests only
-testsprite run --tag smoke
+| File | Focus | Tags |
+|------|--------|------|
+| `health.yml` | Health + `loginIdentifier` auth | smoke |
+| `tenant-isolation.yml` | Switcher, 404 cross-tenant, impersonate | smoke, tenant |
+| `backup.yml` | Backup status/settings/compliance/costs | smoke |
+| `users.yml` | Admin users | regression |
+| `pos.yml` | `/api/pos/*` cart/payment | fiscal |
+| `offline-orders.yml` | Offline **orders** (not TSE intents) | fiscal |
+| `sites-public.yml` | Sites status + public online orders | regression |
 
-# Run with specific environment
-testsprite run --env staging --suite critical-regression
-```
+## E2E suites (`e2e/`)
 
-## Test Tags
+| File | Focus |
+|------|--------|
+| `admin-users.yml` | Login + `/admin/users` + `/backup` |
+| `admin-backup.yml` | `/backup`, `/backup/costs`, `/backup/compliance` |
 
-| Tag | Açıklama |
-|---|---|
-| `@smoke` | Critical path, runs on every PR |
-| `@regression` | Full regression suite |
-| `@tenant` | Multi-tenant isolation tests |
-| `@fiscal` | RKSV compliance tests |
-| `@slow` | Long-running tests (nightly only) |
+E2E YAML is documentation for QA / MCP / Playwright — not executed by `validate-specs.mjs`.
 
-## CI Integration
+## CI
 
-Tests run automatically:
+Workflow: [`.github/workflows/testsprite.yml`](../.github/workflows/testsprite.yml)
 
-- PR: `@smoke + @tenant`
-- Nightly: `@regression`
-- Release: Full suite
+| Job | When |
+|-----|------|
+| `validate-specs` | PR/push when `testsprite/**` or `swagger.json` changes |
+| `live-api-smoke` | `workflow_dispatch` + `live_smoke=true` (optional secrets `TESTSPRITE_LOGIN` / `TESTSPRITE_PASSWORD`) |
 
-## Test Results
+## TestSprite MCP (Cursor)
 
-Results are stored in:
+There is **no** reliable public `testsprite-cli` for these YAML files. Use MCP (`@testsprite/testsprite-mcp`) with prompts in [`PROMPTS.md`](PROMPTS.md) for generative runs. Keep YAML as the **source of truth for what must stay true** in OpenAPI.
 
-- `./test-results/api/` - API test reports
-- `./test-results/e2e/` - E2E test reports
-- `./test-screenshots/` - Failure screenshots
-- `./test-videos/` - Test recordings
+## Product truths for authors
+
+- Production hosts: `pos` / `admin` / `api`.regkasse.at — not `{slug}` POS entry
+- Cross-tenant → **404**
+- Invalid password login → **401** (not 400)
+- Dual offline systems — do not mix `offline_orders` and `offline_transactions`
+- Working hours gate **public online orders only**
 
 ## Troubleshooting
-
-### Common Issues
-
-Backend not reachable:
 
 ```bash
 curl http://localhost:5184/api/health
+./scripts/reset-test-data.sh   # TestSprite DB seed (SQL), if used
 ```
 
-Test data conflicts:
-
-```bash
-./scripts/reset-test-data.sh
-```
-
-Flaky tests:
-
-- Check tenant isolation (use unique test IDs)
-- Verify async operations have proper waits
-
-## Using TestSprite via MCP
-
-Once configured, use these prompts in Cursor chat:
-
-```markdown
-# Generate tests for authentication flow
-"Help me test the login flow with TestSprite.
-Test cases: email login, username login, invalid credentials."
-
-# Generate tests for tenant isolation
-"Generate TestSprite tests for multi-tenant isolation.
-Verify that tenant A cannot access tenant B's data."
-
-# Run existing test suite
-"Run the test suite for user management with TestSprite."
-
-# Get test coverage report
-"Show me the test coverage report from TestSprite."
-```
-
-## TestSprite MCP Tools (Detected)
-
-Based on the installed `@testsprite/testsprite-mcp` package descriptors, these tools are available:
-
-| Tool | Purpose |
-|---|---|
-| `testsprite_generate_code_and_execute` | Generate and execute tests from project context/instructions |
-| `testsprite_generate_frontend_test_plan` | Create frontend-focused test plan |
-| `testsprite_generate_backend_test_plan` | Create backend-focused test plan |
-| `testsprite_generate_code_summary` | Analyze and summarize repository codebase |
-| `testsprite_generate_standardized_prd` | Generate standardized PRD from project |
-| `testsprite_open_test_result_dashboard` | Open dashboard to review/modify completed tests |
-| `testsprite_check_account_info` | Show account plan/credits/profile info |
-| `testsprite_bootstrap` | First-time project initialization only |
-
-Note: Generic tool names like `analyzeTestCoverage`, `suggestTests`, and `runTests` are not exposed with those exact names in the current MCP server descriptors.
-
-## Example Interaction
-
-In Cursor Chat:
-
-```text
-User: "TestSprite: Generate tests for user creation in Regkasse.
-Requirements:
-- Super Admin can create user with auto-generated username
-- Username must be unique (case-insensitive)
-- Audit log must record username change
-- User must change password on first login"
-```
-
-Expected response: TestSprite generates test cases and executes them.
-
-## Verification Steps
-
-```bash
-# 1. Check MCP server is running
-# In Cursor: View → MCP Servers → Should see "testsprite" as connected
-
-# 2. Test basic interaction
-# In Cursor chat: "TestSprite: Check if you can access the API health endpoint"
-
-# 3. Run a simple test
-# In Cursor chat: "TestSprite: Run a health check test for Regkasse backend"
-```
-
-## Troubleshooting
-
-### MCP Server not connecting
-
-```json
-// Check if npx can find the package
-npx -y @testsprite/testsprite-mcp --help
-
-// If not found, install globally
-npm install -g @testsprite/testsprite-mcp
-
-// Then use command directly
-{
-  "command": "testsprite-mcp",
-  "args": []
-}
-```
-
-### API Key issues
-
-```bash
-# Verify API key is set
-echo $TESTSPRITE_API_KEY
-
-# Test API key (if TestSprite has a test endpoint)
-curl -H "Authorization: Bearer $TESTSPRITE_API_KEY" https://api.testsprite.com/health
-```
-
-## Alternative: Keep Existing Test Files as Documentation
-
-Even though the YAML files may not run directly, they serve as:
-
-- Test documentation - Clear specifications of what to test
-- Manual test guide - QA can follow step by step
-- Future migration - If TestSprite adds CLI support
-
-File structure to keep:
-
-```text
-testsprite/
-├── ../testsprite.config.json  # Configuration reference (repo root)
-├── api/
-│   ├── health.yml        # Auth test specs
-│   ├── users.yml         # User management specs
-│   ├── pos.yml           # POS test specs
-│   └── backup.yml        # Backup test specs
-├── e2e/
-│   ├── admin-users.yml   # Admin UI test specs
-│   └── admin-backup.yml  # Backup UI test specs
-└── README.md             # Test documentation
-```
+If `validate-specs` fails after an API rename: update the YAML `endpoint:` lines or regenerate OpenAPI (`node scripts/generate-backend-openapi.mjs`).

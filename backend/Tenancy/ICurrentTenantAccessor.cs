@@ -8,4 +8,10 @@ namespace KasseAPI_Final.Tenancy;
 public interface ICurrentTenantAccessor
 {
     Guid? TenantId { get; set; }
+
+    /// <summary>
+    /// Optional slug for the ambient tenant (download filenames, logging).
+    /// May be null when only <see cref="TenantId"/> was bound (e.g. background scopes).
+    /// </summary>
+    string? TenantSlug { get; set; }
 }

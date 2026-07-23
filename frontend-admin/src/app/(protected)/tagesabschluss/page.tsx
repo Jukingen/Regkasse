@@ -48,11 +48,13 @@ import { AdminPageScopeSummary, AdminPageShell } from '@/components/admin-layout
 import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
 import type { AdminCashRegisterListItem } from '@/features/cash-registers/api/cashRegisters';
 import { FA_QUICK_CASH_REGISTER_QUERY_PARAM } from '@/features/cash-registers/constants/quickSwitch';
+import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
 import {
   downloadReportPdf,
   reportPdfTypeFromClosingType,
   triggerReportPdfBlobDownload,
 } from '@/features/reports/api/reportPdfApi';
+import { buildReportFileName } from '@/features/reports/utils/reportExportFileName';
 import { downloadClosingReportPdf } from '@/features/tagesabschluss/downloadClosingReportPdf';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useCashRegisterSelection } from '@/hooks/useCashRegisterSelection';
@@ -314,7 +316,11 @@ export default function TagesabschlussPage() {
   const canCloseYearly = canClose?.canCloseYearly === true;
 
   const downloadPdf = useCallback(
-    async (reportType: string, reportId: string, fileNameBase?: string) => {
+    async (
+      reportType: string,
+      reportId: string,
+      options?: { businessDate?: string | null }
+    ) => {
       const id = reportId.trim();
       if (!id) {
         message.warning(t('tagesabschluss.messages.pdfUnavailable'));
@@ -326,7 +332,12 @@ export default function TagesabschlussPage() {
       try {
         const lang = (formatLocale ?? 'de').split('-')[0] || 'de';
         const blob = await downloadReportPdf(reportType, id, { language: lang });
-        triggerReportPdfBlobDownload(blob, fileNameBase ?? `${reportType}_${id}`);
+        const fileName = buildReportFileName({
+          reportType,
+          tenantSlug: getEffectiveTenantSlug(),
+          businessDate: options?.businessDate,
+        });
+        triggerReportPdfBlobDownload(blob, fileName);
         message.success({ content: t('reporting.storedPdf.success'), key: messageKey });
       } catch (error) {
         message.destroy(messageKey);
@@ -369,6 +380,7 @@ export default function TagesabschlussPage() {
             await downloadClosingReportPdf(closingId, {
               language: formatLocale,
               closingType: 'Daily',
+              businessDate: result?.closingDate,
             });
           } catch {
             message.warning(t('tagesabschluss.messages.pdfAutoDownloadFailed'));
@@ -395,6 +407,7 @@ export default function TagesabschlussPage() {
             await downloadClosingReportPdf(closingId, {
               language: formatLocale,
               closingType: 'Monthly',
+              businessDate: result?.closingDate,
             });
           } catch {
             message.warning(t('tagesabschluss.messages.pdfAutoDownloadFailed'));
@@ -421,6 +434,7 @@ export default function TagesabschlussPage() {
             await downloadClosingReportPdf(closingId, {
               language: formatLocale,
               closingType: 'Yearly',
+              businessDate: result?.closingDate,
             });
           } catch {
             message.warning(t('tagesabschluss.messages.pdfAutoDownloadFailed'));
@@ -630,7 +644,9 @@ export default function TagesabschlussPage() {
               type="link"
               size="small"
               icon={<FilePdfOutlined />}
-              onClick={() => void downloadPdf(reportType, closingId, `${reportType}_${closingId}`)}
+              onClick={() =>
+                void downloadPdf(reportType, closingId, { businessDate: row.closingDate })
+              }
             >
               {t('reporting.storedPdf.button')}
             </Button>

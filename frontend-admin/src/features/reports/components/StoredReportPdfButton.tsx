@@ -5,11 +5,13 @@ import type { ButtonProps } from 'antd';
 import { Button } from 'antd';
 import { useCallback, useState } from 'react';
 
+import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
 import {
   type ReportPdfType,
   downloadReportPdf,
   triggerReportPdfBlobDownload,
 } from '@/features/reports/api/reportPdfApi';
+import { buildReportFileName } from '@/features/reports/utils/reportExportFileName';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 import { PERMISSIONS } from '@/shared/auth/permissions';
@@ -21,7 +23,11 @@ const MESSAGE_KEY = 'stored-report-pdf-download';
 export interface StoredReportPdfButtonProps {
   reportType: ReportPdfType | string;
   targetId: string | null | undefined;
+  /** Optional override; when omitted, uses canonical report_{type}_{slug}_{period}_{stamp}.pdf */
   fileNameBase?: string | null;
+  tenantSlug?: string | null;
+  businessDate?: Date | string | null;
+  period?: string | null;
   disabled?: boolean;
   size?: ButtonProps['size'];
   language?: string;
@@ -31,6 +37,9 @@ export function StoredReportPdfButton({
   reportType,
   targetId,
   fileNameBase,
+  tenantSlug,
+  businessDate,
+  period,
   disabled,
   size = 'middle',
   language,
@@ -50,8 +59,15 @@ export function StoredReportPdfButton({
     message.loading({ content: t('reporting.storedPdf.loading'), key: MESSAGE_KEY });
     try {
       const blob = await downloadReportPdf(reportType, id, { language });
-      const safeBase = (fileNameBase?.trim() || `${reportType}_${id}`).replace(/[^\w.-]+/g, '_');
-      triggerReportPdfBlobDownload(blob, safeBase);
+      const fileName = fileNameBase?.trim()
+        ? fileNameBase.trim().replace(/[^\w.-]+/g, '_')
+        : buildReportFileName({
+            reportType,
+            tenantSlug: tenantSlug ?? getEffectiveTenantSlug(),
+            businessDate,
+            period,
+          }).replace(/\.pdf$/i, '');
+      triggerReportPdfBlobDownload(blob, fileName);
       message.success({ content: t('reporting.storedPdf.success'), key: MESSAGE_KEY });
     } catch (error) {
       message.destroy(MESSAGE_KEY);
@@ -62,7 +78,7 @@ export function StoredReportPdfButton({
     } finally {
       setLoading(false);
     }
-  }, [fileNameBase, language, message, reportType, t, targetId]);
+  }, [businessDate, fileNameBase, language, message, period, reportType, t, targetId, tenantSlug]);
 
   if (!canDownload) {
     return null;

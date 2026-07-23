@@ -52,6 +52,7 @@ public sealed class AdminLicenseDashboardTests
             TenantTestDoubles.PrimaryTenantResolver,
             Mock.Of<ILicenseReminderNotificationStore>(),
             Mock.Of<IAuditLogService>(),
+            Mock.Of<ILicenseExportService>(),
             NullLogger<AdminLicenseController>.Instance);
 
         var claims = new List<Claim>
@@ -88,6 +89,7 @@ public sealed class AdminLicenseDashboardTests
             TenantTestDoubles.PrimaryTenantResolver,
             Mock.Of<ILicenseReminderNotificationStore>(),
             Mock.Of<IAuditLogService>(),
+            Mock.Of<ILicenseExportService>(),
             NullLogger<AdminLicenseController>.Instance);
 
         var claims = new List<Claim>

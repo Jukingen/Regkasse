@@ -11,6 +11,7 @@ import { ProfileUsernamePolicyAlert } from '@/features/user/components/ProfileUs
 import { SelfServiceUsernameModal } from '@/features/user/components/SelfServiceUsernameModal';
 import { useProfile, useUpdateProfile } from '@/features/user/hooks/useProfile';
 import { useUsernameChangePolicy } from '@/features/user/hooks/useUsernameChangePolicy';
+import { ProfilePermissionRequestCard } from '@/features/users/components/ProfilePermissionRequestCard';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -200,6 +201,8 @@ export default function ProfilePage() {
           </Form.Item>
         </Form>
       </Card>
+
+      <ProfilePermissionRequestCard />
 
       <SelfServiceUsernameModal
         open={usernameModalOpen}

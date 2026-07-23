@@ -10,6 +10,12 @@ public interface IElmahErrorQueryService
         int pageSize,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Newest-first export rows (capped).</summary>
+    Task<IReadOnlyList<ElmahErrorListItemDto>> ListForExportAsync(
+        string applicationName,
+        int maxRows,
+        CancellationToken cancellationToken = default);
+
     Task<int> ClearAsync(string applicationName, CancellationToken cancellationToken = default);
 
     /// <summary>Deletes oldest rows when count exceeds <paramref name="maxLogEntries"/>.</summary>

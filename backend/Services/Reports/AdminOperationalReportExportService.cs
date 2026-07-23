@@ -37,6 +37,7 @@ public sealed class AdminOperationalReportExportService : IAdminOperationalRepor
     private readonly IProductMovementAnalysisService _productMovement;
     private readonly AppDbContext _db;
     private readonly ISettingsTenantResolver _tenantResolver;
+    private readonly IFileNamingService _fileNaming;
 
     public AdminOperationalReportExportService(
         IComplianceOperationalReportingService compliance,
@@ -44,7 +45,8 @@ public sealed class AdminOperationalReportExportService : IAdminOperationalRepor
         IPeakHoursAnalysisService peakHours,
         IProductMovementAnalysisService productMovement,
         AppDbContext db,
-        ISettingsTenantResolver tenantResolver)
+        ISettingsTenantResolver tenantResolver,
+        IFileNamingService fileNaming)
     {
         _compliance = compliance;
         _operational = operational;
@@ -52,6 +54,7 @@ public sealed class AdminOperationalReportExportService : IAdminOperationalRepor
         _productMovement = productMovement;
         _db = db;
         _tenantResolver = tenantResolver;
+        _fileNaming = fileNaming;
     }
 
     public async Task<(byte[] Content, string ContentType, string FileName)> ExportAsync(
@@ -65,28 +68,56 @@ public sealed class AdminOperationalReportExportService : IAdminOperationalRepor
     {
         var normalized = format.Trim().ToLowerInvariant();
         var rows = await BuildRowsAsync(reportType, startDate, endDate, businessDate, cashRegisterId, cancellationToken);
-        var stem = $"{reportType}-{DateTime.UtcNow:yyyyMMddHHmmss}";
         var company = await ResolveCompanyNameAsync(cancellationToken);
+        var tenantSlug = await ResolveTenantSlugAsync(cancellationToken);
+        var periodDate = businessDate ?? endDate ?? startDate ?? DateTime.UtcNow;
+        var period = ReportExportFileNames.PeriodFromDay(periodDate);
+        var typeLabel = reportType switch
+        {
+            AdminOperationalReportType.DailyReconciliation => "tagesbericht",
+            _ => reportType.ToString().ToLowerInvariant(),
+        };
+        var ext = normalized switch
+        {
+            "pdf" => "pdf",
+            "json" => "json",
+            _ => "csv",
+        };
+        var normalizedType = ReportExportFileNames.NormalizeReportTypeLabel(typeLabel);
+        var fileName = _fileNaming.GenerateFileName(
+            $"{ReportExportFileNames.Prefix}_{normalizedType}",
+            ext,
+            additional: period,
+            tenantSlug: tenantSlug);
 
         return normalized switch
         {
             "pdf" => (
                 AdminOperationalReportPdfGenerator.Generate(company, reportType.ToString(), rows),
                 "application/pdf",
-                $"{stem}.pdf"),
+                fileName),
             "json" => (
                 Encoding.UTF8.GetBytes(JsonSerializer.Serialize(rows)),
                 "application/json",
-                $"{stem}.json"),
+                fileName),
             "xlsx" or "excel" => (
                 BuildCsv(rows),
                 "text/csv",
-                $"{stem}.csv"),
+                fileName),
             _ => (
                 BuildCsv(rows),
                 "text/csv",
-                $"{stem}.csv"),
+                fileName),
         };
+    }
+
+    private async Task<string?> ResolveTenantSlugAsync(CancellationToken cancellationToken)
+    {
+        var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+        return await _db.Tenants.AsNoTracking()
+            .Where(t => t.Id == tenantId)
+            .Select(t => t.Slug)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     private async Task<string> ResolveCompanyNameAsync(CancellationToken cancellationToken)

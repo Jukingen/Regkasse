@@ -4,6 +4,7 @@ export const DASHBOARD_WIDGET_IDS = {
   activeCashRegisters: 'active-cash-registers',
   lowStockAlerts: 'low-stock-alerts',
   recentUsers: 'recent-users',
+  recentPermissionChanges: 'recent-permission-changes',
   licenseExpiry: 'license-expiry',
   finanzOnlineStatus: 'finanzonline-status',
   offlineSystemStatus: 'offline-system-status',

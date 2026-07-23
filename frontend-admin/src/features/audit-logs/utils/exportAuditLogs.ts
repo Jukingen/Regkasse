@@ -1,13 +1,21 @@
-import dayjs from 'dayjs';
-
+import { buildAuditExportFileName } from '@/features/audit/utils/auditExportFileName';
+import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 
 export type AuditLogExportFormat = 'json' | 'csv';
 
 export type AuditLogExportQueryParams = Record<string, string>;
 
-function exportFilename(format: AuditLogExportFormat): string {
-  return `audit_logs_${dayjs().format('YYYYMMDD_HHmmss')}.${format}`;
+function exportFilename(
+  format: AuditLogExportFormat,
+  query: AuditLogExportQueryParams
+): string {
+  return buildAuditExportFileName({
+    tenantSlug: getEffectiveTenantSlug(),
+    fromDate: query.startDate,
+    toDate: query.endDate,
+    format,
+  });
 }
 
 function triggerBlobDownload(blob: Blob, filename: string): void {
@@ -36,6 +44,14 @@ function parseErrorMessageFromBody(text: string, fallback: string): string {
   }
 }
 
+function fileNameFromDisposition(
+  disposition: string | undefined,
+  fallback: string
+): string {
+  const match = disposition?.match(/filename="?([^";]+)"?/i);
+  return match?.[1] ?? fallback;
+}
+
 /** Download audit log export via GET /api/AuditLog/export (same filters as list). */
 export async function downloadAuditLogExport(
   format: AuditLogExportFormat,
@@ -52,8 +68,11 @@ export async function downloadAuditLogExport(
 
   const blob = res.data;
   const contentTypeHeader = String(res.headers?.['content-type'] ?? '').toLowerCase();
+  const disposition = res.headers?.['content-disposition'] as string | undefined;
   const { contentType: blobType, text } = await readBlobPreview(blob);
   const contentType = contentTypeHeader || blobType;
+  const fallbackName = exportFilename(format, query);
+  const fileName = fileNameFromDisposition(disposition, fallbackName);
 
   if (format === 'json') {
     if (contentType.includes('application/json')) {
@@ -62,7 +81,7 @@ export async function downloadAuditLogExport(
         if (Array.isArray(parsed)) {
           triggerBlobDownload(
             new Blob([text], { type: 'application/json' }),
-            exportFilename('json')
+            fileName
           );
           return;
         }
@@ -78,9 +97,9 @@ export async function downloadAuditLogExport(
     if (!contentType.includes('text/csv')) {
       throw new Error(parseErrorMessageFromBody(text, options.exportFailedMessage));
     }
-    triggerBlobDownload(new Blob([text], { type: 'text/csv' }), exportFilename('csv'));
+    triggerBlobDownload(new Blob([text], { type: 'text/csv' }), fileName);
     return;
   }
 
-  triggerBlobDownload(blob, exportFilename(format));
+  triggerBlobDownload(blob, fileName);
 }

@@ -1,12 +1,15 @@
 using System.ComponentModel.DataAnnotations;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -19,6 +22,7 @@ namespace KasseAPI_Final.Controllers
         private readonly IMonatsbelegClosingService _monatsbelegClosingService;
         private readonly IDailyClosingReportService _dailyClosingReportService;
         private readonly ISettingsTenantResolver _settingsTenantResolver;
+        private readonly AppDbContext _db;
         private readonly ILogger<TagesabschlussController> _logger;
 
         public TagesabschlussController(
@@ -26,12 +30,14 @@ namespace KasseAPI_Final.Controllers
             IMonatsbelegClosingService monatsbelegClosingService,
             IDailyClosingReportService dailyClosingReportService,
             ISettingsTenantResolver settingsTenantResolver,
+            AppDbContext db,
             ILogger<TagesabschlussController> logger)
         {
             _tagesabschlussService = tagesabschlussService;
             _monatsbelegClosingService = monatsbelegClosingService;
             _dailyClosingReportService = dailyClosingReportService;
             _settingsTenantResolver = settingsTenantResolver;
+            _db = db;
             _logger = logger;
         }
 
@@ -191,7 +197,21 @@ namespace KasseAPI_Final.Controllers
             if (pdf == null || pdf.Length == 0)
                 return NotFound(new { error = "Closing report not found" });
 
-            var fileName = $"RKSV-Abschluss_{closingId:N}.pdf";
+            var closing = await _db.DailyClosings.AsNoTracking()
+                .Where(c => c.Id == closingId)
+                .Select(c => new { c.ClosingDate, c.ClosingType, c.TenantId })
+                .FirstOrDefaultAsync(cancellationToken);
+            var tenantSlug = closing is null
+                ? null
+                : await _db.Tenants.AsNoTracking()
+                    .Where(t => t.Id == closing.TenantId)
+                    .Select(t => t.Slug)
+                    .FirstOrDefaultAsync(cancellationToken);
+            var reportType = ReportPdfTypes.FromClosingType(closing?.ClosingType);
+            var fileName = ReportPdfStorageService.BuildDownloadFileName(
+                reportType,
+                tenantSlug,
+                closing?.ClosingDate ?? DateTime.UtcNow);
             return File(pdf, "application/pdf", fileName);
         }
 

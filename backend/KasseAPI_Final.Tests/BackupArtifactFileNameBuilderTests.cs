@@ -11,31 +11,57 @@ namespace KasseAPI_Final.Tests;
 
 public sealed class BackupArtifactFileNameBuilderTests
 {
-    private static readonly DateTime FixedUtc = new(2026, 7, 3, 15, 1, 0, DateTimeKind.Utc);
+    private static readonly DateTime FixedUtc = new(2026, 7, 22, 14, 30, 22, DateTimeKind.Utc);
 
     [Theory]
-    [InlineData("dev", "backup_dev_20260703_150100.dump")]
-    [InlineData("prod", "backup_prod_20260703_150100.dump")]
-    [InlineData("testcafe", "backup_testcafe_20260703_150100.dump")]
-    public void BuildLogicalDumpFileName_uses_slug_and_timestamp(string slug, string expected)
+    [InlineData("cafe", BackupStrategyKind.Tenant, "backup_cafe_tenant_20260722_143022.dump")]
+    [InlineData("cafe", BackupStrategyKind.System, "backup_cafe_system_20260722_143022.dump")]
+    public void BuildLogicalDumpFileName_includes_strategy(string slug, BackupStrategyKind strategy, string expected)
     {
-        Assert.Equal(expected, BackupArtifactFileNameBuilder.BuildLogicalDumpFileName(slug, FixedUtc));
+        Assert.Equal(expected, BackupArtifactFileNameBuilder.BuildLogicalDumpFileName(slug, FixedUtc, strategy));
     }
 
     [Fact]
-    public void BuildManifestFileName_appends_manifest_suffix()
+    public void BuildTenantLogicalPackageFileName_uses_canonical_pattern()
     {
         Assert.Equal(
-            "backup_dev_20260703_150100_manifest.json",
-            BackupArtifactFileNameBuilder.BuildManifestFileName("dev", FixedUtc));
+            "backup_cafe_tenant_20260722_143022.tenant.zip",
+            BackupArtifactFileNameBuilder.BuildTenantLogicalPackageFileName("cafe", FixedUtc));
+    }
+
+    [Fact]
+    public void BuildSystemPackageFileName_includes_slug_and_strategy()
+    {
+        Assert.Equal(
+            "backup_cafe_system_20260722_143022.system.zip",
+            BackupArtifactFileNameBuilder.BuildSystemPackageFileName("cafe", FixedUtc));
+    }
+
+    [Fact]
+    public void BuildManifestFileName_includes_strategy()
+    {
+        Assert.Equal(
+            "backup_dev_system_20260722_143022_manifest.json",
+            BackupArtifactFileNameBuilder.BuildManifestFileName("dev", FixedUtc, BackupStrategyKind.System));
     }
 
     [Fact]
     public void BuildLogicalDumpFileName_sanitizes_slug()
     {
         Assert.Equal(
-            "backup_cafe_alpha_20260703_150100.dump",
-            BackupArtifactFileNameBuilder.BuildLogicalDumpFileName("Cafe Alpha", FixedUtc));
+            "backup_cafe_alpha_tenant_20260722_143022.dump",
+            BackupArtifactFileNameBuilder.BuildLogicalDumpFileName("Cafe Alpha", FixedUtc, BackupStrategyKind.Tenant));
+    }
+
+    [Fact]
+    public void FormatSizeHint_and_InsertSizeHint()
+    {
+        Assert.Equal("12mb", BackupArtifactFileNameBuilder.FormatSizeHint(12L * 1024 * 1024));
+        Assert.Equal(
+            "backup_cafe_tenant_20260722_143022_12mb.tenant.zip",
+            BackupArtifactFileNameBuilder.InsertSizeHint(
+                "backup_cafe_tenant_20260722_143022.tenant.zip",
+                12L * 1024 * 1024));
     }
 }
 

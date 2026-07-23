@@ -43,8 +43,20 @@ public class UserPermissionOverride
     [Column("created_by_user_id")]
     public string? CreatedByUserId { get; set; }
 
+    /// <summary>When set, override is inactive until this UTC instant.</summary>
+    [Column("valid_from")]
+    public DateTime? ValidFrom { get; set; }
+
     [Column("expires_at")]
     public DateTime? ExpiresAt { get; set; }
+
+    /// <summary>Set when expiring-soon notification was sent (idempotency).</summary>
+    [Column("expiring_notified_at")]
+    public DateTime? ExpiringNotifiedAt { get; set; }
+
+    /// <summary>Set when expiry job processed session invalidate + audit.</summary>
+    [Column("expired_processed_at")]
+    public DateTime? ExpiredProcessedAt { get; set; }
 
     [ForeignKey(nameof(UserId))]
     public virtual ApplicationUser? User { get; set; }

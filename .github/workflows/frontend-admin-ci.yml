@@ -9,6 +9,10 @@ on:
   pull_request:
     paths:
       - 'frontend-admin/**'
+      - 'backend/Authorization/AppPermissions.cs'
+      - 'scripts/verify-permission-keys.mjs'
+      - 'scripts/verify-menu-permissions.mjs'
+      - 'localization/**'
       - '.github/workflows/frontend-admin-ci.yml'
       - '.github/workflows/frontend-admin-e2e.yml'
   push:
@@ -17,6 +21,10 @@ on:
       - master
     paths:
       - 'frontend-admin/**'
+      - 'backend/Authorization/AppPermissions.cs'
+      - 'scripts/verify-permission-keys.mjs'
+      - 'scripts/verify-menu-permissions.mjs'
+      - 'localization/**'
       - '.github/workflows/frontend-admin-ci.yml'
       - '.github/workflows/frontend-admin-e2e.yml'
   workflow_dispatch:
@@ -75,6 +83,14 @@ jobs:
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci
 
+      - name: Permission key consistency
+        working-directory: ${{ github.workspace }}
+        run: node scripts/verify-permission-keys.mjs
+
+      - name: Menu permission mapping
+        working-directory: ${{ github.workspace }}
+        run: node scripts/verify-menu-permissions.mjs --include-secondary
+
       - name: npm run lint
         run: npm run lint
 
@@ -83,6 +99,22 @@ jobs:
 
       - name: npm run test
         run: npm run test
+
+      - name: i18n validate (strict missing)
+        working-directory: ${{ github.workspace }}
+        run: >
+          node localization/scripts/validate-translations.mjs
+          --app frontend-admin
+          --strictMissing true
+          --orphanPolicy error
+
+      - name: i18n usage (strict missing)
+        working-directory: ${{ github.workspace }}
+        run: >
+          node localization/scripts/check-localization-usage.mjs
+          --app frontend-admin
+          --strictMissing true
+          --budgetFile localization/i18n-ci-budgets.json
 
       - name: npm run build
         run: npm run build
@@ -155,28 +187,7 @@ jobs:
     name: Notify on failure
     needs: [quality, e2e]
     if: failure()
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-    steps:
-      - name: Slack webhook (optional)
-        continue-on-error: true
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          WORKFLOW: ${{ github.workflow }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          REF: ${{ github.ref_name }}
-          ACTOR: ${{ github.actor }}
-          SHA: ${{ github.sha }}
-        run: |
-          if [ -z "${SLACK_WEBHOOK_URL}" ]; then
-            echo "SLACK_WEBHOOK_URL secret not set — skipping Slack notify."
-            echo "GitHub still emails users who watch this repository / have Actions failure notifications enabled."
-            exit 0
-          fi
-          payload=$(printf '%s' "{
-            \"text\": \":x: *Frontend Admin CI failed*\\n*Workflow:* ${WORKFLOW}\\n*Branch:* ${REF}\\n*Actor:* ${ACTOR}\\n*Commit:* \`${SHA:0:7}\`\\n<${RUN_URL}|Open run>\"
-          }")
-          curl -sS -X POST -H 'Content-type: application/json' --data "${payload}" "${SLACK_WEBHOOK_URL}"
-          echo "Slack notification sent."
+    uses: ./.github/workflows/notify-failure.yml
+    with:
+      title: Frontend Admin CI failed
+    secrets: inherit

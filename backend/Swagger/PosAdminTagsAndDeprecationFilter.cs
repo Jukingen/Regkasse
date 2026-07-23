@@ -54,5 +54,17 @@ public class PosAdminTagsAndDeprecationFilter : IOperationFilter
                     + "On success the server reloads its in-memory settings cache and appends a system audit event.";
             }
         }
+
+        if (path.Equals("api/user/session-policy", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(context.ApiDescription.HttpMethod, "GET", StringComparison.OrdinalIgnoreCase))
+        {
+            operation.Summary = "Get session policy";
+            operation.Description =
+                "Returns platform concurrent-session limits from `SessionPolicy` configuration "
+                + "(`maxConcurrentSessions`, `sessionTimeoutMinutes`, `allowMultipleDevices`) "
+                + "plus tenant idle-timeout overrides when available (`warningBeforeTimeoutMinutes`, `keepCartAfterTimeout`, `idleTimeoutEnabled`). "
+                + "Requires authenticated JWT.";
+            operation.Tags = new HashSet<OpenApiTagReference> { new("UserSessions") };
+        }
     }
 }

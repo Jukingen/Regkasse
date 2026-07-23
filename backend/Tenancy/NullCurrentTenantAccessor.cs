@@ -11,6 +11,7 @@ public sealed class NullCurrentTenantAccessor : ICurrentTenantAccessor
 
     private readonly bool _isSingleton;
     private Guid? _tenantId;
+    private string? _tenantSlug;
 
     public NullCurrentTenantAccessor()
         : this(isSingleton: false)
@@ -30,6 +31,17 @@ public sealed class NullCurrentTenantAccessor : ICurrentTenantAccessor
             if (_isSingleton)
                 return;
             _tenantId = value;
+        }
+    }
+
+    public string? TenantSlug
+    {
+        get => _isSingleton ? null : _tenantSlug;
+        set
+        {
+            if (_isSingleton)
+                return;
+            _tenantSlug = value;
         }
     }
 }

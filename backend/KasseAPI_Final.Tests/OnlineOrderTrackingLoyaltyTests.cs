@@ -233,6 +233,7 @@ public sealed class OnlineOrderTrackingLoyaltyTests
     {
         public StubTenantAccessor(Guid tenantId) => TenantId = tenantId;
         public Guid? TenantId { get; set; }
+    public string? TenantSlug { get; set; }
     }
 
     private sealed class TenantAwareFactory : IDbContextFactory<AppDbContext>

@@ -82,7 +82,12 @@ export function useCreateDataRightsRequest(tenantId: string) {
 export function useDownloadDataRightsExport(tenantId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (requestId: string) => downloadDataRightsExport(tenantId, requestId),
+    mutationFn: (input: { requestId: string; headers?: Record<string, string> } | string) => {
+      if (typeof input === 'string') {
+        return downloadDataRightsExport(tenantId, input);
+      }
+      return downloadDataRightsExport(tenantId, input.requestId, input.headers);
+    },
     onSuccess: () => invalidateDataManagement(queryClient, tenantId),
   });
 }

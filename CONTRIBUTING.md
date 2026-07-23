@@ -59,6 +59,7 @@ From the **repository root**:
 | `npm run dev` | **All** app servers in parallel (backend, POS, admin, sites) |
 | `npm run dev:workspaces` | Native `npm run dev --workspaces` (sequential; blocks on first server) |
 | `npm run build` / `test` / `lint` | All workspaces via `npm run … --workspaces --if-present` |
+| `make <target>` / `just <recipe>` | Same orchestration — [`Makefile`](Makefile) / [`Justfile`](Justfile) (`dev`, `build`, `test`, `lint`, `clean`, `docker-up`, …) |
 | `npm run dev:backend` | API on http://localhost:5184 |
 | `npm run dev:admin` | FA on http://localhost:3000 |
 | `npm run dev:pos` | Expo Metro (typically :8081) |

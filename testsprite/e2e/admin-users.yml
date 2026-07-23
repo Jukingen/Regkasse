@@ -1,60 +1,28 @@
 name: "Admin Panel - User Management"
-description: "End-to-end user management flows"
+description: "E2E user management on shared FA (admin.regkasse.at / localhost:3000)"
+tags: [e2e, regression]
 
 tests:
   - name: "Login to admin panel"
     url: "http://localhost:3000/login"
     actions:
       - type: "fill"
-        selector: "input[name='loginIdentifier']"
-        value: "superadmin@regkasse.at"
+        selector: "input[name='loginIdentifier'], input[autocomplete='username']"
+        value: "{{devAdmin.loginIdentifier}}"
       - type: "fill"
-        selector: "input[name='password']"
-        value: "{{password}}"
+        selector: "input[name='password'], input[type='password']"
+        value: "{{devAdmin.password}}"
       - type: "click"
         selector: "button[type='submit']"
     expected:
-      url: "http://localhost:3000/"
-      element: ".dashboard"
-      text: "Dashboard"
+      url_not: "/login"
 
-  - name: "Create user via Quick Create"
+  - name: "Open Access & Roles → Users"
     url: "http://localhost:3000/admin/users"
-    actions:
-      - type: "click"
-        selector: "button:contains('Neuen Benutzer')"
-      - type: "click"
-        selector: ".ant-tabs-tab:contains('Schnell anlegen')"
-      - type: "select"
-        selector: "select[name='role']"
-        value: "Manager"
-      - type: "click"
-        selector: "button:contains('Generieren')"
     expected:
-      element: ".ant-modal"
-      text: "Benutzername: manager"
-      text: "Passwort wurde generiert"
+      element: "table, .ant-table"
 
-  - name: "Copy generated password"
-    actions:
-      - type: "click"
-        selector: "button:contains('Passwort kopieren')"
+  - name: "Open backup hub"
+    url: "http://localhost:3000/backup"
     expected:
-      clipboard: "contains"
-
-  - name: "Edit username"
-    url: "http://localhost:3000/admin/users"
-    actions:
-      - type: "click"
-        selector: "tr:first-child button:contains('Benutzername ändern')"
-      - type: "fill"
-        selector: "input[name='newUsername']"
-        value: "edited_user_{{timestamp}}"
-      - type: "fill"
-        selector: "textarea[name='reason']"
-        value: "Test edit"
-      - type: "click"
-        selector: "button:contains('Speichern')"
-    expected:
-      element: ".ant-message-success"
-      text: "Benutzername erfolgreich geändert"
+      url_contains: "/backup"

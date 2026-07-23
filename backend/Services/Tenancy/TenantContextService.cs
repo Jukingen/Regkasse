@@ -99,7 +99,7 @@ public sealed class TenantContextService : ITenantContextService
         {
             var resolved = await ResolveTenantContextAsync(httpContext, cancellationToken)
                 .ConfigureAwait(false);
-            _tenantAccessor.TenantId = resolved.Id;
+            BindAmbient(resolved.Id, resolved.Slug);
             return;
         }
 
@@ -107,13 +107,13 @@ public sealed class TenantContextService : ITenantContextService
         var jwtTenantId = GetJwtTenantId(httpContext);
         if (!jwtTenantId.HasValue)
         {
-            _tenantAccessor.TenantId = null;
+            ClearAmbient();
             return;
         }
 
         var fromJwt = await TryResolveActiveTenantByIdAsync(jwtTenantId.Value, cancellationToken)
             .ConfigureAwait(false);
-        _tenantAccessor.TenantId = fromJwt?.Id;
+        BindAmbient(fromJwt?.Id, fromJwt?.Slug);
     }
 
     /// <inheritdoc />
@@ -122,8 +122,9 @@ public sealed class TenantContextService : ITenantContextService
         CancellationToken cancellationToken = default)
     {
         var slug = await GetRequestTenantSlugAsync(httpContext, cancellationToken).ConfigureAwait(false);
-        _tenantAccessor.TenantId = await ResolveTenantIdFromSlugBindingAsync(slug, cancellationToken)
+        var tenantId = await ResolveTenantIdFromSlugBindingAsync(slug, cancellationToken)
             .ConfigureAwait(false);
+        BindAmbient(tenantId, tenantId.HasValue ? NormalizeSlug(slug) : null);
     }
 
     /// <inheritdoc />
@@ -132,8 +133,21 @@ public sealed class TenantContextService : ITenantContextService
         CancellationToken cancellationToken = default)
     {
         var slug = await GetHostTenantSlugAsync(httpContext, cancellationToken).ConfigureAwait(false);
-        _tenantAccessor.TenantId = await ResolveTenantIdFromSlugBindingAsync(slug, cancellationToken)
+        var tenantId = await ResolveTenantIdFromSlugBindingAsync(slug, cancellationToken)
             .ConfigureAwait(false);
+        BindAmbient(tenantId, tenantId.HasValue ? NormalizeSlug(slug) : null);
+    }
+
+    private void BindAmbient(Guid? tenantId, string? tenantSlug)
+    {
+        _tenantAccessor.TenantId = tenantId;
+        _tenantAccessor.TenantSlug = tenantId.HasValue ? tenantSlug : null;
+    }
+
+    private void ClearAmbient()
+    {
+        _tenantAccessor.TenantId = null;
+        _tenantAccessor.TenantSlug = null;
     }
 
     private async Task<TenantContext?> ResolveTenantContextFromSlugBindingAsync(

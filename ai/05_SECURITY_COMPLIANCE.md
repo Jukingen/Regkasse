@@ -8,9 +8,11 @@
 ## Multi-Tenant Architecture
 
 - Kiracı verisi EF global query filter ile ayrılır; yetkisiz çapraz kiracı erişimde **404** (bilgi sızıntısı yok).
-- Super Admin: `SuperAdmin` rolü + `/api/admin/tenants`; impersonation kısa ömürlü token — audit log’a düşürülür.
-- Geliştirme `X-Tenant-Id` yalnızca Development ortamında; üretimde host tabanlı çözümleme zorunlu.
-- Offline kuyruk / voucher: kiracı ve fiscal sınırları korunur; voucher sırrı kuyrukta tutulmaz (mevcut kural).
+- Super Admin: `SuperAdmin` rolü + `/api/admin/tenants`; impersonation kısa ömürlü token — `audit_logs.impersonated_by` / `impersonated_tenant` doldurulur.
+- **Production (Single POS UI):** `pos` / `api` / `admin` reserved host’larında pre-auth tenant bind yok; oturum sonrası **JWT `tenant_id`** otoriter (`TenantContextMiddleware`). `{slug}.regkasse.at` POS girişi değildir — `docs/POS_PRODUCTION_ARCHITECTURE.md`.
+- **Development:** `X-Tenant-Id` / `?tenant=` yalnızca `IsDevelopment()`; Production’da kapalı.
+- **Host / custom domain:** legacy slug host ve müşteri siteleri (`TenantDomain` → slug) için Host çözümlemesi devam eder; storefront `frontend-sites`.
+- Offline: iki ayrı sistem (`offline_transactions` vs `offline_orders`); voucher sırrı hiçbir offline kuyruğa yazılmaz.
 
 Tam mimari: `docs/MULTI_TENANT.md`.
 
@@ -24,27 +26,32 @@ Tam mimari: `docs/MULTI_TENANT.md`.
 | Singleton + EF | Root’tan scoped `AppDbContext` çözümü yasak; `IServiceScopeFactory` zorunlu (`LicenseService` örnek) |
 | Accessor null | `TenantId == null` iken filtre devre dışı — yalnızca bilinçli kod yolları; normal API isteği önce tenant set eder |
 | Cross-tenant IDOR | **404** (403 değil) — `TenantIsolationTests.AdminPayments_GetById_CrossTenant_Returns404_Not403` |
-| `tenant_id` replay | `offline_transactions.tenant_id` NOT NULL; insert’te cash register / ambient tenant’tan stamp |
-| Tüm tablolar kiracılı değil | Örn. `Customer` henüz `ITenantEntity` değil; değişiklik öncesi envanter çıkar |
+| `tenant_id` stamp | `offline_transactions.tenant_id` ve `offline_orders.tenant_id` NOT NULL; insert’te ambient / register tenant’tan stamp |
+| Platform tablolar | Identity / `tenants` kiracı-scoped değil; iş tabloları (ör. `Customer`) `ITenantEntity` — değişiklik öncesi envanter çıkar |
 
 ### Tenant spoofing prevention
 
 | Önlem | Uygulama |
 |--------|-----------|
-| Production: yalnızca subdomain | `SubdomainTenantProvider` — header/query yalnızca `IsDevelopment()` |
+| Production POS/API | Reserved hosts + JWT `tenant_id`; `X-Tenant-Id` / `?tenant=` yok |
+| Host slug parsing | `SubdomainTenantProvider` / `TenantDomain` — legacy slug host ve siteler; POS production entry değil |
 | Dev header’lar production’da kapalı | `ASPNETCORE_ENVIRONMENT=Production` |
 | Super Admin ek kontrol | `[Authorize(Roles = SuperAdmin)]` + impersonation’da actor SuperAdmin doğrulaması |
 
 ### Bilinen boşluk (dokunmadan önce oku)
 
-- **JWT `tenant_id` ↔ host subdomain:** `TenantContextMiddleware` auth sonrası accessor’ı JWT ile override edebilir; production’da host ile claim zorunlu eşleşmesi henüz middleware ile uygulanmıyor. Yeni güvenlik işi için `docs/MULTI_TENANT.md` “Known gaps” bölümüne bak.
-- **Impersonation audit:** Sunucu logları var; `AuditLog.impersonated_by` alanı henüz yok.
+- **JWT `tenant_id` ↔ Host eşleşmesi:** Reserved `pos`/`api`/`admin` host’larında subdomain zorunluluğu yok; legacy slug host’larda claim↔Host zorunlu eşleşmesi middleware ile henüz uygulanmıyor — `docs/MULTI_TENANT.md` “Known gaps”.
+- Impersonation audit kolonları **mevcut**; FA legacy `{slug}` handoff vs shared `admin.regkasse.at` hedefi için `docs/IMPERSONATION_FLOW.md`.
 
 ## Kimlik doğrulama / yetkilendirme
 - Auth: ASP.NET Core Identity + JWT.
 - Yetki: `HasPermission(...)` tabanlı policy yaklaşımı ana standarttır; rol matrisi `backend/Authorization/RolePermissionMatrix.cs`.
 - **Admin FA oturumu:** Login ve `/me` yanıtında izinler `AdminAppPermissionProfile` ile filtrelenir (`app_context=admin`) — Cashier whitelist, Manager için POS-terminal strip. Menü/route sözleşmesi: `frontend-admin` `test:contract`, backend `RoleAdminMenuContractTests`.
 - **Zugriff & Rollen hub:** `/admin/access`, `/admin/users`, `/admin/access/roles`, `/admin/access/matrix` — ayrıntı `frontend-admin/docs/ACCESS_AND_ROLES_HUB.md`.
+- **SuperAdmin 2FA:** TOTP; Dev bypass — `docs/AUTH_TWO_FACTOR.md`.
+- **CSRF:** `Security:Csrf` + `CsrfMiddleware` (mutation’larda double-submit); Dev bypass mümkün — `AGENTS.md` § CSRF.
+- **Working hours:** yalnızca website/app online-order intake; POS/FA API’lerini asla kapatma — `docs/WORKING_HOURS.md`.
+- **Backup RBAC:** Mandanten-Admin `backup.manage` (tenant); System dump / restore Super Admin — `ai/modules/backup_permissions.md`.
 - Yeni endpointlerde public gereksinim yoksa auth varsayımıyla ilerle.
 
 ## Gutschein / voucher

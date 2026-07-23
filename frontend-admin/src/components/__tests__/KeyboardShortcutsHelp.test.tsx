@@ -10,6 +10,7 @@ import { KEYBOARD_SHORTCUT_EVENTS } from '@/shared/keyboardShortcuts';
 vi.mock('@/i18n', () => ({
   useI18n: () => ({
     t: (key: string) => key,
+    textLocale: 'en',
   }),
 }));
 

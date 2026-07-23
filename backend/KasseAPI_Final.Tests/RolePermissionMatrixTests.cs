@@ -517,6 +517,10 @@ public class RolePermissionMatrixTests
         Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.TseSign));
         Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.DailyClosingView));
         Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.DailyClosingExecute));
+        // FA sidebar needs the view claim embedded in JWT (exact match), not only via execute implication.
+        Assert.Contains(
+            AppPermissions.DailyClosingView,
+            RolePermissionMatrix.GetPermissionsForRole(Roles.Manager));
     }
 
     [Fact]

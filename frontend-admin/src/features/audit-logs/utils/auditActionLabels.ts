@@ -30,6 +30,10 @@ const ACTION_LABEL_KEYS: Record<string, string> = {
   FORCE_RESET_PASSWORD: 'common.auditLogs.actionLabels.passwordResetForced',
   USER_PASSWORD_RESET: 'common.auditLogs.actionLabels.passwordResetForced',
   CHANGE_OWN_PASSWORD: 'common.auditLogs.actionLabels.changeOwnPassword',
+    ROLE_PERMISSIONS_UPDATE: 'common.auditLogs.actionLabels.rolePermissionsUpdate',
+  ROLE_DELETE: 'common.auditLogs.actionLabels.roleDelete',
+  ROLE_CREATE: 'common.auditLogs.actionLabels.roleCreate',
+  USER_PERMISSION_OVERRIDES_CHANGED: 'common.auditLogs.actionLabels.userPermissionOverrides',
   TagesabschlussCreated: 'common.auditLogs.actionLabels.tagesabschlussCreated',
   TagesabschlussBackdatedCreated: 'common.auditLogs.actionLabels.tagesabschlussBackdatedCreated',
 };

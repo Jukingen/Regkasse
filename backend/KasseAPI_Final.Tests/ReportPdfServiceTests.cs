@@ -36,6 +36,7 @@ public sealed class ReportPdfServiceTests
         var storage = new ReportPdfStorageService(
             ctx,
             new TestHostEnvironment(contentRoot),
+            new FileNamingService(TenantTestDoubles.TenantAccessorReturning(tenantId)),
             NullLogger<ReportPdfStorageService>.Instance);
         var tenantResolver = new FixedTenantResolver(tenantId);
         return new ReportPdfService(

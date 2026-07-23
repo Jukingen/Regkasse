@@ -3,6 +3,7 @@
  * RKSV subtree is attached via `registerRksvSidebar` in `composeAdminSidebarData`.
  *
  * Permission keys for menu filtering match `MENU_PERMISSION` map keys (= `menuKey` for leaves).
+ * Primary IA areas pull `permission` / `permissionGroup` from `MENU_PERMISSION_MAP`.
  */
 import {
   type RksvSidebarRegistryAttachment,
@@ -11,9 +12,15 @@ import {
 import { ADMIN_SIDEBAR_GROUP_KEYS } from '@/shared/adminSidebarNavigation';
 import {
   ANY_AUTHENTICATED_PERMISSION,
-  AppPermissions,
   PERMISSIONS,
 } from '@/shared/auth/permissions';
+import {
+  logMenuPermissionMapWarnings,
+  sidebarFieldsFromMenuMap,
+  validateMenuPermissions,
+  type MenuPermissionMapKey,
+} from '@/shared/auth/menuPermissionMapping';
+import type { PermissionGroupKey } from '@/shared/auth/permissionGroupRegistry';
 import { FISCAL_RKSV_CLOSING_VIRTUAL_MENU_KEYS } from '@/shared/fiscalRksvClosingSidebar';
 import type { RksvMenuGroup } from '@/shared/rksvMenuModel';
 import { collectRksvMenuLeafKeys } from '@/shared/rksvMenuModel';
@@ -92,6 +99,13 @@ export type SidebarNavCatalogItem = {
   icon?: SidebarIconToken;
   /** Required permission(s) for sidebar visibility (must match `ROUTE_PERMISSIONS[menuKey]`). */
   permission?: string | string[];
+  /**
+   * Logical IA key from `MENU_PERMISSION_MAP` when this leaf is the area primary.
+   * Prefer setting via `sidebarFieldsFromMenuMap(area)`.
+   */
+  menuArea?: MenuPermissionMapKey;
+  /** Catalog permission group slug (from `MENU_PERMISSION_MAP` when wired). */
+  permissionGroup?: PermissionGroupKey | null;
   /** When true, route is registered but omitted from sidebar leaves (deep-link only). */
   sidebarHidden?: boolean;
   /** When true, leaf is shown only when `NODE_ENV === 'development'`. */
@@ -108,6 +122,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/operations-center',
     labelKey: 'nav.operationsCenter',
     icon: 'ControlOutlined',
+    ...sidebarFieldsFromMenuMap('operations'),
   },
   tables: {
     id: 'tables',
@@ -115,6 +130,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/tables',
     labelKey: 'nav.tables',
     icon: 'TableOutlined',
+    ...sidebarFieldsFromMenuMap('tables'),
   },
   kassenverwaltung: {
     id: 'kassenverwaltung',
@@ -122,7 +138,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/kassenverwaltung',
     labelKey: 'nav.cashRegisters',
     icon: 'ShopOutlined',
-    permission: AppPermissions.CashRegisterManage,
+    ...sidebarFieldsFromMenuMap('cashRegisters'),
   },
   shiftsOverview: {
     id: 'shiftsOverview',
@@ -130,7 +146,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/shifts',
     labelKey: 'nav.shifts',
     icon: 'ClockCircleOutlined',
-    permission: PERMISSIONS.SHIFT_VIEW,
+    ...sidebarFieldsFromMenuMap('shifts'),
   },
   staffHub: {
     id: 'staffHub',
@@ -138,7 +154,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/staff',
     labelKey: 'nav.staff',
     icon: 'TeamOutlined',
-    permission: [PERMISSIONS.USER_VIEW, PERMISSIONS.REPORT_VIEW, PERMISSIONS.SHIFT_VIEW],
+    ...sidebarFieldsFromMenuMap('employees'),
   },
   tagesabschluss: {
     id: 'tagesabschluss',
@@ -146,6 +162,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/tagesabschluss',
     labelKey: 'nav.dailyClosing',
     icon: 'CalendarOutlined',
+    ...sidebarFieldsFromMenuMap('tagesabschluss'),
   },
   receipts: {
     id: 'receipts',
@@ -153,7 +170,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/receipts',
     labelKey: 'nav.receipts',
     icon: 'FileSearchOutlined',
-    permission: PERMISSIONS.SALE_VIEW,
+    ...sidebarFieldsFromMenuMap('sales'),
   },
   payments: {
     id: 'payments',
@@ -169,6 +186,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/payments/storno-refund-audit',
     labelKey: 'nav.cancellations',
     icon: 'AuditOutlined',
+    permission: PERMISSIONS.PAYMENT_VIEW,
   },
   paymentTrends: {
     id: 'paymentTrends',
@@ -192,6 +210,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/vouchers',
     labelKey: 'nav.vouchers',
     icon: 'WalletOutlined',
+    permission: PERMISSIONS.VOUCHER_READ,
   },
   invoices: {
     id: 'invoices',
@@ -199,6 +218,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/invoices',
     labelKey: 'nav.invoices',
     icon: 'FileDoneOutlined',
+    permission: PERMISSIONS.INVOICE_VIEW,
   },
   onlineOrders: {
     id: 'onlineOrders',
@@ -230,7 +250,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/products',
     labelKey: 'nav.products',
     icon: 'ShoppingOutlined',
-    permission: PERMISSIONS.PRODUCT_VIEW,
+    ...sidebarFieldsFromMenuMap('products'),
   },
   categories: {
     id: 'categories',
@@ -238,6 +258,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/categories',
     labelKey: 'nav.categories',
     icon: 'FolderOutlined',
+    ...sidebarFieldsFromMenuMap('categories'),
   },
   modifierGroups: {
     id: 'modifierGroups',
@@ -245,6 +266,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/modifier-groups',
     labelKey: 'nav.addonGroups',
     icon: 'GroupOutlined',
+    permission: PERMISSIONS.PRODUCT_VIEW,
   },
   pricingRules: {
     id: 'pricingRules',
@@ -252,6 +274,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/pricing-rules',
     labelKey: 'nav.priceRules',
     icon: 'TagOutlined',
+    permission: PERMISSIONS.PRODUCT_VIEW,
   },
   inventory: {
     id: 'inventory',
@@ -259,6 +282,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/inventory',
     labelKey: 'nav.inventory',
     icon: 'InboxOutlined',
+    permission: PERMISSIONS.INVENTORY_VIEW,
   },
   customers: {
     id: 'customers',
@@ -266,6 +290,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/customers',
     labelKey: 'nav.customerList',
     icon: 'UserOutlined',
+    ...sidebarFieldsFromMenuMap('customers'),
   },
   benefitDefinitions: {
     id: 'benefitDefinitions',
@@ -274,6 +299,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     labelKey: 'nav.benefitDefinitions',
     icon: 'GiftOutlined',
     sidebarHidden: true,
+    ...sidebarFieldsFromMenuMap('benefits'),
   },
   benefitAssignments: {
     id: 'benefitAssignments',
@@ -297,7 +323,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/reporting',
     labelKey: 'nav.operationalReports',
     icon: 'PieChartOutlined',
-    permission: PERMISSIONS.REPORT_VIEW,
+    ...sidebarFieldsFromMenuMap('reports'),
   },
   reportCenter: {
     id: 'reportCenter',
@@ -345,6 +371,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/admin/reports/user-activity',
     labelKey: 'nav.userActivity',
     icon: 'TeamOutlined',
+    permission: PERMISSIONS.REPORT_VIEW,
   },
   tagesbericht: {
     id: 'tagesbericht',
@@ -377,6 +404,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/audit-logs',
     labelKey: 'nav.auditLogs',
     icon: 'SafetyCertificateOutlined',
+    permission: PERMISSIONS.AUDIT_VIEW,
   },
   fiscalExportAuditLogs: {
     id: 'fiscalExportAuditLogs',
@@ -384,6 +412,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/admin/audit/fiscal-exports',
     labelKey: 'nav.fiscalExportAuditLogs',
     icon: 'CloudDownloadOutlined',
+    permission: PERMISSIONS.AUDIT_VIEW,
   },
   /** Legacy TSE offline intents (`offline_transactions`). New full-order snapshots: RKSV hub → Diagnose → `rksvAdminMenuModel` `/rksv/offline-orders` (`payment.view`). */
   offlineTransactionsAdmin: {
@@ -392,6 +421,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/admin/tse/offline-transactions',
     labelKey: 'nav.offlineTransactionsAdmin',
     icon: 'InboxOutlined',
+    permission: PERMISSIONS.PAYMENT_VIEW,
   },
   users: {
     id: 'users',
@@ -399,7 +429,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/admin/users',
     labelKey: 'nav.users',
     icon: 'TeamOutlined',
-    permission: PERMISSIONS.USER_VIEW,
+    ...sidebarFieldsFromMenuMap('users'),
   },
   accessOverview: {
     id: 'accessOverview',
@@ -425,6 +455,46 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     icon: 'AuditOutlined',
     permission: PERMISSIONS.ROLE_VIEW,
   },
+  accessPermissionHistory: {
+    id: 'accessPermissionHistory',
+    menuKey: '/admin/access/permission-history',
+    href: '/admin/access/permission-history',
+    labelKey: 'nav.permissionHistory',
+    icon: 'HistoryOutlined',
+    permission: PERMISSIONS.AUDIT_VIEW,
+  },
+  accessPermissionRequests: {
+    id: 'accessPermissionRequests',
+    menuKey: '/admin/access/permission-requests',
+    href: '/admin/access/permission-requests',
+    labelKey: 'nav.permissionRequests',
+    icon: 'AuditOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  accessPermissionPackages: {
+    id: 'accessPermissionPackages',
+    menuKey: '/admin/access/permission-packages',
+    href: '/admin/access/permission-packages',
+    labelKey: 'nav.permissionPackages',
+    icon: 'AppstoreOutlined',
+    permission: PERMISSIONS.ROLE_VIEW,
+  },
+  accessPermissionBackups: {
+    id: 'accessPermissionBackups',
+    menuKey: '/admin/access/permission-backups',
+    href: '/admin/access/permission-backups',
+    labelKey: 'nav.permissionBackups',
+    icon: 'ToolOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  accessPermissionStats: {
+    id: 'accessPermissionStats',
+    menuKey: '/admin/access/permission-stats',
+    href: '/admin/access/permission-stats',
+    labelKey: 'nav.permissionStats',
+    icon: 'PieChartOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
   companySettings: {
     id: 'companySettings',
     menuKey: '/settings/company',
@@ -439,6 +509,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/settings/working-hours',
     labelKey: 'nav.workingHours',
     icon: 'CalendarOutlined',
+    ...sidebarFieldsFromMenuMap('workingHours'),
   },
   websiteGenerator: {
     id: 'websiteGenerator',
@@ -460,7 +531,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/settings/digital',
     labelKey: 'nav.digitalPortal',
     icon: 'GlobalOutlined',
-    permission: [PERMISSIONS.DIGITAL_VIEW, PERMISSIONS.DIGITAL_REQUEST, PERMISSIONS.WEBSITE_MANAGE],
+    ...sidebarFieldsFromMenuMap('digitalServices'),
   },
   customerPortal: {
     id: 'customerPortal',
@@ -476,6 +547,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/settings',
     labelKey: 'nav.settingsHub',
     icon: 'SettingOutlined',
+    ...sidebarFieldsFromMenuMap('settings'),
   },
   tseSettings: {
     id: 'tseSettings',
@@ -518,6 +590,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/settings/session',
     labelKey: 'nav.sessionInactivity',
     icon: 'ClockCircleOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
   },
   activeSessions: {
     id: 'activeSessions',
@@ -542,6 +615,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/settings/personalization',
     labelKey: 'nav.appearanceLanguage',
     icon: 'BgColorsOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
   },
   paymentMethods: {
     id: 'paymentMethods',
@@ -549,6 +623,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/settings/payment-methods',
     labelKey: 'nav.paymentMethods',
     icon: 'CreditCardOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
   },
   paymentGateway: {
     id: 'paymentGateway',
@@ -564,7 +639,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/backup',
     labelKey: 'nav.backupOverview',
     icon: 'DashboardOutlined',
-    permission: PERMISSIONS.SETTINGS_VIEW,
+    ...sidebarFieldsFromMenuMap('backup'),
   },
   backupRuns: {
     id: 'backupRuns',
@@ -647,7 +722,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/admin/tenants',
     labelKey: 'nav.tenants',
     icon: 'ApartmentOutlined',
-    permission: PERMISSIONS.SYSTEM_CRITICAL,
+    ...sidebarFieldsFromMenuMap('tenants'),
   },
   superAdminDataManagement: {
     id: 'superAdminDataManagement',
@@ -671,7 +746,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/admin/licenses',
     labelKey: 'nav.platformLicenses',
     icon: 'SafetyOutlined',
-    permission: AppPermissions.LicenseView,
+    ...sidebarFieldsFromMenuMap('license'),
   },
   superAdminCashRegisters: {
     id: 'superAdminCashRegisters',
@@ -768,6 +843,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/admin/rksv/dep-export',
     labelKey: 'nav.depExport',
     icon: 'SafetyCertificateOutlined',
+    permission: [PERMISSIONS.REPORT_EXPORT, PERMISSIONS.AUDIT_VIEW],
   },
   rksvTestsSignatureVerify: {
     id: 'rksvTestsSignatureVerify',
@@ -775,6 +851,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/admin/rksv/signature-verify',
     labelKey: 'nav.signatureVerification',
     icon: 'SafetyCertificateOutlined',
+    permission: PERMISSIONS.AUDIT_VIEW,
   },
   rksvStatusOverview: {
     id: 'rksvStatusOverview',
@@ -782,6 +859,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/rksv',
     labelKey: 'nav.rksvStatus',
     icon: 'SafetyOutlined',
+    ...sidebarFieldsFromMenuMap('rksv'),
   },
   rksvSystemStatus: {
     id: 'rksvSystemStatus',
@@ -789,6 +867,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/rksv/status',
     labelKey: 'nav.systemStatus',
     icon: 'ControlOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
   },
   rksvFinanzOnline: {
     id: 'rksvFinanzOnline',
@@ -796,6 +875,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/rksv/finanz-online-outbox',
     labelKey: 'nav.finanzOnline',
     icon: 'CloudSyncOutlined',
+    permission: PERMISSIONS.FINANZONLINE_VIEW,
   },
   rksvOfflineOrders: {
     id: 'rksvOfflineOrders',
@@ -803,6 +883,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/rksv/offline-orders',
     labelKey: 'nav.offlineOrders',
     icon: 'InboxOutlined',
+    permission: PERMISSIONS.PAYMENT_VIEW,
   },
   specialReceiptStart: {
     id: 'specialReceiptStart',
@@ -810,6 +891,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/rksv/sonderbelege?focus=startbeleg',
     labelKey: 'nav.startReceipt',
     icon: 'FileDoneOutlined',
+    permission: PERMISSIONS.FINANZONLINE_MANAGE,
   },
   specialReceiptMonthly: {
     id: 'specialReceiptMonthly',
@@ -817,6 +899,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/rksv/sonderbelege?focus=monatsbeleg',
     labelKey: 'nav.monthlyReceipt',
     icon: 'FileDoneOutlined',
+    permission: PERMISSIONS.FINANZONLINE_MANAGE,
   },
   specialReceiptYearly: {
     id: 'specialReceiptYearly',
@@ -824,6 +907,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/rksv/sonderbelege?focus=jahresbeleg',
     labelKey: 'nav.yearlyReceipt',
     icon: 'FileDoneOutlined',
+    permission: PERMISSIONS.FINANZONLINE_MANAGE,
   },
   specialReceiptNull: {
     id: 'specialReceiptNull',
@@ -831,6 +915,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/rksv/sonderbelege?focus=nullbeleg',
     labelKey: 'nav.nullReceipt',
     icon: 'FileDoneOutlined',
+    permission: PERMISSIONS.FINANZONLINE_MANAGE,
   },
   specialReceiptClosing: {
     id: 'specialReceiptClosing',
@@ -838,6 +923,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/rksv/sonderbelege?focus=schlussbeleg',
     labelKey: 'nav.closingReceipt',
     icon: 'FileDoneOutlined',
+    permission: PERMISSIONS.FINANZONLINE_MANAGE,
   },
   specialReceiptTestHelper: {
     id: 'specialReceiptTestHelper',
@@ -1124,7 +1210,17 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         menuKey: ADMIN_SIDEBAR_GROUP_KEYS.accessArea,
         labelKey: 'nav.accessRoles',
         icon: 'KeyOutlined',
-        catalogIds: ['accessOverview', 'users', 'accessRoles', 'accessMatrix'],
+        catalogIds: [
+          'accessOverview',
+          'users',
+          'accessRoles',
+          'accessMatrix',
+          'accessPermissionHistory',
+          'accessPermissionRequests',
+          'accessPermissionPackages',
+          'accessPermissionBackups',
+          'accessPermissionStats',
+        ],
       },
       {
         kind: 'leaves',
@@ -1159,6 +1255,30 @@ export function getSidebarCatalogLeafMenuKeys(): string[] {
   return Object.values(SIDEBAR_NAV_ITEM_CATALOG)
     .filter((item) => !item.sidebarHidden)
     .map((item) => item.menuKey);
+}
+
+/** IA menu-area keys wired onto catalog leaves via `menuArea`. */
+export function getWiredSidebarMenuAreas(): MenuPermissionMapKey[] {
+  const areas = new Set<MenuPermissionMapKey>();
+  for (const item of Object.values(SIDEBAR_NAV_ITEM_CATALOG)) {
+    if (item.menuArea) areas.add(item.menuArea);
+  }
+  return [...areas];
+}
+
+/**
+ * Validates that every catalog `menuArea` exists in `MENU_PERMISSION_MAP`.
+ * Also logs unwired map keys via {@link logSidebarMenuPermissionMapWarnings}.
+ */
+export function validateSidebarMenuPermissionMappings(): string[] {
+  const wired = getWiredSidebarMenuAreas();
+  return validateMenuPermissions(wired);
+}
+
+/** Dev-only: warn when catalog menuAreas lack map entries or map keys are unwired. */
+export function logSidebarMenuPermissionMapWarnings(): void {
+  if (process.env.NODE_ENV !== 'development') return;
+  logMenuPermissionMapWarnings(getWiredSidebarMenuAreas());
 }
 
 /** Catalog + RKSV leaves for guard coverage tests. */

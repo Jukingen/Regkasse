@@ -38,6 +38,7 @@ public sealed partial class AdminLicenseController : ControllerBase
     private readonly ISettingsTenantResolver _settingsTenantResolver;
     private readonly ILicenseReminderNotificationStore _licenseReminderNotificationStore;
     private readonly IAuditLogService _auditLogService;
+    private readonly ILicenseExportService _licenseExport;
     private readonly ILogger<AdminLicenseController> _logger;
 
     public AdminLicenseController(
@@ -53,6 +54,7 @@ public sealed partial class AdminLicenseController : ControllerBase
         ISettingsTenantResolver settingsTenantResolver,
         ILicenseReminderNotificationStore licenseReminderNotificationStore,
         IAuditLogService auditLogService,
+        ILicenseExportService licenseExport,
         ILogger<AdminLicenseController> logger)
     {
         _licenseService = licenseService;
@@ -67,7 +69,49 @@ public sealed partial class AdminLicenseController : ControllerBase
         _settingsTenantResolver = settingsTenantResolver;
         _licenseReminderNotificationStore = licenseReminderNotificationStore;
         _auditLogService = auditLogService;
+        _licenseExport = licenseExport;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Download a single issued license as plain text.
+    /// Filename: <c>license_{tenantSlug}_{stamp}.txt</c>.
+    /// </summary>
+    [HttpGet("{issuedLicenseId:guid}/export")]
+    [HasPermission(AppPermissions.SettingsManage)]
+    [Produces("text/plain")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ExportSingle(
+        Guid issuedLicenseId,
+        CancellationToken cancellationToken = default)
+    {
+        string? tenantSlug = null;
+        try
+        {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken)
+                .ConfigureAwait(false);
+            if (tenantId != Guid.Empty)
+            {
+                tenantSlug = await _db.Tenants.AsNoTracking()
+                    .Where(t => t.Id == tenantId)
+                    .Select(t => t.Slug)
+                    .FirstOrDefaultAsync(cancellationToken)
+                    .ConfigureAwait(false);
+            }
+        }
+        catch
+        {
+            // Platform-wide Super Admin: fall back to customer name / deployment in the export service.
+        }
+
+        var result = await _licenseExport
+            .ExportSingleAsync(issuedLicenseId, tenantSlug, cancellationToken)
+            .ConfigureAwait(false);
+        if (result is null)
+            return NotFound(new { message = "Issued license not found." });
+
+        return File(result.Content, result.ContentType, result.FileName);
     }
 
     /// <summary>Current license/trial snapshot for this machine.</summary>

@@ -4,32 +4,24 @@
   "baseUrl": {
     "api": "http://localhost:5184",
     "admin": "http://localhost:3000",
-    "pos": "http://localhost:8081"
+    "pos": "http://localhost:8081",
+    "sites": "http://localhost:3001"
   },
   "auth": {
     "devAdmin": {
       "loginIdentifier": "admin@admin.com",
       "password": "Admin123!",
-      "clientApp": "admin",
-      "tenantSwitcher": "dev"
+      "clientApp": "admin"
     },
     "superAdmin": {
       "loginIdentifier": "admin@admin.com",
       "password": "Admin123!",
-      "clientApp": "admin",
-      "tenantSwitcher": "dev"
+      "clientApp": "admin"
     },
     "manager": {
       "loginIdentifier": "manager1",
       "password": "***",
-      "clientApp": "admin",
-      "tenantSwitcher": "dev"
-    },
-    "tenantAdmin": {
-      "loginIdentifier": "manager1",
-      "password": "***",
-      "clientApp": "admin",
-      "tenantSwitcher": "dev"
+      "clientApp": "admin"
     },
     "cashier": {
       "loginIdentifier": "cashier1",
@@ -39,8 +31,15 @@
   },
   "testData": {
     "tenantSlug": "dev",
-    "testUserId": "16a1a9f6-b8b4-48b2-8d8d-eb32e7f90548",
-    "testProductId": "11111111-1111-1111-1111-111111111111"
+    "notes": "Production tenant comes from JWT on pos/api/admin hosts; X-Tenant-Id is Development-only."
+  },
+  "suites": {
+    "api": "testsprite/api",
+    "e2e": "testsprite/e2e"
+  },
+  "runners": {
+    "validateSpecs": "node testsprite/validate-specs.mjs",
+    "apiSmoke": "node testsprite/run-api-smoke.mjs"
   },
   "output": {
     "reports": "./test-results",

@@ -1,8 +1,10 @@
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services;
 
@@ -11,26 +13,37 @@ public sealed class UserPermissionOverrideService : IUserPermissionOverrideServi
     private readonly AppDbContext _db;
     private readonly IRolePermissionResolver _rolePermissionResolver;
     private readonly IEffectivePermissionResolver _effectivePermissionResolver;
+    private readonly TemporaryPermissionsOptions _options;
 
     public UserPermissionOverrideService(
         AppDbContext db,
         IRolePermissionResolver rolePermissionResolver,
-        IEffectivePermissionResolver effectivePermissionResolver)
+        IEffectivePermissionResolver effectivePermissionResolver,
+        IOptions<TemporaryPermissionsOptions> options)
     {
         _db = db;
         _rolePermissionResolver = rolePermissionResolver;
         _effectivePermissionResolver = effectivePermissionResolver;
+        _options = options.Value;
     }
 
     public async Task<IReadOnlyList<UserPermissionOverrideDto>> ListOverridesAsync(
         string userId,
         Guid? tenantScope,
+        bool includeExpired = false,
         CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
         var query = _db.UserPermissionOverrides
             .AsNoTracking()
-            .Where(o => o.UserId == userId && (o.ExpiresAt == null || o.ExpiresAt > now));
+            .Where(o => o.UserId == userId);
+
+        if (!includeExpired)
+        {
+            query = query.Where(o =>
+                (o.ValidFrom == null || o.ValidFrom <= now)
+                && (o.ExpiresAt == null || o.ExpiresAt > now));
+        }
 
         if (tenantScope.HasValue)
             query = query.Where(o => o.TenantId == null || o.TenantId == tenantScope.Value);
@@ -39,7 +52,7 @@ public sealed class UserPermissionOverrideService : IUserPermissionOverrideServi
             .OrderByDescending(o => o.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        return rows.Select(Map).ToList();
+        return rows.Select(e => Map(e, now)).ToList();
     }
 
     public async Task<UserEffectivePermissionsDto> GetEffectivePermissionsDetailAsync(
@@ -51,7 +64,7 @@ public sealed class UserPermissionOverrideService : IUserPermissionOverrideServi
         var rolePermissions = (await _rolePermissionResolver.GetPermissionsForRolesAsync(roleNames, cancellationToken))
             .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
             .ToList();
-        var overrides = await ListOverridesAsync(userId, tenantId, cancellationToken);
+        var overrides = await ListOverridesAsync(userId, tenantId, includeExpired: false, cancellationToken);
         var effective = (await _effectivePermissionResolver.GetEffectivePermissionsAsync(userId, roleNames, tenantId, cancellationToken))
             .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -78,6 +91,9 @@ public sealed class UserPermissionOverrideService : IUserPermissionOverrideServi
         if (actorTenantScope.HasValue && request.TenantId.HasValue && request.TenantId != actorTenantScope)
             return null;
 
+        if (request.ValidFrom.HasValue && request.ExpiresAt.HasValue && request.ValidFrom >= request.ExpiresAt)
+            return null;
+
         var tenantId = request.TenantId ?? actorTenantScope;
         var existing = await _db.UserPermissionOverrides
             .Where(o => o.UserId == targetUserId
@@ -91,9 +107,12 @@ public sealed class UserPermissionOverrideService : IUserPermissionOverrideServi
         {
             existing.IsGranted = request.IsGranted;
             existing.Reason = request.Reason?.Trim();
+            existing.ValidFrom = request.ValidFrom;
             existing.ExpiresAt = request.ExpiresAt;
             existing.CreatedAt = DateTime.UtcNow;
             existing.CreatedByUserId = actorUserId;
+            existing.ExpiringNotifiedAt = null;
+            existing.ExpiredProcessedAt = null;
             entity = existing;
         }
         else
@@ -105,6 +124,7 @@ public sealed class UserPermissionOverrideService : IUserPermissionOverrideServi
                 Permission = permission,
                 IsGranted = request.IsGranted,
                 Reason = request.Reason?.Trim(),
+                ValidFrom = request.ValidFrom,
                 ExpiresAt = request.ExpiresAt,
                 CreatedAt = DateTime.UtcNow,
                 CreatedByUserId = actorUserId,
@@ -113,7 +133,7 @@ public sealed class UserPermissionOverrideService : IUserPermissionOverrideServi
         }
 
         await _db.SaveChangesAsync(cancellationToken);
-        return Map(entity);
+        return Map(entity, DateTime.UtcNow);
     }
 
     public async Task<bool> DeleteOverrideAsync(
@@ -135,7 +155,7 @@ public sealed class UserPermissionOverrideService : IUserPermissionOverrideServi
         return true;
     }
 
-    private static UserPermissionOverrideDto Map(UserPermissionOverride entity) => new()
+    private UserPermissionOverrideDto Map(UserPermissionOverride entity, DateTime utcNow) => new()
     {
         Id = entity.Id,
         UserId = entity.UserId,
@@ -145,6 +165,12 @@ public sealed class UserPermissionOverrideService : IUserPermissionOverrideServi
         Reason = entity.Reason,
         CreatedAt = entity.CreatedAt,
         CreatedByUserId = entity.CreatedByUserId,
+        ValidFrom = entity.ValidFrom,
         ExpiresAt = entity.ExpiresAt,
+        Status = UserPermissionOverrideStatuses.Compute(
+            entity.ValidFrom,
+            entity.ExpiresAt,
+            utcNow,
+            _options.ExpiringSoonHours),
     };
 }

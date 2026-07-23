@@ -9,7 +9,9 @@
  * Frontend-admin convenience:
  *   cd frontend-admin && npm run verify:api-client
  *
- * CI: .github/workflows/api-client-alignment.yml
+ * CI: .github/workflows/api-client-alignment.yml (verify)
+ * CI auto-commit: .github/workflows/api-client-auto-generate.yml
+ * Pre-commit: Husky → scripts/git-hooks/pre-commit.mjs (npm run prepare)
  */
 import { execSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
@@ -22,6 +24,15 @@ const swaggerPath = join(root, 'backend', 'swagger.json');
 const orvalConfigPath = join(root, 'frontend-admin', 'orval.config.ts');
 const generatedRel = 'frontend-admin/src/api/generated';
 const expectedOrvalTarget = '../backend/swagger.json';
+
+if (process.argv.includes('--help') || process.argv.includes('-h')) {
+  console.log(`Usage: node scripts/verify-api-client.mjs [--openapi-only]
+
+Verifies Orval-generated admin client matches committed backend/swagger.json.
+  --openapi-only   Critical paths + orval config only (no Orval regenerate)
+`);
+  process.exit(0);
+}
 
 const openapiOnly = process.argv.includes('--openapi-only');
 
@@ -132,9 +143,15 @@ function main() {
   }
 
   console.log('Running Orval (npm run generate:api)…');
+  const adminPkg = join(root, 'frontend-admin');
+  if (!existsSync(join(adminPkg, 'node_modules', 'orval'))) {
+    console.error(`Missing frontend-admin/node_modules/orval.`);
+    console.error('Install first: npm ci --prefix frontend-admin  (or: npm install -w registrierkasse-admin)');
+    process.exit(1);
+  }
   try {
     execSync('npm run generate:api', {
-      cwd: join(root, 'frontend-admin'),
+      cwd: adminPkg,
       stdio: 'inherit',
       env: { ...process.env, CI: 'true' },
     });

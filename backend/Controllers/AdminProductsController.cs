@@ -36,6 +36,7 @@ namespace KasseAPI_Final.Controllers
         private readonly ICurrentTenantAccessor _tenantAccessor;
         private readonly IAdminProductListService _productListService;
         private readonly IProductService _productService;
+        private readonly IProductExportService _productExport;
 
         public AdminProductsController(
             AppDbContext context,
@@ -48,7 +49,8 @@ namespace KasseAPI_Final.Controllers
             IDemoProductImportService demoProductImportService,
             ICurrentTenantAccessor tenantAccessor,
             IAdminProductListService productListService,
-            IProductService productService)
+            IProductService productService,
+            IProductExportService productExport)
             : base(logger)
         {
             _context = context;
@@ -61,6 +63,40 @@ namespace KasseAPI_Final.Controllers
             _tenantAccessor = tenantAccessor;
             _productListService = productListService;
             _productService = productService;
+            _productExport = productExport;
+        }
+
+        /// <summary>
+        /// Export products as CSV or JSON. Filename: <c>product_{tenantSlug}_{stamp}.{ext}</c>.
+        /// </summary>
+        [HttpGet("export")]
+        [Produces("text/csv", "application/json")]
+        [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> Export(
+            [FromQuery] string format = "csv",
+            [FromQuery] bool? isActive = null,
+            CancellationToken cancellationToken = default)
+        {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken)
+                .ConfigureAwait(false);
+            var tenantSlug = await _context.Tenants.AsNoTracking()
+                .Where(t => t.Id == tenantId)
+                .Select(t => t.Slug)
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            try
+            {
+                var result = await _productExport
+                    .ExportAsync(tenantId, tenantSlug, format, isActive, cancellationToken)
+                    .ConfigureAwait(false);
+                return File(result.Content, result.ContentType, result.FileName);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message, code = "PRODUCT_EXPORT_TOO_LARGE" });
+            }
         }
 
         /// <summary>Demo menu catalog for import selection UI. GET api/admin/products/demo/catalog</summary>

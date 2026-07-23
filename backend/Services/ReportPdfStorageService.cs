@@ -1,6 +1,7 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Reports;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services;
@@ -11,15 +12,18 @@ public sealed class ReportPdfStorageService : IReportPdfStorageService
 
     private readonly AppDbContext _context;
     private readonly IHostEnvironment _environment;
+    private readonly IFileNamingService _fileNaming;
     private readonly ILogger<ReportPdfStorageService> _logger;
 
     public ReportPdfStorageService(
         AppDbContext context,
         IHostEnvironment environment,
+        IFileNamingService fileNaming,
         ILogger<ReportPdfStorageService> logger)
     {
         _context = context;
         _environment = environment;
+        _fileNaming = fileNaming;
         _logger = logger;
     }
 
@@ -149,9 +153,15 @@ public sealed class ReportPdfStorageService : IReportPdfStorageService
             return null;
 
         var stream = File.OpenRead(absolutePath);
-        var fileName = BuildDownloadFileName(reportType, reportId);
+        var fileName = await BuildDownloadFileNameAsync(row, cancellationToken).ConfigureAwait(false);
         return (stream, fileName, "application/pdf");
     }
+
+    public Task<string> ResolveDownloadFileNameAsync(
+        string reportType,
+        Guid reportId,
+        CancellationToken cancellationToken = default) =>
+        ResolveDownloadFileNameCoreAsync(reportType, reportId, fallbackGeneratedAt: null, cancellationToken);
 
     internal static string BuildRelativePath(Guid tenantId, string reportType, Guid reportId, string language) =>
         Path.Combine(
@@ -160,8 +170,116 @@ public sealed class ReportPdfStorageService : IReportPdfStorageService
             reportType,
             $"{reportId:N}_{NormalizeLanguage(language)}.pdf");
 
+    /// <summary>Fallback when tenant/period context is unavailable.</summary>
     internal static string BuildDownloadFileName(string reportType, Guid reportId) =>
-        $"RKSV-{reportType}-{reportId:N}.pdf";
+        BuildDownloadFileNameCore(
+            reportType,
+            tenantSlug: null,
+            period: reportId.ToString("N")[..8],
+            generatedAt: null);
+
+    internal static string BuildDownloadFileName(
+        string reportType,
+        string? tenantSlug,
+        DateTime businessDate,
+        DateTime? generatedAt = null) =>
+        BuildDownloadFileNameCore(
+            reportType,
+            tenantSlug,
+            ReportExportFileNames.PeriodForReportType(reportType, businessDate),
+            generatedAt);
+
+    private static string BuildDownloadFileNameCore(
+        string reportType,
+        string? tenantSlug,
+        string period,
+        DateTime? generatedAt)
+    {
+        var type = ReportExportFileNames.NormalizeReportTypeLabel(reportType);
+        return new FileNamingService(NullCurrentTenantAccessor.Instance).GenerateFileName(
+            $"{ReportExportFileNames.Prefix}_{type}",
+            "pdf",
+            additional: period,
+            at: generatedAt,
+            tenantSlug: tenantSlug);
+    }
+
+    private async Task<string> BuildDownloadFileNameAsync(ReportPdf row, CancellationToken cancellationToken) =>
+        await ResolveDownloadFileNameCoreAsync(
+                row.ReportType,
+                row.ReportId,
+                row.GeneratedAt,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+    private string BuildNamedDownload(string reportType, string? tenantSlug, DateTime businessDate, DateTime? generatedAt = null)
+    {
+        var type = ReportExportFileNames.NormalizeReportTypeLabel(reportType);
+        var period = ReportExportFileNames.PeriodForReportType(reportType, businessDate);
+        return _fileNaming.GenerateFileName(
+            $"{ReportExportFileNames.Prefix}_{type}",
+            "pdf",
+            additional: period,
+            at: generatedAt,
+            tenantSlug: tenantSlug);
+    }
+
+    private async Task<string> ResolveDownloadFileNameCoreAsync(
+        string reportType,
+        Guid reportId,
+        DateTime? fallbackGeneratedAt,
+        CancellationToken cancellationToken)
+    {
+        var closing = await _context.DailyClosings
+            .AsNoTracking()
+            .Where(c => c.Id == reportId)
+            .Select(c => new { c.TenantId, c.ClosingDate })
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (closing is not null)
+        {
+            var slug = await ResolveTenantSlugAsync(closing.TenantId, cancellationToken).ConfigureAwait(false);
+            return BuildNamedDownload(reportType, slug, closing.ClosingDate);
+        }
+
+        var payment = await _context.PaymentDetails
+            .AsNoTracking()
+            .Where(p => p.Id == reportId && p.IsActive)
+            .Select(p => new { p.CreatedAt, TenantId = p.CashRegister!.TenantId })
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (payment is not null)
+        {
+            var slug = await ResolveTenantSlugAsync(payment.TenantId, cancellationToken).ConfigureAwait(false);
+            return BuildNamedDownload(reportType, slug, payment.CreatedAt);
+        }
+
+        if (fallbackGeneratedAt is { } generatedAt)
+        {
+            var rowTenantId = await _context.ReportPdfs
+                .AsNoTracking()
+                .Where(r => r.ReportId == reportId && r.ReportType == reportType)
+                .Select(r => (Guid?)r.TenantId)
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+            var slug = rowTenantId is { } tid
+                ? await ResolveTenantSlugAsync(tid, cancellationToken).ConfigureAwait(false)
+                : null;
+            return BuildNamedDownload(reportType, slug, generatedAt);
+        }
+
+        return BuildDownloadFileName(reportType, reportId);
+    }
+
+    private async Task<string?> ResolveTenantSlugAsync(Guid tenantId, CancellationToken cancellationToken) =>
+        await _context.Tenants
+            .AsNoTracking()
+            .Where(t => t.Id == tenantId)
+            .Select(t => t.Slug)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
 
     private async Task<ReportPdf?> FindRowAsync(
         string reportType,

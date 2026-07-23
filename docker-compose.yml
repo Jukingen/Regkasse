@@ -1,0 +1,165 @@
+# Regkasse — full local stack (PostgreSQL + Redis + API + Admin + optional POS web)
+#
+# Prerequisites: Docker Desktop (or compatible engine) with Compose v2.
+#
+# Quick start (from repository root):
+#   cp .env.example .env          # Windows: copy .env.example .env
+#   docker compose up --build
+#
+# With optional POS static web (Expo export → nginx):
+#   docker compose --profile pos up --build
+#
+# URLs (host):
+#   API:   http://localhost:5184
+#   Admin: http://localhost:3000
+#   POS:   http://localhost:8081   (profile: pos)
+#   Postgres: localhost:5432
+#   Redis:    localhost:6379
+#
+# Browser clients must call the API via localhost (baked NEXT_PUBLIC_* /
+# EXPO_PUBLIC_*), not the internal Docker DNS name `backend`.
+
+name: regkasse
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: regkasse-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-kasse_db}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - regkasse_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - regkasse
+
+  redis:
+    image: redis:7-alpine
+    container_name: regkasse-redis
+    restart: unless-stopped
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - regkasse_redis:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    networks:
+      - regkasse
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: regkasse-api:local
+    container_name: regkasse-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - '${API_PORT:-5184}:8080'
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: >-
+        Host=postgres;Port=5432;Database=${POSTGRES_DB:-kasse_db};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres};Pooling=true
+      JwtSettings__SecretKey: ${JWT_SECRET_KEY:-CHANGE_ME_DOCKER_DEV_JWT_SECRET_KEY_32CHARS_MIN}
+      JwtSettings__Issuer: ${JWT_ISSUER:-Regkasse}
+      JwtSettings__Audience: ${JWT_AUDIENCE:-RegkasseClients}
+      Redis__ConnectionString: redis:6379
+      Redis__InstanceName: ${REDIS_INSTANCE_NAME:-Regkasse_Docker}
+      # Dev-friendly defaults (override in .env as needed)
+      TwoFactorAuth__Enabled: ${TWO_FACTOR_ENABLED:-false}
+      TwoFactorAuth__BypassInDevelopment: 'true'
+      Security__Csrf__Enabled: ${CSRF_ENABLED:-false}
+      Security__Csrf__BypassInDevelopment: 'true'
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'curl -fsS http://127.0.0.1:8080/api/health/live || exit 1',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 90s
+    networks:
+      - regkasse
+
+  frontend-admin:
+    build:
+      context: ./frontend-admin
+      dockerfile: Dockerfile
+      args:
+        # Browser on the host → published API port (not the Docker service name).
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:5184}
+        NEXT_PUBLIC_RKSV_ENVIRONMENT: ${NEXT_PUBLIC_RKSV_ENVIRONMENT:-TEST}
+        NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+        NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${NEXT_PUBLIC_SENTRY_ENVIRONMENT:-}
+        NEXT_PUBLIC_SENTRY_RELEASE: ${NEXT_PUBLIC_SENTRY_RELEASE:-}
+    image: regkasse-frontend-admin:local
+    container_name: regkasse-frontend-admin
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - '${ADMIN_PORT:-3000}:3000'
+    environment:
+      NODE_ENV: production
+      PORT: '3000'
+      HOSTNAME: 0.0.0.0
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:5184}
+      NEXT_PUBLIC_RKSV_ENVIRONMENT: ${NEXT_PUBLIC_RKSV_ENVIRONMENT:-TEST}
+    networks:
+      - regkasse
+
+  # Optional: Expo static web export served by nginx (not Metro / native).
+  frontend:
+    profiles: ['pos']
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        EXPO_PUBLIC_API_BASE_URL: ${EXPO_PUBLIC_API_BASE_URL:-http://localhost:5184/api}
+        EXPO_PUBLIC_DEV_TENANT_ID: ${EXPO_PUBLIC_DEV_TENANT_ID:-dev}
+        EXPO_PUBLIC_ADMIN_BASE_URL: ${EXPO_PUBLIC_ADMIN_BASE_URL:-http://localhost:3000}
+    image: regkasse-frontend-pos-web:local
+    container_name: regkasse-frontend-pos
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - '${POS_PORT:-8081}:80'
+    networks:
+      - regkasse
+
+networks:
+  regkasse:
+    driver: bridge
+
+volumes:
+  regkasse_pgdata:
+  regkasse_redis:

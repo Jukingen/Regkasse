@@ -13,6 +13,8 @@ import type {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { Product } from '@/api/generated/model';
+import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
+import { buildProductExportFileName } from '@/features/products/utils/productExportFileName';
 import { mapUiProductToApi } from '@/features/products/utils/productMapper';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { AXIOS_INSTANCE, customInstance } from '@/lib/axios';
@@ -726,4 +728,27 @@ export function importDemoProducts(
     },
     options
   ).then((res) => unwrapData<DemoProductImportResult>(res));
+}
+
+export type AdminProductExportFormat = 'csv' | 'json';
+
+/** Download product catalog export; prefers Content-Disposition filename from the API. */
+export async function downloadAdminProductExport(
+  format: AdminProductExportFormat,
+  options?: { isActive?: boolean }
+): Promise<void> {
+  const res = await AXIOS_INSTANCE.get<Blob>(`${ADMIN_PRODUCTS}/export`, {
+    params: { format, isActive: options?.isActive },
+    responseType: 'blob',
+  });
+  const disposition = res.headers['content-disposition'] as string | undefined;
+  const match = disposition?.match(/filename="?([^";]+)"?/i);
+  const fileName =
+    match?.[1] ?? buildProductExportFileName(getEffectiveTenantSlug(), format);
+  const url = URL.createObjectURL(res.data);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(url);
 }

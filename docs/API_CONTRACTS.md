@@ -1,10 +1,11 @@
 # API contract supplements
 
+> **Root index (Auth / Users / Digital / Billing):** [`../API_CONTRACT.md`](../API_CONTRACT.md)  
 > **Authoritative OpenAPI:** `backend/swagger.json`  
 > **AI / governance:** `ai/03_API_CONTRACT.md`, `ai/11_OPENAPI_CONTRACT_GOVERNANCE.md`  
 > **User lifecycle (operator):** [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md)
 
-This document records **intentional contract deltas** that may lag swagger until the next regeneration cycle. When code and swagger disagree, **implementation + tests** win until swagger is updated and Orval is re-run.
+This document records **intentional contract deltas** and deep examples that may lag a swagger regeneration cycle. When code and swagger disagree, **implementation + tests** win until swagger is updated and Orval is re-run.
 
 ---
 

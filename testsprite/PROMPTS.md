@@ -107,25 +107,32 @@ Beklenti: yetki kontrolleri ve response schema dogrulamasi.
 ```text
 TestSprite: frontend-admin user management E2E testleri olustur.
 Kapsam:
-- Admin login
-- /users ve /admin/users rotalarini dogrula
-- "Neuen Benutzer" ile quick create
-- Olusan sifreyi kopyalama aksiyonu
-- Username edit ve basari mesaji
-UI metinleri Almanca kalmali, selectorlar stabil olmali.
+- Admin login (loginIdentifier)
+- /admin/users (Zugriff & Rollen hub)
+- Quick create / username
+UI metinleri Almanca kalmali.
 ```
 
-## 10) Admin Panel E2E - Backup Dashboard
+## 10) Admin Panel E2E - Backup hub
 
 ```text
-TestSprite: frontend-admin backup dashboard E2E testleri olustur.
+TestSprite: frontend-admin backup hub E2E testleri olustur.
 Kapsam:
-- /admin/backup sayfasina navigasyon
-- Manual backup tetikleme
-- Listeye yeni backup kaydinin dusmesi
-- Backup detay modal kontrolu
-- Backup ayarlari guncelleme ve success feedback
-Flaky riski olan adimlarda uygun wait/retry stratejisi kullan.
+- /backup (legacy /settings/backup-dr degil)
+- /backup/costs, /backup/compliance
+- Manual backup tetikleme (yetkiye gore)
+```
+
+## 11) Offline orders + Sites
+
+```text
+TestSprite: offline_orders ve public sites smoke testleri olustur.
+Kapsam:
+- GET /api/admin/offline-orders
+- GET /api/pos/offline-orders/pending
+- GET /api/sites/{slug}/status
+- POST /api/public/online-orders (closed saatlerde ONLINE_ORDERS_CLOSED kabul)
+Kurallar: offline_transactions ile karistirma; working hours POS/FA'yi kapatmaz.
 ```
 
 ## Opsiyonel Toplu Prompt (Tum Paket)
@@ -133,14 +140,10 @@ Flaky riski olan adimlarda uygun wait/retry stratejisi kullan.
 ```text
 TestSprite: Regkasse icin uctan uca test paketi calistir.
 Sirayla:
-1) Auth smoke
-2) Tenant isolation
-3) User management API
-4) POS payment flow
-5) Backup API
-6) Admin E2E (users + backup)
-Cikti:
-- Basarisiz testler oncelikli liste
-- Muhtemel root cause
-- Duzeltme onceliklendirmesi (P0/P1/P2)
+1) Auth smoke (loginIdentifier, invalid → 401)
+2) Tenant isolation (cross-tenant → 404)
+3) Backup API (status, compliance, costs)
+4) Offline orders + sites status
+5) Admin E2E (/admin/users + /backup)
+Cikti: basarisizlar, root cause, P0/P1/P2.
 ```

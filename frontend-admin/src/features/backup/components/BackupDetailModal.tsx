@@ -36,6 +36,12 @@ import { BackupStatusBadge } from '@/features/backup/components/BackupStatusBadg
 import { BackupVerificationReportPanel } from '@/features/backup/components/BackupVerificationReportPanel';
 import { useBackupPermissions } from '@/features/backup/hooks/useBackupPermissions';
 import { useBackupRun } from '@/features/backup/hooks/useBackupRun';
+import { DownloadProgressModal } from '@/components/ui/DownloadProgressModal';
+import { useProgressiveDownload } from '@/hooks/useProgressiveDownload';
+import { useSensitiveExportGate } from '@/hooks/useSensitiveExportGate';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { isSuperAdmin } from '@/features/auth/constants/roles';
+import { SENSITIVE_EXPORT_KINDS } from '@/lib/download/sensitiveExportSecurity';
 import {
   backupTriggerSourceLabelKey,
   isBackupRunSucceeded,
@@ -59,6 +65,9 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
   const { t, formatLocale } = useI18n();
   const { canDownloadBackup } = useBackupPermissions();
   const [downloading, setDownloading] = useState(false);
+  const progressiveDownload = useProgressiveDownload();
+  const sensitiveGate = useSensitiveExportGate();
+  const { user } = useAuth();
 
   const {
     data: run,
@@ -68,6 +77,9 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
   } = useBackupRun(runId, {
     enabled: open,
   });
+
+  const isSystemBackup =
+    run?.strategy === 1 || run?.strategy === 'System';
 
   const allowClientPipelineFallback = isBackupPipelineClientFallbackEnabled();
   const simulated = isSimulatedBackupAdapterKind(run?.adapterKind);
@@ -93,16 +105,74 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
     return arts.find((a) => a.isFilePresentForDownload && a.id) ?? arts.find((a) => a.id) ?? null;
   }, [run?.artifacts]);
 
+  const executeBackupDownload = useCallback(
+    async (
+      artifactId: string,
+      fallback: string,
+      sizeBytes: number | null | undefined,
+      headers?: Record<string, string>
+    ) => {
+      if (!run?.id) return;
+      const label = t('common.downloadProgress.labelBackup');
+      await progressiveDownload.runCustom({
+        fileName: fallback,
+        label,
+        expectedTotalBytes: sizeBytes,
+        execute: async ({ session, onProgress }) => {
+          await downloadBackupArtifactFile(
+            run.id!,
+            artifactId,
+            fallback,
+            {
+              session,
+              onProgress,
+              label,
+              expectedSizeBytes: sizeBytes,
+            },
+            headers ? { headers } : undefined
+          );
+        },
+      });
+    },
+    [progressiveDownload, run?.id, t]
+  );
+
   const handleDownloadPrimary = useCallback(async () => {
     if (!run?.id || !primaryDownloadArtifact?.id) return;
     setDownloading(true);
+    const fallback = `backup-${run.id}-${primaryDownloadArtifact.id}`;
     try {
-      const fallback = `backup-${run.id}-${primaryDownloadArtifact.id}`;
-      await downloadBackupArtifactFile(run.id, primaryDownloadArtifact.id, fallback);
+      const doDownload = async (headers?: Record<string, string>) => {
+        await executeBackupDownload(
+          primaryDownloadArtifact.id!,
+          fallback,
+          primaryDownloadArtifact.byteSize,
+          headers
+        );
+      };
+      if (isSystemBackup) {
+        sensitiveGate.run({
+          kind: SENSITIVE_EXPORT_KINDS.SystemBackup,
+          resourceId: `${run.id}:${primaryDownloadArtifact.id}`,
+          isSuperAdmin: isSuperAdmin(user?.role),
+          execute: async (headers) => {
+            await doDownload(headers);
+          },
+        });
+      } else {
+        await doDownload();
+      }
     } finally {
       setDownloading(false);
     }
-  }, [primaryDownloadArtifact?.id, run?.id]);
+  }, [
+    executeBackupDownload,
+    isSystemBackup,
+    primaryDownloadArtifact,
+    run?.id,
+    sensitiveGate,
+    user?.role,
+  ]);
 
   const artifactColumns: ColumnsType<BackupArtifactResponseDto> = useMemo(
     () => [
@@ -169,9 +239,24 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
               type="link"
               size="small"
               icon={<DownloadOutlined />}
-              onClick={() =>
-                void downloadBackupArtifactFile(run.id!, row.id!, `backup-${run.id}-${row.id}`)
-              }
+              onClick={() => {
+                const fallback = `backup-${run.id}-${row.id}`;
+                const doDownload = async (headers?: Record<string, string>) => {
+                  await executeBackupDownload(row.id!, fallback, row.byteSize, headers);
+                };
+                if (isSystemBackup) {
+                  sensitiveGate.run({
+                    kind: SENSITIVE_EXPORT_KINDS.SystemBackup,
+                    resourceId: `${run.id}:${row.id}`,
+                    isSuperAdmin: isSuperAdmin(user?.role),
+                    execute: async (headers) => {
+                      await doDownload(headers);
+                    },
+                  });
+                } else {
+                  void doDownload();
+                }
+              }}
             >
               {t('backupDr.detailModal.download')}
             </Button>
@@ -180,7 +265,17 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
           ),
       },
     ],
-    [canDownloadBackup, formatDateTime, formatLocale, run?.id, t]
+    [
+      canDownloadBackup,
+      executeBackupDownload,
+      formatDateTime,
+      formatLocale,
+      isSystemBackup,
+      run?.id,
+      sensitiveGate,
+      t,
+      user?.role,
+    ]
   );
 
   const renderOverviewMetrics = useCallback(() => {
@@ -348,6 +443,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
                 isSimulatedExecution={simulated}
                 runAdapterKind={run.adapterKind}
                 simulatedOperationalMode={simulated}
+                requireSensitiveSystemGate={isSystemBackup}
                 loadingArtifacts={isFetching}
                 t={t}
               />
@@ -445,6 +541,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
     Boolean(run?.id && primaryDownloadArtifact?.id && canDownloadBackup);
 
   return (
+    <>
     <Modal
       title={
         run?.id
@@ -461,7 +558,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
           {showDownloadFooter ? (
             <Button
               type="primary"
-              loading={downloading}
+              loading={downloading || progressiveDownload.isBusy}
               onClick={() => void handleDownloadPrimary()}
             >
               {t('backupDr.detailModal.downloadBackup')}
@@ -480,6 +577,9 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
         <Tabs items={tabItems} />
       )}
     </Modal>
+    <DownloadProgressModal {...progressiveDownload.modalProps} />
+    {sensitiveGate.modals}
+    </>
   );
 }
 

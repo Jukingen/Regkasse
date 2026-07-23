@@ -8,6 +8,26 @@
   "sidebar": {
     "noAccessibleMenus": "Kullanılabilir menü ögesi yok."
   },
+  "menuPermission": {
+    "popoverTitle": "Bu menüyü hangi izin kontrol eder?",
+    "permissionLabel": "İzin:",
+    "groupLabel": "Grup:",
+    "requiredIntro": "Bu menüyü görmek için aşağıdaki yetkiler gerekir:",
+    "noRequirements": "Belirli bir izin yok (kimliği doğrulanmış erişim).",
+    "primaryGate": "Birincil",
+    "editPermission": "Yetkiyi düzenle",
+    "openExplorer": "Permission Explorer",
+    "infoAria": "{{menu}} için izin bilgisi",
+    "missingMapping": "İzin eşlemesi yok",
+    "missingMappingDevHint": "Development: izin eşlemesi olmayan menü",
+    "explorerTitle": "Permission Explorer",
+    "explorerSearch": "Menü ara…",
+    "explorerEmpty": "Menü bulunamadı.",
+    "explorerSelectHint": "Listeden bir menü seçin.",
+    "rolesHolding": "Bu izne sahip roller:",
+    "rolesNone": "Hiçbir rol bu izne sahip değil.",
+    "rolesUnavailable": "Rol listesi yüklenmedi (erişim gerekli)."
+  },
   "nav": {
     "dashboard": "Kontrol paneli",
     "licenseManagement": "Lisans yönetimi",
@@ -69,6 +89,7 @@
     "users": "Kullanıcılar",
     "rolesPermissions": "Roller ve izinler",
     "permissionsOverview": "İzin özeti",
+    "permissionHistory": "📜 Yetki geçmişi",
     "tenants": "Kiracılar",
     "billing": "Lisans satışı",
     "billingOverview": "Genel bakış",
@@ -95,7 +116,12 @@
     "clearConfirmTitle": "Hata logları temizlensin mi?",
     "clearConfirmBody": "Bu uygulama için tüm Elmah kayıtları kalıcı olarak silinecek.",
     "clearSuccess": "Hata logları temizlendi.",
-    "clearFailed": "Hata logları temizlenemedi."
+    "clearFailed": "Hata logları temizlenemedi.",
+    "exportTxt": "TXT disa aktar",
+    "exportCsv": "CSV disa aktar",
+    "exportJson": "JSON disa aktar",
+    "exportSuccess": "Disa aktarma indirildi.",
+    "exportFailed": "Disa aktarma basarisiz."
   },
   "aria": {
     "openNav": "Gezinme menüsünü aç",

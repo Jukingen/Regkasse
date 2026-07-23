@@ -48,6 +48,7 @@ public sealed class AdminBackupController : ControllerBase
     private readonly IBackupRunTenantAccessService _backupTenantAccess;
     private readonly IBackupArtifactImportService _artifactImport;
     private readonly IBackupTimeEstimator _timeEstimator;
+    private readonly IDownloadSecurityService _downloadSecurity;
 
     public AdminBackupController(
         IBackupManualTriggerService trigger,
@@ -71,7 +72,8 @@ public sealed class AdminBackupController : ControllerBase
         ICurrentTenantAccessor tenantAccessor,
         IBackupRunTenantAccessService backupTenantAccess,
         IBackupArtifactImportService artifactImport,
-        IBackupTimeEstimator timeEstimator)
+        IBackupTimeEstimator timeEstimator,
+        IDownloadSecurityService downloadSecurity)
     {
         _trigger = trigger;
         _query = query;
@@ -95,6 +97,7 @@ public sealed class AdminBackupController : ControllerBase
         _backupTenantAccess = backupTenantAccess;
         _artifactImport = artifactImport;
         _timeEstimator = timeEstimator;
+        _downloadSecurity = downloadSecurity;
     }
 
     /// <summary>Enqueue manual backup (HTTP thread does not run pg_dump / file IO).</summary>
@@ -432,8 +435,61 @@ public sealed class AdminBackupController : ControllerBase
                     out var parsedTenantId)
                 ? parsedTenantId
                 : (Guid?)null);
+
+        long? fileSizeBytes = null;
         try
         {
+            if (!string.IsNullOrWhiteSpace(prepare.AbsolutePath) && System.IO.File.Exists(prepare.AbsolutePath))
+                fileSizeBytes = new FileInfo(prepare.AbsolutePath).Length;
+        }
+        catch
+        {
+            // Size check is best-effort; gate still applies daily limits / sensitive rules.
+        }
+
+        var isSystemBackup = accessibleRun.Strategy == BackupStrategyKind.System;
+        var exportKind = isSystemBackup
+            ? SensitiveExportKinds.SystemBackup
+            : "tenant-backup";
+        var gate = await _downloadSecurity.EvaluateAsync(
+            new DownloadSecurityEvaluateRequest
+            {
+                UserId = userId,
+                UserRole = role,
+                TenantId = auditTenantId,
+                ExportKind = exportKind,
+                ResourceId = $"{runId}:{artifactId}",
+                FileSizeBytes = fileSizeBytes,
+                PrivacyAck = DownloadSecurityHttp.ReadPrivacyAck(Request),
+                TwoFactorCode = DownloadSecurityHttp.ReadTwoFactorCode(Request),
+                ApprovalId = DownloadSecurityHttp.ReadApprovalId(Request),
+                DownloadTicket = DownloadSecurityHttp.ReadDownloadTicket(Request),
+                IsSuperAdmin = isSuperAdmin,
+            },
+            cancellationToken).ConfigureAwait(false);
+        if (!gate.Allowed)
+            return StatusCode(gate.StatusCode, gate.Body);
+
+        if (!string.IsNullOrWhiteSpace(gate.DownloadTicket))
+        {
+            Response.Headers[DownloadSecurityService.HeaderDownloadTicket] = gate.DownloadTicket;
+            if (gate.TicketExpiresAtUtc.HasValue)
+                Response.Headers["X-Download-Ticket-Expires"] = gate.TicketExpiresAtUtc.Value.ToString("O");
+        }
+
+        try
+        {
+            await _downloadSecurity.LogDownloadAuditAsync(
+                userId,
+                role,
+                auditTenantId,
+                exportKind,
+                prepare.DownloadFileName ?? "backup.bin",
+                fileSizeBytes,
+                $"{runId}:{artifactId}",
+                correlationId,
+                cancellationToken).ConfigureAwait(false);
+
             await _audit.LogSystemOperationAsync(
                 action: "BACKUP_ARTIFACT_DOWNLOAD",
                 entityType: "BackupArtifact",
@@ -443,9 +499,10 @@ public sealed class AdminBackupController : ControllerBase
                 notes: null,
                 status: AuditLogStatus.Success,
                 errorDetails: null,
-                requestData: new { backupRunId = runId, artifactId },
+                requestData: new { backupRunId = runId, artifactId, strategy = accessibleRun.Strategy.ToString() },
                 responseData: new { downloadFileName = prepare.DownloadFileName },
                 correlationIdOverride: correlationId,
+                actionType: isSystemBackup ? AuditEventType.SystemBackupDownloaded : AuditEventType.FileDownloaded,
                 entityId: artifactId,
                 tenantId: auditTenantId);
         }

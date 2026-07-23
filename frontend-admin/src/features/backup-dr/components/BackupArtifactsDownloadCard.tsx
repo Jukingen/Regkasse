@@ -28,7 +28,13 @@ import {
   BackupArtifactDownloadError,
   downloadBackupArtifactFile,
 } from '@/features/backup-dr/logic/downloadBackupArtifactFile';
+import { DownloadProgressModal } from '@/components/ui/DownloadProgressModal';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { useProgressiveDownload } from '@/hooks/useProgressiveDownload';
+import { useSensitiveExportGate } from '@/hooks/useSensitiveExportGate';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { isSuperAdmin } from '@/features/auth/constants/roles';
+import { SENSITIVE_EXPORT_KINDS } from '@/lib/download/sensitiveExportSecurity';
 
 export type BackupArtifactsDownloadVariant = 'latest_success' | 'last_known_good';
 
@@ -44,6 +50,8 @@ export interface BackupArtifactsDownloadCardProps {
   realPostgreSqlLogicalDumpConfigured?: boolean | null;
   /** Fake/Stub ortamı — başlık ve kapsam metni “gerçek yedek dosyası” ima etmez. */
   simulatedOperationalMode?: boolean;
+  /** When true, download requires privacy ack + 2FA (system backup). */
+  requireSensitiveSystemGate?: boolean;
   loadingArtifacts?: boolean;
   t: (key: string, options?: Record<string, string | number>) => string;
 }
@@ -93,10 +101,14 @@ export function BackupArtifactsDownloadCard({
   runAdapterKind,
   realPostgreSqlLogicalDumpConfigured,
   simulatedOperationalMode = false,
+  requireSensitiveSystemGate = false,
   loadingArtifacts = false,
   t,
 }: BackupArtifactsDownloadCardProps) {
   const { message, modal } = useAntdApp();
+  const progressiveDownload = useProgressiveDownload();
+  const sensitiveGate = useSensitiveExportGate();
+  const { user } = useAuth();
 
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -137,44 +149,91 @@ export function BackupArtifactsDownloadCard({
       const id = artifact.id;
       if (!id) return;
       const fallback = `backup-${runId}-${id}`;
-      setBusyId(id);
-      try {
-        await downloadBackupArtifactFile(runId, id, fallback);
-      } catch (e) {
-        if (e instanceof BackupArtifactDownloadError) {
-          const key =
-            e.code === 'run_not_found'
-              ? 'backupDr.download.errorRunNotFound'
-              : e.code === 'artifact_not_found'
-                ? 'backupDr.download.errorArtifactNotFound'
-                : e.code === 'file_missing'
-                  ? 'backupDr.download.errorFileMissing'
-                  : e.code === 'not_found'
-                    ? 'backupDr.download.errorNotFound'
-                    : e.code === 'conflict'
-                      ? 'backupDr.download.errorConflict'
-                      : e.code === 'storage'
-                        ? 'backupDr.download.errorStorage'
-                        : e.code === 'simulated_not_downloadable'
-                          ? 'backupDr.download.errorSimulated'
-                          : e.code === 'forbidden'
-                            ? 'backupDr.download.errorForbidden'
-                            : e.code === 'unauthorized'
-                              ? 'backupDr.download.errorUnauthorized'
-                              : e.code === 'unknown'
-                                ? 'backupDr.download.errorUnknown'
-                                : e.code === 'empty_payload'
-                                  ? 'backupDr.download.errorEmptyPayload'
-                                  : 'backupDr.download.error';
-          message.error(t(key));
-          return;
+      const label = t('common.downloadProgress.labelBackup');
+      const executeDownload = async (headers?: Record<string, string>) => {
+        setBusyId(id);
+        try {
+          await progressiveDownload.runCustom({
+            fileName: fallback,
+            label,
+            expectedTotalBytes: artifact.byteSize,
+            execute: async ({ session, onProgress }) => {
+              await downloadBackupArtifactFile(
+                runId,
+                id,
+                fallback,
+                {
+                  session,
+                  onProgress,
+                  label,
+                  expectedSizeBytes: artifact.byteSize,
+                },
+                headers ? { headers } : undefined
+              );
+            },
+          });
+        } catch (e) {
+          if (e instanceof BackupArtifactDownloadError && e.code === 'cancelled') {
+            return;
+          }
+          if (e instanceof BackupArtifactDownloadError) {
+            const key =
+              e.code === 'run_not_found'
+                ? 'backupDr.download.errorRunNotFound'
+                : e.code === 'artifact_not_found'
+                  ? 'backupDr.download.errorArtifactNotFound'
+                  : e.code === 'file_missing'
+                    ? 'backupDr.download.errorFileMissing'
+                    : e.code === 'not_found'
+                      ? 'backupDr.download.errorNotFound'
+                      : e.code === 'conflict'
+                        ? 'backupDr.download.errorConflict'
+                        : e.code === 'storage'
+                          ? 'backupDr.download.errorStorage'
+                          : e.code === 'simulated_not_downloadable'
+                            ? 'backupDr.download.errorSimulated'
+                            : e.code === 'forbidden'
+                              ? 'backupDr.download.errorForbidden'
+                              : e.code === 'unauthorized'
+                                ? 'backupDr.download.errorUnauthorized'
+                                : e.code === 'unknown'
+                                  ? 'backupDr.download.errorUnknown'
+                                  : e.code === 'empty_payload'
+                                    ? 'backupDr.download.errorEmptyPayload'
+                                    : 'backupDr.download.error';
+            message.error(t(key));
+            return;
+          }
+          message.error(t('backupDr.download.error'));
+          throw e;
+        } finally {
+          setBusyId(null);
         }
-        message.error(t('backupDr.download.error'));
-      } finally {
-        setBusyId(null);
+      };
+
+      if (requireSensitiveSystemGate) {
+        sensitiveGate.run({
+          kind: SENSITIVE_EXPORT_KINDS.SystemBackup,
+          resourceId: `${runId}:${id}`,
+          isSuperAdmin: isSuperAdmin(user?.role),
+          execute: async (headers) => {
+            await executeDownload(headers);
+          },
+        });
+        return;
       }
+
+      await executeDownload();
     },
-    [runId, t]
+    [
+      message,
+      progressiveDownload,
+      requireSensitiveSystemGate,
+      runId,
+      sensitiveGate,
+      t,
+      user?.role,
+    ]
   );
 
   const onDownloadRow = useCallback(
@@ -552,6 +611,8 @@ export function BackupArtifactsDownloadCard({
         dataSource={rows}
         columns={columns}
       />
+      <DownloadProgressModal {...progressiveDownload.modalProps} />
+      {sensitiveGate.modals}
     </Card>
   );
 }

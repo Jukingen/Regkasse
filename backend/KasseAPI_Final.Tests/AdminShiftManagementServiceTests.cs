@@ -214,5 +214,6 @@ public sealed class ShiftAutoCloseServiceTests
     private sealed class MutableTenantAccessor : ICurrentTenantAccessor
     {
         public Guid? TenantId { get; set; }
+        public string? TenantSlug { get; set; }
     }
 }

@@ -24,6 +24,7 @@ public sealed class DepExportHistoryServiceTests
     private sealed class FixedTenantAccessor(Guid tenantId) : ICurrentTenantAccessor
     {
         public Guid? TenantId { get; set; } = tenantId;
+    public string? TenantSlug { get; set; }
     }
 
     private static RksvDepExportRootDto SampleExport() =>
@@ -60,7 +61,10 @@ public sealed class DepExportHistoryServiceTests
         });
         await db.SaveChangesAsync();
 
-        var service = new DepExportHistoryService(db, NullLogger<DepExportHistoryService>.Instance);
+        var service = new DepExportHistoryService(
+            db,
+            new FileNamingService(NullCurrentTenantAccessor.Instance),
+            NullLogger<DepExportHistoryService>.Instance);
         var from = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         var to = new DateTime(2026, 1, 31, 0, 0, 0, DateTimeKind.Utc);
 
@@ -78,6 +82,8 @@ public sealed class DepExportHistoryServiceTests
         Assert.Equal(1, row.GroupCount);
         Assert.Equal(2, row.SignatureCount);
         Assert.True(row.FileSizeBytes > 0);
+        Assert.StartsWith("dep-export_default_KASSE-01_", row.FileName);
+        Assert.EndsWith(".json", row.FileName);
 
         var list = await service.ListAsync(LegacyDefaultTenantIds.Primary, regId);
         Assert.Equal(1, list.TotalCount);
@@ -91,7 +97,10 @@ public sealed class DepExportHistoryServiceTests
         TenantTestDoubles.EnsureDefaultTenant(db);
         var regId = Guid.NewGuid();
 
-        var service = new DepExportHistoryService(db, NullLogger<DepExportHistoryService>.Instance);
+        var service = new DepExportHistoryService(
+            db,
+            new FileNamingService(NullCurrentTenantAccessor.Instance),
+            NullLogger<DepExportHistoryService>.Instance);
         var row = await service.RecordFailedAsync(
             LegacyDefaultTenantIds.Primary,
             regId,

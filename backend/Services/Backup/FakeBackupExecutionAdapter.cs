@@ -45,10 +45,12 @@ public sealed class FakeBackupExecutionAdapter : IBackupExecutionAdapter
 
             var stubLogicalName = BackupArtifactFileNameBuilder.BuildLogicalDumpFileName(
                 context.TenantSlugForFileName,
-                fileNameTimestamp);
+                fileNameTimestamp,
+                context.Strategy);
             var stubManifestName = BackupArtifactFileNameBuilder.BuildManifestFileName(
                 context.TenantSlugForFileName,
-                fileNameTimestamp);
+                fileNameTimestamp,
+                context.Strategy);
             var stubLogicalPath = Path.Combine(stubDir, stubLogicalName);
             var stubManifestPath = Path.Combine(stubDir, stubManifestName);
 
@@ -98,10 +100,12 @@ public sealed class FakeBackupExecutionAdapter : IBackupExecutionAdapter
 
         var logicalName = BackupArtifactFileNameBuilder.BuildLogicalDumpFileName(
             context.TenantSlugForFileName,
-            fileNameTimestamp);
+            fileNameTimestamp,
+            context.Strategy);
         var manifestName = BackupArtifactFileNameBuilder.BuildManifestFileName(
             context.TenantSlugForFileName,
-            fileNameTimestamp);
+            fileNameTimestamp,
+            context.Strategy);
         var logicalPath = Path.Combine(root, logicalName);
         var manifestPath = Path.Combine(root, manifestName);
 

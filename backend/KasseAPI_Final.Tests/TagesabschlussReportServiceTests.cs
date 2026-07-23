@@ -256,7 +256,7 @@ public sealed class TagesabschlussReportServiceTests
                 ReportPdfTypes.Tagesabschluss,
                 closingId,
                 pdfBytes,
-                It.Is<string>(name => name.StartsWith("tagesabschluss_", StringComparison.Ordinal)),
+                It.Is<string>(name => name.StartsWith("report_tagesbericht_", StringComparison.Ordinal)),
                 userId,
                 It.IsAny<CancellationToken>()),
             Times.Once);

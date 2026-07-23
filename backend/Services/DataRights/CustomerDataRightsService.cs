@@ -32,6 +32,7 @@ public sealed class CustomerDataRightsService : ICustomerDataRightsService
     private readonly IDataRightsArtifactStore _artifacts;
     private readonly IOptions<DataExportOptions> _exportOptions;
     private readonly IAuditLogService _audit;
+    private readonly IFileNamingService _fileNaming;
     private readonly ILogger<CustomerDataRightsService> _logger;
 
     public CustomerDataRightsService(
@@ -41,6 +42,7 @@ public sealed class CustomerDataRightsService : ICustomerDataRightsService
         IDataRightsArtifactStore artifacts,
         IOptions<DataExportOptions> exportOptions,
         IAuditLogService audit,
+        IFileNamingService fileNaming,
         ILogger<CustomerDataRightsService> logger)
     {
         _dbFactory = dbFactory;
@@ -49,6 +51,7 @@ public sealed class CustomerDataRightsService : ICustomerDataRightsService
         _artifacts = artifacts;
         _exportOptions = exportOptions;
         _audit = audit;
+        _fileNaming = fileNaming;
         _logger = logger;
     }
 
@@ -205,7 +208,8 @@ public sealed class CustomerDataRightsService : ICustomerDataRightsService
 
         return new DataRightsExportDownload
         {
-            FileName = row.ArtifactFileName ?? $"tenant_{tenantId:N}_export.zip",
+            FileName = row.ArtifactFileName
+                ?? _fileNaming.GenerateFileName(DataExportFileNames.Prefix, "zip"),
             Data = bytes,
         };
     }

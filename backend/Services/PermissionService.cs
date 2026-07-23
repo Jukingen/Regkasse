@@ -77,7 +77,9 @@ public sealed class PermissionService : IPermissionService
 
         var query = _context.UserPermissionOverrides
             .AsNoTracking()
-            .Where(o => o.UserId == userId && (o.ExpiresAt == null || o.ExpiresAt > now));
+            .Where(o => o.UserId == userId
+                && (o.ValidFrom == null || o.ValidFrom <= now)
+                && (o.ExpiresAt == null || o.ExpiresAt > now));
 
         if (resolvedTenantId.HasValue)
             query = query.Where(o => o.TenantId == null || o.TenantId == resolvedTenantId.Value);

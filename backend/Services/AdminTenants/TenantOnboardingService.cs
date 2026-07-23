@@ -115,6 +115,11 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
             LicenseValidUntilUtc = request.LicenseValidUntilUtc.HasValue
                 ? DateTime.SpecifyKind(request.LicenseValidUntilUtc.Value, DateTimeKind.Utc)
                 : null,
+            IndustryTemplateId = IndustryPermissionTemplates.IsValidId(request.IndustryTemplateId)
+                && !string.Equals(request.IndustryTemplateId, IndustryPermissionTemplates.None, StringComparison.OrdinalIgnoreCase)
+                && !string.IsNullOrWhiteSpace(request.IndustryTemplateId)
+                    ? request.IndustryTemplateId.Trim()
+                    : null,
             CreatedAt = now,
             UpdatedAt = now,
             CreatedBy = actorUserId,
@@ -144,6 +149,7 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
                     request.GrantTrialLicense,
                     request.ImportDemoMenu,
                     request.CashRegisterNumber,
+                    request.SeedIndustryStarterUsers,
                     cancellationToken)
                 .ConfigureAwait(false);
 

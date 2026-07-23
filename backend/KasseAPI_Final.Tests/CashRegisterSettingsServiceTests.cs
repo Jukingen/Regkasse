@@ -91,5 +91,6 @@ public sealed class CashRegisterSettingsServiceTests
     private sealed class FixedTenantAccessor(Guid tenantId) : ICurrentTenantAccessor
     {
         public Guid? TenantId { get; set; } = tenantId;
+    public string? TenantSlug { get; set; }
     }
 }

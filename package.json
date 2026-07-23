@@ -1,6 +1,7 @@
 {
   "name": "regkasse",
   "private": true,
+  "license": "UNLICENSED",
   "type": "module",
   "description": "Regkasse monorepo — npm workspaces + root orchestration",
   "engines": {
@@ -38,9 +39,14 @@
     "typecheck:pos": "npm run typecheck -w cash-register",
     "typecheck:sites": "npm run typecheck -w regkasse-sites",
     "typecheck": "npm run typecheck -w registrierkasse-admin --if-present && npm run typecheck -w cash-register --if-present && npm run typecheck -w regkasse-sites --if-present",
+    "clean": "node scripts/clean-artifacts.mjs",
     "seed:test-data": "node scripts/seed-test-data.mjs",
     "verify:api-client": "node scripts/verify-api-client.mjs",
     "verify:openapi": "node scripts/validate-critical-openapi-paths.mjs",
+    "verify:permission-keys": "node scripts/verify-permission-keys.mjs",
+    "verify:permission-keys:table": "node scripts/verify-permission-keys.mjs --table",
+    "verify:menu-permissions": "node scripts/verify-menu-permissions.mjs",
+    "verify:menu-permissions:secondary": "node scripts/verify-menu-permissions.mjs --include-secondary",
     "precommit": "node scripts/git-hooks/pre-commit.mjs",
     "prepare": "node scripts/install-git-hooks.mjs",
     "install:git-hooks": "node scripts/install-git-hooks.mjs",
@@ -53,6 +59,7 @@
     "testsprite:smoke": "node testsprite/run-api-smoke.mjs"
   },
   "devDependencies": {
-    "husky": "^9.1.7"
+    "husky": "^9.1.7",
+    "typescript": "~5.9.3"
   }
 }

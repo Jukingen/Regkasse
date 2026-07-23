@@ -8,6 +8,26 @@
   "sidebar": {
     "noAccessibleMenus": "No menu items available."
   },
+  "menuPermission": {
+    "popoverTitle": "What permission controls this menu?",
+    "permissionLabel": "Permission:",
+    "groupLabel": "Group:",
+    "requiredIntro": "To see this menu, the following permissions are relevant:",
+    "noRequirements": "No specific permission (authenticated access).",
+    "primaryGate": "Primary",
+    "editPermission": "Edit permission",
+    "openExplorer": "Permission Explorer",
+    "infoAria": "Permission info for {{menu}}",
+    "missingMapping": "No permission mapped",
+    "missingMappingDevHint": "Development: menu without permission mapping",
+    "explorerTitle": "Permission Explorer",
+    "explorerSearch": "Search menus…",
+    "explorerEmpty": "No menus found.",
+    "explorerSelectHint": "Select a menu from the list.",
+    "rolesHolding": "Roles with this permission:",
+    "rolesNone": "No role holds this permission.",
+    "rolesUnavailable": "Role list not loaded (access required)."
+  },
   "nav": {
     "dashboard": "Dashboard",
     "licenseManagement": "License management",
@@ -69,6 +89,7 @@
     "users": "Users",
     "rolesPermissions": "Roles & permissions",
     "permissionsOverview": "Permission overview",
+    "permissionHistory": "📜 Permission history",
     "tenants": "Tenants",
     "billing": "License sales",
     "billingOverview": "Overview",
@@ -95,7 +116,12 @@
     "clearConfirmTitle": "Clear error logs?",
     "clearConfirmBody": "All Elmah entries for this application will be permanently deleted.",
     "clearSuccess": "Error logs cleared.",
-    "clearFailed": "Could not clear error logs."
+    "clearFailed": "Could not clear error logs.",
+    "exportTxt": "Export TXT",
+    "exportCsv": "Export CSV",
+    "exportJson": "Export JSON",
+    "exportSuccess": "Export downloaded.",
+    "exportFailed": "Export failed."
   },
   "aria": {
     "openNav": "Open navigation menu",

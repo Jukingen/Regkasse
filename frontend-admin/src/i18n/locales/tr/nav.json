@@ -83,6 +83,7 @@
   "accessRoles": "Erişim ve roller",
   "rolesPermissions": "Roller ve izinler",
   "permissionsOverview": "İzin özeti",
+  "permissionHistory": "📜 Yetki geçmişi",
   "tenants": "Kiracılar",
   "dataManagement": "Veri yönetimi",
   "errorLogs": "Error Logs (Elmah)",
@@ -190,5 +191,9 @@
   "rksvBelegcheckFieldSecondAmount": "Tutar (2)",
   "rksvBelegcheckFieldCertificate": "Sertifika seri numarası",
   "rksvBelegcheckFieldPrevSignature": "Önceki imza",
-  "rksvBelegcheckNoPrev": "—"
+  "rksvBelegcheckNoPrev": "—",
+  "permissionRequests": "Yetki talepleri",
+  "permissionPackages": "Yetki paketleri",
+  "permissionBackups": "Yetki yedekleri",
+  "permissionStats": "Yetki analitikleri"
 }

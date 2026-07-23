@@ -1,0 +1,28 @@
+name: "Public sites & online order intake"
+description: "frontend-sites public APIs; working hours gate online orders only"
+tags: [regression]
+
+notes: |
+  Working hours MUST NOT gate POS or FA. Only website/app order intake.
+  docs/WORKING_HOURS.md, docs/DIGITAL_SERVICES.md
+
+tests:
+  - name: "Website status by tenant slug"
+    endpoint: "GET /api/sites/{tenantSlug}/status"
+    expected:
+      status: 200
+
+  - name: "Public tenant catalog metadata"
+    endpoint: "GET /api/public/tenants/{slug}"
+    expected:
+      status: 200
+
+  - name: "Public tenant menu"
+    endpoint: "GET /api/public/tenants/{slug}/menu"
+    expected:
+      status: 200
+
+  - name: "Create online order (may be closed)"
+    endpoint: "POST /api/public/online-orders"
+    expected:
+      status: 201

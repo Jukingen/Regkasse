@@ -2,6 +2,7 @@
   "name": "registrierkasse-admin",
   "version": "1.0.0",
   "private": true,
+  "license": "UNLICENSED",
   "scripts": {
     "dev": "next dev",
     "dev:clean": "node ./scripts/rm-next-cache.mjs && next dev",
@@ -27,6 +28,8 @@
     "test:e2e:headed": "playwright test --headed",
     "generate:api": "orval",
     "verify:api-client": "node ../scripts/verify-api-client.mjs",
+    "verify:permission-keys": "node ../scripts/verify-permission-keys.mjs",
+    "verify:menu-permissions": "node ../scripts/verify-menu-permissions.mjs",
     "i18n:export-csv": "node ../localization/scripts/export-translations.mjs --app frontend-admin",
     "i18n:import-csv": "node ../localization/scripts/import-translations.mjs --app frontend-admin",
     "i18n:validate": "node ../localization/scripts/validate-translations.mjs --app frontend-admin",

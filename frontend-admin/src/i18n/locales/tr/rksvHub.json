@@ -227,6 +227,8 @@
     "offlineTransactions": "Çevrimdışı işlemler (TSE)",
     "signatureVerify": "İmza doğrulama",
     "fiscalExportAudit": "Mali export denetimi",
+    "downloadHistory": "Indirme gecmisi",
+    "downloadAnalytics": "Indirme istatistikleri",
     "status": "Sistem durumu",
     "cmcCertificate": "CMC / sertifika",
     "finanzOnlineOps": "FinanzOnline · entegrasyon"
@@ -285,6 +287,7 @@
     "tabVerify": "Doğrulama",
     "tabCertificate": "Sertifikalar",
     "tabHistory": "📜 Geçmiş",
+    "tabDownloads": "📋 Indirme gecmisi",
     "cashRegisterLabel": "Kasa",
     "cashRegisterPlaceholder": "Kasa seçin",
     "dateRangeLabel": "Dönem (UTC)",

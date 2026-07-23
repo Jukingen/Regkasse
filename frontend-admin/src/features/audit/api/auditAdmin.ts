@@ -1,7 +1,7 @@
-import dayjs from 'dayjs';
-
 import type { AuditLogListParams } from '@/features/audit-logs/hooks/useAuditLogSearchParams';
 import { buildAuditLogExportQuery } from '@/features/audit-logs/utils/buildAuditLogExportQuery';
+import { buildAuditExportFileName } from '@/features/audit/utils/auditExportFileName';
+import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 
 export type AuditExportFormat = 'csv' | 'json' | 'excel';
@@ -56,7 +56,8 @@ export async function fetchAuditRetention(): Promise<AuditRetentionInfo> {
 
 export async function startAuditExport(
   format: AuditExportFormat,
-  params: AuditLogListParams
+  params: AuditLogListParams,
+  securityHeaders?: Record<string, string>
 ): Promise<
   | { kind: 'immediate'; blob: Blob; fileName: string }
   | { kind: 'background'; jobId: string; matchedRows?: number }
@@ -64,7 +65,11 @@ export async function startAuditExport(
   const res = await AXIOS_INSTANCE.post(
     '/api/admin/audit/export',
     { format, filters: toFiltersBody(params) },
-    { responseType: 'blob', validateStatus: (s) => s === 200 || s === 202 }
+    {
+      responseType: 'blob',
+      validateStatus: (s) => s === 200 || s === 202,
+      headers: securityHeaders,
+    }
   );
 
   if (res.status === 202) {
@@ -73,8 +78,16 @@ export async function startAuditExport(
     return { kind: 'background', jobId: parsed.jobId, matchedRows: parsed.matchedRows };
   }
 
-  const ext = format === 'json' ? 'json' : 'csv';
-  const fileName = `audit_logs_${dayjs().format('YYYYMMDD_HHmmss')}.${ext}`;
+  const disposition = res.headers['content-disposition'] as string | undefined;
+  const match = disposition?.match(/filename="?([^";]+)"?/i);
+  const fileName =
+    match?.[1] ??
+    buildAuditExportFileName({
+      tenantSlug: getEffectiveTenantSlug(),
+      fromDate: params.startDate,
+      toDate: params.endDate,
+      format,
+    });
   return { kind: 'immediate', blob: res.data as Blob, fileName };
 }
 
@@ -85,9 +98,14 @@ export async function pollAuditExportJob(jobId: string): Promise<AuditExportJobS
   return res.data;
 }
 
-export async function downloadAuditExportJob(jobId: string, fileName: string): Promise<void> {
+export async function downloadAuditExportJob(
+  jobId: string,
+  fileName: string,
+  securityHeaders?: Record<string, string>
+): Promise<void> {
   const res = await AXIOS_INSTANCE.get<Blob>(`/api/admin/audit/export/jobs/${jobId}/download`, {
     responseType: 'blob',
+    headers: securityHeaders,
   });
   const url = URL.createObjectURL(res.data);
   const a = document.createElement('a');

@@ -1,7 +1,9 @@
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.DataDeletion;
 using KasseAPI_Final.Services.DataRights;
+using KasseAPI_Final.Tenancy;
 using Microsoft.Extensions.Options;
 using Xunit;
 
@@ -19,6 +21,7 @@ public sealed class CustomerDataRightsServiceTests
             artifacts: null!,
             exportOptions: Options.Create(new DataExportOptions()),
             audit: null!,
+            fileNaming: new FileNamingService(NullCurrentTenantAccessor.Instance),
             logger: null!).GetRequestTypeCatalog();
 
         Assert.Equal(3, catalog.Count);

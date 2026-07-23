@@ -8,9 +8,9 @@
 
 - `tenant_id uuid NOT NULL` — FK `tenants.id`
 - Performans için index (`AppDbContext` `HasIndex(e => e.TenantId)`)
-- Değer istek başına uygulama katmanından gelir: alt alan adı / dev header’daki **slug** → `CurrentTenantService` → `ICurrentTenantAccessor.TenantId` (Guid); login sonrası JWT `tenant_id` claim geçerli olabilir
+- Değer istek başına uygulama katmanından gelir: **Production shared hosts** → auth sonrası JWT `tenant_id`; **Dev** → `X-Tenant-Id` / `?tenant=` slug; **Host** (legacy slug / `TenantDomain` siteleri) → `CurrentTenantService` → `ICurrentTenantAccessor.TenantId` (Guid)
 
-Kök / global örnekler: `tenants`, Identity kullanıcı tabloları. Dış anahtar string: `tenants.slug` (alt alan çözümlemesi).
+Kök / global örnekler: `tenants`, Identity kullanıcı tabloları. Dış anahtar string: `tenants.slug` (Host / Dev çözümlemesi; POS production entry değil).
 
 ### Global Query Filters
 

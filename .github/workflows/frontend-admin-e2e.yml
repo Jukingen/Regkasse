@@ -1,6 +1,6 @@
 # Frontend Admin E2E (Playwright) — manual / reusable
 #
-# Primary PR/main gate runs E2E inside `.github/workflows/frontend-admin-ci.yml`
+# Primary PR/main gate runs E2E inside `frontend-admin-ci.yml`
 # (avoids duplicate billed minutes). Use this workflow for:
 # - Manual re-runs (`workflow_dispatch`)
 # - Reuse via `workflow_call` from other pipelines
@@ -81,3 +81,12 @@ jobs:
             frontend-admin/playwright-report
             frontend-admin/test-results
           retention-days: 7
+
+  notify-failure:
+    name: Notify on failure
+    needs: [e2e]
+    if: failure()
+    uses: ./.github/workflows/notify-failure.yml
+    with:
+      title: Frontend Admin E2E failed
+    secrets: inherit

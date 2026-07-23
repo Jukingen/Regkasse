@@ -3,10 +3,12 @@
  * Development seed via HTTP API (full stack). Run from repo root:
  *   npm run seed:test-data
  *
+ * Requires a running API (default http://localhost:5184).
+ *
  * Env:
  *   SEED_API_URL          default http://localhost:5184
  *   SEED_TENANT_SLUG      optional X-Tenant-Id (Development only), e.g. dev
- *   SEED_ADMIN_EMAIL      default admin@admin.com
+ *   SEED_ADMIN_EMAIL      default admin@admin.com (loginIdentifier)
  *   SEED_ADMIN_PASSWORD   default Admin123!
  *   SEED_PREFIX           default seed (resource name prefix)
  *   SEED_PRODUCT_COUNT    default 50
@@ -15,12 +17,24 @@
  *   SEED_SALES_COUNT      default 100
  *   SEED_HISTORICAL_MONTHS default 3 (RKSV month markers)
  *   SEED_SKIP_SALES       set 1 to skip payment loop
- *   SEED_DRY_RUN          set 1 to log only
+ *   SEED_DRY_RUN          set 1 to log only (still needs API for GET/health/login)
  *
  * Limits (API):
  *   - Normal sales always get server CreatedAt (today). Use Nullbeleg for past month timestamps.
  *   - Monatsbeleg POST only accepts the current Vienna calendar month.
  */
+
+if (process.argv.includes('--help') || process.argv.includes('-h')) {
+  console.log(`Usage: npm run seed:test-data
+       node scripts/seed-test-data.mjs
+
+Seeds demo catalog/registers/users/sales via the running HTTP API.
+Requires backend at SEED_API_URL (default http://localhost:5184).
+
+See script header for env vars (SEED_*).
+`);
+  process.exit(0);
+}
 
 const GUEST_CUSTOMER_ID = '00000000-0000-0000-0000-000000000001';
 const STEUERNUMMER = 'ATU12345678';
@@ -173,7 +187,7 @@ async function api(method, path, { body, token, expectStatuses, headersExtra } =
 async function login() {
   const { body } = await api('POST', '/api/Auth/login', {
     body: {
-      email: config.adminEmail,
+      loginIdentifier: config.adminEmail,
       password: config.adminPassword,
       clientApp: 'admin',
     },
@@ -198,7 +212,15 @@ async function login() {
 }
 
 async function ensureHealth() {
-  const { status } = await api('GET', '/api/health', { expectStatuses: [200, 503] });
+  let status;
+  try {
+    ({ status } = await api('GET', '/api/health', { expectStatuses: [200, 503] }));
+  } catch (err) {
+    fail(
+      `Cannot reach API at ${config.baseUrl} (${err instanceof Error ? err.message : err}). ` +
+        `Start the backend first (e.g. npm run dev --workspace=@regkasse/backend or cd backend && dotnet run).`,
+    );
+  }
   if (status !== 200) fail(`API health check failed (${status}). Start backend first.`);
   log(`API OK: ${config.baseUrl}`);
 }

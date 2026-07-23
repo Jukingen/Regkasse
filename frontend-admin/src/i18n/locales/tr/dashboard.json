@@ -185,6 +185,12 @@
     "recentUsers": {
       "empty": "Kullanıcı yok"
     },
+    "recentPermissionChanges": {
+      "empty": "Yetki değişikliği yok",
+      "viewAll": "Tümünü Gör →",
+      "roleLine": "Rol '{{role}}'",
+      "permissionLine": "İzin '{{permission}}'"
+    },
     "lowStock": {
       "summary": "{{count}} ürün minimum stok altında",
       "empty": "Uyarı yok",

@@ -28,8 +28,12 @@ import {
   licenseQueryKeys,
 } from '@/api/manual/adminLicense';
 import { FormSkeleton } from '@/components/Skeleton';
+import { DownloadPreviewModal } from '@/components/ui/DownloadPreviewModal';
+import { buildLicensesExportFileName } from '@/features/license/utils/licenseExportFileName';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { useDownloadPreview } from '@/hooks/useDownloadPreview';
 import { formatGermanDateTime, useI18n } from '@/i18n';
+import { estimateTabularExportBytes } from '@/lib/download/downloadPreview';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 import {
   LICENSE_DEPLOYMENT_FEATURE,
@@ -43,18 +47,6 @@ type FormVals = {
   includeActivationHistory: boolean;
   maskLicenseKeys: boolean;
 };
-
-function triggerBrowserDownload(blob: Blob, filename: string) {
-  const url = globalThis.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.rel = 'noopener';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  globalThis.URL.revokeObjectURL(url);
-}
 
 type Props = {
   /** From GET /api/license/status — gates bulk export APIs. */
@@ -71,6 +63,7 @@ export function LicenseReportsCard({ enabledLicenseFeatures }: Props) {
     maskLicenseKeys: true,
   });
   const [downloading, setDownloading] = useState<'csv' | 'json' | null>(null);
+  const downloadPreview = useDownloadPreview();
 
   const summaryQuery = useQuery({
     queryKey: licenseQueryKeys.reportSummary(applied),
@@ -103,21 +96,29 @@ export function LicenseReportsCard({ enabledLicenseFeatures }: Props) {
     setApplied({ includeActivationHistory: false, maskLicenseKeys: true });
   };
 
-  const onDownload = async (format: 'csv' | 'json') => {
+  const onDownload = (format: 'csv' | 'json') => {
     const values = form.getFieldsValue() as FormVals;
     const params = buildParamsFromForm(values);
-    setDownloading(format);
-    try {
-      const blob = await downloadLicenseExportFile(format, params);
-      const stamp = dayjs.utc().format('YYYYMMDD_HHmmss');
-      const ext = format === 'csv' ? 'csv' : 'json';
-      triggerBrowserDownload(blob, `licenses_export_${stamp}_UTC.${ext}`);
-      message.success(t('license.reports.exportSuccess'));
-    } catch {
-      message.error(t('license.reports.exportFailed'));
-    } finally {
-      setDownloading(null);
-    }
+    const rowCount = summaryQuery.data?.issuedTotalInDateFilter ?? 0;
+    downloadPreview.requestPreview({
+      fileName: buildLicensesExportFileName(null, format),
+      fileType: format.toUpperCase(),
+      sizeBytes: estimateTabularExportBytes(rowCount, format),
+      isSizeEstimate: true,
+      contentSummary: t('common.exportDownload.contentRows', { count: rowCount }),
+      execute: async () => {
+        setDownloading(format);
+        try {
+          await downloadLicenseExportFile(format, params);
+          message.success(t('license.reports.exportSuccess'));
+        } catch {
+          message.error(t('license.reports.exportFailed'));
+          throw new Error('export failed');
+        } finally {
+          setDownloading(null);
+        }
+      },
+    });
   };
 
   const s = summaryQuery.data;
@@ -244,6 +245,7 @@ export function LicenseReportsCard({ enabledLicenseFeatures }: Props) {
           </Descriptions>
         ) : null}
       </Card>
+      <DownloadPreviewModal {...downloadPreview.modalProps} />
     </Space>
   );
 }

@@ -1,4 +1,7 @@
 import { AXIOS_INSTANCE } from '@/lib/axios';
+import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
+import { buildLicensesExportFileName } from '@/features/license/utils/licenseExportFileName';
+import { triggerBrowserDownload } from '@/lib/zip/packFilesIntoZipBlob';
 
 /** POS/FA mandant + deployment snapshot from <c>GET /api/license/status</c>. */
 export type LicensePublicStatusDto = {
@@ -307,10 +310,10 @@ export async function getLicenseReportSummary(
 export async function downloadLicenseExportFile(
   format: 'csv' | 'json',
   params: LicenseExportReportParams | undefined
-): Promise<Blob> {
+): Promise<void> {
   const path =
     format === 'csv' ? '/api/admin/licenses/export/csv' : '/api/admin/licenses/export/json';
-  const { data } = await AXIOS_INSTANCE.get<Blob>(path, {
+  const res = await AXIOS_INSTANCE.get<Blob>(path, {
     params: licenseExportQueryParams({
       ...params,
       includeActivationHistory: params?.includeActivationHistory,
@@ -318,7 +321,12 @@ export async function downloadLicenseExportFile(
     }),
     responseType: 'blob',
   });
-  return data;
+  const disposition = res.headers['content-disposition'] as string | undefined;
+  const match = disposition?.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)/i);
+  const fileName =
+    (match?.[1] ? decodeURIComponent(match[1].trim()) : null) ??
+    buildLicensesExportFileName(getEffectiveTenantSlug(), format);
+  triggerBrowserDownload(res.data, fileName);
 }
 
 export async function postGenerateLicense(

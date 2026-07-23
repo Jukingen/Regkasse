@@ -16,5 +16,10 @@
 
     <!-- Reproducible outputs in CI (GitHub Actions sets GITHUB_ACTIONS / CI). -->
     <ContinuousIntegrationBuild Condition="'$(ContinuousIntegrationBuild)' == '' and ('$(CI)' == 'true' or '$(GITHUB_ACTIONS)' == 'true')">true</ContinuousIntegrationBuild>
+
+    <!-- Proprietary product — see repository root LICENSE (All rights reserved). -->
+    <Copyright>Copyright (c) Regkasse. All rights reserved.</Copyright>
+    <Company>Regkasse</Company>
+    <Authors>Regkasse</Authors>
   </PropertyGroup>
 </Project>

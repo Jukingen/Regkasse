@@ -595,6 +595,12 @@
         "label": "Demo-Produkte automatisch importieren",
         "tooltip": "Importiert das vollständige Demo-Menü (Salate, Pizzen, Pasta, Kebap, …) statt nur drei Beispielprodukte"
       }
+    },
+    "industry": {
+      "title": "Branchenvorlage",
+      "intro": "Wählen Sie eine Vorlage für Starter-Rollen und Pakete.",
+      "none": "Keine Vorlage",
+      "seedStarters": "Starter-Benutzer anlegen"
     }
   },
   "provisioning": {
@@ -1240,5 +1246,16 @@
       "not_impersonation": "Token ist kein Impersonation-Token.",
       "expired": "Impersonation-Token ist abgelaufen. Bitte erneut von admin.regkasse.at starten."
     }
+  },
+  "industry": {
+    "pageTitle": "Branchenvorlage",
+    "intro": "Branchenvorlage für diesen Mandanten setzen und fehlende Starter nachziehen.",
+    "templateLabel": "Vorlage",
+    "seedMissing": "Fehlende Starter-Benutzer anlegen",
+    "saveSuccess": "Gespeichert ({{count}} Starter erstellt)",
+    "saveError": "Speichern fehlgeschlagen"
+  },
+  "list": {
+    "pageTitle": "Mandanten"
   }
 }

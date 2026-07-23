@@ -44,9 +44,10 @@ internal static class TenantTestDoubles
             Task.FromResult(CreateDbContext());
     }
 
-    internal sealed class MutableTenantAccessor(Guid? tenantId) : ICurrentTenantAccessor
+    internal sealed class MutableTenantAccessor(Guid? tenantId, string? tenantSlug = null) : ICurrentTenantAccessor
     {
         public Guid? TenantId { get; set; } = tenantId;
+        public string? TenantSlug { get; set; } = tenantSlug;
     }
 
     public static ICompanyProfileProvider CompanyProfileProviderReturning(CompanyProfileOptions profile)

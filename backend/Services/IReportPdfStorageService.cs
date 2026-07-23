@@ -39,4 +39,12 @@ public interface IReportPdfStorageService
         Guid reportId,
         string language = "de",
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Resolves <c>report_{type}_{slug}_{period}_{stamp}.pdf</c> from closing/payment context.
+    /// </summary>
+    Task<string> ResolveDownloadFileNameAsync(
+        string reportType,
+        Guid reportId,
+        CancellationToken cancellationToken = default);
 }

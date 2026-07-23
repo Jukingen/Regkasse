@@ -83,6 +83,7 @@
   "accessRoles": "Access & roles",
   "rolesPermissions": "Roles & permissions",
   "permissionsOverview": "Permission overview",
+  "permissionHistory": "📜 Permission history",
   "tenants": "Tenants",
   "dataManagement": "Data management",
   "errorLogs": "Error Logs (Elmah)",
@@ -190,5 +191,9 @@
   "rksvBelegcheckFieldSecondAmount": "Amount (2)",
   "rksvBelegcheckFieldCertificate": "Certificate serial",
   "rksvBelegcheckFieldPrevSignature": "Previous signature",
-  "rksvBelegcheckNoPrev": "—"
+  "rksvBelegcheckNoPrev": "—",
+  "permissionRequests": "Permission requests",
+  "permissionPackages": "Permission packages",
+  "permissionBackups": "Permission backups",
+  "permissionStats": "Permission analytics"
 }

@@ -12,6 +12,7 @@ import { OfflineQueueDashboardCard } from '@/features/dashboard/components/Offli
 import { RksvReminderCard } from '@/features/dashboard/components/RksvReminderCard';
 import { TimeSyncDriftAlertCard } from '@/features/dashboard/components/TimeSyncDriftAlertCard';
 import { TseHealthCard } from '@/features/dashboard/components/TseHealthCard';
+import { ExportQuickActionsCard } from '@/features/exports/components/ExportQuickActionsCard';
 import { useAuthorizationGate } from '@/hooks/useAuthorizedQuery';
 import { useCanAccessPath } from '@/hooks/useCanAccessPath';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -46,6 +47,7 @@ export function SuperAdminDashboard() {
       {canSeeRksvReminder ? <RksvReminderCard /> : null}
       {canSeeRksvReminder ? <DashboardMonatsbelegSection enabled={canSeeRksvReminder} /> : null}
       <HospitalityQuickLinksCard />
+      <ExportQuickActionsCard />
     </>
   );
 

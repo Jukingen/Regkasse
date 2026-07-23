@@ -116,6 +116,7 @@ public sealed class InvoicePdfService : IInvoicePdfService
     {
         var invoice = await _context.Invoices
             .AsNoTracking()
+            .Include(i => i.Tenant)
             .FirstOrDefaultAsync(i => i.Id == id && i.IsActive, cancellationToken)
             .ConfigureAwait(false);
 

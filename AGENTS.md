@@ -9,7 +9,7 @@ This repository is a POS monorepo. Prefer safe, incremental improvements over br
 - For medium or large tasks, also read **`REGKASSE_AI_ONBOARDING.md`** and relevant docs under `ai/`.
 - Keep this file valid Markdown (closed code fences, proper headings); broken formatting reduces what agents can parse reliably.
 
-**Last updated:** 2026-07-20
+**Last updated:** 2026-07-21
 
 ## Language Rules
 Follow these language rules strictly:
@@ -65,33 +65,45 @@ For medium or large changes, always provide:
 - backward compatibility impact
 - a test strategy
 
+## Recent Improvements (2026-07)
+
+Developer experience and CI (see root [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`.github/workflows/README.md`](.github/workflows/README.md)):
+
+- **Monorepo onboarding:** Root `README.md` / `CONTRIBUTING.md`; per-package READMEs (`backend`, `frontend`, `frontend-admin`, `frontend-sites`, `localization`, `scripts`, `tools`, `docs`, `ai`).
+- **npm workspaces:** Root `package.json` workspaces = `backend`, `frontend`, `frontend-admin`, `frontend-sites`, `localization`. Backend scripts wrap `dotnet`. Prefer `npm run dev` (parallel) or `npm run dev:admin` / `dev:pos` / `dev:sites` / `dev:backend`. `build` / `test` / `lint` use `npm run … --workspaces --if-present`.
+- **CI/CD:** Path-filtered workflows for backend unit + PostgreSQL integration, FA (lint/typecheck/test/build/E2E), POS, Sites; NuGet + `node_modules` caches; optional Slack via `SLACK_WEBHOOK_URL` (`notify-failure.yml`).
+- **OpenAPI → Orval:** `node scripts/verify-api-client.mjs`; Husky pre-commit (`npm run prepare` / `install:git-hooks`); auto-commit workflow `api-client-auto-generate.yml` on `backend/swagger.json` push to `main`/`master`.
+- **i18n hard gate:** `localization-validation.yml` + FA/POS CI run `validate-translations` / usage with `--strictMissing true` (admin also `--orphanPolicy error`). `frontend-sites` is **deferred** in `namespace-manifest.json` until locale catalogs exist.
+
 ## Repo Map
 
 ### Updated Stack Versions
 
-| Component | Version |
-|-----------|---------|
-| Backend (.NET) | 10.0.8 |
-| EF Core | 10.0.8 |
-| Next.js | 16.2.10 |
-| React | 19.2.7 |
-| Ant Design | 6.4.3 |
-| Expo | SDK 56 |
-| React Native | 0.85.3 |
+| Component | Version (pinned / package.json) |
+|-----------|----------------------------------|
+| Backend (.NET) | **10.0** (`net10.0`; ASP.NET / EF packages **10.0.10**) |
+| EF Core | **10.0.10** |
+| Next.js (FA) | **16.2.10** |
+| Next.js (Sites) | **16.2.6** (caret in `frontend-sites`) |
+| React (FA) | **19.2.7** |
+| React (POS) | **19.2.3** |
+| Ant Design | **6.4.3** |
+| Expo | SDK **56** (`~56.0.16`) |
+| React Native | **0.85.3** |
 
 - Admin auth boundary: `frontend-admin/src/proxy.ts` (Next.js 16; replaces deprecated `middleware.ts`). Fail-closed: non-public routes require a non-expired JWT cookie/header → else redirect `/login`. Permission RBAC is client-side (`PermissionRouteGuard` → inline 403), not in `proxy.ts`.
 - Ant Design 6: prefer `destroyOnHidden` (Modal/Drawer/Tabs), `popupRender` (Dropdown/Select), `titlePlacement` (Divider); `Card bordered={false}` → `variant="borderless"`; `Tag bordered={false}` → `variant="filled"`. **Never** use static `message` / `notification` / `Modal.confirm` from `antd` — toasts via `useNotify()` / `NotificationService`; modal via `useAntdApp()`.
 
 ### Packages
-- `backend/` - ASP.NET Core 10 API (auth, domain logic, fiscal/TSE/RKSV, reporting, OpenAPI)
-- `frontend/` - Mobile POS (Expo SDK 56 + React Native + TypeScript)
-- `frontend-admin/` - Admin panel (Next.js 16 + Ant Design 6 + TanStack Query)
-- `frontend-sites/` - Shared multi-tenant customer websites (Next.js 16; `/[slug]` + public catalog API; optional custom host via `TenantDomain`)
-- `localization/` - Shared i18n import/export/validation tooling
-- `scripts/` - Cross-repo validation and consistency scripts
+- `backend/` - ASP.NET Core 10 API (auth, domain logic, fiscal/TSE/RKSV, reporting, OpenAPI); npm workspace `@regkasse/backend` wraps `dotnet`
+- `frontend/` - Mobile POS (Expo SDK 56 + React Native + TypeScript); package `cash-register`
+- `frontend-admin/` - Admin panel (Next.js 16 + Ant Design 6 + TanStack Query); package `registrierkasse-admin`
+- `frontend-sites/` - Shared multi-tenant customer websites (Next.js; `/[slug]` + public catalog / online-order UI; optional custom host via `TenantDomain`); package `regkasse-sites`
+- `localization/` - Shared i18n import/export/validation tooling (`@regkasse/localization`)
+- `scripts/` - Cross-repo validation and consistency scripts (OpenAPI verify, seeds, git hooks)
 - `tools/` - License generator and i18n utility tools
 - `testsprite/` - API/E2E test definitions and TestSprite CI integration
-- `.github/workflows/` - CI source of executable truth
+- `.github/workflows/` - CI source of executable truth ([inventory](.github/workflows/README.md))
 - `docs/` - Human documentation and reference material
 - `ai/` - Internal implementation and guardrail docs
 
@@ -271,6 +283,8 @@ Source of truth: `backend/Authorization/RolePermissionMatrix.cs`, `AppPermission
 | **Cashier** (and other POS roles) | **No** digital service permissions by default | **No** `digital.orders.*` by default (POS `order.*` is separate) |
 
 **FA surfaces:** Super Admin `/admin/digital`, `/admin/digital/requests`; Manager `/settings/digital`, `/orders/online` (alias `/online-orders`), `/tenant/{id}/website-preview`, `/tenant/{id}/orders`. Sidebar: nested **Digitale Dienste** under Einstellungen (Manager) and Lizenzverwaltung (Super Admin). i18n: `digital.*`, `nav.digital*`, `tenants.digitalServices.*`, `onlineOrders.*`.
+
+**Customer website runtime (`frontend-sites/`):** Shared Next.js app for tenant storefronts (`/[slug]`), public catalog (`/api/public/tenants/*`, `/api/sites/{slug}/status`), and online-order intake UI. Not fiscal/POS. Working hours gate intake only. Locale catalogs for Sites are **deferred** in `localization/namespace-manifest.json` (German hardcoded UI today) — register namespaces when i18n is added. Dev: `npm run dev:sites` (port **3001**).
 
 #### Working hours (website/app only)
 
@@ -527,10 +541,15 @@ Sensitive data in manifests/logs MUST be masked. Backup metadata MUST include `s
 
 **Tenant scoping:** Trigger body does not accept client `tenantId`; non–Super Admin requires JWT tenant context (`TENANT_CONTEXT_REQUIRED`). List/download/run access: `BackupRunAccessEvaluator` — Managers see only `strategy=Tenant` + own `tenant_id` (System dumps are Super Admin only).
 
-**FA UI:** `/backup` hub is role-aware (`TenantBackupView` vs `SystemBackupView`).
+**FA UI:** `/backup` hub is role-aware (`TenantBackupView` vs `SystemBackupView`). Related: `/backup/dashboard`, runs, configuration, audit, **`/backup/costs`** (storage cost), **`/backup/compliance`** (RKSV product-gate readiness).
 
 ### Backup Status (`BackupRunStatus`)
 `Queued`, `Running`, `AwaitingVerification`, `Succeeded`, `Failed`, `VerificationFailed`, `Cancelled`
+
+### Operational extras
+- Staging disk usage alerts at **80%** (`Backup:StagingDiskUsageAlertPercent`) + periodic `StorageAlertService`
+- Enqueue storage budget guard (~**10 GB** succeeded dumps via `BackupService.MaxStorageBytes`)
+- Optional automatic cleanup (`Backup:AutomaticCleanupEnabled` → `AutomaticCleanupService`) with `BACKUP_AUTO_DELETED` audit
 
 ### Backup Configuration
 ```yaml
@@ -538,6 +557,8 @@ enabled: true
 scheduleCron: "0 2 * * *"  # Daily 02:00 UTC (System strategy)
 retentionDays: 30           # Tenant default; System default 90 via strategy policy
 # SmartRetentionEnabled: false  # optional GFS 7/4/12/7 via SmartRetentionService
+# StorageTierManagementEnabled: false
+# AutomaticCleanupEnabled: false
 executionMode: "PgDump"     # Fake, PgDump, ProductionStub
 externalArchiveRoot: "/backup/archive"  # Super Admin only
 ```
@@ -644,8 +665,9 @@ Use `/ai` docs selectively based on the task:
 - **Offline order snapshots (new)** → `ai/modules/offline_orders.md`, `docs/release/OFFLINE_SYSTEMS_SEPARATION.md`
 - Admin API integration work → `ai/10_API_BOUNDARY_POLICY.md`
 - Billing / mandant license sales → `docs/BILLING_TENANT_LICENSE.md`, `ai/modules/billing_license.md`
-- **Digital services / website generator / online orders (non-fiscal)** → [`docs/DIGITAL_SERVICES.md`](docs/DIGITAL_SERVICES.md), [`docs/ONLINE_ORDERS.md`](docs/ONLINE_ORDERS.md), [`docs/PERMISSIONS_MATRIX.md`](docs/PERMISSIONS_MATRIX.md), [`docs/CHANGELOG.md`](docs/CHANGELOG.md); `AGENTS.md` § Roles (Digital services & online orders); `RolePermissionMatrix`; FA `/settings/digital`, `/orders/online`, `/admin/digital`
+- **Digital services / website generator / online orders (non-fiscal)** → [`docs/DIGITAL_SERVICES.md`](docs/DIGITAL_SERVICES.md), [`docs/ONLINE_ORDERS.md`](docs/ONLINE_ORDERS.md), [`docs/PERMISSIONS_MATRIX.md`](docs/PERMISSIONS_MATRIX.md), [`docs/CHANGELOG.md`](docs/CHANGELOG.md); `AGENTS.md` § Roles (Digital services & online orders); `RolePermissionMatrix`; FA `/settings/digital`, `/orders/online`, `/admin/digital`; runtime Sites app `frontend-sites/`
 - **Expired license data management / GDPR data rights (RKSV retention)** → `AGENTS.md` § Expired license — customer data management; `CustomerDataRightsService` (View/Export/Delete), `DataExportService`, `DataDeletionService`, `ILicenseLifecycleResolver`, FA `/tenant/[id]/data-management`
+- **CI / monorepo DX** → root [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`.github/workflows/README.md`](.github/workflows/README.md); Orval verify + Husky; i18n hard gate in `localization-validation.yml`
 - **Working hours (website/app only — never POS/FA)** → [`docs/WORKING_HOURS.md`](docs/WORKING_HOURS.md); `AGENTS.md` § Working hours; `WebsiteStatusController`; `OnlineOrderIntakeService`; POS `useWorkingHours` (`posOperationsAllowed` always true)
 - **SuperAdmin 2FA (TOTP; Dev bypass)** → [`docs/AUTH_TWO_FACTOR.md`](docs/AUTH_TWO_FACTOR.md); `TwoFactorAuthOptions`; `ITwoFactorService`; FA `TwoFactorAuth.tsx`
 - **Backup & Disaster Recovery (hub)** → `docs/BACKUP_AND_DISASTER_RECOVERY.md`, `docs/BACKUP_SYSTEM.md`, `AGENTS.md` § Backup & Disaster Recovery
@@ -768,19 +790,25 @@ modal.confirm({ title: 'Confirm', content: 'Are you sure?', onOk: () => {} });
 
 ### Useful Commands
 ```bash
+# From repo root (npm workspaces)
+npm install
+npm run dev                 # parallel: backend + POS + admin + sites
+npm run dev:backend | dev:admin | dev:pos | dev:sites
+npm run test
+npm run verify:api-client
+npm run generate:api
+npm run install:git-hooks   # Husky → verify-api-client on commit
+
 # Backend
 dotnet run --project backend/KasseAPI_Final.csproj
 dotnet ef migrations add <Name> --project backend
-dotnet test
+dotnet test backend/KasseAPI_Final.sln
 
-# Frontend Admin
+# Frontend Admin / POS / Sites
 cd frontend-admin && npm run dev
 cd frontend-admin && npm run generate:api
-cd frontend-admin && npm run test
-
-# Frontend POS
-cd frontend && npm start
-cd frontend && npm run test
+cd frontend && npm run dev
+cd frontend-sites && npm run dev   # :3001
 ```
 
 ### Useful API Endpoints (dev)
@@ -802,27 +830,25 @@ Run from repository root when relevant:
 ```bash
 node scripts/verify-api-client.mjs
 node scripts/validate-critical-openapi-paths.mjs
+node scripts/verify-permission-keys.mjs
+node scripts/verify-menu-permissions.mjs
 node localization/scripts/validate-translations.mjs --app frontend-admin --strictMissing true --orphanPolicy error
-node localization/scripts/check-translation-boundary.mjs --app frontend-admin
+node localization/scripts/validate-translations.mjs --app frontend --strictMissing true
 node localization/scripts/check-localization-usage.mjs --app frontend-admin --strictMissing true --budgetFile localization/i18n-ci-budgets.json
+node localization/scripts/check-translation-boundary.mjs --app frontend-admin
 
-# Backend
-dotnet test
-
-# Frontend Admin
-cd frontend-admin && npm run test
-
-# Frontend POS
-cd frontend && npm run test
+dotnet test backend/KasseAPI_Final.sln
+npm run test:admin
+npm run test:pos
 ```
 
 ## Development Workflow
 
 ### Local Setup
 1. Start PostgreSQL (Docker or local)
-2. Run backend: `cd backend && dotnet run`
-3. Run FA: `cd frontend-admin && npm run dev`
-4. Run FE: `cd frontend && npm start`
+2. `npm install` at repo root (workspaces + Husky prepare)
+3. Configure backend user-secrets (see `backend/README.md`)
+4. `npm run dev` — or `dev:backend` / `dev:admin` / `dev:pos` / `dev:sites`
 
 ### Environment Variables
 
@@ -845,4 +871,9 @@ EXPO_PUBLIC_API_BASE_URL=http://192.168.1.100:5184/api
 EXPO_PUBLIC_DEV_TENANT_ID=dev
 # Production target: EXPO_PUBLIC_API_BASE_URL=https://api.regkasse.at/api
 # (single POS UI — see docs/POS_PRODUCTION_ARCHITECTURE.md)
+```
+
+Frontend Sites:
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:5184
 ```

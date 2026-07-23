@@ -30,6 +30,26 @@ describe('buildCreateTenantRequest', () => {
     expect(body.importDemoMenu).toBe(true);
     expect(body.grantTrialLicense).toBe(true);
     expect(body.licenseValidUntilUtc).toMatch(/^2026-10-15T/);
+    expect(body.industryTemplateId).toBeNull();
+    expect(body.seedIndustryStarterUsers).toBe(true);
+  });
+
+  it('includes industryTemplateId when not none', () => {
+    const data = {
+      ...createEmptyWizardData(),
+      name: 'Hotel Alpha',
+      slug: 'hotel-alpha',
+      email: 'a@b.at',
+      adminEmail: 'a@b.at',
+      industryTemplateId: 'hotel',
+      seedIndustryStarterUsers: false,
+      licenseStartDate: '2026-01-01',
+      licenseDays: 30 as const,
+    };
+
+    const body = buildCreateTenantRequest(data);
+    expect(body.industryTemplateId).toBe('hotel');
+    expect(body.seedIndustryStarterUsers).toBe(false);
   });
 
   it('sends manual password when provided', () => {

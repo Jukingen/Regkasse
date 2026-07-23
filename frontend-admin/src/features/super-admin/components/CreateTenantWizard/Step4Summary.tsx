@@ -73,6 +73,16 @@ export function Step4Summary({ data }: Step4SummaryProps) {
             ? t('tenants.create.wizard.summary.yes')
             : t('tenants.create.wizard.summary.no')}
         </Descriptions.Item>
+        <Descriptions.Item label={t('tenants.create.industry.title')}>
+          {data.industryTemplateId && data.industryTemplateId !== 'none'
+            ? data.industryTemplateId
+            : t('tenants.create.industry.none')}
+        </Descriptions.Item>
+        <Descriptions.Item label={t('tenants.create.industry.seedStarters')}>
+          {data.seedIndustryStarterUsers
+            ? t('tenants.create.wizard.summary.yes')
+            : t('tenants.create.wizard.summary.no')}
+        </Descriptions.Item>
         <Descriptions.Item label={t('tenants.create.wizard.summary.loginUrl')}>
           {portalUrl}
         </Descriptions.Item>

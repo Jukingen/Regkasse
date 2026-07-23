@@ -1,0 +1,2 @@
+# Ignore husky internal helpers; keep committed hook scripts (e.g. pre-commit).
+.husky/_

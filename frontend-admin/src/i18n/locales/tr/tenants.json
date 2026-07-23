@@ -595,6 +595,12 @@
         "label": "Demo ürünleri otomatik içe aktar",
         "tooltip": "Yalnızca üç örnek ürün yerine tam demo menüsünü (salatalar, pizzalar, makarna, kebap, …) içe aktarır"
       }
+    },
+    "industry": {
+      "title": "Sektör şablonu",
+      "intro": "Başlangıç rolleri ve paketleri için bir şablon seçin.",
+      "none": "Şablon yok",
+      "seedStarters": "Başlangıç kullanıcılarını oluştur"
     }
   },
   "provisioning": {
@@ -1240,5 +1246,16 @@
       "not_impersonation": "Jeton bir impersonation jetonu değil.",
       "expired": "Impersonation jetonunun süresi doldu. admin.regkasse.at üzerinden tekrar deneyin."
     }
+  },
+  "industry": {
+    "pageTitle": "Sektör şablonu",
+    "intro": "Bu müşteri için sektör şablonunu ayarlayın ve eksik başlangıç kullanıcılarını oluşturun.",
+    "templateLabel": "Şablon",
+    "seedMissing": "Eksik başlangıç kullanıcılarını oluştur",
+    "saveSuccess": "Kaydedildi ({{count}} başlangıç kullanıcısı oluşturuldu)",
+    "saveError": "Kayıt başarısız"
+  },
+  "list": {
+    "pageTitle": "Müşteriler"
   }
 }

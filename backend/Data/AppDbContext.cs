@@ -130,6 +130,13 @@ namespace KasseAPI_Final.Data
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<UserTenantMembership> UserTenantMemberships { get; set; }
         public DbSet<UserPermissionOverride> UserPermissionOverrides { get; set; }
+        public DbSet<PermissionRequest> PermissionRequests { get; set; }
+        public DbSet<PermissionPackage> PermissionPackages { get; set; }
+        public DbSet<PermissionPackageKey> PermissionPackageKeys { get; set; }
+        public DbSet<RolePermissionPackage> RolePermissionPackages { get; set; }
+        public DbSet<PermissionConfigBackup> PermissionConfigBackups { get; set; }
+        public DbSet<PermissionUsageDaily> PermissionUsageDaily { get; set; }
+        public DbSet<PermissionConfigBackupSettings> PermissionConfigBackupSettings { get; set; }
         public DbSet<UserUsernameHistory> UserUsernameHistories { get; set; }
         public DbSet<DashboardPreferences> DashboardPreferences { get; set; }
         public DbSet<UserPreferences> UserPreferences { get; set; }
@@ -137,6 +144,10 @@ namespace KasseAPI_Final.Data
         public DbSet<OperationalReportSchedule> OperationalReportSchedules { get; set; }
         public DbSet<DepExportHistory> DepExportHistories { get; set; }
         public DbSet<DepExportSchedule> DepExportSchedules { get; set; }
+        public DbSet<DownloadHistory> DownloadHistories { get; set; }
+        public DbSet<ExportEmailDelivery> ExportEmailDeliveries { get; set; }
+        public DbSet<SensitiveExportApproval> SensitiveExportApprovals { get; set; }
+        public DbSet<DownloadSecurityTicket> DownloadSecurityTickets { get; set; }
         public DbSet<ReportPdf> ReportPdfs { get; set; }
         public DbSet<ActivityEvent> ActivityEvents { get; set; }
         public DbSet<ActivityEventRead> ActivityEventReads { get; set; }
@@ -340,16 +351,126 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.Reason).HasColumnName("reason").HasMaxLength(500);
                 entity.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();
                 entity.Property(e => e.CreatedByUserId).HasColumnName("created_by_user_id").HasMaxLength(450);
+                entity.Property(e => e.ValidFrom).HasColumnName("valid_from");
                 entity.Property(e => e.ExpiresAt).HasColumnName("expires_at");
+                entity.Property(e => e.ExpiringNotifiedAt).HasColumnName("expiring_notified_at");
+                entity.Property(e => e.ExpiredProcessedAt).HasColumnName("expired_processed_at");
 
                 entity.HasIndex(e => e.UserId);
                 entity.HasIndex(e => e.TenantId);
+                entity.HasIndex(e => e.ExpiresAt);
                 entity.HasIndex(e => new { e.UserId, e.TenantId, e.Permission });
 
                 entity.HasOne(e => e.User)
                     .WithMany()
                     .HasForeignKey(e => e.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<PermissionRequest>(entity =>
+            {
+                entity.ToTable("permission_requests");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.RequesterUserId).HasColumnName("requester_user_id").IsRequired().HasMaxLength(450);
+                entity.Property(e => e.Permission).HasColumnName("permission").IsRequired().HasMaxLength(128);
+                entity.Property(e => e.Reason).HasColumnName("reason").IsRequired().HasMaxLength(500);
+                entity.Property(e => e.RequestedDuration).HasColumnName("requested_duration").IsRequired().HasMaxLength(16);
+                entity.Property(e => e.RequestedExpiresAt).HasColumnName("requested_expires_at");
+                entity.Property(e => e.Status).HasColumnName("status").IsRequired().HasMaxLength(16);
+                entity.Property(e => e.RequestedAt).HasColumnName("requested_at").IsRequired();
+                entity.Property(e => e.ResolvedByUserId).HasColumnName("resolved_by_user_id").HasMaxLength(450);
+                entity.Property(e => e.ResolvedAt).HasColumnName("resolved_at");
+                entity.Property(e => e.ResolutionNote).HasColumnName("resolution_note").HasMaxLength(500);
+                entity.Property(e => e.ResultingOverrideId).HasColumnName("resulting_override_id");
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id");
+                entity.HasIndex(e => e.RequesterUserId).HasDatabaseName("idx_permission_requests_requester");
+                entity.HasIndex(e => new { e.Status, e.RequestedAt })
+                    .HasDatabaseName("idx_permission_requests_status_requested");
+                entity.HasIndex(e => new { e.RequesterUserId, e.Permission, e.TenantId })
+                    .IsUnique()
+                    .HasDatabaseName("ux_permission_requests_pending_requester_permission_tenant")
+                    .HasFilter("status = 'Pending'");
+            });
+
+            builder.Entity<PermissionPackage>(entity =>
+            {
+                entity.ToTable("permission_packages");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Slug).HasColumnName("slug").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.Name).HasColumnName("name").IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(500);
+                entity.Property(e => e.IsSystem).HasColumnName("is_system").IsRequired();
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();
+                entity.Property(e => e.UpdatedAt).HasColumnName("updated_at").IsRequired();
+                entity.Property(e => e.CreatedByUserId).HasColumnName("created_by_user_id").HasMaxLength(450);
+                entity.HasIndex(e => e.Slug).IsUnique().HasDatabaseName("ux_permission_packages_slug");
+                entity.HasMany(e => e.Keys)
+                    .WithOne(k => k.Package)
+                    .HasForeignKey(k => k.PackageId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasMany(e => e.RoleAssignments)
+                    .WithOne(a => a.Package)
+                    .HasForeignKey(a => a.PackageId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<PermissionPackageKey>(entity =>
+            {
+                entity.ToTable("permission_package_keys");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.PackageId).HasColumnName("package_id").IsRequired();
+                entity.Property(e => e.Permission).HasColumnName("permission").IsRequired().HasMaxLength(128);
+                entity.HasIndex(e => e.PackageId).HasDatabaseName("idx_permission_package_keys_package_id");
+                entity.HasIndex(e => new { e.PackageId, e.Permission })
+                    .IsUnique()
+                    .HasDatabaseName("ux_permission_package_keys_package_permission");
+            });
+
+            builder.Entity<RolePermissionPackage>(entity =>
+            {
+                entity.ToTable("role_permission_packages");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.RoleId).HasColumnName("role_id").IsRequired().HasMaxLength(450);
+                entity.Property(e => e.PackageId).HasColumnName("package_id").IsRequired();
+                entity.Property(e => e.AssignedAt).HasColumnName("assigned_at").IsRequired();
+                entity.Property(e => e.AssignedByUserId).HasColumnName("assigned_by_user_id").HasMaxLength(450);
+                entity.HasIndex(e => e.PackageId).HasDatabaseName("idx_role_permission_packages_package_id");
+                entity.HasIndex(e => new { e.RoleId, e.PackageId })
+                    .IsUnique()
+                    .HasDatabaseName("ux_role_permission_packages_role_package");
+            });
+
+            builder.Entity<PermissionConfigBackup>(entity =>
+            {
+                entity.ToTable("permission_config_backups");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).HasColumnName("name").IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Note).HasColumnName("note").HasMaxLength(500);
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();
+                entity.Property(e => e.CreatedByUserId).HasColumnName("created_by_user_id").HasMaxLength(450);
+                entity.Property(e => e.Trigger).HasColumnName("trigger").IsRequired().HasMaxLength(32);
+                entity.Property(e => e.PayloadJson).HasColumnName("payload_json").HasColumnType("jsonb").IsRequired();
+                entity.Property(e => e.PayloadHash).HasColumnName("payload_hash").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.SchemaVersion).HasColumnName("schema_version").IsRequired();
+                entity.HasIndex(e => e.CreatedAt).HasDatabaseName("idx_permission_config_backups_created_at");
+            });
+
+            builder.Entity<PermissionUsageDaily>(entity =>
+            {
+                entity.ToTable("permission_usage_daily");
+                entity.HasKey(e => e.Date);
+                entity.Property(e => e.Date).HasColumnName("date");
+                entity.Property(e => e.TotalUsers).HasColumnName("total_users").IsRequired();
+                entity.Property(e => e.PayloadJson).HasColumnName("payload_json").HasColumnType("jsonb").IsRequired();
+            });
+
+            builder.Entity<PermissionConfigBackupSettings>(entity =>
+            {
+                entity.ToTable("permission_config_backup_settings");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id").ValueGeneratedNever();
+                entity.Property(e => e.AutoBackupBeforeChanges).HasColumnName("auto_backup_before_changes").IsRequired();
+                entity.Property(e => e.UpdatedAt).HasColumnName("updated_at").IsRequired();
             });
 
             builder.Entity<UserUsernameHistory>(entity =>
@@ -1215,6 +1336,10 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.Status);
                 entity.HasIndex(e => e.LicenseValidUntilUtc)
                     .HasDatabaseName("IX_tenants_license_valid_until");
+                entity.Property(e => e.IndustryTemplateId).HasColumnName("industry_template_id").HasMaxLength(32);
+                entity.Property(e => e.IndustryTemplateCustomizations)
+                    .HasColumnName("industry_template_customizations")
+                    .HasColumnType("jsonb");
             });
 
             builder.Entity<TenantDataDeletionRequest>(entity =>

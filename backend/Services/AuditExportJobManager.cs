@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Tenancy;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services;
 
@@ -88,17 +90,25 @@ public sealed class AuditExportJobManager : IAuditExportJobManager
                 tenantAccessor.TenantId = tenantId;
 
                 var export = scope.ServiceProvider.GetRequiredService<IAuditExportService>();
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var fileNaming = scope.ServiceProvider.GetRequiredService<IFileNamingService>();
                 var count = await export.CountForExportAsync(entry.Filters, CancellationToken.None).ConfigureAwait(false);
                 entry.MatchedRows = count;
 
-                var ext = format.Trim().ToLowerInvariant() switch
-                {
-                    "json" => "json",
-                    "excel" or "xlsx" => "csv",
-                    _ => "csv",
-                };
-                entry.DownloadFileName = $"audit_logs_{DateTime.UtcNow:yyyyMMdd_HHmmss}.{ext}";
-                entry.ContentType = ext == "json" ? "application/json" : "text/csv";
+                var tenantSlug = await db.Tenants.AsNoTracking()
+                    .Where(t => t.Id == tenantId)
+                    .Select(t => t.Slug)
+                    .FirstOrDefaultAsync(CancellationToken.None)
+                    .ConfigureAwait(false);
+
+                var ext = AuditExportFileNames.NormalizeExtension(format);
+                entry.DownloadFileName = fileNaming.GenerateFileName(
+                    AuditExportFileNames.Prefix,
+                    ext,
+                    registerId: ExportFileNameSegments.DateOnly(entry.Filters.StartDate),
+                    additional: ExportFileNameSegments.DateOnly(entry.Filters.EndDate),
+                    tenantSlug: tenantSlug);
+                entry.ContentType = AuditExportFileNames.ContentTypeForFormat(format);
                 var path = Path.Combine(_storageRoot, $"{jobId}.{ext}");
                 await using (var fs = File.Create(path))
                 {
@@ -143,7 +153,12 @@ public sealed class AuditExportJobManager : IAuditExportJobManager
             return false;
 
         stream = File.OpenRead(entry.FilePath);
-        fileName = entry.DownloadFileName ?? "audit_export.csv";
+        fileName = entry.DownloadFileName
+            ?? new FileNamingService(NullCurrentTenantAccessor.Instance).GenerateFileName(
+                AuditExportFileNames.Prefix,
+                "csv",
+                registerId: "all",
+                additional: "all");
         contentType = entry.ContentType;
         return true;
     }

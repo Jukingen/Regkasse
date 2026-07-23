@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Security;
@@ -8,6 +9,7 @@ using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Controllers;
@@ -22,23 +24,32 @@ public class AdminAuditController : ControllerBase
     private readonly IAuditExportJobManager _exportJobs;
     private readonly IAuditReportScheduler _reportScheduler;
     private readonly ICurrentTenantAccessor _tenantAccessor;
+    private readonly IFileNamingService _fileNaming;
+    private readonly AppDbContext _db;
     private readonly AuditRetentionOptions _retentionOptions;
     private readonly ILogger<AdminAuditController> _logger;
+    private readonly IDownloadSecurityService _downloadSecurity;
 
     public AdminAuditController(
         IAuditExportService exportService,
         IAuditExportJobManager exportJobs,
         IAuditReportScheduler reportScheduler,
         ICurrentTenantAccessor tenantAccessor,
+        IFileNamingService fileNaming,
+        AppDbContext db,
         IOptions<AuditRetentionOptions> retentionOptions,
-        ILogger<AdminAuditController> logger)
+        ILogger<AdminAuditController> logger,
+        IDownloadSecurityService downloadSecurity)
     {
         _exportService = exportService;
         _exportJobs = exportJobs;
         _reportScheduler = reportScheduler;
         _tenantAccessor = tenantAccessor;
+        _fileNaming = fileNaming;
+        _db = db;
         _retentionOptions = retentionOptions.Value;
         _logger = logger;
+        _downloadSecurity = downloadSecurity;
     }
 
     [HttpGet("retention")]
@@ -71,19 +82,72 @@ public class AdminAuditController : ControllerBase
         if (count > IAuditExportService.MaxExportRows)
             return BadRequest(new { message = $"Export exceeds {IAuditExportService.MaxExportRows} rows ({count} matched). Narrow filters.", code = "EXPORT_TOO_LARGE" });
 
+        var userId = User.GetActorUserId() ?? "unknown";
+        var role = User.GetActorRole() ?? "Unknown";
+        var isSuperAdmin = User.IsInRole(Roles.SuperAdmin);
+
         if (count >= IAuditExportService.BackgroundExportThreshold)
         {
+            // Gate at job start so approval/2FA happens before enqueue; download still re-checks.
+            var startGate = await EvaluateAuditExportGateAsync(
+                userId, role, tenantId, resourceId: null, fileSizeBytes: null, isSuperAdmin, cancellationToken)
+                .ConfigureAwait(false);
+            if (!startGate.Allowed)
+                return StatusCode(startGate.StatusCode, startGate.Body);
+
             var jobId = await _exportJobs.StartJobAsync(tenantId.Value, filters, request.Format, cancellationToken).ConfigureAwait(false);
-            return Accepted(new { jobId, matchedRows = count, message = "Background export started. Poll GET export/jobs/{jobId}." });
+            return Accepted(new
+            {
+                jobId,
+                matchedRows = count,
+                message = "Background export started. Poll GET export/jobs/{jobId}.",
+                downloadTicket = startGate.DownloadTicket,
+                ticketExpiresAtUtc = startGate.TicketExpiresAtUtc,
+            });
         }
 
         var format = request.Format.Trim().ToLowerInvariant();
-        var ext = format == "json" ? "json" : "csv";
-        var contentType = format == "json" ? "application/json" : "text/csv";
-        var fileName = $"audit_logs_{DateTime.UtcNow:yyyyMMdd_HHmmss}.{ext}";
+        var contentType = AuditExportFileNames.ContentTypeForFormat(format);
+        var tenantSlug = await _db.Tenants.AsNoTracking()
+            .Where(t => t.Id == tenantId.Value)
+            .Select(t => t.Slug)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        var fileName = _fileNaming.GenerateFileName(
+            AuditExportFileNames.Prefix,
+            AuditExportFileNames.NormalizeExtension(format),
+            registerId: ExportFileNameSegments.DateOnly(filters.StartDate),
+            additional: ExportFileNameSegments.DateOnly(filters.EndDate),
+            tenantSlug: tenantSlug);
         await using var ms = new MemoryStream();
         await _exportService.StreamExportAsync(filters, request.Format, ms, cancellationToken).ConfigureAwait(false);
-        return File(ms.ToArray(), contentType, fileName);
+        var bytes = ms.ToArray();
+
+        var gate = await EvaluateAuditExportGateAsync(
+                userId, role, tenantId, resourceId: null, fileSizeBytes: bytes.LongLength, isSuperAdmin, cancellationToken)
+            .ConfigureAwait(false);
+        if (!gate.Allowed)
+            return StatusCode(gate.StatusCode, gate.Body);
+
+        if (!string.IsNullOrWhiteSpace(gate.DownloadTicket))
+        {
+            Response.Headers[DownloadSecurityService.HeaderDownloadTicket] = gate.DownloadTicket;
+            if (gate.TicketExpiresAtUtc.HasValue)
+                Response.Headers["X-Download-Ticket-Expires"] = gate.TicketExpiresAtUtc.Value.ToString("O");
+        }
+
+        await _downloadSecurity.LogDownloadAuditAsync(
+            userId,
+            role,
+            tenantId,
+            SensitiveExportKinds.AuditLogExport,
+            fileName,
+            bytes.LongLength,
+            null,
+            null,
+            cancellationToken).ConfigureAwait(false);
+
+        return File(bytes, contentType, fileName);
     }
 
     [HttpGet("export/jobs/{jobId}")]
@@ -98,13 +162,71 @@ public class AdminAuditController : ControllerBase
 
     [HttpGet("export/jobs/{jobId}/download")]
     [HasPermission(AppPermissions.AuditExport)]
-    public ActionResult DownloadExportJob(string jobId)
+    public async Task<ActionResult> DownloadExportJob(string jobId, CancellationToken cancellationToken)
     {
         if (!_exportJobs.TryOpenDownload(jobId, out var stream, out var fileName, out var contentType) || stream == null)
             return NotFound(new { message = "Export not ready or expired." });
 
+        var userId = User.GetActorUserId() ?? "unknown";
+        var role = User.GetActorRole() ?? "Unknown";
+        var tenantId = _tenantAccessor.TenantId;
+        var isSuperAdmin = User.IsInRole(Roles.SuperAdmin);
+        long? size = stream.CanSeek ? stream.Length : null;
+
+        var gate = await EvaluateAuditExportGateAsync(
+                userId, role, tenantId, resourceId: jobId, fileSizeBytes: size, isSuperAdmin, cancellationToken)
+            .ConfigureAwait(false);
+        if (!gate.Allowed)
+        {
+            await stream.DisposeAsync().ConfigureAwait(false);
+            return StatusCode(gate.StatusCode, gate.Body);
+        }
+
+        if (!string.IsNullOrWhiteSpace(gate.DownloadTicket))
+        {
+            Response.Headers[DownloadSecurityService.HeaderDownloadTicket] = gate.DownloadTicket;
+            if (gate.TicketExpiresAtUtc.HasValue)
+                Response.Headers["X-Download-Ticket-Expires"] = gate.TicketExpiresAtUtc.Value.ToString("O");
+        }
+
+        await _downloadSecurity.LogDownloadAuditAsync(
+            userId,
+            role,
+            tenantId,
+            SensitiveExportKinds.AuditLogExport,
+            fileName ?? "audit-export",
+            size,
+            jobId,
+            null,
+            cancellationToken).ConfigureAwait(false);
+
         return File(stream, contentType ?? "text/csv", fileName);
     }
+
+    private Task<DownloadSecurityEvaluateResult> EvaluateAuditExportGateAsync(
+        string userId,
+        string role,
+        Guid? tenantId,
+        string? resourceId,
+        long? fileSizeBytes,
+        bool isSuperAdmin,
+        CancellationToken cancellationToken) =>
+        _downloadSecurity.EvaluateAsync(
+            new DownloadSecurityEvaluateRequest
+            {
+                UserId = userId,
+                UserRole = role,
+                TenantId = tenantId,
+                ExportKind = SensitiveExportKinds.AuditLogExport,
+                ResourceId = resourceId,
+                FileSizeBytes = fileSizeBytes,
+                PrivacyAck = DownloadSecurityHttp.ReadPrivacyAck(Request),
+                TwoFactorCode = DownloadSecurityHttp.ReadTwoFactorCode(Request),
+                ApprovalId = DownloadSecurityHttp.ReadApprovalId(Request),
+                DownloadTicket = DownloadSecurityHttp.ReadDownloadTicket(Request),
+                IsSuperAdmin = isSuperAdmin,
+            },
+            cancellationToken);
 
     [HttpPost("schedule-report")]
     [HasPermission(AppPermissions.AuditExport)]

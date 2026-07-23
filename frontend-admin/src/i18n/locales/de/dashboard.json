@@ -185,6 +185,12 @@
     "recentUsers": {
       "empty": "Keine Benutzer"
     },
+    "recentPermissionChanges": {
+      "empty": "Keine Berechtigungsänderungen",
+      "viewAll": "Tümünü Gör →",
+      "roleLine": "Rolle '{{role}}'",
+      "permissionLine": "Berechtigung '{{permission}}'"
+    },
     "lowStock": {
       "summary": "{{count}} Artikel unter Mindestbestand",
       "empty": "Keine Warnungen",

@@ -67,13 +67,17 @@ Restart Metro after changing `.env`.
 ### Run
 
 ```bash
+npm run dev               # preferred alias (same as start)
 npm start                 # Expo Dev Tools + Metro (max-workers=2)
 npm run android           # Android
 npm run ios               # iOS
 npm run web               # Web
+npm run build             # Static export (`expo export`)
 npm run start:clean       # start with --clear
 npm start -- --reset-cache
 ```
+
+From repo root: `npm run dev:pos`, `npm run test:pos`, `npm run build:pos`.
 
 Dev URLs (typical):
 
@@ -460,3 +464,7 @@ Native folders are listed in `frontend/.gitignore`.
 - Wildcard DNS / TLS and reserved host labels are infrastructure concerns — see `REGKASSE_AI_ONBOARDING.md` and [`docs/POS_PRODUCTION_ARCHITECTURE.md`](../docs/POS_PRODUCTION_ARCHITECTURE.md).
 
 Repo-wide detail: `REGKASSE_AI_ONBOARDING.md` (Multi-Tenant Architecture, API Headers, Deployment).
+
+## License
+
+Proprietary — All rights reserved. See [`../LICENSE`](../LICENSE).

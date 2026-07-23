@@ -66,6 +66,8 @@ public sealed class BackupArtifactDownloadService : IBackupArtifactDownloadServi
         if (string.IsNullOrEmpty(raw))
             raw = $"{artifact.ArtifactType}_{artifact.Id:N}";
 
+        raw = BackupArtifactFileNameBuilder.InsertSizeHint(raw, artifact.ByteSize);
+
         foreach (var c in Path.GetInvalidFileNameChars())
             raw = raw.Replace(c, '_');
 

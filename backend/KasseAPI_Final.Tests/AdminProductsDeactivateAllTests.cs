@@ -54,7 +54,8 @@ public sealed class AdminProductsDeactivateAllTests
             Mock.Of<IDemoProductImportService>(),
             NullCurrentTenantAccessor.Instance,
             new AdminProductListService(ctx, TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary)),
-            Mock.Of<IProductService>());
+            Mock.Of<IProductService>(),
+            Mock.Of<IProductExportService>());
         AttachHttpContext(controller);
         return controller;
     }

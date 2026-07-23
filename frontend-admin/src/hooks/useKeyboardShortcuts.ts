@@ -7,6 +7,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 import {
+  DOWNLOAD_HISTORY_PATH,
   GLOBAL_SHORTCUT_DEFINITIONS,
   KEYBOARD_SHORTCUT_EVENTS,
   type ShortcutAction,
@@ -18,6 +19,7 @@ import {
 } from '@/shared/keyboardShortcuts';
 
 const NEW_TENANT_PATH = '/admin/tenants/create';
+const PERMISSION_HISTORY_PATH = '/admin/access/permission-history';
 
 function isNewTenantShortcutContext(pathname: string | null): boolean {
   if (!pathname) return false;
@@ -39,14 +41,14 @@ export type UseKeyboardShortcutsResult = {
 
 /**
  * Global FA power-user shortcuts. Mount once in the protected shell.
- * Page-specific actions (save, tabs, modal close) opt in via CustomEvent listeners.
+ * Page-specific actions (save, tabs, modal close, export) opt in via CustomEvent listeners.
  */
 export function useKeyboardShortcuts(): UseKeyboardShortcutsResult {
   const router = useRouter();
   const pathname = usePathname();
   const { logout } = useAuth();
   const { modal } = useAntdApp();
-  const { t } = useI18n();
+  const { t, textLocale } = useI18n();
 
   const shortcuts = useMemo(() => GLOBAL_SHORTCUT_DEFINITIONS, []);
 
@@ -54,9 +56,9 @@ export function useKeyboardShortcuts(): UseKeyboardShortcutsResult {
     (action: ShortcutAction): string => {
       const shortcut = shortcuts.find((item) => item.action === action);
       if (!shortcut) return '';
-      return formatShortcutLabel(shortcut);
+      return formatShortcutLabel(shortcut, textLocale);
     },
-    [shortcuts]
+    [shortcuts, textLocale]
   );
 
   const runAction = useCallback(
@@ -68,6 +70,9 @@ export function useKeyboardShortcuts(): UseKeyboardShortcutsResult {
         case 'newTenant':
           if (!isNewTenantShortcutContext(pathname)) return;
           router.push(NEW_TENANT_PATH);
+          break;
+        case 'openPermissionHistory':
+          router.push(PERMISSION_HISTORY_PATH);
           break;
         case 'save':
           dispatchShortcutEvent(KEYBOARD_SHORTCUT_EVENTS.triggerSave);
@@ -84,6 +89,25 @@ export function useKeyboardShortcuts(): UseKeyboardShortcutsResult {
             okButtonProps: { danger: true },
             onOk: () => logout({ silent: false, redirectTo: '/login' }),
           });
+          break;
+        case 'debugMenuPermissions':
+          if (process.env.NODE_ENV !== 'development') return;
+          dispatchShortcutEvent(KEYBOARD_SHORTCUT_EVENTS.debugMenuPermissions);
+          break;
+        case 'downloadExport':
+          dispatchShortcutEvent(KEYBOARD_SHORTCUT_EVENTS.downloadExport);
+          break;
+        case 'openExportModal':
+          dispatchShortcutEvent(KEYBOARD_SHORTCUT_EVENTS.openExportModal);
+          break;
+        case 'openDownloadHistory':
+          router.push(DOWNLOAD_HISTORY_PATH);
+          break;
+        case 'openDownloadPreview':
+          dispatchShortcutEvent(KEYBOARD_SHORTCUT_EVENTS.openDownloadPreview);
+          break;
+        case 'openBatchDownload':
+          dispatchShortcutEvent(KEYBOARD_SHORTCUT_EVENTS.openBatchDownload);
           break;
         case 'navigate': {
           const index = navigateIndexForKey(event.key);
@@ -110,6 +134,13 @@ export function useKeyboardShortcuts(): UseKeyboardShortcutsResult {
         }
 
         if (shortcut.action === 'newTenant' && !isNewTenantShortcutContext(pathname)) {
+          continue;
+        }
+
+        if (
+          shortcut.action === 'debugMenuPermissions' &&
+          process.env.NODE_ENV !== 'development'
+        ) {
           continue;
         }
 

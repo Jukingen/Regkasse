@@ -61,12 +61,16 @@
           },
           "namespaces": {
             "type": "array",
-            "minItems": 1,
+            "minItems": 0,
             "items": {
               "type": "string",
               "pattern": "^[a-z][a-z0-9_\\-]*$"
             },
             "uniqueItems": true
+          },
+          "deferred": {
+            "type": "boolean",
+            "description": "When true, validation/export/usage scripts skip this app (no locale catalog yet)."
           }
         },
         "additionalProperties": false

@@ -53,7 +53,7 @@ Database logical dumps do **not** replace TSE device / certificate backup proced
 
 ## Permissions
 
-See [`BACKUP_PERMISSIONS.md`](./BACKUP_PERMISSIONS.md). Summary: Manager has `backup.manage` (trigger + schedule); `settings.manage` required for execution mode and artifact download; route access `/settings/backup-dr` and `/admin/backup` use `settings.view`.
+See [`BACKUP_PERMISSIONS.md`](./BACKUP_PERMISSIONS.md). Summary: Manager has `backup.manage` (trigger + schedule); `settings.manage` required for execution mode; Super Admin for System dumps / restore drills. FA hub is `/backup` (legacy `/settings/backup-dr` and `/admin/backup` redirect).
 
 ## Legal hold / retention
 

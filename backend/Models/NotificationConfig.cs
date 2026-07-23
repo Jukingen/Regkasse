@@ -21,5 +21,12 @@ public sealed class NotificationConfig
     /// <summary>Minimum severity per event type (Info, Warning, Error, Critical). Omitted types use event default only.</summary>
     public Dictionary<ActivityEventType, string> SeverityThreshold { get; set; } = new();
 
-    public static NotificationConfig CreateDefault() => new();
+    public static NotificationConfig CreateDefault() => new()
+    {
+        // Opt-in: high-noise / platform-sensitive system permission alerts stay off until enabled.
+        EnabledEvents =
+        {
+            [ActivityEventType.SystemPermissionChange] = false,
+        },
+    };
 }

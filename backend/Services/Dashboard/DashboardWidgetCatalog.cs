@@ -10,6 +10,7 @@ public static class DashboardWidgetCatalog
     public const string ActiveCashRegisters = "active-cash-registers";
     public const string LowStockAlerts = "low-stock-alerts";
     public const string RecentUsers = "recent-users";
+    public const string RecentPermissionChanges = "recent-permission-changes";
     public const string LicenseExpiry = "license-expiry";
     public const string FinanzOnlineStatus = "finanzonline-status";
     public const string OfflineSystemStatus = "offline-system-status";
@@ -27,12 +28,13 @@ public static class DashboardWidgetCatalog
         new(LowStockAlerts, "Niedriger Bestand", "Artikel unter Mindestbestand", AppPermissions.InventoryView, 3, true, true),
         new(TopSellingProducts, "Top-Artikel", "Meistverkaufte Produkte", AppPermissions.ReportView, 4, true, true),
         new(RecentUsers, "Neue Benutzer", "Zuletzt angelegte Benutzer", AppPermissions.UserView, 5, true, true),
-        new(LicenseExpiry, "Lizenzablauf", "Verbleibende Tage Mandantenlizenz", AppPermissions.LicenseManage, 6, true, true),
-        new(FinanzOnlineStatus, "FinanzOnline", "Ausstehende oder fehlgeschlagene Übermittlungen", AppPermissions.FinanzOnlineView, 7, true, true),
-        new(OfflineSystemStatus, "Offline-System", "Offline-Bestellungen, Sync-Gesundheit und Rückstau", AppPermissions.PaymentView, 8, true, true),
-        new(BackupStatus, "Backup-Status", "Letztes Backup, Erfolgsrate und Konfigurationszustand", AppPermissions.SettingsView, 9, true, true),
-        new(DataRetention, "Datenaufbewahrung", "Lizenz-Lebenszyklus, Grace/Lock und Löschanfragen (RKSV 7 Jahre)", AppPermissions.BackupManage, 10, true, true),
-        new(SystemMetrics, "System-Metriken", "API-Leistung, Cache, Uptime und aktive Mandanten", AppPermissions.SystemCritical, 11, true, true),
+        new(RecentPermissionChanges, "📜 Berechtigungsänderungen", "Zuletzt geänderte Rollen und Berechtigungen", AppPermissions.AuditView, 6, true, true),
+        new(LicenseExpiry, "Lizenzablauf", "Verbleibende Tage Mandantenlizenz", AppPermissions.LicenseManage, 7, true, true),
+        new(FinanzOnlineStatus, "FinanzOnline", "Ausstehende oder fehlgeschlagene Übermittlungen", AppPermissions.FinanzOnlineView, 8, true, true),
+        new(OfflineSystemStatus, "Offline-System", "Offline-Bestellungen, Sync-Gesundheit und Rückstau", AppPermissions.PaymentView, 9, true, true),
+        new(BackupStatus, "Backup-Status", "Letztes Backup, Erfolgsrate und Konfigurationszustand", AppPermissions.SettingsView, 10, true, true),
+        new(DataRetention, "Datenaufbewahrung", "Lizenz-Lebenszyklus, Grace/Lock und Löschanfragen (RKSV 7 Jahre)", AppPermissions.BackupManage, 11, true, true),
+        new(SystemMetrics, "System-Metriken", "API-Leistung, Cache, Uptime und aktive Mandanten", AppPermissions.SystemCritical, 12, true, true),
     ];
 
     public static IReadOnlyList<DashboardWidgetDefinition> GetAll() => All;

@@ -6,6 +6,7 @@
   "empty": "No recent notifications.",
   "emptyUnread": "No unread notifications.",
   "byActor": "by {{name}}",
+  "whatChangedLabel": "What changed?",
   "settingsLoadError": "Could not load notification settings.",
   "settingsSaved": "Settings saved.",
   "settingsSaveError": "Save failed.",
@@ -19,14 +20,30 @@
     "emailSection": "Email",
     "emailEnabled": "Enable email notifications",
     "emailRecipients": "Recipients (one address per line)",
+    "criticalEmailNote": "Critical changes (role deletion, SuperAdmin/system permissions, mass updates) send an immediate email when recipients are configured.",
     "webhookSection": "Webhook (Slack / Discord)",
     "webhookEnabled": "Enable webhook",
     "webhookUrl": "Webhook URL",
     "webhookSecret": "Webhook secret",
-    "eventsSection": "Event types",
+    "permissionChangesSection": "Permission changes",
+    "notifyOnPermissionChanges": "Notify me about changes to:",
+    "permissionGroups": {
+      "roles": "Roles",
+      "userPermissions": "User permissions",
+      "systemChanges": "System changes"
+    },
+    "eventsSection": "Other event types",
     "enabledEvents": "Enabled events",
     "severityThreshold": "Minimum severity per event",
     "severityDefault": "Default (no extra filter)"
+  },
+  "permissionTitles": {
+    "defaultActor": "Admin",
+    "RoleCreated": "{{actor}} created role '{{role}}'",
+    "RoleDeleted": "{{actor}} deleted role '{{role}}'",
+    "RolePermissionsUpdated": "{{actor}} updated role '{{role}}'",
+    "UserPermissionOverridesChanged": "{{actor}} changed user permission '{{permission}}'",
+    "SystemPermissionChange": "{{actor}} made a system permission change on '{{role}}'"
   },
   "eventTypes": {
     "UserCreated": "User created",
@@ -48,6 +65,12 @@
     "OnlineOrderPushedToPos": "Online order pushed to POS",
     "OnlineOrderPaid": "Online order paid",
     "OnlineOrderStatusChanged": "Online order status changed",
-    "OnlineOrderConfirmed": "Online order confirmed"
+    "OnlineOrderConfirmed": "Online order confirmed",
+    "DigitalServiceRequested": "Digital service requested",
+    "RoleCreated": "Role created",
+    "RoleDeleted": "Role deleted",
+    "RolePermissionsUpdated": "Role permissions updated",
+    "UserPermissionOverridesChanged": "User permissions changed",
+    "SystemPermissionChange": "System permission change"
   }
 }

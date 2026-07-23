@@ -86,7 +86,8 @@ public sealed class PostgreSqlPgDumpBackupExecutionAdapter : IBackupExecutionAda
         var fileNameTimestamp = context.ArtifactFileNameTimestampUtc ?? DateTime.UtcNow;
         var fileName = BackupArtifactFileNameBuilder.BuildLogicalDumpFileName(
             context.TenantSlugForFileName,
-            fileNameTimestamp);
+            fileNameTimestamp,
+            context.Strategy);
         var outputPath = Path.GetFullPath(Path.Combine(rootFull, fileName));
 
         if (!BackupPathGuard.IsPathUnderStagingRoot(outputPath, rootFull))
@@ -173,7 +174,8 @@ public sealed class PostgreSqlPgDumpBackupExecutionAdapter : IBackupExecutionAda
         var dumpRelativeName = fileName;
         var manifestRelativeName = BackupArtifactFileNameBuilder.BuildManifestFileName(
             context.TenantSlugForFileName,
-            fileNameTimestamp);
+            fileNameTimestamp,
+            context.Strategy);
 
         var manifestDoc = _manifestService.BuildLogicalPgDumpManifest(
             new BackupLogicalManifestInput(

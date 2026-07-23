@@ -83,7 +83,8 @@ public sealed class TenantScopedLogicalBackupExecutionAdapter : IBackupExecution
             var hash = await _checksum.ComputeFileSha256HexAsync(zipPath, context.CancellationToken);
             var manifestName = BackupArtifactFileNameBuilder.BuildManifestFileName(
                 context.TenantSlugForFileName,
-                fileNameTimestamp);
+                fileNameTimestamp,
+                BackupStrategyKind.Tenant);
             var manifestPath = Path.Combine(rootFull, manifestName);
 
             var manifestPayload = new

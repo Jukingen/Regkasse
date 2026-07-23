@@ -24,17 +24,24 @@ import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 
 import type { TenantDataTypeSummary } from '@/features/data-management/api/tenantDataManagement';
+import { downloadTenantDataExport } from '@/features/data-management/api/tenantDataManagement';
 import { DataDeletionRequestModal } from '@/features/data-management/components/DataDeletionRequestModal';
 import { DataRightsRequestPanel } from '@/features/data-management/components/DataRightsRequestPanel';
 import {
   useConfirmTenantDataDeletion,
   useExecuteTenantDataPurge,
-  useExportTenantData,
   useTenantDataManagementSummary,
 } from '@/features/data-management/hooks/useTenantDataManagement';
+import { buildDataExportFileName } from '@/features/data-management/utils/dataExportFileName';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { useDownloadPreview } from '@/hooks/useDownloadPreview';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useSensitiveExportGate } from '@/hooks/useSensitiveExportGate';
 import { formatDate, useI18n } from '@/i18n';
+import { DownloadPreviewModal } from '@/components/ui/DownloadPreviewModal';
+import { estimateTabularExportBytes } from '@/lib/download/downloadPreview';
+import { SENSITIVE_EXPORT_KINDS } from '@/lib/download/sensitiveExportSecurity';
+import { triggerBlobDownload } from '@/lib/download/exportDownload';
 
 type Props = { tenantId: string };
 
@@ -80,11 +87,13 @@ export function TenantDataManagementPanel({ tenantId }: Props) {
   const { t, formatLocale } = useI18n();
   const { message, modal } = useAntdApp();
   const { isSuperAdmin } = usePermissions();
+  const downloadPreview = useDownloadPreview();
+  const sensitiveGate = useSensitiveExportGate();
   const summaryQuery = useTenantDataManagementSummary(tenantId);
-  const exportMutation = useExportTenantData(tenantId);
   const confirmMutation = useConfirmTenantDataDeletion(tenantId);
   const executeMutation = useExecuteTenantDataPurge(tenantId);
   const [deletionWizardOpen, setDeletionWizardOpen] = useState(false);
+  const [exportBusy, setExportBusy] = useState(false);
 
   const columns: ColumnsType<TenantDataTypeSummary> = useMemo(
     () => [
@@ -116,19 +125,38 @@ export function TenantDataManagementPanel({ tenantId }: Props) {
   const summary = summaryQuery.data;
   const retention = summary?.retention;
 
-  const onExport = async () => {
-    try {
-      const blob = await exportMutation.mutateAsync();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `tenant_${summary?.tenantSlug ?? tenantId}_export.zip`;
-      a.click();
-      URL.revokeObjectURL(url);
-      message.success(t('dataManagement.exportSuccess'));
-    } catch {
-      message.error(t('dataManagement.exportFailed'));
-    }
+  const onExport = () => {
+    const inventoryRows =
+      summary?.dataTypes?.reduce((sum, row) => sum + (row.rowCount ?? 0), 0) ?? 0;
+    const fileName = buildDataExportFileName(summary?.tenantSlug ?? null);
+    sensitiveGate.run({
+      kind: SENSITIVE_EXPORT_KINDS.GdprDataExport,
+      isSuperAdmin,
+      execute: async (headers) => {
+        downloadPreview.requestPreview({
+          fileName,
+          fileType: 'ZIP',
+          sizeBytes: estimateTabularExportBytes(inventoryRows, 'json'),
+          isSizeEstimate: true,
+          contentSummary: t('common.exportDownload.contentRows', { count: inventoryRows }),
+          tenantName: summary?.tenantName ?? summary?.tenantSlug,
+          hint: summary?.rksvRetentionNote || t('common.exportDownload.contentGeneric'),
+          execute: async () => {
+            setExportBusy(true);
+            try {
+              const blob = await downloadTenantDataExport(tenantId, headers);
+              triggerBlobDownload(blob, fileName);
+              message.success(t('dataManagement.exportSuccess'));
+            } catch {
+              message.error(t('dataManagement.exportFailed'));
+              throw new Error('export failed');
+            } finally {
+              setExportBusy(false);
+            }
+          },
+        });
+      },
+    });
   };
 
   const onConfirmDeletion = () => {
@@ -221,7 +249,7 @@ export function TenantDataManagementPanel({ tenantId }: Props) {
             <Button
               type="primary"
               icon={<DownloadOutlined />}
-              loading={exportMutation.isPending}
+              loading={exportBusy || sensitiveGate.busy}
               disabled={!summary?.canExport}
               onClick={() => void onExport()}
             >
@@ -339,6 +367,8 @@ export function TenantDataManagementPanel({ tenantId }: Props) {
           dataSource={summary?.dataTypes ?? []}
         />
       </Card>
+      <DownloadPreviewModal {...downloadPreview.modalProps} />
+      {sensitiveGate.modals}
     </Space>
   );
 }

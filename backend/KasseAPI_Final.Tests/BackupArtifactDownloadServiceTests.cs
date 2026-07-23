@@ -256,4 +256,62 @@ public sealed class BackupArtifactDownloadServiceTests
             }
         }
     }
+
+    [Fact]
+    public async Task Succeeded_run_inserts_size_hint_into_download_name()
+    {
+        using var db = CreateDb();
+        var runId = Guid.NewGuid();
+        var artId = Guid.NewGuid();
+        var staging = Path.Combine(Path.GetTempPath(), "bk_dl_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(staging);
+        var fileName = "backup_cafe_tenant_20260722_143022.tenant.zip";
+        var full = Path.Combine(staging, fileName);
+        await File.WriteAllBytesAsync(full, new byte[12 * 1024 * 1024]);
+
+        try
+        {
+            db.BackupRuns.Add(new BackupRun
+            {
+                Id = runId,
+                Status = BackupRunStatus.Succeeded,
+                TriggerSource = BackupTriggerSource.Manual,
+                AdapterKind = "TenantLogical",
+                RequestedAt = DateTime.UtcNow,
+                StartedAt = DateTime.UtcNow.AddSeconds(-2),
+                CompletedAt = DateTime.UtcNow,
+            });
+            db.BackupArtifacts.Add(new BackupArtifact
+            {
+                Id = artId,
+                BackupRunId = runId,
+                ArtifactType = BackupArtifactType.LogicalDump,
+                StorageDescriptor = fileName,
+                ByteSize = 12L * 1024 * 1024,
+                CreatedAt = DateTime.UtcNow,
+            });
+            await db.SaveChangesAsync();
+
+            var optMon = new Mock<IOptionsMonitor<BackupOptions>>();
+            optMon.Setup(m => m.CurrentValue).Returns(new BackupOptions { ArtifactStagingRoot = staging });
+            var env = new Mock<IHostEnvironment>();
+            env.Setup(e => e.EnvironmentName).Returns(Environments.Development);
+            var svc = new BackupArtifactDownloadService(db, optMon.Object, env.Object, NullLogger<BackupArtifactDownloadService>.Instance);
+            var r = await svc.PrepareDownloadAsync(runId, artId);
+            Assert.Equal(BackupArtifactDownloadPrepareStatus.Ok, r.Status);
+            Assert.Equal("backup_cafe_tenant_20260722_143022_12mb.tenant.zip", r.DownloadFileName);
+        }
+        finally
+        {
+            try
+            {
+                if (Directory.Exists(staging))
+                    Directory.Delete(staging, recursive: true);
+            }
+            catch
+            {
+                // best-effort
+            }
+        }
+    }
 }

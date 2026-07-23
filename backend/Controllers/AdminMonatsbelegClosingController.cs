@@ -1,13 +1,16 @@
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Reports;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Reports;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Controllers;
 
@@ -23,6 +26,7 @@ public class AdminMonatsbelegClosingController : ControllerBase
     private readonly IReportPdfStorageService _reportPdfStorage;
     private readonly IReportPdfCaptureService _reportPdfCapture;
     private readonly ISettingsTenantResolver _tenantResolver;
+    private readonly AppDbContext _db;
     private readonly ILogger<AdminMonatsbelegClosingController> _logger;
 
     public AdminMonatsbelegClosingController(
@@ -31,6 +35,7 @@ public class AdminMonatsbelegClosingController : ControllerBase
         IReportPdfStorageService reportPdfStorage,
         IReportPdfCaptureService reportPdfCapture,
         ISettingsTenantResolver tenantResolver,
+        AppDbContext db,
         ILogger<AdminMonatsbelegClosingController> logger)
     {
         _monatsbelegClosing = monatsbelegClosing;
@@ -38,6 +43,7 @@ public class AdminMonatsbelegClosingController : ControllerBase
         _reportPdfStorage = reportPdfStorage;
         _reportPdfCapture = reportPdfCapture;
         _tenantResolver = tenantResolver;
+        _db = db;
         _logger = logger;
     }
 
@@ -143,7 +149,12 @@ public class AdminMonatsbelegClosingController : ControllerBase
             return NotFound();
 
         var pdf = _reportService.GenerateDailyReportPdf(report, normalizedLanguage);
-        return File(pdf, "application/pdf", $"monatsbeleg-{report.BusinessDate:yyyy-MM}.pdf");
+        var fileName = await BuildReportFileNameAsync(
+                ReportPdfTypes.Monatsbeleg,
+                report.BusinessDate,
+                cancellationToken)
+            .ConfigureAwait(false);
+        return File(pdf, "application/pdf", fileName);
     }
 
     private async Task<IActionResult?> TryOpenStoredClosingPdfAsync(
@@ -183,8 +194,31 @@ public class AdminMonatsbelegClosingController : ControllerBase
         if (pdf is not { Length: > 0 })
             return null;
 
-        var fileName = ReportPdfStorageService.BuildDownloadFileName(reportType, closingId);
+        var closingDate = await _db.DailyClosings.AsNoTracking()
+            .Where(c => c.Id == closingId)
+            .Select(c => (DateTime?)c.ClosingDate)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        var fileName = await BuildReportFileNameAsync(
+                reportType,
+                closingDate ?? DateTime.UtcNow,
+                cancellationToken)
+            .ConfigureAwait(false);
         return File(pdf, "application/pdf", fileName);
+    }
+
+    private async Task<string> BuildReportFileNameAsync(
+        string reportType,
+        DateTime businessDate,
+        CancellationToken cancellationToken)
+    {
+        var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
+        var tenantSlug = await _db.Tenants.AsNoTracking()
+            .Where(t => t.Id == tenantId)
+            .Select(t => t.Slug)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return ReportPdfStorageService.BuildDownloadFileName(reportType, tenantSlug, businessDate);
     }
 
     private static (int Year, int Month) ResolvePeriod(int? year, int? month)

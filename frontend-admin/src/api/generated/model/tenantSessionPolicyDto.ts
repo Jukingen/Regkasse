@@ -7,8 +7,10 @@
  */
 
 export interface TenantSessionPolicyDto {
+  allowMultipleDevices?: boolean;
   idleTimeoutEnabled?: boolean;
   keepCartAfterTimeout?: boolean;
+  maxConcurrentSessions?: number;
   sessionTimeoutMinutes?: number;
   warningBeforeTimeoutMinutes?: number;
 }

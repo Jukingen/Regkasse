@@ -1,7 +1,9 @@
 'use client';
 
-import { Alert } from 'antd';
+import { Alert, Button } from 'antd';
+import Link from 'next/link';
 import React, { useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
@@ -12,13 +14,21 @@ import {
   buildUsersFormRulesContext,
   createUsersFormRules,
 } from '@/features/users/constants/validation';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { PERMISSIONS } from '@/shared/auth/permissions';
 
 export default function AccessRolesPage() {
   const { t } = useI18n();
+  const searchParams = useSearchParams();
   const workspace = useRoleManagementWorkspace();
   const modalRules = useMemo(() => createUsersFormRules(buildUsersFormRulesContext(t)), [t]);
+  const { hasPermission } = usePermissions();
+  const canViewHistory = hasPermission(PERMISSIONS.AUDIT_VIEW);
+
+  const initialMenuFilter = searchParams.get('menu');
+  const initialPermissionFocus = searchParams.get('permission');
 
   const breadcrumbs = [
     adminOverviewCrumb(t),
@@ -42,7 +52,17 @@ export default function AccessRolesPage() {
 
   return (
     <AdminPageShell>
-      <AdminPageHeader title={t('access.roles.pageTitle')} breadcrumbs={breadcrumbs} />
+      <AdminPageHeader
+        title={t('access.roles.pageTitle')}
+        breadcrumbs={breadcrumbs}
+        actions={
+          canViewHistory ? (
+            <Link href="/admin/access/permission-history" prefetch={false}>
+              <Button type="default">{t('users.roleDrawer.openHistory')}</Button>
+            </Link>
+          ) : null
+        }
+      />
       <RoleManagementDrawer
         open
         presentation="page"
@@ -62,6 +82,8 @@ export default function AccessRolesPage() {
         onDeleteRole={workspace.handleDeleteRole}
         saveLoading={workspace.saveLoading}
         deleteLoading={workspace.deleteLoading}
+        initialMenuFilter={initialMenuFilter}
+        initialPermissionFocus={initialPermissionFocus}
       />
       {workspace.createRoleOpen ? (
         <CreateRoleModal

@@ -1,11 +1,15 @@
 using System.Security.Claims;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Controllers;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.Filters;
 using KasseAPI_Final.Models.Export;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
@@ -24,12 +28,27 @@ public class FiscalExportDisclaimerAckTests
         IFiscalExportDownloadTicketStore? tickets = null)
     {
         tickets ??= new Mock<IFiscalExportDownloadTicketStore>().Object;
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase($"fiscal_export_ctrl_{Guid.NewGuid():N}")
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+            .Options;
+        var tenantAccessor = new FixedTenantAccessor(LegacyDefaultTenantIds.Primary);
+        var db = new AppDbContext(options, tenantAccessor);
         return new FiscalExportController(
             exportSvc,
             new DisclaimerService(),
             audit,
             tickets,
+            db,
+            tenantAccessor,
+            new FileNamingService(tenantAccessor),
             NullLogger<FiscalExportController>.Instance);
+    }
+
+    private sealed class FixedTenantAccessor(Guid tenantId) : ICurrentTenantAccessor
+    {
+        public Guid? TenantId { get; set; } = tenantId;
+    public string? TenantSlug { get; set; }
     }
 
     [Fact]

@@ -38,6 +38,8 @@ import {
   isFiscalExportDisclaimerSkipped,
   setFiscalExportDisclaimerSkip24h,
 } from '@/features/rksv/fiscalExportDisclaimerSession';
+import { buildFiscalExportFileName } from '@/features/rksv/utils/fiscalExportFileName';
+import { useTenant } from '@/features/tenancy/providers/TenantProvider';
 import { useI18n } from '@/i18n/I18nProvider';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -47,6 +49,18 @@ import { usePermissions } from '@/shared/auth/usePermissions';
 const { RangePicker } = DatePicker;
 
 type ExportProfileValue = 'diagnostic' | 'audit_handoff' | 'compliance';
+
+function toCanonicalExportProfile(profile: ExportProfileValue): string {
+  switch (profile) {
+    case 'audit_handoff':
+      return 'accounting_report';
+    case 'compliance':
+      return 'legal_compliance_export';
+    case 'diagnostic':
+    default:
+      return 'operational_preview';
+  }
+}
 
 type FiscalExportIntegrity = {
   signatureChainValid?: boolean;
@@ -105,6 +119,7 @@ function downloadBlob(blob: unknown, fileName: string) {
 export default function FiscalExportDiagnosticsPage() {
   const { t } = useI18n();
   const { hasPermission } = usePermissions();
+  const { tenant } = useTenant();
 
   const canDiagnostic = hasPermission(PERMISSIONS.REPORT_EXPORT);
   const canAuditHandoff =
@@ -201,7 +216,13 @@ export default function FiscalExportDiagnosticsPage() {
 
     try {
       const blob = await downloadFiscalExportJson(params);
-      const fileName = `fiscal-export-${exportProfile}-${cashRegisterId}-${fromUtc.slice(0, 10)}-${toUtc.slice(0, 10)}.json`;
+      const selectedRegister = (cashRegisters ?? []).find((r) => r.id === cashRegisterId);
+      const fileName = buildFiscalExportFileName({
+        tenantSlug: tenant?.slug,
+        registerNumber: selectedRegister?.registerNumber,
+        profileName: toCanonicalExportProfile(exportProfile),
+        extension: 'json',
+      });
 
       const maybeText = await blob.text();
       try {

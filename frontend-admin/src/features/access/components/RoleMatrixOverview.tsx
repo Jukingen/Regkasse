@@ -6,6 +6,7 @@ import Link from 'next/link';
 import React, { useMemo } from 'react';
 
 import type { RoleWithPermissionsDto } from '@/features/users/api/usersGateway';
+import { resolvePermissionGroupLabel } from '@/features/users/utils/permissionDisplayLabel';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n/I18nProvider';
 import { PERMISSIONS } from '@/shared/auth/permissions';
@@ -92,7 +93,7 @@ export function RoleMatrixOverview({ roles, loading, error, onRetry }: RoleMatri
         key: 'groups',
         render: (_, record) =>
           (record.permissionGroups ?? []).map((g) => (
-            <Tag key={g.groupKey}>{t(`users.roleDrawer.groups.${g.groupKey}`)}</Tag>
+            <Tag key={g.groupKey}>{resolvePermissionGroupLabel(g.groupKey, t)}</Tag>
           )),
       },
     ],

@@ -89,6 +89,8 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/audit-logs/staff': PERMISSIONS.REPORT_VIEW,
   '/audit-logs': PERMISSIONS.AUDIT_VIEW,
   '/admin/audit/fiscal-exports': PERMISSIONS.AUDIT_VIEW,
+  '/admin/download-history': PERMISSIONS.AUDIT_VIEW,
+  '/admin/download-history/analytics': PERMISSIONS.AUDIT_VIEW,
   '/users': PERMISSIONS.USER_VIEW,
   '/admin/users': PERMISSIONS.USER_VIEW,
   '/admin/access': PERMISSIONS.USER_VIEW,
@@ -96,6 +98,16 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/access/roles': PERMISSIONS.ROLE_MANAGE,
   /** Read-only matrix — Manager may view (role.view). */
   '/admin/access/matrix': PERMISSIONS.ROLE_VIEW,
+  /** Permission change history — audit.view. */
+  '/admin/access/permission-history': PERMISSIONS.AUDIT_VIEW,
+  /** Pending temporary permission requests — Super Admin. */
+  '/admin/access/permission-requests': PERMISSIONS.SYSTEM_CRITICAL,
+  /** Permission packages catalog. */
+  '/admin/access/permission-packages': PERMISSIONS.ROLE_VIEW,
+  /** Permission config backups — Super Admin. */
+  '/admin/access/permission-backups': PERMISSIONS.SYSTEM_CRITICAL,
+  /** Permission usage analytics — Super Admin. */
+  '/admin/access/permission-stats': PERMISSIONS.SYSTEM_CRITICAL,
   '/settings': PERMISSIONS.SETTINGS_VIEW,
   /** Super Admin / settings.manage — firm-wide fiscal master data. */
   '/settings/company': PERMISSIONS.SETTINGS_MANAGE,
@@ -165,6 +177,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
    */
   '/admin': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/tenants': PERMISSIONS.SYSTEM_CRITICAL,
+  '/admin/tenants/create': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/data-management': PERMISSIONS.SYSTEM_CRITICAL,
   /**
    * Super Admin tenant tooling (`/tenant/{id}/customize|domain|…`).

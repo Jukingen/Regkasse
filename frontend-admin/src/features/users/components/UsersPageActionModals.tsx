@@ -5,7 +5,13 @@ import type { Rule } from 'antd/es/form';
 import React, { useEffect, useMemo } from 'react';
 
 import type { UserInfo } from '@/features/users/api/usersGateway';
+import { RolePresetPreviewCard } from '@/features/users/components/RolePresetPreviewCard';
+import {
+  ROLE_PRESETS,
+  findRolePresetById,
+} from '@/features/users/constants/rolePresets';
 import { PASSWORD_MIN_LENGTH } from '@/features/users/constants/validation';
+import { usePermissionsCatalog } from '@/features/users/hooks/usePermissionsCatalog';
 import { useI18n } from '@/i18n';
 
 function fullName(record: UserInfo): string {
@@ -167,7 +173,11 @@ export function ResetPasswordUserModal({
 
 type CreateRoleModalProps = {
   onCancel: () => void;
-  onConfirm: (payload: { name: string; inheritFromRole?: string }) => void;
+  onConfirm: (payload: {
+    name: string;
+    inheritFromRole?: string;
+    presetId?: string;
+  }) => void;
   confirmLoading?: boolean;
   roleNameRules: Rule[];
   inheritRoleOptions?: { value: string; label: string }[];
@@ -181,11 +191,33 @@ export function CreateRoleModal({
   inheritRoleOptions = [],
 }: CreateRoleModalProps) {
   const { t } = useI18n();
-  const [form] = Form.useForm<{ name: string; inheritFromRole?: string }>();
+  const [form] = Form.useForm<{ name: string; inheritFromRole?: string; presetId?: string }>();
+  const selectedPresetId = Form.useWatch('presetId', form);
+  const selectedInherit = Form.useWatch('inheritFromRole', form);
+  const { data: catalog = [] } = usePermissionsCatalog();
 
   const selectableInheritOptions = useMemo(
     () => inheritRoleOptions.filter((option) => option.value !== 'SuperAdmin'),
     [inheritRoleOptions]
+  );
+
+  const presetOptions = useMemo(
+    () =>
+      ROLE_PRESETS.map((p) => ({
+        value: p.id,
+        label: p.label,
+      })),
+    []
+  );
+
+  const selectedPreset = useMemo(
+    () => findRolePresetById(selectedPresetId),
+    [selectedPresetId]
+  );
+
+  const catalogKeySet = useMemo(
+    () => (catalog.length ? new Set(catalog.map((item) => item.key)) : undefined),
+    [catalog]
   );
 
   const handleOk = () => {
@@ -195,6 +227,7 @@ export function CreateRoleModal({
         onConfirm({
           name: values.name.trim(),
           inheritFromRole: values.inheritFromRole?.trim() || undefined,
+          presetId: values.presetId?.trim() || undefined,
         })
       )
       .catch(() => {
@@ -237,8 +270,41 @@ export function CreateRoleModal({
               allowClear
               placeholder={t('users.createRole.inheritFromRolePlaceholder')}
               options={selectableInheritOptions}
+              disabled={Boolean(selectedPresetId)}
+              onChange={(value) => {
+                if (value) form.setFieldValue('presetId', undefined);
+              }}
             />
           </Form.Item>
+        ) : null}
+        <Form.Item
+          name="presetId"
+          label={t('users.createRole.presetLabel')}
+          extra={t('users.createRole.presetHelp')}
+        >
+          <Select
+            allowClear
+            placeholder={t('users.roleDrawer.presetPlaceholder')}
+            options={presetOptions}
+            disabled={Boolean(selectedInherit)}
+            onChange={(value) => {
+              if (value) form.setFieldValue('inheritFromRole', undefined);
+            }}
+            optionRender={(option) => {
+              const preset = findRolePresetById(String(option.value));
+              return (
+                <div>
+                  <div>{option.label}</div>
+                  {preset ? (
+                    <div style={{ fontSize: 11, color: 'rgba(0,0,0,0.45)' }}>{preset.description}</div>
+                  ) : null}
+                </div>
+              );
+            }}
+          />
+        </Form.Item>
+        {selectedPreset ? (
+          <RolePresetPreviewCard preset={selectedPreset} catalogKeys={catalogKeySet} />
         ) : null}
       </Form>
     </Modal>

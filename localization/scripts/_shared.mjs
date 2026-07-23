@@ -24,13 +24,28 @@ export async function readManifest() {
 
 export function resolveAppConfig(manifest, appId) {
   const app = manifest.apps?.[appId];
-  if (!app) throw new Error(`Unknown app "${appId}".`);
+  if (!app) {
+    const known = Object.keys(manifest.apps ?? {}).sort().join(', ');
+    throw new Error(
+      `Unknown app "${appId}". Registered apps: ${known || '(none)'}. ` +
+        `Add the app under localization/namespace-manifest.json when locale catalogs exist.`,
+    );
+  }
   return {
     ...app,
     id: appId,
+    deferred: app.deferred === true,
     localesDirAbs: path.join(ROOT, app.localesDir),
     csvPathAbs: path.join(ROOT, app.csvPath),
   };
+}
+
+/** Active (non-deferred) apps — used by default when --app is omitted. */
+export function listActiveAppIds(manifest) {
+  return Object.entries(manifest.apps ?? {})
+    .filter(([, app]) => app?.deferred !== true)
+    .map(([id]) => id)
+    .sort((a, b) => a.localeCompare(b));
 }
 
 export async function ensureDir(dir) {

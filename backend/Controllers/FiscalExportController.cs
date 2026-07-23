@@ -1,14 +1,17 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Filters;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Export;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Controllers;
 
@@ -37,6 +40,9 @@ public class FiscalExportController : ControllerBase
     private readonly IDisclaimerService _disclaimer;
     private readonly IAuditLogService _auditLogService;
     private readonly IFiscalExportDownloadTicketStore _downloadTickets;
+    private readonly AppDbContext _context;
+    private readonly ICurrentTenantAccessor _tenantAccessor;
+    private readonly IFileNamingService _fileNaming;
     private readonly ILogger<FiscalExportController> _logger;
 
     public FiscalExportController(
@@ -44,12 +50,18 @@ public class FiscalExportController : ControllerBase
         IDisclaimerService disclaimer,
         IAuditLogService auditLogService,
         IFiscalExportDownloadTicketStore downloadTickets,
+        AppDbContext context,
+        ICurrentTenantAccessor tenantAccessor,
+        IFileNamingService fileNaming,
         ILogger<FiscalExportController> logger)
     {
         _exportService = exportService;
         _disclaimer = disclaimer;
         _auditLogService = auditLogService;
         _downloadTickets = downloadTickets;
+        _context = context;
+        _tenantAccessor = tenantAccessor;
+        _fileNaming = fileNaming;
         _logger = logger;
     }
 
@@ -132,17 +144,13 @@ public class FiscalExportController : ControllerBase
         if (ticket.NormalizedExportFormat == "pdf")
         {
             var pdfBytes = FiscalExportPdfGenerator.Generate(package, package.NotLegalProofNotice);
-            var pdfName =
-                $"fiscal-export-{package.ExportProfile}-{package.CashRegisterId:D}-{package.Period.FromUtc:yyyyMMdd}-{package.Period.ToUtc:yyyyMMdd}.pdf";
-            return File(pdfBytes, "application/pdf", pdfName);
+            return File(pdfBytes, "application/pdf", ticket.FileName);
         }
 
         if (ticket.NormalizedExportFormat == "jsondownload")
         {
-            var fileName =
-                $"fiscal-export-{package.ExportProfile}-{package.CashRegisterId:D}-{package.Period.FromUtc:yyyyMMdd}-{package.Period.ToUtc:yyyyMMdd}.json";
             var bytes = JsonSerializer.SerializeToUtf8Bytes(ticket.Envelope, JsonOptions);
-            return File(bytes, "application/json", fileName);
+            return File(bytes, "application/json", ticket.FileName);
         }
 
         return BadRequest(new
@@ -217,6 +225,15 @@ public class FiscalExportController : ControllerBase
             await LogFiscalExportAuditAsync(package, profile, exportFormat, disclaimerLang, cashRegisterId, fromUtc, toUtc,
                 includeCsv).ConfigureAwait(false);
 
+            var tenantSlug = await ResolveTenantSlugAsync(cancellationToken).ConfigureAwait(false);
+            var downloadExt = exportFormat == "pdf" ? "pdf" : "json";
+            var fileName = _fileNaming.GenerateFileName(
+                FiscalExportFileNames.Prefix,
+                downloadExt,
+                registerId: package.RegisterNumber,
+                additional: package.ExportProfile,
+                tenantSlug: tenantSlug);
+
             var deferredEligible = deferLargePayloadToTicket && exportFormat is "jsondownload" or "pdf";
 
             if (deferredEligible)
@@ -227,6 +244,7 @@ public class FiscalExportController : ControllerBase
                     Envelope = envelope,
                     NormalizedExportFormat = exportFormat,
                     PreparedForUserId = userIdForTicket,
+                    FileName = fileName,
                 });
 
                 return Ok(new FiscalExportGenerateDeferredResponseDto
@@ -239,15 +257,11 @@ public class FiscalExportController : ControllerBase
             if (exportFormat == "pdf")
             {
                 var pdfBytes = FiscalExportPdfGenerator.Generate(package, package.NotLegalProofNotice);
-                var pdfName =
-                    $"fiscal-export-{package.ExportProfile}-{cashRegisterId:D}-{fromUtc:yyyyMMdd}-{toUtc:yyyyMMdd}.pdf";
-                return File(pdfBytes, "application/pdf", pdfName);
+                return File(pdfBytes, "application/pdf", fileName);
             }
 
             if (exportFormat == "jsondownload")
             {
-                var fileName =
-                    $"fiscal-export-{package.ExportProfile}-{cashRegisterId:D}-{fromUtc:yyyyMMdd}-{toUtc:yyyyMMdd}.json";
                 var bytes = JsonSerializer.SerializeToUtf8Bytes(envelope, JsonOptions);
                 return File(bytes, "application/json", fileName);
             }
@@ -267,6 +281,20 @@ public class FiscalExportController : ControllerBase
             _logger.LogError(ex, "Fiscal export failed for register {RegisterId}", cashRegisterId);
             return StatusCode(500, new { message = "Fiscal export failed.", code = "FISCAL_EXPORT_ERROR" });
         }
+    }
+
+    private async Task<string?> ResolveTenantSlugAsync(CancellationToken cancellationToken)
+    {
+        var tenantId = _tenantAccessor.TenantId;
+        if (tenantId is null)
+            return null;
+
+        return await _context.Tenants
+            .AsNoTracking()
+            .Where(t => t.Id == tenantId.Value)
+            .Select(t => t.Slug)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private async Task LogFiscalExportAuditAsync(

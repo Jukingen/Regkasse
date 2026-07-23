@@ -36,4 +36,37 @@ public sealed class ActivityEventPublishBuilderTests
         Assert.Equal("backup_run", request.EntityType);
         Assert.Equal(runId.ToString(), request.EntityId);
     }
+
+    [Fact]
+    public void FromMetadata_maps_role_permission_update_with_what_changed()
+    {
+        var request = ActivityEventPublishBuilder.FromMetadata(
+            Guid.NewGuid(),
+            ActivityEventType.RolePermissionsUpdated,
+            new
+            {
+                RoleName = "Cashier",
+                ActorName = "Admin",
+                WhatChanged = "Added: reports.view · Removed: settings.manage",
+            },
+            actorUserId: "actor");
+
+        Assert.Equal("Admin updated role 'Cashier'", request.Title);
+        Assert.Equal("Added: reports.view · Removed: settings.manage", request.Description);
+        Assert.Equal("role", request.EntityType);
+        Assert.Equal("Cashier", request.EntityId);
+    }
+
+    [Fact]
+    public void FromMetadata_maps_role_deleted_title()
+    {
+        var request = ActivityEventPublishBuilder.FromMetadata(
+            Guid.NewGuid(),
+            ActivityEventType.RoleDeleted,
+            new { RoleName = "TempRole", ActorName = "Admin", WhatChanged = "Role deleted." },
+            actorUserId: "actor");
+
+        Assert.Equal("Admin deleted role 'TempRole'", request.Title);
+        Assert.Equal(ActivityEventType.RoleDeleted, request.Type);
+    }
 }

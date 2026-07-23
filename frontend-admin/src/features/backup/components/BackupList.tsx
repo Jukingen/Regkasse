@@ -31,8 +31,15 @@ import {
   useBackupList,
 } from '@/features/backup/hooks/useBackupList';
 import { useBackupPermissions } from '@/features/backup/hooks/useBackupPermissions';
+import { DownloadProgressModal } from '@/components/ui/DownloadProgressModal';
+import { useProgressiveDownload } from '@/hooks/useProgressiveDownload';
+import { useSensitiveExportGate } from '@/hooks/useSensitiveExportGate';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { isSuperAdmin } from '@/features/auth/constants/roles';
+import { SENSITIVE_EXPORT_KINDS } from '@/lib/download/sensitiveExportSecurity';
 import { useI18n } from '@/i18n';
 import { formatBytes, formatDateTime } from '@/i18n/formatting';
+import { shouldShowDownloadProgress } from '@/lib/download/downloadProgressMath';
 
 export interface BackupListProps {
   onRetryInvalidate?: () => Promise<void>;
@@ -51,15 +58,21 @@ type DownloadTarget = {
   backupRunId: string;
   artifactId: string;
   fileName: string;
+  isSystemBackup?: boolean;
 };
+
+function isSystemBackupStrategy(strategy: BackupListItemResponseDto['strategy']): boolean {
+  return strategy === 1 || strategy === 'System';
+}
 
 function toDownloadTarget(
   backupRunId: string | null | undefined,
   artifactId: string | null | undefined,
-  fileName: string | null | undefined
+  fileName: string | null | undefined,
+  isSystemBackup?: boolean
 ): DownloadTarget | null {
   if (!backupRunId || !artifactId || !fileName) return null;
-  return { backupRunId, artifactId, fileName };
+  return { backupRunId, artifactId, fileName, isSystemBackup };
 }
 
 export function BackupList({
@@ -78,6 +91,9 @@ export function BackupList({
   const [dumpFile, setDumpFile] = useState<File | null>(null);
   const [manifestFile, setManifestFile] = useState<File | null>(null);
   const [restoreTarget, setRestoreTarget] = useState<RestoreModalBackup | null>(null);
+  const progressiveDownload = useProgressiveDownload();
+  const sensitiveGate = useSensitiveExportGate();
+  const { user } = useAuth();
 
   const formatDate = useCallback(
     (iso: string | undefined | null) => {
@@ -117,22 +133,78 @@ export function BackupList({
   );
 
   const handleDownload = useCallback(
-    async (target: DownloadTarget) => {
+    (target: DownloadTarget, sizeBytes?: number | null) => {
       const key = `${target.backupRunId}:${target.artifactId}`;
       setDownloadingKey(key);
-      try {
-        await downloadBackupArtifactFile(target.backupRunId, target.artifactId, target.fileName);
-      } catch (err) {
-        message.error(downloadErrorMessage(err));
-      } finally {
+      const label = t('common.downloadProgress.labelBackup');
+      const runDownload = async (headers?: Record<string, string>) => {
+        try {
+          if (shouldShowDownloadProgress(sizeBytes, true)) {
+            await progressiveDownload.runCustom({
+              fileName: target.fileName,
+              label,
+              expectedTotalBytes: sizeBytes,
+              execute: async ({ session, onProgress }) => {
+                await downloadBackupArtifactFile(
+                  target.backupRunId,
+                  target.artifactId,
+                  target.fileName,
+                  {
+                    session,
+                    onProgress,
+                    label,
+                    expectedSizeBytes: sizeBytes,
+                  },
+                  headers ? { headers } : undefined
+                );
+              },
+            });
+          } else {
+            await downloadBackupArtifactFile(
+              target.backupRunId,
+              target.artifactId,
+              target.fileName,
+              undefined,
+              headers ? { headers } : undefined
+            );
+          }
+        } catch (err) {
+          if (err instanceof BackupArtifactDownloadError && err.code === 'cancelled') {
+            return;
+          }
+          message.error(downloadErrorMessage(err));
+          throw err;
+        } finally {
+          setDownloadingKey(null);
+        }
+      };
+
+      if (target.isSystemBackup) {
+        sensitiveGate.run({
+          kind: SENSITIVE_EXPORT_KINDS.SystemBackup,
+          resourceId: `${target.backupRunId}:${target.artifactId}`,
+          isSuperAdmin: isSuperAdmin(user?.role),
+          execute: async (headers) => {
+            await runDownload(headers);
+          },
+        });
+        // Modal flow owns busy state; clear list spinner until user confirms.
         setDownloadingKey(null);
+        return;
       }
+
+      void runDownload();
     },
-    [downloadErrorMessage, message]
+    [downloadErrorMessage, message, progressiveDownload, sensitiveGate, t, user?.role]
   );
 
   const renderDownloadButton = useCallback(
-    (target: DownloadTarget, downloadUrl: string | null | undefined, label: string) => {
+    (
+      target: DownloadTarget,
+      downloadUrl: string | null | undefined,
+      label: string,
+      sizeBytes?: number | null
+    ) => {
       if (!downloadUrl || !canDownloadBackup) return null;
       const key = `${target.backupRunId}:${target.artifactId}`;
       return (
@@ -140,14 +212,15 @@ export function BackupList({
           type="primary"
           size="small"
           icon={<DownloadOutlined />}
-          loading={downloadingKey === key}
-          onClick={() => void handleDownload(target)}
+          loading={downloadingKey === key || progressiveDownload.isBusy}
+          disabled={progressiveDownload.isBusy && downloadingKey !== key}
+          onClick={() => void handleDownload(target, sizeBytes)}
         >
           {label}
         </Button>
       );
     },
-    [canDownloadBackup, downloadingKey, handleDownload]
+    [canDownloadBackup, downloadingKey, handleDownload, progressiveDownload.isBusy]
   );
 
   const renderBackupCard = useCallback(
@@ -174,19 +247,41 @@ export function BackupList({
           ) : null}
         </Space>
         <Space style={{ marginTop: 12 }} wrap>
-          {toDownloadTarget(row.backupRunId, row.artifactId, row.fileName)
+          {toDownloadTarget(
+            row.backupRunId,
+            row.artifactId,
+            row.fileName,
+            isSystemBackupStrategy(row.strategy)
+          )
             ? renderDownloadButton(
-                toDownloadTarget(row.backupRunId, row.artifactId, row.fileName)!,
+                toDownloadTarget(
+                  row.backupRunId,
+                  row.artifactId,
+                  row.fileName,
+                  isSystemBackupStrategy(row.strategy)
+                )!,
                 row.downloadUrl,
-                t('backupDr.backupList.downloadDump')
+                t('backupDr.backupList.downloadDump'),
+                row.fileSize
               )
             : null}
           {row.manifestArtifactId && row.manifestFileName
-            ? toDownloadTarget(row.backupRunId, row.manifestArtifactId, row.manifestFileName)
+            ? toDownloadTarget(
+                row.backupRunId,
+                row.manifestArtifactId,
+                row.manifestFileName,
+                isSystemBackupStrategy(row.strategy)
+              )
               ? renderDownloadButton(
-                  toDownloadTarget(row.backupRunId, row.manifestArtifactId, row.manifestFileName)!,
+                  toDownloadTarget(
+                    row.backupRunId,
+                    row.manifestArtifactId,
+                    row.manifestFileName,
+                    isSystemBackupStrategy(row.strategy)
+                  )!,
                   row.manifestDownloadUrl,
-                  t('backupDr.backupList.downloadManifest')
+                  t('backupDr.backupList.downloadManifest'),
+                  null
                 )
               : null
             : null}
@@ -322,7 +417,12 @@ export function BackupList({
                 style={{ padding: 0, height: 'auto', fontWeight: 600 }}
                 loading={downloadingKey === `${row.backupRunId}:${row.artifactId}`}
                 onClick={() => {
-                  const target = toDownloadTarget(row.backupRunId, row.artifactId, row.fileName);
+                  const target = toDownloadTarget(
+                    row.backupRunId,
+                    row.artifactId,
+                    row.fileName,
+                    isSystemBackupStrategy(row.strategy)
+                  );
                   if (target) void handleDownload(target);
                 }}
               >
@@ -374,7 +474,8 @@ export function BackupList({
                 const target = toDownloadTarget(
                   row.backupRunId,
                   row.manifestArtifactId,
-                  row.manifestFileName
+                  row.manifestFileName,
+                  isSystemBackupStrategy(row.strategy)
                 );
                 if (target) void handleDownload(target);
               }}
@@ -557,6 +658,8 @@ export function BackupList({
       {restoreTarget ? (
         <RestoreModal open backup={restoreTarget} onClose={() => setRestoreTarget(null)} />
       ) : null}
+      <DownloadProgressModal {...progressiveDownload.modalProps} />
+      {sensitiveGate.modals}
     </>
   );
 }

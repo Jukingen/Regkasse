@@ -6,9 +6,12 @@ import { useEffect } from 'react';
 import type { NotificationConfig } from '@/api/manual/activityEvents';
 import { FormSkeleton } from '@/components/Skeleton';
 import {
+  ACTIVITY_EVENT_DEFAULT_ENABLED,
   ACTIVITY_EVENT_TYPES,
   ACTIVITY_SEVERITIES,
+  PERMISSION_NOTIFY_GROUPS,
   type ActivityEventTypeName,
+  type PermissionNotifyGroupKey,
 } from '@/features/activity-notifications/activityTypes';
 import {
   useNotificationConfig,
@@ -32,6 +35,33 @@ function textToRecipients(text: string): string[] {
     .filter((s) => s.includes('@'));
 }
 
+const PERMISSION_EVENT_SET = new Set<string>([
+  ...PERMISSION_NOTIFY_GROUPS.roles,
+  ...PERMISSION_NOTIFY_GROUPS.userPermissions,
+  ...PERMISSION_NOTIFY_GROUPS.systemChanges,
+]);
+
+const OTHER_EVENT_TYPES = ACTIVITY_EVENT_TYPES.filter((type) => !PERMISSION_EVENT_SET.has(type));
+
+function groupChecked(
+  enabledEvents: Record<string, boolean> | undefined,
+  group: PermissionNotifyGroupKey
+): boolean {
+  const keys = PERMISSION_NOTIFY_GROUPS[group];
+  return keys.every((key) => enabledEvents?.[key] ?? ACTIVITY_EVENT_DEFAULT_ENABLED[key] ?? true);
+}
+
+function groupIndeterminate(
+  enabledEvents: Record<string, boolean> | undefined,
+  group: PermissionNotifyGroupKey
+): boolean {
+  const keys = PERMISSION_NOTIFY_GROUPS[group];
+  const values = keys.map((key) => enabledEvents?.[key] ?? ACTIVITY_EVENT_DEFAULT_ENABLED[key] ?? true);
+  const some = values.some(Boolean);
+  const all = values.every(Boolean);
+  return some && !all;
+}
+
 export function NotificationSettingsForm() {
   const { message } = useAntdApp();
 
@@ -39,13 +69,18 @@ export function NotificationSettingsForm() {
   const [form] = Form.useForm<FormValues>();
   const { data: config, isLoading, isError, refetch } = useNotificationConfig(true);
   const save = useSaveNotificationConfig();
+  const enabledEventsWatch = Form.useWatch('enabledEvents', form) as Record<string, boolean> | undefined;
 
   useEffect(() => {
     if (!config) {
       return;
     }
     const enabledEvents = ACTIVITY_EVENT_TYPES.reduce<Record<string, boolean>>((acc, eventType) => {
-      acc[eventType] = config.enabledEvents?.[eventType as ActivityEventTypeName] ?? true;
+      const fromConfig = config.enabledEvents?.[eventType as ActivityEventTypeName];
+      acc[eventType] =
+        typeof fromConfig === 'boolean'
+          ? fromConfig
+          : (ACTIVITY_EVENT_DEFAULT_ENABLED[eventType] ?? true);
       return acc;
     }, {});
 
@@ -56,6 +91,14 @@ export function NotificationSettingsForm() {
       severityThreshold: { ...config.severityThreshold },
     });
   }, [config, form]);
+
+  const setPermissionGroup = (group: PermissionNotifyGroupKey, checked: boolean) => {
+    const next = { ...(form.getFieldValue('enabledEvents') as Record<string, boolean> | undefined) };
+    for (const key of PERMISSION_NOTIFY_GROUPS[group]) {
+      next[key] = checked;
+    }
+    form.setFieldsValue({ enabledEvents: next });
+  };
 
   const onFinish = (values: FormValues) => {
     const payload: NotificationConfig = {
@@ -124,6 +167,12 @@ export function NotificationSettingsForm() {
       >
         <Input.TextArea rows={3} placeholder="ops@example.com" />
       </Form.Item>
+      <Alert
+        type="info"
+        showIcon
+        style={{ marginBottom: 16 }}
+        title={t('activityNotifications.settings.criticalEmailNote')}
+      />
 
       <Divider titlePlacement="left">{t('activityNotifications.settings.webhookSection')}</Divider>
       <Form.Item
@@ -140,10 +189,44 @@ export function NotificationSettingsForm() {
         <Input.Password autoComplete="off" />
       </Form.Item>
 
+      <Divider titlePlacement="left">{t('activityNotifications.settings.permissionChangesSection')}</Divider>
+      <Form.Item label={t('activityNotifications.settings.notifyOnPermissionChanges')}>
+        <Space orientation="vertical" style={{ width: '100%' }}>
+          {(
+            [
+              ['roles', 'roles'],
+              ['userPermissions', 'userPermissions'],
+              ['systemChanges', 'systemChanges'],
+            ] as const
+          ).map(([group, labelKey]) => (
+            <Checkbox
+              key={group}
+              checked={groupChecked(enabledEventsWatch, group)}
+              indeterminate={groupIndeterminate(enabledEventsWatch, group)}
+              onChange={(e) => setPermissionGroup(group, e.target.checked)}
+            >
+              {t(`activityNotifications.settings.permissionGroups.${labelKey}`)}
+            </Checkbox>
+          ))}
+        </Space>
+      </Form.Item>
+
+      {/* Keep individual permission event flags in the form model for save payload */}
+      {([...PERMISSION_EVENT_SET] as ActivityEventTypeName[]).map((eventType) => (
+        <Form.Item
+          key={`hidden-${eventType}`}
+          name={['enabledEvents', eventType]}
+          valuePropName="checked"
+          hidden
+        >
+          <Checkbox />
+        </Form.Item>
+      ))}
+
       <Divider titlePlacement="left">{t('activityNotifications.settings.eventsSection')}</Divider>
       <Form.Item label={t('activityNotifications.settings.enabledEvents')}>
         <Space orientation="vertical" style={{ width: '100%' }}>
-          {ACTIVITY_EVENT_TYPES.map((eventType) => (
+          {OTHER_EVENT_TYPES.map((eventType) => (
             <Form.Item
               key={eventType}
               name={['enabledEvents', eventType]}

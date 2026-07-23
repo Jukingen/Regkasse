@@ -2,6 +2,7 @@ using System.Text.Json;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Email;
+using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
@@ -39,6 +40,7 @@ public sealed class DepExportScheduler : IDepExportScheduler
     private readonly IRksvDepExportService _depExportService;
     private readonly IDepExportHistoryService _historyService;
     private readonly IAuditReportEmailService _emailService;
+    private readonly IFileNamingService _fileNaming;
     private readonly ILogger<DepExportScheduler> _logger;
     private readonly string _storageRoot;
 
@@ -47,12 +49,14 @@ public sealed class DepExportScheduler : IDepExportScheduler
         IRksvDepExportService depExportService,
         IDepExportHistoryService historyService,
         IAuditReportEmailService emailService,
+        IFileNamingService fileNaming,
         ILogger<DepExportScheduler> logger)
     {
         _context = context;
         _depExportService = depExportService;
         _historyService = historyService;
         _emailService = emailService;
+        _fileNaming = fileNaming;
         _logger = logger;
         _storageRoot = Path.Combine(Path.GetTempPath(), "regkasse-dep-exports");
         Directory.CreateDirectory(_storageRoot);
@@ -165,7 +169,14 @@ public sealed class DepExportScheduler : IDepExportScheduler
                 .ConfigureAwait(false);
 
             var json = JsonSerializer.Serialize(export, new JsonSerializerOptions { WriteIndented = true });
-            var fileName = DepExportHistoryService.BuildFileName(schedule.CashRegisterId, fromUtc, toUtc);
+            var (tenantSlug, registerNumber) = await _historyService
+                .ResolveNamingAsync(schedule.TenantId, schedule.CashRegisterId, cancellationToken)
+                .ConfigureAwait(false);
+            var fileName = _fileNaming.GenerateFileName(
+                RksvDepExportFileNames.Prefix,
+                "json",
+                registerNumber,
+                tenantSlug: tenantSlug);
             var storagePath = Path.Combine(_storageRoot, $"{schedule.TenantId:N}_{Guid.NewGuid():N}.json");
             await File.WriteAllTextAsync(storagePath, json, cancellationToken).ConfigureAwait(false);
 
@@ -180,6 +191,7 @@ public sealed class DepExportScheduler : IDepExportScheduler
                         Export = export,
                         ScheduleId = schedule.Id,
                         StoragePath = storagePath,
+                        FileName = fileName,
                     },
                     cancellationToken)
                 .ConfigureAwait(false);

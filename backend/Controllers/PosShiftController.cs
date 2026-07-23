@@ -1,10 +1,12 @@
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Controllers;
 
@@ -21,6 +23,7 @@ public sealed class PosShiftController : ControllerBase
     private readonly IPosDailyClosingService _dailyClosing;
     private readonly IDailyClosingReportService _dailyClosingReport;
     private readonly IAuditLogService _auditLog;
+    private readonly AppDbContext _db;
     private readonly ILogger<PosShiftController> _logger;
 
     public PosShiftController(
@@ -28,12 +31,14 @@ public sealed class PosShiftController : ControllerBase
         IPosDailyClosingService dailyClosing,
         IDailyClosingReportService dailyClosingReport,
         IAuditLogService auditLog,
+        AppDbContext db,
         ILogger<PosShiftController> logger)
     {
         _shiftService = shiftService;
         _dailyClosing = dailyClosing;
         _dailyClosingReport = dailyClosingReport;
         _auditLog = auditLog;
+        _db = db;
         _logger = logger;
     }
 
@@ -320,7 +325,21 @@ public sealed class PosShiftController : ControllerBase
         if (pdf == null || pdf.Length == 0)
             return NotFound(new { error = "Daily closing report not found" });
 
-        var fileName = $"Tagesabschluss_{dailyClosingId:N}.pdf";
+        var closing = await _db.DailyClosings.AsNoTracking()
+            .Where(c => c.Id == dailyClosingId)
+            .Select(c => new { c.ClosingDate, c.ClosingType, c.TenantId })
+            .FirstOrDefaultAsync(cancellationToken);
+        var tenantSlug = closing is null
+            ? null
+            : await _db.Tenants.AsNoTracking()
+                .Where(t => t.Id == closing.TenantId)
+                .Select(t => t.Slug)
+                .FirstOrDefaultAsync(cancellationToken);
+        var reportType = ReportPdfTypes.FromClosingType(closing?.ClosingType);
+        var fileName = ReportPdfStorageService.BuildDownloadFileName(
+            reportType,
+            tenantSlug,
+            closing?.ClosingDate ?? DateTime.UtcNow);
         return File(pdf, "application/pdf", fileName);
     }
 }

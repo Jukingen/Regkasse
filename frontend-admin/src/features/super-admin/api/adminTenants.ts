@@ -108,6 +108,10 @@ export type CreateAdminTenantRequest = {
   importDemoMenu?: boolean;
   /** Optional cash register number (default KASSE-001). */
   cashRegisterNumber?: string | null;
+  /** Industry permission template id (restaurant | retail | hotel | none). */
+  industryTemplateId?: string | null;
+  /** When true, seed starter users for industry template slots. */
+  seedIndustryStarterUsers?: boolean;
 };
 
 export type UpdateAdminTenantRequest = {

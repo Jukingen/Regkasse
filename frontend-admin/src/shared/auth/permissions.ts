@@ -2,6 +2,10 @@
  * Permission constants and helpers — string values must stay aligned with backend
  * `backend/Authorization/AppPermissions.cs` (resource.action names).
  *
+ * Catalog entrypoint (re-export): `./permissionsCatalog.ts`
+ * Implication map (menu + UI): `./permissionImplications.ts` (`PERMISSION_IMPLICATIONS`)
+ * Consistency gate: `node scripts/verify-permission-keys.mjs` (`npm run verify:permission-keys`)
+ *
  * The backend catalog can grow beyond this object; UI should consume `/me` and role-management
  * catalog responses as the runtime truth. This file is the typed subset the admin shell references.
  *

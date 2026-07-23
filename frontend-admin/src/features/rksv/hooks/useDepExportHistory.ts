@@ -109,15 +109,19 @@ export async function fetchDepExportHistoryDetail(
   return response.data;
 }
 
-export async function downloadDepExportHistoryFile(
-  historyId: string,
-  fileName: string
-): Promise<void> {
+export async function fetchDepExportHistoryBlob(historyId: string): Promise<Blob> {
   const response = await AXIOS_INSTANCE.get<Blob>(
     `/api/admin/rksv/dep-export/history/${historyId}/download`,
     { responseType: 'blob' }
   );
-  const blob = new Blob([response.data], { type: 'application/json' });
+  return new Blob([response.data], { type: 'application/json' });
+}
+
+export async function downloadDepExportHistoryFile(
+  historyId: string,
+  fileName: string
+): Promise<void> {
+  const blob = await fetchDepExportHistoryBlob(historyId);
   const url = globalThis.URL.createObjectURL(blob);
   const anchor = globalThis.document.createElement('a');
   anchor.href = url;

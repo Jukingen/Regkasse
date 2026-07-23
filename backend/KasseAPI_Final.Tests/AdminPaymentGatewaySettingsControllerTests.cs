@@ -106,6 +106,7 @@ public sealed class AdminPaymentGatewaySettingsControllerTests
     {
         public StubTenantAccessor(Guid tenantId) => TenantId = tenantId;
         public Guid? TenantId { get; set; }
+    public string? TenantSlug { get; set; }
     }
 
     private sealed class OptionsMonitorStub : IOptionsMonitor<PaymentGatewayOptions>

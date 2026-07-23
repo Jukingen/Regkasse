@@ -10,50 +10,76 @@ public static class PermissionCatalogMetadata
 {
     /// <summary>
     /// Resource name -> display group (for UI grouping).
+    /// Names align with FA sidebar IA; slugs drive <c>users.roleDrawer.groups.*</c> i18n keys.
     /// </summary>
     private static readonly FrozenDictionary<string, string> ResourceToGroup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
-        ["user"] = "User & Role",
-        ["role"] = "User & Role",
-        ["product"] = "Product",
-        ["category"] = "Product",
-        ["modifier"] = "Product",
-        ["order"] = "Order & Sale",
-        ["table"] = "Order & Sale",
-        ["cart"] = "Order & Sale",
-        ["sale"] = "Order & Sale",
-        ["payment"] = "Payment",
-        ["refund"] = "Payment",
-        ["discount"] = "Payment",
-        ["cashregister"] = "Cash & Shift",
-        ["cash_register"] = "Cash & Shift",
-        ["cashdrawer"] = "Cash & Shift",
-        ["shift"] = "Cash & Shift",
-        ["inventory"] = "Inventory",
-        ["customer"] = "Customer",
-        ["benefit"] = "Customer",
-        ["invoice"] = "Invoice",
-        ["creditnote"] = "Invoice",
-        ["settings"] = "Settings",
-        ["backup"] = "Settings",
-        ["license"] = "Settings",
-        ["website"] = "Settings",
-        ["digital"] = "Digital Services",
-        ["localization"] = "Settings",
-        ["receipttemplate"] = "Settings",
-        ["audit"] = "Audit & Report",
-        ["report"] = "Audit & Report",
-        ["daily-closing"] = "Audit & Report",
-        ["finanzonline"] = "FinanzOnline",
-        ["kitchen"] = "Kitchen",
-        ["tse"] = "TSE",
+        // Mitarbeiter (sidebar: Staff / Access)
+        ["user"] = "Mitarbeiter",
+        ["role"] = "Mitarbeiter",
+        // Kassenverwaltung (sidebar: Cash registers / shifts)
+        ["cashregister"] = "Kassenverwaltung",
+        ["cash_register"] = "Kassenverwaltung",
+        ["cashdrawer"] = "Kassenverwaltung",
+        ["shift"] = "Kassenverwaltung",
+        // Bestellung & Verkauf (orders, tables, invoices, kitchen)
+        ["order"] = "Bestellung & Verkauf",
+        ["table"] = "Bestellung & Verkauf",
+        ["cart"] = "Bestellung & Verkauf",
+        ["sale"] = "Bestellung & Verkauf",
+        ["invoice"] = "Bestellung & Verkauf",
+        ["creditnote"] = "Bestellung & Verkauf",
+        ["kitchen"] = "Bestellung & Verkauf",
+        // Zahlung (payments, refunds, discounts, vouchers)
+        ["payment"] = "Zahlung",
+        ["refund"] = "Zahlung",
+        ["discount"] = "Zahlung",
+        ["voucher"] = "Zahlung",
+        // Sortiment & Preise
+        ["product"] = "Sortiment & Preise",
+        ["category"] = "Sortiment & Preise",
+        ["modifier"] = "Sortiment & Preise",
+        // Lager
+        ["inventory"] = "Lager",
+        // Kunden & Vorteile
+        ["customer"] = "Kunden & Vorteile",
+        ["benefit"] = "Kunden & Vorteile",
+        // RKSV & FinanzOnline (TSE + special receipts merged here)
+        ["finanzonline"] = "RKSV & FinanzOnline",
+        ["tse"] = "RKSV & FinanzOnline",
+        ["rksv"] = "RKSV & FinanzOnline",
+        // Tagesabschluss (sidebar: Betrieb)
+        ["daily-closing"] = "Tagesabschluss",
+        // Audit & Berichte
+        ["audit"] = "Audit & Berichte",
+        ["report"] = "Audit & Berichte",
+        // Backup & Disaster Recovery (sidebar backup hub; reads still gated by settings.view)
+        ["backup"] = "Backup & Disaster Recovery",
+        // Einstellungen
+        ["settings"] = "Einstellungen",
+        ["license"] = "Einstellungen",
+        ["website"] = "Einstellungen",
+        ["localization"] = "Einstellungen",
+        ["receipttemplate"] = "Einstellungen",
+        // Digitale Dienste / System / Other
+        ["digital"] = "Digitale Dienste",
         ["system"] = "System",
         ["price"] = "Sonstige",
         ["receipt"] = "Sonstige",
     }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Converts display group name to a stable slug for API (e.g. "Cash & Shift" -> "cash_shift").
+    /// Permission-key overrides when the resource prefix alone would place the key in the wrong UI group.
+    /// Example: <c>settings.backup</c> belongs with Backup &amp; DR, not general Einstellungen.
+    /// </summary>
+    private static readonly FrozenDictionary<string, string> PermissionKeyToGroupOverride =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [AppPermissions.SettingsBackup] = "Backup & Disaster Recovery",
+        }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Converts display group name to a stable slug for API (e.g. "Kassenverwaltung" -> "kassenverwaltung").
     /// Used by role capability matrix permission grouping.
     /// </summary>
     public static string GetGroupKey(string groupDisplayName)
@@ -102,7 +128,9 @@ public static class PermissionCatalogMetadata
         foreach (var key in PermissionCatalog.All)
         {
             var (resource, action) = ParseKey(key);
-            var group = ResourceToGroup.TryGetValue(resource, out var g) ? g : "Other";
+            var group = PermissionKeyToGroupOverride.TryGetValue(key, out var overrideGroup)
+                ? overrideGroup
+                : ResourceToGroup.TryGetValue(resource, out var g) ? g : "Other";
             var description = GetDescription(key);
             list.Add(new Item(key, group, resource, action, description));
         }
@@ -127,6 +155,9 @@ public static class PermissionCatalogMetadata
             AppPermissions.CashRegisterManage => "Kassen verwalten (erstellen, bearbeiten)",
             AppPermissions.CashRegisterDecommission => "Kassen stilllegen",
             AppPermissions.BackupManage => "Backups verwalten (manuell auslösen, Zeitplan bearbeiten)",
+            AppPermissions.SettingsBackup => "Backup-Einstellungen (Legacy; bevorzugt backup.manage)",
+            AppPermissions.DailyClosingView => "Tagesabschluss anzeigen",
+            AppPermissions.DailyClosingExecute => "Tagesabschluss durchführen",
             AppPermissions.WebsiteManage => "Domain und Website-Anpassung verwalten",
             AppPermissions.DigitalView => "Digitale Dienste anzeigen (Status, URLs)",
             AppPermissions.DigitalPreview => "Digitale Dienste-Vorschau anzeigen",

@@ -24,9 +24,12 @@ import {
   useExecuteDataRightsDelete,
   useTenantDataManagementSummary,
 } from '@/features/data-management/hooks/useTenantDataManagement';
+import { buildDataExportFileName } from '@/features/data-management/utils/dataExportFileName';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useSensitiveExportGate } from '@/hooks/useSensitiveExportGate';
 import { formatDate, useI18n } from '@/i18n';
+import { SENSITIVE_EXPORT_KINDS } from '@/lib/download/sensitiveExportSecurity';
 
 type Props = { tenantId: string };
 
@@ -106,28 +109,41 @@ export function DataRightsRequestPanel({ tenantId }: Props) {
   const executeMutation = useExecuteDataRightsDelete(tenantId);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<DataRightsRequestType | null>(null);
+  const sensitiveGate = useSensitiveExportGate();
 
-  const downloadRow = async (row: TenantDataRightsRequest) => {
-    try {
-      if (row.downloadLink && !row.canDownload) {
-        window.open(row.downloadLink, '_blank', 'noopener,noreferrer');
-        return;
-      }
-      const blob = await downloadMutation.mutateAsync(row.id);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = row.artifactFileName ?? `tenant_${tenantId}_export.zip`;
-      a.click();
-      URL.revokeObjectURL(url);
-      message.success(t('dataManagement.exportSuccess'));
-    } catch {
-      if (row.downloadLink) {
-        window.open(row.downloadLink, '_blank', 'noopener,noreferrer');
-        return;
-      }
-      message.error(t('dataManagement.exportFailed'));
+  const downloadRow = (row: TenantDataRightsRequest) => {
+    if (row.downloadLink && !row.canDownload) {
+      window.open(row.downloadLink, '_blank', 'noopener,noreferrer');
+      return;
     }
+    sensitiveGate.run({
+      kind: SENSITIVE_EXPORT_KINDS.GdprDataExport,
+      resourceId: row.id,
+      isSuperAdmin,
+      execute: async (headers) => {
+        try {
+          const blob = await downloadMutation.mutateAsync({
+            requestId: row.id,
+            headers,
+          });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download =
+            row.artifactFileName ??
+            buildDataExportFileName(summaryQuery.data?.tenantSlug ?? null);
+          a.click();
+          URL.revokeObjectURL(url);
+          message.success(t('dataManagement.exportSuccess'));
+        } catch (err) {
+          if (row.downloadLink) {
+            window.open(row.downloadLink, '_blank', 'noopener,noreferrer');
+            return;
+          }
+          throw err;
+        }
+      },
+    });
   };
 
   const confirmRow = (requestId: string) => {
@@ -286,6 +302,7 @@ export function DataRightsRequestPanel({ tenantId }: Props) {
   };
 
   return (
+    <>
     <Space orientation="vertical" size="large" style={{ width: '100%' }}>
       <Alert
         type="info"
@@ -377,5 +394,7 @@ export function DataRightsRequestPanel({ tenantId }: Props) {
         </Space>
       </Modal>
     </Space>
+    {sensitiveGate.modals}
+    </>
   );
 }

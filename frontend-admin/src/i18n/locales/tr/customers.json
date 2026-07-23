@@ -1,7 +1,9 @@
 {
   "page": {
     "newCustomer": "Yeni musteri",
-    "searchPlaceholder": "Musteri ara…"
+    "searchPlaceholder": "Musteri ara…",
+    "exportCsv": "CSV disa aktar",
+    "exportJson": "JSON disa aktar"
   },
   "messages": {
     "created": "Musteri olusturuldu.",
@@ -9,7 +11,9 @@
     "updated": "Musteri guncellendi.",
     "updateFailed": "Musteri guncellenemedi.",
     "deleted": "Musteri silindi.",
-    "deleteFailed": "Musteri silinemedi."
+    "deleteFailed": "Musteri silinemedi.",
+    "exportSuccess": "Disa aktarma indirildi.",
+    "exportFailed": "Disa aktarma basarisiz."
   },
   "form": {
     "titleNew": "Yeni musteri",

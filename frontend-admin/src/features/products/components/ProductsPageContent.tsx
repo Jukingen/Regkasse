@@ -3,6 +3,7 @@
 import {
   ClearOutlined,
   DeleteOutlined,
+  DownloadOutlined,
   EditOutlined,
   PlusOutlined,
   StockOutlined,
@@ -25,13 +26,15 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useCallback, useMemo, useState } from 'react';
 
 import { Product } from '@/api/generated/model';
+import { downloadAdminProductExport } from '@/api/admin/products';
 import { EmptyState } from '@/components/EmptyState';
 import { StatusBadge } from '@/components/StatusBadge';
 import { VirtualTable } from '@/components/VirtualTable';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { DownloadPreviewModal } from '@/components/ui/DownloadPreviewModal';
 import { adminTablePaginationDefaults } from '@/components/ui/adminTablePagination';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { isDevelopment } from '@/features/auth/services/devTenant';
+import { getEffectiveTenantSlug, isDevelopment } from '@/features/auth/services/devTenant';
 import { useCategories } from '@/features/categories/hooks/useCategories';
 import type { AdminCategory } from '@/features/categories/types';
 import { DevCatalogPurgeButton } from '@/features/products/components/DevCatalogPurgeButton';
@@ -50,6 +53,7 @@ import {
   parseProductPaginationFromSearchParams,
 } from '@/features/products/utils/productFilterUrl';
 import { productFiltersToApiParams } from '@/features/products/utils/productFiltersToApiParams';
+import { buildProductExportFileName } from '@/features/products/utils/productExportFileName';
 import {
   formatProductUnitLabelForLocale,
   formatTaxTypeLabelForLocale,
@@ -59,8 +63,10 @@ import {
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { DemoImportButton } from '@/features/tenants/components/DemoImportButton';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { useDownloadPreview } from '@/hooks/useDownloadPreview';
 import { useI18n } from '@/i18n';
 import { FORMAT_EMPTY_DISPLAY } from '@/i18n/formatting';
+import { estimateTabularExportBytes } from '@/lib/download/downloadPreview';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
@@ -81,6 +87,8 @@ export default function ProductsPage() {
     useCurrentTenant();
   const { user } = useAuth();
   const canManageProducts = hasPermission(user, PERMISSIONS.PRODUCT_MANAGE);
+  const [exporting, setExporting] = useState<'csv' | 'json' | null>(null);
+  const downloadPreview = useDownloadPreview();
 
   const filters = useMemo(
     () => parseProductFiltersFromSearchParams(new URLSearchParams(searchParams.toString())),
@@ -194,6 +202,34 @@ export default function ProductsPage() {
 
   const { data: listData, isLoading, isError, error, refetch } = listQuery;
   const filteredResultCount = listData?.pagination?.totalCount;
+
+  const handleExport = (format: 'csv' | 'json') => {
+    const rowCount = filteredResultCount ?? totalProductCount ?? 0;
+    const estimatedBytes = estimateTabularExportBytes(rowCount, format);
+    const isActive =
+      filters.status === 'active' ? true : filters.status === 'inactive' ? false : undefined;
+    downloadPreview.requestPreview({
+      fileName: buildProductExportFileName(getEffectiveTenantSlug() ?? tenantSlug, format),
+      fileType: format.toUpperCase(),
+      sizeBytes: estimatedBytes,
+      isSizeEstimate: true,
+      contentSummary: t('common.exportDownload.contentRows', { count: rowCount }),
+      tenantName: tenantName ?? undefined,
+      execute: async () => {
+        setExporting(format);
+        try {
+          await downloadAdminProductExport(format, { isActive });
+          message.success(t('products.actions.exportSuccess'));
+        } catch {
+          message.error(t('products.actions.exportFailed'));
+          throw new Error('export failed');
+        } finally {
+          setExporting(null);
+        }
+      },
+    });
+  };
+
   const hasNonStatusFilters = useMemo(
     () => countActiveProductFilters({ ...filters, status: 'active' }) > 0,
     [filters]
@@ -578,6 +614,22 @@ export default function ProductsPage() {
         breadcrumbs={[adminOverviewCrumb(t), { title: t('products.page.title') }]}
         actions={
           <Flex wrap="wrap" gap="middle" align="center" justify="flex-end">
+            <Button
+              icon={<DownloadOutlined />}
+              loading={exporting === 'csv'}
+              disabled={!!exporting}
+              onClick={() => void handleExport('csv')}
+            >
+              {t('products.actions.exportCsv')}
+            </Button>
+            <Button
+              icon={<DownloadOutlined />}
+              loading={exporting === 'json'}
+              disabled={!!exporting}
+              onClick={() => void handleExport('json')}
+            >
+              {t('products.actions.exportJson')}
+            </Button>
             {isRealTenantSlug && tenantName ? (
               <DemoImportButton
                 tenantId={tenantId ?? undefined}
@@ -762,6 +814,7 @@ export default function ProductsPage() {
           )}
         </Modal>
       ) : null}
+      <DownloadPreviewModal {...downloadPreview.modalProps} />
     </Space>
   );
 }

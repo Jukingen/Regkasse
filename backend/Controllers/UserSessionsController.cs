@@ -57,7 +57,15 @@ public class UserSessionsController : ControllerBase
         return Ok(list);
     }
 
+    /// <summary>
+    /// Returns the effective session policy for the current user:
+    /// concurrent-session limits from <c>SessionPolicy</c> configuration, plus tenant idle-timeout settings when available.
+    /// </summary>
+    /// <response code="200">Session policy (maxConcurrentSessions, sessionTimeoutMinutes, allowMultipleDevices, …).</response>
+    /// <response code="401">Caller is not authenticated.</response>
     [HttpGet("/api/user/session-policy")]
+    [ProducesResponseType(typeof(TenantSessionPolicyDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<TenantSessionPolicyDto>> GetSessionPolicy(CancellationToken cancellationToken)
     {
         var policy = await _policy.GetPolicyAsync(null, cancellationToken).ConfigureAwait(false);

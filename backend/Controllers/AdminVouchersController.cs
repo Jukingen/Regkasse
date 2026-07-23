@@ -1,14 +1,16 @@
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services.Vouchers;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Controllers;
 
-/// <summary>Admin Gutscheine: issuance, listing, cancellation, and ledger audit.</summary>
+/// <summary>Admin Gutscheine: issuance, listing, cancellation, ledger audit, and export.</summary>
 [Authorize]
 [ApiController]
 [Route("api/admin/vouchers")]
@@ -16,12 +18,20 @@ namespace KasseAPI_Final.Controllers;
 public class AdminVouchersController : ControllerBase
 {
     private readonly IAdminVoucherService _adminVouchers;
+    private readonly IVoucherExportService _voucherExport;
     private readonly ISettingsTenantResolver _tenantResolver;
+    private readonly AppDbContext _db;
 
-    public AdminVouchersController(IAdminVoucherService adminVouchers, ISettingsTenantResolver tenantResolver)
+    public AdminVouchersController(
+        IAdminVoucherService adminVouchers,
+        IVoucherExportService voucherExport,
+        ISettingsTenantResolver tenantResolver,
+        AppDbContext db)
     {
         _adminVouchers = adminVouchers;
+        _voucherExport = voucherExport;
         _tenantResolver = tenantResolver;
+        _db = db;
     }
 
     /// <summary>Paged voucher list (masked code only).</summary>
@@ -36,6 +46,40 @@ public class AdminVouchersController : ControllerBase
         var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
         var result = await _adminVouchers.ListAsync(tenantId, page, pageSize, q, cancellationToken).ConfigureAwait(false);
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Export vouchers as JSON or CSV. Filename: <c>voucher_{tenantSlug}_{stamp}.{ext}</c>.
+    /// Codes are redacted (masked hint only; no plaintext / code hash).
+    /// </summary>
+    [HttpGet("export")]
+    [HasPermission(AppPermissions.VoucherRead)]
+    [Produces("application/json", "text/csv")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Export(
+        [FromQuery] string format = "json",
+        [FromQuery] string? status = null,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
+        var tenantSlug = await _db.Tenants.AsNoTracking()
+            .Where(t => t.Id == tenantId)
+            .Select(t => t.Slug)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        try
+        {
+            var result = await _voucherExport
+                .ExportAsync(tenantId, tenantSlug, format, status, cancellationToken)
+                .ConfigureAwait(false);
+            return File(result.Content, result.ContentType, result.FileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message, code = "VOUCHER_EXPORT_TOO_LARGE" });
+        }
     }
 
     /// <summary>Voucher metadata (no plaintext code).</summary>

@@ -48,8 +48,8 @@ public interface IDataExportService
 
 /// <summary>
 /// GDPR / expired-license tenant data export.
-/// Produces a ZIP containing <c>data-export.json</c> in the v2 document shape
-/// (tenant + data + rksv). RKSV rows are included masked; Identity credentials are excluded.
+/// Produces a ZIP containing <c>data-export.json</c> (v2 document) and <c>manifest.json</c>
+/// (exportId, tenantSlug, exportedAt, fileName). RKSV rows are included masked; Identity credentials are excluded.
 /// </summary>
 public sealed class DataExportService : IDataExportService
 {
@@ -67,6 +67,7 @@ public sealed class DataExportService : IDataExportService
     private readonly IDataRightsArtifactStore _artifacts;
     private readonly IDataAccessNotificationService _notificationService;
     private readonly IOptions<DataExportOptions> _options;
+    private readonly IFileNamingService _fileNaming;
     private readonly ILogger<DataExportService> _logger;
 
     public DataExportService(
@@ -76,6 +77,7 @@ public sealed class DataExportService : IDataExportService
         IDataRightsArtifactStore artifacts,
         IDataAccessNotificationService notificationService,
         IOptions<DataExportOptions> options,
+        IFileNamingService fileNaming,
         ILogger<DataExportService> logger)
     {
         _dbFactory = dbFactory;
@@ -84,24 +86,31 @@ public sealed class DataExportService : IDataExportService
         _artifacts = artifacts;
         _notificationService = notificationService;
         _options = options;
+        _fileNaming = fileNaming;
         _logger = logger;
     }
 
     public async Task<ExportResult> ExportAllDataAsync(Guid tenantId, CancellationToken ct = default)
     {
         var document = await CollectAllDataAsync(tenantId, ct).ConfigureAwait(false);
-        var zip = await CreateZipAsync(document, ct).ConfigureAwait(false);
+        var exportId = Guid.NewGuid();
+        var fileName = _fileNaming.GenerateFileName(
+            DataExportFileNames.Prefix,
+            "zip",
+            tenantSlug: document.Tenant.Slug);
+        var zip = await CreateZipAsync(document, exportId, fileName, ct).ConfigureAwait(false);
         var counts = CountDocument(document);
 
         _logger.LogInformation(
-            "Tenant data export created (v2). TenantId={TenantId}, Bytes={Bytes}, Tables={TableCount}",
+            "Tenant data export created (v2). TenantId={TenantId}, Bytes={Bytes}, Tables={TableCount}, FileName={FileName}",
             tenantId,
             zip.Length,
-            counts.Count);
+            counts.Count,
+            fileName);
 
         return new ExportResult
         {
-            FileName = $"tenant_{document.Tenant.Slug}_export_{document.Tenant.ExportedAt:yyyyMMddHHmmss}.zip",
+            FileName = fileName,
             Data = zip,
             TableRowCounts = counts,
             ExportedAtUtc = document.Tenant.ExportedAt,
@@ -128,8 +137,12 @@ public sealed class DataExportService : IDataExportService
         // 1. Collect all data
         var data = await CollectAllDataAsync(request.TenantId, ct).ConfigureAwait(false);
 
-        // 2. Create ZIP
-        var zip = await CreateZipAsync(data, ct).ConfigureAwait(false);
+        // 2. Create ZIP (data-export.json + manifest.json)
+        var fileName = _fileNaming.GenerateFileName(
+            DataExportFileNames.Prefix,
+            "zip",
+            tenantSlug: data.Tenant.Slug);
+        var zip = await CreateZipAsync(data, request.Id, fileName, ct).ConfigureAwait(false);
 
         // 3. Save to secure location
         if (!string.IsNullOrWhiteSpace(request.ArtifactRelativePath))
@@ -144,7 +157,6 @@ public sealed class DataExportService : IDataExportService
         var expiresAt = DateTime.UtcNow.AddDays(validDays);
         var token = Guid.NewGuid().ToString("N");
         var link = BuildDownloadLink(opts, token);
-        var fileName = $"tenant_{data.Tenant.Slug}_export_{data.Tenant.ExportedAt:yyyyMMddHHmmss}.zip";
 
         request.ArtifactRelativePath = path;
         request.ArtifactFileName = fileName;
@@ -167,9 +179,10 @@ public sealed class DataExportService : IDataExportService
             ct).ConfigureAwait(false);
 
         _logger.LogInformation(
-            "Export package ready with download link. RequestId={RequestId}, TenantId={TenantId}, ExpiresAt={ExpiresAt}",
+            "Export package ready with download link. RequestId={RequestId}, TenantId={TenantId}, FileName={FileName}, ExpiresAt={ExpiresAt}",
             request.Id,
             request.TenantId,
+            fileName,
             expiresAt);
 
         return new ExportResult
@@ -213,7 +226,8 @@ public sealed class DataExportService : IDataExportService
         return new ExportResult
         {
             RequestId = request.Id,
-            FileName = request.ArtifactFileName ?? $"export_{request.Id:N}.zip",
+            FileName = request.ArtifactFileName
+                ?? _fileNaming.GenerateFileName(DataExportFileNames.Prefix, "zip"),
             Data = bytes,
             ExportedAtUtc = request.ReadyAtUtc ?? request.RequestedAtUtc,
             Link = BuildDownloadLink(_options.Value, normalized),
@@ -225,7 +239,11 @@ public sealed class DataExportService : IDataExportService
     private Task<TenantDataExportDocument> CollectAllDataAsync(Guid tenantId, CancellationToken ct) =>
         BuildExportDocumentAsync(tenantId, ct);
 
-    private static async Task<byte[]> CreateZipAsync(TenantDataExportDocument document, CancellationToken ct)
+    private static async Task<byte[]> CreateZipAsync(
+        TenantDataExportDocument document,
+        Guid exportId,
+        string fileName,
+        CancellationToken ct)
     {
         var tempPath = Path.Combine(Path.GetTempPath(), $"regkasse-data-export-{Guid.NewGuid():N}.zip");
         try
@@ -240,9 +258,28 @@ public sealed class DataExportService : IDataExportService
             {
                 using (var zip = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: true))
                 {
-                    var entry = zip.CreateEntry(TenantDataExportDocument.ZipEntryName, CompressionLevel.Optimal);
-                    await using var entryStream = entry.Open();
-                    await JsonSerializer.SerializeAsync(entryStream, document, JsonOptions, ct).ConfigureAwait(false);
+                    var dataEntry = zip.CreateEntry(TenantDataExportDocument.ZipEntryName, CompressionLevel.Optimal);
+                    await using (var entryStream = dataEntry.Open())
+                    {
+                        await JsonSerializer.SerializeAsync(entryStream, document, JsonOptions, ct)
+                            .ConfigureAwait(false);
+                    }
+
+                    var manifest = new DataExportManifest
+                    {
+                        ExportId = exportId,
+                        TenantSlug = document.Tenant.Slug,
+                        ExportedAt = document.Tenant.ExportedAt,
+                        FileName = fileName,
+                    };
+                    var manifestEntry = zip.CreateEntry(
+                        DataExportFileNames.ManifestZipEntryName,
+                        CompressionLevel.Optimal);
+                    await using (var manifestStream = manifestEntry.Open())
+                    {
+                        await JsonSerializer.SerializeAsync(manifestStream, manifest, JsonOptions, ct)
+                            .ConfigureAwait(false);
+                    }
                 }
 
                 await zipStream.FlushAsync(ct).ConfigureAwait(false);

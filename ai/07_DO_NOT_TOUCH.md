@@ -38,5 +38,20 @@
 - `IgnoreQueryFilters()` kullanımını yalnızca bilinçli Super Admin / migration yollarında bırak.
 - Çapraz kiracı 404 semantiğini 403 veya boş 200 ile değiştirme.
 - Middleware sırasını (`TenantResolutionMiddleware` → auth → `TenantContextMiddleware`) sebepsiz değiştirme.
+- Production POS girişini tekrar `{slug}.regkasse.at` yapmak veya reserved `pos`/`api`/`admin` host’larında Host==JWT zorunluluğu uydurmak yok — `docs/POS_PRODUCTION_ARCHITECTURE.md`.
+
+## 10) Offline systems (do not merge)
+- Legacy TSE intents (`offline_transactions`) ile full order snapshots (`offline_orders`) **ayrı sistemlerdir**.
+- Tek tablo/UI/API ailesine birleştirme; FA rotaları: `/admin/tse/offline-transactions` vs `/rksv/offline-orders`.
+- Modüller: `ai/modules/offline_transactions_legacy.md`, `ai/modules/offline_orders.md`; hub: `docs/OFFLINE_SYSTEM_INDEX.md`.
+
+## 11) Backup / restore
+- Tenant vs System stratejisini karıştırma; Mandanten-Admin System dump’a erişmesin.
+- API üzerinden production DB restore yok (yalnızca isolated validation / drill).
+- Ayrıntı: `docs/BACKUP_SYSTEM.md`, `docs/restore-boundary-notes.md`, `ai/modules/backup_permissions.md`.
+
+## 12) Working hours / digital storefront
+- Working hours **asla** POS veya FA / authenticated `/api/pos/*` / `/api/admin/*` kapatmaz; yalnızca website/app online-order intake (`docs/WORKING_HOURS.md`).
+- Storefront (`frontend-sites`) fiscal POS değildir; ödeme/RKSV zincirine bağlama.
 
 > Emin değilsen varsayım yapma: önce kapsamı daralt, risk ve belirsizliği açık yaz. Özet bağlam: `REGKASSE_AI_ONBOARDING.md`.

@@ -6,13 +6,14 @@ import {
   readJsonFileIfExists,
   readManifest,
   resolveAppConfig,
+  listActiveAppIds,
   writeReport,
   ROOT,
 } from './_shared.mjs';
 
 const args = parseArgs(process.argv);
 const manifest = await readManifest();
-const appIds = (args.app ? [args.app] : Object.keys(manifest.apps)).sort((a, b) => a.localeCompare(b));
+const appIds = (args.app ? [args.app] : listActiveAppIds(manifest)).sort((a, b) => a.localeCompare(b));
 const strictMissing = args.strictMissing === 'true';
 const strictDe = args.strictDe === 'true';
 const hardcodedAsError = args.hardcodedAsError === 'true';
@@ -57,6 +58,10 @@ function resolveUsageBudgets(appId) {
 
 for (const appId of appIds) {
   const app = resolveAppConfig(manifest, appId);
+  if (app.deferred) {
+    console.log(`Skipping deferred app "${appId}" (no locale catalog yet).`);
+    continue;
+  }
   const localeMatrix = await buildLocaleMatrix(app, manifest.locales);
   const knownNamespaces = new Set(app.namespaces);
   if (app.id === 'frontend-admin') {

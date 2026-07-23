@@ -14,7 +14,6 @@ import {
   Button,
   Card,
   Checkbox,
-  Collapse,
   DatePicker,
   Descriptions,
   Empty,
@@ -32,12 +31,18 @@ import type { ColumnsType } from 'antd/es/table';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import Link from 'next/link';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 import { extractApiErrorMessage, getAdminCashRegisters } from '@/api/admin-rksv/client';
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import { PageSkeleton, TableSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { DownloadPreviewModal } from '@/components/ui/DownloadPreviewModal';
+import { FilePreviewModal } from '@/components/ui/FilePreviewModal';
+import { recordDownloadHistory } from '@/features/download-history/api/downloadHistoryApi';
+import { DownloadHistoryPanel } from '@/features/download-history/components/DownloadHistoryPanel';
+import { useExportDownloadNotifications } from '@/hooks/useExportDownloadNotifications';
 import { useCryptoMaterial } from '@/features/rksv/hooks/useCryptoMaterial';
 import { useDepExport } from '@/features/rksv/hooks/useDepExport';
 import {
@@ -47,7 +52,7 @@ import {
   deactivateDepExportSchedule,
   depExportHistoryQueryKey,
   depExportSchedulesQueryKey,
-  downloadDepExportHistoryFile,
+  fetchDepExportHistoryBlob,
   fetchDepExportHistoryDetail,
   useDepExportHistory,
   useDepExportSchedules,
@@ -58,9 +63,23 @@ import {
   type RksvDepExportRoot,
   computeDepExportStats,
 } from '@/features/rksv/types/depExport';
+import { buildDepExportFileName } from '@/features/rksv/utils/depExportFileName';
+import { useTenant } from '@/features/tenancy/providers/TenantProvider';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import {
+  EXPORT_TEMPLATE_QUERY_KEY,
+  resolveTemplatePeriod,
+} from '@/features/exports/applyExportTemplate';
+import { getExportTemplateById } from '@/features/exports/exportTemplatesStorage';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatBytes, formatDate, formatDateTime } from '@/i18n/formatting';
+import {
+  createJsonExportBlob,
+  estimateJsonByteSize,
+  saveBlobToFolder,
+  triggerBlobDownload,
+} from '@/lib/download/exportDownload';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 
 const { RangePicker } = DatePicker;
@@ -76,15 +95,17 @@ const DEFAULT_SCHEDULE_TIME_OF_DAY = '02:00';
 const PRUEFTOOL_COMMAND =
   '.\\scripts\\verify-rksv-dep-export.ps1 -DepExportPath "./dep-export.json" -CryptoMaterialPath "./crypto-material.json"';
 
-function downloadJsonBlob(data: unknown, fileName: string) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = globalThis.URL.createObjectURL(blob);
-  const anchor = globalThis.document.createElement('a');
-  anchor.href = url;
-  anchor.download = fileName;
-  anchor.click();
-  globalThis.URL.revokeObjectURL(url);
-}
+type DepDownloadPreviewState = {
+  fileName: string;
+  sizeBytes: number;
+  createdAt: Date | string;
+  contentSummary: string;
+  registerName?: string;
+  isSizeEstimate?: boolean;
+  /** Prebuilt blob for live export; history loads on demand. */
+  blob?: Blob;
+  historyId?: string;
+};
 
 function formatRegisterLabel(registerNumber?: string, location?: string, id?: string): string {
   if (registerNumber && location) return `${registerNumber} — ${location}`;
@@ -237,6 +258,10 @@ function DepExportSchedulesTab({
 export function DepExportTestPage() {
   const { t, formatLocale } = useI18n();
   const { message } = useAntdApp();
+  const exportNotify = useExportDownloadNotifications();
+  const { tenant } = useTenant();
+  const { user } = useAuth();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const tp = useCallback((path: string) => t(`rksvHub.depExportPage.${path}`), [t]);
 
@@ -247,12 +272,16 @@ export function DepExportTestPage() {
   ]);
   const [includeSpecialReceipts, setIncludeSpecialReceipts] = useState(true);
   const [includeDailyClosings, setIncludeDailyClosings] = useState(true);
+  const [templateAppliedHint, setTemplateAppliedHint] = useState<string | null>(null);
   const [exportResult, setExportResult] = useState<RksvDepExportRoot | null>(null);
   const [cryptoMaterial, setCryptoMaterial] = useState<CryptoMaterial | null>(null);
   const [activeTab, setActiveTab] = useState('export');
   const [historyPage, setHistoryPage] = useState(1);
   const [viewingHistory, setViewingHistory] = useState<DepExportHistoryItem | null>(null);
   const [viewingHistoryId, setViewingHistoryId] = useState<string | null>(null);
+  const [downloadPreview, setDownloadPreview] = useState<DepDownloadPreviewState | null>(null);
+  const [downloadBusy, setDownloadBusy] = useState(false);
+  const [filePreviewOpen, setFilePreviewOpen] = useState(false);
 
   const { data: cashRegisters, isLoading: registersLoading } = useQuery({
     queryKey: rksvAdminQueryKeys.cashRegisters,
@@ -279,9 +308,39 @@ export function DepExportTestPage() {
         .map((register) => ({
           value: register.id as string,
           label: formatRegisterLabel(register.registerNumber, register.location, register.id),
+          registerNumber: register.registerNumber ?? '',
         })),
     [cashRegisters]
   );
+
+  // Apply export template from ?exportTemplateId=
+  useEffect(() => {
+    const templateId = searchParams.get(EXPORT_TEMPLATE_QUERY_KEY)?.trim();
+    if (!templateId) return;
+    const tmpl = getExportTemplateById(templateId, {
+      userId: user?.id ?? 'anon',
+      tenantId: tenant?.id ?? 'default',
+    });
+    if (!tmpl || tmpl.config.kind !== 'dep-export') return;
+
+    const cfg = tmpl.config;
+    const range = resolveTemplatePeriod(cfg.period, cfg.customFromUtc, cfg.customToUtc);
+    setDateRange([range.from, range.to]);
+    setIncludeSpecialReceipts(cfg.includeSpecialReceipts);
+    setIncludeDailyClosings(cfg.includeDailyClosings);
+
+    if (cfg.cashRegisterId) {
+      setSelectedRegisterId(cfg.cashRegisterId);
+    } else if (cfg.registerNumberHint && cashRegisters?.length) {
+      const hint = cfg.registerNumberHint.trim().toLowerCase();
+      const match = cashRegisters.find(
+        (r) => (r.registerNumber ?? '').trim().toLowerCase() === hint
+      );
+      if (match?.id) setSelectedRegisterId(match.id);
+    }
+
+    setTemplateAppliedHint(tmpl.name);
+  }, [searchParams, user?.id, tenant?.id, cashRegisters]);
 
   const stats = useMemo(() => computeDepExportStats(exportResult), [exportResult]);
   const previewJson = exportResult ? JSON.stringify(exportResult, null, 2) : '';
@@ -327,14 +386,42 @@ export function DepExportTestPage() {
 
   const handleDownload = () => {
     if (!exportResult || !selectedRegisterId) return;
-    const fromLabel = dateRange?.[0]?.format('YYYY-MM-DD') ?? 'from';
-    const toLabel = dateRange?.[1]?.format('YYYY-MM-DD') ?? 'to';
-    downloadJsonBlob(exportResult, `dep-export-${selectedRegisterId}-${fromLabel}-${toLabel}.json`);
+    const register = (cashRegisters ?? []).find((r) => r.id === selectedRegisterId);
+    const createdAt = new Date();
+    const fileName = buildDepExportFileName(tenant?.slug, register?.registerNumber, createdAt);
+    const estimatedBytes = estimateJsonByteSize(exportResult);
+    const blob = createJsonExportBlob(exportResult);
+    setDownloadPreview({
+      fileName,
+      sizeBytes: blob.size || estimatedBytes,
+      createdAt,
+      contentSummary: t('common.exportDownload.contentDep', {
+        signatures: stats?.totalSignatures ?? 0,
+        groups: stats?.groupCount ?? 0,
+      }),
+      registerName: formatRegisterLabel(register?.registerNumber, register?.location, register?.id),
+      blob,
+    });
   };
 
   const downloadCryptoMaterial = () => {
     if (!cryptoMaterial || !selectedRegisterId) return;
-    downloadJsonBlob(cryptoMaterial, `crypto-material-${selectedRegisterId}.json`);
+    const createdAt = new Date();
+    const fileName = `crypto-material-${selectedRegisterId}.json`;
+    const estimatedBytes = estimateJsonByteSize(cryptoMaterial);
+    const blob = createJsonExportBlob(cryptoMaterial);
+    setDownloadPreview({
+      fileName,
+      sizeBytes: blob.size || estimatedBytes,
+      createdAt,
+      contentSummary: t('common.exportDownload.contentGeneric'),
+      registerName: formatRegisterLabel(
+        (cashRegisters ?? []).find((r) => r.id === selectedRegisterId)?.registerNumber,
+        (cashRegisters ?? []).find((r) => r.id === selectedRegisterId)?.location,
+        selectedRegisterId
+      ),
+      blob,
+    });
   };
 
   const handleGenerateCryptoMaterial = () => {
@@ -383,16 +470,112 @@ export function DepExportTestPage() {
     message.info(tp('historyParamsLoaded'));
   };
 
-  const downloadExport = async (row: DepExportHistoryItem) => {
+  const openHistoryDownloadPreview = (row: DepExportHistoryItem) => {
     if (!row.hasStoredFile) {
       message.info(tp('historyDownloadUnavailable'));
       return;
     }
+    setDownloadPreview({
+      fileName: row.fileName,
+      sizeBytes: row.fileSizeBytes,
+      createdAt: row.exportedAt,
+      contentSummary: t('common.exportDownload.contentDep', {
+        signatures: row.signatureCount,
+        groups: row.groupCount,
+      }),
+      registerName: row.registerNumber ?? row.cashRegisterId,
+      historyId: row.id,
+    });
+  };
+
+  const resolvePreviewBlob = async (preview: DepDownloadPreviewState): Promise<Blob> => {
+    if (preview.blob) return preview.blob;
+    if (preview.historyId) return fetchDepExportHistoryBlob(preview.historyId);
+    throw new Error('No export payload available');
+  };
+
+  const confirmPreviewDownload = async () => {
+    if (!downloadPreview) return;
+    setDownloadBusy(true);
+    const fileName = downloadPreview.fileName;
+    exportNotify.notifyPreparing({ fileName });
     try {
-      await downloadDepExportHistoryFile(row.id, row.fileName);
+      const blob = await resolvePreviewBlob(downloadPreview);
+      triggerBlobDownload(blob, fileName);
+      try {
+        await recordDownloadHistory({
+          fileName,
+          fileType: 'json',
+          fileSize: blob.size,
+          downloadUrl: downloadPreview.historyId
+            ? `/api/admin/rksv/dep-export/history/${downloadPreview.historyId}/download`
+            : undefined,
+          sourceKind: downloadPreview.historyId ? 'dep-export' : 'dep-export-live',
+          sourceId: downloadPreview.historyId ?? null,
+        });
+      } catch {
+        // History write is best-effort; download already started.
+      }
+      exportNotify.notifyCompleted({
+        fileName,
+        onRetry: () => void confirmPreviewDownload(),
+        onOpenFolder: () => void confirmPreviewSaveToFolder(),
+      });
+      setDownloadPreview(null);
     } catch {
-      message.error(tp('exportFailed'));
+      exportNotify.notifyFailed({
+        fileName,
+        onRetry: () => void confirmPreviewDownload(),
+      });
+    } finally {
+      setDownloadBusy(false);
     }
+  };
+
+  const confirmPreviewSaveToFolder = async () => {
+    if (!downloadPreview) return;
+    setDownloadBusy(true);
+    const fileName = downloadPreview.fileName;
+    exportNotify.notifyPreparing({ fileName });
+    try {
+      const blob = await resolvePreviewBlob(downloadPreview);
+      const result = await saveBlobToFolder(blob, fileName);
+      if (result === 'cancelled') {
+        exportNotify.closePanel();
+        return;
+      }
+      try {
+        await recordDownloadHistory({
+          fileName,
+          fileType: 'json',
+          fileSize: blob.size,
+          downloadUrl: downloadPreview.historyId
+            ? `/api/admin/rksv/dep-export/history/${downloadPreview.historyId}/download`
+            : undefined,
+          sourceKind: downloadPreview.historyId ? 'dep-export' : 'dep-export-live',
+          sourceId: downloadPreview.historyId ?? null,
+        });
+      } catch {
+        // best-effort
+      }
+      exportNotify.notifyCompleted({
+        fileName,
+        onRetry: () => void confirmPreviewSaveToFolder(),
+        onOpenFolder: () => void confirmPreviewSaveToFolder(),
+      });
+      setDownloadPreview(null);
+    } catch {
+      exportNotify.notifyFailed({
+        fileName,
+        onRetry: () => void confirmPreviewSaveToFolder(),
+      });
+    } finally {
+      setDownloadBusy(false);
+    }
+  };
+
+  const downloadExport = (row: DepExportHistoryItem) => {
+    openHistoryDownloadPreview(row);
   };
 
   const viewExport = async (historyId: string) => {
@@ -532,6 +715,9 @@ export function DepExportTestPage() {
           </Button>
           {exportResult ? (
             <>
+              <Button icon={<EyeOutlined />} onClick={() => setFilePreviewOpen(true)}>
+                {t('common.filePreview.open')}
+              </Button>
               <Button icon={<DownloadOutlined />} onClick={handleDownload}>
                 {tp('downloadButton')}
               </Button>
@@ -572,29 +758,16 @@ export function DepExportTestPage() {
         ) : null}
 
         {exportResult ? (
-          <Collapse
-            items={[
-              {
-                key: 'json',
-                label: tp('jsonPreviewTitle'),
-                children: (
-                  <pre
-                    style={{
-                      fontSize: 11,
-                      maxHeight: 520,
-                      overflow: 'auto',
-                      background: '#1e1e1e',
-                      color: '#d4d4d4',
-                      padding: 12,
-                      borderRadius: 6,
-                      margin: 0,
-                    }}
-                  >
-                    {previewJson}
-                  </pre>
-                ),
-              },
-            ]}
+          <Alert
+            type="success"
+            showIcon
+            title={tp('jsonPreviewTitle')}
+            description={t('common.filePreview.openHint')}
+            action={
+              <Button size="small" icon={<EyeOutlined />} onClick={() => setFilePreviewOpen(true)}>
+                {t('common.filePreview.open')}
+              </Button>
+            }
           />
         ) : (
           <Alert
@@ -715,6 +888,7 @@ export function DepExportTestPage() {
     { key: 'verify', label: tp('tabVerify'), children: verifyTab },
     { key: 'certificate', label: tp('tabCertificate'), children: certificateTab },
     { key: 'history', label: tp('tabHistory'), children: historyTab },
+    { key: 'downloads', label: tp('tabDownloads'), children: <DownloadHistoryPanel /> },
     {
       key: 'schedule',
       label: tp('tabSchedules'),
@@ -745,6 +919,17 @@ export function DepExportTestPage() {
           {tp('subtitle')}
         </Typography.Paragraph>
       </AdminPageHeader>
+
+      {templateAppliedHint ? (
+        <Alert
+          type="success"
+          showIcon
+          closable
+          onClose={() => setTemplateAppliedHint(null)}
+          style={{ marginBottom: 16 }}
+          title={t('common.exportTemplates.appliedOnPage', { name: templateAppliedHint })}
+        />
+      ) : null}
 
       <Alert
         type="info"
@@ -825,6 +1010,72 @@ export function DepExportTestPage() {
               </Descriptions>
             ) : null}
           </Modal>
+          <DownloadPreviewModal
+            open={downloadPreview != null}
+            fileName={downloadPreview?.fileName ?? ''}
+            fileSize={formatBytes(downloadPreview?.sizeBytes ?? 0, formatLocale)}
+            fileType="JSON"
+            createdAt={formatDateTime(downloadPreview?.createdAt ?? new Date(), formatLocale, {
+              second: '2-digit',
+            })}
+            contentSummary={downloadPreview?.contentSummary ?? ''}
+            tenantName={tenant?.name ?? tenant?.slug}
+            registerName={downloadPreview?.registerName}
+            hint={t('common.exportDownload.hintDep')}
+            sizeBytes={downloadPreview?.sizeBytes}
+            isSizeEstimate={downloadPreview?.isSizeEstimate}
+            contentPreview={downloadPreview?.blob ? { blob: downloadPreview.blob } : null}
+            resolveContentPreview={
+              downloadPreview
+                ? async () => ({ blob: await resolvePreviewBlob(downloadPreview) })
+                : undefined
+            }
+            confirmLoading={downloadBusy}
+            onCancel={() => {
+              if (!downloadBusy) setDownloadPreview(null);
+            }}
+            onConfirm={() => void confirmPreviewDownload()}
+            onSaveToFolder={() => void confirmPreviewSaveToFolder()}
+            enableSendEmail
+            defaultEmailTo={user?.email ?? ''}
+            emailSubject={
+              downloadPreview
+                ? t('common.exportEmail.defaultSubjectDep', {
+                    date: formatDateTime(downloadPreview.createdAt, formatLocale, {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                    }),
+                  })
+                : undefined
+            }
+            emailSourceKind={downloadPreview?.historyId ? 'dep-export' : undefined}
+            emailSourceId={downloadPreview?.historyId ?? null}
+            resolveEmailContent={
+              downloadPreview
+                ? async () => resolvePreviewBlob(downloadPreview)
+                : undefined
+            }
+          />
+          <FilePreviewModal
+            open={filePreviewOpen && exportResult != null}
+            fileName={
+              selectedRegisterId
+                ? buildDepExportFileName(
+                    tenant?.slug,
+                    (cashRegisters ?? []).find((r) => r.id === selectedRegisterId)?.registerNumber,
+                    new Date()
+                  )
+                : 'dep-export.json'
+            }
+            fileType="json"
+            source={{ text: previewJson }}
+            onClose={() => setFilePreviewOpen(false)}
+            onDownload={() => {
+              setFilePreviewOpen(false);
+              handleDownload();
+            }}
+          />
         </>
       )}
     </>

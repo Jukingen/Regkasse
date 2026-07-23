@@ -20,6 +20,7 @@ import { ReadOnlyBanner } from '@/components/ReadOnlyBanner';
 import { AdminDesktopSiderResizeHandle } from '@/components/admin-layout/AdminDesktopSiderResizeHandle';
 import { AdminLayout } from '@/components/admin-layout/AdminLayout';
 import { ImpersonationBanner } from '@/components/admin-layout/ImpersonationBanner';
+import { RoleMenuPreviewBanner } from '@/features/users/components/RoleMenuPreviewBanner';
 import { LicenseExpiryBanner } from '@/components/admin-layout/LicenseExpiryBanner';
 import { SuperAdminModeBanner } from '@/components/admin-layout/SuperAdminModeBanner';
 import { SuperAdminTenantGate } from '@/components/admin-layout/SuperAdminTenantGate';
@@ -149,6 +150,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   <LicenseExpiryBanner />
                   <ReadOnlyBanner />
                   <ImpersonationBanner />
+                  <RoleMenuPreviewBanner />
                   <SuperAdminModeBanner />
                   <VerwaltungTenantContextGate />
                   <main id="main-content" tabIndex={-1}>

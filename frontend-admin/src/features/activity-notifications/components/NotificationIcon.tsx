@@ -5,6 +5,8 @@ import {
   CloudOutlined,
   DatabaseOutlined,
   ExperimentOutlined,
+  KeyOutlined,
+  SafetyCertificateOutlined,
   SendOutlined,
   ShopOutlined,
   UserOutlined,
@@ -13,8 +15,16 @@ import {
 import type { ReactNode } from 'react';
 
 import type { ActivityDto } from '@/api/manual/activityEvents';
+import { isPermissionActivityType } from '@/features/activity-notifications/activityTypes';
 
 function iconForType(type: string): ReactNode {
+  if (isPermissionActivityType(type)) {
+    return type === 'SystemPermissionChange' || type === 'RoleDeleted' ? (
+      <SafetyCertificateOutlined />
+    ) : (
+      <KeyOutlined />
+    );
+  }
   if (type.startsWith('User')) {
     return <UserOutlined />;
   }
@@ -49,7 +59,7 @@ export function NotificationIcon({ activity }: Props) {
       ? '#cf1322'
       : activity.severity === 'Warning'
         ? '#d48806'
-        : '#1677ff';
+        : '#389e0d';
 
   return (
     <span style={{ color, fontSize: 18 }} aria-hidden>

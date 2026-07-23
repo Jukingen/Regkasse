@@ -2,11 +2,14 @@ using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using KasseAPI_Final.Auth;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -22,17 +25,26 @@ namespace KasseAPI_Final.Controllers
         private readonly IAuditLogService _auditLogService;
         private readonly IAuditExportService _auditExportService;
         private readonly IActorDisplayNameResolver _actorDisplayNameResolver;
+        private readonly ICurrentTenantAccessor _tenantAccessor;
+        private readonly IFileNamingService _fileNaming;
+        private readonly AppDbContext _db;
         private readonly ILogger<AuditLogController> _logger;
 
         public AuditLogController(
             IAuditLogService auditLogService,
             IAuditExportService auditExportService,
             IActorDisplayNameResolver actorDisplayNameResolver,
+            ICurrentTenantAccessor tenantAccessor,
+            IFileNamingService fileNaming,
+            AppDbContext db,
             ILogger<AuditLogController> logger)
         {
             _auditLogService = auditLogService;
             _auditExportService = auditExportService;
             _actorDisplayNameResolver = actorDisplayNameResolver;
+            _tenantAccessor = tenantAccessor;
+            _fileNaming = fileNaming;
+            _db = db;
             _logger = logger;
         }
 
@@ -467,9 +479,23 @@ namespace KasseAPI_Final.Controllers
                 ApplyTenantManagerVisibility(filters, IsActorSuperAdmin());
 
                 var normalized = (format ?? "csv").Trim().ToLowerInvariant();
-                var ext = normalized == "json" ? "json" : "csv";
-                var contentType = normalized == "json" ? "application/json" : "text/csv";
-                var fileName = $"audit_logs_{DateTime.UtcNow:yyyyMMdd_HHmmss}.{ext}";
+                var contentType = AuditExportFileNames.ContentTypeForFormat(normalized);
+                string? tenantSlug = null;
+                if (_tenantAccessor.TenantId is { } tenantId)
+                {
+                    tenantSlug = await _db.Tenants.AsNoTracking()
+                        .Where(t => t.Id == tenantId)
+                        .Select(t => t.Slug)
+                        .FirstOrDefaultAsync(cancellationToken)
+                        .ConfigureAwait(false);
+                }
+
+                var fileName = _fileNaming.GenerateFileName(
+                    AuditExportFileNames.Prefix,
+                    AuditExportFileNames.NormalizeExtension(normalized),
+                    registerId: ExportFileNameSegments.DateOnly(filters.StartDate),
+                    additional: ExportFileNameSegments.DateOnly(filters.EndDate),
+                    tenantSlug: tenantSlug);
 
                 Response.ContentType = contentType;
                 Response.Headers.ContentDisposition = $"attachment; filename=\"{fileName}\"";

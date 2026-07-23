@@ -34,6 +34,8 @@ API:        https://api.regkasse.at
 
 **Not used for POS:** `https://{slug}.regkasse.at` as the POS entry point.
 
+**Customer websites (not POS):** Shared Next app [`frontend-sites`](../frontend-sites/README.md) serves `/[slug]` storefronts and online-order UI. Optional custom Host → slug via verified `TenantDomain`. See [`DIGITAL_SERVICES.md`](DIGITAL_SERVICES.md) / [`WORKING_HOURS.md`](WORKING_HOURS.md).
+
 ---
 
 ## 2. Tenant resolution (POS)
@@ -149,12 +151,17 @@ Backend still has `SubdomainTenantProvider` for hosts where the first label **is
 
 Track until done; keep `docs/MULTI_TENANT.md` Known gaps in sync.
 
+**Done in code / docs**
 - [x] Treat `pos` and `api` as reserved in `TenantHostNames` (same class as `admin` / `www`)
+- [x] Document single POS UI + JWT tenant (this doc, `AGENTS.md`, `MULTI_TENANT.md`)
+- [x] Clarify customer websites are `frontend-sites`, not POS slug hosts
+
+**Deploy / product follow-ups**
 - [ ] POS production build: fixed `EXPO_PUBLIC_API_BASE_URL=https://api.regkasse.at/api`
 - [ ] Stop requiring per-tenant `apiBaseUrl` for normal POS login (license bootstrap optional for device binding only)
 - [ ] Production: authenticated POS/API requests require JWT tenant; reject spoofed tenant headers
 - [ ] DNS + TLS: `pos.regkasse.at`, `admin.regkasse.at`, `api.regkasse.at` (+ keep `*.regkasse.at` if legacy hosts remain)
-- [ ] Update impersonation / offline deploy docs that still assume `{slug}.regkasse.at` for POS
+- [ ] Retire FA impersonation flows that still assume `{slug}.regkasse.at` for POS entry (prefer FA session handoff)
 
 ---
 
@@ -164,7 +171,10 @@ Track until done; keep `docs/MULTI_TENANT.md` Known gaps in sync.
 |----------|------|
 | `AGENTS.md` | Always-applied agent summary |
 | `docs/MULTI_TENANT.md` | Isolation, middleware, security |
+| `docs/DIGITAL_SERVICES.md` | Tenant websites / apps (not POS) |
+| `frontend-sites/README.md` | Shared storefront runtime |
 | `REGKASSE_AI_ONBOARDING.md` | Dev setup, POS tenant config |
 | `ai/01_BACKEND_CONTRACT.md` | Backend tenancy contract |
 | `ai/04_FRONTEND_CONTRACT.md` | POS/FA client contract |
 | `docs/IMPERSONATION_FLOW.md` | Super Admin → mandant session |
+| `docs/README.md` | Documentation index |

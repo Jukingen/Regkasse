@@ -2,7 +2,21 @@ name: Localization Validation
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, master]
+    paths:
+      - 'frontend/i18n/**'
+      - 'frontend-admin/src/i18n/**'
+      - 'frontend-sites/**'
+      - 'localization/**'
+      - '.github/workflows/localization-validation.yml'
+  push:
+    branches: [main, master]
+    paths:
+      - 'frontend/i18n/**'
+      - 'frontend-admin/src/i18n/**'
+      - 'frontend-sites/**'
+      - 'localization/**'
+      - '.github/workflows/localization-validation.yml'
   workflow_dispatch:
     inputs:
       phase:
@@ -10,11 +24,17 @@ on:
         required: false
         default: "phase1"
 
+concurrency:
+  group: localization-validation-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   localization:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       DEFAULT_BOUNDARY_PHASE: phase1
+      NODE_VERSION: '22'
       # rollout policy:
       # phase1: frontend soft, frontend-admin strict, boundary warn-only
       # phase2: frontend soft, frontend-admin strict, admin boundary strict
@@ -26,13 +46,37 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            frontend-admin/package-lock.json
+
+      - name: Cache POS node_modules
+        id: cache-pos-nm
+        uses: actions/cache@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node${{ env.NODE_VERSION }}-pos-nm-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node${{ env.NODE_VERSION }}-pos-nm-
+
+      - name: Cache frontend-admin node_modules
+        id: cache-fa-nm
+        uses: actions/cache@v4
+        with:
+          path: frontend-admin/node_modules
+          key: ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-nm-${{ hashFiles('frontend-admin/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-nm-
 
       - name: Install frontend dependencies
+        if: steps.cache-pos-nm.outputs.cache-hit != 'true'
         working-directory: frontend
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Install frontend-admin dependencies
+        if: steps.cache-fa-nm.outputs.cache-hit != 'true'
         working-directory: frontend-admin
         run: npm ci
 
@@ -89,6 +133,10 @@ jobs:
           const manifest = JSON.parse(fs.readFileSync('localization/namespace-manifest.json', 'utf8'));
           const failures = [];
           for (const [appId, app] of Object.entries(manifest.apps)) {
+            if (app.deferred === true) {
+              console.log(`Skipping deferred app "${appId}" for JSON parse check.`);
+              continue;
+            }
             for (const locale of manifest.locales) {
               for (const ns of app.namespaces) {
                 const file = path.join(process.cwd(), app.localesDir, locale, `${ns}.json`);
@@ -109,25 +157,33 @@ jobs:
           console.log('JSON parse check passed.');
           EOF
 
-      - name: Validate translations (frontend-admin strict)
+      # Hard gate (always fails the job on missing / orphan issues — not phase-softened)
+      - name: Validate translations (frontend-admin)
         shell: bash
-        run: |
-          node localization/scripts/validate-translations.mjs \
-            --app frontend-admin \
-            --keyMode "${{ steps.policy.outputs.admin_key_mode }}" \
-            --strictMissing true \
-            --orphanPolicy error
+        run: >
+          node localization/scripts/validate-translations.mjs
+          --app frontend-admin
+          --strictMissing true
+          --orphanPolicy error
 
-      - name: Validate translations (frontend soft rollout)
-        if: steps.policy.outputs.frontend_mode != 'strict'
-        continue-on-error: true
+      - name: Validate translations (frontend)
         shell: bash
-        run: node localization/scripts/validate-translations.mjs --app frontend --keyMode "${{ steps.policy.outputs.frontend_key_mode }}"
+        run: >
+          node localization/scripts/validate-translations.mjs
+          --app frontend
+          --strictMissing true
 
-      - name: Validate translations (frontend strict)
-        if: steps.policy.outputs.frontend_mode == 'strict'
+      - name: Check localization usage (frontend-admin)
         shell: bash
-        run: node localization/scripts/validate-translations.mjs --app frontend --keyMode "${{ steps.policy.outputs.frontend_key_mode }}"
+        run: >
+          node localization/scripts/check-localization-usage.mjs
+          --app frontend-admin
+          --strictMissing true
+          --budgetFile localization/i18n-ci-budgets.json
+
+      - name: Deferred apps smoke (frontend-sites)
+        shell: bash
+        run: node localization/scripts/validate-translations.mjs --app frontend-sites
 
       - name: Export matrix CSV (frontend-admin strict)
         shell: bash
@@ -167,14 +223,6 @@ jobs:
           else
             node localization/scripts/check-translation-boundary.mjs --app frontend-admin
           fi
-
-      - name: Usage check (frontend-admin)
-        shell: bash
-        run: |
-          node localization/scripts/check-localization-usage.mjs \
-            --app frontend-admin \
-            --strictMissing true \
-            --budgetFile localization/i18n-ci-budgets.json
 
       - name: Translation keys drift (frontend-admin)
         shell: bash
@@ -352,3 +400,12 @@ jobs:
           }
           fs.appendFileSync(summaryFile, `${lines.join('\n')}\n`);
           EOF
+
+  notify-failure:
+    name: Notify on failure
+    needs: [localization]
+    if: failure()
+    uses: ./.github/workflows/notify-failure.yml
+    with:
+      title: Localization validation failed
+    secrets: inherit

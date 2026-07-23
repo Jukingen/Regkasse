@@ -1,8 +1,8 @@
 'use client';
 
-import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { DownloadOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Input, Space } from 'antd';
+import { Button, Flex, Input, Space } from 'antd';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 
@@ -10,13 +10,19 @@ import { useAdminBenefitAssignmentsList } from '@/api/admin/benefit-assignments'
 import { Customer } from '@/api/generated/model';
 import { AdminDataList } from '@/components/admin-layout/AdminDataList';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { DownloadPreviewModal } from '@/components/ui/DownloadPreviewModal';
+import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
+import { downloadCustomerExport } from '@/features/customers/api/downloadCustomerExport';
 import CustomerForm from '@/features/customers/components/CustomerForm';
 import CustomerList from '@/features/customers/components/CustomerList';
 import { useCustomerFilters, useCustomers } from '@/features/customers/hooks/useCustomers';
+import { buildCustomerExportFileName } from '@/features/customers/utils/customerExportFileName';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { useDownloadPreview } from '@/hooks/useDownloadPreview';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
 import { customInstance } from '@/lib/axios';
+import { estimateTabularExportBytes } from '@/lib/download/downloadPreview';
 import { ADMIN_NAV_LABEL_KEYS, buildAdminBreadcrumbs } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
@@ -45,10 +51,13 @@ export default function CustomersPage() {
   // Benefits (Kunden & Vorteile) are gated by benefit.view. Roles without it (e.g. Manager)
   // must not trigger the /api/admin/benefit-assignments 403 that surfaces a global "no permission" toast.
   const canViewBenefits = hasPermission(PERMISSIONS.BENEFIT_VIEW);
+  const canViewCustomers = hasPermission(PERMISSIONS.CUSTOMER_VIEW);
   const { filters, setParam } = useCustomerFilters();
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [searchInput, setSearchInput] = useState('');
+  const [exporting, setExporting] = useState<'csv' | 'json' | null>(null);
+  const downloadPreview = useDownloadPreview();
   useEffect(() => {
     setSearchInput(filters.search ?? '');
   }, [filters.search]);
@@ -81,6 +90,29 @@ export default function CustomersPage() {
   const createMutation = useCreate();
   const updateMutation = useUpdate();
   const deleteMutation = useDelete();
+
+  const handleExport = (format: 'csv' | 'json') => {
+    const rowCount = Array.isArray(customers) ? customers.length : 0;
+    downloadPreview.requestPreview({
+      fileName: buildCustomerExportFileName(getEffectiveTenantSlug(), format),
+      fileType: format.toUpperCase(),
+      sizeBytes: estimateTabularExportBytes(rowCount, format),
+      isSizeEstimate: true,
+      contentSummary: t('common.exportDownload.contentRows', { count: rowCount }),
+      execute: async () => {
+        setExporting(format);
+        try {
+          await downloadCustomerExport(format);
+          message.success(t('customers.messages.exportSuccess'));
+        } catch {
+          message.error(t('customers.messages.exportFailed'));
+          throw new Error('export failed');
+        } finally {
+          setExporting(null);
+        }
+      },
+    });
+  };
 
   const handleCreate = async (values: Customer) => {
     try {
@@ -132,9 +164,31 @@ export default function CustomersPage() {
         title={t(ADMIN_NAV_LABEL_KEYS.customers)}
         breadcrumbs={buildAdminBreadcrumbs(t, [{ title: t(ADMIN_NAV_LABEL_KEYS.customers) }])}
         actions={
-          <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
-            {t('customers.page.newCustomer')}
-          </Button>
+          <Flex wrap="wrap" gap="middle" align="center" justify="flex-end">
+            {canViewCustomers ? (
+              <>
+                <Button
+                  icon={<DownloadOutlined />}
+                  loading={exporting === 'csv'}
+                  disabled={!!exporting}
+                  onClick={() => void handleExport('csv')}
+                >
+                  {t('customers.page.exportCsv')}
+                </Button>
+                <Button
+                  icon={<DownloadOutlined />}
+                  loading={exporting === 'json'}
+                  disabled={!!exporting}
+                  onClick={() => void handleExport('json')}
+                >
+                  {t('customers.page.exportJson')}
+                </Button>
+              </>
+            ) : null}
+            <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
+              {t('customers.page.newCustomer')}
+            </Button>
+          </Flex>
         }
       >
         <Input.Search
@@ -182,6 +236,7 @@ export default function CustomersPage() {
         loading={createMutation.isPending || updateMutation.isPending}
         assignedBenefitCount={assignmentCountForAdmin ?? undefined}
       />
+      <DownloadPreviewModal {...downloadPreview.modalProps} />
     </Space>
   );
 }

@@ -527,6 +527,10 @@
       "timeFormat": "Zeitformat",
       "reducedMotion": "Reduzierte Animationen",
       "reducedMotionHint": "Für bessere Leistung",
+      "notifyOnExports": "Benachrichtige mich bei Exporten",
+      "notifyOnExportsHint": "Zeigt Fortschritt und Abschluss als Benachrichtigung an",
+      "exportSound": "Ton bei Export-Benachrichtigungen",
+      "exportSoundHint": "Kurzer Hinweiston bei Erfolg oder Fehler (optional)",
       "dateFormatOptions": {
         "DD_MM_YYYY": "01.12.2025 (DD.MM.YYYY)"
       }

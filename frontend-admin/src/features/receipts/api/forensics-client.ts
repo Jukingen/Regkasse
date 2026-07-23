@@ -34,6 +34,7 @@ function toListItem(
     createdAt: row.createdAt ?? '',
     rksvSpecialReceiptKind: row.rksvSpecialReceiptKind ?? null,
     rksvFinanzOnlineSubmissionStatus: row.rksvFinanzOnlineSubmissionStatus ?? null,
+    hasStoredPdf: row.hasStoredPdf ?? false,
   };
 }
 

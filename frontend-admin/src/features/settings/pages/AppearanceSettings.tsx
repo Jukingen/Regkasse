@@ -12,6 +12,7 @@ import { Card, Form, Radio, Select, Switch, Typography } from 'antd';
 import { useMemo } from 'react';
 
 import { useDensity } from '@/hooks/useDensity';
+import { useExportDownloadNotifications } from '@/hooks/useExportDownloadNotifications';
 import { useTheme } from '@/hooks/useTheme';
 import { useI18n } from '@/i18n';
 import { useUserPreferences } from '@/lib/personalization/hooks/useUserPreferences';
@@ -26,6 +27,8 @@ export function AppearanceSettings() {
   const { themeMode, setThemeMode } = useTheme();
   const { densityMode, setDensityMode } = useDensity();
   const { preferences, updatePreferences, isSyncing } = useUserPreferences();
+  const exportNotify = useExportDownloadNotifications();
+  const exportNotifyPrefs = exportNotify.prefs;
 
   const landingOptions = useMemo(
     () =>
@@ -119,6 +122,33 @@ export function AppearanceSettings() {
             />
             <Typography.Text type="secondary">
               {t('settings.personalization.appearance.reducedMotionHint')}
+            </Typography.Text>
+          </div>
+        </Form.Item>
+
+        <Form.Item label={t('settings.personalization.appearance.notifyOnExports')}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Switch
+              checked={exportNotifyPrefs.notifyOnExports}
+              onChange={(checked) => exportNotify.updatePrefs({ notifyOnExports: checked })}
+              aria-label={t('settings.personalization.appearance.notifyOnExports')}
+            />
+            <Typography.Text type="secondary">
+              {t('settings.personalization.appearance.notifyOnExportsHint')}
+            </Typography.Text>
+          </div>
+        </Form.Item>
+
+        <Form.Item label={t('settings.personalization.appearance.exportSound')}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Switch
+              checked={exportNotifyPrefs.playSound}
+              disabled={!exportNotifyPrefs.notifyOnExports}
+              onChange={(checked) => exportNotify.updatePrefs({ playSound: checked })}
+              aria-label={t('settings.personalization.appearance.exportSound')}
+            />
+            <Typography.Text type="secondary">
+              {t('settings.personalization.appearance.exportSoundHint')}
             </Typography.Text>
           </div>
         </Form.Item>

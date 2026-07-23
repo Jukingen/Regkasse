@@ -79,6 +79,7 @@ describe('keyboardShortcuts helpers', () => {
       Object.defineProperty(navigator, 'platform', { value: 'Win32', configurable: true });
       expect(formatShortcutLabel({ ctrl: true, key: 's' })).toBe('Ctrl+S');
       expect(formatShortcutLabel({ ctrl: true, shift: true, key: 'l' })).toBe('Ctrl+Shift+L');
+      expect(formatShortcutLabel({ ctrl: true, shift: true, key: 'd' }, 'de')).toBe('Strg+Shift+D');
       expect(formatShortcutLabel({ key: 'Escape' })).toBe('Esc');
       expect(formatNavigateTabsShortcutLabel()).toBe('Ctrl+1–9');
       Object.defineProperty(navigator, 'platform', { value: original, configurable: true });

@@ -1,11 +1,13 @@
 'use client';
 
+import { DownloadOutlined } from '@ant-design/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Badge, Button, Card, Modal, Space, Table, Tag } from 'antd';
 import { useState } from 'react';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
+import { downloadAdminLogExport } from '@/features/errors/api/downloadAdminLogExport';
 import { type ElmahErrorRow, useElmahErrors } from '@/features/errors/hooks/useElmahErrors';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
@@ -19,6 +21,7 @@ export default function ElmahErrorsPage() {
   const [selectedError, setSelectedError] = useState<ElmahErrorRow | null>(null);
   const { data: errors, isLoading, refetch } = useElmahErrors();
   const [modalVisible, setModalVisible] = useState(false);
+  const [exporting, setExporting] = useState<'txt' | 'csv' | 'json' | null>(null);
 
   const clearMutation = useMutation({
     mutationFn: async () => {
@@ -32,6 +35,18 @@ export default function ElmahErrorsPage() {
       message.error(t('adminShell.elmah.clearFailed'));
     },
   });
+
+  const handleExport = async (format: 'txt' | 'csv' | 'json') => {
+    setExporting(format);
+    try {
+      await downloadAdminLogExport(format);
+      message.success(t('adminShell.elmah.exportSuccess'));
+    } catch {
+      message.error(t('adminShell.elmah.exportFailed'));
+    } finally {
+      setExporting(null);
+    }
+  };
 
   const handleClear = () => {
     modal.confirm({
@@ -99,7 +114,31 @@ export default function ElmahErrorsPage() {
       <Card
         title={t('nav.errorLogs')}
         extra={
-          <Space>
+          <Space wrap>
+            <Button
+              icon={<DownloadOutlined />}
+              loading={exporting === 'txt'}
+              disabled={!!exporting}
+              onClick={() => void handleExport('txt')}
+            >
+              {t('adminShell.elmah.exportTxt')}
+            </Button>
+            <Button
+              icon={<DownloadOutlined />}
+              loading={exporting === 'csv'}
+              disabled={!!exporting}
+              onClick={() => void handleExport('csv')}
+            >
+              {t('adminShell.elmah.exportCsv')}
+            </Button>
+            <Button
+              icon={<DownloadOutlined />}
+              loading={exporting === 'json'}
+              disabled={!!exporting}
+              onClick={() => void handleExport('json')}
+            >
+              {t('adminShell.elmah.exportJson')}
+            </Button>
             <Button onClick={() => refetch()}>{t('common.buttons.refresh')}</Button>
             <Button danger loading={clearMutation.isPending} onClick={handleClear}>
               {t('adminShell.elmah.clearLogs')}

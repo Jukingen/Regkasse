@@ -94,7 +94,11 @@
     "deactivateAllDescription": "{{count}} aktif urun devre disi birakilacak. Urunler silinmez: imzali RKSV fisleri ve denetim kaydi degismez. Ardindan gerekirse demo menuyu (uzerine yazarak) yeniden ice aktarabilirsiniz.",
     "deactivateAllSuccess": "{{count}} urun devre disi birakildi.",
     "deactivateAllNone": "Devre disi birakilacak aktif urun yok.",
-    "deactivateAllError": "Katalog devre disi birakma basarisiz."
+    "deactivateAllError": "Katalog devre disi birakma basarisiz.",
+    "exportCsv": "CSV disa aktar",
+    "exportJson": "JSON disa aktar",
+    "exportSuccess": "Disa aktarma indirildi.",
+    "exportFailed": "Disa aktarma basarisiz."
   },
   "devPurge": {
     "button": "Dev: Katalogu sil",

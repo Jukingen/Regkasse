@@ -1,69 +1,78 @@
-name: TestSprite Automated Tests
+name: TestSprite specs & API smoke
+
+# Spec validation always runs (YAML ↔ swagger.json).
+# Live API smoke: workflow_dispatch with live_smoke=true (+ optional secrets).
 
 on:
-  push:
-    branches: [main, develop]
   pull_request:
-    branches: [main]
-  schedule:
-    - cron: '0 2 * * *'  # Daily at 2 AM
+    paths:
+      - 'testsprite/**'
+      - 'testsprite.config.json'
+      - 'backend/swagger.json'
+      - '.github/workflows/testsprite.yml'
+  push:
+    branches: [main, master]
+    paths:
+      - 'testsprite/**'
+      - 'testsprite.config.json'
+      - 'backend/swagger.json'
+      - '.github/workflows/testsprite.yml'
+  workflow_dispatch:
+    inputs:
+      live_smoke:
+        description: 'Also run live API smoke against a URL'
+        type: boolean
+        default: false
+      api_url:
+        description: 'API base URL for live smoke'
+        type: string
+        default: 'http://localhost:5184'
+
+concurrency:
+  group: testsprite-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  testsprite-api:
+  validate-specs:
+    name: Validate API YAML vs OpenAPI
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Setup backend
-        run: |
-          cd backend
-          dotnet run --project KasseAPI_Final.csproj &
-          sleep 30
-      
-      - name: Run TestSprite API tests
-        run: |
-          npx testsprite run \
-            --config testsprite.config.json \
-            --suite api \
-            --reporters json,html \
-            --output ./test-results/api
-      
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        with:
-          name: testsprite-api-results
-          path: ./test-results/api
 
-  testsprite-e2e:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate TestSprite API YAML against swagger.json
+        run: node testsprite/validate-specs.mjs
+
+  live-api-smoke:
+    name: Live API smoke
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.live_smoke == true }}
     runs-on: ubuntu-latest
+    needs: validate-specs
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Setup backend
-        run: |
-          cd backend
-          dotnet run --project KasseAPI_Final.csproj &
-          sleep 30
-      
-      - name: Setup frontend-admin
-        run: |
-          cd frontend-admin
-          npm install
-          npm run build
-          npm run start &
-          sleep 30
-      
-      - name: Run TestSprite E2E tests
-        run: |
-          npx testsprite run \
-            --config testsprite.config.json \
-            --suite e2e \
-            --headless \
-            --reporters json,html \
-            --output ./test-results/e2e
-      
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
+
+      - uses: actions/setup-node@v4
         with:
-          name: testsprite-e2e-results
-          path: ./test-results/e2e
+          node-version: '20'
+
+      - name: Run live API smoke
+        env:
+          TESTSPRITE_API_URL: ${{ inputs.api_url }}
+          TESTSPRITE_LOGIN: ${{ secrets.TESTSPRITE_LOGIN }}
+          TESTSPRITE_PASSWORD: ${{ secrets.TESTSPRITE_PASSWORD }}
+          TESTSPRITE_TENANT: ${{ vars.TESTSPRITE_TENANT || 'dev' }}
+        run: node testsprite/run-api-smoke.mjs
+
+  notify-failure:
+    name: Notify on failure
+    needs: [validate-specs]
+    if: failure()
+    uses: ./.github/workflows/notify-failure.yml
+    with:
+      title: TestSprite workflow failed
+    secrets: inherit

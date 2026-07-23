@@ -185,6 +185,12 @@
     "recentUsers": {
       "empty": "No users"
     },
+    "recentPermissionChanges": {
+      "empty": "No permission changes",
+      "viewAll": "View all →",
+      "roleLine": "Role '{{role}}'",
+      "permissionLine": "Permission '{{permission}}'"
+    },
     "lowStock": {
       "summary": "{{count}} items below minimum stock",
       "empty": "No alerts",

@@ -16,6 +16,7 @@ import {
   PaymentTrendWidget,
   parsePaymentTrendPeriod,
 } from '@/features/dashboard/widgets/PaymentTrendWidget';
+import { RecentPermissionChangesWidget } from '@/features/dashboard/widgets/RecentPermissionChangesWidget';
 import { RecentUsersWidget } from '@/features/dashboard/widgets/RecentUsersWidget';
 import { TodaySalesWidget } from '@/features/dashboard/widgets/TodaySalesWidget';
 import { TopSellingProductsWidget } from '@/features/dashboard/widgets/TopSellingProductsWidget';
@@ -45,6 +46,8 @@ export function renderDashboardWidget(
       return <LowStockAlertsWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.recentUsers:
       return <RecentUsersWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.recentPermissionChanges:
+      return <RecentPermissionChangesWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.licenseExpiry:
       return <LicenseExpiryWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.finanzOnlineStatus:

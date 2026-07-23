@@ -28695,6 +28695,8 @@
         "tags": [
           "UserSessions"
         ],
+        "summary": "Get session policy",
+        "description": "Returns platform concurrent-session limits from `SessionPolicy` configuration (`maxConcurrentSessions`, `sessionTimeoutMinutes`, `allowMultipleDevices`) plus tenant idle-timeout overrides when available (`warningBeforeTimeoutMinutes`, `keepCartAfterTimeout`, `idleTimeoutEnabled`). Requires authenticated JWT.",
         "responses": {
           "200": {
             "description": "OK",
@@ -28702,6 +28704,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TenantSessionPolicyDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -57858,9 +57870,16 @@
       "TenantSessionPolicyDto": {
         "type": "object",
         "properties": {
+          "maxConcurrentSessions": {
+            "type": "integer",
+            "format": "int32"
+          },
           "sessionTimeoutMinutes": {
             "type": "integer",
             "format": "int32"
+          },
+          "allowMultipleDevices": {
+            "type": "boolean"
           },
           "warningBeforeTimeoutMinutes": {
             "type": "integer",

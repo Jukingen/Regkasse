@@ -1,14 +1,23 @@
 'use client';
 
 import type { FormInstance } from 'antd';
-import { Form, Input, Space } from 'antd';
+import { Card, Checkbox, Col, Form, Input, Row, Space, Typography } from 'antd';
 import React, { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
 import { CreateTenantFormField } from '@/features/super-admin/components/CreateTenantFormField';
 import type { CreateTenantWizardData } from '@/features/super-admin/components/CreateTenantWizard/types';
 import { TenantSlugFieldExtras } from '@/features/super-admin/components/TenantSlugFieldExtras';
 import { useTenantCreateFormFields } from '@/features/super-admin/hooks/useTenantCreateFormFields';
+import { listIndustryTemplates } from '@/features/users/api/industryTemplatesApi';
 import { useSlugGenerator } from '@/hooks/useSlugGenerator';
+
+const FALLBACK_INDUSTRY_OPTIONS = [
+  { id: 'none', name: 'None', description: '' },
+  { id: 'restaurant', name: 'Restaurant', description: '' },
+  { id: 'retail', name: 'Retail', description: '' },
+  { id: 'hotel', name: 'Hotel', description: '' },
+];
 
 export type Step1TenantInfoProps = {
   form: FormInstance<CreateTenantWizardData>;
@@ -40,6 +49,22 @@ export function Step1TenantInfo({ form, open, data, onUpdate }: Step1TenantInfoP
     handleSlugBlur,
   } = fieldState;
 
+  const templatesQuery = useQuery({
+    queryKey: ['industry-templates'],
+    queryFn: listIndustryTemplates,
+    enabled: open,
+  });
+
+  const industryOptions =
+    templatesQuery.data && templatesQuery.data.length > 0
+      ? [
+          { id: 'none', name: t('tenants.create.industry.none'), description: '' },
+          ...templatesQuery.data,
+        ]
+      : FALLBACK_INDUSTRY_OPTIONS.map((o) =>
+          o.id === 'none' ? { ...o, name: t('tenants.create.industry.none') } : o
+        );
+
   useEffect(() => {
     form.setFieldsValue({
       name: data.name,
@@ -47,8 +72,19 @@ export function Step1TenantInfo({ form, open, data, onUpdate }: Step1TenantInfoP
       email: data.email,
       phone: data.phone,
       address: data.address,
+      industryTemplateId: data.industryTemplateId,
+      seedIndustryStarterUsers: data.seedIndustryStarterUsers,
     });
-  }, [form, data.name, data.slug, data.email, data.phone, data.address]);
+  }, [
+    form,
+    data.name,
+    data.slug,
+    data.email,
+    data.phone,
+    data.address,
+    data.industryTemplateId,
+    data.seedIndustryStarterUsers,
+  ]);
 
   const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const name = event.target.value;
@@ -76,6 +112,8 @@ export function Step1TenantInfo({ form, open, data, onUpdate }: Step1TenantInfoP
           email: all.email ?? '',
           phone: all.phone,
           address: all.address,
+          industryTemplateId: all.industryTemplateId ?? 'none',
+          seedIndustryStarterUsers: Boolean(all.seedIndustryStarterUsers),
         });
       }}
     >
@@ -168,6 +206,46 @@ export function Step1TenantInfo({ form, open, data, onUpdate }: Step1TenantInfoP
           showCount
         />
       </CreateTenantFormField>
+
+      <Typography.Title level={5} style={{ marginTop: 8 }}>
+        {t('tenants.create.industry.title')}
+      </Typography.Title>
+      <Typography.Paragraph type="secondary">
+        {t('tenants.create.industry.intro')}
+      </Typography.Paragraph>
+      <Form.Item name="industryTemplateId" style={{ marginBottom: 12 }}>
+        <Row gutter={[12, 12]}>
+          {industryOptions.map((opt) => {
+            const selected = (data.industryTemplateId || 'none') === opt.id;
+            return (
+              <Col xs={24} sm={12} key={opt.id}>
+                <Card
+                  size="small"
+                  hoverable
+                  onClick={() => {
+                    form.setFieldsValue({ industryTemplateId: opt.id });
+                    onUpdate({ industryTemplateId: opt.id });
+                  }}
+                  style={{
+                    borderColor: selected ? '#1677ff' : undefined,
+                    background: selected ? 'rgba(22, 119, 255, 0.04)' : undefined,
+                  }}
+                >
+                  <Typography.Text strong>{opt.name}</Typography.Text>
+                  {opt.description ? (
+                    <Typography.Paragraph type="secondary" style={{ marginBottom: 0, marginTop: 4 }}>
+                      {opt.description}
+                    </Typography.Paragraph>
+                  ) : null}
+                </Card>
+              </Col>
+            );
+          })}
+        </Row>
+      </Form.Item>
+      <Form.Item name="seedIndustryStarterUsers" valuePropName="checked">
+        <Checkbox>{t('tenants.create.industry.seedStarters')}</Checkbox>
+      </Form.Item>
     </Form>
   );
 }

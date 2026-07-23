@@ -184,8 +184,8 @@ public sealed class BackupRunService : IBackupRunService
             return fromDescriptor;
 
         return artifactType == BackupArtifactType.VerificationManifest
-            ? BackupArtifactFileNameBuilder.BuildManifestFileName(tenantSlug, artifact.CreatedAt)
-            : BackupArtifactFileNameBuilder.BuildLogicalDumpFileName(tenantSlug, artifact.CreatedAt);
+            ? BackupArtifactFileNameBuilder.BuildManifestFileName(tenantSlug, artifact.CreatedAt, BackupStrategyKind.System)
+            : BackupArtifactFileNameBuilder.BuildLogicalDumpFileName(tenantSlug, artifact.CreatedAt, BackupStrategyKind.System);
     }
 
     internal static string BuildArtifactDownloadUrl(Guid backupRunId, Guid artifactId) =>

@@ -15,6 +15,7 @@ import { OfflineQueueDashboardCard } from '@/features/dashboard/components/Offli
 import { RksvReminderCard } from '@/features/dashboard/components/RksvReminderCard';
 import { TagesabschlussReminder } from '@/features/dashboard/components/TagesabschlussReminder';
 import { TseHealthCard } from '@/features/dashboard/components/TseHealthCard';
+import { ExportQuickActionsCard } from '@/features/exports/components/ExportQuickActionsCard';
 import { useTodaySales } from '@/features/reports/hooks/useTodaySales';
 import { usePendingMonatsbeleg } from '@/features/rksv/hooks/usePendingMonatsbeleg';
 import { useOpenShifts } from '@/features/shifts/hooks/useOpenShifts';
@@ -97,6 +98,7 @@ export function ManagerDashboard() {
       {canSeeRksvReminder ? <RksvReminderCard /> : null}
       {canSeeRksvReminder ? <DashboardMonatsbelegSection enabled={canSeeRksvReminder} /> : null}
       <HospitalityQuickLinksCard />
+      <ExportQuickActionsCard />
     </>
   );
 

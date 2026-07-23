@@ -161,11 +161,16 @@ Keys: `settings.view` (read), `backup.manage` (trigger/schedule/tenant download)
 
 | Path | Purpose |
 |------|---------|
-| `/backup` | Role-aware overview |
+| `/backup` | Role-aware overview (`TenantBackupView` / `SystemBackupView`) |
 | `/backup/dashboard` | DR operator dashboard |
 | `/backup/runs` | Run list / metrics |
 | `/backup/configuration` | Schedule + platform execution mode |
 | `/backup/audit` | Activity + audit |
+| `/backup/costs` | Indicative storage cost dashboard |
+| `/backup/compliance` | RKSV product-gate / recoverability readiness |
+| `/backup/performance` | Backup performance metrics (when enabled) |
+
+Legacy aliases `/settings/backup-dr` and `/admin/backup` redirect to `/backup`.
 
 ---
 
@@ -178,6 +183,9 @@ retentionDays: 30           # Tenant default; System policy default 90
 executionMode: "PgDump"     # Fake | PgDump | ProductionStub
 PgDumpCompressionLevel: 6
 StagingDiskUsageAlertPercent: 80
+# SmartRetentionEnabled: false       # optional GFS 7/4/12/7
+# StorageTierManagementEnabled: false  # Hot/Warm/Cold tags
+# AutomaticCleanupEnabled: false     # retention delete + BACKUP_AUTO_DELETED audit
 ```
 
 ---

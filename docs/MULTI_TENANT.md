@@ -206,7 +206,9 @@ sequenceDiagram
     UI->>API: POST /api/admin/tenants/{id}/impersonate
     API->>JWT: token with tenant_id + tenant_impersonation
     API-->>UI: token, tenantSlug, refreshToken
-    alt Production host (not localhost / *.local)
+    alt Preferred production (shared FA)
+        UI->>UI: stay on admin.regkasse.at with impersonation JWT
+    else Legacy FA handoff (still in code)
         UI->>UI: redirect https://{slug}.regkasse.at/impersonate-callback#impersonate_token=…
         UI->>UI: /impersonate-callback stores JWT, → /dashboard
     else Development
@@ -214,6 +216,8 @@ sequenceDiagram
     end
     UI->>API: Business APIs with impersonation JWT
 ```
+
+POS remains `pos.regkasse.at` (not part of this handoff). Details: [`IMPERSONATION_FLOW.md`](IMPERSONATION_FLOW.md), [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md).
 
 **Restrictions:** cannot impersonate deleted, suspended, or inactive tenants.
 
@@ -258,7 +262,7 @@ Permanent tenant removal is **compliance-gated**. Implementation: **`TenantDelet
 | API clients cannot bypass filters with query params | ✅ |
 | Cross-tenant IDOR returns 404 | ✅ (tested) |
 | Offline queue includes `tenant_id` through replay | ✅ |
-| Every business table has `tenant_id` | ⚠️ Partial — not all entities are `ITenantEntity` (e.g. `Customer`) |
+| Every business table has `tenant_id` | ⚠️ Partial — most tenant business entities implement `ITenantEntity` (e.g. `Customer` **does**); platform tables (Identity, `tenants`, sessions) stay non-tenant-scoped |
 
 ### Tenant spoofing prevention
 
@@ -298,7 +302,7 @@ Slug rules: lowercase alphanumeric, hyphens/underscores; must be unique.
 
 - Wildcard `*.regkasse.at` already points to API
 - No per-tenant DNS record required if wildcard is in place
-- Verify: `https://dev.regkasse.at/api/health` (or your health route)
+- Verify: `https://api.regkasse.at/api/health` (production) or `http://localhost:5184/api/health` (local). Dev tenant header: `X-Tenant-Id: dev` (Development only).
 
 ### 3. User membership
 
@@ -686,11 +690,12 @@ Implementation:
 |------|--------|
 | Single POS UI hosts (`pos` / `api`) reserved in `TenantHostNames` | ✅ Done — also blocked in `TenantSlugSuggestions.IsValidSlug` |
 | Production POS fixed API base `https://api.regkasse.at/api` | Target |
-| Production impersonation redirect to `{slug}.regkasse.at` | Implemented historically; revisit for single-POS / FA-session model |
+| Production impersonation handoff | Prefer FA session / documented handoff; POS remains `pos.regkasse.at` with JWT tenant — do not treat `{slug}.regkasse.at` as POS entry (see [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md)) |
 | `AuditLog.impersonated_by` (or metadata) for impersonation | Not implemented |
 | JWT `tenant_id` ↔ host subdomain enforcement middleware | Not implemented (less relevant when POS/API hosts are reserved non-slugs) |
 | Cross-tenant SaaS metrics API | Not implemented |
-| All domain entities on `ITenantEntity` | Incomplete (e.g. `Customer`) |
+| All domain entities on `ITenantEntity` | Mostly complete for business tables; platform Identity / `tenants` remain non-tenant-scoped |
+| Customer websites (`frontend-sites`) + `TenantDomain` | Implemented — custom Host → slug via `ITenantDomainService`; FA `/settings/website` (`website.manage`) |
 
 When implementing security middleware, add tests to `TenantIsolationTests` and update this section.
 
@@ -701,14 +706,18 @@ When implementing security middleware, add tests to `TenantIsolationTests` and u
 | Document | Content |
 |----------|---------|
 | `docs/POS_PRODUCTION_ARCHITECTURE.md` | **Single POS UI** production hosts, JWT tenant, dev URLs |
+| `docs/DIGITAL_SERVICES.md` / `docs/ONLINE_ORDERS.md` | Website/app generators + non-fiscal online orders |
+| `frontend-sites/README.md` | Shared tenant storefront runtime (`/[slug]`) |
 | `docs/TENANT_MANAGEMENT.md` | FA tenant CRUD, users, switcher, provisioning |
 | `docs/CUSTOMER_ONBOARDING.md` | Onboarding wizard, rollback, welcome email |
 | `docs/USER_MANAGEMENT.md` | Platform vs tenant users, direct create, reset |
+| `docs/WORKING_HOURS.md` | Website/app hours only (never POS/FA) |
 | `docs/CASH_REGISTER_LIFECYCLE.md` | RKSV decommission, Schlussbeleg |
 | `docs/LICENSE_SYSTEM.md` | Deployment vs Mandant license, FA badges/banners |
 | `docs/CHANGELOG_TENANT_MANAGEMENT.md` | Dated tenant/license FA changes |
 | `docs/CHANGELOG_RECENT.md` | Cross-cutting recent engineering changes |
 | `docs/IMPERSONATION_FLOW.md` | Super Admin impersonation redirect and token handshake |
+| `docs/README.md` | Documentation index |
 | `REGKASSE_AI_ONBOARDING.md` | AI brief, dev setup, API headers |
 | `AGENTS.md` | Agent rules, multi-tenant summary |
 | `backend/README.md` | Backend quick start, middleware paths |

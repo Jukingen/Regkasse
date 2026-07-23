@@ -1,7 +1,9 @@
 {
   "page": {
     "newCustomer": "Neuer Kunde",
-    "searchPlaceholder": "Kunden suchen …"
+    "searchPlaceholder": "Kunden suchen …",
+    "exportCsv": "CSV exportieren",
+    "exportJson": "JSON exportieren"
   },
   "messages": {
     "created": "Kunde angelegt.",
@@ -9,7 +11,9 @@
     "updated": "Kunde aktualisiert.",
     "updateFailed": "Kunde konnte nicht aktualisiert werden.",
     "deleted": "Kunde gelöscht.",
-    "deleteFailed": "Kunde konnte nicht gelöscht werden."
+    "deleteFailed": "Kunde konnte nicht gelöscht werden.",
+    "exportSuccess": "Export heruntergeladen.",
+    "exportFailed": "Export fehlgeschlagen."
   },
   "form": {
     "titleNew": "Neuer Kunde",

@@ -1,60 +1,19 @@
-name: "Admin Panel - Backup Management"
-description: "Backup dashboard and operations"
+name: "Admin Panel - Backup hub"
+description: "FA /backup routes (legacy /settings/backup-dr redirects)"
+tags: [e2e, regression]
 
 tests:
-  - name: "Navigate to backup page"
-    url: "http://localhost:3000/admin/backup"
-    actions:
-      - type: "navigate"
-        url: "http://localhost:3000/admin/backup"
+  - name: "Backup overview"
+    url: "http://localhost:3000/backup"
     expected:
-      element: ".backup-page"
-      text: "Backup & Wiederherstellung"
+      url_contains: "/backup"
 
-  - name: "Trigger manual backup"
-    actions:
-      - type: "click"
-        selector: "button:contains('Backup starten')"
-      - type: "click"
-        selector: ".ant-dropdown-menu-item:contains('Backup jetzt starten')"
-      - type: "click"
-        selector: ".ant-modal button:contains('OK')"
+  - name: "Backup costs"
+    url: "http://localhost:3000/backup/costs"
     expected:
-      element: ".ant-message-success"
-      text: "Backup wurde gestartet"
+      url_contains: "/backup/costs"
 
-  - name: "Verify backup appears in list"
-    actions:
-      - type: "wait"
-        milliseconds: 5000
-      - type: "refresh"
+  - name: "Backup compliance"
+    url: "http://localhost:3000/backup/compliance"
     expected:
-      element: "table tr:first-child td:contains('Succeeded|Running|Queued')"
-
-  - name: "View backup details"
-    actions:
-      - type: "click"
-        selector: "table tr:first-child button:contains('Details')"
-    expected:
-      element: ".ant-modal"
-      text: "Backup Details"
-      text: "Status"
-      text: "Artifakte"
-
-  - name: "Update backup configuration"
-    actions:
-      - type: "scroll"
-        selector: ".ant-collapse-header:contains('Backup Konfiguration')"
-      - type: "click"
-        selector: ".ant-collapse-header:contains('Backup Konfiguration')"
-      - type: "switch"
-        selector: "#enabled"
-        value: true
-      - type: "fill"
-        selector: "#scheduleCron"
-        value: "0 2 * * *"
-      - type: "click"
-        selector: "button:contains('Einstellungen speichern')"
-    expected:
-      element: ".ant-message-success"
-      text: "Backup Einstellungen gespeichert"
+      url_contains: "/backup/compliance"

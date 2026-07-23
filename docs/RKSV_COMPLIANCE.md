@@ -4,7 +4,9 @@
 **Scope:** Restore and backup guardrails that support RKSV-oriented data integrity (same-tenant isolation, timestamp preservation, auditability).  
 **Not a legal guarantee:** This document describes product controls. It is not official BMF/RKSV certification.
 
-**Related:** [`BACKUP_SYSTEM.md`](BACKUP_SYSTEM.md), [`restore-boundary-notes.md`](restore-boundary-notes.md), [`AGENTS.md`](../AGENTS.md) § Backup & Disaster Recovery, [`RKSV_OFFICIAL_SOURCES.md`](RKSV_OFFICIAL_SOURCES.md).
+**Related:** [`BACKUP_SYSTEM.md`](BACKUP_SYSTEM.md), [`BACKUP_AND_DISASTER_RECOVERY.md`](BACKUP_AND_DISASTER_RECOVERY.md), [`restore-boundary-notes.md`](restore-boundary-notes.md), [`AGENTS.md`](../AGENTS.md) § Backup & Disaster Recovery, [`RKSV_OFFICIAL_SOURCES.md`](RKSV_OFFICIAL_SOURCES.md).
+
+For broader fiscal compliance (DEP export, signature chain, special receipts, FinanzOnline, offline TSE), see [`README.md`](README.md) § Fiscal / RKSV — this file is **backup/restore-focused** only.
 
 ---
 
@@ -89,6 +91,7 @@ Implementation: `backend/Services/RestoreVerification/ManualRestoreAudit.cs`, `b
 | Artifact downloaded | `BACKUP_ARTIFACT_DOWNLOAD` | Download audit with `tenant_id` when known |
 | Artifact imported | `BACKUP_ARTIFACT_IMPORTED` | Register dump for tenant (no auto restore) |
 | Execution mode changed | `BACKUP_RUNTIME_EXECUTION_MODE_CHANGED` | Super Admin / `settings.manage` |
+| Auto retention delete | `BACKUP_AUTO_DELETED` | Optional `AutomaticCleanupService` when `Backup:AutomaticCleanupEnabled` |
 
 #### Activity feed (operator notifications — not the security audit enum)
 
@@ -101,7 +104,7 @@ Implementation: `backend/Services/RestoreVerification/ManualRestoreAudit.cs`, `b
 
 #### Retention cleanup
 
-Expired succeeded runs are removed by `BackupSucceededRunRetentionCleaner` (strategy-aware retention). There is **no** dedicated `BACKUP_DELETED` / `AuditEventType` for retention cleanup today — cleanup is operational retention, not a fiscal restore event. Do not invent a `BACKUP_DELETED` audit type in docs or clients until it exists in code.
+Expired succeeded runs are removed by `BackupSucceededRunRetentionCleaner` (strategy-aware retention). Optional daily cleanup (`Backup:AutomaticCleanupEnabled` → `AutomaticCleanupService`) also records audit action **`BACKUP_AUTO_DELETED`**. There is still no `AuditEventType.BACKUP_DELETED` enum member — do not invent enum values in clients until they exist in `AuditEventType`.
 
 ---
 

@@ -38,11 +38,11 @@ class CouponService {
   private readonly baseUrl = '/coupon';
 
   async getActiveCoupons(): Promise<Coupon[]> {
-    return apiClient.get<Coupon[]>(`${this.baseUrl}/active`);
+    return await apiClient.get<Coupon[]>(`${this.baseUrl}/active`);
   }
 
   async validateCoupon(request: ValidateCouponRequest): Promise<CouponValidationResult> {
-    return apiClient.post<CouponValidationResult>(`${this.baseUrl}/validate`, request);
+    return await apiClient.post<CouponValidationResult>(`${this.baseUrl}/validate`, request);
   }
 }
 

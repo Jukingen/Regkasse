@@ -152,7 +152,12 @@ public sealed class TagesabschlussReportService : ITagesabschlussReportService
         var pdfBytes = await GeneratePdfAsync(closingId, language, cancellationToken).ConfigureAwait(false);
         var reportType = ReportPdfTypes.FromClosingType(closing.ClosingType);
         var actorId = ResolveActorUserId(userId);
-        var fileName = ReportPdfArchiveNames.ForReport(reportType, closingId);
+        var tenantSlug = await _context.Tenants.AsNoTracking()
+            .Where(t => t.Id == closing.TenantId)
+            .Select(t => t.Slug)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        var fileName = ReportPdfArchiveNames.ForReport(reportType, tenantSlug, closing.ClosingDate);
 
         if (string.Equals(
                 DailyClosingReportTemplates.NormalizeLanguage(language),

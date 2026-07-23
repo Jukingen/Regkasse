@@ -75,7 +75,9 @@ public sealed class CompositeSystemBackupExecutionAdapter : IBackupExecutionAdap
         Directory.CreateDirectory(rootFull);
 
         var fileNameTimestamp = context.ArtifactFileNameTimestampUtc ?? DateTime.UtcNow;
-        var zipName = BackupArtifactFileNameBuilder.BuildSystemPackageFileName(fileNameTimestamp);
+        var zipName = BackupArtifactFileNameBuilder.BuildSystemPackageFileName(
+            context.TenantSlugForFileName,
+            fileNameTimestamp);
         var zipPath = Path.GetFullPath(Path.Combine(rootFull, zipName));
         if (!BackupPathGuard.IsPathUnderStagingRoot(zipPath, rootFull))
             return null;

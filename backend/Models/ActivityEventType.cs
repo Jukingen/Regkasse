@@ -45,4 +45,25 @@ public enum ActivityEventType
     DataAccessDeleteRequested = 91,
     /// <summary>GDPR data export ZIP is ready; download link issued (7-day expiry).</summary>
     DataExportReady = 92,
+
+    /// <summary>Custom role created (permission management).</summary>
+    RoleCreated = 100,
+    /// <summary>Custom role deleted.</summary>
+    RoleDeleted = 101,
+    /// <summary>Role permission set updated.</summary>
+    RolePermissionsUpdated = 102,
+    /// <summary>Per-user permission override created/changed/removed.</summary>
+    UserPermissionOverridesChanged = 103,
+    /// <summary>System-critical permission change (e.g. SuperAdmin-related or mass update).</summary>
+    SystemPermissionChange = 104,
+    /// <summary>User requested a temporary permission grant.</summary>
+    PermissionRequested = 110,
+    /// <summary>Permission request approved.</summary>
+    PermissionRequestApproved = 111,
+    /// <summary>Permission request rejected.</summary>
+    PermissionRequestRejected = 112,
+    /// <summary>Time-bound override expiring soon.</summary>
+    UserPermissionOverrideExpiringSoon = 113,
+    /// <summary>Time-bound override expired (processed by background job).</summary>
+    UserPermissionOverrideExpired = 114,
 }

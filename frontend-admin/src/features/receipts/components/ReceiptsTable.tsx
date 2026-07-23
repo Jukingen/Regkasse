@@ -2,7 +2,7 @@
 
 import { EyeOutlined, PrinterOutlined } from '@ant-design/icons';
 import { Button, Space, Tag, Typography } from 'antd';
-import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
+import type { ColumnsType, TablePaginationConfig, TableRowSelection } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
 import Link from 'next/link';
@@ -48,6 +48,7 @@ interface ReceiptsTableProps {
   showPaymentPdfReprint?: boolean;
   /** Stored original PDF download (receipt.reprint). */
   showStoredPdfDownload?: boolean;
+  rowSelection?: TableRowSelection<ReceiptListItemDto>;
 }
 
 function buildColumns(
@@ -242,6 +243,7 @@ export default function ReceiptsTable({
   onStartReprint,
   showPaymentPdfReprint,
   showStoredPdfDownload,
+  rowSelection,
 }: ReceiptsTableProps) {
   const { t, formatLocale } = useI18n();
   const { hasPermission } = usePermissions();
@@ -292,6 +294,7 @@ export default function ReceiptsTable({
       rowKey="receiptId"
       loading={loading && !isPlaceholderData}
       onChange={onTableChange}
+      rowSelection={rowSelection}
       pagination={{
         ...adminTablePaginationDefaults,
         current: pagination.current,

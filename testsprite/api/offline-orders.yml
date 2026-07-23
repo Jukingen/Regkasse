@@ -1,0 +1,29 @@
+name: "Offline orders (full snapshots)"
+description: "Admin + POS offline order APIs — not offline_transactions"
+tags: [regression, fiscal]
+
+notes: |
+  Two systems: offline_orders (this suite) vs offline_transactions (legacy TSE intents).
+  See docs/OFFLINE_SYSTEM_INDEX.md
+
+tests:
+  - name: "Admin list offline orders"
+    endpoint: "GET /api/admin/offline-orders"
+    headers:
+      Authorization: "Bearer {{token}}"
+    expected:
+      status: 200
+
+  - name: "POS list pending offline orders"
+    endpoint: "GET /api/pos/offline-orders/pending"
+    headers:
+      Authorization: "Bearer {{cashierToken}}"
+    expected:
+      status: 200
+
+  - name: "POS save offline order"
+    endpoint: "POST /api/pos/offline-orders"
+    headers:
+      Authorization: "Bearer {{cashierToken}}"
+    expected:
+      status: 200

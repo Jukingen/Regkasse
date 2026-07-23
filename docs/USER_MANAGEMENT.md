@@ -5,7 +5,7 @@
 
 Explains **platform users** vs **tenant (Mandant) users**, **direct user creation** (no invitation emails), password handoff, reset, and remove-vs-delete semantics.
 
-Related: [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md), [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md), [`EMAIL_CONFIGURATION.md`](EMAIL_CONFIGURATION.md), [`API_CONTRACTS.md`](API_CONTRACTS.md) (login `loginIdentifier`, `userName`, Quick Create API).
+Related: [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md), [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md), [`EMAIL_CONFIGURATION.md`](EMAIL_CONFIGURATION.md), [`API_CONTRACTS.md`](API_CONTRACTS.md) (login `loginIdentifier`, `userName`, Quick Create API), [`AUTH_TWO_FACTOR.md`](AUTH_TWO_FACTOR.md) (SuperAdmin TOTP).
 
 ---
 
@@ -28,7 +28,7 @@ flowchart TB
 | Scope | German (UI) | Who manages | Tenant context |
 |-------|-------------|-------------|----------------|
 | **Platform** | Plattform-Benutzer | Super Admin only | None (`admin.regkasse.at`) |
-| **Tenant** | Mandanten-Benutzer | Super Admin (any tenant) or Mandanten-Admin (`Manager`, own tenant) | Fixed by host / impersonation / membership |
+| **Tenant** | Mandanten-Benutzer | Super Admin (any tenant) or Mandanten-Admin (`Manager`, own tenant) | JWT `tenant_id` / impersonation / membership on shared FA host `admin.regkasse.at` (not `{slug}` FA hosts) |
 
 **Code helper:** `isPlatformUserRole()` — only `SuperAdmin` is treated as a platform operator role (`frontend-admin/src/features/users/utils/userScope.ts`).
 
@@ -43,6 +43,7 @@ flowchart TB
 | **Cashier** | Kassierer | POS / payments | Required |
 | **Accountant** | Buchhaltung | Reports, exports | Required |
 | **Waiter** / **Kitchen** | Kellner / Küche | POS workflows (where enabled) | Optional per deployment |
+| **ReportViewer** | Berichte (nur Lesen) | Read-only reports | Required when used |
 
 **Mandanten-Admin (`Manager`)** — tenant administrator:
 
@@ -114,15 +115,17 @@ Backend (`TenantUserService.CreateAsync`):
 
 ### Tenant Admin (Mandanten-Admin / `Manager`) — fixed tenant
 
-1. Open `/users` on tenant host (`{slug}.regkasse.at`)
+1. Open `/users` on FA (`https://admin.regkasse.at`) while in the mandant JWT/impersonation session
 2. **Benutzer anlegen** — same modal; tenant is implicit from JWT (no mandant picker)
 3. Cannot create users for other tenants
+
+Optional username: omit `userName` for auto-generation (`{rolePrefix}{n}`) or set an explicit username — see [`API_CONTRACTS.md`](API_CONTRACTS.md) and [`AUTH_TWO_FACTOR.md`](AUTH_TWO_FACTOR.md) (SuperAdmin 2FA is separate from user create).
 
 ### Mandanten-Admin — backup (tenant-scoped)
 
 Mandanten-Admins (`Manager`) have **`backup.manage`** by default (not `settings.manage`). They can:
 
-- View backup status on `/settings/backup-dr` and `/admin/backup` (`settings.view` route gate)
+- Use the backup hub at **`/backup`** (`TenantBackupView`; legacy `/settings/backup-dr` and `/admin/backup` redirect here)
 - Enqueue manual backup and edit schedule/retention for their **JWT-bound tenant**
 
 They cannot change execution mode, download deployment artifacts, or run restore drills (Super Admin / `settings.manage`).

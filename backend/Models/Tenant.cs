@@ -76,4 +76,13 @@ public class Tenant : BaseEntity
     /// </summary>
     [Column("customer_data_purged_at_utc")]
     public DateTime? CustomerDataPurgedAtUtc { get; set; }
+
+    /// <summary>Industry onboarding template id (restaurant|retail|hotel) or null.</summary>
+    [MaxLength(32)]
+    [Column("industry_template_id")]
+    public string? IndustryTemplateId { get; set; }
+
+    /// <summary>JSON customizations for industry template slots (optional).</summary>
+    [Column("industry_template_customizations", TypeName = "jsonb")]
+    public string? IndustryTemplateCustomizations { get; set; }
 }

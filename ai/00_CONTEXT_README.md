@@ -1,22 +1,25 @@
 # Regkasse AI Context Pack
 
-Bu klasör, AI destekli geliştirme için repo-gerçeklerine dayalı kısa operasyon rehberidir.
+Bu klasör, AI destekli geliştirme için repo-gerçeklerine dayalı kısa operasyon rehberidir.  
+Index / read order: [`README.md`](README.md). Çakışmada **`AGENTS.md` ve kod** kazanır.
 
 ## Read this first
 - **Ana AI özeti / proje özü:** Repo kökündeki `REGKASSE_AI_ONBOARDING.md` dosyasını önce oku; hedef kullanıcı, RKSV özel fişler, ödeme/offline kuyruk, voucher kuralları, FinanzOnline durumu ve guardrail’ler orada toplanır.
 - Bu `/ai` paketi: backend sözleşmesi, veritabanı, API boundary, güvenlik ve “dokunma” listeleri için derinleştirme sağlar.
 
 ## Multi-tenant (özet)
-- Tek backend, çok kiracı: alt alan adı `{slug}.regkasse.at`, Super Admin `admin.regkasse.at`.
+- Tek backend, çok kiracı. **Production hosts:** POS `pos.regkasse.at`, FA `admin.regkasse.at`, API `api.regkasse.at` — kiracı **JWT `tenant_id`** (Single POS UI). `{slug}.regkasse.at` **POS girişi değildir**.
+- Müşteri web siteleri: `frontend-sites` (`/[slug]` veya verified `TenantDomain` custom Host).
 - İzolasyon: `ITenantEntity` + EF global query filter (`ICurrentTenantAccessor`); çapraz kiracı erişim **404**.
-- Geliştirme: `X-Tenant-Id` / `?tenant=` (slug), FA’da dev tenant seçici, `*.regkasse.local`.
+- Geliştirme: `X-Tenant-Id` / `?tenant=` (slug), FA’da dev tenant seçici, `admin.regkasse.local` / opsiyonel `dev.regkasse.local`.
 - **Singleton + EF:** `AppDbContext` scoped; singleton’lar (`LicenseService`) `IServiceScopeFactory` kullanır — root’tan `IDbContextFactory` çağırma.
-- Tam metin: `REGKASSE_AI_ONBOARDING.md` → **Multi-Tenant Architecture**, **Scoped service resolution**, **Troubleshooting**; `docs/MULTI_TENANT.md`.
+- Tam metin: `REGKASSE_AI_ONBOARDING.md` → **Multi-Tenant Architecture**; `docs/MULTI_TENANT.md`, `docs/POS_PRODUCTION_ARCHITECTURE.md`.
 
 ## Monorepo özeti
 - `backend/`: ASP.NET Core API (`net10.0`), EF Core + PostgreSQL, Swagger (`backend/swagger.json`).
-- `frontend/`: Expo Router tabanlı mobil POS (React Native).
-- `frontend-admin/`: Next.js 14 (App Router) + Ant Design + TanStack Query.
+- `frontend/`: Expo Router mobil POS (React Native, Expo SDK 56).
+- `frontend-admin/`: Next.js 16 (App Router) + Ant Design 6 + TanStack Query; auth gate `src/proxy.ts` (eski `middleware.ts` değil).
+- `frontend-sites/`: Shared multi-tenant storefront (Next.js 16).
 - `localization/`: i18n doğrulama/import-export scriptleri.
 - `scripts/`: OpenAPI/Orval ve kritik contract doğrulama scriptleri.
 
@@ -31,7 +34,8 @@ Bu klasör, AI destekli geliştirme için repo-gerçeklerine dayalı kısa opera
 - Küçük ve geri alınabilir değişiklik yap.
 - `Cart → Payment → Receipt → DailyClosing` akışını yüksek riskli kabul et.
 - TSE/RKSV/FinanzOnline alanlarında davranış değişikliği yapma; sadece isteneni uygula.
-- API boundary kuralını koru: Admin için `/api/admin/*`, POS için `/api/pos/*` (istisnalar dokümante edilmelidir).
+- API boundary: Admin `/api/admin/*`, POS `/api/pos/*`, Sites `/api/public/*` + `/api/sites/*` (istisnalar dokümante).
+- İki offline sistemi birleştirme; working hours ile POS/FA kapatma.
 
 ## Multi-tenant local test (özet)
 

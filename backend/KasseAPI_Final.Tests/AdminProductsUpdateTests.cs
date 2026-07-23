@@ -45,7 +45,8 @@ public sealed class AdminProductsUpdateTests
             Mock.Of<IDemoProductImportService>(),
             TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary),
             new AdminProductListService(ctx, TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary)),
-            Mock.Of<IProductService>());
+            Mock.Of<IProductService>(),
+            Mock.Of<IProductExportService>());
 
     private static void AttachManagerUser(AdminProductsController controller)
     {

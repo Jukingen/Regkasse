@@ -6,6 +6,7 @@
   "empty": "Güncel bildirim yok.",
   "emptyUnread": "Okunmamış bildirim yok.",
   "byActor": "{{name}} tarafından",
+  "whatChangedLabel": "Ne değişti?",
   "settingsLoadError": "Bildirim ayarları yüklenemedi.",
   "settingsSaved": "Ayarlar kaydedildi.",
   "settingsSaveError": "Kaydetme başarısız.",
@@ -19,14 +20,30 @@
     "emailSection": "E-posta",
     "emailEnabled": "E-posta bildirimleri",
     "emailRecipients": "Alıcılar (satır başına bir adres)",
+    "criticalEmailNote": "Kritik değişiklikler (rol silme, SuperAdmin/sistem izinleri, toplu güncellemeler) alıcılar tanımlıysa hemen e-posta gönderir.",
     "webhookSection": "Webhook (Slack / Discord)",
     "webhookEnabled": "Webhook etkin",
     "webhookUrl": "Webhook URL",
     "webhookSecret": "Webhook gizli anahtarı",
-    "eventsSection": "Olay türleri",
+    "permissionChangesSection": "İzin değişiklikleri",
+    "notifyOnPermissionChanges": "Şu değişikliklerde beni bilgilendir:",
+    "permissionGroups": {
+      "roles": "Roller",
+      "userPermissions": "Kullanıcı izinleri",
+      "systemChanges": "Sistem değişiklikleri"
+    },
+    "eventsSection": "Diğer olay türleri",
     "enabledEvents": "Etkin olaylar",
     "severityThreshold": "Olay başına minimum önem",
     "severityDefault": "Varsayılan (ek filtre yok)"
+  },
+  "permissionTitles": {
+    "defaultActor": "Admin",
+    "RoleCreated": "{{actor}} '{{role}}' rolünü oluşturdu",
+    "RoleDeleted": "{{actor}} '{{role}}' rolünü sildi",
+    "RolePermissionsUpdated": "{{actor}} '{{role}}' rolünü güncelledi",
+    "UserPermissionOverridesChanged": "{{actor}} kullanıcı iznini '{{permission}}' değiştirdi",
+    "SystemPermissionChange": "{{actor}} '{{role}}' için sistem izni değişikliği yaptı"
   },
   "eventTypes": {
     "UserCreated": "Kullanıcı oluşturuldu",
@@ -48,6 +65,12 @@
     "OnlineOrderPushedToPos": "Online sipariş kasaya iletildi",
     "OnlineOrderPaid": "Online sipariş ödendi",
     "OnlineOrderStatusChanged": "Online sipariş durumu değişti",
-    "OnlineOrderConfirmed": "Online sipariş onaylandı"
+    "OnlineOrderConfirmed": "Online sipariş onaylandı",
+    "DigitalServiceRequested": "Dijital hizmet talebi",
+    "RoleCreated": "Rol oluşturuldu",
+    "RoleDeleted": "Rol silindi",
+    "RolePermissionsUpdated": "Rol izinleri güncellendi",
+    "UserPermissionOverridesChanged": "Kullanıcı izinleri değişti",
+    "SystemPermissionChange": "Sistem izin değişikliği"
   }
 }

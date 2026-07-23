@@ -85,6 +85,8 @@ public class AdminAppPermissionProfileTests
         Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalView, result));
         Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DigitalOrdersView, result));
         Assert.True(PermissionImplication.IsSatisfied(AppPermissions.DailyClosingView, result));
+        Assert.Contains(AppPermissions.DailyClosingView, result);
+        Assert.Contains(AppPermissions.DailyClosingExecute, result);
         Assert.DoesNotContain(AppPermissions.PaymentTake, result);
         Assert.DoesNotContain(AppPermissions.CartManage, result);
         Assert.DoesNotContain(AppPermissions.TseSign, result);

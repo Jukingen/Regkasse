@@ -3,6 +3,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Export;
+using KasseAPI_Final.Services.Rksv;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services;
@@ -19,6 +20,8 @@ public sealed class DepExportHistoryRecordRequest
     public bool IncludeDailyClosings { get; init; } = true;
     public Guid? ScheduleId { get; init; }
     public string? StoragePath { get; init; }
+    /// <summary>When set, stored as-is; otherwise built as <c>dep-export_{slug}_{register}_{stamp}.json</c>.</summary>
+    public string? FileName { get; init; }
 }
 
 public interface IDepExportHistoryService
@@ -51,16 +54,32 @@ public interface IDepExportHistoryService
     Task<(Stream Stream, string FileName, string ContentType)?> TryOpenDownloadAsync(
         Guid id,
         CancellationToken cancellationToken = default);
+
+    Task<(string TenantSlug, string RegisterNumber)> ResolveNamingAsync(
+        Guid tenantId,
+        Guid cashRegisterId,
+        CancellationToken cancellationToken = default);
+
+    Task<string> BuildFileNameAsync(
+        Guid tenantId,
+        Guid cashRegisterId,
+        CancellationToken cancellationToken = default,
+        DateTime? at = null);
 }
 
 public sealed class DepExportHistoryService : IDepExportHistoryService
 {
     private readonly AppDbContext _context;
+    private readonly IFileNamingService _fileNaming;
     private readonly ILogger<DepExportHistoryService> _logger;
 
-    public DepExportHistoryService(AppDbContext context, ILogger<DepExportHistoryService> logger)
+    public DepExportHistoryService(
+        AppDbContext context,
+        IFileNamingService fileNaming,
+        ILogger<DepExportHistoryService> logger)
     {
         _context = context;
+        _fileNaming = fileNaming;
         _logger = logger;
     }
 
@@ -70,7 +89,10 @@ public sealed class DepExportHistoryService : IDepExportHistoryService
     {
         var (groupCount, signatureCount) = RksvDepExportStats.Count(request.Export);
         var json = JsonSerializer.Serialize(request.Export);
-        var fileName = BuildFileName(request.CashRegisterId, request.FromUtc, request.ToUtc);
+        var fileName = string.IsNullOrWhiteSpace(request.FileName)
+            ? await BuildFileNameAsync(request.TenantId, request.CashRegisterId, cancellationToken)
+                .ConfigureAwait(false)
+            : request.FileName.Trim();
 
         var row = new DepExportHistory
         {
@@ -115,6 +137,9 @@ public sealed class DepExportHistoryService : IDepExportHistoryService
         Guid? scheduleId = null,
         CancellationToken cancellationToken = default)
     {
+        var fileName = await BuildFileNameAsync(tenantId, cashRegisterId, cancellationToken)
+            .ConfigureAwait(false);
+
         var row = new DepExportHistory
         {
             TenantId = tenantId,
@@ -123,7 +148,7 @@ public sealed class DepExportHistoryService : IDepExportHistoryService
             ToUtc = toUtc,
             ExportedAt = DateTime.UtcNow,
             ExportedByUserId = exportedByUserId,
-            FileName = BuildFileName(cashRegisterId, fromUtc, toUtc),
+            FileName = fileName,
             FileSizeBytes = 0,
             SignatureCount = 0,
             GroupCount = 0,
@@ -210,8 +235,44 @@ public sealed class DepExportHistoryService : IDepExportHistoryService
         return (stream, row.FileName, "application/json");
     }
 
-    internal static string BuildFileName(Guid cashRegisterId, DateTime fromUtc, DateTime toUtc) =>
-        $"dep-export-{cashRegisterId:N}-{fromUtc:yyyyMMdd}-{toUtc:yyyyMMdd}.json";
+    /// <summary>Resolves tenant slug + register number for the canonical DEP export file name.</summary>
+    public async Task<(string TenantSlug, string RegisterNumber)> ResolveNamingAsync(
+        Guid tenantId,
+        Guid cashRegisterId,
+        CancellationToken cancellationToken = default)
+    {
+        var slug = await _context.Tenants
+            .AsNoTracking()
+            .Where(t => t.Id == tenantId)
+            .Select(t => t.Slug)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var registerNumber = await _context.CashRegisters
+            .AsNoTracking()
+            .Where(c => c.Id == cashRegisterId)
+            .Select(c => c.RegisterNumber)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return (slug ?? string.Empty, registerNumber ?? string.Empty);
+    }
+
+    public async Task<string> BuildFileNameAsync(
+        Guid tenantId,
+        Guid cashRegisterId,
+        CancellationToken cancellationToken = default,
+        DateTime? at = null)
+    {
+        var (slug, registerNumber) = await ResolveNamingAsync(tenantId, cashRegisterId, cancellationToken)
+            .ConfigureAwait(false);
+        return _fileNaming.GenerateFileName(
+            RksvDepExportFileNames.Prefix,
+            "json",
+            registerNumber,
+            tenantSlug: slug,
+            at: at);
+    }
 
     private static DepExportHistoryResponse ToResponse(DepExportHistory row, string? registerNumber) =>
         new()

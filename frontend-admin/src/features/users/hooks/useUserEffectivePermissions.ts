@@ -24,6 +24,9 @@ export function useUserPermissionOverrideMutations(userId: string | null | undef
   const invalidate = () => {
     if (userId) {
       void queryClient.invalidateQueries({ queryKey: userEffectivePermissionsQueryKey(userId) });
+      void queryClient.invalidateQueries({
+        queryKey: ['/api/UserManagement', userId, 'permissions', 'overrides'],
+      });
     }
   };
 

@@ -13,6 +13,7 @@ import {
 } from '@/shared/adminSidebarNavigation';
 import { canAccessPath } from '@/shared/auth/canAccessPath';
 import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
+import { PERMISSIONS } from '@/shared/auth/permissions';
 import { buildAdminSidebarMenuItems } from '@/shared/buildAdminSidebar';
 
 import {
@@ -127,6 +128,13 @@ describe('adminRoleMenuVisibility contract', () => {
     for (const path of routes) {
       expect(canAccessPath(path, perms), `Manager should access ${path}`).toBe(true);
     }
+  });
+
+  it('Manager admin session shows Tagesabschluss when daily-closing.view is embedded', () => {
+    const keys = visibleMenuKeysForRole('Manager', MANAGER_ADMIN_PERMISSIONS);
+    expect(keys).toContain('/tagesabschluss');
+    expect(MANAGER_ADMIN_PERMISSIONS).toContain(PERMISSIONS.DAILY_CLOSING_VIEW);
+    expect(canAccessPath('/tagesabschluss', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
   });
 
   it('SuperAdmin sees platform admin leaves without explicit permissions', () => {

@@ -7,6 +7,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Loyalty;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -25,6 +26,8 @@ namespace KasseAPI_Final.Controllers
         private readonly IPaymentService _paymentService;
         private readonly ICustomerService _customerService;
         private readonly ILoyaltyService _loyaltyService;
+        private readonly ICustomerExportService _customerExport;
+        private readonly ISettingsTenantResolver _settingsTenantResolver;
 
         public CustomerController(
             AppDbContext context,
@@ -32,6 +35,8 @@ namespace KasseAPI_Final.Controllers
             IPaymentService paymentService,
             ICustomerService customerService,
             ILoyaltyService loyaltyService,
+            ICustomerExportService customerExport,
+            ISettingsTenantResolver settingsTenantResolver,
             ILogger<CustomerController> logger) : base(customerRepository, logger)
         {
             _context = context;
@@ -39,6 +44,8 @@ namespace KasseAPI_Final.Controllers
             _paymentService = paymentService;
             _customerService = customerService;
             _loyaltyService = loyaltyService;
+            _customerExport = customerExport;
+            _settingsTenantResolver = settingsTenantResolver;
         }
 
         private bool IsCurrentUserSuperAdmin() => HasRole(Roles.SuperAdmin);
@@ -63,6 +70,45 @@ namespace KasseAPI_Final.Controllers
                 return ErrorResponse("System customers cannot be modified or deleted", 403);
 
             return null;
+        }
+
+        /// <summary>
+        /// Export customers as CSV or JSON. Filename: <c>customer_{tenantSlug}_{stamp}.{ext}</c>.
+        /// </summary>
+        [HttpGet("export")]
+        [Produces("text/csv", "application/json")]
+        [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> Export(
+            [FromQuery] string format = "csv",
+            [FromQuery] bool? isActive = null,
+            CancellationToken cancellationToken = default)
+        {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken)
+                .ConfigureAwait(false);
+            var tenantSlug = await _context.Tenants.AsNoTracking()
+                .Where(t => t.Id == tenantId)
+                .Select(t => t.Slug)
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            try
+            {
+                var result = await _customerExport
+                    .ExportAsync(
+                        tenantId,
+                        tenantSlug,
+                        format,
+                        isActive,
+                        excludeSystemCustomers: !IsCurrentUserSuperAdmin(),
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                return File(result.Content, result.ContentType, result.FileName);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message, code = "CUSTOMER_EXPORT_TOO_LARGE" });
+            }
         }
 
         /// <summary>
