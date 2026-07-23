@@ -26,9 +26,9 @@ import {
   fetchAllAdminFeedback,
   updateAdminFeedbackStatus,
 } from '@/api/manual/adminFeedback';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
-import { useDateFormatter } from '@/lib/hooks/useDateFormatter';
 
 const CATEGORIES: AdminFeedbackCategory[] = [
   'EaseOfUse',
@@ -56,7 +56,6 @@ const STATUS_COLOR: Record<string, string> = {
 export default function AdminFeedbackInboxPage() {
   const { t } = useI18n();
   const notify = useNotify();
-  const { formatDateTime } = useDateFormatter();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string | undefined>('UnderReview');
   const [categoryFilter, setCategoryFilter] = useState<string | undefined>();
@@ -89,7 +88,7 @@ export default function AdminFeedbackInboxPage() {
         title: t('feedback.inbox.created'),
         dataIndex: 'createdAtUtc',
         width: 160,
-        render: (v: string) => formatDateTime(v),
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('feedback.inbox.tenant'),
@@ -121,8 +120,17 @@ export default function AdminFeedbackInboxPage() {
       {
         title: t('feedback.inbox.submitter'),
         dataIndex: 'submittedByDisplayName',
-        width: 140,
-        render: (v: string | null | undefined, row) => v || row.submittedByUserId.slice(0, 8),
+        width: 180,
+        render: (v: string | null | undefined, row) => (
+          <Space direction="vertical" size={0}>
+            <span>{v || row.submittedByUserId.slice(0, 8)}</span>
+            {row.submittedByUsername ? (
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                {row.submittedByUsername}
+              </Typography.Text>
+            ) : null}
+          </Space>
+        ),
       },
       {
         title: t('feedback.inbox.actions'),
@@ -144,7 +152,7 @@ export default function AdminFeedbackInboxPage() {
         ),
       },
     ],
-    [formatDateTime, form, t],
+    [form, t],
   );
 
   return (

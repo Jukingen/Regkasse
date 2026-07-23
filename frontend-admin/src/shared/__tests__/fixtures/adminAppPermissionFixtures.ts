@@ -131,6 +131,8 @@ export const MANAGER_REQUIRED_MENU_KEYS: readonly string[] = [
   '/audit-logs/activity',
   '/admin/audit/fiscal-exports',
   '/admin/tse/offline-transactions',
+  '/admin/tse/failover',
+  '/admin/tse-management',
   '/rksv/sb/startbeleg',
   '/rksv/sb/monatsbeleg',
   '/rksv/sb/jahresbeleg',

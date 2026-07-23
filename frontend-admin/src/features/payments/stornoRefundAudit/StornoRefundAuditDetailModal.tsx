@@ -6,6 +6,7 @@ import React, { useMemo } from 'react';
 import { useGetApiAdminPaymentsId } from '@/api/generated/admin/admin';
 import type { AdminPaymentDetailDto } from '@/api/generated/model';
 import { StornoReason } from '@/api/generated/model/stornoReason';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useI18n } from '@/i18n';
 import { FORMAT_EMPTY_DISPLAY, createIntlFormatters } from '@/i18n/formatting';
 
@@ -102,7 +103,7 @@ export function StornoRefundAuditDetailModal({
         title: t('payments.stornoRefundAudit.detail.colTime'),
         dataIndex: 'timestampUtc' as const,
         key: 'ts',
-        render: (iso: string) => fmt.formatDateTime(iso),
+        render: dateColumnRender('datetime'),
         width: 180,
       },
       {

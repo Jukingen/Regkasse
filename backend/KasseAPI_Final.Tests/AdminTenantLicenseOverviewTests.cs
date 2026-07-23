@@ -172,6 +172,7 @@ public sealed class AdminTenantsLicenseOverviewControllerTests
             Mock.Of<IAdminTenantService>(),
             licenseService.Object,
             Mock.Of<ITenantDeletionService>(),
+            Mock.Of<KasseAPI_Final.Services.ActivityReports.IActivityReportService>(),
             Mock.Of<IAuditLogService>(),
             Mock.Of<IHostEnvironment>(),
             Mock.Of<ILogger<AdminTenantsController>>());

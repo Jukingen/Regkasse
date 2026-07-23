@@ -19,6 +19,7 @@ import {
 
 import { useCustomerDashboard } from '../../hooks/useCustomerDashboard';
 import { getEnvDevTenantSlug } from '../../services/tenant/devTenant';
+import { formatUserDateTime } from '../../utils/dateFormatter';
 
 function money(value: number, currency = 'EUR'): string {
   try {
@@ -29,14 +30,7 @@ function money(value: number, currency = 'EUR'): string {
 }
 
 function formatDate(iso: string): string {
-  try {
-    return new Intl.DateTimeFormat('de-AT', {
-      dateStyle: 'short',
-      timeStyle: 'short',
-    }).format(new Date(iso));
-  } catch {
-    return iso;
-  }
+  return formatUserDateTime(iso) || iso;
 }
 
 export default function CustomerDashboardPage() {

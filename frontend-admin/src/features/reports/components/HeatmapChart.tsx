@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 
-const WEEKDAY_LABELS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+import { useCalendarWeekdayLabels } from '@/hooks/useCalendarWeekdayLabels';
 
 export type HeatmapChartProps = {
   /** 7×24 grid (Mon=0 … Sun=6). Accepts legacy `cells` or admin `heatmap`. */
@@ -20,6 +20,7 @@ export function HeatmapChart({
   busiestLabel,
   quietestLabel,
 }: HeatmapChartProps) {
+  const weekdayLabels = useCalendarWeekdayLabels({ short: true });
   const grid = heatmap ?? cells ?? [];
   const max = useMemo(() => {
     if (maxProp != null && maxProp > 0) return maxProp;
@@ -54,7 +55,7 @@ export function HeatmapChart({
           <tbody>
             {grid.map((row, dow) => (
               <tr key={dow}>
-                <td style={{ padding: 4, fontWeight: 600 }}>{WEEKDAY_LABELS[dow]}</td>
+                <td style={{ padding: 4, fontWeight: 600 }}>{weekdayLabels[dow] ?? ''}</td>
                 {row.map((count, hour) => {
                   const intensity = max > 0 ? count / max : 0;
                   return (

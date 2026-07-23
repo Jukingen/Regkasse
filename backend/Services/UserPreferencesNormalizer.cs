@@ -37,6 +37,25 @@ public static class UserPreferencesNormalizer
     public static readonly HashSet<string> AllowedTimeFormats =
         new(StringComparer.OrdinalIgnoreCase) { "24h", "12h" };
 
+    public static readonly HashSet<string> AllowedTimeZones =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            "Europe/Vienna",
+            "Europe/Berlin",
+            "Europe/Zurich",
+            "Europe/London",
+            "Europe/Istanbul",
+            "America/New_York",
+            "UTC",
+        };
+
+    public static readonly HashSet<string> AllowedLanguages =
+        new(StringComparer.OrdinalIgnoreCase) { "de", "en", "tr" };
+
+    public const string DefaultDateFormat = "DD.MM.YYYY";
+    public const string DefaultTimeZone = "Europe/Vienna";
+    public const string DefaultLanguage = "de";
+
     public static string NormalizeThemeMode(string? value) =>
         value != null && AllowedThemeModes.Contains(value) ? value.ToLowerInvariant() : "system";
 
@@ -60,23 +79,40 @@ public static class UserPreferencesNormalizer
     public static string? NormalizeDateFormat(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
-            return "DD.MM.YYYY";
+            return DefaultDateFormat;
         var trimmed = value.Trim();
         return trimmed switch
         {
             "de-AT" or "tr-TR" => "DD.MM.YYYY",
             "en-US" => "MM/DD/YYYY",
-            "auto" => "DD.MM.YYYY",
-            _ when AllowedDateFormats.Contains(trimmed) => trimmed,
-            _ => trimmed.Length <= 20 ? trimmed : trimmed[..20],
+            "auto" => DefaultDateFormat,
+            _ when AllowedDateFormats.Contains(trimmed) =>
+                AllowedDateFormats.First(f => f.Equals(trimmed, StringComparison.OrdinalIgnoreCase)),
+            _ => DefaultDateFormat,
         };
     }
 
     public static string? NormalizeTimeFormat(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
-            return null;
+            return "24h";
         var trimmed = value.Trim();
-        return AllowedTimeFormats.Contains(trimmed) ? trimmed.ToLowerInvariant() : null;
+        return AllowedTimeFormats.Contains(trimmed) ? trimmed.ToLowerInvariant() : "24h";
+    }
+
+    public static string NormalizeTimeZone(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return DefaultTimeZone;
+        var trimmed = value.Trim();
+        return AllowedTimeZones.Contains(trimmed) ? trimmed : DefaultTimeZone;
+    }
+
+    public static string NormalizeLanguage(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return DefaultLanguage;
+        var trimmed = value.Trim().ToLowerInvariant();
+        return AllowedLanguages.Contains(trimmed) ? trimmed : DefaultLanguage;
     }
 }

@@ -47,6 +47,8 @@ public sealed class AdminFeedbackDto
     public string? PagePath { get; set; }
     public string SubmittedByUserId { get; set; } = string.Empty;
     public string? SubmittedByDisplayName { get; set; }
+    /// <summary>Login username from Identity (resolved at read time for inbox).</summary>
+    public string? SubmittedByUsername { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public DateTime UpdatedAtUtc { get; set; }
     public string? ReviewedByUserId { get; set; }

@@ -8,5 +8,14 @@
   "update": "Update",
   "maintenance": "Maintenance",
   "tseStatus": "TSE Status",
-  "printerStatus": "Printer Status"
+  "printerStatus": "Printer Status",
+  "maintenanceNotice": {
+    "modalTitle": "System maintenance",
+    "windowLabel": "Maintenance window:",
+    "countdownLabel": "Time until maintenance:",
+    "forceNotice": "This maintenance window cannot be dismissed. The system may be temporarily unavailable.",
+    "starts": "Starts",
+    "dismiss": "Dismiss",
+    "paymentBlocked": "Payments are temporarily disabled during system maintenance. Please try again later."
+  }
 }

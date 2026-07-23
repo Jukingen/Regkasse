@@ -1,7 +1,10 @@
 /**
- * Fixed German (AT) date display for Admin UI — independent of text locale (de/en/tr).
- * API payloads must not use these helpers; display only.
+ * FA date/time display helpers.
+ * Default helpers stay German (AT) for fiscal-facing consistency.
+ * Preference-aware formatting lives in {@link formatWithUserPreferences} / {@link useDateFormatter}.
  */
+
+import type { DateFormatPattern, TimeFormatPreference, UserTimeZone } from '@/lib/personalization/types';
 
 export const UI_DATE_PATTERN = 'DD.MM.YYYY' as const;
 export const DAYJS_DATE_FORMAT = 'DD.MM.YYYY';
@@ -12,8 +15,14 @@ export const DAYJS_DATETIME_SECONDS_FORMAT = 'DD.MM.YYYY HH:mm:ss';
 export const GERMAN_DATE_EMPTY = '—' as const;
 
 export type FormatUserDateTimeOptions = {
-  /** When true: `DD.MM.YYYY HH:mm:ss`; otherwise `DD.MM.YYYY HH:mm`. */
+  /** When true: includes seconds. */
   includeSeconds?: boolean;
+};
+
+export type UserFormatPreferences = {
+  dateFormat: DateFormatPattern;
+  timeFormat: TimeFormatPreference;
+  timeZone: UserTimeZone;
 };
 
 function parseInput(input: string | number | Date | null | undefined): Date | null {
@@ -24,6 +33,109 @@ function parseInput(input: string | number | Date | null | undefined): Date | nu
 
 function pad2(value: number): string {
   return String(value).padStart(2, '0');
+}
+
+function partsInZone(date: Date, timeZone: string): {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  second: number;
+} {
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  });
+  const map = Object.fromEntries(
+    fmt.formatToParts(date).filter((p) => p.type !== 'literal').map((p) => [p.type, p.value])
+  );
+  return {
+    year: Number(map.year),
+    month: Number(map.month),
+    day: Number(map.day),
+    hour: Number(map.hour),
+    minute: Number(map.minute),
+    second: Number(map.second),
+  };
+}
+
+function formatDateParts(
+  year: number,
+  month: number,
+  day: number,
+  dateFormat: DateFormatPattern
+): string {
+  const y = String(year);
+  const m = pad2(month);
+  const d = pad2(day);
+  switch (dateFormat) {
+    case 'MM/DD/YYYY':
+      return `${m}/${d}/${y}`;
+    case 'YYYY-MM-DD':
+      return `${y}-${m}-${d}`;
+    case 'DD.MM.YYYY':
+    default:
+      return `${d}.${m}.${y}`;
+  }
+}
+
+function formatTimeParts(
+  hour: number,
+  minute: number,
+  second: number | undefined,
+  timeFormat: TimeFormatPreference,
+  includeSeconds: boolean
+): string {
+  if (timeFormat === '12h') {
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const h12 = hour % 12 === 0 ? 12 : hour % 12;
+    const base = `${pad2(h12)}:${pad2(minute)}`;
+    return includeSeconds && second != null
+      ? `${base}:${pad2(second)} ${period}`
+      : `${base} ${period}`;
+  }
+  const base = `${pad2(hour)}:${pad2(minute)}`;
+  return includeSeconds && second != null ? `${base}:${pad2(second)}` : base;
+}
+
+/** Preference-aware date formatting (timezone + pattern). */
+export function formatWithUserPreferences(
+  input: string | number | Date | null | undefined,
+  prefs: UserFormatPreferences,
+  options?: FormatUserDateTimeOptions & { withTime?: boolean }
+): string {
+  const d = parseInput(input);
+  if (!d) return '';
+  const p = partsInZone(d, prefs.timeZone);
+  const datePart = formatDateParts(p.year, p.month, p.day, prefs.dateFormat);
+  if (!options?.withTime) return datePart;
+  const timePart = formatTimeParts(
+    p.hour,
+    p.minute,
+    p.second,
+    prefs.timeFormat,
+    options.includeSeconds === true
+  );
+  return `${datePart} ${timePart}`;
+}
+
+export function toDayjsDateFormat(pattern: DateFormatPattern = 'DD.MM.YYYY'): string {
+  return pattern;
+}
+
+export function toDayjsDateTimeFormat(
+  pattern: DateFormatPattern = 'DD.MM.YYYY',
+  timeFormat: TimeFormatPreference = '24h'
+): string {
+  if (timeFormat === '12h') return `${pattern} hh:mm A`;
+  return `${pattern} HH:mm`;
 }
 
 /** `01.12.2025` — device local timezone from ISO / Date. */
@@ -104,9 +216,4 @@ export function formatGermanDate(date: string | Date | null | undefined): string
 /** German UI time — `HH:mm`, or `—` when missing/invalid. */
 export function formatGermanTime(date: string | Date | null | undefined): string {
   return formatUserTime(date) || GERMAN_DATE_EMPTY;
-}
-
-/** Maps personalization / DatePicker pattern (only DD.MM.YYYY supported in UI). */
-export function toDayjsDateFormat(): string {
-  return DAYJS_DATE_FORMAT;
 }

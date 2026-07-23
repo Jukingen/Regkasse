@@ -2,7 +2,6 @@
 
 import { CopyOutlined } from '@ant-design/icons';
 import { Alert, Button, Descriptions, Space, Tag, Typography } from 'antd';
-import dayjs from 'dayjs';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React from 'react';
@@ -13,6 +12,7 @@ import { maskQrPayloadPreview } from '@/features/receipts/utils/maskQrPayloadPre
 import { setBelegcheckPrefillSession } from '@/features/rksv/belegcheckPrefillStorage';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
+import { formatDateTimeSeconds } from '@/lib/dateUtils';
 import { OPERATOR_LINK_LABELS, OPERATOR_REGISTER_LINK_COPY } from '@/shared/operatorTruthCopy';
 import { formatEUR } from '@/shared/utils/currency';
 import {
@@ -65,12 +65,12 @@ export default function ReceiptDetailCard({ receipt }: ReceiptDetailCardProps) {
         <Text strong>{receipt.receiptNumber}</Text>
       </Descriptions.Item>
       <Descriptions.Item label={c('labelIssuedAt')}>
-        {dayjs(receipt.issuedAt).format('DD.MM.YYYY HH:mm:ss')}
+        {formatDateTimeSeconds(receipt.issuedAt)}
       </Descriptions.Item>
       <Descriptions.Item label={c('labelPersistedUtc')}>
         {receipt.receiptPersistedAtUtc
-          ? dayjs(receipt.receiptPersistedAtUtc).format('DD.MM.YYYY HH:mm:ss')
-          : dayjs(receipt.createdAt).format('DD.MM.YYYY HH:mm:ss')}
+          ? formatDateTimeSeconds(receipt.receiptPersistedAtUtc)
+          : formatDateTimeSeconds(receipt.createdAt)}
       </Descriptions.Item>
       <Descriptions.Item label={c('labelRegisterFk')}>
         {regFk.isRawPresentButNotLinkSafe ? (
@@ -173,13 +173,13 @@ export default function ReceiptDetailCard({ receipt }: ReceiptDetailCardProps) {
           {receipt.offlineCreatedAtUtc ? (
             <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
               {c('offlineCapturedUtc')}{' '}
-              {dayjs(receipt.offlineCreatedAtUtc).format('DD.MM.YYYY HH:mm:ss')}
+              {formatDateTimeSeconds(receipt.offlineCreatedAtUtc)}
             </Text>
           ) : null}
           {receipt.fiscalizedAtUtc ? (
             <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
               {c('fiscalizedAfterReplayUtc')}{' '}
-              {dayjs(receipt.fiscalizedAtUtc).format('DD.MM.YYYY HH:mm:ss')}
+              {formatDateTimeSeconds(receipt.fiscalizedAtUtc)}
             </Text>
           ) : null}
         </Descriptions.Item>

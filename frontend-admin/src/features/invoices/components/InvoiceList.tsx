@@ -52,6 +52,7 @@ import type {
   PaymentMethod,
 } from '@/api/generated/model';
 import { DocumentType, InvoiceStatus } from '@/api/generated/model';
+import { dateColumnRender } from '@/components/DateColumn';
 import { VirtualTable } from '@/components/VirtualTable';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
@@ -805,7 +806,7 @@ export const InvoiceList: React.FC = () => {
       key: 'invoiceDate',
       sorter: true,
       width: 132,
-      render: (date) => formatDateTime(date, ''),
+      render: dateColumnRender('datetime'),
     },
     {
       title: t('invoices.columns.customer'),

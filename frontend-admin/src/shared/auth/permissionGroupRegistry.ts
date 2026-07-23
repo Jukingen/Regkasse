@@ -244,8 +244,13 @@ export const PERMISSION_GROUPS = {
     icon: 'ToolOutlined',
     menuKeys: ['tenants', 'billing'],
     sidebarGroupIds: ['administration', 'license'],
-    resourcePrefixes: ['system', 'tenant'],
-    permissions: [PERMISSIONS.SYSTEM_CRITICAL, PERMISSIONS.TENANT_MANAGE],
+    resourcePrefixes: ['system', 'tenant', 'risk'],
+    permissions: [
+      PERMISSIONS.SYSTEM_CRITICAL,
+      PERMISSIONS.TENANT_MANAGE,
+      PERMISSIONS.RISK_VIEW,
+      PERMISSIONS.RISK_MANAGE,
+    ],
   },
   sonstige: {
     key: 'sonstige',

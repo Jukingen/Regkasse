@@ -46,6 +46,7 @@ export const MENU_PERMISSIONS: Record<string, string | string[] | undefined> = {
 
   // Tenant management (Super Admin)
   '/admin/tenants': PERMISSIONS.SYSTEM_CRITICAL,
+  '/admin/approvals': PERMISSIONS.SYSTEM_CRITICAL,
   '/tenant': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/licenses': PERMISSIONS.LICENSE_VIEW,
   '/admin/cash-registers': PERMISSIONS.SYSTEM_CRITICAL,

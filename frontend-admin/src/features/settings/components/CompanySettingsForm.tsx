@@ -18,6 +18,7 @@ import {
   mapCompanyFormToUpdateRequest,
   mapCompanySettingsToFormValues,
 } from '@/features/settings/types/companySettingsForm';
+import { localizeSettingsFieldValidationMessages } from '@/features/settings/utils/localizeSettingsFieldValidationMessages';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import {
   clearAutoSaveDraft,
@@ -26,6 +27,7 @@ import {
   writeAutoSaveDraft,
 } from '@/hooks/useAutoSave';
 import { useI18n } from '@/i18n';
+import { applyAspNetFieldErrorsToForm } from '@/lib/form/applyAspNetFieldErrorsToForm';
 import { createValidationRules } from '@/lib/validation';
 
 const COMPANY_DRAFT_KEY = 'fa:draft:company-settings';
@@ -91,7 +93,14 @@ export function CompanySettingsForm() {
       clearAutoSaveDraft(COMPANY_DRAFT_KEY);
       message.success(t('settings.companyPage.saveSuccess'));
       await reloadSettings();
-    } catch {
+    } catch (err) {
+      const fieldNames = applyAspNetFieldErrorsToForm(form, err, {
+        localizeMessage: (formField, messages) =>
+          localizeSettingsFieldValidationMessages(t, formField, messages),
+      });
+      if (fieldNames[0]) {
+        form.scrollToField(fieldNames[0], { block: 'center' });
+      }
       message.error(t('settings.page.saveFailed'));
     }
   };
@@ -168,6 +177,7 @@ export function CompanySettingsForm() {
         layout="vertical"
         onFinish={onFinish}
         onValuesChange={(_, all) => setWatchedValues(all)}
+        scrollToFirstError
       >
         <Alert
           type="warning"

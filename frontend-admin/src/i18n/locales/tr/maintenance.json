@@ -1,0 +1,45 @@
+{
+  "modalTitle": "Sistem bakımı",
+  "starts": "Başlangıç",
+  "ends": "Bitiş",
+  "countdown": "Bakıma kalan süre",
+  "countdownEnds": "Bakımın bitmesine kalan süre",
+  "forceNotice": "Bu bakım penceresi kapatılamaz. Sistem geçici olarak kullanılamayabilir.",
+  "scheduledBySuperAdmin": "Süper Yönetici tarafından planlandı",
+  "dismiss": "Kapat",
+  "limitedMode": {
+    "title": "Bakım Modu — Sınırlı Erişim",
+    "description": "Bazı işlemler geçici olarak devre dışı. Verileri görüntüleyebilirsiniz ancak değiştiremezsiniz.",
+    "disabledTooltip": "Bakım sırasında devre dışı"
+  },
+  "manage": {
+    "pageTitle": "Sistem bakımı",
+    "pageSubtitle": "Platform genelinde bakım pencerelerini başlatın ve bitirin. Aktifken sistem sınırlı (çoğunlukla salt okunur) modda çalışır: Süper Admin dışındaki kullanıcılar için POS ödemeleri ve yazma API’leri engellenir.",
+    "accessDenied": "Sistem bakımını yalnızca Süper Yöneticiler yönetebilir.",
+    "modeCardTitle": "Bakım modu",
+    "notificationsCardTitle": "Bakım bildirimleri",
+    "statusActive": "Aktif",
+    "statusInactive": "Pasif",
+    "blocksHint": "Sınırlı mod: okuma açık; Süper Admin dışındakiler için POS ödemeleri ve yazma API’leri kapalı.",
+    "startAction": "Bakımı başlat",
+    "endAction": "Bakımı bitir",
+    "refresh": "Yenile",
+    "started": "Bakım modu başlatıldı",
+    "ended": "Bakım modu sonlandırıldı",
+    "actionFailed": "İşlem başarısız",
+    "endConfirmTitle": "Bakım bitirilsin mi?",
+    "endConfirmBody": "Tüm aktif bakım pencereleri tamamlanır. İstemciler normal erişime döner.",
+    "startModalTitle": "Bakımı başlat",
+    "formTitle": "Başlık (isteğe bağlı)",
+    "formMessage": "Mesaj (isteğe bağlı)",
+    "formEnd": "Planlanan bitiş",
+    "emptyNotifications": "Bildirim yok",
+    "columns": {
+      "title": "Başlık",
+      "status": "Durum",
+      "start": "Başlangıç",
+      "end": "Bitiş",
+      "priority": "Öncelik"
+    }
+  }
+}

@@ -9,6 +9,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminProducts;
+using KasseAPI_Final.Services.Operations;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -37,6 +38,7 @@ namespace KasseAPI_Final.Controllers
         private readonly IAdminProductListService _productListService;
         private readonly IProductService _productService;
         private readonly IProductExportService _productExport;
+        private readonly IOperationLogService _operationLogs;
 
         public AdminProductsController(
             AppDbContext context,
@@ -50,7 +52,8 @@ namespace KasseAPI_Final.Controllers
             ICurrentTenantAccessor tenantAccessor,
             IAdminProductListService productListService,
             IProductService productService,
-            IProductExportService productExport)
+            IProductExportService productExport,
+            IOperationLogService operationLogs)
             : base(logger)
         {
             _context = context;
@@ -64,6 +67,7 @@ namespace KasseAPI_Final.Controllers
             _productListService = productListService;
             _productService = productService;
             _productExport = productExport;
+            _operationLogs = operationLogs;
         }
 
         /// <summary>
@@ -372,12 +376,33 @@ namespace KasseAPI_Final.Controllers
                 if (!validationResult.IsValid)
                     return ValidationErrorResponse(validationResult);
 
+                var before = OperationSnapshots.FromProduct(existingProduct);
                 ApplyAdminProductUpdate(existingProduct, product);
                 existingProduct.UpdatedAt = DateTime.UtcNow;
                 existingProduct.UpdatedBy = User.Identity?.Name ?? "system";
 
                 await _context.SaveChangesAsync();
                 await _productService.InvalidateProductsCacheAsync(existingProduct.TenantId, id);
+
+                var userId = GetCurrentUserId();
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    try
+                    {
+                        await _operationLogs.LogAsync(
+                            existingProduct.TenantId,
+                            userId,
+                            OperationTypes.UpdateProduct,
+                            OperationEntityTypes.Product,
+                            id.ToString("D"),
+                            before,
+                            OperationSnapshots.FromProduct(existingProduct));
+                    }
+                    catch (Exception logEx)
+                    {
+                        _logger.LogWarning(logEx, "Failed to write operation log for product update {ProductId}", id);
+                    }
+                }
 
                 _logger.LogInformation("Admin product updated: {Name} (ID: {Id})", existingProduct.Name, id);
                 return SuccessResponse(AdminProductDto.FromProduct(existingProduct), "Product updated successfully");

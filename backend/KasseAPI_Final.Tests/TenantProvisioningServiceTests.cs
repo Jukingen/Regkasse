@@ -86,6 +86,7 @@ public sealed class TenantProvisioningServiceTests
             uniqueness.Object,
             Mock.Of<IDemoProductImportService>(),
             new PaymentMethodDefinitionBootstrapService(db),
+            TseProvisioningTestDoubles.Successful(),
             Mock.Of<ILogger<TenantProvisioningService>>());
 
         var (result, error) = await service.ProvisionAsync(tenant, null, null, grantTrialLicense: true);
@@ -152,6 +153,7 @@ public sealed class TenantProvisioningServiceTests
             uniqueness.Object,
             Mock.Of<IDemoProductImportService>(),
             new PaymentMethodDefinitionBootstrapService(db),
+            TseProvisioningTestDoubles.Successful(),
             Mock.Of<ILogger<TenantProvisioningService>>());
 
         var (result, error) = await service.ProvisionAsync(
@@ -210,6 +212,7 @@ public sealed class TenantProvisioningServiceTests
             uniqueness.Object,
             importMock.Object,
             new PaymentMethodDefinitionBootstrapService(db),
+            TseProvisioningTestDoubles.Successful(),
             Mock.Of<ILogger<TenantProvisioningService>>());
 
         db.Categories.Add(new Category

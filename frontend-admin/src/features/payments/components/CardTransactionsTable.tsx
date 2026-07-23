@@ -6,6 +6,7 @@ import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import Link from 'next/link';
 import React, { useMemo, useState } from 'react';
 
+import { dateColumnRender } from '@/components/DateColumn';
 import { adminTableScrollXy } from '@/components/ui/adminTableVirtual';
 import type { AdminCardTransactionRow } from '@/features/payments/api/adminCardTransactionsQuery';
 import { useI18n } from '@/i18n';
@@ -48,7 +49,7 @@ export function CardTransactionsTable({
         dataIndex: 'createdAtUtc',
         key: 'createdAtUtc',
         width: 170,
-        render: (value: string) => formatDateTime(value, formatLocale),
+        render: dateColumnRender('datetime'),
       },
       {
         title: ts('columns.amount'),

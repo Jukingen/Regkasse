@@ -70,6 +70,7 @@ export type SidebarIconToken =
   | 'GiftOutlined'
   | 'SafetyCertificateOutlined'
   | 'SafetyOutlined'
+  | 'SwapOutlined'
   | 'SettingOutlined'
   | 'ShopOutlined'
   | 'GlobalOutlined'
@@ -617,6 +618,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     icon: 'BgColorsOutlined',
     permission: PERMISSIONS.SETTINGS_VIEW,
   },
+  preferences: {
+    id: 'preferences',
+    menuKey: '/settings/preferences',
+    href: '/settings/preferences',
+    labelKey: 'nav.dateTimePreferences',
+    icon: 'ClockCircleOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
+  },
   paymentMethods: {
     id: 'paymentMethods',
     menuKey: '/settings/payment-methods',
@@ -723,6 +732,22 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     labelKey: 'nav.tenants',
     icon: 'ApartmentOutlined',
     ...sidebarFieldsFromMenuMap('tenants'),
+  },
+  superAdminApprovals: {
+    id: 'superAdminApprovals',
+    menuKey: '/admin/approvals',
+    href: '/admin/approvals',
+    labelKey: 'nav.approvals',
+    icon: 'AuditOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  superAdminMaintenance: {
+    id: 'superAdminMaintenance',
+    menuKey: '/admin/maintenance',
+    href: '/admin/maintenance',
+    labelKey: 'nav.maintenance',
+    icon: 'ToolOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
   },
   superAdminDataManagement: {
     id: 'superAdminDataManagement',
@@ -835,6 +860,30 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/admin/monitoring',
     labelKey: 'nav.adminMonitoring',
     icon: 'DashboardOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminRiskDashboard: {
+    id: 'adminRiskDashboard',
+    menuKey: '/admin/risk-dashboard',
+    href: '/admin/risk-dashboard',
+    labelKey: 'nav.adminRiskDashboard',
+    icon: 'AuditOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseManagement: {
+    id: 'adminTseManagement',
+    menuKey: '/admin/tse-management',
+    href: '/admin/tse-management',
+    labelKey: 'nav.adminTseManagement',
+    icon: 'SafetyCertificateOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminTseFailover: {
+    id: 'adminTseFailover',
+    menuKey: '/admin/tse/failover',
+    href: '/admin/tse/failover',
+    labelKey: 'nav.adminTseFailover',
+    icon: 'SwapOutlined',
     permission: [PERMISSIONS.SYSTEM_CRITICAL],
   },
   rksvTestsDepExport: {
@@ -1195,6 +1244,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
           'sessionSettings',
           'activeSessions',
           'personalization',
+          'preferences',
           'paymentMethods',
           'paymentGateway',
         ],
@@ -1226,10 +1276,15 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         kind: 'leaves',
         catalogIds: [
           'superAdminTenants',
+          'superAdminApprovals',
+          'superAdminMaintenance',
           'superAdminDataManagement',
           'superAdminCashRegisters',
           'elmahErrors',
           'adminMonitoring',
+          'adminRiskDashboard',
+          'adminTseManagement',
+          'adminTseFailover',
         ],
       },
     ],

@@ -13,6 +13,7 @@ import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { fetchAllAdminPaymentsPages } from '@/features/payments/api/fetchAllAdminPayments';
 import { StornoRefundAuditDetailModal } from '@/features/payments/stornoRefundAudit/StornoRefundAuditDetailModal';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useI18n } from '@/i18n';
 import { FORMAT_EMPTY_DISPLAY, createIntlFormatters } from '@/i18n/formatting';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
@@ -184,7 +185,7 @@ export default function StornoRefundAuditPage() {
         title: t('payments.stornoRefundAudit.table.colWhen'),
         dataIndex: 'createdAt',
         key: 'createdAt',
-        render: (iso: string | undefined) => (iso ? fmt.formatDateTime(iso) : FORMAT_EMPTY_DISPLAY),
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('payments.stornoRefundAudit.table.colStatus'),

@@ -143,6 +143,12 @@ namespace KasseAPI_Final.Models
         [MaxLength(3)]
         public string Currency { get; set; } = string.Empty;
 
+        /// <summary>ISO 3166-1 alpha-2 country code (e.g. AT). Changed only via Super Admin settings approval workflow.</summary>
+        [Required]
+        [MaxLength(2)]
+        [Column("country")]
+        public string Country { get; set; } = "AT";
+
         [Required]
         [MaxLength(10)]
         public string Language { get; set; } = string.Empty;

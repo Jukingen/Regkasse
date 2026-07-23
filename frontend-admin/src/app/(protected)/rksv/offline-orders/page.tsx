@@ -21,11 +21,11 @@ import type { AdminOfflineOrderRowDto } from '@/api/generated/model/adminOffline
 import type { GetApiAdminOfflineOrdersParams } from '@/api/generated/model/getApiAdminOfflineOrdersParams';
 import { TableSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdminCashRegisterList';
 import type { OfflineOrderStatus } from '@/features/offline/types';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n/I18nProvider';
-import { formatUserDateTime } from '@/lib/dateFormatter';
 import { ADMIN_NAV_GROUP_LABELS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
@@ -201,7 +201,7 @@ export default function OfflineOrdersPage() {
       dataIndex: 'createdAtUtc',
       key: 'createdAtUtc',
       width: 170,
-      render: (v: string) => formatUserDateTime(v, { includeSeconds: true }),
+      render: dateColumnRender('datetimeSeconds'),
     },
     {
       title: tp('colTotal'),

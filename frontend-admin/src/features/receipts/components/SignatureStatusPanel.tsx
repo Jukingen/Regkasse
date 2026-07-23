@@ -8,12 +8,12 @@ import {
   WifiOutlined,
 } from '@ant-design/icons';
 import { Alert, Card, Collapse, Spin, Tag, Typography } from 'antd';
-import dayjs from 'dayjs';
 import React from 'react';
 
 import { useRksvStatus } from '@/features/rksv/hooks/useRksvBackendEnvironment';
 import { useEnvironment } from '@/hooks/useEnvironment';
 import { useI18n } from '@/i18n';
+import { formatDateTimeSeconds } from '@/lib/dateUtils';
 
 import { useSignatureDebugQuery } from '../hooks/useSignatureDebugQuery';
 import type { SignatureDiagnosticStepDto } from '../types/signature-debug';
@@ -180,19 +180,19 @@ export default function SignatureStatusPanel({
               {offlineTrace?.offlineCreatedAtUtc ? (
                 <div>
                   <strong>{s('offlineCapturedStrong')}</strong>{' '}
-                  {dayjs(offlineTrace.offlineCreatedAtUtc).format('DD.MM.YYYY HH:mm:ss')}
+                  {formatDateTimeSeconds(offlineTrace.offlineCreatedAtUtc)}
                 </div>
               ) : null}
               {offlineTrace?.fiscalizedAtUtc ? (
                 <div style={{ marginTop: 4 }}>
                   <strong>{s('fiscalizedAfterReplayStrong')}</strong>{' '}
-                  {dayjs(offlineTrace.fiscalizedAtUtc).format('DD.MM.YYYY HH:mm:ss')}
+                  {formatDateTimeSeconds(offlineTrace.fiscalizedAtUtc)}
                 </div>
               ) : null}
               {offlineTrace?.issuedAt ? (
                 <div style={{ marginTop: 4 }}>
                   <strong>{s('issuedAtFiscalStrong')}</strong>{' '}
-                  {dayjs(offlineTrace.issuedAt).format('DD.MM.YYYY HH:mm:ss')}
+                  {formatDateTimeSeconds(offlineTrace.issuedAt)}
                 </div>
               ) : null}
             </div>

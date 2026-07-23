@@ -78,6 +78,8 @@ export function formatTenantProvisioningHandoff(
   ].join('\n');
 }
 
+export type TenantOperationMode = 'active' | 'readonly' | 'maintenance';
+
 export type AdminTenantDetail = AdminTenantListItem & {
   address?: string | null;
   deletedAtUtc?: string | null;
@@ -85,6 +87,17 @@ export type AdminTenantDetail = AdminTenantListItem & {
   cashRegisterCount?: number;
   lastActivityAtUtc?: string | null;
   provisioning?: TenantProvisioning | null;
+  operationMode?: TenantOperationMode | string;
+  maintenanceMessage?: string | null;
+  maintenanceStartedAt?: string | null;
+  maintenanceEndsAt?: string | null;
+};
+
+export type UpdateTenantOperationModeRequest = {
+  operationMode: TenantOperationMode;
+  maintenanceMessage?: string | null;
+  maintenanceStartedAt?: string | null;
+  maintenanceEndsAt?: string | null;
 };
 
 export type TenantSlugAvailability = {
@@ -187,6 +200,17 @@ export async function updateAdminTenant(
 ): Promise<AdminTenantDetail> {
   const { data } = await AXIOS_INSTANCE.put<AdminTenantDetail>(
     `/api/admin/tenants/${tenantId}`,
+    body
+  );
+  return data;
+}
+
+export async function updateTenantOperationMode(
+  tenantId: string,
+  body: UpdateTenantOperationModeRequest
+): Promise<AdminTenantDetail> {
+  const { data } = await AXIOS_INSTANCE.patch<AdminTenantDetail>(
+    `/api/admin/tenants/${tenantId}/operation-mode`,
     body
   );
   return data;

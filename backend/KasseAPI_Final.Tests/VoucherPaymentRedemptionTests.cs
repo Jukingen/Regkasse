@@ -676,7 +676,7 @@ public class VoucherPaymentRedemptionTests
     public async Task AdminVoucher_Create_DefaultOneYearExpiry_IsAboutOneYearOut()
     {
         await using var context = CreateContext();
-        var admin = new AdminVoucherService(context, Mock.Of<ILogger<AdminVoucherService>>());
+        var admin = new AdminVoucherService(context, Mock.Of<ILogger<AdminVoucherService>>(), Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
         var (res, err) = await admin.CreateAsync(
             LegacyDefaultTenantIds.Primary,
             "admin1",
@@ -696,7 +696,7 @@ public class VoucherPaymentRedemptionTests
     public async Task AdminVoucher_Create_CustomExpiry_UsesRequestedEndOfValidity()
     {
         await using var context = CreateContext();
-        var admin = new AdminVoucherService(context, Mock.Of<ILogger<AdminVoucherService>>());
+        var admin = new AdminVoucherService(context, Mock.Of<ILogger<AdminVoucherService>>(), Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
         var target = DateTime.UtcNow.AddDays(88);
         var (res, err) = await admin.CreateAsync(
             LegacyDefaultTenantIds.Primary,
@@ -717,7 +717,7 @@ public class VoucherPaymentRedemptionTests
     public async Task AdminVoucher_VerifyCode_MatchesPlaintextFromCreate()
     {
         await using var context = CreateContext();
-        var admin = new AdminVoucherService(context, Mock.Of<ILogger<AdminVoucherService>>());
+        var admin = new AdminVoucherService(context, Mock.Of<ILogger<AdminVoucherService>>(), Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
         var (created, err) = await admin.CreateAsync(
             LegacyDefaultTenantIds.Primary,
             "admin1",
@@ -750,7 +750,7 @@ public class VoucherPaymentRedemptionTests
     public async Task AdminVoucher_VerifyCode_Empty_ReturnsCodeRequired()
     {
         await using var context = CreateContext();
-        var admin = new AdminVoucherService(context, Mock.Of<ILogger<AdminVoucherService>>());
+        var admin = new AdminVoucherService(context, Mock.Of<ILogger<AdminVoucherService>>(), Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
         var (created, _) = await admin.CreateAsync(
             LegacyDefaultTenantIds.Primary,
             "admin1",
@@ -771,7 +771,7 @@ public class VoucherPaymentRedemptionTests
     public async Task AdminVoucher_Cancel_ReasonTooShort_ReturnsReasonTooShort()
     {
         await using var context = CreateContext();
-        var admin = new AdminVoucherService(context, Mock.Of<ILogger<AdminVoucherService>>());
+        var admin = new AdminVoucherService(context, Mock.Of<ILogger<AdminVoucherService>>(), Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
         var (res, _) = await admin.CreateAsync(
             LegacyDefaultTenantIds.Primary,
             "admin1",
@@ -792,7 +792,7 @@ public class VoucherPaymentRedemptionTests
     {
         await using var context = CreateContext();
         var (_, productId, customerId, regId) = await SeedSaleCatalogOnlyAsync(context);
-        var admin = new AdminVoucherService(context, Mock.Of<ILogger<AdminVoucherService>>());
+        var admin = new AdminVoucherService(context, Mock.Of<ILogger<AdminVoucherService>>(), Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
         var (created, createErr) = await admin.CreateAsync(
             LegacyDefaultTenantIds.Primary,
             "admin1",

@@ -31,7 +31,12 @@ internal static class NotificationConfigEvaluator
         type is ActivityEventType.BackupFailed
             or ActivityEventType.LicenseExpired
             or ActivityEventType.RoleDeleted
-            or ActivityEventType.SystemPermissionChange;
+            or ActivityEventType.SystemPermissionChange
+            or ActivityEventType.TseFailoverStarted
+            or ActivityEventType.TseFailoverActivated
+            or ActivityEventType.TseFailoverNoBackup
+            or ActivityEventType.TseFailoverFailed
+            or ActivityEventType.TseCertificateExpired;
 
     public static bool ShouldDeliverEmail(NotificationConfig config, ActivityEventType type, string severity)
     {

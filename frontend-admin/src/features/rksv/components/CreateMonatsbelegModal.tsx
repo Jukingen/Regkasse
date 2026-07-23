@@ -22,6 +22,8 @@ import { formatViennaYearMonth, getMonthDifference } from '@/shared/utils/vienna
 export type CreateMonatsbelegModalProps = {
   open: boolean;
   cashRegisterId: string;
+  /** Human-readable register label (e.g. "REG-1 — Theke"). Shown in addition to the full id. */
+  cashRegisterLabel?: string;
   year: number;
   month: number;
   reason?: string;
@@ -95,15 +97,10 @@ function buildPastMonthPreviewMessage(monthDiff: number): string {
   return `Monatsbeleg für ${monthDiff} Monate zurück wird erstellt. Dies könnte bei einer Betriebsprüfung hinterfragt werden. Nur nach Rücksprache mit einem Steuerberater fortfahren.`;
 }
 
-function formatRegisterShort(registerId: string): string {
-  const trimmed = registerId.trim();
-  if (trimmed.length <= 8) return trimmed;
-  return `${trimmed.slice(0, 8)}…`;
-}
-
 export function CreateMonatsbelegModal({
   open,
   cashRegisterId,
+  cashRegisterLabel,
   year,
   month,
   reason,
@@ -259,6 +256,11 @@ export function CreateMonatsbelegModal({
     ? warningSeverityToAlertType(warning.severity)
     : severityConfig.alertType;
 
+  const registerIdDisplay = cashRegisterId.trim();
+  const registerLabelDisplay = cashRegisterLabel?.trim() || undefined;
+  const showRegisterLabel =
+    Boolean(registerLabelDisplay) && registerLabelDisplay !== registerIdDisplay;
+
   return (
     <>
       <Modal
@@ -273,11 +275,31 @@ export function CreateMonatsbelegModal({
           danger: isPastMonth && monthDiff > 6,
           disabled: isFutureMonth || isCurrentMonth,
         }}
-        width={500}
+        width={560}
         destroyOnHidden
       >
         <Descriptions bordered column={1} size="small">
-          <Descriptions.Item label="Kasse">{formatRegisterShort(cashRegisterId)}</Descriptions.Item>
+          <Descriptions.Item label="Kasse">
+            <div style={{ minWidth: 0, maxWidth: '100%' }}>
+              {showRegisterLabel ? (
+                <Typography.Text strong style={{ display: 'block', wordBreak: 'break-word' }}>
+                  {registerLabelDisplay}
+                </Typography.Text>
+              ) : null}
+              <Typography.Text
+                code
+                copyable
+                style={{
+                  display: 'block',
+                  wordBreak: 'break-all',
+                  whiteSpace: 'normal',
+                  marginTop: showRegisterLabel ? 4 : 0,
+                }}
+              >
+                {registerIdDisplay}
+              </Typography.Text>
+            </div>
+          </Descriptions.Item>
           <Descriptions.Item label="Jahr">{year}</Descriptions.Item>
           <Descriptions.Item label="Monat">{month}</Descriptions.Item>
           <Descriptions.Item label="Status">

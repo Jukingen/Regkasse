@@ -72,7 +72,8 @@ public class CategoriesControllerProductsDtoTests
             NullLogger<CategoriesController>.Instance,
             TenantTestDoubles.PrimaryTenantResolver,
             Mock.Of<IAuditLogService>(),
-            Mock.Of<ICategoryDemoResetService>());
+            Mock.Of<ICategoryDemoResetService>(),
+            Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
         var result = await controller.GetCategoryProducts(categoryId);
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var payload = Assert.IsAssignableFrom<IEnumerable<AdminCategoryProductDto>>(ok.Value);

@@ -51,7 +51,8 @@ public sealed class AdminFeedbackService : IAdminFeedbackService
 
         _db.AdminUserFeedback.Add(entity);
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        return Map(entity, tenantName: null);
+        var username = await ResolveUsernameAsync(userId, cancellationToken).ConfigureAwait(false);
+        return Map(entity, tenantName: null, username);
     }
 
     public async Task<AdminFeedbackListResponseDto> ListMineAsync(
@@ -69,10 +70,13 @@ public sealed class AdminFeedbackService : IAdminFeedbackService
 
         var total = await query.CountAsync(cancellationToken).ConfigureAwait(false);
         var rows = await query.Skip(offset).Take(limit).ToListAsync(cancellationToken).ConfigureAwait(false);
+        var usernames = await ResolveUsernamesAsync(
+            rows.Select(r => r.SubmittedByUserId),
+            cancellationToken).ConfigureAwait(false);
         return new AdminFeedbackListResponseDto
         {
             Total = total,
-            Items = rows.Select(r => Map(r, null)).ToList(),
+            Items = rows.Select(r => Map(r, null, LookupUsername(usernames, r.SubmittedByUserId))).ToList(),
         };
     }
 
@@ -101,10 +105,15 @@ public sealed class AdminFeedbackService : IAdminFeedbackService
 
         var total = await query.CountAsync(cancellationToken).ConfigureAwait(false);
         var rows = await query.Skip(offset).Take(limit).ToListAsync(cancellationToken).ConfigureAwait(false);
+        var usernames = await ResolveUsernamesAsync(
+            rows.Select(r => r.SubmittedByUserId),
+            cancellationToken).ConfigureAwait(false);
         return new AdminFeedbackListResponseDto
         {
             Total = total,
-            Items = rows.Select(r => Map(r, r.Tenant?.Name)).ToList(),
+            Items = rows
+                .Select(r => Map(r, r.Tenant?.Name, LookupUsername(usernames, r.SubmittedByUserId)))
+                .ToList(),
         };
     }
 
@@ -134,10 +143,43 @@ public sealed class AdminFeedbackService : IAdminFeedbackService
         entity.UpdatedAtUtc = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        return Map(entity, entity.Tenant?.Name);
+        var username = await ResolveUsernameAsync(entity.SubmittedByUserId, cancellationToken)
+            .ConfigureAwait(false);
+        return Map(entity, entity.Tenant?.Name, username);
     }
 
-    private static AdminFeedbackDto Map(AdminUserFeedback entity, string? tenantName) =>
+    private async Task<string?> ResolveUsernameAsync(string userId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            return null;
+        return await _db.Users.AsNoTracking()
+            .Where(u => u.Id == userId)
+            .Select(u => u.UserName)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<Dictionary<string, string?>> ResolveUsernamesAsync(
+        IEnumerable<string> userIds,
+        CancellationToken cancellationToken)
+    {
+        var ids = userIds
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        if (ids.Count == 0)
+            return new Dictionary<string, string?>(StringComparer.Ordinal);
+
+        return await _db.Users.AsNoTracking()
+            .Where(u => ids.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.UserName, StringComparer.Ordinal, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private static string? LookupUsername(IReadOnlyDictionary<string, string?> usernames, string userId) =>
+        usernames.TryGetValue(userId, out var name) ? name : null;
+
+    private static AdminFeedbackDto Map(AdminUserFeedback entity, string? tenantName, string? username) =>
         new()
         {
             Id = entity.Id,
@@ -151,6 +193,7 @@ public sealed class AdminFeedbackService : IAdminFeedbackService
             PagePath = entity.PagePath,
             SubmittedByUserId = entity.SubmittedByUserId,
             SubmittedByDisplayName = entity.SubmittedByDisplayName,
+            SubmittedByUsername = username,
             CreatedAtUtc = entity.CreatedAtUtc,
             UpdatedAtUtc = entity.UpdatedAtUtc,
             ReviewedByUserId = entity.ReviewedByUserId,

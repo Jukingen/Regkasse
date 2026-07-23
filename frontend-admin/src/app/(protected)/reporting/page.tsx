@@ -18,7 +18,6 @@ import {
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
 import { useSearchParams } from 'next/navigation';
 /**
  * POS payment–based operational reports: filters, tabs (summary, period, interim X, closing Z reference), CSV export.
@@ -41,6 +40,7 @@ import { CashRegisterSelector } from '@/components/CashRegisterSelector';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { useCashierFilterOptions } from '@/features/reporting/hooks/useCashierFilterOptions';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatCurrency } from '@/i18n/formatting';
 import { AXIOS_INSTANCE } from '@/lib/axios';
@@ -48,8 +48,6 @@ import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
-
-dayjs.extend(utc);
 
 const { RangePicker } = DatePicker;
 
@@ -281,7 +279,7 @@ export default function ReportingPage() {
     {
       title: t('adminShell.reporting.closingTime'),
       dataIndex: 'closingDateUtc',
-      render: (v: string) => (v ? dayjs(v).utc().format('DD.MM.YYYY HH:mm:ss') : '—'),
+      render: dateColumnRender('datetime', { utc: true }),
     },
     { title: t('adminShell.reporting.closingStatus'), dataIndex: 'status' },
     {

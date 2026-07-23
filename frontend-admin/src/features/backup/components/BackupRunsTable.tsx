@@ -20,6 +20,7 @@ import {
 import type { ColumnsType, TableProps } from 'antd/es/table';
 import React, { useCallback, useMemo, useState } from 'react';
 
+import { dateColumnRender } from '@/components/DateColumn';
 import { useGetApiAdminBackupStatusLatest } from '@/api/generated/admin-backup/admin-backup';
 import type { BackupRunResponseDto } from '@/api/generated/model';
 import { BackupRunStatus } from '@/api/generated/model/backupRunStatus';
@@ -52,7 +53,6 @@ import {
   resolveBackupRunTotalBytes,
 } from '@/features/backup/logic/backupRunTablePresentation';
 import { useI18n } from '@/i18n';
-import { formatDateTime as formatDisplayDateTime } from '@/i18n/formatting';
 import { formatUserTime } from '@/lib/dateFormatter';
 
 export interface BackupRunsTableProps {
@@ -119,14 +119,6 @@ export function BackupRunsTable({
     { refetchInterval: pollAlignedRuns }
   );
 
-  const formatDateTime = useCallback(
-    (iso: string | undefined | null) => {
-      if (!iso) return t('backupDr.runsTable.noValue');
-      return formatDisplayDateTime(iso, formatLocale);
-    },
-    [formatLocale, t]
-  );
-
   const formatTime = useCallback(
     (iso: string | undefined | null) => {
       if (!iso) return t('backupDr.runsTable.noValue');
@@ -165,7 +157,7 @@ export function BackupRunsTable({
         title: t('backupDr.runsTable.startTime'),
         dataIndex: 'requestedAt',
         key: 'requestedAt',
-        render: (v: string | undefined) => formatDateTime(v),
+        render: dateColumnRender('datetime'),
         sorter: (a, b) => compareBackupRunsByRequestedAtDesc(a, b) * -1,
         defaultSortOrder: 'descend',
       },
@@ -347,7 +339,6 @@ export function BackupRunsTable({
     [
       artifactTypeLabel,
       canTrigger,
-      formatDateTime,
       formatLocale,
       formatTime,
       handleRetrySuccess,

@@ -6,8 +6,14 @@ export function resolveFormatLocaleForDateFormat(
   dateFormat: DateFormatPattern,
   textLocale: TextLocale
 ): string {
-  if (dateFormat === 'DD.MM.YYYY') {
-    return 'de-AT';
+  switch (dateFormat) {
+    case 'DD.MM.YYYY':
+      return 'de-AT';
+    case 'MM/DD/YYYY':
+      return 'en-US';
+    case 'YYYY-MM-DD':
+      return 'sv-SE';
+    default:
+      return getFormattingLocaleForTextLocale(textLocale);
   }
-  return getFormattingLocaleForTextLocale(textLocale);
 }

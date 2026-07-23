@@ -38,9 +38,11 @@ import type { FinanzOnlineOutboxItemDto } from '@/api/generated/model/finanzOnli
 import type { GetApiAdminFinanzonlineOutboxParams } from '@/api/generated/model/getApiAdminFinanzonlineOutboxParams';
 import { CardSkeleton, FormSkeleton, TableSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { DateColumn } from '@/components/DateColumn';
 import { useI18n } from '@/i18n/I18nProvider';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 import dayjs, { type Dayjs } from '@/lib/dayjs';
+import { EMPTY_DATE_DISPLAY, formatUtcDateTime } from '@/lib/dateUtils';
 import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 import { finanzOnlineReadinessFindingGermanTitle } from '@/shared/finanzOnlineReadinessFindingPresentation';
@@ -110,8 +112,8 @@ export default function FinanzOnlineOutboxPage() {
   const fmtUtc = useCallback(
     (iso: string | undefined | null) => {
       if (!iso) return emDash;
-      const d = dayjs(iso);
-      return d.isValid() ? d.utc().format('YYYY-MM-DD HH:mm:ss') + utcSuffix : emDash;
+      const formatted = formatUtcDateTime(iso);
+      return formatted === EMPTY_DATE_DISPLAY ? emDash : `${formatted}${utcSuffix}`;
     },
     [emDash, utcSuffix]
   );
@@ -338,7 +340,15 @@ export default function FinanzOnlineOutboxPage() {
         title: t('finanzOnlineOutbox.table.columns.nextAttemptUtc'),
         dataIndex: 'nextAttemptAtUtc',
         width: 168,
-        render: (v: string | undefined) => fmtUtc(v),
+        render: (v: string | undefined) =>
+          v ? (
+            <>
+              <DateColumn date={v} format="datetimeSeconds" utc />
+              {utcSuffix}
+            </>
+          ) : (
+            emDash
+          ),
       },
       {
         title: t('finanzOnlineOutbox.table.columns.paketTransmission'),
@@ -375,16 +385,32 @@ export default function FinanzOnlineOutboxPage() {
         title: t('finanzOnlineOutbox.table.columns.createdUtc'),
         dataIndex: 'createdAtUtc',
         width: 168,
-        render: (v: string | undefined) => fmtUtc(v),
+        render: (v: string | undefined) =>
+          v ? (
+            <>
+              <DateColumn date={v} format="datetimeSeconds" utc />
+              {utcSuffix}
+            </>
+          ) : (
+            emDash
+          ),
       },
       {
         title: t('finanzOnlineOutbox.table.columns.processedUtc'),
         dataIndex: 'processedAtUtc',
         width: 168,
-        render: (v: string | undefined) => fmtUtc(v),
+        render: (v: string | undefined) =>
+          v ? (
+            <>
+              <DateColumn date={v} format="datetimeSeconds" utc />
+              {utcSuffix}
+            </>
+          ) : (
+            emDash
+          ),
       },
     ],
-    [t, emDash, fmtUtc, modeTag, transportPathTag]
+    [t, emDash, utcSuffix, modeTag, transportPathTag]
   );
 
   const items = listData?.items ?? [];

@@ -1,6 +1,7 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Operations;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services.Vouchers;
@@ -13,11 +14,16 @@ public sealed class AdminVoucherService : IAdminVoucherService
 
     private readonly AppDbContext _context;
     private readonly ILogger<AdminVoucherService> _logger;
+    private readonly IOperationLogService _operationLogs;
 
-    public AdminVoucherService(AppDbContext context, ILogger<AdminVoucherService> logger)
+    public AdminVoucherService(
+        AppDbContext context,
+        ILogger<AdminVoucherService> logger,
+        IOperationLogService operationLogs)
     {
         _context = context;
         _logger = logger;
+        _operationLogs = operationLogs;
     }
 
     public async Task<AdminVoucherListResponse> ListAsync(
@@ -285,6 +291,23 @@ public sealed class AdminVoucherService : IAdminVoucherService
                 _logger.LogWarning(ex, "Voucher create race on code hash (attempt {Attempt})", attempt + 1);
                 _context.ChangeTracker.Clear();
                 continue;
+            }
+
+            try
+            {
+                await _operationLogs.LogAsync(
+                    tenantId,
+                    userId,
+                    OperationTypes.CreateVoucher,
+                    OperationEntityTypes.Voucher,
+                    voucher.Id.ToString("D"),
+                    beforeState: null,
+                    afterState: OperationSnapshots.FromVoucher(voucher),
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception logEx)
+            {
+                _logger.LogWarning(logEx, "Failed to write operation log for voucher create {VoucherId}", voucher.Id);
             }
 
             return (new CreateAdminVoucherResponse

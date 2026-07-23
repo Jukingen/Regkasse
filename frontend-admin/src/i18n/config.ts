@@ -5,6 +5,7 @@ import deAdminShell from './locales/de/admin-shell.json';
 import deBackupDr from './locales/de/backupDr.json';
 import deBenefits from './locales/de/benefits.json';
 import deBilling from './locales/de/billing.json';
+import deCalendar from './locales/de/calendar.json';
 import deCardTransactions from './locales/de/cardTransactions.json';
 import deCashRegisters from './locales/de/cashRegisters.json';
 import deCommon from './locales/de/common.json';
@@ -15,7 +16,11 @@ import deDevelopmentMode from './locales/de/developmentMode.json';
 import deDigital from './locales/de/digital.json';
 import deErrors from './locales/de/errors.json';
 import deFeedback from './locales/de/feedback.json';
+import deMaintenance from './locales/de/maintenance.json';
 import deMonitoring from './locales/de/monitoring.json';
+import deRiskDashboard from './locales/de/riskDashboard.json';
+import deTseManagement from './locales/de/tseManagement.json';
+import deImpactSimulator from './locales/de/impactSimulator.json';
 import deFinanzOnlineOutbox from './locales/de/finanzOnlineOutbox.json';
 import deFinanzOnlineReconciliation from './locales/de/finanzOnlineReconciliation.json';
 import deFiscalExportAudit from './locales/de/fiscalExportAudit.json';
@@ -51,6 +56,7 @@ import enAdminShell from './locales/en/admin-shell.json';
 import enBackupDr from './locales/en/backupDr.json';
 import enBenefits from './locales/en/benefits.json';
 import enBilling from './locales/en/billing.json';
+import enCalendar from './locales/en/calendar.json';
 import enCardTransactions from './locales/en/cardTransactions.json';
 import enCashRegisters from './locales/en/cashRegisters.json';
 import enCommon from './locales/en/common.json';
@@ -61,7 +67,11 @@ import enDevelopmentMode from './locales/en/developmentMode.json';
 import enDigital from './locales/en/digital.json';
 import enErrors from './locales/en/errors.json';
 import enFeedback from './locales/en/feedback.json';
+import enMaintenance from './locales/en/maintenance.json';
 import enMonitoring from './locales/en/monitoring.json';
+import enRiskDashboard from './locales/en/riskDashboard.json';
+import enTseManagement from './locales/en/tseManagement.json';
+import enImpactSimulator from './locales/en/impactSimulator.json';
 import enFinanzOnlineOutbox from './locales/en/finanzOnlineOutbox.json';
 import enFinanzOnlineReconciliation from './locales/en/finanzOnlineReconciliation.json';
 import enFiscalExportAudit from './locales/en/fiscalExportAudit.json';
@@ -97,6 +107,7 @@ import trAdminShell from './locales/tr/admin-shell.json';
 import trBackupDr from './locales/tr/backupDr.json';
 import trBenefits from './locales/tr/benefits.json';
 import trBilling from './locales/tr/billing.json';
+import trCalendar from './locales/tr/calendar.json';
 import trCardTransactions from './locales/tr/cardTransactions.json';
 import trCashRegisters from './locales/tr/cashRegisters.json';
 import trCommon from './locales/tr/common.json';
@@ -107,7 +118,11 @@ import trDevelopmentMode from './locales/tr/developmentMode.json';
 import trDigital from './locales/tr/digital.json';
 import trErrors from './locales/tr/errors.json';
 import trFeedback from './locales/tr/feedback.json';
+import trMaintenance from './locales/tr/maintenance.json';
 import trMonitoring from './locales/tr/monitoring.json';
+import trRiskDashboard from './locales/tr/riskDashboard.json';
+import trTseManagement from './locales/tr/tseManagement.json';
+import trImpactSimulator from './locales/tr/impactSimulator.json';
 import trFinanzOnlineOutbox from './locales/tr/finanzOnlineOutbox.json';
 import trFinanzOnlineReconciliation from './locales/tr/finanzOnlineReconciliation.json';
 import trFiscalExportAudit from './locales/tr/fiscalExportAudit.json';
@@ -167,10 +182,15 @@ const catalogs = {
     reporting: deReporting,
     errors: deErrors,
     feedback: deFeedback,
+    maintenance: deMaintenance,
     monitoring: deMonitoring,
+    riskDashboard: deRiskDashboard,
+    tseManagement: deTseManagement,
+    impactSimulator: deImpactSimulator,
     modifierGroups: deModifierGroups,
     benefits: deBenefits,
     billing: deBilling,
+    calendar: deCalendar,
     customers: deCustomers,
     invoices: deInvoices,
     license: deLicense,
@@ -215,10 +235,15 @@ const catalogs = {
     reporting: enReporting,
     errors: enErrors,
     feedback: enFeedback,
+    maintenance: enMaintenance,
     monitoring: enMonitoring,
+    riskDashboard: enRiskDashboard,
+    tseManagement: enTseManagement,
+    impactSimulator: enImpactSimulator,
     modifierGroups: enModifierGroups,
     benefits: enBenefits,
     billing: enBilling,
+    calendar: enCalendar,
     customers: enCustomers,
     invoices: enInvoices,
     license: enLicense,
@@ -263,10 +288,15 @@ const catalogs = {
     reporting: trReporting,
     errors: trErrors,
     feedback: trFeedback,
+    maintenance: trMaintenance,
     monitoring: trMonitoring,
+    riskDashboard: trRiskDashboard,
+    tseManagement: trTseManagement,
+    impactSimulator: trImpactSimulator,
     modifierGroups: trModifierGroups,
     benefits: trBenefits,
     billing: trBilling,
+    calendar: trCalendar,
     customers: trCustomers,
     invoices: trInvoices,
     license: trLicense,

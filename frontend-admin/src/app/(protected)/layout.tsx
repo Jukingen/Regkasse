@@ -16,6 +16,8 @@ import { AppLayout } from '@/components/AppLayout';
 import { CommandPaletteShell } from '@/components/CommandPalette';
 import { KeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp';
 import { FeedbackWidget } from '@/components/feedback/FeedbackWidget';
+import { MaintenanceBanner } from '@/components/MaintenanceBanner';
+import { MaintenanceLimitedModeAlert } from '@/components/MaintenanceLimitedModeAlert';
 import { ReadOnlyBanner } from '@/components/ReadOnlyBanner';
 import { AdminDesktopSiderResizeHandle } from '@/components/admin-layout/AdminDesktopSiderResizeHandle';
 import { AdminLayout } from '@/components/admin-layout/AdminLayout';
@@ -147,6 +149,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 }}
               >
                 <AdminLayout>
+                  <MaintenanceBanner />
+                  <MaintenanceLimitedModeAlert />
                   <LicenseExpiryBanner />
                   <ReadOnlyBanner />
                   <ImpersonationBanner />

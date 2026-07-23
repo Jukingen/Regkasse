@@ -25,6 +25,7 @@ import {
   invalidateTenantLifecycleQueries,
 } from '@/features/super-admin/utils/invalidateTenantLifecycleQueries';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
 import { useI18n } from '@/i18n';
 import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
@@ -37,6 +38,7 @@ export default function SuperAdminCreateTenantPage() {
   const queryClient = useQueryClient();
   const [wizardOpen, setWizardOpen] = useState(true);
   const [impersonationRedirecting, setImpersonationRedirecting] = useState(false);
+  const { isMaintenanceMode } = useMaintenanceMode();
 
   const canAccess = isSuperAdmin(user?.role) || hasPermission(user, PERMISSIONS.SYSTEM_CRITICAL);
 
@@ -99,14 +101,24 @@ export default function SuperAdminCreateTenantPage() {
         title={t('tenants.create.subtitle')}
       />
 
-      <CreateTenantWizard
-        open={wizardOpen}
-        onClose={handleClose}
-        onCreated={invalidateTenants}
-        onCreateAnother={handleCreateAnother}
-        onSwitchToTenant={(tenantId) => impersonateMutation.mutate(tenantId)}
-        switchToTenantLoading={impersonateMutation.isPending}
-      />
+      {isMaintenanceMode ? (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 16 }}
+          title={t('maintenance.limitedMode.title')}
+          description={t('maintenance.limitedMode.description')}
+        />
+      ) : (
+        <CreateTenantWizard
+          open={wizardOpen}
+          onClose={handleClose}
+          onCreated={invalidateTenants}
+          onCreateAnother={handleCreateAnother}
+          onSwitchToTenant={(tenantId) => impersonateMutation.mutate(tenantId)}
+          switchToTenantLoading={impersonateMutation.isPending}
+        />
+      )}
 
       {impersonationRedirecting ? <ImpersonationRedirectOverlay /> : null}
     </AdminPageShell>

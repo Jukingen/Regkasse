@@ -33,8 +33,8 @@ import { CardSkeleton, TableSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useI18n } from '@/i18n';
-import { formatDateTime } from '@/i18n/formatting';
 import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
@@ -505,7 +505,7 @@ export default function FinanzOnlineOperationsPage() {
                 dataIndex: 'submittedAt',
                 key: 'submittedAt',
                 width: 180,
-                render: (v: string) => (v ? formatDateTime(v, '', { second: '2-digit' }) : '—'),
+                render: dateColumnRender('datetimeSeconds'),
               },
               {
                 title: t('rksvHub.finanzOnlineOpsPage.colSuccess'),

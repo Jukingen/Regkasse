@@ -4,6 +4,7 @@ import { Button, Card, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useCallback, useEffect, useState } from 'react';
 
+import { dateColumnRender } from '@/components/DateColumn';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
@@ -18,7 +19,7 @@ import {
  * Super Admin inbox for pending sensitive-export download approvals.
  */
 export function SensitiveExportApprovalsPanel() {
-  const { t, formatLocale } = useI18n();
+  const { t } = useI18n();
   const { message } = useAntdApp();
   const { isSuperAdmin } = usePermissions();
   const [rows, setRows] = useState<SensitiveExportApprovalDto[]>([]);
@@ -67,11 +68,7 @@ export function SensitiveExportApprovalsPanel() {
       title: t('common.sensitiveExport.approvalsRequestedAt'),
       dataIndex: 'requestedAt',
       key: 'requestedAt',
-      render: (v: string) =>
-        new Date(v).toLocaleString(formatLocale, {
-          dateStyle: 'short',
-          timeStyle: 'short',
-        }),
+      render: dateColumnRender('datetimeSeconds'),
     },
     {
       title: t('common.sensitiveExport.approvalsActions'),

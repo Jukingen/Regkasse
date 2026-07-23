@@ -3,11 +3,11 @@
 import { DeleteOutlined, EditOutlined, EyeOutlined, FileTextOutlined } from '@ant-design/icons';
 import { Button, Popconfirm, Space, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import dayjs from 'dayjs';
 import Link from 'next/link';
 import React from 'react';
 
 import type { ReceiptTemplate } from '@/api/generated/model';
+import { dateColumnRender } from '@/components/DateColumn';
 import { adminTablePaginationDefaults } from '@/components/ui/adminTablePagination';
 import { useI18n } from '@/i18n';
 
@@ -69,7 +69,7 @@ export default function ReceiptTemplateList({
       title: t('receiptTemplates.list.colCreated'),
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (date: string) => dayjs(date).format('DD.MM.YYYY HH:mm'),
+      render: dateColumnRender('datetime'),
     },
     {
       title: t('receiptTemplates.list.colActions'),

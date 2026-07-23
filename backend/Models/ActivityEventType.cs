@@ -66,4 +66,63 @@ public enum ActivityEventType
     UserPermissionOverrideExpiringSoon = 113,
     /// <summary>Time-bound override expired (processed by background job).</summary>
     UserPermissionOverrideExpired = 114,
+
+    /// <summary>Super Admin requested a sensitive tenant settings change (pending approval).</summary>
+    TenantSettingsChangeRequested = 120,
+    /// <summary>Super Admin approved a pending tenant settings change.</summary>
+    TenantSettingsChangeApproved = 121,
+    /// <summary>Super Admin rejected a pending tenant settings change.</summary>
+    TenantSettingsChangeRejected = 122,
+    /// <summary>Super Admin reverted a previously approved tenant settings change.</summary>
+    TenantSettingsChangeReverted = 123,
+
+    /// <summary>Elevated risk score detected for a tenant user action (Medium+).</summary>
+    RiskAnomalyDetected = 130,
+    /// <summary>Risk score marked resolved by an operator.</summary>
+    RiskScoreResolved = 131,
+
+    /// <summary>Critical admin action awaiting Super Admin approval.</summary>
+    CriticalActionApprovalRequested = 140,
+    /// <summary>Super Admin approved a critical action request.</summary>
+    CriticalActionApprovalApproved = 141,
+    /// <summary>Super Admin rejected a critical action request.</summary>
+    CriticalActionApprovalRejected = 142,
+
+    /// <summary>Scheduled platform maintenance reminder (7d / 3d / 1h milestones).</summary>
+    MaintenanceUpcoming = 150,
+    /// <summary>Force-display enabled (~24h before scheduled start).</summary>
+    MaintenanceForceDisplayEnabled = 151,
+    /// <summary>Scheduled maintenance window has started (InProgress).</summary>
+    MaintenanceStarted = 152,
+
+    /// <summary>Primary TSE device failed health check and a backup was activated.</summary>
+    TseFailoverActivated = 160,
+    /// <summary>Primary TSE is unhealthy and no healthy backup device is available.</summary>
+    TseFailoverNoBackup = 161,
+    /// <summary>Signing role reverted from backup to the primary TSE device.</summary>
+    TseFailoverReverted = 162,
+    /// <summary>Automatic/manual failover attempt began (backup validated).</summary>
+    TseFailoverStarted = 163,
+    /// <summary>Failover attempt failed (backup unhealthy or unexpected error).</summary>
+    TseFailoverFailed = 164,
+    /// <summary>Backup TSE device health is degraded / low score.</summary>
+    TseFailoverBackupLowHealth = 165,
+
+    /// <summary>TSE signing certificate expires within the warning window.</summary>
+    TseCertificateExpiringSoon = 170,
+
+    /// <summary>TSE signing certificate ExpiresAt is in the past.</summary>
+    TseCertificateExpired = 171,
+
+    /// <summary>TSE certificate metadata was renewed / synced from key provider.</summary>
+    TseCertificateRenewed = 172,
+
+    /// <summary>Operator scheduled a TSE certificate renewal date.</summary>
+    TseCertificateRenewalScheduled = 173,
+
+    /// <summary>TSE device health probe latency exceeded slow/critical thresholds.</summary>
+    TsePerformanceSlow = 180,
+
+    /// <summary>TSE device health probe failure/error rate exceeded thresholds.</summary>
+    TsePerformanceHighErrorRate = 181,
 }

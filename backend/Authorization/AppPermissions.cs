@@ -282,6 +282,13 @@ public static class AppPermissions
     /// <summary>Reset the TSE simulation state from the RKSV demo helper. SuperAdmin-only via catalog; never granted to Manager.</summary>
     public const string RksvTseSimulation = "rksv.tse-simulation";
 
+    // --- Risk scoring / anomaly detection ---
+    /// <summary>View risk scores and anomaly dashboard (Super Admin cross-tenant inbox uses SystemCritical).</summary>
+    public const string RiskView = "risk.view";
+
+    /// <summary>Resolve risk scores and trigger remediations from the risk dashboard.</summary>
+    public const string RiskManage = "risk.manage";
+
     // --- System-critical (permanent delete, high-risk) ---
     public const string SystemCritical = "system.critical";
 

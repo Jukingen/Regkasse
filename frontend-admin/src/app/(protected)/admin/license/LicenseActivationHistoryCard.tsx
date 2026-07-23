@@ -34,8 +34,9 @@ import {
   licenseQueryKeys,
   postForceDeactivateActivationAttempt,
 } from '@/api/manual/adminLicense';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useAntdApp } from '@/hooks/useAntdApp';
-import { formatGermanDateTime, useI18n } from '@/i18n';
+import { useI18n } from '@/i18n';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 dayjs.extend(utc);
@@ -145,14 +146,14 @@ export function LicenseActivationHistoryCard() {
         dataIndex: 'activatedAtUtc',
         key: 'activatedAtUtc',
         width: 170,
-        render: (iso: string) => formatGermanDateTime(iso),
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('license.activationHistory.colDeactivated'),
         dataIndex: 'deactivatedAtUtc',
         key: 'deactivatedAtUtc',
         width: 170,
-        render: (iso: string | null) => (iso ? formatGermanDateTime(iso) : '—'),
+        render: dateColumnRender('datetime'),
       },
       {
         title: '',

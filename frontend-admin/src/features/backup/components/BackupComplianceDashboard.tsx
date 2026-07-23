@@ -7,10 +7,12 @@ import { Alert, Card, Col, Row, Statistic, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import React, { useMemo } from 'react';
 
+import { dateColumnRender } from '@/components/DateColumn';
 import { PageSkeleton } from '@/components/Skeleton';
 import { useComplianceStatus } from '@/features/backup/hooks/useComplianceStatus';
 import type { BackupComplianceListItemDto } from '@/features/backup/logic/backupComplianceStatusApi';
 import { useI18n } from '@/i18n';
+import { formatDateTime } from '@/lib/dateUtils';
 
 function reasonLabelKey(reason: string): string {
   switch (reason) {
@@ -30,7 +32,7 @@ function reasonLabelKey(reason: string): string {
 }
 
 export function BackupComplianceDashboard() {
-  const { t, formatLocale } = useI18n();
+  const { t } = useI18n();
   const { data: status, isLoading, isError } = useComplianceStatus();
 
   const columns: ColumnsType<BackupComplianceListItemDto> = useMemo(
@@ -38,10 +40,7 @@ export function BackupComplianceDashboard() {
       {
         title: t('backupDr.compliance.columns.date'),
         dataIndex: 'date',
-        render: (iso: string) => {
-          const d = new Date(iso);
-          return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString(formatLocale);
-        },
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('backupDr.compliance.columns.tenant'),
@@ -66,7 +65,7 @@ export function BackupComplianceDashboard() {
         ),
       },
     ],
-    [formatLocale, t]
+    [t]
   );
 
   if (isLoading) return <PageSkeleton widgets={4} />;
@@ -75,9 +74,7 @@ export function BackupComplianceDashboard() {
     return <Alert type="error" showIcon title={t('backupDr.compliance.loadFailed')} />;
   }
 
-  const lastCheck = status?.lastCheckUtc
-    ? new Date(status.lastCheckUtc).toLocaleString(formatLocale)
-    : '—';
+  const lastCheck = status?.lastCheckUtc ? formatDateTime(status.lastCheckUtc) : '—';
 
   return (
     <>

@@ -12,13 +12,16 @@ using Microsoft.Extensions.Options;
 namespace KasseAPI_Final.Middleware;
 
 /// <summary>
-/// Blocks tenant-scoped API traffic when the ambient tenant is soft-deleted, suspended, or restricted by tenant-license policy.
+/// Blocks tenant-scoped API traffic when the ambient tenant is soft-deleted, suspended,
+/// in operation mode (maintenance / read-only), or restricted by tenant-license policy.
 /// </summary>
 public sealed class TenantOperationalGateMiddleware
 {
     public const string TenantLicenseStatusHeaderName = "X-Tenant-License-Status";
     public const string TenantLicenseWarningHeaderName = "X-Tenant-License-Warning";
     public const string LicenseDaysExpiredHeaderName = "X-License-Days-Expired";
+    public const string TenantOperationModeHeaderName = "X-Tenant-Operation-Mode";
+    public const string TenantMaintenanceMessageHeaderName = "X-Tenant-Maintenance-Message";
 
     private readonly RequestDelegate _next;
 
@@ -57,7 +60,17 @@ public sealed class TenantOperationalGateMiddleware
             .AsNoTracking()
             .IgnoreQueryFilters()
             .Where(t => t.Id == tenantId)
-            .Select(t => new { t.Status, t.IsActive, t.Name, t.LicenseValidUntilUtc })
+            .Select(t => new
+            {
+                t.Status,
+                t.IsActive,
+                t.Name,
+                t.LicenseValidUntilUtc,
+                t.OperationMode,
+                t.MaintenanceMessage,
+                t.MaintenanceStartedAt,
+                t.MaintenanceEndsAt,
+            })
             .FirstOrDefaultAsync(context.RequestAborted)
             .ConfigureAwait(false);
 
@@ -87,6 +100,70 @@ public sealed class TenantOperationalGateMiddleware
                 message = "Dieser Mandant ist derzeit nicht aktiv.",
                 code = "TENANT_NOT_ACTIVE",
                 tenantName = row.Name,
+            }).ConfigureAwait(false);
+            return;
+        }
+
+        var utcNow = DateTime.UtcNow;
+        var effectiveMode = TenantOperationModes.Normalize(row.OperationMode);
+        if (effectiveMode == TenantOperationModes.Maintenance
+            && !TenantOperationModes.IsMaintenanceActive(row.OperationMode, row.MaintenanceEndsAt, utcNow))
+        {
+            // Window expired — treat as active for gating until Super Admin clears the flag.
+            effectiveMode = TenantOperationModes.Active;
+        }
+
+        context.Response.Headers[TenantOperationModeHeaderName] = effectiveMode;
+        if (!string.IsNullOrWhiteSpace(row.MaintenanceMessage))
+            context.Response.Headers[TenantMaintenanceMessageHeaderName] = row.MaintenanceMessage;
+
+        // Super Admin bypasses operation-mode gates (still subject to lifecycle above).
+        // Maintenance: 503 Service Unavailable for all methods (POS/FA unavailable).
+        // Read-only: 403 Forbidden for write methods only.
+        if (!isSuperAdmin
+            && !IsOperationModeManagementPath(path)
+            && effectiveMode == TenantOperationModes.Maintenance)
+        {
+            var message = string.IsNullOrWhiteSpace(row.MaintenanceMessage)
+                ? "This tenant is currently in maintenance mode"
+                : row.MaintenanceMessage;
+
+            logger.LogWarning(
+                "Tenant request blocked by maintenance mode. TenantId={TenantId}, Path={Path}, Method={Method}",
+                tenantId,
+                path.Value,
+                method);
+            context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            await context.Response.WriteAsJsonAsync(new
+            {
+                error = "TenantInMaintenance",
+                code = "TenantInMaintenance",
+                message,
+                estimatedEnd = row.MaintenanceEndsAt,
+                operationMode = effectiveMode,
+            }).ConfigureAwait(false);
+            return;
+        }
+
+        if (!isSuperAdmin
+            && isWriteOperation
+            && !IsOperationModeManagementPath(path)
+            && !IsDataManagementPath(path)
+            && effectiveMode == TenantOperationModes.Readonly)
+        {
+            logger.LogWarning(
+                "Tenant write blocked by read-only mode. TenantId={TenantId}, Path={Path}, Method={Method}",
+                tenantId,
+                path.Value,
+                method);
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsJsonAsync(new
+            {
+                error = "TenantReadOnly",
+                code = "TenantReadOnly",
+                message = "This tenant is in read-only mode",
+                reason = "Please contact support for assistance",
+                operationMode = effectiveMode,
             }).ConfigureAwait(false);
             return;
         }
@@ -189,6 +266,13 @@ public sealed class TenantOperationalGateMiddleware
     {
         var value = path.Value ?? string.Empty;
         return value.Contains("/data-management", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Allow Super Admin to change operation mode even when the tenant is readonly/maintenance.</summary>
+    private static bool IsOperationModeManagementPath(PathString path)
+    {
+        var value = path.Value ?? string.Empty;
+        return value.Contains("/operation-mode", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsUserManagementPath(PathString path)

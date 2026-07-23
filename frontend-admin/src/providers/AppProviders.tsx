@@ -10,6 +10,7 @@ import { TenantChangeListener } from '@/features/auth/components/TenantChangeLis
 import { TenantSwitchProvider } from '@/features/auth/contexts/TenantSwitchContext';
 import { AuthProvider } from '@/features/auth/providers/AuthProvider';
 import { I18nProvider } from '@/i18n';
+import '@/lib/dateUtils';
 import { PersonalizationProvider } from '@/lib/personalization/PersonalizationProvider';
 import { createAppQueryClient } from '@/lib/queryClient';
 import { ThemeProvider } from '@/providers/ThemeProvider';

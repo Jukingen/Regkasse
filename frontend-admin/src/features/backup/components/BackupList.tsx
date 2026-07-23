@@ -15,6 +15,7 @@ import { Alert, App, Button, Space, Table, Tag, Tooltip, Typography, Upload } fr
 import type { ColumnsType } from 'antd/es/table';
 import React, { useCallback, useMemo, useState } from 'react';
 
+import { dateColumnRender } from '@/components/DateColumn';
 import {
   getGetApiAdminBackupListQueryKey,
   usePostApiAdminBackupArtifactsImport,
@@ -297,7 +298,7 @@ export function BackupList({
       dataIndex: 'createdAt',
       key: 'createdAt',
       width: 180,
-      render: (date: string) => formatDate(date),
+      render: dateColumnRender('datetime'),
       sorter: (a, b) => new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime(),
       defaultSortOrder: 'descend',
     };
@@ -504,7 +505,6 @@ export function BackupList({
     canRestore,
     compact,
     downloadingKey,
-    formatDate,
     formatFileSize,
     handleDownload,
     strategyFilter,

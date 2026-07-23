@@ -4,10 +4,10 @@ import { EyeOutlined, PrinterOutlined } from '@ant-design/icons';
 import { Button, Space, Tag, Typography } from 'antd';
 import type { ColumnsType, TablePaginationConfig, TableRowSelection } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
-import dayjs from 'dayjs';
 import Link from 'next/link';
 import React from 'react';
 
+import { DateColumn } from '@/components/DateColumn';
 import { VirtualTable } from '@/components/VirtualTable';
 import { adminTablePaginationDefaults } from '@/components/ui/adminTablePagination';
 import { ReprintButton } from '@/features/payments/components/ReprintButton';
@@ -75,7 +75,7 @@ function buildColumns(
             type="secondary"
             style={{ fontSize: 12, fontVariantNumeric: 'tabular-nums' }}
           >
-            {dayjs(row.issuedAt).format('DD.MM.YYYY HH:mm')}
+            <DateColumn date={row.issuedAt} format="datetime" />
           </Typography.Text>
         </Space>
       ),

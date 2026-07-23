@@ -5,7 +5,6 @@ import { Alert, Button, Dropdown, Space, Tooltip, Typography } from 'antd';
 import type { MenuProps } from 'antd';
 import type { TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
-import dayjs from 'dayjs';
 import React, { Suspense, useCallback, useMemo, useRef, useState } from 'react';
 
 import { TableSkeleton } from '@/components/Skeleton';
@@ -28,6 +27,7 @@ import { useExportDownloadShortcutHandlers } from '@/hooks/useExportDownloadShor
 import { useKeyboardShortcutLabels } from '@/components/KeyboardShortcutsProvider';
 import { useI18n } from '@/i18n';
 import { formatBytes, formatNumber } from '@/i18n/formatting';
+import { formatDate } from '@/lib/dateUtils';
 import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
@@ -306,7 +306,7 @@ function ReceiptsPageContent() {
     if (params.issuedFrom && params.issuedTo) {
       parts.push(
         t('receipts.list.scopeDateRange', {
-          range: `${dayjs(params.issuedFrom).format('DD.MM.YYYY')}–${dayjs(params.issuedTo).format('DD.MM.YYYY')}`,
+          range: `${formatDate(params.issuedFrom)}–${formatDate(params.issuedTo)}`,
         })
       );
     } else {

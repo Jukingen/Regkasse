@@ -38,6 +38,7 @@ import {
   type PermissionAuditExportFormat,
   type PermissionAuditReportParams,
 } from '@/features/audit/api/permissionAudit';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 import { formatDateTime } from '@/i18n/formatting';
@@ -155,7 +156,7 @@ function PermissionAuditReportModalContent({ open, onClose, filters, canExport }
       title: t('users.permissionAudit.report.colLastReview'),
       dataIndex: 'lastReviewedAtUtc',
       key: 'lastReviewedAtUtc',
-      render: (v?: string | null) => (v ? formatDateTime(v) : '—'),
+      render: dateColumnRender('datetime'),
     },
     {
       title: t('users.permissionAudit.report.colFlags'),

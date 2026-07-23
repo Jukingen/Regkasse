@@ -299,10 +299,14 @@
     "tooltip": {
       "kasse": "Register",
       "id": "ID",
+      "mandantId": "Tenant ID",
       "status": "Status",
       "tse": "TSE",
       "balance": "Balance",
-      "unavailable": "—"
+      "unavailable": "—",
+      "copyValue": "Copy value",
+      "copyAll": "Copy all",
+      "copied": "Copied"
     },
     "mandantHeader": "Tenant: {{name}} ({{slug}})",
     "defaultTag": "Default"

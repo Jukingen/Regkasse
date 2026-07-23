@@ -166,6 +166,8 @@ public static class PermissionCatalog
         AppPermissions.RksvSchlussbelegCreate,
         AppPermissions.RksvTestHelper,
         AppPermissions.RksvTseSimulation,
+        AppPermissions.RiskView,
+        AppPermissions.RiskManage,
         AppPermissions.SystemCritical,
         AppPermissions.TenantManage,
         AppPermissions.TenantView,

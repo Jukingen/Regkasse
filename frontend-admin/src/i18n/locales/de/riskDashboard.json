@@ -1,0 +1,33 @@
+{
+  "pageTitle": "Risiko-Dashboard",
+  "pageSubtitle": "Anomalien und Risiko-Scores für Mandanten-Aktionen (Super-Admin).",
+  "statCritical": "Kritisch",
+  "statHigh": "Hoch",
+  "statMedium": "Mittel",
+  "statLow": "Niedrig",
+  "colTenant": "Mandant",
+  "colUser": "Benutzer",
+  "colAction": "Aktion",
+  "colRiskLevel": "Risikostufe",
+  "colScore": "Score",
+  "colReason": "Grund",
+  "colCreated": "Erkannt",
+  "colActions": "Aktionen",
+  "resolve": "Auflösen",
+  "resolveTitle": "Risiko auflösen",
+  "resolvePrompt": "Bitte eine kurze Begründung für die Auflösung angeben.",
+  "resolvePlaceholder": "z. B. False Positive / geprüft",
+  "resolveSuccess": "Risiko als erledigt markiert.",
+  "blockUser": "Benutzer deaktivieren",
+  "blockUserTitle": "Benutzer deaktivieren?",
+  "blockUserContent": "Der Benutzer wird deaktiviert und muss sich erneut anmelden können, nachdem er reaktiviert wurde.",
+  "blockUserReason": "Deaktiviert über Risiko-Dashboard",
+  "blockUserSuccess": "Benutzer deaktiviert.",
+  "empty": "Keine offenen Risiko-Scores.",
+  "levels": {
+    "Critical": "Kritisch",
+    "High": "Hoch",
+    "Medium": "Mittel",
+    "Low": "Niedrig"
+  }
+}

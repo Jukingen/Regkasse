@@ -8,5 +8,14 @@
   "update": "Aktualisieren",
   "maintenance": "Wartung",
   "tseStatus": "TSE-Status",
-  "printerStatus": "Druckerstatus"
+  "printerStatus": "Druckerstatus",
+  "maintenanceNotice": {
+    "modalTitle": "Systemwartung",
+    "windowLabel": "Wartungsfenster:",
+    "countdownLabel": "Zeit bis zur Wartung:",
+    "forceNotice": "Dieses Wartungsfenster kann nicht geschlossen werden. Das System ist vorübergehend möglicherweise nicht verfügbar.",
+    "starts": "Beginn",
+    "dismiss": "Schließen",
+    "paymentBlocked": "Zahlungen sind während der Systemwartung vorübergehend deaktiviert. Bitte versuchen Sie es später erneut."
+  }
 }

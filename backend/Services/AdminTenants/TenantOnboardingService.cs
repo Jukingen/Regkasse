@@ -180,7 +180,7 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
                 ActionProvisioned,
                 actorId,
                 correlationId,
-                $"Provisioned register {provisioning!.CashRegisterNumber}, admin {provisioning.AdminUserId}",
+                $"Provisioned register {provisioning!.CashRegisterNumber}, admin {provisioning.AdminUserId}, tseDevice={provisioning.TseDeviceId}",
                 AuditLogStatus.Success,
                 cancellationToken,
                 tenant.Id).ConfigureAwait(false);
@@ -296,5 +296,9 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
             t.UpdatedAt,
             t.DeletedAtUtc,
             OwnerAdminEmail: provisioning.AdminEmail,
-            Provisioning: provisioning);
+            Provisioning: provisioning,
+            OperationMode: t.OperationMode,
+            MaintenanceMessage: t.MaintenanceMessage,
+            MaintenanceStartedAt: t.MaintenanceStartedAt,
+            MaintenanceEndsAt: t.MaintenanceEndsAt);
 }

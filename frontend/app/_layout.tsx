@@ -22,6 +22,7 @@ import { CartProvider } from '../contexts/CartContext';
 import { DevelopmentModeProvider } from '../contexts/DevelopmentModeContext';
 import { LicenseStatusProvider } from '../contexts/LicenseStatusContext';
 import { MandantLicenseWarningProvider } from '../contexts/MandantLicenseWarningContext';
+import { MaintenanceProvider } from '../contexts/MaintenanceContext';
 import { PosStatusOverviewProvider } from '../contexts/PosStatusOverviewContext';
 import { SystemProvider } from '../contexts/SystemContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
@@ -125,6 +126,7 @@ export default function RootLayout() {
             <PosStatusOverviewProvider>
               <LicenseStatusProvider>
                 <MandantLicenseWarningProvider>
+                  <MaintenanceProvider>
                   <SystemProvider>
                     <ThemeProvider>
                       <AppStateProvider>
@@ -151,6 +153,7 @@ export default function RootLayout() {
                       </AppStateProvider>
                     </ThemeProvider>
                   </SystemProvider>
+                  </MaintenanceProvider>
                 </MandantLicenseWarningProvider>
               </LicenseStatusProvider>
             </PosStatusOverviewProvider>

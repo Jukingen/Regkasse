@@ -45,6 +45,7 @@ public sealed class AdminCashRegistersListTests
             Mock.Of<IAuditLogService>(),
             enrichment,
             new PaymentMethodDefinitionBootstrapService(db),
+            TseProvisioningTestDoubles.Successful(),
             NullLogger<CashRegisterManagementService>.Instance);
 
         var controller = new AdminCashRegistersController(

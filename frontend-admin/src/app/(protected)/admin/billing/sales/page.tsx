@@ -13,9 +13,9 @@ import { StatusBadge, resolveStatusType } from '@/components/StatusBadge';
 import { BillingAccessGate } from '@/features/billing/components/BillingAccessGate';
 import { useBillingSalesList } from '@/features/billing/hooks';
 import { downloadLicenseSaleInvoicePdf } from '@/features/billing/utils/downloadInvoicePdf';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
-import { formatGermanDateTime } from '@/lib/dateFormatter';
 import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 
 const { RangePicker } = DatePicker;
@@ -134,7 +134,7 @@ export default function BillingSalesPage() {
       title: 'Gültig bis',
       dataIndex: 'validUntilUtc',
       key: 'validUntilUtc',
-      render: (date: string | undefined) => (date ? formatGermanDateTime(date) : '—'),
+      render: dateColumnRender('datetime'),
     },
     {
       title: 'Betrag (Netto)',
@@ -168,7 +168,7 @@ export default function BillingSalesPage() {
       title: 'Verkauft am',
       dataIndex: 'soldAtUtc',
       key: 'soldAtUtc',
-      render: (date: string | undefined) => (date ? formatGermanDateTime(date) : '—'),
+      render: dateColumnRender('datetime'),
     },
     {
       title: 'Aktionen',

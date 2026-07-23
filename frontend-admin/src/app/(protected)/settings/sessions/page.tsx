@@ -2,11 +2,6 @@
 
 import { Button, Card, Space, Table, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import dayjs from 'dayjs';
-import 'dayjs/locale/de';
-import 'dayjs/locale/en';
-import 'dayjs/locale/tr';
-import relativeTime from 'dayjs/plugin/relativeTime';
 import { useState } from 'react';
 
 import { ConfirmDialog } from '@/components/ConfirmDialog';
@@ -17,21 +12,17 @@ import type { ActiveSession } from '@/features/auth/api/sessionsApi';
 import { useSessions } from '@/features/auth/hooks/useSessions';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
+import dayjs from '@/lib/dayjs';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-
-dayjs.extend(relativeTime);
 
 type PendingConfirm = { kind: 'revoke'; session: ActiveSession } | { kind: 'revokeOthers' } | null;
 
 export default function ActiveSessionsPage() {
   const { message } = useAntdApp();
-  const { t, textLocale } = useI18n();
+  const { t } = useI18n();
   const { sessions, isLoading, isFetching, refetch, revoke, revokeOthers, isRevoking } =
     useSessions();
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm>(null);
-
-  const relativeLocale = textLocale === 'tr' ? 'tr' : textLocale === 'en' ? 'en' : 'de';
-
   const breadcrumbs = [
     adminOverviewCrumb(t),
     { title: t('nav.settingsHub'), href: '/settings' },
@@ -87,7 +78,7 @@ export default function ActiveSessionsPage() {
       title: t('common.auth.sessions.lastActivity'),
       dataIndex: 'lastActivityAtUtc',
       key: 'lastActivityAtUtc',
-      render: (value: string) => (value ? dayjs(value).locale(relativeLocale).fromNow() : '—'),
+      render: (value: string) => (value ? dayjs(value).fromNow() : '—'),
     },
     {
       title: t('common.auth.sessions.colStatus'),

@@ -18,6 +18,7 @@ import {
 } from '@/features/alerts/hooks/useAlerts';
 import type { SuspiciousAlertSeverity } from '@/features/alerts/types';
 import { useI18n } from '@/i18n/I18nProvider';
+import { formatDateTime } from '@/lib/dateUtils';
 import { getAdminHeaderPopupContainer } from '@/shared/layout/adminHeaderDropdown';
 
 const { Text } = Typography;
@@ -50,7 +51,7 @@ function getSeverityTagColor(severity: SuspiciousAlertSeverity): string {
 
 /** Header bell for suspicious payment / security alerts. */
 export function AlertBell() {
-  const { t, formatLocale } = useI18n();
+  const { t } = useI18n();
   const canSee = useSuspiciousAlertsAccess();
   const [open, setOpen] = useState(false);
 
@@ -75,13 +76,7 @@ export function AlertBell() {
     void refetch();
   };
 
-  const formatTimestamp = (iso: string) => {
-    try {
-      return new Date(iso).toLocaleString(formatLocale);
-    } catch {
-      return iso;
-    }
-  };
+  const formatTimestamp = (iso: string) => formatDateTime(iso);
 
   const content = (
     <div className={styles.panel}>

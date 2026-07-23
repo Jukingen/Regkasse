@@ -54,6 +54,7 @@ import {
 } from '@/features/payments/utils/paymentFilterUrl';
 import { paymentFiltersToApiParams } from '@/features/payments/utils/paymentFiltersToApiParams';
 import { getReceiptByPaymentForensics } from '@/features/receipts/api/forensics-client';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 import {
@@ -359,8 +360,7 @@ export default function PaymentsPage() {
         title: t('payments.table.colDate'),
         dataIndex: 'createdAt',
         key: 'createdAt',
-        render: (date: string) =>
-          date ? formatDateTime(date, formatLocale) : FORMAT_EMPTY_DISPLAY,
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('payments.table.colAmount'),

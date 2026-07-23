@@ -959,5 +959,11 @@
     "summaryViewReceipts": "Fişleri göster",
     "summaryViewRevenue": "Ciroyu göster",
     "summaryRecreate": "Yeniden oluştur"
+  },
+  "offlineQueue": {
+    "alertTitle": "TSE çevrimdışı kuyruğunda {{count}} işlem",
+    "alertCritical": "Kuyruk kritik dolulukta! Yeni çevrimdışı işlemler engellenebilir.",
+    "alertWarning": "Kuyruk doluyor. TSE bağlantısını kontrol edin ve yeniden oynatmayı başlatın.",
+    "oldestLabel": "En eski intent: {{when}}"
   }
 }

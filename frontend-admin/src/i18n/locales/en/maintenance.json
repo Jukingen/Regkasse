@@ -1,0 +1,45 @@
+{
+  "modalTitle": "System maintenance",
+  "starts": "Starts",
+  "ends": "Ends",
+  "countdown": "Time until maintenance starts",
+  "countdownEnds": "Time until maintenance ends",
+  "forceNotice": "This maintenance window cannot be dismissed. The system may be temporarily unavailable.",
+  "scheduledBySuperAdmin": "Scheduled by Super Admin",
+  "dismiss": "Dismiss",
+  "limitedMode": {
+    "title": "Maintenance Mode — Limited Access",
+    "description": "Some operations are temporarily disabled. You can view data but cannot modify it.",
+    "disabledTooltip": "Disabled during maintenance"
+  },
+  "manage": {
+    "pageTitle": "System maintenance",
+    "pageSubtitle": "Start and end platform-wide maintenance windows. While active, the system runs in limited (read-mostly) mode: POS payments and write APIs are blocked for non-SuperAdmin users.",
+    "accessDenied": "Only Super Admins can manage system maintenance.",
+    "modeCardTitle": "Maintenance mode",
+    "notificationsCardTitle": "Maintenance notifications",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "blocksHint": "Limited mode: reads allowed; POS payments and write APIs blocked for non-SuperAdmin users.",
+    "startAction": "Start maintenance",
+    "endAction": "End maintenance",
+    "refresh": "Refresh",
+    "started": "Maintenance mode started",
+    "ended": "Maintenance mode ended",
+    "actionFailed": "Action failed",
+    "endConfirmTitle": "End maintenance?",
+    "endConfirmBody": "All active maintenance windows will be completed. Clients regain normal access.",
+    "startModalTitle": "Start maintenance",
+    "formTitle": "Title (optional)",
+    "formMessage": "Message (optional)",
+    "formEnd": "Scheduled end",
+    "emptyNotifications": "No notifications",
+    "columns": {
+      "title": "Title",
+      "status": "Status",
+      "start": "Start",
+      "end": "End",
+      "priority": "Priority"
+    }
+  }
+}

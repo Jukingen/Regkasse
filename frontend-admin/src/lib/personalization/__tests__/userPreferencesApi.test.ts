@@ -11,12 +11,16 @@ describe('userPreferencesApi mappers', () => {
       defaultPage: '/admin/users',
       dateFormat: 'DD.MM.YYYY',
       timeFormat: '24h',
+      timeZone: 'Europe/Vienna',
+      language: 'de',
       reducedAnimations: true,
     });
     expect(prefs.themeMode).toBe('dark');
     expect(prefs.density).toBe('standard');
     expect(prefs.defaultLandingPath).toBe('/admin/users');
     expect(prefs.dateFormat).toBe('DD.MM.YYYY');
+    expect(prefs.timeZone).toBe('Europe/Vienna');
+    expect(prefs.language).toBe('de');
     expect(prefs.reducedAnimations).toBe(true);
   });
 
@@ -26,9 +30,13 @@ describe('userPreferencesApi mappers', () => {
       themeMode: 'system',
       density: 'compact',
       dateFormat: 'YYYY-MM-DD',
+      timeZone: 'Europe/Berlin',
+      language: 'en',
     });
     expect(body.themeMode).toBe('system');
     expect(body.densityMode).toBe('compact');
     expect(body.dateFormat).toBe('YYYY-MM-DD');
+    expect(body.timeZone).toBe('Europe/Berlin');
+    expect(body.language).toBe('en');
   });
 });

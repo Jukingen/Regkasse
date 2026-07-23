@@ -45,7 +45,8 @@ public sealed class AdminProductsBulkDeactivateTests
             NullCurrentTenantAccessor.Instance,
             new AdminProductListService(ctx, TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary)),
             Mock.Of<IProductService>(),
-            Mock.Of<IProductExportService>());
+            Mock.Of<IProductExportService>(),
+            Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
 
     [Fact]
     public async Task BulkDeactivateProducts_SoftDeletesActiveOnly()

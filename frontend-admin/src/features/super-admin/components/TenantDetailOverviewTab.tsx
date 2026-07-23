@@ -11,6 +11,7 @@ import { useBillingAccess } from '@/features/billing/hooks/useBillingAccess';
 import type { AdminTenantDetail } from '@/features/super-admin/api/adminTenants';
 import { TenantLicenseBadge } from '@/features/super-admin/components/TenantLicenseBadge';
 import { tenantStatusColor } from '@/features/super-admin/utils/tenantStatusLabel';
+import { TenantActivityReport } from '@/features/tenants/components/TenantActivityReport';
 import { buildAdminUsersPageHref } from '@/features/users/utils/adminUsersPageUrl';
 import { formatDate, formatDateTime, useI18n } from '@/i18n';
 
@@ -42,6 +43,25 @@ export function TenantDetailOverviewTab({
         <Descriptions column={{ xs: 1, sm: 2 }} size="small">
           <Descriptions.Item label={t('tenants.columns.status')}>
             <Tag color={tenantStatusColor(tenant.status)}>{tenant.status}</Tag>
+          </Descriptions.Item>
+          <Descriptions.Item label={t('tenants.detail.operationMode.title')}>
+            <Tag
+              color={
+                tenant.operationMode === 'maintenance'
+                  ? 'red'
+                  : tenant.operationMode === 'readonly'
+                    ? 'orange'
+                    : 'green'
+              }
+            >
+              {t(
+                `tenants.detail.operationMode.options.${
+                  tenant.operationMode === 'readonly' || tenant.operationMode === 'maintenance'
+                    ? tenant.operationMode
+                    : 'active'
+                }`
+              )}
+            </Tag>
           </Descriptions.Item>
           <Descriptions.Item label={t('tenants.detail.overview.created')}>
             {formatDate(tenant.createdAt, formatLocale)}
@@ -161,7 +181,9 @@ export function TenantDetailOverviewTab({
         <Typography.Paragraph type="secondary">
           {t('tenants.detail.settings.danger.deletedSettingsHint')}
         </Typography.Paragraph>
-      ) : null}
+      ) : (
+        <TenantActivityReport tenantId={tenant.id} />
+      )}
     </Space>
   );
 }

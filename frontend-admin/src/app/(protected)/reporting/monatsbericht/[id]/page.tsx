@@ -1,5 +1,7 @@
 'use client';
 
+import { dateColumnRender } from '@/components/DateColumn';
+
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
@@ -250,7 +252,7 @@ export default function MonatsberichtDetailPage() {
         {
           title: td('labels.tableDate'),
           dataIndex: 'viennaBusinessDate',
-          render: (v: string) => formatDate(v, formatLocale),
+          render: dateColumnRender('short'),
         },
         {
           title: td('labels.register'),

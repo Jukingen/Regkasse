@@ -280,7 +280,13 @@
       "receiptNumbering": "Belegnummerierung",
       "receiptNumberingRequired": "Belegnummerierung ist erforderlich",
       "invoiceNumbering": "Rechnungsnummerierung",
-      "invoiceNumberingRequired": "Rechnungsnummerierung ist erforderlich"
+      "invoiceNumberingRequired": "Rechnungsnummerierung ist erforderlich",
+      "defaultPaymentMethod": "Standard-Zahlungsart",
+      "defaultPaymentMethodRequired": "Standard-Zahlungsart ist erforderlich",
+      "placeholderPaymentMethod": "Cash",
+      "taxCalculationMethod": "Steuerberechnung",
+      "taxCalculationMethodRequired": "Steuerberechnung ist erforderlich",
+      "placeholderTaxCalculation": "Standard"
     },
     "finanzOnline": {
       "credentialsCardTitle": "Zugangsdaten & Anbindung",
@@ -523,8 +529,10 @@
       "density": "Dichte",
       "defaultPage": "Standardseite nach Login",
       "dateFormatLabel": "Datumsformat",
-      "dateFormatDescription": "Festes deutsches Format (Tag.Monat.Jahr), unabhängig von der Oberflächensprache.",
+      "dateFormatDescription": "Format für Tabellen und Detailansichten. Unabhängig von der Oberflächensprache wählbar.",
       "timeFormat": "Zeitformat",
+      "timeZone": "Zeitzone",
+      "timeZoneHint": "Zeitzone für die Anzeige von Datum und Uhrzeit in der Admin-Oberfläche.",
       "reducedMotion": "Reduzierte Animationen",
       "reducedMotionHint": "Für bessere Leistung",
       "notifyOnExports": "Benachrichtige mich bei Exporten",
@@ -532,7 +540,9 @@
       "exportSound": "Ton bei Export-Benachrichtigungen",
       "exportSoundHint": "Kurzer Hinweiston bei Erfolg oder Fehler (optional)",
       "dateFormatOptions": {
-        "DD_MM_YYYY": "01.12.2025 (DD.MM.YYYY)"
+        "DD_MM_YYYY": "31.12.2024 (DD.MM.YYYY)",
+        "MM_DD_YYYY": "12/31/2024 (MM/DD/YYYY)",
+        "YYYY_MM_DD": "2024-12-31 (YYYY-MM-DD)"
       }
     },
     "theme": {
@@ -582,6 +592,19 @@
       "admin_users": "Benutzer",
       "kassenverwaltung": "Kassen",
       "reporting": "Berichte"
+    }
+  },
+  "preferences": {
+    "pageTitle": "Datums- & Zeiteinstellungen",
+    "intro": "Persönliche Formatierung für Datum, Uhrzeit und Zeitzone in der Admin-Oberfläche.",
+    "cardTitle": "Benutzerpräferenzen",
+    "save": "Speichern",
+    "saveSuccess": "Präferenzen gespeichert.",
+    "fields": {
+      "dateFormat": "Datumsformat",
+      "timeZone": "Zeitzone",
+      "language": "Sprache",
+      "use24HourFormat": "24-Stunden-Format"
     }
   }
 }

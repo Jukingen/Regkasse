@@ -10,14 +10,15 @@ import {
   getLicenseHistoryEventTagColor,
 } from '@/features/license/utils/licenseHistoryLabels';
 import { maskTenantLicenseKey } from '@/features/license/utils/tenantLicenseExtend';
-import { formatGermanDateTime, useI18n } from '@/i18n';
+import { dateColumnRender } from '@/components/DateColumn';
+import { useI18n } from '@/i18n';
 
 export type LicenseHistoryProps = {
   tenantId?: string;
 };
 
 export function LicenseHistory({ tenantId }: LicenseHistoryProps) {
-  const { t, formatLocale } = useI18n();
+  const { t } = useI18n();
   const historyQuery = useLicenseHistory(tenantId);
   const items = historyQuery.data ?? [];
 
@@ -27,7 +28,7 @@ export function LicenseHistory({ tenantId }: LicenseHistoryProps) {
       dataIndex: 'atUtc',
       key: 'atUtc',
       width: 170,
-      render: (value: string) => formatGermanDateTime(value),
+      render: dateColumnRender('datetime'),
     },
     {
       title: t('license.history.columns.event'),

@@ -33,17 +33,22 @@ import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ChangeMyPasswordForm } from '@/features/settings/components/ChangeMyPasswordForm';
 import { LanguageSelector } from '@/features/settings/components/LanguageSelector';
 import {
+  resolveSettingsHubTabForField,
+} from '@/features/settings/constants/settingsFieldTabs';
+import {
   SETTINGS_HUB_TAB_KEYS,
   resolveSettingsHubTabKey,
 } from '@/features/settings/constants/settingsHubTabs';
 import {
   type SettingsFormValues,
-  mapFormValuesToUpdateRequest,
+  buildUpdateCompanySettingsRequest,
   mapSettingsToFormValues,
 } from '@/features/settings/types/settingsForm';
+import { localizeSettingsFieldValidationMessages } from '@/features/settings/utils/localizeSettingsFieldValidationMessages';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 import { customInstance } from '@/lib/axios';
+import { applyAspNetFieldErrorsToForm } from '@/lib/form/applyAspNetFieldErrorsToForm';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 
 const ATU_REGEX = /^ATU\d{8}$/;
@@ -92,12 +97,46 @@ export function SuperAdminSettings() {
     }
   }, [settings, form]);
 
+  const focusFirstErrorField = (fieldNames: string[]) => {
+    const first = fieldNames[0];
+    if (!first) return;
+    const tab = resolveSettingsHubTabForField(first);
+    if (tab) setSettingsTab(tab);
+    window.setTimeout(() => {
+      form.scrollToField(first, { block: 'center' });
+    }, 80);
+  };
+
+  const handleFinishFailed = (info: {
+    errorFields: { name: (string | number)[]; errors: string[] }[];
+  }) => {
+    const names = info.errorFields
+      .map((f) => f.name[0])
+      .filter((n): n is string => typeof n === 'string');
+    focusFirstErrorField(names);
+  };
+
   const handleSave = async (values: SettingsFormValues) => {
     try {
-      const payload = mapFormValuesToUpdateRequest(values);
+      // Ant Design Tabs only register mounted pane fields in onFinish; merge store +
+      // existing GET settings so required localization/fiscal fields are never dropped.
+      const stored = form.getFieldsValue(true) as Partial<SettingsFormValues>;
+      const payload = buildUpdateCompanySettingsRequest(
+        { ...stored, ...values },
+        settings ?? null
+      );
       await updateMutation.mutateAsync({ data: payload });
       message.success(t('settings.page.saveChanges'));
-    } catch {
+    } catch (err) {
+      const fieldNames = applyAspNetFieldErrorsToForm(form, err, {
+        localizeMessage: (formField, messages) =>
+          localizeSettingsFieldValidationMessages(t, formField, messages),
+      });
+      if (fieldNames.length) {
+        focusFirstErrorField(fieldNames);
+        message.error(t('settings.page.saveFailed'));
+        return;
+      }
       message.error(t('settings.page.saveFailed'));
     }
   };
@@ -166,7 +205,13 @@ export function SuperAdminSettings() {
         }
       />
 
-      <Form<SettingsFormValues> form={form} layout="vertical" onFinish={handleSave}>
+      <Form<SettingsFormValues>
+        form={form}
+        layout="vertical"
+        onFinish={handleSave}
+        onFinishFailed={handleFinishFailed}
+        scrollToFirstError
+      >
         {mustChangePassword ? (
           <Alert
             type="warning"
@@ -178,25 +223,30 @@ export function SuperAdminSettings() {
         <Tabs
           activeKey={settingsTab}
           onChange={setSettingsTab}
+          destroyOnHidden={false}
           items={[
             {
               key: '1',
               label: t('settings.tabs.general'),
+              forceRender: true,
               children: <GeneralInfoTab />,
             },
             {
               key: '2',
               label: t('settings.tabs.localization'),
+              forceRender: true,
               children: <LocalizationTab />,
             },
             {
               key: '3',
               label: t('settings.tabs.finanzOnline'),
+              forceRender: true,
               children: <FinanzOnlineTab />,
             },
             {
               key: '4',
               label: t('settings.tabs.tse'),
+              forceRender: true,
               children: <TSETab />,
             },
             {
@@ -376,6 +426,26 @@ function LocalizationTab() {
               rules={[{ required: true, message: l('invoiceNumberingRequired') }]}
             >
               <Input />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={24}>
+          <Col span={12}>
+            <Form.Item
+              label={l('defaultPaymentMethod')}
+              name="defaultPaymentMethod"
+              rules={[{ required: true, message: l('defaultPaymentMethodRequired') }]}
+            >
+              <Input placeholder={l('placeholderPaymentMethod')} />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              label={l('taxCalculationMethod')}
+              name="taxCalculationMethod"
+              rules={[{ required: true, message: l('taxCalculationMethodRequired') }]}
+            >
+              <Input placeholder={l('placeholderTaxCalculation')} />
             </Form.Item>
           </Col>
         </Row>

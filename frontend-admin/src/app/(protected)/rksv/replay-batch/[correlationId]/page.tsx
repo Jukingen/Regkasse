@@ -1,5 +1,7 @@
 'use client';
 
+import { dateColumnRender } from '@/components/DateColumn';
+
 import { useQuery } from '@tanstack/react-query';
 import {
   Alert,
@@ -24,7 +26,7 @@ import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import { getApiAdminReplayBatchCorrelationId } from '@/api/generated/admin/admin';
 import type { ReplayBatchPaymentItemDto } from '@/api/generated/model';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { formatCurrency, formatDateTime, useI18n } from '@/i18n';
+import { formatCurrency, useI18n } from '@/i18n';
 import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { AdminTruthBadge } from '@/shared/adminTruthBadges';
 import {
@@ -143,7 +145,7 @@ export default function ReplayBatchDetailPage() {
         ),
         dataIndex: 'createdAtUtc',
         key: 'createdAtUtc',
-        render: (v: string) => (v ? formatDateTime(v, '') : '—'),
+        render: dateColumnRender('datetime'),
       },
     ],
     [t, formatLocale, correlationId]

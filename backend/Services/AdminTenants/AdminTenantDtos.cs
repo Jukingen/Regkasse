@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using KasseAPI_Final.Models;
 
 namespace KasseAPI_Final.Services.AdminTenants;
 
@@ -36,7 +37,11 @@ public sealed record AdminTenantDetailDto(
     int ActiveUserCount = 0,
     int CashRegisterCount = 0,
     DateTime? LastActivityAtUtc = null,
-    TenantProvisioningDto? Provisioning = null);
+    TenantProvisioningDto? Provisioning = null,
+    string OperationMode = TenantOperationModes.Active,
+    string? MaintenanceMessage = null,
+    DateTime? MaintenanceStartedAt = null,
+    DateTime? MaintenanceEndsAt = null);
 
 public sealed record AdminTenantCashRegisterDto(
     Guid Id,
@@ -180,6 +185,20 @@ public sealed class UpdateAdminTenantRequest
     public DateTime? LicenseValidUntilUtc { get; set; }
 
     public bool? IsActive { get; set; }
+}
+
+public sealed class UpdateTenantOperationModeRequest
+{
+    [Required]
+    [MaxLength(20)]
+    public string OperationMode { get; set; } = TenantOperationModes.Active;
+
+    [MaxLength(2000)]
+    public string? MaintenanceMessage { get; set; }
+
+    public DateTime? MaintenanceStartedAt { get; set; }
+
+    public DateTime? MaintenanceEndsAt { get; set; }
 }
 
 public sealed record TenantSlugAvailabilityDto(

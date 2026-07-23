@@ -16,6 +16,7 @@ import {
   useOrders,
   useUpdateOnlineOrderStatus,
 } from '@/features/orders/hooks/useOrders';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
@@ -161,7 +162,7 @@ export function OrderManagement() {
       title: t('onlineOrders.columns.createdAt'),
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (date: string) => (date ? new Date(date).toLocaleString(formatLocale) : '—'),
+      render: dateColumnRender('datetime'),
     },
     {
       title: t('onlineOrders.columns.actions'),

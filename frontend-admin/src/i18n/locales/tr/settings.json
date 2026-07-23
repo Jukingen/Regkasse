@@ -280,7 +280,13 @@
       "receiptNumbering": "Fis numaralandirma",
       "receiptNumberingRequired": "Fis numaralandirma zorunludur",
       "invoiceNumbering": "Fatura numaralandirma",
-      "invoiceNumberingRequired": "Fatura numaralandirma zorunludur"
+      "invoiceNumberingRequired": "Fatura numaralandirma zorunludur",
+      "defaultPaymentMethod": "Varsayilan odeme yontemi",
+      "defaultPaymentMethodRequired": "Varsayilan odeme yontemi zorunludur",
+      "placeholderPaymentMethod": "Cash",
+      "taxCalculationMethod": "Vergi hesaplama yontemi",
+      "taxCalculationMethodRequired": "Vergi hesaplama yontemi zorunludur",
+      "placeholderTaxCalculation": "Standard"
     },
     "finanzOnline": {
       "credentialsCardTitle": "Kimlik bilgileri ve baglanti",
@@ -523,8 +529,10 @@
       "density": "Yoğunluk",
       "defaultPage": "Giriş sonrası ana sayfa",
       "dateFormatLabel": "Tarih biçimi",
-      "dateFormatDescription": "Tarih formatı: Gün.Ay.Yıl — arayüz dili ne olursa olsun sabit Almanca biçim.",
+      "dateFormatDescription": "Tablo ve detay görünümleri için biçim. Arayüz dilinden bağımsız seçilebilir.",
       "timeFormat": "Saat biçimi",
+      "timeZone": "Saat dilimi",
+      "timeZoneHint": "Admin arayüzünde tarih ve saatin gösterildiği saat dilimi.",
       "reducedMotion": "Azaltılmış animasyonlar",
       "reducedMotionHint": "Daha iyi performans için",
       "notifyOnExports": "Disa aktarmalarda beni bilgilendir",
@@ -532,7 +540,9 @@
       "exportSound": "Disa aktarma bildirim sesi",
       "exportSoundHint": "Basari veya hatada kisa bir ses (istege bagli)",
       "dateFormatOptions": {
-        "DD_MM_YYYY": "01.12.2025 (DD.MM.YYYY)"
+        "DD_MM_YYYY": "31.12.2024 (DD.MM.YYYY)",
+        "MM_DD_YYYY": "12/31/2024 (MM/DD/YYYY)",
+        "YYYY_MM_DD": "2024-12-31 (YYYY-MM-DD)"
       }
     },
     "theme": {
@@ -582,6 +592,19 @@
       "admin_users": "Kullanıcılar",
       "kassenverwaltung": "Kasalar",
       "reporting": "Raporlar"
+    }
+  },
+  "preferences": {
+    "pageTitle": "Tarih ve saat tercihleri",
+    "intro": "Admin arayüzü için kişisel tarih, saat ve saat dilimi biçimlendirmesi.",
+    "cardTitle": "Kullanıcı tercihleri",
+    "save": "Kaydet",
+    "saveSuccess": "Tercihler kaydedildi.",
+    "fields": {
+      "dateFormat": "Tarih biçimi",
+      "timeZone": "Saat dilimi",
+      "language": "Dil",
+      "use24HourFormat": "24 saat formatı"
     }
   }
 }

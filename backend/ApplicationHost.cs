@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
@@ -24,6 +24,9 @@ using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Services.Backup.PgDump;
 using KasseAPI_Final.Services.Billing;
 using KasseAPI_Final.Services.Cache;
+using KasseAPI_Final.Services.CriticalActions;
+using KasseAPI_Final.Services.Operations;
+using KasseAPI_Final.Services.GracePeriods;
 using KasseAPI_Final.Services.DataDeletion;
 using KasseAPI_Final.Services.DataExport;
 using KasseAPI_Final.Services.DataRetention;
@@ -53,6 +56,7 @@ using KasseAPI_Final.Swagger;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Tse;
 using KasseAPI_Final.Tse.Fiskaly;
+using KasseAPI_Final.Tse.Providers; // FiskalyOptionsFromTseProvidersPostConfigure, UnsupportedVendorTseProvider
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -81,7 +85,7 @@ namespace KasseAPI_Final;
 internal static class ApplicationHost
 {
     /// <summary>
-    /// Named CORS policy for browser clients (POS / FA / Sites). Not an allow-all policy —
+    /// Named CORS policy for browser clients (POS / FA / Sites). Not an allow-all policy â€”
     /// Development trusts local/LAN hosts; Production trusts <c>Cors:AllowedOrigins</c> plus <c>*.regkasse.at</c>.
     /// </summary>
     internal const string CorsPolicyName = "RegkasseClients";
@@ -265,7 +269,7 @@ internal static class ApplicationHost
         builder.Services.Configure<RateLimitingOptions>(builder.Configuration.GetSection(RateLimitingOptions.SectionName));
         builder.Services.Configure<MonitoringOptions>(builder.Configuration.GetSection(MonitoringOptions.SectionName));
         builder.Services.Configure<CsrfOptions>(builder.Configuration.GetSection(CsrfOptions.SectionName));
-        // CSRF double-submit tokens (cache-backed; IMemoryCache is singleton — Scoped service is fine).
+        // CSRF double-submit tokens (cache-backed; IMemoryCache is singleton â€” Scoped service is fine).
         builder.Services.AddScoped<ICsrfTokenService, CsrfTokenService>();
         builder.Services.AddScoped<WebsiteGeneratorService>();
         builder.Services.AddScoped<IWebsiteGeneratorService>(sp => sp.GetRequiredService<WebsiteGeneratorService>());
@@ -282,6 +286,17 @@ internal static class ApplicationHost
         builder.Services.AddScoped<ITenantServiceStatusService, TenantServiceStatusService>();
         builder.Services.AddScoped<IDigitalServiceRequestService, DigitalServiceRequestService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Feedback.IAdminFeedbackService, KasseAPI_Final.Services.Feedback.AdminFeedbackService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.TenantSettings.ITenantSettingsService, KasseAPI_Final.Services.TenantSettings.TenantSettingsService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.TenantSettings.ITenantSettingsNotificationService, KasseAPI_Final.Services.TenantSettings.TenantSettingsNotificationService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.RiskScoring.IRiskScoringService, KasseAPI_Final.Services.RiskScoring.RiskScoringService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.ActivityReports.IActivityAnomalyService, KasseAPI_Final.Services.ActivityReports.ActivityAnomalyService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.ActivityReports.IActivityReportService, KasseAPI_Final.Services.ActivityReports.ActivityReportService>();
+        builder.Services.AddScoped<IImpactSimulationService, ImpactSimulationService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Maintenance.IMaintenanceNotificationService, KasseAPI_Final.Services.Maintenance.MaintenanceNotificationService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Maintenance.IMaintenanceModeService, KasseAPI_Final.Services.Maintenance.MaintenanceModeService>();
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Maintenance.MaintenanceOperationFilter>();
+        builder.Services.AddHostedService<KasseAPI_Final.Services.Maintenance.MaintenanceNotificationScheduler>();
+
         builder.Services.AddScoped<ProductImageThumbnailService>();
         builder.Services.AddScoped<ICashRegisterSettingsService, CashRegisterSettingsService>();
         builder.Services.Configure<CashRegisterComplianceOptions>(
@@ -293,6 +308,7 @@ internal static class ApplicationHost
         builder.Services.Configure<RksvOptions>(builder.Configuration.GetSection(RksvOptions.SectionName));
         builder.Services.AddScoped<IRksvEnvironmentService, RksvEnvironmentService>();
         builder.Services.Configure<FiskalyOptions>(builder.Configuration.GetSection(FiskalyOptions.SectionName));
+        builder.Services.AddSingleton<IPostConfigureOptions<FiskalyOptions>, FiskalyOptionsFromTseProvidersPostConfigure>();
         builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.SectionName));
         builder.Services.Configure<SessionPolicyOptions>(builder.Configuration.GetSection(SessionPolicyOptions.SectionName));
         builder.Services.Configure<TemporaryPermissionsOptions>(
@@ -405,7 +421,7 @@ internal static class ApplicationHost
                 .Bind(builder.Configuration.GetSection(RestoreVerificationOptions.SectionName));
         }
 
-        // Local development için explicit host binding; production host binding platform tarafından yönetilmelidir.
+        // Local development iÃ§in explicit host binding; production host binding platform tarafÄ±ndan yÃ¶netilmelidir.
         if (isDevelopment && !OpenApiExportMode.IsEnabled)
         {
             var devListenPort = GetDevelopmentHttpListenPort(builder.Configuration);
@@ -415,10 +431,10 @@ internal static class ApplicationHost
                 serverOptions.ListenAnyIP(devListenPort);
             });
 
-            Console.WriteLine($"🌐 Development host binding: 0.0.0.0:{devListenPort} (includes localhost and LAN; set Urls in appsettings.Development.json to change)");
+            Console.WriteLine($"ðŸŒ Development host binding: 0.0.0.0:{devListenPort} (includes localhost and LAN; set Urls in appsettings.Development.json to change)");
         }
 
-        // Entity Framework ve PostgreSQL bağlantısı
+        // Entity Framework ve PostgreSQL baÄŸlantÄ±sÄ±
         var defaultConnection = builder.Configuration.GetConnectionString("DefaultConnection");
         if (string.IsNullOrWhiteSpace(defaultConnection))
         {
@@ -429,7 +445,7 @@ internal static class ApplicationHost
             }
 
             throw new InvalidOperationException(
-                "OpenAPI export: DefaultConnection missing — OpenApiExportConfiguration should supply in-memory defaults.");
+                "OpenAPI export: DefaultConnection missing â€” OpenApiExportConfiguration should supply in-memory defaults.");
         }
 
         // Production: ensure Npgsql connection pooling knobs (env CS often omits them).
@@ -481,14 +497,14 @@ internal static class ApplicationHost
         // Identity servisleri
         builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
         {
-            // Şifre gereksinimleri (enforced by RegkassePasswordValidator; options remain the source of truth)
+            // Åžifre gereksinimleri (enforced by RegkassePasswordValidator; options remain the source of truth)
             options.Password.RequireDigit = true;
             options.Password.RequireLowercase = true;
             options.Password.RequireUppercase = true;
             options.Password.RequireNonAlphanumeric = true;
             options.Password.RequiredLength = 8;
 
-            // Kullanıcı gereksinimleri
+            // KullanÄ±cÄ± gereksinimleri
             options.User.RequireUniqueEmail = true;
             options.SignIn.RequireConfirmedEmail = false;
         })
@@ -653,14 +669,14 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IAdminTenantLicenseService, AdminTenantLicenseService>();
         builder.Services.AddSingleton<ITenantLicenseExtensionRateLimiter, TenantLicenseExtensionRateLimiter>();
 
-        // Billing services (scoped — injected AppDbContext is request-scoped; do not use Singleton)
+        // Billing services (scoped â€” injected AppDbContext is request-scoped; do not use Singleton)
         builder.Services.AddScoped<IBillingService, BillingService>();
         builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
         builder.Services.AddScoped<IBillingTenantLicenseService, BillingTenantLicenseService>();
         builder.Services.AddScoped<IBillingAuditService, BillingAuditService>();
         builder.Services.AddScoped<IReminderService, ReminderService>();
         builder.Services.AddScoped<IBillingBackupService, BillingBackupService>();
-        // License invoice PDF (QuestPDF — no Chrome/Chromium dependency)
+        // License invoice PDF (QuestPDF â€” no Chrome/Chromium dependency)
         builder.Services.AddScoped<IInvoicePdfGenerator, InvoicePdfGenerator>();
         // No additional registration needed for QuestPDF
         builder.Services.AddScoped<ILicenseKeyGenerator, LicenseKeyGenerator>();
@@ -683,6 +699,19 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IDemoProductImportService, DemoProductImportService>();
         builder.Services.AddScoped<ICategoryDemoResetService, CategoryDemoResetService>();
         builder.Services.AddScoped<ITenantProvisioningService, TenantProvisioningService>();
+        builder.Services.AddScoped<ITseProvisioningService, TseProvisioningService>();
+        builder.Services.AddScoped<TseBackupService>();
+        builder.Services.AddScoped<ITseBackupService>(sp => sp.GetRequiredService<TseBackupService>());
+        builder.Services.AddScoped<ITseFullBackupService>(sp => sp.GetRequiredService<TseBackupService>());
+        builder.Services.AddScoped<ITseDeviceHealthCheckService, TseDeviceHealthCheckService>();
+        builder.Services.AddSingleton<ITseSimulatorStateStore, TseSimulatorStateStore>();
+        builder.Services.AddScoped<ITseSimulatorService, TseSimulatorService>();
+        builder.Services.AddScoped<ITseHealthTrendService, TseHealthTrendService>();
+        builder.Services.AddScoped<ITsePerformanceService, TsePerformanceService>();
+        builder.Services.AddScoped<ITseComplianceReportService, TseComplianceReportService>();
+        builder.Services.AddScoped<ITseCertificateService, TseCertificateService>();
+        builder.Services.AddScoped<ITseFailoverNotificationService, TseFailoverNotificationService>();
+        builder.Services.AddScoped<ITseFailoverService, TseFailoverService>();
         builder.Services.AddScoped<IIndustryTemplateStarterSeeder, IndustryTemplateStarterSeeder>();
         builder.Services.AddScoped<ITenantOnboardingService, TenantOnboardingService>();
         builder.Services.AddScoped<IWelcomeEmailService, WelcomeEmailService>();
@@ -701,8 +730,8 @@ internal static class ApplicationHost
             builder.Services.AddScoped<IForgotPasswordEmailService, ForgotPasswordEmailService>();
         }
         builder.Services.AddScoped<IUserUsernameHistoryService, UserUsernameHistoryService>();
-        // ScopeCheckService claim constants are used statically; instance methods unused — no DI registration.
-        // Wave 0–1 follow-through: JWT + /me tenant snapshot (claim when valid, else legacy default row).
+        // ScopeCheckService claim constants are used statically; instance methods unused â€” no DI registration.
+        // Wave 0â€“1 follow-through: JWT + /me tenant snapshot (claim when valid, else legacy default row).
         builder.Services.AddScoped<IAuthTenantSnapshotProvider, AuthTenantSnapshotProvider>();
         builder.Services.AddScoped<ILoginTenantResolver, LoginTenantResolver>();
         builder.Services.AddScoped<IUserTenantMembershipProvisioner, UserTenantMembershipProvisioner>();
@@ -711,7 +740,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<FileNamingService>();
         builder.Services.AddScoped<IFileNamingService>(sp => sp.GetRequiredService<FileNamingService>());
         builder.Services.AddScoped<ITenantProvider, SubdomainTenantProvider>();
-        // Request tenant resolution: JWT → dev header/query → host slug → admin fallback.
+        // Request tenant resolution: JWT â†’ dev header/query â†’ host slug â†’ admin fallback.
         builder.Services.AddScoped<ITenantContextService, TenantContextService>();
         builder.Services.AddScoped<TenantLicenseValidator>();
         builder.Services.AddScoped<CurrentTenantService>();
@@ -731,7 +760,7 @@ internal static class ApplicationHost
 
                 if (isDevelopment)
                 {
-                    // Local FA (admin.regkasse.local:3000), Expo (localhost/LAN), Sites localhost — see TenantHostNames.
+                    // Local FA (admin.regkasse.local:3000), Expo (localhost/LAN), Sites localhost â€” see TenantHostNames.
                     policy.SetIsOriginAllowed(IsTrustedDevelopmentCorsOrigin)
                           .AllowAnyMethod()
                           .AllowAnyHeader()
@@ -774,7 +803,7 @@ internal static class ApplicationHost
         {
             options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase; // GET /api/UserManagement/{id} etc. return camelCase for frontend
             options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
-            // Pretty-print only in Development — smaller payloads in Production/Staging.
+            // Pretty-print only in Development â€” smaller payloads in Production/Staging.
             options.JsonSerializerOptions.WriteIndented = isDevelopment;
         });
 
@@ -801,7 +830,7 @@ internal static class ApplicationHost
             {
                 Title = "Kasse API",
                 Version = "v1",
-                Description = "Registrierkasse API — RKSV-compliant POS / Admin / shared Auth surfaces"
+                Description = "Registrierkasse API â€” RKSV-compliant POS / Admin / shared Auth surfaces"
             });
 
             // Nested DTOs and open generics (PagedResult<T>) need unique schemaIds.
@@ -851,12 +880,20 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IBelegdatenPayloadBuilder, ReceiptBelegdatenPayloadBuilder>();
         builder.Services.AddScoped<SignaturePipeline>();
 
-        // Closing-flow signing: Fake (dev, no hardware) vs Real (SignaturePipeline + TSE device readiness)
+        // Closing-flow signing: Fake (dev) vs Real (SignaturePipeline). Multi-vendor via ITseProviderFactory.
+        builder.Services.AddScoped<FakeTseProvider>();
+        builder.Services.AddScoped<RealTseProvider>();
+        builder.Services.AddScoped<ITseProviderFactory, TseProviderFactory>();
         var tseOpts = builder.Configuration.GetSection(TseOptions.SectionName).Get<TseOptions>() ?? new TseOptions();
         if (tseOpts.IsFakeSigningMode)
-            builder.Services.AddScoped<ITseProvider, FakeTseProvider>();
+        {
+            builder.Services.AddScoped<ITseProvider>(sp => sp.GetRequiredService<FakeTseProvider>());
+        }
         else
-            builder.Services.AddScoped<ITseProvider, RealTseProvider>();
+        {
+            builder.Services.AddScoped<ITseProvider>(sp =>
+                sp.GetRequiredService<ITseProviderFactory>().GetConfiguredProvider());
+        }
 
         // Register services
         builder.Services.AddScoped<ITseService, TseService>();
@@ -944,7 +981,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IJahresberichtService, JahresberichtService>();
         builder.Services.AddScoped<IReportSubmissionCompatibilityService, ReportSubmissionCompatibilityService>();
         builder.Services.AddScoped<IReportHistoryService, ReportHistoryService>();
-        builder.Services.AddScoped<IUserService, UserService>(); // Kullanıcı servisi eklendi
+        builder.Services.AddScoped<IUserService, UserService>(); // KullanÄ±cÄ± servisi eklendi
         builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
         builder.Services.AddScoped<II18nErrorService, I18nErrorService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Localization.IApiMessageLocalizer, KasseAPI_Final.Services.Localization.ApiMessageLocalizer>();
@@ -1068,9 +1105,9 @@ internal static class ApplicationHost
         builder.Services.AddHostedService<FinanzOnlineOutboxHostedService>();
         builder.Services.AddHostedService<NtpTimeSyncService>();
 
-        // 🚀 Akıllı Sepet Yaşam Döngüsü Service'i
+        // ðŸš€ AkÄ±llÄ± Sepet YaÅŸam DÃ¶ngÃ¼sÃ¼ Service'i
         builder.Services.AddHostedService<CartLifecycleService>();
-        // CartLifecycleService'i ayrıca Scoped olarak da kayıt et (logout için)
+        // CartLifecycleService'i ayrÄ±ca Scoped olarak da kayÄ±t et (logout iÃ§in)
         builder.Services.AddScoped<CartLifecycleService>();
 
         // Audit log service
@@ -1080,6 +1117,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<KasseAPI_Final.Services.Session.IDeviceSessionService, KasseAPI_Final.Services.Session.DeviceSessionService>();
         builder.Services.AddScoped<IUserActivityReportService, UserActivityReportService>();
         builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+        builder.Services.AddScoped<IUserPreferencesService, UserPreferencesService>();
         builder.Services.AddScoped<IPermissionAuditService, PermissionAuditService>();
         builder.Services.AddScoped<IPermissionAuditReportService, PermissionAuditReportService>();
         builder.Services.AddScoped<IAuditExportService, AuditExportService>();
@@ -1206,6 +1244,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<KasseAPI_Final.Services.Offline.IOfflineOrderService, KasseAPI_Final.Services.Offline.OfflineOrderService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Offline.ISequenceReservationService, KasseAPI_Final.Services.Offline.SequenceReservationService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Offline.IOfflineMonitoringService, KasseAPI_Final.Services.Offline.OfflineMonitoringService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Offline.ITseOfflineQueueService, KasseAPI_Final.Services.Offline.TseOfflineQueueService>();
         builder.Services.Configure<KasseAPI_Final.Configuration.OfflineMonitoringOptions>(
             builder.Configuration.GetSection(KasseAPI_Final.Configuration.OfflineMonitoringOptions.SectionName));
         builder.Services.Configure<KasseAPI_Final.Configuration.OfflineAlertRules>(
@@ -1219,6 +1258,7 @@ internal static class ApplicationHost
         builder.Services.AddSingleton<ITseHealthMonitor>(sp => sp.GetRequiredService<TseHealthStateStore>());
         builder.Services.AddSingleton<IOfflineReplayCompletionNotifier, LoggingOfflineReplayCompletionNotifier>();
         builder.Services.AddHostedService<TseHealthCheckService>();
+        builder.Services.AddHostedService<TseFailoverBackgroundService>();
         builder.Services.AddHostedService<OfflineReplayHostedService>();
         builder.Services.Configure<KasseAPI_Final.Configuration.PayloadHashGuardOptions>(
             builder.Configuration.GetSection(KasseAPI_Final.Configuration.PayloadHashGuardOptions.SectionName));
@@ -1255,6 +1295,19 @@ internal static class ApplicationHost
         builder.Services.Configure<DownloadSecurityOptions>(
             builder.Configuration.GetSection(DownloadSecurityOptions.SectionName));
         builder.Services.AddScoped<IDownloadSecurityService, DownloadSecurityService>();
+        builder.Services.Configure<CriticalActionOptions>(
+            builder.Configuration.GetSection(CriticalActionOptions.SectionName));
+        builder.Services.Configure<TenantOperationLimitsOptions>(
+            builder.Configuration.GetSection(TenantOperationLimitsOptions.SectionName));
+        builder.Services.AddSingleton<IOperationLimitService, OperationLimitService>();
+        builder.Services.Configure<GracePeriodsOptions>(
+            builder.Configuration.GetSection(GracePeriodsOptions.SectionName));
+        builder.Services.AddScoped<IGracePeriodService, GracePeriodService>();
+        builder.Services.AddHostedService<GracePeriodExecutorHostedService>();
+        builder.Services.AddScoped<IApprovalService, ApprovalService>();
+        builder.Services.AddScoped<ICriticalActionApprovalService, CriticalActionApprovalService>();
+        builder.Services.AddScoped<IOperationLogService, OperationLogService>();
+        builder.Services.AddScoped<IOperationUndoService, OperationUndoService>();
         builder.Services.AddScoped<ILegalExportCompletenessService, LegalExportCompletenessService>();
         builder.Services.AddScoped<IActorDisplayNameResolver, ActorDisplayNameResolver>();
         builder.Services.AddScoped<IUserUniquenessValidationService, UserUniquenessValidationService>();
@@ -1274,7 +1327,7 @@ internal static class ApplicationHost
             app.MapControllers();
             app.MapMetrics();
             app.MapGet("/", () => "Kasse API is running!");
-            // Cheap liveness aliases (HealthController also exposes /api/health/live — do not duplicate that route).
+            // Cheap liveness aliases (HealthController also exposes /api/health/live â€” do not duplicate that route).
             app.MapGet("/health", () => "OK");
             app.MapGet("/health/live", () => "OK");
         }
@@ -1343,7 +1396,7 @@ internal static class ApplicationHost
             }
         }
 
-        // Port ayarını sadece development ortamında zorla.
+        // Port ayarÄ±nÄ± sadece development ortamÄ±nda zorla.
         if (app.Environment.IsDevelopment())
         {
             var devListenPort = GetDevelopmentHttpListenPort(app.Configuration);
@@ -1351,7 +1404,7 @@ internal static class ApplicationHost
             app.Urls.Add($"http://localhost:{devListenPort}");
         }
 
-        // Middleware pipeline — Swagger UI at /swagger (JSON at /swagger/v1/swagger.json).
+        // Middleware pipeline â€” Swagger UI at /swagger (JSON at /swagger/v1/swagger.json).
         if (app.Environment.IsDevelopment())
         {
             app.UseSwagger();
@@ -1404,11 +1457,11 @@ internal static class ApplicationHost
         // Placed before auth/tenant work so excess traffic is rejected early (after ForwardedHeaders for real client IP).
         app.UseMiddleware<KasseAPI_Final.Middleware.RateLimitingMiddleware>();
 
-        // CSRF (double-submit) → TenantResolution → Auth → TenantContext → Validation → License → Authorization.
+        // CSRF (double-submit) â†’ TenantResolution â†’ Auth â†’ TenantContext â†’ Validation â†’ License â†’ Authorization.
         // CSRF stays before Resolution (no tenant dependency; fail cheap). License stays after Context so mandant lockdown sees JWT tenant.
         app.UseMiddleware<CsrfMiddleware>();
 
-        // Pre-auth host/dev header → Guid on ICurrentTenantAccessor (JWT tenant_id binds after auth in Production).
+        // Pre-auth host/dev header â†’ Guid on ICurrentTenantAccessor (JWT tenant_id binds after auth in Production).
         app.UseMiddleware<KasseAPI_Final.Middleware.TenantResolutionMiddleware>();
         // TenantValidationMiddleware is registered after TenantContextMiddleware (below) so JWT tenant_id
         // and Development X-Tenant-Id overrides are applied before fail-closed validation runs.
@@ -1451,7 +1504,7 @@ internal static class ApplicationHost
         });
 
         // Authentication ve Authorization middleware
-        // Revoked access tokens (logout blacklist) — before JWT principal is established.
+        // Revoked access tokens (logout blacklist) â€” before JWT principal is established.
         app.UseMiddleware<KasseAPI_Final.Middleware.TokenValidationMiddleware>();
         app.UseAuthentication();
         app.UseMiddleware<KasseAPI_Final.Middleware.TenantContextMiddleware>();
@@ -1460,6 +1513,7 @@ internal static class ApplicationHost
         app.UseMiddleware<KasseAPI_Final.Middleware.SessionActivityMiddleware>();
         app.UseMiddleware<KasseAPI_Final.Middleware.TenantOperationalGateMiddleware>();
         app.UseMiddleware<KasseAPI_Final.Middleware.LicenseMiddleware>();
+        app.UseMiddleware<KasseAPI_Final.Middleware.MaintenanceMiddleware>();
         app.UseAuthorization();
         if (!app.Environment.IsDevelopment() && !OpenApiExportMode.IsEnabled)
         {
@@ -1469,6 +1523,11 @@ internal static class ApplicationHost
 
         // Payment Security Middleware
         app.UseMiddleware<KasseAPI_Final.Middleware.PaymentSecurityMiddleware>();
+
+        // Critical admin actions (2FA / SuperAdmin approval header) — gated by CriticalActions:Enabled
+        app.UseMiddleware<KasseAPI_Final.Middleware.CriticalActionMiddleware>();
+        // Tenant operation quotas (bulk delete / create / export…) — gated by TenantOperationLimits:Enabled
+        app.UseMiddleware<KasseAPI_Final.Middleware.OperationLimitMiddleware>();
 
         if (OpenApiExportMode.IsEnabled)
         {
@@ -1588,3 +1647,5 @@ internal static class ApplicationHost
         await app.RunAsync();
     }
 }
+
+

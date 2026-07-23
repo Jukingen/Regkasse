@@ -19,6 +19,7 @@ import {
 import { useOrderStatus } from '@/hooks/useOrderStatus';
 import { normalizeCustomerTenantSlug } from '@/services/customerApp/customerTenantSlug';
 import { getEnvDevTenantSlug } from '@/services/tenant/devTenant';
+import { formatUserDateTime } from '@/utils/dateFormatter';
 
 const STEP_KEYS = ['pending', 'accepted', 'preparing', 'ready', 'completed'] as const;
 
@@ -193,7 +194,7 @@ export default function OrderTrackerPage() {
             </Text>
             {order.createdAt ? (
               <Text style={styles.orderDate}>
-                {new Date(order.createdAt).toLocaleString('de-DE')}
+                {formatUserDateTime(order.createdAt) || '—'}
               </Text>
             ) : null}
           </View>

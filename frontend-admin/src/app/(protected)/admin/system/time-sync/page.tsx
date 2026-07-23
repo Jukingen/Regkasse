@@ -17,8 +17,6 @@ import {
   Tag,
   Typography,
 } from 'antd';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
 import React, { useEffect } from 'react';
 
 import {
@@ -30,11 +28,10 @@ import {
 } from '@/api/manual/adminSystemTimeSync';
 import { PageSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { DateColumn, dateColumnRender } from '@/components/DateColumn';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n/I18nProvider';
 import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
-
-dayjs.extend(utc);
 
 function badgeTag(statusBadge: string, t: (k: string) => string): React.ReactNode {
   const s = statusBadge.toLowerCase();
@@ -137,19 +134,27 @@ export default function AdminTimeSyncPage() {
             <Card title={t('timeSync.statusCard.title')}>
               <Descriptions column={1} size="small">
                 <Descriptions.Item label={t('timeSync.statusCard.systemUtc')}>
-                  {dayjs.utc(s.systemTimeUtc).format('YYYY-MM-DD HH:mm:ss')}
+                  <DateColumn date={s.systemTimeUtc} format="datetimeSeconds" utc />
                 </Descriptions.Item>
                 <Descriptions.Item label={t('timeSync.statusCard.systemLocal')}>
                   {s.systemTimeLocalVienna}
                 </Descriptions.Item>
                 <Descriptions.Item label={t('timeSync.statusCard.ntpReference')}>
-                  {s.ntpTimeUtc ? dayjs.utc(s.ntpTimeUtc).format('YYYY-MM-DD HH:mm:ss') : '—'}
+                  {s.ntpTimeUtc ? (
+                    <DateColumn date={s.ntpTimeUtc} format="datetimeSeconds" utc />
+                  ) : (
+                    '—'
+                  )}
                 </Descriptions.Item>
                 <Descriptions.Item label={t('timeSync.statusCard.offset')}>
                   {s.offsetSeconds != null ? s.offsetSeconds.toFixed(3) : '—'}
                 </Descriptions.Item>
                 <Descriptions.Item label={t('timeSync.statusCard.lastSync')}>
-                  {s.lastSyncAt ? dayjs.utc(s.lastSyncAt).format('YYYY-MM-DD HH:mm:ss') : '—'}
+                  {s.lastSyncAt ? (
+                    <DateColumn date={s.lastSyncAt} format="datetimeSeconds" utc />
+                  ) : (
+                    '—'
+                  )}
                 </Descriptions.Item>
                 <Descriptions.Item label={t('timeSync.statusCard.badge')}>
                   {badgeTag(s.statusBadge, t)}
@@ -232,7 +237,7 @@ export default function AdminTimeSyncPage() {
             {
               title: t('timeSync.history.syncTime'),
               dataIndex: 'syncTimeUtc',
-              render: (v: string) => dayjs.utc(v).format('YYYY-MM-DD HH:mm:ss'),
+              render: dateColumnRender('datetimeSeconds', { utc: true }),
             },
             {
               title: t('timeSync.history.offset'),

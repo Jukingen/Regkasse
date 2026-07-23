@@ -19,10 +19,12 @@ import type {
   DateFormatPattern,
   DefaultLandingPath,
   DensityMode,
+  PreferenceLanguage,
   PersonalizationPreferences,
   ResolvedTheme,
   ThemeMode,
   TimeFormatPreference,
+  UserTimeZone,
 } from '@/lib/personalization/types';
 import { DEFAULT_PERSONALIZATION } from '@/lib/personalization/types';
 
@@ -41,6 +43,8 @@ function snapshotPreferences(state: {
   defaultLandingPath: DefaultLandingPath;
   dateFormat: DateFormatPattern;
   timeFormat: TimeFormatPreference;
+  timeZone: UserTimeZone;
+  language: PreferenceLanguage;
   reducedAnimations: boolean;
 }): PersonalizationPreferences {
   return {
@@ -49,6 +53,8 @@ function snapshotPreferences(state: {
     defaultLandingPath: state.defaultLandingPath,
     dateFormat: state.dateFormat,
     timeFormat: state.timeFormat,
+    timeZone: state.timeZone,
+    language: state.language,
     reducedAnimations: state.reducedAnimations,
   };
 }
@@ -60,6 +66,8 @@ export type UiPreferencesState = {
   defaultLandingPath: DefaultLandingPath;
   dateFormat: DateFormatPattern;
   timeFormat: TimeFormatPreference;
+  timeZone: UserTimeZone;
+  language: PreferenceLanguage;
   reducedAnimations: boolean;
   /** True after client hydrate from localStorage / legacy keys. */
   hydrated: boolean;
@@ -71,6 +79,8 @@ export type UiPreferencesState = {
   setDefaultLandingPath: (path: DefaultLandingPath) => void;
   setDateFormat: (format: DateFormatPattern) => void;
   setTimeFormat: (format: TimeFormatPreference) => void;
+  setTimeZone: (timeZone: UserTimeZone) => void;
+  setLanguage: (language: PreferenceLanguage) => void;
   setReducedAnimations: (value: boolean) => void;
   replacePreferences: (next: PersonalizationPreferences) => void;
   /** Apply API / storage snapshot without marking as a local user edit. */
@@ -92,6 +102,8 @@ export const useUiPreferencesStore = create<UiPreferencesState>((set, get) => ({
   defaultLandingPath: initialStored.defaultLandingPath,
   dateFormat: initialStored.dateFormat,
   timeFormat: initialStored.timeFormat,
+  timeZone: initialStored.timeZone,
+  language: initialStored.language,
   reducedAnimations: initialStored.reducedAnimations,
   hydrated: false,
   isSyncing: false,
@@ -106,6 +118,8 @@ export const useUiPreferencesStore = create<UiPreferencesState>((set, get) => ({
       defaultLandingPath: next.defaultLandingPath,
       dateFormat: next.dateFormat,
       timeFormat: next.timeFormat,
+      timeZone: next.timeZone,
+      language: next.language,
       reducedAnimations: next.reducedAnimations,
     });
   },
@@ -118,6 +132,8 @@ export const useUiPreferencesStore = create<UiPreferencesState>((set, get) => ({
       defaultLandingPath: next.defaultLandingPath,
       dateFormat: next.dateFormat,
       timeFormat: next.timeFormat,
+      timeZone: next.timeZone,
+      language: next.language,
       reducedAnimations: next.reducedAnimations,
     });
   },
@@ -137,6 +153,16 @@ export const useUiPreferencesStore = create<UiPreferencesState>((set, get) => ({
     set({ timeFormat });
   },
 
+  setTimeZone: (timeZone) => {
+    patchStoredPersonalization({ timeZone });
+    set({ timeZone });
+  },
+
+  setLanguage: (language) => {
+    patchStoredPersonalization({ language });
+    set({ language });
+  },
+
   setReducedAnimations: (reducedAnimations) => {
     patchStoredPersonalization({ reducedAnimations });
     set({ reducedAnimations });
@@ -152,6 +178,8 @@ export const useUiPreferencesStore = create<UiPreferencesState>((set, get) => ({
       defaultLandingPath: next.defaultLandingPath,
       dateFormat: next.dateFormat,
       timeFormat: next.timeFormat,
+      timeZone: next.timeZone,
+      language: next.language,
       reducedAnimations: next.reducedAnimations,
     });
   },
@@ -166,6 +194,8 @@ export const useUiPreferencesStore = create<UiPreferencesState>((set, get) => ({
       defaultLandingPath: next.defaultLandingPath,
       dateFormat: next.dateFormat,
       timeFormat: next.timeFormat,
+      timeZone: next.timeZone,
+      language: next.language,
       reducedAnimations: next.reducedAnimations,
     });
   },
@@ -187,6 +217,8 @@ export const useUiPreferencesStore = create<UiPreferencesState>((set, get) => ({
       defaultLandingPath: next.defaultLandingPath,
       dateFormat: next.dateFormat,
       timeFormat: next.timeFormat,
+      timeZone: next.timeZone,
+      language: next.language,
       reducedAnimations: next.reducedAnimations,
       hydrated: true,
     });
@@ -207,6 +239,8 @@ export function useUiPreferences(): PersonalizationPreferences {
       defaultLandingPath: s.defaultLandingPath,
       dateFormat: s.dateFormat,
       timeFormat: s.timeFormat,
+      timeZone: s.timeZone,
+      language: s.language,
       reducedAnimations: s.reducedAnimations,
     }))
   );

@@ -28,14 +28,14 @@ import {
   rejectPermissionRequest,
 } from '@/features/users/api/permissionRequestsApi';
 import { resolvePermissionDisplayLabel } from '@/features/users/utils/permissionDisplayLabel';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
-import { formatDateTime } from '@/i18n/formatting';
 
 type ResolveMode = 'approve' | 'reject';
 
 export function PermissionRequestsPanel() {
-  const { t, formatLocale } = useI18n();
+  const { t } = useI18n();
   const { message } = useAntdApp();
   const queryClient = useQueryClient();
   const [resolveTarget, setResolveTarget] = useState<{
@@ -108,7 +108,7 @@ export function PermissionRequestsPanel() {
         title: t('access.permissionRequests.columnRequestedAt'),
         dataIndex: 'requestedAt',
         width: 160,
-        render: (iso: string) => formatDateTime(iso, formatLocale),
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('access.permissionRequests.columnStatus'),
@@ -147,7 +147,7 @@ export function PermissionRequestsPanel() {
         ),
       },
     ],
-    [t, formatLocale]
+    [t]
   );
 
   return (

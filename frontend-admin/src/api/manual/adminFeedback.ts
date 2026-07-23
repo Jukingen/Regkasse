@@ -24,6 +24,8 @@ export type AdminFeedbackDto = {
   pagePath?: string | null;
   submittedByUserId: string;
   submittedByDisplayName?: string | null;
+  /** Login username from Identity (Super Admin inbox). */
+  submittedByUsername?: string | null;
   createdAtUtc: string;
   updatedAtUtc: string;
   reviewedByUserId?: string | null;

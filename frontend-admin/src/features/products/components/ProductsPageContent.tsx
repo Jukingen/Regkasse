@@ -42,6 +42,7 @@ import { ProductFilterBar } from '@/features/products/components/ProductFilterBa
 import ProductForm, {
   type ProductFormSubmitValues,
 } from '@/features/products/components/ProductForm';
+import { getOperationLimitStatus } from '@/features/products/api/operationLimits';
 import { useProductStatusCounts } from '@/features/products/hooks/useProductStatusCounts';
 import { useProducts } from '@/features/products/hooks/useProducts';
 import type { ProductFilters } from '@/features/products/types/productFilters';
@@ -333,35 +334,74 @@ export default function ProductsPage() {
       .map((product) => product.id as string);
     if (activeIds.length === 0) return;
 
-    modal.confirm({
-      title: t('products.actions.bulkDeactivateTitle'),
-      content: t('products.actions.bulkDeactivateDescription', { count: activeIds.length }),
-      okText: t('products.actions.bulkDeactivate'),
-      okButtonProps: { danger: true },
-      cancelText: t('common.buttons.cancel'),
-      onOk: async () => {
-        try {
-          const result = await bulkDeactivateMutation.mutateAsync({ productIds: activeIds });
-          const skipped = result.alreadyInactive + result.notFound;
-          if (skipped > 0) {
-            message.warning(
-              t('products.actions.bulkDeactivatePartial', {
-                deactivated: result.deactivated,
-                skipped,
-              })
-            );
-          } else {
-            message.success(
-              t('products.actions.bulkDeactivateSuccess', { count: result.deactivated })
-            );
+    const selectedCount = activeIds.length;
+
+    void (async () => {
+      let limitAlert: React.ReactNode = null;
+      try {
+        const status = await getOperationLimitStatus();
+        const remaining = status.bulkDeleteRemainingToday;
+        const limit = status.maxBulkDeletePerDay;
+        const threshold = status.requireApprovalForBulkDelete;
+        const exceedsApproval = selectedCount >= threshold;
+        const exceedsDaily = status.enabled && selectedCount > remaining;
+
+        limitAlert = (
+          <Alert
+            type={exceedsApproval || exceedsDaily ? 'warning' : 'info'}
+            showIcon
+            style={{ marginBottom: 12 }}
+            title={t('products.actions.bulkDeleteLimitWarning', { count: selectedCount })}
+            description={
+              exceedsApproval
+                ? t('products.actions.bulkDeleteLimitRequiresApproval', { threshold })
+                : exceedsDaily
+                  ? t('products.actions.bulkDeleteLimitExceeded', { limit })
+                  : t('products.actions.bulkDeleteLimitRemaining', { remaining, limit })
+            }
+          />
+        );
+      } catch {
+        // Status is advisory only — backend still enforces when Enabled.
+      }
+
+      modal.confirm({
+        title: t('products.actions.bulkDeactivateTitle'),
+        content: (
+          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            {limitAlert}
+            <Typography.Text>
+              {t('products.actions.bulkDeactivateDescription', { count: selectedCount })}
+            </Typography.Text>
+          </Space>
+        ),
+        okText: t('products.actions.bulkDeactivate'),
+        okButtonProps: { danger: true },
+        cancelText: t('common.buttons.cancel'),
+        onOk: async () => {
+          try {
+            const result = await bulkDeactivateMutation.mutateAsync({ productIds: activeIds });
+            const skipped = result.alreadyInactive + result.notFound;
+            if (skipped > 0) {
+              message.warning(
+                t('products.actions.bulkDeactivatePartial', {
+                  deactivated: result.deactivated,
+                  skipped,
+                })
+              );
+            } else {
+              message.success(
+                t('products.actions.bulkDeactivateSuccess', { count: result.deactivated })
+              );
+            }
+            setSelectedRowKeys([]);
+            invalidateList();
+          } catch {
+            message.error(t('products.actions.bulkDeactivateError'));
           }
-          setSelectedRowKeys([]);
-          invalidateList();
-        } catch {
-          message.error(t('products.actions.bulkDeactivateError'));
-        }
-      },
-    });
+        },
+      });
+    })();
   }, [bulkDeactivateMutation, invalidateList, message, modal, products, selectedRowKeys, t]);
 
   const handleDeactivateAllCatalog = useCallback(() => {

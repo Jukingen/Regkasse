@@ -88,6 +88,7 @@ public sealed class CustomerTenantIsolationTests
             Mock.Of<ILoyaltyService>(),
             Mock.Of<ICustomerExportService>(),
             TenantTestDoubles.SettingsResolverReturning(TenantAId),
+            Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>(),
             Mock.Of<ILogger<CustomerController>>());
 
         var identity = new ClaimsIdentity("Test");

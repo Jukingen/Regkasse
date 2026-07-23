@@ -1,0 +1,15 @@
+{
+  "modalTitle": "Değişiklik etki simülasyonu",
+  "cancel": "İptal",
+  "confirm": "Değişikliği onayla",
+  "statProducts": "Etkilenen ürünler",
+  "statPayments": "Etkilenen ödemeler",
+  "statInvoices": "Etkilenen faturalar",
+  "statFinancial": "Tahmini mali etki",
+  "recommendations": "Öneriler",
+  "warnings": "Uyarılar",
+  "historicalTitle": "Tarihsel veriler etkilenmez",
+  "historicalBody": "Bu değişiklik yalnızca yeni işlemleri ve kayıtları etkiler. Mevcut ödemeler ve faturalar geriye dönük değiştirilmez.",
+  "noFinancialEstimate": "Tahmin yok",
+  "loadError": "Etki simülasyonu yüklenemedi."
+}

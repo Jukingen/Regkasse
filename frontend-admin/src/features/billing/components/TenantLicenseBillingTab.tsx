@@ -8,8 +8,9 @@ import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 
 import type { LicenseSaleResponse } from '@/api/generated/model';
+import { DateColumn } from '@/components/DateColumn';
 import { useBillingSalesList, useBillingStats } from '@/features/billing/hooks';
-import { formatGermanDateTime, useI18n } from '@/i18n';
+import { useI18n } from '@/i18n';
 
 function saleStatusColor(status: string | null | undefined): string {
   switch (status) {
@@ -54,8 +55,7 @@ function computeDaysRemaining(validUntilUtc: string | null | undefined): number 
 
 export function TenantLicenseBillingTab() {
   const router = useRouter();
-  const { t, formatLocale } = useI18n();
-
+  const { t } = useI18n();
   const { data: salesData, isLoading: salesLoading } = useBillingSalesList({
     page: 1,
     pageSize: 100,
@@ -115,7 +115,7 @@ export function TenantLicenseBillingTab() {
           const days = computeDaysRemaining(date);
           return (
             <Space size="small">
-              <span>{formatGermanDateTime(date)}</span>
+              <DateColumn date={date} format="datetime" />
               {days != null ? (
                 <Tag color={daysRemainingTagColor(days)}>
                   {t('license.tenant.daysRemaining', { count: days })}
@@ -163,7 +163,7 @@ export function TenantLicenseBillingTab() {
         ),
       },
     ],
-    [formatLocale, router, t]
+    [router, t]
   );
 
   return (

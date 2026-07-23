@@ -4,9 +4,9 @@ import { CrownOutlined, KeyOutlined, UserDeleteOutlined } from '@ant-design/icon
 import { Button, Popconfirm, Select, Space, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 
+import { dateColumnRender } from '@/components/DateColumn';
 import type { TenantUser } from '@/features/super-admin/api/tenantUsers';
 import { useI18n } from '@/i18n';
-import { formatDateTime } from '@/i18n/formatting';
 
 const DEFAULT_ASSIGNABLE_ROLES = [
   'Manager',
@@ -45,7 +45,7 @@ export function TenantUserTable({
   onRoleChange,
   onResetPassword,
 }: TenantUserTableProps) {
-  const { t, formatLocale } = useI18n();
+  const { t } = useI18n();
 
   const selectRoleOptions =
     roleOptions && roleOptions.length > 0
@@ -107,7 +107,7 @@ export function TenantUserTable({
       title: t('tenants.users.columns.joined'),
       dataIndex: 'joinedAtUtc',
       key: 'joinedAtUtc',
-      render: (v: string) => formatDateTime(v, formatLocale),
+      render: dateColumnRender('datetime'),
     },
     {
       title: t('tenants.users.columns.actions'),

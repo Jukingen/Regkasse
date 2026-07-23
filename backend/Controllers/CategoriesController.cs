@@ -6,6 +6,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Operations;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -42,6 +43,8 @@ namespace KasseAPI_Final.Controllers
 
         private readonly ICategoryDemoResetService _categoryDemoResetService;
 
+        private readonly IOperationLogService _operationLogs;
+
 
 
         public CategoriesController(
@@ -54,7 +57,9 @@ namespace KasseAPI_Final.Controllers
 
             IAuditLogService auditLogService,
 
-            ICategoryDemoResetService categoryDemoResetService)
+            ICategoryDemoResetService categoryDemoResetService,
+
+            IOperationLogService operationLogs)
 
         {
 
@@ -67,6 +72,8 @@ namespace KasseAPI_Final.Controllers
             _auditLogService = auditLogService;
 
             _categoryDemoResetService = categoryDemoResetService;
+
+            _operationLogs = operationLogs;
 
         }
 
@@ -280,7 +287,25 @@ namespace KasseAPI_Final.Controllers
 
                 await _context.SaveChangesAsync();
 
-
+                var actorUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (!string.IsNullOrEmpty(actorUserId))
+                {
+                    try
+                    {
+                        await _operationLogs.LogAsync(
+                            tenantId,
+                            actorUserId,
+                            OperationTypes.CreateCategory,
+                            OperationEntityTypes.Category,
+                            category.Id.ToString("D"),
+                            beforeState: null,
+                            afterState: OperationSnapshots.FromCategory(category));
+                    }
+                    catch (Exception logEx)
+                    {
+                        _logger.LogWarning(logEx, "Failed to write operation log for category create {CategoryId}", category.Id);
+                    }
+                }
 
                 var dto = await QueryCategoryDtos(tenantId)
 

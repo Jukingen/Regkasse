@@ -168,11 +168,34 @@ Executed inside **one database transaction** (`TenantOnboardingService`); failur
 |-------|---------|--------|
 | Tenant row | `status=active`, `isActive=true` | Slug unique |
 | Cash register | `KASSE-001`, *Hauptkasse*, `Closed` | Optional custom number from wizard |
+| **TSE device** | Soft/Fake or Device row bound to register (`KassenId`) | Via `ITseProvisioningService`; skipped when `TseMode=Off`. Signature chain row initialized. Active vendor from `Tse:Provider` (`fiskaly` supported; `epson`/`swissbit` stubs). **Startbeleg is not auto-created** — create via RKSV after go-live readiness |
+| **TSE DR backup** | Optional Super Admin snapshot | `ITseBackupService` → encrypted `tse_backups` (devices + `signature_chain_state` + BelegNr sequences). **No vendor private keys.** FA: `/admin/tse-management` |
 | Category / products | *Allgemein* + 3 demo SKUs, or full demo menu | `importDemoMenu` |
 | Admin user | `Manager`, **owner** membership | Password change forced |
 | License | 30 / 90 / 365 days from start date | `licenseValidUntilUtc` |
 
-Response `provisioning` (one-time): `adminEmail`, `generatedPassword`, `cashRegisterId`, `cashRegisterNumber`, `productIds[]`, `trialLicenseValidUntilUtc`, `welcomeEmailSent`, `forcePasswordChangeOnNextLogin`.
+Response `provisioning` (one-time): `adminEmail`, `generatedPassword`, `cashRegisterId`, `cashRegisterNumber`, `productIds[]`, `trialLicenseValidUntilUtc`, `welcomeEmailSent`, `forcePasswordChangeOnNextLogin`, optional `tseDeviceId` / `tseProvisioned`.
+
+### TSE provisioning flow (actual)
+
+```mermaid
+flowchart TB
+    START([New Tenant Created]) --> STEP1[Create Tenant Record]
+    STEP1 --> STEP2[Create Cash Register]
+    STEP2 --> STEP3{TseMode / Provider}
+    STEP3 -->|Off| SKIP[Skip TSE]
+    STEP3 -->|Demo / Fake| SOFT[Provision Soft/Fake device]
+    STEP3 -->|Device + fiskaly| FISK[Provision fiskaly device row]
+    STEP3 -->|epson / swissbit| STUB[Pending stub device]
+    SOFT --> CHAIN[Initialize SignatureChainState]
+    FISK --> CHAIN
+    STUB --> CHAIN
+    CHAIN --> READY([Ready for operator Startbeleg])
+    SKIP --> END([Tenant Ready])
+    READY --> END
+```
+
+Startbeleg is **not** auto-created during onboarding (FON / fiscal risk). Create it via RKSV special-receipt APIs after go-live readiness.
 
 ---
 
@@ -246,6 +269,8 @@ curl -H "Authorization: Bearer <super-admin-jwt>" \
 | Progress / errors | `CreateTenantProcessingView`, `OnboardingErrorModal` |
 | Backend onboarding | `backend/Services/AdminTenants/TenantOnboardingService.cs` |
 | Provisioning | `backend/Services/AdminTenants/TenantProvisioningService.cs` |
+| TSE provisioning | `backend/Services/TseProvisioningService.cs` (`ITseProvisioningService`) |
+| TSE DR backup | `backend/Services/TseBackupService.cs` (`ITseBackupService`); FA `/admin/tse-management` |
 | Slug helpers | `backend/Services/AdminTenants/TenantSlugSuggestions.cs` |
 | Scenario tests | `backend/KasseAPI_Final.Tests/CreateTenantWizardScenarioTests.cs` |
 | i18n (DE) | `frontend-admin/src/i18n/locales/de/tenants.json` → `create.*`, `onboarding.*`, `provisioning.*` |

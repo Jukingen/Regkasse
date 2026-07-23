@@ -216,6 +216,8 @@ backend/**/coverage.*.json
 
 # Local dotnet publish output (never commit — includes DLLs, appsettings copies, test extracts)
 backend/publish/
+backend/_maint_build_out/
+backend/_maint_build_out/**
 
 # Publish / MSBuild artifacts outside bin/ and obj/
 backend/**/*.deps.json

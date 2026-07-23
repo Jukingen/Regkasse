@@ -7,6 +7,7 @@ import { View, Text, StyleSheet } from 'react-native';
 
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
 import { useTseHealth } from '../hooks/useTseHealth';
+import { formatUserTime } from '../utils/dateFormatter';
 
 /** Operator-facing offline copy — keep in sync with contract test. */
 export const TSE_OFFLINE_BANNER_LABEL = 'OFFLINE MODUS – NUR BARZAHLUNG, KEINE GUTSCHEINE';
@@ -47,11 +48,7 @@ export function TseOfflineRestrictionBanner() {
   if (bannerVariant !== 'offline') return null;
 
   const etaHint = estimatedRecoveryTimeUtc
-    ? ` · Nächste Prüfung ca. ${new Date(estimatedRecoveryTimeUtc).toLocaleTimeString('de-AT', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-      })}`
+    ? ` · Nächste Prüfung ca. ${formatUserTime(estimatedRecoveryTimeUtc, { includeSeconds: true }) || '—'}`
     : '';
 
   return (

@@ -959,5 +959,11 @@
     "summaryViewReceipts": "Show receipts",
     "summaryViewRevenue": "Show revenue",
     "summaryRecreate": "Recreate"
+  },
+  "offlineQueue": {
+    "alertTitle": "{{count}} transactions in the TSE offline queue",
+    "alertCritical": "Queue is critically full! Some new offline transactions may be blocked.",
+    "alertWarning": "Queue is filling up. Consider reconnecting to TSE and starting replay.",
+    "oldestLabel": "Oldest intent: {{when}}"
   }
 }

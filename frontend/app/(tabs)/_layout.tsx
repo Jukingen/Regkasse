@@ -11,6 +11,7 @@ import { Header as WorkingHoursStatus } from '../../components/Header';
 import { LicenseExpiryBanner } from '../../components/LicenseExpiryBanner';
 import { LicenseStatusIndicator } from '../../components/LicenseStatusIndicator';
 import { LicenseWarningBanner } from '../../components/LicenseWarningBanner';
+import { MaintenanceNotice } from '../../components/MaintenanceNotice';
 import { MonatsbelegHeaderBadge } from '../../components/MonatsbelegHeaderBadge';
 import { OFFLINE_CONFIG } from '../../constants/offlineConfig';
 import { MonatsbelegSessionBlockModal } from '../../components/MonatsbelegSessionBlockModal';
@@ -215,6 +216,7 @@ function PosTabsInner({
         <ToastContainer toasts={tabBarToasts} onRemove={removeTabBarToast} />
         <LicenseWarningBanner />
         <LicenseExpiryBanner />
+        <MaintenanceNotice />
         {/* Top chrome sits above Tabs — apply notch/status-bar inset here once. */}
         <View style={[styles.licenseStatusBar, { paddingTop: insets.top + 6 }]}>
           <View style={styles.headerStatusLeft}>

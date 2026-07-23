@@ -29,8 +29,8 @@ import {
   useDeploymentLicenseStatus,
   useTenantLicenseStatus,
 } from '@/features/license/hooks/useLicenseStatus';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
-import { formatDate, formatDateTime } from '@/i18n';
 import { useI18n } from '@/i18n/I18nProvider';
 
 dayjs.extend(utc);
@@ -220,7 +220,7 @@ function TenantLicenseStatCards({ active, expiring, expired }: TenantLicenseCoun
 }
 
 export function LicenseStatsSection() {
-  const { t, formatLocale } = useI18n();
+  const { t } = useI18n();
   const { user } = useAuth();
   const isSuperAdminUser = isSuperAdmin(user?.role);
   const { tenantId, licenseValidUntilUtc, isActive, tenantStatus, isTenantRecordLoading } =
@@ -242,7 +242,7 @@ export function LicenseStatsSection() {
         dataIndex: 'timestampUtc',
         key: 'timestampUtc',
         width: 170,
-        render: (iso: string) => formatDateTime(iso, formatLocale),
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('license.dashboard.colKey'),
@@ -280,7 +280,7 @@ export function LicenseStatsSection() {
         ),
       },
     ],
-    [formatLocale, t]
+    [t]
   );
 
   if (isSuperAdminUser ? isLoading : isTenantRecordLoading) {

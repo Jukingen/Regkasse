@@ -6,6 +6,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { type DigitalBillingSubscriptionRow } from '@/features/billing/api/digitalBillingApi';
 import { BillingAccessGate } from '@/features/billing/components/BillingAccessGate';
 import { useDigitalBilling } from '@/features/billing/hooks/useDigitalBilling';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useI18n } from '@/i18n';
 
 const { Paragraph } = Typography;
@@ -69,13 +70,13 @@ export function DigitalBillingDashboard() {
       title: t('billing.digital.columns.startDate'),
       dataIndex: 'startDate',
       key: 'startDate',
-      render: (value: string) => (value ? new Date(value).toLocaleDateString(formatLocale) : '—'),
+      render: dateColumnRender('short'),
     },
     {
       title: t('billing.digital.columns.nextBilling'),
       dataIndex: 'nextBilling',
       key: 'nextBilling',
-      render: (value: string) => (value ? new Date(value).toLocaleDateString(formatLocale) : '—'),
+      render: dateColumnRender('short'),
     },
     {
       title: t('billing.digital.columns.status'),

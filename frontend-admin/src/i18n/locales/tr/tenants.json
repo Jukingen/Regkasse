@@ -682,6 +682,24 @@
         "body": "Kiracı yeniden etkinleştirilene kadar kullanıcılar giriş yapamaz."
       }
     },
+    "activityReport": {
+      "title": "Haftalık aktivite raporu",
+      "period": "Dönem: {{from}} – {{to}}",
+      "totalActivities": "Toplam aktiviteler",
+      "uniqueUsers": "Benzersiz kullanıcılar",
+      "anomaliesDetected": "Tespit edilen anomaliler",
+      "anomaliesTitle": "Anomaliler",
+      "recommendationsTitle": "Öneriler",
+      "emptySummary": "Son 7 günde işlem yok.",
+      "loadError": "Aktivite raporu yüklenemedi.",
+      "columns": {
+        "operationType": "İşlem türü",
+        "count": "Adet",
+        "users": "Kullanıcılar",
+        "firstOccurrence": "İlk",
+        "lastOccurrence": "Son"
+      }
+    },
     "registers": {
       "hint": "Yeni kasalar impersonation sonrası kiracı bağlamında oluşturulur (Ayarlar → Kasalar).",
       "addViaImpersonation": "Kiracı olarak giriş (kasa ekle)",
@@ -751,6 +769,25 @@
       "hardDelete": "Kalıcı sil",
       "hardDeleteSuccess": "Kiracı kalıcı olarak silindi.",
       "hardDeleteFailed": "Kalıcı silme başarısız."
+    },
+    "operationMode": {
+      "title": "Çalışma modu",
+      "description": "POS ve mandant admin yazma erişimini kontrol eder (yaşam döngüsü durumundan ayrıdır).",
+      "options": {
+        "active": "Aktif",
+        "readonly": "Salt okunur",
+        "maintenance": "Bakım modu"
+      },
+      "readonlyAlertTitle": "Salt okunur mod",
+      "readonlyAlertDescription": "Bu mandant için yazma işlemleri engellenir. Super Admin muaf tutulur.",
+      "maintenanceAlertTitle": "Bakım modu aktif",
+      "maintenanceAlertDescription": "Bu mandant bakım modundadır. Kullanıcılar mesajı görür ve yazamaz.",
+      "messagePlaceholder": "Kullanıcılar için bakım mesajı…",
+      "endsAtLabel": "Planlanan bitiş:",
+      "endsAtPlaceholder": "İsteğe bağlı bitiş tarihi",
+      "save": "Çalışma modunu kaydet",
+      "saveSuccess": "Çalışma modu güncellendi.",
+      "saveError": "Çalışma modu kaydedilemedi."
     },
     "settings": {
       "save": "Ayarları kaydet",
@@ -1254,6 +1291,136 @@
     "seedMissing": "Eksik başlangıç kullanıcılarını oluştur",
     "saveSuccess": "Kaydedildi ({{count}} başlangıç kullanıcısı oluşturuldu)",
     "saveError": "Kayıt başarısız"
+  },
+  "settingsChange": {
+    "pageTitle": "Müşteri ayarları",
+    "openAction": "Locale / Mali",
+    "fourEyesTitle": "Dört göz ilkesi",
+    "fourEyesBody": "Para birimi, ülke, saat dilimi ve mali veri değişiklikleri ikinci bir Super Admin onayı gerektirir. Talep sahibi kendi talebini onaylayamaz.",
+    "fiscalWarning": {
+      "title": "Mali veri tespit edildi",
+      "body": "Bu müşteride TSE imzalı ödemeler var. Mali veri oluştuktan sonra ülke değişikliği RKSV uyumu için engellenir. Para birimi değişiklikleri yalnızca yeni belgeler için geçerlidir; geçmiş yeniden yazılmaz.",
+      "countryLockedHint": "Mali veri oluştuktan sonra ülke değiştirilemez."
+    },
+    "invoiceWarning": {
+      "title": "Faturalar mevcut",
+      "body": "Mevcut faturalar orijinal para birimini korur. Yeni faturalar yeni para birimini kullanır."
+    },
+    "currentTitle": "Mevcut değerler",
+    "requestTitle": "Değişiklik talep et",
+    "fields": {
+      "settingType": "Ayar türü",
+      "currency": "Para birimi",
+      "country": "Ülke",
+      "timeZone": "Saat dilimi",
+      "taxNumber": "Vergi numarası (UID)",
+      "companyName": "Şirket adı",
+      "companyAddress": "Şirket adresi",
+      "vatNumber": "KDV no (opsiyonel)",
+      "registrationNumber": "Ticaret sicil no (opsiyonel)",
+      "reason": "Değişiklik gerekçesi",
+      "reasonPlaceholder": "Bu değişiklik neden gerekli?"
+    },
+    "settingTypes": {
+      "currency": "Para birimi",
+      "country": "Ülke",
+      "timezone": "Saat dilimi",
+      "fiscal_settings": "Mali ayarlar"
+    },
+    "statuses": {
+      "pending": "Beklemede",
+      "approved": "Onaylandı",
+      "rejected": "Reddedildi",
+      "reverted": "Geri alındı"
+    },
+    "currencies": {
+      "EUR": "EUR – Euro",
+      "USD": "USD – ABD Doları",
+      "TRY": "TRY – Türk Lirası",
+      "GBP": "GBP – Sterlin",
+      "CHF": "CHF – İsviçre Frangı"
+    },
+    "countries": {
+      "AT": "Avusturya",
+      "DE": "Almanya",
+      "CH": "İsviçre",
+      "TR": "Türkiye",
+      "GB": "Birleşik Krallık",
+      "US": "ABD"
+    },
+    "actions": {
+      "request": "Değişiklik talep et",
+      "approve": "Onayla",
+      "reject": "Reddet",
+      "revert": "Geri al",
+      "showHistory": "Geçmişi göster",
+      "hideHistory": "Geçmişi gizle"
+    },
+    "history": {
+      "title": "Değişiklik geçmişi",
+      "empty": "Henüz değişiklik talebi yok.",
+      "columns": {
+        "setting": "Ayar",
+        "oldValue": "Eski değer",
+        "newValue": "Yeni değer",
+        "status": "Durum",
+        "requestedBy": "Talep eden",
+        "date": "Tarih",
+        "actions": "İşlemler"
+      }
+    },
+    "audit": {
+      "title": "Denetim kaydı",
+      "requestedByAt": "{{userId}} tarafından {{at}} tarihinde talep edildi",
+      "resolvedByAt": "{{userId}} tarafından {{at}} tarihinde işlendi",
+      "reason": "Gerekçe: {{reason}}",
+      "notes": "Not: {{notes}}"
+    },
+    "confirmRequest": {
+      "title": "Ayar değişikliğini onayla",
+      "type": "Tür",
+      "newValue": "Yeni değer",
+      "reason": "Gerekçe",
+      "warningTitle": "Önemli",
+      "warningBody": "Bu değişiklik tüm kullanıcıları ve raporları etkiler. Bilinçli olduğunu onaylayın.",
+      "ok": "Talebi gönder"
+    },
+    "confirmApprove": {
+      "title": "Değişiklik onaylansın mı?",
+      "body": "Yeni değer bu müşteri için hemen geçerli olur."
+    },
+    "confirmReject": {
+      "title": "Değişikliği reddet",
+      "reasonPlaceholder": "Red gerekçesi"
+    },
+    "confirmRevert": {
+      "title": "Değişiklik geri alınsın mı?",
+      "body": "Önceki değer geri yüklenecek.",
+      "reasonPlaceholder": "Geri alma gerekçesi"
+    },
+    "validation": {
+      "settingTypeRequired": "Lütfen ayar türü seçin",
+      "currencyRequired": "Lütfen para birimi seçin",
+      "countryRequired": "Lütfen ülke seçin",
+      "timeZoneRequired": "Lütfen saat dilimi seçin",
+      "companyNameRequired": "Şirket adı zorunlu",
+      "companyAddressRequired": "Şirket adresi zorunlu",
+      "taxNumberRequired": "Vergi numarası zorunlu",
+      "taxNumberFormat": "ATU12345678 formatı gerekli",
+      "reasonRequired": "Lütfen bir gerekçe girin"
+    },
+    "messages": {
+      "loadFailed": "Ayarlar yüklenemedi.",
+      "requestSuccess": "Değişiklik talebi onaya gönderildi.",
+      "requestFailed": "Talep gönderilemedi.",
+      "approveSuccess": "Değişiklik onaylandı.",
+      "approveFailed": "Onay başarısız.",
+      "rejectSuccess": "Değişiklik reddedildi.",
+      "rejectFailed": "Red başarısız.",
+      "revertSuccess": "Değişiklik geri alındı.",
+      "revertFailed": "Geri alma başarısız.",
+      "selfApprovalForbidden": "Kendi talebinizi onaylayamaz veya reddedemezsiniz (dört göz)."
+    }
   },
   "list": {
     "pageTitle": "Müşteriler"

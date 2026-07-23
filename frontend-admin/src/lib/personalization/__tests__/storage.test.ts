@@ -27,8 +27,10 @@ describe('personalization storage', () => {
       themeMode: 'dark',
       density: 'compact',
       defaultLandingPath: '/reporting',
-      dateFormat: 'DD.MM.YYYY',
+      dateFormat: 'YYYY-MM-DD',
       timeFormat: '12h',
+      timeZone: 'Europe/Berlin',
+      language: 'en',
       reducedAnimations: true,
     });
     expect(window.localStorage.getItem(PERSONALIZATION_STORAGE_KEY)).toBeTruthy();
@@ -36,13 +38,16 @@ describe('personalization storage', () => {
       themeMode: 'dark',
       density: 'compact',
       defaultLandingPath: '/reporting',
-      dateFormat: 'DD.MM.YYYY',
+      dateFormat: 'YYYY-MM-DD',
       timeFormat: '12h',
+      timeZone: 'Europe/Berlin',
+      language: 'en',
       reducedAnimations: true,
     });
   });
 
-  it('normalizes legacy date formats to DD.MM.YYYY', () => {
-    expect(normalizePersonalization({ dateFormat: 'MM/DD/YYYY' }).dateFormat).toBe('DD.MM.YYYY');
+  it('keeps supported date formats', () => {
+    expect(normalizePersonalization({ dateFormat: 'MM/DD/YYYY' }).dateFormat).toBe('MM/DD/YYYY');
+    expect(normalizePersonalization({ dateFormat: 'bogus' }).dateFormat).toBe('DD.MM.YYYY');
   });
 });

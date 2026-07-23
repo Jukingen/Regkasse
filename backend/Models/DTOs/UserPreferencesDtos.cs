@@ -7,6 +7,8 @@ public sealed class UserPreferencesResponseDto
     public string DefaultPage { get; set; } = "/dashboard";
     public string? DateFormat { get; set; }
     public string? TimeFormat { get; set; }
+    public string? TimeZone { get; set; }
+    public string? Language { get; set; }
     public bool ReducedAnimations { get; set; }
     public DateTime? UpdatedAtUtc { get; set; }
 }
@@ -18,5 +20,7 @@ public sealed class SaveUserPreferencesRequestDto
     public string? DefaultPage { get; set; }
     public string? DateFormat { get; set; }
     public string? TimeFormat { get; set; }
+    public string? TimeZone { get; set; }
+    public string? Language { get; set; }
     public bool? ReducedAnimations { get; set; }
 }

@@ -1,13 +1,13 @@
 'use client';
 
 import { Button, Card, Space, Tag, Typography } from 'antd';
-import dayjs from 'dayjs';
 
 import { SimpleList as List } from '@/components/ui/SimpleList';
 import type { ActiveSession } from '@/features/auth/api/sessionsApi';
 import { useSessions } from '@/features/auth/hooks/useSessions';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
+import { formatDateTime } from '@/lib/dateUtils';
 
 function formatClientApp(app: string): string {
   if (app === 'admin') return 'Admin';
@@ -102,7 +102,7 @@ export function SessionManager() {
                       .join(' · ') || '—'}
                     <br />
                     {t('common.auth.sessions.lastActivity')}:{' '}
-                    {dayjs(item.lastActivityAtUtc).format('DD.MM.YYYY HH:mm')}
+                    {formatDateTime(item.lastActivityAtUtc)}
                   </>
                 }
               />

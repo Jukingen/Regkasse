@@ -13,12 +13,12 @@ import type { ColumnsType, TableProps } from 'antd/es/table';
 import Link from 'next/link';
 import React, { useMemo } from 'react';
 
+import { dateColumnRender } from '@/components/DateColumn';
 import { VirtualTable } from '@/components/VirtualTable';
 import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 import type { UserInfo } from '@/features/users/api/usersGateway';
 import { isPlatformUserRole } from '@/features/users/utils/userScope';
 import { useI18n } from '@/i18n';
-import { formatDateTime } from '@/i18n/formatting';
 import type { UsersPolicy } from '@/shared/auth/usersPolicy';
 
 function displayName(record: UserInfo): string {
@@ -67,7 +67,7 @@ export function UsersTable({
   emptyDescription,
   isPlaceholderData = false,
 }: UsersTableProps) {
-  const { t, formatLocale } = useI18n();
+  const { t } = useI18n();
 
   // Security: list tables must not expose a password column for Manager.
   // SuperAdmin credential handoff lives in UnifiedAdminUsersView; reset stays in actions.
@@ -125,7 +125,7 @@ export function UsersTable({
         title: t('users.list.columnLastLogin'),
         dataIndex: 'lastLoginAt',
         key: 'lastLoginAt',
-        render: (v: string | null) => (v ? formatDateTime(v, formatLocale) : '—'),
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('users.list.columnActions'),
@@ -197,7 +197,6 @@ export function UsersTable({
     ],
     [
       t,
-      formatLocale,
       policy,
       currentUserId,
       onView,

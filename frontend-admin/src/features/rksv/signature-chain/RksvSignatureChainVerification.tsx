@@ -27,6 +27,7 @@ import type {
   RksvComplianceSignatureChainItem,
 } from '@/features/rksv/compliance/types';
 import { exportSignatureChainIssuesFromChain } from '@/features/rksv/signature-chain/exportSignatureChainCsv';
+import { dateColumnRender } from '@/components/DateColumn';
 import styles from '@/features/rksv/signature-chain/signatureChainPage.module.css';
 import {
   computeSignatureChainOutcome,
@@ -35,7 +36,7 @@ import {
   prevSignatureMatches,
 } from '@/features/rksv/signature-chain/signatureChainUtils';
 import { useI18n } from '@/i18n';
-import { formatDate, formatDateTime } from '@/i18n/formatting';
+import { formatDateTime } from '@/i18n/formatting';
 import { DAYJS_DATETIME_SECONDS_FORMAT } from '@/lib/dateFormatter';
 import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
@@ -187,7 +188,7 @@ export default function RksvSignatureChainVerification({
         title: t('rksvHub.signatureChainPage.colIssuedUtc'),
         dataIndex: 'issuedAtUtc',
         key: 'issuedAtUtc',
-        render: (v: string) => (v ? formatDateTime(v, '', { second: '2-digit' }) : '—'),
+        render: dateColumnRender('datetimeSeconds'),
       },
       {
         title: t('rksvHub.signatureChainPage.signaturePreview'),
@@ -390,7 +391,7 @@ export default function RksvSignatureChainVerification({
                     title: t('rksvHub.signatureChainPage.colSequenceDate'),
                     dataIndex: 'sequenceDateUtc',
                     key: 'sequenceDateUtc',
-                    render: (v: string) => (v ? formatDate(v, '') : '—'),
+                    render: dateColumnRender('short'),
                   },
                   {
                     title: t('rksvHub.signatureChainPage.colExpectedSeq'),
@@ -445,7 +446,7 @@ export default function RksvSignatureChainVerification({
                     title: t('rksvHub.compliancePage.colIssuedUtc'),
                     dataIndex: 'issuedAtUtc',
                     key: 'issuedAtUtc',
-                    render: (v: string) => (v ? formatDateTime(v, '', { second: '2-digit' }) : '—'),
+                    render: dateColumnRender('datetimeSeconds'),
                   },
                 ]}
               />

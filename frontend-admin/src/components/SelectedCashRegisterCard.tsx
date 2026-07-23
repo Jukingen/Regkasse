@@ -9,6 +9,7 @@ import type { AdminCashRegisterListItem } from '@/features/cash-registers/api/ca
 import { CashRegisterStatusBadge } from '@/features/cash-registers/components/CashRegisterStatusBadge';
 import { TseHealthBadge } from '@/features/cash-registers/components/TseHealthBadge';
 import { useI18n } from '@/i18n';
+import { EMPTY_DATE_DISPLAY, formatDate } from '@/lib/dateUtils';
 import { formatRegisterDisplayLabel } from '@/shared/utils/registerIdentity';
 
 export type SelectedCashRegisterCardProps = {
@@ -19,19 +20,12 @@ export type SelectedCashRegisterCardProps = {
   className?: string;
 };
 
-function formatLastActivity(value: string | null | undefined, locale: string): string | null {
+function formatLastActivity(value: string | null | undefined): string | null {
   if (!value?.trim()) {
     return null;
   }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-  return date.toLocaleDateString(locale, {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
+  const formatted = formatDate(value);
+  return formatted === EMPTY_DATE_DISPLAY ? null : formatted;
 }
 
 /**
@@ -43,14 +37,13 @@ export function SelectedCashRegisterCard({
   style,
   className,
 }: SelectedCashRegisterCardProps) {
-  const { t, formatLocale } = useI18n();
+  const { t } = useI18n();
   const title = register.location?.trim()
     ? `${formatRegisterDisplayLabel(register.registerNumber)} — ${register.location.trim()}`
     : formatRegisterDisplayLabel(register.registerNumber);
   const shortId = register.id?.length >= 8 ? `${register.id.slice(0, 8)}…` : register.id;
   const lastActivity =
-    formatLastActivity(register.lastSyncAtUtc, formatLocale) ??
-    formatLastActivity(register.lastBalanceUpdate, formatLocale);
+    formatLastActivity(register.lastSyncAtUtc) ?? formatLastActivity(register.lastBalanceUpdate);
 
   return (
     <CashRegisterDetailsTooltip register={register} placement="top">

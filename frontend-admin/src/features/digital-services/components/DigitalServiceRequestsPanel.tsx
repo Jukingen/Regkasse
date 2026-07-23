@@ -16,6 +16,7 @@ import {
   useDigitalServiceRequests,
   useRejectDigitalServiceRequest,
 } from '@/features/digital-services/hooks/useDigitalServiceRequests';
+import { DateColumn } from '@/components/DateColumn';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
@@ -49,7 +50,7 @@ export function DigitalServiceRequestsPanel({
   viewAllHref,
   titleLevel = 5,
 }: DigitalServiceRequestsPanelProps) {
-  const { t, formatLocale } = useI18n();
+  const { t } = useI18n();
   const { message } = useAntdApp();
   const { hasPermission, isSuperAdmin } = usePermissions();
   const canManage =
@@ -61,17 +62,6 @@ export function DigitalServiceRequestsPanel({
   const { data, isLoading, isError } = useDigitalServiceRequests(statusFilter);
   const approveMutation = useApproveDigitalServiceRequest();
   const rejectMutation = useRejectDigitalServiceRequest();
-
-  const formatDate = (iso: string) => {
-    try {
-      return new Intl.DateTimeFormat(formatLocale, {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-      }).format(new Date(iso));
-    } catch {
-      return iso;
-    }
-  };
 
   const serviceLabel = (serviceType: DigitalServiceType) =>
     serviceType === 'website'
@@ -130,7 +120,7 @@ export function DigitalServiceRequestsPanel({
     {
       title: t('superadmin.digital.requestColumns.requestedAt'),
       key: 'requestedAt',
-      render: (_, row) => formatDate(row.requestedAt),
+      render: (_, row) => <DateColumn date={row.requestedAt} format="datetime" />,
     },
     {
       title: t('superadmin.digital.requestColumns.note'),

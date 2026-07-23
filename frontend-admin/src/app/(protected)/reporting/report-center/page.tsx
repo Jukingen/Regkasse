@@ -46,6 +46,7 @@ import {
   matchesReportDocFilter,
   matchesSubmissionFilter,
 } from '@/components/reporting/reportWorkspaceLabels';
+import { DateColumn, dateColumnRender } from '@/components/DateColumn';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatDate, formatDateTime } from '@/i18n/formatting';
 import { AXIOS_INSTANCE } from '@/lib/axios';
@@ -430,7 +431,7 @@ export default function ReportCenterPage() {
       {
         title: t('adminShell.reporting.reportCenter.colPeriod'),
         dataIndex: 'viennaBusinessDate',
-        render: (v: string) => formatDate(v, ''),
+        render: dateColumnRender('short'),
       },
       {
         title: t('adminShell.reporting.reportCenter.colRegister'),
@@ -577,8 +578,12 @@ export default function ReportCenterPage() {
       {
         title: t('adminShell.reporting.dateRange'),
         key: 'p',
-        render: (_, r) =>
-          `${formatDate(r.periodStartLocalDate, '')} – ${formatDate(r.periodEndLocalDate, '')}`,
+        render: (_, r) => (
+          <>
+            <DateColumn date={r.periodStartLocalDate} format="short" /> –{' '}
+            <DateColumn date={r.periodEndLocalDate} format="short" />
+          </>
+        ),
       },
       { title: t('adminShell.reporting.periodPreset'), dataIndex: 'periodPreset' },
       {
@@ -627,7 +632,7 @@ export default function ReportCenterPage() {
       {
         title: t('adminShell.reporting.closingTime'),
         dataIndex: 'closingDateUtc',
-        render: (v: string) => formatDateTime(v, ''),
+        render: dateColumnRender('datetime'),
       },
       { title: t('adminShell.reporting.closingStatus'), dataIndex: 'status' },
       { title: t('adminShell.reporting.closingAmount'), dataIndex: 'totalAmount' },
@@ -674,7 +679,7 @@ export default function ReportCenterPage() {
       {
         title: t('adminShell.reporting.closingTime'),
         dataIndex: 'createdAtUtc',
-        render: (v: string | undefined) => (v ? formatDateTime(v, '') : '—'),
+        render: dateColumnRender('datetime'),
       },
     ],
     [t]

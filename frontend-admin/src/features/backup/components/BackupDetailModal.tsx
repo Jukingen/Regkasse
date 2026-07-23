@@ -52,6 +52,7 @@ import {
   resolveBackupRunSizeLabel,
   resolveBackupRunTotalBytes,
 } from '@/features/backup/logic/backupRunTablePresentation';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useI18n } from '@/i18n';
 import { formatDateTime as formatDisplayDateTime } from '@/i18n/formatting';
 
@@ -209,7 +210,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
         title: t('backupDr.detailModal.artifacts.createdAt'),
         dataIndex: 'createdAt',
         key: 'createdAt',
-        render: (v: string | undefined) => formatDateTime(v),
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('backupDr.detailModal.artifacts.lifecycle'),
@@ -268,7 +269,6 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
     [
       canDownloadBackup,
       executeBackupDownload,
-      formatDateTime,
       formatLocale,
       isSystemBackup,
       run?.id,

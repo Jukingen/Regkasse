@@ -44,6 +44,12 @@ import {
   getCashRegisterCapabilities,
   hardDeleteCashRegister,
 } from '@/features/cash-registers/api/cashRegisters';
+import {
+  cancelGracePeriod,
+  getGracePeriodsConfig,
+  scheduleGracePeriod,
+  type GracePeriodPending,
+} from '@/features/cash-registers/api/gracePeriods';
 import { BulkDecommissionBar } from '@/features/cash-registers/components/BulkDecommissionBar';
 import { BulkDecommissionModal } from '@/features/cash-registers/components/BulkDecommissionModal';
 import { CashRegisterGrid } from '@/features/cash-registers/components/CashRegisterGrid';
@@ -153,6 +159,7 @@ export default function AdminCashRegistersPage() {
   const [decommissionReason, setDecommissionReason] = useState('');
   const [hardDeleteConfirm, setHardDeleteConfirm] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
+  const [pendingGracePeriod, setPendingGracePeriod] = useState<GracePeriodPending | null>(null);
 
   const { tenants, isLoading: tenantsLoading } = useTenantList({
     enabled: isSuperAdminUser && canView,
@@ -269,12 +276,41 @@ export default function AdminCashRegistersPage() {
   }, [queryClient]);
 
   const decommissionMutation = useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
-      decommissionCashRegister(id, { reason: reason || null }),
-    onSuccess: async () => {
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      try {
+        const config = await getGracePeriodsConfig();
+        if (config.enabled) {
+          const scheduled = await scheduleGracePeriod({
+            actionKind: 'Schlussbeleg',
+            entityType: 'CashRegister',
+            entityId: id,
+            reason: reason || undefined,
+          });
+          if (!scheduled.success || !scheduled.pending) {
+            throw new Error(scheduled.message || t('common.gracePeriod.scheduleFailed'));
+          }
+          return { mode: 'grace' as const, pending: scheduled.pending };
+        }
+      } catch (err) {
+        // If config endpoint fails, fall through to immediate decommission.
+        if (err instanceof Error && err.message.includes('schedule')) {
+          throw err;
+        }
+      }
+
+      await decommissionCashRegister(id, { reason: reason || null });
+      return { mode: 'immediate' as const, pending: null };
+    },
+    onSuccess: async (result) => {
+      if (result.mode === 'grace' && result.pending) {
+        setPendingGracePeriod(result.pending);
+        message.success(t('common.gracePeriod.scheduledSuccess'));
+        return;
+      }
       message.success(t('cashRegisters.decommission.success'));
       setDecommissionRegister(null);
       setDecommissionReason('');
+      setPendingGracePeriod(null);
       await invalidateRegisterQueries();
     },
     onError: (err) => {
@@ -282,6 +318,28 @@ export default function AdminCashRegistersPage() {
         getUserFacingApiErrorMessage(t, err, {
           logContext: 'AdminCashRegisters.decommission',
           fallbackKey: 'common.messages.unknownError',
+        })
+      );
+    },
+  });
+
+  const undoGraceMutation = useMutation({
+    mutationFn: async (id: string) => cancelGracePeriod(id),
+    onSuccess: async (res) => {
+      if (!res.success) {
+        message.error(res.message || t('common.gracePeriod.undoFailed'));
+        return;
+      }
+      message.success(t('common.gracePeriod.undoSuccess'));
+      setPendingGracePeriod(null);
+      setDecommissionRegister(null);
+      setDecommissionReason('');
+    },
+    onError: (err) => {
+      message.error(
+        getUserFacingApiErrorMessage(t, err, {
+          logContext: 'AdminCashRegisters.undoGrace',
+          fallbackKey: 'common.gracePeriod.undoFailed',
         })
       );
     },
@@ -821,9 +879,17 @@ export default function AdminCashRegistersPage() {
         onCancel={() => {
           setDecommissionRegister(null);
           setDecommissionReason('');
+          setPendingGracePeriod(null);
         }}
         onConfirm={submitDecommission}
         confirmLoading={decommissionMutation.isPending}
+        gracePeriod={pendingGracePeriod}
+        onUndoGracePeriod={() => {
+          if (pendingGracePeriod?.id) {
+            undoGraceMutation.mutate(pendingGracePeriod.id);
+          }
+        }}
+        undoLoading={undoGraceMutation.isPending}
       />
 
       <CashRegisterHardDeleteModal

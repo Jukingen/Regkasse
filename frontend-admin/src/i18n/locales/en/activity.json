@@ -50,6 +50,36 @@
   "tabs": {
     "compliance": "Compliance audit",
     "activity": "Activity log",
+    "operations": "Operation log",
     "staff": "Staff performance"
+  },
+  "operationLog": {
+    "title": "Operation log",
+    "pageIntro": "Reversible admin changes with before/after state. Payments and fiscal receipts cannot be undone.",
+    "loadFailed": "Failed to load operation log",
+    "undoSuccess": "Operation undone",
+    "undoFailed": "Undo failed",
+    "undoConfirmTitle": "Undo this operation?",
+    "undoConfirmContent": "The stored before-state will be restored. This action is audited.",
+    "detailTitle": "Operation details",
+    "beforeState": "Before",
+    "afterState": "After",
+    "unknownUser": "Unknown",
+    "table": {
+      "time": "Time",
+      "user": "User",
+      "operation": "Operation",
+      "entity": "Entity",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "status": {
+      "active": "Active",
+      "undone": "Undone"
+    },
+    "actions": {
+      "view": "View details",
+      "undo": "Undo"
+    }
   }
 }

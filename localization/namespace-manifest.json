@@ -63,6 +63,7 @@
         "modifierGroups",
         "benefits",
         "billing",
+        "calendar",
         "backupDr",
         "customers",
         "invoices",
@@ -78,7 +79,14 @@
         "digital",
         "onlineOrders",
         "dataManagement",
-        "keyboardShortcuts"
+        "keyboardShortcuts",
+        "feedback",
+        "maintenance",
+        "monitoring",
+        "riskDashboard",
+        "tseManagement",
+        "tseFailover",
+        "impactSimulator"
       ]
     },
     "frontend-sites": {

@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 
 import { useAuth } from '../contexts/AuthContext';
+import { formatUserTime } from '../utils/dateFormatter';
 
 interface AuthLog {
   timestamp: Date;
@@ -63,7 +64,7 @@ export const AuthStatusMonitor: React.FC = () => {
         <Text style={styles.statusText}>User: {user ? user.email : 'None'}</Text>
         <Text style={styles.statusText}>Role: {user?.role || 'None'}</Text>
         <Text style={styles.statusText}>Render Count: {renderCount}</Text>
-        <Text style={styles.statusText}>Last Update: {new Date().toLocaleTimeString()}</Text>
+        <Text style={styles.statusText}>Last Update: {formatUserTime(new Date(), { includeSeconds: true })}</Text>
       </View>
 
       {/* Auth Logs */}
@@ -72,7 +73,9 @@ export const AuthStatusMonitor: React.FC = () => {
         <ScrollView style={styles.logsContainer} showsVerticalScrollIndicator={false}>
           {authLogs.map((log, index) => (
             <View key={index} style={styles.logItem}>
-              <Text style={styles.logTimestamp}>{log.timestamp.toLocaleTimeString()}</Text>
+              <Text style={styles.logTimestamp}>
+                {formatUserTime(log.timestamp, { includeSeconds: true })}
+              </Text>
               <Text style={styles.logAction}>{log.action}</Text>
               <Text style={styles.logDetails}>{log.details}</Text>
               {log.userState && (

@@ -1,5 +1,7 @@
 'use client';
 
+import { dateColumnRender } from '@/components/DateColumn';
+
 import {
   CalendarOutlined,
   CloseOutlined,
@@ -336,21 +338,21 @@ function IssuedLicensesTableCard() {
         dataIndex: 'activatedAtUtc',
         key: 'activatedAtUtc',
         width: 140,
-        render: (iso: string) => formatGermanDateTime(iso),
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('license.issued.super.colLastSeen'),
         dataIndex: 'lastSeenAtUtc',
         key: 'lastSeenAtUtc',
         width: 140,
-        render: (iso: string) => formatGermanDateTime(iso),
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('license.issued.super.colValidUntil'),
         dataIndex: 'validUntilUtc',
         key: 'validUntilUtc',
         width: 140,
-        render: (iso: string) => formatGermanDateTime(iso),
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('license.issued.super.colCust'),
@@ -423,7 +425,7 @@ function IssuedLicensesTableCard() {
         dataIndex: 'expiryAtUtc',
         key: 'expiryAtUtc',
         width: 140,
-        render: (iso: string) => formatGermanDateTime(iso),
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('license.issued.columns.type'),
@@ -455,7 +457,7 @@ function IssuedLicensesTableCard() {
         dataIndex: 'lastActivationAtUtc',
         key: 'lastActivationAtUtc',
         width: 150,
-        render: (iso: string | null | undefined) => (iso ? formatGermanDateTime(iso) : '—'),
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('license.issued.columns.activatedDevices'),
@@ -470,7 +472,7 @@ function IssuedLicensesTableCard() {
         dataIndex: 'issuedAtUtc',
         key: 'issuedAtUtc',
         width: 140,
-        render: (iso: string) => formatGermanDateTime(iso),
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('license.issued.columns.actions'),

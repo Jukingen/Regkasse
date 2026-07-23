@@ -2,11 +2,6 @@
 
 import { CheckCircleOutlined, CloudSyncOutlined, WarningOutlined } from '@ant-design/icons';
 import { Badge, Button, Progress, Space, Statistic } from 'antd';
-import dayjs from 'dayjs';
-import 'dayjs/locale/de';
-import 'dayjs/locale/en';
-import 'dayjs/locale/tr';
-import relativeTime from 'dayjs/plugin/relativeTime';
 import Link from 'next/link';
 import React, { useMemo } from 'react';
 
@@ -15,8 +10,7 @@ import { WidgetShell } from '@/features/dashboard/components/WidgetShell';
 import { OFFLINE_PENDING_ORDERS_CAP } from '@/features/offline/api/offlineMonitoringApi';
 import { useOfflineMonitoring } from '@/features/offline/hooks/useOfflineMonitoring';
 import { useI18n } from '@/i18n/I18nProvider';
-
-dayjs.extend(relativeTime);
+import dayjs from '@/lib/dayjs';
 
 type Props = Pick<WidgetShellProps, 'title' | 'dragHandleProps' | 'onRefresh'>;
 
@@ -32,18 +26,10 @@ function successRateColor(rate: number): string {
   return '#dc2626';
 }
 
-function dayjsLocale(code: string): string {
-  if (code.startsWith('tr')) return 'tr';
-  if (code.startsWith('en')) return 'en';
-  return 'de';
-}
-
 export function OfflineStatusWidget({ title, dragHandleProps, onRefresh }: Props) {
-  const { t, textLocale } = useI18n();
+  const { t } = useI18n();
   const query = useOfflineMonitoring();
   const data = query.data;
-
-  const relativeLocale = dayjsLocale(textLocale);
 
   const badge = useMemo(() => {
     if (!data)
@@ -147,7 +133,7 @@ export function OfflineStatusWidget({ title, dragHandleProps, onRefresh }: Props
         {data.oldestPendingOrder ? (
           <div style={{ fontSize: 12, color: '#64748b' }}>
             {t('dashboard.offlineStatusWidget.oldest_pending', {
-              time: dayjs(data.oldestPendingOrder).locale(relativeLocale).fromNow(),
+              time: dayjs(data.oldestPendingOrder).fromNow(),
             })}
           </div>
         ) : null}
@@ -155,7 +141,7 @@ export function OfflineStatusWidget({ title, dragHandleProps, onRefresh }: Props
         {data.lastSyncAt ? (
           <div style={{ fontSize: 12, color: '#64748b' }}>
             {t('dashboard.offlineStatusWidget.last_sync', {
-              time: dayjs(data.lastSyncAt).locale(relativeLocale).fromNow(),
+              time: dayjs(data.lastSyncAt).fromNow(),
             })}
           </div>
         ) : null}

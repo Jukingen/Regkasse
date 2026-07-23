@@ -1,7 +1,9 @@
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.ActivityReports;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Services.Tenancy;
 using Microsoft.AspNetCore.Authorization;
@@ -19,6 +21,7 @@ public sealed class AdminTenantsController : ControllerBase
     private readonly IAdminTenantService _tenantService;
     private readonly IAdminTenantLicenseService _tenantLicenseService;
     private readonly ITenantDeletionService _tenantDeletionService;
+    private readonly IActivityReportService _activityReportService;
     private readonly IAuditLogService _auditLogService;
     private readonly IHostEnvironment _environment;
     private readonly ILogger<AdminTenantsController> _logger;
@@ -27,6 +30,7 @@ public sealed class AdminTenantsController : ControllerBase
         IAdminTenantService tenantService,
         IAdminTenantLicenseService tenantLicenseService,
         ITenantDeletionService tenantDeletionService,
+        IActivityReportService activityReportService,
         IAuditLogService auditLogService,
         IHostEnvironment environment,
         ILogger<AdminTenantsController> logger)
@@ -34,6 +38,7 @@ public sealed class AdminTenantsController : ControllerBase
         _tenantService = tenantService;
         _tenantLicenseService = tenantLicenseService;
         _tenantDeletionService = tenantDeletionService;
+        _activityReportService = activityReportService;
         _auditLogService = auditLogService;
         _environment = environment;
         _logger = logger;
@@ -287,6 +292,45 @@ public sealed class AdminTenantsController : ControllerBase
         if (error != null)
             return BadRequest(new { message = error });
         return Ok(result);
+    }
+
+    /// <summary>Set tenant operation mode (active / readonly / maintenance).</summary>
+    [HttpPatch("{tenantId:guid}/operation-mode")]
+    [ProducesResponseType(typeof(AdminTenantDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<AdminTenantDetailDto>> UpdateOperationMode(
+        Guid tenantId,
+        [FromBody] UpdateTenantOperationModeRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        var (result, error) = await _tenantService
+            .UpdateOperationModeAsync(tenantId, request, ActorUserId, cancellationToken)
+            .ConfigureAwait(false);
+        if (error == "Tenant not found.")
+            return NotFound(new { message = error });
+        if (error != null)
+            return BadRequest(new { message = error, code = "INVALID_OPERATION_MODE" });
+        return Ok(result);
+    }
+
+    /// <summary>Weekly operation-log activity report for a tenant (last 7 days).</summary>
+    [HttpGet("{tenantId:guid}/activity-report/weekly")]
+    [ProducesResponseType(typeof(ActivityReportDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ActivityReportDto>> GetWeeklyActivityReport(
+        Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        var report = await _activityReportService
+            .GenerateWeeklyReportAsync(tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (report is null)
+            return NotFound(new { message = "Tenant not found." });
+        return Ok(report);
     }
 
     /// <summary>Return tenant dependency counts and permanent-delete eligibility for Super Admin UI.</summary>

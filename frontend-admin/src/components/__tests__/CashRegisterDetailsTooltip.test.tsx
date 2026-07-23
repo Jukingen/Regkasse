@@ -51,8 +51,10 @@ describe('CashRegisterDetailsTooltipContent', () => {
     expect(screen.getByTestId('cash-register-details-tooltip')).toBeInTheDocument();
     expect(screen.getByText(/KASSE-001/)).toBeInTheDocument();
     expect(screen.getByText('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')).toBeInTheDocument();
+    expect(screen.getByText('tenant-a')).toBeInTheDocument();
     expect(screen.getByText('Geöffnet')).toBeInTheDocument();
     expect(screen.getByText('TSE OK')).toBeInTheDocument();
     expect(screen.getByText(/125/)).toBeInTheDocument();
+    expect(screen.getByTestId('cash-register-details-copy-all')).toHaveTextContent('Alles kopieren');
   });
 });

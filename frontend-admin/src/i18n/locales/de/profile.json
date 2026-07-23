@@ -10,11 +10,23 @@
   "fields": {
     "userName": "Benutzername",
     "role": "Rolle",
+    "userId": "Benutzer-ID",
     "employeeNumber": "Mitarbeiternummer",
     "phoneNumber": "Telefon",
     "firstName": "Vorname",
     "lastName": "Nachname",
     "email": "E-Mail"
+  },
+  "technicalDetails": {
+    "title": "Technische Angaben",
+    "description": "Selten benötigte Kennungen für Support und Fehlersuche. Werte sind vollständig und kopierbar.",
+    "userId": "Benutzer-ID",
+    "tenantId": "Mandanten-ID",
+    "tenantSlug": "Mandanten-Slug",
+    "branchId": "Filial-ID",
+    "selectedCashRegisterId": "Ausgewählte Kassen-ID (Quick Switch)",
+    "backendRole": "Backend-Rolle(n)",
+    "appContext": "App-Kontext"
   },
   "validation": {
     "firstNameRequired": "Vorname erforderlich.",

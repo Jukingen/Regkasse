@@ -28,7 +28,8 @@ import { buildDataExportFileName } from '@/features/data-management/utils/dataEx
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSensitiveExportGate } from '@/hooks/useSensitiveExportGate';
-import { formatDate, useI18n } from '@/i18n';
+import { dateColumnRender } from '@/components/DateColumn';
+import { useI18n } from '@/i18n';
 import { SENSITIVE_EXPORT_KINDS } from '@/lib/download/sensitiveExportSecurity';
 
 type Props = { tenantId: string };
@@ -98,7 +99,7 @@ const REQUEST_TYPE_CARDS: RequestTypeCard[] = [
 ];
 
 export function DataRightsRequestPanel({ tenantId }: Props) {
-  const { t, formatLocale } = useI18n();
+  const { t } = useI18n();
   const { message, modal } = useAntdApp();
   const { isSuperAdmin } = usePermissions();
   const summaryQuery = useTenantDataManagementSummary(tenantId);
@@ -189,7 +190,7 @@ export function DataRightsRequestPanel({ tenantId }: Props) {
         title: t('dataManagement.rights.colRequested'),
         dataIndex: 'requestedAtUtc',
         key: 'requestedAtUtc',
-        render: (value: string) => formatDate(value, formatLocale),
+        render: dateColumnRender('short'),
       },
       {
         title: t('dataManagement.rights.colType'),
@@ -246,7 +247,6 @@ export function DataRightsRequestPanel({ tenantId }: Props) {
     // Handlers close over latest mutation state; columns rebuilt each render intentionally.
     [
       t,
-      formatLocale,
       isSuperAdmin,
       downloadMutation.isPending,
       confirmMutation.isPending,

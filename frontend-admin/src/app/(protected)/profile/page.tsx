@@ -1,12 +1,13 @@
 'use client';
 
 import { IdcardOutlined, MailOutlined, UserOutlined } from '@ant-design/icons';
-import { Avatar, Button, Card, Descriptions, Divider, Form, Input, Space } from 'antd';
+import { Avatar, Button, Card, Descriptions, Divider, Form, Input, Space, Typography } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 
 import { FormSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { ProfileTechnicalDetailsCard } from '@/features/user/components/ProfileTechnicalDetailsCard';
 import { ProfileUsernamePolicyAlert } from '@/features/user/components/ProfileUsernamePolicyAlert';
 import { SelfServiceUsernameModal } from '@/features/user/components/SelfServiceUsernameModal';
 import { useProfile, useUpdateProfile } from '@/features/user/hooks/useProfile';
@@ -139,6 +140,15 @@ export default function ProfilePage() {
           <Descriptions.Item label={t('profile.fields.role')}>
             {resolveRoleLabel(profile.role, t)}
           </Descriptions.Item>
+          <Descriptions.Item label={t('profile.fields.userId')} span={2}>
+            <Typography.Text
+              code
+              copyable={{ text: profile.id }}
+              style={{ wordBreak: 'break-all', whiteSpace: 'normal' }}
+            >
+              {profile.id}
+            </Typography.Text>
+          </Descriptions.Item>
           <Descriptions.Item label={t('profile.fields.employeeNumber')}>
             {displayValue(profile.employeeNumber, emptyLabel)}
           </Descriptions.Item>
@@ -201,6 +211,8 @@ export default function ProfilePage() {
           </Form.Item>
         </Form>
       </Card>
+
+      <ProfileTechnicalDetailsCard userId={profile.id} />
 
       <ProfilePermissionRequestCard />
 

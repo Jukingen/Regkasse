@@ -71,6 +71,9 @@
     "RoleDeleted": "Rol silindi",
     "RolePermissionsUpdated": "Rol izinleri güncellendi",
     "UserPermissionOverridesChanged": "Kullanıcı izinleri değişti",
-    "SystemPermissionChange": "Sistem izin değişikliği"
+    "SystemPermissionChange": "Sistem izin değişikliği",
+    "CriticalActionApprovalRequested": "Kritik işlem onay bekliyor",
+    "CriticalActionApprovalApproved": "Kritik işlem onaylandı",
+    "CriticalActionApprovalRejected": "Kritik işlem reddedildi"
   }
 }

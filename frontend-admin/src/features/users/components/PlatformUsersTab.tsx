@@ -13,10 +13,10 @@ import { Avatar, Button, Empty, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import React, { useMemo } from 'react';
 
+import { dateColumnRender } from '@/components/DateColumn';
 import type { UserInfo } from '@/features/users/api/usersGateway';
 import { UserRoleBadge } from '@/features/users/components/UserRoleBadge';
 import { useI18n } from '@/i18n';
-import { formatDateTime } from '@/i18n/formatting';
 import type { UsersPolicy } from '@/shared/auth/usersPolicy';
 
 function fullName(record: UserInfo): string {
@@ -52,7 +52,7 @@ export function PlatformUsersTab({
   onResetPassword,
   onCreatePlatformUser,
 }: PlatformUsersTabProps) {
-  const { t, formatLocale } = useI18n();
+  const { t } = useI18n();
 
   // Security: no password column — Manager resets passwords via actions only.
   const columns: ColumnsType<UserInfo> = useMemo(
@@ -113,7 +113,7 @@ export function PlatformUsersTab({
         title: t('users.list.columnLastLogin'),
         dataIndex: 'lastLoginAt',
         key: 'lastLoginAt',
-        render: (v: string | null) => (v ? formatDateTime(v, formatLocale) : '—'),
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('users.list.columnActions'),
@@ -161,7 +161,6 @@ export function PlatformUsersTab({
     ],
     [
       t,
-      formatLocale,
       policy,
       currentUserId,
       onView,

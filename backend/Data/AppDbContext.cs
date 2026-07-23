@@ -79,6 +79,9 @@ namespace KasseAPI_Final.Data
         public DbSet<PaymentDetails> PaymentDetails { get; set; }
         public DbSet<PaymentReversalApproval> PaymentReversalApprovals { get; set; }
         public DbSet<SuspiciousTransactionAlert> SuspiciousTransactionAlerts { get; set; }
+        public DbSet<RiskScore> RiskScores { get; set; }
+        public DbSet<TseBackupRecord> TseBackups { get; set; }
+        public DbSet<TseDeviceHealthSample> TseDeviceHealthSamples { get; set; }
         public DbSet<OfflineTransaction> OfflineTransactions { get; set; }
         public DbSet<OfflineOrder> OfflineOrders { get; set; }
         public DbSet<CardPaymentTransaction> CardPaymentTransactions { get; set; }
@@ -108,9 +111,19 @@ namespace KasseAPI_Final.Data
         public DbSet<RksvColdArchiveItem> RksvColdArchiveItems { get; set; }
         public DbSet<DigitalServiceRequest> DigitalServiceRequests { get; set; }
         public DbSet<AdminUserFeedback> AdminUserFeedback { get; set; }
+        public DbSet<TenantSettingsHistory> TenantSettingsHistory { get; set; }
+
+        /// <summary>Platform-wide scheduled maintenance notices (not tenant-scoped).</summary>
+        public DbSet<MaintenanceNotification> MaintenanceNotifications { get; set; }
+
+        /// <summary>Per-user dismiss/read state for maintenance notices.</summary>
+        public DbSet<MaintenanceNotificationAcknowledgment> MaintenanceNotificationAcknowledgments { get; set; }
         public DbSet<ReceiptTemplate> ReceiptTemplates { get; set; }
         public DbSet<GeneratedReceipt> GeneratedReceipts { get; set; }
         public DbSet<TseDevice> TseDevices { get; set; }
+
+        /// <summary>Append-only audit of TSE primary → backup failover events.</summary>
+        public DbSet<TseFailoverLog> TseFailoverLogs { get; set; }
 
         /// <summary>Append-only log when TSE operational health classification changes.</summary>
         public DbSet<TseHealthAuditLog> TseHealthAuditLogs { get; set; }
@@ -148,6 +161,9 @@ namespace KasseAPI_Final.Data
         public DbSet<ExportEmailDelivery> ExportEmailDeliveries { get; set; }
         public DbSet<SensitiveExportApproval> SensitiveExportApprovals { get; set; }
         public DbSet<DownloadSecurityTicket> DownloadSecurityTickets { get; set; }
+        public DbSet<ApprovalRequest> ApprovalRequests { get; set; }
+        public DbSet<OperationLog> OperationLogs { get; set; }
+        public DbSet<GracePeriodPending> GracePeriodPendings { get; set; }
         public DbSet<ReportPdf> ReportPdfs { get; set; }
         public DbSet<ActivityEvent> ActivityEvents { get; set; }
         public DbSet<ActivityEventRead> ActivityEventReads { get; set; }
@@ -390,6 +406,86 @@ namespace KasseAPI_Final.Data
                     .IsUnique()
                     .HasDatabaseName("ux_permission_requests_pending_requester_permission_tenant")
                     .HasFilter("status = 'Pending'");
+            });
+
+            builder.Entity<ApprovalRequest>(entity =>
+            {
+                entity.ToTable("approval_requests");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id");
+                entity.Property(e => e.RequestedBy).HasColumnName("requested_by").IsRequired().HasMaxLength(450);
+                entity.Property(e => e.ApprovedBy).HasColumnName("approved_by").HasMaxLength(450);
+                entity.Property(e => e.ActionType).HasColumnName("action_type").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.Payload).HasColumnName("payload").HasColumnType("text");
+                entity.Property(e => e.Status).HasColumnName("status").IsRequired().HasMaxLength(16);
+                entity.Property(e => e.RequestedAt).HasColumnName("requested_at").IsRequired();
+                entity.Property(e => e.ApprovedAt).HasColumnName("approved_at");
+                entity.Property(e => e.ExpiresAt).HasColumnName("expires_at").IsRequired();
+                entity.Property(e => e.Reason).HasColumnName("reason").HasMaxLength(1000);
+                entity.Property(e => e.Notes).HasColumnName("notes").HasMaxLength(2000);
+                entity.Property(e => e.PathHint).HasColumnName("path_hint").HasMaxLength(512);
+                entity.HasIndex(e => e.Status).HasDatabaseName("idx_approval_requests_status");
+                entity.HasIndex(e => e.RequestedAt).HasDatabaseName("idx_approval_requests_requested_at");
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_approval_requests_tenant_id");
+                entity.HasIndex(e => new { e.RequestedBy, e.ActionType, e.TenantId })
+                    .HasDatabaseName("idx_approval_requests_requester_action_tenant");
+            });
+
+            builder.Entity<OperationLog>(entity =>
+            {
+                entity.ToTable("operation_logs");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(450);
+                entity.Property(e => e.OperationType).HasColumnName("operation_type").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.EntityType).HasColumnName("entity_type").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.EntityId).HasColumnName("entity_id").IsRequired().HasMaxLength(128);
+                entity.Property(e => e.BeforeState).HasColumnName("before_state").HasColumnType("jsonb");
+                entity.Property(e => e.AfterState).HasColumnName("after_state").HasColumnType("jsonb");
+                entity.Property(e => e.IsUndone).HasColumnName("is_undone").IsRequired();
+                entity.Property(e => e.UndoneBy).HasColumnName("undone_by").HasMaxLength(450);
+                entity.Property(e => e.UndoneAt).HasColumnName("undone_at");
+                entity.Property(e => e.Reason).HasColumnName("reason").HasMaxLength(500);
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();
+                entity.Property(e => e.IpAddress).HasColumnName("ip_address").HasMaxLength(64);
+                entity.Property(e => e.UserAgent).HasColumnName("user_agent").HasMaxLength(512);
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_operation_logs_tenant_id");
+                entity.HasIndex(e => new { e.TenantId, e.CreatedAt }).HasDatabaseName("idx_operation_logs_tenant_created");
+                entity.HasIndex(e => new { e.TenantId, e.OperationType }).HasDatabaseName("idx_operation_logs_tenant_type");
+                entity.HasIndex(e => new { e.TenantId, e.IsUndone }).HasDatabaseName("idx_operation_logs_tenant_undone");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            builder.Entity<GracePeriodPending>(entity =>
+            {
+                entity.ToTable("grace_period_pendings");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.ActionKind).HasColumnName("action_kind").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.EntityType).HasColumnName("entity_type").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.EntityId).HasColumnName("entity_id").IsRequired().HasMaxLength(128);
+                entity.Property(e => e.Payload).HasColumnName("payload").HasColumnType("jsonb");
+                entity.Property(e => e.CreatedBy).HasColumnName("created_by").IsRequired().HasMaxLength(450);
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();
+                entity.Property(e => e.ExpiresAt).HasColumnName("expires_at").IsRequired();
+                entity.Property(e => e.Status).HasColumnName("status").IsRequired().HasMaxLength(16);
+                entity.Property(e => e.CancelledBy).HasColumnName("cancelled_by").HasMaxLength(450);
+                entity.Property(e => e.CancelledAt).HasColumnName("cancelled_at");
+                entity.Property(e => e.ExecutedAt).HasColumnName("executed_at");
+                entity.Property(e => e.ErrorMessage).HasColumnName("error_message").HasMaxLength(1000);
+                entity.Property(e => e.OperationLogId).HasColumnName("operation_log_id");
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_grace_period_pendings_tenant_id");
+                entity.HasIndex(e => new { e.TenantId, e.Status, e.ExpiresAt })
+                    .HasDatabaseName("idx_grace_period_pendings_tenant_status_expires");
+                entity.HasIndex(e => new { e.TenantId, e.ActionKind, e.EntityId, e.Status })
+                    .HasDatabaseName("idx_grace_period_pendings_tenant_action_entity_status");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             builder.Entity<PermissionPackage>(entity =>
@@ -1317,6 +1413,14 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.Phone).HasMaxLength(50);
                 entity.Property(e => e.Address);
                 entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue(TenantStatuses.Active);
+                entity.Property(e => e.OperationMode)
+                    .IsRequired()
+                    .HasMaxLength(20)
+                    .HasDefaultValue(TenantOperationModes.Active);
+                entity.Property(e => e.MaintenanceMessage).HasColumnType("text");
+                entity.Property(e => e.MaintenanceStartedAt);
+                entity.Property(e => e.MaintenanceEndsAt);
+                entity.HasIndex(e => e.OperationMode).HasDatabaseName("idx_tenants_operation_mode");
                 entity.Property(e => e.LicenseKey).HasMaxLength(100);
                 entity.Property(e => e.LicenseValidUntilUtc);
                 entity.Property(e => e.LicenseGracePeriodStartedAt);
@@ -1550,6 +1654,63 @@ namespace KasseAPI_Final.Data
                     .WithMany()
                     .HasForeignKey(e => e.TenantId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<TenantSettingsHistory>(entity =>
+            {
+                entity.ToTable("tenant_settings_history");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.SettingType).IsRequired().HasMaxLength(32);
+                entity.Property(e => e.OldValue).HasColumnType("jsonb");
+                entity.Property(e => e.NewValue).HasColumnType("jsonb");
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(32);
+                entity.Property(e => e.RequestedBy).IsRequired().HasMaxLength(450);
+                entity.Property(e => e.ApprovedBy).HasMaxLength(450);
+                entity.Property(e => e.RequestedAt).IsRequired();
+                entity.Property(e => e.Reason).HasMaxLength(1000);
+                entity.Property(e => e.Notes).HasMaxLength(2000);
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_tenant_settings_history_tenant_id");
+                entity.HasIndex(e => e.Status).HasDatabaseName("idx_tenant_settings_history_status");
+                entity.HasIndex(e => e.RequestedAt).HasDatabaseName("idx_tenant_settings_history_requested_at");
+                entity.HasIndex(e => new { e.TenantId, e.SettingType, e.Status })
+                    .HasDatabaseName("idx_tenant_settings_history_tenant_type_status");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<MaintenanceNotification>(entity =>
+            {
+                entity.ToTable("maintenance_notifications");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Message).IsRequired().HasColumnType("text");
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(32);
+                entity.Property(e => e.AffectedSystems).IsRequired().HasMaxLength(64);
+                entity.Property(e => e.CreatedBy).IsRequired().HasMaxLength(450);
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.HasIndex(e => new { e.Status, e.ScheduledStartAt })
+                    .HasDatabaseName("idx_maintenance_notifications_status_start");
+                entity.HasIndex(e => e.ScheduledEndAt)
+                    .HasDatabaseName("idx_maintenance_notifications_end");
+                entity.HasMany(e => e.Acknowledgments)
+                    .WithOne(a => a.Notification)
+                    .HasForeignKey(a => a.NotificationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<MaintenanceNotificationAcknowledgment>(entity =>
+            {
+                entity.ToTable("maintenance_notification_acknowledgments");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
+                entity.HasIndex(e => new { e.NotificationId, e.UserId })
+                    .IsUnique()
+                    .HasDatabaseName("idx_maintenance_acks_notification_user");
+                entity.HasIndex(e => e.UserId)
+                    .HasDatabaseName("idx_maintenance_acks_user_id");
             });
 
             builder.Entity<SystemTimeSyncLog>(entity =>
@@ -2085,6 +2246,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.BankSwiftCode).HasMaxLength(20);
                 entity.Property(e => e.PaymentTerms).HasMaxLength(50);
                 entity.Property(e => e.Currency).IsRequired().HasMaxLength(3);
+                entity.Property(e => e.Country).IsRequired().HasMaxLength(2).HasDefaultValue("AT");
                 entity.Property(e => e.Language).IsRequired().HasMaxLength(10);
                 entity.Property(e => e.TimeZone).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.DateFormat).IsRequired().HasMaxLength(20);
@@ -2253,6 +2415,8 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.DefaultPage).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.DateFormat).HasMaxLength(20);
                 entity.Property(e => e.TimeFormat).HasMaxLength(10);
+                entity.Property(e => e.TimeZone).HasMaxLength(64);
+                entity.Property(e => e.Language).HasMaxLength(10);
                 entity.Property(e => e.UpdatedAtUtc).IsRequired();
                 entity.HasIndex(e => e.UserId).IsUnique();
                 entity.HasOne<ApplicationUser>()
@@ -2413,8 +2577,196 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.PendingReports)
                     .HasColumnName("PendingReports");
 
+                // Failover / multi-device registry (PascalCase to match legacy TseDevices columns)
+                entity.Property(e => e.TenantId)
+                    .HasColumnName("TenantId");
+
+                entity.Property(e => e.CashRegisterId)
+                    .HasColumnName("CashRegisterId");
+
+                entity.Property(e => e.DeviceId)
+                    .HasColumnName("DeviceId")
+                    .HasMaxLength(200);
+
+                entity.Property(e => e.Provider)
+                    .HasColumnName("Provider")
+                    .HasMaxLength(64);
+
+                entity.Property(e => e.ApiKey)
+                    .HasColumnName("ApiKey")
+                    .HasMaxLength(4000);
+
+                entity.Property(e => e.ApiSecret)
+                    .HasColumnName("ApiSecret")
+                    .HasMaxLength(4000);
+
+                entity.Property(e => e.Certificate)
+                    .HasColumnName("Certificate")
+                    .HasColumnType("text");
+
+                entity.Property(e => e.IsPrimary)
+                    .HasColumnName("IsPrimary")
+                    .HasDefaultValue(true);
+
+                entity.Property(e => e.PrimaryDeviceId)
+                    .HasColumnName("PrimaryDeviceId");
+
+                entity.Property(e => e.IsBackup)
+                    .HasColumnName("IsBackup")
+                    .HasDefaultValue(false);
+
+                entity.Property(e => e.IsFailoverActive)
+                    .HasColumnName("IsFailoverActive")
+                    .HasDefaultValue(false);
+
+                entity.Property(e => e.HealthStatus)
+                    .HasColumnName("HealthStatus")
+                    .HasDefaultValue(TseHealthStatus.Healthy);
+
+                entity.Property(e => e.HealthScore)
+                    .HasColumnName("HealthScore")
+                    .HasDefaultValue(100);
+
+                entity.Property(e => e.LastHealthCheck)
+                    .HasColumnName("LastHealthCheck");
+
+                entity.Property(e => e.HealthMessage)
+                    .HasColumnName("HealthMessage")
+                    .HasMaxLength(1000);
+
+                entity.Property(e => e.IssuedAt)
+                    .HasColumnName("IssuedAt");
+
+                entity.Property(e => e.ExpiresAt)
+                    .HasColumnName("ExpiresAt");
+
+                entity.Property(e => e.ExpiryWarningSentAt)
+                    .HasColumnName("ExpiryWarningSentAt");
+
+                entity.Property(e => e.ScheduledRenewalAt)
+                    .HasColumnName("ScheduledRenewalAt");
+
+                entity.Property(e => e.LastFailoverAt)
+                    .HasColumnName("LastFailoverAt");
+
+                entity.Property(e => e.LastFailoverReason)
+                    .HasColumnName("LastFailoverReason")
+                    .HasMaxLength(500);
+
+                entity.Property(e => e.FailoverCount)
+                    .HasColumnName("FailoverCount")
+                    .HasDefaultValue(0);
+
                 entity.HasIndex(e => e.SerialNumber)
                     .IsUnique();
+
+                entity.HasIndex(e => e.TenantId)
+                    .HasDatabaseName("IX_TseDevices_TenantId");
+
+                entity.HasIndex(e => e.CashRegisterId)
+                    .HasDatabaseName("IX_TseDevices_CashRegisterId");
+
+                entity.HasIndex(e => e.PrimaryDeviceId)
+                    .HasDatabaseName("IX_TseDevices_PrimaryDeviceId");
+
+                entity.HasIndex(e => new { e.TenantId, e.IsPrimary, e.IsActive })
+                    .HasDatabaseName("IX_TseDevices_Tenant_Primary_Active");
+
+                entity.HasIndex(e => new { e.TenantId, e.IsFailoverActive })
+                    .HasDatabaseName("IX_TseDevices_Tenant_FailoverActive");
+
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.CashRegister)
+                    .WithMany()
+                    .HasForeignKey(e => e.CashRegisterId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(e => e.PrimaryDevice)
+                    .WithMany(e => e.BackupDevices)
+                    .HasForeignKey(e => e.PrimaryDeviceId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            builder.Entity<TseFailoverLog>(entity =>
+            {
+                entity.ToTable("tse_failover_logs");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.PrimaryDeviceId).HasColumnName("primary_device_id").IsRequired();
+                entity.Property(e => e.BackupDeviceId).HasColumnName("backup_device_id");
+                entity.Property(e => e.FailoverType).HasColumnName("failover_type").IsRequired().HasMaxLength(32);
+                entity.Property(e => e.TriggerReason).HasColumnName("trigger_reason").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.PreviousStatus).HasColumnName("previous_status").HasMaxLength(64);
+                entity.Property(e => e.NewStatus).HasColumnName("new_status").HasMaxLength(64);
+                entity.Property(e => e.IsSuccessful).HasColumnName("is_successful");
+                entity.Property(e => e.ErrorMessage).HasColumnName("error_message").HasMaxLength(2000);
+                entity.Property(e => e.StartedAt).HasColumnName("started_at").IsRequired();
+                entity.Property(e => e.CompletedAt).HasColumnName("completed_at");
+                entity.Property(e => e.PerformedBy).HasColumnName("performed_by").HasMaxLength(450);
+                entity.Property(e => e.Notes).HasColumnName("notes").HasMaxLength(1000);
+
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_tse_failover_logs_tenant_id");
+                entity.HasIndex(e => e.PrimaryDeviceId).HasDatabaseName("idx_tse_failover_logs_primary_device");
+                entity.HasIndex(e => e.BackupDeviceId).HasDatabaseName("idx_tse_failover_logs_backup_device");
+                entity.HasIndex(e => new { e.TenantId, e.StartedAt })
+                    .HasDatabaseName("idx_tse_failover_logs_tenant_started");
+                entity.HasIndex(e => new { e.TenantId, e.IsSuccessful })
+                    .HasDatabaseName("idx_tse_failover_logs_tenant_success");
+
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.PrimaryDevice)
+                    .WithMany()
+                    .HasForeignKey(e => e.PrimaryDeviceId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.BackupDevice)
+                    .WithMany()
+                    .HasForeignKey(e => e.BackupDeviceId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.PerformedByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.PerformedBy)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            builder.Entity<TseDeviceHealthSample>(entity =>
+            {
+                entity.ToTable("tse_device_health_samples");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.DeviceId).HasColumnName("device_id").IsRequired();
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id");
+                entity.Property(e => e.CheckedAtUtc).HasColumnName("checked_at_utc").IsRequired();
+                entity.Property(e => e.HealthScore).HasColumnName("health_score").IsRequired();
+                entity.Property(e => e.HealthStatus).HasColumnName("health_status").IsRequired()
+                    .HasConversion<string>().HasMaxLength(32);
+                entity.Property(e => e.Message).HasColumnName("message").HasMaxLength(500);
+                entity.Property(e => e.IsPrimary).HasColumnName("is_primary");
+                entity.Property(e => e.IsBackup).HasColumnName("is_backup");
+                entity.Property(e => e.ResponseTimeMs).HasColumnName("response_time_ms");
+
+                entity.HasIndex(e => new { e.DeviceId, e.CheckedAtUtc })
+                    .HasDatabaseName("idx_tse_health_samples_device_checked");
+                entity.HasIndex(e => new { e.TenantId, e.CheckedAtUtc })
+                    .HasDatabaseName("idx_tse_health_samples_tenant_checked");
+
+                entity.HasOne(e => e.Device)
+                    .WithMany()
+                    .HasForeignKey(e => e.DeviceId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             // DailyClosing configuration
@@ -3271,6 +3623,46 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.AlertType).HasConversion<int>();
                 entity.Property(e => e.Severity).HasConversion<int>();
                 entity.Property(e => e.Status).HasConversion<int>();
+            });
+
+            builder.Entity<RiskScore>(entity =>
+            {
+                entity.ToTable("risk_scores");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
+                entity.Property(e => e.ActionType).IsRequired().HasMaxLength(128);
+                entity.Property(e => e.RiskLevel).IsRequired().HasMaxLength(32);
+                entity.Property(e => e.Reason).IsRequired().HasColumnType("text");
+                entity.Property(e => e.Resolution).HasColumnType("text");
+                entity.Property(e => e.DetailsJson).HasColumnType("jsonb");
+                entity.Property(e => e.ResolvedBy).HasMaxLength(450);
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_risk_scores_tenant_id");
+                entity.HasIndex(e => e.UserId).HasDatabaseName("idx_risk_scores_user_id");
+                entity.HasIndex(e => e.CreatedAt).HasDatabaseName("idx_risk_scores_created_at");
+                entity.HasIndex(e => new { e.TenantId, e.IsResolved, e.Score })
+                    .HasDatabaseName("idx_risk_scores_tenant_resolved_score");
+                entity.HasOne<Tenant>()
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<TseBackupRecord>(entity =>
+            {
+                entity.ToTable("tse_backups");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Payload).IsRequired();
+                entity.Property(e => e.EncryptionKind).IsRequired().HasMaxLength(32);
+                entity.Property(e => e.CreatedBy).HasMaxLength(450);
+                entity.Property(e => e.Notes).HasMaxLength(256);
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_tse_backups_tenant_id");
+                entity.HasIndex(e => e.CreatedAt).HasDatabaseName("idx_tse_backups_created_at");
+                entity.HasIndex(e => new { e.TenantId, e.CreatedAt })
+                    .HasDatabaseName("idx_tse_backups_tenant_created");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // Vouchers (Gutscheine): configured last so FK delete behaviors are not overridden by model conventions.

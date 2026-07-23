@@ -6,6 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 
 import { useAuth } from '../contexts/AuthContext';
+import { formatUserTime } from '../utils/dateFormatter';
 
 export const AuthDebugPanel: React.FC = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -64,7 +65,7 @@ Email: ${user?.email || 'N/A'}
 Role: ${user?.role || 'N/A'}
 Token: ${user?.token ? 'Present' : 'Missing'}
 Render Count: ${renderCount}
-Last Render: ${new Date(lastRender).toLocaleTimeString()}`,
+Last Render: ${formatUserTime(lastRender, { includeSeconds: true })}`,
       [{ text: 'Tamam' }]
     );
   };
@@ -82,7 +83,7 @@ Last Render: ${new Date(lastRender).toLocaleTimeString()}`,
         <Text style={styles.infoText}>Role: {user?.role || 'None'}</Text>
         <Text style={styles.infoText}>Render Count: {renderCount}</Text>
         <Text style={styles.infoText}>
-          Last Render: {new Date(lastRender).toLocaleTimeString()}
+          Last Render: {formatUserTime(lastRender, { includeSeconds: true })}
         </Text>
       </View>
 

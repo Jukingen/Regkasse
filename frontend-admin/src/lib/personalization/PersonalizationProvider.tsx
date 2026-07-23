@@ -29,10 +29,12 @@ import type {
   DateFormatPattern,
   DefaultLandingPath,
   DensityMode,
+  PreferenceLanguage,
   PersonalizationPreferences,
   ResolvedTheme,
   ThemeMode,
   TimeFormatPreference,
+  UserTimeZone,
 } from './types';
 import {
   mapApiToPersonalization,
@@ -40,6 +42,15 @@ import {
   saveUserPreferences,
   userPreferencesQueryKey,
 } from './userPreferencesApi';
+
+type UserPrefSlice = {
+  defaultLandingPath: DefaultLandingPath;
+  dateFormat: DateFormatPattern;
+  timeFormat: TimeFormatPreference;
+  timeZone: UserTimeZone;
+  language: PreferenceLanguage;
+  reducedAnimations: boolean;
+};
 
 type PersonalizationContextValue = {
   preferences: PersonalizationPreferences;
@@ -50,6 +61,8 @@ type PersonalizationContextValue = {
   setDefaultLandingPath: (path: DefaultLandingPath) => void;
   setDateFormat: (format: DateFormatPattern) => void;
   setTimeFormat: (format: TimeFormatPreference) => void;
+  setTimeZone: (timeZone: UserTimeZone) => void;
+  setLanguage: (language: PreferenceLanguage) => void;
   setReducedAnimations: (value: boolean) => void;
   replacePreferences: (next: PersonalizationPreferences) => void;
 };
@@ -80,12 +93,14 @@ function PersonalizationStateBridge({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const skipNextRemoteSave = useRef(false);
 
-  const [userPrefs, setUserPrefs] = useState(() => {
+  const [userPrefs, setUserPrefs] = useState<UserPrefSlice>(() => {
     const s = readStoredPersonalization();
     return {
       defaultLandingPath: s.defaultLandingPath,
       dateFormat: s.dateFormat,
       timeFormat: s.timeFormat,
+      timeZone: s.timeZone,
+      language: s.language,
       reducedAnimations: s.reducedAnimations,
     };
   });
@@ -110,6 +125,8 @@ function PersonalizationStateBridge({ children }: { children: ReactNode }) {
       defaultLandingPath: fromApi.defaultLandingPath,
       dateFormat: fromApi.dateFormat,
       timeFormat: fromApi.timeFormat,
+      timeZone: fromApi.timeZone,
+      language: fromApi.language,
       reducedAnimations: fromApi.reducedAnimations,
     });
     writeStoredPersonalization(fromApi);
@@ -125,7 +142,7 @@ function PersonalizationStateBridge({ children }: { children: ReactNode }) {
   );
 
   const persistUserFields = useCallback(
-    (patch: Partial<typeof userPrefs>) => {
+    (patch: Partial<UserPrefSlice>) => {
       const nextUser = { ...userPrefs, ...patch };
       setUserPrefs(nextUser);
       const full = patchStoredPersonalization({
@@ -158,6 +175,16 @@ function PersonalizationStateBridge({ children }: { children: ReactNode }) {
     [persistUserFields]
   );
 
+  const setTimeZone = useCallback(
+    (timeZone: UserTimeZone) => persistUserFields({ timeZone }),
+    [persistUserFields]
+  );
+
+  const setLanguage = useCallback(
+    (language: PreferenceLanguage) => persistUserFields({ language }),
+    [persistUserFields]
+  );
+
   const setReducedAnimations = useCallback(
     (reducedAnimations: boolean) => persistUserFields({ reducedAnimations }),
     [persistUserFields]
@@ -171,6 +198,8 @@ function PersonalizationStateBridge({ children }: { children: ReactNode }) {
         defaultLandingPath: next.defaultLandingPath,
         dateFormat: next.dateFormat,
         timeFormat: next.timeFormat,
+        timeZone: next.timeZone,
+        language: next.language,
         reducedAnimations: next.reducedAnimations,
       });
       writeStoredPersonalization(next);
@@ -193,6 +222,8 @@ function PersonalizationStateBridge({ children }: { children: ReactNode }) {
       setDefaultLandingPath,
       setDateFormat,
       setTimeFormat,
+      setTimeZone,
+      setLanguage,
       setReducedAnimations,
       replacePreferences,
     }),
@@ -206,6 +237,8 @@ function PersonalizationStateBridge({ children }: { children: ReactNode }) {
       setDefaultLandingPath,
       setDateFormat,
       setTimeFormat,
+      setTimeZone,
+      setLanguage,
       setReducedAnimations,
       replacePreferences,
     ]

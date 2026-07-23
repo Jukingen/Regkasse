@@ -38,6 +38,7 @@ import { useI18n } from '@/i18n';
 import { formatNumber } from '@/i18n/formatting';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
+import { formatDate, formatDateTimeSeconds } from '@/lib/dateUtils';
 import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
@@ -242,7 +243,7 @@ export default function FiscalExportAuditPage() {
         width: 172,
         render: (ts: string) => (
           <Typography.Text strong style={{ fontVariantNumeric: 'tabular-nums' }}>
-            {ts ? dayjs(ts).format('DD.MM.YYYY HH:mm:ss') : '—'}
+            {ts ? formatDateTimeSeconds(ts) : '—'}
           </Typography.Text>
         ),
       },
@@ -272,10 +273,8 @@ export default function FiscalExportAuditPage() {
         key: 'period',
         width: 220,
         render: (_: unknown, r: FiscalExportAuditLogListItem) => {
-          const from = r.exportPeriodFromUtc
-            ? dayjs(r.exportPeriodFromUtc).format('DD.MM.YYYY')
-            : '—';
-          const to = r.exportPeriodToUtc ? dayjs(r.exportPeriodToUtc).format('DD.MM.YYYY') : '—';
+          const from = r.exportPeriodFromUtc ? formatDate(r.exportPeriodFromUtc) : '—';
+          const to = r.exportPeriodToUtc ? formatDate(r.exportPeriodToUtc) : '—';
           return (
             <Space size={4} wrap>
               <Typography.Text style={{ fontVariantNumeric: 'tabular-nums' }}>
@@ -345,7 +344,7 @@ export default function FiscalExportAuditPage() {
     );
     if (downloadRange?.[0] && downloadRange[1]) {
       parts.push(
-        `${downloadRange[0].format('DD.MM.YYYY')}–${downloadRange[1].format('DD.MM.YYYY')}`
+        `${formatDate(downloadRange[0])}–${formatDate(downloadRange[1])}`
       );
     } else {
       parts.push(t('common.auditLogs.scopeNoDateFilter'));

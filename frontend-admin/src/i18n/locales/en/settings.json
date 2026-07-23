@@ -280,7 +280,13 @@
       "receiptNumbering": "Receipt numbering",
       "receiptNumberingRequired": "Receipt numbering is required",
       "invoiceNumbering": "Invoice numbering",
-      "invoiceNumberingRequired": "Invoice numbering is required"
+      "invoiceNumberingRequired": "Invoice numbering is required",
+      "defaultPaymentMethod": "Default payment method",
+      "defaultPaymentMethodRequired": "Default payment method is required",
+      "placeholderPaymentMethod": "Cash",
+      "taxCalculationMethod": "Tax calculation method",
+      "taxCalculationMethodRequired": "Tax calculation method is required",
+      "placeholderTaxCalculation": "Standard"
     },
     "finanzOnline": {
       "credentialsCardTitle": "Credentials & connectivity",
@@ -523,8 +529,10 @@
       "density": "Density",
       "defaultPage": "Home page after sign-in",
       "dateFormatLabel": "Date format",
-      "dateFormatDescription": "Fixed German format (day.month.year), regardless of UI language.",
+      "dateFormatDescription": "Format for tables and detail views. Independent of UI language.",
       "timeFormat": "Time format",
+      "timeZone": "Timezone",
+      "timeZoneHint": "Timezone used when displaying dates and times in the admin UI.",
       "reducedMotion": "Reduce animations",
       "reducedMotionHint": "For better performance",
       "notifyOnExports": "Notify me about exports",
@@ -532,7 +540,9 @@
       "exportSound": "Sound for export notifications",
       "exportSoundHint": "Short chime on success or failure (optional)",
       "dateFormatOptions": {
-        "DD_MM_YYYY": "01.12.2025 (DD.MM.YYYY)"
+        "DD_MM_YYYY": "31.12.2024 (DD.MM.YYYY)",
+        "MM_DD_YYYY": "12/31/2024 (MM/DD/YYYY)",
+        "YYYY_MM_DD": "2024-12-31 (YYYY-MM-DD)"
       }
     },
     "theme": {
@@ -582,6 +592,19 @@
       "admin_users": "Users",
       "kassenverwaltung": "Cash registers",
       "reporting": "Reports"
+    }
+  },
+  "preferences": {
+    "pageTitle": "Date & time preferences",
+    "intro": "Personal date, time, and timezone formatting for the admin UI.",
+    "cardTitle": "User preferences",
+    "save": "Save",
+    "saveSuccess": "Preferences saved.",
+    "fields": {
+      "dateFormat": "Date format",
+      "timeZone": "Timezone",
+      "language": "Language",
+      "use24HourFormat": "24-hour format"
     }
   }
 }

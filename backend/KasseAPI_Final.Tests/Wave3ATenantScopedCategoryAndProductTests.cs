@@ -171,7 +171,8 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
             NullLogger<CategoriesController>.Instance,
             TenantTestDoubles.PrimaryTenantResolver,
             Mock.Of<IAuditLogService>(),
-            Mock.Of<ICategoryDemoResetService>());
+            Mock.Of<ICategoryDemoResetService>(),
+            Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
         var dup = await controller.CreateCategory(new CreateCategoryRequest { Name = "Existing", VatRate = 10m });
         var conflict = Assert.IsAssignableFrom<ObjectResult>(dup.Result);
         Assert.Equal(StatusCodes.Status409Conflict, conflict.StatusCode);
@@ -190,7 +191,8 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
             NullLogger<CategoriesController>.Instance,
             TenantTestDoubles.PrimaryTenantResolver,
             Mock.Of<IAuditLogService>(),
-            Mock.Of<ICategoryDemoResetService>());
+            Mock.Of<ICategoryDemoResetService>(),
+            Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
         var dup = await controller.CreateCategory(new CreateCategoryRequest { Name = "archived", VatRate = 10m });
         var conflict = Assert.IsAssignableFrom<ObjectResult>(dup.Result);
         Assert.Equal(StatusCodes.Status409Conflict, conflict.StatusCode);
@@ -257,7 +259,8 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
             NullLogger<CategoriesController>.Instance,
             TenantTestDoubles.SettingsResolverReturning(TenantB),
             Mock.Of<IAuditLogService>(),
-            Mock.Of<ICategoryDemoResetService>());
+            Mock.Of<ICategoryDemoResetService>(),
+            Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
         var res = await controller.CreateCategory(new CreateCategoryRequest { Name = "Fresh", VatRate = 10m });
         var created = Assert.IsType<CreatedAtActionResult>(res.Result);
         var cat = Assert.IsType<CategoryDto>(created.Value);
@@ -279,7 +282,8 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
             NullLogger<CategoriesController>.Instance,
             TenantTestDoubles.SettingsResolverReturning(TenantA),
             Mock.Of<IAuditLogService>(),
-            Mock.Of<ICategoryDemoResetService>());
+            Mock.Of<ICategoryDemoResetService>(),
+            Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
         var res = await controller.GetCategory(catBId);
         Assert.IsType<NotFoundObjectResult>(res.Result);
     }

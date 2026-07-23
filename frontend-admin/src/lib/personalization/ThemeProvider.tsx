@@ -13,7 +13,9 @@ import React, {
 
 import { authStorage } from '@/features/auth/services/authStorage';
 import { useUserPreferences } from '@/features/user/hooks/useUserPreferences';
+import { useI18n } from '@/i18n';
 import { AntdAppBridgeRegistrar } from '@/lib/AntdAppBridgeRegistrar';
+import { getAntdLocale } from '@/lib/antdLocale';
 import { buildAntdTheme } from '@/theme/buildAntdTheme';
 
 import { DensityProvider } from './DensityProvider';
@@ -57,6 +59,7 @@ type ThemeProviderProps = {
 };
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
+  const { textLocale } = useI18n();
   const storedOnInit = readStoredPersonalization();
   const [themeMode, setThemeModeState] = useState<ThemeMode>(storedOnInit.themeMode);
   const [densityMode, setDensityModeState] = useState<DensityMode>(storedOnInit.density);
@@ -144,11 +147,13 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     [effectiveTheme, densityMode]
   );
 
+  const antdLocale = useMemo(() => getAntdLocale(textLocale), [textLocale]);
+
   const componentSize = antdComponentSizeForDensity(densityMode);
 
   return (
     <ThemeContext.Provider value={themeContextValue}>
-      <ConfigProvider theme={antdTheme} componentSize={componentSize}>
+      <ConfigProvider locale={antdLocale} theme={antdTheme} componentSize={componentSize}>
         <App>
           <AntdAppBridgeRegistrar />
           <DensityProvider densityMode={densityMode} setDensityMode={setDensityMode}>

@@ -6,8 +6,10 @@ import { usePersonalization } from '../PersonalizationProvider';
 import type {
   DateFormatPattern,
   DefaultLandingPath,
+  PreferenceLanguage,
   TimeFormatPreference,
   UserPreferencesUi,
+  UserTimeZone,
 } from '../types';
 
 export function useUserPreferences() {
@@ -16,6 +18,8 @@ export function useUserPreferences() {
     setDefaultLandingPath,
     setDateFormat,
     setTimeFormat,
+    setTimeZone,
+    setLanguage,
     setReducedAnimations,
     isSyncing,
   } = usePersonalization();
@@ -25,6 +29,8 @@ export function useUserPreferences() {
       defaultPage: preferences.defaultLandingPath,
       dateFormat: preferences.dateFormat,
       timeFormat: preferences.timeFormat,
+      timeZone: preferences.timeZone,
+      language: preferences.language,
       reducedAnimations: preferences.reducedAnimations,
     }),
     [preferences]
@@ -41,11 +47,24 @@ export function useUserPreferences() {
       if (patch.timeFormat !== undefined) {
         setTimeFormat(patch.timeFormat as TimeFormatPreference);
       }
+      if (patch.timeZone !== undefined) {
+        setTimeZone(patch.timeZone as UserTimeZone);
+      }
+      if (patch.language !== undefined) {
+        setLanguage(patch.language as PreferenceLanguage);
+      }
       if (patch.reducedAnimations !== undefined) {
         setReducedAnimations(patch.reducedAnimations);
       }
     },
-    [setDefaultLandingPath, setDateFormat, setTimeFormat, setReducedAnimations]
+    [
+      setDefaultLandingPath,
+      setDateFormat,
+      setTimeFormat,
+      setTimeZone,
+      setLanguage,
+      setReducedAnimations,
+    ]
   );
 
   return {

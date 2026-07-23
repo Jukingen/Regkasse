@@ -190,6 +190,7 @@ public sealed class AdminTenantsControllerTests
             tenantService ?? Mock.Of<IAdminTenantService>(),
             tenantLicenseService ?? Mock.Of<IAdminTenantLicenseService>(),
             tenantDeletionService ?? Mock.Of<ITenantDeletionService>(),
+            Mock.Of<KasseAPI_Final.Services.ActivityReports.IActivityReportService>(),
             Mock.Of<IAuditLogService>(),
             environment ?? Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
             Mock.Of<ILogger<AdminTenantsController>>());
@@ -1711,5 +1712,133 @@ public sealed class AdminTenantsControllerTests
             UpdatedAt = now,
             IsActive = true,
         };
+    }
+
+    [Fact]
+    public async Task UpdateOperationModeAsync_sets_maintenance_window_and_clears_on_active()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Mode Tenant",
+            Slug = $"mode-{tenantId:N}"[..20],
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            OperationMode = TenantOperationModes.Active,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var ends = DateTime.UtcNow.AddHours(3);
+        var (detail, error) = await service.UpdateOperationModeAsync(
+            tenantId,
+            new UpdateTenantOperationModeRequest
+            {
+                OperationMode = TenantOperationModes.Maintenance,
+                MaintenanceMessage = " Scheduled upgrade ",
+                MaintenanceEndsAt = ends,
+            },
+            actorUserId: "super-admin");
+
+        Assert.Null(error);
+        Assert.NotNull(detail);
+        Assert.Equal(TenantOperationModes.Maintenance, detail!.OperationMode);
+        Assert.Equal("Scheduled upgrade", detail.MaintenanceMessage);
+        Assert.NotNull(detail.MaintenanceStartedAt);
+        Assert.Equal(ends, detail.MaintenanceEndsAt);
+
+        var (activeDetail, activeError) = await service.UpdateOperationModeAsync(
+            tenantId,
+            new UpdateTenantOperationModeRequest { OperationMode = TenantOperationModes.Active },
+            actorUserId: "super-admin");
+
+        Assert.Null(activeError);
+        Assert.Equal(TenantOperationModes.Active, activeDetail!.OperationMode);
+        Assert.Null(activeDetail.MaintenanceMessage);
+        Assert.Null(activeDetail.MaintenanceStartedAt);
+        Assert.Null(activeDetail.MaintenanceEndsAt);
+    }
+
+    [Fact]
+    public async Task UpdateOperationModeAsync_rejects_invalid_mode_and_deleted_tenant()
+    {
+        await using var db = CreateDb();
+        var activeId = Guid.NewGuid();
+        var deletedId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = activeId,
+            Name = "Active Mode Tenant",
+            Slug = $"act-{activeId:N}"[..20],
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Tenants.Add(new Tenant
+        {
+            Id = deletedId,
+            Name = "Deleted Mode Tenant",
+            Slug = $"del-{deletedId:N}"[..20],
+            Status = TenantStatuses.Deleted,
+            IsActive = false,
+            CreatedAt = DateTime.UtcNow,
+            DeletedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var (missingMode, invalidError) = await service.UpdateOperationModeAsync(
+            activeId,
+            new UpdateTenantOperationModeRequest { OperationMode = "offline" },
+            actorUserId: "super-admin");
+        Assert.Null(missingMode);
+        Assert.Contains("Invalid operation mode", invalidError);
+
+        var (deletedResult, deletedError) = await service.UpdateOperationModeAsync(
+            deletedId,
+            new UpdateTenantOperationModeRequest { OperationMode = TenantOperationModes.Readonly },
+            actorUserId: "super-admin");
+        Assert.Null(deletedResult);
+        Assert.Contains("Deleted tenants", deletedError);
+    }
+
+    [Fact]
+    public async Task UpdateOperationModeAsync_preserves_started_at_on_subsequent_maintenance_save()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        var started = DateTime.UtcNow.AddHours(-2);
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Preserve Start",
+            Slug = $"prs-{tenantId:N}"[..20],
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            OperationMode = TenantOperationModes.Maintenance,
+            MaintenanceMessage = "old",
+            MaintenanceStartedAt = started,
+            MaintenanceEndsAt = DateTime.UtcNow.AddHours(1),
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var (detail, error) = await service.UpdateOperationModeAsync(
+            tenantId,
+            new UpdateTenantOperationModeRequest
+            {
+                OperationMode = TenantOperationModes.Maintenance,
+                MaintenanceMessage = "updated",
+                MaintenanceEndsAt = DateTime.UtcNow.AddHours(4),
+            },
+            actorUserId: "super-admin");
+
+        Assert.Null(error);
+        Assert.Equal("updated", detail!.MaintenanceMessage);
+        Assert.Equal(started, detail.MaintenanceStartedAt);
     }
 }

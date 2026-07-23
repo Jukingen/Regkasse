@@ -5,12 +5,13 @@
  */
 import { PlusOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert, Button, Card, Form, Input, Modal, Select, Space, Switch, Typography } from 'antd';
+import { Alert, Button, Card, Form, Input, Modal, Select, Space, Switch, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useMemo, useState } from 'react';
 
+import { dateColumnRender } from '@/components/DateColumn';
 import { EmptyState } from '@/components/EmptyState';
 import { useKeyboardShortcutLabels } from '@/components/KeyboardShortcutsProvider';
 import { SkeletonWrapper } from '@/components/Skeleton';
@@ -36,7 +37,8 @@ import { useCanManageTenantDeletion } from '@/features/super-admin/hooks/useCanM
 import { ADMIN_TENANTS_QUERY_KEY } from '@/features/super-admin/utils/invalidateTenantLifecycleQueries';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useKeyboardShortcutListener } from '@/hooks/useKeyboardShortcutListener';
-import { formatDate, useI18n } from '@/i18n';
+import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
+import { useI18n } from '@/i18n';
 import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
 import { KEYBOARD_SHORTCUT_EVENTS } from '@/shared/keyboardShortcuts';
@@ -57,7 +59,7 @@ type TenantFormValues = {
 export function TenantsTable() {
   const { message } = useAntdApp();
 
-  const { t, formatLocale } = useI18n();
+  const { t } = useI18n();
   const router = useRouter();
   const { getShortcutLabel } = useKeyboardShortcutLabels();
   const { user } = useAuth();
@@ -74,6 +76,8 @@ export function TenantsTable() {
   const canAccess = isSuperAdmin(user?.role) || hasPermission(user, PERMISSIONS.SYSTEM_CRITICAL);
   const isSuperAdminUser = isSuperAdmin(user?.role);
   const canManageDeletion = useCanManageTenantDeletion();
+  const { isMaintenanceMode } = useMaintenanceMode();
+  const maintenanceDisabledTooltip = t('maintenance.limitedMode.disabledTooltip');
 
   const tenantsQuery = useQuery({
     queryKey: [...ADMIN_TENANTS_QUERY_KEY, includeDeleted],
@@ -196,7 +200,7 @@ export function TenantsTable() {
         title: t('tenants.columns.created'),
         dataIndex: 'createdAt',
         key: 'createdAt',
-        render: (v: string) => formatDate(v, formatLocale),
+        render: dateColumnRender('short'),
       },
       {
         title: t('tenants.columns.actions'),
@@ -224,7 +228,6 @@ export function TenantsTable() {
     ],
     [
       t,
-      formatLocale,
       openEdit,
       restoreMutation.isPending,
       impersonateMutation.isPending,
@@ -263,17 +266,27 @@ export function TenantsTable() {
           { title: t('tenants.page.title'), href: '/admin/tenants' },
         ]}
         actions={
-          <Link href="/admin/tenants/create">
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              title={t('keyboardShortcuts.newTenantWithShortcut', {
-                shortcut: getShortcutLabel('newTenant'),
-              })}
-            >
-              {t('tenants.actions.create')}
-            </Button>
-          </Link>
+          <Tooltip title={isMaintenanceMode ? maintenanceDisabledTooltip : undefined}>
+            <span>
+              {isMaintenanceMode ? (
+                <Button type="primary" icon={<PlusOutlined />} disabled>
+                  {t('tenants.actions.create')}
+                </Button>
+              ) : (
+                <Link href="/admin/tenants/create">
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    title={t('keyboardShortcuts.newTenantWithShortcut', {
+                      shortcut: getShortcutLabel('newTenant'),
+                    })}
+                  >
+                    {t('tenants.actions.create')}
+                  </Button>
+                </Link>
+              )}
+            </span>
+          </Tooltip>
         }
       />
 
@@ -317,8 +330,12 @@ export function TenantsTable() {
                 <EmptyState
                   title={t('tenants.page.empty')}
                   description={t('tenants.page.emptyDescription')}
-                  actionText={t('tenants.actions.create')}
-                  onAction={() => router.push('/admin/tenants/create')}
+                  actionText={isMaintenanceMode ? undefined : t('tenants.actions.create')}
+                  onAction={
+                    isMaintenanceMode
+                      ? undefined
+                      : () => router.push('/admin/tenants/create')
+                  }
                 />
               ),
             }}

@@ -682,6 +682,24 @@
         "body": "Benutzer können sich nicht mehr anmelden, bis der Mandant reaktiviert wird."
       }
     },
+    "activityReport": {
+      "title": "Wöchentlicher Aktivitätsbericht",
+      "period": "Zeitraum: {{from}} – {{to}}",
+      "totalActivities": "Aktivitäten gesamt",
+      "uniqueUsers": "Aktive Benutzer",
+      "anomaliesDetected": "Anomalien",
+      "anomaliesTitle": "Erkannte Anomalien",
+      "recommendationsTitle": "Empfehlungen",
+      "emptySummary": "Keine Operationen in den letzten 7 Tagen.",
+      "loadError": "Aktivitätsbericht konnte nicht geladen werden.",
+      "columns": {
+        "operationType": "Operationstyp",
+        "count": "Anzahl",
+        "users": "Benutzer",
+        "firstOccurrence": "Erstmals",
+        "lastOccurrence": "Zuletzt"
+      }
+    },
     "registers": {
       "hint": "Neue Kassen legen Sie nach Impersonation im Mandanten-Kontext an (Einstellungen → Kassen).",
       "addViaImpersonation": "Als Mandant anmelden (Kasse anlegen)",
@@ -751,6 +769,25 @@
       "hardDelete": "Endgültig löschen",
       "hardDeleteSuccess": "Mandant wurde endgültig gelöscht.",
       "hardDeleteFailed": "Endgültiges Löschen fehlgeschlagen."
+    },
+    "operationMode": {
+      "title": "Betriebsmodus",
+      "description": "Steuert Schreibzugriff für POS und Mandanten-Admin (getrennt vom Mandantenstatus).",
+      "options": {
+        "active": "Aktiv",
+        "readonly": "Nur Lesen",
+        "maintenance": "Wartungsmodus"
+      },
+      "readonlyAlertTitle": "Nur-Lesen-Modus",
+      "readonlyAlertDescription": "Schreibende Aktionen für diesen Mandanten sind gesperrt. Super-Admin bleibt ausgenommen.",
+      "maintenanceAlertTitle": "Wartungsmodus aktiv",
+      "maintenanceAlertDescription": "Dieser Mandant befindet sich im Wartungsmodus. Benutzer sehen die Nachricht und können nicht schreiben.",
+      "messagePlaceholder": "Wartungsnachricht für Benutzer…",
+      "endsAtLabel": "Geplantes Ende:",
+      "endsAtPlaceholder": "Optionales Enddatum",
+      "save": "Betriebsmodus speichern",
+      "saveSuccess": "Betriebsmodus wurde aktualisiert.",
+      "saveError": "Betriebsmodus konnte nicht gespeichert werden."
     },
     "settings": {
       "save": "Einstellungen speichern",
@@ -1254,6 +1291,136 @@
     "seedMissing": "Fehlende Starter-Benutzer anlegen",
     "saveSuccess": "Gespeichert ({{count}} Starter erstellt)",
     "saveError": "Speichern fehlgeschlagen"
+  },
+  "settingsChange": {
+    "pageTitle": "Mandanten-Einstellungen",
+    "openAction": "Locale / Fiskal",
+    "fourEyesTitle": "Vier-Augen-Prinzip",
+    "fourEyesBody": "Änderungen an Währung, Land, Zeitzone und Fiskaldaten erfordern die Freigabe eines zweiten Super-Admins. Der Antragsteller darf die eigene Anfrage nicht freigeben.",
+    "fiscalWarning": {
+      "title": "Fiskaldaten erkannt",
+      "body": "Dieser Mandant hat TSE-signierte Zahlungen. Ein Länderwechsel ist nach vorhandenem Fiskalbestand aus RKSV-Gründen gesperrt. Währungsänderungen gelten nur für neue Belege und ändern die Historie nicht.",
+      "countryLockedHint": "Land kann nach vorhandenem Fiskalbestand nicht mehr geändert werden."
+    },
+    "invoiceWarning": {
+      "title": "Rechnungen vorhanden",
+      "body": "Vorhandene Rechnungen behalten ihre ursprüngliche Währung. Neue Rechnungen verwenden die neue Währung."
+    },
+    "currentTitle": "Aktuelle Werte",
+    "requestTitle": "Änderung beantragen",
+    "fields": {
+      "settingType": "Einstellungstyp",
+      "currency": "Währung",
+      "country": "Land",
+      "timeZone": "Zeitzone",
+      "taxNumber": "UID / Steuernummer",
+      "companyName": "Firmenname",
+      "companyAddress": "Firmenadresse",
+      "vatNumber": "USt-IdNr. (optional)",
+      "registrationNumber": "Firmenbuchnummer (optional)",
+      "reason": "Begründung",
+      "reasonPlaceholder": "Warum ist diese Änderung erforderlich?"
+    },
+    "settingTypes": {
+      "currency": "Währung",
+      "country": "Land",
+      "timezone": "Zeitzone",
+      "fiscal_settings": "Fiskaleinstellungen"
+    },
+    "statuses": {
+      "pending": "Ausstehend",
+      "approved": "Freigegeben",
+      "rejected": "Abgelehnt",
+      "reverted": "Zurückgesetzt"
+    },
+    "currencies": {
+      "EUR": "EUR – Euro",
+      "USD": "USD – US-Dollar",
+      "TRY": "TRY – Türkische Lira",
+      "GBP": "GBP – Pfund Sterling",
+      "CHF": "CHF – Schweizer Franken"
+    },
+    "countries": {
+      "AT": "Österreich",
+      "DE": "Deutschland",
+      "CH": "Schweiz",
+      "TR": "Türkei",
+      "GB": "Vereinigtes Königreich",
+      "US": "USA"
+    },
+    "actions": {
+      "request": "Änderung beantragen",
+      "approve": "Freigeben",
+      "reject": "Ablehnen",
+      "revert": "Zurücksetzen",
+      "showHistory": "Verlauf anzeigen",
+      "hideHistory": "Verlauf ausblenden"
+    },
+    "history": {
+      "title": "Änderungsverlauf",
+      "empty": "Noch keine Änderungsanträge.",
+      "columns": {
+        "setting": "Einstellung",
+        "oldValue": "Alter Wert",
+        "newValue": "Neuer Wert",
+        "status": "Status",
+        "requestedBy": "Beantragt von",
+        "date": "Datum",
+        "actions": "Aktionen"
+      }
+    },
+    "audit": {
+      "title": "Audit-Trail",
+      "requestedByAt": "Beantragt von {{userId}} am {{at}}",
+      "resolvedByAt": "Bearbeitet von {{userId}} am {{at}}",
+      "reason": "Begründung: {{reason}}",
+      "notes": "Notiz: {{notes}}"
+    },
+    "confirmRequest": {
+      "title": "Einstellungsänderung bestätigen",
+      "type": "Typ",
+      "newValue": "Neuer Wert",
+      "reason": "Begründung",
+      "warningTitle": "Wichtig",
+      "warningBody": "Diese Änderung betrifft alle Benutzer und Berichte. Bitte bestätigen Sie, dass sie beabsichtigt ist.",
+      "ok": "Antrag senden"
+    },
+    "confirmApprove": {
+      "title": "Änderung freigeben?",
+      "body": "Der neue Wert wird sofort für diesen Mandanten aktiv."
+    },
+    "confirmReject": {
+      "title": "Änderung ablehnen",
+      "reasonPlaceholder": "Ablehnungsgrund"
+    },
+    "confirmRevert": {
+      "title": "Änderung zurücksetzen?",
+      "body": "Der vorherige Wert wird wiederhergestellt.",
+      "reasonPlaceholder": "Grund für das Zurücksetzen"
+    },
+    "validation": {
+      "settingTypeRequired": "Bitte Einstellungstyp wählen",
+      "currencyRequired": "Bitte Währung wählen",
+      "countryRequired": "Bitte Land wählen",
+      "timeZoneRequired": "Bitte Zeitzone wählen",
+      "companyNameRequired": "Firmenname ist erforderlich",
+      "companyAddressRequired": "Firmenadresse ist erforderlich",
+      "taxNumberRequired": "UID ist erforderlich",
+      "taxNumberFormat": "Format ATU12345678 erforderlich",
+      "reasonRequired": "Bitte eine Begründung angeben"
+    },
+    "messages": {
+      "loadFailed": "Einstellungen konnten nicht geladen werden.",
+      "requestSuccess": "Änderungsantrag zur Freigabe eingereicht.",
+      "requestFailed": "Antrag konnte nicht gesendet werden.",
+      "approveSuccess": "Änderung freigegeben.",
+      "approveFailed": "Freigabe fehlgeschlagen.",
+      "rejectSuccess": "Änderung abgelehnt.",
+      "rejectFailed": "Ablehnung fehlgeschlagen.",
+      "revertSuccess": "Änderung zurückgesetzt.",
+      "revertFailed": "Zurücksetzen fehlgeschlagen.",
+      "selfApprovalForbidden": "Eigene Anträge können nicht freigegeben oder abgelehnt werden (Vier-Augen)."
+    }
   },
   "list": {
     "pageTitle": "Mandanten"

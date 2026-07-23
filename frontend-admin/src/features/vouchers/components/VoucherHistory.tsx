@@ -6,6 +6,7 @@ import type { ColumnsType } from 'antd/es/table';
 import Link from 'next/link';
 import React, { useMemo } from 'react';
 
+import { dateColumnRender } from '@/components/DateColumn';
 import {
   type AdminVoucherLedgerLineDto,
   useAdminVoucherDetail,
@@ -164,7 +165,7 @@ function VoucherHistoryLedgerBody({
         title: t('vouchers.ledger.createdAt'),
         dataIndex: 'createdAtUtc',
         key: 'createdAtUtc',
-        render: (iso: string) => formatDateTime(iso, formatLocale),
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('vouchers.ledger.createdBy'),

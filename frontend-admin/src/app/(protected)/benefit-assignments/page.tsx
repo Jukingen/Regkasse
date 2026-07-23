@@ -35,6 +35,7 @@ import { useGetApiCustomer } from '@/api/generated/customer/customer';
 import { EmptyState } from '@/components/EmptyState';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useI18n } from '@/i18n';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
@@ -165,13 +166,13 @@ export default function BenefitAssignmentsPage() {
       title: t('benefits.assignments.columnValidFrom'),
       dataIndex: 'validFrom',
       key: 'validFrom',
-      render: (v: string) => (v ? dayjs(v).format('DD.MM.YYYY') : '–'),
+      render: dateColumnRender('short'),
     },
     {
       title: t('benefits.assignments.columnValidTo'),
       dataIndex: 'validTo',
       key: 'validTo',
-      render: (v: string | null) => (v ? dayjs(v).format('DD.MM.YYYY') : '–'),
+      render: dateColumnRender('short'),
     },
     {
       title: t('benefits.shared.priority'),

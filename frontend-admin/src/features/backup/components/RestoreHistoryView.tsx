@@ -24,6 +24,7 @@ import {
 } from '@/features/backup/logic/restoreHistoryPresentation';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
+import { formatDateTime } from '@/lib/dateUtils';
 
 export function RestoreHistoryView() {
   const { t, formatLocale } = useI18n();
@@ -42,15 +43,7 @@ export function RestoreHistoryView() {
   const [reportLoading, setReportLoading] = useState(false);
   const [report, setReport] = useState<RestoreReportResponseDto | null>(null);
 
-  const formatDt = useCallback(
-    (iso: string | null | undefined) => {
-      if (!iso) return '—';
-      const d = new Date(iso);
-      if (Number.isNaN(d.getTime())) return '—';
-      return d.toLocaleString(formatLocale);
-    },
-    [formatLocale]
-  );
+  const formatDt = useCallback((iso: string | null | undefined) => formatDateTime(iso), []);
 
   const openReport = useCallback(
     async (requestId: string) => {

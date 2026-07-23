@@ -26,9 +26,9 @@ import {
   restorePermissionConfigBackup,
   setPermissionConfigBackupSettings,
 } from '@/features/users/api/permissionConfigBackupsApi';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
-import { formatDateTime } from '@/i18n/formatting';
 
 type CreateFormValues = {
   name?: string;
@@ -36,7 +36,7 @@ type CreateFormValues = {
 };
 
 export function PermissionConfigBackupsPanel() {
-  const { t, formatLocale } = useI18n();
+  const { t } = useI18n();
   const { message, modal } = useAntdApp();
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
@@ -120,7 +120,7 @@ export function PermissionConfigBackupsPanel() {
       title: t('access.permissionBackups.columnCreatedAt'),
       dataIndex: 'createdAt',
       width: 180,
-      render: (iso: string) => formatDateTime(iso, formatLocale),
+      render: dateColumnRender('datetime'),
     },
     {
       title: t('access.permissionBackups.columnNote'),

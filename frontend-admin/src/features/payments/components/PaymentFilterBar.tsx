@@ -27,6 +27,7 @@ import { countActivePaymentFilters } from '@/features/payments/utils/countActive
 import { useCashRegisterSelection } from '@/hooks/useCashRegisterSelection';
 import { useI18n } from '@/i18n';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
+import { formatDate } from '@/lib/dateUtils';
 
 const { RangePicker } = DatePicker;
 
@@ -173,8 +174,8 @@ export function PaymentFilterBar({
               {filters.dateRange?.[0] && filters.dateRange[1] ? (
                 <Tag closable onClose={() => handleFilterChange('dateRange', null)}>
                   {t('payments.filtersBar.chipDate', {
-                    from: filters.dateRange[0].format('DD.MM.YYYY'),
-                    to: filters.dateRange[1].format('DD.MM.YYYY'),
+                    from: formatDate(filters.dateRange[0]),
+                    to: formatDate(filters.dateRange[1]),
                   })}
                 </Tag>
               ) : null}

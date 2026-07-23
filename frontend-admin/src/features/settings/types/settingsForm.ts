@@ -21,6 +21,32 @@ export type SettingsFormValues = Omit<UpdateCompanySettingsRequest, 'businessHou
   tseConnectionTimeout?: number;
 };
 
+/** Fallback when tenant settings row is missing required PUT fields. */
+export const SETTINGS_SHELL_DEFAULTS: Pick<
+  SettingsFormValues,
+  | 'defaultCurrency'
+  | 'defaultLanguage'
+  | 'defaultTimeZone'
+  | 'defaultDateFormat'
+  | 'defaultTimeFormat'
+  | 'defaultDecimalPlaces'
+  | 'defaultPaymentMethod'
+  | 'taxCalculationMethod'
+  | 'invoiceNumbering'
+  | 'receiptNumbering'
+> = {
+  defaultCurrency: 'EUR',
+  defaultLanguage: 'de-DE',
+  defaultTimeZone: 'Europe/Vienna',
+  defaultDateFormat: 'dd.MM.yyyy',
+  defaultTimeFormat: 'HH:mm:ss',
+  defaultDecimalPlaces: 2,
+  defaultPaymentMethod: 'Cash',
+  taxCalculationMethod: 'Standard',
+  invoiceNumbering: 'Sequential',
+  receiptNumbering: 'Sequential',
+};
+
 /** CompanySettings -> form values (API response uses different keys for some fields) */
 export function mapSettingsToFormValues(
   s: CompanySettings | undefined
@@ -73,6 +99,60 @@ export function mapSettingsToFormValues(
   };
 }
 
+/**
+ * Merge partial form values (e.g. only the active Ant Design Tabs pane) with
+ * existing tenant settings so PUT /api/company/settings always includes required fields.
+ */
+export function mergeSettingsFormForUpdate(
+  partial: Partial<SettingsFormValues>,
+  existing: CompanySettings | undefined | null
+): SettingsFormValues {
+  const base = mapSettingsToFormValues(existing ?? undefined);
+  return {
+    ...SETTINGS_SHELL_DEFAULTS,
+    ...base,
+    ...partial,
+    companyName: partial.companyName ?? base.companyName ?? '',
+    companyAddress: partial.companyAddress ?? base.companyAddress ?? '',
+    companyTaxNumber: partial.companyTaxNumber ?? base.companyTaxNumber ?? '',
+    defaultCurrency:
+      partial.defaultCurrency ?? base.defaultCurrency ?? SETTINGS_SHELL_DEFAULTS.defaultCurrency,
+    defaultLanguage:
+      partial.defaultLanguage ?? base.defaultLanguage ?? SETTINGS_SHELL_DEFAULTS.defaultLanguage,
+    defaultTimeZone:
+      partial.defaultTimeZone ?? base.defaultTimeZone ?? SETTINGS_SHELL_DEFAULTS.defaultTimeZone,
+    defaultDateFormat:
+      partial.defaultDateFormat ??
+      base.defaultDateFormat ??
+      SETTINGS_SHELL_DEFAULTS.defaultDateFormat,
+    defaultTimeFormat:
+      partial.defaultTimeFormat ??
+      base.defaultTimeFormat ??
+      SETTINGS_SHELL_DEFAULTS.defaultTimeFormat,
+    defaultDecimalPlaces:
+      partial.defaultDecimalPlaces ??
+      base.defaultDecimalPlaces ??
+      SETTINGS_SHELL_DEFAULTS.defaultDecimalPlaces,
+    defaultPaymentMethod:
+      partial.defaultPaymentMethod ??
+      base.defaultPaymentMethod ??
+      SETTINGS_SHELL_DEFAULTS.defaultPaymentMethod,
+    taxCalculationMethod:
+      partial.taxCalculationMethod ??
+      base.taxCalculationMethod ??
+      SETTINGS_SHELL_DEFAULTS.taxCalculationMethod,
+    invoiceNumbering:
+      partial.invoiceNumbering ??
+      base.invoiceNumbering ??
+      SETTINGS_SHELL_DEFAULTS.invoiceNumbering,
+    receiptNumbering:
+      partial.receiptNumbering ??
+      base.receiptNumbering ??
+      SETTINGS_SHELL_DEFAULTS.receiptNumbering,
+    businessHours: partial.businessHours ?? base.businessHours ?? {},
+  };
+}
+
 /** Form values -> UpdateCompanySettingsRequest (includes FinanzOnline and TSE when backend supports) */
 export function mapFormValuesToUpdateRequest(v: SettingsFormValues): UpdateCompanySettingsRequest {
   const base: UpdateCompanySettingsRequest = {
@@ -120,4 +200,12 @@ export function mapFormValuesToUpdateRequest(v: SettingsFormValues): UpdateCompa
     tseAutoConnect: v.tseAutoConnect,
     tseConnectionTimeout: v.tseConnectionTimeout,
   } as UpdateCompanySettingsRequest;
+}
+
+/** Build a full PUT payload from partial form values + existing GET settings. */
+export function buildUpdateCompanySettingsRequest(
+  partial: Partial<SettingsFormValues>,
+  existing: CompanySettings | undefined | null
+): UpdateCompanySettingsRequest {
+  return mapFormValuesToUpdateRequest(mergeSettingsFormForUpdate(partial, existing));
 }

@@ -64,5 +64,7 @@ public enum AuditEventType
     SensitiveExportApprovalApproved = 38,
     /// <summary>Sensitive export download approval rejected by Super Admin.</summary>
     SensitiveExportApprovalRejected = 39,
+    /// <summary>Admin undid a reversible operation from the operation log.</summary>
+    OperationUndone = 40,
     Other = 99
 }

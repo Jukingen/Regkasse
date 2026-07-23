@@ -49,6 +49,12 @@ public interface IAdminTenantService
         string? actorUserId,
         CancellationToken cancellationToken = default);
 
+    Task<(AdminTenantDetailDto? Result, string? Error)> UpdateOperationModeAsync(
+        Guid tenantId,
+        UpdateTenantOperationModeRequest request,
+        string? actorUserId,
+        CancellationToken cancellationToken = default);
+
     Task<(bool Success, string? Error)> SoftDeleteAsync(
         Guid tenantId,
         string? actorUserId,

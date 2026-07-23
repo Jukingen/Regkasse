@@ -21,9 +21,9 @@ import {
 } from '@/features/audit/hooks/useActivityLog';
 import { resolveActivityActionLabel } from '@/features/audit/utils/resolveActivityActionLabel';
 import { useTenantStaff } from '@/features/staff/hooks/useTenantStaff';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
-import { formatDateTime } from '@/i18n/formatting';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 const { RangePicker } = DatePicker;
@@ -86,7 +86,7 @@ export function ActivityLog() {
         dataIndex: 'timestamp',
         key: 'timestamp',
         width: 168,
-        render: (value: string) => (value ? formatDateTime(value, formatLocale) : '—'),
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('activity.table.user'),
@@ -124,7 +124,7 @@ export function ActivityLog() {
         },
       },
     ],
-    [formatActionLabel, formatLocale, t]
+    [formatActionLabel, t]
   );
 
   const exportToCsv = useCallback(async () => {

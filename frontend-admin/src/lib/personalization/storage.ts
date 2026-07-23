@@ -1,12 +1,17 @@
 import { normalizeThemeMode } from './theme';
 import {
+  DATE_FORMAT_PATTERNS,
   DEFAULT_LANDING_PATHS,
   DEFAULT_PERSONALIZATION,
+  PREFERENCE_LANGUAGES,
+  TIME_ZONE_OPTIONS,
   type DateFormatPattern,
   type DefaultLandingPath,
   type DensityMode,
+  type PreferenceLanguage,
   type PersonalizationPreferences,
   type ThemeMode,
+  type UserTimeZone,
 } from './types';
 
 export const PERSONALIZATION_STORAGE_KEY = 'regkasse.admin.personalization.v1';
@@ -40,19 +45,40 @@ function normalizeDefaultLandingPath(value: unknown): DefaultLandingPath {
   return DEFAULT_PERSONALIZATION.defaultLandingPath;
 }
 
-function normalizeDateFormat(_value: unknown, _legacyPreset?: unknown): DateFormatPattern {
+function normalizeDateFormat(value: unknown, legacyPreset?: unknown): DateFormatPattern {
+  if (legacyPreset === 'en-US' || value === 'en-US') return 'MM/DD/YYYY';
+  if (legacyPreset === 'de-AT' || legacyPreset === 'tr-TR') return 'DD.MM.YYYY';
+  if (typeof value === 'string' && (DATE_FORMAT_PATTERNS as readonly string[]).includes(value)) {
+    return value as DateFormatPattern;
+  }
   return DEFAULT_PERSONALIZATION.dateFormat;
+}
+
+function normalizeTimeZone(value: unknown): UserTimeZone {
+  if (typeof value === 'string' && (TIME_ZONE_OPTIONS as readonly string[]).includes(value)) {
+    return value as UserTimeZone;
+  }
+  return DEFAULT_PERSONALIZATION.timeZone;
+}
+
+function normalizeLanguage(value: unknown): PreferenceLanguage {
+  if (typeof value === 'string' && (PREFERENCE_LANGUAGES as readonly string[]).includes(value)) {
+    return value as PreferenceLanguage;
+  }
+  return DEFAULT_PERSONALIZATION.language;
 }
 
 export function normalizePersonalization(raw: unknown): PersonalizationPreferences {
   if (!raw || typeof raw !== 'object') return { ...DEFAULT_PERSONALIZATION };
   const o = raw as Record<string, unknown>;
   return {
-    themeMode: normalizeThemeMode(o.themeMode),
+    themeMode: normalizeThemeMode(o.themeMode) as ThemeMode,
     density: normalizeDensity(o.density),
     defaultLandingPath: normalizeDefaultLandingPath(o.defaultLandingPath ?? o.defaultPage),
     dateFormat: normalizeDateFormat(o.dateFormat, o.dateTimeFormatPreset),
     timeFormat: normalizeTimeFormat(o.timeFormat),
+    timeZone: normalizeTimeZone(o.timeZone),
+    language: normalizeLanguage(o.language),
     reducedAnimations: o.reducedAnimations === true,
   };
 }

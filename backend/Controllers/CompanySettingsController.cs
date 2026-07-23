@@ -506,6 +506,7 @@ namespace KasseAPI_Final.Controllers
             BusinessHours = new Dictionary<string, string>(),
             WorkingHours = WorkingHoursSettings.CreateDefault(),
             Currency = "EUR",
+            Country = "AT",
             Language = "de-DE",
             TimeZone = "Europe/Vienna",
             DateFormat = "dd.MM.yyyy",

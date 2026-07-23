@@ -1,5 +1,7 @@
 'use client';
 
+import { dateColumnRender } from '@/components/DateColumn';
+
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -57,6 +59,7 @@ import { useAntdApp } from '@/hooks/useAntdApp';
 import { useDebounce } from '@/hooks/useDebounce';
 import { formatDate, useI18n } from '@/i18n';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
+import { formatExportFilenameDate } from '@/lib/dateUtils';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
 
@@ -409,7 +412,7 @@ export default function AdminTenantLicensesPage() {
     });
 
     downloadCsv(
-      `licenses_${dayjs().format('YYYY-MM-DD')}.csv`,
+      `licenses_${formatExportFilenameDate()}.csv`,
       [header.map((value) => toCsvCell(String(value))).join(';'), ...lines].join('\n')
     );
 
@@ -542,8 +545,7 @@ export default function AdminTenantLicensesPage() {
           const right = b.licenseValidUntilUtc ? dayjs(b.licenseValidUntilUtc).unix() : 0;
           return left - right;
         },
-        render: (value: string | null | undefined) =>
-          value ? formatDate(value, formatLocale) : '—',
+        render: dateColumnRender('short'),
       },
       {
         title: t('tenants.columns.adminUser'),
@@ -559,7 +561,7 @@ export default function AdminTenantLicensesPage() {
         key: 'createdAt',
         width: 110,
         sorter: (a, b) => dayjs(a.createdAt).unix() - dayjs(b.createdAt).unix(),
-        render: (value: string) => formatDate(value, formatLocale),
+        render: dateColumnRender('short'),
       },
       {
         title: t('tenants.columns.actions'),

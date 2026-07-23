@@ -20,6 +20,7 @@ import {
 } from '@/features/development-mode/licenseFeatureOptions';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
+import { formatDateTimeSeconds } from '@/lib/dateUtils';
 import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 
 type DevModeFormValues = {
@@ -124,7 +125,7 @@ function DevelopmentModeSettingsForm({
   isFetching: boolean;
 }) {
   const { message } = useAntdApp();
-  const { t, formatLocale } = useI18n();
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [form] = Form.useForm<DevModeFormValues>();
   const enabled = Form.useWatch('enabled', form);
@@ -155,10 +156,7 @@ function DevelopmentModeSettingsForm({
   });
 
   const formatUpdatedLine = (d: DevelopmentModeSettingsDto) => {
-    const date = new Date(d.updatedAtUtc).toLocaleString(formatLocale, {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    });
+    const date = formatDateTimeSeconds(d.updatedAtUtc);
     const user = d.updatedBy?.trim();
     if (user) return t('developmentMode.page.lastUpdated', { date, user });
     return t('developmentMode.page.lastUpdatedUnknownUser', { date });

@@ -31,6 +31,7 @@ import type { RestorePointValidationResult } from '@/features/backup/logic/backu
 import { buildPitrDateTimeConstraints } from '@/features/backup/logic/pitrDateTimeConstraints';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
+import { formatDateTimeSeconds } from '@/lib/dateUtils';
 import { formatDateTime } from '@/i18n/formatting';
 import { normalizeApiError } from '@/shared/errors/normalizedApiError';
 
@@ -114,7 +115,7 @@ export function PitrRestoreModal({
         <div>
           <Typography.Paragraph>{t('backupDr.pitr.confirmIntro')}</Typography.Paragraph>
           <Typography.Paragraph strong>
-            {selectedTime.format('DD.MM.YYYY HH:mm:ss')}
+            {formatDateTimeSeconds(selectedTime)}
           </Typography.Paragraph>
           <Typography.Paragraph>{t('backupDr.pitr.confirmIrreversible')}</Typography.Paragraph>
           <Typography.Paragraph type="danger">

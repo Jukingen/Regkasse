@@ -188,6 +188,8 @@ public static class PermissionCatalogMetadata
             AppPermissions.DigitalOrdersApprove => "Online-Bestellungen freigeben / POS-Bridge (Super-Admin)",
             AppPermissions.RksvTestHelper => "RKSV Test-Helfer (Demo-Modus) anzeigen und verwenden",
             AppPermissions.RksvTseSimulation => "TSE-Simulation im RKSV Test-Helfer zurücksetzen",
+            AppPermissions.RiskView => "Risiko-Scores und Anomalien anzeigen",
+            AppPermissions.RiskManage => "Risiko-Scores auflösen und Maßnahmen auslösen",
             _ => null,
         };
     }

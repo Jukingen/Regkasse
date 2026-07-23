@@ -94,9 +94,46 @@ export function AppearanceSettings() {
           label={t('settings.personalization.appearance.dateFormatLabel')}
           extra={t('settings.personalization.appearance.dateFormatDescription')}
         >
-          <Typography.Text>
-            {t('settings.personalization.appearance.dateFormatOptions.DD_MM_YYYY')}
-          </Typography.Text>
+          <Select
+            value={preferences.dateFormat}
+            onChange={(value) => updatePreferences({ dateFormat: value })}
+            style={{ maxWidth: 360, width: '100%' }}
+            options={[
+              {
+                value: 'DD.MM.YYYY',
+                label: t('settings.personalization.appearance.dateFormatOptions.DD_MM_YYYY'),
+              },
+              {
+                value: 'MM/DD/YYYY',
+                label: t('settings.personalization.appearance.dateFormatOptions.MM_DD_YYYY'),
+              },
+              {
+                value: 'YYYY-MM-DD',
+                label: t('settings.personalization.appearance.dateFormatOptions.YYYY_MM_DD'),
+              },
+            ]}
+          />
+        </Form.Item>
+
+        <Form.Item
+          label={t('settings.personalization.appearance.timeZone')}
+          extra={t('settings.personalization.appearance.timeZoneHint')}
+        >
+          <Select
+            showSearch
+            value={preferences.timeZone}
+            onChange={(value) => updatePreferences({ timeZone: value })}
+            style={{ maxWidth: 360, width: '100%' }}
+            options={[
+              { value: 'Europe/Vienna', label: 'Europe/Vienna (UTC+1/+2)' },
+              { value: 'Europe/Berlin', label: 'Europe/Berlin (UTC+1/+2)' },
+              { value: 'Europe/Zurich', label: 'Europe/Zurich (UTC+1/+2)' },
+              { value: 'Europe/London', label: 'Europe/London (UTC+0/+1)' },
+              { value: 'Europe/Istanbul', label: 'Europe/Istanbul (UTC+3)' },
+              { value: 'America/New_York', label: 'America/New_York (UTC-5/-4)' },
+              { value: 'UTC', label: 'UTC' },
+            ]}
+          />
         </Form.Item>
 
         <Form.Item label={t('settings.personalization.appearance.timeFormat')}>

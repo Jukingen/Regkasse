@@ -16,8 +16,9 @@ import { VoucherHistory } from '@/features/vouchers/components/VoucherHistory';
 import { buildVoucherExportFileName } from '@/features/vouchers/utils/voucherExportFileName';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useDownloadPreview } from '@/hooks/useDownloadPreview';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useI18n } from '@/i18n';
-import { formatCurrency, formatDateTime } from '@/i18n/formatting';
+import { formatCurrency } from '@/i18n/formatting';
 import { estimateTabularExportBytes } from '@/lib/download/downloadPreview';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
@@ -136,13 +137,13 @@ export default function AdminVouchersListPage() {
         title: t('vouchers.list.columns.validFrom'),
         dataIndex: 'validFromUtc',
         key: 'validFromUtc',
-        render: (iso: string) => formatDateTime(iso, formatLocale),
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('vouchers.list.columns.expiresAt'),
         dataIndex: 'expiresAtUtc',
         key: 'expiresAtUtc',
-        render: (iso: string) => formatDateTime(iso, formatLocale),
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('vouchers.list.columns.createdBy'),
@@ -155,7 +156,7 @@ export default function AdminVouchersListPage() {
         title: t('vouchers.list.columns.createdAt'),
         dataIndex: 'createdAtUtc',
         key: 'createdAtUtc',
-        render: (iso: string) => formatDateTime(iso, formatLocale),
+        render: dateColumnRender('datetime'),
       },
       ...(canAuditLedger
         ? [

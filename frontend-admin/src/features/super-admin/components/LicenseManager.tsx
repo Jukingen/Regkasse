@@ -42,9 +42,10 @@ import {
   setAdminTenantLicenseTier,
 } from '@/features/super-admin/api/adminTenantLicense';
 import type { AdminTenantDetail } from '@/features/super-admin/api/adminTenants';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
-import { formatDate, formatDateTime, useI18n } from '@/i18n';
+import { formatDate, useI18n } from '@/i18n';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
 type LicenseManagerTenantRef = Pick<AdminTenantDetail, 'id'>;
@@ -191,7 +192,7 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
       title: t('tenants.detail.license.history.date'),
       dataIndex: 'atUtc',
       key: 'atUtc',
-      render: (v: string) => formatDateTime(v, formatLocale),
+      render: dateColumnRender('datetime'),
     },
     {
       title: t('tenants.detail.license.history.event'),

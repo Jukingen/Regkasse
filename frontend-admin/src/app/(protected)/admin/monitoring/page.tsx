@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { useI18n } from '@/i18n';
+import { formatTime } from '@/lib/dateUtils';
 import {
   type ApiMetricSample,
   type ApiMetricsSummary,
@@ -207,7 +208,7 @@ export default function AdminMonitoringPage() {
             {
               title: t('monitoring.colTime'),
               dataIndex: 'at',
-              render: (at: number) => new Date(at).toLocaleTimeString(),
+              render: (at: number) => formatTime(at),
             },
             { title: t('monitoring.colMethod'), dataIndex: 'method', width: 80 },
             { title: t('monitoring.colPath'), dataIndex: 'path', ellipsis: true },

@@ -71,6 +71,9 @@
     "RoleDeleted": "Rolle gelöscht",
     "RolePermissionsUpdated": "Rollen-Berechtigungen aktualisiert",
     "UserPermissionOverridesChanged": "Benutzer-Berechtigungen geändert",
-    "SystemPermissionChange": "System-Berechtigungsänderung"
+    "SystemPermissionChange": "System-Berechtigungsänderung",
+    "CriticalActionApprovalRequested": "Kritische Aktion wartet auf Freigabe",
+    "CriticalActionApprovalApproved": "Kritische Aktion freigegeben",
+    "CriticalActionApprovalRejected": "Kritische Aktion abgelehnt"
   }
 }

@@ -71,6 +71,7 @@ import {
   resolveTemplatePeriod,
 } from '@/features/exports/applyExportTemplate';
 import { getExportTemplateById } from '@/features/exports/exportTemplatesStorage';
+import { DateColumn, dateColumnRender } from '@/components/DateColumn';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatBytes, formatDate, formatDateTime } from '@/i18n/formatting';
@@ -178,7 +179,7 @@ function DepExportSchedulesTab({
       title: tp('scheduleColumnNextRun'),
       dataIndex: 'nextRunAt',
       key: 'nextRunAt',
-      render: (v: string | null | undefined) => (v ? formatDateTime(v, formatLocale) : '—'),
+      render: dateColumnRender('datetime'),
     },
     {
       title: tp('scheduleRecipientsPlaceholder'),
@@ -608,13 +609,17 @@ export function DepExportTestPage() {
       title: tp('historyColumnDate'),
       dataIndex: 'exportedAt',
       key: 'exportedAt',
-      render: (value: string) => formatDateTime(value, formatLocale),
+      render: dateColumnRender('datetime'),
     },
     {
       title: tp('historyColumnPeriod'),
       key: 'period',
-      render: (_, row) =>
-        `${formatDate(row.fromUtc, formatLocale)} — ${formatDate(row.toUtc, formatLocale)}`,
+      render: (_, row) => (
+        <>
+          <DateColumn date={row.fromUtc} format="short" /> —{' '}
+          <DateColumn date={row.toUtc} format="short" />
+        </>
+      ),
     },
     {
       title: tp('historyColumnSignatures'),

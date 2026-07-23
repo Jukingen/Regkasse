@@ -12,6 +12,7 @@ import {
 import { useCustomerServices } from '@/features/website-generator/hooks/useCustomerServices';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
+import { formatDate } from '@/lib/dateUtils';
 import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 
 const { Paragraph, Text } = Typography;
@@ -186,7 +187,7 @@ export function CustomerPortalPanel({ tenantId }: CustomerPortalPanelProps) {
             <Text>
               {t('tenants.digitalServices.nextBilling')}:{' '}
               {activeService.nextBillingDate
-                ? new Date(activeService.nextBillingDate).toLocaleDateString(formatLocale)
+                ? formatDate(activeService.nextBillingDate)
                 : '—'}
             </Text>
             {activeService.url ? (

@@ -14,6 +14,7 @@ import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
 
+import { dateColumnRender } from '@/components/DateColumn';
 import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 import type { TenantLicenseOverviewItem } from '@/features/license/api/tenantLicenseOverview';
 import { EditTenantLicenseModal } from '@/features/license/components/EditTenantLicenseModal';
@@ -27,6 +28,7 @@ import { maskTenantLicenseKey } from '@/features/license/utils/tenantLicenseExte
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useDebounce } from '@/hooks/useDebounce';
 import { formatGermanDateTime, useI18n } from '@/i18n';
+import { formatExportFilenameDate } from '@/lib/dateUtils';
 
 type LicenseFilterValue = 'all' | MandantLicenseOverviewKind;
 
@@ -133,7 +135,7 @@ export function TenantLicenseOverview() {
     });
 
     downloadCsv(
-      `mandantenlizenzen_${dayjs().format('YYYY-MM-DD')}.csv`,
+      `mandantenlizenzen_${formatExportFilenameDate()}.csv`,
       [header.map((value) => toCsvCell(String(value))).join(';'), ...lines].join('\n')
     );
 
@@ -186,7 +188,7 @@ export function TenantLicenseOverview() {
           const right = b.validUntilUtc ? dayjs(b.validUntilUtc).unix() : 0;
           return left - right;
         },
-        render: (value: string | null) => (value ? formatGermanDateTime(value) : '—'),
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('license.superAdmin.table.status'),

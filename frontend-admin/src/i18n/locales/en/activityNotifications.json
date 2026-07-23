@@ -71,6 +71,9 @@
     "RoleDeleted": "Role deleted",
     "RolePermissionsUpdated": "Role permissions updated",
     "UserPermissionOverridesChanged": "User permissions changed",
-    "SystemPermissionChange": "System permission change"
+    "SystemPermissionChange": "System permission change",
+    "CriticalActionApprovalRequested": "Critical action awaiting approval",
+    "CriticalActionApprovalApproved": "Critical action approved",
+    "CriticalActionApprovalRejected": "Critical action rejected"
   }
 }

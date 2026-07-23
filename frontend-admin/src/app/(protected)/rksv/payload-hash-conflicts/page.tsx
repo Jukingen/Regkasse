@@ -43,8 +43,8 @@ import { PageSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useI18n } from '@/i18n';
-import { formatDateTime } from '@/i18n/formatting';
 import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
@@ -184,7 +184,7 @@ export default function PayloadHashConflictsPage() {
         dataIndex: 'latestCreatedAtUtc',
         key: 'latestCreatedAtUtc',
         width: 160,
-        render: (v: string | null) => (v ? formatDateTime(v, '') : '—'),
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('rksvHub.payloadHashConflictsPage.colMismatchRowIds'),
@@ -255,7 +255,7 @@ export default function PayloadHashConflictsPage() {
         dataIndex: 'createdAtUtc',
         key: 'createdAtUtc',
         width: 160,
-        render: (v: string | null) => (v ? formatDateTime(v, '') : '—'),
+        render: dateColumnRender('datetime'),
       },
     ],
     [t]

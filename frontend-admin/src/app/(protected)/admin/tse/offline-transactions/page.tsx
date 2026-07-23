@@ -38,10 +38,13 @@ import {
 import type { AdminOfflineTransactionRowDto } from '@/api/generated/model/adminOfflineTransactionRowDto';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdminCashRegisterList';
+import { getTseOfflineQueueStatus } from '@/features/tse-offline-queue/api';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useI18n } from '@/i18n/I18nProvider';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
+import { formatUtcDateTime } from '@/lib/dateUtils';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
@@ -122,6 +125,13 @@ export default function AdminOfflineTransactionsPage() {
     refetchInterval: REFETCH_MS,
   });
 
+  const queueStatusQuery = useQuery({
+    queryKey: ['/api/admin/tse/offline-queue/status'],
+    queryFn: ({ signal }) => getTseOfflineQueueStatus(undefined, signal),
+    enabled: allowed,
+    refetchInterval: REFETCH_MS,
+  });
+
   const listQuery = useQuery({
     queryKey: getGetApiAdminOfflineTransactionsQueryKey(listParams),
     queryFn: ({ signal }) => getApiAdminOfflineTransactions(listParams, undefined, signal),
@@ -134,6 +144,7 @@ export default function AdminOfflineTransactionsPage() {
       queryKey: getGetApiAdminOfflineTransactionsSummaryQueryKey(),
     });
     void queryClient.invalidateQueries({ queryKey: ['/api/admin/offline-transactions'] });
+    void queryClient.invalidateQueries({ queryKey: ['/api/admin/tse/offline-queue/status'] });
   }, [queryClient]);
 
   const [retryingId, setRetryingId] = useState<string | null>(null);
@@ -220,7 +231,7 @@ export default function AdminOfflineTransactionsPage() {
       dataIndex: 'serverReceivedAtUtc',
       key: 'serverReceivedAtUtc',
       width: 200,
-      render: (v: string) => dayjs(v).utc().format('DD.MM.YYYY HH:mm:ss'),
+      render: dateColumnRender('datetime', { utc: true }),
     },
     {
       title: 'Betrag',
@@ -290,7 +301,8 @@ export default function AdminOfflineTransactionsPage() {
     },
   };
 
-  const pendingHigh = (summaryQuery.data?.pendingCount ?? 0) > 10;
+  const queueStatus = queueStatusQuery.data;
+  const showQueueAlert = Boolean(queueStatus?.isWarning || queueStatus?.isCritical);
 
   if (!allowed) {
     return (
@@ -315,6 +327,32 @@ export default function AdminOfflineTransactionsPage() {
         </Typography.Paragraph>
       </AdminPageHeader>
 
+      {showQueueAlert && queueStatus ? (
+        <Alert
+          type={queueStatus.isCritical ? 'error' : 'warning'}
+          showIcon
+          title={t('rksvHub.offlineQueue.alertTitle', {
+            count: queueStatus.totalQueued,
+          })}
+          description={
+            <>
+              <div>
+                {queueStatus.isCritical
+                  ? t('rksvHub.offlineQueue.alertCritical')
+                  : t('rksvHub.offlineQueue.alertWarning')}
+              </div>
+              {queueStatus.oldestTransaction ? (
+                <div>
+                  {t('rksvHub.offlineQueue.oldestLabel', {
+                    when: formatUtcDateTime(queueStatus.oldestTransaction),
+                  })}
+                </div>
+              ) : null}
+            </>
+          }
+        />
+      ) : null}
+
       <Row gutter={16}>
         <Col xs={24} md={8}>
           <Card size="small" title="Ausstehend">
@@ -334,21 +372,12 @@ export default function AdminOfflineTransactionsPage() {
           <Card size="small" title="Letzter Replay (UTC)">
             <Typography.Text>
               {summaryQuery.data?.lastReplayAtUtc
-                ? dayjs(summaryQuery.data.lastReplayAtUtc).utc().format('DD.MM.YYYY HH:mm:ss')
+                ? formatUtcDateTime(summaryQuery.data.lastReplayAtUtc)
                 : '—'}
             </Typography.Text>
           </Card>
         </Col>
       </Row>
-
-      {pendingHigh ? (
-        <Alert
-          type="warning"
-          showIcon
-          title="Hoher Offline-Rückstau"
-          description={`Es sind ${summaryQuery.data?.pendingCount} Zahlungen noch nicht fiskal signiert (Schwelle > 10).`}
-        />
-      ) : null}
 
       {summaryQuery.isError || listQuery.isError ? (
         <Alert

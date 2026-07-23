@@ -15,8 +15,9 @@ import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { FormalReportLanguageNotice } from '@/components/reporting/FormalReportLanguageNotice';
 import { ExportTemplateApplyBanner } from '@/features/exports/components/ExportTemplateApplyBanner';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useI18n } from '@/i18n';
-import { formatDate, formatNumber } from '@/i18n/formatting';
+import { formatNumber } from '@/i18n/formatting';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
@@ -130,7 +131,7 @@ export default function TagesberichtListPage() {
       {
         title: t('reporting.tagesbericht.list.columnDate'),
         dataIndex: 'viennaBusinessDate',
-        render: (v: string) => formatDate(v, formatLocale),
+        render: dateColumnRender('short'),
       },
       {
         title: t('reporting.listShared.columns.register'),

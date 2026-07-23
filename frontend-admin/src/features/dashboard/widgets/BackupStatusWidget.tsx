@@ -3,11 +3,6 @@
 import { CloudServerOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Space, Statistic, Typography } from 'antd';
-import dayjs from 'dayjs';
-import 'dayjs/locale/de';
-import 'dayjs/locale/en';
-import 'dayjs/locale/tr';
-import relativeTime from 'dayjs/plugin/relativeTime';
 import Link from 'next/link';
 import React from 'react';
 
@@ -22,21 +17,14 @@ import { WidgetShell } from '@/features/dashboard/components/WidgetShell';
 import { DASHBOARD_AUTO_REFRESH_MS } from '@/features/dashboard/types';
 import { useAuthorizationGate } from '@/hooks/useAuthorizedQuery';
 import { useI18n } from '@/i18n/I18nProvider';
+import dayjs from '@/lib/dayjs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
-
-dayjs.extend(relativeTime);
 
 type Props = Pick<WidgetShellProps, 'title' | 'dragHandleProps' | 'onRefresh'>;
 
-function dayjsLocale(code: string): string {
-  if (code.startsWith('tr')) return 'tr';
-  if (code.startsWith('en')) return 'en';
-  return 'de';
-}
-
 /** Dashboard backup status widget (success rate, last run, staging storage). */
 export function BackupStatusWidget({ title, dragHandleProps, onRefresh }: Props) {
-  const { t, textLocale } = useI18n();
+  const { t } = useI18n();
   const { isAuthorized } = useAuthorizationGate({ requiredPermission: PERMISSIONS.SETTINGS_VIEW });
 
   const query = useQuery({
@@ -49,7 +37,6 @@ export function BackupStatusWidget({ title, dragHandleProps, onRefresh }: Props)
   });
 
   const stats = query.data;
-  const relativeLocale = dayjsLocale(textLocale);
 
   const handleRefresh = () => {
     void query.refetch();
@@ -73,7 +60,7 @@ export function BackupStatusWidget({ title, dragHandleProps, onRefresh }: Props)
   }
 
   const lastBackupAt = stats.lastBackupAtUtc
-    ? dayjs(stats.lastBackupAtUtc).locale(relativeLocale).fromNow()
+    ? dayjs(stats.lastBackupAtUtc).fromNow()
     : t('dashboard.backupStatusWidget.no_backup');
 
   const storagePercent = stats.stagingDiskUsedPercent ?? null;

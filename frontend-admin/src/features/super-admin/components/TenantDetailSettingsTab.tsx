@@ -6,6 +6,7 @@ import { Card, Form, Input, Select, Space } from 'antd';
 import { SaveButton } from '@/components/SaveButton';
 import { type AdminTenantDetail, updateAdminTenant } from '@/features/super-admin/api/adminTenants';
 import { TenantDetailDangerZone } from '@/features/super-admin/components/TenantDetailDangerZone';
+import { TenantOperationModeCard } from '@/features/super-admin/components/TenantOperationModeCard';
 import { useCanManageTenantDeletion } from '@/features/super-admin/hooks/useCanManageTenantDeletion';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
@@ -121,6 +122,10 @@ export function TenantDetailSettingsTab({
           ) : null}
         </Form>
       </Card>
+
+      {tenant.status !== 'deleted' ? (
+        <TenantOperationModeCard tenant={tenant} onUpdated={onUpdated} />
+      ) : null}
 
       {canManageDeletion && onArchiveSuccess && onPermanentDeleteSuccess && onRestore ? (
         <TenantDetailDangerZone

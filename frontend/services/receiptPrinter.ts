@@ -9,7 +9,7 @@ import {
   type ReversalReceiptSnapshot,
 } from './reversalReceiptFormatter';
 import { ReceiptDTO } from '../types/ReceiptDTO';
-import { formatUserDate } from '../utils/dateFormatter';
+import { formatUserDate, formatUserTime } from '../utils/dateFormatter';
 import { printHtmlAsync } from '../utils/expoPrintShare';
 import { normalizeReceiptDto } from '../utils/normalizeReceiptDto';
 
@@ -127,7 +127,7 @@ class ReceiptPrinter {
       await printerService.printReceipt({
         receiptNumber: receiptData.receiptNumber,
         date: formatUserDate(receiptData.date),
-        time: new Date(receiptData.date).toLocaleTimeString('de-AT'),
+        time: formatUserTime(receiptData.date) || '—',
         cashier:
           receiptData.cashierDisplayName?.trim() ||
           (receiptData.cashierId && receiptData.cashierId.trim()) ||

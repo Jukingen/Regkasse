@@ -161,6 +161,10 @@ namespace KasseAPI_Final.Models
 
         // Company / tenant settings
         public const string COMPANY_SETTINGS_UPDATE = "COMPANY_SETTINGS_UPDATE";
+        public const string TENANT_SETTINGS_REQUESTED = "TENANT_SETTINGS_REQUESTED";
+        public const string TENANT_SETTINGS_APPROVED = "TENANT_SETTINGS_APPROVED";
+        public const string TENANT_SETTINGS_REJECTED = "TENANT_SETTINGS_REJECTED";
+        public const string TENANT_SETTINGS_REVERTED = "TENANT_SETTINGS_REVERTED";
 
         // Receipt operations
         public const string RECEIPT_PRINTED = "RECEIPT_PRINTED";
@@ -257,6 +261,9 @@ namespace KasseAPI_Final.Models
         /// <summary>Cash register stammdaten updated (PUT /api/admin/cash-registers/{id}).</summary>
         public const string CASH_REGISTER_UPDATED = "CASH_REGISTER_UPDATED";
 
+        /// <summary>Reversible admin operation undone via operation log.</summary>
+        public const string OPERATION_UNDONE = "OPERATION_UNDONE";
+
         /// <summary>Admin category metadata updated (display name, icon, sort order, etc.).</summary>
         public const string CATEGORY_UPDATED = "CATEGORY_UPDATED";
 
@@ -321,6 +328,8 @@ namespace KasseAPI_Final.Models
         public const string CATEGORY = "Category";
 
         public const string COMPANY_SETTINGS = "CompanySettings";
+
+        public const string TENANT_SETTINGS_HISTORY = "TenantSettingsHistory";
 
         public const string MANUAL_RESTORE_REQUEST = "ManualRestoreRequest";
     }

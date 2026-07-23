@@ -85,8 +85,22 @@ export function reportApiMetric(input: ApiMetricInput): void {
   }
 
   try {
-    const metrics = (Sentry as unknown as { metrics?: { distribution?: Function; increment?: Function } })
-      .metrics;
+    const metrics = (
+      Sentry as unknown as {
+        metrics?: {
+          distribution?: (
+            name: string,
+            value: number,
+            options?: { unit?: string; attributes?: Record<string, string> }
+          ) => void;
+          increment?: (
+            name: string,
+            value: number,
+            options?: { attributes?: Record<string, string> }
+          ) => void;
+        };
+      }
+    ).metrics;
     metrics?.distribution?.('fa.api.duration', durationMs, {
       unit: 'millisecond',
       attributes: { method, path, ok: String(ok) },

@@ -8,10 +8,11 @@ import React from 'react';
 import type { ExpiringLicenseInfo } from '@/api/generated/model';
 import { billingApi } from '@/features/billing/api/billingApi';
 import { useBillingAccess } from '@/features/billing/hooks/useBillingAccess';
-import { formatGermanDateTime, useI18n } from '@/i18n';
+import { dateColumnRender } from '@/components/DateColumn';
+import { useI18n } from '@/i18n';
 
 export function BillingExpiringTable() {
-  const { t, formatLocale } = useI18n();
+  const { t } = useI18n();
   const canAccess = useBillingAccess();
 
   const expiringQuery = billingApi.useExpiring(
@@ -39,7 +40,7 @@ export function BillingExpiringTable() {
       title: t('billing.expiring.columns.validUntil'),
       dataIndex: 'validUntilUtc',
       key: 'validUntilUtc',
-      render: (value: string | undefined) => (value ? formatGermanDateTime(value) : '—'),
+      render: dateColumnRender('datetime'),
     },
     {
       title: t('billing.expiring.columns.daysRemaining'),

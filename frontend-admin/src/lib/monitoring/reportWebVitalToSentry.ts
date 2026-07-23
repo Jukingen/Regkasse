@@ -35,7 +35,17 @@ export function reportWebVitalToSentry(metric: WebVitalPayload): void {
 
   // Optional distribution metric (Sentry Metrics) when the SDK supports it.
   try {
-    const metrics = (Sentry as unknown as { metrics?: { distribution?: Function } }).metrics;
+    const metrics = (
+      Sentry as unknown as {
+        metrics?: {
+          distribution?: (
+            name: string,
+            value: number,
+            options?: { unit?: string; attributes?: Record<string, string> }
+          ) => void;
+        };
+      }
+    ).metrics;
     metrics?.distribution?.(measurementName, metric.value, {
       unit,
       attributes: {

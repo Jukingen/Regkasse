@@ -35,6 +35,7 @@ import {
 import { downloadLicenseSaleInvoicePdf } from '@/features/billing/utils/downloadInvoicePdf';
 import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { dateColumnRender } from '@/components/DateColumn';
 import { formatCurrency, formatGermanDateTime, useI18n } from '@/i18n';
 import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 
@@ -164,7 +165,7 @@ export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActi
       title: t('billing.sales.columns.validUntil'),
       dataIndex: 'validUntilUtc',
       key: 'validUntilUtc',
-      render: (value: string | undefined) => (value ? formatGermanDateTime(value) : '—'),
+      render: dateColumnRender('datetime'),
     },
     {
       title: t('billing.sales.columns.status'),
@@ -178,7 +179,7 @@ export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActi
       title: t('billing.sales.columns.soldAt'),
       dataIndex: 'soldAtUtc',
       key: 'soldAtUtc',
-      render: (value: string | undefined) => (value ? formatGermanDateTime(value) : '—'),
+      render: dateColumnRender('datetime'),
     },
     {
       key: 'actions',

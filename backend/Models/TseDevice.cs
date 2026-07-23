@@ -48,8 +48,6 @@ namespace KasseAPI_Final.Models
         [Required]
         public int TimeoutSeconds { get; set; } = 30;
 
-
-
         // RKSV zorunlu alanlar
         [Required]
         public Guid KassenId { get; set; } = Guid.Empty;
@@ -69,6 +67,85 @@ namespace KasseAPI_Final.Models
 
         [Required]
         public int PendingReports { get; set; } = 0;
+
+        // --- Failover / multi-device registry (additive; legacy rows keep defaults) ---
+
+        /// <summary>
+        /// Owning tenant. Nullable because legacy <c>TseDevices</c> rows predate tenant scoping;
+        /// not <see cref="ITenantEntity"/> until backfilled (query filters would hide old rows).
+        /// </summary>
+        public Guid? TenantId { get; set; }
+
+        /// <summary>Optional FK to <see cref="CashRegister"/> (preferred over legacy <see cref="KassenId"/> for new links).</summary>
+        public Guid? CashRegisterId { get; set; }
+
+        /// <summary>Vendor / provider device identifier (e.g. fiskaly TSS id).</summary>
+        [StringLength(200)]
+        public string? DeviceId { get; set; }
+
+        /// <summary>Provider label: fiskaly, epson, swissbit (complements <see cref="DeviceType"/>).</summary>
+        [StringLength(64)]
+        public string? Provider { get; set; }
+
+        /// <summary>Encrypted API key ciphertext — never store plaintext.</summary>
+        [StringLength(4000)]
+        public string? ApiKey { get; set; }
+
+        /// <summary>Encrypted API secret ciphertext — never store plaintext.</summary>
+        [StringLength(4000)]
+        public string? ApiSecret { get; set; }
+
+        /// <summary>Optional certificate material / thumbprint metadata (not private key).</summary>
+        [Column(TypeName = "text")]
+        public string? Certificate { get; set; }
+
+        public bool IsPrimary { get; set; } = true;
+
+        /// <summary>When this row is a backup, the primary device it serves.</summary>
+        public Guid? PrimaryDeviceId { get; set; }
+
+        public bool IsBackup { get; set; }
+
+        /// <summary>True while this backup is actively signing in place of its primary.</summary>
+        public bool IsFailoverActive { get; set; }
+
+        public TseHealthStatus HealthStatus { get; set; } = TseHealthStatus.Healthy;
+
+        /// <summary>0–100 health score from probe / expiry policy.</summary>
+        public int HealthScore { get; set; } = 100;
+
+        public DateTime? LastHealthCheck { get; set; }
+
+        [StringLength(1000)]
+        public string? HealthMessage { get; set; }
+
+        public DateTime? IssuedAt { get; set; }
+
+        public DateTime? ExpiresAt { get; set; }
+
+        public DateTime? ExpiryWarningSentAt { get; set; }
+
+        public DateTime? LastFailoverAt { get; set; }
+
+        [StringLength(500)]
+        public string? LastFailoverReason { get; set; }
+
+        public int FailoverCount { get; set; }
+
+        /// <summary>Operator-scheduled certificate renewal target (UTC). Null = not scheduled.</summary>
+        public DateTime? ScheduledRenewalAt { get; set; }
+
+        // Navigation
+        [ForeignKey(nameof(TenantId))]
+        public virtual Tenant? Tenant { get; set; }
+
+        [ForeignKey(nameof(CashRegisterId))]
+        public virtual CashRegister? CashRegister { get; set; }
+
+        [ForeignKey(nameof(PrimaryDeviceId))]
+        public virtual TseDevice? PrimaryDevice { get; set; }
+
+        public virtual ICollection<TseDevice> BackupDevices { get; set; } = new List<TseDevice>();
     }
 
     public enum TseDeviceType

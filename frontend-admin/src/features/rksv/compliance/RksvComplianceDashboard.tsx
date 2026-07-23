@@ -42,8 +42,9 @@ import type {
   RksvComplianceReportQueryParams,
   RksvComplianceSignatureChainItem,
 } from '@/features/rksv/compliance/types';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useCanAccessPath } from '@/hooks/useCanAccessPath';
-import { formatDate, formatDateTime, useI18n } from '@/i18n';
+import { formatDateTime, useI18n } from '@/i18n';
 import { DAYJS_DATETIME_SECONDS_FORMAT } from '@/lib/dateFormatter';
 import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
@@ -334,7 +335,7 @@ export default function RksvComplianceDashboard() {
                   title: t('rksvHub.compliancePage.colIssuedUtc'),
                   dataIndex: 'issuedAtUtc',
                   key: 'issuedAtUtc',
-                  render: (v: string) => (v ? formatDateTime(v, '', { second: '2-digit' }) : '—'),
+                  render: dateColumnRender('datetimeSeconds'),
                 },
               ]}
             />
@@ -376,7 +377,7 @@ export default function RksvComplianceDashboard() {
                 title: t('rksvHub.compliancePage.colSequenceDate'),
                 dataIndex: 'sequenceDateUtc',
                 key: 'sequenceDateUtc',
-                render: (v: string) => (v ? formatDate(v, '') : '—'),
+                render: dateColumnRender('short'),
               },
               {
                 title: t('rksvHub.compliancePage.colExpectedSeq'),

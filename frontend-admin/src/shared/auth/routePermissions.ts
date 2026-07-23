@@ -85,6 +85,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/tagesabschluss/execute': [PERMISSIONS.DAILY_CLOSING_EXECUTE],
   /** Manager activity log (tenant-scoped audit rows; platform operators hidden on API). Spec alias: activity.view → audit.view. */
   '/audit-logs/activity': PERMISSIONS.AUDIT_VIEW,
+  '/audit-logs/operations': PERMISSIONS.AUDIT_VIEW,
   /** Staff performance report linked from activity hub. */
   '/audit-logs/staff': PERMISSIONS.REPORT_VIEW,
   '/audit-logs': PERMISSIONS.AUDIT_VIEW,
@@ -136,6 +137,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/settings/personalization': PERMISSIONS.SETTINGS_VIEW,
   /** Legacy redirect — canonical `/settings/personalization`. */
   '/settings/appearance': PERMISSIONS.SETTINGS_VIEW,
+  '/settings/preferences': PERMISSIONS.SETTINGS_VIEW,
   '/settings/payment-methods': PERMISSIONS.SETTINGS_VIEW,
   /** Super Admin / settings.manage — Stripe/Mock gateway status + online checkout methods. */
   '/settings/payment': PERMISSIONS.SETTINGS_MANAGE,
@@ -178,6 +180,8 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/tenants': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/tenants/create': PERMISSIONS.SYSTEM_CRITICAL,
+  '/admin/approvals': PERMISSIONS.SYSTEM_CRITICAL,
+  '/admin/maintenance': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/data-management': PERMISSIONS.SYSTEM_CRITICAL,
   /**
    * Super Admin tenant tooling (`/tenant/{id}/customize|domain|…`).
@@ -205,6 +209,9 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/digital/requests': [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/feedback': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/monitoring': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/risk-dashboard': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/tse-management': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/tse/failover': [PERMISSIONS.SYSTEM_CRITICAL],
   '/receipt-templates': PERMISSIONS.RECEIPT_TEMPLATE_VIEW,
   '/receipt-generate': PERMISSIONS.RECEIPT_TEMPLATE_VIEW,
   '/customers': PERMISSIONS.CUSTOMER_VIEW,

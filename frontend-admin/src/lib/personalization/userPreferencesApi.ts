@@ -5,9 +5,17 @@ import type {
   DateFormatPattern,
   DefaultLandingPath,
   DensityMode,
+  PreferenceLanguage,
   PersonalizationPreferences,
+  UserTimeZone,
 } from './types';
-import { DEFAULT_LANDING_PATHS, DEFAULT_PERSONALIZATION } from './types';
+import {
+  DATE_FORMAT_PATTERNS,
+  DEFAULT_LANDING_PATHS,
+  DEFAULT_PERSONALIZATION,
+  PREFERENCE_LANGUAGES,
+  TIME_ZONE_OPTIONS,
+} from './types';
 
 export type UserPreferencesApiResponse = {
   themeMode: string;
@@ -15,6 +23,8 @@ export type UserPreferencesApiResponse = {
   defaultPage: string;
   dateFormat?: string | null;
   timeFormat?: string | null;
+  timeZone?: string | null;
+  language?: string | null;
   reducedAnimations: boolean;
   updatedAtUtc?: string | null;
 };
@@ -25,6 +35,8 @@ export type SaveUserPreferencesApiRequest = {
   defaultPage: string;
   dateFormat?: string | null;
   timeFormat?: string | null;
+  timeZone?: string | null;
+  language?: string | null;
   reducedAnimations: boolean;
 };
 
@@ -47,6 +59,10 @@ export async function saveUserPreferences(
   });
 }
 
+/** Aliases used by preferences feature modules. */
+export const getUserPreferences = fetchUserPreferences;
+export const updateUserPreferences = saveUserPreferences;
+
 function normalizeDensityFromApi(value: string | undefined): DensityMode {
   if (value === 'comfortable' || value === 'standard' || value === 'compact') return value;
   return DEFAULT_PERSONALIZATION.density;
@@ -60,8 +76,27 @@ function normalizeLandingFromApi(value: string | undefined): DefaultLandingPath 
   return DEFAULT_PERSONALIZATION.defaultLandingPath;
 }
 
-function normalizeDateFormatFromApi(_value: string | null | undefined): DateFormatPattern {
+export function normalizeDateFormatFromApi(value: string | null | undefined): DateFormatPattern {
+  if (value === 'de-AT' || value === 'tr-TR') return 'DD.MM.YYYY';
+  if (value === 'en-US') return 'MM/DD/YYYY';
+  if (value && (DATE_FORMAT_PATTERNS as readonly string[]).includes(value)) {
+    return value as DateFormatPattern;
+  }
   return DEFAULT_PERSONALIZATION.dateFormat;
+}
+
+export function normalizeTimeZoneFromApi(value: string | null | undefined): UserTimeZone {
+  if (value && (TIME_ZONE_OPTIONS as readonly string[]).includes(value)) {
+    return value as UserTimeZone;
+  }
+  return DEFAULT_PERSONALIZATION.timeZone;
+}
+
+export function normalizeLanguageFromApi(value: string | null | undefined): PreferenceLanguage {
+  if (value && (PREFERENCE_LANGUAGES as readonly string[]).includes(value)) {
+    return value as PreferenceLanguage;
+  }
+  return DEFAULT_PERSONALIZATION.language;
 }
 
 export function mapApiToPersonalization(
@@ -74,6 +109,8 @@ export function mapApiToPersonalization(
     defaultLandingPath: normalizeLandingFromApi(api.defaultPage),
     dateFormat: normalizeDateFormatFromApi(api.dateFormat),
     timeFormat,
+    timeZone: normalizeTimeZoneFromApi(api.timeZone),
+    language: normalizeLanguageFromApi(api.language),
     reducedAnimations: api.reducedAnimations === true,
   };
 }
@@ -87,6 +124,8 @@ export function mapPersonalizationToApi(
     defaultPage: prefs.defaultLandingPath,
     dateFormat: prefs.dateFormat,
     timeFormat: prefs.timeFormat,
+    timeZone: prefs.timeZone,
+    language: prefs.language,
     reducedAnimations: prefs.reducedAnimations,
   };
 }

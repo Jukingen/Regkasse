@@ -2,8 +2,6 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Card, Descriptions, Space, Tag, Typography } from 'antd';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
 /**
  * FinanzOnline/BMF submission snapshot for RKSV Startbeleg and Jahresbeleg (admin read model).
  */
@@ -19,17 +17,16 @@ import {
 } from '@/features/receipts/utils/rksvFinanzOnlineSubmissionUi';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
+import { EMPTY_DATE_DISPLAY, formatUtcDateTime } from '@/lib/dateUtils';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
-
-dayjs.extend(utc);
 
 const { Text } = Typography;
 
 function formatUtc(iso: string | null | undefined): string {
-  if (!iso) return '—';
-  const d = dayjs.utc(iso);
-  return d.isValid() ? `${d.format('DD.MM.YYYY HH:mm:ss')} UTC` : '—';
+  if (!iso) return EMPTY_DATE_DISPLAY;
+  const formatted = formatUtcDateTime(iso);
+  return formatted === EMPTY_DATE_DISPLAY ? EMPTY_DATE_DISPLAY : `${formatted} UTC`;
 }
 
 function statusTranslationKey(status: string | undefined): string {

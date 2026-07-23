@@ -47,6 +47,7 @@ import type { InventoryHistoryRowDto } from '@/api/generated/model';
 import { TableSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatCurrency } from '@/i18n/formatting';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
@@ -388,7 +389,7 @@ export default function InventoryOperationsPage() {
     {
       title: t('adminShell.inventory.txDate'),
       dataIndex: 'transactionDateUtc',
-      render: (v: string | undefined) => (v ? dayjs(v).utc().format('DD.MM.YYYY HH:mm') : '—'),
+      render: dateColumnRender('datetime', { utc: true }),
     },
     { title: t('adminShell.inventory.notes'), dataIndex: 'notes', ellipsis: true },
   ];
@@ -789,7 +790,7 @@ export default function InventoryOperationsPage() {
               {
                 title: t('adminShell.inventory.txDate'),
                 dataIndex: 'transactionDate',
-                render: (v: string) => dayjs(v).utc().format('DD.MM.YYYY HH:mm'),
+                render: dateColumnRender('datetime', { utc: true }),
               },
               { title: t('adminShell.inventory.notes'), dataIndex: 'notes', ellipsis: true },
             ]}

@@ -1,0 +1,45 @@
+{
+  "modalTitle": "Systemwartung",
+  "starts": "Beginn",
+  "ends": "Ende",
+  "countdown": "Zeit bis Wartungsbeginn",
+  "countdownEnds": "Zeit bis Wartungsende",
+  "forceNotice": "Dieses Wartungsfenster kann nicht geschlossen werden. Das System ist möglicherweise vorübergehend nicht verfügbar.",
+  "scheduledBySuperAdmin": "Geplante Systemwartung (Super-Administrator)",
+  "dismiss": "Schließen",
+  "limitedMode": {
+    "title": "Wartungsmodus — Eingeschränkter Zugriff",
+    "description": "Einige Aktionen sind vorübergehend deaktiviert. Sie können Daten einsehen, aber nicht ändern.",
+    "disabledTooltip": "Während der Wartung deaktiviert"
+  },
+  "manage": {
+    "pageTitle": "Systemwartung",
+    "pageSubtitle": "Plattformweite Wartungsfenster starten und beenden. Während der Wartung läuft das System im eingeschränkten (read-mostly) Modus: POS-Zahlungen und Schreib-APIs sind für Nicht-SuperAdmins gesperrt.",
+    "accessDenied": "Nur Super-Administratoren können die Systemwartung verwalten.",
+    "modeCardTitle": "Wartungsmodus",
+    "notificationsCardTitle": "Wartungsbenachrichtigungen",
+    "statusActive": "Aktiv",
+    "statusInactive": "Inaktiv",
+    "blocksHint": "Eingeschränkter Modus: Lesen erlaubt; POS-Zahlungen und Schreib-APIs für Nicht-SuperAdmins gesperrt.",
+    "startAction": "Wartung starten",
+    "endAction": "Wartung beenden",
+    "refresh": "Aktualisieren",
+    "started": "Wartungsmodus gestartet",
+    "ended": "Wartungsmodus beendet",
+    "actionFailed": "Aktion fehlgeschlagen",
+    "endConfirmTitle": "Wartung beenden?",
+    "endConfirmBody": "Alle aktiven Wartungsfenster werden abgeschlossen. Clients erhalten wieder normalen Zugriff.",
+    "startModalTitle": "Wartung starten",
+    "formTitle": "Titel (optional)",
+    "formMessage": "Nachricht (optional)",
+    "formEnd": "Geplantes Ende",
+    "emptyNotifications": "Keine Benachrichtigungen",
+    "columns": {
+      "title": "Titel",
+      "status": "Status",
+      "start": "Beginn",
+      "end": "Ende",
+      "priority": "Priorität"
+    }
+  }
+}

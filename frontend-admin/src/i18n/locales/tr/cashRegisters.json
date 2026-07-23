@@ -299,10 +299,14 @@
     "tooltip": {
       "kasse": "Kasa",
       "id": "ID",
+      "mandantId": "Mandant ID",
       "status": "Durum",
       "tse": "TSE",
       "balance": "Bakiye",
-      "unavailable": "—"
+      "unavailable": "—",
+      "copyValue": "Değeri kopyala",
+      "copyAll": "Tümünü kopyala",
+      "copied": "Kopyalandı"
     },
     "mandantHeader": "Kiracı: {{name}} ({{slug}})",
     "defaultTag": "Varsayılan"

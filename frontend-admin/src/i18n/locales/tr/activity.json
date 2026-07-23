@@ -50,6 +50,36 @@
   "tabs": {
     "compliance": "Uyumluluk denetimi",
     "activity": "Aktivite günlüğü",
+    "operations": "İşlem günlüğü",
     "staff": "Personel performansı"
+  },
+  "operationLog": {
+    "title": "İşlem günlüğü",
+    "pageIntro": "Geri alınabilir admin değişiklikleri (önceki/sonraki durum). Ödemeler ve mali fişler geri alınamaz.",
+    "loadFailed": "İşlem günlüğü yüklenemedi",
+    "undoSuccess": "İşlem geri alındı",
+    "undoFailed": "Geri alma başarısız",
+    "undoConfirmTitle": "Bu işlem geri alınsın mı?",
+    "undoConfirmContent": "Kaydedilen önceki durum geri yüklenecek. Bu işlem denetlenir.",
+    "detailTitle": "İşlem ayrıntıları",
+    "beforeState": "Önce",
+    "afterState": "Sonra",
+    "unknownUser": "Bilinmiyor",
+    "table": {
+      "time": "Zaman",
+      "user": "Kullanıcı",
+      "operation": "İşlem",
+      "entity": "Varlık",
+      "status": "Durum",
+      "actions": "Eylemler"
+    },
+    "status": {
+      "active": "Aktif",
+      "undone": "Geri alındı"
+    },
+    "actions": {
+      "view": "Ayrıntıları görüntüle",
+      "undo": "Geri al"
+    }
   }
 }

@@ -22,6 +22,7 @@ import {
   restorePreviewSizeMib,
 } from '@/features/backup/logic/restorePreviewPresentation';
 import { useI18n } from '@/i18n';
+import { formatDateTime } from '@/lib/dateUtils';
 
 export type RestorePreviewBackup = {
   id: string;
@@ -205,7 +206,7 @@ export function RestorePreview({
         )}
         {backup.backupDate ? (
           <Descriptions.Item label={t('backupDr.manualRestore.restorePreview.labels.backupDate')}>
-            {new Date(backup.backupDate).toLocaleString(formatLocale)}
+            {formatDateTime(backup.backupDate)}
           </Descriptions.Item>
         ) : null}
         <Descriptions.Item

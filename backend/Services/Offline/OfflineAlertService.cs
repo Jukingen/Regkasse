@@ -106,6 +106,16 @@ public sealed class OfflineAlertService : BackgroundService
                     anomaly.Message);
             }
         }
+
+        // Dedicated TSE NonFiscalPending queue depth alert (legacy offline_transactions).
+        var tseQueue = scopedProvider.GetRequiredService<ITseOfflineQueueService>();
+        var queueStatus = await tseQueue.GetQueueStatusAsync(tenantId, ct).ConfigureAwait(false);
+        if (queueStatus.IsWarning || queueStatus.IsCritical)
+        {
+            await tseQueue
+                .SendQueueAlertAsync(tenantId, queueStatus.TotalQueued, ct)
+                .ConfigureAwait(false);
+        }
     }
 
     private static async Task SendAlertAsync(

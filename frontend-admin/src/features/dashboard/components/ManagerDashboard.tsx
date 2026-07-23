@@ -2,7 +2,6 @@
 
 import { ClockCircleOutlined, DollarOutlined, TeamOutlined } from '@ant-design/icons';
 import { Alert, Button, Card, Col, Row, Space, Statistic } from 'antd';
-import dayjs from 'dayjs';
 import Link from 'next/link';
 
 import { CashRegisterSelector } from '@/components/CashRegisterSelector';
@@ -22,6 +21,7 @@ import { useOpenShifts } from '@/features/shifts/hooks/useOpenShifts';
 import { useActiveStaff } from '@/features/staff/hooks/useActiveStaff';
 import { useAuthorizationGate } from '@/hooks/useAuthorizedQuery';
 import { useCashRegisterSelection } from '@/hooks/useCashRegisterSelection';
+import { useFormattedDate } from '@/hooks/useFormattedDate';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatCurrency } from '@/i18n/formatting';
@@ -55,6 +55,7 @@ function formatRegisterLabel(
 
 export function ManagerDashboard() {
   const { t, formatLocale } = useI18n();
+  const { format: formatLocalizedDate } = useFormattedDate();
   const { user } = useAuth();
   const { hasPermission } = usePermissions();
   const { isAuthorized: canSeeRksvReminder } = useAuthorizationGate({
@@ -87,7 +88,7 @@ export function ManagerDashboard() {
         selectedRegister.location
       )
     : noRegisterLabel;
-  const todayLabel = dayjs().format('DD.MM.YYYY');
+  const todayLabel = formatLocalizedDate(new Date(), 'medium');
   const balance = selectedRegister?.currentBalance ?? 0;
   const transactionCount = sales?.count ?? 0;
 

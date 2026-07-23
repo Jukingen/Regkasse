@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Badge, Button, Card, Modal, Space, Table, Tag } from 'antd';
 import { useState } from 'react';
 
+import { dateColumnRender } from '@/components/DateColumn';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { downloadAdminLogExport } from '@/features/errors/api/downloadAdminLogExport';
@@ -12,7 +13,6 @@ import { type ElmahErrorRow, useElmahErrors } from '@/features/errors/hooks/useE
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 import { customInstance } from '@/lib/axios';
-import { formatDate } from '@/lib/dateFormatter';
 
 export default function ElmahErrorsPage() {
   const { t } = useI18n();
@@ -64,7 +64,7 @@ export default function ElmahErrorsPage() {
       title: t('adminShell.elmah.columns.date'),
       dataIndex: 'timeUtc',
       key: 'timeUtc',
-      render: (date: string) => formatDate(date),
+      render: dateColumnRender('short'),
     },
     {
       title: t('adminShell.elmah.columns.status'),

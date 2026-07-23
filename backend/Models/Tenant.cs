@@ -35,6 +35,24 @@ public class Tenant : BaseEntity
     [Column("status")]
     public string Status { get; set; } = TenantStatuses.Active;
 
+    /// <summary>
+    /// Operational mode (<see cref="TenantOperationModes"/>): active / readonly / maintenance.
+    /// Orthogonal to lifecycle <see cref="Status"/>.
+    /// </summary>
+    [Required]
+    [MaxLength(20)]
+    [Column("operation_mode")]
+    public string OperationMode { get; set; } = TenantOperationModes.Active;
+
+    [Column("maintenance_message", TypeName = "text")]
+    public string? MaintenanceMessage { get; set; }
+
+    [Column("maintenance_started_at")]
+    public DateTime? MaintenanceStartedAt { get; set; }
+
+    [Column("maintenance_ends_at")]
+    public DateTime? MaintenanceEndsAt { get; set; }
+
     [MaxLength(100)]
     [Column("license_key")]
     public string? LicenseKey { get; set; }

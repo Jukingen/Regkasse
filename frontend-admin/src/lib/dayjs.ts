@@ -11,6 +11,9 @@
  *   Ant Design DatePicker / RangePicker dayjs adapter recommendations
  *
  * No deprecated plugins are registered (dayjs 1.11.x has none in this set).
+ *
+ * Locales (de/en/tr) and `setDateLocale` live in `@/lib/dateUtils` — imported once from AppProviders
+ * and kept in sync by I18nProvider when the Admin text language changes.
  */
 import dayjs from 'dayjs';
 import advancedFormat from 'dayjs/plugin/advancedFormat';

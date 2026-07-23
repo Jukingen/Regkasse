@@ -682,6 +682,24 @@
         "body": "Users cannot sign in until the tenant is reactivated."
       }
     },
+    "activityReport": {
+      "title": "Weekly activity report",
+      "period": "Period: {{from}} – {{to}}",
+      "totalActivities": "Total activities",
+      "uniqueUsers": "Unique users",
+      "anomaliesDetected": "Anomalies detected",
+      "anomaliesTitle": "Detected anomalies",
+      "recommendationsTitle": "Recommendations",
+      "emptySummary": "No operations in the last 7 days.",
+      "loadError": "Failed to load activity report.",
+      "columns": {
+        "operationType": "Operation type",
+        "count": "Count",
+        "users": "Users",
+        "firstOccurrence": "First occurrence",
+        "lastOccurrence": "Last occurrence"
+      }
+    },
     "registers": {
       "hint": "Create registers after impersonating the tenant (Settings → Registers).",
       "addViaImpersonation": "Sign in as tenant (add register)",
@@ -751,6 +769,25 @@
       "hardDelete": "Delete permanently",
       "hardDeleteSuccess": "Tenant permanently deleted.",
       "hardDeleteFailed": "Permanent delete failed."
+    },
+    "operationMode": {
+      "title": "Operation mode",
+      "description": "Controls write access for POS and tenant admins (separate from tenant lifecycle status).",
+      "options": {
+        "active": "Active",
+        "readonly": "Read-Only",
+        "maintenance": "Maintenance Mode"
+      },
+      "readonlyAlertTitle": "Read-only mode",
+      "readonlyAlertDescription": "Write operations for this tenant are blocked. Super Admin is exempt.",
+      "maintenanceAlertTitle": "Maintenance mode active",
+      "maintenanceAlertDescription": "This tenant is in maintenance mode. Users see the message and cannot write.",
+      "messagePlaceholder": "Maintenance message for users…",
+      "endsAtLabel": "Planned end:",
+      "endsAtPlaceholder": "Optional end date",
+      "save": "Save operation mode",
+      "saveSuccess": "Operation mode updated.",
+      "saveError": "Failed to save operation mode."
     },
     "settings": {
       "save": "Save settings",
@@ -1254,6 +1291,136 @@
     "seedMissing": "Seed missing starter users",
     "saveSuccess": "Saved ({{count}} starters created)",
     "saveError": "Save failed"
+  },
+  "settingsChange": {
+    "pageTitle": "Tenant settings",
+    "openAction": "Locale / Fiscal",
+    "fourEyesTitle": "Four-eyes principle",
+    "fourEyesBody": "Changes to currency, country, timezone, and fiscal data require approval by a second Super Admin. The requester cannot approve their own request.",
+    "fiscalWarning": {
+      "title": "Fiscal data detected",
+      "body": "This tenant has TSE-signed payments. Changing country after fiscal data exists is blocked for RKSV compliance. Currency changes apply only to new receipts and do not rewrite history.",
+      "countryLockedHint": "Country cannot be changed after fiscal data exists."
+    },
+    "invoiceWarning": {
+      "title": "Invoices present",
+      "body": "Existing invoices keep their original currency. New invoices will use the new currency."
+    },
+    "currentTitle": "Current values",
+    "requestTitle": "Request a change",
+    "fields": {
+      "settingType": "Setting type",
+      "currency": "Currency",
+      "country": "Country",
+      "timeZone": "Timezone",
+      "taxNumber": "Tax number (UID)",
+      "companyName": "Company name",
+      "companyAddress": "Company address",
+      "vatNumber": "VAT number (optional)",
+      "registrationNumber": "Registration number (optional)",
+      "reason": "Reason for change",
+      "reasonPlaceholder": "Why is this change needed?"
+    },
+    "settingTypes": {
+      "currency": "Currency",
+      "country": "Country",
+      "timezone": "Timezone",
+      "fiscal_settings": "Fiscal settings"
+    },
+    "statuses": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "reverted": "Reverted"
+    },
+    "currencies": {
+      "EUR": "EUR – Euro",
+      "USD": "USD – US Dollar",
+      "TRY": "TRY – Turkish Lira",
+      "GBP": "GBP – British Pound",
+      "CHF": "CHF – Swiss Franc"
+    },
+    "countries": {
+      "AT": "Austria",
+      "DE": "Germany",
+      "CH": "Switzerland",
+      "TR": "Turkey",
+      "GB": "United Kingdom",
+      "US": "United States"
+    },
+    "actions": {
+      "request": "Request change",
+      "approve": "Approve",
+      "reject": "Reject",
+      "revert": "Revert",
+      "showHistory": "Show history",
+      "hideHistory": "Hide history"
+    },
+    "history": {
+      "title": "Change history",
+      "empty": "No change requests yet.",
+      "columns": {
+        "setting": "Setting",
+        "oldValue": "Old value",
+        "newValue": "New value",
+        "status": "Status",
+        "requestedBy": "Requested by",
+        "date": "Date",
+        "actions": "Actions"
+      }
+    },
+    "audit": {
+      "title": "Audit trail",
+      "requestedByAt": "Requested by {{userId}} at {{at}}",
+      "resolvedByAt": "Resolved by {{userId}} at {{at}}",
+      "reason": "Reason: {{reason}}",
+      "notes": "Notes: {{notes}}"
+    },
+    "confirmRequest": {
+      "title": "Confirm settings change",
+      "type": "Type",
+      "newValue": "New value",
+      "reason": "Reason",
+      "warningTitle": "Important",
+      "warningBody": "This change affects all users and reports. Please confirm it is intentional.",
+      "ok": "Submit request"
+    },
+    "confirmApprove": {
+      "title": "Approve change?",
+      "body": "The new value will become active for this tenant immediately."
+    },
+    "confirmReject": {
+      "title": "Reject change",
+      "reasonPlaceholder": "Rejection reason"
+    },
+    "confirmRevert": {
+      "title": "Revert change?",
+      "body": "The previous value will be restored.",
+      "reasonPlaceholder": "Reason for revert"
+    },
+    "validation": {
+      "settingTypeRequired": "Please select a setting type",
+      "currencyRequired": "Please select a currency",
+      "countryRequired": "Please select a country",
+      "timeZoneRequired": "Please select a timezone",
+      "companyNameRequired": "Company name is required",
+      "companyAddressRequired": "Company address is required",
+      "taxNumberRequired": "Tax number is required",
+      "taxNumberFormat": "Format ATU12345678 required",
+      "reasonRequired": "Please provide a reason"
+    },
+    "messages": {
+      "loadFailed": "Failed to load settings.",
+      "requestSuccess": "Change request submitted for approval.",
+      "requestFailed": "Failed to submit request.",
+      "approveSuccess": "Change approved.",
+      "approveFailed": "Approval failed.",
+      "rejectSuccess": "Change rejected.",
+      "rejectFailed": "Rejection failed.",
+      "revertSuccess": "Change reverted.",
+      "revertFailed": "Revert failed.",
+      "selfApprovalForbidden": "You cannot approve or reject your own request (four-eyes)."
+    }
   },
   "list": {
     "pageTitle": "Tenants"

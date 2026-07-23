@@ -13,6 +13,7 @@ import {
   TENANT_WARNING_DAYS_BEFORE_EXPIRY,
   resolveTenantGraceDays,
 } from '@/features/license/constants/licenseGracePeriod';
+import { formatDate } from '@/lib/dateUtils';
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
@@ -92,7 +93,7 @@ export function LicenseStatusBadge({
   }
 
   return (
-    <Tooltip title={`Gültig bis ${expiryDate.toLocaleDateString('de-DE')}`}>
+    <Tooltip title={`Gültig bis ${formatDate(expiryDate)}`}>
       <Tag color="green" icon={<CheckCircleOutlined />}>
         Aktiv ({daysLeft} Tage)
       </Tag>

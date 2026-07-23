@@ -35,12 +35,13 @@ function formatMonthYearDe(year: number, month: number): string {
 }
 
 function registerLabel(register: CashRegister | undefined, registerId: string): string {
-  if (!register) return registerId.slice(0, 8);
+  const fullId = registerId.trim();
+  if (!register) return fullId;
   const nr = formatRegisterDisplayLabel(register.registerNumber);
   const loc = register.location?.trim();
-  if (loc && nr) return `${loc} (Nr. ${nr})`;
-  if (nr) return `Nr. ${nr}`;
-  return registerId.slice(0, 8);
+  if (loc && nr && nr !== '—') return `${nr} — ${loc}`;
+  if (nr && nr !== '—') return nr;
+  return fullId;
 }
 
 type CreateTarget = {
@@ -148,6 +149,10 @@ export function PastMonthsMonatsbelegModal({
           year={createTarget.year}
           month={createTarget.month}
           cashRegisterId={createTarget.cashRegisterId}
+          cashRegisterLabel={registerLabel(
+            registerById.get(createTarget.cashRegisterId),
+            createTarget.cashRegisterId
+          )}
           reason={`Nachholung Monatsbeleg ${createTarget.year}-${String(createTarget.month).padStart(2, '0')}`}
           onClose={() => setCreateTarget(null)}
           onSuccess={() => {

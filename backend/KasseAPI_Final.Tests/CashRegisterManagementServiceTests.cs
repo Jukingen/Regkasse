@@ -66,6 +66,7 @@ public sealed class CashRegisterManagementServiceTests
             audit.Object,
             enrichment.Object,
             new PaymentMethodDefinitionBootstrapService(ctx),
+            TseProvisioningTestDoubles.Successful(),
             NullLogger<CashRegisterManagementService>.Instance);
     }
 

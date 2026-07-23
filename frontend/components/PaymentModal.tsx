@@ -86,6 +86,7 @@ import { POS_TIME_SYNC_ADMIN_CONTACT_MESSAGE_DE } from '../constants/posTimeSync
 import { useAuth } from '../contexts/AuthContext';
 import { useSystem } from '../contexts/SystemContext';
 import { useLicenseStatus } from '../hooks/useLicenseStatus';
+import { useMaintenance } from '../contexts/MaintenanceContext';
 import { usePayment } from '../hooks/usePayment';
 import { useTimeSyncStatus } from '../hooks/useTimeSyncStatus';
 import { checkLicenseBeforePayment } from '../utils/checkLicenseBeforePayment';
@@ -261,10 +262,11 @@ export default function PaymentModal({
   tableNumber,
   onPosToast,
 }: PaymentModalProps) {
-  const { t, i18n } = useTranslation(['checkout', 'common', 'invoices', 'settings']);
+  const { t, i18n } = useTranslation(['checkout', 'common', 'invoices', 'settings', 'system']);
   const { t: tLicense } = useTranslation('license');
   const { user } = useAuth();
   const { status: licenseSnapshot } = useLicenseStatus();
+  const { isBlocking: maintenanceBlocksPayment } = useMaintenance();
   const showStornoRefundEntry = canShowPosStornoRefundButton(user);
   const { refetch: refetchTimeSync, timeSyncCritical, timeSyncWarningBand } = useTimeSyncStatus();
   const { isOnline } = useSystem();
@@ -675,13 +677,16 @@ export default function PaymentModal({
     !paymentCoverageOk ||
     (voucherEnabled && !voucherSettlementValid) ||
     timeSyncCritical ||
-    licenseBlocksPaymentUi;
+    licenseBlocksPaymentUi ||
+    maintenanceBlocksPayment;
 
   const showPayWorking = purchaseState === 'processing' || paymentBusy;
 
   const paySubmitBlockedHint =
     paySubmitDisabled && !showPayWorking
-      ? licenseBlocksPaymentUi
+      ? maintenanceBlocksPayment
+        ? t('system:maintenanceNotice.paymentBlocked')
+        : licenseBlocksPaymentUi
         ? tLicense('criticalGuard.expiredBody')
         : timeSyncCritical
           ? t('checkout:posFlow.payment.blockedHints.timeSyncCritical')
@@ -1421,6 +1426,13 @@ export default function PaymentModal({
 
   const handlePayment = async () => {
     if (timeSyncCritical) {
+      return;
+    }
+    if (maintenanceBlocksPayment) {
+      Alert.alert(
+        t('system:maintenanceNotice.modalTitle'),
+        t('system:maintenanceNotice.paymentBlocked')
+      );
       return;
     }
     const licenseOk = await checkLicenseBeforePayment(tLicense);

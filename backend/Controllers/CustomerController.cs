@@ -7,6 +7,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Loyalty;
+using KasseAPI_Final.Services.Operations;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -28,6 +29,7 @@ namespace KasseAPI_Final.Controllers
         private readonly ILoyaltyService _loyaltyService;
         private readonly ICustomerExportService _customerExport;
         private readonly ISettingsTenantResolver _settingsTenantResolver;
+        private readonly IOperationLogService _operationLogs;
 
         public CustomerController(
             AppDbContext context,
@@ -37,6 +39,7 @@ namespace KasseAPI_Final.Controllers
             ILoyaltyService loyaltyService,
             ICustomerExportService customerExport,
             ISettingsTenantResolver settingsTenantResolver,
+            IOperationLogService operationLogs,
             ILogger<CustomerController> logger) : base(customerRepository, logger)
         {
             _context = context;
@@ -46,6 +49,7 @@ namespace KasseAPI_Final.Controllers
             _loyaltyService = loyaltyService;
             _customerExport = customerExport;
             _settingsTenantResolver = settingsTenantResolver;
+            _operationLogs = operationLogs;
         }
 
         private bool IsCurrentUserSuperAdmin() => HasRole(Roles.SuperAdmin);
@@ -310,7 +314,28 @@ namespace KasseAPI_Final.Controllers
                     return ErrorResponse("Validation failed", 400, validationErrors);
                 }
 
+                var before = OperationSnapshots.FromCustomer(existingCustomer);
                 var updatedCustomer = await _customerRepository.UpdateAsync(customer);
+
+                var userId = GetCurrentUserId();
+                if (!string.IsNullOrEmpty(userId) && updatedCustomer != null)
+                {
+                    try
+                    {
+                        await _operationLogs.LogAsync(
+                            updatedCustomer.TenantId,
+                            userId,
+                            OperationTypes.UpdateCustomer,
+                            OperationEntityTypes.Customer,
+                            id.ToString("D"),
+                            before,
+                            OperationSnapshots.FromCustomer(updatedCustomer));
+                    }
+                    catch (Exception logEx)
+                    {
+                        _logger.LogWarning(logEx, "Failed to write operation log for customer update {CustomerId}", id);
+                    }
+                }
 
                 return SuccessResponse(updatedCustomer, "Customer updated successfully");
             }

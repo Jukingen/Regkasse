@@ -12,9 +12,9 @@ import {
 } from '@/features/users/api/permissionRequestsApi';
 import { usePermissionsCatalog } from '@/features/users/hooks/usePermissionsCatalog';
 import { resolvePermissionDisplayLabel } from '@/features/users/utils/permissionDisplayLabel';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
-import { formatDateTime } from '@/i18n/formatting';
 
 type FormValues = {
   permission: string;
@@ -41,7 +41,7 @@ function statusColor(status: string): string {
 }
 
 export function ProfilePermissionRequestCard() {
-  const { t, formatLocale } = useI18n();
+  const { t } = useI18n();
   const { message } = useAntdApp();
   const [form] = Form.useForm<FormValues>();
   const queryClient = useQueryClient();
@@ -97,7 +97,7 @@ export function ProfilePermissionRequestCard() {
       title: t('users.permissionRequests.columnRequestedAt'),
       dataIndex: 'requestedAt',
       width: 160,
-      render: (iso: string) => formatDateTime(iso, formatLocale),
+      render: dateColumnRender('datetime'),
     },
     {
       title: t('users.permissionRequests.columnReason'),

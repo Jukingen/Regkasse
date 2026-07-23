@@ -40,7 +40,8 @@ import {
 } from '@/features/download-history/api/downloadHistoryAnalyticsApi';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
-import { formatBytes, formatDateTime } from '@/i18n/formatting';
+import { DateColumn } from '@/components/DateColumn';
+import { formatBytes } from '@/i18n/formatting';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 
 type TrendMode = 'daily' | 'weekly' | 'monthly';
@@ -158,7 +159,7 @@ export function DownloadAnalyticsDashboard({ embedded = false }: Props) {
         title: t('common.downloadAnalytics.slowWhen'),
         key: 'when',
         width: 160,
-        render: (_, row) => formatDateTime(row.downloadedAt, formatLocale),
+        render: (_, row) => <DateColumn date={row.downloadedAt} format="datetime" />,
       },
     ],
     [formatLocale, t]

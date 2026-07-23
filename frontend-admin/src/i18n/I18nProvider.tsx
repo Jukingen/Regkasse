@@ -10,6 +10,7 @@ import React, {
   useState,
 } from 'react';
 
+import { setDateLocale } from '@/lib/dateUtils';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 
 import {
@@ -104,6 +105,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    setDateLocale(textLocale);
     if (typeof document !== 'undefined') {
       document.documentElement.lang = textLocale;
     }
@@ -112,6 +114,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const setTextLocale = useCallback((next: string) => {
     const normalized = normalizeTextLocale(next);
     setTextLocaleState(normalized);
+    setDateLocale(normalized);
     if (typeof window !== 'undefined') {
       setStoredLanguage(normalized);
       document.documentElement.lang = normalized;

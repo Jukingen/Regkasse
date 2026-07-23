@@ -180,7 +180,13 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/admin/access/roles',
     '/admin/access/matrix',
     '/admin/tenants',
+    '/admin/approvals',
+    '/admin/maintenance',
     '/admin/errors',
+    '/admin/monitoring',
+    '/admin/risk-dashboard',
+    '/admin/tse-management',
+    '/admin/tse/failover',
   ],
   [ADMIN_SIDEBAR_GROUP_KEYS.accessArea]: [
     '/admin/access',
@@ -307,7 +313,12 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     p === '/admin/tenants' ||
     p.startsWith('/admin/tenants/') ||
     p === '/admin/data-management' ||
-    p === '/admin/errors'
+    p === '/admin/errors' ||
+    p === '/admin/monitoring' ||
+    p === '/admin/risk-dashboard' ||
+    p === '/admin/tse-management' ||
+    p === '/admin/tse/failover' ||
+    p.startsWith('/admin/tse/failover/')
   ) {
     keys.push(ADMIN_SIDEBAR_GROUP_KEYS.admin);
   }

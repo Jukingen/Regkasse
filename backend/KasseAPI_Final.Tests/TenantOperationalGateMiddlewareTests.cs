@@ -37,7 +37,12 @@ public sealed class TenantOperationalGateMiddlewareTests
         return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
-    private static async Task SeedTenantAsync(AppDbContext db, DateTime? validUntilUtc)
+    private static async Task SeedTenantAsync(
+        AppDbContext db,
+        DateTime? validUntilUtc,
+        string operationMode = TenantOperationModes.Active,
+        string? maintenanceMessage = null,
+        DateTime? maintenanceEndsAt = null)
     {
         db.Tenants.Add(new Tenant
         {
@@ -47,6 +52,10 @@ public sealed class TenantOperationalGateMiddlewareTests
             Status = TenantStatuses.Active,
             IsActive = true,
             LicenseValidUntilUtc = validUntilUtc,
+            OperationMode = operationMode,
+            MaintenanceMessage = maintenanceMessage,
+            MaintenanceStartedAt = operationMode == TenantOperationModes.Maintenance ? Now : null,
+            MaintenanceEndsAt = maintenanceEndsAt,
             CreatedAt = Now,
         });
         await db.SaveChangesAsync();
@@ -265,5 +274,119 @@ public sealed class TenantOperationalGateMiddlewareTests
         await InvokeGateAsync(sut, context, accessor, db, isDevelopment: true);
 
         Assert.True(nextCalled);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Maintenance_Returns503_ForReadsAndWrites()
+    {
+        await using var db = CreateDb();
+        var endsAt = DateTime.UtcNow.AddHours(2);
+        await SeedTenantAsync(
+            db,
+            validUntilUtc: DateTime.UtcNow.AddYears(1),
+            operationMode: TenantOperationModes.Maintenance,
+            maintenanceMessage: "Upgrade in progress",
+            maintenanceEndsAt: endsAt);
+
+        var accessor = new CurrentTenantAccessor { TenantId = TenantId };
+        var getContext = CreateHttpContext("/api/admin/products", HttpMethods.Get);
+        var postContext = CreateHttpContext("/api/admin/products", HttpMethods.Post);
+        var sut = new TenantOperationalGateMiddleware(_ => Task.CompletedTask);
+
+        await InvokeGateAsync(sut, getContext, accessor, db);
+        await InvokeGateAsync(sut, postContext, accessor, db);
+
+        var getBody = await ReadBodyAsync(getContext);
+        var postBody = await ReadBodyAsync(postContext);
+        Assert.Equal(StatusCodes.Status503ServiceUnavailable, getContext.Response.StatusCode);
+        Assert.Equal(StatusCodes.Status503ServiceUnavailable, postContext.Response.StatusCode);
+        Assert.Contains("TenantInMaintenance", getBody, StringComparison.Ordinal);
+        Assert.Contains("Upgrade in progress", getBody, StringComparison.Ordinal);
+        Assert.Contains("TenantInMaintenance", postBody, StringComparison.Ordinal);
+        Assert.Equal(
+            TenantOperationModes.Maintenance,
+            getContext.Response.Headers[TenantOperationalGateMiddleware.TenantOperationModeHeaderName].ToString());
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Maintenance_AllowsSuperAdmin()
+    {
+        await using var db = CreateDb();
+        await SeedTenantAsync(
+            db,
+            validUntilUtc: DateTime.UtcNow.AddYears(1),
+            operationMode: TenantOperationModes.Maintenance,
+            maintenanceEndsAt: DateTime.UtcNow.AddHours(1));
+
+        var context = CreateHttpContext("/api/admin/products", HttpMethods.Post, superAdmin: true);
+        var nextCalled = false;
+        var sut = new TenantOperationalGateMiddleware(_ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+
+        await InvokeGateAsync(sut, context, new CurrentTenantAccessor { TenantId = TenantId }, db);
+
+        Assert.True(nextCalled);
+        Assert.Equal(
+            TenantOperationModes.Maintenance,
+            context.Response.Headers[TenantOperationalGateMiddleware.TenantOperationModeHeaderName].ToString());
+    }
+
+    [Fact]
+    public async Task InvokeAsync_ExpiredMaintenanceWindow_TreatedAsActive()
+    {
+        await using var db = CreateDb();
+        await SeedTenantAsync(
+            db,
+            validUntilUtc: DateTime.UtcNow.AddYears(1),
+            operationMode: TenantOperationModes.Maintenance,
+            maintenanceEndsAt: DateTime.UtcNow.AddMinutes(-5));
+
+        var context = CreateHttpContext("/api/admin/products", HttpMethods.Get);
+        var nextCalled = false;
+        var sut = new TenantOperationalGateMiddleware(_ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+
+        await InvokeGateAsync(sut, context, new CurrentTenantAccessor { TenantId = TenantId }, db);
+
+        Assert.True(nextCalled);
+        Assert.Equal(
+            TenantOperationModes.Active,
+            context.Response.Headers[TenantOperationalGateMiddleware.TenantOperationModeHeaderName].ToString());
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Readonly_BlocksWrites_AllowsReads()
+    {
+        await using var db = CreateDb();
+        await SeedTenantAsync(
+            db,
+            validUntilUtc: DateTime.UtcNow.AddYears(1),
+            operationMode: TenantOperationModes.Readonly);
+
+        var accessor = new CurrentTenantAccessor { TenantId = TenantId };
+        var getContext = CreateHttpContext("/api/admin/products", HttpMethods.Get);
+        var postContext = CreateHttpContext("/api/admin/products", HttpMethods.Post);
+        var getNext = false;
+        var getSut = new TenantOperationalGateMiddleware(_ =>
+        {
+            getNext = true;
+            return Task.CompletedTask;
+        });
+        var postSut = new TenantOperationalGateMiddleware(_ => Task.CompletedTask);
+
+        await InvokeGateAsync(getSut, getContext, accessor, db);
+        await InvokeGateAsync(postSut, postContext, accessor, db);
+
+        var postBody = await ReadBodyAsync(postContext);
+        Assert.True(getNext);
+        Assert.Equal(StatusCodes.Status403Forbidden, postContext.Response.StatusCode);
+        Assert.Contains("TenantReadOnly", postBody, StringComparison.Ordinal);
+        Assert.Contains("Please contact support for assistance", postBody, StringComparison.Ordinal);
     }
 }

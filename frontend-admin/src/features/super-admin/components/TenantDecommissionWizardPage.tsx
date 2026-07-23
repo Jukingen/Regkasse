@@ -74,6 +74,7 @@ import {
   buildTenantDecommissionRegisterSummary,
 } from '@/features/super-admin/utils/tenantDecommissionWizard';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { dateColumnRender } from '@/components/DateColumn';
 import { formatDateTime, useI18n } from '@/i18n';
 import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
@@ -973,7 +974,7 @@ export function TenantDecommissionWizardPage() {
         title: t('tenants.decommission.registers.columns.lastActivity'),
         dataIndex: 'lastBalanceUpdate',
         key: 'lastBalanceUpdate',
-        render: (value?: string | null) => (value ? formatDateTime(value, formatLocale) : '—'),
+        render: dateColumnRender('datetime'),
       },
       {
         title: t('tenants.decommission.registers.columns.readiness'),
@@ -1002,7 +1003,7 @@ export function TenantDecommissionWizardPage() {
         },
       },
     ],
-    [formatLocale, t]
+    [t]
   );
   const auditHref = buildTenantAuditLogsHref(tenantId);
 

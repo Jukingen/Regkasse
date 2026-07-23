@@ -5,12 +5,13 @@ import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Space, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 
+import { dateColumnRender } from '@/components/DateColumn';
 import {
   type AdminTenantCashRegister,
   listAdminTenantCashRegisters,
 } from '@/features/super-admin/api/adminTenantCashRegisters';
 import { registerStatusColor } from '@/features/super-admin/utils/tenantStatusLabel';
-import { formatDateTime, useI18n } from '@/i18n';
+import { useI18n } from '@/i18n';
 
 export type TenantDetailCashRegistersTabProps = {
   tenantId: string;
@@ -23,7 +24,7 @@ export function TenantDetailCashRegistersTab({
   onImpersonate,
   impersonatePending,
 }: TenantDetailCashRegistersTabProps) {
-  const { t, formatLocale } = useI18n();
+  const { t } = useI18n();
 
   const registersQuery = useQuery({
     queryKey: ['admin', 'tenant-cash-registers', tenantId],
@@ -51,7 +52,7 @@ export function TenantDetailCashRegistersTab({
       title: t('tenants.detail.registers.columns.lastUsed'),
       dataIndex: 'lastUsedAtUtc',
       key: 'lastUsedAtUtc',
-      render: (v: string) => formatDateTime(v, formatLocale),
+      render: dateColumnRender('datetime'),
     },
   ];
 

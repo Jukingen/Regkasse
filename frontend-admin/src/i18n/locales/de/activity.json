@@ -50,6 +50,36 @@
   "tabs": {
     "compliance": "Compliance-Audit",
     "activity": "Aktivitätsprotokoll",
+    "operations": "Operationsprotokoll",
     "staff": "Personal & Leistung"
+  },
+  "operationLog": {
+    "title": "Operationsprotokoll",
+    "pageIntro": "Rückgängig machbare Admin-Änderungen mit Vorher-/Nachher-Zustand. Zahlungen und fiskalische Belege können nicht rückgängig gemacht werden.",
+    "loadFailed": "Operationsprotokoll konnte nicht geladen werden",
+    "undoSuccess": "Operation wurde rückgängig gemacht",
+    "undoFailed": "Rückgängig machen fehlgeschlagen",
+    "undoConfirmTitle": "Operation rückgängig machen?",
+    "undoConfirmContent": "Der gespeicherte Vorher-Zustand wird wiederhergestellt. Diese Aktion wird auditiert.",
+    "detailTitle": "Operationsdetails",
+    "beforeState": "Vorher",
+    "afterState": "Nachher",
+    "unknownUser": "Unbekannt",
+    "table": {
+      "time": "Zeit",
+      "user": "Benutzer",
+      "operation": "Operation",
+      "entity": "Entität",
+      "status": "Status",
+      "actions": "Aktionen"
+    },
+    "status": {
+      "active": "Aktiv",
+      "undone": "Rückgängig"
+    },
+    "actions": {
+      "view": "Details anzeigen",
+      "undo": "Rückgängig"
+    }
   }
 }

@@ -959,5 +959,11 @@
     "summaryViewReceipts": "Belege anzeigen",
     "summaryViewRevenue": "Umsatz anzeigen",
     "summaryRecreate": "Erneut erstellen"
+  },
+  "offlineQueue": {
+    "alertTitle": "{{count}} Transaktionen in der TSE-Offline-Warteschlange",
+    "alertCritical": "Warteschlange kritisch voll! Neue Offline-Zahlungen können blockiert werden.",
+    "alertWarning": "Warteschlange füllt sich. TSE-Verbindung prüfen und Replay starten.",
+    "oldestLabel": "Älteste Intent: {{when}}"
   }
 }

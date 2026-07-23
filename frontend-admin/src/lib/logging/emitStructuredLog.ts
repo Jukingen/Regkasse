@@ -102,18 +102,24 @@ export function writeStructuredToConsole(level: LogLevel, record: StructuredLogR
   const line = LOG_CONSOLE_PREFIX;
   switch (level) {
     case 'debug':
+      // Intentional: structured console sink for local/dev diagnostics.
+      // eslint-disable-next-line no-console -- structured console transport
       console.debug(line, record);
       break;
     case 'info':
+      // eslint-disable-next-line no-console -- structured console transport
       console.info(line, record);
       break;
     case 'warn':
+      // eslint-disable-next-line no-console -- structured console transport
       console.warn(line, record);
       break;
     case 'error':
+      // eslint-disable-next-line no-console -- structured console transport
       console.error(line, record);
       break;
     default:
+      // eslint-disable-next-line no-console -- structured console transport
       console.log(line, record);
   }
 }

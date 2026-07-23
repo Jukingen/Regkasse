@@ -382,6 +382,63 @@ public sealed partial class AdminTenantService : IAdminTenantService
         return (ToDetail(tenant), null);
     }
 
+    public async Task<(AdminTenantDetailDto? Result, string? Error)> UpdateOperationModeAsync(
+        Guid tenantId,
+        UpdateTenantOperationModeRequest request,
+        string? actorUserId,
+        CancellationToken cancellationToken = default)
+    {
+        var tenant = await _db.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (tenant is null)
+            return (null, "Tenant not found.");
+
+        if (tenant.Status == TenantStatuses.Deleted)
+            return (null, "Deleted tenants cannot change operation mode.");
+
+        var mode = TenantOperationModes.Normalize(request.OperationMode);
+        if (!TenantOperationModes.IsKnown(request.OperationMode))
+            return (null, "Invalid operation mode. Use active, readonly, or maintenance.");
+
+        var now = DateTime.UtcNow;
+        DateTime? started = request.MaintenanceStartedAt.HasValue
+            ? DateTime.SpecifyKind(request.MaintenanceStartedAt.Value, DateTimeKind.Utc)
+            : null;
+        DateTime? ends = request.MaintenanceEndsAt.HasValue
+            ? DateTime.SpecifyKind(request.MaintenanceEndsAt.Value, DateTimeKind.Utc)
+            : null;
+
+        if (mode == TenantOperationModes.Maintenance)
+        {
+            var effectiveStarted = started ?? tenant.MaintenanceStartedAt ?? now;
+            if (ends is DateTime endUtc && endUtc <= effectiveStarted)
+                return (null, "maintenanceEndsAt must be after maintenanceStartedAt.");
+
+            tenant.OperationMode = mode;
+            tenant.MaintenanceMessage = string.IsNullOrWhiteSpace(request.MaintenanceMessage)
+                ? null
+                : request.MaintenanceMessage.Trim();
+            tenant.MaintenanceStartedAt = effectiveStarted;
+            tenant.MaintenanceEndsAt = ends;
+        }
+        else
+        {
+            tenant.OperationMode = mode;
+            tenant.MaintenanceMessage = null;
+            tenant.MaintenanceStartedAt = null;
+            tenant.MaintenanceEndsAt = null;
+        }
+
+        tenant.UpdatedAt = now;
+        tenant.UpdatedBy = actorUserId;
+        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        _logger.LogInformation(
+            "Super-admin set tenant {TenantId} operation mode to {Mode}",
+            tenantId,
+            mode);
+        return (ToDetail(tenant), null);
+    }
+
     public async Task<TenantDeleteDependenciesDto?> GetDeleteDependenciesAsync(
         Guid tenantId,
         CancellationToken cancellationToken = default)
@@ -638,7 +695,11 @@ public sealed partial class AdminTenantService : IAdminTenantService
             activeUserCount,
             cashRegisterCount,
             lastActivityAtUtc,
-            provisioning);
+            provisioning,
+            t.OperationMode,
+            t.MaintenanceMessage,
+            t.MaintenanceStartedAt,
+            t.MaintenanceEndsAt);
 
     private static DateTime? MaxUtc(params DateTime?[] values)
     {

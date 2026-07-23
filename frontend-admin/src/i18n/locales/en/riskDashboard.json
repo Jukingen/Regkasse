@@ -1,0 +1,33 @@
+{
+  "pageTitle": "Risk Dashboard",
+  "pageSubtitle": "Anomalies and risk scores for tenant actions (Super Admin).",
+  "statCritical": "Critical",
+  "statHigh": "High",
+  "statMedium": "Medium",
+  "statLow": "Low",
+  "colTenant": "Tenant",
+  "colUser": "User",
+  "colAction": "Action",
+  "colRiskLevel": "Risk level",
+  "colScore": "Score",
+  "colReason": "Reason",
+  "colCreated": "Detected",
+  "colActions": "Actions",
+  "resolve": "Resolve",
+  "resolveTitle": "Resolve risk",
+  "resolvePrompt": "Please provide a short resolution note.",
+  "resolvePlaceholder": "e.g. False positive / reviewed",
+  "resolveSuccess": "Risk marked as resolved.",
+  "blockUser": "Deactivate user",
+  "blockUserTitle": "Deactivate user?",
+  "blockUserContent": "The user will be deactivated and must be reactivated before they can sign in again.",
+  "blockUserReason": "Deactivated via risk dashboard",
+  "blockUserSuccess": "User deactivated.",
+  "empty": "No open risk scores.",
+  "levels": {
+    "Critical": "Critical",
+    "High": "High",
+    "Medium": "Medium",
+    "Low": "Low"
+  }
+}

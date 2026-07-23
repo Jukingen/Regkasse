@@ -103,8 +103,41 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.PermissionRequestRejected => "Permission request rejected",
             ActivityEventType.UserPermissionOverrideExpiringSoon => "Temporary permission expiring soon",
             ActivityEventType.UserPermissionOverrideExpired => "Temporary permission expired",
+            ActivityEventType.TenantSettingsChangeRequested => "Tenant settings change requested",
+            ActivityEventType.TenantSettingsChangeApproved => "Tenant settings change approved",
+            ActivityEventType.TenantSettingsChangeRejected => "Tenant settings change rejected",
+            ActivityEventType.TenantSettingsChangeReverted => "Tenant settings change reverted",
+            ActivityEventType.RiskAnomalyDetected => "Elevated risk score detected",
+            ActivityEventType.RiskScoreResolved => "Risk score resolved",
+            ActivityEventType.MaintenanceUpcoming => ResolveMaintenanceTitle(metadata, "upcoming"),
+            ActivityEventType.MaintenanceForceDisplayEnabled => ResolveMaintenanceTitle(metadata, "force"),
+            ActivityEventType.MaintenanceStarted => ResolveMaintenanceTitle(metadata, "started"),
+            ActivityEventType.TseFailoverActivated => "TSE failover activated",
+            ActivityEventType.TseFailoverNoBackup => "TSE failover — no healthy backup",
+            ActivityEventType.TseFailoverReverted => "TSE failover reverted to primary",
+            ActivityEventType.TseFailoverStarted => "TSE failover started",
+            ActivityEventType.TseFailoverFailed => "TSE failover failed",
+            ActivityEventType.TseFailoverBackupLowHealth => "TSE backup health low",
+            ActivityEventType.TseCertificateExpiringSoon => "TSE certificate expiring soon",
+            ActivityEventType.TseCertificateExpired => "TSE certificate expired",
+            ActivityEventType.TseCertificateRenewed => "TSE certificate renewed",
+            ActivityEventType.TseCertificateRenewalScheduled => "TSE certificate renewal scheduled",
+            ActivityEventType.TsePerformanceSlow => "TSE performance — slow probe response",
+            ActivityEventType.TsePerformanceHighErrorRate => "TSE performance — high probe error rate",
             _ => type.ToString(),
         };
+
+    private static string ResolveMaintenanceTitle(IReadOnlyDictionary<string, object>? metadata, string kind)
+    {
+        var title = metadata == null ? null : TryGetString(metadata, "Title");
+        var label = string.IsNullOrWhiteSpace(title) ? "System maintenance" : title;
+        return kind switch
+        {
+            "force" => $"Maintenance force display: {label}",
+            "started" => $"Maintenance started: {label}",
+            _ => $"Upcoming maintenance: {label}",
+        };
+    }
 
     private static string ResolveRoleActivityTitle(IReadOnlyDictionary<string, object>? metadata, string kind)
     {
@@ -298,6 +331,22 @@ internal static class ActivityEventPublishBuilder
                 => ("role", TryGetString(metadata, "RoleName")),
             ActivityEventType.UserPermissionOverridesChanged
                 => ("user", TryGetString(metadata, "TargetUserId")),
+            ActivityEventType.TseFailoverActivated
+                or ActivityEventType.TseFailoverNoBackup
+                or ActivityEventType.TseFailoverReverted
+                or ActivityEventType.TseFailoverStarted
+                or ActivityEventType.TseFailoverFailed
+                or ActivityEventType.TseFailoverBackupLowHealth
+                or ActivityEventType.TseCertificateExpiringSoon
+                or ActivityEventType.TseCertificateExpired
+                or ActivityEventType.TseCertificateRenewed
+                or ActivityEventType.TseCertificateRenewalScheduled
+                or ActivityEventType.TsePerformanceSlow
+                or ActivityEventType.TsePerformanceHighErrorRate
+                => ("TseDevice",
+                    TryGetString(metadata, "DeviceId")
+                    ?? TryGetString(metadata, "PrimaryDeviceId")
+                    ?? TryGetString(metadata, "BackupDeviceId")),
             _ => (null, null),
         };
     }

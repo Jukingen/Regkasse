@@ -24,6 +24,7 @@ import React, { useMemo, useState } from 'react';
 
 import { getAuditActionLabelKey } from '@/features/audit-logs/utils/auditActionLabels';
 import { fetchUserActivityReport } from '@/features/users/api/userActivityReport';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useI18n } from '@/i18n';
 import { formatDateTime } from '@/i18n/formatting';
 
@@ -83,7 +84,7 @@ export function UserActivityReportPanel({ userId, userName }: Props) {
       dataIndex: 'date',
       key: 'date',
       width: 170,
-      render: (v: string) => (v ? formatDateTime(v, formatLocale) : NA),
+      render: dateColumnRender('datetime'),
     },
     {
       title: t('users.activity.action'),

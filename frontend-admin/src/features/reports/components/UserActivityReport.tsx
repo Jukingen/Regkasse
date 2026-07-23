@@ -35,6 +35,7 @@ import {
 import { UserActivityChart } from '@/features/reports/components/UserActivityChart';
 import { ACTION_TYPE_FILTER_VALUES } from '@/features/reports/constants/actionTypeFilters';
 import { type TenantUserRowDto, listTenantUsers } from '@/features/users/api/users';
+import { dateColumnRender } from '@/components/DateColumn';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 import { formatDateTime } from '@/i18n/formatting';
@@ -320,7 +321,7 @@ export function UserActivityReport({ initialUserId }: Props) {
           )}
 
           <Card size="small" title={t('reporting.userActivity.timelineTitle')}>
-            <TimelineTable report={report} formatLocale={formatLocale} t={t} />
+            <TimelineTable report={report} t={t} />
           </Card>
         </>
       )}
@@ -445,11 +446,9 @@ function UserActivityScheduleModalContent({
 
 function TimelineTable({
   report,
-  formatLocale,
   t,
 }: {
   report: UserActivityReport;
-  formatLocale: string;
   t: (key: string) => string;
 }) {
   const columns = [
@@ -458,7 +457,7 @@ function TimelineTable({
       dataIndex: 'date',
       key: 'date',
       width: 170,
-      render: (v: string) => formatDateTime(v, formatLocale),
+      render: dateColumnRender('datetime'),
     },
     {
       title: t('reporting.userActivity.timeline.action'),

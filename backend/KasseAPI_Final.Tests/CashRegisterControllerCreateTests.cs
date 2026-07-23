@@ -77,6 +77,7 @@ public class CashRegisterControllerCreateTests
                 Mock.Of<IAuditLogService>(),
                 CashRegisterTestDoubles.NoOpListEnrichment(),
                 new PaymentMethodDefinitionBootstrapService(ctx),
+                TseProvisioningTestDoubles.Successful(),
                 NullLogger<CashRegisterManagementService>.Instance),
             Mock.Of<ICashRegisterListEnrichmentService>(),
             LocalizationTestDoubles.ApiMessageLocalizer());

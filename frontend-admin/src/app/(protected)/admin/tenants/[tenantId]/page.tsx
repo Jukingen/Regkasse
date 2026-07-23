@@ -3,6 +3,7 @@
 import {
   ArrowLeftOutlined,
   BgColorsOutlined,
+  ControlOutlined,
   DeleteOutlined,
   EditOutlined,
   GlobalOutlined,
@@ -282,6 +283,11 @@ export default function SuperAdminTenantDetailPage() {
                 </Button>
                 <Link href={buildAdminUsersPageHref(tenantId)}>
                   <Button>{t('tenants.detail.overview.manageUsers')}</Button>
+                </Link>
+                <Link href={`/admin/tenants/${tenantId}/settings`}>
+                  <Button icon={<ControlOutlined />}>
+                    {t('tenants.settingsChange.openAction')}
+                  </Button>
                 </Link>
                 <Link href={`/tenant/${tenantId}/digital`}>
                   <Button icon={<GlobalOutlined />}>

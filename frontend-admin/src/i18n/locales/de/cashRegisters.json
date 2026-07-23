@@ -299,10 +299,14 @@
     "tooltip": {
       "kasse": "Kasse",
       "id": "ID",
+      "mandantId": "Mandant ID",
       "status": "Status",
       "tse": "TSE",
       "balance": "Stand",
-      "unavailable": "—"
+      "unavailable": "—",
+      "copyValue": "Wert kopieren",
+      "copyAll": "Alles kopieren",
+      "copied": "Kopiert"
     },
     "mandantHeader": "Mandant: {{name}} ({{slug}})",
     "defaultTag": "Standard"

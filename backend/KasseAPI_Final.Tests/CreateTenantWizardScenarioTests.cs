@@ -65,6 +65,7 @@ public sealed class CreateTenantWizardScenarioTests
             uniqueness.Object,
             Mock.Of<IDemoProductImportService>(),
             new PaymentMethodDefinitionBootstrapService(db),
+            TseProvisioningTestDoubles.Successful(),
             Mock.Of<ILogger<TenantProvisioningService>>());
 
         return new TenantOnboardingService(

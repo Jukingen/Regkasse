@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 
 import { apiClient } from '../services/api/config';
+import { formatUserTime } from '../utils/dateFormatter';
 
 /**
  * API bağlantısını test etmek için basit component
@@ -22,7 +23,10 @@ export const ApiTestComponent: React.FC = () => {
 
   // Test sonuçlarını logla
   const addLog = (message: string) => {
-    setTestResults((prev) => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+    setTestResults((prev) => [
+      ...prev,
+      `${formatUserTime(new Date(), { includeSeconds: true })}: ${message}`,
+    ]);
   };
 
   // Ping testi

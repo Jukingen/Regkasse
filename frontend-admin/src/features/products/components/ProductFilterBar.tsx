@@ -38,6 +38,7 @@ import type {
 } from '@/features/products/types/productFilters';
 import { countActiveProductFilters } from '@/features/products/utils/countActiveProductFilters';
 import { useI18n } from '@/i18n';
+import { formatDate } from '@/lib/dateUtils';
 
 const { RangePicker } = DatePicker;
 
@@ -413,8 +414,8 @@ export function ProductFilterBar({
               {filters.createdRange?.[0] && filters.createdRange[1] ? (
                 <Tag closable onClose={() => handleFilterChange('createdRange', null)}>
                   {t('products.filters.chipCreated', {
-                    from: filters.createdRange[0].format('DD.MM.YYYY'),
-                    to: filters.createdRange[1].format('DD.MM.YYYY'),
+                    from: formatDate(filters.createdRange[0]),
+                    to: formatDate(filters.createdRange[1]),
                   })}
                 </Tag>
               ) : null}

@@ -25,4 +25,10 @@ public sealed class OfflineMonitoringOptions
 
     /// <summary>TSE offline transaction count as % of max before cap-warning anomaly (default 80%).</summary>
     public int TseOfflineCapWarningPercent { get; set; } = 80;
+
+    /// <summary>Tenant-wide NonFiscalPending count warning threshold for TSE offline queue UI/alerts.</summary>
+    public int TseOfflineQueueWarningThreshold { get; set; } = 30;
+
+    /// <summary>Tenant-wide NonFiscalPending count critical threshold (default matches TSE per-register cap 50).</summary>
+    public int TseOfflineQueueCriticalThreshold { get; set; } = 50;
 }

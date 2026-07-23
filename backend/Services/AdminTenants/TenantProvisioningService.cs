@@ -22,6 +22,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
     private readonly IUserUniquenessValidationService _uniquenessValidation;
     private readonly IDemoProductImportService _demoProductImport;
     private readonly IPaymentMethodDefinitionBootstrapService _paymentMethodBootstrap;
+    private readonly ITseProvisioningService _tseProvisioning;
     private readonly ILogger<TenantProvisioningService> _logger;
 
     public TenantProvisioningService(
@@ -31,6 +32,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         IUserUniquenessValidationService uniquenessValidation,
         IDemoProductImportService demoProductImport,
         IPaymentMethodDefinitionBootstrapService paymentMethodBootstrap,
+        ITseProvisioningService tseProvisioning,
         ILogger<TenantProvisioningService> logger)
     {
         _db = db;
@@ -39,6 +41,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         _uniquenessValidation = uniquenessValidation;
         _demoProductImport = demoProductImport;
         _paymentMethodBootstrap = paymentMethodBootstrap;
+        _tseProvisioning = tseProvisioning;
         _logger = logger;
     }
 
@@ -87,14 +90,21 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
             IsDefaultForTenant = true,
         };
         _db.CashRegisters.Add(cashRegister);
+        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        var tseResult = await _tseProvisioning
+            .ProvisionTseForCashRegisterAsync(cashRegister.Id, force: false, cancellationToken)
+            .ConfigureAwait(false);
+        if (!tseResult.IsSuccess)
+        {
+            return (null, tseResult.Error ?? "TSE provisioning failed.");
+        }
 
         Category category;
         IReadOnlyList<Guid> productIds;
 
         if (importDemoMenu)
         {
-            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-
             var importResult = await _demoProductImport
                 .ImportDemoProductsAsync(tenant.Id, new DemoImportRequest(), progress: null, cancellationToken)
                 .ConfigureAwait(false);
@@ -230,6 +240,8 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
             CategoryId = category.Id,
             ProductIds = productIds,
             TrialLicenseValidUntilUtc = trialUntil,
+            TseDeviceId = tseResult.Device?.Id,
+            TseProvisioned = tseResult.Outcome == TseProvisioningOutcome.Success,
         }, null);
     }
 

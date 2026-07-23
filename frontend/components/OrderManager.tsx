@@ -15,6 +15,7 @@ import {
 
 import { Colors, Spacing, BorderRadius, Typography } from '../constants/Colors';
 import { Product } from '../services/api/productService';
+import { formatUserTime } from '../utils/dateFormatter';
 
 interface OrderItem {
   id: string;
@@ -274,7 +275,7 @@ const OrderManager: React.FC<OrderManagerProps> = ({
 
       <View style={styles.orderInfo}>
         <Text style={styles.orderTime}>
-          {order.createdAt.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+          {formatUserTime(order.createdAt) || '—'}
         </Text>
         {order.customerName && <Text style={styles.customerName}>{order.customerName}</Text>}
         {order.tableNumber && (

@@ -14,6 +14,7 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
     private readonly IAuditLogService _auditLog;
     private readonly ICashRegisterListEnrichmentService _enrichment;
     private readonly IPaymentMethodDefinitionBootstrapService _paymentMethodBootstrap;
+    private readonly ITseProvisioningService _tseProvisioning;
     private readonly ILogger<CashRegisterManagementService> _logger;
 
     public CashRegisterManagementService(
@@ -22,6 +23,7 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
         IAuditLogService auditLog,
         ICashRegisterListEnrichmentService enrichment,
         IPaymentMethodDefinitionBootstrapService paymentMethodBootstrap,
+        ITseProvisioningService tseProvisioning,
         ILogger<CashRegisterManagementService> logger)
     {
         _db = db;
@@ -29,6 +31,7 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
         _auditLog = auditLog;
         _enrichment = enrichment;
         _paymentMethodBootstrap = paymentMethodBootstrap;
+        _tseProvisioning = tseProvisioning;
         _logger = logger;
     }
 
@@ -95,6 +98,15 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
         await _paymentMethodBootstrap
             .EnsureDefaultsForCashRegisterAsync(tenantId, register.Id, cancellationToken)
             .ConfigureAwait(false);
+
+        var tseResult = await _tseProvisioning
+            .ProvisionTseForCashRegisterAsync(register.Id, force: false, cancellationToken)
+            .ConfigureAwait(false);
+        if (!tseResult.IsSuccess)
+        {
+            throw new InvalidOperationException(
+                tseResult.Error ?? "TSE provisioning failed for the new cash register.");
+        }
 
         await TryAuditCreateAsync(register, actorUserId, actorRole).ConfigureAwait(false);
 

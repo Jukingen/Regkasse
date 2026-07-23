@@ -8,5 +8,14 @@
   "update": "Güncelle",
   "maintenance": "Bakım",
   "tseStatus": "TSE Durumu",
-  "printerStatus": "Yazıcı Durumu"
+  "printerStatus": "Yazıcı Durumu",
+  "maintenanceNotice": {
+    "modalTitle": "Sistem bakımı",
+    "windowLabel": "Bakım penceresi:",
+    "countdownLabel": "Bakıma kalan süre:",
+    "forceNotice": "Bu bakım penceresi kapatılamaz. Sistem geçici olarak kullanılamayabilir.",
+    "starts": "Başlangıç",
+    "dismiss": "Kapat",
+    "paymentBlocked": "Sistem bakımı sırasında ödemeler geçici olarak devre dışıdır. Lütfen daha sonra tekrar deneyin."
+  }
 }

@@ -63,6 +63,7 @@ const ICON_MAP: Record<SidebarIconToken, React.ComponentType> = {
   GiftOutlined: Icons.GiftOutlined,
   SafetyCertificateOutlined: Icons.SafetyCertificateOutlined,
   SafetyOutlined: Icons.SafetyOutlined,
+  SwapOutlined: Icons.SwapOutlined,
   SettingOutlined: Icons.SettingOutlined,
   ShopOutlined: Icons.ShopOutlined,
   GlobalOutlined: Icons.GlobalOutlined,

@@ -1,3 +1,5 @@
+import { formatDate } from '@/lib/dateUtils';
+
 export type TenantLicenseKind = 'none' | 'trial' | 'valid' | 'expired';
 
 export type TenantLicenseLabel = {
@@ -61,7 +63,7 @@ export function resolveTenantLicenseLabel(
 
   return {
     kind: 'valid',
-    label: until.toLocaleDateString('de-AT'),
+    label: formatDate(until),
     daysRemaining,
   };
 }

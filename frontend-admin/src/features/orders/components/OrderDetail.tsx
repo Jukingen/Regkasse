@@ -9,6 +9,7 @@ import {
 } from '@/features/orders/hooks/useOrders';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
+import { formatDateTime } from '@/lib/dateUtils';
 import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 
 const { Text } = Typography;
@@ -169,7 +170,7 @@ export function OrderDetail({ order, onOrderUpdated }: OrderDetailProps) {
                     ? t(`onlineOrders.status.${h.toStatus}`)
                     : h.toStatus}{' '}
                   <Text type="secondary">
-                    {h.changedAt ? new Date(h.changedAt).toLocaleString(formatLocale) : ''}
+                    {h.changedAt ? formatDateTime(h.changedAt) : ''}
                   </Text>
                 </span>
               ),

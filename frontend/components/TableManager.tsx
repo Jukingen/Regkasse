@@ -15,6 +15,7 @@ import {
 
 import { Colors, Spacing, BorderRadius, Typography } from '../constants/Colors';
 import { useTableOrdersRecoveryOptimized } from '../hooks/useTableOrdersRecoveryOptimized';
+import { formatUserTime } from '../utils/dateFormatter';
 
 interface TableOrder {
   id: string;
@@ -440,12 +441,7 @@ const TableManager: React.FC<TableManagerProps> = ({
     );
   };
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('de-DE', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  const formatTime = (date: Date) => formatUserTime(date) || '—';
 
   const getElapsedTime = (startTime: Date) => {
     const elapsed = Date.now() - startTime.getTime();

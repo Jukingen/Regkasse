@@ -53,6 +53,7 @@ import type { ReceiptLateCreationFields } from '@/features/rksv/types/receiptLat
 import { receiptIsLateCreated } from '@/features/rksv/types/receiptLateCreation';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
+import { dateColumnRender } from '@/components/DateColumn';
 import { formatDateTime } from '@/i18n/formatting';
 import { customInstance } from '@/lib/axios';
 import { ADMIN_NAV_GROUP_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
@@ -797,7 +798,7 @@ export default function RksvSonderbelegePage() {
         title: 'Datum',
         dataIndex: 'issuedAt',
         key: 'issuedAt',
-        render: (d: string) => (d ? formatDateTime(d, '') : '—'),
+        render: dateColumnRender('datetime'),
       },
       {
         title: 'FinanzOnline',
@@ -1430,6 +1431,13 @@ export default function RksvSonderbelegePage() {
         <CreateMonatsbelegModal
           open={monatsbelegModalOpen}
           cashRegisterId={registerId}
+          cashRegisterLabel={
+            selectedRegister
+              ? selectedRegister.location?.trim()
+                ? `${formatRegisterDisplayLabel(selectedRegister.registerNumber)} — ${selectedRegister.location.trim()}`
+                : formatRegisterDisplayLabel(selectedRegister.registerNumber)
+              : undefined
+          }
           year={selectedMonatsbelegYear}
           month={selectedMonatsbelegMonth}
           reason={reasonShort.trim() || 'Admin Monatsbeleg'}

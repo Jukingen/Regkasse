@@ -46,7 +46,8 @@ public sealed class AdminProductsUpdateTests
             TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary),
             new AdminProductListService(ctx, TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary)),
             Mock.Of<IProductService>(),
-            Mock.Of<IProductExportService>());
+            Mock.Of<IProductExportService>(),
+            Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
 
     private static void AttachManagerUser(AdminProductsController controller)
     {
