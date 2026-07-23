@@ -13,4 +13,4 @@ public sealed class DownloadHistoryOptions
 
     public bool CleanupEnabled { get; set; } = true;
 }
-
+
