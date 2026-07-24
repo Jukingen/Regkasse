@@ -39,7 +39,8 @@ namespace KasseAPI_Final.Controllers
         private readonly IProductService _productService;
         private readonly IProductExportService _productExport;
         private readonly IOperationLogService _operationLogs;
-        private readonly ITaxHistoryService _taxHistoryService;
+        private readonly IProductPriceHistoryService _priceHistoryService;
+        private readonly IPriceChangeService _priceChangeService;
 
         public AdminProductsController(
             AppDbContext context,
@@ -55,7 +56,8 @@ namespace KasseAPI_Final.Controllers
             IProductService productService,
             IProductExportService productExport,
             IOperationLogService operationLogs,
-            ITaxHistoryService taxHistoryService)
+            IProductPriceHistoryService priceHistoryService,
+            IPriceChangeService priceChangeService)
             : base(logger)
         {
             _context = context;
@@ -70,7 +72,8 @@ namespace KasseAPI_Final.Controllers
             _productService = productService;
             _productExport = productExport;
             _operationLogs = operationLogs;
-            _taxHistoryService = taxHistoryService;
+            _priceHistoryService = priceHistoryService;
+            _priceChangeService = priceChangeService;
         }
 
         /// <summary>
@@ -332,6 +335,28 @@ namespace KasseAPI_Final.Controllers
                 product.IsActive = true;
 
                 var createdProduct = await _productRepository.AddAsync(product);
+                try
+                {
+                    var actorId = Guid.TryParse(GetCurrentUserId(), out var parsedActor)
+                        ? parsedActor
+                        : Guid.Empty;
+                    await _priceHistoryService.EnsureInitialVersionAsync(
+                        tenantId,
+                        createdProduct.Id,
+                        createdProduct.Price,
+                        createdProduct.TaxGroupId,
+                        createdProduct.TaxRate,
+                        actorId,
+                        reason: "Initial product price");
+                }
+                catch (Exception priceHistEx)
+                {
+                    _logger.LogWarning(
+                        priceHistEx,
+                        "Failed to seed price history for product create {ProductId}",
+                        createdProduct.Id);
+                }
+
                 await _productService.InvalidateProductsCacheAsync(tenantId, createdProduct.Id);
                 _logger.LogInformation("Admin product created: {Name} (ID: {Id})", product.Name, createdProduct.Id);
                 return SuccessResponse(AdminProductDto.FromProduct(createdProduct), "Product created successfully");
@@ -390,6 +415,39 @@ namespace KasseAPI_Final.Controllers
                 var before = OperationSnapshots.FromProduct(existingProduct);
                 var previousTaxRate = existingProduct.TaxRate;
                 var previousTaxGroupId = existingProduct.TaxGroupId;
+                var previousPrice = existingProduct.Price;
+
+                var actorId = Guid.TryParse(GetCurrentUserId(), out var parsedActor)
+                    ? parsedActor
+                    : Guid.Empty;
+
+                var priceOrTaxChanging = previousPrice != product.Price
+                    || previousTaxGroupId != product.TaxGroupId
+                    || previousTaxRate != product.TaxRate;
+
+                if (priceOrTaxChanging)
+                {
+                    var priceChange = await _priceChangeService.ChangePriceAsync(new PriceChangeRequest
+                    {
+                        TenantId = existingProduct.TenantId,
+                        ProductId = existingProduct.Id,
+                        NewPrice = product.Price,
+                        NewTaxGroupId = product.TaxGroupId,
+                        ChangedBy = actorId,
+                        ChangedByRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value,
+                        Reason = previousPrice != product.Price && previousTaxGroupId != product.TaxGroupId
+                            ? "Product price and tax updated"
+                            : previousPrice != product.Price
+                                ? "Product price updated"
+                                : "Product tax group updated",
+                    });
+
+                    if (!priceChange.Succeeded)
+                        return ErrorResponse(priceChange.ErrorMessage ?? "Price change failed", 400);
+
+                    // Reload tracked entity after transactional price change.
+                    await _context.Entry(existingProduct).ReloadAsync();
+                }
 
                 ApplyAdminProductUpdate(existingProduct, product);
                 // Refresh navigation for response DTO when tax group changed.
@@ -399,33 +457,6 @@ namespace KasseAPI_Final.Controllers
 
                 await _context.SaveChangesAsync();
                 await _productService.InvalidateProductsCacheAsync(existingProduct.TenantId, id);
-
-                var taxChanged = previousTaxGroupId != existingProduct.TaxGroupId
-                    || previousTaxRate != existingProduct.TaxRate;
-                if (taxChanged)
-                {
-                    try
-                    {
-                        var actorId = Guid.TryParse(GetCurrentUserId(), out var parsedActor)
-                            ? parsedActor
-                            : Guid.Empty;
-                        await _taxHistoryService.RecordChangeAsync(
-                            existingProduct.TenantId,
-                            existingProduct.Id,
-                            existingProduct.TaxGroupId,
-                            previousTaxRate,
-                            existingProduct.TaxRate,
-                            actorId,
-                            reason: "Product tax group updated");
-                    }
-                    catch (Exception taxHistEx)
-                    {
-                        _logger.LogWarning(
-                            taxHistEx,
-                            "Failed to write tax history for product update {ProductId}",
-                            id);
-                    }
-                }
 
                 var userId = GetCurrentUserId();
                 if (!string.IsNullOrEmpty(userId))

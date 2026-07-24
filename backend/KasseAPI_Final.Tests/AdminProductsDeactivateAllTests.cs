@@ -57,7 +57,8 @@ public sealed class AdminProductsDeactivateAllTests
             Mock.Of<IProductService>(),
             Mock.Of<IProductExportService>(),
             Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>(),
-            Mock.Of<ITaxHistoryService>());
+            Mock.Of<IProductPriceHistoryService>(),
+            Mock.Of<IPriceChangeService>());
         AttachHttpContext(controller);
         return controller;
     }

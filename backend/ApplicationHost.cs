@@ -1059,6 +1059,8 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IPaymentMethodDefinitionBootstrapService, PaymentMethodDefinitionBootstrapService>();
         builder.Services.AddScoped<ITaxRegulationService, TaxRegulationService>();
         builder.Services.AddScoped<ITaxHistoryService, TaxHistoryService>();
+        builder.Services.AddScoped<IProductPriceHistoryService, ProductPriceHistoryService>();
+        builder.Services.AddScoped<IPriceChangeService, PriceChangeService>();
         builder.Services.AddScoped<ITaxBulkUpdateService, TaxBulkUpdateService>();
         builder.Services.AddScoped<ITaxReportService, TaxReportService>();
         builder.Services.AddScoped<ITaxComplianceChecker, TaxComplianceChecker>();

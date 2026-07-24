@@ -6,16 +6,22 @@ using Microsoft.EntityFrameworkCore;
 namespace KasseAPI_Final.Services;
 
 /// <summary>
-/// Reassigns all tenant products from one tax group to another and appends <see cref="TaxHistory"/> rows.
+/// Reassigns all tenant products from one tax group to another and appends <see cref="TaxHistory"/>
+/// plus <see cref="ProductPriceHistory"/> / <see cref="ProductPriceVersion"/> rows.
 /// </summary>
 public sealed class TaxBulkUpdateService : ITaxBulkUpdateService
 {
     private readonly AppDbContext _db;
+    private readonly IProductPriceHistoryService _priceHistoryService;
     private readonly ILogger<TaxBulkUpdateService> _logger;
 
-    public TaxBulkUpdateService(AppDbContext db, ILogger<TaxBulkUpdateService> logger)
+    public TaxBulkUpdateService(
+        AppDbContext db,
+        IProductPriceHistoryService priceHistoryService,
+        ILogger<TaxBulkUpdateService> logger)
     {
         _db = db;
+        _priceHistoryService = priceHistoryService;
         _logger = logger;
     }
 
@@ -65,6 +71,10 @@ public sealed class TaxBulkUpdateService : ITaxBulkUpdateService
 
         foreach (var product in affectedProducts)
         {
+            var previousPrice = product.Price;
+            var previousTaxGroupId = product.TaxGroupId;
+            var previousRate = decimal.Round(product.TaxRate, 2, MidpointRounding.AwayFromZero);
+
             product.TaxGroupId = newTaxGroupId;
             product.TaxRate = newRate;
             product.TaxType = newTaxType;
@@ -82,6 +92,20 @@ public sealed class TaxBulkUpdateService : ITaxBulkUpdateService
                 ChangedBy = changedBy,
                 Reason = historyReason,
             });
+
+            await _priceHistoryService.RecordChangeAsync(
+                tenantId,
+                product.Id,
+                previousPrice,
+                previousPrice,
+                previousTaxGroupId,
+                newTaxGroupId,
+                previousRate,
+                newRate,
+                changedBy,
+                historyReason,
+                saveChanges: false,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
@@ -159,6 +183,8 @@ public sealed class TaxBulkUpdateService : ITaxBulkUpdateService
             }
 
             var oldRate = previousRate;
+            var previousPrice = product.Price;
+            var previousTaxGroupId = product.TaxGroupId;
             product.TaxGroupId = taxGroupId;
             product.TaxRate = newRate;
             product.TaxType = newTaxType;
@@ -176,6 +202,20 @@ public sealed class TaxBulkUpdateService : ITaxBulkUpdateService
                 ChangedBy = changedBy,
                 Reason = historyReason,
             });
+
+            await _priceHistoryService.RecordChangeAsync(
+                tenantId,
+                product.Id,
+                previousPrice,
+                previousPrice,
+                previousTaxGroupId,
+                taxGroupId,
+                oldRate,
+                newRate,
+                changedBy,
+                historyReason,
+                saveChanges: false,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
             updated++;
         }
 

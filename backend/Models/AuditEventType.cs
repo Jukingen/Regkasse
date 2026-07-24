@@ -66,5 +66,7 @@ public enum AuditEventType
     SensitiveExportApprovalRejected = 39,
     /// <summary>Admin undid a reversible operation from the operation log.</summary>
     OperationUndone = 40,
+    /// <summary>Product catalog price and/or tax group changed (RKSV price version trail).</summary>
+    ProductPriceChanged = 41,
     Other = 99
 }

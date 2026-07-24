@@ -47,7 +47,8 @@ public sealed class AdminProductsBulkDeactivateTests
             Mock.Of<IProductService>(),
             Mock.Of<IProductExportService>(),
             Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>(),
-            Mock.Of<ITaxHistoryService>());
+            Mock.Of<IProductPriceHistoryService>(),
+            Mock.Of<IPriceChangeService>());
 
     [Fact]
     public async Task BulkDeactivateProducts_SoftDeletesActiveOnly()

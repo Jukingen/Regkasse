@@ -68,7 +68,7 @@ public sealed class TaxBulkUpdateServiceTests
             CreateProduct(tenantId, categoryId, newGroupId, "C", 20m));
         await db.SaveChangesAsync();
 
-        var sut = new TaxBulkUpdateService(db, NullLogger<TaxBulkUpdateService>.Instance);
+        var sut = CreateSut(db);
         var actor = Guid.NewGuid();
         var result = await sut.UpdateTaxForProductsAsync(tenantId, oldGroupId, newGroupId, actor, "Bulk move");
 
@@ -78,6 +78,7 @@ public sealed class TaxBulkUpdateServiceTests
         Assert.Equal(0, await db.Products.CountAsync(p => p.TaxGroupId == oldGroupId));
         Assert.Equal(3, await db.Products.CountAsync(p => p.TaxGroupId == newGroupId));
         Assert.Equal(2, await db.TaxHistories.CountAsync());
+        Assert.Equal(2, await db.ProductPriceHistories.CountAsync());
         Assert.All(await db.TaxHistories.ToListAsync(), h =>
         {
             Assert.Equal(10m, h.OldRate);
@@ -93,7 +94,7 @@ public sealed class TaxBulkUpdateServiceTests
         var tenantId = LegacyDefaultTenantIds.Primary;
         await using var db = CreateDb(tenantId);
         var groupId = Guid.NewGuid();
-        var sut = new TaxBulkUpdateService(db, NullLogger<TaxBulkUpdateService>.Instance);
+        var sut = CreateSut(db);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             sut.UpdateTaxForProductsAsync(tenantId, groupId, groupId, Guid.NewGuid()));
@@ -146,7 +147,7 @@ public sealed class TaxBulkUpdateServiceTests
         db.Products.AddRange(p1, p2);
         await db.SaveChangesAsync();
 
-        var sut = new TaxBulkUpdateService(db, NullLogger<TaxBulkUpdateService>.Instance);
+        var sut = CreateSut(db);
         var result = await sut.ApplyTaxGroupToProductsAsync(
             tenantId,
             newGroupId,
@@ -164,7 +165,14 @@ public sealed class TaxBulkUpdateServiceTests
         Assert.Equal(newGroupId, updated.TaxGroupId);
         Assert.Equal(20m, updated.TaxRate);
         Assert.Equal(1, await db.TaxHistories.CountAsync(h => h.ProductId == p1.Id));
+        Assert.Equal(1, await db.ProductPriceHistories.CountAsync(h => h.ProductId == p1.Id));
     }
+
+    private static TaxBulkUpdateService CreateSut(AppDbContext db) =>
+        new(
+            db,
+            new ProductPriceHistoryService(db, NullLogger<ProductPriceHistoryService>.Instance),
+            NullLogger<TaxBulkUpdateService>.Instance);
 
     private static Product CreateProduct(
         Guid tenantId,

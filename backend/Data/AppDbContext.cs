@@ -78,6 +78,8 @@ namespace KasseAPI_Final.Data
         public DbSet<Category> Categories { get; set; }
         public DbSet<TaxGroup> TaxGroups { get; set; }
         public DbSet<TaxHistory> TaxHistories { get; set; }
+        public DbSet<ProductPriceHistory> ProductPriceHistories { get; set; }
+        public DbSet<ProductPriceVersion> ProductPriceVersions { get; set; }
         public DbSet<PaymentDetails> PaymentDetails { get; set; }
         public DbSet<PaymentReversalApproval> PaymentReversalApprovals { get; set; }
         public DbSet<SuspiciousTransactionAlert> SuspiciousTransactionAlerts { get; set; }
@@ -1701,6 +1703,80 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => new { e.TenantId, e.ChangedAt });
                 entity.HasIndex(e => new { e.TenantId, e.ProductId, e.ChangedAt });
                 entity.ToTable("tax_history");
+            });
+
+            builder.Entity<ProductPriceHistory>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.ProductId).HasColumnName("product_id").IsRequired();
+                entity.Property(e => e.OldPrice).HasColumnName("old_price").HasColumnType("decimal(18,2)");
+                entity.Property(e => e.NewPrice).HasColumnName("new_price").HasColumnType("decimal(18,2)");
+                entity.Property(e => e.OldTaxGroupId).HasColumnName("old_tax_group_id").IsRequired();
+                entity.Property(e => e.NewTaxGroupId).HasColumnName("new_tax_group_id").IsRequired();
+                entity.Property(e => e.OldTaxRate).HasColumnName("old_tax_rate").HasColumnType("decimal(5,2)");
+                entity.Property(e => e.NewTaxRate).HasColumnName("new_tax_rate").HasColumnType("decimal(5,2)");
+                entity.Property(e => e.EffectiveFrom).HasColumnName("effective_from");
+                entity.Property(e => e.EffectiveTo).HasColumnName("effective_to");
+                entity.Property(e => e.IsActive).HasColumnName("is_active");
+                entity.Property(e => e.ChangedBy).HasColumnName("changed_by");
+                entity.Property(e => e.Reason).HasColumnName("reason").HasMaxLength(500).IsRequired();
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+                entity.Property(e => e.IsRksvCompliant).HasColumnName("is_rksv_compliant");
+                entity.Property(e => e.RksvNote).HasColumnName("rksv_note").HasMaxLength(500);
+                entity.Property(e => e.RksvVerifiedAt).HasColumnName("rksv_verified_at");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Product)
+                    .WithMany()
+                    .HasForeignKey(e => e.ProductId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.OldTaxGroup)
+                    .WithMany()
+                    .HasForeignKey(e => e.OldTaxGroupId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.NewTaxGroup)
+                    .WithMany()
+                    .HasForeignKey(e => e.NewTaxGroupId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => new { e.TenantId, e.EffectiveFrom });
+                entity.HasIndex(e => new { e.TenantId, e.ProductId, e.EffectiveFrom });
+                entity.HasIndex(e => new { e.TenantId, e.ProductId, e.IsActive });
+                entity.ToTable("product_price_history");
+            });
+
+            builder.Entity<ProductPriceVersion>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.ProductId).HasColumnName("product_id").IsRequired();
+                entity.Property(e => e.Price).HasColumnName("price").HasColumnType("decimal(10,2)");
+                entity.Property(e => e.TaxGroupId).HasColumnName("tax_group_id").IsRequired();
+                entity.Property(e => e.ValidFrom).HasColumnName("valid_from").HasDefaultValueSql("now()");
+                entity.Property(e => e.ValidTo).HasColumnName("valid_to");
+                entity.Property(e => e.IsCurrent).HasColumnName("is_current").HasDefaultValue(true);
+                entity.Property(e => e.Version).HasColumnName("version").HasColumnType("text");
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Product)
+                    .WithMany()
+                    .HasForeignKey(e => e.ProductId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.TaxGroup)
+                    .WithMany()
+                    .HasForeignKey(e => e.TaxGroupId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.ProductId).HasDatabaseName("idx_product_price_versions_product_id");
+                entity.HasIndex(e => e.IsCurrent).HasDatabaseName("idx_product_price_versions_is_current");
+                entity.HasIndex(e => new { e.TenantId, e.ProductId, e.ValidFrom });
+                entity.HasIndex(e => new { e.TenantId, e.ProductId, e.IsCurrent });
+                entity.ToTable("product_price_versions");
             });
 
             // ProductModifierGroup configuration (Extra Zutaten)
