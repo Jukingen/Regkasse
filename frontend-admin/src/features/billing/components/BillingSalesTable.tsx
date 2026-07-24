@@ -268,7 +268,7 @@ export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActi
         title={t('billing.sales.detailTitle')}
         open={selectedSale != null}
         onClose={() => setSelectedSale(null)}
-        width={520}
+        size={520}
         destroyOnHidden
         extra={
           selectedSale?.id ? (

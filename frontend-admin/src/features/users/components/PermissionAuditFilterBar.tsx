@@ -437,7 +437,7 @@ export function PermissionAuditFilterBar({
         okText={t('users.permissionAudit.savedFilters.save')}
         destroyOnHidden
       >
-        <Space direction="vertical" style={{ width: '100%' }}>
+        <Space orientation="vertical" style={{ width: '100%' }}>
           <Input
             placeholder={t('users.permissionAudit.savedFilters.namePlaceholder')}
             value={saveName}

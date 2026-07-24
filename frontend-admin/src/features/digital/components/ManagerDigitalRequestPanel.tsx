@@ -106,7 +106,7 @@ export function ManagerDigitalRequestPanel({ tenantId }: ManagerDigitalRequestPa
   }
 
   if (isError || !data) {
-    return <Alert type="error" showIcon message={t('tenants.digitalServices.statusLoadFailed')} />;
+    return <Alert type="error" showIcon title={t('tenants.digitalServices.statusLoadFailed')} />;
   }
 
   const renderCard = (
@@ -145,14 +145,14 @@ export function ManagerDigitalRequestPanel({ tenantId }: ManagerDigitalRequestPa
             <Alert
               type="info"
               showIcon
-              message={t('tenants.digitalServices.requestPendingTitle')}
+              title={t('tenants.digitalServices.requestPendingTitle')}
               description={t('tenants.digitalServices.requestPendingBody')}
             />
           ) : isReady ? (
             <Alert
               type="success"
               showIcon
-              message={
+              title={
                 isWebsite
                   ? t('tenants.digitalServices.webActiveTitle')
                   : t('tenants.digitalServices.appActiveTitle')
@@ -169,14 +169,14 @@ export function ManagerDigitalRequestPanel({ tenantId }: ManagerDigitalRequestPa
             <Alert
               type="warning"
               showIcon
-              message={t('tenants.digitalServices.statusProvisionRejected')}
+              title={t('tenants.digitalServices.statusProvisionRejected')}
               description={t('tenants.digitalServices.requestHintBody')}
             />
           ) : (
             <Alert
               type="warning"
               showIcon
-              message={
+              title={
                 isWebsite
                   ? t('tenants.digitalServices.webInactiveTitle')
                   : t('tenants.digitalServices.appInactiveTitle')
@@ -217,7 +217,7 @@ export function ManagerDigitalRequestPanel({ tenantId }: ManagerDigitalRequestPa
       <Alert
         type="info"
         showIcon
-        message={t('tenants.digitalServices.managerInfoTitle')}
+        title={t('tenants.digitalServices.managerInfoTitle')}
         description={t('tenants.digitalServices.managerInfoBody')}
       />
       <Row gutter={[16, 16]}>

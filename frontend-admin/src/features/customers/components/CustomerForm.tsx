@@ -124,7 +124,7 @@ export default function CustomerForm({
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
-          message={
+          title={
             <span>
               <Tag color="blue" style={{ marginInlineEnd: 8 }}>
                 {t('customers.list.tagSystem')}

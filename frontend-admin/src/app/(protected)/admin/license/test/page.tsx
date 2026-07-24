@@ -25,7 +25,7 @@ export default function LicenseTestPage() {
   if (!isDevelopment()) {
     return (
       <div style={{ padding: 24 }}>
-        <Alert type="warning" message={t('license.testPanel.productionBlocked')} showIcon />
+        <Alert type="warning" title={t('license.testPanel.productionBlocked')} showIcon />
         <NotFoundAccessView compact />
       </div>
     );
@@ -34,12 +34,12 @@ export default function LicenseTestPage() {
   return (
     <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <Alert
-        message={t('license.testPanel.alertTitle')}
+        title={t('license.testPanel.alertTitle')}
         description={t('license.testPanel.alertDescription')}
         type="warning"
         showIcon
       />
-      <Alert type="info" message={t('license.testPanel.overrideHint')} showIcon />
+      <Alert type="info" title={t('license.testPanel.overrideHint')} showIcon />
       <LicenseTestPanel />
     </div>
   );

@@ -287,7 +287,7 @@ function CreateTenantWizardContent({
         onCancel={handleWizardClose}
         width={720}
         destroyOnHidden
-        maskClosable={phase !== 'processing'}
+        mask={{ closable: phase !== 'processing' }}
         closable={phase !== 'processing'}
         footer={footer}
       >

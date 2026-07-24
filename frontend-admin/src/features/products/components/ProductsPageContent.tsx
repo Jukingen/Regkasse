@@ -368,7 +368,7 @@ export default function ProductsPage() {
       modal.confirm({
         title: t('products.actions.bulkDeactivateTitle'),
         content: (
-          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+          <Space orientation="vertical" size="small" style={{ width: '100%' }}>
             {limitAlert}
             <Typography.Text>
               {t('products.actions.bulkDeactivateDescription', { count: selectedCount })}

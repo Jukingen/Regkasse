@@ -6,7 +6,7 @@ import { TenantInfoCard } from '@/components/admin-layout/TenantInfoCard';
 import { useSuperAdminTenantMode } from '@/features/tenancy/hooks/useSuperAdminTenantMode';
 import { isVerwaltungAdminPath, normalizeAdminPathname } from '@/shared/adminSidebarNavigation';
 
-/** Tenant info card on Verwaltung routes when a mandant context is active (not blocked by SuperAdminTenantGate). */
+/** Tenant info card on Verwaltung routes when a mandant context is active (not blocked by TenantGuard). */
 export function VerwaltungTenantContextGate() {
   const pathname = usePathname();
   const { requiresTenantSelection } = useSuperAdminTenantMode();

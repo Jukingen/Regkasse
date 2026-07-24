@@ -212,7 +212,7 @@ export default function TseResourcePoolsPage() {
 
   if (!allowed) {
     return (
-      <Alert type="error" showIcon message={t('tseResourcePools.forbidden')} />
+      <Alert type="error" showIcon title={t('tseResourcePools.forbidden')} />
     );
   }
 
@@ -343,7 +343,7 @@ export default function TseResourcePoolsPage() {
         destroyOnHidden
       >
         {detailsPool ? (
-          <Space direction="vertical" size="large" style={{ width: '100%' }}>
+          <Space orientation="vertical" size="large" style={{ width: '100%' }}>
             <Typography.Text>
               <strong>{detailsPool.name}</strong> · {typeLabel(detailsPool.type)}
             </Typography.Text>
@@ -352,7 +352,7 @@ export default function TseResourcePoolsPage() {
               <Alert
                 type="warning"
                 showIcon
-                message={t('tseResourcePools.warningsTitle')}
+                title={t('tseResourcePools.warningsTitle')}
                 description={
                   <ul style={{ margin: 0, paddingLeft: 18 }}>
                     {statusQuery.data?.warnings.map((w) => (
@@ -420,7 +420,7 @@ export default function TseResourcePoolsPage() {
                       </Button>,
                     ]}
                   >
-                    <Space direction="vertical" size={0}>
+                    <Space orientation="vertical" size={0}>
                       <Typography.Text>
                         {item.tenantName || item.tenantSlug || item.tenantId}
                       </Typography.Text>

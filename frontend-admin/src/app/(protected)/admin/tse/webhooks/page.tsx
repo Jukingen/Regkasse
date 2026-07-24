@@ -20,6 +20,11 @@ import { useState } from 'react';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import {
+  TseActiveTenantTag,
+  TseTenantRequiredAlert,
+} from '@/features/tse-shared/components/TseTenantContextUi';
+import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
+import {
   createTseWebhook,
   deleteTseWebhook,
   listTseWebhooks,
@@ -29,7 +34,6 @@ import {
   TSE_WEBHOOK_EVENT_OPTIONS,
   type TseWebhookRegistration,
 } from '@/features/tse-webhooks/types';
-import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
@@ -52,16 +56,9 @@ export default function TseWebhooksPage() {
   const queryClient = useQueryClient();
   const { hasPermission } = usePermissions();
   const allowed = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
-  const [tenantId, setTenantId] = useState<string | undefined>();
+  const { tenantId, isReady } = useTsePageTenant();
   const [createOpen, setCreateOpen] = useState(false);
   const [form] = Form.useForm<CreateForm>();
-
-  const tenantsQuery = useQuery({
-    queryKey: ['admin', 'tenants', 'tse-webhooks'],
-    queryFn: () => listAdminTenants(false),
-    enabled: allowed,
-    staleTime: 60_000,
-  });
 
   const listQuery = useQuery({
     queryKey: [...KEY, 'list', tenantId],
@@ -190,7 +187,7 @@ export default function TseWebhooksPage() {
   ];
 
   if (!allowed) {
-    return <Alert type="error" showIcon message={t('tseWebhooks.forbidden')} />;
+    return <Alert type="error" showIcon title={t('tseWebhooks.forbidden')} />;
   }
 
   return (
@@ -198,31 +195,17 @@ export default function TseWebhooksPage() {
       <AdminPageHeader
         title={t('tseWebhooks.title')}
         breadcrumbs={[adminOverviewCrumb(t), { title: t('tseWebhooks.title') }]}
-        extra={
-          <Select
-            showSearch
-            optionFilterProp="label"
-            style={{ minWidth: 260 }}
-            placeholder={t('tseWebhooks.tenantLabel')}
-            loading={tenantsQuery.isLoading}
-            value={tenantId}
-            onChange={setTenantId}
-            options={(tenantsQuery.data ?? []).map((tenant) => ({
-              value: tenant.id,
-              label: `${tenant.name} (${tenant.slug})`,
-            }))}
-          />
-        }
+        extra={<TseActiveTenantTag />}
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
           {t('tseWebhooks.subtitle')}
         </Typography.Paragraph>
       </AdminPageHeader>
 
-      {!tenantId ? (
-        <Alert type="info" showIcon message={t('tseWebhooks.emptySelect')} />
+      {!isReady ? (
+        <TseTenantRequiredAlert emptySelectKey="tseWebhooks.emptySelect" />
       ) : listQuery.isError ? (
-        <Alert type="error" showIcon message={t('tseWebhooks.loadError')} />
+        <Alert type="error" showIcon title={t('tseWebhooks.loadError')} />
       ) : (
         <Card
           title={t('tseWebhooks.cardTitle')}
@@ -237,7 +220,7 @@ export default function TseWebhooksPage() {
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
-            message={t('tseWebhooks.secretNote')}
+            title={t('tseWebhooks.secretNote')}
           />
           <Table
             rowKey="id"

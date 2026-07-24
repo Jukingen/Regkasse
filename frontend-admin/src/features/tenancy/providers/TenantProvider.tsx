@@ -1,10 +1,19 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { type ReactNode, createContext, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  type ReactNode,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 
 import { authStorage } from '@/features/auth/services/authStorage';
 import { isDevelopment } from '@/features/auth/services/devTenant';
+import { tenantStorage } from '@/features/auth/services/tenantStorage';
 import {
   type CurrentTenantDto,
   currentTenantQueryKey,
@@ -14,6 +23,7 @@ import {
   type CurrentTenant,
   useCurrentTenantState,
 } from '@/features/tenancy/hooks/useCurrentTenantState';
+import { isBusinessTenantSlug } from '@/features/users/utils/userScope';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 
 export type Tenant = {
@@ -31,6 +41,20 @@ export type TenantContextType = {
   error: Error | null;
   refresh: () => void;
 };
+
+/**
+ * Persists mandant id/slug for API resolution (`X-Tenant-Id` via {@link resolveTenantSlugForApiRequest}).
+ * Does not mutate axios defaults — headers are set per request.
+ */
+export function persistSelectedTenant(tenant: Tenant | null): void {
+  if (!tenant || !isBusinessTenantSlug(tenant.slug)) {
+    return;
+  }
+  tenantStorage.persistBootstrap({
+    tenantId: tenant.id,
+    tenantSlug: tenant.slug,
+  });
+}
 
 const TenantApiContext = createContext<TenantContextType | null>(null);
 const CurrentTenantContext = createContext<CurrentTenant | null>(null);
@@ -107,6 +131,11 @@ export function TenantProvider({ children }: TenantProviderProps) {
     [tenantOverride, data, currentTenant]
   );
 
+  const setTenant = useCallback((tenant: Tenant | null) => {
+    setTenantOverride(tenant);
+    persistSelectedTenant(tenant);
+  }, []);
+
   useEffect(() => {
     if (!isDevelopment()) {
       return;
@@ -125,14 +154,14 @@ export function TenantProvider({ children }: TenantProviderProps) {
   const apiContextValue = useMemo<TenantContextType>(
     () => ({
       tenant: effectiveTenant,
-      setTenant: setTenantOverride,
+      setTenant,
       isLoading: isLoading || currentTenant.isTenantRecordLoading,
       error: error instanceof Error ? error : error ? new Error(String(error)) : null,
       refresh: () => {
         void refetch();
       },
     }),
-    [effectiveTenant, isLoading, currentTenant.isTenantRecordLoading, error, refetch]
+    [effectiveTenant, setTenant, isLoading, currentTenant.isTenantRecordLoading, error, refetch]
   );
 
   return (

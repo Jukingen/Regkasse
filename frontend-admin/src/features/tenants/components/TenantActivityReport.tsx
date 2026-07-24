@@ -63,7 +63,7 @@ export function TenantActivityReport({ tenantId }: Props) {
   return (
     <Card title={t('detail.activityReport.title')} loading={isLoading}>
       {isError ? (
-        <Alert type="error" showIcon message={t('detail.activityReport.loadError')} />
+        <Alert type="error" showIcon title={t('detail.activityReport.loadError')} />
       ) : (
         <Space orientation="vertical" size="large" style={{ width: '100%' }}>
           {report?.period ? (
@@ -116,7 +116,7 @@ export function TenantActivityReport({ tenantId }: Props) {
                       style={{ width: '100%' }}
                       type="error"
                       showIcon
-                      message={anomaly.description}
+                      title={anomaly.description}
                       description={anomaly.recommendation}
                     />
                   </List.Item>

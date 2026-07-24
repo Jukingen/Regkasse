@@ -14,7 +14,7 @@ import {
 import type { InputRef } from 'antd';
 import { Alert, Button, Checkbox, Dropdown, Input, Spin, Tag, Typography } from 'antd';
 import { useRouter } from 'next/navigation';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useHeaderTenantSwitcher } from '@/features/auth/components/HeaderTenantSwitcherContext';
 import { TenantSwitcherNoAdminFlow } from '@/features/auth/components/TenantSwitcherNoAdminFlow';
@@ -35,7 +35,7 @@ import {
   tenantNeedsNoAdminWarning,
   useTenantListForSwitcher,
 } from '@/features/tenancy/hooks/useTenantListForSwitcher';
-import { useTenant } from '@/features/tenancy/providers/TenantProvider';
+import { useTenant } from '@/hooks/useTenant';
 import { switchDevTenantContext } from '@/features/tenancy/services/setTenantAndRefresh';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
@@ -139,7 +139,7 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
   const router = useRouter();
   const { user, refreshToken } = useAuth();
   const { tenantId: currentTenantId } = useCurrentTenant();
-  const { tenant: apiTenant, refresh: refreshTenantContext } = useTenant();
+  const { tenant: apiTenant, refresh: refreshTenantContext, setTenant } = useTenant();
   const { open, setOpen } = useHeaderTenantSwitcher();
   const isSuperAdminUser = isSuperAdmin(user?.role);
   const [includeDeleted, setIncludeDeleted] = useState(false);
@@ -170,11 +170,19 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
   const searchQuery = search.trim();
   const isFiltering = searchQuery.length > 0;
   const normalizedCurrentId = (apiTenant?.id ?? currentTenantId)?.trim().toLowerCase() ?? '';
+  const autoSelectAttemptedRef = useRef(false);
 
-  /** Persists `dev_tenant_id`, refreshes JWT `tenant_id`, then reloads via {@link DEV_TENANT_CHANGED_EVENT}. */
+  /**
+   * Sets React tenant context + `tenantStorage`, rebinds JWT `tenant_id`, then soft-switches
+   * via `dev_tenant_id` / bootstrap and reload.
+   */
   const handleTenantChange = useCallback(
-    async (tenant: TenantListItemForSwitcher) => {
-      if (isSuperAdminUser && tenantNeedsNoAdminWarning(tenant)) {
+    async (tenant: TenantListItemForSwitcher, options?: { skipNoAdminWarning?: boolean }) => {
+      if (
+        isSuperAdminUser &&
+        !options?.skipNoAdminWarning &&
+        tenantNeedsNoAdminWarning(tenant)
+      ) {
         setOpen(false);
         setSearch('');
         setNoAdminTenant(tenant);
@@ -182,6 +190,19 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
       }
       setOpen(false);
       setSearch('');
+
+      const licenseValidUntilUtc = tenant.source.licenseValidUntilUtc ?? null;
+      const licenseValid = Boolean(
+        licenseValidUntilUtc && new Date(licenseValidUntilUtc).getTime() > Date.now()
+      );
+      setTenant({
+        id: tenant.id,
+        slug: tenant.slug,
+        name: tenant.name,
+        licenseValid,
+        licenseValidUntilUtc,
+      });
+
       const tokenOk = await refreshToken(tenant.id);
       if (!tokenOk) {
         message.error(t('adminShell.tenant.devSwitcher.refreshFailed'));
@@ -190,8 +211,42 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
       refreshTenantContext();
       await switchDevTenantContext({ slug: tenant.slug, id: tenant.id });
     },
-    [isSuperAdminUser, message, refreshTenantContext, refreshToken, setOpen, t]
+    [isSuperAdminUser, message, refreshTenantContext, refreshToken, setOpen, setTenant, t]
   );
+
+  /** Development DX: prefer `dev` mandant when Super Admin has no active context yet. */
+  useEffect(() => {
+    if (!shouldShowHeaderDevTenantSwitch() || !isSuperAdminUser) {
+      return;
+    }
+    if (autoSelectAttemptedRef.current || isLoading) {
+      return;
+    }
+    if (apiTenant?.id || currentTenantId) {
+      return;
+    }
+    if (tenants.length === 0) {
+      return;
+    }
+
+    const preferred =
+      tenants.find((row) => row.slug === 'dev' && row.isActive && row.status === 'active') ??
+      tenants.find((row) => row.isActive && row.status === 'active' && !tenantNeedsNoAdminWarning(row));
+
+    if (!preferred) {
+      return;
+    }
+
+    autoSelectAttemptedRef.current = true;
+    void handleTenantChange(preferred, { skipNoAdminWarning: preferred.slug === 'dev' });
+  }, [
+    apiTenant?.id,
+    currentTenantId,
+    handleTenantChange,
+    isLoading,
+    isSuperAdminUser,
+    tenants,
+  ]);
 
   const handleOpenChange = useCallback(
     (next: boolean) => {

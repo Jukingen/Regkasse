@@ -169,7 +169,7 @@ export function DigitalServiceRequestsPanel({
   ];
 
   if (!canManage) {
-    return <Alert type="warning" showIcon message={t('superadmin.digital.accessDenied')} />;
+    return <Alert type="warning" showIcon title={t('superadmin.digital.accessDenied')} />;
   }
 
   return (
@@ -207,7 +207,7 @@ export function DigitalServiceRequestsPanel({
       </Paragraph>
 
       {isError ? (
-        <Alert type="error" showIcon message={t('superadmin.digital.requestsLoadFailed')} />
+        <Alert type="error" showIcon title={t('superadmin.digital.requestsLoadFailed')} />
       ) : (
         <Table<DigitalServiceRequest>
           loading={isLoading}

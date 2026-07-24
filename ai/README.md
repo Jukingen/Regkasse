@@ -97,6 +97,18 @@ modules/offline_transactions_legacy.md
 modules/payments.md
 modules/tse_finanzonline.md
 modules/tse_admin_ops.md
+training/README.md
+training/curated-patterns.json
+training/regkasse-ai-dataset.json   # regenerate: node scripts/generate-ai-training-dataset.mjs
+```
+
+## Training dataset (`training/`)
+
+Path inventory + curated service/controller/FA patterns + doc index + env/config keys (no secrets).  
+Start: [`training/README.md`](training/README.md). Regenerate after large structural changes:
+
+```bash
+node scripts/generate-ai-training-dataset.mjs
 ```
 
 ## Rules of thumb

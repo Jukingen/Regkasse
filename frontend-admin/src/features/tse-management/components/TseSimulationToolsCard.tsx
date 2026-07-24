@@ -138,10 +138,10 @@ export function TseSimulationToolsCard({ devices, onApplied }: Props) {
         type="info"
         showIcon
         style={{ marginBottom: 16 }}
-        message={t('tseManagement.simulator.devOnly')}
+        title={t('tseManagement.simulator.devOnly')}
       />
 
-      <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+      <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
         <Select
           style={{ minWidth: 320, maxWidth: 480 }}
           placeholder={t('tseManagement.simulator.selectDevice')}

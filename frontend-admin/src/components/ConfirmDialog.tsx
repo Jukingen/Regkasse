@@ -40,7 +40,7 @@ export function ConfirmDialog({
       title={title}
       onCancel={loading ? undefined : onCancel}
       destroyOnHidden
-      maskClosable={!loading}
+      mask={{ closable: !loading }}
       keyboard={!loading}
       footer={
         <Space>

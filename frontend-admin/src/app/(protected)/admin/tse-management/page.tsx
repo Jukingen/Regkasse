@@ -194,14 +194,14 @@ export default function TseManagementPage() {
         title: t('tseManagement.restoreConfirmTitle'),
         width: 560,
         content: (
-          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+          <Space orientation="vertical" size="small" style={{ width: '100%' }}>
             <Typography.Paragraph style={{ marginBottom: 0 }}>
               {t('tseManagement.restoreConfirmContent')}
             </Typography.Paragraph>
             <Alert
               type="warning"
               showIcon
-              message={preview.cryptoMaterialNote}
+              title={preview.cryptoMaterialNote}
               description={
                 <ul style={{ margin: 0, paddingLeft: 18 }}>
                   {preview.warnings.slice(0, 5).map((w) => (
@@ -211,7 +211,7 @@ export default function TseManagementPage() {
               }
             />
             {needsForce ? (
-              <Alert type="error" showIcon message={t('tseManagement.restoreForceDowngrade')} />
+              <Alert type="error" showIcon title={t('tseManagement.restoreForceDowngrade')} />
             ) : null}
           </Space>
         ),
@@ -498,7 +498,7 @@ export default function TseManagementPage() {
           type="info"
           showIcon
           style={{ marginBottom: 12 }}
-          message={t('tseManagement.backupCryptoNote')}
+          title={t('tseManagement.backupCryptoNote')}
         />
         <Table
           rowKey="id"
@@ -592,7 +592,7 @@ export default function TseManagementPage() {
         destroyOnHidden
       >
         {details ? (
-          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+          <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
             <Descriptions column={1} size="small" bordered>
               <Descriptions.Item label={t('tseManagement.colTenant')}>
                 {details.tenantName || details.tenantSlug || t('tseManagement.unknownTenant')}
@@ -622,7 +622,7 @@ export default function TseManagementPage() {
             ) : certQuery.data ? (
               <CertificateDetailsPanel cert={certQuery.data} />
             ) : (
-              <Alert type="warning" showIcon message={t('tseManagement.certLoadFailed')} />
+              <Alert type="warning" showIcon title={t('tseManagement.certLoadFailed')} />
             )}
           </Space>
         ) : null}
@@ -636,7 +636,7 @@ function CertificateDetailsPanel({ cert }: { cert: TseCertificateInfo }) {
   const expiresMs = cert.expiresAt ? new Date(cert.expiresAt).getTime() : null;
 
   return (
-    <Space direction="vertical" size="small" style={{ width: '100%' }}>
+    <Space orientation="vertical" size="small" style={{ width: '100%' }}>
       <Descriptions column={1} size="small" bordered>
         <Descriptions.Item label={t('tseManagement.certDeviceId')}>
           <code>{cert.vendorDeviceId || cert.deviceRowId}</code>
@@ -674,13 +674,13 @@ function CertificateDetailsPanel({ cert }: { cert: TseCertificateInfo }) {
         <Descriptions.Item label={t('tseManagement.certSource')}>{cert.source || '—'}</Descriptions.Item>
       </Descriptions>
       {(cert.warnings?.length ?? 0) > 0 ? (
-        <Space direction="vertical" size={4} style={{ width: '100%' }}>
+        <Space orientation="vertical" size={4} style={{ width: '100%' }}>
           {cert.warnings.map((w) => (
             <Alert
               key={`${w.code}-${w.message}`}
               type={w.severity === 'Critical' ? 'error' : w.severity === 'Warning' ? 'warning' : 'info'}
               showIcon
-              message={w.message}
+              title={w.message}
             />
           ))}
         </Space>

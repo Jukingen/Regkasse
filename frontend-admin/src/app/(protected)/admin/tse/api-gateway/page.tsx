@@ -179,7 +179,7 @@ export default function TseApiGatewayPage() {
   ];
 
   if (!allowed) {
-    return <Alert type="error" showIcon message={t('tseApiGateway.forbidden')} />;
+    return <Alert type="error" showIcon title={t('tseApiGateway.forbidden')} />;
   }
 
   return (
@@ -194,7 +194,7 @@ export default function TseApiGatewayPage() {
       </AdminPageHeader>
 
       {statusQuery.isError ? (
-        <Alert type="error" showIcon message={t('tseApiGateway.loadError')} />
+        <Alert type="error" showIcon title={t('tseApiGateway.loadError')} />
       ) : (
         <Card
           title={t('tseApiGateway.cardTitle')}
@@ -204,7 +204,7 @@ export default function TseApiGatewayPage() {
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
-            message={t('tseApiGateway.scopeNote')}
+            title={t('tseApiGateway.scopeNote')}
           />
 
           <Row gutter={16} style={{ marginBottom: 16 }}>

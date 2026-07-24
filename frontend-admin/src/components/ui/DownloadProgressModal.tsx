@@ -326,7 +326,7 @@ export function DownloadProgressModal({
       }
       footer={null}
       closable={terminal}
-      maskClosable={false}
+      mask={{ closable: false }}
       keyboard={terminal}
       onCancel={terminal ? onClose : undefined}
       destroyOnHidden

@@ -21,7 +21,7 @@ export function BillingAccessGate({ children }: { children: React.ReactNode }) {
   }
 
   if (!canAccess) {
-    return <Alert type="warning" showIcon message={t('billing.accessDenied')} />;
+    return <Alert type="warning" showIcon title={t('billing.accessDenied')} />;
   }
 
   return <>{children}</>;

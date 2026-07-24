@@ -147,7 +147,7 @@ export default function TseTrainingPage() {
   };
 
   if (!allowed) {
-    return <Alert type="error" showIcon message={t('tseTraining.forbidden')} />;
+    return <Alert type="error" showIcon title={t('tseTraining.forbidden')} />;
   }
 
   const env = envQuery.data;
@@ -162,10 +162,10 @@ export default function TseTrainingPage() {
       />
 
       <Typography.Paragraph type="secondary">{t('tseTraining.subtitle')}</Typography.Paragraph>
-      <Alert type="info" showIcon message={t('tseTraining.diagnosticNote')} />
+      <Alert type="info" showIcon title={t('tseTraining.diagnosticNote')} />
 
       {envQuery.isError ? (
-        <Alert type="error" showIcon message={t('tseTraining.loadError')} />
+        <Alert type="error" showIcon title={t('tseTraining.loadError')} />
       ) : (
         <Card title={t('tseTraining.cardTitle')} loading={envQuery.isLoading}>
           {env ? (
@@ -220,12 +220,12 @@ export default function TseTrainingPage() {
                 key: 'simulation',
                 label: t('tseTraining.tabSimulation'),
                 children: (
-                  <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                  <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                     {!simulationEnabled ? (
                       <Alert
                         type="warning"
                         showIcon
-                        message={t('tseTraining.simulationDevOnly')}
+                        title={t('tseTraining.simulationDevOnly')}
                       />
                     ) : null}
 

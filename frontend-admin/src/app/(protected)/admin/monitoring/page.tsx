@@ -99,7 +99,7 @@ export default function AdminMonitoringPage() {
         type="info"
         showIcon
         style={{ marginBottom: 16 }}
-        message={t('monitoring.primarySinkTitle')}
+        title={t('monitoring.primarySinkTitle')}
         description={<span>{t('monitoring.primarySinkBody')}</span>}
       />
 
@@ -108,7 +108,7 @@ export default function AdminMonitoringPage() {
           type="error"
           showIcon
           style={{ marginBottom: 16 }}
-          message={t('monitoring.sloBreachTitle')}
+          title={t('monitoring.sloBreachTitle')}
           description={
             errorAlert
               ? t('monitoring.sloErrorRate', {

@@ -144,7 +144,7 @@ export function OperationLogViewer({
       >
         <Spin spinning={detailLoading}>
           {detail && (
-          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+          <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
             <Typography.Text>
               <strong>{t('activity.operationLog.table.operation')}:</strong> {detail.operationType}
             </Typography.Text>

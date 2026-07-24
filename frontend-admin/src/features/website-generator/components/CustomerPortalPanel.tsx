@@ -82,7 +82,7 @@ export function CustomerPortalPanel({ tenantId }: CustomerPortalPanelProps) {
         {t('tenants.digitalServices.customerPortalSubtitle')}
       </Paragraph>
 
-      {isError ? <Alert type="error" showIcon message={t('common.errors.http500')} /> : null}
+      {isError ? <Alert type="error" showIcon title={t('common.errors.http500')} /> : null}
 
       <Row gutter={[16, 16]}>
         {(services ?? []).map((service) => (
@@ -132,7 +132,7 @@ export function CustomerPortalPanel({ tenantId }: CustomerPortalPanelProps) {
         <Alert
           type="info"
           showIcon
-          message={t('tenants.digitalServices.noSubscriptions')}
+          title={t('tenants.digitalServices.noSubscriptions')}
           description={t('tenants.digitalServices.noSubscriptionsHint')}
         />
       ) : null}
@@ -173,7 +173,7 @@ export function CustomerPortalPanel({ tenantId }: CustomerPortalPanelProps) {
         title={activeService?.name}
         open={!!activeService}
         onClose={() => setActiveService(null)}
-        width={420}
+        size={420}
         destroyOnHidden
       >
         {activeService ? (

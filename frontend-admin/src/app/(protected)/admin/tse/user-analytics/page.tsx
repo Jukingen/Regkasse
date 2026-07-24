@@ -9,7 +9,6 @@ import {
   List,
   Progress,
   Row,
-  Select,
   Statistic,
   Table,
   Tabs,
@@ -30,6 +29,11 @@ import {
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import {
+  TseActiveTenantTag,
+  TseTenantRequiredAlert,
+} from '@/features/tse-shared/components/TseTenantContextUi';
+import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
+import {
   getTseCohortAnalysis,
   getTseFeatureUsageReport,
   getTseUserBehaviorReport,
@@ -39,7 +43,6 @@ import type {
   TseDropoffPoint,
   TseFeatureHeatmapCell,
 } from '@/features/tse-user-analytics/types';
-import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useI18n } from '@/i18n/I18nProvider';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
@@ -62,14 +65,7 @@ export default function TseUserAnalyticsPage() {
   const { t } = useI18n();
   const { hasPermission } = usePermissions();
   const allowed = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
-  const [tenantId, setTenantId] = useState<string | undefined>();
-
-  const tenantsQuery = useQuery({
-    queryKey: ['admin', 'tenants', 'tse-user-analytics'],
-    queryFn: () => listAdminTenants(false),
-    enabled: allowed,
-    staleTime: 60_000,
-  });
+  const { tenantId, isReady } = useTsePageTenant();
 
   const reportQuery = useQuery({
     queryKey: [...KEY, 'report', tenantId],
@@ -163,7 +159,7 @@ export default function TseUserAnalyticsPage() {
   const hasError = reportQuery.isError || featuresQuery.isError || cohortQuery.isError;
 
   if (!allowed) {
-    return <Alert type="error" showIcon message={t('tseUserAnalytics.forbidden')} />;
+    return <Alert type="error" showIcon title={t('tseUserAnalytics.forbidden')} />;
   }
 
   return (
@@ -171,38 +167,24 @@ export default function TseUserAnalyticsPage() {
       <AdminPageHeader
         title={t('tseUserAnalytics.title')}
         breadcrumbs={[adminOverviewCrumb(t), { title: t('tseUserAnalytics.title') }]}
-        extra={
-          <Select
-            showSearch
-            optionFilterProp="label"
-            style={{ minWidth: 260 }}
-            placeholder={t('tseUserAnalytics.tenantLabel')}
-            loading={tenantsQuery.isLoading}
-            value={tenantId}
-            onChange={setTenantId}
-            options={(tenantsQuery.data ?? []).map((tenant) => ({
-              value: tenant.id,
-              label: `${tenant.name} (${tenant.slug})`,
-            }))}
-          />
-        }
+        extra={<TseActiveTenantTag />}
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
           {t('tseUserAnalytics.subtitle')}
         </Typography.Paragraph>
       </AdminPageHeader>
 
-      {!tenantId ? (
-        <Alert type="info" showIcon message={t('tseUserAnalytics.emptySelect')} />
+      {!isReady ? (
+        <TseTenantRequiredAlert emptySelectKey="tseUserAnalytics.emptySelect" />
       ) : hasError ? (
-        <Alert type="error" showIcon message={t('tseUserAnalytics.loadError')} />
+        <Alert type="error" showIcon title={t('tseUserAnalytics.loadError')} />
       ) : (
         <Card title={t('tseUserAnalytics.cardTitle')} loading={loading}>
           <Alert
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
-            message={t('tseUserAnalytics.diagnosticNote')}
+            title={t('tseUserAnalytics.diagnosticNote')}
           />
 
           <Tabs

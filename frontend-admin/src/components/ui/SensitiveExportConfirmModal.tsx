@@ -56,7 +56,7 @@ export function SensitiveExportConfirmModal({
         type="warning"
         showIcon
         style={{ marginBottom: 16 }}
-        message={t('common.sensitiveExport.banner')}
+        title={t('common.sensitiveExport.banner')}
         description={
           <Typography.Paragraph style={{ marginBottom: 0 }}>
             {t('common.sensitiveExport.body')}

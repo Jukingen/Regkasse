@@ -99,7 +99,7 @@ export default function TseKnowledgePage() {
   );
 
   if (!allowed) {
-    return <Alert type="error" showIcon message={t('tseKnowledge.forbidden')} />;
+    return <Alert type="error" showIcon title={t('tseKnowledge.forbidden')} />;
   }
 
   const renderArticleItem = (article: TseKnowledgeArticle) => (
@@ -111,7 +111,7 @@ export default function TseKnowledgePage() {
       <List.Item.Meta
         title={article.title}
         description={
-          <Space direction="vertical" size={4} style={{ width: '100%' }}>
+          <Space orientation="vertical" size={4} style={{ width: '100%' }}>
             <Typography.Text type="secondary">{article.description}</Typography.Text>
             <Space size="small" wrap>
               <Tag>{article.category}</Tag>
@@ -138,7 +138,7 @@ export default function TseKnowledgePage() {
       <Typography.Paragraph type="secondary">{t('tseKnowledge.subtitle')}</Typography.Paragraph>
 
       <Card title={t('tseKnowledge.cardTitle')}>
-        <Alert type="info" showIcon message={t('tseKnowledge.diagnosticNote')} style={{ marginBottom: 16 }} />
+        <Alert type="info" showIcon title={t('tseKnowledge.diagnosticNote')} style={{ marginBottom: 16 }} />
 
         <Input.Search
           allowClear
@@ -189,13 +189,13 @@ export default function TseKnowledgePage() {
         title={articleQuery.data?.title ?? t('tseKnowledge.articleTitle')}
         open={!!selectedId}
         onClose={() => setSelectedId(undefined)}
-        width={640}
+        size={640}
         destroyOnHidden
       >
         {articleQuery.isError ? (
-          <Alert type="error" showIcon message={t('tseKnowledge.loadError')} />
+          <Alert type="error" showIcon title={t('tseKnowledge.loadError')} />
         ) : (
-          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+          <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
             <Space wrap>
               <Tag>{articleQuery.data?.category}</Tag>
               <Typography.Text type="secondary">

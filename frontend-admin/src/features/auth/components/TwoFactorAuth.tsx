@@ -109,7 +109,7 @@ const DevelopmentTwoFactorBypass: FC<TwoFactorAuthProps> = ({ challenge, onSucce
         type="info"
         showIcon
         style={{ marginBottom: 16 }}
-        message={t('common.auth.twoFactor.devModeTitle')}
+        title={t('common.auth.twoFactor.devModeTitle')}
         description={t('common.auth.twoFactor.devModeDescription')}
         action={
           <Button size="small" type="primary" loading={pending} onClick={() => void bypass2FA()}>

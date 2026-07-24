@@ -10,7 +10,6 @@ import {
   Form,
   InputNumber,
   Row,
-  Select,
   Space,
   Statistic,
   Switch,
@@ -23,13 +22,17 @@ import { useEffect, useState } from 'react';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import {
+  TseActiveTenantTag,
+  TseTenantRequiredAlert,
+} from '@/features/tse-shared/components/TseTenantContextUi';
+import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
+import {
   configureTseScalingPolicy,
   getTseScalingHistory,
   getTseScalingStatus,
   triggerTseScaling,
 } from '@/features/tse-auto-scaling/api/autoScaling';
 import type { TseScalingHistoryItem } from '@/features/tse-auto-scaling/types';
-import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -55,15 +58,8 @@ export default function TseAutoScalingPage() {
   const queryClient = useQueryClient();
   const { hasPermission } = usePermissions();
   const allowed = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
-  const [tenantId, setTenantId] = useState<string | undefined>();
+  const { tenantId, isReady } = useTsePageTenant();
   const [form] = Form.useForm<PolicyForm>();
-
-  const tenantsQuery = useQuery({
-    queryKey: ['admin', 'tenants', 'tse-auto-scaling'],
-    queryFn: () => listAdminTenants(false),
-    enabled: allowed,
-    staleTime: 60_000,
-  });
 
   const statusQuery = useQuery({
     queryKey: [...KEY, 'status', tenantId],
@@ -140,7 +136,7 @@ export default function TseAutoScalingPage() {
   ];
 
   if (!allowed) {
-    return <Alert type="error" showIcon message={t('tseAutoScaling.forbidden')} />;
+    return <Alert type="error" showIcon title={t('tseAutoScaling.forbidden')} />;
   }
 
   return (
@@ -148,38 +144,24 @@ export default function TseAutoScalingPage() {
       <AdminPageHeader
         title={t('tseAutoScaling.title')}
         breadcrumbs={[adminOverviewCrumb(t), { title: t('tseAutoScaling.title') }]}
-        extra={
-          <Select
-            showSearch
-            optionFilterProp="label"
-            style={{ minWidth: 260 }}
-            placeholder={t('tseAutoScaling.tenantLabel')}
-            loading={tenantsQuery.isLoading}
-            value={tenantId}
-            onChange={setTenantId}
-            options={(tenantsQuery.data ?? []).map((tenant) => ({
-              value: tenant.id,
-              label: `${tenant.name} (${tenant.slug})`,
-            }))}
-          />
-        }
+        extra={<TseActiveTenantTag />}
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
           {t('tseAutoScaling.subtitle')}
         </Typography.Paragraph>
       </AdminPageHeader>
 
-      {!tenantId ? (
-        <Alert type="info" showIcon message={t('tseAutoScaling.emptySelect')} />
+      {!isReady ? (
+        <TseTenantRequiredAlert emptySelectKey="tseAutoScaling.emptySelect" />
       ) : statusQuery.isError ? (
-        <Alert type="error" showIcon message={t('tseAutoScaling.loadError')} />
+        <Alert type="error" showIcon title={t('tseAutoScaling.loadError')} />
       ) : (
         <Card title={t('tseAutoScaling.cardTitle')} loading={statusQuery.isLoading}>
           <Alert
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
-            message={t('tseAutoScaling.simulationNote')}
+            title={t('tseAutoScaling.simulationNote')}
           />
 
           <Form

@@ -140,7 +140,7 @@ export function FeedbackWidget() {
         title={t('feedback.drawerTitle')}
         open={open}
         onClose={() => setOpen(false)}
-        width={420}
+        size={420}
         destroyOnHidden
       >
         <Typography.Paragraph type="secondary">{t('feedback.drawerSubtitle')}</Typography.Paragraph>
@@ -264,7 +264,7 @@ function MyFeedbackList({
               </Space>
             }
             description={
-              <Space direction="vertical" size={4} style={{ width: '100%' }}>
+              <Space orientation="vertical" size={4} style={{ width: '100%' }}>
                 <Typography.Text type="secondary">
                   {t(`feedback.categories.${item.category}` as 'feedback.categories.Bug')}
                   {item.rating ? ` · ★ ${item.rating}` : ''}

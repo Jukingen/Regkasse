@@ -121,7 +121,7 @@ function MenuPermissionMapDebugModal() {
           type="warning"
           showIcon
           style={{ marginBottom: 12 }}
-          message="Unwired map keys"
+          title="Unwired map keys"
           description={<code>{unwired.join(', ')}</code>}
         />
       )}
@@ -157,7 +157,7 @@ function MenuPermissionGroupDebugInner() {
           type="success"
           showIcon
           style={{ margin: 8 }}
-          message="Menu ↔ permission groups OK"
+          title="Menu ↔ permission groups OK"
           description="No catalog leaf classified as missing / other-only."
         />
       );
@@ -170,7 +170,7 @@ function MenuPermissionGroupDebugInner() {
       type="warning"
       showIcon
       style={{ margin: 8, maxHeight: 220, overflow: 'auto' }}
-      message={`Menu permission group gaps (${gaps.length})`}
+      title={`Menu permission group gaps (${gaps.length})`}
       description={
         <Typography.Paragraph style={{ marginBottom: 0, fontSize: 12 }}>
           <ul style={{ paddingLeft: 18, margin: 0 }}>

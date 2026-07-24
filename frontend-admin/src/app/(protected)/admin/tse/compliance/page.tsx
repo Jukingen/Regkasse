@@ -10,7 +10,6 @@ import {
   Divider,
   List,
   Row,
-  Select,
   Space,
   Statistic,
   Table,
@@ -25,6 +24,11 @@ import { useState } from 'react';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import {
+  TseActiveTenantTag,
+  TseTenantRequiredAlert,
+} from '@/features/tse-shared/components/TseTenantContextUi';
+import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
+import {
   exportTseComplianceReport,
   getTseComplianceDashboard,
 } from '@/features/tse-compliance/api/compliance';
@@ -32,7 +36,6 @@ import type {
   TseComplianceAuditTrailItem,
   TseComplianceCertificateRow,
 } from '@/features/tse-compliance/types';
-import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -46,8 +49,7 @@ export default function TseCompliancePage() {
   const notify = useNotify();
   const { hasPermission } = usePermissions();
   const allowed = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
-
-  const [tenantId, setTenantId] = useState<string | undefined>();
+  const { tenantId, isReady } = useTsePageTenant();
   const [range, setRange] = useState<[Dayjs, Dayjs]>([
     dayjs().subtract(7, 'day'),
     dayjs(),
@@ -55,13 +57,6 @@ export default function TseCompliancePage() {
 
   const fromUtc = range[0].startOf('day').toISOString();
   const toUtc = range[1].endOf('day').toISOString();
-
-  const tenantsQuery = useQuery({
-    queryKey: ['admin', 'tenants', 'tse-compliance'],
-    queryFn: () => listAdminTenants(false),
-    enabled: allowed,
-    staleTime: 60_000,
-  });
 
   const dashboardQuery = useQuery({
     queryKey: [...KEY, 'dashboard', tenantId, fromUtc, toUtc],
@@ -143,7 +138,7 @@ export default function TseCompliancePage() {
   ];
 
   if (!allowed) {
-    return <Alert type="error" showIcon message={t('tseCompliance.forbidden')} />;
+    return <Alert type="error" showIcon title={t('tseCompliance.forbidden')} />;
   }
 
   return (
@@ -153,19 +148,7 @@ export default function TseCompliancePage() {
         breadcrumbs={[adminOverviewCrumb(t), { title: t('tseCompliance.title') }]}
         extra={
           <Space wrap>
-            <Select
-              showSearch
-              optionFilterProp="label"
-              style={{ minWidth: 240 }}
-              placeholder={t('tseCompliance.tenantLabel')}
-              loading={tenantsQuery.isLoading}
-              value={tenantId}
-              onChange={setTenantId}
-              options={(tenantsQuery.data ?? []).map((tenant) => ({
-                value: tenant.id,
-                label: `${tenant.name} (${tenant.slug})`,
-              }))}
-            />
+            <TseActiveTenantTag />
             <DatePicker.RangePicker
               value={range}
               onChange={(values) => {
@@ -187,10 +170,10 @@ export default function TseCompliancePage() {
         </Typography.Paragraph>
       </AdminPageHeader>
 
-      {!tenantId ? (
-        <Alert type="info" showIcon message={t('tseCompliance.emptySelect')} />
+      {!isReady ? (
+        <TseTenantRequiredAlert emptySelectKey="tseCompliance.emptySelect" />
       ) : dashboardQuery.isError ? (
-        <Alert type="error" showIcon message={t('tseCompliance.loadError')} />
+        <Alert type="error" showIcon title={t('tseCompliance.loadError')} />
       ) : (
         <Card title={t('tseCompliance.cardTitle')} loading={dashboardQuery.isLoading}>
           <Row gutter={16}>
@@ -244,7 +227,7 @@ export default function TseCompliancePage() {
                 key: 'transactions',
                 label: t('tseCompliance.tabTransactions'),
                 children: (
-                  <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                  <Space orientation="vertical" size="large" style={{ width: '100%' }}>
                     <Row gutter={16}>
                       <Col span={6}>
                         <Statistic
@@ -339,11 +322,11 @@ export default function TseCompliancePage() {
                 key: 'export',
                 label: t('tseCompliance.tabExport'),
                 children: (
-                  <Space direction="vertical" size="middle">
+                  <Space orientation="vertical" size="middle">
                     <Alert
                       type="info"
                       showIcon
-                      message={t('tseCompliance.legalNotice')}
+                      title={t('tseCompliance.legalNotice')}
                       description={dashboard?.legalNoticeDe}
                     />
                     <Button

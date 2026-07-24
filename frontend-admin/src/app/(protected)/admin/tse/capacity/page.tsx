@@ -9,7 +9,6 @@ import {
   List,
   Progress,
   Row,
-  Select,
   Space,
   Statistic,
   Table,
@@ -22,6 +21,11 @@ import { useState } from 'react';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import {
+  TseActiveTenantTag,
+  TseTenantRequiredAlert,
+} from '@/features/tse-shared/components/TseTenantContextUi';
+import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
+import {
   checkTseCapacityAlerts,
   getTseCapacityForecast,
   getTseCapacityReport,
@@ -31,7 +35,6 @@ import type {
   TseDailyTransactionTrend,
   TseForecastDayPoint,
 } from '@/features/tse-capacity/types';
-import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -45,14 +48,7 @@ export default function TseCapacityPage() {
   const notify = useNotify();
   const { hasPermission } = usePermissions();
   const allowed = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
-  const [tenantId, setTenantId] = useState<string | undefined>();
-
-  const tenantsQuery = useQuery({
-    queryKey: ['admin', 'tenants', 'tse-capacity'],
-    queryFn: () => listAdminTenants(false),
-    enabled: allowed,
-    staleTime: 60_000,
-  });
+  const { tenantId, isReady } = useTsePageTenant();
 
   const reportQuery = useQuery({
     queryKey: [...CAPACITY_KEY, 'report', tenantId],
@@ -119,7 +115,7 @@ export default function TseCapacityPage() {
   ];
 
   if (!allowed) {
-    return <Alert type="error" showIcon message={t('tseCapacity.forbidden')} />;
+    return <Alert type="error" showIcon title={t('tseCapacity.forbidden')} />;
   }
 
   return (
@@ -129,19 +125,7 @@ export default function TseCapacityPage() {
         breadcrumbs={[adminOverviewCrumb(t), { title: t('tseCapacity.title') }]}
         extra={
           <Space>
-            <Select
-              showSearch
-              optionFilterProp="label"
-              style={{ minWidth: 260 }}
-              placeholder={t('tseCapacity.tenantLabel')}
-              loading={tenantsQuery.isLoading}
-              value={tenantId}
-              onChange={setTenantId}
-              options={(tenantsQuery.data ?? []).map((tenant) => ({
-                value: tenant.id,
-                label: `${tenant.name} (${tenant.slug})`,
-              }))}
-            />
+            <TseActiveTenantTag />
             <Button
               disabled={!tenantId}
               loading={reportQuery.isFetching}
@@ -168,10 +152,10 @@ export default function TseCapacityPage() {
         </Typography.Paragraph>
       </AdminPageHeader>
 
-      {!tenantId ? (
-        <Alert type="info" showIcon message={t('tseCapacity.emptySelect')} />
+      {!isReady ? (
+        <TseTenantRequiredAlert emptySelectKey="tseCapacity.emptySelect" />
       ) : (
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
           <Card title={t('tseCapacity.cardTitle')} loading={reportQuery.isLoading}>
             {report ? (
               <>
@@ -231,7 +215,7 @@ export default function TseCapacityPage() {
                 </Space>
               </>
             ) : reportQuery.isError ? (
-              <Alert type="error" showIcon message={t('tseCapacity.loadError')} />
+              <Alert type="error" showIcon title={t('tseCapacity.loadError')} />
             ) : null}
           </Card>
 

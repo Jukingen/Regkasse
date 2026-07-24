@@ -102,7 +102,7 @@ export function WorkingHoursSettingsForm() {
         type="info"
         showIcon
         style={{ marginBottom: 16 }}
-        message={t('settings.workingHours.protectionNote')}
+        title={t('settings.workingHours.protectionNote')}
       />
 
       <Card

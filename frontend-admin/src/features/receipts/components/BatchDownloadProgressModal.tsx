@@ -34,7 +34,7 @@ export function BatchDownloadProgressModal({ open, progress, onCancel }: Props) 
       title={t('receipts.batch.progressTitle')}
       footer={null}
       closable={phase === 'done' || phase === 'error'}
-      maskClosable={false}
+      mask={{ closable: false }}
       keyboard={phase === 'done' || phase === 'error'}
       onCancel={onCancel}
       destroyOnHidden

@@ -6,7 +6,6 @@ import {
   Button,
   Card,
   InputNumber,
-  Select,
   Space,
   Tabs,
   Typography,
@@ -15,6 +14,11 @@ import { useState } from 'react';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import {
+  TseActiveTenantTag,
+  TseTenantRequiredAlert,
+} from '@/features/tse-shared/components/TseTenantContextUi';
+import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
+import {
   generateTseTestData,
   getTseDeveloperToolsAvailability,
   runTseDiagnostics,
@@ -22,7 +26,6 @@ import {
   validateTseConfig,
 } from '@/features/tse-developer-tools/api/developerTools';
 import type { TseDevToolResult } from '@/features/tse-developer-tools/types';
-import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -41,11 +44,11 @@ function ResultList({ result }: { result: TseDevToolResult | null }) {
   if (!result) return null;
 
   return (
-    <Space direction="vertical" style={{ width: '100%', marginTop: 16 }}>
+    <Space orientation="vertical" style={{ width: '100%', marginTop: 16 }}>
       <Alert
         type={result.success ? 'success' : 'error'}
         showIcon
-        message={t('tseDeveloperTools.summary')}
+        title={t('tseDeveloperTools.summary')}
         description={result.summary}
       />
       {result.results.map((item) => (
@@ -53,7 +56,7 @@ function ResultList({ result }: { result: TseDevToolResult | null }) {
           key={item.id}
           type={alertType(item.severity, item.isSuccess)}
           showIcon
-          message={item.name}
+          title={item.name}
           description={item.details}
         />
       ))}
@@ -66,17 +69,9 @@ export default function TseDeveloperToolsPage() {
   const notify = useNotify();
   const { hasPermission } = usePermissions();
   const allowed = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
-
-  const [tenantId, setTenantId] = useState<string | undefined>();
+  const { tenantId, isReady } = useTsePageTenant();
   const [trafficCount, setTrafficCount] = useState<number>(25);
   const [lastResult, setLastResult] = useState<TseDevToolResult | null>(null);
-
-  const tenantsQuery = useQuery({
-    queryKey: ['admin', 'tenants', 'tse-developer-tools'],
-    queryFn: () => listAdminTenants(false),
-    enabled: allowed,
-    staleTime: 60_000,
-  });
 
   const availabilityQuery = useQuery({
     queryKey: ['admin', 'tse-developer-tools', 'availability'],
@@ -128,7 +123,7 @@ export default function TseDeveloperToolsPage() {
   });
 
   if (!allowed) {
-    return <Alert type="error" showIcon message={t('tseDeveloperTools.forbidden')} />;
+    return <Alert type="error" showIcon title={t('tseDeveloperTools.forbidden')} />;
   }
 
   return (
@@ -136,24 +131,7 @@ export default function TseDeveloperToolsPage() {
       <AdminPageHeader
         title={t('tseDeveloperTools.title')}
         breadcrumbs={[adminOverviewCrumb(t), { title: t('tseDeveloperTools.title') }]}
-        extra={
-          <Select
-            showSearch
-            optionFilterProp="label"
-            style={{ minWidth: 260 }}
-            placeholder={t('tseDeveloperTools.tenantLabel')}
-            loading={tenantsQuery.isLoading}
-            value={tenantId}
-            onChange={(value) => {
-              setTenantId(value);
-              setLastResult(null);
-            }}
-            options={(tenantsQuery.data ?? []).map((tenant) => ({
-              value: tenant.id,
-              label: `${tenant.name} (${tenant.slug})`,
-            }))}
-          />
-        }
+        extra={<TseActiveTenantTag />}
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
           {t('tseDeveloperTools.subtitle')}
@@ -164,7 +142,7 @@ export default function TseDeveloperToolsPage() {
         type="info"
         showIcon
         style={{ marginBottom: 16 }}
-        message={t('tseDeveloperTools.devOnly')}
+        title={t('tseDeveloperTools.devOnly')}
         description={
           availabilityQuery.data
             ? `${availabilityQuery.data.environmentName}: ${availabilityQuery.data.message}`
@@ -173,11 +151,11 @@ export default function TseDeveloperToolsPage() {
       />
 
       {!toolsEnabled && availabilityQuery.isSuccess ? (
-        <Alert type="warning" showIcon message={t('tseDeveloperTools.disabledEnv')} />
+        <Alert type="warning" showIcon title={t('tseDeveloperTools.disabledEnv')} />
       ) : null}
 
-      {!tenantId ? (
-        <Alert type="info" showIcon message={t('tseDeveloperTools.emptySelect')} />
+      {!isReady ? (
+        <TseTenantRequiredAlert emptySelectKey="tseDeveloperTools.emptySelect" />
       ) : (
         <Card title={t('tseDeveloperTools.cardTitle')}>
           <Tabs
@@ -205,7 +183,7 @@ export default function TseDeveloperToolsPage() {
                 key: 'traffic',
                 label: t('tseDeveloperTools.tabTraffic'),
                 children: (
-                  <Space direction="vertical" size="middle">
+                  <Space orientation="vertical" size="middle">
                     <Typography.Text type="secondary">
                       {t('tseDeveloperTools.trafficHint')}
                     </Typography.Text>
@@ -255,7 +233,7 @@ export default function TseDeveloperToolsPage() {
                 key: 'test-data',
                 label: t('tseDeveloperTools.tabTestData'),
                 children: (
-                  <Space direction="vertical" size="middle">
+                  <Space orientation="vertical" size="middle">
                     <Typography.Text type="secondary">
                       {t('tseDeveloperTools.testDataHint')}
                     </Typography.Text>

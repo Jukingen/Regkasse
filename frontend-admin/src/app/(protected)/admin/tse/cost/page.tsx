@@ -8,7 +8,6 @@ import {
   Col,
   List,
   Row,
-  Select,
   Space,
   Statistic,
   Table,
@@ -21,11 +20,15 @@ import { useState } from 'react';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import {
+  TseActiveTenantTag,
+  TseTenantRequiredAlert,
+} from '@/features/tse-shared/components/TseTenantContextUi';
+import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
+import {
   getTseCostAnomalies,
   getTseCostReport,
 } from '@/features/tse-failover/api/tse';
 import type { TseCostReport, TseCostTrend } from '@/features/tse-failover/types';
-import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -39,14 +42,7 @@ export default function TseCostPage() {
   const notify = useNotify();
   const { hasPermission } = usePermissions();
   const allowed = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
-  const [tenantId, setTenantId] = useState<string | undefined>();
-
-  const tenantsQuery = useQuery({
-    queryKey: ['admin', 'tenants', 'tse-cost'],
-    queryFn: () => listAdminTenants(false),
-    enabled: allowed,
-    staleTime: 60_000,
-  });
+  const { tenantId, isReady } = useTsePageTenant();
 
   const reportQuery = useQuery({
     queryKey: [...COST_KEY, 'report', tenantId],
@@ -94,7 +90,7 @@ export default function TseCostPage() {
   ];
 
   if (!allowed) {
-    return <Alert type="error" showIcon message={t('tseCost.forbidden')} />;
+    return <Alert type="error" showIcon title={t('tseCost.forbidden')} />;
   }
 
   return (
@@ -104,19 +100,7 @@ export default function TseCostPage() {
         breadcrumbs={[adminOverviewCrumb(t), { title: t('tseCost.title') }]}
         extra={
           <Space>
-            <Select
-              showSearch
-              optionFilterProp="label"
-              style={{ minWidth: 260 }}
-              placeholder={t('tseCost.tenantLabel')}
-              loading={tenantsQuery.isLoading}
-              value={tenantId}
-              onChange={setTenantId}
-              options={(tenantsQuery.data ?? []).map((tenant) => ({
-                value: tenant.id,
-                label: `${tenant.name} (${tenant.slug})`,
-              }))}
-            />
+            <TseActiveTenantTag />
             <Button
               disabled={!tenantId}
               loading={reportQuery.isFetching}
@@ -140,10 +124,10 @@ export default function TseCostPage() {
         </Typography.Paragraph>
       </AdminPageHeader>
 
-      {!tenantId ? (
-        <Alert type="info" showIcon message={t('tseCost.emptySelect')} />
+      {!isReady ? (
+        <TseTenantRequiredAlert emptySelectKey="tseCost.emptySelect" />
       ) : (
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
           <Card title={t('tseCost.cardTitle')} loading={reportQuery.isLoading}>
             {report ? (
               <>
@@ -153,7 +137,7 @@ export default function TseCostPage() {
                     style={{ marginTop: 12 }}
                     type={anomalyMutation.data?.severity === 'Critical' ? 'error' : 'warning'}
                     showIcon
-                    message={t('tseCost.anomalyTitle')}
+                    title={t('tseCost.anomalyTitle')}
                     description={
                       anomalyMutation.data?.message || report.anomalyDescription || undefined
                     }
@@ -198,7 +182,7 @@ export default function TseCostPage() {
                 </Row>
               </>
             ) : reportQuery.isError ? (
-              <Alert type="error" showIcon message={t('tseCost.loadError')} />
+              <Alert type="error" showIcon title={t('tseCost.loadError')} />
             ) : null}
           </Card>
 

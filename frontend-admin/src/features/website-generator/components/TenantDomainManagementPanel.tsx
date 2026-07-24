@@ -229,7 +229,7 @@ export function TenantDomainManagementPanel({ tenantId }: TenantDomainManagement
           type="info"
           showIcon
           style={{ marginBottom: 12 }}
-          message={t('tenants.digitalServices.nativeDownloadHint')}
+          title={t('tenants.digitalServices.nativeDownloadHint')}
         />
         <Button
           type="primary"

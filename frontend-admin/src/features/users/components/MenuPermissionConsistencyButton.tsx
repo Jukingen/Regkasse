@@ -55,11 +55,11 @@ export function MenuPermissionConsistencyButton({
         destroyOnHidden
       >
         {report ? (
-          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <Space orientation="vertical" size={12} style={{ width: '100%' }}>
             <Alert
               type={report.summary.error > 0 ? 'error' : report.summary.warning > 0 ? 'warning' : 'success'}
               showIcon
-              message={t('users.roleDrawer.consistencyOkMenus', { count: report.okMenus })}
+              title={t('users.roleDrawer.consistencyOkMenus', { count: report.okMenus })}
               description={
                 report.summary.warning + report.summary.error > 0
                   ? t('users.roleDrawer.consistencyIssueCounts', {

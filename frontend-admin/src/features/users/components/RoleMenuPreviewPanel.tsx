@@ -114,7 +114,7 @@ export function RoleMenuPreviewPanel({
         type="info"
         showIcon
         style={{ marginBottom: 12 }}
-        message={t('users.roleDrawer.menuPreview.title', { role: roleLabel })}
+        title={t('users.roleDrawer.menuPreview.title', { role: roleLabel })}
         description={t('users.roleDrawer.menuPreview.legend')}
       />
       <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8, fontSize: 12 }}>

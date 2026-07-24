@@ -152,7 +152,7 @@ export function PermissionAuditDiffModal({
         ]}
       >
         {entry ? (
-          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <Space orientation="vertical" size={12} style={{ width: '100%' }}>
             <div>
               <Typography.Text type="secondary">
                 {t('users.permissionAudit.diff.role')}:{' '}

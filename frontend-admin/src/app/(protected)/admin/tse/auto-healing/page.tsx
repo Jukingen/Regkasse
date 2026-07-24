@@ -24,6 +24,11 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import {
+  TseActiveTenantTag,
+  TseTenantRequiredAlert,
+} from '@/features/tse-shared/components/TseTenantContextUi';
+import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
+import {
   configureTseHealing,
   diagnoseAndHealTseDevice,
   getTseHealingConfiguration,
@@ -31,7 +36,6 @@ import {
 } from '@/features/tse-auto-healing/api/autoHealing';
 import type { TseHealingHistoryItem, TseHealingRule } from '@/features/tse-auto-healing/types';
 import { getTseDevices } from '@/features/tse-failover/api/tse';
-import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -70,17 +74,10 @@ export default function TseAutoHealingPage() {
   const queryClient = useQueryClient();
   const { hasPermission } = usePermissions();
   const allowed = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
-  const [tenantId, setTenantId] = useState<string | undefined>();
+  const { tenantId, isReady } = useTsePageTenant();
   const [deviceId, setDeviceId] = useState<string | undefined>();
   const [historyOpen, setHistoryOpen] = useState(false);
   const [form] = Form.useForm<ConfigForm>();
-
-  const tenantsQuery = useQuery({
-    queryKey: ['admin', 'tenants', 'tse-auto-healing'],
-    queryFn: () => listAdminTenants(false),
-    enabled: allowed,
-    staleTime: 60_000,
-  });
 
   const configQuery = useQuery({
     queryKey: [...KEY, 'config', tenantId],
@@ -218,7 +215,7 @@ export default function TseAutoHealingPage() {
   ];
 
   if (!allowed) {
-    return <Alert type="error" showIcon message={t('tseAutoHealing.forbidden')} />;
+    return <Alert type="error" showIcon title={t('tseAutoHealing.forbidden')} />;
   }
 
   return (
@@ -226,31 +223,18 @@ export default function TseAutoHealingPage() {
       <AdminPageHeader
         title={t('tseAutoHealing.title')}
         breadcrumbs={[adminOverviewCrumb(t), { title: t('tseAutoHealing.title') }]}
-        extra={
-          <Select
-            showSearch
-            optionFilterProp="label"
-            style={{ minWidth: 260 }}
-            placeholder={t('tseAutoHealing.tenantLabel')}
-            value={tenantId}
-            onChange={setTenantId}
-            options={(tenantsQuery.data ?? []).map((ten) => ({
-              value: ten.id,
-              label: ten.name || ten.slug || ten.id,
-            }))}
-          />
-        }
+        extra={<TseActiveTenantTag />}
       />
 
       <Typography.Paragraph type="secondary">{t('tseAutoHealing.subtitle')}</Typography.Paragraph>
 
-      {!tenantId ? (
-        <Alert type="info" showIcon message={t('tseAutoHealing.emptySelect')} />
+      {!isReady ? (
+        <TseTenantRequiredAlert emptySelectKey="tseAutoHealing.emptySelect" />
       ) : configQuery.isError ? (
-        <Alert type="error" showIcon message={t('tseAutoHealing.loadError')} />
+        <Alert type="error" showIcon title={t('tseAutoHealing.loadError')} />
       ) : (
         <Card title={t('tseAutoHealing.cardTitle')} loading={configQuery.isLoading}>
-          <Alert type="info" showIcon message={t('tseAutoHealing.diagnosticNote')} style={{ marginBottom: 16 }} />
+          <Alert type="info" showIcon title={t('tseAutoHealing.diagnosticNote')} style={{ marginBottom: 16 }} />
 
           <Form
             form={form}
@@ -359,7 +343,7 @@ export default function TseAutoHealingPage() {
         title={t('tseAutoHealing.historyTitle')}
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
-        width={920}
+        size={920}
       >
         <Table
           rowKey="id"

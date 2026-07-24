@@ -5,11 +5,11 @@ This repository is a POS monorepo. Prefer safe, incremental improvements over br
 
 ## Cursor / AI Agent Integration
 - Cursor loads **`AGENTS.md`** as an **always-applied workspace rule** — agents see it on every task.
-- **`.cursorrules`** is a thin redirect stub only; do not duplicate rules there.
-- For medium or large tasks, also read **`REGKASSE_AI_ONBOARDING.md`** and relevant docs under `ai/`.
+- **`.cursorrules`** is a **redirect + project index** only (stack snapshot, context file order, quick reminders). Do **not** duplicate full rules there — update this file instead.
+- For medium or large tasks, also read **`REGKASSE_AI_ONBOARDING.md`**, optionally **`docs/PROJECT_COMPREHENSIVE_DOCUMENTATION.md`**, and relevant docs under `ai/`.
 - Keep this file valid Markdown (closed code fences, proper headings); broken formatting reduces what agents can parse reliably.
 
-**Last updated:** 2026-07-21
+**Last updated:** 2026-07-24
 
 ## Language Rules
 Follow these language rules strictly:

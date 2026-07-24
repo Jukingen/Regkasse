@@ -89,7 +89,7 @@ export function DataDeletionRequestModal({ tenantId, open, onClose, initialReaso
       onCancel={handleClose}
       footer={footer}
       destroyOnHidden
-      maskClosable={!submitting}
+      mask={{ closable: !submitting }}
       closable={!submitting}
       width={560}
     >

@@ -7,7 +7,6 @@ import {
   Card,
   Empty,
   Rate,
-  Select,
   Space,
   Tag,
   Typography,
@@ -16,13 +15,17 @@ import { useState } from 'react';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import {
+  TseActiveTenantTag,
+  TseTenantRequiredAlert,
+} from '@/features/tse-shared/components/TseTenantContextUi';
+import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
+import {
   applyTseRecommendation,
   dismissTseRecommendation,
   getTseRecommendations,
   rateTseRecommendation,
 } from '@/features/tse-recommendations/api/recommendations';
 import type { TseRecommendation } from '@/features/tse-recommendations/types';
-import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -74,14 +77,7 @@ export default function TseRecommendationsPage() {
   const queryClient = useQueryClient();
   const { hasPermission } = usePermissions();
   const allowed = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
-  const [tenantId, setTenantId] = useState<string | undefined>();
-
-  const tenantsQuery = useQuery({
-    queryKey: ['admin', 'tenants', 'tse-recommendations'],
-    queryFn: () => listAdminTenants(false),
-    enabled: allowed,
-    staleTime: 60_000,
-  });
+  const { tenantId, isReady } = useTsePageTenant();
 
   const listQuery = useQuery({
     queryKey: [...KEY, 'list', tenantId],
@@ -139,7 +135,7 @@ export default function TseRecommendationsPage() {
   const recommendations = listQuery.data ?? [];
 
   if (!allowed) {
-    return <Alert type="error" showIcon message={t('tseRecommendations.forbidden')} />;
+    return <Alert type="error" showIcon title={t('tseRecommendations.forbidden')} />;
   }
 
   return (
@@ -147,44 +143,30 @@ export default function TseRecommendationsPage() {
       <AdminPageHeader
         title={t('tseRecommendations.title')}
         breadcrumbs={[adminOverviewCrumb(t), { title: t('tseRecommendations.title') }]}
-        extra={
-          <Select
-            showSearch
-            optionFilterProp="label"
-            style={{ minWidth: 260 }}
-            placeholder={t('tseRecommendations.tenantLabel')}
-            loading={tenantsQuery.isLoading}
-            value={tenantId}
-            onChange={setTenantId}
-            options={(tenantsQuery.data ?? []).map((tenant) => ({
-              value: tenant.id,
-              label: `${tenant.name} (${tenant.slug})`,
-            }))}
-          />
-        }
+        extra={<TseActiveTenantTag />}
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
           {t('tseRecommendations.subtitle')}
         </Typography.Paragraph>
       </AdminPageHeader>
 
-      {!tenantId ? (
-        <Alert type="info" showIcon message={t('tseRecommendations.emptySelect')} />
+      {!isReady ? (
+        <TseTenantRequiredAlert emptySelectKey="tseRecommendations.emptySelect" />
       ) : listQuery.isError ? (
-        <Alert type="error" showIcon message={t('tseRecommendations.loadError')} />
+        <Alert type="error" showIcon title={t('tseRecommendations.loadError')} />
       ) : (
         <Card title={t('tseRecommendations.cardTitle')} loading={listQuery.isLoading}>
           <Alert
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
-            message={t('tseRecommendations.diagnosticNote')}
+            title={t('tseRecommendations.diagnosticNote')}
           />
 
           {recommendations.length === 0 ? (
             <Empty description={t('tseRecommendations.emptyList')} />
           ) : (
-            <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Space orientation="vertical" size={16} style={{ width: '100%' }}>
               {recommendations.map((rec) => (
                 <RecommendationCard
                   key={rec.id}
@@ -265,7 +247,7 @@ function RecommendationCard({
             />
           </div>
         </div>
-        <Space direction="vertical">
+        <Space orientation="vertical">
           <Button
             type="primary"
             size="small"

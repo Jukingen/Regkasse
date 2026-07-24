@@ -221,8 +221,24 @@
     "superAdminPromptAction": "Open tenants",
     "superAdminModeBanner": "You are in Super Admin mode. Select a tenant or use impersonation.",
     "badgeSuperAdminMode": "Super Admin mode | Full control",
+    "status": {
+      "noneSelected": "No tenant selected",
+      "active": "{name} ({slug})"
+    },
     "selectTenantFirstTitle": "Select a tenant first",
     "selectTenantFirstBody": "Tenant-specific data is shown only after tenant selection or impersonation.",
+    "guard": {
+      "title": "Select tenant",
+      "body": "Please select a tenant to continue. The context applies to all pages.",
+      "confirm": "Apply tenant",
+      "applyFailed": "Could not set tenant context."
+    },
+    "tseLayout": {
+      "title": "No tenant selected",
+      "body": "Please select a tenant first to configure TSE settings.",
+      "selectFromHeader": "Please select a tenant from the header switcher or the Super Admin selection dialog.",
+      "activeTag": "{name} ({slug})"
+    },
     "adminLandingTitle": "Platform administration",
     "switch": {
       "toast": "Tenant switched to {slug}"

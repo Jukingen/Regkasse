@@ -16,7 +16,7 @@ export function FormSkeleton({ fields = 4, loading = true, children }: FormSkele
 
   return (
     <Card>
-      <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+      <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
         {Array.from({ length: safeFields }).map((_, i) => (
           <div key={i}>
             <Skeleton.Input active size="small" style={{ width: 120, marginBottom: 4 }} />

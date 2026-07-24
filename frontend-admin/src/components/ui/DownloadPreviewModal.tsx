@@ -279,7 +279,7 @@ export function DownloadPreviewModal({
         open={open}
         onCancel={loading ? undefined : onCancel}
         destroyOnHidden
-        maskClosable={!loading}
+        mask={{ closable: !loading }}
         keyboard={!loading}
         width={isMobile ? '100%' : 560}
         centered={!isMobile}

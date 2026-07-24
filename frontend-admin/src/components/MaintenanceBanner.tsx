@@ -56,7 +56,7 @@ export function MaintenanceBanner() {
         }
         open
         closable={false}
-        maskClosable={false}
+        mask={{ closable: false }}
         keyboard={false}
         footer={null}
         styles={{ wrapper: { zIndex: 1200 } }}

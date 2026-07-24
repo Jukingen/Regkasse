@@ -8,7 +8,6 @@ import {
   Empty,
   List,
   Row,
-  Select,
   Statistic,
   Typography,
 } from 'antd';
@@ -25,10 +24,14 @@ import {
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import {
+  TseActiveTenantTag,
+  TseTenantRequiredAlert,
+} from '@/features/tse-shared/components/TseTenantContextUi';
+import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
+import {
   getTseSustainabilityOptimizations,
   getTseSustainabilityReport,
 } from '@/features/tse-sustainability/api/sustainability';
-import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useI18n } from '@/i18n/I18nProvider';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
@@ -40,14 +43,7 @@ export default function TseSustainabilityPage() {
   const { t } = useI18n();
   const { hasPermission } = usePermissions();
   const allowed = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
-  const [tenantId, setTenantId] = useState<string | undefined>();
-
-  const tenantsQuery = useQuery({
-    queryKey: ['admin', 'tenants', 'tse-sustainability'],
-    queryFn: () => listAdminTenants(false),
-    enabled: allowed,
-    staleTime: 60_000,
-  });
+  const { tenantId, isReady } = useTsePageTenant();
 
   const reportQuery = useQuery({
     queryKey: [...KEY, 'report', tenantId],
@@ -72,7 +68,7 @@ export default function TseSustainabilityPage() {
   );
 
   if (!allowed) {
-    return <Alert type="error" showIcon message={t('tseSustainability.forbidden')} />;
+    return <Alert type="error" showIcon title={t('tseSustainability.forbidden')} />;
   }
 
   return (
@@ -80,31 +76,17 @@ export default function TseSustainabilityPage() {
       <AdminPageHeader
         title={t('tseSustainability.title')}
         breadcrumbs={[adminOverviewCrumb(t), { title: t('tseSustainability.title') }]}
-        extra={
-          <Select
-            showSearch
-            optionFilterProp="label"
-            style={{ minWidth: 260 }}
-            placeholder={t('tseSustainability.tenantLabel')}
-            loading={tenantsQuery.isLoading}
-            value={tenantId}
-            onChange={setTenantId}
-            options={(tenantsQuery.data ?? []).map((tenant) => ({
-              value: tenant.id,
-              label: `${tenant.name} (${tenant.slug})`,
-            }))}
-          />
-        }
+        extra={<TseActiveTenantTag />}
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
           {t('tseSustainability.subtitle')}
         </Typography.Paragraph>
       </AdminPageHeader>
 
-      {!tenantId ? (
-        <Alert type="info" showIcon message={t('tseSustainability.emptySelect')} />
+      {!isReady ? (
+        <TseTenantRequiredAlert emptySelectKey="tseSustainability.emptySelect" />
       ) : reportQuery.isError ? (
-        <Alert type="error" showIcon message={t('tseSustainability.loadError')} />
+        <Alert type="error" showIcon title={t('tseSustainability.loadError')} />
       ) : (
         <>
           <Card title={t('tseSustainability.cardTitle')} loading={reportQuery.isLoading}>
@@ -112,7 +94,7 @@ export default function TseSustainabilityPage() {
               type="info"
               showIcon
               style={{ marginBottom: 16 }}
-              message={t('tseSustainability.diagnosticNote')}
+              title={t('tseSustainability.diagnosticNote')}
             />
 
             <Row gutter={16}>
@@ -172,7 +154,7 @@ export default function TseSustainabilityPage() {
               type="info"
               showIcon
               style={{ marginTop: 16 }}
-              message={t('tseSustainability.percentileMessage').replace(
+              title={t('tseSustainability.percentileMessage').replace(
                 '{percentile}',
                 String(report?.percentile ?? 0)
               )}

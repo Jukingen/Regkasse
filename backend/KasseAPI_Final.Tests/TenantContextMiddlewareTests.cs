@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
@@ -223,6 +224,50 @@ public sealed class TenantContextMiddlewareTests
         await middleware.InvokeAsync(httpContext, tenantContextService);
 
         Assert.Equal(DemoTenantIds.Dev, accessor.TenantId);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Development_SuperAdmin_NoJwt_BindsDevPreset()
+    {
+        await using var db = CreateContext();
+        TenantTestDoubles.EnsureDefaultTenant(db);
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var accessor = new CurrentTenantAccessor { TenantId = LegacyDefaultTenantIds.Primary };
+        var environment = new Mock<IWebHostEnvironment>();
+        environment.SetupGet(e => e.EnvironmentName).Returns(Environments.Development);
+
+        var tenantContextService = new TenantContextService(
+            db,
+            accessor,
+            environment.Object,
+            Mock.Of<KasseAPI_Final.Services.Tenancy.ITenantDomainService>(),
+            NullLogger<TenantContextService>.Instance);
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Host = new HostString("localhost");
+        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(
+        [
+            new Claim(ClaimTypes.Role, Roles.SuperAdmin),
+        ],
+        authenticationType: "Test"));
+
+        var middleware = new TenantContextMiddleware(
+            _ => Task.CompletedTask,
+            environment.Object);
+
+        await middleware.InvokeAsync(httpContext, tenantContextService);
+
+        Assert.Equal(DemoTenantIds.Dev, accessor.TenantId);
+        Assert.Equal("dev", accessor.TenantSlug);
     }
 
     private static AppDbContext CreateContext()

@@ -1,0 +1,244 @@
+{
+  "patterns": {
+    "services": [
+      {
+        "id": "svc-interface-di",
+        "name": "Interface + DI registration",
+        "rule": "New application services expose I* interface; register in ApplicationHost (or feature extension). Do not new() services inside other services (Stripe SDK exception).",
+        "canonical_refs": [
+          "backend/docs/SERVICES_LAYER.md",
+          "backend/Services/IPaymentService.cs",
+          "backend/Services/PaymentService.cs"
+        ],
+        "snippet": "public interface IPaymentService\n{\n    Task<PaymentResult> CreatePaymentAsync(CreatePaymentRequest request, string userId, ...);\n    Task<PaymentResult> CancelPaymentAsync(Guid paymentId, string reason, string userId, string? idempotencyKey = null, ...);\n}"
+      },
+      {
+        "id": "svc-singleton-ef-scope",
+        "name": "Singleton hosted service + EF scope",
+        "rule": "Singletons must use IServiceScopeFactory.CreateScope() before resolving AppDbContext / IDbContextFactory. Never resolve scoped DbContext from root provider.",
+        "canonical_refs": ["AGENTS.md", "ai/01_BACKEND_CONTRACT.md"],
+        "snippet": "using var scope = _scopeFactory.CreateScope();\nvar factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();\nawait using var db = await factory.CreateDbContextAsync(ct);"
+      },
+      {
+        "id": "svc-payment-facade",
+        "name": "Fiscal payment facade naming",
+        "rule": "PosPaymentService does not exist. Fiscal POS payments = IPaymentService/PaymentService. Card gateway = ICardPaymentService. Online orders = IOnlineOrderPaymentService.",
+        "canonical_refs": ["backend/docs/SERVICES_LAYER.md", "ai/modules/payments.md"]
+      },
+      {
+        "id": "svc-idempotency",
+        "name": "Idempotent cancel/refund",
+        "rule": "CancelPaymentAsync / RefundPaymentAsync accept optional idempotencyKey; same key must not create duplicate BelegNr/stock movements.",
+        "canonical_refs": ["backend/Services/IPaymentService.cs"]
+      }
+    ],
+    "controllers": [
+      {
+        "id": "ctrl-admin-route",
+        "name": "Admin controller boundary",
+        "rule": "Admin APIs use Route(\"api/admin/...\") + [Authorize] + [HasPermission(...)] or Roles.SuperAdmin. Return DTOs; cross-tenant missing resources → 404.",
+        "canonical_refs": [
+          "backend/Controllers/AdminUsersController.cs",
+          "backend/Controllers/AdminTenantsController.cs",
+          "backend/Controllers/AdminTseHealthController.cs"
+        ],
+        "snippet": "[Authorize]\n[ApiController]\n[Route(\"api/admin/users\")]\n[Produces(\"application/json\")]\npublic partial class AdminUsersController : ControllerBase { ... }"
+      },
+      {
+        "id": "ctrl-superadmin-tenants",
+        "name": "SuperAdmin tenant CRUD",
+        "rule": "Tenant SaaS CRUD is SuperAdmin-only on /api/admin/tenants. tenants table is global; Impersonate issues JWT with target tenant_id.",
+        "canonical_refs": ["backend/Controllers/AdminTenantsController.cs", "docs/IMPERSONATION_FLOW.md"],
+        "snippet": "[Route(\"api/admin/tenants\")]\n[Authorize(Roles = Roles.SuperAdmin)]\npublic sealed class AdminTenantsController : ControllerBase { ... }"
+      },
+      {
+        "id": "ctrl-pos-boundary",
+        "name": "POS controller boundary",
+        "rule": "POS clients only call /api/pos/*, /api/Auth/*, /api/Receipts/* (and documented shared). Never add POS features under /api/admin/*.",
+        "canonical_refs": ["ai/10_API_BOUNDARY_POLICY.md", "API_CONTRACT.md"]
+      },
+      {
+        "id": "ctrl-permission-audit",
+        "name": "Permission-first + audit mutations",
+        "rule": "Admin user mutations: permission-first (users.manage / user.manage), audit every mutation, soft-delete (no hard delete of users).",
+        "canonical_refs": ["backend/Controllers/AdminUsersController.cs"]
+      },
+      {
+        "id": "ctrl-tse-ops",
+        "name": "Admin TSE ops controllers",
+        "rule": "Diagnostic TSE ops under /api/admin/tse/* require system.critical; thin controllers delegate to Services/Tse. Not DEP rewrite.",
+        "canonical_refs": ["backend/Controllers/AdminTseHealthController.cs", "ai/modules/tse_admin_ops.md"]
+      }
+    ],
+    "components": [
+      {
+        "id": "fa-feature-layout",
+        "name": "FA feature folder layout",
+        "rule": "frontend-admin/src/features/{domain}/ holds components/, hooks/, api/, utils/, types/. Pages under app/(protected)/ compose features. Prefer Orval generated hooks for admin API.",
+        "canonical_refs": ["AGENTS.md", "ai/04_FRONTEND_CONTRACT.md"],
+        "example_domains": ["users", "payments", "tenancy", "backup", "products"]
+      },
+      {
+        "id": "fa-notify-antd6",
+        "name": "Ant Design 6 feedback",
+        "rule": "Never static message/notification/Modal.confirm from antd. Use useNotify() for toasts; useAntdApp().modal for confirms.",
+        "canonical_refs": ["AGENTS.md"],
+        "snippet": "const notify = useNotify();\nnotify.successKey('common.auth.loginSuccess');\nnotify.apiError(err, { logContext: 'Feature.action', fallbackKey: 'common.errorGeneric' });"
+      },
+      {
+        "id": "fa-orval-query",
+        "name": "Orval + TanStack Query",
+        "rule": "Server data via TanStack Query (Orval hooks or feature api wrappers). Do not mirror API payloads in Zustand. Auth stays in AuthProvider + authStorage.",
+        "canonical_refs": [
+          "frontend-admin/src/features/payments/components/PaymentsPageContent.tsx",
+          "frontend-admin/src/features/users/hooks/useUserEffectivePermissions.ts"
+        ]
+      },
+      {
+        "id": "fa-tenant-provider",
+        "name": "TenantProvider composition",
+        "rule": "Tenant identity from JWT + Dev switcher + getCurrentTenant API. resolveEffectiveTenant merges override/API/current state.",
+        "canonical_refs": ["frontend-admin/src/features/tenancy/providers/TenantProvider.tsx"]
+      },
+      {
+        "id": "fa-i18n",
+        "name": "Admin i18n strings",
+        "rule": "No hardcoded user-facing strings in FA; use useI18n() namespaces under frontend-admin/src/i18n/. POS UI remains German hardcoded/locale files separately.",
+        "canonical_refs": ["localization/README.md", "docs/contributing-i18n.md"]
+      }
+    ]
+  },
+  "examples": {
+    "payment": [
+      {
+        "id": "pay-create",
+        "title": "Create fiscal payment",
+        "boundary": "POS /api/pos/payment* → IPaymentService.CreatePaymentAsync",
+        "do": [
+          "Supply cash register + cart context from POS session",
+          "Require TSE/NTP gates when online fiscal",
+          "Never enqueue voucher codes as plain offline non-fiscal replay"
+        ],
+        "dont": [
+          "Do not invent PosPaymentService",
+          "Do not extend legacy /api/Payment for new features"
+        ],
+        "refs": [
+          "backend/Services/IPaymentService.cs",
+          "ai/modules/payments.md",
+          "ai/07_DO_NOT_TOUCH.md"
+        ]
+      },
+      {
+        "id": "pay-cancel-refund",
+        "title": "Cancel / refund with reason codes",
+        "boundary": "Admin FA payments feature + admin payment APIs",
+        "do": [
+          "Pass CancellationReasonCode / RefundReasonCode",
+          "Use idempotencyKey on retries",
+          "Storno requires OriginalReceiptId + StornoReason where contract requires"
+        ],
+        "refs": [
+          "frontend-admin/src/features/payments/components/CancellationModal.tsx",
+          "frontend-admin/src/features/payments/types/refundReasons.ts"
+        ]
+      },
+      {
+        "id": "pay-fa-list",
+        "title": "Admin payments list page",
+        "boundary": "frontend-admin/src/features/payments",
+        "do": [
+          "URL-synced filters via paymentFilterUrl helpers",
+          "Orval hooks for detail/stats/refund",
+          "useNotify / useAntdApp for feedback"
+        ],
+        "refs": ["frontend-admin/src/features/payments/components/PaymentsPageContent.tsx"]
+      }
+    ],
+    "tenant": [
+      {
+        "id": "tenant-isolation",
+        "title": "Tenant isolation semantics",
+        "do": [
+          "ITenantEntity + EF global query filters via ICurrentTenantAccessor.TenantId",
+          "Cross-tenant access → HTTP 404 not 403",
+          "IgnoreQueryFilters only for Super Admin ops"
+        ],
+        "refs": ["docs/MULTI_TENANT.md", "AGENTS.md", "ai/02_DATABASE_CONTRACT.md"]
+      },
+      {
+        "id": "tenant-dev-header",
+        "title": "Development tenant resolution",
+        "do": [
+          "X-Tenant-Id: {slug} or ?tenant={slug} only in Development",
+          "Production: JWT tenant_id on api.regkasse.at / pos.regkasse.at"
+        ],
+        "snippet": "curl -H \"X-Tenant-Id: dev\" http://localhost:5184/api/health",
+        "refs": ["ai/03_API_CONTRACT.md", "docs/POS_PRODUCTION_ARCHITECTURE.md"]
+      },
+      {
+        "id": "tenant-impersonate",
+        "title": "Super Admin impersonation",
+        "boundary": "POST /api/admin/tenants/{id}/impersonate",
+        "do": [
+          "JWT gains target tenant_id + tenant_impersonation=true",
+          "Audit actor + tenant",
+          "FA TenantProvider / expiry warnings for impersonation session"
+        ],
+        "refs": [
+          "backend/Controllers/AdminTenantsController.cs",
+          "docs/IMPERSONATION_FLOW.md",
+          "frontend-admin/src/features/tenancy/hooks/useImpersonationExpiryWarning.ts"
+        ]
+      },
+      {
+        "id": "tenant-fa-provider",
+        "title": "FA tenant context",
+        "refs": [
+          "frontend-admin/src/features/tenancy/providers/TenantProvider.tsx",
+          "frontend-admin/src/features/tenancy/hooks/useSuperAdminTenantMode.ts"
+        ]
+      }
+    ],
+    "user": [
+      {
+        "id": "user-login",
+        "title": "Login with loginIdentifier",
+        "do": [
+          "POST /api/Auth/login with loginIdentifier (email OR username, case-insensitive)",
+          "Prefer clientApp; SuperAdmin may require TOTP verify-2fa in Production"
+        ],
+        "dont": ["Do not use deprecated email-only body in new code"],
+        "snippet": "{ \"loginIdentifier\": \"manager1\", \"password\": \"...\", \"clientApp\": \"admin\" }",
+        "refs": ["API_CONTRACT.md", "docs/AUTH_TWO_FACTOR.md", "backend/Controllers/AuthController.cs"]
+      },
+      {
+        "id": "user-username-rules",
+        "title": "Username change requirements",
+        "do": [
+          "Regex ^[a-zA-Z0-9_-]{3,50}$",
+          "Audit UserNameChanged with old/new",
+          "Invalidate sessions (SecurityStamp) on username change"
+        ],
+        "refs": ["AGENTS.md", "docs/USER_MANAGEMENT.md", "backend/Controllers/AdminUsersController.cs"]
+      },
+      {
+        "id": "user-roles",
+        "title": "Canonical roles",
+        "note": "Backend role Manager displays as Mandanten-Admin in FA i18n. SuperAdmin is platform-wide.",
+        "roles": ["SuperAdmin", "Manager", "Cashier", "Waiter", "Kitchen", "Accountant", "ReportViewer"],
+        "refs": ["AGENTS.md", "docs/PERMISSIONS_MATRIX.md"]
+      },
+      {
+        "id": "user-fa-permissions",
+        "title": "Effective permissions UI",
+        "boundary": "frontend-admin/src/features/users",
+        "do": [
+          "Feature API wrappers + useQuery/useMutation",
+          "Invalidate effective-permissions query keys after override mutations"
+        ],
+        "refs": ["frontend-admin/src/features/users/hooks/useUserEffectivePermissions.ts"]
+      }
+    ]
+  }
+}

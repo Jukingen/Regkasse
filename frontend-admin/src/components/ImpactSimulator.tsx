@@ -66,7 +66,7 @@ export function ImpactSimulator({
       onCancel={onClose}
       width={800}
       destroyOnHidden
-      maskClosable={!confirmLoading}
+      mask={{ closable: !confirmLoading }}
       keyboard={!confirmLoading}
       footer={[
         <Button key="cancel" onClick={onClose} disabled={confirmLoading}>

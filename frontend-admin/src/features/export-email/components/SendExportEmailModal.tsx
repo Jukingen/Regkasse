@@ -133,7 +133,7 @@ export function SendExportEmailModal({
       title={t('common.exportEmail.title')}
       onCancel={sendMutation.isPending ? undefined : onClose}
       destroyOnHidden
-      maskClosable={!sendMutation.isPending}
+      mask={{ closable: !sendMutation.isPending }}
       footer={
         <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
           <Button

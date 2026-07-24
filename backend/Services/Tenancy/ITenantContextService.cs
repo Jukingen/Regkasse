@@ -6,15 +6,17 @@ namespace KasseAPI_Final.Services.Tenancy;
 public interface ITenantContextService
 {
     /// <summary>
-    /// Full resolution: JWT → (Development only) header/query → host slug → admin/default fallback.
+    /// Full resolution: JWT → (Development only) header/query → (Development SuperAdmin) seeded <c>dev</c> →
+    /// host slug → admin/default fallback.
     /// </summary>
     Task<TenantContext> ResolveTenantContextAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// After authentication: Development uses full resolution; Production/Staging binds JWT <c>tenant_id</c> only
-    /// (clears ambient tenant when the claim is missing or inactive).
+    /// After authentication: Development uses full resolution (including SuperAdmin <c>dev</c> default);
+    /// Production/Staging binds JWT <c>tenant_id</c> only (clears ambient tenant when the claim is missing or inactive —
+    /// no silent SuperAdmin default).
     /// </summary>
     Task ApplyAuthenticatedTenantAsync(
         HttpContext httpContext,

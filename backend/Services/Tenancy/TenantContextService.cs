@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
@@ -7,8 +9,8 @@ namespace KasseAPI_Final.Services.Tenancy;
 
 /// <summary>
 /// Resolves tenant id/slug/name for the current HTTP request and binds <see cref="ICurrentTenantAccessor"/>.
-/// Priority: JWT → (Development only) header/query → host slug → admin/default fallback.
-/// Production authenticated binding uses <see cref="ApplyAuthenticatedTenantAsync"/> (JWT only).
+/// Priority: JWT → (Development only) header/query → (Development SuperAdmin) seeded <c>dev</c> → host slug → admin/default fallback.
+/// Production authenticated binding uses <see cref="ApplyAuthenticatedTenantAsync"/> (JWT only; never silent SuperAdmin defaults).
 /// </summary>
 public sealed class TenantContextService : ITenantContextService
 {
@@ -58,13 +60,24 @@ public sealed class TenantContextService : ITenantContextService
         if (_environment.IsDevelopment())
         {
             var devSlug = GetDevTenantSlug(httpContext);
-            if (!string.IsNullOrWhiteSpace(devSlug))
+            if (!string.IsNullOrWhiteSpace(devSlug) && !IsAdminPlatformSlug(devSlug))
             {
                 var fromDev = await TryResolveActiveTenantBySlugAsync(devSlug, cancellationToken)
                     .ConfigureAwait(false);
                 if (fromDev != null)
                 {
                     return fromDev;
+                }
+            }
+
+            // Super Admin on FA localhost without JWT/header: prefer seeded `dev` over legacy `default`.
+            if (!jwtTenantId.HasValue && IsSuperAdmin(httpContext))
+            {
+                var superAdminDefault = await TryResolveSuperAdminDevelopmentDefaultAsync(cancellationToken)
+                    .ConfigureAwait(false);
+                if (superAdminDefault != null)
+                {
+                    return superAdminDefault;
                 }
             }
         }
@@ -104,6 +117,7 @@ public sealed class TenantContextService : ITenantContextService
         }
 
         // Production / Staging: JWT tenant_id only (ignore Host and any X-Tenant-Id / ?tenant=).
+        // SuperAdmin is not given a silent default — FA must rebind JWT (refresh/impersonation).
         var jwtTenantId = GetJwtTenantId(httpContext);
         if (!jwtTenantId.HasValue)
         {
@@ -285,6 +299,53 @@ public sealed class TenantContextService : ITenantContextService
 
     private static bool IsAdminPlatformSlug(string slug) =>
         string.Equals(slug, "admin", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Development Super Admin without JWT / mandant header: seeded <c>dev</c> preset (not legacy <c>default</c>).
+    /// </summary>
+    private async Task<TenantContext?> TryResolveSuperAdminDevelopmentDefaultAsync(
+        CancellationToken cancellationToken)
+    {
+        var fromSlug = await TryResolveActiveTenantBySlugAsync("dev", cancellationToken)
+            .ConfigureAwait(false);
+        if (fromSlug != null)
+        {
+            _logger.LogDebug(
+                "Bound Development SuperAdmin ambient tenant to seeded preset {TenantId} ({Slug})",
+                fromSlug.Id,
+                fromSlug.Slug);
+            return fromSlug;
+        }
+
+        // Stable id fallback when slug row missing but seed id exists.
+        return await TryResolveActiveTenantByIdAsync(DemoTenantIds.Dev, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private static bool IsSuperAdmin(HttpContext httpContext)
+    {
+        var user = httpContext.User;
+        if (user?.Identity?.IsAuthenticated != true)
+        {
+            return false;
+        }
+
+        if (user.IsInRole(Roles.SuperAdmin))
+        {
+            return true;
+        }
+
+        // Some tokens emit a custom "role" claim instead of ClaimTypes.Role.
+        foreach (var claim in user.FindAll("role"))
+        {
+            if (string.Equals(claim.Value, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private static string? GetDevTenantSlug(HttpContext httpContext)
     {

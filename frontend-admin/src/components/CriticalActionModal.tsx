@@ -71,7 +71,7 @@ export function CriticalActionModal({
         footer={null}
         width={500}
         destroyOnHidden
-        maskClosable={!confirmLoading}
+        mask={{ closable: !confirmLoading }}
         keyboard={!confirmLoading}
       >
         <Alert
@@ -122,7 +122,7 @@ export function CriticalActionModal({
       footer={null}
       width={600}
       destroyOnHidden
-      maskClosable={!confirmLoading}
+      mask={{ closable: !confirmLoading }}
       keyboard={!confirmLoading}
     >
       <Alert

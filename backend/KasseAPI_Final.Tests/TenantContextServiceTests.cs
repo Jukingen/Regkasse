@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Tenancy;
@@ -183,6 +184,113 @@ public sealed class TenantContextServiceTests
         await service.ApplyAuthenticatedTenantAsync(httpContext);
 
         Assert.Null(accessor.TenantId);
+    }
+
+    [Fact]
+    public async Task ApplyAuthenticatedTenantAsync_Development_SuperAdmin_NoJwt_BindsDevPreset()
+    {
+        await using var db = CreateContext();
+        TenantTestDoubles.EnsureDefaultTenant(db);
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var accessor = new CurrentTenantAccessor { TenantId = LegacyDefaultTenantIds.Primary };
+        var service = CreateService(db, accessor, isDevelopment: true);
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Host = new HostString("localhost");
+        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(
+        [
+            new Claim(ClaimTypes.Name, "super"),
+            new Claim(ClaimTypes.Role, Roles.SuperAdmin),
+        ],
+        authenticationType: "Test"));
+
+        await service.ApplyAuthenticatedTenantAsync(httpContext);
+
+        Assert.Equal(DemoTenantIds.Dev, accessor.TenantId);
+        Assert.Equal("dev", accessor.TenantSlug);
+    }
+
+    [Fact]
+    public async Task ApplyAuthenticatedTenantAsync_Production_SuperAdmin_NoJwt_ClearsAmbient()
+    {
+        await using var db = CreateContext();
+        TenantTestDoubles.EnsureDefaultTenant(db);
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var accessor = new CurrentTenantAccessor { TenantId = LegacyDefaultTenantIds.Primary };
+        var service = CreateService(db, accessor, isDevelopment: false);
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Host = new HostString("admin.regkasse.at");
+        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(
+        [
+            new Claim(ClaimTypes.Name, "super"),
+            new Claim(ClaimTypes.Role, Roles.SuperAdmin),
+        ],
+        authenticationType: "Test"));
+
+        await service.ApplyAuthenticatedTenantAsync(httpContext);
+
+        Assert.Null(accessor.TenantId);
+        Assert.Null(accessor.TenantSlug);
+    }
+
+    [Fact]
+    public async Task ApplyAuthenticatedTenantAsync_Development_SuperAdmin_JwtWinsOverDevDefault()
+    {
+        await using var db = CreateContext();
+        TenantTestDoubles.EnsureDefaultTenant(db);
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Prod,
+            Name = "Production",
+            Slug = "prod",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var accessor = new CurrentTenantAccessor();
+        var service = CreateService(db, accessor, isDevelopment: true);
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Host = new HostString("localhost");
+        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(
+        [
+            new Claim(ClaimTypes.Role, Roles.SuperAdmin),
+            new Claim("tenant_id", DemoTenantIds.Prod.ToString("D")),
+        ],
+        authenticationType: "Test"));
+
+        await service.ApplyAuthenticatedTenantAsync(httpContext);
+
+        Assert.Equal(DemoTenantIds.Prod, accessor.TenantId);
+        Assert.Equal("prod", accessor.TenantSlug);
     }
 
     [Fact]

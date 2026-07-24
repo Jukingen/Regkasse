@@ -224,7 +224,7 @@ export default function PaymentMethodsSettingsPage() {
           title={t('settings.paymentMethods.title')}
           breadcrumbs={headerBreadcrumbs}
         />
-        <Alert type="info" showIcon message={t('settings.paymentMethods.noCashRegister')} />
+        <Alert type="info" showIcon title={t('settings.paymentMethods.noCashRegister')} />
       </>
     );
   }

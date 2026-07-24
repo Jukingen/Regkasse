@@ -7,7 +7,6 @@ import {
   Card,
   Empty,
   List,
-  Select,
   Space,
   Table,
   Tag,
@@ -19,12 +18,16 @@ import { useState } from 'react';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import {
+  TseActiveTenantTag,
+  TseTenantRequiredAlert,
+} from '@/features/tse-shared/components/TseTenantContextUi';
+import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
+import {
   applyTseUpdate,
   getTseUpdateHistory,
   getTseUpdateStatus,
 } from '@/features/tse-updates/api/updates';
 import type { TseAvailableUpdate, TseUpdateHistoryItem } from '@/features/tse-updates/types';
-import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -76,14 +79,7 @@ export default function TseUpdatesPage() {
   const queryClient = useQueryClient();
   const { hasPermission } = usePermissions();
   const allowed = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
-  const [tenantId, setTenantId] = useState<string | undefined>();
-
-  const tenantsQuery = useQuery({
-    queryKey: ['admin', 'tenants', 'tse-updates'],
-    queryFn: () => listAdminTenants(false),
-    enabled: allowed,
-    staleTime: 60_000,
-  });
+  const { tenantId, isReady } = useTsePageTenant();
 
   const statusQuery = useQuery({
     queryKey: [...KEY, 'status', tenantId],
@@ -162,7 +158,7 @@ export default function TseUpdatesPage() {
   ];
 
   if (!allowed) {
-    return <Alert type="error" showIcon message={t('tseUpdates.forbidden')} />;
+    return <Alert type="error" showIcon title={t('tseUpdates.forbidden')} />;
   }
 
   return (
@@ -170,45 +166,31 @@ export default function TseUpdatesPage() {
       <AdminPageHeader
         title={t('tseUpdates.title')}
         breadcrumbs={[adminOverviewCrumb(t), { title: t('tseUpdates.title') }]}
-        extra={
-          <Select
-            showSearch
-            optionFilterProp="label"
-            style={{ minWidth: 260 }}
-            placeholder={t('tseUpdates.tenantLabel')}
-            loading={tenantsQuery.isLoading}
-            value={tenantId}
-            onChange={setTenantId}
-            options={(tenantsQuery.data ?? []).map((tenant) => ({
-              value: tenant.id,
-              label: `${tenant.name} (${tenant.slug})`,
-            }))}
-          />
-        }
+        extra={<TseActiveTenantTag />}
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
           {t('tseUpdates.subtitle')}
         </Typography.Paragraph>
       </AdminPageHeader>
 
-      {!tenantId ? (
-        <Alert type="info" showIcon message={t('tseUpdates.emptySelect')} />
+      {!isReady ? (
+        <TseTenantRequiredAlert emptySelectKey="tseUpdates.emptySelect" />
       ) : statusQuery.isError ? (
-        <Alert type="error" showIcon message={t('tseUpdates.loadError')} />
+        <Alert type="error" showIcon title={t('tseUpdates.loadError')} />
       ) : (
-        <Space direction="vertical" size={16} style={{ width: '100%' }}>
+        <Space orientation="vertical" size={16} style={{ width: '100%' }}>
           <Card title={t('tseUpdates.cardTitle')} loading={statusQuery.isLoading}>
             <Alert
               type="info"
               showIcon
               style={{ marginBottom: 16 }}
-              message={t('tseUpdates.diagnosticNote')}
+              title={t('tseUpdates.diagnosticNote')}
             />
 
             <Alert
               type={hasUpdates ? 'info' : 'success'}
               showIcon
-              message={hasUpdates ? t('tseUpdates.updatesAvailable') : t('tseUpdates.upToDate')}
+              title={hasUpdates ? t('tseUpdates.updatesAvailable') : t('tseUpdates.upToDate')}
               description={
                 hasUpdates ? t('tseUpdates.updatesAvailableDesc') : t('tseUpdates.upToDateDesc')
               }
@@ -219,7 +201,7 @@ export default function TseUpdatesPage() {
               type={status?.zeroDowntimeCapable ? 'success' : 'warning'}
               showIcon
               style={{ marginBottom: 16 }}
-              message={
+              title={
                 status?.zeroDowntimeCapable
                   ? t('tseUpdates.zeroDowntimeOk')
                   : t('tseUpdates.zeroDowntimeWarn')

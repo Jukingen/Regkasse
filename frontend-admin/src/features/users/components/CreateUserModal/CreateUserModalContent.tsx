@@ -364,7 +364,7 @@ export function CreateUserModalContent({
         open={createFormModalOpen}
         onCancel={handleClose}
         closable
-        maskClosable
+        mask={{ closable: true }}
         width={600}
         forceRender
         footer={[

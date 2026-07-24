@@ -72,7 +72,7 @@ export function WebsiteGeneratorPanel({
       <Alert
         type="info"
         showIcon
-        message={
+        title={
           <span>
             {t('settings.websiteGenerator.companyHint')}{' '}
             <Link href="/settings/company">{t('settings.websiteGenerator.companyLink')}</Link>
@@ -138,7 +138,7 @@ export function WebsiteGeneratorPanel({
         <Alert
           type="success"
           showIcon
-          message={t('settings.websiteGenerator.websiteSuccess')}
+          title={t('settings.websiteGenerator.websiteSuccess')}
           description={
             <a href={websiteUrl} target="_blank" rel="noreferrer">
               {t('settings.websiteGenerator.openUrl')}: {websiteUrl}
@@ -151,7 +151,7 @@ export function WebsiteGeneratorPanel({
         <Alert
           type="success"
           showIcon
-          message={t('settings.websiteGenerator.mobileSuccess')}
+          title={t('settings.websiteGenerator.mobileSuccess')}
           description={
             <a href={mobileUrl} target="_blank" rel="noreferrer">
               {t('settings.websiteGenerator.openUrl')}: {mobileUrl}

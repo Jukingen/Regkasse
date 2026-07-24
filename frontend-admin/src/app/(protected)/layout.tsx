@@ -3,6 +3,7 @@
 /**
  * Protected admin shell: sidebar via `AdminSidebar` (registry + permission filter).
  * Route access: `PermissionRouteGuard` + `ROUTE_PERMISSIONS`. Desktop Sider width: `usePersistedAdminSiderWidth`.
+ * Super Admin mandant gate: `TenantGuard` (modal until tenant context is set).
  * Session idle timeout (30 min / 5 min warning / auto-logout) lives in `AppLayout` → `useSessionTimeout`
  * — do not call `useSessionTimeout()` here or timers will run twice.
  * Global keyboard shortcuts: `AppLayout` → `KeyboardShortcutsProvider` / `useKeyboardShortcuts`
@@ -25,7 +26,7 @@ import { ImpersonationBanner } from '@/components/admin-layout/ImpersonationBann
 import { RoleMenuPreviewBanner } from '@/features/users/components/RoleMenuPreviewBanner';
 import { LicenseExpiryBanner } from '@/components/admin-layout/LicenseExpiryBanner';
 import { SuperAdminModeBanner } from '@/components/admin-layout/SuperAdminModeBanner';
-import { SuperAdminTenantGate } from '@/components/admin-layout/SuperAdminTenantGate';
+import { TenantGuard } from '@/components/TenantGuard';
 import { VerwaltungTenantContextGate } from '@/components/admin-layout/VerwaltungTenantContextGate';
 import {
   ADMIN_SIDER_WIDTH_MAX,
@@ -158,9 +159,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   <SuperAdminModeBanner />
                   <VerwaltungTenantContextGate />
                   <main id="main-content" tabIndex={-1}>
-                    <SuperAdminTenantGate>
+                    <TenantGuard>
                       <PermissionRouteGuard>{children}</PermissionRouteGuard>
-                    </SuperAdminTenantGate>
+                    </TenantGuard>
                   </main>
                 </AdminLayout>
               </Content>

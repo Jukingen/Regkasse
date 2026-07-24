@@ -166,7 +166,7 @@ export function TenantOperationModeCard({ tenant, onUpdated }: Props) {
           <Alert
             type="warning"
             showIcon
-            message={t('detail.operationMode.readonlyAlertTitle')}
+            title={t('detail.operationMode.readonlyAlertTitle')}
             description={t('detail.operationMode.readonlyAlertDescription')}
           />
         )}
@@ -175,7 +175,7 @@ export function TenantOperationModeCard({ tenant, onUpdated }: Props) {
           <Alert
             type="warning"
             showIcon
-            message={t('detail.operationMode.maintenanceAlertTitle')}
+            title={t('detail.operationMode.maintenanceAlertTitle')}
             description={
               <Space orientation="vertical" size="small" style={{ width: '100%' }}>
                 <Text>{t('detail.operationMode.maintenanceAlertDescription')}</Text>

@@ -28,7 +28,7 @@ export function RoleMenuPreviewBanner() {
       type="warning"
       banner
       showIcon
-      message={t('users.roleDrawer.menuPreview.activeBanner', { role: session.roleName })}
+      title={t('users.roleDrawer.menuPreview.activeBanner', { role: session.roleName })}
       action={
         <Button size="small" onClick={() => stopRoleMenuPreview()}>
           {t('users.roleDrawer.menuPreview.stopPreview')}

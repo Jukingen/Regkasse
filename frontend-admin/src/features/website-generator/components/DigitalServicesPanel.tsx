@@ -234,7 +234,7 @@ export function DigitalServicesPanel({
               <Alert
                 type="info"
                 showIcon
-                message={t('tenants.digitalServices.nativeDownloadHint')}
+                title={t('tenants.digitalServices.nativeDownloadHint')}
               />
             ) : null}
           </Space>

@@ -179,12 +179,12 @@ export function WebsiteTemplatePreviewPanel({ tenantId }: WebsiteTemplatePreview
   }
 
   if (statusError || !website) {
-    return <Alert type="error" showIcon message={t('tenants.digitalServices.statusLoadFailed')} />;
+    return <Alert type="error" showIcon title={t('tenants.digitalServices.statusLoadFailed')} />;
   }
 
   if (!canPreview) {
     return (
-      <Alert type="warning" showIcon message={t('tenants.digitalServices.webNoPermissionBody')} />
+      <Alert type="warning" showIcon title={t('tenants.digitalServices.webNoPermissionBody')} />
     );
   }
 
@@ -194,7 +194,7 @@ export function WebsiteTemplatePreviewPanel({ tenantId }: WebsiteTemplatePreview
         <Alert
           type="success"
           showIcon
-          message={t('tenants.websitePreview.publishedTitle')}
+          title={t('tenants.websitePreview.publishedTitle')}
           description={
             <a href={website.url!} target="_blank" rel="noreferrer">
               {website.url}
@@ -205,7 +205,7 @@ export function WebsiteTemplatePreviewPanel({ tenantId }: WebsiteTemplatePreview
         <Alert
           type="info"
           showIcon
-          message={t('tenants.websitePreview.notPublishedTitle')}
+          title={t('tenants.websitePreview.notPublishedTitle')}
           description={t('tenants.websitePreview.notPublishedBody')}
         />
       )}
@@ -214,7 +214,7 @@ export function WebsiteTemplatePreviewPanel({ tenantId }: WebsiteTemplatePreview
         <Alert
           type="info"
           showIcon
-          message={t('tenants.websitePreview.pendingTitle')}
+          title={t('tenants.websitePreview.pendingTitle')}
           description={
             pendingWeb.note
               ? t('tenants.websitePreview.pendingBodyWithNote', { note: pendingWeb.note })
@@ -271,7 +271,7 @@ export function WebsiteTemplatePreviewPanel({ tenantId }: WebsiteTemplatePreview
                       <CardSkeleton count={1} loading />
                     </div>
                   ) : null}
-                  {previewError ? <Alert type="warning" showIcon message={previewError} /> : null}
+                  {previewError ? <Alert type="warning" showIcon title={previewError} /> : null}
                   {!previewLoading && previewUrl && selectedTemplate === tpl.id ? (
                     <iframe
                       title={t('tenants.websitePreview.iframeTitle', { name: tpl.name })}

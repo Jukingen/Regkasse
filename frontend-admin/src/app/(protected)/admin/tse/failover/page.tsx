@@ -19,9 +19,11 @@ import {
   Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { TseActiveTenantTag } from '@/features/tse-shared/components/TseTenantContextUi';
+import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
 import {
   getFailoverHistory,
   getFailoverStatus,
@@ -75,12 +77,19 @@ export default function TseFailoverPage() {
   const { hasPermission } = usePermissions();
   const allowed = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
   const queryClient = useQueryClient();
+  const { tenantId: contextTenantId } = useTsePageTenant();
 
   const [manualPrimaryId, setManualPrimaryId] = useState<string | null>(null);
   const [manualBackupId, setManualBackupId] = useState<string | undefined>();
   const [reportTenantId, setReportTenantId] = useState<string | undefined>();
   const [trendDays, setTrendDays] = useState(7);
   const [perfDeviceId, setPerfDeviceId] = useState<string | undefined>();
+
+  useEffect(() => {
+    if (contextTenantId) {
+      setReportTenantId(contextTenantId);
+    }
+  }, [contextTenantId]);
 
   const devicesQuery = useQuery({
     queryKey: DEVICES_KEY,
@@ -261,7 +270,7 @@ export default function TseFailoverPage() {
       title: t('tseFailover.colDevice'),
       key: 'device',
       render: (_, row) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <Typography.Text code style={{ fontSize: 12 }}>
             {row.deviceId || row.serialNumber}
           </Typography.Text>
@@ -353,7 +362,7 @@ export default function TseFailoverPage() {
   if (!allowed) {
     return (
       <div style={{ padding: 24 }}>
-        <Alert type="error" showIcon message={t('tseFailover.forbidden')} />
+        <Alert type="error" showIcon title={t('tseFailover.forbidden')} />
       </div>
     );
   }
@@ -376,7 +385,7 @@ export default function TseFailoverPage() {
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
-          message={t('tseFailover.autoFailoverOff')}
+          title={t('tseFailover.autoFailoverOff')}
         />
       ) : null}
 
@@ -419,9 +428,9 @@ export default function TseFailoverPage() {
           type="warning"
           showIcon
           style={{ marginBottom: 16 }}
-          message={t('tseFailover.activeAlertTitle')}
+          title={t('tseFailover.activeAlertTitle')}
           description={
-            <Space direction="vertical" style={{ width: '100%' }}>
+            <Space orientation="vertical" style={{ width: '100%' }}>
               {status!.activeFailovers.map((f) => (
                 <Space key={f.id} wrap style={{ width: '100%', justifyContent: 'space-between' }}>
                   <Typography.Text>
@@ -464,6 +473,7 @@ export default function TseFailoverPage() {
               showSearch
               optionFilterProp="label"
             />
+            <TseActiveTenantTag />
             <Select
               style={{ width: 120 }}
               value={trendDays}
@@ -480,7 +490,7 @@ export default function TseFailoverPage() {
         {!reportTenantId ? (
           <Typography.Text type="secondary">{t('tseFailover.healthReportSelectTenant')}</Typography.Text>
         ) : (
-          <Space direction="vertical" size="large" style={{ width: '100%' }}>
+          <Space orientation="vertical" size="large" style={{ width: '100%' }}>
             <Row gutter={[16, 16]}>
               <Col xs={12} sm={8} md={4}>
                 <Statistic title={t('tseFailover.statHealthy')} value={report?.healthyDevices ?? 0} />
@@ -528,7 +538,7 @@ export default function TseFailoverPage() {
                       : t('tseFailover.complianceFullyOk');
                 const compliance = complianceReportQuery.data;
                 return (
-                  <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                  <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                     <Space wrap>
                       <Tag color={statusColor}>
                         {t('tseFailover.complianceStatusLabel')}: {statusLabel}
@@ -655,7 +665,7 @@ export default function TseFailoverPage() {
                   }
                   showIcon
                   style={{ marginBottom: 16 }}
-                  message={t('tseFailover.performanceAnomalyTitle')}
+                  title={t('tseFailover.performanceAnomalyTitle')}
                   description={performanceAnomalyQuery.data.message}
                 />
               ) : null}
@@ -723,7 +733,7 @@ export default function TseFailoverPage() {
                 const riskColor =
                   probability > 70 ? '#cf1322' : probability > 40 ? '#faad14' : '#52c41a';
                 return (
-                  <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                  <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                     <Typography.Text type="secondary">
                       {t('tseFailover.predictHeuristicNote')}
                     </Typography.Text>
@@ -732,7 +742,7 @@ export default function TseFailoverPage() {
                       <Alert
                         type="error"
                         showIcon
-                        message={t('tseFailover.predictCriticalTitle')}
+                        title={t('tseFailover.predictCriticalTitle')}
                         description={t('tseFailover.predictCriticalDescription', {
                           probability: Math.round(probability),
                         })}
@@ -741,7 +751,7 @@ export default function TseFailoverPage() {
                       <Alert
                         type="warning"
                         showIcon
-                        message={t('tseFailover.predictHighTitle')}
+                        title={t('tseFailover.predictHighTitle')}
                         description={prediction.recommendations?.[0]}
                       />
                     ) : null}
@@ -807,7 +817,7 @@ export default function TseFailoverPage() {
                       locale={{ emptyText: t('tseFailover.predictRiskFactorsEmpty') }}
                       renderItem={(factor) => (
                         <List.Item>
-                          <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                          <Space orientation="vertical" size={4} style={{ width: '100%' }}>
                             <Space
                               style={{ width: '100%', justifyContent: 'space-between' }}
                               wrap
@@ -840,7 +850,7 @@ export default function TseFailoverPage() {
               {(() => {
                 const cost = costReportQuery.data;
                 return (
-                  <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                  <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                     <Typography.Text type="secondary">
                       {t('tseFailover.costIndicativeNote')}
                     </Typography.Text>
@@ -851,7 +861,7 @@ export default function TseFailoverPage() {
                           costAnomalyQuery.data?.severity === 'Critical' ? 'error' : 'warning'
                         }
                         showIcon
-                        message={t('tseFailover.costAnomalyTitle')}
+                        title={t('tseFailover.costAnomalyTitle')}
                         description={
                           costAnomalyQuery.data?.message ||
                           cost?.anomalyDescription ||
@@ -919,7 +929,7 @@ export default function TseFailoverPage() {
                                 : 'info'
                           }
                           showIcon
-                          message={rec.title}
+                          title={rec.title}
                           description={
                             rec.estimatedMonthlySavings > 0
                               ? `${rec.description} (${t('tseFailover.costEstMonthlySavings')}: €${rec.estimatedMonthlySavings.toFixed(2)})`
@@ -977,7 +987,7 @@ export default function TseFailoverPage() {
                       dataSource={report?.recentAlerts ?? []}
                       renderItem={(item) => (
                         <List.Item>
-                          <Space direction="vertical" size={0} style={{ width: '100%' }}>
+                          <Space orientation="vertical" size={0} style={{ width: '100%' }}>
                             <Typography.Text strong>{item.title}</Typography.Text>
                             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                               {formatUtcDateTime(item.atUtc)} · {item.type}
@@ -1068,7 +1078,7 @@ export default function TseFailoverPage() {
       >
         <Typography.Paragraph type="secondary">{t('tseFailover.manualModalHint')}</Typography.Paragraph>
         {backupOptions.length === 0 ? (
-          <Alert type="warning" showIcon message={t('tseFailover.manualNoBackups')} />
+          <Alert type="warning" showIcon title={t('tseFailover.manualNoBackups')} />
         ) : (
           <Select
             style={{ width: '100%' }}

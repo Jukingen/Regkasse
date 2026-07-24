@@ -175,7 +175,7 @@ function DependencyOverviewBody({
         {tenantName} ({dependencies.tenantSlug ?? tenantSlug})
       </Typography.Paragraph>
 
-      <Alert type="info" showIcon message={t('tenants.deletePreparation.complianceInfo')} />
+      <Alert type="info" showIcon title={t('tenants.deletePreparation.complianceInfo')} />
 
       {!canHardDelete || dependencies.hasFiscalFootprint ? (
         <Alert

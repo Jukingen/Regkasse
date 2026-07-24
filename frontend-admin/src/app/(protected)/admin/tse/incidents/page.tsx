@@ -23,6 +23,8 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { useMemo, useState } from 'react';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { TseActiveTenantTag } from '@/features/tse-shared/components/TseTenantContextUi';
+import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
 import {
   createTseIncident,
   getTseIncident,
@@ -79,6 +81,7 @@ export default function TseIncidentsPage() {
   const { hasPermission } = usePermissions();
   const allowed = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
   const queryClient = useQueryClient();
+  const { tenantId: contextTenantId } = useTsePageTenant();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [detailsId, setDetailsId] = useState<string | null>(null);
@@ -224,7 +227,7 @@ export default function TseIncidentsPage() {
   ];
 
   if (!allowed) {
-    return <Alert type="error" showIcon message={t('tseIncidents.forbidden')} />;
+    return <Alert type="error" showIcon title={t('tseIncidents.forbidden')} />;
   }
 
   return (
@@ -233,9 +236,21 @@ export default function TseIncidentsPage() {
         title={t('tseIncidents.title')}
         breadcrumbs={[adminOverviewCrumb(t), { title: t('tseIncidents.title') }]}
         extra={
-          <Button type="primary" onClick={() => setCreateOpen(true)}>
-            {t('tseIncidents.reportButton')}
-          </Button>
+          <Space>
+            <TseActiveTenantTag />
+            <Button
+              type="primary"
+              onClick={() => {
+                createForm.setFieldsValue({
+                  severity: 'Medium',
+                  tenantId: contextTenantId,
+                });
+                setCreateOpen(true);
+              }}
+            >
+              {t('tseIncidents.reportButton')}
+            </Button>
+          </Space>
         }
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
@@ -256,7 +271,16 @@ export default function TseIncidentsPage() {
               <span style={{ paddingInline: 8 }}>{t('tseIncidents.badgeResolved')}</span>
             </Badge>
           </Space>
-          <Button type="primary" onClick={() => setCreateOpen(true)}>
+          <Button
+            type="primary"
+            onClick={() => {
+              createForm.setFieldsValue({
+                severity: 'Medium',
+                tenantId: contextTenantId,
+              });
+              setCreateOpen(true);
+            }}
+          >
             {t('tseIncidents.reportButton')}
           </Button>
         </div>
@@ -436,7 +460,7 @@ export default function TseIncidentsPage() {
             <Typography.Title level={5} style={{ marginTop: 16 }}>
               {t('tseIncidents.reportTitle')}
             </Typography.Title>
-            <Alert type="info" showIcon message={report.summary} />
+            <Alert type="info" showIcon title={report.summary} />
           </>
         ) : null}
       </Modal>

@@ -109,7 +109,7 @@ export function BackupStatusWidget({ title, dragHandleProps, onRefresh }: Props)
           <Alert
             type="warning"
             showIcon
-            message={t('dashboard.backupStatusWidget.storage_alert')}
+            title={t('dashboard.backupStatusWidget.storage_alert')}
           />
         ) : null}
 

@@ -21,9 +21,13 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { useState } from 'react';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import {
+  TseActiveTenantTag,
+  TseTenantRequiredAlert,
+} from '@/features/tse-shared/components/TseTenantContextUi';
+import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
 import { generateTseDrRunbook, getTseDrStatus, runTseDrDrill } from '@/features/tse-dr/api/dr';
 import type { TseDrReport, TseDrRunbook } from '@/features/tse-dr/types';
-import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -40,17 +44,10 @@ export default function TseDisasterRecoveryPage() {
   const { hasPermission } = usePermissions();
   const allowed = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
   const queryClient = useQueryClient();
-  const [tenantId, setTenantId] = useState<string | undefined>();
+  const { tenantId, isReady } = useTsePageTenant();
   const [scenario, setScenario] = useState('TSEFailure');
   const [lastReport, setLastReport] = useState<TseDrReport | null>(null);
   const [localRunbook, setLocalRunbook] = useState<TseDrRunbook | null>(null);
-
-  const tenantsQuery = useQuery({
-    queryKey: ['admin', 'tenants', 'tse-dr'],
-    queryFn: () => listAdminTenants(false),
-    enabled: allowed,
-    staleTime: 60_000,
-  });
 
   const statusQuery = useQuery({
     queryKey: [...DR_KEY, 'status', tenantId],
@@ -96,7 +93,7 @@ export default function TseDisasterRecoveryPage() {
   const runbook = localRunbook ?? status?.latestRunbook ?? null;
 
   if (!allowed) {
-    return <Alert type="error" showIcon message={t('tseDr.forbidden')} />;
+    return <Alert type="error" showIcon title={t('tseDr.forbidden')} />;
   }
 
   return (
@@ -106,23 +103,7 @@ export default function TseDisasterRecoveryPage() {
         breadcrumbs={[adminOverviewCrumb(t), { title: t('tseDr.title') }]}
         extra={
           <Space wrap>
-            <Select
-              showSearch
-              optionFilterProp="label"
-              style={{ minWidth: 240 }}
-              placeholder={t('tseDr.tenantLabel')}
-              loading={tenantsQuery.isLoading}
-              value={tenantId}
-              onChange={(value) => {
-                setTenantId(value);
-                setLastReport(null);
-                setLocalRunbook(null);
-              }}
-              options={(tenantsQuery.data ?? []).map((tenant) => ({
-                value: tenant.id,
-                label: `${tenant.name} (${tenant.slug})`,
-              }))}
-            />
+            <TseActiveTenantTag />
             <Select
               style={{ minWidth: 180 }}
               value={scenario}
@@ -157,14 +138,14 @@ export default function TseDisasterRecoveryPage() {
         </Typography.Paragraph>
       </AdminPageHeader>
 
-      {!tenantId ? (
-        <Alert type="info" showIcon message={t('tseDr.emptySelect')} />
+      {!isReady ? (
+        <TseTenantRequiredAlert emptySelectKey="tseDr.emptySelect" />
       ) : (
         <Card title={t('tseDr.cardTitle')} loading={statusQuery.isLoading}>
-          <Alert type="info" showIcon message={t('tseDr.simulationNote')} style={{ marginBottom: 16 }} />
+          <Alert type="info" showIcon title={t('tseDr.simulationNote')} style={{ marginBottom: 16 }} />
 
           {statusQuery.isError ? (
-            <Alert type="error" showIcon message={t('tseDr.loadError')} />
+            <Alert type="error" showIcon title={t('tseDr.loadError')} />
           ) : status ? (
             <>
               <Row gutter={16} style={{ marginBottom: 16 }}>

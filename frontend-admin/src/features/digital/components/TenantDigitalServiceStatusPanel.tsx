@@ -43,7 +43,7 @@ export function TenantDigitalServiceStatusPanel({
   }
 
   if (isError || !data) {
-    return <Alert type="error" showIcon message={t('tenants.digitalServices.statusLoadFailed')} />;
+    return <Alert type="error" showIcon title={t('tenants.digitalServices.statusLoadFailed')} />;
   }
 
   const webActive = data.website.isAvailable;
@@ -70,7 +70,7 @@ export function TenantDigitalServiceStatusPanel({
               <Alert
                 type="success"
                 showIcon
-                message={t('tenants.digitalServices.webActiveTitle')}
+                title={t('tenants.digitalServices.webActiveTitle')}
                 description={t('tenants.digitalServices.webActiveBody')}
               />
               {showManageActions ? (
@@ -102,7 +102,7 @@ export function TenantDigitalServiceStatusPanel({
             <Alert
               type="warning"
               showIcon
-              message={t('tenants.digitalServices.webInactiveTitle')}
+              title={t('tenants.digitalServices.webInactiveTitle')}
               description={
                 !data.website.isAvailable
                   ? t('tenants.digitalServices.webInactiveBody')
@@ -132,7 +132,7 @@ export function TenantDigitalServiceStatusPanel({
               <Alert
                 type="success"
                 showIcon
-                message={t('tenants.digitalServices.appActiveTitle')}
+                title={t('tenants.digitalServices.appActiveTitle')}
                 description={t('tenants.digitalServices.appActiveBody')}
               />
               {showManageActions && canCreateApp ? (
@@ -152,7 +152,7 @@ export function TenantDigitalServiceStatusPanel({
                 <Alert
                   type="info"
                   showIcon
-                  message={t('tenants.digitalServices.managerInfoTitle')}
+                  title={t('tenants.digitalServices.managerInfoTitle')}
                   description={t('tenants.digitalServices.managerInfoBody')}
                 />
               ) : null}
@@ -161,7 +161,7 @@ export function TenantDigitalServiceStatusPanel({
             <Alert
               type="warning"
               showIcon
-              message={t('tenants.digitalServices.appInactiveTitle')}
+              title={t('tenants.digitalServices.appInactiveTitle')}
               description={
                 !data.app.isAvailable
                   ? t('tenants.digitalServices.appInactiveBody')

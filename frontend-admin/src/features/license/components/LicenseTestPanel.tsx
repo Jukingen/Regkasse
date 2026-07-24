@@ -122,7 +122,7 @@ export function LicenseTestPanel() {
       <Alert
         type="error"
         showIcon
-        message={t('license.testPanel.tenantLoadError')}
+        title={t('license.testPanel.tenantLoadError')}
         description={tenantError.message}
       />
     );
@@ -142,7 +142,7 @@ export function LicenseTestPanel() {
         <Alert
           type="warning"
           showIcon
-          message={t('license.testPanel.noTenantSelected')}
+          title={t('license.testPanel.noTenantSelected')}
           style={{ marginBottom: 16 }}
         />
       ) : null}

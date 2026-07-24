@@ -71,6 +71,74 @@ export default defineConfig([
       'import/first': 'error',
       'import/no-duplicates': 'warn',
       'import/newline-after-import': 'warn',
+
+      /**
+       * Ant Design 6 deprecated JSX props (component-scoped).
+       * There is no built-in `no-restricted-props`; use AST selectors.
+       * Do not ban Modal `width` or Collapse `bordered` — those remain valid.
+       * Guide: docs/ANT_DESIGN_6_MIGRATION.md
+       */
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "JSXOpeningElement[name.name='Drawer'] > JSXAttribute[name.name='width']",
+          message:
+            "Ant Design 6: Drawer `width` is deprecated. Use `size` instead (see docs/ANT_DESIGN_6_MIGRATION.md).",
+        },
+        {
+          selector:
+            "JSXOpeningElement[name.name='Drawer'] > JSXAttribute[name.name='height']",
+          message:
+            "Ant Design 6: Drawer `height` is deprecated. Use `size` instead (see docs/ANT_DESIGN_6_MIGRATION.md).",
+        },
+        {
+          selector:
+            "JSXOpeningElement[name.name='Alert'] > JSXAttribute[name.name='message']",
+          message:
+            "Ant Design 6: Alert `message` is deprecated. Use `title` instead (see docs/ANT_DESIGN_6_MIGRATION.md).",
+        },
+        {
+          selector:
+            "JSXOpeningElement[name.name='Card'] > JSXAttribute[name.name='bordered']",
+          message:
+            'Ant Design 6: Card `bordered` is deprecated. Use variant="borderless" or variant="outlined" (see docs/ANT_DESIGN_6_MIGRATION.md).',
+        },
+        {
+          selector:
+            "JSXOpeningElement[name.name='Tag'] > JSXAttribute[name.name='bordered']",
+          message:
+            'Ant Design 6: Tag `bordered` is deprecated. Prefer variant="filled" / variant (see docs/ANT_DESIGN_6_MIGRATION.md).',
+        },
+        {
+          selector: "JSXAttribute[name.name='destroyOnClose']",
+          message:
+            "Ant Design 6: `destroyOnClose` is deprecated on Modal/Drawer/Tabs. Use `destroyOnHidden` instead (see docs/ANT_DESIGN_6_MIGRATION.md).",
+        },
+        {
+          selector: "JSXAttribute[name.name='dropdownRender']",
+          message:
+            "Ant Design 6: `dropdownRender` is deprecated on Dropdown/Select. Use `popupRender` instead (see docs/ANT_DESIGN_6_MIGRATION.md).",
+        },
+        {
+          selector:
+            "JSXOpeningElement[name.name='Space'] > JSXAttribute[name.name='direction']",
+          message:
+            "Ant Design 6: Space `direction` is deprecated. Use `orientation` instead (see docs/ANT_DESIGN_6_MIGRATION.md).",
+        },
+        {
+          selector:
+            "JSXOpeningElement[name.object.name='Space'][name.property.name='Compact'] > JSXAttribute[name.name='direction']",
+          message:
+            "Ant Design 6: Space.Compact `direction` is deprecated. Use `orientation` instead (see docs/ANT_DESIGN_6_MIGRATION.md).",
+        },
+        {
+          selector:
+            "JSXOpeningElement[name.name=/^(Modal|Drawer)$/] > JSXAttribute[name.name='maskClosable']",
+          message:
+            "Ant Design 6: `maskClosable` is deprecated. Use mask={{ closable: … }} instead (see docs/ANT_DESIGN_6_MIGRATION.md).",
+        },
+      ],
     },
   },
   {

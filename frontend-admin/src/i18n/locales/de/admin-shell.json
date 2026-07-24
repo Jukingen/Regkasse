@@ -221,8 +221,24 @@
     "superAdminPromptAction": "Mandanten öffnen",
     "superAdminModeBanner": "Sie sind im Super Admin Modus. Wählen Sie einen Mandanten aus oder nutzen Sie Impersonation.",
     "badgeSuperAdminMode": "Super Admin Modus | Volle Kontrolle",
+    "status": {
+      "noneSelected": "Kein Mandant ausgewählt",
+      "active": "{name} ({slug})"
+    },
     "selectTenantFirstTitle": "Zuerst Mandant wählen",
     "selectTenantFirstBody": "Mandantenbezogene Daten werden erst nach Mandantenauswahl oder Impersonation angezeigt.",
+    "guard": {
+      "title": "Mandant auswählen",
+      "body": "Bitte wählen Sie einen Mandanten aus, um fortzufahren. Der Kontext gilt für alle Seiten.",
+      "confirm": "Mandant übernehmen",
+      "applyFailed": "Mandant konnte nicht gesetzt werden."
+    },
+    "tseLayout": {
+      "title": "Kein Mandant ausgewählt",
+      "body": "Bitte wählen Sie zuerst einen Mandanten aus, um TSE-Einstellungen zu konfigurieren.",
+      "selectFromHeader": "Bitte wählen Sie einen Mandanten über die Mandantenauswahl in der oberen Leiste oder den Super-Admin-Dialog aus.",
+      "activeTag": "{name} ({slug})"
+    },
     "adminLandingTitle": "Plattform-Administration",
     "switch": {
       "toast": "Mandant gewechselt zu {slug}"

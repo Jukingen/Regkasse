@@ -7,7 +7,8 @@ namespace KasseAPI_Final.Middleware;
 /// After authentication, re-binds ambient tenant.
 /// <list type="bullet">
 /// <item><description>Development: when <see cref="SubdomainTenantProvider.DevTenantHeaderName"/> / <c>?tenant=</c> is present (and not platform <c>admin</c>), that override wins over JWT.</description></item>
-/// <item><description>Production/Staging: authenticated requests use JWT <c>tenant_id</c> only — header/query are ignored; missing/invalid claim clears ambient tenant (fail-closed).</description></item>
+/// <item><description>Development SuperAdmin without JWT/header: <see cref="ITenantContextService"/> prefers seeded <c>dev</c> (not silent Production defaults).</description></item>
+/// <item><description>Production/Staging: authenticated requests use JWT <c>tenant_id</c> only — header/query are ignored; missing/invalid claim clears ambient tenant (fail-closed), including SuperAdmin.</description></item>
 /// </list>
 /// Pipeline: runs immediately after <c>UseAuthentication</c> and before license / authorization gates.
 /// </summary>

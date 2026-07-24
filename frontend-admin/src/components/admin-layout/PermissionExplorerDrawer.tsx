@@ -81,7 +81,7 @@ export function PermissionExplorerDrawer({ loadRoles = true }: PermissionExplore
       title={t('adminShell.menuPermission.explorerTitle')}
       open={open}
       onClose={closePermissionExplorer}
-      width={420}
+      size={420}
       destroyOnHidden
     >
       <Input

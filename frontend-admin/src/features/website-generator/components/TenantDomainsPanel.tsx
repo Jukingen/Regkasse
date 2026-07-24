@@ -213,7 +213,7 @@ export function TenantDomainsPanel() {
         style={{ marginTop: 16 }}
         type="info"
         showIcon
-        message={t('settings.websiteGenerator.publishHint')}
+        title={t('settings.websiteGenerator.publishHint')}
       />
       <Space style={{ marginTop: 12 }} wrap>
         <Button

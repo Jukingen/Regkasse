@@ -212,7 +212,7 @@ export default function LicenseDebugPage() {
         type="info"
         showIcon
         icon={<BugOutlined />}
-        message={t('license.debug.noticeTitle')}
+        title={t('license.debug.noticeTitle')}
         description={t('license.debug.noticeDescription')}
       />
 

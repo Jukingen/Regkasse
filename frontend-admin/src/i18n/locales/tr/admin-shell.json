@@ -221,8 +221,24 @@
     "superAdminPromptAction": "Kiracıları aç",
     "superAdminModeBanner": "Super Admin modundasınız. Bir kiracı seçin veya kimlik taklidi kullanın.",
     "badgeSuperAdminMode": "Super Admin modu | Tam kontrol",
+    "status": {
+      "noneSelected": "Kiracı seçilmedi",
+      "active": "{name} ({slug})"
+    },
     "selectTenantFirstTitle": "Önce kiracı seçin",
     "selectTenantFirstBody": "Kiracıya özel veriler yalnızca kiracı seçimi veya kimlik taklidinden sonra gösterilir.",
+    "guard": {
+      "title": "Kiracı seçin",
+      "body": "Devam etmek için bir kiracı seçin. Bağlam tüm sayfalarda geçerli olur.",
+      "confirm": "Kiracıyı uygula",
+      "applyFailed": "Kiracı bağlamı ayarlanamadı."
+    },
+    "tseLayout": {
+      "title": "Kiracı seçilmedi",
+      "body": "TSE ayarlarını yapılandırmak için önce bir kiracı seçin.",
+      "selectFromHeader": "Lütfen üst çubuktaki kiracı seçiciden veya Super Admin seçim penceresinden bir kiracı seçin.",
+      "activeTag": "{name} ({slug})"
+    },
     "adminLandingTitle": "Platform yönetimi",
     "switch": {
       "toast": "Kiracı değiştirildi: {slug}"

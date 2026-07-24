@@ -29,7 +29,7 @@ export function CreateUserPasswordSuccessModal({
       open={open}
       onCancel={onClose}
       closable
-      maskClosable
+      mask={{ closable: true }}
       destroyOnHidden
       footer={[
         <Button key="copy" type="primary" icon={<CopyOutlined />} onClick={onCopyPassword}>

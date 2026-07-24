@@ -7,7 +7,6 @@ import {
   Button,
   Card,
   Modal,
-  Select,
   Space,
   Table,
   Tag,
@@ -19,12 +18,16 @@ import { useMemo, useState } from 'react';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import {
+  TseActiveTenantTag,
+  TseTenantRequiredAlert,
+} from '@/features/tse-shared/components/TseTenantContextUi';
+import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
+import {
   detectTseAnomalies,
   getTseAnomalyDashboard,
   resolveTseAnomaly,
 } from '@/features/tse-anomaly-detection/api/anomalies';
 import type { TseAnomaly, TseAnomalySeverity } from '@/features/tse-anomaly-detection/types';
-import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -54,15 +57,8 @@ export default function TseAnomalyDetectionPage() {
   const queryClient = useQueryClient();
   const { hasPermission } = usePermissions();
   const allowed = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
-  const [tenantId, setTenantId] = useState<string | undefined>();
+  const { tenantId, isReady } = useTsePageTenant();
   const [detail, setDetail] = useState<TseAnomaly | null>(null);
-
-  const tenantsQuery = useQuery({
-    queryKey: ['admin', 'tenants', 'tse-anomalies'],
-    queryFn: () => listAdminTenants(false),
-    enabled: allowed,
-    staleTime: 60_000,
-  });
 
   const dashboardQuery = useQuery({
     queryKey: [...KEY, 'dashboard', tenantId],
@@ -171,7 +167,7 @@ export default function TseAnomalyDetectionPage() {
   );
 
   if (!allowed) {
-    return <Alert type="error" showIcon message={t('tseAnomalyDetection.forbidden')} />;
+    return <Alert type="error" showIcon title={t('tseAnomalyDetection.forbidden')} />;
   }
 
   return (
@@ -179,38 +175,24 @@ export default function TseAnomalyDetectionPage() {
       <AdminPageHeader
         title={t('tseAnomalyDetection.title')}
         breadcrumbs={[adminOverviewCrumb(t), { title: t('tseAnomalyDetection.title') }]}
-        extra={
-          <Select
-            showSearch
-            optionFilterProp="label"
-            style={{ minWidth: 260 }}
-            placeholder={t('tseAnomalyDetection.tenantLabel')}
-            loading={tenantsQuery.isLoading}
-            value={tenantId}
-            onChange={setTenantId}
-            options={(tenantsQuery.data ?? []).map((tenant) => ({
-              value: tenant.id,
-              label: `${tenant.name} (${tenant.slug})`,
-            }))}
-          />
-        }
+        extra={<TseActiveTenantTag />}
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
           {t('tseAnomalyDetection.subtitle')}
         </Typography.Paragraph>
       </AdminPageHeader>
 
-      {!tenantId ? (
-        <Alert type="info" showIcon message={t('tseAnomalyDetection.emptySelect')} />
+      {!isReady ? (
+        <TseTenantRequiredAlert emptySelectKey="tseAnomalyDetection.emptySelect" />
       ) : dashboardQuery.isError ? (
-        <Alert type="error" showIcon message={t('tseAnomalyDetection.loadError')} />
+        <Alert type="error" showIcon title={t('tseAnomalyDetection.loadError')} />
       ) : (
         <Card title={t('tseAnomalyDetection.cardTitle')} loading={dashboardQuery.isLoading}>
           <Alert
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
-            message={t('tseAnomalyDetection.diagnosticNote')}
+            title={t('tseAnomalyDetection.diagnosticNote')}
           />
 
           <div
@@ -277,7 +259,7 @@ export default function TseAnomalyDetectionPage() {
         destroyOnHidden
       >
         {detail && (
-          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+          <Space orientation="vertical" size="small" style={{ width: '100%' }}>
             <Typography.Text>
               <strong>{t('tseAnomalyDetection.colMetric')}:</strong> {detail.metricName}
             </Typography.Text>

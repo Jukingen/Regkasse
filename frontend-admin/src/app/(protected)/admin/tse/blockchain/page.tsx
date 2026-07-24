@@ -9,7 +9,6 @@ import {
   Divider,
   Form,
   Input,
-  Select,
   Space,
   Table,
   Typography,
@@ -20,13 +19,17 @@ import { useState } from 'react';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import {
+  TseActiveTenantTag,
+  TseTenantRequiredAlert,
+} from '@/features/tse-shared/components/TseTenantContextUi';
+import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
+import {
   getTseBlockchainStatus,
   listTseBlockchainTransactions,
   storeTseBlockchainSignature,
   syncTseBlockchain,
 } from '@/features/tse-blockchain/api/blockchain';
 import type { TseBlockchainTransaction } from '@/features/tse-blockchain/types';
-import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -45,15 +48,8 @@ export default function TseBlockchainPage() {
   const queryClient = useQueryClient();
   const { hasPermission } = usePermissions();
   const allowed = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
-  const [tenantId, setTenantId] = useState<string | undefined>();
+  const { tenantId, isReady } = useTsePageTenant();
   const [form] = Form.useForm<AnchorForm>();
-
-  const tenantsQuery = useQuery({
-    queryKey: ['admin', 'tenants', 'tse-blockchain'],
-    queryFn: () => listAdminTenants(false),
-    enabled: allowed,
-    staleTime: 60_000,
-  });
 
   const statusQuery = useQuery({
     queryKey: [...KEY, 'status'],
@@ -137,7 +133,7 @@ export default function TseBlockchainPage() {
   ];
 
   if (!allowed) {
-    return <Alert type="error" showIcon message={t('tseBlockchain.forbidden')} />;
+    return <Alert type="error" showIcon title={t('tseBlockchain.forbidden')} />;
   }
 
   const status = statusQuery.data;
@@ -148,28 +144,11 @@ export default function TseBlockchainPage() {
       <AdminPageHeader
         title={t('tseBlockchain.title')}
         breadcrumbs={[adminOverviewCrumb(t), { title: t('tseBlockchain.title') }]}
-        extra={
-          <Select
-            showSearch
-            allowClear
-            style={{ minWidth: 260 }}
-            placeholder={t('tseBlockchain.tenantLabel')}
-            value={tenantId}
-            onChange={(v) => setTenantId(v)}
-            options={(tenantsQuery.data ?? []).map((ten) => ({
-              value: ten.id,
-              label: ten.name ? `${ten.name} (${ten.slug})` : ten.slug,
-            }))}
-            optionFilterProp="label"
-          />
-        }
+        extra={<TseActiveTenantTag />}
       />
 
-      <Typography.Paragraph type="secondary">{t('tseBlockchain.subtitle')}</Typography.Paragraph>
-      <Alert type="info" showIcon message={t('tseBlockchain.diagnosticNote')} />
-
       {statusQuery.isError ? (
-        <Alert type="error" showIcon message={t('tseBlockchain.loadError')} />
+        <Alert type="error" showIcon title={t('tseBlockchain.loadError')} />
       ) : (
         <Card title={t('tseBlockchain.cardTitle')} loading={statusQuery.isLoading}>
           <div className="flex flex-wrap items-center gap-4">
@@ -206,8 +185,8 @@ export default function TseBlockchainPage() {
 
           <Divider />
 
-          {!tenantId ? (
-            <Alert type="info" showIcon message={t('tseBlockchain.emptySelect')} />
+          {!isReady ? (
+            <TseTenantRequiredAlert emptySelectKey="tseBlockchain.emptySelect" />
           ) : (
             <>
               <Form

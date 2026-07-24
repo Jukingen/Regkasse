@@ -1,17 +1,81 @@
-# Regkasse — Cursor Rules (redirect)
+# Regkasse — Cursor Rules (redirect + project index)
 
 > **Single source of truth:** `AGENTS.md` at the repository root.
-> Do not add or duplicate development rules here — update `AGENTS.md` instead.
+> Do **not** duplicate full development rules here — update `AGENTS.md` instead.
+> This file is a short index so agents load the right context and stack before coding.
+
+```yaml
+project:
+  name: Regkasse
+  type: monorepo
+  description: RKSV-compliant multi-tenant POS system (Austria)
+  packages:
+    - backend          # ASP.NET Core API, fiscal/TSE/RKSV
+    - frontend         # Expo POS (cash-register)
+    - frontend-admin   # Next.js admin panel (FA)
+    - frontend-sites   # Next.js tenant storefronts
+    - localization     # shared i18n tooling
+
+context_files:
+  always:
+    - AGENTS.md
+  medium_or_large_tasks:
+    - REGKASSE_AI_ONBOARDING.md
+    - docs/PROJECT_COMPREHENSIVE_DOCUMENTATION.md
+  domain_as_needed:
+    - ai/07_DO_NOT_TOUCH.md
+    - ai/01_BACKEND_CONTRACT.md
+    - ai/02_DATABASE_CONTRACT.md
+    - ai/03_API_CONTRACT.md
+    - ai/05_SECURITY_COMPLIANCE.md
+    - ai/10_API_BOUNDARY_POLICY.md
+  patterns_dataset:
+    - ai/training/README.md
+    - ai/training/regkasse-ai-dataset.json
+    - ai/training/curated-patterns.json
+
+coding_standards:  # details + versions in AGENTS.md § Repo Map
+  backend:
+    framework: ASP.NET Core 10
+    orm: EF Core 10
+    language: C#
+  frontend_admin:
+    framework: Next.js 16
+    ui: Ant Design 6
+    language: TypeScript
+  mobile_pos:
+    framework: Expo SDK 56
+    language: TypeScript
+  sites:
+    framework: Next.js 16
+    language: TypeScript
+
+patterns:
+  - Follow nearest existing package patterns; prefer incremental changes
+  - Preserve backward compatibility unless explicitly told otherwise
+  - Include tests for new features / high-risk changes
+  - Do not invent APIs, roles, or fiscal flows — read contracts first
+
+ai_assistance:
+  prefer_existing_patterns: true
+  respect_api_boundaries: true   # POS /api/pos/* vs Admin /api/admin/*
+  respect_tenant_isolation: true # cross-tenant → HTTP 404, not 403
+  read_recent_improvements: true # AGENTS.md § Recent Improvements (2026-07)
+```
 
 ## Read order for AI agents
-1. **`AGENTS.md`** — always-applied workspace rules (multi-tenant, API boundaries, fiscal guardrails, validation commands)
+1. **`AGENTS.md`** — always-applied workspace rules (languages, multi-tenant, API boundaries, fiscal/backup guardrails, validation commands, recent DX/CI improvements)
 2. **`REGKASSE_AI_ONBOARDING.md`** — project brief for medium/large tasks
-3. **`ai/`** — domain-specific contracts (`07_DO_NOT_TOUCH.md`, API/database/compliance docs)
+3. **`docs/PROJECT_COMPREHENSIVE_DOCUMENTATION.md`** — broader system map when needed
+4. **`ai/`** — domain contracts (`07_DO_NOT_TOUCH.md`, API/database/compliance, module docs)
 
 ## Quick reminders (non-exhaustive)
-- POS UI: German (de-DE). Admin UI: i18n (de/en/tr). IDE explanations: Turkish.
-- Cross-tenant access → HTTP 404 (not 403). Never bypass tenant query filters except Super Admin ops.
-- POS uses `/api/pos/*`; Admin uses `/api/admin/*` — do not cross boundaries.
-- High-risk: payments, TSE/RKSV chain, tenant isolation, FinanzOnline outbox, voucher ledger.
+- **Languages:** POS UI German (de-DE); Admin UI i18n (de/en/tr); IDE explanations Turkish; code identifiers English.
+- **API:** POS → `/api/pos/*` (+ Auth/Receipts); Admin → `/api/admin/*` — do not cross boundaries.
+- **Tenancy:** Cross-tenant access → HTTP **404** (not 403). Never `IgnoreQueryFilters()` except Super Admin ops.
+- **Stack (pinned):** .NET 10 / EF 10.0.10; FA Next.js 16 + Ant Design 6; POS Expo SDK 56 — see AGENTS.md for exact package versions.
+- **FA Ant Design:** use `useNotify()` / `useAntdApp()` — never static `message` / `notification` / `Modal.confirm` from `antd`.
+- **High-risk:** payments, TSE/RKSV chain, tenant isolation, FinanzOnline outbox, voucher ledger, backup/restore.
+- **Recent DX (2026-07):** npm workspaces, path-filtered CI, OpenAPI→Orval + Husky verify, i18n hard gate — details in `AGENTS.md` § Recent Improvements.
 
-**Last updated:** 2026-05-29 — consolidated into AGENTS.md; this file is a redirect stub only.
+**Last updated:** 2026-07-24 — enhanced project index; rules remain in AGENTS.md only.

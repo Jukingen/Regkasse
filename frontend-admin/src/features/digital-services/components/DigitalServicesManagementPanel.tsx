@@ -275,11 +275,11 @@ export function DigitalServicesManagementPanel() {
   );
 
   if (!canView) {
-    return <Alert type="warning" showIcon message={t('superadmin.digital.accessDenied')} />;
+    return <Alert type="warning" showIcon title={t('superadmin.digital.accessDenied')} />;
   }
 
   if (isError) {
-    return <Alert type="error" showIcon message={t('superadmin.digital.loadFailed')} />;
+    return <Alert type="error" showIcon title={t('superadmin.digital.loadFailed')} />;
   }
 
   return (

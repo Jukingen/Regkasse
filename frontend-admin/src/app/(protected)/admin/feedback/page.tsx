@@ -122,7 +122,7 @@ export default function AdminFeedbackInboxPage() {
         dataIndex: 'submittedByDisplayName',
         width: 180,
         render: (v: string | null | undefined, row) => (
-          <Space direction="vertical" size={0}>
+          <Space orientation="vertical" size={0}>
             <span>{v || row.submittedByUserId.slice(0, 8)}</span>
             {row.submittedByUsername ? (
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
@@ -156,7 +156,7 @@ export default function AdminFeedbackInboxPage() {
   );
 
   return (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
+    <Space orientation="vertical" size="large" style={{ width: '100%' }}>
       <div>
         <Typography.Title level={3} style={{ marginBottom: 4 }}>
           {t('feedback.inbox.pageTitle')}
@@ -167,7 +167,7 @@ export default function AdminFeedbackInboxPage() {
       <Alert
         type="info"
         showIcon
-        message={t('feedback.process.weeklyTitle')}
+        title={t('feedback.process.weeklyTitle')}
         description={t('feedback.process.weeklyHint')}
       />
 
@@ -210,7 +210,7 @@ export default function AdminFeedbackInboxPage() {
             pagination={{ pageSize: 20, total: listQuery.data?.total }}
             expandable={{
               expandedRowRender: (row) => (
-                <Space direction="vertical" style={{ width: '100%' }}>
+                <Space orientation="vertical" style={{ width: '100%' }}>
                   <Typography.Paragraph style={{ marginBottom: 0 }}>{row.message}</Typography.Paragraph>
                   {row.pagePath ? (
                     <Typography.Text type="secondary">{row.pagePath}</Typography.Text>

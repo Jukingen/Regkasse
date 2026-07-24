@@ -8,7 +8,6 @@ import {
   Col,
   Progress,
   Row,
-  Select,
   Space,
   Statistic,
   Table,
@@ -20,11 +19,15 @@ import { useState } from 'react';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import {
+  TseActiveTenantTag,
+  TseTenantRequiredAlert,
+} from '@/features/tse-shared/components/TseTenantContextUi';
+import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
+import {
   checkTseSlaViolations,
   getTseSlaReport,
 } from '@/features/tse-sla/api/sla';
 import type { TseSlaReport, TseSlaViolation } from '@/features/tse-sla/types';
-import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -46,14 +49,7 @@ export default function TseSlaPage() {
   const notify = useNotify();
   const { hasPermission } = usePermissions();
   const allowed = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
-  const [tenantId, setTenantId] = useState<string | undefined>();
-
-  const tenantsQuery = useQuery({
-    queryKey: ['admin', 'tenants', 'tse-sla'],
-    queryFn: () => listAdminTenants(false),
-    enabled: allowed,
-    staleTime: 60_000,
-  });
+  const { tenantId, isReady } = useTsePageTenant();
 
   const reportQuery = useQuery({
     queryKey: [...SLA_KEY, 'report', tenantId],
@@ -112,7 +108,7 @@ export default function TseSlaPage() {
   ];
 
   if (!allowed) {
-    return <Alert type="error" showIcon message={t('tseSla.forbidden')} />;
+    return <Alert type="error" showIcon title={t('tseSla.forbidden')} />;
   }
 
   return (
@@ -122,19 +118,7 @@ export default function TseSlaPage() {
         breadcrumbs={[adminOverviewCrumb(t), { title: t('tseSla.title') }]}
         extra={
           <Space>
-            <Select
-              showSearch
-              optionFilterProp="label"
-              style={{ minWidth: 260 }}
-              placeholder={t('tseSla.tenantLabel')}
-              loading={tenantsQuery.isLoading}
-              value={tenantId}
-              onChange={setTenantId}
-              options={(tenantsQuery.data ?? []).map((tenant) => ({
-                value: tenant.id,
-                label: `${tenant.name} (${tenant.slug})`,
-              }))}
-            />
+            <TseActiveTenantTag />
             <Button
               disabled={!tenantId}
               loading={reportQuery.isFetching}
@@ -158,8 +142,8 @@ export default function TseSlaPage() {
         </Typography.Paragraph>
       </AdminPageHeader>
 
-      {!tenantId ? (
-        <Alert type="info" showIcon message={t('tseSla.emptySelect')} />
+      {!isReady ? (
+        <TseTenantRequiredAlert emptySelectKey="tseSla.emptySelect" />
       ) : (
         <Card title={t('tseSla.cardTitle')} loading={reportQuery.isLoading}>
           {report ? (
@@ -232,7 +216,7 @@ export default function TseSlaPage() {
               />
             </>
           ) : reportQuery.isError ? (
-            <Alert type="error" showIcon message={t('tseSla.loadError')} />
+            <Alert type="error" showIcon title={t('tseSla.loadError')} />
           ) : null}
         </Card>
       )}

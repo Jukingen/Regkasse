@@ -136,7 +136,7 @@ export function PermissionHelpTooltip({
         title={t('users.permissionOnboarding.helpPanelTitle')}
         open={panelOpen}
         onClose={() => setPanelOpen(false)}
-        width={360}
+        size={360}
         destroyOnHidden
       >
         <PermissionHelpContent
