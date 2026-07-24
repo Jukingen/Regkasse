@@ -1,3 +1,5 @@
+using System.Text;
+using System.Text.Json;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
@@ -15,6 +17,24 @@ public sealed class TseComplianceReportService : ITseComplianceReportService
 {
     private const int DefaultStatusLookbackDays = 7;
     private const int MaxPeriodDays = 366;
+    private const int MaxAuditTrailItems = 100;
+
+    private static readonly JsonSerializerOptions ExportJsonOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
+    private static readonly string[] TseAuditEntityTypes =
+    [
+        "TseDevice",
+        "TseDeveloperTools",
+        "TseFailover",
+        "TseIncident",
+        "TseCertificate",
+        "TseBackup",
+        "TseSimulator",
+    ];
 
     private readonly AppDbContext _db;
     private readonly ICurrentTenantAccessor _tenantAccessor;
@@ -94,7 +114,6 @@ public sealed class TseComplianceReportService : ITseComplianceReportService
                 tenantId, fromUtc, toUtc, cancellationToken)
             .ConfigureAwait(false);
 
-        // Prefer RKSV missing-signature count when available (same period / ambient tenant).
         if (rksv.Summary.TseSignatureMissingCount > unsigned)
             unsigned = rksv.Summary.TseSignatureMissingCount;
 
@@ -169,6 +188,209 @@ public sealed class TseComplianceReportService : ITseComplianceReportService
         var report = await GenerateComplianceReportAsync(tenantId, fromUtc, toUtc, cancellationToken)
             .ConfigureAwait(false);
 
+        var (status, score) = DeriveStatusAndScore(report);
+
+        return new TseComplianceStatusDto
+        {
+            TenantId = tenantId,
+            TenantName = report.TenantName,
+            Status = status,
+            IsFullyCompliant = report.IsFullyCompliant,
+            ComplianceScore = score,
+            TotalTransactions = report.TotalTransactions,
+            UnsignedTransactions = report.UnsignedTransactions,
+            ChainBreakCount = report.SignatureChainSummary.ChainBreakCount,
+            UnhealthyDevices = report.HealthSummary.UnhealthyDevices,
+            CheckedAt = report.GeneratedAt,
+            LookbackStart = fromUtc,
+            LookbackEnd = toUtc,
+            TopIssueCodes = report.Issues.Select(i => i.Code).Distinct().Take(8).ToList(),
+        };
+    }
+
+    public async Task<TseComplianceDashboardDto> GetComplianceDashboardAsync(
+        Guid tenantId,
+        DateTime fromUtc,
+        DateTime toUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var report = await GenerateComplianceReportAsync(tenantId, fromUtc, toUtc, cancellationToken)
+            .ConfigureAwait(false);
+        var (status, score) = DeriveStatusAndScore(report);
+        var certificates = await LoadCertificateRowsAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        var validCerts = certificates.Count(c => c.IsValid);
+        var auditTrail = await LoadAuditTrailAsync(tenantId, fromUtc, toUtc, cancellationToken)
+            .ConfigureAwait(false);
+        var auditCount = await CountTseAuditLogsAsync(tenantId, fromUtc, toUtc, cancellationToken)
+            .ConfigureAwait(false);
+
+        var chainStatus = report.SignatureChainSummary.ChainBreakCount > 0
+                          || report.SignatureChainSummary.MissingSignatureCount > 0
+            ? TseComplianceChainStatusNames.Broken
+            : report.SignatureChainSummary.SequenceGapCount > 0
+              || report.SignatureChainSummary.DuplicateCount > 0
+                ? TseComplianceChainStatusNames.AtRisk
+                : TseComplianceChainStatusNames.Healthy;
+
+        var signedPercent = report.TotalTransactions == 0
+            ? 100
+            : Math.Round(100.0 * report.SignedTransactions / report.TotalTransactions, 1);
+
+        return new TseComplianceDashboardDto
+        {
+            TenantId = tenantId,
+            TenantName = report.TenantName,
+            TenantSlug = report.TenantSlug,
+            PeriodStart = report.ReportPeriodStart,
+            PeriodEnd = report.ReportPeriodEnd,
+            GeneratedAt = report.GeneratedAt,
+            ComplianceScore = score,
+            Status = status,
+            SignatureChainStatus = chainStatus,
+            ValidCertificates = validCerts,
+            TotalCertificates = certificates.Count,
+            AuditLogCount = auditCount,
+            Report = report,
+            Certificates = certificates,
+            Transactions = new TseComplianceTransactionSummaryDto
+            {
+                TotalTransactions = report.TotalTransactions,
+                SignedTransactions = report.SignedTransactions,
+                UnsignedTransactions = report.UnsignedTransactions,
+                SignedPercent = signedPercent,
+                SignatureChainHealthy = report.SignatureChainSummary.ChainHealthy,
+                ChainBreakCount = report.SignatureChainSummary.ChainBreakCount,
+                SequenceGapCount = report.SignatureChainSummary.SequenceGapCount,
+                DuplicateCount = report.SignatureChainSummary.DuplicateCount,
+                MissingSignatureCount = report.SignatureChainSummary.MissingSignatureCount,
+                Issues = report.Issues,
+            },
+            AuditTrail = auditTrail,
+            LegalNoticeDe = report.LegalNoticeDe,
+        };
+    }
+
+    public async Task<(byte[] Content, string FileName)> ExportComplianceReportAsync(
+        Guid tenantId,
+        DateTime fromUtc,
+        DateTime toUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var dashboard = await GetComplianceDashboardAsync(tenantId, fromUtc, toUtc, cancellationToken)
+            .ConfigureAwait(false);
+        var json = JsonSerializer.Serialize(dashboard, ExportJsonOptions);
+        var bytes = Encoding.UTF8.GetBytes(json);
+        var slug = string.IsNullOrWhiteSpace(dashboard.TenantSlug) ? "tenant" : dashboard.TenantSlug;
+        var fileName = $"tse-compliance-{slug}-{DateTime.UtcNow:yyyyMMddHHmmss}.json";
+        return (bytes, fileName);
+    }
+
+    private async Task<List<TseComplianceCertificateRowDto>> LoadCertificateRowsAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow;
+        var devices = await _db.TseDevices.AsNoTracking()
+            .Where(d => d.IsActive && d.TenantId == tenantId)
+            .OrderBy(d => d.SerialNumber)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return devices.Select(d =>
+        {
+            var certStatus = string.IsNullOrWhiteSpace(d.CertificateStatus) ? "UNKNOWN" : d.CertificateStatus.Trim();
+            var revoked = string.Equals(certStatus, "REVOKED", StringComparison.OrdinalIgnoreCase)
+                          || d.HealthStatus == TseHealthStatus.Revoked;
+            var expired = string.Equals(certStatus, "EXPIRED", StringComparison.OrdinalIgnoreCase)
+                          || d.HealthStatus == TseHealthStatus.Expired
+                          || (d.ExpiresAt is { } exp && exp <= now);
+            var valid = !revoked && !expired
+                        && (string.Equals(certStatus, "VALID", StringComparison.OrdinalIgnoreCase)
+                            || string.Equals(certStatus, "UNKNOWN", StringComparison.OrdinalIgnoreCase));
+            double? days = d.ExpiresAt is { } e
+                ? Math.Round((e - now).TotalDays, 1)
+                : null;
+
+            var lifecycle = revoked
+                ? "Revoked"
+                : expired
+                    ? "Expired"
+                    : days is < 30 and >= 0
+                        ? "ExpiringSoon"
+                        : valid
+                            ? "Valid"
+                            : "Invalid";
+
+            return new TseComplianceCertificateRowDto
+            {
+                DeviceId = d.Id,
+                SerialNumber = d.SerialNumber,
+                Provider = d.Provider ?? d.DeviceType,
+                CertificateStatus = certStatus,
+                LifecycleStatus = lifecycle,
+                IsValid = valid,
+                ExpiresAt = d.ExpiresAt,
+                DaysUntilExpiry = days,
+                HealthScore = d.HealthScore,
+                HealthStatus = d.HealthStatus.ToString(),
+                ScheduledRenewalAt = d.ScheduledRenewalAt,
+            };
+        }).ToList();
+    }
+
+    private async Task<List<TseComplianceAuditTrailItemDto>> LoadAuditTrailAsync(
+        Guid tenantId,
+        DateTime fromUtc,
+        DateTime toUtc,
+        CancellationToken cancellationToken)
+    {
+        var entityTypes = TseAuditEntityTypes;
+        var rows = await _db.AuditLogs.AsNoTracking().IgnoreQueryFilters()
+            .Where(a => a.TenantId == tenantId
+                        && a.Timestamp >= fromUtc
+                        && a.Timestamp < toUtc
+                        && (entityTypes.Contains(a.EntityType)
+                            || a.Action.StartsWith("TSE_")
+                            || a.EntityType.StartsWith("Tse")))
+            .OrderByDescending(a => a.Timestamp)
+            .Take(MaxAuditTrailItems)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return rows.Select(a => new TseComplianceAuditTrailItemDto
+        {
+            Id = a.Id,
+            TimestampUtc = a.Timestamp,
+            Action = a.Action,
+            EntityType = a.EntityType,
+            EntityId = a.EntityId,
+            UserId = a.UserId,
+            UserRole = a.UserRole,
+            Description = a.Description,
+            Status = a.Status.ToString(),
+        }).ToList();
+    }
+
+    private async Task<int> CountTseAuditLogsAsync(
+        Guid tenantId,
+        DateTime fromUtc,
+        DateTime toUtc,
+        CancellationToken cancellationToken)
+    {
+        var entityTypes = TseAuditEntityTypes;
+        return await _db.AuditLogs.AsNoTracking().IgnoreQueryFilters()
+            .Where(a => a.TenantId == tenantId
+                        && a.Timestamp >= fromUtc
+                        && a.Timestamp < toUtc
+                        && (entityTypes.Contains(a.EntityType)
+                            || a.Action.StartsWith("TSE_")
+                            || a.EntityType.StartsWith("Tse")))
+            .CountAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    internal static (string Status, int Score) DeriveStatusAndScore(TseComplianceReportDto report)
+    {
         var hasCritical = report.Issues.Any(i =>
             string.Equals(i.Severity, "Critical", StringComparison.OrdinalIgnoreCase));
         var hasWarning = report.Issues.Any(i =>
@@ -180,21 +402,25 @@ public sealed class TseComplianceReportService : ITseComplianceReportService
                 ? TseComplianceStatusNames.AtRisk
                 : TseComplianceStatusNames.Compliant;
 
-        return new TseComplianceStatusDto
+        var score = 100;
+        var criticalCount = report.Issues.Count(i =>
+            string.Equals(i.Severity, "Critical", StringComparison.OrdinalIgnoreCase));
+        var warningCount = report.Issues.Count(i =>
+            string.Equals(i.Severity, "Warning", StringComparison.OrdinalIgnoreCase));
+        score -= Math.Min(60, criticalCount * 25);
+        score -= Math.Min(30, warningCount * 10);
+
+        if (report.TotalTransactions > 0 && report.UnsignedTransactions > 0)
         {
-            TenantId = tenantId,
-            TenantName = report.TenantName,
-            Status = status,
-            IsFullyCompliant = report.IsFullyCompliant,
-            TotalTransactions = report.TotalTransactions,
-            UnsignedTransactions = report.UnsignedTransactions,
-            ChainBreakCount = report.SignatureChainSummary.ChainBreakCount,
-            UnhealthyDevices = report.HealthSummary.UnhealthyDevices,
-            CheckedAt = report.GeneratedAt,
-            LookbackStart = fromUtc,
-            LookbackEnd = toUtc,
-            TopIssueCodes = report.Issues.Select(i => i.Code).Distinct().Take(8).ToList(),
-        };
+            var unsignedRate = report.UnsignedTransactions / (double)report.TotalTransactions;
+            score -= (int)Math.Round(Math.Min(25, unsignedRate * 40));
+        }
+
+        if (report.SignatureChainSummary.ChainBreakCount > 0)
+            score -= 15;
+
+        score = Math.Clamp(score, 0, 100);
+        return (status, score);
     }
 
     private async Task<(int Total, int Signed, int Unsigned)> CountReceiptSignaturesAsync(

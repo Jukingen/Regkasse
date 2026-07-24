@@ -1,0 +1,17 @@
+{
+  "title": "TSE bilgi bankası",
+  "subtitle": "Super Admin için operasyonel TSE dokümantasyonu ve SSS. Vergi veya RKSV hukuki tavsiye değildir.",
+  "cardTitle": "TSE bilgi bankası",
+  "searchPlaceholder": "TSE dokümantasyonunda ara…",
+  "tabPopular": "Popüler",
+  "tabResults": "Arama sonuçları",
+  "tabFaq": "SSS",
+  "articleTitle": "Makale",
+  "rateArticle": "Makaleyi değerlendir",
+  "feedbackThanks": "Geri bildiriminiz için teşekkürler",
+  "ratingLabel": "Puan {{rating}} · {{views}} görüntüleme",
+  "empty": "Makale bulunamadı.",
+  "forbidden": "Bu sayfa için yetkiniz yok.",
+  "loadError": "Makale yüklenemedi.",
+  "diagnosticNote": "Yalnızca operasyonel rehberlik (health, failover, healing, scaling). Mali imza zinciri değişmez."
+}

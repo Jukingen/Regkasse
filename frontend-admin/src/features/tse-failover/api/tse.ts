@@ -13,6 +13,12 @@ import type {
   TsePerformanceMetrics,
   TseComplianceReport,
   TseComplianceStatus,
+  TseCostAlert,
+  TseCostReport,
+  TseCostSavingRecommendation,
+  TseHealthPrediction,
+  TsePredictionResult,
+  TseRiskFactor,
 } from '../types';
 
 export async function getTseDevices(signal?: AbortSignal): Promise<TseFailoverDevice[]> {
@@ -126,6 +132,86 @@ export async function getTseComplianceStatus(
     url: '/api/admin/tse/compliance/status',
     method: 'GET',
     params: { tenantId },
+    signal,
+  });
+}
+
+export async function getTseCostReport(
+  tenantId: string,
+  days = 30,
+  signal?: AbortSignal
+): Promise<TseCostReport> {
+  const toUtc = new Date();
+  const fromUtc = new Date(toUtc.getTime() - days * 24 * 60 * 60 * 1000);
+  return customInstance<TseCostReport>({
+    url: '/api/admin/tse/failover/cost-report',
+    method: 'GET',
+    params: {
+      tenantId,
+      fromUtc: fromUtc.toISOString(),
+      toUtc: toUtc.toISOString(),
+    },
+    signal,
+  });
+}
+
+export async function getTseCostRecommendations(
+  tenantId: string,
+  signal?: AbortSignal
+): Promise<TseCostSavingRecommendation[]> {
+  return customInstance<TseCostSavingRecommendation[]>({
+    url: '/api/admin/tse/failover/cost-recommendations',
+    method: 'GET',
+    params: { tenantId },
+    signal,
+  });
+}
+
+export async function getTseCostAnomalies(
+  tenantId: string,
+  signal?: AbortSignal
+): Promise<TseCostAlert> {
+  return customInstance<TseCostAlert>({
+    url: '/api/admin/tse/failover/cost-anomalies',
+    method: 'GET',
+    params: { tenantId },
+    signal,
+  });
+}
+
+export async function getTseFailurePrediction(
+  deviceId: string,
+  signal?: AbortSignal
+): Promise<TsePredictionResult> {
+  return customInstance<TsePredictionResult>({
+    url: '/api/admin/tse/failover/predict-failure',
+    method: 'GET',
+    params: { deviceId },
+    signal,
+  });
+}
+
+export async function getTseRiskFactors(
+  tenantId: string,
+  signal?: AbortSignal
+): Promise<TseRiskFactor[]> {
+  return customInstance<TseRiskFactor[]>({
+    url: '/api/admin/tse/failover/risk-factors',
+    method: 'GET',
+    params: { tenantId },
+    signal,
+  });
+}
+
+export async function getTseHealthForecast(
+  deviceId: string,
+  days = 7,
+  signal?: AbortSignal
+): Promise<TseHealthPrediction> {
+  return customInstance<TseHealthPrediction>({
+    url: '/api/admin/tse/failover/health-forecast',
+    method: 'GET',
+    params: { deviceId, days },
     signal,
   });
 }

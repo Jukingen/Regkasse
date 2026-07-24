@@ -659,6 +659,7 @@ Use `/ai` docs selectively based on the task:
 - Backend/API/auth/contract work → `ai/01_BACKEND_CONTRACT.md`, `ai/03_API_CONTRACT.md`
 - Database/entity/migration work → `ai/02_DATABASE_CONTRACT.md`
 - Compliance/fiscal/TSE/RKSV work → `ai/05_SECURITY_COMPLIANCE.md`, `ai/modules/tse_finanzonline.md`
+- **Super Admin TSE ops** (health, failover, healing, scaling, knowledge, … — diagnostic; not DEP rewrite) → `ai/modules/tse_admin_ops.md`, `docs/PROJECT_COMPREHENSIVE_DOCUMENTATION.md`
 - **POS production hosts / Single POS UI** → `docs/POS_PRODUCTION_ARCHITECTURE.md`, `docs/MULTI_TENANT.md`
 - **Tagesabschluss sonrası (ödeme engeli, çift kapanış)** → `docs/RKSV_AFTER_TAGESABSCHLUSS.md`, `docs/RKSV_CASH_REGISTER_OPERATIONS.md` §11
 - **Offline TSE intents (legacy)** → `ai/modules/offline_transactions_legacy.md`

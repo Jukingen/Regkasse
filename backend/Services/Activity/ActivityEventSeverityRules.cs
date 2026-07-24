@@ -65,6 +65,16 @@ internal static class ActivityEventSeverityRules
             ActivityEventType.TseCertificateRenewalScheduled => ActivitySeverityNames.Info,
             ActivityEventType.TsePerformanceSlow => ActivitySeverityNames.Warning,
             ActivityEventType.TsePerformanceHighErrorRate => ActivitySeverityNames.Warning,
+            ActivityEventType.TseCostAnomaly => ActivitySeverityNames.Warning,
+            ActivityEventType.TsePredictiveFailureRisk => ActivitySeverityNames.Warning,
+            ActivityEventType.TseIncidentCreated => ActivitySeverityNames.Warning,
+            ActivityEventType.TseIncidentResolved => ActivitySeverityNames.Info,
+            ActivityEventType.TseSlaViolation => ActivitySeverityNames.Warning,
+            ActivityEventType.TseCapacityNearLimit => ActivitySeverityNames.Warning,
+            ActivityEventType.TseDrDrillCompleted => ActivitySeverityNames.Info,
+            ActivityEventType.TseAutoScaleRecommended => ActivitySeverityNames.Info,
+            ActivityEventType.TseAnomalyDetected => ActivitySeverityNames.Warning,
+            ActivityEventType.TseAutoHealExecuted => ActivitySeverityNames.Info,
             _ => ActivitySeverityNames.Info,
         };
 

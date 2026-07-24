@@ -7,6 +7,9 @@
 ## 2) TSE ve signature chain
 - TSE imza üretimi, **receipt numbering / sequence** ve **`signature_chain_state`** doğrulama adımları korunmalı.
 - İmza payload alanlarını ve akış sırasını sebepsiz değiştirme; istemci veya flag ile zinciri “atlatma” yok.
+- **Super Admin TSE ops** (`/api/admin/tse/*`, FA `/admin/tse/*`) çoğunlukla diagnostic’tir; DEP / cert / Startbeleg rewrite için kullanılmaz.
+- **Failover / auto-healing** imzalayan cihazı değiştirebilir (fiscal-adjacent) — varsayılan healing kapalı, `AllowAutoFailover` varsayılan false; açık görev olmadan gevşetme.
+- Ops envanteri: `ai/modules/tse_admin_ops.md`; fiscal core: `ai/modules/tse_finanzonline.md`.
 
 ## 3) RKSV özel fiş yaşam döngüsü
 - Nullbeleg, Startbeleg, Monatsbeleg, Jahresbeleg, Schlussbeleg: tekillik kuralları, kasa durumu ve TSE kullanılabilirlik koşulları kodda sıkıdır.

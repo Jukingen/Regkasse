@@ -162,6 +162,32 @@ namespace KasseAPI_Final.Data
         public DbSet<SensitiveExportApproval> SensitiveExportApprovals { get; set; }
         public DbSet<DownloadSecurityTicket> DownloadSecurityTickets { get; set; }
         public DbSet<ApprovalRequest> ApprovalRequests { get; set; }
+        public DbSet<TseResourcePool> TseResourcePools { get; set; }
+        public DbSet<TseResourcePoolAssignment> TseResourcePoolAssignments { get; set; }
+        public DbSet<TseResourcePoolRule> TseResourcePoolRules { get; set; }
+        public DbSet<TseIncident> TseIncidents { get; set; }
+        public DbSet<TseIncidentLog> TseIncidentLogs { get; set; }
+        public DbSet<TseIncidentAction> TseIncidentActions { get; set; }
+        public DbSet<TseDrRunbook> TseDrRunbooks { get; set; }
+        public DbSet<TseDrStep> TseDrSteps { get; set; }
+        public DbSet<TseScalingPolicy> TseScalingPolicies { get; set; }
+        public DbSet<TseScalingHistoryEntry> TseScalingHistory { get; set; }
+        public DbSet<TseGatewayConfig> TseGatewayConfigs { get; set; }
+        public DbSet<TseGatewayEndpoint> TseGatewayEndpoints { get; set; }
+        public DbSet<TseAnomaly> TseAnomalies { get; set; }
+        public DbSet<TseWebhookRegistration> TseWebhooks { get; set; }
+        public DbSet<TseWebhookDelivery> TseWebhookDeliveries { get; set; }
+        public DbSet<TseBlockchainRecord> TseBlockchainRecords { get; set; }
+        public DbSet<TseBlockchainLedgerState> TseBlockchainLedgerStates { get; set; }
+        public DbSet<TseTrainingProgress> TseTrainingProgress { get; set; }
+        public DbSet<TseRecommendation> TseRecommendations { get; set; }
+        public DbSet<TseUpdateState> TseUpdateStates { get; set; }
+        public DbSet<TseUpdateHistoryEntry> TseUpdateHistory { get; set; }
+        public DbSet<TseHealingConfiguration> TseHealingConfigurations { get; set; }
+        public DbSet<TseHealingRule> TseHealingRules { get; set; }
+        public DbSet<TseHealingHistoryEntry> TseHealingHistory { get; set; }
+        public DbSet<TseKnowledgeArticle> TseKnowledgeArticles { get; set; }
+        public DbSet<TseKnowledgeFeedback> TseKnowledgeFeedback { get; set; }
         public DbSet<OperationLog> OperationLogs { get; set; }
         public DbSet<GracePeriodPending> GracePeriodPendings { get; set; }
         public DbSet<ReportPdf> ReportPdfs { get; set; }
@@ -429,6 +455,571 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_approval_requests_tenant_id");
                 entity.HasIndex(e => new { e.RequestedBy, e.ActionType, e.TenantId })
                     .HasDatabaseName("idx_approval_requests_requester_action_tenant");
+            });
+
+            builder.Entity<TseResourcePool>(entity =>
+            {
+                entity.ToTable("tse_resource_pools");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).HasColumnName("name").IsRequired().HasMaxLength(120);
+                entity.Property(e => e.PoolType).HasColumnName("pool_type").IsRequired().HasMaxLength(32);
+                entity.Property(e => e.TotalCapacity).HasColumnName("total_capacity").IsRequired();
+                entity.Property(e => e.IsActive).HasColumnName("is_active").IsRequired();
+                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(500);
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();
+                entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+                entity.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(450);
+                entity.HasIndex(e => e.Name).HasDatabaseName("idx_tse_resource_pools_name");
+                entity.HasIndex(e => e.PoolType).HasDatabaseName("idx_tse_resource_pools_type");
+                entity.HasMany(e => e.Assignments)
+                    .WithOne(a => a.Pool)
+                    .HasForeignKey(a => a.PoolId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasMany(e => e.Rules)
+                    .WithOne(r => r.Pool)
+                    .HasForeignKey(r => r.PoolId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<TseResourcePoolAssignment>(entity =>
+            {
+                entity.ToTable("tse_resource_pool_assignments");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.PoolId).HasColumnName("pool_id").IsRequired();
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.ReservedCapacity).HasColumnName("reserved_capacity").IsRequired();
+                entity.Property(e => e.AssignedAt).HasColumnName("assigned_at").IsRequired();
+                entity.Property(e => e.AssignedBy).HasColumnName("assigned_by").HasMaxLength(450);
+                entity.HasIndex(e => e.PoolId).HasDatabaseName("idx_tse_resource_pool_assignments_pool_id");
+                entity.HasIndex(e => e.TenantId)
+                    .IsUnique()
+                    .HasDatabaseName("idx_tse_resource_pool_assignments_tenant_id");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<TseResourcePoolRule>(entity =>
+            {
+                entity.ToTable("tse_resource_pool_rules");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.PoolId).HasColumnName("pool_id").IsRequired();
+                entity.Property(e => e.RuleType).HasColumnName("rule_type").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.RuleValue).HasColumnName("rule_value").HasMaxLength(256);
+                entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(500);
+                entity.Property(e => e.IsEnabled).HasColumnName("is_enabled").IsRequired();
+                entity.HasIndex(e => e.PoolId).HasDatabaseName("idx_tse_resource_pool_rules_pool_id");
+            });
+
+            builder.Entity<TseIncident>(entity =>
+            {
+                entity.ToTable("tse_incidents");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.DeviceId).HasColumnName("device_id");
+                entity.Property(e => e.Title).HasColumnName("title").IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Description).HasColumnName("description").IsRequired().HasMaxLength(4000);
+                entity.Property(e => e.Severity).HasColumnName("severity").IsRequired().HasMaxLength(16);
+                entity.Property(e => e.Status).HasColumnName("status").IsRequired().HasMaxLength(24);
+                entity.Property(e => e.DetectedAt).HasColumnName("detected_at").IsRequired();
+                entity.Property(e => e.ResolvedAt).HasColumnName("resolved_at");
+                entity.Property(e => e.Resolution).HasColumnName("resolution").HasMaxLength(4000);
+                entity.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(450);
+                entity.Property(e => e.UpdatedBy).HasColumnName("updated_by").HasMaxLength(450);
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();
+                entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+                entity.HasIndex(e => new { e.TenantId, e.DetectedAt })
+                    .HasDatabaseName("idx_tse_incidents_tenant_detected");
+                entity.HasIndex(e => e.Status).HasDatabaseName("idx_tse_incidents_status");
+                entity.HasIndex(e => e.Severity).HasDatabaseName("idx_tse_incidents_severity");
+                entity.HasIndex(e => e.DeviceId).HasDatabaseName("idx_tse_incidents_device_id");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.Device)
+                    .WithMany()
+                    .HasForeignKey(e => e.DeviceId)
+                    .OnDelete(DeleteBehavior.SetNull);
+                entity.HasMany(e => e.Logs)
+                    .WithOne(l => l.Incident)
+                    .HasForeignKey(l => l.IncidentId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasMany(e => e.Actions)
+                    .WithOne(a => a.Incident)
+                    .HasForeignKey(a => a.IncidentId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<TseIncidentLog>(entity =>
+            {
+                entity.ToTable("tse_incident_logs");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.IncidentId).HasColumnName("incident_id").IsRequired();
+                entity.Property(e => e.EventType).HasColumnName("event_type").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.Message).HasColumnName("message").IsRequired().HasMaxLength(2000);
+                entity.Property(e => e.ActorUserId).HasColumnName("actor_user_id").HasMaxLength(450);
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();
+                entity.HasIndex(e => e.IncidentId).HasDatabaseName("idx_tse_incident_logs_incident_id");
+            });
+
+            builder.Entity<TseIncidentAction>(entity =>
+            {
+                entity.ToTable("tse_incident_actions");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.IncidentId).HasColumnName("incident_id").IsRequired();
+                entity.Property(e => e.ActionType).HasColumnName("action_type").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.Description).HasColumnName("description").IsRequired().HasMaxLength(2000);
+                entity.Property(e => e.PerformedBy).HasColumnName("performed_by").HasMaxLength(450);
+                entity.Property(e => e.PerformedAt).HasColumnName("performed_at").IsRequired();
+                entity.Property(e => e.IsCompleted).HasColumnName("is_completed").IsRequired();
+                entity.HasIndex(e => e.IncidentId).HasDatabaseName("idx_tse_incident_actions_incident_id");
+            });
+
+            builder.Entity<TseDrRunbook>(entity =>
+            {
+                entity.ToTable("tse_dr_runbooks");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.Name).HasColumnName("name").IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Scenario).HasColumnName("scenario").IsRequired().HasMaxLength(32);
+                entity.Property(e => e.Status).HasColumnName("status").IsRequired().HasMaxLength(24);
+                entity.Property(e => e.EstimatedRtoMinutes).HasColumnName("estimated_rto_minutes").IsRequired();
+                entity.Property(e => e.ActualRtoMinutes).HasColumnName("actual_rto_minutes").IsRequired();
+                entity.Property(e => e.IsDrill).HasColumnName("is_drill").IsRequired();
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();
+                entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+                entity.Property(e => e.LastTestedAt).HasColumnName("last_tested_at");
+                entity.Property(e => e.StartedAt).HasColumnName("started_at");
+                entity.Property(e => e.CompletedAt).HasColumnName("completed_at");
+                entity.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(450);
+                entity.Property(e => e.Summary).HasColumnName("summary").HasMaxLength(2000);
+                entity.HasIndex(e => new { e.TenantId, e.CreatedAt })
+                    .HasDatabaseName("idx_tse_dr_runbooks_tenant_created");
+                entity.HasIndex(e => e.Status).HasDatabaseName("idx_tse_dr_runbooks_status");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasMany(e => e.Steps)
+                    .WithOne(s => s.Runbook)
+                    .HasForeignKey(s => s.RunbookId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<TseDrStep>(entity =>
+            {
+                entity.ToTable("tse_dr_steps");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.RunbookId).HasColumnName("runbook_id").IsRequired();
+                entity.Property(e => e.Order).HasColumnName("step_order").IsRequired();
+                entity.Property(e => e.Action).HasColumnName("action").IsRequired().HasMaxLength(128);
+                entity.Property(e => e.Description).HasColumnName("description").IsRequired().HasMaxLength(2000);
+                entity.Property(e => e.IsAutomated).HasColumnName("is_automated").IsRequired();
+                entity.Property(e => e.IsCompleted).HasColumnName("is_completed").IsRequired();
+                entity.Property(e => e.StartedAt).HasColumnName("started_at");
+                entity.Property(e => e.CompletedAt).HasColumnName("completed_at");
+                entity.Property(e => e.Result).HasColumnName("result").HasMaxLength(2000);
+                entity.Property(e => e.Error).HasColumnName("error").HasMaxLength(2000);
+                entity.HasIndex(e => e.RunbookId).HasDatabaseName("idx_tse_dr_steps_runbook_id");
+            });
+
+            builder.Entity<TseScalingPolicy>(entity =>
+            {
+                entity.ToTable("tse_scaling_policies");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.Enabled).HasColumnName("enabled").IsRequired();
+                entity.Property(e => e.MinDevices).HasColumnName("min_devices").IsRequired();
+                entity.Property(e => e.MaxDevices).HasColumnName("max_devices").IsRequired();
+                entity.Property(e => e.TargetTransactionsPerDevice).HasColumnName("target_transactions_per_device").IsRequired();
+                entity.Property(e => e.ScaleUpThreshold).HasColumnName("scale_up_threshold").IsRequired();
+                entity.Property(e => e.ScaleDownThreshold).HasColumnName("scale_down_threshold").IsRequired();
+                entity.Property(e => e.CooldownMinutes).HasColumnName("cooldown_minutes").IsRequired();
+                entity.Property(e => e.AutoProvision).HasColumnName("auto_provision").IsRequired();
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();
+                entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+                entity.Property(e => e.UpdatedBy).HasColumnName("updated_by").HasMaxLength(450);
+                entity.HasIndex(e => e.TenantId).IsUnique().HasDatabaseName("idx_tse_scaling_policies_tenant");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<TseScalingHistoryEntry>(entity =>
+            {
+                entity.ToTable("tse_scaling_history");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.EvaluatedAt).HasColumnName("evaluated_at").IsRequired();
+                entity.Property(e => e.Action).HasColumnName("action").IsRequired().HasMaxLength(32);
+                entity.Property(e => e.FromDevices).HasColumnName("from_devices").IsRequired();
+                entity.Property(e => e.ToDevices).HasColumnName("to_devices").IsRequired();
+                entity.Property(e => e.LoadPercent).HasColumnName("load_percent").IsRequired();
+                entity.Property(e => e.Applied).HasColumnName("applied").IsRequired();
+                entity.Property(e => e.SimulationOnly).HasColumnName("simulation_only").IsRequired();
+                entity.Property(e => e.Reason).HasColumnName("reason").IsRequired().HasMaxLength(1000);
+                entity.Property(e => e.ActorUserId).HasColumnName("actor_user_id").HasMaxLength(450);
+                entity.HasIndex(e => new { e.TenantId, e.EvaluatedAt })
+                    .HasDatabaseName("idx_tse_scaling_history_tenant_evaluated");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<TseGatewayConfig>(entity =>
+            {
+                entity.ToTable("tse_gateway_configs");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Strategy).HasColumnName("strategy").IsRequired().HasMaxLength(32);
+                entity.Property(e => e.HealthCheckIntervalSeconds).HasColumnName("health_check_interval_seconds").IsRequired();
+                entity.Property(e => e.TimeoutMs).HasColumnName("timeout_ms").IsRequired();
+                entity.Property(e => e.RetryCount).HasColumnName("retry_count").IsRequired();
+                entity.Property(e => e.Enabled).HasColumnName("enabled").IsRequired();
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();
+                entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+                entity.Property(e => e.UpdatedBy).HasColumnName("updated_by").HasMaxLength(450);
+                entity.HasMany(e => e.Endpoints)
+                    .WithOne(e => e.Config)
+                    .HasForeignKey(e => e.ConfigId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<TseGatewayEndpoint>(entity =>
+            {
+                entity.ToTable("tse_gateway_endpoints");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ConfigId).HasColumnName("config_id").IsRequired();
+                entity.Property(e => e.Provider).HasColumnName("provider").IsRequired().HasMaxLength(32);
+                entity.Property(e => e.EndpointUrl).HasColumnName("endpoint_url").IsRequired().HasMaxLength(512);
+                entity.Property(e => e.Weight).HasColumnName("weight").IsRequired();
+                entity.Property(e => e.Enabled).HasColumnName("enabled").IsRequired();
+                entity.Property(e => e.SortOrder).HasColumnName("sort_order").IsRequired();
+                entity.HasIndex(e => e.ConfigId).HasDatabaseName("idx_tse_gateway_endpoints_config");
+                entity.HasIndex(e => new { e.ConfigId, e.Provider }).HasDatabaseName("idx_tse_gateway_endpoints_config_provider");
+            });
+
+            builder.Entity<TseAnomaly>(entity =>
+            {
+                entity.ToTable("tse_anomalies");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.DeviceId).HasColumnName("device_id");
+                entity.Property(e => e.MetricName).HasColumnName("metric_name").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.CurrentValue).HasColumnName("current_value").IsRequired();
+                entity.Property(e => e.ExpectedValue).HasColumnName("expected_value").IsRequired();
+                entity.Property(e => e.DeviationPercent).HasColumnName("deviation_percent").IsRequired();
+                entity.Property(e => e.Severity).HasColumnName("severity").IsRequired().HasMaxLength(16);
+                entity.Property(e => e.Description).HasColumnName("description").IsRequired().HasMaxLength(1000);
+                entity.Property(e => e.SuggestedAction).HasColumnName("suggested_action").HasMaxLength(500);
+                entity.Property(e => e.DetectedAt).HasColumnName("detected_at").IsRequired();
+                entity.Property(e => e.IsResolved).HasColumnName("is_resolved").IsRequired();
+                entity.Property(e => e.ResolvedAt).HasColumnName("resolved_at");
+                entity.Property(e => e.ResolvedBy).HasColumnName("resolved_by").HasMaxLength(450);
+                entity.HasIndex(e => new { e.TenantId, e.DetectedAt }).HasDatabaseName("idx_tse_anomalies_tenant_detected");
+                entity.HasIndex(e => new { e.TenantId, e.IsResolved, e.Severity })
+                    .HasDatabaseName("idx_tse_anomalies_tenant_open_severity");
+                entity.HasIndex(e => new { e.TenantId, e.MetricName, e.DeviceId, e.IsResolved })
+                    .HasDatabaseName("idx_tse_anomalies_dedup");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.Device)
+                    .WithMany()
+                    .HasForeignKey(e => e.DeviceId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            builder.Entity<TseWebhookRegistration>(entity =>
+            {
+                entity.ToTable("tse_webhooks");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.Url).HasColumnName("url").IsRequired().HasMaxLength(1024);
+                entity.Property(e => e.EventsCsv).HasColumnName("events").IsRequired().HasMaxLength(512);
+                entity.Property(e => e.Secret).HasColumnName("secret").HasMaxLength(256);
+                entity.Property(e => e.Status).HasColumnName("status").IsRequired().HasMaxLength(24);
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();
+                entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+                entity.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(450);
+                entity.Property(e => e.LastDeliveryAt).HasColumnName("last_delivery_at");
+                entity.Property(e => e.LastDeliverySuccess).HasColumnName("last_delivery_success");
+                entity.Property(e => e.ConsecutiveFailures).HasColumnName("consecutive_failures").IsRequired();
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_tse_webhooks_tenant");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasMany(e => e.Deliveries)
+                    .WithOne(d => d.Webhook)
+                    .HasForeignKey(d => d.WebhookId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<TseWebhookDelivery>(entity =>
+            {
+                entity.ToTable("tse_webhook_deliveries");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.WebhookId).HasColumnName("webhook_id").IsRequired();
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.EventId).HasColumnName("event_id").IsRequired();
+                entity.Property(e => e.EventType).HasColumnName("event_type").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.OccurredAt).HasColumnName("occurred_at").IsRequired();
+                entity.Property(e => e.DeliveredAt).HasColumnName("delivered_at").IsRequired();
+                entity.Property(e => e.Success).HasColumnName("success").IsRequired();
+                entity.Property(e => e.HttpStatus).HasColumnName("http_status");
+                entity.Property(e => e.ResponseSnippet).HasColumnName("response_snippet").HasMaxLength(1000);
+                entity.Property(e => e.PayloadJson).HasColumnName("payload_json").IsRequired().HasMaxLength(2000);
+                entity.HasIndex(e => new { e.WebhookId, e.DeliveredAt })
+                    .HasDatabaseName("idx_tse_webhook_deliveries_webhook_delivered");
+            });
+
+            builder.Entity<TseBlockchainLedgerState>(entity =>
+            {
+                entity.ToTable("tse_blockchain_ledger_state");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.CurrentBlockNumber).HasColumnName("current_block_number").IsRequired();
+                entity.Property(e => e.TipBlockHash).HasColumnName("tip_block_hash").IsRequired().HasMaxLength(128);
+                entity.Property(e => e.NetworkName).HasColumnName("network_name").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.IsConnected).HasColumnName("is_connected").IsRequired();
+                entity.Property(e => e.UpdatedAt).HasColumnName("updated_at").IsRequired();
+                entity.Property(e => e.TotalTransactions).HasColumnName("total_transactions").IsRequired();
+            });
+
+            builder.Entity<TseBlockchainRecord>(entity =>
+            {
+                entity.ToTable("tse_blockchain_records");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.SourceType).HasColumnName("source_type").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.SourceId).HasColumnName("source_id");
+                entity.Property(e => e.TransactionHash).HasColumnName("transaction_hash").IsRequired().HasMaxLength(128);
+                entity.Property(e => e.BlockHash).HasColumnName("block_hash").IsRequired().HasMaxLength(128);
+                entity.Property(e => e.BlockNumber).HasColumnName("block_number").IsRequired();
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();
+                entity.Property(e => e.SignatureHash).HasColumnName("signature_hash").IsRequired().HasMaxLength(128);
+                entity.Property(e => e.SignaturePreview).HasColumnName("signature_preview").HasMaxLength(64);
+                entity.Property(e => e.IsVerified).HasColumnName("is_verified").IsRequired();
+                entity.Property(e => e.VerifiedAt).HasColumnName("verified_at");
+                entity.Property(e => e.IsSimulated).HasColumnName("is_simulated").IsRequired();
+                entity.Property(e => e.NetworkName).HasColumnName("network_name").IsRequired().HasMaxLength(64);
+                entity.HasIndex(e => new { e.TenantId, e.CreatedAt })
+                    .HasDatabaseName("idx_tse_blockchain_records_tenant_created");
+                entity.HasIndex(e => new { e.TenantId, e.SignatureHash })
+                    .IsUnique()
+                    .HasDatabaseName("idx_tse_blockchain_records_tenant_sig");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<TseTrainingProgress>(entity =>
+            {
+                entity.ToTable("tse_training_progress");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(450);
+                entity.Property(e => e.ModuleId).HasColumnName("module_id").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.IsStarted).HasColumnName("is_started").IsRequired();
+                entity.Property(e => e.IsCompleted).HasColumnName("is_completed").IsRequired();
+                entity.Property(e => e.StartedAt).HasColumnName("started_at");
+                entity.Property(e => e.CompletedAt).HasColumnName("completed_at");
+                entity.Property(e => e.UpdatedAt).HasColumnName("updated_at").IsRequired();
+                entity.HasIndex(e => new { e.UserId, e.ModuleId })
+                    .IsUnique()
+                    .HasDatabaseName("idx_tse_training_progress_user_module");
+            });
+
+            builder.Entity<TseRecommendation>(entity =>
+            {
+                entity.ToTable("tse_recommendations");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.Code).HasColumnName("code").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.Category).HasColumnName("category").IsRequired().HasMaxLength(32);
+                entity.Property(e => e.Title).HasColumnName("title").IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Description).HasColumnName("description").IsRequired().HasMaxLength(2000);
+                entity.Property(e => e.Impact).HasColumnName("impact").IsRequired().HasMaxLength(16);
+                entity.Property(e => e.EstimatedSavings).HasColumnName("estimated_savings").IsRequired();
+                entity.Property(e => e.EffortScore).HasColumnName("effort_score").IsRequired();
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();
+                entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+                entity.Property(e => e.IsApplied).HasColumnName("is_applied").IsRequired();
+                entity.Property(e => e.AppliedAt).HasColumnName("applied_at");
+                entity.Property(e => e.AppliedBy).HasColumnName("applied_by").HasMaxLength(450);
+                entity.Property(e => e.IsDismissed).HasColumnName("is_dismissed").IsRequired();
+                entity.Property(e => e.DismissedAt).HasColumnName("dismissed_at");
+                entity.Property(e => e.DismissedBy).HasColumnName("dismissed_by").HasMaxLength(450);
+                entity.Property(e => e.Rating).HasColumnName("rating").IsRequired();
+                entity.Property(e => e.RatedAt).HasColumnName("rated_at");
+                entity.Property(e => e.RatedBy).HasColumnName("rated_by").HasMaxLength(450);
+                entity.HasIndex(e => new { e.TenantId, e.CreatedAt })
+                    .HasDatabaseName("idx_tse_recommendations_tenant_created");
+                entity.HasIndex(e => new { e.TenantId, e.Code, e.IsApplied, e.IsDismissed })
+                    .HasDatabaseName("idx_tse_recommendations_tenant_open_code");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<TseUpdateState>(entity =>
+            {
+                entity.ToTable("tse_update_states");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.UpdateType).HasColumnName("update_type").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.CurrentVersion).HasColumnName("current_version").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.LastCheckedAt).HasColumnName("last_checked_at");
+                entity.Property(e => e.LastAppliedAt).HasColumnName("last_applied_at");
+                entity.Property(e => e.UpdatedAt).HasColumnName("updated_at").IsRequired();
+                entity.HasIndex(e => new { e.TenantId, e.UpdateType })
+                    .IsUnique()
+                    .HasDatabaseName("idx_tse_update_states_tenant_type");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<TseUpdateHistoryEntry>(entity =>
+            {
+                entity.ToTable("tse_update_history");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.UpdateType).HasColumnName("update_type").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.Name).HasColumnName("name").IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Description).HasColumnName("description").IsRequired().HasMaxLength(2000);
+                entity.Property(e => e.RiskLevel).HasColumnName("risk_level").IsRequired().HasMaxLength(16);
+                entity.Property(e => e.FromVersion).HasColumnName("from_version").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.ToVersion).HasColumnName("to_version").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.Status).HasColumnName("status").IsRequired().HasMaxLength(24);
+                entity.Property(e => e.ZeroDowntime).HasColumnName("zero_downtime").IsRequired();
+                entity.Property(e => e.DevicesTouched).HasColumnName("devices_touched").IsRequired();
+                entity.Property(e => e.StartedAt).HasColumnName("started_at").IsRequired();
+                entity.Property(e => e.CompletedAt).HasColumnName("completed_at");
+                entity.Property(e => e.AppliedBy).HasColumnName("applied_by").HasMaxLength(450);
+                entity.Property(e => e.Message).HasColumnName("message").HasMaxLength(2000);
+                entity.HasIndex(e => new { e.TenantId, e.StartedAt })
+                    .HasDatabaseName("idx_tse_update_history_tenant_started");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<TseHealingConfiguration>(entity =>
+            {
+                entity.ToTable("tse_healing_configurations");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.Enabled).HasColumnName("enabled").IsRequired();
+                entity.Property(e => e.MaxAutoHealAttempts).HasColumnName("max_auto_heal_attempts").IsRequired();
+                entity.Property(e => e.CooldownMinutes).HasColumnName("cooldown_minutes").IsRequired();
+                entity.Property(e => e.NotifyOnHeal).HasColumnName("notify_on_heal").IsRequired();
+                entity.Property(e => e.AllowAutoFailover).HasColumnName("allow_auto_failover").IsRequired();
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();
+                entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+                entity.Property(e => e.UpdatedBy).HasColumnName("updated_by").HasMaxLength(450);
+                entity.HasIndex(e => e.TenantId)
+                    .IsUnique()
+                    .HasDatabaseName("idx_tse_healing_configurations_tenant");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasMany(e => e.Rules)
+                    .WithOne(r => r.Configuration)
+                    .HasForeignKey(r => r.ConfigurationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<TseHealingRule>(entity =>
+            {
+                entity.ToTable("tse_healing_rules");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ConfigurationId).HasColumnName("configuration_id").IsRequired();
+                entity.Property(e => e.Condition).HasColumnName("condition").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.Action).HasColumnName("action").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.Priority).HasColumnName("priority").IsRequired();
+                entity.Property(e => e.Status).HasColumnName("status").IsRequired().HasMaxLength(24);
+                entity.Property(e => e.LastTriggeredAt).HasColumnName("last_triggered_at");
+                entity.HasIndex(e => e.ConfigurationId)
+                    .HasDatabaseName("idx_tse_healing_rules_config");
+            });
+
+            builder.Entity<TseHealingHistoryEntry>(entity =>
+            {
+                entity.ToTable("tse_healing_history");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.DeviceId).HasColumnName("device_id").IsRequired();
+                entity.Property(e => e.Condition).HasColumnName("condition").HasMaxLength(64);
+                entity.Property(e => e.Action).HasColumnName("action").HasMaxLength(64);
+                entity.Property(e => e.Status).HasColumnName("status").IsRequired().HasMaxLength(24);
+                entity.Property(e => e.Applied).HasColumnName("applied").IsRequired();
+                entity.Property(e => e.HealthScoreBefore).HasColumnName("health_score_before").IsRequired();
+                entity.Property(e => e.HealthScoreAfter).HasColumnName("health_score_after");
+                entity.Property(e => e.Message).HasColumnName("message").HasMaxLength(2000);
+                entity.Property(e => e.StartedAt).HasColumnName("started_at").IsRequired();
+                entity.Property(e => e.CompletedAt).HasColumnName("completed_at");
+                entity.Property(e => e.ActorUserId).HasColumnName("actor_user_id").HasMaxLength(450);
+                entity.HasIndex(e => new { e.TenantId, e.StartedAt })
+                    .HasDatabaseName("idx_tse_healing_history_tenant_started");
+                entity.HasIndex(e => new { e.DeviceId, e.StartedAt })
+                    .HasDatabaseName("idx_tse_healing_history_device_started");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.Device)
+                    .WithMany()
+                    .HasForeignKey(e => e.DeviceId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<TseKnowledgeArticle>(entity =>
+            {
+                entity.ToTable("tse_knowledge_articles");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Slug).HasColumnName("slug").IsRequired().HasMaxLength(128);
+                entity.Property(e => e.Title).HasColumnName("title").IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Description).HasColumnName("description").IsRequired().HasMaxLength(500);
+                entity.Property(e => e.Body).HasColumnName("body").IsRequired().HasMaxLength(8000);
+                entity.Property(e => e.Category).HasColumnName("category").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.IsFaq).HasColumnName("is_faq").IsRequired();
+                entity.Property(e => e.ViewCount).HasColumnName("view_count").IsRequired();
+                entity.Property(e => e.RatingSum).HasColumnName("rating_sum").IsRequired();
+                entity.Property(e => e.RatingCount).HasColumnName("rating_count").IsRequired();
+                entity.Property(e => e.SortOrder).HasColumnName("sort_order").IsRequired();
+                entity.Property(e => e.IsPublished).HasColumnName("is_published").IsRequired();
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();
+                entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+                entity.HasIndex(e => e.Slug)
+                    .IsUnique()
+                    .HasDatabaseName("idx_tse_knowledge_articles_slug");
+                entity.HasIndex(e => new { e.IsPublished, e.IsFaq, e.ViewCount })
+                    .HasDatabaseName("idx_tse_knowledge_articles_published_faq_views");
+            });
+
+            builder.Entity<TseKnowledgeFeedback>(entity =>
+            {
+                entity.ToTable("tse_knowledge_feedback");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ArticleId).HasColumnName("article_id").IsRequired();
+                entity.Property(e => e.Rating).HasColumnName("rating").IsRequired();
+                entity.Property(e => e.ActorUserId).HasColumnName("actor_user_id").HasMaxLength(450);
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();
+                entity.HasIndex(e => e.ArticleId)
+                    .HasDatabaseName("idx_tse_knowledge_feedback_article");
+                entity.HasOne(e => e.Article)
+                    .WithMany(a => a.Feedback)
+                    .HasForeignKey(e => e.ArticleId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             builder.Entity<OperationLog>(entity =>

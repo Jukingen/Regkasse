@@ -67,6 +67,28 @@
       "manage": "Manage TSE settings",
       "viewRksvStatus": "Open RKSV status"
     },
+    "tsePortal": {
+      "title": "TSE Status",
+      "healthy": "Healthy",
+      "degraded": "Degraded",
+      "unknown": "Unknown",
+      "healthScore": "Health Score",
+      "daysUntilExpiry": "Days Until Expiry",
+      "viewDetails": "View Details →",
+      "detailsTitle": "TSE device details",
+      "historyTitle": "Health history (30 days)",
+      "close": "Close",
+      "loadError": "Could not load TSE status.",
+      "colSerial": "Serial",
+      "colRole": "Role",
+      "colStatus": "Status",
+      "colScore": "Score",
+      "colExpiry": "Expiry",
+      "colTime": "Time",
+      "primary": "Primary",
+      "backup": "Backup",
+      "daysValue": "{{days}} days"
+    },
     "advanced": {
       "title": "Advanced settings",
       "backup": "Backup",

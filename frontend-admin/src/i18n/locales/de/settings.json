@@ -67,6 +67,28 @@
       "manage": "TSE-Einstellungen verwalten",
       "viewRksvStatus": "RKSV-Status öffnen"
     },
+    "tsePortal": {
+      "title": "TSE-Status",
+      "healthy": "Gesund",
+      "degraded": "Eingeschränkt",
+      "unknown": "Unbekannt",
+      "healthScore": "Gesundheitswert",
+      "daysUntilExpiry": "Tage bis Ablauf",
+      "viewDetails": "Details anzeigen →",
+      "detailsTitle": "TSE-Gerätedetails",
+      "historyTitle": "Gesundheitsverlauf (30 Tage)",
+      "close": "Schließen",
+      "loadError": "TSE-Status konnte nicht geladen werden.",
+      "colSerial": "Seriennummer",
+      "colRole": "Rolle",
+      "colStatus": "Status",
+      "colScore": "Wert",
+      "colExpiry": "Ablauf",
+      "colTime": "Zeit",
+      "primary": "Primär",
+      "backup": "Backup",
+      "daysValue": "{{days}} Tage"
+    },
     "advanced": {
       "title": "Erweiterte Einstellungen",
       "backup": "Backup",

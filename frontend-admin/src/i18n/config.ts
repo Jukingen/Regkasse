@@ -20,6 +20,29 @@ import deMaintenance from './locales/de/maintenance.json';
 import deMonitoring from './locales/de/monitoring.json';
 import deRiskDashboard from './locales/de/riskDashboard.json';
 import deTseManagement from './locales/de/tseManagement.json';
+import deTseFailover from './locales/de/tseFailover.json';
+import deTseResourcePools from './locales/de/tseResourcePools.json';
+import deTseIncidents from './locales/de/tseIncidents.json';
+import deTseSla from './locales/de/tseSla.json';
+import deTseCapacity from './locales/de/tseCapacity.json';
+import deTseCost from './locales/de/tseCost.json';
+import deTseDr from './locales/de/tseDr.json';
+import deTseLogs from './locales/de/tseLogs.json';
+import deTseDeveloperTools from './locales/de/tseDeveloperTools.json';
+import deTseCompliance from './locales/de/tseCompliance.json';
+import deTseAutoScaling from './locales/de/tseAutoScaling.json';
+import deTseAutoHealing from './locales/de/tseAutoHealing.json';
+import deTseKnowledge from './locales/de/tseKnowledge.json';
+import deTseApiGateway from './locales/de/tseApiGateway.json';
+import deTseAnomalyDetection from './locales/de/tseAnomalyDetection.json';
+import deTseAnalytics from './locales/de/tseAnalytics.json';
+import deTseUserAnalytics from './locales/de/tseUserAnalytics.json';
+import deTseRecommendations from './locales/de/tseRecommendations.json';
+import deTseUpdates from './locales/de/tseUpdates.json';
+import deTseSustainability from './locales/de/tseSustainability.json';
+import deTseWebhooks from './locales/de/tseWebhooks.json';
+import deTseBlockchain from './locales/de/tseBlockchain.json';
+import deTseTraining from './locales/de/tseTraining.json';
 import deImpactSimulator from './locales/de/impactSimulator.json';
 import deFinanzOnlineOutbox from './locales/de/finanzOnlineOutbox.json';
 import deFinanzOnlineReconciliation from './locales/de/finanzOnlineReconciliation.json';
@@ -71,6 +94,29 @@ import enMaintenance from './locales/en/maintenance.json';
 import enMonitoring from './locales/en/monitoring.json';
 import enRiskDashboard from './locales/en/riskDashboard.json';
 import enTseManagement from './locales/en/tseManagement.json';
+import enTseFailover from './locales/en/tseFailover.json';
+import enTseResourcePools from './locales/en/tseResourcePools.json';
+import enTseIncidents from './locales/en/tseIncidents.json';
+import enTseSla from './locales/en/tseSla.json';
+import enTseCapacity from './locales/en/tseCapacity.json';
+import enTseCost from './locales/en/tseCost.json';
+import enTseDr from './locales/en/tseDr.json';
+import enTseLogs from './locales/en/tseLogs.json';
+import enTseDeveloperTools from './locales/en/tseDeveloperTools.json';
+import enTseCompliance from './locales/en/tseCompliance.json';
+import enTseAutoScaling from './locales/en/tseAutoScaling.json';
+import enTseAutoHealing from './locales/en/tseAutoHealing.json';
+import enTseKnowledge from './locales/en/tseKnowledge.json';
+import enTseApiGateway from './locales/en/tseApiGateway.json';
+import enTseAnomalyDetection from './locales/en/tseAnomalyDetection.json';
+import enTseAnalytics from './locales/en/tseAnalytics.json';
+import enTseUserAnalytics from './locales/en/tseUserAnalytics.json';
+import enTseRecommendations from './locales/en/tseRecommendations.json';
+import enTseUpdates from './locales/en/tseUpdates.json';
+import enTseSustainability from './locales/en/tseSustainability.json';
+import enTseWebhooks from './locales/en/tseWebhooks.json';
+import enTseBlockchain from './locales/en/tseBlockchain.json';
+import enTseTraining from './locales/en/tseTraining.json';
 import enImpactSimulator from './locales/en/impactSimulator.json';
 import enFinanzOnlineOutbox from './locales/en/finanzOnlineOutbox.json';
 import enFinanzOnlineReconciliation from './locales/en/finanzOnlineReconciliation.json';
@@ -122,6 +168,29 @@ import trMaintenance from './locales/tr/maintenance.json';
 import trMonitoring from './locales/tr/monitoring.json';
 import trRiskDashboard from './locales/tr/riskDashboard.json';
 import trTseManagement from './locales/tr/tseManagement.json';
+import trTseFailover from './locales/tr/tseFailover.json';
+import trTseResourcePools from './locales/tr/tseResourcePools.json';
+import trTseIncidents from './locales/tr/tseIncidents.json';
+import trTseSla from './locales/tr/tseSla.json';
+import trTseCapacity from './locales/tr/tseCapacity.json';
+import trTseCost from './locales/tr/tseCost.json';
+import trTseDr from './locales/tr/tseDr.json';
+import trTseLogs from './locales/tr/tseLogs.json';
+import trTseDeveloperTools from './locales/tr/tseDeveloperTools.json';
+import trTseCompliance from './locales/tr/tseCompliance.json';
+import trTseAutoScaling from './locales/tr/tseAutoScaling.json';
+import trTseAutoHealing from './locales/tr/tseAutoHealing.json';
+import trTseKnowledge from './locales/tr/tseKnowledge.json';
+import trTseApiGateway from './locales/tr/tseApiGateway.json';
+import trTseAnomalyDetection from './locales/tr/tseAnomalyDetection.json';
+import trTseAnalytics from './locales/tr/tseAnalytics.json';
+import trTseUserAnalytics from './locales/tr/tseUserAnalytics.json';
+import trTseRecommendations from './locales/tr/tseRecommendations.json';
+import trTseUpdates from './locales/tr/tseUpdates.json';
+import trTseSustainability from './locales/tr/tseSustainability.json';
+import trTseWebhooks from './locales/tr/tseWebhooks.json';
+import trTseBlockchain from './locales/tr/tseBlockchain.json';
+import trTseTraining from './locales/tr/tseTraining.json';
 import trImpactSimulator from './locales/tr/impactSimulator.json';
 import trFinanzOnlineOutbox from './locales/tr/finanzOnlineOutbox.json';
 import trFinanzOnlineReconciliation from './locales/tr/finanzOnlineReconciliation.json';
@@ -186,6 +255,29 @@ const catalogs = {
     monitoring: deMonitoring,
     riskDashboard: deRiskDashboard,
     tseManagement: deTseManagement,
+    tseFailover: deTseFailover,
+    tseResourcePools: deTseResourcePools,
+    tseIncidents: deTseIncidents,
+    tseSla: deTseSla,
+    tseCapacity: deTseCapacity,
+    tseCost: deTseCost,
+    tseDr: deTseDr,
+    tseLogs: deTseLogs,
+    tseDeveloperTools: deTseDeveloperTools,
+    tseCompliance: deTseCompliance,
+    tseAutoScaling: deTseAutoScaling,
+    tseAutoHealing: deTseAutoHealing,
+    tseKnowledge: deTseKnowledge,
+    tseApiGateway: deTseApiGateway,
+    tseAnomalyDetection: deTseAnomalyDetection,
+    tseAnalytics: deTseAnalytics,
+    tseUserAnalytics: deTseUserAnalytics,
+    tseRecommendations: deTseRecommendations,
+    tseUpdates: deTseUpdates,
+    tseSustainability: deTseSustainability,
+    tseWebhooks: deTseWebhooks,
+    tseBlockchain: deTseBlockchain,
+    tseTraining: deTseTraining,
     impactSimulator: deImpactSimulator,
     modifierGroups: deModifierGroups,
     benefits: deBenefits,
@@ -239,6 +331,29 @@ const catalogs = {
     monitoring: enMonitoring,
     riskDashboard: enRiskDashboard,
     tseManagement: enTseManagement,
+    tseFailover: enTseFailover,
+    tseResourcePools: enTseResourcePools,
+    tseIncidents: enTseIncidents,
+    tseSla: enTseSla,
+    tseCapacity: enTseCapacity,
+    tseCost: enTseCost,
+    tseDr: enTseDr,
+    tseLogs: enTseLogs,
+    tseDeveloperTools: enTseDeveloperTools,
+    tseCompliance: enTseCompliance,
+    tseAutoScaling: enTseAutoScaling,
+    tseAutoHealing: enTseAutoHealing,
+    tseKnowledge: enTseKnowledge,
+    tseApiGateway: enTseApiGateway,
+    tseAnomalyDetection: enTseAnomalyDetection,
+    tseAnalytics: enTseAnalytics,
+    tseUserAnalytics: enTseUserAnalytics,
+    tseRecommendations: enTseRecommendations,
+    tseUpdates: enTseUpdates,
+    tseSustainability: enTseSustainability,
+    tseWebhooks: enTseWebhooks,
+    tseBlockchain: enTseBlockchain,
+    tseTraining: enTseTraining,
     impactSimulator: enImpactSimulator,
     modifierGroups: enModifierGroups,
     benefits: enBenefits,
@@ -292,6 +407,29 @@ const catalogs = {
     monitoring: trMonitoring,
     riskDashboard: trRiskDashboard,
     tseManagement: trTseManagement,
+    tseFailover: trTseFailover,
+    tseResourcePools: trTseResourcePools,
+    tseIncidents: trTseIncidents,
+    tseSla: trTseSla,
+    tseCapacity: trTseCapacity,
+    tseCost: trTseCost,
+    tseDr: trTseDr,
+    tseLogs: trTseLogs,
+    tseDeveloperTools: trTseDeveloperTools,
+    tseCompliance: trTseCompliance,
+    tseAutoScaling: trTseAutoScaling,
+    tseAutoHealing: trTseAutoHealing,
+    tseKnowledge: trTseKnowledge,
+    tseApiGateway: trTseApiGateway,
+    tseAnomalyDetection: trTseAnomalyDetection,
+    tseAnalytics: trTseAnalytics,
+    tseUserAnalytics: trTseUserAnalytics,
+    tseRecommendations: trTseRecommendations,
+    tseUpdates: trTseUpdates,
+    tseSustainability: trTseSustainability,
+    tseWebhooks: trTseWebhooks,
+    tseBlockchain: trTseBlockchain,
+    tseTraining: trTseTraining,
     impactSimulator: trImpactSimulator,
     modifierGroups: trModifierGroups,
     benefits: trBenefits,

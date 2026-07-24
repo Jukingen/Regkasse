@@ -67,6 +67,28 @@
       "manage": "TSE ayarlarini yonet",
       "viewRksvStatus": "RKSV durumunu ac"
     },
+    "tsePortal": {
+      "title": "TSE durumu",
+      "healthy": "Saglikli",
+      "degraded": "Bozulmus",
+      "unknown": "Bilinmiyor",
+      "healthScore": "Saglik skoru",
+      "daysUntilExpiry": "Sona kalan gun",
+      "viewDetails": "Ayrintilari gor →",
+      "detailsTitle": "TSE cihaz ayrintilari",
+      "historyTitle": "Saglik gecmisi (30 gun)",
+      "close": "Kapat",
+      "loadError": "TSE durumu yuklenemedi.",
+      "colSerial": "Seri no",
+      "colRole": "Rol",
+      "colStatus": "Durum",
+      "colScore": "Skor",
+      "colExpiry": "Bitis",
+      "colTime": "Zaman",
+      "primary": "Birincil",
+      "backup": "Yedek",
+      "daysValue": "{{days}} gun"
+    },
     "advanced": {
       "title": "Gelismis ayarlar",
       "backup": "Yedekleme",

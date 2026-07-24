@@ -13,6 +13,7 @@
 - Billing / mandant license sales: `backend/Services/Billing/`, `backend/Services/Hosted/BillingReminderHostedService.cs`, `backend/Controllers/AdminBillingController.cs`, `AdminLicenseController.Extend.cs` — see `docs/BILLING_TENANT_LICENSE.md`, `docs/BILLING_TESTING.md`, `ai/modules/billing_license.md`
 - Billing tests: `backend/KasseAPI_Final.Tests/Billing/` (`BillingServiceTests`, `BillingServiceTestHarness`)
 - Services: `backend/Services/` (singleton `LicenseService` + `IServiceScopeFactory` DB pattern)
+- TSE fiscal + Super Admin ops: `backend/Services/Tse/`, `backend/Controllers/AdminTse*.cs` — agent: `ai/modules/tse_finanzonline.md` (core), `ai/modules/tse_admin_ops.md` (ops); inventory: `docs/PROJECT_COMPREHENSIVE_DOCUMENTATION.md`
 - License registration: `backend/Services/LicenseServiceRegistration.cs`
 - Authorization: `backend/Authorization/`
 - EF context: `backend/Data/AppDbContext.cs`
@@ -28,6 +29,7 @@
 
 ## Admin Frontend (`frontend-admin/`)
 - Next App Router pages: `frontend-admin/src/app/`
+- Super Admin TSE ops UI: `frontend-admin/src/app/(protected)/admin/tse/*/`, features `frontend-admin/src/features/tse-*` — `ai/modules/tse_admin_ops.md`
 - Auth gate: `frontend-admin/src/proxy.ts` (Next.js 16)
 - Generated API client: `frontend-admin/src/api/generated/`
 - Admin API boundary helpers: `frontend-admin/src/api/admin/`

@@ -113,6 +113,123 @@ namespace KasseAPI_Final.Models
         /// <summary>Lookback hours for <c>ITsePerformanceService.CheckPerformanceAnomaliesAsync</c>.</summary>
         public int HealthPerformanceLookbackHours { get; set; } = 24;
 
+        // --- SLA monitoring (operational targets; not a fiscal certificate) ---
+
+        /// <summary>Target TSE probe availability (%) for SLA uptime (Healthy + Degraded samples).</summary>
+        public double SlaTargetUptimePercent { get; set; } = 99.5;
+
+        /// <summary>Target average probe response time (ms).</summary>
+        public int SlaTargetResponseTimeMs { get; set; } = 2000;
+
+        /// <summary>Target signed fiscal receipt success rate (%).</summary>
+        public double SlaTargetSuccessRatePercent { get; set; } = 99.0;
+
+        /// <summary>Lookback hours for <c>ITseSlaMonitorService.GetCurrentSlaStatusAsync</c>.</summary>
+        public int SlaStatusLookbackHours { get; set; } = 24;
+
+        // --- Capacity planning (receipt volume vs configured device limits) ---
+
+        /// <summary>Days of receipt history for capacity trends (clamped 7–90).</summary>
+        public int CapacityLookbackDays { get; set; } = 30;
+
+        /// <summary>Indicative max signed receipts per active signing device per day.</summary>
+        public int CapacityPerDevicePerDay { get; set; } = 5000;
+
+        /// <summary>Indicative max signed receipts per active signing device per UTC hour.</summary>
+        public int CapacityPerDevicePerHour { get; set; } = 400;
+
+        /// <summary>Utilization (%) that raises a capacity warning.</summary>
+        public double CapacityWarningUtilizationPercent { get; set; } = 80;
+
+        /// <summary>Utilization (%) that raises a critical capacity alert.</summary>
+        public double CapacityCriticalUtilizationPercent { get; set; } = 95;
+
+        /// <summary>Days-ahead window for capacity-reach date alerts.</summary>
+        public int CapacityReachAlertDays { get; set; } = 60;
+
+        // --- Disaster recovery runbooks (simulation drills; not live failover) ---
+
+        /// <summary>Target RTO (minutes) shown on DR status / drill reports.</summary>
+        public int DrRtoTargetMinutes { get; set; } = 30;
+
+        /// <summary>Minimum healthy idle backup devices required for DR Ready.</summary>
+        public int DrMinHealthyBackups { get; set; } = 1;
+
+        /// <summary>Max age (days) of last successful drill before readiness messaging warns.</summary>
+        public int DrMaxDrillAgeDays { get; set; } = 90;
+
+        // --- Indicative cost monitoring (EUR; not billing / invoices) ---
+
+        /// <summary>Estimated EUR cost per signed fiscal receipt (cloud API / SCU usage).</summary>
+        public decimal CostPerSignedTransactionEur { get; set; } = 0.002m;
+
+        /// <summary>Estimated monthly EUR fee per active primary (or failover-active) TSE device.</summary>
+        public decimal CostMonthlyPrimaryDeviceEur { get; set; } = 15m;
+
+        /// <summary>Estimated monthly EUR fee per idle active backup TSE device.</summary>
+        public decimal CostMonthlyBackupDeviceEur { get; set; } = 5m;
+
+        /// <summary>Estimated EUR overhead attributed to each successful failover event.</summary>
+        public decimal CostPerFailoverEventEur { get; set; } = 2m;
+
+        /// <summary>Period-over-period cost increase (%) that raises a warning anomaly.</summary>
+        public decimal CostAnomalyWarningIncreasePercent { get; set; } = 40m;
+
+        /// <summary>Period-over-period cost increase (%) that raises a critical anomaly.</summary>
+        public decimal CostAnomalyCriticalIncreasePercent { get; set; } = 100m;
+
+        /// <summary>Daily cost vs period-day average multiplier treated as an in-period spike.</summary>
+        public double CostDailySpikeMultiplier { get; set; } = 2.5;
+
+        /// <summary>Signed tx/day per primary below which consolidation is recommended.</summary>
+        public double CostLowUtilizationDailyTxThreshold { get; set; } = 20;
+
+        /// <summary>Successful failovers in the lookback window that trigger a churn recommendation.</summary>
+        public int CostHighFailoverCountThreshold { get; set; } = 3;
+
+        // --- Indicative sustainability / green IT (not certified LCA / ESG audit) ---
+
+        /// <summary>Estimated kg CO₂e per signed fiscal transaction (cloud API call footprint).</summary>
+        public double SustainabilityKgCo2PerSignedTransaction { get; set; } = 0.0008;
+
+        /// <summary>Estimated kWh/day for an active cloud/hardware TSE device.</summary>
+        public double SustainabilityKwhPerCloudDeviceDay { get; set; } = 0.12;
+
+        /// <summary>Estimated kWh/day for Soft/Fake TSE (much lower than cloud/hardware).</summary>
+        public double SustainabilityKwhPerSoftDeviceDay { get; set; } = 0.01;
+
+        /// <summary>Grid intensity kg CO₂e per kWh used to convert energy → carbon.</summary>
+        public double SustainabilityKgCo2PerKwh { get; set; } = 0.23;
+
+        /// <summary>EUR saved per kWh avoided (indicative electricity rate).</summary>
+        public decimal SustainabilityEurPerKwh { get; set; } = 0.28m;
+
+        /// <summary>Industry-average kg CO₂e per signed transaction for percentile comparison.</summary>
+        public double SustainabilityIndustryKgCo2PerTransaction { get; set; } = 0.0025;
+
+        /// <summary>Default lookback days for sustainability report when period not specified.</summary>
+        public int SustainabilityDefaultLookbackDays { get; set; } = 30;
+
+        // --- Predictive health analytics (heuristic; not a certified ML model) ---
+
+        /// <summary>Days of health samples used for trend / risk scoring.</summary>
+        public int PredictiveLookbackDays { get; set; } = 14;
+
+        /// <summary>Health-score points/day decline that raises a trend risk factor.</summary>
+        public double PredictiveDeclinePerDayWarning { get; set; } = 1.5;
+
+        /// <summary>Failover events involving a device that raise a risk factor.</summary>
+        public int PredictiveFailoverCountWarning { get; set; } = 2;
+
+        /// <summary>Failure probability (%) mapped to Medium risk.</summary>
+        public double PredictiveMediumProbability { get; set; } = 30;
+
+        /// <summary>Failure probability (%) mapped to High risk.</summary>
+        public double PredictiveHighProbability { get; set; } = 55;
+
+        /// <summary>Failure probability (%) mapped to Critical risk.</summary>
+        public double PredictiveCriticalProbability { get; set; } = 75;
+
         /// <summary>
         /// Optional extra recipients for TSE failover alert emails (comma/semicolon-separated).
         /// Super Admin Identity users with confirmed email are always included when present.

@@ -3,12 +3,13 @@
 Internal implementation contracts and guardrails for coding agents and humans.  
 **Not** a substitute for reading the nearest source code. On conflict: **code → package config → CI → `AGENTS.md` → these files**.
 
-**Last reviewed:** 2026-07-21
+**Last reviewed:** 2026-07-24
 
 ## Purpose
 
 - Keep agents aligned on **multi-tenant**, **API boundaries**, **fiscal/RKSV**, and **high-risk** surfaces.
 - Provide short, repo-true contracts — not operator runbooks (those live in [`../docs/`](../docs/README.md)).
+- Human improvement inventory (including TSE ops wave): [`../docs/PROJECT_COMPREHENSIVE_DOCUMENTATION.md`](../docs/PROJECT_COMPREHENSIVE_DOCUMENTATION.md).
 
 ## Read order
 
@@ -63,7 +64,8 @@ Internal implementation contracts and guardrails for coding agents and humans.
 | [`modules/backup_permissions.md`](modules/backup_permissions.md) | Backup RBAC / tenant scoping |
 | [`modules/billing_license.md`](modules/billing_license.md) | Mandant license sales |
 | [`modules/payments.md`](modules/payments.md) | Payment domain notes |
-| [`modules/tse_finanzonline.md`](modules/tse_finanzonline.md) | TSE / FinanzOnline |
+| [`modules/tse_finanzonline.md`](modules/tse_finanzonline.md) | TSE / FinanzOnline (**fiscal core**) |
+| [`modules/tse_admin_ops.md`](modules/tse_admin_ops.md) | Super Admin TSE ops (diagnostic / ops; not DEP rewrite) |
 
 Digital services / working hours / Sites: prefer [`../docs/DIGITAL_SERVICES.md`](../docs/DIGITAL_SERVICES.md), [`../docs/WORKING_HOURS.md`](../docs/WORKING_HOURS.md), [`../frontend-sites/README.md`](../frontend-sites/README.md).
 
@@ -94,6 +96,7 @@ modules/offline_orders.md
 modules/offline_transactions_legacy.md
 modules/payments.md
 modules/tse_finanzonline.md
+modules/tse_admin_ops.md
 ```
 
 ## Rules of thumb
@@ -102,5 +105,6 @@ modules/tse_finanzonline.md
 - Cross-tenant → HTTP **404**.
 - Do not weaken fiscal, audit, or tenant isolation guarantees.
 - Do not invent parallel architectures or extend legacy `/api/Payment|Cart|Product`.
+- Do not treat Super Admin TSE ops tools as fiscal signature / DEP editors — see `modules/tse_admin_ops.md`.
 
 Human docs index: [`../docs/README.md`](../docs/README.md) · CI: [`../.github/workflows/README.md`](../.github/workflows/README.md).

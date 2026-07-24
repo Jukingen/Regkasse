@@ -98,6 +98,8 @@ public sealed class AdminTseFailoverControllerTests
             failover.Object,
             Mock.Of<ITseHealthTrendService>(),
             Mock.Of<ITsePerformanceService>(),
+            Mock.Of<ITseCostOptimizationService>(),
+            Mock.Of<ITsePredictiveAnalyticsService>(),
             Options.Create(new TseOptions { AutoFailoverEnabled = true }).ToMonitor());
 
         var identity = new ClaimsIdentity(

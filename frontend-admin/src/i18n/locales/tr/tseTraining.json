@@ -1,0 +1,53 @@
+{
+  "title": "TSE eğitimi",
+  "subtitle": "TSE operasyonları için eğitim modülleri ve Development simülasyonları. Mali imza yok.",
+  "diagnosticNote": "Yalnızca tanı. Hata senaryoları cihaz health alanlarını değiştirir ve yalnızca Development’ta açıktır.",
+  "cardTitle": "TSE Training & Simulation",
+  "tabModules": "Eğitim modülleri",
+  "tabSimulation": "Simülasyon",
+  "progress": "{{completed}} / {{total}} modül tamamlandı",
+  "start": "Başlat",
+  "completed": "Tamamlandı",
+  "moduleCompleted": "Modül tamamlandı olarak işaretlendi",
+  "selectDevice": "TSE cihazı seçin",
+  "deviceRequired": "Önce bir TSE cihazı seçin.",
+  "btnNetworkTimeout": "Network Timeout",
+  "btnCertificateExpiry": "Certificate Expiry",
+  "btnSignatureError": "Signature Error",
+  "simulateSuccess": "Simülasyon uygulandı",
+  "reset": "Simülasyonu sıfırla",
+  "resetSuccess": "Simülasyon sıfırlandı",
+  "clearConsole": "Konsolu temizle",
+  "consoleCleared": "Konsol temizlendi",
+  "consoleTitle": "Simülasyon konsolu",
+  "consoleEmpty": "Henüz simülasyon olayı yok.",
+  "simulationDevOnly": "Hata simülasyonları yalnızca Development’ta kullanılabilir.",
+  "forbidden": "Bu sayfa için yetkiniz yok.",
+  "loadError": "Eğitim ortamı yüklenemedi.",
+  "modules": {
+    "tse_basics": {
+      "title": "TSE temelleri",
+      "description": "Sağlık durumu, bağlantı ve POS’un ne zaman fiş kesebileceği."
+    },
+    "certificate_lifecycle": {
+      "title": "Sertifika yaşam döngüsü",
+      "description": "Süre dolumu, yenileme ve geçersiz sertifika alıştırmaları."
+    },
+    "network_failures": {
+      "title": "Ağ hataları",
+      "description": "Zaman aşımı ve bağlantı kaybı — mali satırları değiştirmeden."
+    },
+    "signature_errors": {
+      "title": "İmza hataları",
+      "description": "Cihaz hata bayrakları vs gerçek RKSV JWS (yalnızca tanı)."
+    },
+    "failover_drill": {
+      "title": "Failover alıştırması",
+      "description": "Primary/standby farkındalığı ve Super Admin araçları."
+    },
+    "offline_queue": {
+      "title": "Offline kuyruk",
+      "description": "Eski intent’ler vs offline siparişler — sistemleri birleştirmeyin."
+    }
+  }
+}

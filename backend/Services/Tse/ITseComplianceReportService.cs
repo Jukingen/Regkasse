@@ -20,4 +20,18 @@ public interface ITseComplianceReportService
     Task<TseComplianceStatusDto> GetComplianceStatusAsync(
         Guid tenantId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Audit-readiness dashboard: score, certificates, transactions, audit trail.</summary>
+    Task<TseComplianceDashboardDto> GetComplianceDashboardAsync(
+        Guid tenantId,
+        DateTime fromUtc,
+        DateTime toUtc,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>JSON export payload for the compliance dashboard (UTF-8 bytes).</summary>
+    Task<(byte[] Content, string FileName)> ExportComplianceReportAsync(
+        Guid tenantId,
+        DateTime fromUtc,
+        DateTime toUtc,
+        CancellationToken cancellationToken = default);
 }

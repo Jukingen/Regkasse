@@ -19,6 +19,7 @@ Human-facing guides for operators and developers.
 | [`PERMISSIONS_MATRIX.md`](PERMISSIONS_MATRIX.md) | FA / security | Role × permission defaults |
 | [`PERMISSIONS_MENU_MAPPING.md`](PERMISSIONS_MENU_MAPPING.md) | FA / security | Sidebar menu ↔ permission catalog groups |
 | [`PROJECT_SUMMARY.md`](PROJECT_SUMMARY.md) | All | High-level product summary |
+| [`PROJECT_COMPREHENSIVE_DOCUMENTATION.md`](PROJECT_COMPREHENSIVE_DOCUMENTATION.md) | Dev / ops | Full improvement inventory, TSE ops wave, deploy checklist |
 | [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md) | Ops | New mandant onboarding |
 
 ---

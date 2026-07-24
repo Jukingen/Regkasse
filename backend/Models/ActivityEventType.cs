@@ -125,4 +125,34 @@ public enum ActivityEventType
 
     /// <summary>TSE device health probe failure/error rate exceeded thresholds.</summary>
     TsePerformanceHighErrorRate = 181,
+
+    /// <summary>Indicative TSE operating cost spiked vs baseline or daily average.</summary>
+    TseCostAnomaly = 182,
+
+    /// <summary>Heuristic predictive analytics flagged elevated TSE failure risk.</summary>
+    TsePredictiveFailureRisk = 183,
+
+    /// <summary>A TSE operational incident was opened.</summary>
+    TseIncidentCreated = 184,
+
+    /// <summary>A TSE operational incident was resolved or closed.</summary>
+    TseIncidentResolved = 185,
+
+    /// <summary>TSE operational SLA target(s) violated for a tenant lookback window.</summary>
+    TseSlaViolation = 186,
+
+    /// <summary>TSE signing capacity is near or over configured utilization thresholds.</summary>
+    TseCapacityNearLimit = 187,
+
+    /// <summary>TSE disaster-recovery simulation drill completed.</summary>
+    TseDrDrillCompleted = 188,
+
+    /// <summary>TSE auto-scaling recommended or soft-applied a device count change.</summary>
+    TseAutoScaleRecommended = 189,
+
+    /// <summary>Statistical TSE anomaly detected (baseline deviation; diagnostic only).</summary>
+    TseAnomalyDetected = 190,
+
+    /// <summary>TSE auto-healing applied a safe recovery action (re-probe / clear error / optional failover).</summary>
+    TseAutoHealExecuted = 191,
 }

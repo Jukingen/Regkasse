@@ -103,4 +103,91 @@ public sealed class AdminTseComplianceController : ControllerBase
             return NotFound();
         }
     }
+
+    /// <summary>Audit-readiness dashboard (certificates, transactions, audit trail, score).</summary>
+    [HttpGet("dashboard")]
+    [HasPermission(AppPermissions.SystemCritical)]
+    [ProducesResponseType(typeof(TseComplianceDashboardDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TseComplianceDashboardDto>> GetDashboard(
+        [FromQuery] Guid tenantId,
+        [FromQuery] DateTime? fromUtc = null,
+        [FromQuery] DateTime? toUtc = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (tenantId == Guid.Empty)
+            return BadRequest(new { error = "tenantId is required." });
+
+        var to = toUtc ?? DateTime.UtcNow;
+        var from = fromUtc ?? to.AddDays(-7);
+        if (to <= from)
+            return BadRequest(new { error = "toUtc must be strictly greater than fromUtc." });
+
+        var exists = await _db.Tenants.AsNoTracking().IgnoreQueryFilters()
+            .AnyAsync(t => t.Id == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (!exists)
+            return NotFound();
+
+        try
+        {
+            var dashboard = await _compliance
+                .GetComplianceDashboardAsync(tenantId, from, to, cancellationToken)
+                .ConfigureAwait(false);
+            return Ok(dashboard);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
+    /// <summary>Download compliance dashboard as JSON (diagnostic export).</summary>
+    [HttpGet("export")]
+    [HasPermission(AppPermissions.SystemCritical)]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Export(
+        [FromQuery] Guid tenantId,
+        [FromQuery] DateTime? fromUtc = null,
+        [FromQuery] DateTime? toUtc = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (tenantId == Guid.Empty)
+            return BadRequest(new { error = "tenantId is required." });
+
+        var to = toUtc ?? DateTime.UtcNow;
+        var from = fromUtc ?? to.AddDays(-7);
+        if (to <= from)
+            return BadRequest(new { error = "toUtc must be strictly greater than fromUtc." });
+
+        var exists = await _db.Tenants.AsNoTracking().IgnoreQueryFilters()
+            .AnyAsync(t => t.Id == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (!exists)
+            return NotFound();
+
+        try
+        {
+            var (content, fileName) = await _compliance
+                .ExportComplianceReportAsync(tenantId, from, to, cancellationToken)
+                .ConfigureAwait(false);
+            return File(content, "application/json", fileName);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
 }

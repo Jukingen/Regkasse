@@ -1,0 +1,17 @@
+{
+  "title": "TSE Knowledge Base",
+  "subtitle": "Betriebliche TSE-Dokumentation und FAQ für Super-Admins. Keine steuerliche oder RKSV-Rechtsberatung.",
+  "cardTitle": "TSE Knowledge Base",
+  "searchPlaceholder": "TSE-Dokumentation durchsuchen…",
+  "tabPopular": "Beliebt",
+  "tabResults": "Suchergebnisse",
+  "tabFaq": "FAQ",
+  "articleTitle": "Artikel",
+  "rateArticle": "Artikel bewerten",
+  "feedbackThanks": "Danke für Ihr Feedback",
+  "ratingLabel": "Bewertung {{rating}} · {{views}} Aufrufe",
+  "empty": "Keine Artikel gefunden.",
+  "forbidden": "Keine Berechtigung für diese Seite.",
+  "loadError": "Artikel konnte nicht geladen werden.",
+  "diagnosticNote": "Nur operative Hinweise (Health, Failover, Healing, Scaling). Keine Änderung an Fiscal-Signaturketten."
+}

@@ -25,6 +25,8 @@ public sealed class AdminTseFailoverController : ControllerBase
     private readonly ITseFailoverService _failover;
     private readonly ITseHealthTrendService _healthTrend;
     private readonly ITsePerformanceService _performance;
+    private readonly ITseCostOptimizationService _costOptimization;
+    private readonly ITsePredictiveAnalyticsService _predictive;
     private readonly IOptionsMonitor<TseOptions> _tseOptions;
 
     public AdminTseFailoverController(
@@ -32,12 +34,16 @@ public sealed class AdminTseFailoverController : ControllerBase
         ITseFailoverService failover,
         ITseHealthTrendService healthTrend,
         ITsePerformanceService performance,
+        ITseCostOptimizationService costOptimization,
+        ITsePredictiveAnalyticsService predictive,
         IOptionsMonitor<TseOptions> tseOptions)
     {
         _db = db;
         _failover = failover;
         _healthTrend = healthTrend;
         _performance = performance;
+        _costOptimization = costOptimization;
+        _predictive = predictive;
         _tseOptions = tseOptions;
     }
 
@@ -258,6 +264,164 @@ public sealed class AdminTseFailoverController : ControllerBase
             .CheckPerformanceAnomaliesAsync(deviceId, cancellationToken)
             .ConfigureAwait(false);
         return Ok(alert);
+    }
+
+    /// <summary>Indicative TSE operating-cost report for a tenant (config-based EUR; not an invoice).</summary>
+    [HttpGet("cost-report")]
+    [HasPermission(AppPermissions.SystemCritical)]
+    [ProducesResponseType(typeof(TseCostReportDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TseCostReportDto>> GetCostReport(
+        [FromQuery] Guid tenantId,
+        [FromQuery] DateTime? fromUtc = null,
+        [FromQuery] DateTime? toUtc = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (tenantId == Guid.Empty)
+            return BadRequest(new { error = "tenantId is required." });
+
+        var to = toUtc ?? DateTime.UtcNow;
+        var from = fromUtc ?? to.AddDays(-30);
+
+        try
+        {
+            var report = await _costOptimization
+                .GetCostReportAsync(tenantId, from, to, cancellationToken)
+                .ConfigureAwait(false);
+            return Ok(report);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    /// <summary>Cost-saving recommendations for the tenant (last 30 days lookback).</summary>
+    [HttpGet("cost-recommendations")]
+    [HasPermission(AppPermissions.SystemCritical)]
+    [ProducesResponseType(typeof(IReadOnlyList<TseCostSavingRecommendationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<TseCostSavingRecommendationDto>>> GetCostRecommendations(
+        [FromQuery] Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        if (tenantId == Guid.Empty)
+            return BadRequest(new { error = "tenantId is required." });
+
+        try
+        {
+            var recommendations = await _costOptimization
+                .GetOptimizationRecommendationsAsync(tenantId, cancellationToken)
+                .ConfigureAwait(false);
+            return Ok(recommendations);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
+    /// <summary>Compare recent vs prior period indicative costs and optionally publish an activity alert.</summary>
+    [HttpGet("cost-anomalies")]
+    [HasPermission(AppPermissions.SystemCritical)]
+    [ProducesResponseType(typeof(TseCostAlertDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<TseCostAlertDto>> CheckCostAnomalies(
+        [FromQuery] Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        if (tenantId == Guid.Empty)
+            return BadRequest(new { error = "tenantId is required." });
+
+        var alert = await _costOptimization
+            .CheckCostAnomaliesAsync(tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        return Ok(alert);
+    }
+
+    /// <summary>Heuristic failure-risk prediction for a TSE device.</summary>
+    [HttpGet("predict-failure")]
+    [HasPermission(AppPermissions.SystemCritical)]
+    [ProducesResponseType(typeof(TsePredictionResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TsePredictionResultDto>> PredictFailure(
+        [FromQuery] Guid deviceId,
+        CancellationToken cancellationToken = default)
+    {
+        if (deviceId == Guid.Empty)
+            return BadRequest(new { error = "deviceId is required." });
+
+        try
+        {
+            var prediction = await _predictive
+                .PredictFailureAsync(deviceId, cancellationToken)
+                .ConfigureAwait(false);
+            return Ok(prediction);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
+    /// <summary>Aggregated predictive risk factors for a tenant fleet.</summary>
+    [HttpGet("risk-factors")]
+    [HasPermission(AppPermissions.SystemCritical)]
+    [ProducesResponseType(typeof(IReadOnlyList<TseRiskFactorDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<TseRiskFactorDto>>> IdentifyRiskFactors(
+        [FromQuery] Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        if (tenantId == Guid.Empty)
+            return BadRequest(new { error = "tenantId is required." });
+
+        try
+        {
+            var factors = await _predictive
+                .IdentifyRiskFactorsAsync(tenantId, cancellationToken)
+                .ConfigureAwait(false);
+            return Ok(factors);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
+    /// <summary>Forward health-score forecast for a TSE device.</summary>
+    [HttpGet("health-forecast")]
+    [HasPermission(AppPermissions.SystemCritical)]
+    [ProducesResponseType(typeof(TseHealthPredictionDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TseHealthPredictionDto>> ForecastHealth(
+        [FromQuery] Guid deviceId,
+        [FromQuery] int days = 7,
+        CancellationToken cancellationToken = default)
+    {
+        if (deviceId == Guid.Empty)
+            return BadRequest(new { error = "deviceId is required." });
+
+        try
+        {
+            var forecast = await _predictive
+                .ForecastHealthAsync(deviceId, days, cancellationToken)
+                .ConfigureAwait(false);
+            return Ok(forecast);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
     }
 
     /// <summary>Super Admin forced failover to a linked backup.</summary>

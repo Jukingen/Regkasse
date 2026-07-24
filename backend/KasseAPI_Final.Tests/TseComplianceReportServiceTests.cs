@@ -163,6 +163,113 @@ public sealed class TseComplianceReportServiceTests
         Assert.Equal(TseComplianceStatusNames.Compliant, status.Status);
         Assert.True(status.IsFullyCompliant);
         Assert.Equal(0, status.UnsignedTransactions);
+        Assert.Equal(100, status.ComplianceScore);
+    }
+
+    [Fact]
+    public async Task GetComplianceDashboardAsync_IncludesCertificatesAndScore()
+    {
+        await using var db = CreateDb();
+        var tenantId = await SeedTenantAsync(db);
+        var now = DateTime.UtcNow;
+        db.TseDevices.Add(new TseDevice
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            SerialNumber = "CERT-1",
+            DeviceType = "fiskaly",
+            Provider = "fiskaly",
+            VendorId = "v",
+            ProductId = "p",
+            IsConnected = true,
+            LastConnectionTime = now,
+            LastSignatureTime = now,
+            CertificateStatus = "VALID",
+            MemoryStatus = "OK",
+            CanCreateInvoices = true,
+            FinanzOnlineUsername = "fo",
+            FinanzOnlineEnabled = false,
+            LastFinanzOnlineSync = now,
+            KassenId = Guid.NewGuid(),
+            IsActive = true,
+            CreatedAt = now,
+            HealthStatus = TseHealthStatus.Healthy,
+            HealthScore = 100,
+            ExpiresAt = now.AddDays(120),
+            IsPrimary = true,
+        });
+        db.AuditLogs.Add(new AuditLog
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            SessionId = "s",
+            UserId = "admin",
+            UserRole = "SuperAdmin",
+            Action = "TSE_DX_DIAGNOSTICS",
+            EntityType = "TseDeveloperTools",
+            Timestamp = now.AddHours(-1),
+            Status = AuditLogStatus.Success,
+            Description = "DX diagnostics",
+            CreatedAt = now.AddHours(-1),
+        });
+        await db.SaveChangesAsync();
+
+        var rksv = new Mock<IRksvComplianceReportService>();
+        rksv.Setup(s => s.BuildReportAsync(null, It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RksvComplianceReportDto
+            {
+                Summary = new RksvComplianceReportSummaryDto { OverallPass = true },
+                LegalNoticeDe = "Diagnose only.",
+            });
+
+        var operational = new Mock<IComplianceOperationalReportingService>();
+        operational.Setup(s => s.GetTseChainContinuityAsync(
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>(),
+                null,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new TseChainContinuityReportDto
+            {
+                Registers = [],
+                TotalReceiptsChecked = 0,
+                TotalSignatureCount = 0,
+            });
+
+        var health = new Mock<ITseHealthTrendService>();
+        health.Setup(s => s.GenerateHealthReportAsync(tenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new TseHealthReportDto
+            {
+                TenantId = tenantId,
+                TotalDevices = 1,
+                HealthyDevices = 1,
+                AverageHealthScore = 100,
+                HealthyMinScore = 80,
+                DegradedMinScore = 50,
+                Recommendations = [],
+            });
+
+        var svc = new TseComplianceReportService(
+            db,
+            new CurrentTenantAccessor(),
+            rksv.Object,
+            operational.Object,
+            health.Object,
+            NullLogger<TseComplianceReportService>.Instance);
+
+        var dashboard = await svc.GetComplianceDashboardAsync(tenantId, now.AddDays(-7), now.AddMinutes(1));
+
+        Assert.Equal(100, dashboard.ComplianceScore);
+        Assert.Equal(TseComplianceChainStatusNames.Healthy, dashboard.SignatureChainStatus);
+        Assert.Equal(1, dashboard.TotalCertificates);
+        Assert.Equal(1, dashboard.ValidCertificates);
+        Assert.True(dashboard.AuditLogCount >= 1);
+        Assert.Single(dashboard.Certificates);
+        Assert.True(dashboard.Certificates[0].IsValid);
+
+        var (bytes, fileName) = await svc.ExportComplianceReportAsync(tenantId, now.AddDays(-7), now.AddMinutes(1));
+        Assert.True(bytes.Length > 10);
+        Assert.Contains("tse-compliance-", fileName);
+        Assert.EndsWith(".json", fileName);
     }
 
     private static AppDbContext CreateDb()

@@ -27,7 +27,11 @@ import {
   getFailoverStatus,
   getTseComplianceReport,
   getTseComplianceStatus,
+  getTseCostAnomalies,
+  getTseCostReport,
   getTseDevices,
+  getTseFailurePrediction,
+  getTseHealthForecast,
   getTseHealthReport,
   getTseHealthTrend,
   getTsePerformanceAnomalies,
@@ -40,7 +44,7 @@ import { TsePerformanceChart } from '@/features/tse-failover/components/TsePerfo
 import type { TseFailoverDevice } from '@/features/tse-failover/types';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
-import { formatUtcDateTime } from '@/lib/dateUtils';
+import { formatDate, formatUtcDateTime } from '@/lib/dateUtils';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
@@ -157,6 +161,32 @@ export default function TseFailoverPage() {
       );
     },
     enabled: allowed && !!reportTenantId,
+  });
+
+  const costReportQuery = useQuery({
+    queryKey: ['admin', 'tse-failover', 'cost-report', reportTenantId],
+    queryFn: ({ signal }) => getTseCostReport(reportTenantId!, 30, signal),
+    enabled: allowed && !!reportTenantId,
+  });
+
+  const costAnomalyQuery = useQuery({
+    queryKey: ['admin', 'tse-failover', 'cost-anomalies', reportTenantId],
+    queryFn: ({ signal }) => getTseCostAnomalies(reportTenantId!, signal),
+    enabled: allowed && !!reportTenantId,
+    refetchInterval: 60_000,
+  });
+
+  const predictionQuery = useQuery({
+    queryKey: ['admin', 'tse-failover', 'predict-failure', effectivePerfDeviceId],
+    queryFn: ({ signal }) => getTseFailurePrediction(effectivePerfDeviceId!, signal),
+    enabled: allowed && !!effectivePerfDeviceId,
+    refetchInterval: 60_000,
+  });
+
+  const healthForecastQuery = useQuery({
+    queryKey: ['admin', 'tse-failover', 'health-forecast', effectivePerfDeviceId, trendDays],
+    queryFn: ({ signal }) => getTseHealthForecast(effectivePerfDeviceId!, trendDays, signal),
+    enabled: allowed && !!effectivePerfDeviceId,
   });
 
   const invalidateAll = async () => {
@@ -683,6 +713,225 @@ export default function TseFailoverPage() {
                 slowThresholdMs={performanceQuery.data?.slowThresholdMs ?? 3000}
                 criticalThresholdMs={performanceQuery.data?.criticalThresholdMs ?? 10000}
               />
+            </Card>
+
+            <Card size="small" type="inner" title={t('tseFailover.predictTitle')}>
+              {(() => {
+                const prediction = predictionQuery.data;
+                const forecast = healthForecastQuery.data;
+                const probability = prediction?.failureProbability ?? 0;
+                const riskColor =
+                  probability > 70 ? '#cf1322' : probability > 40 ? '#faad14' : '#52c41a';
+                return (
+                  <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                    <Typography.Text type="secondary">
+                      {t('tseFailover.predictHeuristicNote')}
+                    </Typography.Text>
+
+                    {prediction?.riskLevel === 'Critical' || prediction?.requiresImmediateAction ? (
+                      <Alert
+                        type="error"
+                        showIcon
+                        message={t('tseFailover.predictCriticalTitle')}
+                        description={t('tseFailover.predictCriticalDescription', {
+                          probability: Math.round(probability),
+                        })}
+                      />
+                    ) : prediction?.riskLevel === 'High' ? (
+                      <Alert
+                        type="warning"
+                        showIcon
+                        message={t('tseFailover.predictHighTitle')}
+                        description={prediction.recommendations?.[0]}
+                      />
+                    ) : null}
+
+                    <Progress
+                      percent={Math.min(100, Math.round(probability))}
+                      strokeColor={riskColor}
+                      format={(percent) =>
+                        t('tseFailover.predictFailureRiskFormat', { percent: percent ?? 0 })
+                      }
+                    />
+
+                    <Row gutter={[16, 16]}>
+                      <Col xs={12} sm={8} md={6}>
+                        <Statistic
+                          title={t('tseFailover.predictRiskLevel')}
+                          value={prediction?.riskLevel ?? '—'}
+                        />
+                      </Col>
+                      <Col xs={12} sm={8} md={6}>
+                        <Statistic
+                          title={t('tseFailover.predictHealthScore')}
+                          value={prediction?.currentHealthScore ?? 0}
+                        />
+                      </Col>
+                      <Col xs={12} sm={8} md={6}>
+                        <Statistic
+                          title={t('tseFailover.predictTrend')}
+                          value={prediction?.healthTrendPerDay ?? 0}
+                          precision={2}
+                          suffix="/day"
+                        />
+                      </Col>
+                      <Col xs={12} sm={8} md={6}>
+                        <Statistic
+                          title={t('tseFailover.predictFailureDate')}
+                          value={
+                            prediction?.predictedFailureDate
+                              ? formatDate(prediction.predictedFailureDate)
+                              : t('tseFailover.predictFailureDateNone')
+                          }
+                        />
+                      </Col>
+                    </Row>
+
+                    {forecast ? (
+                      <Typography.Text type="secondary">
+                        {t('tseFailover.predictForecastHint', {
+                          days: forecast.forecastDays,
+                          score: forecast.predictedHealthScoreAtHorizon,
+                          risk: forecast.predictedRiskLevel,
+                        })}
+                      </Typography.Text>
+                    ) : null}
+
+                    <Typography.Title level={5} style={{ marginBottom: 0 }}>
+                      {t('tseFailover.predictRiskFactors')}
+                    </Typography.Title>
+                    <List
+                      size="small"
+                      loading={predictionQuery.isLoading}
+                      dataSource={prediction?.riskFactors ?? []}
+                      locale={{ emptyText: t('tseFailover.predictRiskFactorsEmpty') }}
+                      renderItem={(factor) => (
+                        <List.Item>
+                          <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                            <Space
+                              style={{ width: '100%', justifyContent: 'space-between' }}
+                              wrap
+                            >
+                              <Typography.Text strong>{factor.name}</Typography.Text>
+                              <Progress
+                                percent={Math.min(100, Math.round(factor.impact))}
+                                size="small"
+                                style={{ width: 120, margin: 0 }}
+                                strokeColor={factor.impact > 70 ? '#cf1322' : '#faad14'}
+                                format={(p) => `${p}%`}
+                              />
+                            </Space>
+                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                              {factor.description}
+                            </Typography.Text>
+                            {factor.isActionable && factor.recommendedAction ? (
+                              <Tag color="blue">{factor.recommendedAction}</Tag>
+                            ) : null}
+                          </Space>
+                        </List.Item>
+                      )}
+                    />
+                  </Space>
+                );
+              })()}
+            </Card>
+
+            <Card size="small" type="inner" title={t('tseFailover.costTitle')}>
+              {(() => {
+                const cost = costReportQuery.data;
+                return (
+                  <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                    <Typography.Text type="secondary">
+                      {t('tseFailover.costIndicativeNote')}
+                    </Typography.Text>
+
+                    {costAnomalyQuery.data?.hasAnomaly || cost?.hasCostAnomaly ? (
+                      <Alert
+                        type={
+                          costAnomalyQuery.data?.severity === 'Critical' ? 'error' : 'warning'
+                        }
+                        showIcon
+                        message={t('tseFailover.costAnomalyTitle')}
+                        description={
+                          costAnomalyQuery.data?.message ||
+                          cost?.anomalyDescription ||
+                          undefined
+                        }
+                      />
+                    ) : null}
+
+                    <Row gutter={[16, 16]}>
+                      <Col xs={24} sm={12} md={8}>
+                        <Statistic
+                          title={t('tseFailover.costTotal')}
+                          value={cost?.totalCost ?? 0}
+                          precision={2}
+                          prefix="€"
+                        />
+                        <Statistic
+                          title={t('tseFailover.costAvgPerTx')}
+                          value={cost?.averageCostPerTransaction ?? 0}
+                          precision={4}
+                          prefix="€"
+                          style={{ marginTop: 16 }}
+                        />
+                      </Col>
+                      <Col xs={24} sm={12} md={8}>
+                        <Statistic
+                          title={t('tseFailover.costPotentialSavings')}
+                          value={cost?.potentialSavings ?? 0}
+                          precision={2}
+                          prefix="€"
+                          valueStyle={{ color: '#cf1322' }}
+                        />
+                        <Statistic
+                          title={t('tseFailover.costTransactions')}
+                          value={cost?.totalTransactions ?? 0}
+                          style={{ marginTop: 16 }}
+                        />
+                      </Col>
+                      <Col xs={24} sm={12} md={8}>
+                        <Statistic
+                          title={t('tseFailover.costActiveDevices')}
+                          value={cost?.activeDeviceCount ?? 0}
+                        />
+                        <Statistic
+                          title={t('tseFailover.costBackupDevices')}
+                          value={cost?.backupDeviceCount ?? 0}
+                          style={{ marginTop: 16 }}
+                        />
+                      </Col>
+                    </Row>
+
+                    {(cost?.recommendations?.length ?? 0) === 0 ? (
+                      <Typography.Text type="secondary">
+                        {t('tseFailover.costRecommendationsEmpty')}
+                      </Typography.Text>
+                    ) : (
+                      (cost?.recommendations ?? []).map((rec) => (
+                        <Alert
+                          key={rec.code}
+                          type={
+                            rec.severity === 'Critical'
+                              ? 'error'
+                              : rec.severity === 'Warning'
+                                ? 'warning'
+                                : 'info'
+                          }
+                          showIcon
+                          message={rec.title}
+                          description={
+                            rec.estimatedMonthlySavings > 0
+                              ? `${rec.description} (${t('tseFailover.costEstMonthlySavings')}: €${rec.estimatedMonthlySavings.toFixed(2)})`
+                              : rec.description
+                          }
+                          style={{ marginTop: 8 }}
+                        />
+                      ))
+                    )}
+                  </Space>
+                );
+              })()}
             </Card>
 
             <Row gutter={[16, 16]}>

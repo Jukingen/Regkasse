@@ -1,0 +1,23 @@
+{
+  "title": "TSE sustainability",
+  "subtitle": "Indicative green-IT estimates for TSE energy use and CO₂e. Not a certified LCA or ESG audit.",
+  "tenantLabel": "Tenant",
+  "cardTitle": "TSE Sustainability Report",
+  "diagnosticNote": "Figures use configurable emission factors from device inventory and signed transactions.",
+  "totalCo2": "Total CO₂ emission",
+  "energySaved": "Energy saved",
+  "costSaved": "Cost saved",
+  "carbonTrend": "Carbon footprint trend",
+  "percentileMessage": "Your system is {percentile}% more sustainable than the industry average (indicative).",
+  "optimizationsTitle": "Green optimization suggestions",
+  "colTitle": "Suggestion",
+  "colCarbon": "CO₂e saved / mo",
+  "colEnergy": "kWh saved / mo",
+  "colCost": "EUR saved / mo",
+  "emptySelect": "Select a tenant to view TSE sustainability.",
+  "forbidden": "You do not have permission to view this page.",
+  "loadError": "Failed to load TSE sustainability report.",
+  "noOptimizations": "No optimization suggestions.",
+  "kgCo2": "kg CO₂",
+  "kwh": "kWh"
+}

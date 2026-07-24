@@ -64,6 +64,8 @@ const ICON_MAP: Record<SidebarIconToken, React.ComponentType> = {
   SafetyCertificateOutlined: Icons.SafetyCertificateOutlined,
   SafetyOutlined: Icons.SafetyOutlined,
   SwapOutlined: Icons.SwapOutlined,
+  ClusterOutlined: Icons.ClusterOutlined,
+  AlertOutlined: Icons.AlertOutlined,
   SettingOutlined: Icons.SettingOutlined,
   ShopOutlined: Icons.ShopOutlined,
   GlobalOutlined: Icons.GlobalOutlined,
@@ -82,6 +84,7 @@ const ICON_MAP: Record<SidebarIconToken, React.ComponentType> = {
   DisconnectOutlined: Icons.DisconnectOutlined,
   UnorderedListOutlined: Icons.UnorderedListOutlined,
   BugOutlined: Icons.BugOutlined,
+  ApiOutlined: Icons.ApiOutlined,
 };
 
 /** Shared icon token → component map (sidebar + permission UI). */

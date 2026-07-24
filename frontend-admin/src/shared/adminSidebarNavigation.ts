@@ -187,6 +187,28 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/admin/risk-dashboard',
     '/admin/tse-management',
     '/admin/tse/failover',
+    '/admin/tse/resource-pools',
+    '/admin/tse/incidents',
+    '/admin/tse/sla',
+    '/admin/tse/capacity',
+    '/admin/tse/cost',
+    '/admin/tse/disaster-recovery',
+    '/admin/tse/logs',
+    '/admin/tse/developer-tools',
+    '/admin/tse/compliance',
+    '/admin/tse/auto-scaling',
+    '/admin/tse/auto-healing',
+    '/admin/tse/knowledge',
+    '/admin/tse/api-gateway',
+    '/admin/tse/anomalies',
+    '/admin/tse/analytics',
+    '/admin/tse/user-analytics',
+    '/admin/tse/recommendations',
+    '/admin/tse/updates',
+    '/admin/tse/sustainability',
+    '/admin/tse/webhooks',
+    '/admin/tse/blockchain',
+    '/admin/tse/training',
   ],
   [ADMIN_SIDEBAR_GROUP_KEYS.accessArea]: [
     '/admin/access',
@@ -318,7 +340,51 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     p === '/admin/risk-dashboard' ||
     p === '/admin/tse-management' ||
     p === '/admin/tse/failover' ||
-    p.startsWith('/admin/tse/failover/')
+    p.startsWith('/admin/tse/failover/') ||
+    p === '/admin/tse/resource-pools' ||
+    p.startsWith('/admin/tse/resource-pools/') ||
+    p === '/admin/tse/incidents' ||
+    p.startsWith('/admin/tse/incidents/') ||
+    p === '/admin/tse/sla' ||
+    p.startsWith('/admin/tse/sla/') ||
+    p === '/admin/tse/capacity' ||
+    p.startsWith('/admin/tse/capacity/') ||
+    p === '/admin/tse/cost' ||
+    p.startsWith('/admin/tse/cost/') ||
+    p === '/admin/tse/disaster-recovery' ||
+    p.startsWith('/admin/tse/disaster-recovery/') ||
+    p === '/admin/tse/logs' ||
+    p.startsWith('/admin/tse/logs/') ||
+    p === '/admin/tse/developer-tools' ||
+    p.startsWith('/admin/tse/developer-tools/') ||
+    p === '/admin/tse/compliance' ||
+    p.startsWith('/admin/tse/compliance/') ||
+    p === '/admin/tse/auto-scaling' ||
+    p.startsWith('/admin/tse/auto-scaling/') ||
+    p === '/admin/tse/auto-healing' ||
+    p.startsWith('/admin/tse/auto-healing/') ||
+    p === '/admin/tse/knowledge' ||
+    p.startsWith('/admin/tse/knowledge/') ||
+    p === '/admin/tse/api-gateway' ||
+    p.startsWith('/admin/tse/api-gateway/') ||
+    p === '/admin/tse/anomalies' ||
+    p.startsWith('/admin/tse/anomalies/') ||
+    p === '/admin/tse/analytics' ||
+    p.startsWith('/admin/tse/analytics/') ||
+    p === '/admin/tse/user-analytics' ||
+    p.startsWith('/admin/tse/user-analytics/') ||
+    p === '/admin/tse/recommendations' ||
+    p.startsWith('/admin/tse/recommendations/') ||
+    p === '/admin/tse/updates' ||
+    p.startsWith('/admin/tse/updates/') ||
+    p === '/admin/tse/sustainability' ||
+    p.startsWith('/admin/tse/sustainability/') ||
+    p === '/admin/tse/webhooks' ||
+    p.startsWith('/admin/tse/webhooks/') ||
+    p === '/admin/tse/blockchain' ||
+    p.startsWith('/admin/tse/blockchain/') ||
+    p === '/admin/tse/training' ||
+    p.startsWith('/admin/tse/training/')
   ) {
     keys.push(ADMIN_SIDEBAR_GROUP_KEYS.admin);
   }

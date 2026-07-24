@@ -1,0 +1,23 @@
+{
+  "title": "TSE-Nachhaltigkeit",
+  "subtitle": "Indikative Green-IT-Schätzungen für TSE-Energieverbrauch und CO₂e. Kein zertifiziertes LCA-/ESG-Audit.",
+  "tenantLabel": "Mandant",
+  "cardTitle": "TSE-Nachhaltigkeitsbericht",
+  "diagnosticNote": "Kennzahlen nutzen konfigurierbare Emissionsfaktoren aus Gerätebestand und signierten Transaktionen.",
+  "totalCo2": "Gesamt-CO₂-Emission",
+  "energySaved": "Eingesparte Energie",
+  "costSaved": "Eingesparte Kosten",
+  "carbonTrend": "CO₂-Fußabdruck-Trend",
+  "percentileMessage": "Ihr System ist {percentile}% nachhaltiger als der Branchen-Durchschnitt (indikativ).",
+  "optimizationsTitle": "Green-Optimierungsvorschläge",
+  "colTitle": "Vorschlag",
+  "colCarbon": "CO₂e gespart / Mo",
+  "colEnergy": "kWh gespart / Mo",
+  "colCost": "EUR gespart / Mo",
+  "emptySelect": "Mandanten wählen, um die TSE-Nachhaltigkeit zu sehen.",
+  "forbidden": "Sie haben keine Berechtigung für diese Seite.",
+  "loadError": "TSE-Nachhaltigkeitsbericht konnte nicht geladen werden.",
+  "noOptimizations": "Keine Optimierungsvorschläge.",
+  "kgCo2": "kg CO₂",
+  "kwh": "kWh"
+}

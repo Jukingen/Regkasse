@@ -21,6 +21,7 @@ import { CardSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ChangeMyPasswordForm } from '@/features/settings/components/ChangeMyPasswordForm';
 import { LanguageSelector } from '@/features/settings/components/LanguageSelector';
+import { TenantTseStatusCard } from '@/features/settings/components/TenantTseStatusCard';
 import { useTenantSettings } from '@/features/settings/hooks/useTenantSettings';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -222,6 +223,8 @@ export function ManagerSettings() {
             />
           ) : null}
         </Card>
+
+        <TenantTseStatusCard />
 
         <Card title={t('settings.manager.fiscal.title')}>
           <Descriptions column={2} bordered size="small">

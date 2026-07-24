@@ -245,6 +245,7 @@ export interface TseComplianceStatus {
   tenantName?: string | null;
   status: 'Compliant' | 'AtRisk' | 'NonCompliant' | string;
   isFullyCompliant: boolean;
+  complianceScore?: number;
   totalTransactions: number;
   unsignedTransactions: number;
   chainBreakCount: number;
@@ -253,4 +254,105 @@ export interface TseComplianceStatus {
   lookbackStart: string;
   lookbackEnd: string;
   topIssueCodes: string[];
+}
+
+export interface TseCostTrend {
+  date: string;
+  transactionCount: number;
+  estimatedCost: number;
+}
+
+export interface TseCostSavingRecommendation {
+  code: string;
+  title: string;
+  description: string;
+  severity: string;
+  estimatedMonthlySavings: number;
+}
+
+export interface TseCostReport {
+  tenantId: string;
+  tenantName?: string | null;
+  tenantSlug?: string | null;
+  periodStart: string;
+  periodEnd: string;
+  generatedAt: string;
+  totalTransactions: number;
+  signedTransactions: number;
+  activeDeviceCount: number;
+  backupDeviceCount: number;
+  totalCost: number;
+  averageCostPerTransaction: number;
+  currency: string;
+  costBreakdown: Record<string, number>;
+  dailyTrends: TseCostTrend[];
+  hasCostAnomaly: boolean;
+  anomalyDescription?: string | null;
+  recommendations: TseCostSavingRecommendation[];
+  potentialSavings: number;
+}
+
+export interface TseCostAlert {
+  tenantId: string;
+  hasAnomaly: boolean;
+  severity: string;
+  codes: string[];
+  message: string;
+  alertPublished: boolean;
+  currentPeriodCost: number;
+  baselinePeriodCost: number;
+  costDeltaPercent: number;
+  report?: TseCostReport | null;
+}
+
+export type TsePredictiveRiskLevel = 'Low' | 'Medium' | 'High' | 'Critical' | string;
+
+export interface TseRiskFactor {
+  code: string;
+  name: string;
+  impact: number;
+  description: string;
+  isActionable: boolean;
+  recommendedAction?: string | null;
+  deviceId?: string | null;
+}
+
+export interface TsePredictionResult {
+  deviceId: string;
+  deviceLabel?: string | null;
+  tenantId?: string | null;
+  generatedAt: string;
+  failureProbability: number;
+  riskLevel: TsePredictiveRiskLevel;
+  predictedFailureDate?: string | null;
+  currentHealthScore: number;
+  currentHealthStatus: string;
+  healthTrendPerDay: number;
+  sampleCount: number;
+  riskFactors: TseRiskFactor[];
+  recommendations: string[];
+  requiresImmediateAction: boolean;
+  alertPublished: boolean;
+}
+
+export interface TseHealthForecastPoint {
+  date: string;
+  predictedScore: number;
+  predictedStatus: string;
+}
+
+export interface TseHealthPrediction {
+  deviceId: string;
+  deviceLabel?: string | null;
+  tenantId?: string | null;
+  generatedAt: string;
+  forecastDays: number;
+  currentHealthScore: number;
+  healthTrendPerDay: number;
+  predictedHealthScoreAtHorizon: number;
+  predictedRiskLevel: TsePredictiveRiskLevel;
+  predictedBreachDate?: string | null;
+  healthyMinScore: number;
+  degradedMinScore: number;
+  forecastPoints: TseHealthForecastPoint[];
 }

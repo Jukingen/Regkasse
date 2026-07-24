@@ -124,6 +124,16 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.TseCertificateRenewalScheduled => "TSE certificate renewal scheduled",
             ActivityEventType.TsePerformanceSlow => "TSE performance — slow probe response",
             ActivityEventType.TsePerformanceHighErrorRate => "TSE performance — high probe error rate",
+            ActivityEventType.TseCostAnomaly => "TSE cost — operating cost anomaly",
+            ActivityEventType.TsePredictiveFailureRisk => "TSE predictive — elevated failure risk",
+            ActivityEventType.TseIncidentCreated => "TSE incident created",
+            ActivityEventType.TseIncidentResolved => "TSE incident resolved",
+            ActivityEventType.TseSlaViolation => "TSE SLA — target violation",
+            ActivityEventType.TseCapacityNearLimit => "TSE capacity — near utilization limit",
+            ActivityEventType.TseDrDrillCompleted => "TSE DR — simulation drill completed",
+            ActivityEventType.TseAutoScaleRecommended => "TSE auto-scaling — recommendation / soft apply",
+            ActivityEventType.TseAnomalyDetected => "TSE anomaly detected (statistical baseline)",
+            ActivityEventType.TseAutoHealExecuted => "TSE auto-healing — recovery action executed",
             _ => type.ToString(),
         };
 
@@ -343,10 +353,24 @@ internal static class ActivityEventPublishBuilder
                 or ActivityEventType.TseCertificateRenewalScheduled
                 or ActivityEventType.TsePerformanceSlow
                 or ActivityEventType.TsePerformanceHighErrorRate
+                or ActivityEventType.TseCostAnomaly
+                or ActivityEventType.TsePredictiveFailureRisk
+                or ActivityEventType.TseIncidentCreated
+                or ActivityEventType.TseIncidentResolved
+                or ActivityEventType.TseSlaViolation
+                or ActivityEventType.TseCapacityNearLimit
+                or ActivityEventType.TseDrDrillCompleted
+                or ActivityEventType.TseAutoScaleRecommended
+                or ActivityEventType.TseAnomalyDetected
+                or ActivityEventType.TseAutoHealExecuted
                 => ("TseDevice",
                     TryGetString(metadata, "DeviceId")
                     ?? TryGetString(metadata, "PrimaryDeviceId")
-                    ?? TryGetString(metadata, "BackupDeviceId")),
+                    ?? TryGetString(metadata, "BackupDeviceId")
+                    ?? TryGetString(metadata, "IncidentId")
+                    ?? TryGetString(metadata, "RunbookId")
+                    ?? TryGetString(metadata, "TenantId")
+                    ?? TryGetString(metadata, "AnomalyId")),
             _ => (null, null),
         };
     }
