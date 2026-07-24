@@ -146,6 +146,16 @@
     "unknown": "Bilinmeyen hata",
     "loadStatsTitle": "Istatistik yuklenemedi",
     "loadHistoryTitle": "Gecmis yuklenemedi",
-    "pdfDownload": "PDF raporu indirilemedi."
+    "pdfDownload": "PDF raporu indirilemedi.",
+    "alreadyClosedToday": "Bu tarih icin gun sonu kapanisi zaten yapildi.",
+    "alreadyClosedMonth": "Bu ay icin aylik kapanis zaten yapildi.",
+    "alreadyClosedYear": "Bu yil icin yillik kapanis zaten yapildi.",
+    "backdatedReasonRequired": "Geriye donuk (gecikmeli) gun sonu icin bir neden zorunludur.",
+    "futureDate": "Gelecek bir tarih icin gun sonu kapanisi yapilamaz.",
+    "paymentsWithoutInvoice": "Eslesen faturasi olmayan odemeler var. Once bunlari cozun (ornegin backfill), sonra tekrar deneyin.",
+    "registerUnavailable": "Kasa gun sonu icin kullanilamiyor (bulunamadi veya hizmet disi).",
+    "tseNotConnected": "TSE bagli degil. Gun sonu kapanisi yapilamaz.",
+    "tenantContextRequired": "Musteri (tenant) baglami eksik. Lutfen once bir musteri secin.",
+    "noRegister": "Bu musteri icin kasa bulunamadi."
   }
 }

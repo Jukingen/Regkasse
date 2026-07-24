@@ -271,8 +271,10 @@ export function catalogPermissionFromMap(
   area: MenuPermissionMapKey
 ): string | string[] {
   const entry = MENU_PERMISSION_MAP[area];
-  if (entry.permissionKeysAnyOf && entry.permissionKeysAnyOf.length > 0) {
-    return [...entry.permissionKeysAnyOf];
+  const permissionKeysAnyOf =
+    'permissionKeysAnyOf' in entry ? entry.permissionKeysAnyOf : undefined;
+  if (permissionKeysAnyOf && permissionKeysAnyOf.length > 0) {
+    return [...permissionKeysAnyOf];
   }
   return entry.permissionKey;
 }

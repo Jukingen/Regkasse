@@ -332,10 +332,10 @@ export function DownloadProgressModal({
       destroyOnHidden
       width={isMobile ? '100%' : 520}
       centered={!isMobile}
+      style={isMobile ? { margin: 8, maxWidth: 'calc(100vw - 16px)' } : undefined}
       styles={
         isMobile
           ? {
-              content: { margin: 8, maxWidth: 'calc(100vw - 16px)' },
               body: { paddingTop: 12 },
             }
           : undefined

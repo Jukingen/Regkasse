@@ -19,7 +19,7 @@ import { useI18n } from '@/i18n';
 export type TenantSettingsAuditProps = {
   history: TenantSettingsHistoryItem[];
   loading?: boolean;
-  currentUserId?: string;
+  currentUserId?: string | null;
   busy?: boolean;
   onApprove?: (item: TenantSettingsHistoryItem) => void;
   onReject?: (item: TenantSettingsHistoryItem) => void;

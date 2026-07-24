@@ -56,6 +56,7 @@ import {
 } from '@/features/reports/api/reportPdfApi';
 import { buildReportFileName } from '@/features/reports/utils/reportExportFileName';
 import { downloadClosingReportPdf } from '@/features/tagesabschluss/downloadClosingReportPdf';
+import { getTagesabschlussUserFacingError } from '@/features/tagesabschluss/tagesabschlussApiErrors';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useCashRegisterSelection } from '@/hooks/useCashRegisterSelection';
 import { useI18n } from '@/i18n';
@@ -70,7 +71,6 @@ import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
-import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
 import { formatViennaCalendarDate } from '@/shared/utils/viennaCalendar';
 
 const { Title, Paragraph, Text } = Typography;
@@ -389,7 +389,7 @@ export default function TagesabschlussPage() {
       },
       onError: (e) =>
         message.error(
-          getUserFacingApiErrorMessage(t, e, {
+          getTagesabschlussUserFacingError(t, e, {
             logContext: 'TagesabschlussDaily',
             fallbackKey: 'tagesabschluss.errors.unknown',
           })
@@ -416,7 +416,7 @@ export default function TagesabschlussPage() {
       },
       onError: (e) =>
         message.error(
-          getUserFacingApiErrorMessage(t, e, {
+          getTagesabschlussUserFacingError(t, e, {
             logContext: 'TagesabschlussMonthly',
             fallbackKey: 'tagesabschluss.errors.unknown',
           })
@@ -443,7 +443,7 @@ export default function TagesabschlussPage() {
       },
       onError: (e) =>
         message.error(
-          getUserFacingApiErrorMessage(t, e, {
+          getTagesabschlussUserFacingError(t, e, {
             logContext: 'TagesabschlussYearly',
             fallbackKey: 'tagesabschluss.errors.unknown',
           })
@@ -461,6 +461,10 @@ export default function TagesabschlussPage() {
     }
     if (kind === 'daily' && isBackdatedClosing && !resolvedBackdatedReason) {
       message.warning(t('tagesabschluss.backdated.reasonRequired'));
+      return;
+    }
+    if (kind === 'daily' && (canClose?.paymentsWithoutInvoiceCount ?? 0) > 0) {
+      message.error(t('tagesabschluss.errors.paymentsWithoutInvoice'));
       return;
     }
     if (kind === 'daily' && canClose && !canClose.canClose) {
@@ -521,12 +525,18 @@ export default function TagesabschlussPage() {
       okButtonProps: { danger: kind !== 'daily' },
       onOk: async () => {
         if (kind === 'daily') {
+          // Omit closingDate for Vienna "today" so the server resolves the business day
+          // (avoids client/server calendar skew → false BACKDATED_REASON_REQUIRED 400).
           await dailyMu.mutateAsync({
-            data: {
-              cashRegisterId: effectiveRegisterId,
-              closingDate: closingDay.format('YYYY-MM-DD'),
-              reason: isBackdatedClosing ? resolvedBackdatedReason : undefined,
-            },
+            data: isBackdatedClosing
+              ? {
+                  cashRegisterId: effectiveRegisterId,
+                  closingDate: closingDay.format('YYYY-MM-DD'),
+                  reason: resolvedBackdatedReason,
+                }
+              : {
+                  cashRegisterId: effectiveRegisterId,
+                },
           });
           return;
         }
@@ -760,7 +770,7 @@ export default function TagesabschlussPage() {
             <Alert
               type="error"
               title={t('tagesabschluss.check.failedTitle')}
-              description={getUserFacingApiErrorMessage(t, canCloseQuery.error, {
+              description={getTagesabschlussUserFacingError(t, canCloseQuery.error, {
                 logContext: 'TagesabschlussCanClose',
                 fallbackKey: 'tagesabschluss.errors.unknown',
                 skipLog: true,
@@ -1002,7 +1012,7 @@ export default function TagesabschlussPage() {
               <Alert
                 type="error"
                 title={t('tagesabschluss.errors.loadStatsTitle')}
-                description={getUserFacingApiErrorMessage(t, statsQuery.error, {
+                description={getTagesabschlussUserFacingError(t, statsQuery.error, {
                   logContext: 'TagesabschlussStatistics',
                   fallbackKey: 'tagesabschluss.errors.unknown',
                   skipLog: true,
@@ -1048,7 +1058,7 @@ export default function TagesabschlussPage() {
               <Alert
                 type="error"
                 title={t('tagesabschluss.errors.loadHistoryTitle')}
-                description={getUserFacingApiErrorMessage(t, historyQuery.error, {
+                description={getTagesabschlussUserFacingError(t, historyQuery.error, {
                   logContext: 'TagesabschlussHistory',
                   fallbackKey: 'tagesabschluss.errors.unknown',
                   skipLog: true,

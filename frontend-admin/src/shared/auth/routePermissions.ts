@@ -57,6 +57,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/reporting/tagesbericht': PERMISSIONS.REPORT_VIEW,
   '/reporting/monatsbericht': PERMISSIONS.REPORT_VIEW,
   '/reporting/jahresbericht': PERMISSIONS.REPORT_VIEW,
+  '/reporting/steuerberichte': PERMISSIONS.REPORT_VIEW,
   /** Legacy alias → `/receipts` (must match target guard; SALE_VIEW not REPORT_VIEW). */
   '/sales': PERMISSIONS.SALE_VIEW,
   '/reports/daily-closing': PERMISSIONS.REPORT_VIEW,
@@ -113,6 +114,8 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   /** Super Admin / settings.manage — firm-wide fiscal master data. */
   '/settings/company': PERMISSIONS.SETTINGS_MANAGE,
   '/settings/working-hours': PERMISSIONS.SETTINGS_VIEW,
+  '/settings/tax-groups': PERMISSIONS.SETTINGS_VIEW,
+  '/settings/tax-history': PERMISSIONS.SETTINGS_VIEW,
   '/settings/website': [
     PERMISSIONS.DIGITAL_VIEW,
     PERMISSIONS.DIGITAL_PREVIEW,

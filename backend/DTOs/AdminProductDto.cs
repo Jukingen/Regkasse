@@ -23,6 +23,8 @@ public class AdminProductDto
     public string Category { get; set; } = string.Empty;
     public int TaxType { get; set; }
     public decimal TaxRate { get; set; }
+    public Guid TaxGroupId { get; set; }
+    public ProductTaxGroupSummaryDto? TaxGroup { get; set; }
     public bool IsActive { get; set; }
     public string Unit { get; set; } = "pcs";
     public int StockQuantity { get; set; }
@@ -61,6 +63,8 @@ public class AdminProductDto
             Category = p.Category ?? string.Empty,
             TaxType = p.TaxType,
             TaxRate = p.TaxRate,
+            TaxGroupId = p.TaxGroupId,
+            TaxGroup = ProductTaxGroupSummaryDto.FromEntity(p.TaxGroup),
             IsActive = p.IsActive,
             Unit = p.Unit ?? "pcs",
             StockQuantity = p.StockQuantity,
@@ -78,4 +82,32 @@ public class AdminProductDto
             RksvProductType = p.RksvProductType ?? "Standard"
         };
     }
+}
+
+/// <summary>Compact tax group snapshot for product list/detail UI.</summary>
+public sealed class ProductTaxGroupSummaryDto
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public decimal Rate { get; set; }
+    public string? Color { get; set; }
+    public string? Icon { get; set; }
+    public string? AustrianCode { get; set; }
+    public bool IsDefault { get; set; }
+    public bool IsSystem { get; set; }
+
+    public static ProductTaxGroupSummaryDto? FromEntity(TaxGroup? g) =>
+        g == null
+            ? null
+            : new ProductTaxGroupSummaryDto
+            {
+                Id = g.Id,
+                Name = g.Name,
+                Rate = g.Rate,
+                Color = g.Color,
+                Icon = g.Icon,
+                AustrianCode = g.AustrianCode,
+                IsDefault = g.IsDefault,
+                IsSystem = g.IsSystem,
+            };
 }

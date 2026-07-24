@@ -45,7 +45,8 @@ export function useExportFavorites() {
   const favorites = useMemo(() => {
     return favoriteIds
       .map((id) => getExportTypeById(id))
-      .filter((e): e is ExportTypeDef => Boolean(e) && hasPermission(e.permission));
+      .filter((e): e is ExportTypeDef => e !== undefined)
+      .filter((e) => hasPermission(e.permission));
   }, [favoriteIds, hasPermission]);
 
   const isFavorite = useCallback(

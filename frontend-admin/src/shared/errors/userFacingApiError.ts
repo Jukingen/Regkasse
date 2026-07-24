@@ -3,6 +3,7 @@
  * Code-based translation: `registerApiErrorCodeTranslation` + backend `code` (normalizeApiError).
  */
 import { USER_FACING_MISSING_TRANSLATION_LABEL } from '@/i18n/translationFallback';
+import { ensureDefaultApiErrorTranslations } from '@/lib/api/errorTranslator';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 
 import { getRegisteredMessageKeyForApiErrorCode } from './apiErrorCodeRegistry';
@@ -42,6 +43,7 @@ export function getUserFacingApiErrorMessage(
   error: unknown,
   options: UserFacingApiErrorOptions
 ): string {
+  ensureDefaultApiErrorTranslations();
   const normalized = normalizeApiError(error);
   if (!options.skipLog) {
     technicalConsole.error(

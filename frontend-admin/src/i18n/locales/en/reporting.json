@@ -472,5 +472,32 @@
       "ShiftEnded": "Shift closed",
       "POS_SPL_RCPT": "Special receipt"
     }
+  },
+  "taxReports": {
+    "pageTitle": "Tax reports",
+    "cardTitle": "Tax reports",
+    "period": "Period",
+    "totalNet": "Total net",
+    "totalTax": "Total tax",
+    "totalGross": "Total gross",
+    "empty": "No tax data in the selected period.",
+    "tabs": {
+      "distribution": "Tax distribution",
+      "trend": "Tax trend",
+      "export": "Export"
+    },
+    "columns": {
+      "group": "Tax group",
+      "rate": "Rate",
+      "net": "Net",
+      "tax": "Tax",
+      "gross": "Gross",
+      "receipts": "Receipts"
+    },
+    "exportYear": "Annual tax report",
+    "exportMonth": "Monthly tax report",
+    "exportSuccess": "Tax report downloaded",
+    "exportFailed": "Export failed",
+    "exportPermissionHint": "Export requires the report.export permission."
   }
 }

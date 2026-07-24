@@ -11,6 +11,8 @@ export const SETTINGS_AREA_ROUTE_PATHS = [
   '/settings',
   '/settings/company',
   '/settings/working-hours',
+  '/settings/tax-groups',
+  '/settings/tax-history',
   '/settings/tse',
   '/settings/finanzonline',
   '/settings/session',

@@ -17,6 +17,7 @@ import {
   Tag,
   Typography,
 } from 'antd';
+import type { MenuProps } from 'antd';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -278,13 +279,7 @@ export function PermissionAuditFilterBar({
       onClick: () => onApplySavedFilters(f.filters),
     });
 
-    const items: {
-      key: string;
-      type?: 'group';
-      label?: React.ReactNode;
-      children?: ReturnType<typeof applyItem>[];
-      onClick?: () => void;
-    }[] = [];
+    const items: NonNullable<MenuProps['items']> = [];
 
     if (personal.length) {
       items.push({

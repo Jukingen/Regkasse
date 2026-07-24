@@ -119,6 +119,115 @@
     "advancedHint": "FinanzOnline, TSE, localization, and password settings are on the",
     "advancedLink": "fiscal & integration settings page"
   },
+  "taxGroups": {
+    "pageTitle": "Tax groups",
+    "cardTitle": "Manage tax groups",
+    "description": "Manage VAT rates for your tenant (including 4.9% and 13%). System groups cannot be deleted.",
+    "create": "New tax group",
+    "createTitle": "New tax group",
+    "editTitle": "Edit tax group",
+    "created": "Tax group created",
+    "updated": "Tax group updated",
+    "deleted": "Tax group deleted",
+    "saveFailed": "Could not save tax group.",
+    "deleteFailed": "Could not delete tax group.",
+    "deleteConfirmTitle": "Delete tax group?",
+    "deleteConfirmContent": "Are you sure you want to delete this tax group?",
+    "active": "Active",
+    "inactive": "Inactive",
+    "default": "Default",
+    "system": "System",
+    "columns": {
+      "name": "Name",
+      "rate": "Rate",
+      "description": "Description",
+      "code": "Code",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "form": {
+      "name": "Name",
+      "nameRequired": "Name is required",
+      "description": "Description",
+      "rate": "Tax rate (%)",
+      "rateRequired": "Tax rate is required",
+      "austrianCode": "AT code",
+      "codeOptional": "Optional",
+      "color": "Color",
+      "icon": "Icon",
+      "status": "Status",
+      "isDefault": "Use as default"
+    },
+    "bulk": {
+      "cardTitle": "Bulk tax update",
+      "fromPlaceholder": "Current tax group",
+      "toPlaceholder": "New tax group",
+      "submit": "Update all products",
+      "warningTitle": "Warning",
+      "warningDescription": "This action updates all products in the selected tax group and writes tax change history entries.",
+      "selectBoth": "Please select both the current and new tax group.",
+      "mustDiffer": "Current and new tax groups must be different.",
+      "confirmTitle": "Change tax group for all products?",
+      "confirmContent": "Move all products from “{{from}}” to “{{to}}”?",
+      "confirmOk": "Update",
+      "defaultReason": "Bulk tax group update",
+      "success": "{{count}} products updated ({{oldRate}}% → {{newRate}}%).",
+      "failed": "Bulk tax group update failed."
+    },
+    "preview": {
+      "cardTitle": "Tax preview",
+      "netSample": "Sample net amount",
+      "current": "Current",
+      "next": "New",
+      "net": "Net",
+      "tax": "Tax ({{rate}}%)",
+      "gross": "Gross",
+      "noChange": "No gross price change for the same net amount.",
+      "priceIncreases": "Price increases by {{amount}}",
+      "priceDecreases": "Price decreases by {{amount}}"
+    },
+    "compliance": {
+      "cardTitle": "Tax compliance check",
+      "runCheck": "Check",
+      "statusOk": "Compliant",
+      "statusIssues": "Issues found",
+      "statusUnknown": "Not checked",
+      "summary": "{{compliant}}/{{total}} products compliant",
+      "nonCompliantLabel": "non-compliant",
+      "allGood": "All active products match current Austrian VAT rules.",
+      "loadFailed": "Compliance check could not be loaded.",
+      "codes": {
+        "MISSING_TAX_GROUP": "{{count}} products without a tax group",
+        "INACTIVE_TAX_GROUP": "{{count}} products with an inactive tax group",
+        "INVALID_TAX_RATE": "{{count}} products with an invalid tax rate",
+        "OUTDATED_TAX_RATE": "{{count}} products with an outdated/mismatched group rate",
+        "PRODUCT_RATE_DESYNC": "{{count}} products with a desynced product tax rate"
+      },
+      "actions": {
+        "MISSING_TAX_GROUP": "Please assign a tax group to these products.",
+        "INACTIVE_TAX_GROUP": "Reassign these products to an active tax group.",
+        "INVALID_TAX_RATE": "Update the rate to 0%, 4.9%, 10%, 13%, or 20%.",
+        "OUTDATED_TAX_RATE": "Align the tax group rate with its Austrian group type.",
+        "PRODUCT_RATE_DESYNC": "Re-save the products so the stamped rate matches the tax group."
+      }
+    },
+    "stats": {
+      "cardTitle": "Tax group statistics",
+      "productsSuffix": "products",
+      "revenue": "Revenue: {{amount}}",
+      "summary": "{{products}} products · {{revenue}} revenue (current year)",
+      "empty": "No tax group statistics available.",
+      "loadFailed": "Tax group statistics could not be loaded."
+    }
+  },
+  "taxHistory": {
+    "pageTitle": "Tax change history",
+    "cardTitle": "Tax change history",
+    "description": "Log of product VAT rate changes (Austrian compliance trail).",
+    "empty": "No tax changes recorded yet.",
+    "loadFailed": "Tax change history could not be loaded.",
+    "invoiceNumber": "Invoice number"
+  },
   "workingHours": {
     "pageTitle": "Working hours",
     "cardTitle": "Restaurant working hours",

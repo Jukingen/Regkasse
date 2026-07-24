@@ -283,13 +283,7 @@ export function DownloadPreviewModal({
         keyboard={!loading}
         width={isMobile ? '100%' : 560}
         centered={!isMobile}
-        styles={
-          isMobile
-            ? {
-                content: { margin: 8, maxWidth: 'calc(100vw - 16px)' },
-              }
-            : undefined
-        }
+        style={isMobile ? { margin: 8, maxWidth: 'calc(100vw - 16px)' } : undefined}
         footer={
           <Space
             orientation={isMobile ? 'vertical' : 'horizontal'}

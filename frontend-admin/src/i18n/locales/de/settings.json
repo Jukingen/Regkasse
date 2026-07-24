@@ -119,6 +119,115 @@
     "advancedHint": "FinanzOnline, TSE, Lokalisierung und Passwort finden Sie unter",
     "advancedLink": "Fiskal- & Integrationseinstellungen"
   },
+  "taxGroups": {
+    "pageTitle": "Steuergruppen",
+    "cardTitle": "Steuergruppen verwalten",
+    "description": "Verwalten Sie MwSt.-Sätze für Ihren Mandanten (inkl. 4,9 % und 13 %). Systemgruppen können nicht gelöscht werden.",
+    "create": "Neue Steuergruppe",
+    "createTitle": "Neue Steuergruppe",
+    "editTitle": "Steuergruppe bearbeiten",
+    "created": "Steuergruppe erstellt",
+    "updated": "Steuergruppe aktualisiert",
+    "deleted": "Steuergruppe gelöscht",
+    "saveFailed": "Steuergruppe konnte nicht gespeichert werden.",
+    "deleteFailed": "Steuergruppe konnte nicht gelöscht werden.",
+    "deleteConfirmTitle": "Steuergruppe löschen?",
+    "deleteConfirmContent": "Sind Sie sicher, dass Sie diese Steuergruppe löschen möchten?",
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "default": "Standard",
+    "system": "System",
+    "columns": {
+      "name": "Name",
+      "rate": "Satz",
+      "description": "Beschreibung",
+      "code": "Code",
+      "status": "Status",
+      "actions": "Aktionen"
+    },
+    "form": {
+      "name": "Name",
+      "nameRequired": "Name ist erforderlich",
+      "description": "Beschreibung",
+      "rate": "Steuersatz (%)",
+      "rateRequired": "Steuersatz ist erforderlich",
+      "austrianCode": "AT-Code",
+      "codeOptional": "Optional",
+      "color": "Farbe",
+      "icon": "Icon",
+      "status": "Status",
+      "isDefault": "Als Standard verwenden"
+    },
+    "bulk": {
+      "cardTitle": "Toplu Steueraktualisierung",
+      "fromPlaceholder": "Aktuelle Steuergruppe",
+      "toPlaceholder": "Neue Steuergruppe",
+      "submit": "Alle Produkte aktualisieren",
+      "warningTitle": "Warnung",
+      "warningDescription": "Diese Aktion aktualisiert alle Produkte der ausgewählten Steuergruppe und schreibt einen Eintrag in den Steueränderungsverlauf.",
+      "selectBoth": "Bitte aktuelle und neue Steuergruppe wählen.",
+      "mustDiffer": "Aktuelle und neue Steuergruppe müssen unterschiedlich sein.",
+      "confirmTitle": "Steuergruppe für alle Produkte ändern?",
+      "confirmContent": "Alle Produkte von „{{from}}“ nach „{{to}}“ verschieben?",
+      "confirmOk": "Aktualisieren",
+      "defaultReason": "Bulk tax group update",
+      "success": "{{count}} Produkte aktualisiert ({{oldRate}}% → {{newRate}}%).",
+      "failed": "Massenaktualisierung der Steuergruppe ist fehlgeschlagen."
+    },
+    "preview": {
+      "cardTitle": "Steuer-Vorschau",
+      "netSample": "Beispiel-Nettobetrag",
+      "current": "Aktuell",
+      "next": "Neu",
+      "net": "Netto",
+      "tax": "Steuer ({{rate}}%)",
+      "gross": "Brutto",
+      "noChange": "Keine Brutto-Preisänderung bei gleichem Netto.",
+      "priceIncreases": "Preis steigt um {{amount}}",
+      "priceDecreases": "Preis sinkt um {{amount}}"
+    },
+    "compliance": {
+      "cardTitle": "Steuer-Compliance-Check",
+      "runCheck": "Prüfen",
+      "statusOk": "Konform",
+      "statusIssues": "Abweichungen gefunden",
+      "statusUnknown": "Nicht geprüft",
+      "summary": "{{compliant}}/{{total}} Produkte konform",
+      "nonCompliantLabel": "nicht konform",
+      "allGood": "Alle aktiven Produkte entsprechen den aktuellen österreichischen MwSt.-Vorgaben.",
+      "loadFailed": "Compliance-Check konnte nicht geladen werden.",
+      "codes": {
+        "MISSING_TAX_GROUP": "{{count}} Produkte ohne Steuergruppe",
+        "INACTIVE_TAX_GROUP": "{{count}} Produkte mit inaktiver Steuergruppe",
+        "INVALID_TAX_RATE": "{{count}} Produkte mit ungültigem Steuersatz",
+        "OUTDATED_TAX_RATE": "{{count}} Produkte mit veraltetem/abweichendem Gruppensatz",
+        "PRODUCT_RATE_DESYNC": "{{count}} Produkte mit abweichendem Produkt-Steuersatz"
+      },
+      "actions": {
+        "MISSING_TAX_GROUP": "Bitte weisen Sie diesen Produkten eine Steuergruppe zu.",
+        "INACTIVE_TAX_GROUP": "Weisen Sie den Produkten eine aktive Steuergruppe zu.",
+        "INVALID_TAX_RATE": "Aktualisieren Sie den Steuersatz auf 0 %, 4,9 %, 10 %, 13 % oder 20 %.",
+        "OUTDATED_TAX_RATE": "Gleichen Sie Steuersatz und Gruppentyp mit den aktuellen Vorschriften ab.",
+        "PRODUCT_RATE_DESYNC": "Speichern Sie die Produkte erneut, damit der Steuersatz zur Steuergruppe passt."
+      }
+    },
+    "stats": {
+      "cardTitle": "Steuergruppen-Statistik",
+      "productsSuffix": "Produkte",
+      "revenue": "Umsatz: {{amount}}",
+      "summary": "{{products}} Produkte · {{revenue}} Umsatz (laufendes Jahr)",
+      "empty": "Keine Steuergruppen-Statistik verfügbar.",
+      "loadFailed": "Steuergruppen-Statistik konnte nicht geladen werden."
+    }
+  },
+  "taxHistory": {
+    "pageTitle": "Steueränderungsverlauf",
+    "cardTitle": "Steueränderungsverlauf",
+    "description": "Protokoll der MwSt.-Satzänderungen an Produkten (Österreichische Compliance).",
+    "empty": "Noch keine Steueränderungen vorhanden.",
+    "loadFailed": "Steueränderungsverlauf konnte nicht geladen werden.",
+    "invoiceNumber": "Belegnummer"
+  },
   "workingHours": {
     "pageTitle": "Öffnungszeiten",
     "cardTitle": "Restaurant-Öffnungszeiten",

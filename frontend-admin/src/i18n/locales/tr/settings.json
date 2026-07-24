@@ -119,6 +119,115 @@
     "advancedHint": "FinanzOnline, TSE, yerelleştirme ve şifre ayarları için",
     "advancedLink": "mali ve entegrasyon ayarları sayfasına gidin"
   },
+  "taxGroups": {
+    "pageTitle": "Vergi grupları",
+    "cardTitle": "Vergi gruplarını yönet",
+    "description": "Kiracınız için KDV oranlarını yönetin (%4,9 ve %13 dahil). Sistem grupları silinemez.",
+    "create": "Yeni vergi grubu",
+    "createTitle": "Yeni vergi grubu",
+    "editTitle": "Vergi grubunu düzenle",
+    "created": "Vergi grubu oluşturuldu",
+    "updated": "Vergi grubu güncellendi",
+    "deleted": "Vergi grubu silindi",
+    "saveFailed": "Vergi grubu kaydedilemedi.",
+    "deleteFailed": "Vergi grubu silinemedi.",
+    "deleteConfirmTitle": "Vergi grubu silinsin mi?",
+    "deleteConfirmContent": "Bu vergi grubunu silmek istediğinizden emin misiniz?",
+    "active": "Aktif",
+    "inactive": "Pasif",
+    "default": "Varsayılan",
+    "system": "Sistem",
+    "columns": {
+      "name": "Ad",
+      "rate": "Oran",
+      "description": "Açıklama",
+      "code": "Kod",
+      "status": "Durum",
+      "actions": "İşlemler"
+    },
+    "form": {
+      "name": "Ad",
+      "nameRequired": "Ad gerekli",
+      "description": "Açıklama",
+      "rate": "Vergi oranı (%)",
+      "rateRequired": "Vergi oranı gerekli",
+      "austrianCode": "AT kodu",
+      "codeOptional": "İsteğe bağlı",
+      "color": "Renk",
+      "icon": "Simge",
+      "status": "Durum",
+      "isDefault": "Varsayılan olarak kullan"
+    },
+    "bulk": {
+      "cardTitle": "Toplu vergi güncellemesi",
+      "fromPlaceholder": "Mevcut vergi grubu",
+      "toPlaceholder": "Yeni vergi grubu",
+      "submit": "Tüm ürünleri güncelle",
+      "warningTitle": "Uyarı",
+      "warningDescription": "Bu işlem seçilen vergi grubundaki tüm ürünleri günceller ve vergi değişiklik geçmişine kayıt yazar.",
+      "selectBoth": "Lütfen mevcut ve yeni vergi grubunu seçin.",
+      "mustDiffer": "Mevcut ve yeni vergi grubu farklı olmalıdır.",
+      "confirmTitle": "Tüm ürünlerin vergi grubu değiştirilsin mi?",
+      "confirmContent": "Tüm ürünler „{{from}}“ grubundan „{{to}}“ grubuna taşınsın mı?",
+      "confirmOk": "Güncelle",
+      "defaultReason": "Bulk tax group update",
+      "success": "{{count}} ürün güncellendi ({{oldRate}}% → {{newRate}}%).",
+      "failed": "Toplu vergi grubu güncellemesi başarısız."
+    },
+    "preview": {
+      "cardTitle": "Vergi önizleme",
+      "netSample": "Örnek net tutar",
+      "current": "Güncel",
+      "next": "Yeni",
+      "net": "Net",
+      "tax": "Vergi (%{{rate}})",
+      "gross": "Brüt",
+      "noChange": "Aynı net tutarda brüt fiyat değişmez.",
+      "priceIncreases": "Fiyat {{amount}} artar",
+      "priceDecreases": "Fiyat {{amount}} azalır"
+    },
+    "compliance": {
+      "cardTitle": "Vergi uyumluluk kontrolü",
+      "runCheck": "Kontrol et",
+      "statusOk": "Uyumlu",
+      "statusIssues": "Sorun bulundu",
+      "statusUnknown": "Kontrol edilmedi",
+      "summary": "{{compliant}}/{{total}} ürün uyumlu",
+      "nonCompliantLabel": "uyumsuz",
+      "allGood": "Tüm aktif ürünler güncel Avusturya KDV kurallarına uyuyor.",
+      "loadFailed": "Uyumluluk kontrolü yüklenemedi.",
+      "codes": {
+        "MISSING_TAX_GROUP": "{{count}} ürünün vergi grubu yok",
+        "INACTIVE_TAX_GROUP": "{{count}} ürün pasif vergi grubuna bağlı",
+        "INVALID_TAX_RATE": "{{count}} üründe geçersiz vergi oranı",
+        "OUTDATED_TAX_RATE": "{{count}} üründe eski/uyumsuz grup oranı",
+        "PRODUCT_RATE_DESYNC": "{{count}} üründe ürün vergi oranı senkron değil"
+      },
+      "actions": {
+        "MISSING_TAX_GROUP": "Lütfen bu ürünlere bir vergi grubu atayın.",
+        "INACTIVE_TAX_GROUP": "Ürünleri aktif bir vergi grubuna yeniden atayın.",
+        "INVALID_TAX_RATE": "Oranı %0, %4,9, %10, %13 veya %20 olacak şekilde güncelleyin.",
+        "OUTDATED_TAX_RATE": "Vergi grubu oranını Avusturya grup tipiyle hizalayın.",
+        "PRODUCT_RATE_DESYNC": "Damgalı oranın vergi grubuyla eşleşmesi için ürünleri yeniden kaydedin."
+      }
+    },
+    "stats": {
+      "cardTitle": "Vergi grubu istatistikleri",
+      "productsSuffix": "ürün",
+      "revenue": "Ciro: {{amount}}",
+      "summary": "{{products}} ürün · {{revenue}} ciro (bu yıl)",
+      "empty": "Vergi grubu istatistiği yok.",
+      "loadFailed": "Vergi grubu istatistikleri yüklenemedi."
+    }
+  },
+  "taxHistory": {
+    "pageTitle": "Vergi değişiklik geçmişi",
+    "cardTitle": "Vergi değişiklik geçmişi",
+    "description": "Ürün KDV oranı değişikliklerinin kaydı (Avusturya uyumluluk izi).",
+    "empty": "Henüz vergi değişikliği kaydı yok.",
+    "loadFailed": "Vergi değişiklik geçmişi yüklenemedi.",
+    "invoiceNumber": "Fiş numarası"
+  },
   "workingHours": {
     "pageTitle": "Çalışma saatleri",
     "cardTitle": "Restoran çalışma saatleri",

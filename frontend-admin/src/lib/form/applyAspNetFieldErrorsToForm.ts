@@ -1,4 +1,5 @@
-import type { FormInstance, NamePath } from 'antd/es/form/interface';
+import type { FormInstance } from 'antd';
+import type { NamePath } from 'antd/es/form/interface';
 
 import { normalizeApiError } from '@/shared/errors/normalizedApiError';
 

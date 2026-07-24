@@ -18,6 +18,11 @@ public class ProductListDto
     public int? MaxStockLevel { get; set; }
     public int TaxType { get; set; }
     public decimal TaxRate { get; set; }
+    public Guid TaxGroupId { get; set; }
+    public string? TaxGroupName { get; set; }
+    public string? TaxGroupColor { get; set; }
+    public string? TaxGroupIcon { get; set; }
+    public string? TaxGroupAustrianCode { get; set; }
     public string CategoryName { get; set; } = string.Empty;
     public Guid CategoryId { get; set; }
     public bool IsActive { get; set; }

@@ -90,6 +90,11 @@ public sealed class AdminProductListService : IAdminProductListService
                 MaxStockLevel = p.MaxStockLevel,
                 TaxType = p.TaxType,
                 TaxRate = p.TaxRate,
+                TaxGroupId = p.TaxGroupId,
+                TaxGroupName = p.TaxGroup != null ? p.TaxGroup.Name : null,
+                TaxGroupColor = p.TaxGroup != null ? p.TaxGroup.Color : null,
+                TaxGroupIcon = p.TaxGroup != null ? p.TaxGroup.Icon : null,
+                TaxGroupAustrianCode = p.TaxGroup != null ? p.TaxGroup.AustrianCode : null,
                 CategoryId = p.CategoryId,
                 CategoryName = p.CategoryNavigation != null ? p.CategoryNavigation.Name : p.Category,
                 IsActive = p.IsActive,
@@ -159,6 +164,18 @@ public static class ProductListDtoMapper
         MinStockLevel = item.MinStockLevel,
         TaxType = item.TaxType,
         TaxRate = item.TaxRate,
+        TaxGroupId = item.TaxGroupId,
+        TaxGroup = item.TaxGroupId != Guid.Empty
+            ? new ProductTaxGroupSummaryDto
+            {
+                Id = item.TaxGroupId,
+                Name = item.TaxGroupName ?? string.Empty,
+                Rate = item.TaxRate,
+                Color = item.TaxGroupColor,
+                Icon = item.TaxGroupIcon,
+                AustrianCode = item.TaxGroupAustrianCode,
+            }
+            : null,
         CategoryId = item.CategoryId,
         Category = item.CategoryName,
         IsActive = item.IsActive,

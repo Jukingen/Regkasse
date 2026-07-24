@@ -44,6 +44,7 @@ describe('emitStructuredLog helpers', () => {
     expect(record.msg).toBe('boom');
     expect(record.code).toBe('X');
     expect(record.level).toBe('error');
+    expect(record.errorName).toBe('Error');
   });
 
   it('gates console emit by environment', () => {

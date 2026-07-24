@@ -37,7 +37,7 @@ export async function saveBlobToFolder(blob: Blob, fileName: string): Promise<'s
     return 'saved';
   }
 
-  const w = globalThis.window as SaveFilePickerWindow;
+  const w = globalThis.window as unknown as SaveFilePickerWindow;
   const extension = fileName.includes('.') ? `.${fileName.split('.').pop()}` : '';
   const mime = blob.type || 'application/octet-stream';
 

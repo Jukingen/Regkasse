@@ -1,11 +1,12 @@
 import { Product } from '@/api/generated/model';
 
-/** Backend TaxType enum: 1=Standard(20%), 2=Reduced(10%), 3=Special(13%), 4=ZeroRate(0%). */
+/** Backend TaxType enum: 1=Standard(20%), 2=Reduced(10%), 3=Special(13%), 4=ZeroRate(0%), 5=ReducedNew(4.9%). */
 export const TAX_TYPE_ENUM = {
   Standard: 1,
   Reduced: 2,
   Special: 3,
   ZeroRate: 4,
+  ReducedNew: 5,
 } as const;
 
 /** Single source: enum id to tax rate percentage (aligned with backend TaxTypes.GetTaxRate). */
@@ -19,8 +20,28 @@ export function taxTypeToRate(taxType: number): number {
       return 13;
     case 4:
       return 0;
+    case 5:
+      return 4.9;
     default:
       return 20;
+  }
+}
+
+/** Inverse of taxTypeToRate for catalog-driven product forms. */
+export function taxRateToType(rate: number): number {
+  switch (rate) {
+    case 20:
+      return TAX_TYPE_ENUM.Standard;
+    case 10:
+      return TAX_TYPE_ENUM.Reduced;
+    case 13:
+      return TAX_TYPE_ENUM.Special;
+    case 0:
+      return TAX_TYPE_ENUM.ZeroRate;
+    case 4.9:
+      return TAX_TYPE_ENUM.ReducedNew;
+    default:
+      return TAX_TYPE_ENUM.Standard;
   }
 }
 
@@ -41,6 +62,8 @@ export function formatTaxTypeLabelForLocale(
       return t('products.taxLabels.special', { rate });
     case TAX_TYPE_ENUM.ZeroRate:
       return t('products.taxLabels.zero', { rate });
+    case TAX_TYPE_ENUM.ReducedNew:
+      return t('products.taxLabels.reducedNew', { rate });
     default:
       return t('products.taxLabels.fallback', { rate });
   }
@@ -80,8 +103,23 @@ export interface ApiProduct {
   Unit?: string | null;
   Category?: string | null;
   CategoryId?: string | null;
-  TaxType: number; // Backend: int enum 1,2,3,4
+  TaxType: number; // Backend: int enum 1,2,3,4,5
   TaxRate?: number;
+  TaxGroupId?: string | null;
+  TaxGroup?: {
+    id?: string;
+    Id?: string;
+    name?: string;
+    Name?: string;
+    rate?: number;
+    Rate?: number;
+    color?: string | null;
+    Color?: string | null;
+    icon?: string | null;
+    Icon?: string | null;
+    austrianCode?: string | null;
+    AustrianCode?: string | null;
+  } | null;
   IsActive?: boolean;
   Barcode?: string | null;
   Cost?: number;
@@ -93,6 +131,25 @@ export const mapApiProductToUi = (apiProduct: ApiProduct | any): Product => {
   if (!apiProduct) return {} as Product;
   const taxType = Number(apiProduct.TaxType ?? apiProduct.taxType ?? 1);
   const taxRate = apiProduct.TaxRate ?? apiProduct.taxRate ?? taxTypeToRate(taxType);
+  const taxGroupRaw = apiProduct.TaxGroup ?? apiProduct.taxGroup;
+  const taxGroupId =
+    apiProduct.TaxGroupId ??
+    apiProduct.taxGroupId ??
+    taxGroupRaw?.id ??
+    taxGroupRaw?.Id ??
+    null;
+  const taxGroup = taxGroupRaw
+    ? {
+        id: String(taxGroupRaw.id ?? taxGroupRaw.Id ?? taxGroupId ?? ''),
+        name: String(taxGroupRaw.name ?? taxGroupRaw.Name ?? ''),
+        rate: Number(taxGroupRaw.rate ?? taxGroupRaw.Rate ?? taxRate),
+        color: (taxGroupRaw.color ?? taxGroupRaw.Color ?? null) as string | null,
+        icon: (taxGroupRaw.icon ?? taxGroupRaw.Icon ?? null) as string | null,
+        austrianCode: (taxGroupRaw.austrianCode ?? taxGroupRaw.AustrianCode ?? null) as
+          | string
+          | null,
+      }
+    : null;
 
   return {
     id: apiProduct.Id || apiProduct.id,
@@ -113,6 +170,8 @@ export const mapApiProductToUi = (apiProduct: ApiProduct | any): Product => {
     categoryId: apiProduct.CategoryId || apiProduct.categoryId,
     taxType,
     taxRate,
+    taxGroupId: taxGroupId ? String(taxGroupId) : null,
+    taxGroup,
     isActive: apiProduct.IsActive ?? apiProduct.isActive ?? true,
     barcode: apiProduct.Barcode || apiProduct.barcode,
     cost: apiProduct.Cost ?? apiProduct.cost ?? 0,
@@ -146,10 +205,20 @@ function firstNonEmpty(...values: Array<string | null | undefined>): string {
 
 /** Payload for backend PUT/POST: camelCase, required category name, canonical description as string. */
 export const mapUiProductToApi = (
-  uiProduct: Product & { categoryId?: string; category?: string; taxType?: number }
+  uiProduct: Product & {
+    categoryId?: string;
+    category?: string;
+    taxType?: number;
+    taxRate?: number;
+    taxGroupId?: string | null;
+  }
 ): Record<string, unknown> => {
-  const taxType = Number(uiProduct.taxType ?? (uiProduct as { taxType?: number }).taxType ?? 1);
-  const taxRate = taxTypeToRate(taxType);
+  const taxType = Number(uiProduct.taxType ?? 1);
+  const taxRate =
+    uiProduct.taxRate != null && Number.isFinite(Number(uiProduct.taxRate))
+      ? Number(uiProduct.taxRate)
+      : taxTypeToRate(taxType);
+  const taxGroupId = uiProduct.taxGroupId ? String(uiProduct.taxGroupId) : null;
   const category =
     typeof uiProduct.category === 'string' && uiProduct.category.trim()
       ? uiProduct.category.trim()
@@ -194,6 +263,7 @@ export const mapUiProductToApi = (
     imageUrl: normalizeImageUrlForApi(uiProduct.imageUrl),
     taxType,
     taxRate,
+    taxGroupId,
     isFiscalCompliant: true,
     isTaxable: true,
     rksvProductType: 'Standard',

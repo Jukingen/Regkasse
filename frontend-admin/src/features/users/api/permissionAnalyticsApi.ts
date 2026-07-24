@@ -40,6 +40,10 @@ function asStringList(value: unknown): string[] {
   return Array.isArray(value) ? value.map((v) => String(v)).filter(Boolean) : [];
 }
 
+function asUnknownArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
 function mapNamed(raw: unknown): PermissionAnalyticsNamedCountDto {
   const row = asRecord(raw);
   return {
@@ -69,26 +73,14 @@ export async function fetchPermissionAnalyticsSummary(): Promise<PermissionAnaly
     totalUsers: Number(res.totalUsers ?? res.TotalUsers ?? 0),
     totalRoles: Number(res.totalRoles ?? res.TotalRoles ?? 0),
     totalPermissions: Number(res.totalPermissions ?? res.TotalPermissions ?? 0),
-    mostUsed: (Array.isArray(res.mostUsed ?? res.MostUsed) ? (res.mostUsed ?? res.MostUsed) : []).map(
+    mostUsed: asUnknownArray(res.mostUsed ?? res.MostUsed).map(mapNamed),
+    leastUsed: asUnknownArray(res.leastUsed ?? res.LeastUsed).map(mapNamed),
+    roleDistribution: asUnknownArray(res.roleDistribution ?? res.RoleDistribution).map(mapNamed),
+    overPrivilegedUsers: asUnknownArray(res.overPrivilegedUsers ?? res.OverPrivilegedUsers).map(
       mapNamed
     ),
-    leastUsed: (Array.isArray(res.leastUsed ?? res.LeastUsed)
-      ? (res.leastUsed ?? res.LeastUsed)
-      : []
-    ).map(mapNamed),
-    roleDistribution: (Array.isArray(res.roleDistribution ?? res.RoleDistribution)
-      ? (res.roleDistribution ?? res.RoleDistribution)
-      : []
-    ).map(mapNamed),
-    overPrivilegedUsers: (Array.isArray(res.overPrivilegedUsers ?? res.OverPrivilegedUsers)
-      ? (res.overPrivilegedUsers ?? res.OverPrivilegedUsers)
-      : []
-    ).map(mapNamed),
     unusedPermissions: asStringList(res.unusedPermissions ?? res.UnusedPermissions),
-    recommendations: (Array.isArray(res.recommendations ?? res.Recommendations)
-      ? (res.recommendations ?? res.Recommendations)
-      : []
-    ).map(mapRecommendation),
+    recommendations: asUnknownArray(res.recommendations ?? res.Recommendations).map(mapRecommendation),
   };
 }
 

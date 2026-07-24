@@ -14,6 +14,9 @@ import {
 export const LOG_SERVICE = 'frontend-admin' as const;
 export const LOG_CONSOLE_PREFIX = '[regkasse-admin]';
 
+/** Matches `DEV_TENANT_LOCAL_STORAGE_KEY` — keep string local to avoid auth ↔ logging cycles. */
+const DEV_TENANT_STORAGE_KEY = 'dev_tenant_id';
+
 function resolveEnv(): string {
   return (
     process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT?.trim() ||
@@ -24,6 +27,43 @@ function resolveEnv(): string {
 
 function isDevRuntime(): boolean {
   return process.env.NODE_ENV !== 'production';
+}
+
+/**
+ * Safe browser extras for diagnostics (no tokens/passwords).
+ * Prefer ambient `tenantId` from LogContextBinder; `devTenant` is the local override slug only.
+ */
+export function getBrowserLogExtras(): Record<string, string> {
+  if (typeof window === 'undefined') {
+    return {};
+  }
+
+  const out: Record<string, string> = {};
+  try {
+    const href = window.location?.href?.trim();
+    if (href) {
+      out.pageUrl = href.slice(0, 256);
+    }
+  } catch {
+    // ignore
+  }
+  try {
+    const ua = window.navigator?.userAgent?.trim();
+    if (ua) {
+      out.userAgent = ua.slice(0, 160);
+    }
+  } catch {
+    // ignore
+  }
+  try {
+    const tenant = window.localStorage?.getItem(DEV_TENANT_STORAGE_KEY)?.trim();
+    if (tenant && tenant.length > 0 && tenant.length <= 64) {
+      out.devTenant = tenant;
+    }
+  } catch {
+    // ignore
+  }
+  return out;
 }
 
 function extractMessage(args: unknown[]): { msg: string; rest: unknown[] } {
@@ -53,22 +93,39 @@ function mergeFieldArgs(rest: unknown[]): Record<string, unknown> {
   return fields;
 }
 
+/** Merge Error / AxiosError fields into the record without overwriting explicit caller fields. */
+function mergeErrorFields(fields: Record<string, unknown>, error: Error): void {
+  const errShape = redactTechnicalLogArg(error);
+  if (!errShape || typeof errShape !== 'object' || Array.isArray(errShape)) {
+    return;
+  }
+  for (const [key, value] of Object.entries(errShape as Record<string, unknown>)) {
+    if (key === 'message') {
+      // Already captured as `msg`.
+      continue;
+    }
+    if (fields[key] === undefined) {
+      fields[key] = value;
+    }
+  }
+  if (fields.errorName === undefined && error.name) {
+    fields.errorName = error.name;
+  }
+}
+
 export function buildStructuredLogRecord(
   level: LogLevel,
   args: unknown[],
-  bound?: Record<string, string>,
+  bound?: Record<string, string>
 ): StructuredLogRecord {
   const { msg, rest } = extractMessage(args);
   const ctx = compactLogContext({ ...getLogContext(), ...bound });
+  const browser = getBrowserLogExtras();
   const fields = mergeFieldArgs(rest);
 
-  // Prefer explicit Error shape when first arg was an Error (already redacted in fields if duplicated).
   const first = args[0];
-  if (first instanceof Error && fields.name === undefined) {
-    const errShape = redactTechnicalLogArg(first) as { name?: string; message?: string };
-    if (errShape.name) {
-      fields.errorName = errShape.name;
-    }
+  if (first instanceof Error) {
+    mergeErrorFields(fields, first);
   }
 
   return {
@@ -78,6 +135,7 @@ export function buildStructuredLogRecord(
     msg,
     service: LOG_SERVICE,
     env: resolveEnv(),
+    ...browser,
     ...ctx,
     ...fields,
   };
@@ -95,32 +153,48 @@ export function shouldEmitToConsole(level: LogLevel): boolean {
   return level === 'error';
 }
 
-export function writeStructuredToConsole(level: LogLevel, record: StructuredLogRecord): void {
+function fallbackRecord(level: LogLevel): StructuredLogRecord {
+  return {
+    time: new Date().toISOString(),
+    level,
+    levelNum: LOG_LEVEL_NUM[level],
+    msg: '(missing log record)',
+    service: LOG_SERVICE,
+    env: resolveEnv(),
+  };
+}
+
+export function writeStructuredToConsole(
+  level: LogLevel,
+  record: StructuredLogRecord | null | undefined
+): void {
   if (!shouldEmitToConsole(level)) {
     return;
   }
+  // Never pass undefined as the second console arg — DevTools shows a useless "undefined".
+  const safeRecord = record ?? fallbackRecord(level);
   const line = LOG_CONSOLE_PREFIX;
   switch (level) {
     case 'debug':
       // Intentional: structured console sink for local/dev diagnostics.
       // eslint-disable-next-line no-console -- structured console transport
-      console.debug(line, record);
+      console.debug(line, safeRecord);
       break;
     case 'info':
       // eslint-disable-next-line no-console -- structured console transport
-      console.info(line, record);
+      console.info(line, safeRecord);
       break;
     case 'warn':
       // eslint-disable-next-line no-console -- structured console transport
-      console.warn(line, record);
+      console.warn(line, safeRecord);
       break;
     case 'error':
       // eslint-disable-next-line no-console -- structured console transport
-      console.error(line, record);
+      console.error(line, safeRecord);
       break;
     default:
       // eslint-disable-next-line no-console -- structured console transport
-      console.log(line, record);
+      console.log(line, safeRecord);
   }
 }
 

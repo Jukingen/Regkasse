@@ -56,6 +56,10 @@ export function collectFieldErrors(errors: unknown): Record<string, string[]> | 
 }
 
 /** Do not use RFC7807 `type` URLs or long plain text as the machine code. */
+function isMachineErrorCode(s: string): boolean {
+  return /^[A-Z][A-Z0-9_]{2,95}$/.test(s);
+}
+
 function pickBackendCode(data: Record<string, unknown> | undefined): string | undefined {
   if (!data) return undefined;
   const keys = ['code', 'errorCode', 'error_code'] as const;
@@ -67,6 +71,11 @@ function pickBackendCode(data: Record<string, unknown> | undefined): string | un
       if (/^https?:\/\//i.test(s)) continue;
       return s;
     }
+  }
+  // Tagesabschluss (and some legacy endpoints) put SCREAMING_SNAKE codes in `details`.
+  const details = data.details;
+  if (typeof details === 'string' && details.trim() && isMachineErrorCode(details.trim())) {
+    return details.trim();
   }
   const t = data.type;
   if (typeof t === 'string' && t.trim()) {

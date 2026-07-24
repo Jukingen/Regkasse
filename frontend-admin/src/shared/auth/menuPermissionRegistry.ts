@@ -114,9 +114,9 @@ export function getMenuPermissionEntry(area: MenuAreaKey): MenuPermissionEntry {
 /** Normalize entry permission to a string array (empty = none required beyond fallback rules). */
 export function resolveMenuAreaPermissions(area: MenuAreaKey): string[] {
   const entry = MENU_PERMISSIONS[area];
-  const raw = entry.permission;
+  const raw = 'permission' in entry ? entry.permission : undefined;
   if (raw === undefined) return [];
-  return Array.isArray(raw) ? [...raw] : [raw];
+  return typeof raw === 'string' ? [raw] : [...raw];
 }
 
 /**
@@ -216,7 +216,7 @@ export function getMenuPermissionState(
     if (allowed) return { visible: true, permission };
   }
 
-  if (entry.fallback) {
+  if ('fallback' in entry && entry.fallback) {
     return { visible: Boolean(claims && claims.length > 0), permission };
   }
 

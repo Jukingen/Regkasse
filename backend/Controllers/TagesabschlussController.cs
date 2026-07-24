@@ -72,12 +72,18 @@ namespace KasseAPI_Final.Controllers
                 else
                 {
                     _logger.LogWarning("Daily closing blocked: {Reason}", result.ErrorMessage);
-                    return BadRequest(new TagesabschlussErrorResponse
-                    {
-                        error = result.ErrorMessage,
-                        paymentsWithoutInvoiceCount = result.PaymentsWithoutInvoiceCount
-                    });
+                    return BadRequest(ToClosingErrorResponse(result));
                 }
+            }
+            catch (InvalidOperationException ex) when (IsTseNotConnectedMessage(ex.Message))
+            {
+                _logger.LogWarning(ex, "Daily closing blocked: TSE not connected");
+                return BadRequest(new TagesabschlussErrorResponse
+                {
+                    error = ex.Message,
+                    code = TagesabschlussErrorCodes.TseNotConnected,
+                    details = TagesabschlussErrorCodes.TseNotConnected,
+                });
             }
             catch (Exception ex)
             {
@@ -125,10 +131,7 @@ namespace KasseAPI_Final.Controllers
                 else
                 {
                     _logger.LogWarning("Monthly closing blocked: {Reason}", result.ErrorMessage);
-                    return BadRequest(new TagesabschlussErrorResponse
-                    {
-                        error = result.ErrorMessage,
-                    });
+                    return BadRequest(ToClosingErrorResponse(result.ErrorMessage));
                 }
             }
             catch (Exception ex)
@@ -164,12 +167,18 @@ namespace KasseAPI_Final.Controllers
                 else
                 {
                     _logger.LogWarning("Yearly closing blocked: {Reason}", result.ErrorMessage);
-                    return BadRequest(new TagesabschlussErrorResponse
-                    {
-                        error = result.ErrorMessage,
-                        paymentsWithoutInvoiceCount = result.PaymentsWithoutInvoiceCount
-                    });
+                    return BadRequest(ToClosingErrorResponse(result));
                 }
+            }
+            catch (InvalidOperationException ex) when (IsTseNotConnectedMessage(ex.Message))
+            {
+                _logger.LogWarning(ex, "Yearly closing blocked: TSE not connected");
+                return BadRequest(new TagesabschlussErrorResponse
+                {
+                    error = ex.Message,
+                    code = TagesabschlussErrorCodes.TseNotConnected,
+                    details = TagesabschlussErrorCodes.TseNotConnected,
+                });
             }
             catch (Exception ex)
             {
@@ -390,7 +399,8 @@ namespace KasseAPI_Final.Controllers
                 return (null, BadRequest(new TagesabschlussErrorResponse
                 {
                     error = "Tenant context required",
-                    details = "TENANT_CONTEXT_REQUIRED",
+                    code = TagesabschlussErrorCodes.TenantContextRequired,
+                    details = TagesabschlussErrorCodes.TenantContextRequired,
                 }));
             }
 
@@ -403,12 +413,82 @@ namespace KasseAPI_Final.Controllers
                 return (null, NotFound(new TagesabschlussErrorResponse
                 {
                     error = "No cash register found for this tenant",
-                    details = "TAGESABSCHLUSS_NO_REGISTER",
+                    code = TagesabschlussErrorCodes.NoRegister,
+                    details = TagesabschlussErrorCodes.NoRegister,
                 }));
             }
 
             return (resolved.Value, null);
         }
+
+        private static TagesabschlussErrorResponse ToClosingErrorResponse(TagesabschlussResult result) =>
+            ToClosingErrorResponse(result.ErrorMessage, result.PaymentsWithoutInvoiceCount);
+
+        private static TagesabschlussErrorResponse ToClosingErrorResponse(
+            string? errorMessage,
+            int? paymentsWithoutInvoiceCount = null)
+        {
+            var code = MapClosingErrorCode(errorMessage);
+            return new TagesabschlussErrorResponse
+            {
+                error = errorMessage,
+                code = code,
+                details = code,
+                paymentsWithoutInvoiceCount = paymentsWithoutInvoiceCount,
+            };
+        }
+
+        private static string? MapClosingErrorCode(string? errorMessage)
+        {
+            if (string.IsNullOrWhiteSpace(errorMessage))
+                return null;
+
+            if (errorMessage.Contains("already performed for the current month", StringComparison.OrdinalIgnoreCase))
+                return TagesabschlussErrorCodes.AlreadyClosedMonth;
+
+            if (errorMessage.Contains("already performed for the current year", StringComparison.OrdinalIgnoreCase))
+                return TagesabschlussErrorCodes.AlreadyClosedYear;
+
+            if (errorMessage.Contains("already performed for today", StringComparison.OrdinalIgnoreCase)
+                || errorMessage.Contains("already performed for ", StringComparison.OrdinalIgnoreCase))
+                return TagesabschlussErrorCodes.AlreadyClosedToday;
+
+            if (errorMessage.Contains("reason is required for backdated", StringComparison.OrdinalIgnoreCase))
+                return TagesabschlussErrorCodes.BackdatedReasonRequired;
+
+            if (errorMessage.Contains("future date", StringComparison.OrdinalIgnoreCase))
+                return TagesabschlussErrorCodes.FutureClosingDate;
+
+            if (errorMessage.Contains("payment(s) without", StringComparison.OrdinalIgnoreCase))
+                return TagesabschlussErrorCodes.PaymentsWithoutInvoice;
+
+            if (errorMessage.Contains("not available for", StringComparison.OrdinalIgnoreCase))
+                return TagesabschlussErrorCodes.CashRegisterUnavailable;
+
+            if (IsTseNotConnectedMessage(errorMessage))
+                return TagesabschlussErrorCodes.TseNotConnected;
+
+            return null;
+        }
+
+        private static bool IsTseNotConnectedMessage(string? message) =>
+            !string.IsNullOrWhiteSpace(message)
+            && message.Contains("TSE", StringComparison.OrdinalIgnoreCase)
+            && message.Contains("not connected", StringComparison.OrdinalIgnoreCase);
+    }
+
+    internal static class TagesabschlussErrorCodes
+    {
+        public const string AlreadyClosedToday = "ALREADY_CLOSED_TODAY";
+        public const string AlreadyClosedMonth = "ALREADY_CLOSED_MONTH";
+        public const string AlreadyClosedYear = "ALREADY_CLOSED_YEAR";
+        public const string BackdatedReasonRequired = "BACKDATED_REASON_REQUIRED";
+        public const string FutureClosingDate = "FUTURE_CLOSING_DATE";
+        public const string PaymentsWithoutInvoice = "PAYMENTS_WITHOUT_INVOICE";
+        public const string CashRegisterUnavailable = "CASH_REGISTER_UNAVAILABLE";
+        public const string TseNotConnected = "TSE_NOT_CONNECTED";
+        public const string TenantContextRequired = "TENANT_CONTEXT_REQUIRED";
+        public const string NoRegister = "TAGESABSCHLUSS_NO_REGISTER";
     }
 
     public class DailyClosingRequest
@@ -471,6 +551,8 @@ namespace KasseAPI_Final.Controllers
 
     public class TagesabschlussErrorResponse
     {
+        /// <summary>Machine-oriented error code for FA i18n (also mirrored in <see cref="details"/> for older clients).</summary>
+        public string? code { get; set; }
         public string? error { get; set; }
         public string? details { get; set; }
         public int? paymentsWithoutInvoiceCount { get; set; }

@@ -76,6 +76,8 @@ namespace KasseAPI_Final.Data
         public DbSet<SplitSession> SplitSessions { get; set; }
         public DbSet<SplitItem> SplitItems { get; set; }
         public DbSet<Category> Categories { get; set; }
+        public DbSet<TaxGroup> TaxGroups { get; set; }
+        public DbSet<TaxHistory> TaxHistories { get; set; }
         public DbSet<PaymentDetails> PaymentDetails { get; set; }
         public DbSet<PaymentReversalApproval> PaymentReversalApprovals { get; set; }
         public DbSet<SuspiciousTransactionAlert> SuspiciousTransactionAlerts { get; set; }
@@ -1207,6 +1209,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.Cost).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TaxRate).HasColumnType("decimal(5,2)");
                 entity.Property(e => e.TaxType).IsRequired(); // Map to integer column
+                entity.Property(e => e.TaxGroupId).HasColumnName("tax_group_id").HasColumnType("uuid").IsRequired();
                 entity.Property(e => e.Category).HasMaxLength(100);
                 entity.Property(e => e.CategoryId).HasColumnName("category_id").HasColumnType("uuid").IsRequired();
                 entity.Property(e => e.ImageUrl).HasMaxLength(500);
@@ -1221,11 +1224,18 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.IsActive).IsRequired();
                 entity.Property(e => e.IsSellableAddOn).HasColumnName("is_sellable_addon").HasDefaultValue(false);
 
+                entity.HasOne(p => p.TaxGroup)
+                    .WithMany()
+                    .HasForeignKey(p => p.TaxGroupId)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+
                 // Indexes
                 entity.HasIndex(e => e.Name);
                 entity.HasIndex(e => e.Category);
                 entity.HasIndex(e => e.TaxType);
                 entity.HasIndex(e => e.CategoryId);
+                entity.HasIndex(e => e.TaxGroupId);
                 entity.HasIndex(e => e.TenantId);
                 // Tenant-scoped name lookup (CategoryId+TenantId already covered by composite FK index).
                 entity.HasIndex(e => new { e.TenantId, e.Name })
@@ -1625,6 +1635,72 @@ namespace KasseAPI_Final.Data
                 // Case-insensitive unique (tenant_id, name) enforced in PostgreSQL via
                 // IX_categories_tenant_id_Name_ci — see migration CaseInsensitiveCategoryNameUniqueIndex.
                 entity.HasIndex(e => e.SortOrder);
+            });
+
+            // TaxGroup configuration (tenant MwSt catalog)
+            builder.Entity<TaxGroup>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnType("uuid").HasColumnName("id");
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(100).HasColumnName("name");
+                entity.Property(e => e.Description).HasMaxLength(500).HasColumnName("description");
+                entity.Property(e => e.Rate).HasColumnType("decimal(5,2)").HasColumnName("rate").IsRequired();
+                entity.Property(e => e.IsDefault).HasColumnName("is_default").HasDefaultValue(false);
+                entity.Property(e => e.IsSystem).HasColumnName("is_system").HasDefaultValue(false);
+                entity.Property(e => e.Color).HasMaxLength(20).HasColumnName("color");
+                entity.Property(e => e.Icon).HasMaxLength(50).HasColumnName("icon");
+                entity.Property(e => e.GroupType).HasColumnName("group_type").HasConversion<int?>();
+                entity.Property(e => e.AustrianCode).HasMaxLength(8).HasColumnName("austrian_code");
+                entity.Property(e => e.ValidFrom).HasColumnName("valid_from");
+                entity.Property(e => e.ValidTo).HasColumnName("valid_to");
+                entity.Property(e => e.ReplacedBy).HasColumnName("replaced_by");
+                entity.HasOne(e => e.ReplacedByGroup)
+                    .WithMany()
+                    .HasForeignKey(e => e.ReplacedBy)
+                    .OnDelete(DeleteBehavior.SetNull);
+                entity.HasIndex(e => e.TenantId);
+                entity.HasIndex(e => new { e.TenantId, e.AustrianCode })
+                    .IsUnique()
+                    .HasFilter("austrian_code IS NOT NULL");
+                entity.HasIndex(e => new { e.TenantId, e.IsActive, e.IsDefault });
+                entity.ToTable("tax_groups", t =>
+                {
+                    t.HasCheckConstraint("CK_tax_groups_rate_range", "rate >= 0 AND rate <= 100");
+                });
+            });
+
+            builder.Entity<TaxHistory>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.ProductId).HasColumnName("product_id").IsRequired();
+                entity.Property(e => e.TaxGroupId).HasColumnName("tax_group_id").IsRequired();
+                entity.Property(e => e.OldRate).HasColumnName("old_rate").HasColumnType("decimal(5,2)");
+                entity.Property(e => e.NewRate).HasColumnName("new_rate").HasColumnType("decimal(5,2)");
+                entity.Property(e => e.ChangedAt).HasColumnName("changed_at");
+                entity.Property(e => e.ChangedBy).HasColumnName("changed_by");
+                entity.Property(e => e.Reason).HasColumnName("reason").HasMaxLength(500).IsRequired();
+                entity.Property(e => e.InvoiceNumber).HasColumnName("invoice_number").HasMaxLength(100);
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Product)
+                    .WithMany()
+                    .HasForeignKey(e => e.ProductId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.TaxGroup)
+                    .WithMany()
+                    .HasForeignKey(e => e.TaxGroupId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => new { e.TenantId, e.ChangedAt });
+                entity.HasIndex(e => new { e.TenantId, e.ProductId, e.ChangedAt });
+                entity.ToTable("tax_history");
             });
 
             // ProductModifierGroup configuration (Extra Zutaten)

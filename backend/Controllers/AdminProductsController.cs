@@ -39,6 +39,7 @@ namespace KasseAPI_Final.Controllers
         private readonly IProductService _productService;
         private readonly IProductExportService _productExport;
         private readonly IOperationLogService _operationLogs;
+        private readonly ITaxHistoryService _taxHistoryService;
 
         public AdminProductsController(
             AppDbContext context,
@@ -53,7 +54,8 @@ namespace KasseAPI_Final.Controllers
             IAdminProductListService productListService,
             IProductService productService,
             IProductExportService productExport,
-            IOperationLogService operationLogs)
+            IOperationLogService operationLogs,
+            ITaxHistoryService taxHistoryService)
             : base(logger)
         {
             _context = context;
@@ -68,6 +70,7 @@ namespace KasseAPI_Final.Controllers
             _productService = productService;
             _productExport = productExport;
             _operationLogs = operationLogs;
+            _taxHistoryService = taxHistoryService;
         }
 
         /// <summary>
@@ -313,6 +316,10 @@ namespace KasseAPI_Final.Controllers
 
                 var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
 
+                var taxGroupResult = await ApplyTaxGroupAsync(product, tenantId);
+                if (!taxGroupResult.IsValid)
+                    return ValidationErrorResponse(taxGroupResult);
+
                 var validationResult = await ValidateAdminProductMutationAsync(product, tenantId);
                 if (!validationResult.IsValid)
                     return ValidationErrorResponse(validationResult);
@@ -372,17 +379,53 @@ namespace KasseAPI_Final.Controllers
 
                 var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
 
+                var taxGroupResult = await ApplyTaxGroupAsync(product, tenantId);
+                if (!taxGroupResult.IsValid)
+                    return ValidationErrorResponse(taxGroupResult);
+
                 var validationResult = await ValidateAdminProductMutationAsync(product, tenantId, existingProduct.TenantId);
                 if (!validationResult.IsValid)
                     return ValidationErrorResponse(validationResult);
 
                 var before = OperationSnapshots.FromProduct(existingProduct);
+                var previousTaxRate = existingProduct.TaxRate;
+                var previousTaxGroupId = existingProduct.TaxGroupId;
+
                 ApplyAdminProductUpdate(existingProduct, product);
+                // Refresh navigation for response DTO when tax group changed.
+                await _context.Entry(existingProduct).Reference(p => p.TaxGroup).LoadAsync();
                 existingProduct.UpdatedAt = DateTime.UtcNow;
                 existingProduct.UpdatedBy = User.Identity?.Name ?? "system";
 
                 await _context.SaveChangesAsync();
                 await _productService.InvalidateProductsCacheAsync(existingProduct.TenantId, id);
+
+                var taxChanged = previousTaxGroupId != existingProduct.TaxGroupId
+                    || previousTaxRate != existingProduct.TaxRate;
+                if (taxChanged)
+                {
+                    try
+                    {
+                        var actorId = Guid.TryParse(GetCurrentUserId(), out var parsedActor)
+                            ? parsedActor
+                            : Guid.Empty;
+                        await _taxHistoryService.RecordChangeAsync(
+                            existingProduct.TenantId,
+                            existingProduct.Id,
+                            existingProduct.TaxGroupId,
+                            previousTaxRate,
+                            existingProduct.TaxRate,
+                            actorId,
+                            reason: "Product tax group updated");
+                    }
+                    catch (Exception taxHistEx)
+                    {
+                        _logger.LogWarning(
+                            taxHistEx,
+                            "Failed to write tax history for product update {ProductId}",
+                            id);
+                    }
+                }
 
                 var userId = GetCurrentUserId();
                 if (!string.IsNullOrEmpty(userId))
@@ -434,6 +477,7 @@ namespace KasseAPI_Final.Controllers
             existing.Price = incoming.Price;
             existing.TaxType = incoming.TaxType;
             existing.TaxRate = incoming.TaxRate;
+            existing.TaxGroupId = incoming.TaxGroupId;
             existing.CategoryId = incoming.CategoryId;
             existing.Category = incoming.Category;
             existing.StockQuantity = incoming.StockQuantity;
@@ -841,7 +885,30 @@ namespace KasseAPI_Final.Controllers
         private async Task<Product?> GetAdminProductByIdAsync(Guid id)
         {
             var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
-            return await _context.Products.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId);
+            return await _context.Products
+                .Include(p => p.TaxGroup)
+                .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId);
+        }
+
+        /// <summary>
+        /// Stamps TaxRate/TaxType from the tenant catalog row referenced by <see cref="Product.TaxGroupId"/>.
+        /// </summary>
+        private async Task<ValidationResult> ApplyTaxGroupAsync(Product product, Guid tenantId, CancellationToken cancellationToken = default)
+        {
+            if (product.TaxGroupId == Guid.Empty)
+                return ValidationResult.Error("Tax group is required");
+
+            var group = await _context.TaxGroups
+                .FirstOrDefaultAsync(
+                    g => g.Id == product.TaxGroupId && g.TenantId == tenantId && g.IsActive,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (group == null)
+                return ValidationResult.Error("Tax group not found");
+
+            product.TaxRate = group.Rate;
+            product.TaxType = TaxTypes.FromTaxGroup(group);
+            return ValidationResult.Success();
         }
 
         private async Task<ValidationResult> ValidateAdminProductMutationAsync(

@@ -91,6 +91,10 @@ namespace KasseAPI_Final.Models
         [Range(0, 100, ErrorMessage = "Tax rate must be between 0 and 100")]
         public decimal TaxRate { get; set; }
 
+        /// <summary>FK to tenant <see cref="TaxGroup"/> catalog; drives <see cref="TaxRate"/> / <see cref="TaxType"/>.</summary>
+        [Column("tax_group_id")]
+        public Guid TaxGroupId { get; set; }
+
         [Required]
         [Column("barcode")]
         [MaxLength(50)]
@@ -101,6 +105,9 @@ namespace KasseAPI_Final.Models
 
         /// <summary>Kategori adı (gösterim için; Category navigation'dan senkron tutulur).</summary>
         public virtual Category? CategoryNavigation { get; set; }
+
+        [ForeignKey(nameof(TaxGroupId))]
+        public virtual TaxGroup? TaxGroup { get; set; }
 
         [ForeignKey(nameof(TenantId))]
         public virtual Tenant? Tenant { get; set; }
@@ -145,8 +152,9 @@ namespace KasseAPI_Final.Models
         public const int Reduced = 2;     // %10 (gıda, kitap, vb.)
         public const int Special = 3;     // %13 (konaklama, vb.)
         public const int ZeroRate = 4;    // %0 (Österreich 2026 - 0% MwSt., nicht Exempt)
+        public const int ReducedNew = 5;  // %4.9 (E-Books / spesifik gıda)
 
-        public static readonly int[] All = { Standard, Reduced, Special, ZeroRate };
+        public static readonly int[] All = { Standard, Reduced, Special, ZeroRate, ReducedNew };
 
         public static decimal GetTaxRate(int taxType)
         {
@@ -156,9 +164,39 @@ namespace KasseAPI_Final.Models
                 Reduced => 10.0m,
                 Special => 13.0m,
                 ZeroRate => 0.0m,
+                ReducedNew => 4.9m,
                 _ => 20.0m
             };
         }
+
+        /// <summary>Maps a catalog tax group rate / kind onto legacy product <see cref="TaxType"/> ints.</summary>
+        public static int FromTaxGroup(TaxGroup group)
+        {
+            if (group.GroupType is TaxGroupType gt)
+            {
+                return gt switch
+                {
+                    TaxGroupType.Standard => Standard,
+                    TaxGroupType.Reduced => Reduced,
+                    TaxGroupType.ReducedNew => ReducedNew,
+                    TaxGroupType.Middle => Special,
+                    TaxGroupType.Zero => ZeroRate,
+                    _ => FromRate(group.Rate),
+                };
+            }
+
+            return FromRate(group.Rate);
+        }
+
+        public static int FromRate(decimal rate) => rate switch
+        {
+            20m => Standard,
+            10m => Reduced,
+            13m => Special,
+            0m => ZeroRate,
+            4.9m => ReducedNew,
+            _ => Standard,
+        };
 
         public static bool IsValidTaxType(int taxType)
         {

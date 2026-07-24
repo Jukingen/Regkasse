@@ -50,6 +50,7 @@ const ICON_MAP: Record<SidebarIconToken, React.ComponentType> = {
   ControlOutlined: Icons.ControlOutlined,
   TableOutlined: Icons.TableOutlined,
   CalendarOutlined: Icons.CalendarOutlined,
+  PercentageOutlined: Icons.PercentageOutlined,
   FileSearchOutlined: Icons.FileSearchOutlined,
   CreditCardOutlined: Icons.CreditCardOutlined,
   SnippetsOutlined: Icons.SnippetsOutlined,

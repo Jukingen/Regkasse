@@ -61,10 +61,12 @@ import {
   mapApiProductToUi,
   mapUiProductToApi,
 } from '@/features/products/utils/productMapper';
+import { TaxQuickActions } from '@/features/tax/components/TaxQuickActions';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { DemoImportButton } from '@/features/tenants/components/DemoImportButton';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useDownloadPreview } from '@/hooks/useDownloadPreview';
+import { resolveTaxGroupForProduct, useTaxGroups } from '@/hooks/useTaxGroups';
 import { useI18n } from '@/i18n';
 import { FORMAT_EMPTY_DISPLAY } from '@/i18n/formatting';
 import { estimateTabularExportBytes } from '@/lib/download/downloadPreview';
@@ -82,6 +84,7 @@ export default function ProductsPage() {
 
   const showProductLagerUi = isAdminProductsLagerUiEnabled();
   const { t } = useI18n();
+  const { data: taxGroups } = useTaxGroups();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { tenantName, tenantId, tenantSlug, isRealTenantSlug, isSuperAdminUser } =
@@ -137,7 +140,7 @@ export default function ProductsPage() {
   }, [listQuery.data?.availableFilters?.categories, categories]);
 
   const filterTaxTypes = useMemo(() => {
-    const values = listQuery.data?.availableFilters?.taxTypes ?? [1, 2, 3, 4];
+    const values = listQuery.data?.availableFilters?.taxTypes ?? [1, 2, 3, 4, 5];
     return values.map((value) => ({
       value,
       label:
@@ -578,21 +581,31 @@ export default function ProductsPage() {
       key: 'tax',
       width: 120,
       align: 'right',
-      render: (_: unknown, record: Product) => {
-        const rate = Number(record.taxRate ?? 0);
-        const label = formatTaxTypeLabelForLocale(Number(record.taxType ?? 1), record.taxRate, t);
-        const short = `${rate}%`;
-        const labelShort = label.length > 22 ? `${label.slice(0, 20)}…` : label;
+      render: (_: unknown, record: Product & {
+        taxGroup?: {
+          color?: string | null;
+          icon?: string | null;
+          rate?: number;
+          name?: string;
+        } | null;
+        taxGroupId?: string | null;
+      }) => {
+        const group =
+          record.taxGroup ??
+          resolveTaxGroupForProduct(taxGroups, {
+            taxGroupId: record.taxGroupId,
+            taxRate: record.taxRate,
+          });
+        const rate = Number(group?.rate ?? record.taxRate ?? 0);
+        const label = group?.name
+          ? `${group.name} (${rate}%)`
+          : formatTaxTypeLabelForLocale(Number(record.taxType ?? 1), record.taxRate, t);
+        const short = `${group?.icon ? `${group.icon} ` : ''}${rate}%`;
         return (
           <Tooltip title={label}>
-            <Space orientation="vertical" size={0} style={{ textAlign: 'right', width: '100%' }}>
-              <Typography.Text strong style={{ fontVariantNumeric: 'tabular-nums' }}>
-                {short}
-              </Typography.Text>
-              <Typography.Text type="secondary" style={{ fontSize: 10, display: 'block' }}>
-                {labelShort}
-              </Typography.Text>
-            </Space>
+            <Tag color={group?.color ?? undefined} style={{ marginInlineEnd: 0 }}>
+              {short}
+            </Tag>
           </Tooltip>
         );
       },
@@ -770,6 +783,13 @@ export default function ProductsPage() {
               </Button>
             </Space>
           }
+        />
+      ) : null}
+
+      {!isError && canManageProducts ? (
+        <TaxQuickActions
+          selectedProductIds={selectedRowKeys.map(String)}
+          canManage={canManageProducts}
         />
       ) : null}
 

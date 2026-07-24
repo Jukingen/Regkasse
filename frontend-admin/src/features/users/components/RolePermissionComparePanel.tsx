@@ -68,6 +68,8 @@ export function RolePermissionComparePanel({
     () => roleOptions.filter((o) => o.value !== currentRoleName),
     [roleOptions, currentRoleName]
   );
+  const compareRoleLabel =
+    selectableOptions.find((o) => o.value === compareRoleName)?.label ?? compareRoleName ?? '';
 
   return (
     <div
@@ -152,7 +154,7 @@ export function RolePermissionComparePanel({
               type="success"
               showIcon
               title={t('users.roleDrawer.compareIdentical', {
-                role: selectableOptions.find((o) => o.value === compareRoleName)?.label ?? compareRoleName,
+                role: compareRoleLabel,
               })}
             />
           ) : (
@@ -171,9 +173,7 @@ export function RolePermissionComparePanel({
             >
               <div style={{ fontWeight: 600, marginBottom: 4 }}>
                 {t('users.roleDrawer.compareDiffHeader', {
-                  role:
-                    selectableOptions.find((o) => o.value === compareRoleName)?.label ??
-                    compareRoleName,
+                  role: compareRoleLabel,
                 })}
               </div>
               {diff.onlyBase.slice(0, SUMMARY_MAX).map((key) => (

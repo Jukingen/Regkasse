@@ -126,6 +126,17 @@ export interface Product {
    * @maximum 100
    */
   taxRate?: number;
+  /** Linked catalog tax group (Austrian VAT). */
+  taxGroupId?: string | null;
+  /** Nested tax group summary when API includes it. */
+  taxGroup?: {
+    id: string;
+    name: string;
+    rate: number;
+    color?: string | null;
+    icon?: string | null;
+    austrianCode?: string | null;
+  } | null;
   taxType: number;
   tenant?: Tenant;
   tenantId?: string;

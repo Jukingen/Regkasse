@@ -92,7 +92,7 @@ function walkFullTree(
 
     out.push({
       key,
-      label: extractLabel(node, t),
+      label: extractLabel({ ...node, key }, t),
       visibility,
       children,
     });

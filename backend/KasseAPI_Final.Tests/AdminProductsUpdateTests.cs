@@ -47,7 +47,8 @@ public sealed class AdminProductsUpdateTests
             new AdminProductListService(ctx, TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary)),
             Mock.Of<IProductService>(),
             Mock.Of<IProductExportService>(),
-            Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
+            Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>(),
+            Mock.Of<ITaxHistoryService>());
 
     private static void AttachManagerUser(AdminProductsController controller)
     {
@@ -60,13 +61,44 @@ public sealed class AdminProductsUpdateTests
         };
     }
 
+    private static async Task<(Guid CategoryId, Guid TaxGroupId)> SeedCatalogAsync(AppDbContext ctx, string categoryName, decimal vatRate)
+    {
+        var catId = Guid.NewGuid();
+        ctx.Categories.Add(new Category
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Id = catId,
+            Key = $"key-{catId:N}"[..20],
+            Name = categoryName,
+            VatRate = vatRate,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+
+        var taxGroupId = Guid.NewGuid();
+        ctx.TaxGroups.Add(new TaxGroup
+        {
+            Id = taxGroupId,
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Name = "Normalsatz",
+            Rate = 20m,
+            IsActive = true,
+            IsSystem = true,
+            IsDefault = true,
+            GroupType = TaxGroupType.Standard,
+            AustrianCode = "A",
+            CreatedAt = DateTime.UtcNow,
+        });
+        await ctx.SaveChangesAsync();
+        return (catId, taxGroupId);
+    }
+
     [Fact]
     public async Task Update_Product_WithModifierAssignments_DoesNotFail()
     {
         await using var ctx = CreateContext();
         TenantTestDoubles.EnsureDefaultTenant(ctx);
-        var catId = Guid.NewGuid();
-        ctx.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = catId, Name = "Drinks", VatRate = 20m });
+        var (catId, taxGroupId) = await SeedCatalogAsync(ctx, "Drinks", 20m);
 
         var productId = Guid.NewGuid();
         var groupId = Guid.NewGuid();
@@ -77,7 +109,7 @@ public sealed class AdminProductsUpdateTests
             Name = "Extras",
             IsActive = true,
         });
-        ctx.Products.Add(NewProduct(productId, "Cola", catId, "bc-cola"));
+        ctx.Products.Add(NewProduct(productId, "Cola", catId, "bc-cola", taxGroupId));
         ctx.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment
         {
             ProductId = productId,
@@ -90,7 +122,7 @@ public sealed class AdminProductsUpdateTests
         var controller = CreateController(ctx);
         AttachManagerUser(controller);
 
-        var payload = NewProduct(productId, "Cola Zero", catId, "bc-cola");
+        var payload = NewProduct(productId, "Cola Zero", catId, "bc-cola", taxGroupId);
         payload.Price = 2.5m;
         payload.TenantId = Guid.Empty; // FE does not send tenant_id
 
@@ -107,11 +139,10 @@ public sealed class AdminProductsUpdateTests
     {
         await using var ctx = CreateContext();
         TenantTestDoubles.EnsureDefaultTenant(ctx);
-        var catId = Guid.NewGuid();
-        ctx.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = catId, Name = "Addons", VatRate = 10m });
+        var (catId, taxGroupId) = await SeedCatalogAsync(ctx, "Addons", 10m);
 
         var productId = Guid.NewGuid();
-        var product = NewProduct(productId, "Extra Cheese", catId, "bc-cheese");
+        var product = NewProduct(productId, "Extra Cheese", catId, "bc-cheese", taxGroupId);
         product.IsSellableAddOn = true;
         ctx.Products.Add(product);
         await ctx.SaveChangesAsync();
@@ -119,7 +150,7 @@ public sealed class AdminProductsUpdateTests
         var controller = CreateController(ctx);
         AttachManagerUser(controller);
 
-        var payload = NewProduct(productId, "Extra Cheese XL", catId, "bc-cheese");
+        var payload = NewProduct(productId, "Extra Cheese XL", catId, "bc-cheese", taxGroupId);
         var result = await controller.Update(productId, payload);
 
         Assert.IsType<OkObjectResult>(result);
@@ -132,11 +163,10 @@ public sealed class AdminProductsUpdateTests
     {
         await using var ctx = CreateContext();
         TenantTestDoubles.EnsureDefaultTenant(ctx);
-        var catId = Guid.NewGuid();
-        ctx.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = catId, Name = "Pizza", VatRate = 10m });
+        var (catId, taxGroupId) = await SeedCatalogAsync(ctx, "Pizza", 10m);
 
         var productId = Guid.NewGuid();
-        var seeded = NewProduct(productId, "Bauern Pizza", catId, "DEMO-BAUERNPIZZA-050");
+        var seeded = NewProduct(productId, "Bauern Pizza", catId, "DEMO-BAUERNPIZZA-050", taxGroupId);
         seeded.Description = "Original";
         seeded.DescriptionDe = "Original DE";
         ctx.Products.Add(seeded);
@@ -145,7 +175,7 @@ public sealed class AdminProductsUpdateTests
         var controller = CreateController(ctx);
         AttachManagerUser(controller);
 
-        var payload = NewProduct(productId, "bauern-pizza", catId, "DEMO-BAUERNPIZZA-050");
+        var payload = NewProduct(productId, "bauern-pizza", catId, "DEMO-BAUERNPIZZA-050", taxGroupId);
         payload.DescriptionDe = null;
         payload.DescriptionEn = null;
         payload.DescriptionTr = "tesstt";
@@ -164,17 +194,16 @@ public sealed class AdminProductsUpdateTests
     {
         await using var ctx = CreateContext();
         TenantTestDoubles.EnsureDefaultTenant(ctx);
-        var catId = Guid.NewGuid();
-        ctx.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = catId, Name = "Pizza", VatRate = 10m });
+        var (catId, taxGroupId) = await SeedCatalogAsync(ctx, "Pizza", 10m);
 
         var productId = Guid.NewGuid();
-        ctx.Products.Add(NewProduct(productId, "Margherita", catId, "bc-pizza"));
+        ctx.Products.Add(NewProduct(productId, "Margherita", catId, "bc-pizza", taxGroupId));
         await ctx.SaveChangesAsync();
 
         var controller = CreateController(ctx);
         AttachManagerUser(controller);
 
-        var payload = NewProduct(productId, "Margherita", catId, "bc-pizza");
+        var payload = NewProduct(productId, "Margherita", catId, "bc-pizza", taxGroupId);
         payload.DescriptionDe = new string('x', 2001);
 
         var result = await controller.Update(productId, payload);
@@ -183,7 +212,7 @@ public sealed class AdminProductsUpdateTests
         Assert.Contains("2000", badRequest.Value?.ToString(), StringComparison.Ordinal);
     }
 
-    private static Product NewProduct(Guid id, string name, Guid categoryId, string barcode) => new()
+    private static Product NewProduct(Guid id, string name, Guid categoryId, string barcode, Guid taxGroupId) => new()
     {
         Id = id,
         TenantId = LegacyDefaultTenantIds.Primary,
@@ -196,6 +225,7 @@ public sealed class AdminProductsUpdateTests
         Unit = "Stk",
         TaxType = TaxTypes.Standard,
         TaxRate = TaxTypes.GetTaxRate(TaxTypes.Standard),
+        TaxGroupId = taxGroupId,
         Barcode = barcode,
         IsFiscalCompliant = true,
         IsTaxable = true,

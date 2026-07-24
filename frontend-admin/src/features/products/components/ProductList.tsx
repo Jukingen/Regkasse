@@ -4,6 +4,7 @@ import React from 'react';
 
 import { Product } from '@/api/generated/model';
 import { formatProductUnitLabelForLocale } from '@/features/products/utils/productMapper';
+import { resolveTaxGroupForProduct, useTaxGroups } from '@/hooks/useTaxGroups';
 import { useI18n } from '@/i18n';
 
 import { useProductFilters } from '../hooks/useProducts';
@@ -17,7 +18,8 @@ interface ProductListProps {
 
 export default function ProductList({ data, loading, onEdit, onDelete }: ProductListProps) {
   const { t } = useI18n();
-  const { setParam } = useProductFilters();
+  useProductFilters();
+  const { data: taxGroups } = useTaxGroups();
 
   const columns = [
     {
@@ -58,14 +60,39 @@ export default function ProductList({ data, loading, onEdit, onDelete }: Product
     },
     {
       title: t('products.table.tax'),
-      dataIndex: 'taxRate',
-      key: 'taxRate',
-      render: (rate: number) => `${rate}%`,
+      dataIndex: 'taxGroup',
+      key: 'taxGroup',
+      render: (
+        _taxGroup: unknown,
+        record: Product & {
+          taxGroup?: {
+            color?: string | null;
+            icon?: string | null;
+            rate?: number;
+          } | null;
+          taxGroupId?: string | null;
+          taxRate?: number;
+        }
+      ) => {
+        const group =
+          record.taxGroup ??
+          resolveTaxGroupForProduct(taxGroups, {
+            taxGroupId: record.taxGroupId,
+            taxRate: record.taxRate,
+          });
+        const rate = Number(group?.rate ?? record.taxRate ?? 0);
+        return (
+          <Tag color={group?.color ?? undefined}>
+            {group?.icon ? `${group.icon} ` : ''}
+            {rate}%
+          </Tag>
+        );
+      },
     },
     {
       title: t('products.table.actions'),
       key: 'actions',
-      render: (_: any, record: Product) => (
+      render: (_: unknown, record: Product) => (
         <Space>
           <Button icon={<EditOutlined />} onClick={() => onEdit(record)} />
           <Popconfirm

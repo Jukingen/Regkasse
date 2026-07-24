@@ -1,15 +1,18 @@
 'use client';
 
 import { UploadOutlined } from '@ant-design/icons';
-import { Button, Collapse, Form, Input, InputNumber, Modal, Select, Switch, Upload } from 'antd';
+import { Alert, Button, Collapse, Form, Input, InputNumber, Modal, Select, Switch, Upload } from 'antd';
 import React, { useEffect, useMemo, useState } from 'react';
 
 import { MAX_PRODUCT_IMAGE_BYTES, uploadAdminProductImage } from '@/api/admin/products';
 import { Product } from '@/api/generated/model';
 import { OptimizedImage } from '@/components/OptimizedImage';
+import { TaxSelect } from '@/components/TaxSelect';
 import { useCategories } from '@/features/categories/hooks/useCategories';
-import { TAX_TYPE_ENUM } from '@/features/products/utils/productMapper';
+import { taxRateToType } from '@/features/products/utils/productMapper';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { useCurrentTaxRegulation } from '@/hooks/useCurrentTaxRegulation';
+import { resolveTaxGroupForProduct, useTaxGroups } from '@/hooks/useTaxGroups';
 import { useI18n } from '@/i18n';
 import {
   type ModifierGroupDto,
@@ -23,6 +26,8 @@ import ExtraZutatenSection from './ExtraZutatenSection';
 export type ProductFormSubmitValues = Product & {
   modifierGroupIds?: string[];
   categoryId?: string;
+  taxGroupId?: string;
+  taxRate?: number;
 };
 
 interface ProductFormProps {
@@ -132,14 +137,18 @@ function ProductFormContent({
     [t]
   );
 
-  const taxTypeOptions = useMemo(
-    () => [
-      { value: TAX_TYPE_ENUM.Standard, label: t('products.form.taxStandard') },
-      { value: TAX_TYPE_ENUM.Reduced, label: t('products.form.taxReduced') },
-      { value: TAX_TYPE_ENUM.Special, label: t('products.form.taxSpecial') },
-    ],
-    [t]
-  );
+  const { data: taxGroups } = useTaxGroups(visible);
+  const { data: regulation } = useCurrentTaxRegulation(visible);
+  const watchedTaxGroupId = Form.useWatch('taxGroupId', form) as string | undefined;
+
+  const selectedTaxRate = useMemo(() => {
+    if (!watchedTaxGroupId || !taxGroups?.length) return null;
+    const group = taxGroups.find((g) => g.id === watchedTaxGroupId);
+    return group?.rate ?? null;
+  }, [watchedTaxGroupId, taxGroups]);
+
+  const isValidTaxRate =
+    selectedTaxRate == null || regulation == null || regulation.isTaxRateValid(selectedTaxRate);
 
   const nameMaxLengthRule = useMemo(
     () => ({
@@ -182,7 +191,12 @@ function ProductFormContent({
   useEffect(() => {
     if (visible) {
       if (initialValues) {
-        const product = initialValues as Product & { categoryId?: string };
+        const product = initialValues as Product & {
+          categoryId?: string;
+          taxGroupId?: string | null;
+          taxRate?: number;
+          taxGroup?: { id?: string } | null;
+        };
         const categoryId =
           product.categoryId ??
           (
@@ -190,15 +204,13 @@ function ProductFormContent({
               { value: string } | undefined
           )?.value;
 
-        const allowedTax = [
-          TAX_TYPE_ENUM.Standard,
-          TAX_TYPE_ENUM.Reduced,
-          TAX_TYPE_ENUM.Special,
-        ] as const;
-        const rawTax = Number((initialValues as any).taxType ?? TAX_TYPE_ENUM.Standard);
-        const taxTypeNorm = (allowedTax as readonly number[]).includes(rawTax)
-          ? (rawTax as (typeof allowedTax)[number])
-          : TAX_TYPE_ENUM.Standard;
+        const resolvedTaxGroup = resolveTaxGroupForProduct(taxGroups, {
+          taxGroupId: product.taxGroupId ?? product.taxGroup?.id ?? null,
+          taxRate: product.taxRate ?? null,
+        });
+        const defaultTaxGroup =
+          resolvedTaxGroup ?? taxGroups?.find((g) => g.isDefault && g.isActive) ?? taxGroups?.[0];
+
         const iv = initialValues as Product & {
           nameDe?: string;
           nameEn?: string;
@@ -216,7 +228,7 @@ function ProductFormContent({
           descriptionEn: iv.descriptionEn ?? '',
           descriptionTr: iv.descriptionTr ?? '',
           isActive: initialValues.isActive ?? true,
-          taxType: taxTypeNorm,
+          taxGroupId: defaultTaxGroup?.id,
           unit: initialValues.unit || 'pcs',
           stockQuantity: initialValues.stockQuantity ?? 0,
           minStockLevel: initialValues.minStockLevel ?? 0,
@@ -224,9 +236,11 @@ function ProductFormContent({
         });
       } else if (!isEditMode) {
         form.resetFields();
+        const defaultTaxGroup =
+          taxGroups?.find((g) => g.isDefault && g.isActive) ?? taxGroups?.[0];
         form.setFieldsValue({
           isActive: true,
-          taxType: TAX_TYPE_ENUM.Standard,
+          taxGroupId: defaultTaxGroup?.id,
           price: 0,
           cost: 0,
           unit: 'pcs',
@@ -235,7 +249,7 @@ function ProductFormContent({
         });
       }
     }
-  }, [visible, initialValues, form, categoryOptions, isEditMode]);
+  }, [visible, initialValues, form, categoryOptions, isEditMode, taxGroups]);
 
   const handleOk = async () => {
     try {
@@ -259,6 +273,13 @@ function ProductFormContent({
           : String(rawImageUrl).trim();
 
       const nameDe = String(values.nameDe ?? values.name ?? '').trim();
+      const taxGroupId = values.taxGroupId as string | undefined;
+      const selectedTaxGroup = taxGroups?.find((g) => g.id === taxGroupId);
+      if (!taxGroupId || !selectedTaxGroup) {
+        message.error(t('products.form.taxGroupRequired'));
+        return;
+      }
+
       const processedValues: ProductFormSubmitValues = {
         ...values,
         name: nameDe || String(values.name ?? '').trim(),
@@ -270,7 +291,9 @@ function ProductFormContent({
         descriptionTr: String(values.descriptionTr ?? '').trim() || undefined,
         price: Number(values.price),
         cost: Number(values.cost),
-        taxType: Number(values.taxType) as any,
+        taxGroupId,
+        taxType: taxRateToType(selectedTaxGroup.rate) as unknown as Product['taxType'],
+        taxRate: selectedTaxGroup.rate,
         stockQuantity: Number(values.stockQuantity ?? 0),
         minStockLevel: Number(values.minStockLevel ?? 0),
         unit: values.unit || 'pcs',
@@ -450,15 +473,22 @@ function ProductFormContent({
         </div>
 
         <Form.Item
-          name="taxType"
-          label={t('products.form.taxType')}
-          rules={[{ required: true, message: t('products.form.taxTypeRequired') }]}
+          name="taxGroupId"
+          label={t('products.form.taxGroup')}
+          rules={[{ required: true, message: t('products.form.taxGroupRequired') }]}
         >
-          <Select
-            options={taxTypeOptions.map((o) => ({ value: o.value, label: o.label }))}
-            placeholder={t('products.form.taxTypePlaceholder')}
-          />
+          <TaxSelect />
         </Form.Item>
+
+        {!isValidTaxRate ? (
+          <Alert
+            type="warning"
+            showIcon
+            style={{ marginBottom: 16 }}
+            title={t('products.form.taxRateInvalidTitle')}
+            description={t('products.form.taxRateInvalidDescription')}
+          />
+        ) : null}
 
         <Form.Item
           name="imageUrl"

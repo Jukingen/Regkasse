@@ -57,6 +57,7 @@ export type SidebarIconToken =
   | 'ControlOutlined'
   | 'TableOutlined'
   | 'CalendarOutlined'
+  | 'PercentageOutlined'
   | 'FileSearchOutlined'
   | 'CreditCardOutlined'
   | 'SnippetsOutlined'
@@ -402,6 +403,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     icon: 'AreaChartOutlined',
     sidebarHidden: true,
   },
+  steuerberichte: {
+    id: 'steuerberichte',
+    menuKey: '/reporting/steuerberichte',
+    href: '/reporting/steuerberichte',
+    labelKey: 'nav.steuerberichte',
+    icon: 'PieChartOutlined',
+    permission: PERMISSIONS.REPORT_VIEW,
+  },
   auditLogs: {
     id: 'auditLogs',
     menuKey: '/audit-logs',
@@ -514,6 +523,22 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     labelKey: 'nav.workingHours',
     icon: 'CalendarOutlined',
     ...sidebarFieldsFromMenuMap('workingHours'),
+  },
+  taxGroups: {
+    id: 'taxGroups',
+    menuKey: '/settings/tax-groups',
+    href: '/settings/tax-groups',
+    labelKey: 'nav.taxGroups',
+    icon: 'PercentageOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
+  },
+  taxHistory: {
+    id: 'taxHistory',
+    menuKey: '/settings/tax-history',
+    href: '/settings/tax-history',
+    labelKey: 'nav.taxHistory',
+    icon: 'HistoryOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
   },
   websiteGenerator: {
     id: 'websiteGenerator',
@@ -1378,6 +1403,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         catalogIds: [
           'reportingOverview',
           'reportCenter',
+          'steuerberichte',
           'activityLog',
           'userActivityReport',
           'staffPerformance',
@@ -1406,7 +1432,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
     blocks: [
       {
         kind: 'leaves',
-        catalogIds: ['settingsHub', 'companySettings', 'workingHours', 'settingsDataManagement'],
+        catalogIds: ['settingsHub', 'companySettings', 'workingHours', 'taxGroups', 'taxHistory', 'settingsDataManagement'],
       },
       {
         kind: 'nested',

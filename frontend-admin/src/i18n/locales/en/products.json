@@ -102,7 +102,20 @@
     "exportCsv": "Export CSV",
     "exportJson": "Export JSON",
     "exportSuccess": "Export downloaded.",
-    "exportFailed": "Export failed."
+    "exportFailed": "Export failed.",
+    "quickTax": {
+      "selectorTitle": "Quick tax selection",
+      "recentTitle": "Recently used",
+      "selectHint": "Select products in the table to assign a tax group.",
+      "applyHint": "Apply a tax group to {{count}} selected products.",
+      "selectProductsFirst": "Please select products first.",
+      "confirmTitle": "Assign tax group?",
+      "confirmContent": "{{count}} product(s) will get “{{name}}” ({{rate}}%).",
+      "confirmOk": "Assign",
+      "success": "{{count}} product(s) updated to {{rate}}%.",
+      "unchanged": "All selected products already had this tax group.",
+      "failed": "Could not assign tax group."
+    }
   },
   "devPurge": {
     "button": "Dev: Delete catalog",
@@ -133,6 +146,7 @@
     "reduced": "{{rate}}% (reduced)",
     "special": "{{rate}}% (special)",
     "zero": "{{rate}}% (zero rate)",
+    "reducedNew": "{{rate}}% (reduced new)",
     "fallback": "{{rate}}% (standard)"
   },
   "form": {
@@ -159,6 +173,11 @@
     "taxType": "Tax type",
     "taxTypeRequired": "Select tax type",
     "taxTypePlaceholder": "Select tax type",
+    "taxGroup": "Tax group",
+    "taxGroupRequired": "Select a tax group",
+    "taxGroupPlaceholder": "Select tax group",
+    "taxRateInvalidTitle": "Invalid tax rate",
+    "taxRateInvalidDescription": "The selected tax rate does not match current Austrian VAT regulations.",
     "taxStandard": "20% (standard)",
     "taxReduced": "10% (reduced)",
     "taxSpecial": "13% (special)",

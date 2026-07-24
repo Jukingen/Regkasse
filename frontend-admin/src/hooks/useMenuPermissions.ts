@@ -48,7 +48,7 @@ export function useMenuPermissions(menuKey: MenuAreaKey | string): MenuPermissio
     }
   }
 
-  if (entry.fallback || required.length === 0) {
+  if (('fallback' in entry && entry.fallback) || required.length === 0) {
     return { visible: userPermissions.length > 0, permission };
   }
 

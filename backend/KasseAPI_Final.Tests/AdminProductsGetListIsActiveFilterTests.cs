@@ -91,7 +91,8 @@ public sealed class AdminProductsGetListIsActiveFilterTests
             new AdminProductListService(ctx, TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary)),
             Mock.Of<IProductService>(),
             Mock.Of<IProductExportService>(),
-            Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
+            Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>(),
+            Mock.Of<ITaxHistoryService>());
 
     private static int ReadTotalCount(IActionResult result)
     {

@@ -146,6 +146,16 @@
     "unknown": "Unbekannter Fehler",
     "loadStatsTitle": "Statistik konnte nicht geladen werden",
     "loadHistoryTitle": "Historie konnte nicht geladen werden",
-    "pdfDownload": "PDF-Bericht konnte nicht heruntergeladen werden."
+    "pdfDownload": "PDF-Bericht konnte nicht heruntergeladen werden.",
+    "alreadyClosedToday": "Tagesabschluss wurde für dieses Datum bereits durchgeführt.",
+    "alreadyClosedMonth": "Monatsabschluss für den aktuellen Monat wurde bereits durchgeführt.",
+    "alreadyClosedYear": "Jahresabschluss für das aktuelle Jahr wurde bereits durchgeführt.",
+    "backdatedReasonRequired": "Für einen nachträglichen Tagesabschluss ist ein Grund erforderlich.",
+    "futureDate": "Tagesabschluss für ein zukünftiges Datum ist nicht möglich.",
+    "paymentsWithoutInvoice": "Es gibt Zahlungen ohne passende Rechnung. Bitte zuerst klären (z. B. Backfill), dann erneut versuchen.",
+    "registerUnavailable": "Kasse ist für den Tagesabschluss nicht verfügbar (fehlt oder außer Betrieb).",
+    "tseNotConnected": "TSE ist nicht verbunden. Tagesabschluss kann nicht durchgeführt werden.",
+    "tenantContextRequired": "Mandantenkontext fehlt. Bitte zuerst einen Mandanten wählen.",
+    "noRegister": "Keine Kasse für diesen Mandanten gefunden."
   }
 }

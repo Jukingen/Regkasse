@@ -472,5 +472,32 @@
       "ShiftEnded": "Schicht geschlossen",
       "POS_SPL_RCPT": "Sonderbeleg"
     }
+  },
+  "taxReports": {
+    "pageTitle": "Steuerberichte",
+    "cardTitle": "Steuerberichte",
+    "period": "Zeitraum",
+    "totalNet": "Netto gesamt",
+    "totalTax": "Steuer gesamt",
+    "totalGross": "Brutto gesamt",
+    "empty": "Keine Steuerdaten im gewählten Zeitraum.",
+    "tabs": {
+      "distribution": "Steuerverteilung",
+      "trend": "Steuertrend",
+      "export": "Export"
+    },
+    "columns": {
+      "group": "Steuergruppe",
+      "rate": "Satz",
+      "net": "Netto",
+      "tax": "Steuer",
+      "gross": "Brutto",
+      "receipts": "Belege"
+    },
+    "exportYear": "Jahressteuerbericht",
+    "exportMonth": "Monatssteuerbericht",
+    "exportSuccess": "Steuerbericht heruntergeladen",
+    "exportFailed": "Export fehlgeschlagen",
+    "exportPermissionHint": "Für den Export ist die Berechtigung report.export erforderlich."
   }
 }

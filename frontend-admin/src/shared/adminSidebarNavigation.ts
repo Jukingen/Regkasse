@@ -153,6 +153,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
   [ADMIN_SIDEBAR_GROUP_KEYS.reports]: [
     '/reporting',
     '/reporting/report-center',
+    '/reporting/steuerberichte',
     '/reporting/compliance',
     '/reporting/staff',
     '/audit-logs/activity',

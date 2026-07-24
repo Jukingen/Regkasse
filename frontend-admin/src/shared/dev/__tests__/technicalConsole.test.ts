@@ -35,6 +35,32 @@ describe('redactTechnicalLogArg', () => {
       message: 'boom',
     });
   });
+
+  it('maps Axios-like errors to status/endpoint/method/data', () => {
+    const err = Object.assign(new Error('Request failed with status code 400'), {
+      isAxiosError: true,
+      code: 'ERR_BAD_REQUEST',
+      config: { url: '/api/Tagesabschluss/daily', method: 'post' },
+      response: {
+        status: 400,
+        data: { code: 'BACKDATED_REASON_REQUIRED', error: 'reason required', password: 'secret' },
+      },
+    });
+    expect(redactTechnicalLogArg(err)).toEqual({
+      name: 'Error',
+      message: 'Request failed with status code 400',
+      error: 'Request failed with status code 400',
+      status: 400,
+      data: {
+        code: 'BACKDATED_REASON_REQUIRED',
+        error: 'reason required',
+        password: '[REDACTED]',
+      },
+      endpoint: '/api/Tagesabschluss/daily',
+      method: 'POST',
+      code: 'ERR_BAD_REQUEST',
+    });
+  });
 });
 
 describe('technicalConsole / logger environment gating', () => {

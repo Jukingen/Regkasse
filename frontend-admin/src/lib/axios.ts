@@ -347,23 +347,36 @@ const createAxiosInstance = () => {
         if (status === 401) {
           technicalConsole.devDebug('[API] 401 Unauthorized');
         } else if (status != null) {
-          const logPayload = serverMessage ?? data ?? fallbackMessage;
+          const apiFields = {
+            error: serverMessage ?? fallbackMessage,
+            status,
+            data: data ?? null,
+            endpoint: url || undefined,
+            method: originalRequest?.method,
+          };
           if (isExpectedLicenseWriteBlock403(status, data, serverMessage)) {
-            technicalConsole.warn(`[API] HTTP ${status} ${url} (license read-only)`, logPayload);
+            technicalConsole.warn(
+              `[API] HTTP ${status} ${url} (license read-only)`,
+              apiFields
+            );
           } else if (isOptionalSettingsNotFound404(status, url)) {
-            technicalConsole.warn(`[API] HTTP ${status} ${url} (optional settings)`, logPayload);
+            technicalConsole.warn(`[API] HTTP ${status} ${url} (optional settings)`, apiFields);
           } else {
-            technicalConsole.error(`[API] HTTP ${status} ${url}`, logPayload);
+            technicalConsole.error(`[API] HTTP ${status} ${url}`, apiFields);
           }
         } else if (!isRequestCanceled(error)) {
           technicalConsole.warn('[API] Network or client error', {
-            url: url || undefined,
-            message: fallbackMessage,
+            error: fallbackMessage,
+            status: null,
+            data: null,
+            endpoint: url || undefined,
+            method: originalRequest?.method,
             code: (error as { code?: string }).code,
           });
         } else if (isDev) {
           technicalConsole.devDebug('[API] Request cancelled', {
-            url: url || undefined,
+            endpoint: url || undefined,
+            method: originalRequest?.method,
           });
         }
       }

@@ -120,7 +120,7 @@ export async function fetchRedownloadBlob(id: string): Promise<Blob> {
     responseType: 'blob',
   });
   return new Blob([response.data], {
-    type: response.headers['content-type'] || response.data.type || 'application/octet-stream',
+    type: String(response.headers['content-type'] ?? response.data.type ?? 'application/octet-stream'),
   });
 }
 

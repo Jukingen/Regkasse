@@ -67,12 +67,10 @@ export const MENU_AREA_LABEL_KEYS: Record<MenuAreaKey, string> = {
 
 function requirementList(required: string | readonly string[] | undefined): string[] {
   if (required === undefined) return [];
-  if (Array.isArray(required)) {
-    // Empty array = any-authenticated (no specific permission gate).
-    if (required.length === 0) return [];
-    return required.filter((r): r is string => typeof r === 'string' && r.length > 0);
-  }
-  return required.length > 0 ? [required] : [];
+  if (typeof required === 'string') return required.length > 0 ? [required] : [];
+  // Empty array = any-authenticated (no specific permission gate).
+  if (required.length === 0) return [];
+  return required.filter((r): r is string => typeof r === 'string' && r.length > 0);
 }
 
 /** True when holding `permission` alone satisfies a route/menu requirement. */
@@ -199,16 +197,19 @@ export function getPermissionsAffectingMenu(menuKey: string): MenuPermissionRequ
     }
     if (isMenuPermissionMapKey(area)) {
       const mapEntry = MENU_PERMISSION_MAP[area];
-      const implied = mapEntry.impliedBy
-        ? Array.isArray(mapEntry.impliedBy)
-          ? [...mapEntry.impliedBy]
-          : [mapEntry.impliedBy]
+      const impliedBy = 'impliedBy' in mapEntry ? mapEntry.impliedBy : undefined;
+      const implied = impliedBy
+        ? Array.isArray(impliedBy)
+          ? [...impliedBy]
+          : [impliedBy]
         : [];
       for (const key of implied) {
         if (!byKey.has(key)) byKey.set(key, { key, primary: false });
       }
-      if (mapEntry.permissionKeysAnyOf) {
-        for (const key of mapEntry.permissionKeysAnyOf) {
+      const permissionKeysAnyOf =
+        'permissionKeysAnyOf' in mapEntry ? mapEntry.permissionKeysAnyOf : undefined;
+      if (permissionKeysAnyOf) {
+        for (const key of permissionKeysAnyOf) {
           if (!byKey.has(key)) byKey.set(key, { key, primary: byKey.size === 0 });
         }
       }
@@ -250,7 +251,8 @@ export function listSidebarMenuFilterOptions(): SidebarMenuFilterOption[] {
         PermissionGroupKey,
         (typeof PERMISSION_GROUPS)[PermissionGroupKey],
       ][]) {
-        if (def.menuKeys.includes(item.menuArea)) {
+        const menuKeys: readonly MenuAreaKey[] = def.menuKeys;
+        if (menuKeys.includes(item.menuArea)) {
           permissionGroup = slug;
           break;
         }

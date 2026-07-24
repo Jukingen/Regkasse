@@ -14,6 +14,8 @@ import {
   DisconnectOutlined,
   ExperimentOutlined,
   LaptopOutlined,
+  PercentageOutlined,
+  HistoryOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
   ShopOutlined,
@@ -37,6 +39,14 @@ const SETTINGS_TAB_META: Record<SettingsAreaRoutePath, { labelKey: string; Icon:
     '/settings/working-hours': {
       labelKey: ADMIN_NAV_LABEL_KEYS.workingHours,
       Icon: CalendarOutlined,
+    },
+    '/settings/tax-groups': {
+      labelKey: ADMIN_NAV_LABEL_KEYS.taxGroups,
+      Icon: PercentageOutlined,
+    },
+    '/settings/tax-history': {
+      labelKey: ADMIN_NAV_LABEL_KEYS.taxHistory,
+      Icon: HistoryOutlined,
     },
     '/settings/tse': { labelKey: 'settings.tabs.tse', Icon: SafetyCertificateOutlined },
     '/settings/finanzonline': { labelKey: 'settings.tabs.finanzOnline', Icon: BankOutlined },

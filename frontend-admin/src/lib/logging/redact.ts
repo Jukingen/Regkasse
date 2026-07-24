@@ -18,6 +18,53 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value) && !(value instanceof Error);
 }
 
+type HttpErrorLike = Error & {
+  isAxiosError?: boolean;
+  code?: string;
+  response?: { status?: number; data?: unknown };
+  config?: { url?: string; method?: string; baseURL?: string };
+};
+
+function isHttpErrorLike(error: Error): error is HttpErrorLike {
+  const e = error as HttpErrorLike;
+  return e.isAxiosError === true || e.response != null || e.config != null;
+}
+
+/**
+ * Shape Error / AxiosError into redacted plain fields for structured logs.
+ * Keeps status, endpoint, method, and response data — never auth headers/tokens.
+ */
+function shapeLoggableError(error: Error, depth: number): Record<string, unknown> {
+  const base: Record<string, unknown> = {
+    name: error.name,
+    message: error.message,
+  };
+
+  if (!isHttpErrorLike(error)) {
+    return base;
+  }
+
+  const method =
+    typeof error.config?.method === 'string' ? error.config.method.toUpperCase() : undefined;
+  const endpoint =
+    typeof error.config?.url === 'string' && error.config.url.trim()
+      ? error.config.url.trim()
+      : undefined;
+
+  return redactTechnicalLogArg(
+    {
+      ...base,
+      error: error.message,
+      status: typeof error.response?.status === 'number' ? error.response.status : null,
+      data: error.response?.data ?? null,
+      endpoint: endpoint ?? null,
+      method: method ?? null,
+      code: typeof error.code === 'string' ? error.code : null,
+    },
+    depth + 1
+  ) as Record<string, unknown>;
+}
+
 export function redactTechnicalLogArg(value: unknown, depth = 0): unknown {
   if (depth > MAX_DEPTH) {
     return '[MaxDepth]';
@@ -31,10 +78,7 @@ export function redactTechnicalLogArg(value: unknown, depth = 0): unknown {
   }
 
   if (value instanceof Error) {
-    return {
-      name: value.name,
-      message: value.message,
-    };
+    return shapeLoggableError(value, depth);
   }
 
   if (Array.isArray(value)) {

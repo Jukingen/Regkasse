@@ -13,9 +13,8 @@ export type PermissionGuidedTourProps = {
   includeSaveStep?: boolean;
 };
 
-function tourTarget(selector: string): HTMLElement | null {
-  if (typeof document === 'undefined') return null;
-  return document.querySelector(selector);
+function tourTarget(selector: string): HTMLElement {
+  return document.querySelector<HTMLElement>(selector) ?? document.body;
 }
 
 /**

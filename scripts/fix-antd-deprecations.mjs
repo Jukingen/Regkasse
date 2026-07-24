@@ -120,6 +120,16 @@ function fixSpaceDirection(tag) {
   return { tag: next, count };
 }
 
+/** Alert message= → title= (does not touch Form/Popconfirm message). */
+function fixAlertMessage(tag) {
+  let count = 0;
+  const next = tag.replace(/\bmessage=/g, () => {
+    count++;
+    return 'title=';
+  });
+  return { tag: next, count };
+}
+
 /**
  * maskClosable={expr} / maskClosable → mask={{ closable: expr }}
  * Skips tags that already have both `mask=` and `maskClosable` (manual review).
@@ -201,6 +211,7 @@ const report = {
 
 let spaceFixed = 0;
 let maskFixed = 0;
+let alertFixed = 0;
 
 for (const file of files) {
   const original = fs.readFileSync(file, 'utf8');
@@ -213,6 +224,15 @@ for (const file of files) {
       src = r.src;
       spaceFixed += r.count;
       fileFixes.push(`Space.direction→orientation×${r.count}`);
+    }
+  }
+
+  {
+    const r = rewriteTags(src, /^Alert$/, fixAlertMessage);
+    if (r.count > 0) {
+      src = r.src;
+      alertFixed += r.count;
+      fileFixes.push(`Alert.message→title×${r.count}`);
     }
   }
 
@@ -267,6 +287,7 @@ for (const file of files) {
 
 report.spaceFixed = spaceFixed;
 report.maskFixed = maskFixed;
+report.alertFixed = alertFixed;
 report.remainingAfter = remaining;
 report.listedPropsAlreadyClean =
   remaining.drawerWidth === 0 &&

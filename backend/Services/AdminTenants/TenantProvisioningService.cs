@@ -103,6 +103,9 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         Category category;
         IReadOnlyList<Guid> productIds;
 
+        await TaxGroupSeedData.SeedSystemTaxGroupsAsync(_db, tenant.Id, cancellationToken)
+            .ConfigureAwait(false);
+
         if (importDemoMenu)
         {
             var importResult = await _demoProductImport
@@ -142,7 +145,8 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
 
             await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
-            var products = CreateDemoProducts(tenant.Id, category);
+            var products = await CreateDemoProductsAsync(tenant.Id, category, cancellationToken)
+                .ConfigureAwait(false);
             _db.Products.AddRange(products);
             await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             productIds = products.Select(p => p.Id).ToList();
@@ -316,15 +320,33 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         return trimmed.Length > 20 ? trimmed[..20] : trimmed;
     }
 
-    private static List<Product> CreateDemoProducts(Guid tenantId, Category category)
+    private async Task<List<Product>> CreateDemoProductsAsync(
+        Guid tenantId,
+        Category category,
+        CancellationToken cancellationToken)
     {
         var categoryLabel = category.Name;
-        return new List<Product>
+        var taxByType = await _db.TaxGroups
+            .AsNoTracking()
+            .Where(g => g.TenantId == tenantId && g.IsActive)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        Guid ResolveTaxGroupId(int taxType)
         {
-            BuildDemoProduct(tenantId, category, categoryLabel, "Demo Produkt 1", "Demo Produkt 1 - Standard 20% MwSt", 9.99m, TaxTypes.Standard, RksvProductTypes.Standard, 1),
-            BuildDemoProduct(tenantId, category, categoryLabel, "Demo Produkt 2", "Demo Produkt 2 - Besonders 13% MwSt", 19.99m, TaxTypes.Special, RksvProductTypes.Special, 2),
-            BuildDemoProduct(tenantId, category, categoryLabel, "Demo Produkt 3", "Demo Produkt 3 - Ermäßigt 10% MwSt", 4.99m, TaxTypes.Reduced, RksvProductTypes.Reduced, 3),
-        };
+            var rate = TaxTypes.GetTaxRate(taxType);
+            return taxByType.FirstOrDefault(g => g.Rate == rate)?.Id
+                ?? taxByType.FirstOrDefault(g => g.IsDefault)?.Id
+                ?? taxByType.FirstOrDefault()?.Id
+                ?? throw new InvalidOperationException($"No tax group seeded for tenant {tenantId}.");
+        }
+
+        return
+        [
+            BuildDemoProduct(tenantId, category, categoryLabel, "Demo Produkt 1", "Demo Produkt 1 - Standard 20% MwSt", 9.99m, TaxTypes.Standard, RksvProductTypes.Standard, 1, ResolveTaxGroupId(TaxTypes.Standard)),
+            BuildDemoProduct(tenantId, category, categoryLabel, "Demo Produkt 2", "Demo Produkt 2 - Besonders 13% MwSt", 19.99m, TaxTypes.Special, RksvProductTypes.Special, 2, ResolveTaxGroupId(TaxTypes.Special)),
+            BuildDemoProduct(tenantId, category, categoryLabel, "Demo Produkt 3", "Demo Produkt 3 - Ermäßigt 10% MwSt", 4.99m, TaxTypes.Reduced, RksvProductTypes.Reduced, 3, ResolveTaxGroupId(TaxTypes.Reduced)),
+        ];
     }
 
     private static Product BuildDemoProduct(
@@ -336,7 +358,8 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         decimal price,
         int taxType,
         string rksvType,
-        int sequence)
+        int sequence,
+        Guid taxGroupId)
     {
         var id = Guid.NewGuid();
         return new Product
@@ -348,6 +371,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
             Price = price,
             TaxType = taxType,
             TaxRate = TaxTypes.GetTaxRate(taxType),
+            TaxGroupId = taxGroupId,
             Category = categoryLabel,
             CategoryId = category.Id,
             StockQuantity = 100,

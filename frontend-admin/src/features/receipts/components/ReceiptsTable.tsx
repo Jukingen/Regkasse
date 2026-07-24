@@ -2,7 +2,8 @@
 
 import { EyeOutlined, PrinterOutlined } from '@ant-design/icons';
 import { Button, Space, Tag, Typography } from 'antd';
-import type { ColumnsType, TablePaginationConfig, TableRowSelection } from 'antd/es/table';
+import type { TableProps } from 'antd';
+import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
 import Link from 'next/link';
 import React from 'react';
@@ -48,7 +49,7 @@ interface ReceiptsTableProps {
   showPaymentPdfReprint?: boolean;
   /** Stored original PDF download (receipt.reprint). */
   showStoredPdfDownload?: boolean;
-  rowSelection?: TableRowSelection<ReceiptListItemDto>;
+  rowSelection?: TableProps<ReceiptListItemDto>['rowSelection'];
 }
 
 function buildColumns(

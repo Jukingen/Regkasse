@@ -19,6 +19,12 @@ namespace KasseAPI_Final
             else
                 Console.WriteLine("Kategoriler zaten mevcut, atlanıyor...");
 
+            var taxGroupsCreated = await TaxGroupSeedData.SeedSystemTaxGroupsAsync(context, tenantId);
+            if (taxGroupsCreated > 0)
+                Console.WriteLine($"{taxGroupsCreated} Steuergruppen hinzugefügt.");
+            else
+                Console.WriteLine("Steuergruppen bereits vorhanden, übersprungen...");
+
             // Ürünler ekle
             if (!await context.Products.IgnoreQueryFilters().AnyAsync(p => p.TenantId == tenantId))
             {
@@ -28,7 +34,21 @@ namespace KasseAPI_Final
                     .Where(c => c.TenantId == tenantId)
                     .ToDictionaryAsync(c => c.Name, c => c.Id);
 
-                static Product P(
+                var taxGroups = await context.TaxGroups
+                    .IgnoreQueryFilters()
+                    .AsNoTracking()
+                    .Where(g => g.TenantId == tenantId && g.IsActive)
+                    .ToListAsync();
+
+                Guid ResolveTaxGroupId(int taxType)
+                {
+                    var rate = TaxTypes.GetTaxRate(taxType);
+                    return taxGroups.FirstOrDefault(g => g.Rate == rate)?.Id
+                        ?? taxGroups.FirstOrDefault(g => g.IsDefault)?.Id
+                        ?? taxGroups.First().Id;
+                }
+
+                Product P(
                     Guid tenant,
                     Guid categoryId,
                     string categoryName,
@@ -57,6 +77,7 @@ namespace KasseAPI_Final
                         Barcode = barcode,
                         Cost = 0,
                         TaxRate = tr,
+                        TaxGroupId = ResolveTaxGroupId(taxType),
                         IsFiscalCompliant = true,
                         IsTaxable = true,
                         RksvProductType = RksvProductTypes.Standard,

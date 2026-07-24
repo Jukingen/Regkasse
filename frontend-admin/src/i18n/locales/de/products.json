@@ -102,7 +102,20 @@
     "exportCsv": "CSV exportieren",
     "exportJson": "JSON exportieren",
     "exportSuccess": "Export heruntergeladen.",
-    "exportFailed": "Export fehlgeschlagen."
+    "exportFailed": "Export fehlgeschlagen.",
+    "quickTax": {
+      "selectorTitle": "Schnellsteuerauswahl",
+      "recentTitle": "Zuletzt verwendet",
+      "selectHint": "Wählen Sie Produkte in der Tabelle, um eine Steuergruppe zuzuweisen.",
+      "applyHint": "Steuergruppe auf {{count}} ausgewählte Produkte anwenden.",
+      "selectProductsFirst": "Bitte zuerst Produkte auswählen.",
+      "confirmTitle": "Steuergruppe zuweisen?",
+      "confirmContent": "{{count}} Produkt(e) erhalten „{{name}}“ ({{rate}}%).",
+      "confirmOk": "Zuweisen",
+      "success": "{{count}} Produkt(e) auf {{rate}}% aktualisiert.",
+      "unchanged": "Alle ausgewählten Produkte hatten bereits diese Steuergruppe.",
+      "failed": "Steuergruppe konnte nicht zugewiesen werden."
+    }
   },
   "devPurge": {
     "button": "Dev: Katalog löschen",
@@ -133,6 +146,7 @@
     "reduced": "{{rate}}% (ermäßigt)",
     "special": "{{rate}}% (besonders)",
     "zero": "{{rate}}% (Nullsatz)",
+    "reducedNew": "{{rate}}% (ermäßigt neu)",
     "fallback": "{{rate}}% (Normal)"
   },
   "form": {
@@ -159,6 +173,11 @@
     "taxType": "Steuerart",
     "taxTypeRequired": "Steuerart wählen",
     "taxTypePlaceholder": "Steuerart wählen",
+    "taxGroup": "Steuergruppe",
+    "taxGroupRequired": "Steuergruppe wählen",
+    "taxGroupPlaceholder": "Steuergruppe wählen",
+    "taxRateInvalidTitle": "Ungültiger Steuersatz",
+    "taxRateInvalidDescription": "Der ausgewählte Steuersatz entspricht nicht den aktuellen österreichischen Steuervorschriften.",
     "taxStandard": "20 % (Normal)",
     "taxReduced": "10 % (ermäßigt)",
     "taxSpecial": "13 % (besonders)",

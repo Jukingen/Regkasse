@@ -472,5 +472,32 @@
       "ShiftEnded": "Vardiya kapandi",
       "POS_SPL_RCPT": "Ozel fis"
     }
+  },
+  "taxReports": {
+    "pageTitle": "Vergi raporlari",
+    "cardTitle": "Vergi raporlari",
+    "period": "Donem",
+    "totalNet": "Toplam net",
+    "totalTax": "Toplam vergi",
+    "totalGross": "Toplam brut",
+    "empty": "Secilen donemde vergi verisi yok.",
+    "tabs": {
+      "distribution": "Vergi dagilimi",
+      "trend": "Vergi trendi",
+      "export": "Disa aktar"
+    },
+    "columns": {
+      "group": "Vergi grubu",
+      "rate": "Oran",
+      "net": "Net",
+      "tax": "Vergi",
+      "gross": "Brut",
+      "receipts": "Fisler"
+    },
+    "exportYear": "Yillik vergi raporu",
+    "exportMonth": "Aylik vergi raporu",
+    "exportSuccess": "Vergi raporu indirildi",
+    "exportFailed": "Disa aktarma basarisiz",
+    "exportPermissionHint": "Disa aktarma icin report.export izni gerekir."
   }
 }

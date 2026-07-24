@@ -1057,6 +1057,12 @@ internal static class ApplicationHost
             builder.Configuration.GetSection(TagesabschlussReminderOptions.SectionName));
         builder.Services.AddScoped<IPaymentMethodCatalogService, PaymentMethodCatalogService>();
         builder.Services.AddScoped<IPaymentMethodDefinitionBootstrapService, PaymentMethodDefinitionBootstrapService>();
+        builder.Services.AddScoped<ITaxRegulationService, TaxRegulationService>();
+        builder.Services.AddScoped<ITaxHistoryService, TaxHistoryService>();
+        builder.Services.AddScoped<ITaxBulkUpdateService, TaxBulkUpdateService>();
+        builder.Services.AddScoped<ITaxReportService, TaxReportService>();
+        builder.Services.AddScoped<ITaxComplianceChecker, TaxComplianceChecker>();
+        builder.Services.AddScoped<ITaxGroupStatsService, TaxGroupStatsService>();
         builder.Services.AddScoped<IPricingRuleResolver, PricingRuleResolver>();
         builder.Services.AddScoped<IVoucherService, VoucherService>();
         builder.Services.AddScoped<IAdminVoucherService, AdminVoucherService>();

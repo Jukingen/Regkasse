@@ -82,6 +82,8 @@
     "sessionInactivity": "Oturum ve hareketsizlik",
     "appearanceLanguage": "Görünüm ve dil",
     "paymentMethods": "Ödeme yöntemleri",
+    "taxGroups": "Vergi grupları",
+    "taxHistory": "Vergi degisiklik gecmisi",
     "backupRestore": "Yedekleme ve Geri Yükleme",
     "administration": "Yönetim",
     "accessRoles": "Erişim ve roller",

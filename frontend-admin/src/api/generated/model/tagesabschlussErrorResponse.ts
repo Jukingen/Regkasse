@@ -8,6 +8,8 @@
 
 export interface TagesabschlussErrorResponse {
   /** @nullable */
+  code?: string | null;
+  /** @nullable */
   details?: string | null;
   /** @nullable */
   error?: string | null;

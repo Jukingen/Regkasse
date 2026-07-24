@@ -102,7 +102,20 @@
     "exportCsv": "CSV disa aktar",
     "exportJson": "JSON disa aktar",
     "exportSuccess": "Disa aktarma indirildi.",
-    "exportFailed": "Disa aktarma basarisiz."
+    "exportFailed": "Disa aktarma basarisiz.",
+    "quickTax": {
+      "selectorTitle": "Hizli vergi secimi",
+      "recentTitle": "Son kullanilanlar",
+      "selectHint": "Vergi grubu atamak icin tablodan urun secin.",
+      "applyHint": "{{count}} secili urune vergi grubu uygula.",
+      "selectProductsFirst": "Lutfen once urun secin.",
+      "confirmTitle": "Vergi grubu atansin mi?",
+      "confirmContent": "{{count}} urune „{{name}}“ ({{rate}}%) atanacak.",
+      "confirmOk": "Ata",
+      "success": "{{count}} urun {{rate}}% olarak guncellendi.",
+      "unchanged": "Secili urunlerin hepsi zaten bu vergi grubundaydi.",
+      "failed": "Vergi grubu atanamadi."
+    }
   },
   "devPurge": {
     "button": "Dev: Katalogu sil",
@@ -133,6 +146,7 @@
     "reduced": "{{rate}}% (indirimli)",
     "special": "{{rate}}% (ozel)",
     "zero": "{{rate}}% (sifir)",
+    "reducedNew": "{{rate}}% (yeni indirimli)",
     "fallback": "{{rate}}% (normal)"
   },
   "form": {
@@ -159,6 +173,11 @@
     "taxType": "Vergi turu",
     "taxTypeRequired": "Vergi turu secin",
     "taxTypePlaceholder": "Vergi turu secin",
+    "taxGroup": "Vergi grubu",
+    "taxGroupRequired": "Vergi grubu secin",
+    "taxGroupPlaceholder": "Vergi grubu secin",
+    "taxRateInvalidTitle": "Gecersiz vergi orani",
+    "taxRateInvalidDescription": "Secilen vergi orani guncel Avusturya KDV kurallarina uymuyor.",
     "taxStandard": "%20 (normal)",
     "taxReduced": "%10 (indirimli)",
     "taxSpecial": "%13 (ozel)",

@@ -82,6 +82,8 @@
     "sessionInactivity": "Session & inactivity",
     "appearanceLanguage": "Appearance & language",
     "paymentMethods": "Payment methods",
+    "taxGroups": "Tax groups",
+    "taxHistory": "Tax change history",
     "backupRestore": "Backup & Restore",
     "administration": "Administration",
     "accessRoles": "Access & roles",
