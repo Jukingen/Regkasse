@@ -41,10 +41,10 @@ jobs:
       # phase3: frontend strict, frontend-admin strict, all boundary strict
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -54,7 +54,7 @@ jobs:
 
       - name: Cache POS node_modules
         id: cache-pos-nm
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: frontend/node_modules
           key: ${{ runner.os }}-node${{ env.NODE_VERSION }}-pos-nm-${{ hashFiles('frontend/package-lock.json') }}
@@ -63,7 +63,7 @@ jobs:
 
       - name: Cache frontend-admin node_modules
         id: cache-fa-nm
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: frontend-admin/node_modules
           key: ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-nm-${{ hashFiles('frontend-admin/package-lock.json') }}
@@ -260,7 +260,7 @@ jobs:
 
       - name: Upload localization reports artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: localization-reports
           path: |
