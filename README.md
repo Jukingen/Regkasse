@@ -24,6 +24,8 @@ Regkasse is an npm-workspace monorepo for:
 
 **Boundaries:** POS → `/api/pos/*`; Admin → `/api/admin/*`; Sites → `/api/public/*` + `/api/sites/*`. Cross-tenant access returns **HTTP 404**.
 
+**Windows?** Prefer double-click `.bat` helpers — start here: [`docs/GETTING_STARTED_SCRIPTS.md`](docs/GETTING_STARTED_SCRIPTS.md) · full catalog [`docs/SCRIPTS_REFERENCE.md`](docs/SCRIPTS_REFERENCE.md).
+
 ---
 
 ## Quick Start
@@ -60,7 +62,7 @@ cd ..
 npm run dev                 # parallel: API + POS + Admin + Sites
 ```
 
-**Docker (optional):** copy `.env.example` → `.env`, then `docker compose up --build` — see [`DEVELOPMENT.md`](DEVELOPMENT.md#docker-compose-full-stack). Or `just docker-up` / `make docker-up`.
+**Docker (optional):** setup/migration [`docs/DOCKER_SETUP.md`](docs/DOCKER_SETUP.md) ([DE](docs/DOCKER_SETUP.de.md)) · hub [`docs/DOCKER.md`](docs/DOCKER.md) · [Docker Compose](#docker-compose) · [`DEVELOPMENT.md`](DEVELOPMENT.md#docker-compose-full-stack). Windows: [`docs/DOCKER_WINDOWS_SETUP.md`](docs/DOCKER_WINDOWS_SETUP.md). `just docker-up` / `.\scripts\docker-up.ps1` / root `docker-up.bat` — see [Scripts](#scripts-windows).
 
 ### Run each project
 
@@ -81,7 +83,215 @@ In **Development** only: `X-Tenant-Id: dev` or `?tenant=dev`. Production authent
 curl -H "X-Tenant-Id: dev" http://localhost:5184/api/health
 ```
 
+### Development vs Production (fiscal)
+
+| | Development | Production |
+|---|-------------|------------|
+| Soft TSE / FON simulation | Allowed | Fail-closed at startup |
+| Defaults | `appsettings.Development.example.json` | `appsettings.Staging.example.json` / `appsettings.Production.example.json` |
+
+Details and cutover: [`docs/ENVIRONMENT_CONFIGURATION.md`](docs/ENVIRONMENT_CONFIGURATION.md) · [`docs/RKSV_PRODUCTION_CUTOVER_CHECKLIST.md`](docs/RKSV_PRODUCTION_CUTOVER_CHECKLIST.md).
+
 Full setup: [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+---
+
+## Getting Started with Scripts (Windows)
+
+> **TL;DR:** Use `.bat` files for common tasks — double-click from the repo root.
+
+**Guide:** [`docs/GETTING_STARTED_SCRIPTS.md`](docs/GETTING_STARTED_SCRIPTS.md) (5-minute quick start + workflows + troubleshooting)
+
+```batch
+npm install
+start-dev.bat
+REM … or …
+docker-up.bat
+```
+
+| Task | Script |
+|------|--------|
+| Start everything | `start-dev.bat` |
+| Start Docker | `docker-up.bat` |
+| Stop Docker | `docker-down.bat` |
+| Run tests | `test-all.bat` |
+| Status | `docker-status.bat` |
+
+More: [Scripts (Windows)](#scripts-windows) · [`docs/SCRIPTS_QUICK_REF.md`](docs/SCRIPTS_QUICK_REF.md)
+
+---
+
+## Scripts (Windows)
+
+**Start here:** [`docs/GETTING_STARTED_SCRIPTS.md`](docs/GETTING_STARTED_SCRIPTS.md)
+
+Double-click helpers for common tasks. Full catalog: [`docs/SCRIPTS_REFERENCE.md`](docs/SCRIPTS_REFERENCE.md) · map: [`docs/SCRIPTS_ECOSYSTEM.md`](docs/SCRIPTS_ECOSYSTEM.md) · card: [`docs/SCRIPTS_QUICK_REF.md`](docs/SCRIPTS_QUICK_REF.md) · folder: [`scripts/README.md`](scripts/README.md)
+
+### Everyday
+
+| Script | Description |
+|--------|-------------|
+| `start-dev.bat` | Start API + Admin + POS + Sites (`npm run dev`) |
+| `start-backend.bat` / `start-admin.bat` / `start-pos.bat` / `start-sites.bat` | Single surface (`:5184` / `:3000` / `:8081` / `:3001`) |
+| `test-all.bat` | Backend → Admin → POS tests (sequential; stops on first failure) |
+| `clean-all.bat` | Confirm + remove build artifacts (`bin` / `obj` / `.next` / `.expo` / …) |
+
+### Docker
+
+| Script | Description |
+|--------|-------------|
+| `docker-up.bat` / `docker-down.bat` / `docker-status.bat` | Compose start / stop / status |
+| `docker-clean.bat` | Wipe Compose volumes + prune (**destructive**) |
+| `scripts\docker-build.ps1` / `docker-up.ps1` / `docker-down.ps1` / `docker-deploy.ps1` | Build Dev/Prod · up · down · prod deploy ([`docs/DOCKER_SETUP.md`](docs/DOCKER_SETUP.md)) |
+| `scripts\docker-diagnose.ps1` | Windows Docker/WSL/ports diagnose |
+
+### Deploy & checks
+
+| Script | Description |
+|--------|-------------|
+| `deploy.bat` | Prod Compose deploy (`docker-compose.prod.yml`; confirm + smoke + backup gate) |
+| `rollback.bat` | `git reset --hard HEAD~1` + prod Compose rebuild (**destructive**; prefer `git revert` on shared branches) |
+| `scripts\smoke-test.bat` | Lightweight curl smoke (API / Admin / POS) |
+| `scripts\run-comprehensive-smoke.bat` | Full HTTP / FA / RKSV smoke suite |
+
+Regenerate missing `.ps1` wrappers: `scripts\create-bat-wrappers.bat`. Validate pairing + docs: `npm run validate:scripts`.
+
+---
+
+## Docker Compose
+
+Run PostgreSQL, Redis, API, and Admin in containers (optional POS web + Sites profiles). Prefer this when you want a full stack without installing .NET/Postgres locally.
+
+### Layout
+
+```text
+Regkasse/
+├── backend/Dockerfile              # ASP.NET Core API (net10.0) — build context: repo root
+├── frontend/Dockerfile             # Expo POS → static web + nginx (Compose profile: pos)
+├── frontend-admin/Dockerfile       # Next.js Admin
+├── frontend-sites/Dockerfile       # Next.js tenant sites (Compose profile: sites)
+├── docker-compose.yml              # Full local stack (API + Admin + DB)
+├── docker-compose.override.yml     # Auto Soft TSE / FON simulation (Dev)
+├── docker-compose.dev.yml          # Infra only (Postgres + Redis) for host apps
+├── docker-compose.prod.yml         # Production-oriented (Device/Real TSE)
+├── .env.example                    # Dev Compose env
+└── .env.production.example         # Prod Compose env template
+```
+
+Postgres and Redis are **Compose services** (`postgres:16-alpine`, `redis:7-alpine`), not folders under the repo.
+
+| Image / service | Dockerfile | Host port (default) | Notes |
+|-----------------|------------|---------------------|--------|
+| `backend` | [`backend/Dockerfile`](backend/Dockerfile) | **5184** → 8080 | Multi-stage SDK → aspnet; needs `LicenseGenerator.Core` (root context) |
+| `frontend-admin` | [`frontend-admin/Dockerfile`](frontend-admin/Dockerfile) | **3000** | `NEXT_PUBLIC_*` baked at **build** |
+| `frontend` | [`frontend/Dockerfile`](frontend/Dockerfile) | **8081** | Profile `pos` — Expo `export --platform web` → nginx |
+| `frontend-sites` | [`frontend-sites/Dockerfile`](frontend-sites/Dockerfile) | **3001** | Profile `sites` — storefronts / online orders |
+| `postgres` | image only | **5432** | Volume `regkasse_pgdata` |
+| `redis` | image only | **6379** | Volume `regkasse_redis` |
+
+### Prerequisites
+
+- Docker Desktop (or compatible engine) with **Compose v2**
+- Windows: enable WSL 2 — [`docs/DOCKER_WINDOWS_SETUP.md`](docs/DOCKER_WINDOWS_SETUP.md)
+- Free ports: 5184, 3000, 5432, 6379 (and 8081 / 3001 if using optional profiles)
+
+### Quick start (full stack)
+
+```bash
+# From repository root
+cp .env.example .env
+# Windows: copy .env.example .env
+
+# Edit .env — set JWT_SECRET_KEY to ≥32 random characters
+
+# PowerShell helpers (Windows):
+#   .\scripts\docker-build.ps1 -Dev
+#   .\scripts\docker-up.ps1 -Build
+#   .\scripts\docker-down.ps1
+
+# Merges docker-compose.yml + docker-compose.override.yml (Soft TSE / FON simulation)
+docker compose up --build
+
+# Optional POS static web:
+docker compose --profile pos up --build
+
+# Optional tenant Sites:
+docker compose --profile sites up --build
+
+# Both optional apps:
+docker compose --profile pos --profile sites up --build
+```
+
+### Quick start (infra only — host apps)
+
+Day-to-day coding with hot reload on the host:
+
+```bash
+docker compose -f docker-compose.dev.yml up -d   # or: just docker-up-dev
+npm run dev
+```
+
+Configure backend connection to `localhost:5432` and Redis `localhost:6379` (user-secrets / `appsettings.Development.json`).
+
+### Production-oriented Compose
+
+```bash
+copy .env.production.example .env.production
+# Or: .\scripts\docker-deploy.ps1 -Profile admin
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+# Optional Admin: add --profile admin
+```
+
+See [`DEPLOYMENT.md`](DEPLOYMENT.md#docker-compose-production-oriented) and [`docs/DOCKER_SETUP.md`](docs/DOCKER_SETUP.md). Never combine with `docker-compose.override.yml`.
+
+Detach: `docker compose up --build -d`  
+Stop: `docker compose down` (add `-v` to wipe Postgres/Redis volumes).
+# Infra-only stop: docker compose -f docker-compose.dev.yml down
+
+### Smoke checks
+
+```bash
+curl -fsS http://localhost:5184/api/health/live
+curl -fsS -H "X-Tenant-Id: dev" http://localhost:5184/api/health
+curl -fsSI http://localhost:3000/login
+```
+
+| URL | Service |
+|-----|---------|
+| http://localhost:5184 | API (+ `/swagger` in Development) |
+| http://localhost:3000 | Admin |
+| http://localhost:8081 | POS web (`--profile pos`) |
+| http://localhost:3001 | Sites (`--profile sites`) |
+
+### Build a single image
+
+```bash
+# API — context MUST be repo root (ProjectReference to tools/LicenseGenerator.Core)
+docker build -f backend/Dockerfile -t regkasse-api:local .
+
+# Admin
+docker build -f frontend-admin/Dockerfile \
+  --build-arg NEXT_PUBLIC_API_BASE_URL=http://localhost:5184 \
+  -t regkasse-frontend-admin:local ./frontend-admin
+
+# POS web
+docker build -f frontend/Dockerfile \
+  --build-arg EXPO_PUBLIC_API_BASE_URL=http://localhost:5184/api \
+  -t regkasse-frontend-pos-web:local .
+
+# Sites
+docker build -f frontend-sites/Dockerfile \
+  --build-arg NEXT_PUBLIC_API_BASE_URL=http://localhost:5184 \
+  -t regkasse-frontend-sites:local ./frontend-sites
+```
+
+### Important
+
+- Browser clients must call **`localhost`**, not the Docker DNS name `backend` — bake `NEXT_PUBLIC_*` / `EXPO_PUBLIC_*` accordingly.
+- Changing those public env vars requires **`docker compose build --no-cache`** for that service (values are inlined at image build).
+- Do **not** bind-mount `./backend` over the API image `/app` (published DLLs live there). Use [`docker-compose.dev.yml`](docker-compose.dev.yml) + host `dotnet run` for watch mode.
+- Default Compose `ASPNETCORE_ENVIRONMENT` is **Development** (CORS / Dev tenant header). Do not use this compose file as-is for production fiscal cutover.
+- More detail: [`DEVELOPMENT.md`](DEVELOPMENT.md#docker-compose-full-stack) · package READMEs · [`.env.example`](.env.example)
 
 ---
 
@@ -116,6 +326,10 @@ Stack pins are also summarized in [`AGENTS.md`](AGENTS.md) § Updated Stack Vers
 | [`docs/`](docs/) | Operator/developer documentation |
 | [`ai/`](ai/) | AI/agent contracts and guardrails |
 | [`shared/`](shared/) | Small shared constants for tooling |
+| [`docker-compose.yml`](docker-compose.yml) | Local full stack (Postgres, Redis, API, Admin; optional POS / Sites) |
+| [`docker-compose.override.yml`](docker-compose.override.yml) | Dev Soft TSE / FON simulation (auto-merged) |
+| [`docker-compose.dev.yml`](docker-compose.dev.yml) | Local infra only (Postgres + Redis) for host apps |
+| [`docker-compose.prod.yml`](docker-compose.prod.yml) | Production-oriented Compose (Device/Real TSE) |
 | [`.github/workflows/`](.github/workflows/) | CI inventory — [`.github/workflows/README.md`](.github/workflows/README.md) |
 
 ---
@@ -128,6 +342,9 @@ Stack pins are also summarized in [`AGENTS.md`](AGENTS.md) § Updated Stack Vers
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Setup, conventions, PRs, Husky |
 | [`API_CONTRACT.md`](API_CONTRACT.md) | **HTTP API index** (Auth, Users, Digital, Billing) ↔ swagger |
 | [`DEVELOPMENT.md`](DEVELOPMENT.md) | **Local setup** — prerequisites, run, test, troubleshooting |
+| [`docs/DOCKER.md`](docs/DOCKER.md) · [`docs/DOCKER.de.md`](docs/DOCKER.de.md) | **Docker hub** (EN / DE) — Compose, Windows, prod |
+| [`docs/DOCKER_SETUP.md`](docs/DOCKER_SETUP.md) · [`docs/DOCKER_SETUP.de.md`](docs/DOCKER_SETUP.de.md) | **Docker migration & setup plan** |
+| [`docs/DOCKER_WINDOWS_SETUP.md`](docs/DOCKER_WINDOWS_SETUP.md) | Docker Desktop + WSL2 on Windows (EN; [DE](docs/DOCKER_WINDOWS_SETUP.de.md)) |
 | [`DEPLOYMENT.md`](DEPLOYMENT.md) | **Production deploy** — DNS/SSL, API/POS/FA, env vars, rollback |
 | [`AGENTS.md`](AGENTS.md) | Always-applied agent / engineering rules |
 | [`REGKASSE_AI_ONBOARDING.md`](REGKASSE_AI_ONBOARDING.md) | Product / fiscal onboarding brief |

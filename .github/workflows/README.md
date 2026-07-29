@@ -4,6 +4,10 @@ Inventory of CI/CD under `.github/workflows/`. Prefer path filters where noted t
 
 | Workflow | Purpose | Triggers |
 |----------|---------|----------|
+| [`backend-ci.yml`](backend-ci.yml) | Backend build/test + multi-stage deploy (Staging / Canary / Production) | PR (path-filtered); push `main`/`master`/`release/**` / tag `v*`; `workflow_dispatch` |
+| [`deploy-backend-stage.yml`](deploy-backend-stage.yml) | Reusable stage deploy + smoke + rollback + status report | `workflow_call` |
+| [`deploy-canary.yml`](deploy-canary.yml) | Manual progressive canary: prefer one tenant, soak hours, smoke, auto-rollback | `workflow_dispatch` |
+| [`deploy-production.yml`](deploy-production.yml) | Manual production: confirm + Environment approval, smoke, rollback | `workflow_dispatch` |
 | [`backend-unit-tests.yml`](backend-unit-tests.yml) | `dotnet build` + `dotnet test` (exclude `Category=PostgreSql`) | `pull_request`, `push` → `main`/`master` |
 | [`backend-postgres-integration-tests.yml`](backend-postgres-integration-tests.yml) | PostgreSQL-tagged integration tests + service container | `pull_request`, `push` → `main`/`master` |
 | [`frontend-admin-ci.yml`](frontend-admin-ci.yml) | Admin `lint` / `typecheck` / `test` / `build` + Playwright E2E | `pull_request`, `push` → `main`/`master` (path-filtered) |
@@ -16,6 +20,8 @@ Inventory of CI/CD under `.github/workflows/`. Prefer path filters where noted t
 | [`api-contract.yml`](api-contract.yml) | OpenAPI backward-compat diff + focused backend tests | `pull_request`, `push` → `main`/`master` |
 | [`api-contract-tests.yml`](api-contract-tests.yml) | Broader contract suite (OpenAPI + Admin/POS smoke) | `pull_request`, `push` → `main`/`master`, `workflow_dispatch` |
 | [`localization-validation.yml`](localization-validation.yml) | i18n hard gate (admin+POS validate/usage) + phased boundary | `pull_request`, `push` → `main`/`master` (path-filtered) |
+| [`dep-prueftool.yml`](dep-prueftool.yml) | BMF DEP Prüftool: JDK 17 + fixture smoke + seeded export smoke | `pull_request`, `push` → `main`/`master` (path-filtered), `workflow_dispatch` |
+| [`scripts-bat-ps1-pairing.yml`](scripts-bat-ps1-pairing.yml) | Scripts validation: pairing + `SCRIPTS_REFERENCE.md` coverage (`validate-scripts.ps1`) + structural dry-run (`test-scripts.ps1`) | path-filtered PR/push; `workflow_dispatch` |
 | [`fiscal-validation.yml`](fiscal-validation.yml) | Fiscal schema migrate + go-live script (manual) | `workflow_dispatch` |
 | [`testsprite.yml`](testsprite.yml) | TestSprite YAML ↔ OpenAPI validate (+ optional live smoke) | path-filtered PR/push; `workflow_dispatch` for live |
 | [`notify-failure.yml`](notify-failure.yml) | Reusable Slack (optional) failure notifier | `workflow_call` only |
@@ -32,3 +38,11 @@ Inventory of CI/CD under `.github/workflows/`. Prefer path filters where noted t
 | `SLACK_WEBHOOK_URL` | Failure notifications (optional) |
 | `CI_POSTGRES_PASSWORD` | `fiscal-validation.yml` |
 | `FA_*_DEPLOY_WEBHOOK_URL` / `FA_*_API_BASE_URL` | Admin deploy |
+| `BACKEND_*_DEPLOY_WEBHOOK_URL` / `BACKEND_*_ROLLBACK_WEBHOOK_URL` | Backend multi-stage deploy |
+| `BACKEND_*_MIGRATE_WEBHOOK_URL` / `BACKEND_*_DATABASE_CONNECTION` | EF migrations (Staging/Canary auto; Production Environment `backend-production-migrations`) |
+| `DEPLOYMENT_STATUS_URL` / `DEPLOYMENT_STATUS_TOKEN` | CI → FA `/admin/deployments` status ingest |
+| `ONCALL_WEBHOOK_URL` / `SLACK_WEBHOOK_URL` | Smoke fail / rollback on-call notify |
+| `SMOKE_LOGIN_IDENTIFIER` / `SMOKE_LOGIN_PASSWORD` | Optional authenticated smoke |
+| `BACKEND_*_API_BASE_URL` / `BACKEND_CANARY_TENANT_IDS` / `BACKEND_FA_BASE_URL` / `BACKEND_POS_BASE_URL` (vars) | Smoke URLs |
+
+Docs: [`DEPLOYMENT.md`](../../DEPLOYMENT.md) · [`docs/DATABASE_MIGRATION_STRATEGY.md`](../../docs/DATABASE_MIGRATION_STRATEGY.md) · [`docs/DEPLOYMENT_SMOKE_TEST.md`](../../docs/DEPLOYMENT_SMOKE_TEST.md).

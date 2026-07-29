@@ -12,6 +12,8 @@ Guidelines for working in this monorepo. Prefer small, reversible changes over b
 | PostgreSQL | **16+** (local or Docker) |
 | Optional | Redis, Docker Desktop, Android Studio / Xcode / Expo Go |
 
+**Docker:** setup/migration [`docs/DOCKER_SETUP.md`](docs/DOCKER_SETUP.md) ([DE](docs/DOCKER_SETUP.de.md)) · hub [`docs/DOCKER.md`](docs/DOCKER.md). Windows setup [`docs/DOCKER_WINDOWS_SETUP.md`](docs/DOCKER_WINDOWS_SETUP.md); troubleshooting [`docs/DOCKER_WINDOWS_TROUBLESHOOTING.md`](docs/DOCKER_WINDOWS_TROUBLESHOOTING.md) · `.\scripts\docker-diagnose.ps1`. Helpers: `.\scripts\docker-up.ps1` / `docker-build.ps1` / `docker-deploy.ps1`. Full stack: `docker compose up --build` (Soft TSE via override). Infra only: `docker compose -f docker-compose.dev.yml up -d` then `npm run dev`. Detail: [`DEVELOPMENT.md`](DEVELOPMENT.md#docker-compose-full-stack).
+
 ## Clone and install
 
 ```bash
@@ -76,6 +78,45 @@ Backend is included as workspace `@regkasse/backend` (npm scripts wrap `dotnet`)
 - **Sites:** `frontend-sites/.env.local` — `NEXT_PUBLIC_API_BASE_URL`
 - **Dev tenant:** `X-Tenant-Id: dev` or `?tenant=dev` (Development only)
 
+## Scripts
+
+On Windows, prefer root / `scripts\` **`.bat`** helpers instead of typing long npm/docker commands. They are shared team tooling (do **not** gitignore `.bat` files).
+
+### How to run
+
+- Double-click from Explorer, or from `cmd` / PowerShell at the **repo root**
+- Sibling PowerShell: `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\<name>.ps1`
+- Most wrappers `cd` to the repo root automatically (`%~dp0`)
+
+### Common scripts
+
+| Script | What it does |
+|--------|----------------|
+| `start-dev.bat` | Full stack (`npm run dev`) — API + Admin + POS + Sites |
+| `start-backend.bat` / `start-admin.bat` / `start-pos.bat` / `start-sites.bat` | Single surface |
+| `test-all.bat` | Sequential Backend → Admin → POS tests |
+| `clean-all.bat` | Confirm + clean build artifacts |
+| `docker-up.bat` / `docker-down.bat` / `docker-status.bat` | Compose lifecycle |
+| `docker-clean.bat` | Volumes + prune (**data loss**) |
+| `deploy.bat` / `rollback.bat` | Prod Compose deploy / hard-reset rollback (**destructive**) |
+| `scripts\smoke-test.bat` | Lightweight curl smoke |
+| `scripts\run-comprehensive-smoke.bat` | Full smoke suite |
+
+### Docs
+
+- Full catalog + troubleshooting: [`docs/SCRIPTS_REFERENCE.md`](docs/SCRIPTS_REFERENCE.md)
+- Getting started: [`docs/GETTING_STARTED_SCRIPTS.md`](docs/GETTING_STARTED_SCRIPTS.md)
+- Decision map: [`docs/SCRIPTS_ECOSYSTEM.md`](docs/SCRIPTS_ECOSYSTEM.md)
+- One-screen card: [`docs/SCRIPTS_QUICK_REF.md`](docs/SCRIPTS_QUICK_REF.md)
+- Folder inventory & how to add scripts: [`scripts/README.md`](scripts/README.md)
+
+### When adding a script (PRs)
+
+1. Prefer `scripts/<name>.ps1` (or `.mjs`) + sibling `.bat` (`scripts\create-bat-wrappers.bat`).
+2. Document user-facing scripts in `docs/SCRIPTS_REFERENCE.md`.
+3. Keep pairing green: `npm run verify:bat-ps1` and `npm run validate:scripts` (CI: `scripts-bat-ps1-pairing.yml`).
+4. Aliases / libraries: update allowlists in `scripts/verify-bat-ps1-pairing.mjs`.
+
 ## Monorepo map
 
 See the [root README](README.md#repository-layout). Package READMEs:
@@ -130,10 +171,12 @@ npm run test:backend
 npm run test:admin
 npm run test:pos
 npm run verify:api-client
+npm run verify:bat-ps1
+npm run validate:scripts
 npm run i18n:ci
 ```
 
-CI maps (see [`.github/workflows/README.md`](.github/workflows/README.md)): backend unit + PostgreSQL integration, Frontend Admin (lint/typecheck/test/build/E2E), POS, Sites, OpenAPI alignment, localization. Optional Slack: secret `SLACK_WEBHOOK_URL`.
+CI maps (see [`.github/workflows/README.md`](.github/workflows/README.md)): backend unit + PostgreSQL integration, Frontend Admin (lint/typecheck/test/build/E2E), POS, Sites, OpenAPI alignment, localization, **scripts pairing + documentation**. Optional Slack: secret `SLACK_WEBHOOK_URL`.
 
 Also useful:
 
@@ -166,5 +209,8 @@ Do not add `pnpm-workspace.yaml` unless the team migrates package managers expli
 
 - [`AGENTS.md`](AGENTS.md) — always-applied development rules
 - [`REGKASSE_AI_ONBOARDING.md`](REGKASSE_AI_ONBOARDING.md) — product/architecture brief
+- [`docs/SCRIPTS_REFERENCE.md`](docs/SCRIPTS_REFERENCE.md) — Windows scripts reference
+- [`docs/SCRIPTS_ECOSYSTEM.md`](docs/SCRIPTS_ECOSYSTEM.md) — which script for which task
+- [`docs/SCRIPTS_QUICK_REF.md`](docs/SCRIPTS_QUICK_REF.md) — one-screen quick card
 - [`docs/`](docs/README.md) — human docs
 - [`ai/`](ai/README.md) — contracts for agents and complex changes

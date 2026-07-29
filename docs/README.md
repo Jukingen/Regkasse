@@ -21,6 +21,17 @@ Human-facing guides for operators and developers.
 | [`PROJECT_SUMMARY.md`](PROJECT_SUMMARY.md) | All | High-level product summary |
 | [`PROJECT_COMPREHENSIVE_DOCUMENTATION.md`](PROJECT_COMPREHENSIVE_DOCUMENTATION.md) | Dev / ops | Full improvement inventory, TSE ops wave, deploy checklist |
 | [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md) | Ops | New mandant onboarding |
+| [`GETTING_STARTED_SCRIPTS.md`](GETTING_STARTED_SCRIPTS.md) | Dev (Windows) | 5-minute scripts onboarding |
+| [`TEAM_ANNOUNCEMENT_SCRIPTS.md`](TEAM_ANNOUNCEMENT_SCRIPTS.md) | Dev (Windows) | Team announcement (Slack/email) |
+| [`SCRIPTS_FINAL_SUMMARY.md`](SCRIPTS_FINAL_SUMMARY.md) | Dev (Windows) | Final delivery statistics |
+| [`SCRIPTS_COMPLETION_SUMMARY.md`](SCRIPTS_COMPLETION_SUMMARY.md) | Dev (Windows) | Delivery summary, team checklist, what’s next |
+| [`SCRIPTS_TEAM_ANNOUNCEMENT.md`](SCRIPTS_TEAM_ANNOUNCEMENT.md) | Dev (Windows) | Short team announcement (optional share) |
+| [`SCRIPTS_REFERENCE.md`](SCRIPTS_REFERENCE.md) | Dev (Windows) | `.bat` / `.ps1` catalog, flowchart, troubleshooting |
+| [`SCRIPTS_ECOSYSTEM.md`](SCRIPTS_ECOSYSTEM.md) | Dev (Windows) | Visual decision map (mermaid) |
+| [`SCRIPTS_QUICK_REF.md`](SCRIPTS_QUICK_REF.md) | Dev (Windows) | One-screen icon quick card |
+| [`SCRIPTS_TEST_PLAN.md`](SCRIPTS_TEST_PLAN.md) | Dev (Windows) | Automated + manual script test checklist |
+| [`SCRIPTS_TEST_CHECKLIST.md`](SCRIPTS_TEST_CHECKLIST.md) | Dev (Windows) | Manual PASS/FAIL checklist (fill per session) |
+| [`BATCH_FILES.md`](BATCH_FILES.md) | Dev (Windows) | Short `.bat` inventory |
 
 ---
 
@@ -71,6 +82,13 @@ FA hub: `/backup` (+ `/backup/costs`, `/backup/compliance`, dashboard, runs, con
 
 | Doc | Topic |
 |-----|--------|
+| [`ENVIRONMENT_CONFIGURATION.md`](ENVIRONMENT_CONFIGURATION.md) | **Dev / Staging / Production / Canary, RELEASE_STAGE, banners, promotion** |
+| [`CANARY_DEPLOYMENT.md`](CANARY_DEPLOYMENT.md) | **Tenant-based canary: selection, soak monitoring, rollback** |
+| [`FEATURE_FLAGS.md`](FEATURE_FLAGS.md) | **Feature flags: config defaults, tenant_settings overrides, Admin API, FA UI** |
+| [`DATABASE_MIGRATION_STRATEGY.md`](DATABASE_MIGRATION_STRATEGY.md) | **Additive EF migrations, Staging→Prod CI, rollback posture** |
+| [`DEPLOYMENT_SMOKE_TEST.md`](DEPLOYMENT_SMOKE_TEST.md) | **Smoke checks, manual run, CI auto vs manual rollback** |
+| [`RKSV_PRODUCTION_CUTOVER_CHECKLIST.md`](RKSV_PRODUCTION_CUTOVER_CHECKLIST.md) | Simulation → production cutover |
+| [`RKSV_ACTION_PLAN.md`](RKSV_ACTION_PLAN.md) / [`RKSV_IMPLEMENTATION_READINESS.md`](RKSV_IMPLEMENTATION_READINESS.md) | Simulation-first priorities / Go-No-Go |
 | [`RKSV_COMPLIANCE.md`](RKSV_COMPLIANCE.md) | Backup/restore compliance notes |
 | [`RKSV_CASH_REGISTER_OPERATIONS.md`](RKSV_CASH_REGISTER_OPERATIONS.md) | Register operations |
 | [`RKSV_AFTER_TAGESABSCHLUSS.md`](RKSV_AFTER_TAGESABSCHLUSS.md) | After daily closing |
@@ -84,6 +102,7 @@ FA hub: `/backup` (+ `/backup/costs`, `/backup/compliance`, dashboard, runs, con
 | [`OFFLINE_PRODUCTION_DEPLOYMENT.md`](OFFLINE_PRODUCTION_DEPLOYMENT.md) | Offline prod deploy |
 | [`OFFLINE_MANUAL_TEST_CHECKLIST.md`](OFFLINE_MANUAL_TEST_CHECKLIST.md) / [`OFFLINE_SYSTEM_TEST_PLAN.md`](OFFLINE_SYSTEM_TEST_PLAN.md) | Offline testing |
 | [`FINANZONLINE_PROD_CUTOVER_CHECKLIST.md`](FINANZONLINE_PROD_CUTOVER_CHECKLIST.md) | FO production cutover |
+| [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md) | Soft TSE Production lock |
 | [`finanzonline-*.md`](finanzonline-pilot-go-no-go-gate.md) | Pilot / BMF test runbooks |
 
 Release notes under [`release/`](release/) (FO reconciliation, offline separation, fiscal export, go-live checklists).
@@ -110,6 +129,11 @@ Release notes under [`release/`](release/) (FO reconciliation, offline separatio
 | Doc | Topic |
 |-----|--------|
 | [`ADMIN_FA_DEPLOY.md`](ADMIN_FA_DEPLOY.md) | Admin deploy |
+| [`DOCKER_WINDOWS_SETUP.md`](DOCKER_WINDOWS_SETUP.md) | Docker Desktop + WSL2 on Windows |
+| [`DOCKER_WINDOWS_TROUBLESHOOTING.md`](DOCKER_WINDOWS_TROUBLESHOOTING.md) | Docker Windows install / runtime / network fixes |
+| [`DOCKER.md`](DOCKER.md) / [`DOCKER.de.md`](DOCKER.de.md) | **Docker hub** (EN / DE) — Compose modes, links |
+| [`DOCKER_SETUP.md`](DOCKER_SETUP.md) / [`DOCKER_SETUP.de.md`](DOCKER_SETUP.de.md) | **Docker migration & setup plan** (EN / DE) |
+| [`DOCKER_WINDOWS_SETUP.de.md`](DOCKER_WINDOWS_SETUP.de.md) / [`DOCKER_WINDOWS_TROUBLESHOOTING.de.md`](DOCKER_WINDOWS_TROUBLESHOOTING.de.md) | Docker Windows (Deutsch) |
 | [`ANDROID_RELEASE_SIGNING.md`](ANDROID_RELEASE_SIGNING.md) | Android signing |
 | [`REGKASSE_APK_INSTALLATIONSANLEITUNG.md`](REGKASSE_APK_INSTALLATIONSANLEITUNG.md) | APK install (de) |
 | [`beta-env-matrix.md`](beta-env-matrix.md) / [`beta-smoke-checklist.md`](beta-smoke-checklist.md) | Beta |
@@ -179,6 +203,10 @@ Alphabetical list of Markdown under `docs/` (excluding nested package docs). Top
 | [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md) | Mandant onboarding |
 | [`DEP_EXPORT_*.md`](DEP_EXPORT_DEVELOPMENT.md) | DEP §7 |
 | [`DIGITAL_SERVICES.md`](DIGITAL_SERVICES.md) | Website / app generators |
+| [`DOCKER.md`](DOCKER.md) / [`DOCKER.de.md`](DOCKER.de.md) | Docker hub (EN / DE) |
+| [`DOCKER_SETUP.md`](DOCKER_SETUP.md) / [`DOCKER_SETUP.de.md`](DOCKER_SETUP.de.md) | Docker migration & setup plan |
+| [`DOCKER_WINDOWS_SETUP.md`](DOCKER_WINDOWS_SETUP.md) / [`.de.md`](DOCKER_WINDOWS_SETUP.de.md) | Docker Desktop + WSL2 |
+| [`DOCKER_WINDOWS_TROUBLESHOOTING.md`](DOCKER_WINDOWS_TROUBLESHOOTING.md) / [`.de.md`](DOCKER_WINDOWS_TROUBLESHOOTING.de.md) | Docker Windows troubleshooting |
 | [`EMAIL_CONFIGURATION.md`](EMAIL_CONFIGURATION.md) | SMTP |
 | [`FINANZONLINE_PROD_CUTOVER_CHECKLIST.md`](FINANZONLINE_PROD_CUTOVER_CHECKLIST.md) | FO cutover |
 | [`finanzonline-*.md`](finanzonline-pilot-go-no-go-gate.md) | FO pilot / BMF templates |

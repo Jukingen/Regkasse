@@ -33,13 +33,22 @@ typecheck:
 clean:
     node scripts/clean-artifacts.mjs
 
-# Start full stack via Docker Compose (detached)
+# Start full Dev stack via Docker Compose (detached; Soft TSE override)
 docker-up:
     docker compose up --build -d
 
-# Stop Docker Compose (keep volumes)
+# Start Postgres + Redis only (host runs API/frontends)
+docker-up-dev:
+    docker compose -f docker-compose.dev.yml up -d
+
+# Production-oriented Compose (requires .env.production from .env.production.example)
+docker-up-prod:
+    docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+
+# Stop Docker Compose stacks (keep volumes)
 docker-down:
     docker compose down
+    docker compose -f docker-compose.dev.yml down
 
 # Start Compose including POS static web (--profile pos)
 docker-up-pos:

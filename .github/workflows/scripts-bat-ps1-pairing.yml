@@ -1,0 +1,53 @@
+name: Scripts validation
+
+# Pairing (.bat/.ps1 allowlists) + documentation coverage in docs/SCRIPTS_REFERENCE.md
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/**'
+      - '*.bat'
+      - 'docs/SCRIPTS_REFERENCE.md'
+      - 'docs/SCRIPTS_TEST_PLAN.md'
+      - 'docs/BATCH_FILES.md'
+      - '.github/workflows/scripts-bat-ps1-pairing.yml'
+  push:
+    branches: [main, master]
+    paths:
+      - 'scripts/**'
+      - '*.bat'
+      - 'docs/SCRIPTS_REFERENCE.md'
+      - 'docs/SCRIPTS_TEST_PLAN.md'
+      - 'docs/BATCH_FILES.md'
+      - '.github/workflows/scripts-bat-ps1-pairing.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: scripts-validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-scripts:
+    name: Validate scripts pairing + docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Pairing (node)
+        run: node scripts/verify-bat-ps1-pairing.mjs
+
+      - name: Full validate-scripts.ps1 (pairing + docs)
+        shell: pwsh
+        run: ./scripts/validate-scripts.ps1
+
+      - name: Structural dry-run (test-scripts.ps1)
+        shell: pwsh
+        run: ./scripts/test-scripts.ps1

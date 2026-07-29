@@ -17,7 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Monorepo DX docs:** root [`README.md`](README.md), [`DEVELOPMENT.md`](DEVELOPMENT.md), [`DEPLOYMENT.md`](DEPLOYMENT.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`API_CONTRACT.md`](API_CONTRACT.md); package READMEs for `docs/`, `ai/`, `scripts/`, `tools/`, `localization/`, `frontend-sites/`.
+- **Comprehensive Windows script ecosystem:**
+  - **13** root-level `.bat` files for common tasks (`start-dev`, `start-backend` / `admin` / `pos` / `sites`, `test-all`, `clean-all`, `docker-up` / `down` / `clean` / `status`, `deploy`, `rollback`)
+  - **8** `scripts\` maintenance helpers (`clean-backend`, `dev-purge-tenant`, `generate-dep-export`, `ensure-bmf-prueftool`, `fix-antd`, `dev-mail`, `smoke-test`, `run-with-log`)
+  - Full documentation in [`docs/SCRIPTS_REFERENCE.md`](docs/SCRIPTS_REFERENCE.md)
+  - Quick reference in [`docs/SCRIPTS_QUICK_REF.md`](docs/SCRIPTS_QUICK_REF.md)
+  - Ecosystem map [`docs/SCRIPTS_ECOSYSTEM.md`](docs/SCRIPTS_ECOSYSTEM.md), test plan [`docs/SCRIPTS_TEST_PLAN.md`](docs/SCRIPTS_TEST_PLAN.md), getting started [`docs/GETTING_STARTED_SCRIPTS.md`](docs/GETTING_STARTED_SCRIPTS.md), checklist [`docs/SCRIPTS_TEST_CHECKLIST.md`](docs/SCRIPTS_TEST_CHECKLIST.md), announcements [`docs/TEAM_ANNOUNCEMENT_SCRIPTS.md`](docs/TEAM_ANNOUNCEMENT_SCRIPTS.md) / [`docs/SCRIPTS_TEAM_ANNOUNCEMENT.md`](docs/SCRIPTS_TEAM_ANNOUNCEMENT.md), summaries [`docs/SCRIPTS_COMPLETION_SUMMARY.md`](docs/SCRIPTS_COMPLETION_SUMMARY.md) / [`docs/SCRIPTS_FINAL_SUMMARY.md`](docs/SCRIPTS_FINAL_SUMMARY.md), inventory [`docs/BATCH_FILES.md`](docs/BATCH_FILES.md)
+  - Validation: `scripts/validate-scripts.ps1` · structural dry-run: `scripts/test-scripts.ps1` (`npm run validate:scripts` / `test:scripts`)
+  - Pairing gate: `scripts/verify-bat-ps1-pairing.mjs` + `create-bat-wrappers.ps1`
+  - CI: [`.github/workflows/scripts-bat-ps1-pairing.yml`](.github/workflows/scripts-bat-ps1-pairing.yml) (pairing + validate + test-scripts)
+- **Monorepo DX docs:** root [`README.md`](README.md) (Scripts section), [`DEVELOPMENT.md`](DEVELOPMENT.md), [`DEPLOYMENT.md`](DEPLOYMENT.md), [`CONTRIBUTING.md`](CONTRIBUTING.md) (Scripts section), [`API_CONTRACT.md`](API_CONTRACT.md); package READMEs for `docs/`, `ai/`, `scripts/`, `tools/`, `localization/`, `frontend-sites/`.
 - **npm workspaces** at repo root (`backend`, `frontend`, `frontend-admin`, `frontend-sites`, `localization`) with `npm run dev` parallel runner (`scripts/dev-workspaces.mjs`).
 - **Husky pre-commit** — staged-package lint/typecheck + OpenAPI/API client verify (`scripts/git-hooks/pre-commit.mjs`); opt-in `HUSKY_RUN_TESTS=1`.
 - **API client automation:** `scripts/verify-api-client.mjs` (incl. `--openapi-only`), CI `api-client-alignment.yml` / `api-client-auto-generate.yml`.
