@@ -17,20 +17,66 @@ namespace KasseAPI_Final.Services.DataExport;
 
 public sealed class ExportResult
 {
+    public bool Succeeded { get; init; } = true;
+    public string? Error { get; init; }
+    public string? ErrorCode { get; init; }
+    public string? Status { get; init; }
+    public Guid? TenantId { get; init; }
     public string? FileName { get; init; }
     public byte[]? Data { get; init; }
+    public long? FileSize { get; init; }
     public IReadOnlyDictionary<string, int>? TableRowCounts { get; init; }
     public DateTime ExportedAtUtc { get; init; } = DateTime.UtcNow;
     public Guid? RequestId { get; init; }
     public string? Link { get; init; }
     public DateTime? ExpiresAt { get; init; }
     public string? DownloadToken { get; init; }
+
+    public static ExportResult Fail(string error, string? code = null) =>
+        new()
+        {
+            Succeeded = false,
+            Error = error,
+            ErrorCode = code,
+        };
+
+    public static ExportResult Success(Guid requestId, Guid? tenantId = null, string? status = null) =>
+        new()
+        {
+            Succeeded = true,
+            RequestId = requestId,
+            TenantId = tenantId,
+            Status = status,
+        };
+}
+
+public static class DataExportErrorCodes
+{
+    public const string NotFound = "not_found";
+    public const string NotReady = "not_ready";
+    public const string InvalidType = "invalid_type";
+    public const string ArtifactMissing = "artifact_missing";
 }
 
 public interface IDataExportService
 {
     /// <summary>Legacy/sync ZIP bytes for a tenant (no download token).</summary>
     Task<ExportResult> ExportAllDataAsync(Guid tenantId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Creates a GDPR export request, builds the ZIP when possible, stores artifact + 7-day download link, notifies requester.
+    /// Background retry via <c>DataRightsExportProcessorService</c> if packaging is not ready immediately.
+    /// </summary>
+    Task<ExportResult> RequestDataExportAsync(
+        Guid tenantId,
+        string? requestedByUserId = null,
+        CancellationToken ct = default);
+
+    /// <summary>Status of an export rights request (id = <see cref="ExportResult.RequestId"/>).</summary>
+    Task<ExportResult> GetExportStatusAsync(Guid exportId, CancellationToken ct = default);
+
+    /// <summary>Authenticated ZIP download for a ready/completed export request.</summary>
+    Task<ExportResult> DownloadExportAsync(Guid exportId, CancellationToken ct = default);
 
     /// <summary>
     /// Request-scoped export: collect → ZIP → secure store → 7-day download link → notify requester.
@@ -110,10 +156,182 @@ public sealed class DataExportService : IDataExportService
 
         return new ExportResult
         {
+            Succeeded = true,
+            TenantId = tenantId,
+            RequestId = exportId,
+            Status = TenantDataRightsRequestStatuses.Completed,
             FileName = fileName,
             Data = zip,
+            FileSize = zip.LongLength,
             TableRowCounts = counts,
             ExportedAtUtc = document.Tenant.ExportedAt,
+        };
+    }
+
+    public async Task<ExportResult> RequestDataExportAsync(
+        Guid tenantId,
+        string? requestedByUserId = null,
+        CancellationToken ct = default)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+
+        var tenantExists = await db.Tenants.AsNoTracking()
+            .IgnoreQueryFilters()
+            .AnyAsync(t => t.Id == tenantId, ct)
+            .ConfigureAwait(false);
+        if (!tenantExists)
+            return ExportResult.Fail("Tenant not found", DataExportErrorCodes.NotFound);
+
+        var now = DateTime.UtcNow;
+        var row = new TenantDataRightsRequest
+        {
+            TenantId = tenantId,
+            RequestType = TenantDataRightsRequestTypes.Export,
+            Status = TenantDataRightsRequestStatuses.Processing,
+            ApprovalMode = TenantDataRightsApprovalModes.Auto,
+            RequestedByUserId = requestedByUserId,
+            RequestedAtUtc = now,
+            ApprovedAtUtc = now,
+            ProcessingDeadlineUtc = now.AddHours(CustomerDataRightsService.ExportMaxProcessingHours),
+            CreatedAt = now,
+        };
+
+        db.TenantDataRightsRequests.Add(row);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+
+        try
+        {
+            var packaged = await CreateExportAsync(row.Id, ct).ConfigureAwait(false);
+            packaged = new ExportResult
+            {
+                Succeeded = true,
+                TenantId = tenantId,
+                RequestId = row.Id,
+                Status = TenantDataRightsRequestStatuses.Ready,
+                FileName = packaged.FileName,
+                Data = packaged.Data,
+                FileSize = packaged.Data?.LongLength ?? packaged.FileSize,
+                TableRowCounts = packaged.TableRowCounts,
+                ExportedAtUtc = packaged.ExportedAtUtc,
+                Link = packaged.Link,
+                ExpiresAt = packaged.ExpiresAt,
+                DownloadToken = packaged.DownloadToken,
+            };
+            return packaged;
+        }
+        catch (Exception ex)
+        {
+            // Keep processing for background retry within 24h SLA (DataRightsExportProcessorService).
+            await using var db2 = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+            var pending = await db2.TenantDataRightsRequests
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(r => r.Id == row.Id, ct)
+                .ConfigureAwait(false);
+            if (pending != null)
+            {
+                pending.Status = TenantDataRightsRequestStatuses.Processing;
+                pending.ErrorMessage = Truncate(ex.Message, 1000);
+                pending.UpdatedAt = DateTime.UtcNow;
+                await db2.SaveChangesAsync(ct).ConfigureAwait(false);
+            }
+
+            _logger.LogWarning(
+                ex,
+                "Export not ready immediately; queued for retry. RequestId={RequestId}, TenantId={TenantId}",
+                row.Id,
+                tenantId);
+
+            return new ExportResult
+            {
+                Succeeded = true,
+                TenantId = tenantId,
+                RequestId = row.Id,
+                Status = TenantDataRightsRequestStatuses.Processing,
+                Error = Truncate(ex.Message, 500),
+            };
+        }
+    }
+
+    public async Task<ExportResult> GetExportStatusAsync(Guid exportId, CancellationToken ct = default)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var row = await db.TenantDataRightsRequests.AsNoTracking()
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(r => r.Id == exportId, ct)
+            .ConfigureAwait(false);
+
+        if (row == null)
+            return ExportResult.Fail("Export request not found", DataExportErrorCodes.NotFound);
+
+        if (!string.Equals(row.RequestType, TenantDataRightsRequestTypes.Export, StringComparison.Ordinal))
+            return ExportResult.Fail("Request is not an export", DataExportErrorCodes.InvalidType);
+
+        return new ExportResult
+        {
+            Succeeded = true,
+            TenantId = row.TenantId,
+            RequestId = row.Id,
+            Status = row.Status,
+            FileName = row.ArtifactFileName,
+            FileSize = row.ArtifactByteSize,
+            ExportedAtUtc = row.ReadyAtUtc ?? row.RequestedAtUtc,
+            Link = string.IsNullOrWhiteSpace(row.DownloadToken)
+                ? null
+                : BuildDownloadLink(_options.Value, row.DownloadToken),
+            ExpiresAt = row.DownloadExpiresAtUtc,
+            DownloadToken = row.DownloadToken,
+            Error = row.ErrorMessage,
+        };
+    }
+
+    public async Task<ExportResult> DownloadExportAsync(Guid exportId, CancellationToken ct = default)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var row = await db.TenantDataRightsRequests
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(r => r.Id == exportId, ct)
+            .ConfigureAwait(false);
+
+        if (row == null)
+            return ExportResult.Fail("Export request not found", DataExportErrorCodes.NotFound);
+
+        if (!string.Equals(row.RequestType, TenantDataRightsRequestTypes.Export, StringComparison.Ordinal))
+            return ExportResult.Fail("Request is not an export", DataExportErrorCodes.InvalidType);
+
+        if (row.Status is not (TenantDataRightsRequestStatuses.Ready or TenantDataRightsRequestStatuses.Completed)
+            || string.IsNullOrWhiteSpace(row.ArtifactRelativePath))
+        {
+            return ExportResult.Fail("Export is not ready for download", DataExportErrorCodes.NotReady);
+        }
+
+        var bytes = await _artifacts.ReadAsync(row.ArtifactRelativePath, ct).ConfigureAwait(false);
+        if (bytes == null)
+            return ExportResult.Fail("Export artifact missing", DataExportErrorCodes.ArtifactMissing);
+
+        if (row.Status == TenantDataRightsRequestStatuses.Ready)
+        {
+            row.Status = TenantDataRightsRequestStatuses.Completed;
+            row.CompletedAtUtc = DateTime.UtcNow;
+            row.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
+
+        return new ExportResult
+        {
+            Succeeded = true,
+            TenantId = row.TenantId,
+            RequestId = row.Id,
+            Status = TenantDataRightsRequestStatuses.Completed,
+            FileName = row.ArtifactFileName
+                ?? _fileNaming.GenerateFileName(DataExportFileNames.Prefix, "zip"),
+            Data = bytes,
+            FileSize = bytes.LongLength,
+            ExportedAtUtc = row.ReadyAtUtc ?? row.RequestedAtUtc,
+            Link = string.IsNullOrWhiteSpace(row.DownloadToken)
+                ? null
+                : BuildDownloadLink(_options.Value, row.DownloadToken),
+            ExpiresAt = row.DownloadExpiresAtUtc,
+            DownloadToken = row.DownloadToken,
         };
     }
 
@@ -169,13 +387,38 @@ public sealed class DataExportService : IDataExportService
         request.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
-        // 5. Notify user
+        // 5. Notify user (German HTML + plain export-ready template)
+        string? adminName = null;
+        if (!string.IsNullOrWhiteSpace(request.RequestedByUserId))
+        {
+            var requester = await db.Users.AsNoTracking()
+                .Where(u => u.Id == request.RequestedByUserId)
+                .Select(u => new { u.FirstName, u.LastName })
+                .FirstOrDefaultAsync(ct)
+                .ConfigureAwait(false);
+            if (requester != null)
+            {
+                var combined = $"{requester.FirstName} {requester.LastName}".Trim();
+                if (!string.IsNullOrWhiteSpace(combined))
+                    adminName = combined;
+            }
+        }
+
+        var email = DataExportReadyEmailComposer.Build(
+            DataExportReadyEmailComposer.CreateModel(
+                data.Tenant.Name,
+                link,
+                expiresAt,
+                validDays,
+                adminName));
+
         await _notificationService.NotifyUserAsync(
             request.RequestedByUserId,
             request.TenantId,
             request.Id,
-            subject: "Your data export is ready",
-            body: $"Your data export is ready. Download within {validDays} days: {link}",
+            email.Subject,
+            email.PlainBody,
+            email.HtmlBody,
             ct).ConfigureAwait(false);
 
         _logger.LogInformation(
@@ -187,9 +430,13 @@ public sealed class DataExportService : IDataExportService
 
         return new ExportResult
         {
+            Succeeded = true,
+            TenantId = request.TenantId,
             RequestId = request.Id,
+            Status = TenantDataRightsRequestStatuses.Ready,
             FileName = fileName,
             Data = zip,
+            FileSize = zip.LongLength,
             TableRowCounts = CountDocument(data),
             ExportedAtUtc = data.Tenant.ExportedAt,
             Link = link,
@@ -569,4 +816,9 @@ public sealed class DataExportService : IDataExportService
             DeletedOnPurge = !isRksv,
         };
     }
+
+    private static string Truncate(string value, int maxLen) =>
+        string.IsNullOrEmpty(value) || value.Length <= maxLen
+            ? value
+            : value[..maxLen];
 }

@@ -1,5 +1,6 @@
 /**
  * UI helpers for RKSV Startbeleg/Jahresbeleg FinanzOnline submission status (admin).
+ * Monatsbeleg: NotRequired (no outbox) — see docs/MONATSBELEG_FINANZONLINE_DECISION.md.
  */
 
 const TRACKED_KINDS = new Set(['Startbeleg', 'Jahresbeleg']);
@@ -8,6 +9,10 @@ export function isRksvFinanzOnlineTrackedSpecialReceiptKind(
   kind: string | null | undefined
 ): boolean {
   return TRACKED_KINDS.has((kind ?? '').trim());
+}
+
+export function isRksvMonatsbelegSpecialReceiptKind(kind: string | null | undefined): boolean {
+  return (kind ?? '').trim().toLowerCase() === 'monatsbeleg';
 }
 
 /** Ant Design Tag color preset by backend status string. */

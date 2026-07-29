@@ -1,4 +1,6 @@
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Export;
 using KasseAPI_Final.Services;
@@ -6,6 +8,8 @@ using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using Moq;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
@@ -24,7 +28,66 @@ public sealed class DepExportHistoryServiceTests
     private sealed class FixedTenantAccessor(Guid tenantId) : ICurrentTenantAccessor
     {
         public Guid? TenantId { get; set; } = tenantId;
-    public string? TenantSlug { get; set; }
+        public string? TenantSlug { get; set; }
+    }
+
+    private sealed class NoOpValidationService : IDepExportValidationService
+    {
+        public Task<DepExportHistoryValidationResult> ValidateExportAsync(
+            Guid exportId,
+            string? exportJson = null,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new DepExportHistoryValidationResult
+            {
+                ExportId = exportId,
+                IsValid = true,
+                ValidatedAt = DateTime.UtcNow,
+            });
+
+        public Task<DepExportValidationReport> GetValidationReportAsync(
+            Guid tenantId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new DepExportValidationReport { TenantId = tenantId });
+
+        public Task<bool> IsExportValidAsync(Guid exportId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(true);
+
+        public Task<DepExportHistoryValidationResult?> GetStoredValidationAsync(
+            Guid exportId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<DepExportHistoryValidationResult?>(new DepExportHistoryValidationResult
+            {
+                ExportId = exportId,
+                IsValid = true,
+                ValidatedAt = DateTime.UtcNow,
+            });
+    }
+
+    private sealed class NoOpArchiveService : IDepExportArchiveService
+    {
+        public Task<DepExportArchiveResult> ArchiveExportAsync(
+            Guid exportId,
+            string? exportJson = null,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(DepExportArchiveResult.Ok(
+                exportId,
+                archivePath: "noop",
+                checksum: "abc",
+                archivedAt: DateTime.UtcNow,
+                retentionUntil: DateTime.UtcNow.AddYears(7)));
+
+        public Task<DepExportArchiveReport> GetArchiveReportAsync(
+            Guid tenantId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new DepExportArchiveReport { TenantId = tenantId });
+
+        public Task<DepExportPurgeResult> PurgeOldExportsAsync(
+            int? retentionYears = null,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new DepExportPurgeResult());
+
+        public Task<int> ArchivePendingExportsAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(0);
     }
 
     private static RksvDepExportRootDto SampleExport() =>
@@ -39,6 +102,27 @@ public sealed class DepExportHistoryServiceTests
                 },
             ],
         };
+
+    private static DepExportHistoryService CreateService(AppDbContext db)
+    {
+        var archiveOpts = new Mock<IOptionsMonitor<DepExportArchiveOptions>>();
+        archiveOpts.Setup(m => m.CurrentValue).Returns(new DepExportArchiveOptions
+        {
+            Enabled = false,
+            AutoArchiveOnComplete = false,
+        });
+
+        return new(
+            db,
+            new FileNamingService(NullCurrentTenantAccessor.Instance),
+            new DepExportRequirementService(db, TimeProvider.System),
+            new NoOpValidationService(),
+            new NoOpArchiveService(),
+            Mock.Of<IDepExportPushNotificationService>(),
+            Mock.Of<IDepExportAuditService>(),
+            archiveOpts.Object,
+            NullLogger<DepExportHistoryService>.Instance);
+    }
 
     [Fact]
     public async Task RecordCompletedAsync_PersistsHistoryRow()
@@ -61,10 +145,7 @@ public sealed class DepExportHistoryServiceTests
         });
         await db.SaveChangesAsync();
 
-        var service = new DepExportHistoryService(
-            db,
-            new FileNamingService(NullCurrentTenantAccessor.Instance),
-            NullLogger<DepExportHistoryService>.Instance);
+        var service = CreateService(db);
         var from = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         var to = new DateTime(2026, 1, 31, 0, 0, 0, DateTimeKind.Utc);
 
@@ -97,10 +178,7 @@ public sealed class DepExportHistoryServiceTests
         TenantTestDoubles.EnsureDefaultTenant(db);
         var regId = Guid.NewGuid();
 
-        var service = new DepExportHistoryService(
-            db,
-            new FileNamingService(NullCurrentTenantAccessor.Instance),
-            NullLogger<DepExportHistoryService>.Instance);
+        var service = CreateService(db);
         var row = await service.RecordFailedAsync(
             LegacyDefaultTenantIds.Primary,
             regId,

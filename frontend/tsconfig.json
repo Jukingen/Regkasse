@@ -15,8 +15,7 @@
       "@/shared/*": ["./shared/*"],
       "shared/*": ["./shared/*"]
     },
-    // TS 7 defaults types to [] (no auto @types/*). Restore ambient typings used by the app/tests.
-    "types": ["*"],
+    // Leave `types` unset so TypeScript auto-includes `@types/*` (Expo / Vitest ambient).
     "noEmit": true,
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true

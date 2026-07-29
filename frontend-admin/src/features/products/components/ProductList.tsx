@@ -1,9 +1,12 @@
+'use client';
+
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import { Button, Popconfirm, Space, Table, Tag } from 'antd';
 import React from 'react';
 
 import { Product } from '@/api/generated/model';
 import { formatProductUnitLabelForLocale } from '@/features/products/utils/productMapper';
+import { useLicenseGuard } from '@/hooks/useLicenseGuard';
 import { resolveTaxGroupForProduct, useTaxGroups } from '@/hooks/useTaxGroups';
 import { useI18n } from '@/i18n';
 
@@ -18,8 +21,19 @@ interface ProductListProps {
 
 export default function ProductList({ data, loading, onEdit, onDelete }: ProductListProps) {
   const { t } = useI18n();
+  const { guardWriteOperation, isLocked } = useLicenseGuard();
   useProductFilters();
   const { data: taxGroups } = useTaxGroups();
+
+  const handleEdit = (product: Product) => {
+    if (!guardWriteOperation(t('products.actions.edit'))) return;
+    onEdit(product);
+  };
+
+  const handleDelete = (id: string) => {
+    if (!guardWriteOperation(t('products.actions.delete'))) return;
+    onDelete(id);
+  };
 
   const columns = [
     {
@@ -94,15 +108,20 @@ export default function ProductList({ data, loading, onEdit, onDelete }: Product
       key: 'actions',
       render: (_: unknown, record: Product) => (
         <Space>
-          <Button icon={<EditOutlined />} onClick={() => onEdit(record)} />
+          <Button
+            icon={<EditOutlined />}
+            disabled={isLocked}
+            onClick={() => handleEdit(record)}
+          />
           <Popconfirm
             title={t('products.actions.deleteConfirmTitle')}
             description={t('products.actions.deleteConfirmDescription')}
-            onConfirm={() => record.id && onDelete(record.id)}
+            onConfirm={() => record.id && handleDelete(record.id)}
             okText={t('common.buttons.yes')}
             cancelText={t('common.buttons.no')}
+            disabled={isLocked}
           >
-            <Button danger icon={<DeleteOutlined />} />
+            <Button danger icon={<DeleteOutlined />} disabled={isLocked} />
           </Popconfirm>
         </Space>
       ),

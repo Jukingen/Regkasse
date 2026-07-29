@@ -134,6 +134,10 @@ public sealed class MaintenanceMiddleware
         if (StartsWithOrdinalIgnoreCase(path, "/swagger"))
             return true;
 
+        // CI deployment status ingest
+        if (StartsWithOrdinalIgnoreCase(path, "/api/webhooks/"))
+            return true;
+
         return false;
     }
 

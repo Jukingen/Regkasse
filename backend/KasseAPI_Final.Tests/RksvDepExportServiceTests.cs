@@ -1,3 +1,4 @@
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
@@ -148,6 +149,59 @@ public sealed class RksvDepExportServiceTests
     }
 
     [Fact]
+    public void IsF5CompliantJws_False_ForLegacyJsonPayload()
+    {
+        var jsonPayload = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("""{"Kassen-ID":"1"}"""))
+            .TrimEnd('=')
+            .Replace('+', '-')
+            .Replace('/', '_');
+        var legacy = $"eyJhbGciOiJFUzI1NiJ9.{jsonPayload}.c2ln";
+        Assert.True(RksvDepExportService.IsValidCompactJws(legacy));
+        Assert.False(RksvDepExportService.IsF5CompliantJws(legacy));
+        Assert.False(SignaturePipeline.IsF5CompliantJws(legacy));
+    }
+
+    [Fact]
+    public void CountJwsCompliance_SeparatesF5AndLegacy()
+    {
+        var keyProvider = new SoftwareTseKeyProvider();
+        var pipeline = new SignaturePipeline(keyProvider, Mock.Of<ILogger<SignaturePipeline>>());
+        var f5 = pipeline.Sign(
+            BelegdatenPayloadBuilder.Build(
+                "K1",
+                "AT-K1-20260101-1",
+                new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc),
+                new RksvTaxSetAmounts { Normal = 1.10m },
+                110,
+                null,
+                keyProvider.GetCertificateSerialNumber()!,
+                keyProvider.GetTurnoverCounterAesKeyBytes()!));
+
+        var jsonPayload = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("""{"Kassen-ID":"1"}"""))
+            .TrimEnd('=')
+            .Replace('+', '-')
+            .Replace('/', '_');
+        var legacy = $"eyJhbGciOiJFUzI1NiJ9.{jsonPayload}.c2ln";
+
+        var root = new RksvDepExportRootDto
+        {
+            BelegeGruppe =
+            [
+                new RksvDepBelegeGruppeDto
+                {
+                    Signaturzertifikat = "CERT",
+                    BelegeKompakt = [f5, legacy],
+                },
+            ],
+        };
+
+        var (f5Count, legacyCount) = RksvDepExportService.CountJwsCompliance(root);
+        Assert.Equal(1, f5Count);
+        Assert.Equal(1, legacyCount);
+        Assert.Contains("legacy", RksvDepExportService.BuildLegacyJwsWarning(legacyCount)!, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void BmfRootDto_SerializesWithExactPropertyNames()
     {
         var root = new RksvDepExportRootDto
@@ -191,6 +245,57 @@ public sealed class RksvDepExportServiceTests
         Assert.Equal(RksvSpecialReceiptKinds.Startbeleg, ordered[0].ReceiptType);
         Assert.Equal(RksvDepReceiptTypes.Normal, ordered[1].ReceiptType);
         Assert.Equal(RksvDepReceiptTypes.DailyClosing, ordered[2].ReceiptType);
+    }
+
+    [Fact]
+    public async Task GenerateDepExport_Throws_WhenSignaturzertifikatWouldBeEmpty()
+    {
+        await using var db = CreateDb();
+        var regId = await SeedRegisterAsync(db);
+        const string missingThumb = "DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF";
+        var from = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc);
+        var to = new DateTime(2026, 3, 31, 23, 59, 59, DateTimeKind.Utc);
+
+        db.PaymentDetails.Add(CreatePayment(
+            regId,
+            new DateTime(2026, 3, 5, 10, 0, 0, DateTimeKind.Utc),
+            "AT-TSE-20260305-0001",
+            thumbprint: missingThumb,
+            tseSignature: ValidJwsFor("orphan")));
+        await db.SaveChangesAsync();
+
+        var keyProvider = new Mock<ITseKeyProvider>();
+        keyProvider
+            .Setup(k => k.GetCertificateByThumbprintAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((X509Certificate2?)null);
+        keyProvider
+            .Setup(k => k.GetCertificateChainAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<X509Certificate2>());
+        keyProvider.Setup(k => k.GetCurrentCertificateThumbprint()).Returns((string?)null);
+
+        var logger = new Mock<ILogger<RksvDepExportService>>();
+        var service = new RksvDepExportService(
+            db,
+            keyProvider.Object,
+            CreateDemoEnvironment(),
+            Mock.Of<IRksvDepPrueftoolRunner>(),
+            logger.Object);
+
+        var ex = await Assert.ThrowsAsync<RksvDepExportCertificateMissingException>(() =>
+            service.GenerateDepExportAsync(regId, from, to));
+
+        Assert.Equal(missingThumb, ex.Thumbprint);
+        Assert.Contains("Signaturzertifikat", ex.Message, StringComparison.OrdinalIgnoreCase);
+
+        logger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    v.ToString()!.Contains("DEP export failed: missing certificate for group", StringComparison.Ordinal)),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
     }
 
     [Fact]

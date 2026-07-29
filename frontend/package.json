@@ -47,6 +47,7 @@
     "expo-linking": "~56.0.15",
     "expo-localization": "~56.0.6",
     "expo-navigation-bar": "~56.0.3",
+    "expo-notifications": "~56.0.22",
     "expo-print": "~56.0.4",
     "expo-router": "~56.2.15",
     "expo-secure-store": "~56.0.4",
@@ -97,6 +98,5 @@
     "test-renderer": "^1.2.0",
     "ts-jest": "^29.4.11",
     "typescript": "~5.9.3"
-  },
-  "private": true
+  }
 }

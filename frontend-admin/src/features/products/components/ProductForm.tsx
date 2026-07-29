@@ -10,6 +10,9 @@ import { OptimizedImage } from '@/components/OptimizedImage';
 import { TaxSelect } from '@/components/TaxSelect';
 import { useCategories } from '@/features/categories/hooks/useCategories';
 import { taxRateToType } from '@/features/products/utils/productMapper';
+import { PriceChangeModal } from '@/features/tax/components/PriceChangeModal';
+import { PriceHistoryCard } from '@/features/tax/components/PriceHistoryCard';
+import type { PriceChangeResult } from '@/features/tax/api/priceHistory';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useCurrentTaxRegulation } from '@/hooks/useCurrentTaxRegulation';
 import { resolveTaxGroupForProduct, useTaxGroups } from '@/hooks/useTaxGroups';
@@ -37,6 +40,8 @@ interface ProductFormProps {
   isEditMode?: boolean;
   onCancel: () => void;
   onSubmit: (values: ProductFormSubmitValues) => Promise<void>;
+  /** Called after RKSV-safe price change (may switch to a new catalog product id). */
+  onPriceChanged?: (result: PriceChangeResult) => void | Promise<void>;
   loading?: boolean;
 }
 
@@ -60,6 +65,7 @@ function ProductFormContent({
   isEditMode = false,
   onCancel,
   onSubmit,
+  onPriceChanged,
   loading,
 }: ProductFormProps) {
   const { message } = useAntdApp();
@@ -72,6 +78,7 @@ function ProductFormContent({
   const [modifierGroupsLoading, setModifierGroupsLoading] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
   const [imageUploadPercent, setImageUploadPercent] = useState<number | null>(null);
+  const [priceChangeOpen, setPriceChangeOpen] = useState(false);
 
   // Load all modifier groups and (in edit mode) groups assigned to this product
   useEffect(() => {
@@ -140,6 +147,8 @@ function ProductFormContent({
   const { data: taxGroups } = useTaxGroups(visible);
   const { data: regulation } = useCurrentTaxRegulation(visible);
   const watchedTaxGroupId = Form.useWatch('taxGroupId', form) as string | undefined;
+  const watchedPrice = Form.useWatch('price', form) as number | undefined;
+  const watchedName = Form.useWatch('name', form) as string | undefined;
 
   const selectedTaxRate = useMemo(() => {
     if (!watchedTaxGroupId || !taxGroups?.length) return null;
@@ -182,8 +191,8 @@ function ProductFormContent({
     const list = categoryList ?? [];
     return list
       .map((cat: { id?: string; name?: string }) => ({
-        label: cat.name ?? (cat as any).Name ?? '',
-        value: cat.id ?? (cat as any).Id ?? '',
+        label: cat.name ?? '',
+        value: cat.id ?? '',
       }))
       .filter((o: { value: string }) => o.value);
   }, [categoryList]);
@@ -263,7 +272,7 @@ function ProductFormContent({
       }
       const categoryName =
         categoryOptions.find((o: { value: string }) => o.value === categoryId)?.label ??
-        (initialValues as any)?.category ??
+        initialValues?.category ??
         '';
 
       const rawImageUrl = values.imageUrl;
@@ -305,13 +314,18 @@ function ProductFormContent({
 
       await onSubmit(processedValues);
       form.resetFields();
-    } catch (error: any) {
+    } catch (error: unknown) {
       technicalConsole.error('[ProductForm] submit or validation failed', error);
 
+      type AxiosLikeValidationError = {
+        response?: { data?: { errors?: Record<string, string[]>; title?: string } };
+      };
+      const axiosError = error as AxiosLikeValidationError;
+
       // Handle Backend Validation Errors
-      if (error?.response?.data?.errors) {
+      if (axiosError.response?.data?.errors) {
         // Map Backend Validation Errors to AntD Form
-        const validationErrors = error.response.data.errors;
+        const validationErrors = axiosError.response.data.errors;
         const formErrors = Object.keys(validationErrors).map((key) => {
           // Convert PascalCase (e.g. "Unit") to camelCase (e.g. "unit")
           const camelKey = key.charAt(0).toLowerCase() + key.slice(1);
@@ -324,13 +338,14 @@ function ProductFormContent({
 
         // If there's an error on a hidden field (shouldn't happen with defaults, but just in case),
         // we might want to know.
-      } else if (error?.response?.data?.title) {
-        message.error(error.response.data.title);
+      } else if (axiosError.response?.data?.title) {
+        message.error(axiosError.response.data.title);
       }
     }
   };
 
   return (
+    <>
     <Modal
       title={isEditMode ? t('products.form.titleEdit') : t('products.form.titleCreate')}
       open={visible}
@@ -463,8 +478,19 @@ function ProductFormContent({
             name="price"
             label={t('products.form.price')}
             rules={[{ required: true, message: t('products.form.priceRequired') }]}
+            extra={
+              isEditMode && initialValues?.id
+                ? t('products.priceChange.editViaModalHint')
+                : undefined
+            }
           >
-            <InputNumber style={{ width: '100%' }} min={0} precision={2} prefix="€" />
+            <InputNumber
+              style={{ width: '100%' }}
+              min={0}
+              precision={2}
+              prefix="€"
+              disabled={isEditMode && !!initialValues?.id}
+            />
           </Form.Item>
 
           <Form.Item name="cost" label={t('products.form.cost')}>
@@ -476,9 +502,22 @@ function ProductFormContent({
           name="taxGroupId"
           label={t('products.form.taxGroup')}
           rules={[{ required: true, message: t('products.form.taxGroupRequired') }]}
+          extra={
+            isEditMode && initialValues?.id
+              ? t('products.priceChange.editViaModalHint')
+              : undefined
+          }
         >
-          <TaxSelect />
+          <TaxSelect disabled={isEditMode && !!initialValues?.id} />
         </Form.Item>
+
+        {isEditMode && initialValues?.id ? (
+          <div style={{ marginBottom: 16 }}>
+            <Button type="default" onClick={() => setPriceChangeOpen(true)}>
+              {t('products.priceChange.openButton')}
+            </Button>
+          </div>
+        ) : null}
 
         {!isValidTaxRate ? (
           <Alert
@@ -489,6 +528,8 @@ function ProductFormContent({
             description={t('products.form.taxRateInvalidDescription')}
           />
         ) : null}
+
+        {isEditMode && initialValues?.id ? <PriceHistoryCard productId={initialValues.id} /> : null}
 
         <Form.Item
           name="imageUrl"
@@ -595,5 +636,29 @@ function ProductFormContent({
         </Form.Item>
       </Form>
     </Modal>
+
+      {isEditMode && initialValues?.id ? (
+        <PriceChangeModal
+          open={priceChangeOpen}
+          productId={initialValues.id}
+          productName={watchedName || (initialValues as { name?: string }).name}
+          currentPrice={Number(watchedPrice ?? initialValues.price ?? 0)}
+          currentTaxGroupId={String(
+            watchedTaxGroupId ?? (initialValues as { taxGroupId?: string }).taxGroupId ?? ''
+          )}
+          currentTaxRate={Number(selectedTaxRate ?? initialValues.taxRate ?? 0)}
+          onClose={() => setPriceChangeOpen(false)}
+          onSuccess={async (result) => {
+            if (result.newPrice != null) {
+              form.setFieldsValue({ price: result.newPrice });
+            }
+            if (result.newTaxGroupId) {
+              form.setFieldsValue({ taxGroupId: result.newTaxGroupId });
+            }
+            await onPriceChanged?.(result);
+          }}
+        />
+      ) : null}
+    </>
   );
 }

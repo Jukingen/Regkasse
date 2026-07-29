@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+import { useRouter } from 'expo-router';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -27,6 +28,7 @@ import { validateUsername, validatePassword } from '../../utils/validation';
 
 import { getEnvironmentBadge } from '@/shared/config/environmentBadge';
 import { getLoginFailure } from '@/utils/loginErrorHandler';
+import { loadLicenseLockoutSnapshot } from '@/utils/licenseLockoutSnapshot';
 
 const { height } = Dimensions.get('window');
 
@@ -44,6 +46,7 @@ const USERNAME_CASE_EXAMPLES = ['cashier1', 'MANAGER1', 'AdminUser'] as const;
 
 export default function LoginScreen() {
   const { t } = useTranslation('auth');
+  const router = useRouter();
   const environmentBadge = getEnvironmentBadge();
   const [loginIdentifier, setLoginIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -64,6 +67,19 @@ export default function LoginScreen() {
     if (!isAuthReady) return;
     setIsBootstrapping(false);
   }, [isAuthReady, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthReady || isAuthenticated || isBootstrapping) return;
+    let cancelled = false;
+    void (async () => {
+      const snapshot = await loadLicenseLockoutSnapshot();
+      if (cancelled || !snapshot) return;
+      router.replace('/(auth)/license-expired');
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthReady, isAuthenticated, isBootstrapping, router]);
 
   useEffect(() => {
     // Form must be mounted before focusing inputs (bootstrap gate unmounts the fields).
@@ -150,8 +166,14 @@ export default function LoginScreen() {
       await storage.removeItem(LEGACY_SAVED_USERNAME_KEY);
     } catch (err: unknown) {
       const { userMessage, technicalMessage, errorCode } = getLoginFailure(err);
-      setError(userMessage);
       console.error('[Login Technical]', technicalMessage || err);
+
+      if (errorCode === 'LICENSE_ACCESS_DENIED') {
+        router.replace('/(auth)/license-expired');
+        return;
+      }
+
+      setError(userMessage);
 
       if (errorCode === 'INVALID_CREDENTIALS') {
         setErrors({ loginIdentifier: userMessage });
@@ -162,7 +184,7 @@ export default function LoginScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, loginIdentifier, password, login, validateForm]);
+  }, [isLoading, loginIdentifier, password, login, validateForm, router]);
 
   // Handle dismissing keyboard only on mobile (not web)
   const handleDismissKeyboard = useCallback(() => {

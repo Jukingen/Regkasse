@@ -86,6 +86,8 @@ export const ADMIN_SIDEBAR_GROUP_KEYS = {
 export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
   [ADMIN_SIDEBAR_GROUP_KEYS.dashboard]: ['/dashboard'],
   [ADMIN_SIDEBAR_GROUP_KEYS.license]: [
+    '/license',
+    '/license/dashboard',
     '/admin/license',
     '/admin/licenses',
     '/admin/billing',
@@ -197,6 +199,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/admin/tse/logs',
     '/admin/tse/developer-tools',
     '/admin/tse/compliance',
+    '/admin/tse/signaturkarte-program',
     '/admin/tse/auto-scaling',
     '/admin/tse/auto-healing',
     '/admin/tse/knowledge',
@@ -360,6 +363,8 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     p.startsWith('/admin/tse/developer-tools/') ||
     p === '/admin/tse/compliance' ||
     p.startsWith('/admin/tse/compliance/') ||
+    p === '/admin/tse/signaturkarte-program' ||
+    p.startsWith('/admin/tse/signaturkarte-program/') ||
     p === '/admin/tse/auto-scaling' ||
     p.startsWith('/admin/tse/auto-scaling/') ||
     p === '/admin/tse/auto-healing' ||
@@ -398,7 +403,10 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     keys.push(ADMIN_SIDEBAR_GROUP_KEYS.accessArea);
   }
   if (
+    p === '/license' ||
+    p.startsWith('/license/') ||
     p === '/admin/license' ||
+    p.startsWith('/admin/license/') ||
     p === '/admin/licenses' ||
     p === '/admin/billing' ||
     p.startsWith('/admin/billing/') ||

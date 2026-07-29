@@ -43,6 +43,18 @@ namespace KasseAPI_Final.Models.DTOs
         /// <summary>Resolved display name (e.g. FirstName LastName) when available; null if not resolved.</summary>
         public string? ActorDisplayName { get; set; }
 
+        /// <summary>Resolved actor user snapshot when the Identity user still exists.</summary>
+        public UserInfoDto? User { get; set; }
+
+        /// <summary>Flat actor user name (backward-compatible convenience field).</summary>
+        public string? UserName { get; set; }
+
+        /// <summary>Flat actor email (backward-compatible convenience field).</summary>
+        public string? UserEmail { get; set; }
+
+        /// <summary>Flat actor display name; mirrors <see cref="ActorDisplayName"/> when resolved from User.</summary>
+        public string? UserDisplayName { get; set; }
+
         // Enterprise audit event fields
         /// <summary>Typed action for user-lifecycle/role events; null for legacy or other events.</summary>
         public AuditEventType? ActionType { get; set; }

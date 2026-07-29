@@ -15,16 +15,10 @@ import type {
   AdminCategoryCreatePayload,
   AdminCategoryUpdatePayload,
 } from '@/features/categories/types';
+import { SecondParameter, unwrapData } from '@/api/admin/httpHelpers';
 import { customInstance } from '@/lib/axios';
 
 const ADMIN_CATEGORIES = '/api/admin/categories';
-
-type SecondParameter<T> = T extends (arg: any, arg2?: infer U) => any ? U : never;
-
-function unwrapData<T>(res: any): T {
-  if (res?.data !== undefined) return res.data as T;
-  return res as T;
-}
 
 export function getAdminCategories(
   options?: SecondParameter<typeof customInstance>,

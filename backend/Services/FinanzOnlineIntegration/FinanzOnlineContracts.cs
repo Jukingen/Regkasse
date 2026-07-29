@@ -118,8 +118,11 @@ public sealed class FinanzOnlineRegisterSubmissionRequest
     public FinanzOnlineSubmissionKind SubmissionKind { get; set; } = FinanzOnlineSubmissionKind.Register;
     public string PayloadJson { get; set; } = "{}";
 
-    /// <summary>When set (TEST), maps to <see cref="FinanzOnlineMappedCommand.RkdbPayloadXml"/> for rkdb SOAP.</summary>
+    /// <summary>When set, maps to <see cref="FinanzOnlineMappedCommand.RkdbPayloadXml"/> for rkdb SOAP.</summary>
     public FinanzOnlineRkdbBelegpruefungCommand? RkdbBelegpruefung { get; set; }
+
+    /// <summary>When set, maps to Ausfall / Wiederinbetriebnahme rkdb XML (mutually exclusive with belegpruefung).</summary>
+    public FinanzOnlineRkdbAusfallCommand? RkdbAusfall { get; set; }
 }
 
 public sealed class FinanzOnlineRegisterSubmissionResponse

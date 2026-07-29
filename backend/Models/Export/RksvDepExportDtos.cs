@@ -47,6 +47,18 @@ public sealed class RksvDepExportBuildResult
 
     /// <summary>RKSV § 8 disclaimer (not legally binding proof).</summary>
     public string LegalNotice { get; set; } = string.Empty;
+
+    /// <summary>Count of compact JWS entries whose payload is not F5 machine code (<c>_R1-…</c>).</summary>
+    public int LegacyJwsCount { get; set; }
+
+    /// <summary>Count of F5-compliant compact JWS entries.</summary>
+    public int F5CompliantJwsCount { get; set; }
+
+    /// <summary>Operator-facing warning when <see cref="LegacyJwsCount"/> &gt; 0; otherwise null.</summary>
+    public string? LegacyJwsWarning { get; set; }
+
+    /// <summary>True when the export has no pre-F5 (legacy JSON payload) JWS entries.</summary>
+    public bool PrueftoolCompatible => LegacyJwsCount == 0;
 }
 
 /// <summary>Structural BMF DEP JSON validation result (does not invoke Prüftool).</summary>

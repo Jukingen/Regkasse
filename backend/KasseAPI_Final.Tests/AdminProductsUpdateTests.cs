@@ -31,8 +31,42 @@ public sealed class AdminProductsUpdateTests
         return new AppDbContext(options, tenantAccessor ?? TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
-    private static AdminProductsController CreateController(AppDbContext ctx) =>
-        new(
+    private static AdminProductsController CreateController(AppDbContext ctx)
+    {
+        var priceHistory = new ProductPriceHistoryService(ctx, NullLogger<ProductPriceHistoryService>.Instance);
+        var audit = new Mock<IAuditLogService>();
+        audit.Setup(a => a.LogSystemOperationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>(),
+                It.IsAny<AuditEventType?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>()))
+            .ReturnsAsync(new AuditLog { Id = Guid.NewGuid() });
+
+        var priceChange = new PriceChangeService(
+            ctx,
+            priceHistory,
+            new RksvPriceChangeComplianceChecker(
+                ctx,
+                new TaxRegulationService(ctx, NullLogger<TaxRegulationService>.Instance),
+                NullLogger<RksvPriceChangeComplianceChecker>.Instance),
+            audit.Object,
+            NullLogger<PriceChangeService>.Instance);
+
+        return new(
             ctx,
             Mock.Of<IGenericRepository<Product>>(),
             NullLogger<AdminProductsController>.Instance,
@@ -48,8 +82,9 @@ public sealed class AdminProductsUpdateTests
             Mock.Of<IProductService>(),
             Mock.Of<IProductExportService>(),
             Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>(),
-            Mock.Of<IProductPriceHistoryService>(),
-            Mock.Of<IPriceChangeService>());
+            priceHistory,
+            priceChange);
+    }
 
     private static void AttachManagerUser(AdminProductsController controller)
     {

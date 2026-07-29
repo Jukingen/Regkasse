@@ -121,6 +121,7 @@ public sealed class LicenseReminderHostedService : IHostedService, IDisposable
         var now = DateTimeOffset.UtcNow;
 
         await TrySendMandantExpiryRemindersAsync(mandantReminders, cancellationToken).ConfigureAwait(false);
+        await TrySendGracePeriodRemindersAsync(mandantReminders, cancellationToken).ConfigureAwait(false);
 
         if (status.IsExpired)
         {
@@ -133,7 +134,7 @@ public sealed class LicenseReminderHostedService : IHostedService, IDisposable
 
         var anchorDays = options.ReminderDays is { Length: > 0 }
             ? options.ReminderDays
-            : new[] { 30, 15, 7, 3, 1 };
+            : new[] { 30, 14, 7, 1 };
 
         bool onAnchorCalendarDay = anchorDays.Contains(status.DaysRemaining);
         bool inAppWindow = status.DaysRemaining <= InAppExpiryDayThreshold || onAnchorCalendarDay;
@@ -191,6 +192,30 @@ public sealed class LicenseReminderHostedService : IHostedService, IDisposable
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Mandant license expiry reminder sweep failed.");
+        }
+    }
+
+    private async Task TrySendGracePeriodRemindersAsync(
+        ILicenseReminderService mandantReminders,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var graceResult = await mandantReminders
+                .SendDueGracePeriodRemindersAsync(cancellationToken)
+                .ConfigureAwait(false);
+            if (graceResult.EmailsSent > 0)
+            {
+                _logger.LogInformation(
+                    "Mandant grace-period reminders sent: sent={Sent} skipped={Skipped} failed={Failed}",
+                    graceResult.EmailsSent,
+                    graceResult.Skipped,
+                    graceResult.Failed);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Mandant grace-period reminder sweep failed.");
         }
     }
 

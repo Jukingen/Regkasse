@@ -2,7 +2,8 @@
 
 /**
  * Permission-filtered admin sidebar menu.
- * Built from `adminSidebarRegistry` + RKSV plugin; filtered via `filterSidebarMenuItems`.
+ * Built from `adminSidebarRegistry` + RKSV plugin; filtered via `filterSidebarMenuItems`
+ * then `filterSidebarMenuItemsForLicenseLockdown` when mandant license is Locked/Archived.
  * Known IA areas resolve through `menuPermissionRegistry` (`useMenuPermissions` / `tryRegistryMenuVisibility`).
  */
 import { Menu, type MenuProps, Typography } from 'antd';
@@ -28,6 +29,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { isTenantLicenseBlockingModule } from '@/features/cash-registers/hooks/useCashRegisterModuleAccess';
 import { useTenantLicenseStatus } from '@/features/license/hooks/useLicenseStatus';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
+import { mapLicenseLifecycleUiState, useLicenseStatus } from '@/hooks/useLicenseStatus';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
 import {
@@ -44,6 +46,8 @@ import { SIDEBAR_NAV_ITEM_CATALOG, logSidebarMenuPermissionMapWarnings } from '@
 import { buildAdminSidebarMenuItems } from '@/shared/buildAdminSidebar';
 import { OPERATOR_VERIFICATIONS_COPY } from '@/shared/operatorTruthCopy';
 import type { RksvMenuGroup } from '@/shared/rksvMenuModel';
+import { filterSidebarMenuItemsForLicenseLockdown } from '@/shared/sidebarLicenseLockdown';
+import { useLicenseMenuVisibility } from '@/hooks/useLicenseMenuVisibility';
 import { MenuPermissionGroupDebugPanel } from '@/components/MenuPermissionGroupDebugPanel';
 import { PermissionExplorerDrawer } from '@/components/admin-layout/PermissionExplorerDrawer';
 import {
@@ -116,7 +120,11 @@ export function useAdminSidebarMenu(): UseAdminSidebarMenuResult {
   const effectiveRole = previewSession?.roleName || user?.role || '';
   const { isSuperAdminUser } = useCurrentTenant();
   const { data: tenantLicense } = useTenantLicenseStatus();
+  const { status: licenseLifecycleStatus } = useLicenseStatus();
   const hideKassenverwaltungMenu = isTenantLicenseBlockingModule(tenantLicense, isSuperAdminUser);
+  const licenseLockdownState =
+    licenseLifecycleStatus?.state ??
+    (tenantLicense ? mapLicenseLifecycleUiState(tenantLicense) : null);
 
   const { menuItems: allMenuItems, rksvMenuGroups } = useMemo(
     () =>
@@ -168,11 +176,17 @@ export function useAdminSidebarMenu(): UseAdminSidebarMenuResult {
 
   const menuItems = useMemo(() => {
     const filtered = filterSidebarMenuItems(allMenuItems, sidebarPermissionCtx) ?? [];
+    const withoutWriteOps =
+      filterSidebarMenuItemsForLicenseLockdown(filtered, {
+        licenseState: licenseLockdownState,
+        isSuperAdmin: isSuperAdminUser,
+      }) ?? [];
+
     if (!hideKassenverwaltungMenu) {
-      return filtered;
+      return withoutWriteOps;
     }
 
-    return filtered
+    return withoutWriteOps
       .map((item) => {
         if (
           !item ||
@@ -198,7 +212,13 @@ export function useAdminSidebarMenu(): UseAdminSidebarMenuResult {
         (item) =>
           !item || typeof item !== 'object' || !('key' in item) || item.key !== '/kassenverwaltung'
       );
-  }, [allMenuItems, hideKassenverwaltungMenu, sidebarPermissionCtx]);
+  }, [
+    allMenuItems,
+    hideKassenverwaltungMenu,
+    isSuperAdminUser,
+    licenseLockdownState,
+    sidebarPermissionCtx,
+  ]);
 
   const selectableRouteKeys = useMemo(
     () => collectSelectableRouteKeysFromMenuItems(menuItems),
@@ -310,6 +330,8 @@ export function AdminSidebarEmptyState() {
 
 /** Inline menu filtered by permissions; wraps search-param aware selected key resolution. */
 export function AdminSidebarMenuPanel(props: AdminSidebarMenuPanelProps) {
+  const { t } = useI18n();
+  const { isLocked } = useLicenseMenuVisibility();
   const { menuItems, selectableRouteKeys, hasAccessibleMenus, openKeys, setOpenKeys } =
     useAdminSidebarMenu();
 
@@ -318,27 +340,38 @@ export function AdminSidebarMenuPanel(props: AdminSidebarMenuPanelProps) {
   }
 
   return (
-    <Suspense
-      fallback={
+    <>
+      <Suspense
+        fallback={
+          <AdminSidebarMenuInner
+            {...props}
+            menuItems={menuItems}
+            selectableRouteKeys={selectableRouteKeys}
+            openKeys={openKeys}
+            setOpenKeys={setOpenKeys}
+            withSearchParams={false}
+          />
+        }
+      >
         <AdminSidebarMenuInner
           {...props}
           menuItems={menuItems}
           selectableRouteKeys={selectableRouteKeys}
           openKeys={openKeys}
           setOpenKeys={setOpenKeys}
-          withSearchParams={false}
+          withSearchParams
         />
-      }
-    >
-      <AdminSidebarMenuInner
-        {...props}
-        menuItems={menuItems}
-        selectableRouteKeys={selectableRouteKeys}
-        openKeys={openKeys}
-        setOpenKeys={setOpenKeys}
-        withSearchParams
-      />
-    </Suspense>
+      </Suspense>
+      {isLocked && !props.menuInlineCollapsed ? (
+        <div
+          className={sidebarStyles.licenseLockdownFooter}
+          role="status"
+          aria-live="polite"
+        >
+          {t('adminShell.sidebar.lockdownFooter')}
+        </div>
+      ) : null}
+    </>
   );
 }
 

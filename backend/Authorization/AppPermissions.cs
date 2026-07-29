@@ -289,6 +289,12 @@ public static class AppPermissions
     /// <summary>Resolve risk scores and trigger remediations from the risk dashboard.</summary>
     public const string RiskManage = "risk.manage";
 
+    /// <summary>
+    /// Approve production deployment compliance checklist (ComplianceOfficer + SuperAdmin).
+    /// Required for production deploy gate sign-off.
+    /// </summary>
+    public const string DeploymentApprove = "deployment.approve";
+
     // --- System-critical (permanent delete, high-risk) ---
     public const string SystemCritical = "system.critical";
 

@@ -98,19 +98,25 @@ export function Dashboard({ headerSlot }: DashboardProps) {
     [layout, allowedCatalog]
   );
 
-  const handleVisibilityChange = (widgetId: string, isVisible: boolean) => {
-    if (!layout) return;
-    const next = layout.map((w) => (w.widgetId === widgetId ? { ...w, isVisible } : w));
-    scheduleSave(next);
-  };
+  const handleVisibilityChange = useCallback(
+    (widgetId: string, isVisible: boolean) => {
+      if (!layout) return;
+      const next = layout.map((w) => (w.widgetId === widgetId ? { ...w, isVisible } : w));
+      scheduleSave(next);
+    },
+    [layout, scheduleSave]
+  );
 
-  const handleWidgetSettingsChange = (widgetId: string, settings: Record<string, unknown>) => {
-    if (!layout) return;
-    const next = layout.map((w) =>
-      w.widgetId === widgetId ? { ...w, settings: { ...w.settings, ...settings } } : w
-    );
-    scheduleSave(next);
-  };
+  const handleWidgetSettingsChange = useCallback(
+    (widgetId: string, settings: Record<string, unknown>) => {
+      if (!layout) return;
+      const next = layout.map((w) =>
+        w.widgetId === widgetId ? { ...w, settings: { ...w.settings, ...settings } } : w
+      );
+      scheduleSave(next);
+    },
+    [layout, scheduleSave]
+  );
 
   const loading = catalogQuery.isLoading || preferencesQuery.isLoading;
   const error = catalogQuery.error ?? preferencesQuery.error;

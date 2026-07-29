@@ -1,7 +1,6 @@
 'use client';
 
 import { useMutation } from '@tanstack/react-query';
-import type { AxiosError } from 'axios';
 
 import {
   type TenantLicenseOverview,
@@ -9,34 +8,29 @@ import {
   putTenantLicense,
 } from '@/features/license/api/tenantLicense';
 import { useInvalidateTenantLicenseOverview } from '@/features/license/hooks/useTenantLicenseOverview';
-import { useAntdApp } from '@/hooks/useAntdApp';
-import { useI18n } from '@/i18n';
+import { useNotify } from '@/hooks/useNotify';
 
 export type EditTenantLicenseVariables = {
   tenantId: string;
   body: UpdateTenantLicenseRequest;
 };
 
-function readApiErrorMessage(error: unknown, fallback: string): string {
-  const axiosError = error as AxiosError<{ message?: string }>;
-  const msg = axiosError.response?.data?.message;
-  return typeof msg === 'string' && msg.trim().length > 0 ? msg.trim() : fallback;
-}
-
 export function useEditTenantLicense(options?: { onSuccess?: () => void }) {
-  const { message } = useAntdApp();
-  const { t } = useI18n();
+  const notify = useNotify();
   const invalidateOverview = useInvalidateTenantLicenseOverview();
 
   return useMutation<TenantLicenseOverview, unknown, EditTenantLicenseVariables>({
     mutationFn: ({ tenantId, body }) => putTenantLicense(tenantId, body),
     onSuccess: () => {
-      message.success(t('license.superAdmin.editModal.success'));
+      notify.successKey('license.superAdmin.editModal.success');
       invalidateOverview();
       options?.onSuccess?.();
     },
     onError: (error) => {
-      message.error(readApiErrorMessage(error, t('license.superAdmin.editModal.error')));
+      notify.apiError(error, {
+        logContext: 'License.editTenant',
+        fallbackKey: 'license.superAdmin.editModal.error',
+      });
     },
   });
 }

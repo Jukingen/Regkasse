@@ -1,0 +1,299 @@
+# -----------------------------------------------------------------------------
+# Regkasse — production-oriented Compose (self-hosted reference)
+#
+# NOT a substitute for the production cutover checklists. Soft TSE / FON
+# simulation are forbidden; startup fails closed if misconfigured.
+#
+# Prerequisites:
+#   1. Copy .env.production.example → .env.production and fill EVERY secret
+#   2. Do NOT use docker-compose.override.yml (dev Soft TSE) with this file
+#   3. Real Fiskaly (or other vendor) credentials + FON cutover as required
+#
+# Start (API + Postgres + Redis):
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+#
+# Optional Admin / Sites / POS profiles:
+#   docker compose -f docker-compose.prod.yml --env-file .env.production --profile admin up -d --build
+#   docker compose -f docker-compose.prod.yml --env-file .env.production --profile sites up -d --build
+#   docker compose -f docker-compose.prod.yml --env-file .env.production --profile pos up -d --build
+#
+# Scripts: docker-up-prod.bat · docker-down-prod.bat · docker-build-prod.bat · deploy-docker.bat
+# Local env template: .env.production.local.example (localhost URLs)
+# Docs: docs/DOCKER_PRODUCTION.md · docs/DOCKER_ENV_VARS.md · DEPLOYMENT.md ·
+#       docs/TSE_PRODUCTION_CONFIG_LOCK.md
+# -----------------------------------------------------------------------------
+
+name: regkasse-prod
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: ${LOG_MAX_SIZE:-10m}
+    max-file: ${LOG_MAX_FILES:-5}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: regkasse-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env.production}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.production}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env.production}
+    # Bind to loopback only — put a reverse proxy / private network in front in real ops.
+    ports:
+      - '${POSTGRES_HOST_BIND:-127.0.0.1}:${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - regkasse_prod_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: '${POSTGRES_CPU_LIMIT:-2.0}'
+          memory: ${POSTGRES_MEMORY_LIMIT:-2G}
+        reservations:
+          cpus: '${POSTGRES_CPU_RESERVE:-0.25}'
+          memory: ${POSTGRES_MEMORY_RESERVE:-256M}
+    logging: *default-logging
+    networks:
+      - regkasse-prod
+
+  redis:
+    image: redis:7-alpine
+    container_name: regkasse-redis-prod
+    restart: always
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '${REDIS_HOST_BIND:-127.0.0.1}:${REDIS_PORT:-6379}:6379'
+    volumes:
+      - regkasse_prod_redis:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '${REDIS_CPU_LIMIT:-1.0}'
+          memory: ${REDIS_MEMORY_LIMIT:-512M}
+        reservations:
+          cpus: '${REDIS_CPU_RESERVE:-0.1}'
+          memory: ${REDIS_MEMORY_RESERVE:-64M}
+    logging: *default-logging
+    networks:
+      - regkasse-prod
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        RID: ${DOTNET_RID:-linux-x64}
+    image: regkasse-api:${IMAGE_TAG:-prod}
+    container_name: regkasse-backend-prod
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - '${API_HOST_BIND:-127.0.0.1}:${API_PORT:-5184}:8080'
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      RELEASE_STAGE: ${RELEASE_STAGE:-production}
+      Deployment__ReleaseStage: ${RELEASE_STAGE:-production}
+      ConnectionStrings__DefaultConnection: >-
+        Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Pooling=true
+      JwtSettings__SecretKey: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY (≥32 chars) in .env.production}
+      JwtSettings__Issuer: ${JWT_ISSUER:-Regkasse}
+      JwtSettings__Audience: ${JWT_AUDIENCE:-RegkasseClients}
+      Redis__ConnectionString: redis:6379
+      Redis__InstanceName: ${REDIS_INSTANCE_NAME:-Regkasse_Prod}
+      # Fiscal — fail-closed (TseProductionOptionsValidator)
+      Tse__TseMode: Device
+      Tse__Mode: Real
+      Tse__Provider: ${TSE_PROVIDER:-fiskaly}
+      Tse__Environment: Production
+      Tse__AllowSimulatedDailyClosing: 'false'
+      Tse__AllowUnsafeFiscalModesInProduction: 'false'
+      RKSV__Mode: Production
+      RKSV__TseMode: Real
+      RKSV__FinanzOnlineMode: Real
+      RKSV__ShowDemoLabel: 'false'
+      FinanzOnline__Mode: ${FINANZONLINE_MODE:-Production}
+      FinanzOnline__Session__UseSimulation: 'false'
+      FinanzOnline__Registrierkassen__UseSimulation: 'false'
+      FinanzOnline__TransmissionQuery__UseSimulation: 'false'
+      TwoFactorAuth__Enabled: ${TWO_FACTOR_ENABLED:-true}
+      TwoFactorAuth__BypassInDevelopment: 'false'
+      Security__Csrf__Enabled: ${CSRF_ENABLED:-true}
+      Security__Csrf__BypassInDevelopment: 'false'
+      # Vendor secrets (required for real signing — never commit)
+      Tse__Providers__fiskaly__ApiKey: ${FISKALY_API_KEY:-}
+      Tse__Providers__fiskaly__ApiSecret: ${FISKALY_API_SECRET:-}
+      Tse__Providers__fiskaly__ApiBaseUrl: ${FISKALY_API_BASE_URL:-https://rksv.fiskaly.com/api/v1}
+      Tse__Providers__fiskaly__SignatureCreationUnitId: ${FISKALY_SCU_ID:-}
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'curl -fsS http://127.0.0.1:8080/api/health/live || exit 1',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          cpus: '${API_CPU_LIMIT:-2.0}'
+          memory: ${API_MEMORY_LIMIT:-2G}
+        reservations:
+          cpus: '${API_CPU_RESERVE:-0.5}'
+          memory: ${API_MEMORY_RESERVE:-512M}
+    logging: *default-logging
+    networks:
+      - regkasse-prod
+
+  frontend-admin:
+    profiles: ['admin']
+    build:
+      context: ./frontend-admin
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${ADMIN_API_URL:?Set ADMIN_API_URL (public API origin) in .env.production}
+        NEXT_PUBLIC_RKSV_ENVIRONMENT: ${NEXT_PUBLIC_RKSV_ENVIRONMENT:-PROD}
+        NEXT_PUBLIC_RELEASE_STAGE: ${RELEASE_STAGE:-production}
+        NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+        NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${NEXT_PUBLIC_SENTRY_ENVIRONMENT:-production}
+        NEXT_PUBLIC_SENTRY_RELEASE: ${NEXT_PUBLIC_SENTRY_RELEASE:-}
+    image: regkasse-frontend-admin:${IMAGE_TAG:-prod}
+    container_name: regkasse-frontend-admin-prod
+    restart: always
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - '${ADMIN_HOST_BIND:-127.0.0.1}:${ADMIN_PORT:-3000}:3000'
+    environment:
+      NODE_ENV: production
+      PORT: '3000'
+      HOSTNAME: 0.0.0.0
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget -qO- http://127.0.0.1:3000/health >/dev/null || exit 1',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '${ADMIN_CPU_LIMIT:-1.0}'
+          memory: ${ADMIN_MEMORY_LIMIT:-1G}
+        reservations:
+          cpus: '${ADMIN_CPU_RESERVE:-0.25}'
+          memory: ${ADMIN_MEMORY_RESERVE:-256M}
+    logging: *default-logging
+    networks:
+      - regkasse-prod
+
+  frontend-sites:
+    profiles: ['sites']
+    build:
+      context: ./frontend-sites
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${ADMIN_API_URL:?Set ADMIN_API_URL in .env.production}
+    image: regkasse-frontend-sites:${IMAGE_TAG:-prod}
+    container_name: regkasse-frontend-sites-prod
+    restart: always
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - '${SITES_HOST_BIND:-127.0.0.1}:${SITES_PORT:-3001}:3001'
+    environment:
+      NODE_ENV: production
+      PORT: '3001'
+      HOSTNAME: 0.0.0.0
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget -qO- http://127.0.0.1:3001/health >/dev/null || exit 1',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '${SITES_CPU_LIMIT:-1.0}'
+          memory: ${SITES_MEMORY_LIMIT:-768M}
+        reservations:
+          cpus: '${SITES_CPU_RESERVE:-0.1}'
+          memory: ${SITES_MEMORY_RESERVE:-128M}
+    logging: *default-logging
+    networks:
+      - regkasse-prod
+
+  frontend:
+    profiles: ['pos']
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        EXPO_PUBLIC_API_BASE_URL: ${POS_API_URL:?Set POS_API_URL (…/api) in .env.production}
+        EXPO_PUBLIC_ADMIN_BASE_URL: ${ADMIN_PUBLIC_URL:-}
+        EXPO_PUBLIC_RELEASE_STAGE: ${RELEASE_STAGE:-production}
+    image: regkasse-frontend-pos-web:${IMAGE_TAG:-prod}
+    container_name: regkasse-frontend-pos-prod
+    restart: always
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - '${POS_HOST_BIND:-127.0.0.1}:${POS_PORT:-8081}:80'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS http://127.0.0.1/healthz >/dev/null || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '${POS_CPU_LIMIT:-0.5}'
+          memory: ${POS_MEMORY_LIMIT:-256M}
+        reservations:
+          cpus: '${POS_CPU_RESERVE:-0.05}'
+          memory: ${POS_MEMORY_RESERVE:-64M}
+    logging: *default-logging
+    networks:
+      - regkasse-prod
+
+networks:
+  regkasse-prod:
+    driver: bridge
+
+volumes:
+  regkasse_prod_pgdata:
+  regkasse_prod_redis:

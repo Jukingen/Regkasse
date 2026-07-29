@@ -62,7 +62,7 @@ export default function CustomerList({
     {
       title: t('customers.list.columnContact'),
       key: 'contact',
-      render: (_: any, record: Customer) => (
+      render: (_: unknown, record: Customer) => (
         <Space orientation="vertical" size={0}>
           {record.email && <span>{record.email}</span>}
           {record.phone && <span style={{ fontSize: 12, color: '#888' }}>{record.phone}</span>}

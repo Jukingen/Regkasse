@@ -7,6 +7,7 @@
  */
 import type { AuditEventType } from './auditEventType';
 import type { AuditLogStatus } from './auditLogStatus';
+import type { UserInfoDto } from './userInfoDto';
 
 export interface AuditLogEntryDto {
   /** @nullable */
@@ -75,10 +76,18 @@ export interface AuditLogEntryDto {
   updatedAt?: string | null;
   /** @nullable */
   updatedBy?: string | null;
+  /** Resolved actor user snapshot when available. */
+  user?: UserInfoDto;
   /** @nullable */
   userAgent?: string | null;
   /** @nullable */
+  userDisplayName?: string | null;
+  /** @nullable */
+  userEmail?: string | null;
+  /** @nullable */
   userId?: string | null;
+  /** @nullable */
+  userName?: string | null;
   /** @nullable */
   userRole?: string | null;
 }

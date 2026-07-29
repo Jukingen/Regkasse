@@ -1,0 +1,113 @@
+{
+  "pageTitle": "Deployments",
+  "accessDenied": "Nur Super-Administratoren können den Deployment-Status einsehen.",
+  "introTitle": "Multi-Stage Pipeline",
+  "introBody": "Status von Staging-, Canary- und Production-Deployments inkl. Smoke-Ergebnisse.",
+  "pipelineHint": "Canary: Smoke-Fail → Auto-Rollback. Production: Smoke-Fail → manueller Rollback (FA oder scripts/rollback-production.sh). Progressive Mandanten: /admin/deployments/tenants.",
+  "filterStage": "Stage",
+  "allStages": "Alle",
+  "noRuns": "Noch keine Reports",
+  "noError": "Kein Fehler",
+  "openRun": "CI-Lauf",
+  "columns": {
+    "stage": "Stage",
+    "status": "Status",
+    "smoke": "Smoke",
+    "image": "Image",
+    "git": "Git",
+    "tenants": "Mandanten",
+    "updated": "Aktualisiert",
+    "run": "Lauf"
+  },
+  "status": {
+    "pending": "Ausstehend",
+    "deploying": "Deploy",
+    "smoke_running": "Smoke",
+    "succeeded": "Erfolgreich",
+    "failed": "Fehlgeschlagen",
+    "rolled_back": "Rollback"
+  },
+  "smoke": {
+    "passed": "Smoke OK",
+    "failed": "Smoke Fail",
+    "unknown": "Kein Smoke",
+    "summary": "Smoke-Details"
+  },
+    "rollback": {
+      "button": "Rollback",
+      "confirmTitle": "Deployment zurücksetzen?",
+      "confirmBody": "Stage {{stage}}: Rollback-Webhook auslösen (vorheriges Image).",
+      "confirmOk": "Rollback ausführen",
+      "previousImage": "Ziel-Image: {{image}}",
+      "noPrevious": "Kein previousImageTag gespeichert — Webhook/Server muss last-known-good kennen.",
+      "success": "Rollback ausgelöst.",
+      "failed": "Rollback fehlgeschlagen."
+    },
+    "compliance": {
+      "pageTitle": "Deployment-Compliance",
+      "accessDenied": "Benötigt deployment.approve (ComplianceOfficer) oder Super Admin.",
+      "introTitle": "RKSV Production-Freigabe",
+      "introBody": "Fiskal-Checks vor Production-Deploy bestätigen.",
+      "pipelineHint": "Alle Checklist-Punkte erforderlich. CI-Gate prüft diese Freigabe. Siehe docs/DEPLOYMENT_COMPLIANCE.md.",
+      "linkDashboard": "Stage-Deployment-Dashboard",
+      "imageTag": "Image-Tag",
+      "checklistTitle": "Checkliste",
+      "notes": "Notizen",
+      "signoffButton": "Für Production freigeben",
+      "signoffSuccess": "Compliance-Freigabe gespeichert.",
+      "signoffFailed": "Compliance-Freigabe fehlgeschlagen.",
+      "gateStatus": "Gate-Status",
+      "gatePassed": "Gate bestanden",
+      "yes": "Ja",
+      "no": "Nein",
+      "noSignoff": "Noch keine Freigabe für dieses Image.",
+      "signedBy": "Freigegeben von {{who}} um {{when}}",
+      "items": {
+        "depExport": "DEP-Export getestet",
+        "tseSignature": "TSE-Signatur getestet",
+        "finanzOnline": "FinanzOnline-Testübermittlung erfolgreich",
+        "ntp": "NTP-Zeitsync geprüft",
+        "tenantIsolation": "Mandantentrennung verifiziert"
+      }
+    },
+    "tenants": {
+    "pageTitle": "Mandanten-Deployments",
+    "introTitle": "Progressiver Canary",
+    "introBody": "Deployment-Version und Soak-Status je Mandant.",
+    "pipelineHint": "Einen Mandanten deployen → 24–48h überwachen → nächsten Mandanten. Siehe docs/CANARY_DEPLOYMENT.md.",
+    "linkStageDashboard": "Stage-Deployment-Dashboard",
+    "soakingCount": "Canary-Soak",
+    "failedCount": "Fehlgeschlagen",
+    "nextCanary": "Empfohlener nächster Canary",
+    "nextCanaryNone": "—",
+    "soaking": "Soak aktiv",
+    "columns": {
+      "tenant": "Mandant",
+      "version": "Version",
+      "stage": "Stage",
+      "status": "Status",
+      "deployed": "Deployed",
+      "soakUntil": "Soak bis",
+      "actions": "Aktionen"
+    },
+    "status": {
+      "pending": "Ausstehend",
+      "deploying": "Deploy",
+      "succeeded": "Erfolgreich",
+      "failed": "Fehlgeschlagen",
+      "rolled_back": "Rollback",
+      "canary_soak": "Canary-Soak",
+      "promoted": "Promoted"
+    },
+    "rollback": {
+      "button": "Mandant rollback",
+      "confirmTitle": "Diesen Mandanten zurücksetzen?",
+      "confirmBody": "Mandant {{tenant}}: Canary-Rollback-Webhook auf previousVersion.",
+      "confirmOk": "Mandant rollback",
+      "previousVersion": "Ziel-Version: {{version}}",
+      "noPrevious": "Keine previousVersion verfügbar.",
+      "success": "Mandanten-Rollback ausgelöst.",
+      "failed": "Mandanten-Rollback fehlgeschlagen."
+    }
+  }
+}

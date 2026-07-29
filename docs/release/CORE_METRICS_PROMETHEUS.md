@@ -2,6 +2,8 @@
 
 Temel fiscal ve replay metrikleri Prometheus formatında `/metrics` endpoint'inden sunulur. Prometheus ile scrape edilip Grafana'da dashboard olarak kullanılabilir.
 
+**Canonical catalog (English):** [`../METRICS.md`](../METRICS.md) · **Ops stack:** [`../MONITORING.md`](../MONITORING.md) · Compose: [`../../monitoring/`](../../monitoring/).
+
 ## Endpoint
 
 - **URL:** `GET /metrics`

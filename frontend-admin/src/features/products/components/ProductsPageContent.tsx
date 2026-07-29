@@ -23,7 +23,7 @@ import {
 } from 'antd';
 import { ColumnType } from 'antd/es/table';
 import { useRouter, useSearchParams } from 'next/navigation';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useDeferredValue, useMemo, useState } from 'react';
 
 import { Product } from '@/api/generated/model';
 import { downloadAdminProductExport } from '@/api/admin/products';
@@ -60,12 +60,14 @@ import {
   formatTaxTypeLabelForLocale,
   mapApiProductToUi,
   mapUiProductToApi,
+  type ApiProduct,
 } from '@/features/products/utils/productMapper';
 import { TaxQuickActions } from '@/features/tax/components/TaxQuickActions';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { DemoImportButton } from '@/features/tenants/components/DemoImportButton';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useDownloadPreview } from '@/hooks/useDownloadPreview';
+import { useLicenseGuard } from '@/hooks/useLicenseGuard';
 import { resolveTaxGroupForProduct, useTaxGroups } from '@/hooks/useTaxGroups';
 import { useI18n } from '@/i18n';
 import { FORMAT_EMPTY_DISPLAY } from '@/i18n/formatting';
@@ -81,6 +83,7 @@ const INACTIVE_PRODUCT_ROW_STYLE: React.CSSProperties = { opacity: 0.82 };
 
 export default function ProductsPage() {
   const { message, modal } = useAntdApp();
+  const { guard: licenseGuard, isLocked, canWrite } = useLicenseGuard();
 
   const showProductLagerUi = isAdminProductsLagerUiEnabled();
   const { t } = useI18n();
@@ -91,6 +94,8 @@ export default function ProductsPage() {
     useCurrentTenant();
   const { user } = useAuth();
   const canManageProducts = hasPermission(user, PERMISSIONS.PRODUCT_MANAGE);
+  /** Permission + license lockdown: use for disabled UI (never call guard in `disabled=`). */
+  const canWriteProducts = canManageProducts && canWrite;
   const [exporting, setExporting] = useState<'csv' | 'json' | null>(null);
   const downloadPreview = useDownloadPreview();
 
@@ -239,7 +244,12 @@ export default function ProductsPage() {
     [filters]
   );
   const rawItems = listData?.items ?? [];
-  const products = rawItems.map(mapApiProductToUi);
+  const products = useMemo(
+    () => rawItems.map((item) => mapApiProductToUi(item as ApiProduct)),
+    [rawItems]
+  );
+  /** Keep table painting responsive while parent state (filters/modals) updates. */
+  const deferredProducts = useDeferredValue(products);
   const editingProductFallback = useMemo(
     () => (editingProductId ? (products.find((p) => p.id === editingProductId) ?? null) : null),
     [editingProductId, products]
@@ -260,6 +270,7 @@ export default function ProductsPage() {
     : false;
 
   const handleCreate = async (values: ProductFormSubmitValues) => {
+    if (!licenseGuard(t('products.page.newProduct'))) return;
     try {
       const apiData = mapUiProductToApi(values);
       const result = await createMutation.mutateAsync({ data: apiData as unknown as Product });
@@ -281,6 +292,7 @@ export default function ProductsPage() {
 
   const handleUpdate = async (values: ProductFormSubmitValues) => {
     if (!editingProductId) return;
+    if (!licenseGuard(t('products.actions.edit'))) return;
     try {
       const apiData = mapUiProductToApi(values);
       (apiData as Record<string, unknown>).id = editingProductId;
@@ -309,6 +321,7 @@ export default function ProductsPage() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!licenseGuard(t('products.actions.delete'))) return;
     try {
       await deleteMutation.mutateAsync({ id });
       message.success(t('products.messages.deleteSuccess'));
@@ -329,6 +342,7 @@ export default function ProductsPage() {
   );
 
   const handleBulkDeactivate = useCallback(() => {
+    if (!licenseGuard(t('products.actions.bulkDeactivate'))) return;
     const activeIds = products
       .filter(
         (product) =>
@@ -405,9 +419,19 @@ export default function ProductsPage() {
         },
       });
     })();
-  }, [bulkDeactivateMutation, invalidateList, message, modal, products, selectedRowKeys, t]);
+  }, [
+    bulkDeactivateMutation,
+    invalidateList,
+    licenseGuard,
+    message,
+    modal,
+    products,
+    selectedRowKeys,
+    t,
+  ]);
 
   const handleDeactivateAllCatalog = useCallback(() => {
+    if (!licenseGuard(t('products.actions.deactivateAllCatalog'))) return;
     if (activeProductCount === 0) {
       message.info(t('products.actions.deactivateAllNone'));
       return;
@@ -437,26 +461,39 @@ export default function ProductsPage() {
         }
       },
     });
-  }, [activeProductCount, deactivateAllMutation, invalidateList, message, modal, statusCounts, t]);
+  }, [
+    activeProductCount,
+    deactivateAllMutation,
+    invalidateList,
+    licenseGuard,
+    message,
+    modal,
+    statusCounts,
+    t,
+  ]);
 
   const openCreate = () => {
+    if (!licenseGuard(t('products.page.newProduct'))) return;
     setEditingProductId(null);
     setFormVisible(true);
   };
 
   const openEdit = (product: Product) => {
     if (!product.id) return;
+    if (!licenseGuard(t('products.actions.edit'))) return;
     setEditingProductId(product.id);
     setFormVisible(true);
   };
 
   const openStockModal = (product: Product) => {
+    if (!licenseGuard(t('products.actions.stock'))) return;
     setStockModalProduct(product);
     setStockQuantity(Number(product.stockQuantity) ?? 0);
   };
 
   const handleStockSave = async () => {
     if (!stockModalProduct?.id) return;
+    if (!licenseGuard(t('products.actions.stock'))) return;
     try {
       await stockMutation.mutateAsync({
         id: stockModalProduct.id,
@@ -622,6 +659,7 @@ export default function ProductsPage() {
             type="primary"
             size="small"
             icon={<EditOutlined />}
+            disabled={isLocked}
             onClick={() => openEdit(record)}
           >
             {t('products.actions.edit')}
@@ -631,6 +669,7 @@ export default function ProductsPage() {
               type="default"
               size="small"
               icon={<StockOutlined />}
+              disabled={isLocked}
               onClick={() => openStockModal(record)}
             >
               {t('products.actions.stock')}
@@ -643,6 +682,7 @@ export default function ProductsPage() {
               onConfirm={() => record.id && handleDelete(record.id)}
               okText={t('common.buttons.yes')}
               cancelText={t('common.buttons.no')}
+              disabled={isLocked}
             >
               <Button
                 type="default"
@@ -650,6 +690,7 @@ export default function ProductsPage() {
                 danger
                 icon={<DeleteOutlined />}
                 loading={deleteMutation.isPending}
+                disabled={isLocked}
               >
                 {t('products.actions.delete')}
               </Button>
@@ -705,14 +746,19 @@ export default function ProductsPage() {
               <Button
                 danger
                 icon={<ClearOutlined />}
-                disabled={activeProductCount === 0}
+                disabled={isLocked || activeProductCount === 0}
                 loading={deactivateAllMutation.isPending || statusCounts.isLoading}
                 onClick={handleDeactivateAllCatalog}
               >
                 {t('products.actions.deactivateAllCatalog')}
               </Button>
             ) : null}
-            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              disabled={isLocked}
+              onClick={openCreate}
+            >
               {t('products.page.newProduct')}
             </Button>
           </Flex>
@@ -775,7 +821,7 @@ export default function ProductsPage() {
                 size="small"
                 danger
                 icon={<DeleteOutlined />}
-                disabled={selectedActiveCount === 0}
+                disabled={isLocked || selectedActiveCount === 0}
                 loading={bulkDeactivateMutation.isPending}
                 onClick={handleBulkDeactivate}
               >
@@ -789,14 +835,14 @@ export default function ProductsPage() {
       {!isError && canManageProducts ? (
         <TaxQuickActions
           selectedProductIds={selectedRowKeys.map(String)}
-          canManage={canManageProducts}
+          canManage={canWriteProducts}
         />
       ) : null}
 
       {!isError ? (
         <VirtualTable<Product>
           columns={columns}
-          dataSource={products}
+          dataSource={deferredProducts}
           rowKey="id"
           loading={isLoading}
           pagination={{
@@ -809,8 +855,8 @@ export default function ProductsPage() {
             emptyText: (
               <EmptyState
                 title={t('products.page.empty')}
-                actionText={t('products.page.newProduct')}
-                onAction={openCreate}
+                actionText={canWrite ? t('products.page.newProduct') : undefined}
+                onAction={canWrite ? openCreate : undefined}
               />
             ),
           }}
@@ -836,6 +882,15 @@ export default function ProductsPage() {
           setEditingProductId(null);
         }}
         onSubmit={editingProductId ? handleUpdate : handleCreate}
+        onPriceChanged={async (result) => {
+          invalidateList();
+          if (result.createdNewProductVersion && result.productId) {
+            setEditingProductId(result.productId);
+            message.success(t('products.priceChange.versionCreatedRefreshing'));
+            return;
+          }
+          void editDetailQuery.refetch();
+        }}
         loading={
           createMutation.isPending ||
           updateMutation.isPending ||

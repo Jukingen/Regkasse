@@ -66,6 +66,7 @@ public sealed class AdminTenantLicenseOverviewServiceTests
             Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Production),
             Options.Create(new TseOptions { TseMode = "Device" }),
             Options.Create(new LicenseOptions { Enabled = true }),
+            Options.Create(new EmailSmtpOptions()),
             Mock.Of<IDevelopmentModeService>(d => d.ShouldBypassLicense() == false),
             new AdminTenantLicenseKeyService(db, new LicenseKeyGenerator()));
 

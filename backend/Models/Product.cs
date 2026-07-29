@@ -135,6 +135,25 @@ namespace KasseAPI_Final.Models
         [Column("is_sellable_addon")]
         public bool IsSellableAddOn { get; set; }
 
+        /// <summary>
+        /// Catalog version number for RKSV-safe supersession (1 = original).
+        /// When a product with fiscal sales history gets a price/tax change, a new product row is created
+        /// with <c>Version = previous + 1</c> and the old row is archived.
+        /// </summary>
+        [Column("version")]
+        public int Version { get; set; } = 1;
+
+        /// <summary>Immediate predecessor product id when this row was created via catalog versioning.</summary>
+        [Column("original_product_id")]
+        public Guid? OriginalProductId { get; set; }
+
+        /// <summary>UTC timestamp when the product was archived after being superseded by a newer catalog version.</summary>
+        [Column("archived_at")]
+        public DateTime? ArchivedAt { get; set; }
+
+        [ForeignKey(nameof(OriginalProductId))]
+        public virtual Product? OriginalProduct { get; set; }
+
         // Navigation properties
         // public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
         // public virtual ICollection<InvoiceItem> InvoiceItems { get; set; } = new List<InvoiceItem>();

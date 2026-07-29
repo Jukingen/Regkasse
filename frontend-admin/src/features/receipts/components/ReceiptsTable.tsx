@@ -6,7 +6,7 @@ import type { TableProps } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
 import Link from 'next/link';
-import React from 'react';
+import React, { memo } from 'react';
 
 import { DateColumn } from '@/components/DateColumn';
 import { VirtualTable } from '@/components/VirtualTable';
@@ -230,7 +230,7 @@ function buildColumns(
  * Paginated, sortable receipts table.
  * Purely presentational — all data and pagination state comes from props.
  */
-export default function ReceiptsTable({
+export default memo(function ReceiptsTable({
   data,
   loading,
   isPlaceholderData,
@@ -318,4 +318,4 @@ export default function ReceiptsTable({
       size="middle"
     />
   );
-}
+});

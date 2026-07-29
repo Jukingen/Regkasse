@@ -57,6 +57,7 @@ public static class RoleMetadata
         [Roles.Kitchen] = "Kitchen",
         [Roles.ReportViewer] = "ReportViewer",
         [Roles.Accountant] = "Accountant",
+        [Roles.ComplianceOfficer] = "ComplianceOfficer",
     };
 
     private static readonly Dictionary<string, string> Descriptions = new(StringComparer.OrdinalIgnoreCase)
@@ -68,5 +69,6 @@ public static class RoleMetadata
         [Roles.Kitchen] = "Kitchen display and order status.",
         [Roles.ReportViewer] = "Read-only reports and exports.",
         [Roles.Accountant] = "Audit and invoice view/export without write.",
+        [Roles.ComplianceOfficer] = "Production deployment compliance sign-off (RKSV gate); fiscal read access.",
     };
 }

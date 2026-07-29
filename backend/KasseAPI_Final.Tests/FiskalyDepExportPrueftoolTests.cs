@@ -72,6 +72,7 @@ public sealed class FiskalyDepExportPrueftoolTests
     }
 
     [SkippableFact]
+    [Trait("Category", "DepPrueftool")]
     public async Task DepExport_WithFiskalyProvider_PassesBmfCheckDepExport_WhenPrueftoolInstalled()
     {
         Skip.IfNot(

@@ -22,10 +22,19 @@ Human-facing guides for operators and developers.
 | [`PROJECT_COMPREHENSIVE_DOCUMENTATION.md`](PROJECT_COMPREHENSIVE_DOCUMENTATION.md) | Dev / ops | Full improvement inventory, TSE ops wave, deploy checklist |
 | [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md) | Ops | New mandant onboarding |
 | [`GETTING_STARTED_SCRIPTS.md`](GETTING_STARTED_SCRIPTS.md) | Dev (Windows) | 5-minute scripts onboarding |
+| [`DOCKER_FOR_BEGINNERS.md`](DOCKER_FOR_BEGINNERS.md) | Dev (new to Docker) | Simple Docker concepts + Regkasse commands |
+| [`DOCKER_TEST_PLAN.md`](DOCKER_TEST_PLAN.md) | Dev | Step-by-step local Docker verification checklist |
+| [`DOCKER_PRODUCTION_READINESS.md`](DOCKER_PRODUCTION_READINESS.md) | Ops | Checklist gate + 4-step production migration plan |
 | [`DOCKER_VS_LEGACY.md`](DOCKER_VS_LEGACY.md) | Dev (Windows) | **Legacy vs Docker mode** comparison + switch guide |
 | [`TEAM_ANNOUNCEMENT_SCRIPTS.md`](TEAM_ANNOUNCEMENT_SCRIPTS.md) | Dev (Windows) | Team announcement (Slack/email) |
 | [`SCRIPTS_FINAL_SUMMARY.md`](SCRIPTS_FINAL_SUMMARY.md) | Dev (Windows) | Final delivery statistics |
 | [`NEXT_STEPS_AFTER_SCRIPTS.md`](NEXT_STEPS_AFTER_SCRIPTS.md) | Dev / ops | Priority matrix + production Docker plan |
+| [`MONITORING.md`](MONITORING.md) | Ops | Health, logs, Prometheus/Grafana/Loki |
+| [`ALERTING.md`](ALERTING.md) | Ops | Slack / on-call / fiscal alerts |
+| [`METRICS.md`](METRICS.md) | Ops / SRE | `/metrics` catalog |
+| [`CI_CD.md`](CI_CD.md) | Ops | CI/CD pipeline map |
+| [`GITHUB_ACTIONS.md`](GITHUB_ACTIONS.md) | Ops | Actions / Environments / secrets |
+| [`DOCKER_PRODUCTION.md`](DOCKER_PRODUCTION.md) | Ops | Production Compose |
 | [`SCRIPTS_COMPLETION_SUMMARY.md`](SCRIPTS_COMPLETION_SUMMARY.md) | Dev (Windows) | Delivery summary, team checklist, what’s next |
 | [`SCRIPTS_TEAM_ANNOUNCEMENT.md`](SCRIPTS_TEAM_ANNOUNCEMENT.md) | Dev (Windows) | Short team announcement (optional share) |
 | [`SCRIPTS_REFERENCE.md`](SCRIPTS_REFERENCE.md) | Dev (Windows) | `.bat` / `.ps1` catalog, flowchart, troubleshooting |
@@ -132,12 +141,23 @@ Release notes under [`release/`](release/) (FO reconciliation, offline separatio
 | Doc | Topic |
 |-----|--------|
 | [`ADMIN_FA_DEPLOY.md`](ADMIN_FA_DEPLOY.md) | Admin deploy |
+| [`CI_CD.md`](CI_CD.md) | CI/CD pipeline map (`ci.yml`, `deploy.yml`, fiscal gates) |
+| [`GITHUB_ACTIONS.md`](GITHUB_ACTIONS.md) | Actions, Environments, secrets checklist |
+| [`MONITORING.md`](MONITORING.md) | Health, Prometheus/Grafana/Loki (`monitoring/`) |
+| [`ALERTING.md`](ALERTING.md) | Slack / on-call / fiscal alert wiring |
+| [`METRICS.md`](METRICS.md) | `/metrics` catalog |
+| [`DOCKER.md`](DOCKER.md) / [`DOCKER.de.md`](DOCKER.de.md) | **Docker hub** (EN / DE) — Compose modes, links |
+| [`DOCKER_FOR_BEGINNERS.md`](DOCKER_FOR_BEGINNERS.md) | Docker concepts + Regkasse commands |
+| [`DOCKER_TEST_PLAN.md`](DOCKER_TEST_PLAN.md) | Local Docker verification (Track A Soft TSE / Track B prod) |
+| [`DOCKER_PRODUCTION.md`](DOCKER_PRODUCTION.md) | Production Compose (`docker-compose.prod.yml`) |
+| [`DOCKER_PRODUCTION_READINESS.md`](DOCKER_PRODUCTION_READINESS.md) | Checklist gate + 4-step production migration |
+| [`DOCKER_ENV_VARS.md`](DOCKER_ENV_VARS.md) | Compose / container env reference |
 | [`DOCKER_WINDOWS_SETUP.md`](DOCKER_WINDOWS_SETUP.md) | Docker Desktop + WSL2 on Windows |
 | [`DOCKER_WINDOWS_TROUBLESHOOTING.md`](DOCKER_WINDOWS_TROUBLESHOOTING.md) | Docker Windows install / runtime / network fixes |
-| [`DOCKER.md`](DOCKER.md) / [`DOCKER.de.md`](DOCKER.de.md) | **Docker hub** (EN / DE) — Compose modes, links |
 | [`DOCKER_VS_LEGACY.md`](DOCKER_VS_LEGACY.md) | Legacy host scripts vs Docker Compose (Windows bats) |
 | [`DOCKER_SETUP.md`](DOCKER_SETUP.md) / [`DOCKER_SETUP.de.md`](DOCKER_SETUP.de.md) | **Docker migration & setup plan** (EN / DE) |
 | [`DOCKER_WINDOWS_SETUP.de.md`](DOCKER_WINDOWS_SETUP.de.md) / [`DOCKER_WINDOWS_TROUBLESHOOTING.de.md`](DOCKER_WINDOWS_TROUBLESHOOTING.de.md) | Docker Windows (Deutsch) |
+| [`NEXT_STEPS_AFTER_SCRIPTS.md`](NEXT_STEPS_AFTER_SCRIPTS.md) | Post-scripts priority matrix (Docker → CI → monitoring) |
 | [`ANDROID_RELEASE_SIGNING.md`](ANDROID_RELEASE_SIGNING.md) | Android signing |
 | [`REGKASSE_APK_INSTALLATIONSANLEITUNG.md`](REGKASSE_APK_INSTALLATIONSANLEITUNG.md) | APK install (de) |
 | [`beta-env-matrix.md`](beta-env-matrix.md) / [`beta-smoke-checklist.md`](beta-smoke-checklist.md) | Beta |

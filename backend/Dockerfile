@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # -----------------------------------------------------------------------------
-# Regkasse backend API — multi-stage production image (net10.0)
+# Regkasse backend API — multi-stage production image (net10.0, self-contained)
 #
 # Build context MUST be the repository root (ProjectReference to
 # tools/LicenseGenerator.Core):
@@ -13,18 +13,21 @@
 # -----------------------------------------------------------------------------
 
 ARG DOTNET_VERSION=10.0
+ARG RID=linux-x64
 
 # --- Restore (cached when only .csproj files change) --------------------------
 FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS restore
+ARG RID
 WORKDIR /src
 
 COPY tools/LicenseGenerator.Core/LicenseGenerator.Core.csproj tools/LicenseGenerator.Core/
 COPY backend/KasseAPI_Final.csproj backend/
 
-RUN dotnet restore backend/KasseAPI_Final.csproj
+RUN dotnet restore backend/KasseAPI_Final.csproj -r ${RID}
 
-# --- Build --------------------------------------------------------------------
-FROM restore AS build
+# --- Publish (Release, self-contained) ----------------------------------------
+FROM restore AS publish
+ARG RID
 WORKDIR /src
 
 COPY tools/LicenseGenerator.Core/ tools/LicenseGenerator.Core/
@@ -36,31 +39,32 @@ RUN cp backend/appsettings.example.json backend/appsettings.json \
  && cp backend/appsettings.Production.example.json backend/appsettings.Production.json \
  && cp backend/appsettings.Development.example.json backend/appsettings.Development.json
 
-RUN dotnet build backend/KasseAPI_Final.csproj -c Release --no-restore
-
-# --- Publish ------------------------------------------------------------------
-FROM build AS publish
-WORKDIR /src
-
 RUN dotnet publish backend/KasseAPI_Final.csproj \
     -c Release \
+    -r ${RID} \
+    --self-contained true \
+    --no-restore \
     -o /app/publish \
-    --no-build \
-    /p:UseAppHost=false
+    /p:UseAppHost=true \
+    /p:PublishTrimmed=false
 
 # --- Runtime ------------------------------------------------------------------
+# Keep aspnet base (not bare runtime-deps) for native deps used by QuestPDF /
+# ImageSharp (fonts, libgdi-related libs on Debian).
 FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION} AS final
 WORKDIR /app
 
-# curl for HEALTHCHECK (Debian-based aspnet image)
+# curl for HEALTHCHECK — clean apt lists (Debian equivalent of apk --no-cache)
 USER root
 RUN apt-get update \
- && apt-get install -y --no-install-recommends curl \
+ && apt-get install -y --no-install-recommends --no-install-suggests curl \
+ && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
 ENV ASPNETCORE_ENVIRONMENT=Production \
     ASPNETCORE_URLS=http://+:8080 \
-    DOTNET_EnableDiagnostics=0
+    DOTNET_EnableDiagnostics=0 \
+    DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
 
 # Non-root (uid provided by the official aspnet image)
 USER $APP_UID
@@ -72,4 +76,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \
   CMD curl -fsS http://127.0.0.1:8080/api/health/live || exit 1
 
-ENTRYPOINT ["dotnet", "KasseAPI_Final.dll"]
+ENTRYPOINT ["./KasseAPI_Final"]

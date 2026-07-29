@@ -72,6 +72,14 @@ describe('adminRedirector', () => {
     );
   });
 
+  test('builds mandant license renewal URL', () => {
+    process.env.EXPO_PUBLIC_ADMIN_BASE_URL = 'https://admin.example.com';
+    delete process.env.EXPO_PUBLIC_LICENSE_EXTENSION_URL;
+
+    expect(buildAdminUrl('mandantLicense')).toBe('https://admin.example.com/license');
+    expect(allowedOnPlatformHost('mandantLicense')).toBe(true);
+  });
+
   test('builds tenant route URLs and validates required context', () => {
     process.env.EXPO_PUBLIC_ADMIN_BASE_URL = 'https://admin.example.com';
     delete process.env.EXPO_PUBLIC_LICENSE_EXTENSION_URL;

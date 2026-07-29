@@ -72,6 +72,10 @@ describe('canAccessPath', () => {
     expect(canAccessPath('/admin/license', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
   });
 
+  it('Manager can access /license/dashboard with license.manage', () => {
+    expect(canAccessPath('/license/dashboard', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+  });
+
   it('Manager can access staff hub sub-routes (user.view / report.view / shift.view, not staff.*)', () => {
     const perms = [...MANAGER_ADMIN_PERMISSIONS];
     expect(canAccessPath('/staff', perms)).toBe(true);
@@ -96,6 +100,7 @@ describe('canAccessPath', () => {
     expect(canAccessPath(`/tenant/${tenantId}/digital`, perms)).toBe(true);
     expect(canAccessPath(`/tenant/${tenantId}/data-management`, perms)).toBe(true);
     expect(canAccessPath('/settings/data-management', perms)).toBe(true);
+    expect(canAccessPath('/settings/account', perms)).toBe(true);
     expect(canAccessPath(`/tenant/${tenantId}/customize`, perms)).toBe(false);
     expect(canAccessPath(`/tenant/${tenantId}/domain`, perms)).toBe(false);
   });

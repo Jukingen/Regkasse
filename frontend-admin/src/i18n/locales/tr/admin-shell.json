@@ -6,7 +6,8 @@
     "fallbackUserName": "Admin User"
   },
   "sidebar": {
-    "noAccessibleMenus": "Kullanılabilir menü ögesi yok."
+    "noAccessibleMenus": "Kullanılabilir menü ögesi yok.",
+    "lockdownFooter": "Kısıtlı mod — lisans süresi doldu"
   },
   "menuPermission": {
     "popoverTitle": "Bu menüyü hangi izin kontrol eder?",

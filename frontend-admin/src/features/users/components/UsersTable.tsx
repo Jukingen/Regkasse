@@ -11,7 +11,7 @@ import {
 import { Button, Empty, Space, Tag } from 'antd';
 import type { ColumnsType, TableProps } from 'antd/es/table';
 import Link from 'next/link';
-import React, { useMemo } from 'react';
+import React, { memo, useMemo } from 'react';
 
 import { dateColumnRender } from '@/components/DateColumn';
 import { VirtualTable } from '@/components/VirtualTable';
@@ -48,7 +48,7 @@ export type UsersTableProps = {
   isPlaceholderData?: boolean;
 };
 
-export function UsersTable({
+export const UsersTable = memo(function UsersTable({
   users,
   loading,
   policy,
@@ -232,4 +232,4 @@ export function UsersTable({
       }}
     />
   );
-}
+});

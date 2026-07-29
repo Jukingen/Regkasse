@@ -17,6 +17,7 @@ import {
 } from '@/features/rksv/types/monatsbelegWarning';
 import { formatMonatsbelegMonthNameDe } from '@/features/rksv/utils/monatsbelegMissingMonths';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { useNotify } from '@/hooks/useNotify';
 import {
   formatViennaYearMonth,
   getMonthDifference,
@@ -62,7 +63,8 @@ export function LateMonatsbelegCreationCard({
   disabled = false,
   onSuccess,
 }: LateMonatsbelegCreationCardProps) {
-  const { message, modal } = useAntdApp();
+  const { modal } = useAntdApp();
+  const notify = useNotify();
   const createMonatsbeleg = useCreateMonatsbeleg();
   const { year: viennaYear, month: viennaMonth } = useMemo(() => getViennaCalendarYearMonth(), []);
 
@@ -108,16 +110,14 @@ export function LateMonatsbelegCreationCard({
   const submitCreation = useCallback(
     async (values: LateMonatsbelegFormValues, withForce: boolean) => {
       if (!cashRegisterId?.trim()) {
-        message.warning('Bitte zuerst eine Kasse auswählen.');
+        notify.warning('rksvHub.sonderbelege.selectRegisterFirst');
         return;
       }
 
       const { year, month } = values;
       const monthDiff = getMonthDifference(year, month);
       if (monthDiff <= 0) {
-        message.error(
-          'Monatsbeleg kann nur für abgeschlossene (vergangene) Kalendermonate erstellt werden.'
-        );
+        notify.errorKey('rksvHub.sonderbelege.pastMonthOnly');
         return;
       }
 
@@ -143,7 +143,7 @@ export function LateMonatsbelegCreationCard({
         onSuccess?.();
       } catch (error: unknown) {
         if (!isAxiosError(error)) {
-          message.error('Fehler beim Erstellen des Monatsbelegs');
+          notify.errorKey('rksvHub.sonderbelege.monatsbelegCreateFailed');
           return;
         }
 
@@ -182,14 +182,10 @@ export function LateMonatsbelegCreationCard({
           return;
         }
 
-        const apiError =
-          typeof data === 'object' &&
-          data !== null &&
-          'message' in data &&
-          typeof (data as { message?: unknown }).message === 'string'
-            ? (data as { message: string }).message
-            : null;
-        message.error(apiError ?? 'Fehler beim Erstellen des Monatsbelegs');
+        notify.apiError(error, {
+          logContext: 'RKSV.lateMonatsbeleg',
+          fallbackKey: 'rksvHub.sonderbelege.monatsbelegCreateFailed',
+        });
       }
     },
     [
@@ -197,7 +193,7 @@ export function LateMonatsbelegCreationCard({
       createMonatsbeleg,
       form,
       initialValues,
-      message,
+      notify,
       modal,
       onSuccess,
       resolveReason,

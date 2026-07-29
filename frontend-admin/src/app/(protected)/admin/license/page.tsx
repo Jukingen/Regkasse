@@ -95,6 +95,10 @@ import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
 import { IssuedLicenseUpgradeModal } from './IssuedLicenseUpgradeModal';
 import { LicenseActivationHistoryCard } from './LicenseActivationHistoryCard';
 import { LicenseGenerationCard } from './LicenseGenerationCard';
+import { LicenseAuditLogCard } from '@/features/license/components/LicenseAuditLogCard';
+import { LicenseReminderEmailPreviewCard } from '@/features/license/components/LicenseReminderEmailPreviewCard';
+import { LicenseRenewalFunnelCard } from '@/features/license/components/LicenseRenewalFunnelCard';
+import { LicenseUsageAnalyticsCard } from '@/features/license/components/LicenseUsageAnalyticsCard';
 import { LicenseReportsCard } from './LicenseReportsCard';
 
 type LicenseFormValues = {
@@ -1354,7 +1358,13 @@ function DeploymentLicensePanel({
               key: 'reports',
               label: t('license.tabs.reports'),
               children: (
-                <LicenseReportsCard enabledLicenseFeatures={enabledPublicLicenseFeatures} />
+                <>
+                  <LicenseReportsCard enabledLicenseFeatures={enabledPublicLicenseFeatures} />
+                  <LicenseReminderEmailPreviewCard />
+                  <LicenseAuditLogCard />
+                  <LicenseRenewalFunnelCard />
+                  <LicenseUsageAnalyticsCard />
+                </>
               ),
             },
           ]}

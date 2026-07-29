@@ -19,7 +19,7 @@ import { useLicenseTest } from '@/features/license/hooks/useLicenseTest';
 import { useUpdateLicenseTest } from '@/features/license/hooks/useUpdateLicenseTest';
 import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useTenant } from '@/features/tenancy/providers/TenantProvider';
-import { useAntdApp } from '@/hooks/useAntdApp';
+import { useNotify } from '@/hooks/useNotify';
 import { DAYJS_DATETIME_FORMAT, formatGermanDateTime, useI18n } from '@/i18n';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 
@@ -30,7 +30,7 @@ type LicenseTestFormValues = {
 
 export function LicenseTestPanel() {
   const { t } = useI18n();
-  const { message } = useAntdApp();
+  const notify = useNotify();
   const [form] = Form.useForm<LicenseTestFormValues>();
   const { updateMutation, scenarioMutation, isPending } = useUpdateLicenseTest();
   const { tenant: contextTenant, isLoading: tenantLoading, error: tenantError } = useTenant();
@@ -79,7 +79,7 @@ export function LicenseTestPanel() {
   const requireTenantId = (): string | null => {
     const id = form.getFieldValue('tenantId') as string | undefined;
     if (!id) {
-      message.warning(t('license.testPanel.noTenantSelected'));
+      notify.warning('license.testPanel.noTenantSelected');
       return null;
     }
     return id;

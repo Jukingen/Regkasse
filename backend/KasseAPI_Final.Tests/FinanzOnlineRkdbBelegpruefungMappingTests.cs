@@ -68,6 +68,28 @@ public sealed class FinanzOnlineRkdbBelegpruefungMappingTests
         Assert.Contains("<rkdb", mapped.RkdbPayloadXml, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void DefaultMapper_Sets_RkdbPayloadXml_For_Prod_Belegpruefung()
+    {
+        var opts = Microsoft.Extensions.Options.Options.Create(new FinanzOnlineRegistrierkassenOptions
+        {
+            SoapNamespace = "https://finanzonline.bmf.gv.at/rkdb"
+        });
+        var monitor = new TestOptionsMonitor<FinanzOnlineRegistrierkassenOptions>(opts.Value);
+        var mapper = new DefaultFinanzOnlineCommandMapper(monitor);
+        var beleg = BuildDepLikeString();
+        var mapped = mapper.MapRegisterSubmission(new FinanzOnlineRegisterSubmissionRequest
+        {
+            Mode = FinanzOnlineIntegrationMode.PROD,
+            Scope = new FinanzOnlineScope { RegisterId = "R1" },
+            Correlation = new FinanzOnlineCorrelationContext { BusinessKey = "bk", PayloadHash = "h", CorrelationId = "c" },
+            RkdbBelegpruefung = new FinanzOnlineRkdbBelegpruefungCommand { Beleg = beleg, PaketNr = 1, SatzNr = 1 }
+        });
+        Assert.Null(mapped.RkdbBuildError);
+        Assert.Null(mapped.RkdbValidationErrorCode);
+        Assert.NotNull(mapped.RkdbPayloadXml);
+    }
+
     private sealed class TestOptionsMonitor<T> : Microsoft.Extensions.Options.IOptionsMonitor<T> where T : class
     {
         public TestOptionsMonitor(T value) => CurrentValue = value;

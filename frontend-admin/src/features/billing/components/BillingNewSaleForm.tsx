@@ -17,6 +17,7 @@ import {
   Row,
   Select,
   Space,
+  Switch,
   Tag,
 } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -35,9 +36,8 @@ import {
 import { useBillingAccess } from '@/features/billing/hooks/useBillingAccess';
 import { fetchLicenseSalePreviewPdf } from '@/features/billing/utils/previewInvoicePdf';
 import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
-import { useAntdApp } from '@/hooks/useAntdApp';
+import { useNotify } from '@/hooks/useNotify';
 import { formatCurrency, formatGermanDateTime, useI18n } from '@/i18n';
-import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 
 type NewSaleFormValues = {
   tenantId: string;
@@ -46,11 +46,12 @@ type NewSaleFormValues = {
   vatRate: number;
   customValidUntilUtc?: Dayjs;
   notes?: string;
+  applyToTenant: boolean;
 };
 
 export function BillingNewSaleForm({ initialTenantId }: { initialTenantId?: string } = {}) {
   const { t, formatLocale } = useI18n();
-  const { message } = useAntdApp();
+  const notify = useNotify();
   const router = useRouter();
   const queryClient = useQueryClient();
   const canAccess = useBillingAccess();
@@ -62,6 +63,7 @@ export function BillingNewSaleForm({ initialTenantId }: { initialTenantId?: stri
 
   const selectedTenantId = Form.useWatch('tenantId', form);
   const selectedPlan = Form.useWatch('licensePlan', form);
+  const applyToTenant = Form.useWatch('applyToTenant', form);
   const isCustomPlan = selectedPlan === LICENSE_SALE_PLAN_VALUES.custom;
 
   const tenantsQuery = useQuery({
@@ -95,28 +97,28 @@ export function BillingNewSaleForm({ initialTenantId }: { initialTenantId?: stri
     mutation: {
       onSuccess: (data) => {
         setPreview(data);
-        message.success(t('billing.new.previewSuccess'));
+        notify.successKey('billing.new.previewSuccess');
       },
-      onError: (err) =>
-        openApiErrorMessage(message.open, t, err, { logContext: 'BillingNewSaleForm.preview' }),
+      onError: (err) => notify.apiError(err, { logContext: 'BillingNewSaleForm.preview' }),
     },
   });
 
   const createMutation = billingApi.useCreate({
     mutation: {
       onSuccess: async (sale) => {
-        if (sale.invoiceNumber) {
-          message.success(t('billing.new.createSuccess', { invoiceNumber: sale.invoiceNumber }));
+        if (sale.appliedToTenant === false) {
+          notify.successKey('billing.new.createSuccessKeyOnly');
+        } else if (sale.invoiceNumber) {
+          notify.successKey('billing.new.createSuccess', { invoiceNumber: sale.invoiceNumber });
         } else {
-          message.success(t('billing.new.createSuccessGeneric'));
+          notify.successKey('billing.new.createSuccessGeneric');
         }
         await queryClient.invalidateQueries({ queryKey: billingQueryKeys.all });
         if (sale.id) {
           router.push(`/admin/billing/sales/${sale.id}`);
         }
       },
-      onError: (err) =>
-        openApiErrorMessage(message.open, t, err, { logContext: 'BillingNewSaleForm.create' }),
+      onError: (err) => notify.apiError(err, { logContext: 'BillingNewSaleForm.create' }),
     },
   });
 
@@ -127,6 +129,7 @@ export function BillingNewSaleForm({ initialTenantId }: { initialTenantId?: stri
       priceNet: values.priceNet,
       vatRate: values.vatRate,
       notes: values.notes?.trim() || undefined,
+      applyToTenant: values.applyToTenant !== false,
       customValidUntilUtc: isCustomPlan
         ? values.customValidUntilUtc?.endOf('day').toISOString()
         : undefined,
@@ -183,7 +186,7 @@ export function BillingNewSaleForm({ initialTenantId }: { initialTenantId?: stri
       setPdfUrl(url);
       setShowPdfModal(true);
     } catch (err) {
-      openApiErrorMessage(message.open, t, err, {
+      notify.apiError(err, {
         logContext: 'BillingNewSaleForm.previewPdf',
         fallbackKey: 'billing.new.pdfPreviewError',
       });
@@ -216,6 +219,7 @@ export function BillingNewSaleForm({ initialTenantId }: { initialTenantId?: stri
               initialValues={{
                 vatRate: DEFAULT_LICENSE_VAT_RATE,
                 licensePlan: LICENSE_SALE_PLAN_VALUES.twelveMonths,
+                applyToTenant: true,
               }}
             >
               <Form.Item
@@ -315,6 +319,25 @@ export function BillingNewSaleForm({ initialTenantId }: { initialTenantId?: stri
               <Form.Item name="notes" label={t('billing.new.notes')}>
                 <Input.TextArea rows={3} />
               </Form.Item>
+
+              <Form.Item
+                name="applyToTenant"
+                label={t('billing.new.applyToTenant')}
+                valuePropName="checked"
+                extra={t('billing.new.applyToTenantHelp')}
+              >
+                <Switch />
+              </Form.Item>
+
+              {applyToTenant === false ? (
+                <Alert
+                  type="warning"
+                  showIcon
+                  title={t('billing.new.applyToTenantOffTitle')}
+                  description={t('billing.new.applyToTenantOffDescription')}
+                  style={{ marginBottom: 16 }}
+                />
+              ) : null}
 
               <Form.Item>
                 <Space wrap>

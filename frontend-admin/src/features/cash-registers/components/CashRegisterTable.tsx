@@ -13,6 +13,7 @@ import {
 import { Button, Empty, Space, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { Key } from 'react';
+import { memo } from 'react';
 
 import type { CashRegister } from '@/api/generated/model';
 import { VirtualTable } from '@/components/VirtualTable';
@@ -72,7 +73,7 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
 }
 
-export function CashRegisterTable({
+export const CashRegisterTable = memo(function CashRegisterTable({
   registers,
   loading,
   canCreate = false,
@@ -355,4 +356,4 @@ export function CashRegisterTable({
       }}
     />
   );
-}
+});

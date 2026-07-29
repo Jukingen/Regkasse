@@ -167,6 +167,9 @@ public sealed class AdminLicenseDashboardTests
         Assert.Equal(2, stats.ActiveTenantLicenses);
         Assert.Equal(1, stats.ExpiringTenantLicenses);
         Assert.Equal(1, stats.ExpiredTenantLicenses);
+        Assert.Equal(3, stats.TotalTenants);
+        Assert.Equal(1, stats.GraceTenantLicenses);
+        Assert.Equal(0, stats.LockedTenantLicenses);
     }
 
     [Fact]

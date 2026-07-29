@@ -139,6 +139,9 @@
     },
     "finanzOnlineSubmission": {
       "cardTitle": "FinanzOnline / BMF (Startbeleg & Jahresbeleg)",
+      "monatsbelegCardTitle": "FinanzOnline / BMF (Monatsbeleg)",
+      "monatsbelegNotRequiredTitle": "Keine automatische Übermittlung",
+      "monatsbelegNotRequiredBody": "Monatsbelege (Jänner–November) werden nicht über die FinanzOnline-Belegprüfung-Warteschlange gesendet. Pflichtprüfungen betreffen Startbeleg und Jahresbeleg (Dezember). Optional: QR mit BMF Belegcheck prüfen. Siehe Produktentscheidung Monatsbeleg FinanzOnline.",
       "disclaimerTitle": "Hinweis zur Darstellung",
       "disclaimerBody": "Technische Übersicht zur Übermittlung und Rückmeldung. Keine Rechtsberatung und keine Zusicherung gegenüber Finanzamt oder BMF.",
       "labelStatus": "Status",

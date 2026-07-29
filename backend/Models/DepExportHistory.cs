@@ -61,6 +61,11 @@ public class DepExportHistory : ITenantEntity
     [Column("group_count")]
     public int GroupCount { get; set; }
 
+    /// <summary>Pre-F5 (legacy JSON payload) compact JWS count in this export. 0 = Prüftool-compatible payloads.</summary>
+    [Required]
+    [Column("legacy_jws_count")]
+    public int LegacyJwsCount { get; set; }
+
     [Required]
     [MaxLength(32)]
     [Column("status")]
@@ -81,4 +86,44 @@ public class DepExportHistory : ITenantEntity
 
     [Column("include_daily_closings")]
     public bool IncludeDailyClosings { get; set; } = true;
+
+    /// <summary>Pending, Passed, Failed, or Skipped.</summary>
+    [MaxLength(16)]
+    [Column("validation_status")]
+    public string? ValidationStatus { get; set; }
+
+    [Column("validated_at")]
+    public DateTime? ValidatedAt { get; set; }
+
+    [Column("validation_report_json", TypeName = "jsonb")]
+    public string? ValidationReportJson { get; set; }
+
+    [Column("archived_at")]
+    public DateTime? ArchivedAt { get; set; }
+
+    [MaxLength(1024)]
+    [Column("archive_path")]
+    public string? ArchivePath { get; set; }
+
+    [MaxLength(64)]
+    [Column("archive_checksum")]
+    public string? ArchiveChecksum { get; set; }
+
+    [Column("retention_until")]
+    public DateTime? RetentionUntil { get; set; }
+
+    [Column("purged_at")]
+    public DateTime? PurgedAt { get; set; }
+
+    [MaxLength(200)]
+    [Column("purge_reason")]
+    public string? PurgeReason { get; set; }
+}
+
+public static class DepExportValidationStatuses
+{
+    public const string Pending = "Pending";
+    public const string Passed = "Passed";
+    public const string Failed = "Failed";
+    public const string Skipped = "Skipped";
 }

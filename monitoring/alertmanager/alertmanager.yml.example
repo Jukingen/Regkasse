@@ -1,0 +1,47 @@
+# Copy ideas into alertmanager.yml and set Slack/PagerDuty secrets via env file.
+# Default file below uses a placeholder webhook — replace before production.
+
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: default-slack
+  group_by: ['alertname', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers:
+        - channel="pager"
+      receiver: oncall
+      continue: true
+    - matchers:
+        - severity="critical"
+      receiver: default-slack
+
+receivers:
+  - name: default-slack
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#regkasse-alerts'
+        send_resolved: true
+        title: '{{ .Status | toUpper }} {{ .CommonLabels.alertname }}'
+        text: >-
+          {{ range .Alerts }}
+          *{{ .Annotations.summary }}*
+          {{ .Annotations.description }}
+          {{ end }}
+
+  - name: oncall
+    # Prefer PagerDuty / Opsgenie in real ops. Slack webhook is a safe default.
+    slack_configs:
+      - api_url: '${ONCALL_WEBHOOK_URL}'
+        channel: '#regkasse-oncall'
+        send_resolved: true
+        title: 'PAGER {{ .CommonLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }} — {{ .Annotations.description }}{{ end }}'
+
+inhibit_rules:
+  - source_matchers: [severity="critical"]
+    target_matchers: [severity="warning"]
+    equal: ['alertname']

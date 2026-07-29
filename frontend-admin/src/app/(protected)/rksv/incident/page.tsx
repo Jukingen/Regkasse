@@ -797,7 +797,7 @@ export default function IncidentInvestigationPage() {
                 <Timeline
                   items={timelineItems.map((item) => ({
                     color: item.status === 0 ? 'green' : item.status === 1 ? 'red' : 'blue',
-                    children: (
+                    content: (
                       <div>
                         <Typography.Text strong>
                           {formatAuditTimestamp(item.timestamp, formatLocale)}

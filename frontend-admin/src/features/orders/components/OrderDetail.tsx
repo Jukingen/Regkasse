@@ -164,7 +164,7 @@ export function OrderDetail({ order, onOrderUpdated }: OrderDetailProps) {
           <Divider style={{ margin: 0 }}>{t('onlineOrders.detail.timeline')}</Divider>
           <Timeline
             items={history.map((h) => ({
-              children: (
+              content: (
                 <span>
                   {KNOWN_STATUSES.has(h.toStatus)
                     ? t(`onlineOrders.status.${h.toStatus}`)

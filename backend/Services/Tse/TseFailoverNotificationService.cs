@@ -18,6 +18,7 @@ public sealed class TseFailoverNotificationService : ITseFailoverNotificationSer
     private readonly IDataDeletionNotificationSender _email;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IOptionsMonitor<TseOptions> _tseOptions;
+    private readonly IRksvAusfallEpisodeService _ausfallEpisodes;
     private readonly ILogger<TseFailoverNotificationService> _logger;
 
     public TseFailoverNotificationService(
@@ -25,12 +26,14 @@ public sealed class TseFailoverNotificationService : ITseFailoverNotificationSer
         IDataDeletionNotificationSender email,
         UserManager<ApplicationUser> userManager,
         IOptionsMonitor<TseOptions> tseOptions,
+        IRksvAusfallEpisodeService ausfallEpisodes,
         ILogger<TseFailoverNotificationService> logger)
     {
         _activity = activity;
         _email = email;
         _userManager = userManager;
         _tseOptions = tseOptions;
+        _ausfallEpisodes = ausfallEpisodes;
         _logger = logger;
     }
 
@@ -75,7 +78,7 @@ public sealed class TseFailoverNotificationService : ITseFailoverNotificationSer
             cancellationToken);
     }
 
-    public Task NotifyFailoverCompletedAsync(
+    public async Task NotifyFailoverCompletedAsync(
         TseDevice primary,
         TseDevice backup,
         string failoverType,
@@ -85,7 +88,7 @@ public sealed class TseFailoverNotificationService : ITseFailoverNotificationSer
         var labelBackup = DeviceLabel(backup);
         var message = $"TSE {labelPrimary} failed over to {labelBackup} ({failoverType}).";
 
-        return NotifyAsync(
+        await NotifyAsync(
             primary,
             ActivityEventType.TseFailoverActivated,
             subject: $"[URGENT] TSE Failover Completed — Tenant {primary.TenantId}",
@@ -109,7 +112,16 @@ public sealed class TseFailoverNotificationService : ITseFailoverNotificationSer
             },
             dedupKey: $"tse-failover-completed:{primary.Id:N}:{backup.Id:N}:{DateTime.UtcNow:yyyyMMddHHmmss}",
             sendEmail: true,
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            await _ausfallEpisodes.SuggestAusfallFromFailoverAsync(primary, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Ausfall suggestion after failover failed. PrimaryId={PrimaryId}", primary.Id);
+        }
     }
 
     public Task NotifyFailoverFailedAsync(
@@ -233,14 +245,14 @@ Consider provisioning or repairing a healthy backup before the primary fails.
             cancellationToken);
     }
 
-    public Task NotifyFailoverRevertedAsync(
+    public async Task NotifyFailoverRevertedAsync(
         TseDevice primary,
         CancellationToken cancellationToken = default)
     {
         var label = DeviceLabel(primary);
         var message = $"TSE signing reverted to primary {label}.";
 
-        return NotifyAsync(
+        await NotifyAsync(
             primary,
             ActivityEventType.TseFailoverReverted,
             subject: $"[INFO] TSE Failover Reverted — Tenant {primary.TenantId}",
@@ -260,7 +272,16 @@ Consider provisioning or repairing a healthy backup before the primary fails.
             },
             dedupKey: $"tse-failover-revert:{primary.Id:N}:{DateTime.UtcNow:yyyyMMddHHmm}",
             sendEmail: false,
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            await _ausfallEpisodes.SuggestWiederinbetriebnahmeFromRevertAsync(primary, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Wiederinbetriebnahme suggestion after revert failed. PrimaryId={PrimaryId}", primary.Id);
+        }
     }
 
     private Task NotifyAsync(

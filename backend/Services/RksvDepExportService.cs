@@ -80,11 +80,6 @@ public class RksvDepExportService : IRksvDepExportService
 
         foreach (var group in groupedByCert)
         {
-            var certificateBase64 = await GetCertificateBase64Async(group.Key, cancellationToken)
-                .ConfigureAwait(false);
-            var caChain = await GetCertificateChainBase64Async(group.Key, cancellationToken)
-                .ConfigureAwait(false);
-
             var belegeKompakt = OrderReceiptsForDepExport(group)
                 .Select(r => r.TseSignature)
                 .Where(IsValidCompactJws)
@@ -93,12 +88,35 @@ public class RksvDepExportService : IRksvDepExportService
             if (belegeKompakt.Count == 0)
                 continue;
 
+            var certificateBase64 = await GetCertificateBase64Async(group.Key, cancellationToken)
+                .ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(certificateBase64))
+            {
+                _logger.LogError(
+                    "DEP export failed: missing certificate for group {Thumbprint}",
+                    group.Key);
+                throw new RksvDepExportCertificateMissingException(group.Key);
+            }
+
+            var caChain = await GetCertificateChainBase64Async(group.Key, cancellationToken)
+                .ConfigureAwait(false);
+
             belegeGruppe.Add(new RksvDepBelegeGruppeDto
             {
                 Signaturzertifikat = certificateBase64,
                 Zertifizierungsstellen = caChain,
                 BelegeKompakt = belegeKompakt,
             });
+        }
+
+        // Defense-in-depth: never return BMF JSON with an empty leaf certificate.
+        foreach (var emitted in belegeGruppe)
+        {
+            if (string.IsNullOrWhiteSpace(emitted.Signaturzertifikat))
+            {
+                _logger.LogError("DEP export failed: missing certificate for group {Thumbprint}", "UNKNOWN");
+                throw new RksvDepExportCertificateMissingException("UNKNOWN");
+            }
         }
 
         _logger.LogInformation(
@@ -138,6 +156,7 @@ public class RksvDepExportService : IRksvDepExportService
             .ConfigureAwait(false);
 
         var (groupCount, belegCount) = RksvDepExportStats.Count(export);
+        var (f5Count, legacyCount) = CountJwsCompliance(export);
         var exportJson = JsonSerializer.Serialize(export, BmfJsonOptions);
         var validation = await ValidateExportFormatAsync(exportJson, cancellationToken).ConfigureAwait(false);
         var isDemo = _rksvEnv.IsDemoMode() || _rksvEnv.IsTseSimulated();
@@ -163,6 +182,9 @@ public class RksvDepExportService : IRksvDepExportService
             Environment = environment,
             FormatValidated = validation.IsValid,
             LegalNotice = isDemo ? DemoLegalNoticeDe : ProductionLegalNoticeDe,
+            F5CompliantJwsCount = f5Count,
+            LegacyJwsCount = legacyCount,
+            LegacyJwsWarning = BuildLegacyJwsWarning(legacyCount),
         };
     }
 
@@ -178,6 +200,7 @@ public class RksvDepExportService : IRksvDepExportService
         var warnings = new List<string>();
         var groupCount = 0;
         var belegCount = 0;
+        var legacyJwsCount = 0;
 
         try
         {
@@ -202,7 +225,14 @@ public class RksvDepExportService : IRksvDepExportService
                 foreach (var group in belegeGruppe.EnumerateArray())
                 {
                     groupIndex++;
-                    ValidateCertificateGroup(group, groupIndex, isDemo, errors, warnings, ref belegCount);
+                    ValidateCertificateGroup(group, groupIndex, isDemo, errors, warnings, ref belegCount, ref legacyJwsCount);
+                }
+
+                if (legacyJwsCount > 0)
+                {
+                    var warning = BuildLegacyJwsWarning(legacyJwsCount);
+                    if (warning is not null)
+                        warnings.Add(warning);
                 }
             }
         }
@@ -408,7 +438,8 @@ public class RksvDepExportService : IRksvDepExportService
         bool isDemo,
         List<string> errors,
         List<string> warnings,
-        ref int belegCount)
+        ref int belegCount,
+        ref int legacyJwsCount)
     {
         if (!group.TryGetProperty("Signaturzertifikat", out var signaturzertifikat)
             || signaturzertifikat.ValueKind != JsonValueKind.String
@@ -453,10 +484,15 @@ public class RksvDepExportService : IRksvDepExportService
                 continue;
             }
 
-            if (!IsValidCompactJws(beleg.GetString()))
+            var jws = beleg.GetString();
+            if (!IsValidCompactJws(jws))
             {
                 errors.Add($"Group {groupIndex}, beleg {belegIndex}: invalid compact JWS (expected header.payload.signature).");
+                continue;
             }
+
+            if (!IsF5CompliantJws(jws))
+                legacyJwsCount++;
         }
     }
 
@@ -813,6 +849,42 @@ public class RksvDepExportService : IRksvDepExportService
 
         var parts = value.Trim().Split('.');
         return parts.Length == 3 && parts.All(p => !string.IsNullOrEmpty(p));
+    }
+
+    /// <summary>F5: JWS payload is RKSV §9 machine code (<c>_R1-…</c>), not legacy JSON Belegdaten.</summary>
+    internal static bool IsF5CompliantJws(string? compactJws) =>
+        SignaturePipeline.IsF5CompliantJws(compactJws);
+
+    /// <summary>Counts F5-compliant vs pre-F5 (legacy) compact JWS strings in a BMF DEP root.</summary>
+    internal static (int F5Compliant, int Legacy) CountJwsCompliance(RksvDepExportRootDto root)
+    {
+        var f5 = 0;
+        var legacy = 0;
+        foreach (var group in root.BelegeGruppe)
+        {
+            foreach (var jws in group.BelegeKompakt)
+            {
+                if (!IsValidCompactJws(jws))
+                    continue;
+                if (IsF5CompliantJws(jws))
+                    f5++;
+                else
+                    legacy++;
+            }
+        }
+
+        return (f5, legacy);
+    }
+
+    internal static string? BuildLegacyJwsWarning(int legacyJwsCount)
+    {
+        if (legacyJwsCount <= 0)
+            return null;
+
+        return
+            $"{legacyJwsCount} receipt(s) use legacy (pre-F5) JWS payloads (JSON Belegdaten instead of RKSV §9 machine code). " +
+            "They may not pass BMF Prüftool verification. New signatures use F5-compliant _R1-… payloads. " +
+            "Automatic re-sign is not performed (fiscal chain integrity). See docs/DEP_EXPORT_DEVELOPMENT.md § Legacy JWS.";
     }
 
     private static DateTime NormalizeUtc(DateTime value) =>

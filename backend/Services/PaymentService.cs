@@ -64,6 +64,7 @@ namespace KasseAPI_Final.Services
         private readonly LicenseOptions? _licenseOptions;
         private readonly IPaymentReversalApprovalService _reversalApproval;
         private readonly ICardPaymentService? _cardPaymentService;
+        private readonly FeatureFlags.IFeatureFlagService? _featureFlags;
 
         public PaymentService(
             AppDbContext context,
@@ -100,7 +101,8 @@ namespace KasseAPI_Final.Services
             IDevelopmentModeService? developmentModeService = null,
             IOptions<LicenseOptions>? licenseOptions = null,
             IPaymentReversalApprovalService? reversalApproval = null,
-            ICardPaymentService? cardPaymentService = null)
+            ICardPaymentService? cardPaymentService = null,
+            FeatureFlags.IFeatureFlagService? featureFlags = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -137,6 +139,7 @@ namespace KasseAPI_Final.Services
             _licenseOptions = licenseOptions?.Value;
             _reversalApproval = reversalApproval ?? NoOpPaymentReversalApprovalService.Instance;
             _cardPaymentService = cardPaymentService;
+            _featureFlags = featureFlags;
         }
 
         /// <summary>
@@ -239,6 +242,19 @@ namespace KasseAPI_Final.Services
             // ve LicenseExpiredException controller katmanına kadar yayılabilsin.
             var licenseCheckCancellation = _httpContextAccessor.HttpContext?.RequestAborted ?? CancellationToken.None;
             await EnsureLicenseAllowsPaymentAsync(licenseCheckCancellation).ConfigureAwait(false);
+
+            var tenantIdForFlags = await _settingsTenantResolver
+                .ResolveEffectiveTenantIdAsync(licenseCheckCancellation)
+                .ConfigureAwait(false);
+            if (_featureFlags?.IsEnabled(
+                    FeatureFlags.FeatureFlagNames.EnableNewPaymentFlow,
+                    tenantIdForFlags.ToString("D")) == true)
+            {
+                // Gradual rollout hook — keep legacy path until V2 payment code is complete.
+                _logger.LogInformation(
+                    "EnableNewPaymentFlow active for tenant {TenantId}; using instrumented payment path",
+                    tenantIdForFlags);
+            }
 
             if (_developmentModeService is { } dm && dm.ShouldSimulateOffline() && !dm.ShouldForceOnline())
             {

@@ -3,7 +3,11 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
 
-import type { AuditLogEntryDto } from '@/api/generated/model';
+import type { AuditLogEntryDto, UserInfoDto } from '@/api/generated/model';
+import {
+  resolveAuditActorDisplayName,
+  resolveAuditActorUser,
+} from '@/features/audit/types/auditActorUser';
 import { isPlatformUserRole } from '@/features/users/utils/userScope';
 import { customInstance } from '@/lib/axios';
 
@@ -20,6 +24,9 @@ export type ActivityLogRow = {
   id: string;
   timestamp: string;
   userName: string;
+  userId?: string;
+  userRole?: string;
+  user?: UserInfoDto;
   action: string;
   description: string;
   details: Record<string, unknown> | string | null;
@@ -51,13 +58,15 @@ function mapAuditRow(row: AuditLogEntryDto): ActivityLogRow {
   return {
     id: row.id ?? '',
     timestamp: row.timestamp ?? row.createdAt ?? '',
-    userName: row.actorDisplayName?.trim() || row.userId?.trim() || '—',
+    userName: resolveAuditActorDisplayName(row) || '—',
+    userId: row.userId?.trim() || undefined,
+    userRole: row.userRole?.trim() || undefined,
+    user: resolveAuditActorUser(row),
     action: row.action?.trim() || '—',
     description: row.description?.trim() || '—',
     details,
   };
 }
-
 function buildQueryParams(
   filters: ActivityLogFilters
 ): Record<string, string | number | boolean | undefined> {

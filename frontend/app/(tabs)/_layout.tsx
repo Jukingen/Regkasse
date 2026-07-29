@@ -7,8 +7,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EnvironmentBadge } from '../../components/EnvironmentBadge';
 import { OfflineStatusChip } from '../../components/OfflineStatusChip';
+import { GracePeriodWarning } from '../../components/GracePeriodWarning';
 import { Header as WorkingHoursStatus } from '../../components/Header';
 import { LicenseExpiryBanner } from '../../components/LicenseExpiryBanner';
+import { LicenseStatus } from '../../components/LicenseStatus';
 import { LicenseStatusIndicator } from '../../components/LicenseStatusIndicator';
 import { LicenseWarningBanner } from '../../components/LicenseWarningBanner';
 import { MaintenanceNotice } from '../../components/MaintenanceNotice';
@@ -214,6 +216,7 @@ function PosTabsInner({
     <TseHealthProvider>
       <View style={{ flex: 1 }}>
         <ToastContainer toasts={tabBarToasts} onRemove={removeTabBarToast} />
+        <GracePeriodWarning />
         <LicenseWarningBanner />
         <LicenseExpiryBanner />
         <MaintenanceNotice />
@@ -226,6 +229,7 @@ function PosTabsInner({
             <MonatsbelegHeaderBadge />
           </View>
           <View style={styles.headerRight}>
+            <LicenseStatus />
             <LicenseStatusIndicator />
             <DevTenantSwitcher />
             <EnvironmentBadge settings={developmentModeSettings} />

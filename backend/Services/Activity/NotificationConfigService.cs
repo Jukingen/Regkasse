@@ -17,7 +17,9 @@ public sealed class NotificationConfigService : INotificationConfigService
             .FirstOrDefaultAsync(c => c.TenantId == tenantId, cancellationToken)
             .ConfigureAwait(false);
 
-        return row?.Config ?? NotificationConfig.CreateDefault();
+        var config = row?.Config ?? NotificationConfig.CreateDefault();
+        config.DepExportMobilePush ??= DepExportMobilePushSettings.CreateDefault();
+        return config;
     }
 
     public async Task<NotificationConfig> SaveAsync(
@@ -25,6 +27,8 @@ public sealed class NotificationConfigService : INotificationConfigService
         NotificationConfig config,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(config);
+
         var row = await _db.TenantNotificationConfigs
             .FirstOrDefaultAsync(c => c.TenantId == tenantId, cancellationToken)
             .ConfigureAwait(false);
@@ -32,6 +36,7 @@ public sealed class NotificationConfigService : INotificationConfigService
         var now = DateTime.UtcNow;
         if (row == null)
         {
+            config.DepExportMobilePush ??= DepExportMobilePushSettings.CreateDefault();
             row = new TenantNotificationConfig
             {
                 TenantId = tenantId,
@@ -42,6 +47,12 @@ public sealed class NotificationConfigService : INotificationConfigService
         }
         else
         {
+            // Preserve DEP mobile push prefs when callers omit them (legacy FA activity form).
+            if (config.DepExportMobilePush is null && row.Config?.DepExportMobilePush is not null)
+                config.DepExportMobilePush = row.Config.DepExportMobilePush;
+            else
+                config.DepExportMobilePush ??= DepExportMobilePushSettings.CreateDefault();
+
             row.Config = config;
             row.UpdatedAtUtc = now;
         }

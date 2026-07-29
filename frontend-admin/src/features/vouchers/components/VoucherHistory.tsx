@@ -198,7 +198,7 @@ function VoucherHistoryLedgerBody({
       const balanceAfter = entry.balanceAfter ?? 0;
       return {
         color: type === 'Redeem' ? 'blue' : type === 'Cancel' ? 'red' : 'green',
-        children: (
+        content: (
           <>
             <strong>{formatDateTime(entry.createdAtUtc, formatLocale)}</strong>
             <div>

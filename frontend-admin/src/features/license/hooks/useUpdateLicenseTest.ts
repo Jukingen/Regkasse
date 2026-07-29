@@ -16,7 +16,7 @@ import {
   getLicenseTestScenarioSuccessMessage,
 } from '@/features/license/utils/licenseTestMessages';
 import { syncLicenseTestSnapshotToCache } from '@/features/license/utils/syncLicenseTestSnapshotToCache';
-import { useAntdApp } from '@/hooks/useAntdApp';
+import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
 
 export type { LicenseTestUpdateRequest };
@@ -35,7 +35,7 @@ function applySnapshot(
 }
 
 export function useUpdateLicenseTest() {
-  const { message } = useAntdApp();
+  const notify = useNotify();
   const { t } = useI18n();
   const queryClient = useQueryClient();
 
@@ -45,9 +45,9 @@ export function useUpdateLicenseTest() {
       applySnapshot(queryClient, variables.tenantId, snapshot);
       syncLicenseTestSnapshotToCache(queryClient, snapshot);
       await invalidateTenantLicenseQueries(queryClient, variables.tenantId);
-      message.success(getLicenseTestManualSuccessMessage(variables.validUntil, t));
+      notify.success(getLicenseTestManualSuccessMessage(variables.validUntil, t));
     },
-    onError: () => message.error(t('license.testPanel.error')),
+    onError: () => notify.errorKey('license.testPanel.error'),
   });
 
   const scenarioMutation = useMutation<LicenseTestSnapshot, unknown, ApplyScenarioVariables>({
@@ -61,9 +61,9 @@ export function useUpdateLicenseTest() {
       applySnapshot(queryClient, variables.tenantId, snapshot);
       syncLicenseTestSnapshotToCache(queryClient, snapshot);
       await invalidateTenantLicenseQueries(queryClient, variables.tenantId);
-      message.success(getLicenseTestScenarioSuccessMessage(variables.scenario, t));
+      notify.success(getLicenseTestScenarioSuccessMessage(variables.scenario, t));
     },
-    onError: () => message.error(t('license.testPanel.error')),
+    onError: () => notify.errorKey('license.testPanel.error'),
   });
 
   return {

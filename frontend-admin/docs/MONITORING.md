@@ -4,7 +4,7 @@
 **Scope:** Uptime, error rates, API latency, process health, alerts, dashboards  
 **Last updated:** 2026-07-21  
 
-Related: [PERFORMANCE_MONITORING.md](./PERFORMANCE_MONITORING.md) (Core Web Vitals), [LOGGING.md](./LOGGING.md) (structured logs).
+Related: [PERFORMANCE_MONITORING.md](./PERFORMANCE_MONITORING.md) (Core Web Vitals), [LOGGING.md](./LOGGING.md) (structured logs), repo hub [`../../docs/MONITORING.md`](../../docs/MONITORING.md) · [`../../docs/ALERTING.md`](../../docs/ALERTING.md) · [`../../docs/METRICS.md`](../../docs/METRICS.md).
 
 ---
 

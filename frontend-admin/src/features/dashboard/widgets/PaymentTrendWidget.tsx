@@ -1,26 +1,22 @@
 'use client';
 
 import { ArrowDownOutlined, ArrowUpOutlined, MinusOutlined } from '@ant-design/icons';
-import { Col, Row, Segmented, Statistic, Tag, Typography } from 'antd';
-import React, { useMemo } from 'react';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import { Col, Row, Segmented, Skeleton, Statistic, Tag, Typography } from 'antd';
+import dynamic from 'next/dynamic';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 
 import type { WidgetShellProps } from '@/features/dashboard/components/WidgetShell';
 import { WidgetShell } from '@/features/dashboard/components/WidgetShell';
+import { parsePaymentTrendPeriod } from '@/features/dashboard/widgets/paymentTrendPeriod';
 import { usePaymentTrends } from '@/features/payments/hooks/usePaymentTrends';
 import type { TrendPeriod } from '@/features/payments/types/paymentTrends';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatUserMonthDay } from '@/lib/dateFormatter';
+
+const PaymentTrendCharts = dynamic(() => import('./PaymentTrendCharts'), {
+  ssr: false,
+  loading: () => <Skeleton active paragraph={{ rows: 6 }} />,
+});
 
 type Props = Pick<WidgetShellProps, 'title' | 'dragHandleProps' | 'onRefresh'> & {
   period?: TrendPeriod;
@@ -29,12 +25,7 @@ type Props = Pick<WidgetShellProps, 'title' | 'dragHandleProps' | 'onRefresh'> &
 
 const PERIOD_OPTIONS: TrendPeriod[] = ['Daily', 'Weekly', 'Monthly'];
 
-function parsePeriod(value: unknown): TrendPeriod {
-  if (value === 'Weekly' || value === 'Monthly') return value;
-  return 'Daily';
-}
-
-export function PaymentTrendWidget({
+export const PaymentTrendWidget = memo(function PaymentTrendWidget({
   title,
   dragHandleProps,
   onRefresh,
@@ -42,7 +33,7 @@ export function PaymentTrendWidget({
   onPeriodChange,
 }: Props) {
   const { t } = useI18n();
-  const [localPeriod, setLocalPeriod] = React.useState<TrendPeriod>('Daily');
+  const [localPeriod, setLocalPeriod] = useState<TrendPeriod>('Daily');
   const period = periodProp ?? localPeriod;
 
   const query = usePaymentTrends(period, null, true);
@@ -60,16 +51,19 @@ export function PaymentTrendWidget({
   const comparison = query.data?.comparison;
   const summary = query.data?.summary;
 
-  const handlePeriodChange = (value: string | number) => {
-    const next = parsePeriod(value);
-    setLocalPeriod(next);
-    onPeriodChange?.(next);
-  };
+  const handlePeriodChange = useCallback(
+    (value: string | number) => {
+      const next = parsePaymentTrendPeriod(value);
+      setLocalPeriod(next);
+      onPeriodChange?.(next);
+    },
+    [onPeriodChange]
+  );
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     void query.refetch();
     onRefresh?.();
-  };
+  }, [query, onRefresh]);
 
   const trendTag = (() => {
     if (!comparison) return null;
@@ -146,43 +140,12 @@ export function PaymentTrendWidget({
 
       <div style={{ marginTop: 16, minHeight: 220 }}>
         {chartData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={220}>
-            {period === 'Daily' ? (
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
-                <YAxis tick={{ fontSize: 11 }} width={48} />
-                <Tooltip
-                  formatter={(value, name) => {
-                    const n = Number(value ?? 0);
-                    return name === 'revenue'
-                      ? [`€${n.toFixed(2)}`, t('payments.trends.chart.revenue')]
-                      : [n, t('payments.trends.chart.count')];
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#1677ff"
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </LineChart>
-            ) : (
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
-                <YAxis tick={{ fontSize: 11 }} width={48} />
-                <Tooltip
-                  formatter={(value) => [
-                    `€${Number(value ?? 0).toFixed(2)}`,
-                    t('payments.trends.chart.revenue'),
-                  ]}
-                />
-                <Bar dataKey="revenue" fill="#1677ff" radius={[4, 4, 0, 0]} maxBarSize={40} />
-              </BarChart>
-            )}
-          </ResponsiveContainer>
+          <PaymentTrendCharts
+            data={chartData}
+            period={period}
+            revenueLabel={t('payments.trends.chart.revenue')}
+            countLabel={t('payments.trends.chart.count')}
+          />
         ) : (
           <Typography.Text type="secondary">{t('payments.trends.empty')}</Typography.Text>
         )}
@@ -199,6 +162,6 @@ export function PaymentTrendWidget({
       ) : null}
     </WidgetShell>
   );
-}
+});
 
-export { parsePeriod as parsePaymentTrendPeriod };
+export { parsePaymentTrendPeriod };

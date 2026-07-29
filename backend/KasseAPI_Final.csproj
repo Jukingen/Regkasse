@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>a8f3e1b2-9c4d-4e7f-a1b2-3c4d5e6f7080</UserSecretsId>
     <!-- Local verify/test pipelines must not live under the project tree (breaks VS/dotnet incremental copy). -->
-    <DefaultItemExcludes>$(DefaultItemExcludes);_test_build_out/**;_testout/**;_ef_build/**;_build_out/**;artifacts/**;**/verify-build/**;**/verify-obj/**;**/ntp-bypass-build/**</DefaultItemExcludes>
+    <DefaultItemExcludes>$(DefaultItemExcludes);_test_build_out/**;_testout/**;_test_out*/**;_ef_build/**;_build_out/**;artifacts/**;**/verify-build/**;**/verify-obj/**;**/ntp-bypass-build/**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>

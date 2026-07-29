@@ -2,21 +2,25 @@
  * RKSV / FinanzOnline: üretim derlemesinde ortam etiketi zorunlu (operatör tarafında TEST|PROD ayrımı).
  * Türkçe: Eksik veya geçersiz NEXT_PUBLIC_RKSV_ENVIRONMENT ile sessiz üretim artefaktı üretilmez.
  */
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import bundleAnalyzer from '@next/bundle-analyzer';
 import { withSentryConfig } from '@sentry/nextjs';
 
 import { assertRksvPublicEnvironmentForProductionBuild } from './scripts/assertRksvPublicEnvironmentForBuild.mjs';
 
+const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 assertRksvPublicEnvironmentForProductionBuild();
 
-const withBundleAnalyzer = bundleAnalyzer({
-  enabled: process.env.ANALYZE === 'true',
-});
+// Load only when ANALYZE=true so production Docker runners can use
+// `npm ci --omit=dev` without installing @next/bundle-analyzer (devDependency).
+const withBundleAnalyzer =
+  process.env.ANALYZE === 'true'
+    ? require('@next/bundle-analyzer')({ enabled: true })
+    : (config) => config;
 
 const isProd = process.env.NODE_ENV === 'production';
 const sentryDsnConfigured = Boolean(

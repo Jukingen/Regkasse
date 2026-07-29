@@ -1,0 +1,33 @@
+# Keep the package build context small (when context is ./frontend).
+# Root-context POS builds also use frontend/Dockerfile.dockerignore (BuildKit).
+
+node_modules
+.expo
+dist
+coverage
+web-build
+
+.env
+.env.*
+!.env.example
+
+*.tsbuildinfo
+.eslintcache
+.cache
+.temp
+.tmp
+
+.git
+.github
+.vscode
+.idea
+
+*.md
+!README.md
+
+npm-debug.log*
+yarn-debug.log*
+*.log
+Dockerfile*
+docker-compose*.yml
+.dockerignore

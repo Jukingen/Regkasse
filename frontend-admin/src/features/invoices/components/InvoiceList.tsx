@@ -1311,7 +1311,7 @@ export const InvoiceList: React.FC = () => {
                 });
               },
             }}
-            loading={isInitialListLoading ? { tip: t('invoices.list.loadingTip') } : false}
+            loading={isInitialListLoading ? { description: t('invoices.list.loadingTip') } : false}
             onChange={handleTableChange}
             size="middle"
             scroll={{ x: 1100 }}

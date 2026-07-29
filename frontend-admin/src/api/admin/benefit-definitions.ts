@@ -9,6 +9,7 @@ import type {
 } from '@tanstack/react-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { SecondParameter, unwrapData } from '@/api/admin/httpHelpers';
 import { customInstance } from '@/lib/axios';
 
 const BASE = '/api/admin/benefit-definitions';
@@ -49,13 +50,6 @@ export interface CreateBenefitDefinitionRequest {
 }
 
 export interface UpdateBenefitDefinitionRequest extends CreateBenefitDefinitionRequest {}
-
-type SecondParameter<T> = T extends (arg: any, arg2?: infer U) => any ? U : never;
-
-function unwrapData<T>(res: any): T {
-  if (res?.data !== undefined) return res.data as T;
-  return res as T;
-}
 
 export function getAdminBenefitDefinitions(
   options?: SecondParameter<typeof customInstance>,

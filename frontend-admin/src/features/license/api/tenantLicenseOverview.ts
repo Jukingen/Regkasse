@@ -1,4 +1,7 @@
-import type { MandantLicenseOverviewKind } from '@/features/license/utils/mandantLicenseOverviewStatus';
+import {
+  type MandantLicenseOverviewKind,
+  mapTenantLicenseOverviewApiStatus,
+} from '@/features/license/utils/mandantLicenseOverviewStatus';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 
 export type TenantLicenseOverviewItem = {
@@ -34,19 +37,6 @@ type TenantLicenseOverviewApiDto = {
   createdAt: string;
 };
 
-function mapOverviewStatus(status: string): MandantLicenseOverviewKind {
-  switch (status) {
-    case 'active':
-    case 'expiring_soon':
-    case 'expired':
-    case 'trial':
-    case 'no_license':
-      return 'none';
-    default:
-      return 'none';
-  }
-}
-
 function mapTenantLicenseOverviewItem(row: TenantLicenseOverviewApiDto): TenantLicenseOverviewItem {
   return {
     tenantId: row.tenantId,
@@ -54,7 +44,7 @@ function mapTenantLicenseOverviewItem(row: TenantLicenseOverviewApiDto): TenantL
     tenantSlug: row.tenantSlug,
     licenseKey: row.licenseKey ?? null,
     validUntilUtc: row.validUntilUtc ?? null,
-    status: mapOverviewStatus(row.status),
+    status: mapTenantLicenseOverviewApiStatus(row.status),
     hasOwnerAdmin: row.hasOwnerAdmin,
     createdAt: row.createdAt,
   };

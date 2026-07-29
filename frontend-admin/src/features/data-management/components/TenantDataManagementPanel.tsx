@@ -26,6 +26,7 @@ import { useMemo, useState } from 'react';
 import type { TenantDataTypeSummary } from '@/features/data-management/api/tenantDataManagement';
 import { downloadTenantDataExport } from '@/features/data-management/api/tenantDataManagement';
 import { DataDeletionRequestModal } from '@/features/data-management/components/DataDeletionRequestModal';
+import { DataRetentionPolicyCard } from '@/features/data-management/components/DataRetentionPolicyCard';
 import { DataRightsRequestPanel } from '@/features/data-management/components/DataRightsRequestPanel';
 import {
   useConfirmTenantDataDeletion,
@@ -367,6 +368,9 @@ export function TenantDataManagementPanel({ tenantId }: Props) {
           dataSource={summary?.dataTypes ?? []}
         />
       </Card>
+
+      <DataRetentionPolicyCard />
+
       <DownloadPreviewModal {...downloadPreview.modalProps} />
       {sensitiveGate.modals}
     </Space>

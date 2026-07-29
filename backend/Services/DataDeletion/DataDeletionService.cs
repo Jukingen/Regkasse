@@ -2,6 +2,7 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.AccountClosure;
 using KasseAPI_Final.Services.DataExport;
 using KasseAPI_Final.Services.Tenancy;
 using Microsoft.AspNetCore.Identity;
@@ -296,6 +297,88 @@ public sealed class DataDeletionService : IDataDeletionService
             .ConfigureAwait(false);
     }
 
+    public async Task<TenantDataDeletionRequestDto> CancelDeletionAsync(
+        Guid tenantId,
+        Guid requestId,
+        string? cancelledByUserId,
+        CancellationToken ct = default)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+
+        var request = await db.TenantDataDeletionRequests
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(r => r.Id == requestId && r.TenantId == tenantId, ct)
+            .ConfigureAwait(false)
+            ?? throw new InvalidOperationException("Deletion request not found.");
+
+        if (request.Status == TenantDataDeletionRequestStatuses.Cancelled)
+            return Map(request);
+
+        if (request.Status == TenantDataDeletionRequestStatuses.Completed)
+            throw new InvalidOperationException("Deletion already completed; cannot cancel.");
+
+        if (request.Status is not (
+            TenantDataDeletionRequestStatuses.Pending
+            or TenantDataDeletionRequestStatuses.ExportReady
+            or TenantDataDeletionRequestStatuses.Confirmed))
+        {
+            throw new InvalidOperationException($"Cannot cancel deletion in status '{request.Status}'.");
+        }
+
+        request.Status = TenantDataDeletionRequestStatuses.Cancelled;
+        request.UpdatedAt = DateTime.UtcNow;
+
+        var linkedRights = await db.TenantDataRightsRequests
+            .IgnoreQueryFilters()
+            .Where(r => r.LinkedDeletionRequestId == request.Id
+                        && r.Status != TenantDataRightsRequestStatuses.Completed
+                        && r.Status != TenantDataRightsRequestStatuses.Cancelled)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        foreach (var rights in linkedRights)
+        {
+            rights.Status = TenantDataRightsRequestStatuses.Cancelled;
+            rights.UpdatedAt = DateTime.UtcNow;
+            rights.CompletedAtUtc = DateTime.UtcNow;
+            rights.CompletedByUserId = cancelledByUserId;
+        }
+
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+
+        await _audit.LogSystemOperationAsync(
+            action: "TENANT_DATA_DELETION_CANCELLED",
+            entityType: AuditLogEntityTypes.SYSTEM_CONFIG,
+            userId: cancelledByUserId ?? "unknown",
+            userRole: "Unknown",
+            description: "Data deletion / account closure request cancelled before purge.",
+            status: AuditLogStatus.Success,
+            tenantId: tenantId).ConfigureAwait(false);
+
+        _logger.LogInformation(
+            "Tenant data deletion cancelled. TenantId={TenantId}, RequestId={RequestId}",
+            tenantId,
+            requestId);
+
+        return Map(request);
+    }
+
+    public async Task<TenantDataDeletionRequestDto?> GetLatestOpenDeletionAsync(
+        Guid tenantId,
+        CancellationToken ct = default)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var row = await db.TenantDataDeletionRequests.AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(r => r.TenantId == tenantId
+                        && r.Status != TenantDataDeletionRequestStatuses.Cancelled
+                        && r.Status != TenantDataDeletionRequestStatuses.Completed)
+            .OrderByDescending(r => r.RequestedAtUtc)
+            .FirstOrDefaultAsync(ct)
+            .ConfigureAwait(false);
+
+        return row == null ? null : Map(row);
+    }
+
     /// <summary>
     /// Deletes purgeable non-RKSV rows. Never touches payments, receipts, fiscal invoices,
     /// audit logs, TSE signatures, online orders, or vouchers.
@@ -428,19 +511,57 @@ public sealed class DataDeletionService : IDataDeletionService
         {
             var (to, cc) = await ResolveRecipientsAsync(db, tenant.Id, ct).ConfigureAwait(false);
             var eligibleAt = request.ConfirmedAtUtc!.Value.AddDays(ConfirmationWaitDays);
-            var body =
-                $"Data deletion was confirmed for tenant '{tenant.Name}' ({tenant.Slug}).\n\n" +
-                $"RequestId: {request.Id}\n" +
-                $"ConfirmedAtUtc: {request.ConfirmedAtUtc:O}\n" +
-                $"PurgeEligibleAtUtc: {eligibleAt:O}\n\n" +
-                "Non-RKSV data will be purged automatically after the wait, or a Super Admin may execute manually.\n" +
-                "This purge is irreversible (restore from backup only).\n";
+
+            var hasRksv = await db.Receipts.AsNoTracking()
+                .IgnoreQueryFilters()
+                .AnyAsync(r => r.TenantId == tenant.Id, ct)
+                .ConfigureAwait(false);
+            if (!hasRksv)
+            {
+                var cashRegisterIds = await db.CashRegisters.AsNoTracking()
+                    .IgnoreQueryFilters()
+                    .Where(c => c.TenantId == tenant.Id)
+                    .Select(c => c.Id)
+                    .ToListAsync(ct)
+                    .ConfigureAwait(false);
+                if (cashRegisterIds.Count > 0)
+                {
+                    hasRksv = await db.PaymentDetails.AsNoTracking()
+                        .AnyAsync(p => cashRegisterIds.Contains(p.CashRegisterId), ct)
+                        .ConfigureAwait(false);
+                }
+            }
+
+            string? adminName = null;
+            if (!string.IsNullOrWhiteSpace(request.ConfirmedByUserId))
+            {
+                var confirmer = await db.Users.AsNoTracking()
+                    .Where(u => u.Id == request.ConfirmedByUserId)
+                    .Select(u => new { u.FirstName, u.LastName })
+                    .FirstOrDefaultAsync(ct)
+                    .ConfigureAwait(false);
+                if (confirmer != null)
+                {
+                    var combined = $"{confirmer.FirstName} {confirmer.LastName}".Trim();
+                    if (!string.IsNullOrWhiteSpace(combined))
+                        adminName = combined;
+                }
+            }
+
+            var email = AccountClosureConfirmationEmailComposer.Build(
+                AccountClosureConfirmationEmailComposer.CreateModel(
+                    tenant.Name,
+                    eligibleAt,
+                    hasRksv,
+                    adminName,
+                    ConfirmationWaitDays));
 
             await _notifications.SendAsync(
                 to,
                 cc,
-                subject: $"[Regkasse] Data deletion confirmed — {tenant.Slug}",
-                plainBody: body,
+                subject: email.Subject,
+                plainBody: email.PlainBody,
+                htmlBody: email.HtmlBody,
                 ct).ConfigureAwait(false);
         }
         catch (Exception ex)

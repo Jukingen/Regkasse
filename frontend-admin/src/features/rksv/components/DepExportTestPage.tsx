@@ -11,6 +11,7 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
+  Badge,
   Button,
   Card,
   Checkbox,
@@ -34,7 +35,7 @@ import Link from 'next/link';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-import { extractApiErrorMessage, getAdminCashRegisters } from '@/api/admin-rksv/client';
+import { getAdminCashRegisters } from '@/api/admin-rksv/client';
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import { PageSkeleton, TableSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
@@ -43,6 +44,8 @@ import { FilePreviewModal } from '@/components/ui/FilePreviewModal';
 import { recordDownloadHistory } from '@/features/download-history/api/downloadHistoryApi';
 import { DownloadHistoryPanel } from '@/features/download-history/components/DownloadHistoryPanel';
 import { useExportDownloadNotifications } from '@/hooks/useExportDownloadNotifications';
+import { useNotify } from '@/hooks/useNotify';
+import { DepExportValidationCard } from '@/features/rksv/dep-export-compliance/DepExportValidationCard';
 import { useCryptoMaterial } from '@/features/rksv/hooks/useCryptoMaterial';
 import { useDepExport } from '@/features/rksv/hooks/useDepExport';
 import {
@@ -57,8 +60,10 @@ import {
   useDepExportHistory,
   useDepExportSchedules,
 } from '@/features/rksv/hooks/useDepExportHistory';
+import { resolveValidationBadgeStatus } from '@/features/rksv/hooks/useDepExportValidation';
 import {
   type CryptoMaterial,
+  type DepExportLiveMeta,
   type DepExportRequestParams,
   type RksvDepExportRoot,
   computeDepExportStats,
@@ -72,7 +77,6 @@ import {
 } from '@/features/exports/applyExportTemplate';
 import { getExportTemplateById } from '@/features/exports/exportTemplatesStorage';
 import { DateColumn, dateColumnRender } from '@/components/DateColumn';
-import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatBytes, formatDate, formatDateTime } from '@/i18n/formatting';
 import {
@@ -132,14 +136,14 @@ function DepExportSchedulesTab({
   schedulesLoading,
   onRefetchSchedules,
 }: DepExportSchedulesTabProps) {
-  const { message } = useAntdApp();
+  const notify = useNotify();
   const queryClient = useQueryClient();
   const [scheduleForm] = Form.useForm<ScheduleFormValues>();
   const [scheduleSaving, setScheduleSaving] = useState(false);
 
   const handleScheduleExport = async (values: ScheduleFormValues) => {
     if (!selectedRegisterId) {
-      message.warning(tp('selectRegisterWarning'));
+      notify.warning('rksvHub.depExportPage.selectRegisterWarning');
       return;
     }
 
@@ -155,9 +159,12 @@ function DepExportSchedulesTab({
       scheduleForm.resetFields();
       await onRefetchSchedules();
       void queryClient.invalidateQueries({ queryKey: depExportSchedulesQueryKey });
-      message.success(tp('scheduleCreated'));
-    } catch {
-      message.error(tp('scheduleCreateFailed'));
+      notify.successKey('rksvHub.depExportPage.scheduleCreated');
+    } catch (err) {
+      notify.apiError(err, {
+        logContext: 'RKSV.depExport.scheduleCreate',
+        fallbackKey: 'rksvHub.depExportPage.scheduleCreateFailed',
+      });
     } finally {
       setScheduleSaving(false);
     }
@@ -167,9 +174,12 @@ function DepExportSchedulesTab({
     try {
       await deactivateDepExportSchedule(scheduleId);
       await onRefetchSchedules();
-      message.success(tp('scheduleDeactivated'));
-    } catch {
-      message.error(tp('scheduleDeactivateFailed'));
+      notify.successKey('rksvHub.depExportPage.scheduleDeactivated');
+    } catch (err) {
+      notify.apiError(err, {
+        logContext: 'RKSV.depExport.scheduleDeactivate',
+        fallbackKey: 'rksvHub.depExportPage.scheduleDeactivateFailed',
+      });
     }
   };
 
@@ -258,7 +268,7 @@ function DepExportSchedulesTab({
 
 export function DepExportTestPage() {
   const { t, formatLocale } = useI18n();
-  const { message } = useAntdApp();
+  const notify = useNotify();
   const exportNotify = useExportDownloadNotifications();
   const { tenant } = useTenant();
   const { user } = useAuth();
@@ -275,6 +285,7 @@ export function DepExportTestPage() {
   const [includeDailyClosings, setIncludeDailyClosings] = useState(true);
   const [templateAppliedHint, setTemplateAppliedHint] = useState<string | null>(null);
   const [exportResult, setExportResult] = useState<RksvDepExportRoot | null>(null);
+  const [exportMeta, setExportMeta] = useState<DepExportLiveMeta | null>(null);
   const [cryptoMaterial, setCryptoMaterial] = useState<CryptoMaterial | null>(null);
   const [activeTab, setActiveTab] = useState('export');
   const [historyPage, setHistoryPage] = useState(1);
@@ -363,24 +374,27 @@ export function DepExportTestPage() {
     const params = buildRequestParams();
     if (!params) {
       if (!selectedRegisterId) {
-        message.warning(tp('selectRegisterWarning'));
+        notify.warning('rksvHub.depExportPage.selectRegisterWarning');
       } else {
-        message.warning(tp('selectDateRangeWarning'));
+        notify.warning('rksvHub.depExportPage.selectDateRangeWarning');
       }
       return;
     }
 
     fetchDepExport(params, {
       onSuccess: (data) => {
-        setExportResult(data);
+        setExportResult(data.dep);
+        setExportMeta(data.meta);
         void queryClient.invalidateQueries({
           queryKey: depExportHistoryQueryKey(selectedRegisterId),
         });
-        message.success(tp('exportSuccess'));
+        notify.successKey('rksvHub.depExportPage.exportSuccess');
       },
       onError: (error) => {
-        const msg = extractApiErrorMessage(error, tp('exportFailed'));
-        message.error(`${tp('exportFailed')}: ${msg}`);
+        notify.apiError(error, {
+          logContext: 'RKSV.depExport.export',
+          fallbackKey: 'rksvHub.depExportPage.exportFailed',
+        });
       },
     });
   };
@@ -427,18 +441,20 @@ export function DepExportTestPage() {
 
   const handleGenerateCryptoMaterial = () => {
     if (!selectedRegisterId) {
-      message.warning(tp('selectRegisterWarning'));
+      notify.warning('rksvHub.depExportPage.selectRegisterWarning');
       return;
     }
 
     fetchCryptoMaterial(selectedRegisterId, {
       onSuccess: (data) => {
         setCryptoMaterial(data);
-        message.success(tp('cryptoMaterialSuccess'));
+        notify.successKey('rksvHub.depExportPage.cryptoMaterialSuccess');
       },
       onError: (error) => {
-        const msg = extractApiErrorMessage(error, tp('cryptoMaterialFailed'));
-        message.error(`${tp('cryptoMaterialFailed')}: ${msg}`);
+        notify.apiError(error, {
+          logContext: 'RKSV.depExport.cryptoMaterial',
+          fallbackKey: 'rksvHub.depExportPage.cryptoMaterialFailed',
+        });
       },
     });
   };
@@ -447,18 +463,18 @@ export function DepExportTestPage() {
     if (!exportResult) return;
     try {
       await navigator.clipboard.writeText(JSON.stringify(exportResult, null, 2));
-      message.success(tp('copySuccess'));
+      notify.successKey('rksvHub.depExportPage.copySuccess');
     } catch {
-      message.error(tp('copyFailed'));
+      notify.errorKey('rksvHub.depExportPage.copyFailed');
     }
   };
 
   const handleCopyPrueftoolCommand = async () => {
     try {
       await navigator.clipboard.writeText(PRUEFTOOL_COMMAND);
-      message.success(tp('copyCommandSuccess'));
+      notify.successKey('rksvHub.depExportPage.copyCommandSuccess');
     } catch {
-      message.error(tp('copyFailed'));
+      notify.errorKey('rksvHub.depExportPage.copyFailed');
     }
   };
 
@@ -468,12 +484,12 @@ export function DepExportTestPage() {
     setIncludeSpecialReceipts(entry.includeSpecialReceipts);
     setIncludeDailyClosings(entry.includeDailyClosings);
     setActiveTab('export');
-    message.info(tp('historyParamsLoaded'));
+    notify.info('rksvHub.depExportPage.historyParamsLoaded');
   };
 
   const openHistoryDownloadPreview = (row: DepExportHistoryItem) => {
     if (!row.hasStoredFile) {
-      message.info(tp('historyDownloadUnavailable'));
+      notify.info('rksvHub.depExportPage.historyDownloadUnavailable');
       return;
     }
     setDownloadPreview({
@@ -584,8 +600,11 @@ export function DepExportTestPage() {
     try {
       const detail = await fetchDepExportHistoryDetail(historyId);
       setViewingHistory(detail);
-    } catch {
-      message.error(tp('historyViewLoadFailed'));
+    } catch (err) {
+      notify.apiError(err, {
+        logContext: 'RKSV.depExport.historyView',
+        fallbackKey: 'rksvHub.depExportPage.historyViewLoadFailed',
+      });
       setViewingHistory(null);
     } finally {
       setViewingHistoryId(null);
@@ -627,6 +646,18 @@ export function DepExportTestPage() {
       key: 'signatureCount',
     },
     {
+      title: tp('historyColumnPrueftool'),
+      key: 'prueftoolCompatible',
+      render: (_, row) => {
+        const compatible = row.prueftoolCompatible ?? (row.legacyJwsCount ?? 0) === 0;
+        return (
+          <Tag color={compatible ? 'green' : 'orange'}>
+            {compatible ? tp('historyPrueftoolYes') : tp('historyPrueftoolNo')}
+          </Tag>
+        );
+      },
+    },
+    {
       title: tp('historyColumnSize'),
       dataIndex: 'fileSizeBytes',
       key: 'fileSizeBytes',
@@ -637,6 +668,17 @@ export function DepExportTestPage() {
       dataIndex: 'status',
       key: 'status',
       render: (status: DepExportHistoryItem['status']) => renderHistoryStatusTag(status),
+    },
+    {
+      title: tp('historyColumnValidation'),
+      dataIndex: 'validationStatus',
+      key: 'validationStatus',
+      render: (status: string | null | undefined) => (
+        <Space size={4}>
+          <Badge status={resolveValidationBadgeStatus(status)} />
+          <span>{status ?? tp('historyValidationPending')}</span>
+        </Space>
+      ),
     },
     {
       title: tp('historyColumnActions'),
@@ -745,6 +787,21 @@ export function DepExportTestPage() {
             </Button>
           ) : null}
         </Space>
+
+        {exportMeta && exportMeta.legacyJwsCount > 0 ? (
+          <Alert
+            type="warning"
+            showIcon
+            title={tp('legacyJwsAlertTitle')}
+            description={
+              exportMeta.legacyJwsWarning?.trim()
+                ? exportMeta.legacyJwsWarning
+                : t('rksvHub.depExportPage.legacyJwsAlertBody', {
+                    count: String(exportMeta.legacyJwsCount),
+                  })
+            }
+          />
+        ) : null}
 
         {stats ? (
           <Alert
@@ -981,38 +1038,41 @@ export function DepExportTestPage() {
                 </Button>
               </Space>
             }
-            width={640}
+            width={720}
           >
             {viewingHistory ? (
-              <Descriptions bordered size="small" column={1}>
-                <Descriptions.Item label={tp('historyColumnDate')}>
-                  {formatDateTime(viewingHistory.exportedAt, formatLocale)}
-                </Descriptions.Item>
-                <Descriptions.Item label={tp('historyColumnPeriod')}>
-                  {formatDate(viewingHistory.fromUtc, formatLocale)} —{' '}
-                  {formatDate(viewingHistory.toUtc, formatLocale)}
-                </Descriptions.Item>
-                <Descriptions.Item label={tp('historyColumnRegister')}>
-                  {viewingHistory.registerNumber ?? viewingHistory.cashRegisterId}
-                </Descriptions.Item>
-                <Descriptions.Item label={tp('historyColumnSignatures')}>
-                  {viewingHistory.signatureCount}
-                </Descriptions.Item>
-                <Descriptions.Item label={tp('statsGroups')}>
-                  {viewingHistory.groupCount}
-                </Descriptions.Item>
-                <Descriptions.Item label={tp('historyColumnSize')}>
-                  {formatBytes(viewingHistory.fileSizeBytes, formatLocale)}
-                </Descriptions.Item>
-                <Descriptions.Item label={tp('historyColumnStatus')}>
-                  {renderHistoryStatusTag(viewingHistory.status)}
-                </Descriptions.Item>
-                {viewingHistory.errorMessage ? (
-                  <Descriptions.Item label={tp('historyColumnError')}>
-                    {viewingHistory.errorMessage}
+              <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+                <Descriptions bordered size="small" column={1}>
+                  <Descriptions.Item label={tp('historyColumnDate')}>
+                    {formatDateTime(viewingHistory.exportedAt, formatLocale)}
                   </Descriptions.Item>
-                ) : null}
-              </Descriptions>
+                  <Descriptions.Item label={tp('historyColumnPeriod')}>
+                    {formatDate(viewingHistory.fromUtc, formatLocale)} —{' '}
+                    {formatDate(viewingHistory.toUtc, formatLocale)}
+                  </Descriptions.Item>
+                  <Descriptions.Item label={tp('historyColumnRegister')}>
+                    {viewingHistory.registerNumber ?? viewingHistory.cashRegisterId}
+                  </Descriptions.Item>
+                  <Descriptions.Item label={tp('historyColumnSignatures')}>
+                    {viewingHistory.signatureCount}
+                  </Descriptions.Item>
+                  <Descriptions.Item label={tp('statsGroups')}>
+                    {viewingHistory.groupCount}
+                  </Descriptions.Item>
+                  <Descriptions.Item label={tp('historyColumnSize')}>
+                    {formatBytes(viewingHistory.fileSizeBytes, formatLocale)}
+                  </Descriptions.Item>
+                  <Descriptions.Item label={tp('historyColumnStatus')}>
+                    {renderHistoryStatusTag(viewingHistory.status)}
+                  </Descriptions.Item>
+                  {viewingHistory.errorMessage ? (
+                    <Descriptions.Item label={tp('historyColumnError')}>
+                      {viewingHistory.errorMessage}
+                    </Descriptions.Item>
+                  ) : null}
+                </Descriptions>
+                <DepExportValidationCard exportId={viewingHistory.id} showExportPicker={false} />
+              </Space>
             ) : null}
           </Modal>
           <DownloadPreviewModal

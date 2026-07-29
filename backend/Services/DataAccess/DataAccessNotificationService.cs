@@ -74,12 +74,22 @@ public sealed class DataAccessNotificationService : IDataAccessNotificationServi
             emails.Count);
     }
 
-    public async Task NotifyUserAsync(
+    public Task NotifyUserAsync(
         string? userId,
         Guid tenantId,
         Guid requestId,
         string subject,
         string body,
+        CancellationToken ct = default) =>
+        NotifyUserAsync(userId, tenantId, requestId, subject, body, htmlBody: null, ct);
+
+    public async Task NotifyUserAsync(
+        string? userId,
+        Guid tenantId,
+        Guid requestId,
+        string subject,
+        string plainBody,
+        string? htmlBody,
         CancellationToken ct = default)
     {
         await _activity.TryPublishAsync(
@@ -88,7 +98,7 @@ public sealed class DataAccessNotificationService : IDataAccessNotificationServi
             metadata: new
             {
                 RequestId = requestId.ToString("D"),
-                Message = body,
+                Message = plainBody,
                 Subject = subject,
             },
             actorUserId: userId,
@@ -117,7 +127,8 @@ public sealed class DataAccessNotificationService : IDataAccessNotificationServi
             to: new[] { user.Email },
             cc: Array.Empty<string>(),
             subject: subject,
-            plainBody: body,
+            plainBody: plainBody,
+            htmlBody: htmlBody,
             ct).ConfigureAwait(false);
 
         _logger.LogInformation(

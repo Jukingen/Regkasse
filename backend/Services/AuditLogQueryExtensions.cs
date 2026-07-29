@@ -93,7 +93,13 @@ internal static class AuditLogQueryExtensions
                 || (a.Description != null && EF.Functions.ILike(a.Description, term))
                 || EF.Functions.ILike(a.EntityType, term)
                 || (a.EntityName != null && EF.Functions.ILike(a.EntityName, term))
-                || (a.IpAddress != null && EF.Functions.ILike(a.IpAddress, term)));
+                || (a.IpAddress != null && EF.Functions.ILike(a.IpAddress, term))
+                || EF.Functions.ILike(a.UserId, term)
+                || (a.ActorDisplayName != null && EF.Functions.ILike(a.ActorDisplayName, term))
+                || (a.User != null && a.User.UserName != null && EF.Functions.ILike(a.User.UserName, term))
+                || (a.User != null && a.User.Email != null && EF.Functions.ILike(a.User.Email, term))
+                || (a.User != null && a.User.FirstName != null && EF.Functions.ILike(a.User.FirstName, term))
+                || (a.User != null && a.User.LastName != null && EF.Functions.ILike(a.User.LastName, term)));
         }
 
         return query;

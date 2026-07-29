@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.FeatureFlags;
 using KasseAPI_Final.Services.Metrics;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,18 +37,21 @@ public sealed class OnlineOrderIntakeService : IOnlineOrderIntakeService
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
     private readonly TimeProvider _time;
     private readonly IBusinessMetricsService _businessMetrics;
+    private readonly IFeatureFlagService? _featureFlags;
     private readonly ILogger<OnlineOrderIntakeService> _logger;
 
     public OnlineOrderIntakeService(
         IDbContextFactory<AppDbContext> dbFactory,
         TimeProvider time,
         IBusinessMetricsService businessMetrics,
-        ILogger<OnlineOrderIntakeService> logger)
+        ILogger<OnlineOrderIntakeService> logger,
+        IFeatureFlagService? featureFlags = null)
     {
         _dbFactory = dbFactory;
         _time = time;
         _businessMetrics = businessMetrics;
         _logger = logger;
+        _featureFlags = featureFlags;
     }
 
     public async Task<CreatePublicOnlineOrderResponseDto> CreateAsync(
@@ -199,10 +203,24 @@ public sealed class OnlineOrderIntakeService : IOnlineOrderIntakeService
 
         _businessMetrics.RecordOrderCreated();
 
-        _logger.LogInformation(
-            "Online order {OrderNumber} created for tenant {Slug} (website intake)",
-            order.OrderNumber,
-            tenant.Slug);
+        var useV2 = _featureFlags?.IsEnabled(
+            FeatureFlagNames.EnableOnlineOrdersV2,
+            tenant.Id.ToString("D")) == true;
+        if (useV2)
+        {
+            // V2 intake path (gradual rollout): richer logging; keep response contract stable.
+            _logger.LogInformation(
+                "Online order {OrderNumber} created via V2 intake for tenant {Slug}",
+                order.OrderNumber,
+                tenant.Slug);
+        }
+        else
+        {
+            _logger.LogInformation(
+                "Online order {OrderNumber} created for tenant {Slug} (website intake)",
+                order.OrderNumber,
+                tenant.Slug);
+        }
 
         return new CreatePublicOnlineOrderResponseDto
         {
@@ -211,6 +229,7 @@ public sealed class OnlineOrderIntakeService : IOnlineOrderIntakeService
             OrderNumber = order.OrderNumber,
             Total = order.Total,
             Message = "Bestellung eingegangen",
+            IntakeVersion = useV2 ? "v2" : null,
         };
     }
 

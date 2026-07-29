@@ -15,12 +15,23 @@ public sealed class DepExportHistoryResponse
     public long FileSizeBytes { get; set; }
     public int SignatureCount { get; set; }
     public int GroupCount { get; set; }
+    /// <summary>Pre-F5 JWS count; Prüftool-compatible when 0.</summary>
+    public int LegacyJwsCount { get; set; }
+    /// <summary>True when <see cref="LegacyJwsCount"/> is 0.</summary>
+    public bool PrueftoolCompatible { get; set; } = true;
     public DepExportStatus Status { get; set; }
     public string? ErrorMessage { get; set; }
     public bool HasStoredFile { get; set; }
     public Guid? ScheduleId { get; set; }
     public bool IncludeSpecialReceipts { get; set; }
     public bool IncludeDailyClosings { get; set; }
+    public string? ValidationStatus { get; set; }
+    public DateTime? ValidatedAt { get; set; }
+    public DateTime? ArchivedAt { get; set; }
+    public DateTime? RetentionUntil { get; set; }
+    public DateTime? PurgedAt { get; set; }
+    public string? ArchiveChecksum { get; set; }
+    public bool HasArchiveFile { get; set; }
 }
 
 public sealed class DepExportScheduleResponse

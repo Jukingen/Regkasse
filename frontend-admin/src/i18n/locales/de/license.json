@@ -347,6 +347,191 @@
       "contact": "Administrator kontaktieren"
     }
   },
+  "statusBanner": {
+    "grace": {
+      "title": "Lizenz läuft ab — Grace-Periode",
+      "description": "Ihre Lizenz ist abgelaufen. Sie haben noch {{days}} Tag(e) Grace-Periode.",
+      "hint": "Bitte verlängern Sie Ihre Lizenz, um alle Funktionen nutzen zu können.",
+      "progressAria": "Grace-Periode: noch {{days}} Tag(e)"
+    },
+    "locked": {
+      "title": "Eingeschränkter Modus",
+      "description": "Ihre Lizenz ist seit {{days}} Tag(en) abgelaufen.",
+      "bulletReadOnly": "Sie können nur lesend auf Ihre Daten zugreifen",
+      "bulletNoWrite": "Keine Änderungen oder Neuanlagen möglich",
+      "bulletRenew": "Bitte verlängern Sie Ihre Lizenz"
+    },
+    "archived": {
+      "title": "Eingeschränkter Modus — Archiviert"
+    },
+    "actions": {
+      "renew": "Lizenz jetzt verlängern",
+      "renewNow": "Jetzt verlängern",
+      "dataExport": "Datenexport anfordern",
+      "openLicensePage": "Zur Lizenzseite",
+      "accountManagement": "Kontoverwaltung"
+    }
+  },
+  "gracePeriodCard": {
+    "title": "Grace-Periode",
+    "description": "Ihre Lizenz ist abgelaufen. Sie haben noch {{days}} Tag(e) Grace-Periode. Danach wird das System gesperrt.",
+    "progressFormat": "{{days}} Tage",
+    "progressAria": "Grace-Periode: noch {{days}} Tag(e) von {{total}}",
+    "afterTitle": "Was passiert nach der Grace-Periode?",
+    "afterDescription": "Nach {{days}} Tagen wird das System gesperrt. Sie können dann nur noch Daten lesen und Ihre Lizenz verlängern."
+  },
+  "gracePeriodBanner": {
+    "title": "Lizenz läuft in {{days}} Tag(en) ab",
+    "titleUrgent": "DRINGEND: Lizenz läuft in {{days}} Tag(en) ab",
+    "remainingLabel": "Grace-Periode: {{days}} von {{total}} Tagen verbleibend",
+    "lockdownHint": "Nach Ablauf der Grace-Periode wird das System gesperrt. Sie können dann nur noch lesend auf Ihre Daten zugreifen.",
+    "progressAria": "Grace-Periode verbraucht: {{days}} Tag(e) von {{total}} verbleibend",
+    "renew": "Verlängern",
+    "renewUrgent": "Jetzt verlängern"
+  },
+  "gracePeriodWidget": {
+    "title": "Grace-Periode aktiv",
+    "description": "Sie haben noch {{days}} Tag(e) Zeit, um Ihre Lizenz zu verlängern. Danach wird das System gesperrt.",
+    "daysRemaining": "Tage verbleibend",
+    "labelExpired": "Lizenz abgelaufen",
+    "labelGrace": "Grace-Periode",
+    "labelLockdown": "Sperrung",
+    "progressAria": "Grace-Periode: {{days}} Tag(e) von {{total}} verbleibend",
+    "renew": "Lizenz verlängern"
+  },
+  "gracePeriodDashboard": {
+    "title": "Grace-Period Übersicht",
+    "subtitle": "Mandanten in der Grace-Periode — nach Dringlichkeit sortiert.",
+    "tableTitle": "Mandanten in der Grace-Periode",
+    "stats": {
+      "total": "Grace-Periode",
+      "critical": "Kritisch (≤2 Tage)",
+      "medium": "Mittel (3–5 Tage)",
+      "good": "Gut (≥6 Tage)"
+    },
+    "columns": {
+      "tenant": "Mandant",
+      "expiredAt": "Lizenz abgelaufen",
+      "lockdownAt": "Sperrung am",
+      "daysRemaining": "Tage verbleibend",
+      "actions": "Aktionen"
+    },
+    "daysTag": "{{days}} Tage",
+    "sendReminder": "Erinnerung senden",
+    "reminderSent": "Erinnerung an {{email}} gesendet.",
+    "reminderFailed": "Erinnerung konnte nicht gesendet werden."
+  },
+  "graceUrgentWarning": {
+    "title": "DRINGEND: Lizenz läuft in 24 Stunden ab",
+    "heading": "Ihre Lizenz läuft morgen ab!",
+    "description": "Wenn Sie Ihre Lizenz nicht verlängern, wird das System morgen gesperrt.",
+    "remainingLabel": "Verbleibende Zeit:",
+    "countdownUnknown": "—",
+    "renewNow": "Jetzt sofort verlängern",
+    "acknowledge": "Ich habe es verstanden"
+  },
+  "renewalFlow": {
+    "steps": {
+      "key": "Lizenzschlüssel",
+      "confirm": "Bestätigung",
+      "done": "Fertig"
+    },
+    "keyIntro": "Geben Sie Ihren Lizenzschlüssel ein, den Sie von Ihrem Administrator oder nach dem Kauf erhalten haben.",
+    "keyPlaceholder": "REGK-20270101-cafe-A7F3K2D9",
+    "keyFormatHint": "Format: REGK-{YYYYMMDD}-{tenant}-{8 Zeichen}",
+    "next": "Weiter",
+    "back": "Zurück",
+    "activate": "Aktivieren",
+    "confirmTitle": "Lizenz wird aktiviert",
+    "confirmDescription": "Nach der Aktivierung werden alle Funktionen wieder freigeschaltet.",
+    "licenseKeyLabel": "Lizenzschlüssel",
+    "planLabel": "Tarif",
+    "durationLabel": "Laufzeit",
+    "validUntilLabel": "Gültig bis",
+    "validUntilFallback": "+ Laufzeit laut Schlüssel",
+    "successTitle": "Lizenz erfolgreich aktiviert",
+    "successRedirect": "Alle Funktionen sind wieder verfügbar. Weiterleitung zum Dashboard…",
+    "successStay": "Alle Funktionen sind wieder verfügbar.",
+    "previewInvalid": "Lizenzschlüssel ist ungültig.",
+    "previewFailed": "Vorschau fehlgeschlagen.",
+    "activateFailed": "Aktivierung fehlgeschlagen.",
+    "payExternal": "Zur Zahlung",
+    "openBilling": "Lizenzverkauf öffnen",
+    "contactSupport": "Support kontaktieren"
+  },
+  "renewalSuccessModal": {
+    "title": "Lizenz erfolgreich verlängert",
+    "heading": "Ihre Lizenz wurde verlängert",
+    "description": "Ihre Lizenz ist jetzt bis zum {{date}} gültig. Eine Bestätigungs-E-Mail wurde versendet.",
+    "validUntilLabel": "Neue Gültigkeit:",
+    "licenseKeyLabel": "Lizenzschlüssel:",
+    "openDashboard": "Dashboard öffnen"
+  },
+  "renewalRecovery": {
+    "title": "Lizenzverlängerung unterbrochen",
+    "description": "Sie haben die Lizenzverlängerung nicht abgeschlossen. Möchten Sie fortfahren?",
+    "continue": "Fortsetzen",
+    "dismiss": "Schließen"
+  },
+  "renewalModal": {
+    "title": "Lizenz verlängern",
+    "heading": "Ihre Lizenz ist abgelaufen",
+    "headingActive": "Lizenz verlängern",
+    "headingGrace": "Lizenz verlängern — Grace-Periode",
+    "description": "Um alle Funktionen wieder nutzen zu können, verlängern Sie bitte Ihre Lizenz.",
+    "descriptionActive": "Geben Sie einen neuen Lizenzschlüssel ein, um Ihre Laufzeit zu verlängern.",
+    "descriptionGrace": "Ihre Lizenz ist abgelaufen. Verlängern Sie jetzt, bevor das System gesperrt wird.",
+    "statusLabel": "Status",
+    "statusActive": "Aktiv",
+    "statusLocked": "Gesperrt",
+    "statusGrace": "Grace-Periode",
+    "statusArchived": "Archiviert",
+    "validUntilLabel": "Gültig bis",
+    "expiredAtLabel": "Abgelaufen seit",
+    "daysRemainingLabel": "Tage verbleibend",
+    "graceDaysRemainingLabel": "Grace-Tage verbleibend",
+    "daysOverdueLabel": "Tage überfällig",
+    "licenseKeyLabel": "Lizenzschlüssel",
+    "licenseKeyPlaceholder": "REGK-XXXXX-XXXXX-XXXXX",
+    "noLicenseKey": "Bitte geben Sie einen Lizenzschlüssel ein.",
+    "submit": "Lizenz verlängern",
+    "success": "Lizenz wurde erfolgreich verlängert.",
+    "error": "Lizenzverlängerung fehlgeschlagen.",
+    "supportContact": "Support kontaktieren: support@regkasse.at"
+  },
+  "lockdownToast": {
+    "title": "Lizenz abgelaufen",
+    "description": "Bitte verlängern Sie Ihre Lizenz, um diese Aktion durchzuführen.",
+    "guardDescription": "Diese Aktion ist im gesperrten Zustand nicht verfügbar.",
+    "guardDescriptionWithAction": "„{{action}}“ ist im gesperrten Zustand nicht verfügbar.",
+    "writeBlockedTitle": "Schreiboperation blockiert",
+    "writeBlockedDescription": "„{{operation}}“ ist im gesperrten Zustand nicht erlaubt.",
+    "writeBlockedDescriptionGeneric": "Schreiboperationen sind im gesperrten Zustand nicht erlaubt."
+  },
+  "statusDashboard": {
+    "title": "Lizenz-Dashboard",
+    "subtitle": "Status, Restlaufzeit und Verlauf Ihrer Mandantenlizenz.",
+    "status": "Status",
+    "stateActive": "Aktiv",
+    "stateGrace": "Grace",
+    "stateLocked": "Gesperrt",
+    "daysUntilExpiry": "Tage bis Ablauf",
+    "graceDaysRemaining": "Grace-Tage übrig",
+    "daysOverdue": "Tage überfällig",
+    "validUntil": "Gültig bis",
+    "licensePlan": "Lizenztyp",
+    "planFallback": "Standard",
+    "progressActive": "{{days}} Tage",
+    "progressGrace": "{{days}} Grace-Tage",
+    "progressExpired": "Abgelaufen",
+    "timelineTitle": "Lizenz-Verlauf",
+    "renew": "Lizenz verlängern",
+    "renewLocked": "Lizenz jetzt verlängern",
+    "lockedAlertTitle": "System gesperrt",
+    "lockedAlertDescription": "Ihre Lizenz ist abgelaufen. Bitte verlängern Sie Ihre Lizenz, um alle Funktionen wieder nutzen zu können.",
+    "graceAlertTitle": "Grace-Periode aktiv",
+    "graceAlertDescription": "Ihre Lizenz ist abgelaufen. Noch {{days}} Tag(e) Grace — bitte zeitnah verlängern."
+  },
   "trialDays": "Verbleibende Testtage",
   "machineHash": "Maschinen-Fingerprint (SHA-256)",
   "floatingWarning": "Hinweis: Die letzte Aktivierung erfolgte ohne Offline-Zertifikat (JWT). Bei einer Floating-Lizenz ohne Maschinenbindung ist kein Geräte-Fingerprint erforderlich; teilen Sie den Hash nur bei gebundenen Lizenzen.",
@@ -637,6 +822,130 @@
     "exportSuccess": "CSV wurde heruntergeladen.",
     "exportFailed": "Export fehlgeschlagen.",
     "loadFailed": "Lizenz-Dashboard konnte nicht geladen werden."
+  },
+  "activityLog": {
+    "title": "Lizenz-Aktivitäten",
+    "empty": "Keine aktuellen Lizenz-Aktivitäten.",
+    "descriptions": {
+      "activated": "Lizenz aktiviert ({{key}})",
+      "generated": "Lizenz ausgestellt ({{key}})",
+      "extended": "Lizenz verlängert ({{key}})",
+      "renewed": "Lizenz erneuert ({{key}})",
+      "reminder": "Erinnerung gesendet ({{key}})",
+      "revoked": "Lizenz gesperrt ({{key}})",
+      "cancelled": "Lizenz widerrufen ({{key}})",
+      "deleted": "Lizenz gelöscht ({{key}})",
+      "unregistered": "Maschine abgemeldet ({{key}})",
+      "viewed": "Lizenzdetails angesehen ({{key}})",
+      "forceDeactivated": "Lizenz zwangsweise deaktiviert ({{key}})",
+      "expired": "Lizenz abgelaufen / beendet ({{key}})",
+      "other": "Lizenzereignis ({{key}})"
+    }
+  },
+  "calendar": {
+    "title": "Lizenz-Kalender",
+    "subtitle": "Mandantenübersicht nach Ablauf. KPI „Bald ablaufend“ = ≤30 Tage; Tabellenstatus „läuft bald ab“ = ≤7 Tage.",
+    "kpiActive": "Aktiv",
+    "kpiExpiring": "Bald ablaufend (≤30 Tage)",
+    "kpiExpired": "Abgelaufen",
+    "columns": {
+      "tenant": "Mandant",
+      "validUntil": "Lizenz bis",
+      "status": "Status",
+      "action": "Aktion"
+    },
+    "sendReminder": "Erinnerung senden",
+    "reminderSuccess": "Erinnerung an {{recipient}} gesendet",
+    "reminderError": "Erinnerung konnte nicht gesendet werden",
+    "empty": "Keine Mandanten gefunden",
+    "loadFailed": "Lizenzkennzahlen konnten nicht geladen werden",
+    "filterAttentionOnly": "Nur kritische anzeigen",
+    "filterShowAll": "Alle anzeigen"
+  },
+  "emailPreview": {
+    "title": "Erinnerungs-E-Mail Vorschau",
+    "subtitle": "Gleiche HTML-Vorlage wie die versendeten Mandanten-Lizenzhinweise (kein Versand).",
+    "subjectLabel": "Betreff",
+    "htmlLabel": "HTML-Vorschau",
+    "iframeTitle": "Lizenz-Erinnerungsmail Vorschau",
+    "error": "Vorschau konnte nicht geladen werden",
+    "horizons": {
+      "d30": "30 Tage",
+      "d14": "14 Tage",
+      "d7": "7 Tage",
+      "d1": "1 Tag",
+      "d0": "Abgelaufen"
+    }
+  },
+  "auditLog": {
+    "title": "Lizenz-Audit-Log",
+    "subtitle": "Zusammengeführte Ereignisse aus Billing-Audit und Lizenz-Audit (nur Lesen).",
+    "empty": "Keine Audit-Einträge gefunden",
+    "columns": {
+      "time": "Zeit",
+      "tenant": "Mandant",
+      "action": "Aktion",
+      "fromStatus": "Von",
+      "toStatus": "Nach",
+      "performedBy": "Durch",
+      "reason": "Grund"
+    },
+    "statuses": {
+      "Active": "Aktiv",
+      "Grace": "Grace",
+      "Expired": "Abgelaufen",
+      "Locked": "Gesperrt",
+      "Archived": "Archiviert"
+    },
+    "actions": {
+      "SALE_CREATED": "Verkauf erstellt",
+      "SALE_CANCELLED": "Verkauf storniert",
+      "SALE_REFUNDED": "Verkauf erstattet",
+      "LICENSE_ACTIVATED": "Lizenz aktiviert",
+      "LICENSE_EXTENDED": "Lizenz verlängert",
+      "LICENSE_RENEWED": "Lizenz erneuert",
+      "LICENSE_UPDATED": "Lizenz aktualisiert",
+      "LICENSE_REMINDER_SENT": "Erinnerung gesendet",
+      "LICENSE_RENEWAL_PAGE_VIEWED": "Verlängerungsseite angesehen"
+    }
+  },
+  "renewalFunnel": {
+    "title": "Lizenz-Verlängerungs-Funnel",
+    "subtitle": "Kohorte: Mandanten mit ≥1 Erinnerung in den letzten 90 Tagen. Schritte = eindeutige Mandanten.",
+    "lookbackHint": "90 Tage",
+    "empty": "Keine Erinnerungen im Zeitraum — Funnel leer",
+    "loadFailed": "Funnel-Daten konnten nicht geladen werden",
+    "conversionRate": "Conversion Rate: {{rate}}%",
+    "steps": {
+      "reminderSent": "Erinnerung erhalten",
+      "pageViewed": "Verlängerungsseite angesehen",
+      "renewed": "Lizenz erneuert",
+      "activated": "Aktivierung abgeschlossen"
+    }
+  },
+  "usageAnalytics": {
+    "title": "Lizenz-Nutzungsanalyse",
+    "subtitle": "Super-Admin Übersicht: Mandantenlizenzen, Aktivierungstrend und CSV-Export.",
+    "tabs": {
+      "overview": "Übersicht",
+      "trend": "Trend",
+      "export": "Export"
+    },
+    "kpi": {
+      "totalTenants": "Mandanten gesamt",
+      "active": "Aktive Lizenzen",
+      "grace": "Grace-Periode",
+      "expired": "Abgelaufen (gesperrt)"
+    },
+    "trendHint": "Aktivierungen der letzten 30 Tage (Geräte / Issued-License Aktivierungen).",
+    "trendEmpty": "Keine Aktivierungsdaten im Zeitraum",
+    "chartDay": "Tag",
+    "chartWeek": "Woche",
+    "exportHint": "Exportiert ausgestellte Deployment-Lizenzen als CSV (maskierte Schlüssel).",
+    "exportButton": "Lizenzbericht exportieren",
+    "exportSuccess": "Lizenzbericht wurde heruntergeladen",
+    "exportFailed": "Export fehlgeschlagen",
+    "loadFailed": "Nutzungsanalyse konnte nicht geladen werden"
   },
   "supportNotice": "Lizenzschlüssel eingeben. Bei Problemen kontaktieren Sie support@regkasse.at",
   "publicStatus": {

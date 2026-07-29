@@ -1,4 +1,5 @@
 using System.Text.Json;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
@@ -10,11 +11,12 @@ using Microsoft.Extensions.Options;
 namespace KasseAPI_Final.Services.License;
 
 /// <summary>
-/// Sends scheduled mandant license expiry emails at configured calendar-day anchors before expiry.
+/// Sends scheduled mandant license expiry emails at configured calendar-day anchors before expiry
+/// (and optionally once when expired), plus grace-period reminders while inside the grace window.
 /// </summary>
 public sealed class LicenseReminderService : ILicenseReminderService
 {
-    private static readonly int[] DefaultReminderAnchors = [30, 15, 7, 3, 1];
+    private static readonly int[] DefaultReminderAnchors = [30, 14, 7, 1];
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -22,6 +24,7 @@ public sealed class LicenseReminderService : ILicenseReminderService
     private readonly ILicenseReminderEmailSender _emailSender;
     private readonly IBillingAuditService _billingAudit;
     private readonly IOptions<LicenseOptions> _licenseOptions;
+    private readonly IOptions<EmailSmtpOptions> _smtpOptions;
     private readonly ILogger<LicenseReminderService> _logger;
 
     public LicenseReminderService(
@@ -29,12 +32,14 @@ public sealed class LicenseReminderService : ILicenseReminderService
         ILicenseReminderEmailSender emailSender,
         IBillingAuditService billingAudit,
         IOptions<LicenseOptions> licenseOptions,
+        IOptions<EmailSmtpOptions> smtpOptions,
         ILogger<LicenseReminderService> logger)
     {
         _db = db;
         _emailSender = emailSender;
         _billingAudit = billingAudit;
         _licenseOptions = licenseOptions;
+        _smtpOptions = smtpOptions;
         _logger = logger;
     }
 
@@ -42,11 +47,14 @@ public sealed class LicenseReminderService : ILicenseReminderService
         CancellationToken cancellationToken = default)
     {
         var anchors = ResolveMandantAnchors();
-        if (anchors.Length == 0)
+        var sendExpired = _licenseOptions.Value.SendExpiredReminder;
+        if (anchors.Length == 0 && !sendExpired)
             return new LicenseReminderRunResult(0, 0, 0);
 
-        var maxAnchor = anchors.Max();
+        var maxAnchor = anchors.Length > 0 ? anchors.Max() : 0;
+        var archiveAfterDays = Math.Max(1, _licenseOptions.Value.ArchiveAfterDays);
         var now = DateTime.UtcNow;
+        var expiredCutoff = now.AddDays(-archiveAfterDays);
 
         var tenants = await _db.Tenants
             .IgnoreQueryFilters()
@@ -55,8 +63,13 @@ public sealed class LicenseReminderService : ILicenseReminderService
                 t.DeletedAtUtc == null
                 && t.Status == TenantStatuses.Active
                 && t.LicenseValidUntilUtc != null
-                && t.LicenseValidUntilUtc > now
-                && t.LicenseValidUntilUtc <= now.AddDays(maxAnchor + 1))
+                && (
+                    (maxAnchor > 0
+                     && t.LicenseValidUntilUtc > now
+                     && t.LicenseValidUntilUtc <= now.AddDays(maxAnchor + 1))
+                    || (sendExpired
+                        && t.LicenseValidUntilUtc <= now
+                        && t.LicenseValidUntilUtc >= expiredCutoff)))
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
@@ -71,14 +84,25 @@ public sealed class LicenseReminderService : ILicenseReminderService
                 tenant.LicenseKey,
                 now);
 
-            if (kind != "active" || daysRemaining is not > 0 || !anchors.Contains(daysRemaining.Value))
+            var isPreExpiryAnchor =
+                kind == "active"
+                && daysRemaining is > 0
+                && anchors.Contains(daysRemaining.Value);
+
+            var isExpiredDue =
+                sendExpired
+                && daysRemaining is <= 0
+                && daysRemaining >= -archiveAfterDays;
+
+            if (!isPreExpiryAnchor && !isExpiredDue)
             {
                 skipped++;
                 continue;
             }
 
+            var daysBefore = isExpiredDue ? 0 : daysRemaining!.Value;
             var validUntil = DateTime.SpecifyKind(tenant.LicenseValidUntilUtc!.Value, DateTimeKind.Utc);
-            var dedupKey = BuildDedupKey(tenant.Id, validUntil, daysRemaining.Value);
+            var dedupKey = BuildDedupKey(tenant.Id, validUntil, daysBefore);
 
             if (await WasReminderAlreadySentAsync(tenant.Id, dedupKey, cancellationToken).ConfigureAwait(false))
             {
@@ -86,12 +110,13 @@ public sealed class LicenseReminderService : ILicenseReminderService
                 continue;
             }
 
-            var recipient = await ResolveReminderRecipientEmailAsync(
+            var recipients = await ResolveReminderRecipientsAsync(
                     tenant.Id,
                     tenant.Email,
                     cancellationToken)
                 .ConfigureAwait(false);
-            if (string.IsNullOrWhiteSpace(recipient))
+
+            if (recipients.Count == 0)
             {
                 _logger.LogDebug(
                     "Skipping mandant license reminder for tenant {TenantId}: no recipient email.",
@@ -100,34 +125,225 @@ public sealed class LicenseReminderService : ILicenseReminderService
                 continue;
             }
 
-            var subject = LicenseReminderEmailComposer.BuildMandantExpirySubject(tenant.Name, daysRemaining.Value);
-            var body = LicenseReminderEmailComposer.BuildMandantExpiryBody(tenant, daysRemaining, kind);
-            var delivered = await _emailSender
-                .TrySendTenantLicenseReminderAsync(recipient, subject, body, cancellationToken)
-                .ConfigureAwait(false);
+            var renewUrl = _licenseOptions.Value.AdminLicenseUrl;
+            var supportEmail = ResolveSupportEmail();
+            var anyDelivered = false;
+            var failedThisTenant = false;
+            string? firstRecipient = null;
 
-            if (!delivered)
+            foreach (var recipient in recipients)
             {
-                failed++;
-                continue;
+                var content = LicenseReminderEmailComposer.Build(
+                    LicenseReminderEmailComposer.FromTenant(
+                        tenant,
+                        daysRemaining,
+                        recipient.DisplayName,
+                        renewUrl,
+                        supportEmail));
+                var delivered = await _emailSender
+                    .TrySendTenantLicenseReminderAsync(
+                        recipient.Email,
+                        content.Subject,
+                        content.HtmlBody,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (delivered)
+                {
+                    anyDelivered = true;
+                    firstRecipient ??= recipient.Email;
+                    sent++;
+                    _logger.LogInformation(
+                        "Mandant license expiry reminder sent for tenant {TenantId} ({DaysBefore}d) to {RecipientEmail}",
+                        tenant.Id,
+                        daysBefore,
+                        recipient.Email);
+                }
+                else
+                {
+                    failedThisTenant = true;
+                    failed++;
+                }
             }
+
+            if (!anyDelivered)
+                continue;
 
             await LogReminderSentAsync(
                     tenant.Id,
                     dedupKey,
-                    daysRemaining.Value,
+                    daysBefore,
                     validUntil,
-                    recipient,
+                    firstRecipient ?? recipients[0].Email,
                     cancellationToken)
                 .ConfigureAwait(false);
 
-            _logger.LogInformation(
-                "Mandant license expiry reminder sent for tenant {TenantId} ({DaysRemaining}d) to {RecipientEmail}",
-                tenant.Id,
-                daysRemaining.Value,
-                recipient);
+            // Dedup is logged even when some recipients failed after a partial success.
+            if (failedThisTenant)
+            {
+                _logger.LogWarning(
+                    "Mandant license reminder partially delivered for tenant {TenantId} ({DaysBefore}d).",
+                    tenant.Id,
+                    daysBefore);
+            }
+        }
 
-            sent++;
+        return new LicenseReminderRunResult(sent, skipped, failed);
+    }
+
+    public async Task<LicenseReminderRunResult> SendDueGracePeriodRemindersAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (!_licenseOptions.Value.SendGracePeriodReminders)
+            return new LicenseReminderRunResult(0, 0, 0);
+
+        var gracePeriodDays = Math.Max(
+            1,
+            _licenseOptions.Value.GracePeriodDays > 0
+                ? _licenseOptions.Value.GracePeriodDays
+                : LicenseGracePeriodConfig.GracePeriodDays);
+        var anchors = ResolveGraceAnchors();
+        var sendUrgent = _licenseOptions.Value.SendGraceUrgentReminder;
+        var urgentDays = Math.Max(0, _licenseOptions.Value.GraceUrgentReminderDays);
+
+        if (anchors.Length == 0 && !sendUrgent)
+            return new LicenseReminderRunResult(0, 0, 0);
+
+        var now = DateTime.UtcNow;
+        var graceStartedCutoff = now.AddDays(-gracePeriodDays);
+
+        var tenants = await _db.Tenants
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(t =>
+                t.DeletedAtUtc == null
+                && t.Status == TenantStatuses.Active
+                && t.LicenseValidUntilUtc != null
+                && t.LicenseValidUntilUtc <= now
+                && t.LicenseValidUntilUtc >= graceStartedCutoff)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var sent = 0;
+        var skipped = 0;
+        var failed = 0;
+
+        foreach (var tenant in tenants)
+        {
+            var validUntil = DateTime.SpecifyKind(tenant.LicenseValidUntilUtc!.Value, DateTimeKind.Utc);
+            var graceDaysRemaining = GracePeriodReminderMilestones.ResolveGraceDaysRemaining(
+                validUntil,
+                now,
+                gracePeriodDays);
+
+            if (graceDaysRemaining is null)
+            {
+                skipped++;
+                continue;
+            }
+
+            if (!GracePeriodReminderMilestones.ShouldSendReminder(
+                    graceDaysRemaining.Value,
+                    anchors,
+                    sendUrgent,
+                    urgentDays))
+            {
+                skipped++;
+                continue;
+            }
+
+            var daysRemaining = graceDaysRemaining.Value;
+            var lockdownDate = GracePeriodReminderMilestones.ResolveLockdownDateUtc(
+                validUntil,
+                gracePeriodDays);
+            var dedupKey = GracePeriodReminderMilestones.BuildDedupKey(
+                tenant.Id,
+                validUntil,
+                daysRemaining);
+
+            if (await WasReminderAlreadySentAsync(tenant.Id, dedupKey, cancellationToken).ConfigureAwait(false))
+            {
+                skipped++;
+                continue;
+            }
+
+            var recipients = await ResolveReminderRecipientsAsync(
+                    tenant.Id,
+                    tenant.Email,
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            if (recipients.Count == 0)
+            {
+                _logger.LogDebug(
+                    "Skipping grace-period reminder for tenant {TenantId}: no recipient email.",
+                    tenant.Id);
+                skipped++;
+                continue;
+            }
+
+            var renewUrl = _licenseOptions.Value.AdminLicenseUrl;
+            var supportEmail = ResolveSupportEmail();
+            var anyDelivered = false;
+            var failedThisTenant = false;
+            string? firstRecipient = null;
+
+            foreach (var recipient in recipients)
+            {
+                var content = GracePeriodReminderEmailComposer.Build(
+                    GracePeriodReminderEmailComposer.FromTenant(
+                        tenant,
+                        daysRemaining,
+                        lockdownDate,
+                        recipient.DisplayName,
+                        renewUrl,
+                        supportEmail));
+                var delivered = await _emailSender
+                    .TrySendTenantLicenseReminderAsync(
+                        recipient.Email,
+                        content.Subject,
+                        content.HtmlBody,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (delivered)
+                {
+                    anyDelivered = true;
+                    firstRecipient ??= recipient.Email;
+                    sent++;
+                    _logger.LogInformation(
+                        "Mandant grace-period reminder sent for tenant {TenantId} ({GraceDaysRemaining}d left) to {RecipientEmail}",
+                        tenant.Id,
+                        daysRemaining,
+                        recipient.Email);
+                }
+                else
+                {
+                    failedThisTenant = true;
+                    failed++;
+                }
+            }
+
+            if (!anyDelivered)
+                continue;
+
+            await LogGraceReminderSentAsync(
+                    tenant.Id,
+                    dedupKey,
+                    daysRemaining,
+                    validUntil,
+                    lockdownDate,
+                    firstRecipient ?? recipients[0].Email,
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            if (failedThisTenant)
+            {
+                _logger.LogWarning(
+                    "Mandant grace-period reminder partially delivered for tenant {TenantId} ({GraceDaysRemaining}d left).",
+                    tenant.Id,
+                    daysRemaining);
+            }
         }
 
         return new LicenseReminderRunResult(sent, skipped, failed);
@@ -138,6 +354,7 @@ public sealed class LicenseReminderService : ILicenseReminderService
         var today = DateTime.UtcNow.Date;
 
         var pending = await _db.LicenseReminders
+            .IgnoreQueryFilters()
             .Include(r => r.Tenant)
             .Include(r => r.LicenseSale)
             .Where(r =>
@@ -175,41 +392,57 @@ public sealed class LicenseReminderService : ILicenseReminderService
                 tenant.LicenseKey,
                 now);
 
-            var recipient = await ResolveReminderRecipientEmailAsync(
+            var recipients = await ResolveReminderRecipientsAsync(
                     tenant.Id,
                     tenant.Email,
                     cancellationToken)
                 .ConfigureAwait(false);
 
-            if (!string.IsNullOrWhiteSpace(recipient))
+            if (recipients.Count > 0)
             {
-                var subject = LicenseReminderEmailComposer.BuildMandantExpirySubject(
-                    tenant.Name,
-                    mappedDays ?? daysRemaining);
-                var body = LicenseReminderEmailComposer.BuildMandantExpiryBody(
-                    tenant,
-                    mappedDays ?? daysRemaining,
-                    kind);
-                var delivered = await _emailSender
-                    .TrySendTenantLicenseReminderAsync(recipient, subject, body, cancellationToken)
-                    .ConfigureAwait(false);
+                var renewUrl = _licenseOptions.Value.AdminLicenseUrl;
+                var supportEmail = ResolveSupportEmail();
+                var anyDelivered = false;
 
-                if (delivered)
+                foreach (var recipient in recipients)
                 {
-                    sent++;
-                    _logger.LogInformation(
-                        "Billing license reminder email sent for tenant {TenantSlug} sale {SaleId}",
-                        tenant.Slug,
-                        sale.Id);
+                    var content = LicenseReminderEmailComposer.Build(
+                        LicenseReminderEmailComposer.FromTenant(
+                            tenant,
+                            mappedDays ?? daysRemaining,
+                            recipient.DisplayName,
+                            renewUrl,
+                            supportEmail));
+                    var delivered = await _emailSender
+                        .TrySendTenantLicenseReminderAsync(
+                            recipient.Email,
+                            content.Subject,
+                            content.HtmlBody,
+                            cancellationToken)
+                        .ConfigureAwait(false);
+
+                    if (delivered)
+                    {
+                        anyDelivered = true;
+                        sent++;
+                        _logger.LogInformation(
+                            "Billing license reminder email sent for tenant {TenantSlug} sale {SaleId} to {RecipientEmail}",
+                            tenant.Slug,
+                            sale.Id,
+                            recipient.Email);
+                    }
+                    else
+                    {
+                        _logger.LogWarning(
+                            "Billing license reminder email was not delivered for tenant {TenantSlug} sale {SaleId} to {RecipientEmail}",
+                            tenant.Slug,
+                            sale.Id,
+                            recipient.Email);
+                    }
                 }
-                else
-                {
-                    _logger.LogWarning(
-                        "Billing license reminder email was not delivered for tenant {TenantSlug} sale {SaleId}",
-                        tenant.Slug,
-                        sale.Id);
+
+                if (!anyDelivered)
                     continue;
-                }
             }
             else
             {
@@ -234,6 +467,19 @@ public sealed class LicenseReminderService : ILicenseReminderService
 
         return configured
             .Where(d => d > 0)
+            .Distinct()
+            .OrderByDescending(d => d)
+            .ToArray();
+    }
+
+    private int[] ResolveGraceAnchors()
+    {
+        var configured = _licenseOptions.Value.GraceReminderDays;
+        if (configured is not { Length: > 0 })
+            return GracePeriodReminderMilestones.DefaultReminderDays;
+
+        return configured
+            .Where(d => d >= 0)
             .Distinct()
             .OrderByDescending(d => d)
             .ToArray();
@@ -284,12 +530,71 @@ public sealed class LicenseReminderService : ILicenseReminderService
             cancellationToken);
     }
 
-    private async Task<string?> ResolveReminderRecipientEmailAsync(
+    private Task LogGraceReminderSentAsync(
+        Guid tenantId,
+        string dedupKey,
+        int graceDaysRemaining,
+        DateTime validUntilUtc,
+        DateTime lockdownDateUtc,
+        string recipientEmail,
+        CancellationToken cancellationToken)
+    {
+        var details = JsonSerializer.Serialize(
+            new MandantGraceReminderAuditDetails(
+                dedupKey,
+                graceDaysRemaining,
+                validUntilUtc,
+                lockdownDateUtc,
+                recipientEmail),
+            JsonOptions);
+
+        return _billingAudit.LogAsync(
+            BillingAuditEventTypes.LicenseReminderSent,
+            Guid.Empty,
+            tenantId,
+            saleId: null,
+            details,
+            ipAddress: null,
+            cancellationToken);
+    }
+
+    private async Task<IReadOnlyList<ReminderRecipient>> ResolveReminderRecipientsAsync(
         Guid tenantId,
         string? fallbackTenantEmail,
         CancellationToken cancellationToken)
     {
-        var ownerEmail = await _db.UserTenantMemberships
+        var managerRows = await _db.UserTenantMemberships
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(m => m.TenantId == tenantId && m.IsActive)
+            .Join(
+                _db.Users.AsNoTracking(),
+                m => m.UserId,
+                u => u.Id,
+                (m, u) => new { Membership = m, User = u })
+            .Where(x => x.User.IsActive && x.User.Role == Roles.Manager)
+            .Select(x => new
+            {
+                x.User.Email,
+                x.User.UserName,
+                x.User.FirstName,
+                x.User.LastName,
+            })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var recipients = managerRows
+            .Select(r => TryMapRecipient(r.Email, r.UserName, r.FirstName, r.LastName))
+            .Where(r => r is not null)
+            .Cast<ReminderRecipient>()
+            .GroupBy(r => r.Email, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
+            .ToList();
+
+        if (recipients.Count > 0)
+            return recipients;
+
+        var ownerRow = await _db.UserTenantMemberships
             .IgnoreQueryFilters()
             .AsNoTracking()
             .Where(m => m.TenantId == tenantId && m.IsActive && m.IsOwner)
@@ -297,19 +602,72 @@ public sealed class LicenseReminderService : ILicenseReminderService
                 _db.Users.AsNoTracking(),
                 m => m.UserId,
                 u => u.Id,
-                (_, u) => u.Email ?? u.UserName)
+                (_, u) => new
+                {
+                    u.Email,
+                    u.UserName,
+                    u.FirstName,
+                    u.LastName,
+                })
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        if (!string.IsNullOrWhiteSpace(ownerEmail))
-            return ownerEmail.Trim();
+        if (ownerRow is not null)
+        {
+            var owner = TryMapRecipient(
+                ownerRow.Email,
+                ownerRow.UserName,
+                ownerRow.FirstName,
+                ownerRow.LastName);
+            if (owner is not null)
+                return [owner];
+        }
 
-        return string.IsNullOrWhiteSpace(fallbackTenantEmail) ? null : fallbackTenantEmail.Trim();
+        if (!string.IsNullOrWhiteSpace(fallbackTenantEmail)
+            && fallbackTenantEmail.Contains('@'))
+        {
+            return [new ReminderRecipient(fallbackTenantEmail.Trim(), null)];
+        }
+
+        return [];
     }
+
+    private static ReminderRecipient? TryMapRecipient(
+        string? email,
+        string? userName,
+        string? firstName,
+        string? lastName)
+    {
+        var resolved = email ?? userName;
+        if (string.IsNullOrWhiteSpace(resolved) || !resolved.Contains('@'))
+            return null;
+
+        var display = $"{firstName} {lastName}".Trim();
+        return new ReminderRecipient(
+            resolved.Trim(),
+            string.IsNullOrWhiteSpace(display) ? null : display);
+    }
+
+    private string ResolveSupportEmail()
+    {
+        var support = _smtpOptions.Value.SupportContact?.Trim();
+        return string.IsNullOrEmpty(support)
+            ? LicenseReminderEmailComposer.DefaultSupportEmail
+            : support;
+    }
+
+    private sealed record ReminderRecipient(string Email, string? DisplayName);
 
     private sealed record MandantLicenseReminderAuditDetails(
         string DedupKey,
         int DaysBeforeExpiry,
         DateTime ValidUntilUtc,
+        string RecipientEmail);
+
+    private sealed record MandantGraceReminderAuditDetails(
+        string DedupKey,
+        int GraceDaysRemaining,
+        DateTime ValidUntilUtc,
+        DateTime LockdownDateUtc,
         string RecipientEmail);
 }

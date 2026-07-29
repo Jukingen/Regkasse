@@ -1,0 +1,116 @@
+# BMF DEP Prüftool verification (fixture smoke + seeded-export smoke).
+# Downloads official Prüftool V1.1.1 JARs into gitignored backend/Tests/.
+
+name: DEP Prüftool
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'scripts/verify-rksv-dep-export.ps1'
+      - 'scripts/ensure-bmf-prueftool.ps1'
+      - 'scripts/generate-dep-export-fixtures.ps1'
+      - '.github/workflows/dep-prueftool.yml'
+  push:
+    branches: [main, master]
+    paths:
+      - 'backend/**'
+      - 'scripts/verify-rksv-dep-export.ps1'
+      - 'scripts/ensure-bmf-prueftool.ps1'
+      - 'scripts/generate-dep-export-fixtures.ps1'
+      - '.github/workflows/dep-prueftool.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: dep-prueftool-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  JAVA_VERSION: '17'
+  CI: 'true'
+  REGKASSE_OPENAPI_EXPORT: ''
+  REGKASSE_TEST_INMEMORY_DB: ''
+
+jobs:
+  dep-prueftool:
+    name: Fixture + seeded DEP Prüftool
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('backend/**/*.csproj', 'backend/**/*.sln') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Cache BMF Prüftool JARs
+        uses: actions/cache@v4
+        with:
+          path: |
+            backend/Tests/regkassen-verification-depformat-1.1.1.jar
+            backend/Tests/regkassen-verification-receipts-1.1.1.jar
+            backend/Tests/lib
+          key: bmf-prueftool-v1.1.1-${{ hashFiles('scripts/ensure-bmf-prueftool.ps1') }}
+
+      - name: Ensure BMF Prüftool JARs
+        shell: pwsh
+        run: ./scripts/ensure-bmf-prueftool.ps1
+
+      - name: Verify committed fixtures (BMF CheckDEPExportFormat)
+        shell: pwsh
+        run: >
+          ./scripts/verify-rksv-dep-export.ps1
+          -UseFixtures
+          -OutputDir ./verification_output_ci_fixtures
+
+      - name: Restore + build tests
+        working-directory: backend
+        run: |
+          dotnet restore KasseAPI_Final.sln
+          dotnet build KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj --configuration Release --no-restore
+
+      - name: Seeded DEP export + Prüftool smoke (dotnet)
+        working-directory: backend
+        # RksvDepPrueftoolRunner resolves java via JAVA_HOME (set by setup-java).
+        run: >
+          dotnet test KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj
+          --configuration Release
+          --no-build
+          --filter "Category=DepPrueftool"
+          --verbosity normal
+
+      - name: Upload Prüftool output (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dep-prueftool-output
+          path: |
+            verification_output_ci_fixtures/
+          if-no-files-found: ignore
+
+  notify-failure:
+    name: Notify on failure
+    needs: [dep-prueftool]
+    if: failure()
+    uses: ./.github/workflows/notify-failure.yml
+    with:
+      title: DEP Prüftool CI failed
+    secrets: inherit

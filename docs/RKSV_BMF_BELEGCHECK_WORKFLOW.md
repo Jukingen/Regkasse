@@ -27,12 +27,12 @@ Aşağıdaki RKSV **Sonderbelege** için fiş üzerindeki **RKSV-QR**, resmi **B
 | Fiş türü | Bu repoda otomatik FinanzOnline “RKSV submission” izi (`RksvSpecialReceiptFinanzOnlineSubmission` / fiş detayı kartı) | Manuel Belegcheck (QR) |
 |----------|---------------------------------------------------------------------------------------------------------------------|-------------------------|
 | **Nullbeleg** | Yok — yalnızca manuel doğrulama (uygulama / operasyon notu). | Evet (QR okunabilir ise). |
-| **Monatsbeleg** | Yok — yalnızca manuel doğrulama. | Evet. |
+| **Monatsbeleg** | Yok — **NotRequired** (ayrı otomatik FON gönderimi bilinçli olarak yok; Aralık → Jahresbeleg). Karar: [`MONATSBELEG_FINANZONLINE_DECISION.md`](MONATSBELEG_FINANZONLINE_DECISION.md). FA bilgi kartı + fiş detayı notu. | Evet (isteğe bağlı). |
 | **Startbeleg** | Var — oluşturma sonrası outbox + submission satırı; worker hattı. | Evet (önerilen operasyonel tamamlayıcı). |
 | **Jahresbeleg** | Var — oluşturma sonrası outbox + submission satırı; worker hattı. | Evet. |
 | **Schlussbeleg** | Yok — `RksvSpecialReceiptService` bu tür için RKSV özel fiş outbox kuyruğunu tetiklemez; **otomatik RKSV webservice gönderimi yoktur**. | Evet (QR ile). |
 
-Özet: **FinanzOnline üzerinden izlenen otomatik RKSV özel fiş gönderimi** yalnızca **Startbeleg** ve **Jahresbeleg** oluşturma yollarında tanımlıdır; **Nullbeleg** ve **Monatsbeleg** için sistem bu anlamda yalnızca manuel doğrulamaya uygundur; **Schlussbeleg** otomatik bu hatla gönderilmez.
+Özet: **FinanzOnline üzerinden izlenen otomatik RKSV özel fiş gönderimi** yalnızca **Startbeleg** ve **Jahresbeleg** oluşturma yollarında tanımlıdır; **Monatsbeleg** için ürün kararı **NotRequired**’dır (DEP’te saklama zorunlu, ayrı FON outbox yok); **Nullbeleg** için sistem bu anlamda yalnızca manuel doğrulamaya uygundur; **Schlussbeleg** otomatik bu hatla gönderilmez.
 
 ### 2.2. Fatura mutabakatı (legacy) ile RKSV submission farkı
 

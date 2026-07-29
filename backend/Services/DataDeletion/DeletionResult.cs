@@ -39,4 +39,5 @@ public static class DataDeletionErrorCodes
     public const string GracePeriodActive = "grace_period_active";
     public const string InvalidStatus = "invalid_status";
     public const string AlreadyCompleted = "already_completed";
+    public const string AlreadyCancelled = "already_cancelled";
 }

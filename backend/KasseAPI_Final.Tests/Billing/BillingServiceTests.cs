@@ -63,6 +63,41 @@ public sealed class BillingServiceTests
         Assert.Equal(result.LicenseKey, updatedTenant.LicenseKey);
         Assert.Equal(result.ValidUntilUtc, updatedTenant.LicenseValidUntilUtc);
         Assert.Equal(result.Id, updatedTenant.CurrentLicenseSaleId);
+        Assert.True(result.AppliedToTenant);
+    }
+
+    [Fact]
+    public async Task CreateLicenseSale_ApplyToTenantFalse_DoesNotUpdateTenantLicense()
+    {
+        var harness = await BillingServiceTestHarness.CreateAsync();
+        await using var _ = harness;
+
+        var tenant = await harness.CreateTestTenantAsync();
+        var actorUserId = await harness.CreateTestUserAsync();
+        var previousKey = "EXISTING-KEY";
+        var previousUntil = DateTime.UtcNow.AddDays(-10);
+        await harness.SetTenantLicenseAsync(tenant.Id, previousKey, previousUntil);
+
+        var request = new CreateLicenseSaleRequest
+        {
+            TenantId = tenant.Id,
+            LicensePlan = LicenseSalePlans.TwelveMonths,
+            PriceNet = 299.00m,
+            VatRate = 20.00m,
+            ApplyToTenant = false,
+        };
+
+        var result = await harness.CreateBillingService().CreateLicenseSaleAsync(request, actorUserId);
+
+        Assert.NotNull(result);
+        Assert.Equal(LicenseSaleStatuses.Active, result.Status);
+        Assert.False(result.AppliedToTenant);
+        Assert.True(new LicenseKeyGenerator().ValidateLicenseKeyFormat(result.LicenseKey));
+
+        var updatedTenant = await harness.GetTenantAsync(tenant.Id);
+        Assert.Equal(previousKey, updatedTenant.LicenseKey);
+        Assert.Equal(previousUntil, updatedTenant.LicenseValidUntilUtc);
+        Assert.Null(updatedTenant.CurrentLicenseSaleId);
     }
 
     [Fact]

@@ -135,6 +135,20 @@ namespace KasseAPI_Final.Models
         /// <summary>Operator-scheduled certificate renewal target (UTC). Null = not scheduled.</summary>
         public DateTime? ScheduledRenewalAt { get; set; }
 
+        /// <summary>
+        /// Mai 2027 Signaturkarte program compliance stamp (UTC). Independent of <see cref="ExpiresAt"/>.
+        /// Null = not yet marked compliant for the program.
+        /// </summary>
+        public DateTime? SignaturkarteProgramCompliantAtUtc { get; set; }
+
+        /// <summary>Actor user id (or system label) that set <see cref="SignaturkarteProgramCompliantAtUtc"/>.</summary>
+        [StringLength(128)]
+        public string? SignaturkarteProgramCompliantBy { get; set; }
+
+        /// <summary>Optional ticket / note for Mark Compliant audit trail.</summary>
+        [StringLength(500)]
+        public string? SignaturkarteProgramNote { get; set; }
+
         // Navigation
         [ForeignKey(nameof(TenantId))]
         public virtual Tenant? Tenant { get; set; }

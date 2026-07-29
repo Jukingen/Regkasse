@@ -53,10 +53,43 @@ public sealed class LicenseOptions
     public bool RequireMachineBinding { get; set; } = true;
 
     /// <summary>
-    /// Calendar-day thresholds evaluated daily by the license reminder hosted service for in-app reminders
-    /// (matches <c>daysRemaining</c> exactly) plus the implicit <c>&lt;= 15</c> day rule in that service.
+    /// Calendar-day thresholds for mandant expiry emails and in-app reminders
+    /// (exact match on <c>daysRemaining</c>). Default: 30 / 14 / 7 / 1 days before expiry.
     /// </summary>
-    public int[] ReminderDays { get; set; } = [30, 15, 7, 3, 1];
+    public int[] ReminderDays { get; set; } = [30, 14, 7, 1];
+
+    /// <summary>
+    /// When true, also send one overdue/expired email per license validity date
+    /// (deduped via billing audit; limited to tenants within <see cref="ArchiveAfterDays"/> overdue).
+    /// </summary>
+    public bool SendExpiredReminder { get; set; } = true;
+
+    /// <summary>
+    /// When true, send dedicated grace-period emails while the mandant is inside
+    /// <see cref="GracePeriodDays"/> after expiry (see <see cref="GraceReminderDays"/>).
+    /// </summary>
+    public bool SendGracePeriodReminders { get; set; } = true;
+
+    /// <summary>
+    /// Remaining-grace-day anchors for grace reminder emails (exact match).
+    /// Default: 6 / 4 / 2 days remaining in the 7-day grace window.
+    /// </summary>
+    public int[] GraceReminderDays { get; set; } = [6, 4, 2];
+
+    /// <summary>
+    /// When true (and <see cref="SendGracePeriodReminders"/> is true), also send when
+    /// remaining grace days are ≤ <see cref="GraceUrgentReminderDays"/>.
+    /// </summary>
+    public bool SendGraceUrgentReminder { get; set; } = true;
+
+    /// <summary>Inclusive upper bound of remaining grace days for the urgent daily reminder.</summary>
+    public int GraceUrgentReminderDays { get; set; } = 1;
+
+    /// <summary>Deep link to the FA license renewal page included in reminder emails.</summary>
+    public string AdminLicenseUrl { get; set; } = "https://admin.regkasse.at/license";
+
+    /// <summary>Deep link to the FA dashboard included in renewal confirmation emails.</summary>
+    public string AdminDashboardUrl { get; set; } = "https://admin.regkasse.at/dashboard";
 
     /// <summary>UTC hour (0–23) for the daily reminder tick.</summary>
     public int ReminderCheckHourUtc { get; set; } = 9;

@@ -83,6 +83,86 @@
     "successBody": "Your data deletion was confirmed. Non-fiscal data will be purged after 7 days (or earlier by Super Admin).",
     "successRksv": "RKSV data remains retained for at least 7 years."
   },
+  "lockedCard": {
+    "title": "Data management",
+    "intro": "While your license is locked or archived, you can export your data or request deletion of non-fiscal data.",
+    "openFull": "Open account management",
+    "exportTitle": "Data export",
+    "exportDescription": "Export all your data as a ZIP file (RKSV secrets are masked).",
+    "exportButton": "Request data export",
+    "exportUnavailable": "Data export is currently unavailable.",
+    "deleteTitle": "Data deletion",
+    "deleteDescription": "Delete all your non-fiscal data (RKSV data is retained for at least 7 years).",
+    "deleteButton": "Request data deletion"
+  },
+  "account": {
+    "pageTitle": "Account management",
+    "licenseExpiredTitle": "Your license has expired",
+    "licenseExpiredBody": "You can manage your account and export your data.",
+    "licenseExpiredRksv": "RKSV data remains stored for 7 years as required by law.",
+    "exportTitle": "Data export",
+    "gdprTag": "GDPR compliant",
+    "exportDescription": "Export all your data in JSON format. This includes products, customers, transactions, and settings.",
+    "entries": "{{count}} entries",
+    "inventory": {
+      "products": "Products & categories",
+      "customers": "Customers",
+      "transactions": "Transactions & payments",
+      "rksv": "RKSV data (legally protected)"
+    },
+    "rksvRetentionTag": "7-year retention",
+    "exportButton": "Request data export",
+    "exportHint": "Export is provided as a ZIP file (download or email link).",
+    "closureTitle": "Close account",
+    "irreversibleTag": "Irreversible",
+    "closureWarningTitle": "Warning: This action cannot be undone",
+    "closureBullets": {
+      "login": "You will no longer be able to sign in",
+      "nonRksv": "Your non-RKSV data will be deleted",
+      "rksv": "RKSV data remains stored for 7 years",
+      "irreversible": "This action cannot be undone"
+    },
+    "whatHappensTitle": "What happens to your data?",
+    "whatHappens": {
+      "products": "Products, customers, and non-fiscal business data will be deleted",
+      "rksv": "RKSV data remains stored for 7 years",
+      "users": "User accounts will be deactivated"
+    },
+    "closureButton": "Close account permanently",
+    "retentionTitle": "Privacy & retention",
+    "retention": {
+      "rksvTitle": "RKSV data",
+      "rksvBody": "7-year retention required under Austrian law",
+      "businessTitle": "Business data",
+      "businessBody": "Retained until account closure, then deleted",
+      "userTitle": "User data",
+      "userBody": "Retained until account closure, then anonymized"
+    }
+  },
+  "policy": {
+    "cardTitle": "Privacy policy",
+    "legalTitle": "Legal basis",
+    "legal": {
+      "rksv": "Austrian RKSV: 7-year retention for fiscal receipts and signatures",
+      "gdpr": "GDPR: right to data portability and erasure (subject to RKSV retention)",
+      "business": "Business data: retained until account closure, then non-fiscal data is deleted"
+    },
+    "deletedTitle": "What is deleted?",
+    "deleted": {
+      "products": "Products and categories",
+      "customers": "Customers and benefits",
+      "nonFiscal": "Non-fiscal invoices and tenant settings",
+      "users": "User access (deactivation) and customizations"
+    },
+    "retainedTitle": "What is retained?",
+    "retained": {
+      "payments": "RKSV-certified payments and receipts (at least 7 years)",
+      "audit": "Audit logs (at least 7 years)",
+      "tse": "TSE signatures and daily closings (at least 7 years)",
+      "ordersVouchers": "Online orders and vouchers (legal retention)"
+    },
+    "footerNote": "All data is handled in accordance with applicable law. For questions, contact us:"
+  },
   "states": {
     "Active": "Active",
     "Grace": "Grace (0–7 days)",

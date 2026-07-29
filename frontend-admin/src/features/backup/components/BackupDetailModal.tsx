@@ -476,7 +476,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
             <Timeline
               items={pipelineResolved.steps.map((step) => ({
                 color: pipelineStepTimelineColor(step.state),
-                children: (
+                content: (
                   <div>
                     <Typography.Text strong>{t(step.titleKey)}</Typography.Text>
                     <div>

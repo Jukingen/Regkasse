@@ -1,11 +1,13 @@
 'use client';
 
 import { Empty, Space, Tag, Tooltip, Typography } from 'antd';
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 
 import type { AuditLogEntryDto } from '@/api/generated/model';
 import { VirtualTable } from '@/components/VirtualTable';
 import { adminTablePaginationDefaults } from '@/components/ui/adminTablePagination';
+import { UserInfoDisplay } from '@/features/audit/components/UserInfoDisplay';
+import { resolveAuditActorUser } from '@/features/audit/types/auditActorUser';
 import { AuditLogDetailsCell } from '@/features/audit-logs/components/AuditLogDetailsCell';
 import {
   getAuditActionLabelKey,
@@ -31,7 +33,7 @@ export type AuditLogTableProps = {
   hasMore?: boolean;
 };
 
-export function AuditLogTable({
+export const AuditLogTable = memo(function AuditLogTable({
   rows,
   loading,
   page,
@@ -86,13 +88,15 @@ export function AuditLogTable({
       },
       {
         title: t('common.auditLogs.table.user'),
-        key: 'userName',
-        width: 140,
+        key: 'user',
+        width: 240,
         ellipsis: true,
         render: (_: unknown, record: AuditLogEntryDto) => (
-          <Typography.Text type="secondary" ellipsis={{ tooltip: true }}>
-            {record.actorDisplayName ?? record.createdBy ?? record.userId ?? '—'}
-          </Typography.Text>
+          <UserInfoDisplay
+            user={resolveAuditActorUser(record)}
+            userId={record.userId}
+            userRole={record.userRole}
+          />
         ),
       },
       {
@@ -197,7 +201,7 @@ export function AuditLogTable({
           : undefined
       }
       size="middle"
-      scroll={{ x: 1400 }}
+      scroll={{ x: 1500 }}
       style={{
         opacity: isPlaceholderData ? 0.6 : 1,
         transition: 'opacity 0.2s',
@@ -238,4 +242,4 @@ export function AuditLogTable({
       }}
     />
   );
-}
+});

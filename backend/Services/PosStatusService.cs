@@ -3,7 +3,10 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Rksv;
+using KasseAPI_Final.Services.Tse;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services;
 
@@ -12,17 +15,29 @@ public sealed class PosStatusService : IPosStatusService
     private readonly ILicenseService _licenseService;
     private readonly IPosCashRegisterReadinessService _cashRegisterReadiness;
     private readonly IRksvEnvironmentService _rksvEnvironment;
+    private readonly IHostEnvironment _hostEnvironment;
+    private readonly IConfiguration _configuration;
+    private readonly IOptionsMonitor<TseOptions> _tseOptions;
+    private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly AppDbContext _db;
 
     public PosStatusService(
         ILicenseService licenseService,
         IPosCashRegisterReadinessService cashRegisterReadiness,
         IRksvEnvironmentService rksvEnvironment,
+        IHostEnvironment hostEnvironment,
+        IConfiguration configuration,
+        IOptionsMonitor<TseOptions> tseOptions,
+        ICurrentTenantAccessor tenantAccessor,
         AppDbContext db)
     {
         _licenseService = licenseService;
         _cashRegisterReadiness = cashRegisterReadiness;
         _rksvEnvironment = rksvEnvironment;
+        _hostEnvironment = hostEnvironment;
+        _configuration = configuration;
+        _tseOptions = tseOptions;
+        _tenantAccessor = tenantAccessor;
         _db = db;
     }
 
@@ -60,7 +75,16 @@ public sealed class PosStatusService : IPosStatusService
             HealthLicense = healthLicense,
             CashRegister = cashRegister,
             Settings = settings,
-            RksvEnvironment = RksvEnvironmentStatusDto.FromService(_rksvEnvironment),
+            RksvEnvironment = RksvEnvironmentStatusDto.FromService(
+                _rksvEnvironment,
+                _hostEnvironment,
+                _configuration,
+                TseFiscalConfigLockEvaluator.Evaluate(
+                    _hostEnvironment,
+                    _configuration,
+                    _tseOptions.CurrentValue),
+                tenantId,
+                _tenantAccessor.TenantSlug),
         };
     }
 

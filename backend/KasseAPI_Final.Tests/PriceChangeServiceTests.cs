@@ -49,6 +49,10 @@ public sealed class PriceChangeServiceTests
         return new PriceChangeService(
             db,
             new ProductPriceHistoryService(db, NullLogger<ProductPriceHistoryService>.Instance),
+            new RksvPriceChangeComplianceChecker(
+                db,
+                new TaxRegulationService(db, NullLogger<TaxRegulationService>.Instance),
+                NullLogger<RksvPriceChangeComplianceChecker>.Instance),
             audit.Object,
             NullLogger<PriceChangeService>.Instance);
     }
@@ -87,6 +91,59 @@ public sealed class PriceChangeServiceTests
     }
 
     [Fact]
+    public async Task ChangePriceAsync_WithFiscalHistory_CreatesNewCatalogProduct()
+    {
+        var tenantId = LegacyDefaultTenantIds.Primary;
+        await using var db = CreateDb(tenantId);
+        var (productId, taxGroupId) = await SeedProductAsync(db, tenantId, price: 3.5m, taxRate: 20m);
+
+        db.OrderItems.Add(new OrderItem
+        {
+            Id = Guid.NewGuid(),
+            OrderId = "ORD-RKSV-1",
+            ProductId = productId,
+            ProductName = "Espresso",
+            Quantity = 1,
+            UnitPrice = 3.5m,
+            TaxRate = 20m,
+            TaxAmount = 0.58m,
+            DiscountAmount = 0m,
+            TotalAmount = 3.5m,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var sut = CreateSut(db);
+        var result = await sut.ChangePriceAsync(new PriceChangeRequest
+        {
+            TenantId = tenantId,
+            ProductId = productId,
+            NewPrice = 4.5m,
+            NewTaxGroupId = taxGroupId,
+            ChangedBy = Guid.NewGuid(),
+            Reason = "RKSV catalog version",
+        });
+
+        Assert.True(result.Succeeded, result.ErrorMessage);
+        Assert.True(result.CreatedNewProductVersion);
+        Assert.Equal(productId, result.ArchivedProductId);
+        Assert.NotEqual(productId, result.ProductId);
+        Assert.Equal(2, result.CatalogVersion);
+
+        var archived = await db.Products.SingleAsync(p => p.Id == productId);
+        Assert.False(archived.IsActive);
+        Assert.NotNull(archived.ArchivedAt);
+        Assert.Contains("__v1_", archived.Barcode, StringComparison.Ordinal);
+
+        var successor = await db.Products.SingleAsync(p => p.Id == result.ProductId);
+        Assert.True(successor.IsActive);
+        Assert.Equal(4.5m, successor.Price);
+        Assert.Equal(2, successor.Version);
+        Assert.Equal(productId, successor.OriginalProductId);
+        Assert.Equal("ESP-PC-1", successor.Barcode);
+    }
+
+    [Fact]
     public async Task ValidatePriceChangeAsync_WarnsWhenOrderHistoryExists()
     {
         var tenantId = LegacyDefaultTenantIds.Primary;
@@ -122,7 +179,12 @@ public sealed class PriceChangeServiceTests
         Assert.True(validation.IsValid);
         Assert.True(validation.HasWarning);
         Assert.True(validation.HasFiscalHistory);
-        Assert.Contains("RKSV", validation.WarningMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.True(validation.RequiresNewProductVersion);
+        Assert.Contains("new product version", validation.WarningMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.NotNull(validation.Compliance);
+        Assert.Contains(
+            validation.Compliance!.Warnings,
+            w => w.Code == RksvPriceChangeComplianceChecker.CodeRequiresNewVersion);
     }
 
     [Fact]
@@ -193,7 +255,9 @@ public sealed class PriceChangeServiceTests
             Unit = "pcs",
             Barcode = "ESP-PC-1",
             IsActive = true,
+            Version = 1,
             CreatedAt = DateTime.UtcNow,
+            StockQuantity = 10,
         });
         await db.SaveChangesAsync();
         return (productId, taxGroupId);

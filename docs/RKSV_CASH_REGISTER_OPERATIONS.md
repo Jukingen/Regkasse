@@ -145,7 +145,9 @@ Kasa başına tek Startbeleg; kasa kalıcı devre dışı değilse. Oluşturma s
 
 ### 4.3 Monatsbeleg
 
-Yalnızca **mevcut** Viyana takvim ayı için; Aralık ayında istek **Jahresbeleg** yoluna yönlendirilir (ayrı `Monatsbeleg` satırı üretilmez — servis içi dallanma). FO özel iz kaydı yok.
+**Üretim:** Geçmiş Viyana takvim ayları için TSE imzalı Monatsbeleg; **Aralık** isteği serviste **Jahresbeleg** yoluna yönlendirilir.
+
+**FinanzOnline:** Ayrı `belegpruefung` outbox **yok** (ürün kararı **NotRequired**). Zorunlu FON Belegcheck Startbeleg + Jahresbeleg içindir. Detay: [`MONATSBELEG_FINANZONLINE_DECISION.md`](MONATSBELEG_FINANZONLINE_DECISION.md). FA: `MonatsbelegInfoCard` on Sonderbelege; fiş detayında NotRequired notu.
 
 ### 4.4 Jahresbeleg
 

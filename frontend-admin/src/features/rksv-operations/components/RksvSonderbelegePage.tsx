@@ -42,6 +42,7 @@ import { StoredReportPdfButton } from '@/features/reports/components/StoredRepor
 import { rksvSpecialReceiptKindLabelDe } from '@/features/rksv-operations/rksvSpecialReceiptDisplay';
 import { CreateMonatsbelegModal } from '@/features/rksv/components/CreateMonatsbelegModal';
 import { LateMonatsbelegCreationCard } from '@/features/rksv/components/LateMonatsbelegCreationCard';
+import { MonatsbelegInfoCard } from '@/features/rksv/components/MonatsbelegInfoCard';
 import { MonatsbelegTimeline } from '@/features/rksv/components/MonatsbelegTimeline';
 import type { MonthCardStatus } from '@/features/rksv/components/MonthCard';
 import { StartbelegStatus } from '@/features/rksv/components/StartbelegStatus';
@@ -52,6 +53,7 @@ import {
 import type { ReceiptLateCreationFields } from '@/features/rksv/types/receiptLateCreation';
 import { receiptIsLateCreated } from '@/features/rksv/types/receiptLateCreation';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
 import { dateColumnRender } from '@/components/DateColumn';
 import { formatDateTime } from '@/i18n/formatting';
@@ -170,7 +172,8 @@ function titleWithTooltip(title: string, tooltipText: string): React.ReactNode {
 }
 
 export default function RksvSonderbelegePage() {
-  const { message, modal } = useAntdApp();
+  const { modal } = useAntdApp();
+  const notify = useNotify();
   const { t } = useI18n();
 
   const { hasPermission, isSuperAdmin } = usePermissions();
@@ -465,24 +468,22 @@ export default function RksvSonderbelegePage() {
   const openMissingMonatsbelegModal = useCallback(
     (year: number, month: number) => {
       if (!registerId) {
-        message.warning('Bitte eine Kasse wählen.');
+        notify.warning('rksvHub.sonderbelege.selectRegister');
         return;
       }
       if (!canMonat) {
-        message.warning('Sie haben keine Berechtigung für diese Aktion.');
+        notify.warning('rksvHub.sonderbelege.permissionDenied');
         return;
       }
       if (getMonthDifference(year, month) <= 0) {
-        message.error(
-          'Monatsbeleg kann nur für abgeschlossene (vergangene) Kalendermonate erstellt werden.'
-        );
+        notify.errorKey('rksvHub.sonderbelege.pastMonthOnly');
         return;
       }
       setSelectedMonatsbelegYear(year);
       setSelectedMonatsbelegMonth(month);
       setMonatsbelegModalOpen(true);
     },
-    [registerId, canMonat, message]
+    [registerId, canMonat, notify]
   );
 
   const registerOptions = useMemo(() => {
@@ -531,7 +532,7 @@ export default function RksvSonderbelegePage() {
 
   const onNullbeleg = useCallback(async () => {
     if (!registerId) {
-      message.warning('Bitte eine Kasse wählen.');
+      notify.warning('rksvHub.sonderbelege.selectRegister');
       return;
     }
     setBusy('null');
@@ -543,19 +544,18 @@ export default function RksvSonderbelegePage() {
         reason: reasonShort.trim() || 'Nullbeleg für Prüfzwecke',
         actsAsJahresbeleg: null,
       });
-      message.success('Nullbeleg erstellt.');
+      notify.successKey('rksvHub.sonderbelege.nullbelegSuccess');
       await invalidateLists();
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } }; message?: string };
-      message.error(String(err?.response?.data?.message ?? err?.message ?? 'Fehler'));
+      notify.apiError(e, { logContext: 'RKSV.nullbeleg', fallbackKey: 'common.errorGeneric' });
     } finally {
       setBusy(null);
     }
-  }, [registerId, viennaYear, viennaMonth, reasonShort, postJson, invalidateLists]);
+  }, [registerId, viennaYear, viennaMonth, reasonShort, postJson, invalidateLists, notify]);
 
   const onStartbeleg = useCallback(async () => {
     if (!registerId) {
-      message.warning('Bitte eine Kasse wählen.');
+      notify.warning('rksvHub.sonderbelege.selectRegister');
       return;
     }
     setBusy('start');
@@ -564,15 +564,14 @@ export default function RksvSonderbelegePage() {
         cashRegisterId: registerId,
         reason: reasonShort.trim() || 'Admin Startbeleg',
       });
-      message.success('Startbeleg erstellt.');
+      notify.successKey('rksvHub.sonderbelege.startbelegSuccess');
       await invalidateLists();
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } }; message?: string };
-      message.error(String(err?.response?.data?.message ?? err?.message ?? 'Fehler'));
+      notify.apiError(e, { logContext: 'RKSV.startbeleg', fallbackKey: 'common.errorGeneric' });
     } finally {
       setBusy(null);
     }
-  }, [registerId, reasonShort, postJson, invalidateLists]);
+  }, [registerId, reasonShort, postJson, invalidateLists, notify]);
 
   const openMonatsbelegModal = useCallback(() => {
     openMissingMonatsbelegModal(monatYear, monatMonth);
@@ -580,7 +579,7 @@ export default function RksvSonderbelegePage() {
 
   const onJahresbeleg = useCallback(async () => {
     if (!registerId) {
-      message.warning('Bitte eine Kasse wählen.');
+      notify.warning('rksvHub.sonderbelege.selectRegister');
       return;
     }
     setBusy('jahr');
@@ -591,25 +590,22 @@ export default function RksvSonderbelegePage() {
         reason: 'Admin Jahresbeleg',
         earlyReason: jbEarly.trim() || null,
       });
-      message.success('Jahresbeleg erstellt.');
+      notify.successKey('rksvHub.sonderbelege.jahresbelegSuccess');
       await invalidateLists();
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } }; message?: string };
-      message.error(String(err?.response?.data?.message ?? err?.message ?? 'Fehler'));
+      notify.apiError(e, { logContext: 'RKSV.jahresbeleg', fallbackKey: 'common.errorGeneric' });
     } finally {
       setBusy(null);
     }
-  }, [registerId, jahrYear, jbEarly, postJson, invalidateLists]);
+  }, [registerId, jahrYear, jbEarly, postJson, invalidateLists, notify]);
 
   const onSchlussbeleg = useCallback(async () => {
     if (!registerId) {
-      message.warning('Bitte eine Kasse wählen.');
+      notify.warning('rksvHub.sonderbelege.selectRegister');
       return;
     }
     if (!canCreateSchlussbelegNow) {
-      message.error(
-        'Endbeleg ist nur möglich, wenn keine offene Sitzung besteht und der Status "Geschlossen" ist.'
-      );
+      notify.errorKey('rksvHub.sonderbelege.endbelegRequiresClosedSession');
       return;
     }
     setBusy('schluss');
@@ -618,17 +614,14 @@ export default function RksvSonderbelegePage() {
         cashRegisterId: registerId,
         reason: reasonShort.trim() || 'Admin Schlussbeleg',
       });
-      message.success(
-        'Schlussbeleg erstellt — Status wechselt auf "Decommissioned". Keine neuen Zahlungen mehr erlaubt.'
-      );
+      notify.successKey('rksvHub.sonderbelege.schlussbelegSuccess');
       await invalidateLists();
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } }; message?: string };
-      message.error(String(err?.response?.data?.message ?? err?.message ?? 'Fehler'));
+      notify.apiError(e, { logContext: 'RKSV.schlussbeleg', fallbackKey: 'common.errorGeneric' });
     } finally {
       setBusy(null);
     }
-  }, [registerId, canCreateSchlussbelegNow, reasonShort, postJson, invalidateLists]);
+  }, [registerId, canCreateSchlussbelegNow, reasonShort, postJson, invalidateLists, notify]);
 
   const confirmJahresbeleg = useCallback(() => {
     modal.confirm({
@@ -638,40 +631,38 @@ export default function RksvSonderbelegePage() {
       cancelText: 'Abbrechen',
       onOk: () => onJahresbeleg(),
     });
-  }, [onJahresbeleg]);
+  }, [modal, onJahresbeleg]);
 
   const submitSchlussModal = useCallback(async () => {
     if (!canCreateSchlussbelegNow) {
-      message.error('Endbeleg ist nur bei geschlossener Kasse ohne offene Sitzung möglich.');
+      notify.errorKey('rksvHub.sonderbelege.endbelegClosedNoSession');
       return;
     }
     if (schlussConfirmText.trim().toUpperCase() !== 'ENDBELEG') {
-      message.error('Bitte exakt «ENDBELEG» eingeben.');
+      notify.errorKey('rksvHub.sonderbelege.endbelegConfirmExact');
       return;
     }
     await onSchlussbeleg();
     setSchlussModalOpen(false);
     setSchlussConfirmText('');
-  }, [canCreateSchlussbelegNow, schlussConfirmText, onSchlussbeleg]);
+  }, [canCreateSchlussbelegNow, schlussConfirmText, onSchlussbeleg, notify]);
 
   const openSchlussbelegDialog = useCallback(() => {
     if (!registerId) {
-      message.warning('Bitte eine Kasse wählen.');
+      notify.warning('rksvHub.sonderbelege.selectRegister');
       return;
     }
     if (!canCreateSchlussbelegNow) {
-      message.error(
-        'Endbeleg ist nur möglich, wenn keine offene Sitzung besteht und die Kasse geschlossen ist.'
-      );
+      notify.errorKey('rksvHub.sonderbelege.endbelegRequiresClosedRegister');
       return;
     }
     setSchlussConfirmText('');
     setSchlussModalOpen(true);
-  }, [registerId, canCreateSchlussbelegNow]);
+  }, [registerId, canCreateSchlussbelegNow, notify]);
 
   const onBulkCreateMissingMonatsbelege = useCallback(async () => {
     if (!registerId) {
-      message.warning('Bitte eine Kasse wählen.');
+      notify.warning('rksvHub.sonderbelege.selectRegister');
       return;
     }
 
@@ -686,7 +677,7 @@ export default function RksvSonderbelegePage() {
     );
 
     if (hasPrevMonthMonatsbeleg) {
-      message.info('Monatsbeleg für den Vormonat bereits vorhanden');
+      notify.info('rksvHub.sonderbelege.prevMonthMonatsbelegExists');
       return;
     }
 
@@ -699,10 +690,14 @@ export default function RksvSonderbelegePage() {
         reason: 'Demo Helper: Monatsbeleg Vormonat',
       });
       await invalidateLists();
-      message.success(`Monatsbeleg für ${formatMonthYearDe(prevYear, prevMonth)} erstellt.`);
+      notify.successKey('rksvHub.sonderbelege.monatsbelegCreatedForPeriod', {
+        period: formatMonthYearDe(prevYear, prevMonth),
+      });
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } }; message?: string };
-      message.error(String(err?.response?.data?.message ?? err?.message ?? 'Fehler'));
+      notify.apiError(e, {
+        logContext: 'RKSV.demoMonatsbeleg',
+        fallbackKey: 'common.errorGeneric',
+      });
     } finally {
       setBusy(null);
     }
@@ -713,12 +708,12 @@ export default function RksvSonderbelegePage() {
     viennaMonth,
     postJson,
     invalidateLists,
-    message,
+    notify,
   ]);
 
   const onCreateDemoNullbelegForCurrentMonth = useCallback(async () => {
     if (!registerId) {
-      message.warning('Bitte eine Kasse wählen.');
+      notify.warning('rksvHub.sonderbelege.selectRegister');
       return;
     }
 
@@ -731,15 +726,17 @@ export default function RksvSonderbelegePage() {
         reason: 'Demo Helper: Test-Nullbeleg',
         actsAsJahresbeleg: viennaMonth === 12 ? true : null,
       });
-      message.success('Test-Nullbeleg für aktuellen Monat erstellt.');
+      notify.successKey('rksvHub.sonderbelege.demoNullbelegSuccess');
       await invalidateLists();
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } }; message?: string };
-      message.error(String(err?.response?.data?.message ?? err?.message ?? 'Fehler'));
+      notify.apiError(e, {
+        logContext: 'RKSV.demoNullbeleg',
+        fallbackKey: 'common.errorGeneric',
+      });
     } finally {
       setBusy(null);
     }
-  }, [registerId, viennaYear, viennaMonth, postJson, invalidateLists]);
+  }, [registerId, viennaYear, viennaMonth, postJson, invalidateLists, notify]);
 
   const onResetTseSimulation = useCallback(async () => {
     setBusy('demo-tse-reset');
@@ -749,11 +746,11 @@ export default function RksvSonderbelegePage() {
       setJbEarly('');
       setReasonShort('');
       await queryClient.invalidateQueries({ queryKey: ['/api/tse/health'] });
-      message.success('TSE-Simulation zurückgesetzt (Demo-Helfer).');
+      notify.successKey('rksvHub.sonderbelege.demoTseResetSuccess');
     } finally {
       setBusy(null);
     }
-  }, [viennaYear, viennaMonth, defaultYear, queryClient]);
+  }, [viennaYear, viennaMonth, defaultYear, queryClient, notify]);
 
   const specialColumns: ColumnsType<OrvalReceiptRow> = useMemo(
     () => [
@@ -1081,6 +1078,7 @@ export default function RksvSonderbelegePage() {
               <Typography.Text type="secondary">
                 Empfohlen: Monatsbeleg direkt nach Monatsende erstellen.
               </Typography.Text>
+              <MonatsbelegInfoCard />
               <DatePicker
                 picker="month"
                 value={monatPeriod}

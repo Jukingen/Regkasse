@@ -3,6 +3,7 @@ type AdminRoutePathResolver = string | ((context: AdminTargetContext) => string)
 export type AdminTarget =
   | 'licenseOverview'
   | 'licenseExtend'
+  | 'mandantLicense'
   | 'tenantUsers'
   | 'cashRegisters'
   | 'rksvSonderbelege'
@@ -37,6 +38,13 @@ export const ADMIN_ROUTES: Record<AdminTarget, AdminRouteDefinition> = {
   },
   licenseExtend: {
     path: '/admin/license',
+    requiresTenant: false,
+    allowedWithoutTenant: true,
+    allowedForSuperAdmin: true,
+  },
+  /** Mandanten-Admin renewal hub (FA `/license`). */
+  mandantLicense: {
+    path: '/license',
     requiresTenant: false,
     allowedWithoutTenant: true,
     allowedForSuperAdmin: true,

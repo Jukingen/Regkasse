@@ -6,9 +6,11 @@ import { useMemo } from 'react';
 
 import { useGetApiAuditLogCorrelationCorrelationId } from '@/api/generated/audit-log/audit-log';
 import type { AuditLogEntryDto } from '@/api/generated/model';
+import { UserInfoDisplay } from '@/features/audit/components/UserInfoDisplay';
+import { resolveAuditActorUser } from '@/features/audit/types/auditActorUser';
 import { parseAuditJsonField } from '@/features/audit-logs/utils/parseAuditJsonField';
 import { useI18n } from '@/i18n';
-import { formatDate, formatDateTime } from '@/i18n/formatting';
+import { formatDateTime } from '@/i18n/formatting';
 import { formatUserTime } from '@/lib/dateFormatter';
 
 type Props = {
@@ -112,7 +114,12 @@ export function AuditDetailModal({ open, record, onClose }: Props) {
           {record.action ?? '—'}
         </Descriptions.Item>
         <Descriptions.Item label={t('common.auditLogs.table.user')}>
-          {record.actorDisplayName ?? record.userId ?? '—'}
+          <UserInfoDisplay
+            user={resolveAuditActorUser(record)}
+            userId={record.userId}
+            userRole={record.userRole}
+            compact={false}
+          />
         </Descriptions.Item>
         <Descriptions.Item label={t('common.auditLogs.table.status')}>
           {String(record.status ?? '—')}

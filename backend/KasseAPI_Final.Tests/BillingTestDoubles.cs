@@ -74,6 +74,9 @@ internal sealed class NoOpLicenseReminderService : ILicenseReminderService
     public Task<LicenseReminderRunResult> SendDueMandantExpiryRemindersAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult(new LicenseReminderRunResult(0, 0, 0));
 
+    public Task<LicenseReminderRunResult> SendDueGracePeriodRemindersAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(new LicenseReminderRunResult(0, 0, 0));
+
     public Task<int> SendDueBillingSaleRemindersAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult(0);
 }

@@ -168,6 +168,7 @@ public static class PermissionCatalog
         AppPermissions.RksvTseSimulation,
         AppPermissions.RiskView,
         AppPermissions.RiskManage,
+        AppPermissions.DeploymentApprove,
         AppPermissions.SystemCritical,
         AppPermissions.TenantManage,
         AppPermissions.TenantView,

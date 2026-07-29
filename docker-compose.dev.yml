@@ -1,0 +1,74 @@
+# Regkasse — local development infrastructure (Postgres + Redis only)
+#
+# Use this when you run API / Admin / POS / Sites on the host (`npm run dev`)
+# and only need databases in Docker.
+#
+#   docker compose -f docker-compose.dev.yml up -d
+#   docker compose -f docker-compose.dev.yml down
+#   # wipe data: docker compose -f docker-compose.dev.yml down -v
+#
+# Full containerized stack (API + Admin + optional POS/Sites):
+#   docker compose up --build
+#   → see docker-compose.yml
+#
+# Do NOT bind-mount ./backend onto the production API image (/app holds
+# published DLLs, not source). Hot reload stays on the host via `dotnet run`
+# / `npm run dev`.
+#
+# Ports (defaults, overridable via .env):
+#   Postgres: localhost:5432
+#   Redis:    localhost:6379
+
+name: regkasse-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: regkasse-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-kasse_db}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - regkasse_dev_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - regkasse-dev
+
+  redis:
+    image: redis:7-alpine
+    container_name: regkasse-redis
+    restart: unless-stopped
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - regkasse_dev_redis:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    networks:
+      - regkasse-dev
+
+networks:
+  regkasse-dev:
+    driver: bridge
+
+volumes:
+  regkasse_dev_pgdata:
+  regkasse_dev_redis:

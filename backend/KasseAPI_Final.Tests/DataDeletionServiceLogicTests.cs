@@ -33,4 +33,10 @@ public sealed class DataDeletionServiceLogicTests
         Assert.Equal(tenantId, result.TenantId);
         Assert.Equal(3, result.DeletedCounts!["products"]);
     }
+
+    [Fact]
+    public void AlreadyCancelled_ErrorCode_Exists()
+    {
+        Assert.Equal("already_cancelled", DataDeletionErrorCodes.AlreadyCancelled);
+    }
 }

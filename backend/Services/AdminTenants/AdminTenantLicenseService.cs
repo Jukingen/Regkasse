@@ -49,6 +49,7 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
     private readonly IHostEnvironment _hostEnvironment;
     private readonly TseOptions _tseOptions;
     private readonly LicenseOptions _licenseOptions;
+    private readonly EmailSmtpOptions _smtpOptions;
     private readonly IDevelopmentModeService _developmentModeService;
     private readonly ITenantLicenseService _tenantLicenseService;
 
@@ -62,6 +63,7 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         IHostEnvironment hostEnvironment,
         IOptions<TseOptions> tseOptions,
         IOptions<LicenseOptions> licenseOptions,
+        IOptions<EmailSmtpOptions> smtpOptions,
         IDevelopmentModeService developmentModeService,
         ITenantLicenseService tenantLicenseService)
     {
@@ -74,6 +76,7 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         _hostEnvironment = hostEnvironment;
         _tseOptions = tseOptions.Value;
         _licenseOptions = licenseOptions.Value;
+        _smtpOptions = smtpOptions.Value;
         _developmentModeService = developmentModeService;
         _tenantLicenseService = tenantLicenseService;
     }
@@ -246,8 +249,79 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
             tenant.LicenseValidUntilUtc,
             cancellationToken).ConfigureAwait(false);
 
+        await TrySendRenewalConfirmationEmailAsync(tenant, cancellationToken).ConfigureAwait(false);
+
         _logger.LogInformation("Tenant license extended for tenant {TenantId}", tenantId);
         return (await GetOverviewAsync(tenantId, cancellationToken).ConfigureAwait(false), null);
+    }
+
+    private async Task TrySendRenewalConfirmationEmailAsync(
+        Tenant tenant,
+        CancellationToken cancellationToken)
+    {
+        if (!tenant.LicenseValidUntilUtc.HasValue)
+            return;
+
+        try
+        {
+            var (recipientEmail, adminName) = await ResolveReminderRecipientAsync(
+                    tenant.Id,
+                    tenant.Email,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(recipientEmail))
+            {
+                _logger.LogInformation(
+                    "Skipped renewal confirmation email for tenant {TenantId}: no recipient.",
+                    tenant.Id);
+                return;
+            }
+
+            var support = string.IsNullOrWhiteSpace(_smtpOptions.SupportContact)
+                ? LicenseRenewalConfirmationEmailComposer.DefaultSupportEmail
+                : _smtpOptions.SupportContact.Trim();
+            var dashboardUrl = string.IsNullOrWhiteSpace(_licenseOptions.AdminDashboardUrl)
+                ? LicenseRenewalConfirmationEmailComposer.DefaultAdminDashboardUrl
+                : _licenseOptions.AdminDashboardUrl.Trim();
+
+            var content = LicenseRenewalConfirmationEmailComposer.Build(
+                LicenseRenewalConfirmationEmailComposer.CreateModel(
+                    tenant.Name,
+                    tenant.LicenseValidUntilUtc.Value,
+                    tenant.LicenseKey,
+                    adminName,
+                    dashboardUrl,
+                    support));
+
+            var sent = await _licenseReminderEmailSender
+                .TrySendTenantLicenseReminderAsync(
+                    recipientEmail,
+                    content.Subject,
+                    content.HtmlBody,
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            if (sent)
+            {
+                _logger.LogInformation(
+                    "Renewal confirmation email sent for tenant {TenantId} to {RecipientEmail}",
+                    tenant.Id,
+                    recipientEmail);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Renewal confirmation email not delivered for tenant {TenantId} (SMTP unavailable).",
+                    tenant.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Renewal confirmation email failed for tenant {TenantId}",
+                tenant.Id);
+        }
     }
 
     private async Task LogLicenseExtendedAuditAsync(
@@ -501,14 +575,60 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         if (string.IsNullOrWhiteSpace(recipientEmail))
             return (null, "Tenant has no owner or contact email for reminders.");
 
-        var (daysRemaining, kind) = TenantLicenseStatusMapper.ComputeKindAndDays(
+        var (daysRemaining, _) = TenantLicenseStatusMapper.ComputeKindAndDays(
             tenant.LicenseValidUntilUtc,
             tenant.LicenseKey);
 
-        var subject = LicenseReminderEmailComposer.BuildMandantExpirySubject(tenant.Name, daysRemaining ?? 0);
-        var body = LicenseReminderEmailComposer.BuildMandantExpiryBody(tenant, daysRemaining, kind);
+        var support = string.IsNullOrWhiteSpace(_smtpOptions.SupportContact)
+            ? LicenseReminderEmailComposer.DefaultSupportEmail
+            : _smtpOptions.SupportContact.Trim();
+
+        string subject;
+        string htmlBody;
+        var graceDays = Math.Max(
+            1,
+            _licenseOptions.GracePeriodDays > 0
+                ? _licenseOptions.GracePeriodDays
+                : LicenseGracePeriodConfig.GracePeriodDays);
+        var graceRemaining = tenant.LicenseValidUntilUtc is { } until
+            ? GracePeriodReminderMilestones.ResolveGraceDaysRemaining(until, DateTime.UtcNow, graceDays)
+            : null;
+
+        if (graceRemaining is not null)
+        {
+            var lockdown = GracePeriodReminderMilestones.ResolveLockdownDateUtc(
+                tenant.LicenseValidUntilUtc!.Value,
+                graceDays);
+            var graceContent = GracePeriodReminderEmailComposer.Build(
+                GracePeriodReminderEmailComposer.FromTenant(
+                    tenant,
+                    graceRemaining.Value,
+                    lockdown,
+                    recipientName: null,
+                    adminLicenseUrl: _licenseOptions.AdminLicenseUrl,
+                    supportEmail: support));
+            subject = graceContent.Subject;
+            htmlBody = graceContent.HtmlBody;
+        }
+        else
+        {
+            var content = LicenseReminderEmailComposer.Build(
+                LicenseReminderEmailComposer.FromTenant(
+                    tenant,
+                    daysRemaining,
+                    recipientName: null,
+                    adminLicenseUrl: _licenseOptions.AdminLicenseUrl,
+                    supportEmail: support));
+            subject = content.Subject;
+            htmlBody = content.HtmlBody;
+        }
+
         var sent = await _licenseReminderEmailSender
-            .TrySendTenantLicenseReminderAsync(recipientEmail, subject, body, cancellationToken)
+            .TrySendTenantLicenseReminderAsync(
+                recipientEmail,
+                subject,
+                htmlBody,
+                cancellationToken)
             .ConfigureAwait(false);
         if (!sent)
             return (null, "SMTP is not configured or the reminder email could not be delivered.");
@@ -566,7 +686,17 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         string? fallbackTenantEmail,
         CancellationToken cancellationToken)
     {
-        var ownerEmail = await _db.UserTenantMemberships
+        var (email, _) = await ResolveReminderRecipientAsync(tenantId, fallbackTenantEmail, cancellationToken)
+            .ConfigureAwait(false);
+        return email;
+    }
+
+    private async Task<(string? Email, string? DisplayName)> ResolveReminderRecipientAsync(
+        Guid tenantId,
+        string? fallbackTenantEmail,
+        CancellationToken cancellationToken)
+    {
+        var owner = await _db.UserTenantMemberships
             .IgnoreQueryFilters()
             .AsNoTracking()
             .Where(m => m.TenantId == tenantId && m.IsActive && m.IsOwner)
@@ -574,14 +704,28 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
                 _db.Users.AsNoTracking(),
                 m => m.UserId,
                 u => u.Id,
-                (_, u) => u.Email ?? u.UserName)
+                (_, u) => new
+                {
+                    Email = u.Email ?? u.UserName,
+                    FirstName = u.FirstName,
+                    LastName = u.LastName,
+                    UserName = u.UserName,
+                })
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        if (!string.IsNullOrWhiteSpace(ownerEmail))
-            return ownerEmail;
+        if (owner != null && !string.IsNullOrWhiteSpace(owner.Email))
+        {
+            var display = $"{owner.FirstName} {owner.LastName}".Trim();
+            if (string.IsNullOrWhiteSpace(display))
+                display = owner.UserName ?? owner.Email;
+            return (owner.Email, display);
+        }
 
-        return string.IsNullOrWhiteSpace(fallbackTenantEmail) ? null : fallbackTenantEmail.Trim();
+        if (string.IsNullOrWhiteSpace(fallbackTenantEmail))
+            return (null, null);
+
+        return (fallbackTenantEmail.Trim(), null);
     }
 
     private async Task<Tenant?> LoadMutableTenantAsync(Guid tenantId, CancellationToken cancellationToken) =>

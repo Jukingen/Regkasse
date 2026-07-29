@@ -1,0 +1,52 @@
+{
+  "title": "Mai 2027 Signaturkarte-Programm",
+  "subtitle": "Operative Pflicht — unabhängig vom Zertifikatsablauf (ExpiresAt).",
+  "separationTitle": "Nicht dasselbe wie Zertifikatsablauf",
+  "separationBody": "Dieses Programm verfolgt die Mai-2027-Signaturkarte-Frist. Die Spalte „Zertifikat gültig bis“ ist nur technische ExpiresAt-Information und ersetzt die Programm-Compliance nicht.",
+  "tableTitle": "Geräte (Programmstatus)",
+  "statOpen": "Offen (Open)",
+  "statCompliant": "Compliant",
+  "statExcluded": "Ausgeschlossen (Demo/Soft)",
+  "statDays": "Tage bis Deadline",
+  "colTenant": "Mandant",
+  "colSerial": "Seriennummer",
+  "colProvider": "Provider",
+  "colExpiresAt": "Zertifikat gültig bis (ExpiresAt)",
+  "colProgramCompliantAt": "Programm-Compliant seit",
+  "colStatus": "Programmstatus",
+  "colDays": "Tage",
+  "colActions": "Aktionen",
+  "filterStatus": "Status filtern",
+  "filterAll": "Alle",
+  "exportCsv": "CSV exportieren",
+  "dualRisk": "Expires vor Deadline",
+  "markAction": "Als compliant markieren",
+  "markConfirmTitle": "Programm-Compliant markieren?",
+  "markConfirmBody": "Gerät {{serial}} für das Mai-2027-Signaturkarte-Programm als erledigt markieren?",
+  "markNotExpiry": "Dies ist keine Zertifikatserneuerung — nur die Programm-Compliance-Markierung.",
+  "markNotePlaceholder": "Ticket-Nr. / Notiz (optional)",
+  "markSuccess": "Gerät als programm-compliant markiert",
+  "status": {
+    "Compliant": "Compliant",
+    "Open": "Open",
+    "Excluded": "Excluded",
+    "Revoked": "Revoked"
+  },
+  "banner": {
+    "info": {
+      "title": "Mai 2027 Signaturkarte — Planung",
+      "body": "Noch {{days}} Tage bis {{deadline}}. {{open}} Gerät(e) offen."
+    },
+    "warning": {
+      "title": "Mai 2027 Signaturkarte — Handlungsbedarf",
+      "body": "Noch {{days}} Tage bis {{deadline}}. {{open}} Gerät(e) noch nicht programm-compliant."
+    },
+    "critical": {
+      "title": "Mai 2027 Signaturkarte — kritisch",
+      "body": "Nur noch {{days}} Tage (Deadline {{deadline}}). {{open}} Gerät(e) offen — unabhängig vom Zertifikatsablauf."
+    },
+    "separationNote": "Unabhängig vom Zertifikatsablauf (ExpiresAt).",
+    "openReport": "Compliance-Bericht öffnen",
+    "dismiss": "7 Tage ausblenden"
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "title": "Mai 2027 Signaturkarte program",
+  "subtitle": "Operational obligation — independent of certificate expiry (ExpiresAt).",
+  "separationTitle": "Not the same as certificate expiry",
+  "separationBody": "This program tracks the Mai 2027 Signaturkarte deadline. The “certificate valid until” column is technical ExpiresAt only and does not replace program compliance.",
+  "tableTitle": "Devices (program status)",
+  "statOpen": "Open",
+  "statCompliant": "Compliant",
+  "statExcluded": "Excluded (Demo/Soft)",
+  "statDays": "Days to deadline",
+  "colTenant": "Tenant",
+  "colSerial": "Serial number",
+  "colProvider": "Provider",
+  "colExpiresAt": "Certificate valid until (ExpiresAt)",
+  "colProgramCompliantAt": "Program compliant since",
+  "colStatus": "Program status",
+  "colDays": "Days",
+  "colActions": "Actions",
+  "filterStatus": "Filter status",
+  "filterAll": "All",
+  "exportCsv": "Export CSV",
+  "dualRisk": "Expires before deadline",
+  "markAction": "Mark compliant",
+  "markConfirmTitle": "Mark program-compliant?",
+  "markConfirmBody": "Mark device {{serial}} as done for the Mai 2027 Signaturkarte program?",
+  "markNotExpiry": "This is not a certificate renewal — only the program compliance flag.",
+  "markNotePlaceholder": "Ticket no. / note (optional)",
+  "markSuccess": "Device marked program-compliant",
+  "status": {
+    "Compliant": "Compliant",
+    "Open": "Open",
+    "Excluded": "Excluded",
+    "Revoked": "Revoked"
+  },
+  "banner": {
+    "info": {
+      "title": "Mai 2027 Signaturkarte — planning",
+      "body": "{{days}} days left until {{deadline}}. {{open}} device(s) open."
+    },
+    "warning": {
+      "title": "Mai 2027 Signaturkarte — action needed",
+      "body": "{{days}} days left until {{deadline}}. {{open}} device(s) not yet program-compliant."
+    },
+    "critical": {
+      "title": "Mai 2027 Signaturkarte — critical",
+      "body": "Only {{days}} days left (deadline {{deadline}}). {{open}} device(s) open — independent of certificate expiry."
+    },
+    "separationNote": "Independent of certificate expiry (ExpiresAt).",
+    "openReport": "Open compliance report",
+    "dismiss": "Hide for 7 days"
+  }
+}

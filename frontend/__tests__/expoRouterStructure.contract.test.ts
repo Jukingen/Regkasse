@@ -25,6 +25,7 @@ describe('expo-router structure contract', () => {
   test('primary auth → tabs routes exist', () => {
     expect(exists('(auth)/login.tsx')).toBe(true);
     expect(exists('(auth)/change-password.tsx')).toBe(true);
+    expect(exists('(auth)/license-expired.tsx')).toBe(true);
     expect(exists('(tabs)/cash-register.tsx')).toBe(true);
     expect(exists('(tabs)/cart.tsx')).toBe(true);
     expect(exists('(tabs)/settings.tsx')).toBe(true);
@@ -59,6 +60,7 @@ describe('expo-router structure contract', () => {
     const authLayout = fs.readFileSync(path.join(appRoot, '(auth)/_layout.tsx'), 'utf8');
     expect(authLayout).toContain('Redirect');
     expect(authLayout).toContain('/(tabs)/cash-register');
+    expect(authLayout).toContain('license-expired');
   });
 
   test('tabs layout redirects unauthenticated users to login', () => {

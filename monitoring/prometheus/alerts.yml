@@ -1,0 +1,110 @@
+groups:
+  - name: regkasse.availability
+    rules:
+      - alert: RegkasseApiDown
+        expr: probe_success{job="blackbox-http", instance=~".*/api/health/live.*"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          channel: pager
+        annotations:
+          summary: 'API liveness probe failing'
+          description: '{{ $labels.instance }} has been down for >2m'
+
+      - alert: RegkasseApiNotReady
+        expr: probe_success{job="blackbox-http", instance=~".*/api/health/ready.*"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          channel: slack
+        annotations:
+          summary: 'API readiness failing (DB / fiscal config)'
+          description: '{{ $labels.instance }} ready probe failed >5m — check TSE lock / FON / DB'
+
+      - alert: RegkasseAdminDown
+        expr: probe_success{job="blackbox-http", instance=~".*:3000/health.*"} == 0
+        for: 3m
+        labels:
+          severity: warning
+          channel: slack
+        annotations:
+          summary: 'Admin FA /health failing'
+          description: '{{ $labels.instance }}'
+
+      - alert: RegkassePosWebDown
+        expr: probe_success{job="blackbox-http", instance=~".*/healthz.*"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          channel: slack
+        annotations:
+          summary: 'POS web /healthz failing'
+          description: '{{ $labels.instance }}'
+
+  - name: regkasse.api_slo
+    rules:
+      - alert: RegkasseHighErrorRate
+        expr: |
+          (
+            sum(rate(api_errors_total[5m]))
+            /
+            clamp_min(sum(rate(api_requests_total[5m])), 0.001)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          channel: slack
+        annotations:
+          summary: 'API error rate > 5% (5m)'
+          description: 'Error ratio {{ $value | humanizePercentage }}'
+
+      - alert: RegkasseHighLatencyP95
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(api_request_duration_ms_bucket[5m])) by (le)
+          ) > 1000
+        for: 10m
+        labels:
+          severity: warning
+          channel: slack
+        annotations:
+          summary: 'API p95 latency > 1000ms'
+          description: 'p95={{ $value }}ms'
+
+  - name: regkasse.fiscal
+    rules:
+      - alert: RegkasseFinanzOnlineFailures
+        expr: sum(rate(finanzonline_submit_failed_total[15m])) > 0.01
+        for: 10m
+        labels:
+          severity: critical
+          channel: pager
+        annotations:
+          summary: 'FinanzOnline submit failures elevated'
+          description: 'failure rate {{ $value }}'
+
+      - alert: RegkasseTseFleetUnhealthy
+        expr: tse_fleet_status < 1
+        for: 10m
+        labels:
+          severity: critical
+          channel: pager
+        annotations:
+          summary: 'TSE fleet status unhealthy'
+          description: 'tse_fleet_status={{ $value }} — see /health/tse/mode'
+
+      - alert: RegkasseOfflineReplayFailures
+        expr: |
+          (
+            sum(rate(replay_failed_total[15m]))
+            /
+            clamp_min(sum(rate(replay_total[15m])), 0.001)
+          ) > 0.1
+        for: 15m
+        labels:
+          severity: warning
+          channel: slack
+        annotations:
+          summary: 'Offline replay failure ratio > 10%'
+          description: 'ratio={{ $value | humanizePercentage }}'

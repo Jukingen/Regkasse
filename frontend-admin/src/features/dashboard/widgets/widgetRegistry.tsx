@@ -1,5 +1,7 @@
 'use client';
 
+import { Skeleton } from 'antd';
+import dynamic from 'next/dynamic';
 import React from 'react';
 
 import { DataRetentionWidget } from '@/features/dashboard/components/DataRetentionWidget';
@@ -12,14 +14,23 @@ import { BackupStatusWidget } from '@/features/dashboard/widgets/BackupStatusWid
 import { FinanzOnlineStatusWidget } from '@/features/dashboard/widgets/FinanzOnlineStatusWidget';
 import { LicenseExpiryWidget } from '@/features/dashboard/widgets/LicenseExpiryWidget';
 import { LowStockAlertsWidget } from '@/features/dashboard/widgets/LowStockAlertsWidget';
-import {
-  PaymentTrendWidget,
-  parsePaymentTrendPeriod,
-} from '@/features/dashboard/widgets/PaymentTrendWidget';
+import { parsePaymentTrendPeriod } from '@/features/dashboard/widgets/paymentTrendPeriod';
 import { RecentPermissionChangesWidget } from '@/features/dashboard/widgets/RecentPermissionChangesWidget';
 import { RecentUsersWidget } from '@/features/dashboard/widgets/RecentUsersWidget';
-import { TodaySalesWidget } from '@/features/dashboard/widgets/TodaySalesWidget';
 import { TopSellingProductsWidget } from '@/features/dashboard/widgets/TopSellingProductsWidget';
+
+const TodaySalesWidget = dynamic(
+  () => import('@/features/dashboard/widgets/TodaySalesWidget').then((m) => ({ default: m.TodaySalesWidget })),
+  { ssr: false, loading: () => <Skeleton active paragraph={{ rows: 6 }} /> }
+);
+
+const PaymentTrendWidget = dynamic(
+  () =>
+    import('@/features/dashboard/widgets/PaymentTrendWidget').then((m) => ({
+      default: m.PaymentTrendWidget,
+    })),
+  { ssr: false, loading: () => <Skeleton active paragraph={{ rows: 6 }} /> }
+);
 
 export type DashboardWidgetRenderProps = {
   title: string;

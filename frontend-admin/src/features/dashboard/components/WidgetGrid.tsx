@@ -16,7 +16,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import React from 'react';
+import React, { memo, useCallback, useMemo } from 'react';
 
 import type { DashboardWidgetPreference } from '@/features/dashboard/types';
 import { reorderDashboardWidgets } from '@/features/dashboard/utils/reorderDashboardWidgets';
@@ -29,18 +29,27 @@ type WidgetGridProps = {
   onWidgetSettingsChange: (widgetId: string, settings: Record<string, unknown>) => void;
 };
 
-function SortableWidgetItem({
-  item,
-  title,
-  onSettingsChange,
-}: {
+type SortableWidgetItemProps = {
   item: DashboardWidgetPreference;
   title: string;
-  onSettingsChange: (settings: Record<string, unknown>) => void;
-}) {
+  onWidgetSettingsChange: (widgetId: string, settings: Record<string, unknown>) => void;
+};
+
+const SortableWidgetItem = memo(function SortableWidgetItem({
+  item,
+  title,
+  onWidgetSettingsChange,
+}: SortableWidgetItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.widgetId,
   });
+
+  const handleSettingsChange = useCallback(
+    (settings: Record<string, unknown>) => {
+      onWidgetSettingsChange(item.widgetId, settings);
+    },
+    [item.widgetId, onWidgetSettingsChange]
+  );
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -55,11 +64,11 @@ function SortableWidgetItem({
         title,
         dragHandleProps: { ...attributes, ...listeners },
         settings: item.settings,
-        onSettingsChange,
+        onSettingsChange: handleSettingsChange,
       })}
     </div>
   );
-}
+});
 
 /** Drag-and-drop grid of visible dashboard widgets. */
 export function WidgetGrid({
@@ -68,23 +77,29 @@ export function WidgetGrid({
   onReorder,
   onWidgetSettingsChange,
 }: WidgetGridProps) {
-  const visible = widgets.filter((w) => w.isVisible).sort((a, b) => a.order - b.order);
-  const ids = visible.map((w) => w.widgetId);
+  const visible = useMemo(
+    () => widgets.filter((w) => w.isVisible).sort((a, b) => a.order - b.order),
+    [widgets]
+  );
+  const ids = useMemo(() => visible.map((w) => w.widgetId), [visible]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over) return;
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over) return;
 
-    const next = reorderDashboardWidgets(widgets, String(active.id), String(over.id));
-    if (next) {
-      onReorder(next);
-    }
-  };
+      const next = reorderDashboardWidgets(widgets, String(active.id), String(over.id));
+      if (next) {
+        onReorder(next);
+      }
+    },
+    [widgets, onReorder]
+  );
 
   if (visible.length === 0) {
     return null;
@@ -106,7 +121,7 @@ export function WidgetGrid({
               key={item.widgetId}
               item={item}
               title={titleById.get(item.widgetId) ?? item.widgetId}
-              onSettingsChange={(settings) => onWidgetSettingsChange(item.widgetId, settings)}
+              onWidgetSettingsChange={onWidgetSettingsChange}
             />
           ))}
         </div>

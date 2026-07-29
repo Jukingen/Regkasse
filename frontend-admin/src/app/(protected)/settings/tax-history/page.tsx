@@ -24,7 +24,7 @@ export default function TaxHistoryPage() {
     return items.map((item) => ({
       key: item.id,
       color: item.newRate > item.oldRate ? 'red' : item.newRate < item.oldRate ? 'green' : 'blue',
-      children: (
+      content: (
         <div>
           <div
             style={{

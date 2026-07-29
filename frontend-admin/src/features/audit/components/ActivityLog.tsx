@@ -9,6 +9,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { getAuditActionLabelKey } from '@/features/audit-logs/utils/auditActionLabels';
 import { buildAuditLogExportQuery } from '@/features/audit-logs/utils/buildAuditLogExportQuery';
 import { downloadAuditLogExport } from '@/features/audit-logs/utils/exportAuditLogs';
+import { UserInfoDisplay } from '@/features/audit/components/UserInfoDisplay';
 import {
   ACTIVITY_LOG_ACTION_FILTER_VALUES,
   activityLogActionTagColor,
@@ -90,9 +91,15 @@ export function ActivityLog() {
       },
       {
         title: t('activity.table.user'),
-        dataIndex: 'userName',
-        key: 'userName',
-        render: (name: string) => <Tag color="blue">{name}</Tag>,
+        key: 'user',
+        width: 240,
+        render: (_: unknown, record: ActivityLogRow) => (
+          <UserInfoDisplay
+            user={record.user}
+            userId={record.userId}
+            userRole={record.userRole}
+          />
+        ),
       },
       {
         title: t('activity.table.action'),

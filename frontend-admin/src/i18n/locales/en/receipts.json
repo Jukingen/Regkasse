@@ -139,6 +139,9 @@
     },
     "finanzOnlineSubmission": {
       "cardTitle": "FinanzOnline / BMF (Startbeleg & Jahresbeleg)",
+      "monatsbelegCardTitle": "FinanzOnline / BMF (Monatsbeleg)",
+      "monatsbelegNotRequiredTitle": "No automatic submission",
+      "monatsbelegNotRequiredBody": "Monatsbelege (January–November) are not sent via the FinanzOnline belegpruefung queue. Mandatory checks cover Startbeleg and Jahresbeleg (December). Optional: verify the QR with BMF Belegcheck. See the Monatsbeleg FinanzOnline product decision.",
       "disclaimerTitle": "Display notice",
       "disclaimerBody": "Technical overview of submission and feedback. Not legal advice and no guarantee vis-à-vis the tax office or BMF.",
       "labelStatus": "Status",

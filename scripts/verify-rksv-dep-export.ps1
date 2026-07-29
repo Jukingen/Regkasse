@@ -15,12 +15,16 @@ param(
     [switch]$DetailedOutput
 )
 
-$repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
-$fixtureDir = Join-Path $repoRoot "backend\Tests\fixtures\prueftool"
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$fixtureDir = [System.IO.Path]::Combine($repoRoot, "backend", "Tests", "fixtures", "prueftool")
+$isWindowsOs = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+    [System.Runtime.InteropServices.OSPlatform]::Windows)
+$classpathSeparator = if ($isWindowsOs) { ";" } else { ":" }
+$javaFileName = if ($isWindowsOs) { "java.exe" } else { "java" }
 
 if ($UseFixtures) {
-    $DepExportPath = Join-Path $fixtureDir "dep-export.json"
-    $CryptoMaterialPath = Join-Path $fixtureDir "crypto-material.json"
+    $DepExportPath = [System.IO.Path]::Combine($fixtureDir, "dep-export.json")
+    $CryptoMaterialPath = [System.IO.Path]::Combine($fixtureDir, "crypto-material.json")
 }
 
 if ([string]::IsNullOrWhiteSpace($DepExportPath) -or [string]::IsNullOrWhiteSpace($CryptoMaterialPath)) {
@@ -34,21 +38,25 @@ function Resolve-PrueftoolJavaExecutable {
         $candidates += $env:PRUEFTOOL_JAVA
     }
     if ($env:JAVA_HOME) {
-        $candidates += (Join-Path $env:JAVA_HOME "bin\java.exe")
+        $candidates += [System.IO.Path]::Combine($env:JAVA_HOME, "bin", $javaFileName)
+        $candidates += [System.IO.Path]::Combine($env:JAVA_HOME, "bin", "java.exe")
+        $candidates += [System.IO.Path]::Combine($env:JAVA_HOME, "bin", "java")
     }
 
-    $programFiles = @(
-        ${env:ProgramFiles},
-        ${env:ProgramFiles(x86)}
-    ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    if ($isWindowsOs) {
+        $programFiles = @(
+            ${env:ProgramFiles},
+            ${env:ProgramFiles(x86)}
+        ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
 
-    foreach ($root in $programFiles) {
-        $microsoftJdk = Get-ChildItem -Path (Join-Path $root "Microsoft") -Filter "java.exe" -Recurse -ErrorAction SilentlyContinue |
-            Where-Object { $_.FullName -match "jdk-1[7-9]|jdk-2[0-9]" } |
-            Sort-Object FullName -Descending |
-            Select-Object -First 1
-        if ($microsoftJdk) {
-            $candidates += $microsoftJdk.FullName
+        foreach ($root in $programFiles) {
+            $microsoftJdk = Get-ChildItem -Path (Join-Path $root "Microsoft") -Filter "java.exe" -Recurse -ErrorAction SilentlyContinue |
+                Where-Object { $_.FullName -match "jdk-1[7-9]|jdk-2[0-9]" } |
+                Sort-Object FullName -Descending |
+                Select-Object -First 1
+            if ($microsoftJdk) {
+                $candidates += $microsoftJdk.FullName
+            }
         }
     }
 
@@ -104,17 +112,17 @@ $ErrorActionPreference = $prevErrorAction
 
 $ErrorActionPreference = "Stop"
 
-$testsDir = Join-Path $repoRoot "backend\Tests"
-$libDir = Join-Path $testsDir "lib"
-$depJar = Join-Path $testsDir "regkassen-verification-depformat-1.1.1.jar"
+$testsDir = [System.IO.Path]::Combine($repoRoot, "backend", "Tests")
+$libDir = [System.IO.Path]::Combine($testsDir, "lib")
+$depJar = [System.IO.Path]::Combine($testsDir, "regkassen-verification-depformat-1.1.1.jar")
 
 if (-not (Test-Path $depJar)) {
-    Write-Error "DEP verification JAR not found: $depJar"
+    Write-Error "DEP verification JAR not found: $depJar. Run: pwsh ./scripts/ensure-bmf-prueftool.ps1"
     exit 1
 }
 
 if (-not (Test-Path $libDir)) {
-    Write-Error "Prüftool lib directory not found: $libDir"
+    Write-Error "Prüftool lib directory not found: $libDir. Run: pwsh ./scripts/ensure-bmf-prueftool.ps1"
     exit 1
 }
 
@@ -124,7 +132,7 @@ $outputFull = (New-Item -ItemType Directory -Force -Path $OutputDir).FullName
 
 $cpParts = @((Resolve-Path -LiteralPath $depJar).Path)
 $cpParts += Get-ChildItem -Path $libDir -Filter "*.jar" | ForEach-Object { $_.FullName }
-$classpath = $cpParts -join ';'
+$classpath = $cpParts -join $classpathSeparator
 
 $mainClass = "at.asitplus.regkassen.verification.cmdline.CheckDEPExportFormat"
 

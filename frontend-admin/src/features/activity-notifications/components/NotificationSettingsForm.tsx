@@ -110,6 +110,8 @@ export function NotificationSettingsForm() {
       webhookSecret: values.webhookSecret?.trim() || null,
       enabledEvents: values.enabledEvents ?? {},
       severityThreshold: values.severityThreshold ?? {},
+      // Preserve DEP mobile push prefs managed on the DEP compliance page.
+      depExportMobilePush: config?.depExportMobilePush ?? null,
     };
     save.mutate(payload, {
       onSuccess: () => message.success(t('activityNotifications.settingsSaved')),

@@ -91,21 +91,46 @@ export function formatProductUnitLabelForLocale(
   return raw;
 }
 
-// Define the shape of the raw API response item (PascalCase)
+// Define the shape of the raw API response item (PascalCase and camelCase)
 export interface ApiProduct {
-  Id: string;
-  Name: string;
+  Id?: string;
+  id?: string;
+  Name?: string;
+  name?: string;
+  NameDe?: string | null;
+  nameDe?: string | null;
+  NameEn?: string | null;
+  nameEn?: string | null;
+  NameTr?: string | null;
+  nameTr?: string | null;
   Description?: string | null;
-  Price: number;
+  description?: string | null;
+  DescriptionDe?: string | null;
+  descriptionDe?: string | null;
+  DescriptionEn?: string | null;
+  descriptionEn?: string | null;
+  DescriptionTr?: string | null;
+  descriptionTr?: string | null;
+  Price?: number;
+  price?: number;
   ImageUrl?: string | null;
+  imageUrl?: string | null;
   StockQuantity?: number;
+  stockQuantity?: number;
   MinStockLevel?: number;
+  minStockLevel?: number;
   Unit?: string | null;
+  unit?: string | null;
   Category?: string | null;
+  category?: string | null;
   CategoryId?: string | null;
-  TaxType: number; // Backend: int enum 1,2,3,4,5
+  categoryId?: string | null;
+  TaxType?: number; // Backend: int enum 1,2,3,4,5
+  taxType?: number;
   TaxRate?: number;
+  taxRate?: number;
   TaxGroupId?: string | null;
+  taxGroupId?: string | null;
   TaxGroup?: {
     id?: string;
     Id?: string;
@@ -120,14 +145,38 @@ export interface ApiProduct {
     austrianCode?: string | null;
     AustrianCode?: string | null;
   } | null;
+  taxGroup?: {
+    id?: string;
+    Id?: string;
+    name?: string;
+    Name?: string;
+    rate?: number;
+    Rate?: number;
+    color?: string | null;
+    Color?: string | null;
+    icon?: string | null;
+    Icon?: string | null;
+    austrianCode?: string | null;
+    AustrianCode?: string | null;
+  } | null;
   IsActive?: boolean;
+  isActive?: boolean;
   Barcode?: string | null;
+  barcode?: string | null;
   Cost?: number;
-  [key: string]: any;
+  cost?: number;
+  CreatedAt?: string;
+  createdAt?: string;
+  UpdatedAt?: string;
+  updatedAt?: string;
+  CreatedBy?: string;
+  createdBy?: string;
+  UpdatedBy?: string;
+  updatedBy?: string;
 }
 
 /** Maps API TaxType (int) and TaxRate to UI Product; taxType is kept as number. */
-export const mapApiProductToUi = (apiProduct: ApiProduct | any): Product => {
+export const mapApiProductToUi = (apiProduct: ApiProduct | null | undefined): Product => {
   if (!apiProduct) return {} as Product;
   const taxType = Number(apiProduct.TaxType ?? apiProduct.taxType ?? 1);
   const taxRate = apiProduct.TaxRate ?? apiProduct.taxRate ?? taxTypeToRate(taxType);
@@ -165,15 +214,15 @@ export const mapApiProductToUi = (apiProduct: ApiProduct | any): Product => {
     imageUrl: apiProduct.ImageUrl || apiProduct.imageUrl,
     stockQuantity: apiProduct.StockQuantity ?? apiProduct.stockQuantity ?? 0,
     minStockLevel: apiProduct.MinStockLevel ?? apiProduct.minStockLevel ?? 0,
-    unit: apiProduct.Unit || apiProduct.unit,
-    category: apiProduct.Category || apiProduct.category,
-    categoryId: apiProduct.CategoryId || apiProduct.categoryId,
+    unit: apiProduct.Unit || apiProduct.unit || '',
+    category: apiProduct.Category || apiProduct.category || '',
+    categoryId: apiProduct.CategoryId || apiProduct.categoryId || undefined,
     taxType,
     taxRate,
     taxGroupId: taxGroupId ? String(taxGroupId) : null,
     taxGroup,
     isActive: apiProduct.IsActive ?? apiProduct.isActive ?? true,
-    barcode: apiProduct.Barcode || apiProduct.barcode,
+    barcode: apiProduct.Barcode || apiProduct.barcode || '',
     cost: apiProduct.Cost ?? apiProduct.cost ?? 0,
     createdAt: apiProduct.CreatedAt || apiProduct.createdAt || new Date().toISOString(),
     updatedAt: apiProduct.UpdatedAt || apiProduct.updatedAt,

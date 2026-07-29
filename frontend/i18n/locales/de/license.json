@@ -97,5 +97,55 @@
     "ok": "OK",
     "featureDeniedTitle": "Lizenzfunktion nicht freigeschaltet",
     "featureDeniedBody": "Diese Aktion ist mit Ihrer aktuellen Lizenz nicht freigeschaltet ({{featureId}}). Bitte kontaktieren Sie Ihren Administrator."
+  },
+  "pushReminders": {
+    "title30": "Lizenz läuft in 30 Tagen ab",
+    "title14": "Lizenz läuft in 14 Tagen ab",
+    "title7": "Lizenz läuft in 7 Tagen ab",
+    "title1": "Lizenz läuft morgen ab",
+    "body": "Bitte verlängern Sie Ihre Lizenz rechtzeitig."
+  },
+  "lockdownAlert": {
+    "title": "Lizenz abgelaufen",
+    "body": "Bitte verlängern Sie Ihre Lizenz, um weiterarbeiten zu können.",
+    "renewNow": "Jetzt verlängern",
+    "later": "Später"
+  },
+  "gracePeriodWarning": {
+    "banner": "Lizenz läuft in {{days}} Tagen ab",
+    "bannerUrgent": "DRINGEND: Lizenz läuft in {{days}} Tagen ab",
+    "details": "Details",
+    "modalTitle": "Grace-Period",
+    "modalTitleUrgent": "DRINGEND: Grace-Period",
+    "modalBody": "Ihre Lizenz ist abgelaufen. Sie haben noch {{days}} Tag(e) Grace-Period.",
+    "modalLockdown": "Nach der Grace-Period wird das System gesperrt.",
+    "renewNow": "Jetzt verlängern",
+    "later": "Später"
+  },
+  "expiredScreen": {
+    "title": "Lizenz abgelaufen",
+    "subtitleDays": "Ihre Regkasse-Lizenz ist seit {{days}} Tag(en) abgelaufen.",
+    "subtitleGeneric": "Ihre Regkasse-Lizenz ist abgelaufen.",
+    "complianceNote": "Das System wurde aus Compliance-Gründen gesperrt.",
+    "renewHint": "Bitte verlängern Sie Ihre Lizenz, um weiterzuarbeiten.",
+    "renewCta": "Jetzt verlängern",
+    "supportCta": "Support kontaktieren",
+    "backToLogin": "Zurück zur Anmeldung",
+    "mailtoBody": "Bitte verlängern Sie meine Regkasse-Lizenz. Vielen Dank."
+  },
+  "statusChip": {
+    "messageActive": "Lizenz aktiv",
+    "messageGrace": "Grace: {{days}} Tage",
+    "messageLocked": "Abgelaufen",
+    "state": {
+      "Active": "Aktiv",
+      "Grace": "Grace-Periode",
+      "Locked": "Gesperrt"
+    },
+    "alertTitle": "Lizenzstatus",
+    "alertBody": "Status: {{state}}\nGültig bis: {{expiresAt}}\n{{message}}",
+    "renewNow": "Jetzt verlängern",
+    "ok": "OK",
+    "accessibilityHint": "Tippen für Details und Verlängerung"
   }
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { Table, type TableProps } from 'antd';
+import { memo } from 'react';
 
 import {
   ADMIN_TABLE_VIRTUAL_SCROLL_Y,
@@ -26,12 +27,7 @@ function resolveScrollX(scroll: TableProps<object>['scroll'], fallback = 1200): 
   return fallback;
 }
 
-/**
- * Ant Design Table facade that enables native `virtual` scrolling when the
- * current page has enough rows. Uses `@rc-component/virtual-list` via antd —
- * do not slice dataSource manually.
- */
-export function VirtualTable<T extends object>({
+function VirtualTableInner<T extends object>({
   dataSource,
   scroll,
   virtualScrollY = ADMIN_TABLE_VIRTUAL_SCROLL_Y,
@@ -59,3 +55,10 @@ export function VirtualTable<T extends object>({
     />
   );
 }
+
+/**
+ * Ant Design Table facade that enables native `virtual` scrolling when the
+ * current page has enough rows. Uses `@rc-component/virtual-list` via antd —
+ * do not slice dataSource manually.
+ */
+export const VirtualTable = memo(VirtualTableInner) as typeof VirtualTableInner;

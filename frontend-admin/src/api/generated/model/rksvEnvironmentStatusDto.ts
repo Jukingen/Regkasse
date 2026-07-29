@@ -17,4 +17,9 @@ export interface RksvEnvironmentStatusDto {
   tseStatusBadge?: string | null;
   /** @nullable */
   tseStatusDisplay?: string | null;
+  /** False when Production/Staging TSE fiscal config violates the lock (unless escape hatch). */
+  fiscalConfigLockOk?: boolean;
+  /** True when unsafe modes are allowed only via Tse:AllowUnsafeFiscalModesInProduction. */
+  fiscalConfigLockEscapeHatchActive?: boolean;
+  fiscalConfigLockReasons?: string[] | null;
 }

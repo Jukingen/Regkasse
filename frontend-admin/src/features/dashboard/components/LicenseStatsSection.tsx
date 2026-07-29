@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * License KPI cards and recent activity table sourced from dashboard-stats API.
+ * License KPI cards and recent activity feed sourced from dashboard-stats API.
  * Super Admin: platform-wide tenant + deployment metrics.
  * Manager: own tenant mandant license only.
  */
@@ -12,24 +12,20 @@ import {
   StopOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
-import { Alert, Card, Col, Row, Skeleton, Statistic, Table, Tag, Typography } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import { Alert, Card, Col, Row, Skeleton, Statistic, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import React, { useMemo } from 'react';
 
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import {
-  type LicenseActivity,
-  useLicenseDashboardStats,
-} from '@/features/license/api/licenseStats';
+import { useLicenseDashboardStats } from '@/features/license/api/licenseStats';
+import { LicenseActivityLogCard } from '@/features/license/components/LicenseActivityLogCard';
 import {
   type LicenseStatus,
   useDeploymentLicenseStatus,
   useTenantLicenseStatus,
 } from '@/features/license/hooks/useLicenseStatus';
-import { dateColumnRender } from '@/components/DateColumn';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { useI18n } from '@/i18n/I18nProvider';
 
@@ -72,39 +68,6 @@ function computeOwnTenantLicenseCounts(
   }
 
   return { active: 1, expiring: 0, expired: 0 };
-}
-
-function actionTagColor(action: string): string {
-  switch (action) {
-    case 'activate':
-      return 'green';
-    case 'extend':
-      return 'blue';
-    case 'revoke':
-      return 'red';
-    case 'cancel':
-      return 'magenta';
-    case 'delete':
-      return 'volcano';
-    case 'unregister':
-      return 'orange';
-    default:
-      return 'default';
-  }
-}
-
-function actionLabelKey(action: string): string {
-  const map: Record<string, string> = {
-    activate: 'license.dashboard.actionActivate',
-    extend: 'license.dashboard.actionExtend',
-    revoke: 'license.dashboard.actionRevoke',
-    cancel: 'license.dashboard.actionCancel',
-    delete: 'license.dashboard.actionDelete',
-    unregister: 'license.dashboard.actionUnregister',
-    details: 'license.dashboard.actionDetails',
-    other: 'license.dashboard.actionOther',
-  };
-  return map[action] ?? 'license.dashboard.actionOther';
 }
 
 function getLicensePhaseColor(kind: LicenseStatus['kind']): string {
@@ -235,54 +198,6 @@ export function LicenseStatsSection() {
     [licenseValidUntilUtc, isActive, tenantStatus]
   );
 
-  const activityColumns: ColumnsType<LicenseActivity> = useMemo(
-    () => [
-      {
-        title: t('license.dashboard.colTime'),
-        dataIndex: 'timestampUtc',
-        key: 'timestampUtc',
-        width: 170,
-        render: dateColumnRender('datetime'),
-      },
-      {
-        title: t('license.dashboard.colKey'),
-        dataIndex: 'licenseKeyMasked',
-        key: 'licenseKeyMasked',
-        ellipsis: true,
-        render: (key: string) => (
-          <Typography.Text code style={{ fontSize: 12 }}>
-            {key || '—'}
-          </Typography.Text>
-        ),
-      },
-      {
-        title: t('license.dashboard.colMachine'),
-        dataIndex: 'machineFingerprintShort',
-        key: 'machineFingerprintShort',
-        width: 160,
-        ellipsis: true,
-        render: (v: string | null | undefined) =>
-          v ? (
-            <Typography.Text code style={{ fontSize: 12 }}>
-              {v}
-            </Typography.Text>
-          ) : (
-            '—'
-          ),
-      },
-      {
-        title: t('license.dashboard.colAction'),
-        dataIndex: 'action',
-        key: 'action',
-        width: 160,
-        render: (action: string) => (
-          <Tag color={actionTagColor(action)}>{t(actionLabelKey(action))}</Tag>
-        ),
-      },
-    ],
-    [t]
-  );
-
   if (isSuperAdminUser ? isLoading : isTenantRecordLoading) {
     return <Skeleton active paragraph={{ rows: 8 }} />;
   }
@@ -370,18 +285,12 @@ export function LicenseStatsSection() {
           </Row>
 
           <Title level={4} style={{ marginTop: 24 }}>
-            {t('license.dashboard.activityTitle')}
+            {t('license.activityLog.title')}
           </Title>
-          <Table<LicenseActivity>
-            size="small"
-            rowKey={(row) =>
-              `lic-act-${row.timestampUtc}-${row.sourceCode}-${row.licenseKeyMasked}-${row.machineFingerprintShort ?? ''}-${row.action}`
-            }
-            pagination={false}
-            dataSource={data?.recentActivities ?? []}
-            columns={activityColumns}
-            locale={{ emptyText: '—' }}
-            scroll={{ x: 720 }}
+          <LicenseActivityLogCard
+            embedded
+            activities={data?.recentActivities ?? []}
+            loading={isLoading}
           />
         </>
       ) : (

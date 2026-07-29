@@ -1,5 +1,6 @@
 import { licenseApi, type TenantLicenseStatusDto } from '../../api/license';
 import { formatLicenseRemainingDe } from '../../utils/licenseExpiryRemaining';
+import { saveLicenseLockoutSnapshot } from '../../utils/licenseLockoutSnapshot';
 import { showToast } from '../../utils/toast';
 
 const EXPIRY_WARNING_DAYS = 14;
@@ -7,6 +8,7 @@ const EXPIRY_WARNING_DAYS = 14;
 /**
  * Post-login mandant license gate. Uses GET /api/license/status?tenantId=…
  * Returns false when access is blocked; shows German warnings for grace / pre-expiry.
+ * Lockout details are persisted for the license-expired screen (no toast — full-screen UX).
  */
 export async function checkLicenseStatus(tenantId: string): Promise<boolean> {
   try {
@@ -15,16 +17,15 @@ export async function checkLicenseStatus(tenantId: string): Promise<boolean> {
       canAccess,
       statusMessage,
       daysRemaining,
+      daysOverdue,
       isInGracePeriod,
       gracePeriodRemaining,
       validUntil,
     } = data;
 
     if (canAccess === false) {
-      showToast(
-        'Lizenz',
-        statusMessage ??
-          'Lizenz abgelaufen! POS ist gesperrt. Nur Super-Administrator kann entsperren.'
+      await saveLicenseLockoutSnapshot(
+        typeof daysOverdue === 'number' && Number.isFinite(daysOverdue) ? daysOverdue : 0
       );
       return false;
     }

@@ -10,7 +10,7 @@ import { PastMonthsMonatsbelegModal } from '@/features/rksv/components/PastMonth
 import { useCreateMonatsbeleg } from '@/features/rksv/hooks/useCreateMonatsbeleg';
 import { useMissingMonths } from '@/features/rksv/hooks/useMissingMonths';
 import { usePastMissingMonatsbelege } from '@/features/rksv/hooks/usePastMissingMonatsbelege';
-import { useAntdApp } from '@/hooks/useAntdApp';
+import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
@@ -36,7 +36,7 @@ function registerLabel(register: CashRegister | undefined, registerId: string): 
 }
 
 export function RksvReminderWidget() {
-  const { message } = useAntdApp();
+  const notify = useNotify();
   const { t } = useI18n();
   const { hasPermission } = usePermissions();
   const canCreate = hasPermission(PERMISSIONS.RKSV_MONATSBELEG_CREATE);
@@ -88,18 +88,18 @@ export function RksvReminderWidget() {
 
   const handleCreateMissing = async () => {
     if (!canCreate) {
-      message.warning(t('dashboard.rksvReminder.permission_denied'));
+      notify.warning('dashboard.rksvReminder.permission_denied');
       return;
     }
 
     if (!selectedRegisterId || !selectedMissing) {
-      message.info(t('dashboard.rksvReminder.monatsbeleg_already_exists'));
+      notify.info('dashboard.rksvReminder.monatsbeleg_already_exists');
       return;
     }
 
     const { year, month } = getViennaCalendarYearMonth();
     if (selectedMissing.year !== year || selectedMissing.month !== month) {
-      message.error(t('dashboard.rksvReminder.only_current_month'));
+      notify.errorKey('dashboard.rksvReminder.only_current_month');
       return;
     }
 
@@ -112,10 +112,13 @@ export function RksvReminderWidget() {
           reason: 'Monatsbeleg für aktuellen Kalendermonat',
         },
       });
-      message.success(t('dashboard.rksvReminder.monatsbeleg_created_success'));
+      notify.successKey('dashboard.rksvReminder.monatsbeleg_created_success');
       await refetch();
-    } catch {
-      message.error(t('dashboard.rksvReminder.monatsbeleg_create_failed'));
+    } catch (err) {
+      notify.apiError(err, {
+        logContext: 'RKSV.reminderWidget.createMonatsbeleg',
+        fallbackKey: 'dashboard.rksvReminder.monatsbeleg_create_failed',
+      });
     }
   };
 

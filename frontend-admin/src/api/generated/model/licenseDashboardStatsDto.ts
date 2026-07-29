@@ -15,6 +15,9 @@ export interface LicenseDashboardStatsDto {
   expiredTenantLicenses?: number;
   expiringDeploymentLicenses?: number;
   expiringTenantLicenses?: number;
+  graceTenantLicenses?: number;
+  lockedTenantLicenses?: number;
+  totalTenants?: number;
   /** @nullable */
   recentActivities?: LicenseActivityDto[] | null;
 }

@@ -2,7 +2,9 @@ import { Select, Spin } from 'antd';
 import type { SelectProps } from 'antd/es/select';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
-export interface DebounceSelectProps<ValueType = any> extends Omit<
+type DebounceSelectValue = { key?: string; label: React.ReactNode; value: string | number };
+
+export interface DebounceSelectProps<ValueType = DebounceSelectValue> extends Omit<
   SelectProps<ValueType | ValueType[]>,
   'options' | 'children'
 > {
@@ -12,7 +14,7 @@ export interface DebounceSelectProps<ValueType = any> extends Omit<
 }
 
 // Simple debounce implementation
-function debounce<T extends (...args: any[]) => any>(func: T, wait: number) {
+function debounce<T extends (...args: never[]) => unknown>(func: T, wait: number) {
   let timeout: NodeJS.Timeout | null = null;
   return (...args: Parameters<T>) => {
     if (timeout) clearTimeout(timeout);
@@ -23,7 +25,7 @@ function debounce<T extends (...args: any[]) => any>(func: T, wait: number) {
 }
 
 function DebounceSelect<
-  ValueType extends { key?: string; label: React.ReactNode; value: string | number } = any,
+  ValueType extends { key?: string; label: React.ReactNode; value: string | number } = DebounceSelectValue,
 >({
   fetchOptions,
   debounceTimeout = 800,

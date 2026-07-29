@@ -305,6 +305,12 @@ internal static class ApplicationHost
             builder.Configuration.GetSection(TenantDeletionOptions.SectionName));
         builder.Services.Configure<InventoryOptions>(builder.Configuration.GetSection(InventoryOptions.SectionName));
         builder.Services.Configure<TseOptions>(builder.Configuration.GetSection(TseOptions.SectionName));
+        if (!OpenApiExportMode.IsEnabled)
+        {
+            builder.Services.AddSingleton<IValidateOptions<TseOptions>, TseProductionOptionsValidator>();
+            builder.Services.AddOptions<TseOptions>().ValidateOnStart();
+        }
+
         builder.Services.Configure<RksvOptions>(builder.Configuration.GetSection(RksvOptions.SectionName));
         builder.Services.AddScoped<IRksvEnvironmentService, RksvEnvironmentService>();
         builder.Services.Configure<FiskalyOptions>(builder.Configuration.GetSection(FiskalyOptions.SectionName));
@@ -334,6 +340,11 @@ internal static class ApplicationHost
             builder.Configuration.GetSection(FinanzOnlineSimulationOptions.SectionName));
         builder.Services.Configure<RksvFinanzOnlineSubmissionClientOptions>(
             builder.Configuration.GetSection(RksvFinanzOnlineSubmissionClientOptions.SectionName));
+        if (!OpenApiExportMode.IsEnabled)
+        {
+            builder.Services.AddSingleton<IValidateOptions<RksvFinanzOnlineSubmissionClientOptions>, RksvFinanzOnlineSubmissionOptionsValidator>();
+            builder.Services.AddOptions<RksvFinanzOnlineSubmissionClientOptions>().ValidateOnStart();
+        }
         builder.Services.Configure<ElmahOptions>(builder.Configuration.GetSection(ElmahOptions.SectionName));
         builder.Services.AddHealthChecks()
             .AddCheck<DatabaseHealthCheck>(
@@ -342,16 +353,44 @@ internal static class ApplicationHost
             .AddCheck<TseCachedHealthCheck>(
                 TseCachedHealthCheck.Name,
                 tags: new[] { TseCachedHealthCheck.DepsTag })
+            .AddCheck<TseFiscalConfigHealthCheck>(
+                TseFiscalConfigHealthCheck.Name,
+                tags: new[] { DatabaseHealthCheck.ReadyTag })
             .AddCheck<NtpCachedHealthCheck>(
                 NtpCachedHealthCheck.Name,
                 tags: new[] { NtpCachedHealthCheck.DepsTag })
-            .AddCheck<FinanzOnlineHealthCheck>("finanzonline")
+            .AddCheck<FinanzOnlineHealthCheck>(
+                FinanzOnlineHealthCheck.Name,
+                tags: new[] { DatabaseHealthCheck.ReadyTag })
             .AddCheck<BackupHealthCheck>("backup")
-            .AddCheck<ElmahHealthCheck>("elmah");
+            .AddCheck<ElmahHealthCheck>("elmah")
+            .AddCheck<EfMigrationsHealthCheck>(
+                EfMigrationsHealthCheck.Name,
+                tags: new[] { EfMigrationsHealthCheck.MigrationsTag });
         builder.Services.AddScoped<IElmahErrorQueryService, ElmahErrorQueryService>();
         builder.Services.AddScoped<ILogExportService, LogExportService>();
 
         builder.Services.Configure<NtpSettings>(builder.Configuration.GetSection(NtpSettings.SectionName));
+        builder.Services.Configure<DeploymentOptions>(builder.Configuration.GetSection(DeploymentOptions.SectionName));
+        builder.Services.PostConfigure<DeploymentOptions>(opts =>
+        {
+            // Prefer top-level RELEASE_STAGE when Deployment:ReleaseStage is empty.
+            if (!string.IsNullOrWhiteSpace(opts.ReleaseStage))
+                return;
+            var fromEnv = Environment.GetEnvironmentVariable("RELEASE_STAGE");
+            if (!string.IsNullOrWhiteSpace(fromEnv))
+                opts.ReleaseStage = fromEnv.Trim();
+        });
+        builder.Services.Configure<FeatureFlagsOptions>(builder.Configuration.GetSection(FeatureFlagsOptions.SectionName));
+        builder.Services.AddScoped<KasseAPI_Final.Services.FeatureFlags.IFeatureFlagService, KasseAPI_Final.Services.FeatureFlags.FeatureFlagService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Deployment.IDeploymentStatusService, KasseAPI_Final.Services.Deployment.DeploymentStatusService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Deployment.IDeploymentRollbackService, KasseAPI_Final.Services.Deployment.DeploymentRollbackService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Deployment.ITenantDeploymentService, KasseAPI_Final.Services.Deployment.TenantDeploymentService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Deployment.IDeploymentAuditService, KasseAPI_Final.Services.Deployment.DeploymentAuditService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Deployment.IDeploymentComplianceService, KasseAPI_Final.Services.Deployment.DeploymentComplianceService>();
+        builder.Services.AddHostedService<KasseAPI_Final.Services.Deployment.CanaryTenantMonitorHostedService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Database.IMigrationStatusService, KasseAPI_Final.Services.Database.MigrationStatusService>();
+        builder.Services.AddHttpClient("deployment-rollback");
         builder.Services.Configure<DevelopmentOptions>(builder.Configuration.GetSection(DevelopmentOptions.SectionName));
         builder.Services.Configure<OfflineVoucherEncryptionOptions>(
             builder.Configuration.GetSection(OfflineVoucherEncryptionOptions.SectionName));
@@ -388,6 +427,8 @@ internal static class ApplicationHost
         builder.Services.AddSingleton<ILicenseReminderNotificationStore, LicenseReminderNotificationStore>();
         builder.Services.AddSingleton<ILicenseReminderEmailSender, LicenseReminderEmailSender>();
         builder.Services.AddScoped<ILicenseReminderService, LicenseReminderService>();
+        builder.Services.AddScoped<ILicenseAuditQueryService, LicenseAuditQueryService>();
+        builder.Services.AddScoped<ILicenseRenewalFunnelService, LicenseRenewalFunnelService>();
         builder.Services.AddHostedService<LicenseReminderHostedService>();
         builder.Services.Configure<LicenseReportEmailOptions>(builder.Configuration.GetSection(LicenseReportEmailOptions.SectionName));
         builder.Services.AddScoped<ILicenseExportReportService, LicenseExportReportService>();
@@ -651,6 +692,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<ITenantDataDeletionRequestService, TenantDataDeletionRequestService>();
         builder.Services.AddScoped<IDataDeletionNotificationSender, DataDeletionNotificationSender>();
         builder.Services.AddScoped<IDataDeletionService, DataDeletionService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.AccountClosure.IAccountClosureService, KasseAPI_Final.Services.AccountClosure.AccountClosureService>();
         builder.Services.AddSingleton<KasseAPI_Final.Services.DataRights.IDataRightsArtifactStore, KasseAPI_Final.Services.DataRights.DataRightsArtifactStore>();
         builder.Services.AddScoped<KasseAPI_Final.Services.DataRights.ICustomerDataRightsService, KasseAPI_Final.Services.DataRights.CustomerDataRightsService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.DataAccess.IDataAccessNotificationService, KasseAPI_Final.Services.DataAccess.DataAccessNotificationService>();
@@ -979,6 +1021,8 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IFinanzOnlineSubmissionService, FinanzOnlineSubmissionService>();
         builder.Services.AddScoped<IFinanzOnlineOutboxService, FinanzOnlineOutboxService>();
         builder.Services.AddScoped<RksvSpecialReceiptFinanzOnlineOutboxHandler>();
+        builder.Services.AddScoped<RksvAusfallFinanzOnlineOutboxHandler>();
+        builder.Services.AddScoped<IRksvAusfallEpisodeService, RksvAusfallEpisodeService>();
         builder.Services.AddScoped<FakeRksvFinanzOnlineSubmissionClient>();
         builder.Services.AddScoped<NotImplementedRksvFinanzOnlineSubmissionClient>();
         builder.Services.AddScoped<RksvFinanzOnlineSubmissionClient>();
@@ -1060,9 +1104,11 @@ internal static class ApplicationHost
         builder.Services.AddScoped<ITaxRegulationService, TaxRegulationService>();
         builder.Services.AddScoped<ITaxHistoryService, TaxHistoryService>();
         builder.Services.AddScoped<IProductPriceHistoryService, ProductPriceHistoryService>();
+        builder.Services.AddScoped<IRksvPriceChangeComplianceChecker, RksvPriceChangeComplianceChecker>();
         builder.Services.AddScoped<IPriceChangeService, PriceChangeService>();
         builder.Services.AddScoped<ITaxBulkUpdateService, TaxBulkUpdateService>();
         builder.Services.AddScoped<ITaxReportService, TaxReportService>();
+        builder.Services.AddScoped<IRksvReportingService, RksvCompliantReportingService>();
         builder.Services.AddScoped<ITaxComplianceChecker, TaxComplianceChecker>();
         builder.Services.AddScoped<ITaxGroupStatsService, TaxGroupStatsService>();
         builder.Services.AddScoped<IPricingRuleResolver, PricingRuleResolver>();
@@ -1321,7 +1367,30 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IRksvSignatureVerifyService, RksvSignatureVerifyService>();
         builder.Services.AddScoped<IDepExportHistoryService, DepExportHistoryService>();
         builder.Services.AddScoped<IDepExportScheduler, DepExportScheduler>();
+        builder.Services.AddScoped<IDepExportRequirementService, DepExportRequirementService>();
+        builder.Services.AddScoped<IDepExportComplianceScoreService, DepExportComplianceScoreService>();
+        builder.Services.AddScoped<IDepExportStatisticsService, DepExportStatisticsService>();
+        builder.Services.AddScoped<IDepExportAuditService, DepExportAuditService>();
+        builder.Services.AddScoped<IDepExportValidationService, DepExportValidationService>();
+        builder.Services.Configure<DepExportArchiveOptions>(
+            builder.Configuration.GetSection(DepExportArchiveOptions.SectionName));
+        builder.Services.AddScoped<IDepExportArchiveService, DepExportArchiveService>();
+        builder.Services.Configure<DepExportReminderOptions>(
+            builder.Configuration.GetSection(DepExportReminderOptions.SectionName));
+        builder.Services.AddScoped<IDepExportReminderService, DepExportReminderService>();
+        builder.Services.AddScoped<IDepExportPushNotificationService, DepExportPushNotificationService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Push.IPushNotificationService,
+            KasseAPI_Final.Services.Push.LoggingPushNotificationService>();
         builder.Services.AddHostedService<DepExportSchedulerHostedService>();
+        builder.Services.AddHostedService<DepExportReminderHostedService>();
+        builder.Services.AddHostedService<DepExportArchiveHostedService>();
+        builder.Services.Configure<SignaturkarteProgramOptions>(
+            builder.Configuration.GetSection(SignaturkarteProgramOptions.SectionName));
+        builder.Services.AddScoped<ISignaturkarteProgramService, SignaturkarteProgramService>();
+        builder.Services.AddScoped<ISignaturkarteProgramReminderService, SignaturkarteProgramReminderService>();
+        builder.Services.AddHostedService<SignaturkarteProgramReminderHostedService>();
+        builder.Services.Configure<AusfallOptions>(
+            builder.Configuration.GetSection(AusfallOptions.SectionName));
         builder.Services.Configure<DownloadHistoryOptions>(
             builder.Configuration.GetSection(DownloadHistoryOptions.SectionName));
         builder.Services.AddScoped<IDownloadHistoryService, DownloadHistoryService>();
@@ -1550,6 +1619,8 @@ internal static class ApplicationHost
         // Fail-closed: tenant-scoped API paths return 404 when ICurrentTenantAccessor.TenantId is unset.
         app.UseMiddleware<KasseAPI_Final.Middleware.TenantValidationMiddleware>();
         app.UseMiddleware<KasseAPI_Final.Middleware.SessionActivityMiddleware>();
+        // FA mandant lockdown (read-only + renewal / data-management) before broader tenant operational gates.
+        app.UseMiddleware<KasseAPI_Final.Middleware.LicenseLockdownMiddleware>();
         app.UseMiddleware<KasseAPI_Final.Middleware.TenantOperationalGateMiddleware>();
         app.UseMiddleware<KasseAPI_Final.Middleware.LicenseMiddleware>();
         app.UseMiddleware<KasseAPI_Final.Middleware.MaintenanceMiddleware>();
@@ -1588,6 +1659,7 @@ internal static class ApplicationHost
             app.MapGet("/", () => "Kasse API is running!");
             // Liveness (no dependency I/O). Dependency probes: HealthController (/api/health, /ready, /live)
             // and MapHealthChecks aliases below for orchestrators that prefer /health/*.
+            // Ready = database + fiscal config (TSE lock + FinanzOnline simulation gate); not device TSE/NTP.
             app.MapGet("/health", () => Results.Text("OK")).AllowAnonymous();
             app.MapGet("/health/live", () => Results.Text("OK")).AllowAnonymous();
             app.MapHealthChecks("/health/ready", new HealthCheckOptions
@@ -1609,18 +1681,47 @@ internal static class ApplicationHost
             .AllowAnonymous();
         app.MapHealthChecks("/health/finanzonline/mode", new HealthCheckOptions
         {
-            Predicate = check => check.Name == "finanzonline",
+            Predicate = check => check.Name == FinanzOnlineHealthCheck.Name,
             AllowCachingResponses = false,
+            ResultStatusCodes =
+            {
+                [HealthStatus.Healthy] = StatusCodes.Status200OK,
+                [HealthStatus.Degraded] = StatusCodes.Status200OK,
+                [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable,
+            },
         }).AllowAnonymous();
         app.MapHealthChecks("/health/backup/mode", new HealthCheckOptions
         {
             Predicate = check => check.Name == "backup",
             AllowCachingResponses = false,
         }).AllowAnonymous();
+        app.MapHealthChecks("/health/tse/mode", new HealthCheckOptions
+        {
+            Predicate = check => check.Name == TseFiscalConfigHealthCheck.Name,
+            AllowCachingResponses = false,
+            ResultStatusCodes =
+            {
+                [HealthStatus.Healthy] = StatusCodes.Status200OK,
+                [HealthStatus.Degraded] = StatusCodes.Status200OK,
+                [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable,
+            },
+        }).AllowAnonymous();
         app.MapHealthChecks("/health/elmah", new HealthCheckOptions
         {
             Predicate = check => check.Name == "elmah",
             AllowCachingResponses = false,
+        }).AllowAnonymous();
+        app.MapHealthChecks("/health/migrations", new HealthCheckOptions
+        {
+            Predicate = check => check.Name == EfMigrationsHealthCheck.Name,
+            AllowCachingResponses = false,
+            ResponseWriter = HealthCheckJsonResponse.WriteAsync,
+            ResultStatusCodes =
+            {
+                [HealthStatus.Healthy] = StatusCodes.Status200OK,
+                [HealthStatus.Degraded] = StatusCodes.Status200OK,
+                [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable,
+            },
         }).AllowAnonymous();
         app.MapGet("/api/health/license", (ILicenseService lic, ILicenseReminderNotificationStore licenseReminders) =>
         {

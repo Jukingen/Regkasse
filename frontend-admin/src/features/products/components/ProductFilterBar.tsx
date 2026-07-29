@@ -28,7 +28,7 @@ import {
   Typography,
 } from 'antd';
 import type { Dayjs } from 'dayjs';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { AdminCategory } from '@/features/categories/types';
 import type {
@@ -99,7 +99,7 @@ function formatCount(count: number, loading?: boolean): string {
   return String(count);
 }
 
-export function ProductFilterBar({
+export const ProductFilterBar = memo(function ProductFilterBar({
   filters,
   onFilterChange,
   categories,
@@ -652,4 +652,4 @@ export function ProductFilterBar({
       </Drawer>
     </>
   );
-}
+});

@@ -7,6 +7,7 @@
  */
 
 export interface CreateLicenseSaleRequest {
+  applyToTenant?: boolean;
   /** @nullable */
   customValidUntilUtc?: string | null;
   /** @minLength 1 */

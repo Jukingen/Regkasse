@@ -6,44 +6,37 @@ import {
   Button,
   Card,
   Col,
-  Empty,
   Row,
+  Skeleton,
   Space,
   Statistic,
   Tabs,
   Typography,
 } from 'antd';
+import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import {
-  TseActiveTenantTag,
-  TseTenantRequiredAlert,
-} from '@/features/tse-shared/components/TseTenantContextUi';
-import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
 import {
   downloadBase64File,
   exportTseBiReport,
   getTseBiDashboard,
 } from '@/features/tse-analytics/api/analytics';
+import {
+  TseActiveTenantTag,
+  TseTenantRequiredAlert,
+} from '@/features/tse-shared/components/TseTenantContextUi';
+import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
+
+const TseAnalyticsCharts = dynamic(
+  () => import('@/features/tse-analytics/components/TseAnalyticsCharts'),
+  { ssr: false, loading: () => <Skeleton active paragraph={{ rows: 6 }} /> }
+);
 
 const KEY = ['admin', 'tse-analytics'] as const;
 const PIE_COLORS = ['#1677ff', '#52c41a', '#fa8c16', '#722ed1', '#13c2c2', '#eb2f96', '#cf1322'];
@@ -104,6 +97,18 @@ export default function TseAnalyticsPage() {
       statuses: statuses.map((s) => ({ name: s.name, value: s.count })),
     };
   }, [dashboard?.providerBreakdown, dashboard?.statusBreakdown]);
+
+  const chartLabels = useMemo(
+    () => ({
+      transactionTrend: t('tseAnalytics.transactionTrend'),
+      healthTrend: t('tseAnalytics.healthTrend'),
+      providerBreakdown: t('tseAnalytics.providerBreakdown'),
+      statusBreakdown: t('tseAnalytics.statusBreakdown'),
+      totalTransactions: t('tseAnalytics.totalTransactions'),
+      healthScore: t('tseAnalytics.healthScore'),
+    }),
+    [t]
+  );
 
   if (!allowed) {
     return <Alert type="error" showIcon title={t('tseAnalytics.forbidden')} />;
@@ -174,61 +179,14 @@ export default function TseAnalyticsPage() {
                       </Col>
                     </Row>
 
-                    <Card
-                      size="small"
-                      title={t('tseAnalytics.transactionTrend')}
-                      style={{ marginTop: 16 }}
-                    >
-                      {txnChart.length === 0 ? (
-                        <Empty />
-                      ) : (
-                        <div style={{ width: '100%', height: 260 }}>
-                          <ResponsiveContainer>
-                            <AreaChart data={txnChart}>
-                              <CartesianGrid strokeDasharray="3 3" />
-                              <XAxis dataKey="label" tick={{ fontSize: 11 }} minTickGap={24} />
-                              <YAxis tick={{ fontSize: 11 }} width={40} />
-                              <Tooltip />
-                              <Area
-                                type="monotone"
-                                dataKey="value"
-                                stroke="#1677ff"
-                                fill="#1677ff33"
-                                name={t('tseAnalytics.totalTransactions')}
-                              />
-                            </AreaChart>
-                          </ResponsiveContainer>
-                        </div>
-                      )}
-                    </Card>
-
-                    <Card
-                      size="small"
-                      title={t('tseAnalytics.healthTrend')}
-                      style={{ marginTop: 16 }}
-                    >
-                      {healthChart.length === 0 ? (
-                        <Empty />
-                      ) : (
-                        <div style={{ width: '100%', height: 260 }}>
-                          <ResponsiveContainer>
-                            <AreaChart data={healthChart}>
-                              <CartesianGrid strokeDasharray="3 3" />
-                              <XAxis dataKey="label" tick={{ fontSize: 11 }} minTickGap={24} />
-                              <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} width={40} />
-                              <Tooltip />
-                              <Area
-                                type="monotone"
-                                dataKey="value"
-                                stroke="#52c41a"
-                                fill="#52c41a33"
-                                name={t('tseAnalytics.healthScore')}
-                              />
-                            </AreaChart>
-                          </ResponsiveContainer>
-                        </div>
-                      )}
-                    </Card>
+                    <TseAnalyticsCharts
+                      section="overview"
+                      txnChart={txnChart}
+                      healthChart={healthChart}
+                      deviceDistribution={deviceDistribution}
+                      labels={chartLabels}
+                      pieColors={PIE_COLORS}
+                    />
                   </>
                 ),
               },
@@ -236,68 +194,14 @@ export default function TseAnalyticsPage() {
                 key: 'devices',
                 label: t('tseAnalytics.tabDevices'),
                 children: (
-                  <Row gutter={16}>
-                    <Col xs={24} md={12}>
-                      <Card size="small" title={t('tseAnalytics.providerBreakdown')}>
-                        {deviceDistribution.providers.length === 0 ? (
-                          <Empty />
-                        ) : (
-                          <div style={{ width: '100%', height: 280 }}>
-                            <ResponsiveContainer>
-                              <PieChart>
-                                <Pie
-                                  data={deviceDistribution.providers}
-                                  dataKey="value"
-                                  nameKey="name"
-                                  outerRadius={90}
-                                  label
-                                >
-                                  {deviceDistribution.providers.map((_, index) => (
-                                    <Cell
-                                      key={`prov-${index}`}
-                                      fill={PIE_COLORS[index % PIE_COLORS.length]}
-                                    />
-                                  ))}
-                                </Pie>
-                                <Tooltip />
-                                <Legend />
-                              </PieChart>
-                            </ResponsiveContainer>
-                          </div>
-                        )}
-                      </Card>
-                    </Col>
-                    <Col xs={24} md={12}>
-                      <Card size="small" title={t('tseAnalytics.statusBreakdown')}>
-                        {deviceDistribution.statuses.length === 0 ? (
-                          <Empty />
-                        ) : (
-                          <div style={{ width: '100%', height: 280 }}>
-                            <ResponsiveContainer>
-                              <PieChart>
-                                <Pie
-                                  data={deviceDistribution.statuses}
-                                  dataKey="value"
-                                  nameKey="name"
-                                  outerRadius={90}
-                                  label
-                                >
-                                  {deviceDistribution.statuses.map((_, index) => (
-                                    <Cell
-                                      key={`st-${index}`}
-                                      fill={PIE_COLORS[index % PIE_COLORS.length]}
-                                    />
-                                  ))}
-                                </Pie>
-                                <Tooltip />
-                                <Legend />
-                              </PieChart>
-                            </ResponsiveContainer>
-                          </div>
-                        )}
-                      </Card>
-                    </Col>
-                  </Row>
+                  <TseAnalyticsCharts
+                    section="devices"
+                    txnChart={txnChart}
+                    healthChart={healthChart}
+                    deviceDistribution={deviceDistribution}
+                    labels={chartLabels}
+                    pieColors={PIE_COLORS}
+                  />
                 ),
               },
               {

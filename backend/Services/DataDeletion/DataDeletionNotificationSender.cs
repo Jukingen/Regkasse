@@ -13,9 +13,18 @@ public interface IDataDeletionNotificationSender
         string subject,
         string plainBody,
         CancellationToken ct = default);
+
+    /// <summary>Sends HTML mail with plain-text fallback when <paramref name="htmlBody"/> is set.</summary>
+    Task SendAsync(
+        IReadOnlyList<string> to,
+        IReadOnlyList<string> cc,
+        string subject,
+        string plainBody,
+        string? htmlBody,
+        CancellationToken ct = default);
 }
 
-/// <summary>Best-effort SMTP notifier for deletion request / confirmation (skipped when SMTP unset).</summary>
+/// <summary>Best-effort SMTP notifier for deletion / GDPR data-access emails (skipped when SMTP unset).</summary>
 public sealed class DataDeletionNotificationSender : IDataDeletionNotificationSender
 {
     private readonly IOptions<EmailSmtpOptions> _options;
@@ -29,11 +38,20 @@ public sealed class DataDeletionNotificationSender : IDataDeletionNotificationSe
         _logger = logger;
     }
 
+    public Task SendAsync(
+        IReadOnlyList<string> to,
+        IReadOnlyList<string> cc,
+        string subject,
+        string plainBody,
+        CancellationToken ct = default) =>
+        SendAsync(to, cc, subject, plainBody, htmlBody: null, ct);
+
     public async Task SendAsync(
         IReadOnlyList<string> to,
         IReadOnlyList<string> cc,
         string subject,
         string plainBody,
+        string? htmlBody,
         CancellationToken ct = default)
     {
         var opt = _options.Value;
@@ -55,9 +73,25 @@ public sealed class DataDeletionNotificationSender : IDataDeletionNotificationSe
         {
             From = new MailAddress(from),
             Subject = subject,
-            Body = plainBody,
-            IsBodyHtml = false,
         };
+
+        if (!string.IsNullOrWhiteSpace(htmlBody))
+        {
+            msg.IsBodyHtml = true;
+            msg.Body = htmlBody;
+            var plainView = AlternateView.CreateAlternateViewFromString(
+                string.IsNullOrWhiteSpace(plainBody) ? StripRoughHtml(htmlBody) : plainBody,
+                null,
+                "text/plain");
+            var htmlView = AlternateView.CreateAlternateViewFromString(htmlBody, null, "text/html");
+            msg.AlternateViews.Add(plainView);
+            msg.AlternateViews.Add(htmlView);
+        }
+        else
+        {
+            msg.Body = plainBody;
+            msg.IsBodyHtml = false;
+        }
 
         foreach (var r in to.Distinct(StringComparer.OrdinalIgnoreCase))
             msg.To.Add(r);
@@ -89,9 +123,16 @@ public sealed class DataDeletionNotificationSender : IDataDeletionNotificationSe
 
         await client.SendMailAsync(msg, ct).ConfigureAwait(false);
         _logger.LogInformation(
-            "Data deletion email sent. To={ToCount}, Cc={CcCount}, Subject={Subject}",
+            "Data deletion email sent. To={ToCount}, Cc={CcCount}, Subject={Subject}, Html={Html}",
             msg.To.Count,
             msg.CC.Count,
-            subject);
+            subject,
+            !string.IsNullOrWhiteSpace(htmlBody));
+    }
+
+    private static string StripRoughHtml(string html)
+    {
+        var text = System.Text.RegularExpressions.Regex.Replace(html, "<[^>]+>", " ");
+        return WebUtility.HtmlDecode(text).Trim();
     }
 }

@@ -120,6 +120,23 @@ public enum ActivityEventType
     /// <summary>Operator scheduled a TSE certificate renewal date.</summary>
     TseCertificateRenewalScheduled = 173,
 
+    /// <summary>
+    /// Mai 2027 Signaturkarte program reminder (independent of certificate ExpiresAt).
+    /// </summary>
+    SignaturkarteProgramReminder = 174,
+
+    /// <summary>Mai 2027 Signaturkarte program overdue (past DeadlineUtc with Open devices).</summary>
+    SignaturkarteProgramOverdue = 175,
+
+    /// <summary>Ausfall FON enqueue suggested (awaiting operator approval).</summary>
+    TseAusfallEnqueueSuggested = 176,
+
+    /// <summary>Ausfall reported / enqueued to FinanzOnline outbox.</summary>
+    TseAusfallReported = 177,
+
+    /// <summary>Wiederinbetriebnahme reported / enqueued to FinanzOnline outbox.</summary>
+    TseWiederinbetriebnahmeReported = 178,
+
     /// <summary>TSE device health probe latency exceeded slow/critical thresholds.</summary>
     TsePerformanceSlow = 180,
 
@@ -155,4 +172,19 @@ public enum ActivityEventType
 
     /// <summary>TSE auto-healing applied a safe recovery action (re-probe / clear error / optional failover).</summary>
     TseAutoHealExecuted = 191,
+
+    /// <summary>DEP export requirement due soon (30 / 7 / 1 day milestones).</summary>
+    DepExportDueSoon = 200,
+
+    /// <summary>DEP export requirement past due date.</summary>
+    DepExportOverdue = 201,
+
+    /// <summary>Automatic post-export DEP JSON validation failed.</summary>
+    DepExportValidationFailed = 202,
+
+    /// <summary>Canary tenant exceeded absolute failed-audit threshold during soak.</summary>
+    CanaryTenantErrors = 210,
+
+    /// <summary>Canary tenant failed-audit rate exceeded threshold during soak.</summary>
+    CanaryTenantHighErrorRate = 211,
 }

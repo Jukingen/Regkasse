@@ -144,6 +144,7 @@ export const PERMISSIONS = {
   TSE_SIGN: 'tse.sign',
   TSE_DIAGNOSTICS: 'tse.diagnostics',
   SYSTEM_CRITICAL: 'system.critical',
+  DEPLOYMENT_APPROVE: 'deployment.approve',
   RISK_VIEW: 'risk.view',
   RISK_MANAGE: 'risk.manage',
   TENANT_MANAGE: 'tenant.manage',

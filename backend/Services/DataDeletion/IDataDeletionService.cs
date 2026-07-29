@@ -33,4 +33,19 @@ public interface IDataDeletionService
 
     /// <summary>Requests that are confirmed and past the 7-day wait (for auto-purge).</summary>
     Task<IReadOnlyList<Guid>> ListPurgeEligibleRequestIdsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Cancels an open deletion request (pending / export_ready / confirmed before purge).
+    /// Linked GDPR delete rights rows are cancelled as well.
+    /// </summary>
+    Task<TenantDataDeletionRequestDto> CancelDeletionAsync(
+        Guid tenantId,
+        Guid requestId,
+        string? cancelledByUserId,
+        CancellationToken ct = default);
+
+    /// <summary>Latest non-cancelled, non-completed deletion request for the tenant (if any).</summary>
+    Task<TenantDataDeletionRequestDto?> GetLatestOpenDeletionAsync(
+        Guid tenantId,
+        CancellationToken ct = default);
 }

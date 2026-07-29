@@ -1,15 +1,18 @@
 # Backend configuration (secrets and environment)
 
-Technical documentation (English). Do not commit real secrets; `appsettings.json` and `appsettings.*.json` under `backend/` are gitignored by design. Tracked sources of truth: `appsettings.example.json`, `appsettings.Development.example.json`, `appsettings.Production.example.json`.
+Technical documentation (English). Do not commit real secrets; `appsettings.json` and `appsettings.*.json` under `backend/` are gitignored by design. Tracked sources of truth: `appsettings.example.json`, `appsettings.Development.example.json`, `appsettings.Staging.example.json`, `appsettings.Production.example.json`.
 
-## Environment layering (`ASPNETCORE_ENVIRONMENT`)
+## Environment layering (`ASPNETCORE_ENVIRONMENT` + `RELEASE_STAGE`)
 
 | Layer | File | Role |
 |-------|------|------|
 | Base | `appsettings.json` | Safe shared defaults (no DB password, no JWT secret, no PEM/API keys) |
-| Development | `appsettings.Development.json` | Demo/Fake TSE, FinanzOnline simulation, 2FA off + bypass, CSRF off, NTP bypass |
-| Production | `appsettings.Production.json` | Real RKSV/FO flags, CSRF on, rate limit on, SuperAdmin 2FA on — **still no secrets** |
+| Development | `appsettings.Development.json` | Demo/Fake TSE, FinanzOnline simulation, 2FA off + bypass, CSRF off, NTP bypass; `Deployment:ReleaseStage=dev` |
+| Staging | `appsettings.Staging.json` | Production-like fiscal lock, CSRF/2FA on, staging CORS/Redis; `ReleaseStage=staging` |
+| Production | `appsettings.Production.json` | Real RKSV/FO flags, CSRF on, rate limit on, SuperAdmin 2FA on — **still no secrets**; `ReleaseStage=production` or `canary` |
 | Secrets | User secrets / env vars | `ConnectionStrings:DefaultConnection`, `JwtSettings:SecretKey`, Fiskaly keys, license PEMs (or `LicenseSettings` file paths under gitignored `App_Data/`) |
+
+Also set `RELEASE_STAGE=dev|staging|canary|production` (or `Deployment__ReleaseStage`). Details: [`docs/ENVIRONMENT_CONFIGURATION.md`](../docs/ENVIRONMENT_CONFIGURATION.md).
 
 Load order (ASP.NET Core): base → environment overlay → user secrets (Development) → environment variables.
 
@@ -251,3 +254,7 @@ Tracking tables: `rksv_cold_archive_runs`, `rksv_cold_archive_items`. Live `paym
 ## Logging
 
 Connection strings printed at startup use `ConnectionStringMasking`; raw passwords must not appear in logs. Do not enable verbose logging of HTTP bodies or SOAP envelopes that might contain session tokens in production without redaction.
+
+Production example uses **JSON console** logging (`Logging:Console:FormatterName=json`) for Promtail/Loki aggregation — see [`docs/MONITORING.md`](../docs/MONITORING.md). Levels: prefer `Information` for `KasseAPI_Final`, `Warning`+ for ASP.NET/EF noise.
+
+Prometheus: `Monitoring:Enabled` + scrape `GET /metrics` — [`docs/METRICS.md`](../docs/METRICS.md).

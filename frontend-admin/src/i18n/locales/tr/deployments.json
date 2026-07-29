@@ -1,0 +1,113 @@
+{
+  "pageTitle": "Deployments",
+  "accessDenied": "Yalnızca Super Admin dağıtım durumunu görebilir.",
+  "introTitle": "Çok aşamalı pipeline",
+  "introBody": "Staging, Canary ve Production dağıtım durumu (smoke sonuçları dahil).",
+  "pipelineHint": "Canary: smoke fail → otomatik rollback. Production: smoke fail → manuel rollback (FA veya scripts/rollback-production.sh). Progressive kiracılar: /admin/deployments/tenants.",
+  "filterStage": "Aşama",
+  "allStages": "Tümü",
+  "noRuns": "Henüz rapor yok",
+  "noError": "Hata yok",
+  "openRun": "CI koşusu",
+  "columns": {
+    "stage": "Aşama",
+    "status": "Durum",
+    "smoke": "Smoke",
+    "image": "Image",
+    "git": "Git",
+    "tenants": "Kiracılar",
+    "updated": "Güncellendi",
+    "run": "Koşu"
+  },
+  "status": {
+    "pending": "Bekliyor",
+    "deploying": "Deploy",
+    "smoke_running": "Smoke",
+    "succeeded": "Başarılı",
+    "failed": "Başarısız",
+    "rolled_back": "Geri alındı"
+  },
+  "smoke": {
+    "passed": "Smoke OK",
+    "failed": "Smoke fail",
+    "unknown": "Smoke yok",
+    "summary": "Smoke detayı"
+  },
+    "rollback": {
+      "button": "Rollback",
+      "confirmTitle": "Dağıtımı geri al?",
+      "confirmBody": "Aşama {{stage}}: rollback webhook'u (önceki image).",
+      "confirmOk": "Rollback çalıştır",
+      "previousImage": "Hedef image: {{image}}",
+      "noPrevious": "previousImageTag yok — webhook/host last-known-good bilmeli.",
+      "success": "Rollback tetiklendi.",
+      "failed": "Rollback başarısız."
+    },
+    "compliance": {
+      "pageTitle": "Dağıtım uyumluluğu",
+      "accessDenied": "deployment.approve (ComplianceOfficer) veya Super Admin gerekir.",
+      "introTitle": "RKSV production onayı",
+      "introBody": "Production deploy öncesi mali kontrolleri onaylayın.",
+      "pipelineHint": "Tüm checklist maddeleri zorunlu. CI gate bu onayı doğrular. docs/DEPLOYMENT_COMPLIANCE.md.",
+      "linkDashboard": "Aşama dağıtım panosu",
+      "imageTag": "Image etiketi",
+      "checklistTitle": "Kontrol listesi",
+      "notes": "Notlar",
+      "signoffButton": "Production için onayla",
+      "signoffSuccess": "Uyumluluk onayı kaydedildi.",
+      "signoffFailed": "Uyumluluk onayı başarısız.",
+      "gateStatus": "Gate durumu",
+      "gatePassed": "Gate geçti",
+      "yes": "Evet",
+      "no": "Hayır",
+      "noSignoff": "Bu image için henüz onay yok.",
+      "signedBy": "{{who}} tarafından {{when}} onaylandı",
+      "items": {
+        "depExport": "DEP export test edildi",
+        "tseSignature": "TSE imza test edildi",
+        "finanzOnline": "FinanzOnline test gönderimi başarılı",
+        "ntp": "NTP zaman senkronu kontrol edildi",
+        "tenantIsolation": "Kiracı izolasyonu doğrulandı"
+      }
+    },
+    "tenants": {
+    "pageTitle": "Kiracı dağıtımları",
+    "introTitle": "Progressive canary",
+    "introBody": "Kiracı başına dağıtım sürümü ve soak durumu.",
+    "pipelineHint": "Tek kiracı deploy → 24–48s izle → sonraki kiracı. docs/CANARY_DEPLOYMENT.md.",
+    "linkStageDashboard": "Aşama dağıtım panosu",
+    "soakingCount": "Canary soak",
+    "failedCount": "Başarısız",
+    "nextCanary": "Önerilen sonraki canary",
+    "nextCanaryNone": "—",
+    "soaking": "Soak",
+    "columns": {
+      "tenant": "Kiracı",
+      "version": "Sürüm",
+      "stage": "Aşama",
+      "status": "Durum",
+      "deployed": "Deploy",
+      "soakUntil": "Soak bitiş",
+      "actions": "İşlemler"
+    },
+    "status": {
+      "pending": "Bekliyor",
+      "deploying": "Deploy",
+      "succeeded": "Başarılı",
+      "failed": "Başarısız",
+      "rolled_back": "Geri alındı",
+      "canary_soak": "Canary soak",
+      "promoted": "Promoted"
+    },
+    "rollback": {
+      "button": "Kiracı rollback",
+      "confirmTitle": "Bu kiracıyı geri al?",
+      "confirmBody": "Kiracı {{tenant}}: previousVersion için canary rollback webhook.",
+      "confirmOk": "Kiracı rollback",
+      "previousVersion": "Hedef sürüm: {{version}}",
+      "noPrevious": "previousVersion yok.",
+      "success": "Kiracı rollback tetiklendi.",
+      "failed": "Kiracı rollback başarısız."
+    }
+  }
+}

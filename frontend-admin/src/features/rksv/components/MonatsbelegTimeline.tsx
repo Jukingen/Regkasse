@@ -32,6 +32,7 @@ import {
   buildMonthReceiptsHref,
 } from '@/features/rksv/utils/monatsbelegMonthLinks';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
 import { formatDateTime } from '@/i18n/formatting';
 import { copyTextToClipboard } from '@/lib/clipboard';
@@ -74,7 +75,8 @@ export function MonatsbelegTimeline({
   onCreateLate,
 }: MonatsbelegTimelineProps) {
   const { t, textLocale } = useI18n();
-  const { message, modal } = useAntdApp();
+  const { modal } = useAntdApp();
+  const notify = useNotify();
   const router = useRouter();
 
   const [summaryMonth, setSummaryMonth] = useState<SelectedMonth | null>(null);
@@ -151,14 +153,14 @@ export function MonatsbelegTimeline({
           month,
         });
         void copyTextToClipboard(link).then((ok) => {
-          if (ok) message.success(t('rksvHub.monatsbelegTimeline.copyLinkSuccess'));
-          else message.error(t('rksvHub.monatsbelegTimeline.copyLinkFailed'));
+          if (ok) notify.successKey('rksvHub.monatsbelegTimeline.copyLinkSuccess');
+          else notify.errorKey('rksvHub.monatsbelegTimeline.copyLinkFailed');
         });
         return;
       }
 
       if (!cashRegisterId?.trim()) {
-        message.warning(t('rksvHub.monatsbelegTimeline.needRegister'));
+        notify.warning('rksvHub.monatsbelegTimeline.needRegister');
         return;
       }
 
@@ -178,7 +180,7 @@ export function MonatsbelegTimeline({
       if (action === 'view-report') {
         const receiptId = receiptIdByMonth.get(month);
         if (!receiptId) {
-          message.warning(t('rksvHub.monatsbelegTimeline.viewReportMissing'));
+          notify.warning('rksvHub.monatsbelegTimeline.viewReportMissing');
           return;
         }
         setSummaryOpen(false);
@@ -194,7 +196,7 @@ export function MonatsbelegTimeline({
 
       if (action === 'recreate') {
         if (!canRecreate) {
-          message.warning(t('rksvHub.monatsbelegTimeline.recreateDenied'));
+          notify.warning('rksvHub.monatsbelegTimeline.recreateDenied');
           return;
         }
         modal.confirm({
@@ -215,7 +217,7 @@ export function MonatsbelegTimeline({
     [
       canRecreate,
       cashRegisterId,
-      message,
+      notify,
       modal,
       onCreateLate,
       receiptIdByMonth,

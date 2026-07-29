@@ -71,6 +71,7 @@ dotnet ef migrations add <DescriptiveName> --project backend/KasseAPI_Final.cspr
 - Fiscal / receipt / TSE tablolarında destructive migration yok sayma; additive + default Guid kullan.
 - `IgnoreQueryFilters()` yalnızca Super Admin servisleri, seed veya bilinçli bakım yollarında.
 - Ayrıntı: `docs/MULTI_TENANT.md`, `REGKASSE_AI_ONBOARDING.md` (Database Schema).
+- **Üretim güvenliği:** expand → backfill → contract (min. 2 release); [`docs/DATABASE_MIGRATION_STRATEGY.md`](../docs/DATABASE_MIGRATION_STRATEGY.md). Durum: `GET /health/migrations`, FA `/admin/database/migrations`.
 
 ## Kaynak
 - Gerçek model kaynağı: `backend/Data/AppDbContext.cs` ve `backend/Migrations/*`.

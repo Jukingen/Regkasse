@@ -62,4 +62,6 @@ public sealed class CreatePublicOnlineOrderResponseDto
     public string? OrderNumber { get; init; }
     public decimal? Total { get; init; }
     public string? Message { get; init; }
+    /// <summary>Set to <c>v2</c> when <c>EnableOnlineOrdersV2</c> feature flag is on.</summary>
+    public string? IntakeVersion { get; init; }
 }

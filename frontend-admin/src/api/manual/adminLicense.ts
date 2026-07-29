@@ -200,6 +200,15 @@ export type LicenseReportSummaryDto = {
   activationAttemptsInDateFilter: number;
 };
 
+export type LicenseAuditLogQueryParams = {
+  page?: number;
+  pageSize?: number;
+  tenantId?: string;
+  action?: string;
+  fromUtc?: string;
+  toUtc?: string;
+};
+
 export const licenseQueryKeys = {
   status: ['admin', 'license', 'status'] as const,
   deploymentStatus: ['admin', 'license', 'deploymentStatus'] as const,
@@ -212,6 +221,12 @@ export const licenseQueryKeys = {
     [...licenseQueryKeys.activationAttemptsRoot, params] as const,
   reportSummary: (params: LicenseExportReportParams) =>
     ['admin', 'licenses', 'report', 'summary', params] as const,
+  reminderEmailPreview: (daysUntilExpiry: number) =>
+    ['admin', 'license', 'reminder-email-preview', daysUntilExpiry] as const,
+  auditLog: (params: LicenseAuditLogQueryParams) =>
+    ['admin', 'license', 'audit', params] as const,
+  renewalFunnel: (params?: { fromUtc?: string; toUtc?: string }) =>
+    ['admin', 'license', 'renewal-funnel', params ?? {}] as const,
 };
 
 export async function getPublicLicenseStatus(): Promise<LicensePublicStatusDto> {
@@ -305,6 +320,115 @@ export async function getLicenseReportSummary(
     }
   );
   return data;
+}
+
+export type LicenseReminderEmailPreviewDto = {
+  subject: string;
+  htmlBody: string;
+  plainBody: string;
+  daysUntilExpiry: number;
+  sampleExpiryDate: string;
+};
+
+export type LicenseReminderEmailPreviewParams = {
+  daysUntilExpiry?: number;
+  tenantName?: string;
+  adminName?: string;
+  expiryDate?: string;
+};
+
+/** GET /api/admin/license/reminder-email-preview — Super Admin sample HTML (no SMTP). */
+export async function getLicenseReminderEmailPreview(
+  params?: LicenseReminderEmailPreviewParams
+): Promise<LicenseReminderEmailPreviewDto> {
+  const { data } = await AXIOS_INSTANCE.get<LicenseReminderEmailPreviewDto>(
+    '/api/admin/license/reminder-email-preview',
+    {
+      params: {
+        daysUntilExpiry: params?.daysUntilExpiry ?? 7,
+        tenantName: params?.tenantName,
+        adminName: params?.adminName,
+        expiryDate: params?.expiryDate,
+      },
+    }
+  );
+  return data;
+}
+
+export type LicenseAuditLogItem = {
+  id: string;
+  createdAtUtc: string;
+  tenantId: string | null;
+  tenantName: string | null;
+  action: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  performedBy: string | null;
+  reason: string | null;
+};
+
+export type LicenseAuditLogListResponse = {
+  items: LicenseAuditLogItem[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+};
+
+/** GET /api/admin/license/audit — Super Admin unified license audit trail. */
+export async function getLicenseAuditLog(
+  params?: LicenseAuditLogQueryParams
+): Promise<LicenseAuditLogListResponse> {
+  const { data } = await AXIOS_INSTANCE.get<LicenseAuditLogListResponse>(
+    '/api/admin/license/audit',
+    {
+      params: {
+        page: params?.page ?? 1,
+        pageSize: params?.pageSize ?? 20,
+        tenantId: params?.tenantId,
+        action: params?.action,
+        fromUtc: params?.fromUtc,
+        toUtc: params?.toUtc,
+      },
+    }
+  );
+  return data;
+}
+
+export type LicenseRenewalFunnelDto = {
+  total: number;
+  reminderSent: number;
+  pageViewed: number;
+  renewed: number;
+  activated: number;
+  conversionRate: number;
+  fromUtc: string;
+  toUtc: string;
+};
+
+export type LicenseRenewalFunnelParams = {
+  fromUtc?: string;
+  toUtc?: string;
+};
+
+/** GET /api/admin/license/renewal-funnel — Super Admin conversion funnel. */
+export async function getLicenseRenewalFunnel(
+  params?: LicenseRenewalFunnelParams
+): Promise<LicenseRenewalFunnelDto> {
+  const { data } = await AXIOS_INSTANCE.get<LicenseRenewalFunnelDto>(
+    '/api/admin/license/renewal-funnel',
+    {
+      params: {
+        fromUtc: params?.fromUtc,
+        toUtc: params?.toUtc,
+      },
+    }
+  );
+  return data;
+}
+
+/** POST /api/admin/license/renewal-funnel/page-view — record renewal UI view (deduped server-side). */
+export async function postLicenseRenewalFunnelPageView(): Promise<void> {
+  await AXIOS_INSTANCE.post('/api/admin/license/renewal-funnel/page-view');
 }
 
 export async function downloadLicenseExportFile(
@@ -520,9 +644,12 @@ export type LicenseDashboardSummaryDto = {
 };
 
 export type LicenseDashboardStatsDto = {
+  totalTenants: number;
   activeTenantLicenses: number;
   expiringTenantLicenses: number;
   expiredTenantLicenses: number;
+  graceTenantLicenses: number;
+  lockedTenantLicenses: number;
   activeDeploymentLicenses: number;
   expiringDeploymentLicenses: number;
   expiredDeploymentLicenses: number;

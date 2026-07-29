@@ -347,6 +347,191 @@
       "contact": "Yöneticiye ulaşın"
     }
   },
+  "statusBanner": {
+    "grace": {
+      "title": "Lisans süresi doluyor — grace dönemi",
+      "description": "Lisansınızın süresi doldu. {{days}} gün grace süreniz kaldı.",
+      "hint": "Tüm özelliklere erişimi korumak için lütfen lisansınızı yenileyin.",
+      "progressAria": "Grace dönemi: {{days}} gün kaldı"
+    },
+    "locked": {
+      "title": "Kısıtlı mod",
+      "description": "Lisansınızın süresi {{days}} gündür dolmuş durumda.",
+      "bulletReadOnly": "Verilerinize yalnızca okuma erişiminiz vardır",
+      "bulletNoWrite": "Değişiklik veya yeni kayıt mümkün değil",
+      "bulletRenew": "Lütfen lisansınızı yenileyin"
+    },
+    "archived": {
+      "title": "Kısıtlı mod — arşivlendi"
+    },
+    "actions": {
+      "renew": "Lisansı şimdi yenile",
+      "renewNow": "Şimdi yenile",
+      "dataExport": "Veri dışa aktarma iste",
+      "openLicensePage": "Lisans sayfasına git",
+      "accountManagement": "Hesap yönetimi"
+    }
+  },
+  "gracePeriodCard": {
+    "title": "Grace dönemi",
+    "description": "Lisansınızın süresi doldu. {{days}} gün grace süreniz kaldı. Bundan sonra sistem kilitlenir.",
+    "progressFormat": "{{days}} gün",
+    "progressAria": "Grace dönemi: {{total}} günden {{days}} gün kaldı",
+    "afterTitle": "Grace döneminden sonra ne olur?",
+    "afterDescription": "{{days}} günden sonra sistem kilitlenir. O zaman yalnızca verileri okuyabilir ve lisansınızı yenileyebilirsiniz."
+  },
+  "gracePeriodBanner": {
+    "title": "Lisans {{days}} gün içinde sona eriyor",
+    "titleUrgent": "ACİL: Lisans {{days}} gün içinde sona eriyor",
+    "remainingLabel": "Grace dönemi: {{total}} günden {{days}} gün kaldı",
+    "lockdownHint": "Grace dönemi bittikten sonra sistem kilitlenir. Bundan sonra verilerinize yalnızca okuma erişiminiz olur.",
+    "progressAria": "Grace dönemi tüketimi: {{total}} günden {{days}} gün kaldı",
+    "renew": "Yenile",
+    "renewUrgent": "Şimdi yenile"
+  },
+  "gracePeriodWidget": {
+    "title": "Grace dönemi aktif",
+    "description": "Lisansınızı yenilemek için {{days}} gününüz kaldı. Bundan sonra sistem kilitlenir.",
+    "daysRemaining": "gün kaldı",
+    "labelExpired": "Lisans süresi doldu",
+    "labelGrace": "Grace dönemi",
+    "labelLockdown": "Kilitleme",
+    "progressAria": "Grace dönemi: {{total}} günden {{days}} gün kaldı",
+    "renew": "Lisansı yenile"
+  },
+  "gracePeriodDashboard": {
+    "title": "Grace dönemi özeti",
+    "subtitle": "Grace dönemindeki mandantlar — aciliyete göre sıralı.",
+    "tableTitle": "Grace dönemindeki mandantlar",
+    "stats": {
+      "total": "Grace dönemi",
+      "critical": "Kritik (≤2 gün)",
+      "medium": "Orta (3–5 gün)",
+      "good": "İyi (≥6 gün)"
+    },
+    "columns": {
+      "tenant": "Mandant",
+      "expiredAt": "Lisans süresi doldu",
+      "lockdownAt": "Kilitlenme",
+      "daysRemaining": "Kalan gün",
+      "actions": "İşlemler"
+    },
+    "daysTag": "{{days}} gün",
+    "sendReminder": "Hatırlatma gönder",
+    "reminderSent": "{{email}} adresine hatırlatma gönderildi.",
+    "reminderFailed": "Hatırlatma gönderilemedi."
+  },
+  "graceUrgentWarning": {
+    "title": "ACİL: Lisans 24 saat içinde kilitleniyor",
+    "heading": "Lisansınız yarın sona eriyor!",
+    "description": "Lisansınızı yenilemezseniz sistem yarın kilitlenir.",
+    "remainingLabel": "Kalan süre:",
+    "countdownUnknown": "—",
+    "renewNow": "Hemen yenile",
+    "acknowledge": "Anladım"
+  },
+  "renewalFlow": {
+    "steps": {
+      "key": "Lisans anahtarı",
+      "confirm": "Onay",
+      "done": "Tamam"
+    },
+    "keyIntro": "Yöneticinizden veya satın alma sonrasında aldığınız lisans anahtarını girin.",
+    "keyPlaceholder": "REGK-20270101-cafe-A7F3K2D9",
+    "keyFormatHint": "Biçim: REGK-{YYYYMMDD}-{tenant}-{8 karakter}",
+    "next": "Devam",
+    "back": "Geri",
+    "activate": "Etkinleştir",
+    "confirmTitle": "Lisans etkinleştirilecek",
+    "confirmDescription": "Etkinleştirmeden sonra tüm özellikler yeniden açılır.",
+    "licenseKeyLabel": "Lisans anahtarı",
+    "planLabel": "Plan",
+    "durationLabel": "Süre",
+    "validUntilLabel": "Geçerlilik",
+    "validUntilFallback": "+ Anahtardaki süre",
+    "successTitle": "Lisans başarıyla etkinleştirildi",
+    "successRedirect": "Tüm özellikler yeniden kullanılabilir. Panele yönlendiriliyorsunuz…",
+    "successStay": "Tüm özellikler yeniden kullanılabilir.",
+    "previewInvalid": "Lisans anahtarı geçersiz.",
+    "previewFailed": "Önizleme başarısız.",
+    "activateFailed": "Etkinleştirme başarısız.",
+    "payExternal": "Ödemeye git",
+    "openBilling": "Lisans satışını aç",
+    "contactSupport": "Destek ile iletişim"
+  },
+  "renewalSuccessModal": {
+    "title": "Lisans başarıyla yenilendi",
+    "heading": "Lisansınız yenilendi",
+    "description": "Lisansınız artık {{date}} tarihine kadar geçerli. Onay e-postası gönderildi.",
+    "validUntilLabel": "Yeni geçerlilik:",
+    "licenseKeyLabel": "Lisans anahtarı:",
+    "openDashboard": "Panoyu aç"
+  },
+  "renewalRecovery": {
+    "title": "Lisans yenileme yarım kaldı",
+    "description": "Lisans yenilemeyi tamamlamadınız. Devam etmek ister misiniz?",
+    "continue": "Devam et",
+    "dismiss": "Kapat"
+  },
+  "renewalModal": {
+    "title": "Lisansı yenile",
+    "heading": "Lisansınızın süresi doldu",
+    "headingActive": "Lisansı yenile",
+    "headingGrace": "Lisansı yenile — grace dönemi",
+    "description": "Tüm özelliklere yeniden erişmek için lütfen lisansınızı yenileyin.",
+    "descriptionActive": "Geçerlilik süresini uzatmak için yeni bir lisans anahtarı girin.",
+    "descriptionGrace": "Lisansınızın süresi doldu. Sistem kilitlenmeden önce yenileyin.",
+    "statusLabel": "Durum",
+    "statusActive": "Aktif",
+    "statusLocked": "Kilitli",
+    "statusGrace": "Grace dönemi",
+    "statusArchived": "Arşivlendi",
+    "validUntilLabel": "Geçerlilik bitişi",
+    "expiredAtLabel": "Süre dolumu",
+    "daysRemainingLabel": "Kalan gün",
+    "graceDaysRemainingLabel": "Kalan grace günü",
+    "daysOverdueLabel": "Gecikme (gün)",
+    "licenseKeyLabel": "Lisans anahtarı",
+    "licenseKeyPlaceholder": "REGK-XXXXX-XXXXX-XXXXX",
+    "noLicenseKey": "Lütfen bir lisans anahtarı girin.",
+    "submit": "Lisansı yenile",
+    "success": "Lisans başarıyla yenilendi.",
+    "error": "Lisans yenileme başarısız oldu.",
+    "supportContact": "Destek: support@regkasse.at"
+  },
+  "lockdownToast": {
+    "title": "Lisans süresi doldu",
+    "description": "Bu işlemi yapmak için lütfen lisansınızı yenileyin.",
+    "guardDescription": "Lisans kilitliyken bu işlem kullanılamaz.",
+    "guardDescriptionWithAction": "Lisans kilitliyken \"{{action}}\" kullanılamaz.",
+    "writeBlockedTitle": "Yazma işlemi engellendi",
+    "writeBlockedDescription": "Lisans kilitliyken \"{{operation}}\" izni yok.",
+    "writeBlockedDescriptionGeneric": "Lisans kilitliyken yazma işlemlerine izin verilmez."
+  },
+  "statusDashboard": {
+    "title": "Lisans panosu",
+    "subtitle": "Mandant lisansınızın durumu, kalan süresi ve geçmişi.",
+    "status": "Durum",
+    "stateActive": "Aktif",
+    "stateGrace": "Grace",
+    "stateLocked": "Kilitli",
+    "daysUntilExpiry": "Bitişe kalan gün",
+    "graceDaysRemaining": "Kalan grace günü",
+    "daysOverdue": "Gecikme (gün)",
+    "validUntil": "Geçerlilik",
+    "licensePlan": "Lisans tipi",
+    "planFallback": "Standart",
+    "progressActive": "{{days}} gün",
+    "progressGrace": "{{days}} grace günü",
+    "progressExpired": "Süresi doldu",
+    "timelineTitle": "Lisans geçmişi",
+    "renew": "Lisansı yenile",
+    "renewLocked": "Lisansı şimdi yenile",
+    "lockedAlertTitle": "Sistem kilitli",
+    "lockedAlertDescription": "Lisansınızın süresi doldu. Tüm işlevleri yeniden kullanmak için lütfen lisansınızı yenileyin.",
+    "graceAlertTitle": "Grace dönemi aktif",
+    "graceAlertDescription": "Lisansınızın süresi doldu. {{days}} grace günü kaldı — lütfen yakında yenileyin."
+  },
   "trialDays": "Kalan deneme günü",
   "machineHash": "Makine parmak izi (SHA-256)",
   "floatingWarning": "Not: Son aktivasyon çevrimdışı JWT olmadan yapıldı. Floating lisans için cihaz parmak izi gerekmez; hash’i yalnızca makineye bağlı lisanslarda paylaşın.",
@@ -637,6 +822,130 @@
     "exportSuccess": "CSV indirildi.",
     "exportFailed": "Dışa aktarma başarısız.",
     "loadFailed": "Lisans panosu yüklenemedi."
+  },
+  "activityLog": {
+    "title": "Lisans etkinlikleri",
+    "empty": "Yakın zamanda lisans etkinliği yok.",
+    "descriptions": {
+      "activated": "Lisans etkinleştirildi ({{key}})",
+      "generated": "Lisans oluşturuldu ({{key}})",
+      "extended": "Lisans uzatıldı ({{key}})",
+      "renewed": "Lisans yenilendi ({{key}})",
+      "reminder": "Hatırlatma gönderildi ({{key}})",
+      "revoked": "Lisans iptal edildi ({{key}})",
+      "cancelled": "Lisans geri alındı ({{key}})",
+      "deleted": "Lisans silindi ({{key}})",
+      "unregistered": "Cihaz kaydı kaldırıldı ({{key}})",
+      "viewed": "Lisans detayları görüntülendi ({{key}})",
+      "forceDeactivated": "Lisans zorla deaktive edildi ({{key}})",
+      "expired": "Lisans süresi doldu / sona erdi ({{key}})",
+      "other": "Lisans olayı ({{key}})"
+    }
+  },
+  "calendar": {
+    "title": "Lisans takvimi",
+    "subtitle": "Kiracı bitiş özeti. KPI “Yakında bitecek” = ≤30 gün; tablo durumu “yakında bitiyor” = ≤7 gün.",
+    "kpiActive": "Aktif",
+    "kpiExpiring": "Yakında bitecek (≤30 gün)",
+    "kpiExpired": "Süresi dolmuş",
+    "columns": {
+      "tenant": "Kiracı",
+      "validUntil": "Geçerlilik",
+      "status": "Durum",
+      "action": "İşlem"
+    },
+    "sendReminder": "Hatırlatma gönder",
+    "reminderSuccess": "{{recipient}} adresine hatırlatma gönderildi",
+    "reminderError": "Hatırlatma gönderilemedi",
+    "empty": "Kiracı bulunamadı",
+    "loadFailed": "Lisans KPI’ları yüklenemedi",
+    "filterAttentionOnly": "Yalnızca kritikleri göster",
+    "filterShowAll": "Tümünü göster"
+  },
+  "emailPreview": {
+    "title": "Hatırlatma e-posta önizlemesi",
+    "subtitle": "Gönderilen mandant lisans hatırlatmalarıyla aynı HTML şablon (gönderim yok).",
+    "subjectLabel": "Konu",
+    "htmlLabel": "HTML önizleme",
+    "iframeTitle": "Lisans hatırlatma e-posta önizlemesi",
+    "error": "Önizleme yüklenemedi",
+    "horizons": {
+      "d30": "30 gün",
+      "d14": "14 gün",
+      "d7": "7 gün",
+      "d1": "1 gün",
+      "d0": "Süresi dolmuş"
+    }
+  },
+  "auditLog": {
+    "title": "Lisans denetim günlüğü",
+    "subtitle": "Faturalama ve lisans denetiminden birleştirilmiş olaylar (salt okunur).",
+    "empty": "Denetim kaydı bulunamadı",
+    "columns": {
+      "time": "Zaman",
+      "tenant": "Kiracı",
+      "action": "İşlem",
+      "fromStatus": "Önce",
+      "toStatus": "Sonra",
+      "performedBy": "Yapan",
+      "reason": "Gerekçe"
+    },
+    "statuses": {
+      "Active": "Aktif",
+      "Grace": "Grace",
+      "Expired": "Süresi dolmuş",
+      "Locked": "Kilitli",
+      "Archived": "Arşivlendi"
+    },
+    "actions": {
+      "SALE_CREATED": "Satış oluşturuldu",
+      "SALE_CANCELLED": "Satış iptal edildi",
+      "SALE_REFUNDED": "Satış iade edildi",
+      "LICENSE_ACTIVATED": "Lisans etkinleştirildi",
+      "LICENSE_EXTENDED": "Lisans uzatıldı",
+      "LICENSE_RENEWED": "Lisans yenilendi",
+      "LICENSE_UPDATED": "Lisans güncellendi",
+      "LICENSE_REMINDER_SENT": "Hatırlatma gönderildi",
+      "LICENSE_RENEWAL_PAGE_VIEWED": "Yenileme sayfası görüntülendi"
+    }
+  },
+  "renewalFunnel": {
+    "title": "Lisans yenileme hunisi",
+    "subtitle": "Kohort: son 90 günde ≥1 hatırlatma alan kiracılar. Adımlar = benzersiz kiracılar.",
+    "lookbackHint": "90 gün",
+    "empty": "Dönemde hatırlatma yok — huni boş",
+    "loadFailed": "Huni verileri yüklenemedi",
+    "conversionRate": "Dönüşüm oranı: %{{rate}}",
+    "steps": {
+      "reminderSent": "Hatırlatma alındı",
+      "pageViewed": "Yenileme sayfası görüntülendi",
+      "renewed": "Lisans yenilendi",
+      "activated": "Aktivasyon tamamlandı"
+    }
+  },
+  "usageAnalytics": {
+    "title": "Lisans kullanım analizi",
+    "subtitle": "Super Admin özeti: kiracı lisansları, aktivasyon trendi ve CSV dışa aktarma.",
+    "tabs": {
+      "overview": "Özet",
+      "trend": "Trend",
+      "export": "Dışa aktar"
+    },
+    "kpi": {
+      "totalTenants": "Toplam kiracı",
+      "active": "Aktif lisanslar",
+      "grace": "Grace dönemi",
+      "expired": "Süresi dolmuş (kilitli)"
+    },
+    "trendHint": "Son 30 günün aktivasyonları (cihaz / issued-license).",
+    "trendEmpty": "Dönemde aktivasyon verisi yok",
+    "chartDay": "Gün",
+    "chartWeek": "Hafta",
+    "exportHint": "Issued deployment lisanslarını CSV olarak indirir (maskeli anahtarlar).",
+    "exportButton": "Lisans raporunu dışa aktar",
+    "exportSuccess": "Lisans raporu indirildi",
+    "exportFailed": "Dışa aktarma başarısız",
+    "loadFailed": "Kullanım analizi yüklenemedi"
   },
   "supportNotice": "Lisans anahtarını girin. Sorun olursa support@regkasse.at adresine yazın.",
   "publicStatus": {

@@ -6,7 +6,8 @@
     "fallbackUserName": "Admin User"
   },
   "sidebar": {
-    "noAccessibleMenus": "No menu items available."
+    "noAccessibleMenus": "No menu items available.",
+    "lockdownFooter": "Restricted mode — license expired"
   },
   "menuPermission": {
     "popoverTitle": "What permission controls this menu?",

@@ -156,6 +156,10 @@ namespace KasseAPI_Final.Services
         /// <summary>Read-only audit log queries — append-only stream is never mutated on read paths.</summary>
         private IQueryable<AuditLog> AuditLogsReadOnly => _context.AuditLogs.AsNoTracking();
 
+        /// <summary>Read-only list queries with actor Identity user for DTO user fields.</summary>
+        private IQueryable<AuditLog> AuditLogsReadOnlyWithUser =>
+            AuditLogsReadOnly.Include(a => a.User);
+
         /// <summary>
         /// Log payment operations with comprehensive details
         /// </summary>
@@ -624,9 +628,15 @@ namespace KasseAPI_Final.Services
                 AuditEventType.LicenseRenewed => AuditLogActions.LICENSE_RENEWED,
                 AuditEventType.LicenseExtended => AuditLogActions.LICENSE_EXTENDED,
                 AuditEventType.LicenseUpdated => AuditLogActions.LICENSE_UPDATED,
+                AuditEventType.LicenseRenewalPageViewed => AuditLogActions.LICENSE_RENEWAL_PAGE_VIEWED,
                 AuditEventType.InvoiceResent => AuditLogActions.INVOICE_RESENT,
                 AuditEventType.UserPermissionOverridesChanged => AuditLogActions.USER_PERMISSION_OVERRIDES_CHANGED,
                 AuditEventType.ReportPdfDownloaded => AuditLogActions.REPORT_PDF_DOWNLOADED,
+                AuditEventType.DeploymentStarted => AuditLogActions.DEPLOYMENT_STARTED,
+                AuditEventType.DeploymentSucceeded => AuditLogActions.DEPLOYMENT_SUCCEEDED,
+                AuditEventType.DeploymentFailed => AuditLogActions.DEPLOYMENT_FAILED,
+                AuditEventType.DeploymentRollback => AuditLogActions.DEPLOYMENT_ROLLBACK,
+                AuditEventType.DeploymentComplianceApproved => AuditLogActions.DEPLOYMENT_COMPLIANCE_APPROVED,
                 _ => AuditLogActions.USER_UPDATE
             };
         }
@@ -672,12 +682,24 @@ namespace KasseAPI_Final.Services
                 AuditLogActions.LICENSE_RENEWED => AuditEventType.LicenseRenewed,
                 AuditLogActions.LICENSE_EXTENDED => AuditEventType.LicenseExtended,
                 AuditLogActions.LICENSE_UPDATED => AuditEventType.LicenseUpdated,
+                AuditLogActions.LICENSE_RENEWAL_PAGE_VIEWED => AuditEventType.LicenseRenewalPageViewed,
                 AuditLogActions.INVOICE_RESENT => AuditEventType.InvoiceResent,
                 AuditLogActions.USER_PERMISSION_OVERRIDES_CHANGED => AuditEventType.UserPermissionOverridesChanged,
                 AuditLogActions.REPORT_PDF_DOWNLOADED => AuditEventType.ReportPdfDownloaded,
+                AuditLogActions.DEPLOYMENT_STARTED => AuditEventType.DeploymentStarted,
+                AuditLogActions.DEPLOYMENT_SUCCEEDED => AuditEventType.DeploymentSucceeded,
+                AuditLogActions.DEPLOYMENT_FAILED => AuditEventType.DeploymentFailed,
+                AuditLogActions.DEPLOYMENT_ROLLBACK => AuditEventType.DeploymentRollback,
+                AuditLogActions.DEPLOYMENT_COMPLIANCE_APPROVED => AuditEventType.DeploymentComplianceApproved,
                 AuditLogActions.MANUAL_RESTORE_REQUEST_CREATED => AuditEventType.RestoreRequested,
                 AuditLogActions.MANUAL_RESTORE_REQUEST_APPROVED => AuditEventType.RestoreApproved,
                 AuditLogActions.MANUAL_RESTORE_REQUEST_REJECTED => AuditEventType.RestoreRejected,
+                "RksvDepExportCreated" or "RksvDepExportJson" => AuditEventType.RksvDepExportCreated,
+                "RksvDepExportDownloaded" => AuditEventType.RksvDepExportDownloaded,
+                "RksvDepExportArchived" => AuditEventType.RksvDepExportArchived,
+                "RksvDepExportPurged" => AuditEventType.RksvDepExportPurged,
+                "RksvDepExportValidated" => AuditEventType.RksvDepExportValidated,
+                "RksvDepExportFailed" => AuditEventType.RksvDepExportFailed,
                 _ => AuditEventType.Other
             };
         }
@@ -709,13 +731,16 @@ namespace KasseAPI_Final.Services
                 pageSize = Math.Clamp(pageSize, 1, 100);
                 page = Math.Max(1, page);
 
-                var query = AuditLogsReadOnly.ApplyFilters(filters)
-                    .OrderByDescending(a => a.Timestamp)
-                    .ThenByDescending(a => a.Id);
+                var filtered = AuditLogsReadOnly.ApplyFilters(filters);
 
                 int? total = null;
                 if (includeTotalCount)
-                    total = await AuditLogsReadOnly.ApplyFilters(filters).CountAsync();
+                    total = await filtered.CountAsync();
+
+                var query = filtered
+                    .Include(a => a.User)
+                    .OrderByDescending(a => a.Timestamp)
+                    .ThenByDescending(a => a.Id);
 
                 IQueryable<AuditLog> pageQuery = query;
                 if (KeysetCursor.TryDecode(afterCursor, out var cursor))
@@ -764,7 +789,7 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                var query = AuditLogsReadOnly
+                var query = AuditLogsReadOnlyWithUser
                     .Where(a => a.EntityType == AuditLogEntityTypes.PAYMENT && a.EntityId == paymentId);
 
                 var (lo, hi) = PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds(startDate, endDate);
@@ -798,7 +823,7 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                var query = AuditLogsReadOnly
+                var query = AuditLogsReadOnlyWithUser
                     .Where(a => a.EntityType == AuditLogEntityTypes.USER && a.EntityName == userId);
 
                 var (lo, hi) = PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds(startDate, endDate);
@@ -897,7 +922,7 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                var auditLogs = await AuditLogsReadOnly
+                var auditLogs = await AuditLogsReadOnlyWithUser
                     .Where(a => a.CorrelationId == correlationId)
                     .OrderBy(a => a.Timestamp)
                     .ToListAsync();
@@ -921,7 +946,7 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                var auditLogs = await AuditLogsReadOnly
+                var auditLogs = await AuditLogsReadOnlyWithUser
                     .Where(a => a.TransactionId == transactionId)
                     .OrderBy(a => a.Timestamp)
                     .ToListAsync();
@@ -1082,7 +1107,7 @@ namespace KasseAPI_Final.Services
                     AuditLogActions.TENANT_QUICK_USER_CREATED
                 };
 
-                var query = AuditLogsReadOnly
+                var query = AuditLogsReadOnlyWithUser
                     .Where(a => a.EntityType == AuditLogEntityTypes.USER && highRiskActions.Contains(a.Action));
 
                 if (since.HasValue)

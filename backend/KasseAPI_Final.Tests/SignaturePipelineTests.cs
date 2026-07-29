@@ -42,6 +42,18 @@ public class SignaturePipelineTests
 
         var valid = pipeline.Verify(compactJws, keyProvider.GetPublicKey(), "verify-correlation-1");
         Assert.True(valid);
+        Assert.True(SignaturePipeline.IsF5CompliantJws(compactJws));
+    }
+
+    [Fact]
+    public void IsF5CompliantJws_False_ForJsonPayload()
+    {
+        var jsonPayload = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("""{"Kassen-ID":"1"}"""))
+            .TrimEnd('=')
+            .Replace('+', '-')
+            .Replace('/', '_');
+        var legacy = $"eyJhbGciOiJFUzI1NiJ9.{jsonPayload}.c2ln";
+        Assert.False(SignaturePipeline.IsF5CompliantJws(legacy));
     }
 
     [Fact]

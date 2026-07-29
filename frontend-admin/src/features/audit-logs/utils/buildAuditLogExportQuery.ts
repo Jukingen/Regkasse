@@ -22,5 +22,6 @@ export function buildAuditLogExportQuery(params: AuditLogListParams): Record<str
   if (params.statusOutcome) exportParams.statusOutcome = params.statusOutcome;
   if (params.hasChanges === true) exportParams.hasChanges = 'true';
   if (params.hasChanges === false) exportParams.hasChanges = 'false';
+  if (params.search) exportParams.search = params.search;
   return exportParams;
 }

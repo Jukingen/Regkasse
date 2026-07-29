@@ -15,7 +15,7 @@ ASP.NET Core Web API for Regkasse POS / Admin: multi-tenant auth, payments, RKSV
 | Cache | Redis (`ICacheService`) + process `IMemoryCache` for lockout/rate-limit |
 | Observability | prometheus-net; structured logging |
 | Build config | [`nuget.config`](nuget.config) (nuget.org only), [`Directory.Build.props`](Directory.Build.props), [`.editorconfig`](.editorconfig) |
-| Container | Multi-stage [`Dockerfile`](Dockerfile) → `aspnet:10.0`, port **8080** |
+| Container | Multi-stage [`Dockerfile`](Dockerfile) → self-contained on `aspnet:10.0`, port **8080** |
 | Tests | xUnit + FluentAssertions + Moq; `Microsoft.AspNetCore.Mvc.Testing`; Testcontainers (PostgreSQL) |
 
 Package versions are pinned in `KasseAPI_Final.csproj` (e.g. EF/Identity `10.0.10`, Swashbuckle `10.2.3`).

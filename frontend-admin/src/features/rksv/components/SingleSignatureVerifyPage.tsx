@@ -4,19 +4,18 @@ import { SafetyCertificateOutlined } from '@ant-design/icons';
 import { Alert, Button, Card, Input, Space, Typography } from 'antd';
 import React, { useCallback, useState } from 'react';
 
-import { extractApiErrorMessage } from '@/api/admin-rksv/client';
 import {
   type RksvSignatureVerifyResponse,
   useRksvSignatureVerify,
 } from '@/features/rksv/hooks/useRksvSignatureVerify';
-import { useAntdApp } from '@/hooks/useAntdApp';
+import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
 
 const { TextArea } = Input;
 
 export function SingleSignatureVerifyCard() {
   const { t } = useI18n();
-  const { message } = useAntdApp();
+  const notify = useNotify();
   const tp = useCallback((path: string) => t(`rksvHub.signatureVerifyPage.${path}`), [t]);
 
   const [signature, setSignature] = useState('');
@@ -30,7 +29,7 @@ export function SingleSignatureVerifyCard() {
   const handleVerify = () => {
     const trimmed = signature.trim();
     if (!trimmed) {
-      message.warning(tp('emptySignatureWarning'));
+      notify.warning('rksvHub.signatureVerifyPage.emptySignatureWarning');
       return;
     }
 
@@ -43,8 +42,10 @@ export function SingleSignatureVerifyCard() {
       {
         onSuccess: (data) => setVerificationResult(data),
         onError: (error) => {
-          const msg = extractApiErrorMessage(error, tp('verifyFailed'));
-          message.error(msg);
+          notify.apiError(error, {
+            logContext: 'RKSV.signatureVerify',
+            fallbackKey: 'rksvHub.signatureVerifyPage.verifyFailed',
+          });
         },
       }
     );

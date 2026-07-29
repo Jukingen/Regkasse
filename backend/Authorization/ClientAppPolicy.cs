@@ -30,6 +30,7 @@ public static class ClientAppPolicy
         Roles.Cashier,
         Roles.Accountant,
         Roles.ReportViewer,
+        Roles.ComplianceOfficer,
     };
 
     private static readonly IReadOnlyDictionary<string, IReadOnlySet<string>> Policies =

@@ -21,11 +21,11 @@
 
 | # | Theme | Business value | Effort | Risk if deferred | Dependencies | Verdict |
 |---|--------|----------------|--------|------------------|--------------|---------|
-| **1** | **Production Docker path (verified)** | High — real cutover / staging host | Medium | High — wrong TSE/FON mode in “prod-like” Compose | Scripts + `docker-compose.prod.yml` + TSE lock docs | **Do next** |
+| **1** | **Production Docker path (verified on host)** | High — real cutover / staging host | Medium | High — wrong TSE/FON mode in “prod-like” Compose | Scripts + `docker-compose.prod.yml` + readiness checklist | **Do next** (scaffolding done; host verify pending) |
 | **2** | CI/CD hardening (not greenfield) | High — safe releases | Medium | Medium — wire secrets/Environments; use `ci.yml` / `deploy.yml` + existing prod gates | Secrets, Environments, compliance | Parallel / after Docker verify |
 | **3** | Pre-deploy backup automation | High — restore story | Low–Medium | Medium — FA backup already exists; deploy still manual | Backup APIs + deploy workflows | Fold into #1 / #2 |
-| **4** | Monitoring & alerting | Medium–High — MTTR | Medium | Medium — Slack/Sentry/activity already partial | Stable prod URL + health | After #1–#2 |
-| **5** | Documentation polish | Medium — onboarding | Low | Low | Scripts docs done | Continuous, not a blocker |
+| **4** | Monitoring & alerting | Medium–High — MTTR | Low–Medium | Medium — stack under `monitoring/` + docs | Stable prod URL + health | **Ready to enable** (compose + docs shipped) |
+| **5** | Documentation polish | Medium — onboarding | Low | Low | Scripts + Docker hubs indexed | Continuous, not a blocker |
 
 ### Why not “build CI/CD from scratch”?
 
@@ -36,6 +36,8 @@ The repo **already has**:
 - Backup system (Tenant/System, schedules, FA UI) — see [`BACKUP_AND_DISASTER_RECOVERY.md`](BACKUP_AND_DISASTER_RECOVERY.md)
 
 **Gap:** prove the **prod Compose + secrets + TSE fail-closed** path on a real host, then tighten automation around what already exists.
+
+**Gate doc:** complete [`DOCKER_PRODUCTION_READINESS.md`](DOCKER_PRODUCTION_READINESS.md) (checklist 1–9 + migration Steps 1–2) **before** production Step 3.
 
 ### Why not monitoring first?
 
@@ -114,7 +116,7 @@ Without a known-good production/staging stack, alerts are noisy. Health endpoint
 
 1. **CI/CD hardening** — enable/ greening Environments, canary, compliance sign-off on real tokens.  
 2. **Backup automation** — scheduled System backup + explicit pre-prod job (reuse APIs).  
-3. **Monitoring** — uptime on `api`/`admin`, fiscal alert routing (FON failure, TSE degraded), Sentry release tags.  
+3. **Monitoring** — enable [`MONITORING.md`](MONITORING.md) stack; Slack Alertmanager; fiscal alert routing (FON failure, TSE degraded); Sentry release tags.  
 4. **Docs** — onboarding checklist linking scripts + this staging path.  
 5. **Test debt** — separate epic for Admin React dual-copy + backend DemoProductImport failures.
 
@@ -122,13 +124,13 @@ Without a known-good production/staging stack, alerts are noisy. Health endpoint
 
 ## Immediate actions (this week)
 
-1. Assign a **staging host** with Docker.  
-2. Walk [`DOCKER_PRODUCTION.md`](DOCKER_PRODUCTION.md) + [`DOCKER_SETUP.md`](DOCKER_SETUP.md) Profile C + [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md).  
-3. Wire GitHub Environments from [`.github/environments/`](../.github/environments/) + secrets; run umbrella [`ci.yml`](../.github/workflows/ci.yml) on a PR and [`deploy.yml`](../.github/workflows/deploy.yml) image publish once.  
+1. Complete Part A of [`DOCKER_PRODUCTION_READINESS.md`](DOCKER_PRODUCTION_READINESS.md) using [`DOCKER_TEST_PLAN.md`](DOCKER_TEST_PLAN.md) (Track B).  
+2. Assign a **staging host** with Docker; run readiness Steps 1–2 (dry run) — **do not** production Step 3 until the gate says YES.  
+3. Walk [`DOCKER_PRODUCTION.md`](DOCKER_PRODUCTION.md) + [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md).  
 4. Prefer **Deploy Production** (compliance) for fiscal cutover — see [`CI_CD.md`](CI_CD.md).  
 5. Share [`TEAM_ANNOUNCEMENT_SCRIPTS.md`](TEAM_ANNOUNCEMENT_SCRIPTS.md) so DX lands while prod path is verified.
 
-**Operator entrypoints:** `deploy-docker.bat`, `docker-build-prod.bat`, `docker-push-prod.bat`, `docker-logs-prod.bat` · env: [`DOCKER_ENV_VARS.md`](DOCKER_ENV_VARS.md) · CD: [`CI_CD.md`](CI_CD.md) / [`GITHUB_ACTIONS.md`](GITHUB_ACTIONS.md).
+**Operator entrypoints:** `docker-up-prod.bat`, `deploy-docker.bat`, `docker-build-prod.bat` · gate: [`DOCKER_PRODUCTION_READINESS.md`](DOCKER_PRODUCTION_READINESS.md) · CD: [`CI_CD.md`](CI_CD.md).
 
 ---
 

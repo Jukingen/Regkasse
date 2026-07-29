@@ -64,6 +64,7 @@ public static class PermissionCatalogMetadata
         // Digitale Dienste / System / Other
         ["digital"] = "Digitale Dienste",
         ["system"] = "System",
+        ["deployment"] = "System",
         ["price"] = "Sonstige",
         ["receipt"] = "Sonstige",
     }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);

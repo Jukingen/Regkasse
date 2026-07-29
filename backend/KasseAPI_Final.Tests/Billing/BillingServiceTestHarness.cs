@@ -100,6 +100,16 @@ internal sealed class BillingServiceTestHarness : IAsyncDisposable
             .ConfigureAwait(false);
     }
 
+    public async Task SetTenantLicenseAsync(Guid tenantId, string? licenseKey, DateTime? validUntilUtc)
+    {
+        var tenant = await _db.Tenants.SingleAsync(t => t.Id == tenantId).ConfigureAwait(false);
+        tenant.LicenseKey = licenseKey;
+        tenant.LicenseValidUntilUtc = validUntilUtc;
+        tenant.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync().ConfigureAwait(false);
+        _db.ChangeTracker.Clear();
+    }
+
     public (AppDbContext Db, IDbContextFactory<AppDbContext> Factory) CreateDbContextPair() => (_db, _factory);
 
     public ValueTask DisposeAsync() => _db.DisposeAsync();

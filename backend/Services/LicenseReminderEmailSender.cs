@@ -14,7 +14,7 @@ public interface ILicenseReminderEmailSender
     Task<bool> TrySendTenantLicenseReminderAsync(
         string toEmail,
         string subject,
-        string plainBody,
+        string htmlBody,
         CancellationToken cancellationToken = default);
 
     /// <summary>Sends to <see cref="EmailSmtpOptions.LicenseReportRecipients"/> or reminder recipients when SMTP is ready.</summary>
@@ -116,7 +116,7 @@ public sealed class LicenseReminderEmailSender : ILicenseReminderEmailSender
     public async Task<bool> TrySendTenantLicenseReminderAsync(
         string toEmail,
         string subject,
-        string plainBody,
+        string htmlBody,
         CancellationToken cancellationToken = default)
     {
         var opt = _options.Value;
@@ -131,8 +131,8 @@ public sealed class LicenseReminderEmailSender : ILicenseReminderEmailSender
         {
             From = new MailAddress(opt.From!.Trim()),
             Subject = subject,
-            Body = plainBody,
-            IsBodyHtml = false,
+            Body = htmlBody,
+            IsBodyHtml = true,
         };
         msg.To.Add(recipient);
 

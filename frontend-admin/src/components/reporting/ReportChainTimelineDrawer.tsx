@@ -73,7 +73,7 @@ export function ReportChainTimelineDrawer(props: {
           <Timeline
             items={q.data.items.map((it) => ({
               color: it.isCurrentActiveVersion ? 'green' : 'gray',
-              children: (
+              content: (
                 <div>
                   <div style={{ marginBottom: 6 }}>
                     <Typography.Text strong>

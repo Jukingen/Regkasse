@@ -46,4 +46,16 @@ public sealed class RksvDepExportEnvelopeDto
     public bool FormatValidated { get; set; }
 
     public Models.Export.RksvDepExportValidationResult? FormatValidation { get; set; }
+
+    /// <summary>Pre-F5 compact JWS count (JSON Belegdaten payload instead of §9 machine code).</summary>
+    public int LegacyJwsCount { get; set; }
+
+    /// <summary>F5-compliant compact JWS count (payload starts with <c>_R1-</c>).</summary>
+    public int F5CompliantJwsCount { get; set; }
+
+    /// <summary>Present when <see cref="LegacyJwsCount"/> &gt; 0.</summary>
+    public string? LegacyJwsWarning { get; set; }
+
+    /// <summary>True when no legacy JWS entries are present in the export.</summary>
+    public bool PrueftoolCompatible { get; set; } = true;
 }

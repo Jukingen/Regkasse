@@ -9,9 +9,13 @@ namespace KasseAPI_Final.Services.FinanzOnlineIntegration;
 /// </summary>
 public static class FinanzOnlineRkdbBelegpruefungValidator
 {
-    private static readonly Regex DepPattern = new(@"^(_[^_]+){13}$", RegexOptions.CultureInvariant | RegexOptions.Compiled);
+    // XSD documents {13}; RKSV §9 machine codes from RksvMachineCodeBuilder use 12 underscore segments.
+    private static readonly Regex DepPattern = new(@"^(_[^_]+){12,13}$", RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
-    /// <summary>BMF regKasse.xsd beleg: min 100, max 1000, pattern <c>(_ [^_]+){13}</c>.</summary>
+    /// <summary>
+    /// BMF regKasse.xsd beleg: min 100, max 1000. Accepts 12–13 underscore segments so live §9 codes validate.
+    /// Rejects compact-JWS / QR wire (contains '.').
+    /// </summary>
     public static IReadOnlyList<string> Validate(FinanzOnlineRkdbBelegpruefungCommand cmd)
     {
         var errors = new List<string>();
@@ -24,8 +28,10 @@ public static class FinanzOnlineRkdbBelegpruefungValidator
         var beleg = (cmd.Beleg ?? "").Trim();
         if (beleg.Length < 100 || beleg.Length > 1000)
             errors.Add("beleg length must be between 100 and 1000 (inclusive).");
+        if (beleg.Contains('.', StringComparison.Ordinal))
+            errors.Add("beleg must be DEP machine code, not a compact JWS / QR wire (contains '.').");
         if (!DepPattern.IsMatch(beleg))
-            errors.Add("beleg does not match DEP pattern (_segment){13}.");
+            errors.Add("beleg does not match DEP pattern (_segment){12,13}.");
 
         if (cmd.PaketNr < 1 || cmd.PaketNr > 999_999_999)
             errors.Add("paket_nr must be between 1 and 999999999.");
@@ -44,6 +50,8 @@ public static class FinanzOnlineRkdbBelegpruefungValidator
         if (string.IsNullOrWhiteSpace(text))
             return false;
         var t = text.Trim();
+        if (t.Contains('.', StringComparison.Ordinal))
+            return false;
         return t.Length >= 100 && t.Length <= 1000 && DepPattern.IsMatch(t);
     }
 }

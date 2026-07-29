@@ -13,6 +13,7 @@ import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-c
 import { useDeepLinkNavigation } from '../hooks/useDeepLinkNavigation';
 import { useMemoryMonitor } from '../hooks/useMemoryOptimization';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { LicenseExpiryNotificationBridge } from '../components/LicenseExpiryNotificationBridge';
 import { ThemedStatusBar } from '../components/ThemedStatusBar';
 import { ThemedSystemUI } from '../components/ThemedSystemUI';
 import { CUSTOM_FONT_MAP } from '../constants/fonts';
@@ -126,6 +127,7 @@ export default function RootLayout() {
             <PosStatusOverviewProvider>
               <LicenseStatusProvider>
                 <MandantLicenseWarningProvider>
+                  <LicenseExpiryNotificationBridge />
                   <MaintenanceProvider>
                   <SystemProvider>
                     <ThemeProvider>

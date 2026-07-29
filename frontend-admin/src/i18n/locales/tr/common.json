@@ -111,6 +111,23 @@
   },
   "auditLogs": {
     "filterCardTitle": "Filtreler",
+    "searchPlaceholder": "Kullanici adi, e-posta, ID, aksiyon veya varlik ara…",
+    "searchButton": "Ara",
+    "searchHint": "Ipucu: Kullanici adi, e-posta veya ID ile arayabilirsiniz — orn. \"mustafa\" veya ID oneki.",
+    "tagSearchPrefix": "Arama:",
+    "scopeSearchIs": "Arama = {{search}}",
+    "quickUser": {
+      "title": "Hizli kullanici bul",
+      "placeholder": "Kullanici adi veya ID…",
+      "find": "Kullaniciyi bul",
+      "error": "Kullanici aranamadi.",
+      "noResults": "Kullanici bulunamadi.",
+      "searchAuditsInstead": "Bunun yerine denetim kayitlarinda ara",
+      "filterAudits": "Bu kullanicinin denetim kayitlari",
+      "searchByUserName": "Kullanici adiyla ara",
+      "moreMatches": "{{count}} sonuc",
+      "otherMatches": "Diger sonuclar:"
+    },
     "criteriaLabel": "Olcutler",
     "actionPlaceholder": "Islem",
     "userPlaceholder": "Kullanici",
@@ -248,6 +265,19 @@
       "details": "Detaylar",
       "reason": "Gerekce",
       "status": "Durum"
+    },
+    "userInfo": {
+      "unknown": "Bilinmiyor",
+      "unknownRole": "Bilinmeyen rol",
+      "noEmail": "E-posta yok",
+      "userName": "Kullanici adi",
+      "email": "E-posta",
+      "role": "Rol",
+      "id": "ID",
+      "goToDetails": "Kullanici detayina git",
+      "copyId": "ID'yi kopyala",
+      "idCopied": "Kullanici ID kopyalandi",
+      "idCopyFailed": "ID kopyalanamadi"
     }
   },
   "validation": {

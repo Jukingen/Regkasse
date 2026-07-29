@@ -412,6 +412,19 @@ public sealed class FinanzOnlineOutboxHostedService : BackgroundService
                 return;
             }
 
+            if (FinanzOnlineRksvAusfallOutboxMessageTypes.IsAusfallFamily(active.MessageType))
+            {
+                var ausfallHandler = scope.ServiceProvider.GetRequiredService<RksvAusfallFinanzOnlineOutboxHandler>();
+                await ausfallHandler.ProcessAsync(
+                    context,
+                    audit,
+                    active,
+                    payload,
+                    opts,
+                    cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
             var result = await submissionService.SubmitAsync(new FinanzOnlineRegisterSubmissionRequest
             {
                 Mode = payload.Mode,

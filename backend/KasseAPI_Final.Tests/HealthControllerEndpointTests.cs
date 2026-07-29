@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using KasseAPI_Final.HealthChecks;
 using KasseAPI_Final.Tests.Integration;
 using Xunit;
 
@@ -48,8 +49,17 @@ public sealed class HealthControllerEndpointTests : IClassFixture<TestWebApplica
         Assert.True(doc.RootElement.TryGetProperty("status", out _));
         Assert.True(doc.RootElement.TryGetProperty("entries", out var entries));
         Assert.True(entries.TryGetProperty("database", out _));
-        Assert.False(entries.TryGetProperty("tse", out _), "ready must not run TSE check");
+        Assert.False(entries.TryGetProperty("tse", out _), "ready must not run device TSE check");
         Assert.False(entries.TryGetProperty("ntp", out _), "ready must not run NTP check");
+        // Fiscal posture checks are part of ready (Healthy in Development; Unhealthy in Production if misconfigured).
+        Assert.True(
+            entries.TryGetProperty("tse-fiscal-config", out _)
+            || entries.TryGetProperty(TseFiscalConfigHealthCheck.Name, out _),
+            "ready should include TSE fiscal config posture");
+        Assert.True(
+            entries.TryGetProperty("finanzonline", out _)
+            || entries.TryGetProperty(FinanzOnlineHealthCheck.Name, out _),
+            "ready should include FinanzOnline posture");
     }
 
     [Fact]
@@ -74,5 +84,33 @@ public sealed class HealthControllerEndpointTests : IClassFixture<TestWebApplica
         var response = await _client.GetAsync("/health");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("OK", (await response.Content.ReadAsStringAsync()).Trim());
+    }
+
+    [Fact]
+    public async Task Migrations_ReturnsJsonWithEfMigrationsEntry()
+    {
+        var response = await _client.GetAsync("/api/health/migrations");
+        Assert.True(
+            response.StatusCode is HttpStatusCode.OK or HttpStatusCode.ServiceUnavailable,
+            $"Unexpected status {response.StatusCode}");
+
+        await using var stream = await response.Content.ReadAsStreamAsync();
+        using var doc = await JsonDocument.ParseAsync(stream);
+        Assert.True(doc.RootElement.TryGetProperty("entries", out var entries));
+        Assert.True(
+            entries.TryGetProperty(EfMigrationsHealthCheck.Name, out _),
+            "migrations probe should include ef-migrations entry");
+    }
+
+    [Fact]
+    public async Task HealthMigrationsAlias_ReturnsJson()
+    {
+        var response = await _client.GetAsync("/health/migrations");
+        Assert.True(
+            response.StatusCode is HttpStatusCode.OK or HttpStatusCode.ServiceUnavailable,
+            $"Unexpected status {response.StatusCode}");
+        await using var stream = await response.Content.ReadAsStreamAsync();
+        using var doc = await JsonDocument.ParseAsync(stream);
+        Assert.True(doc.RootElement.TryGetProperty("status", out _));
     }
 }

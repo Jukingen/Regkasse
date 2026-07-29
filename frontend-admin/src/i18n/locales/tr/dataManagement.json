@@ -83,6 +83,86 @@
     "successBody": "Veri silme onaylandı. Mali olmayan veriler 7 gün sonra silinecek (veya Süper Admin daha erken çalıştırabilir).",
     "successRksv": "RKSV verileri en az 7 yıl saklanmaya devam eder."
   },
+  "lockedCard": {
+    "title": "Veri yönetimi",
+    "intro": "Lisansınız kilitli veya arşivlenmişken verilerinizi dışa aktarabilir veya mali olmayan verilerin silinmesini talep edebilirsiniz.",
+    "openFull": "Hesap yönetimini aç",
+    "exportTitle": "Veri dışa aktarma",
+    "exportDescription": "Tüm verilerinizi ZIP olarak dışa aktarın (RKSV gizleri maskelenir).",
+    "exportButton": "Veri dışa aktarma talep et",
+    "exportUnavailable": "Veri dışa aktarma şu anda kullanılamıyor.",
+    "deleteTitle": "Veri silme",
+    "deleteDescription": "Mali olmayan tüm verilerinizi silin (RKSV verileri en az 7 yıl saklanır).",
+    "deleteButton": "Veri silme talep et"
+  },
+  "account": {
+    "pageTitle": "Hesap yönetimi",
+    "licenseExpiredTitle": "Lisansınızın süresi dolmuş",
+    "licenseExpiredBody": "Hesabınızı yönetebilir ve verilerinizi dışa aktarabilirsiniz.",
+    "licenseExpiredRksv": "RKSV verileri yasal gereklilikler uyarınca 7 yıl saklanır.",
+    "exportTitle": "Veri dışa aktarma",
+    "gdprTag": "KVKK / GDPR uyumlu",
+    "exportDescription": "Tüm verilerinizi JSON formatında dışa aktarın. Ürünler, müşteriler, işlemler ve ayarlar dahildir.",
+    "entries": "{{count}} kayıt",
+    "inventory": {
+      "products": "Ürünler ve kategoriler",
+      "customers": "Müşteriler",
+      "transactions": "İşlemler ve ödemeler",
+      "rksv": "RKSV verileri (yasal koruma)"
+    },
+    "rksvRetentionTag": "7 yıl saklama",
+    "exportButton": "Veri dışa aktarma talep et",
+    "exportHint": "Dışa aktarma ZIP dosyası olarak sunulur (indirme veya e-posta bağlantısı).",
+    "closureTitle": "Hesabı kapat",
+    "irreversibleTag": "Geri alınamaz",
+    "closureWarningTitle": "Dikkat: Bu işlem geri alınamaz",
+    "closureBullets": {
+      "login": "Artık giriş yapamazsınız",
+      "nonRksv": "RKSV dışı verileriniz silinir",
+      "rksv": "RKSV verileri 7 yıl saklanır",
+      "irreversible": "İşlem geri alınamaz"
+    },
+    "whatHappensTitle": "Verilerinize ne olur?",
+    "whatHappens": {
+      "products": "Ürünler, müşteriler ve mali olmayan iş verileri silinir",
+      "rksv": "RKSV verileri 7 yıl saklanır",
+      "users": "Kullanıcı hesapları devre dışı bırakılır"
+    },
+    "closureButton": "Hesabı kalıcı olarak kapat",
+    "retentionTitle": "Gizlilik ve saklama",
+    "retention": {
+      "rksvTitle": "RKSV verileri",
+      "rksvBody": "Avusturya hukukuna göre 7 yıl saklama zorunluluğu",
+      "businessTitle": "İş verileri",
+      "businessBody": "Hesap kapanışına kadar saklanır, ardından silinir",
+      "userTitle": "Kullanıcı verileri",
+      "userBody": "Hesap kapanışına kadar saklanır, ardından anonimleştirilir"
+    }
+  },
+  "policy": {
+    "cardTitle": "Gizlilik politikası",
+    "legalTitle": "Yasal dayanak",
+    "legal": {
+      "rksv": "Avusturya RKSV: mali fişler ve imzalar için 7 yıl saklama zorunluluğu",
+      "gdpr": "GDPR/KVKK: veri taşınabilirliği ve silme hakkı (RKSV saklamaya tabi)",
+      "business": "İş verileri: hesap kapanışına kadar saklanır, ardından mali olmayan veriler silinir"
+    },
+    "deletedTitle": "Neler silinir?",
+    "deleted": {
+      "products": "Ürünler ve kategoriler",
+      "customers": "Müşteriler ve avantajlar",
+      "nonFiscal": "Mali olmayan faturalar ve kiracı ayarları",
+      "users": "Kullanıcı erişimi (devre dışı bırakma) ve özelleştirmeler"
+    },
+    "retainedTitle": "Neler saklanır?",
+    "retained": {
+      "payments": "RKSV onaylı ödemeler ve fişler (en az 7 yıl)",
+      "audit": "Denetim günlükleri (en az 7 yıl)",
+      "tse": "TSE imzaları ve günlük kapanışlar (en az 7 yıl)",
+      "ordersVouchers": "Online siparişler ve kuponlar (yasal saklama)"
+    },
+    "footerNote": "Tüm veriler yürürlükteki mevzuata uygun işlenir. Sorularınız için bize yazın:"
+  },
   "states": {
     "Active": "Aktif",
     "Grace": "Ek süre (0–7 gün)",

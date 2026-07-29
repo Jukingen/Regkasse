@@ -613,6 +613,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     icon: 'DatabaseOutlined',
     permission: PERMISSIONS.BACKUP_MANAGE,
   },
+  settingsAccount: {
+    id: 'settingsAccount',
+    menuKey: '/settings/account',
+    href: '/settings/account',
+    labelKey: 'nav.accountManagement',
+    icon: 'UserOutlined',
+    permission: PERMISSIONS.BACKUP_MANAGE,
+  },
   sessionSettings: {
     id: 'sessionSettings',
     menuKey: '/settings/session',
@@ -735,6 +743,24 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     /** Mandant license (Manager) + deployment license (Super Admin / settings.manage). */
     permission: [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SETTINGS_MANAGE],
   },
+  /** Tenant-admin status overview (Active / Grace / Locked) + renewal CTA. */
+  licenseStatusDashboard: {
+    id: 'licenseStatusDashboard',
+    menuKey: '/license/dashboard',
+    href: '/license/dashboard',
+    labelKey: 'nav.licenseStatusDashboard',
+    icon: 'DashboardOutlined',
+    permission: [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.LICENSE_VIEW, PERMISSIONS.SETTINGS_VIEW],
+  },
+  /** Super Admin: mandants currently in the license grace window. */
+  licenseGracePeriod: {
+    id: 'licenseGracePeriod',
+    menuKey: '/admin/license/grace-period',
+    href: '/admin/license/grace-period',
+    labelKey: 'nav.licenseGracePeriod',
+    icon: 'AlertOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
   /** Dev-only — hidden outside `NODE_ENV=development` via `developmentOnly` + `buildAdminSidebar`. */
   licenseTest: {
     id: 'licenseTest',
@@ -775,6 +801,46 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/admin/maintenance',
     labelKey: 'nav.maintenance',
     icon: 'ToolOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  superAdminFeatureFlags: {
+    id: 'superAdminFeatureFlags',
+    menuKey: '/admin/feature-flags',
+    href: '/admin/feature-flags',
+    labelKey: 'nav.featureFlags',
+    icon: 'TagOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  superAdminDeployments: {
+    id: 'superAdminDeployments',
+    menuKey: '/admin/deployments',
+    href: '/admin/deployments',
+    labelKey: 'nav.deployments',
+    icon: 'CloudServerOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  superAdminDeploymentTenants: {
+    id: 'superAdminDeploymentTenants',
+    menuKey: '/admin/deployments/tenants',
+    href: '/admin/deployments/tenants',
+    labelKey: 'nav.deploymentTenants',
+    icon: 'ClusterOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  superAdminDeploymentCompliance: {
+    id: 'superAdminDeploymentCompliance',
+    menuKey: '/admin/deployments/compliance',
+    href: '/admin/deployments/compliance',
+    labelKey: 'nav.deploymentCompliance',
+    icon: 'SafetyCertificateOutlined',
+    permission: PERMISSIONS.DEPLOYMENT_APPROVE,
+  },
+  superAdminDatabaseMigrations: {
+    id: 'superAdminDatabaseMigrations',
+    menuKey: '/admin/database/migrations',
+    href: '/admin/database/migrations',
+    labelKey: 'nav.databaseMigrations',
+    icon: 'DatabaseOutlined',
     permission: PERMISSIONS.SYSTEM_CRITICAL,
   },
   superAdminDataManagement: {
@@ -985,6 +1051,22 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     labelKey: 'nav.adminTseCompliance',
     icon: 'SafetyCertificateOutlined',
     permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminSignaturkarteProgram: {
+    id: 'adminSignaturkarteProgram',
+    menuKey: '/admin/tse/signaturkarte-program',
+    href: '/admin/tse/signaturkarte-program',
+    labelKey: 'nav.adminSignaturkarteProgram',
+    icon: 'CalendarOutlined',
+    permission: [PERMISSIONS.SETTINGS_VIEW],
+  },
+  adminTseAusfall: {
+    id: 'adminTseAusfall',
+    menuKey: '/admin/tse/ausfall',
+    href: '/admin/tse/ausfall',
+    labelKey: 'nav.adminTseAusfall',
+    icon: 'AlertOutlined',
+    permission: [PERMISSIONS.FINANZONLINE_VIEW],
   },
   adminTseAutoScaling: {
     id: 'adminTseAutoScaling',
@@ -1290,6 +1372,8 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
       {
         kind: 'leaves',
         catalogIds: [
+          'licenseStatusDashboard',
+          'licenseGracePeriod',
           'licenseManagement',
           'licenseTest',
           'superAdminLicenses',
@@ -1432,7 +1516,16 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
     blocks: [
       {
         kind: 'leaves',
-        catalogIds: ['settingsHub', 'companySettings', 'workingHours', 'taxGroups', 'taxHistory', 'settingsDataManagement'],
+        catalogIds: [
+          'settingsHub',
+          'companySettings',
+          'workingHours',
+          'taxGroups',
+          'taxHistory',
+          'settingsDataManagement',
+          'settingsAccount',
+          'adminSignaturkarteProgram',
+        ],
       },
       {
         kind: 'nested',
@@ -1483,6 +1576,11 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
           'superAdminTenants',
           'superAdminApprovals',
           'superAdminMaintenance',
+          'superAdminFeatureFlags',
+          'superAdminDeployments',
+          'superAdminDeploymentTenants',
+          'superAdminDeploymentCompliance',
+          'superAdminDatabaseMigrations',
           'superAdminDataManagement',
           'superAdminCashRegisters',
           'elmahErrors',
@@ -1499,6 +1597,8 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
           'adminTseLogs',
           'adminTseDeveloperTools',
           'adminTseCompliance',
+          'adminSignaturkarteProgram',
+          'adminTseAusfall',
           'adminTseAutoScaling',
           'adminTseAutoHealing',
           'adminTseKnowledge',

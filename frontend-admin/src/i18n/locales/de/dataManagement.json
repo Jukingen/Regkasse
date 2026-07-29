@@ -83,6 +83,86 @@
     "successBody": "Die Datenlöschung wurde bestätigt. Nicht-fiskalische Daten werden nach 7 Tagen gelöscht (oder früher durch Super Admin).",
     "successRksv": "RKSV-Daten bleiben mindestens 7 Jahre erhalten."
   },
+  "lockedCard": {
+    "title": "Datenverwaltung",
+    "intro": "Bei gesperrter oder archivierter Lizenz können Sie Ihre Daten exportieren oder die Löschung nicht-fiskalischer Daten beantragen.",
+    "openFull": "Kontoverwaltung öffnen",
+    "exportTitle": "Datenexport",
+    "exportDescription": "Exportieren Sie alle Ihre Daten als ZIP-Datei (RKSV-Geheimnisse sind maskiert).",
+    "exportButton": "Datenexport anfordern",
+    "exportUnavailable": "Datenexport ist derzeit nicht verfügbar.",
+    "deleteTitle": "Datenlöschung",
+    "deleteDescription": "Löschen Sie alle Ihre nicht-fiskalischen Daten (RKSV-Daten bleiben mindestens 7 Jahre erhalten).",
+    "deleteButton": "Datenlöschung beantragen"
+  },
+  "account": {
+    "pageTitle": "Kontoverwaltung",
+    "licenseExpiredTitle": "Ihre Lizenz ist abgelaufen",
+    "licenseExpiredBody": "Sie können Ihr Konto verwalten und Ihre Daten exportieren.",
+    "licenseExpiredRksv": "RKSV-Daten bleiben gemäß gesetzlicher Vorschriften 7 Jahre gespeichert.",
+    "exportTitle": "Datenexport",
+    "gdprTag": "DSGVO-konform",
+    "exportDescription": "Exportieren Sie alle Ihre Daten im JSON-Format. Dies beinhaltet Ihre Produkte, Kunden, Transaktionen und Einstellungen.",
+    "entries": "{{count}} Einträge",
+    "inventory": {
+      "products": "Produkte & Kategorien",
+      "customers": "Kunden",
+      "transactions": "Transaktionen & Zahlungen",
+      "rksv": "RKSV-Daten (gesetzlich geschützt)"
+    },
+    "rksvRetentionTag": "7 Jahre Aufbewahrung",
+    "exportButton": "Datenexport anfordern",
+    "exportHint": "Export wird als ZIP-Datei bereitgestellt (Download oder E-Mail-Link).",
+    "closureTitle": "Konto schließen",
+    "irreversibleTag": "Unwiderruflich",
+    "closureWarningTitle": "Achtung: Diese Aktion ist unwiderruflich",
+    "closureBullets": {
+      "login": "Sie können sich nicht mehr anmelden",
+      "nonRksv": "Ihre nicht-RKSV-Daten werden gelöscht",
+      "rksv": "RKSV-Daten bleiben 7 Jahre gespeichert",
+      "irreversible": "Die Aktion kann nicht rückgängig gemacht werden"
+    },
+    "whatHappensTitle": "Was passiert mit Ihren Daten?",
+    "whatHappens": {
+      "products": "Produkte, Kunden und nicht-fiskalische Geschäftsdaten werden gelöscht",
+      "rksv": "RKSV-Daten bleiben für 7 Jahre gespeichert",
+      "users": "Benutzerkonten werden deaktiviert"
+    },
+    "closureButton": "Konto unwiderruflich schließen",
+    "retentionTitle": "Datenschutz & Aufbewahrung",
+    "retention": {
+      "rksvTitle": "RKSV-Daten",
+      "rksvBody": "7 Jahre Aufbewahrungspflicht nach österreichischem Recht",
+      "businessTitle": "Geschäftsdaten",
+      "businessBody": "Aufbewahrung bis zur Kontoschließung, dann Löschung",
+      "userTitle": "Benutzerdaten",
+      "userBody": "Aufbewahrung bis zur Kontoschließung, dann Anonymisierung"
+    }
+  },
+  "policy": {
+    "cardTitle": "Datenschutzrichtlinien",
+    "legalTitle": "Gesetzliche Grundlagen",
+    "legal": {
+      "rksv": "Österreichische RKSV: 7 Jahre Aufbewahrungspflicht für fiskale Belege und Signaturen",
+      "gdpr": "DSGVO: Recht auf Datenübertragbarkeit und Löschung (vorbehaltlich RKSV-Aufbewahrung)",
+      "business": "Geschäftsdaten: Aufbewahrung bis zur Kontoschließung, danach Löschung nicht-fiskalischer Daten"
+    },
+    "deletedTitle": "Was wird gelöscht?",
+    "deleted": {
+      "products": "Produkte und Kategorien",
+      "customers": "Kunden und Vorteile",
+      "nonFiscal": "Nicht-fiskalische Rechnungen und Mandanteneinstellungen",
+      "users": "Benutzerzugänge (Deaktivierung) und Customizations"
+    },
+    "retainedTitle": "Was bleibt erhalten?",
+    "retained": {
+      "payments": "RKSV-zertifizierte Zahlungen und Belege (mindestens 7 Jahre)",
+      "audit": "Audit-Logs (mindestens 7 Jahre)",
+      "tse": "TSE-Signaturen und Tagesabschlüsse (mindestens 7 Jahre)",
+      "ordersVouchers": "Online-Bestellungen und Gutscheine (gesetzliche Aufbewahrung)"
+    },
+    "footerNote": "Alle Daten werden gemäß den gesetzlichen Vorschriften behandelt. Bei Fragen kontaktieren Sie uns:"
+  },
   "states": {
     "Active": "Aktiv",
     "Grace": "Kulanz (0–7 Tage)",

@@ -32222,6 +32222,21 @@
             "type": "string",
             "nullable": true
           },
+          "user": {
+            "$ref": "#/components/schemas/UserInfoDto"
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true
+          },
+          "userEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "userDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
           "actionType": {
             "$ref": "#/components/schemas/AuditEventType"
           },
@@ -37152,6 +37167,9 @@
           "notes": {
             "type": "string",
             "nullable": true
+          },
+          "applyToTenant": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -44751,6 +44769,9 @@
           "extendedBy": {
             "type": "string",
             "nullable": true
+          },
+          "appliedToTenant": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -53853,6 +53874,19 @@
           "environmentDisplayName": {
             "type": "string",
             "nullable": true
+          },
+          "fiscalConfigLockOk": {
+            "type": "boolean"
+          },
+          "fiscalConfigLockEscapeHatchActive": {
+            "type": "boolean"
+          },
+          "fiscalConfigLockReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -60409,6 +60443,32 @@
           "lastLoginAt": {
             "type": "string",
             "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UserInfoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "role": {
+            "type": "string",
             "nullable": true
           }
         },

@@ -8,7 +8,7 @@ describe('getEnvironmentBadge', () => {
     jest.resetModules();
   });
 
-  it('returns Entwicklung badge text when __DEV__ is true', () => {
+  it('returns DEVELOPMENT badge text when __DEV__ is true', () => {
     (global as typeof globalThis & { __DEV__?: boolean }).__DEV__ = true;
     jest.resetModules();
 
@@ -16,8 +16,8 @@ describe('getEnvironmentBadge', () => {
       require('../shared/config/environmentBadge') as typeof import('../shared/config/environmentBadge');
     const badge = getEnvironmentBadge();
     expect(badge.type).toBe('development');
-    expect(badge.text).toContain('Entwicklung');
-    expect(badge.text.length).toBeGreaterThan(0);
+    expect(badge.text).toBe('DEVELOPMENT');
+    expect(badge.color).toBe('green');
   });
 
   it('returns empty badge text when __DEV__ is false', () => {

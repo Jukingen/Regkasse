@@ -18,14 +18,42 @@ public sealed class RksvFinanzOnlineSubmissionClientTests
             Mock.Of<ILogger<FakeRksvFinanzOnlineSubmissionClient>>());
     }
 
-    private static RksvFinanzOnlineSubmissionClient CreateReal(RksvFinanzOnlineSubmissionClientOptions options)
+    private static RksvFinanzOnlineSubmissionClient CreateReal(
+        RksvFinanzOnlineSubmissionClientOptions options,
+        IFinanzOnlineSubmissionService? submissionService = null,
+        string mode = "Test",
+        FinanzOnlineCutoverGuardOptions? cutover = null)
     {
         var monitor = new Mock<IOptionsMonitor<RksvFinanzOnlineSubmissionClientOptions>>();
         monitor.Setup(m => m.CurrentValue).Returns(options);
+
+        var modeMon = new Mock<IOptionsMonitor<FinanzOnlineModeOptions>>();
+        modeMon.Setup(m => m.CurrentValue).Returns(new FinanzOnlineModeOptions { Mode = mode });
+
+        var cutoverMon = new Mock<IOptionsMonitor<FinanzOnlineCutoverGuardOptions>>();
+        cutoverMon.Setup(m => m.CurrentValue).Returns(cutover ?? new FinanzOnlineCutoverGuardOptions());
+
         return new RksvFinanzOnlineSubmissionClient(
             monitor.Object,
+            modeMon.Object,
+            cutoverMon.Object,
+            submissionService ?? Mock.Of<IFinanzOnlineSubmissionService>(),
             Mock.Of<ILogger<RksvFinanzOnlineSubmissionClient>>());
     }
+
+    private static RksvFinanzOnlineSubmissionClientOptions CompleteRealOptions(bool allowOutbound = true) => new()
+    {
+        Enabled = true,
+        EndpointUrl = "https://example.invalid/rksv-soap",
+        TimeoutSeconds = 60,
+        Environment = RksvFinanzOnlineSubmissionDeploymentEnvironment.Test,
+        ParticipantCredentialsConfigurationKey = "FinanzOnline:ParticipantRef",
+        ClientCertificateSecretName = "kv/rksv-client-cert",
+        AllowOutboundNetworkCalls = allowOutbound,
+        ClientKind = RksvFinanzOnlineSubmissionClientKind.Real,
+    };
+
+    private static string ValidDepBeleg() => FinanzOnlineDevTestSmoke.BuildSyntheticDepBeleg();
 
     [Fact]
     public async Task Fake_SubmitStartbelegAsync_WhenConfiguredSuccess_ReturnsReferenceAndSnapshotWithoutQr()
@@ -122,11 +150,32 @@ public sealed class RksvFinanzOnlineSubmissionClientTests
     }
 
     [Fact]
+    public async Task Real_WhenOutboundDisabled_ReturnsOutboundDisabledWithoutCallingSubmission()
+    {
+        var submission = new Mock<IFinanzOnlineSubmissionService>(MockBehavior.Strict);
+        var client = CreateReal(CompleteRealOptions(allowOutbound: false), submission.Object);
+        var result = await client.SubmitStartbelegAsync(new RksvFinanzOnlineSubmissionPayload
+        {
+            CashRegisterId = Guid.NewGuid(),
+            RegisterNumber = "R1",
+            ReceiptNumber = "B1",
+            QrPayload = ValidDepBeleg(),
+            TimestampUtc = DateTimeOffset.UtcNow,
+        });
+        Assert.False(result.Success);
+        Assert.Equal(RksvFinanzOnlineSubmissionKnownErrorCodes.OutboundDisabled, result.ErrorCode);
+        submission.Verify(
+            s => s.SubmitAsync(It.IsAny<FinanzOnlineRegisterSubmissionRequest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task Real_WhenEnabledButIncomplete_ReturnsConfigIncomplete()
     {
         var client = CreateReal(new RksvFinanzOnlineSubmissionClientOptions
         {
             Enabled = true,
+            AllowOutboundNetworkCalls = true,
             EndpointUrl = null,
             TimeoutSeconds = 120,
             ParticipantCredentialsConfigurationKey = "FinanzOnline:ParticipantRef",
@@ -145,28 +194,88 @@ public sealed class RksvFinanzOnlineSubmissionClientTests
     }
 
     [Fact]
-    public async Task Real_WhenEnabledAndComplete_ReturnsSoapNotImplementedWithoutOutboundCall()
+    public async Task Real_WhenInvalidBeleg_ReturnsBelegInvalidWithoutCallingSubmission()
     {
-        var client = CreateReal(new RksvFinanzOnlineSubmissionClientOptions
-        {
-            Enabled = true,
-            EndpointUrl = "https://example.invalid/rksv-soap",
-            TimeoutSeconds = 60,
-            Environment = RksvFinanzOnlineSubmissionDeploymentEnvironment.Test,
-            ParticipantCredentialsConfigurationKey = "FinanzOnline:ParticipantRef",
-            ClientCertificateSecretName = "kv/rksv-client-cert",
-            AllowOutboundNetworkCalls = true,
-        });
+        var submission = new Mock<IFinanzOnlineSubmissionService>(MockBehavior.Strict);
+        var client = CreateReal(CompleteRealOptions(), submission.Object);
         var result = await client.SubmitJahresbelegAsync(new RksvFinanzOnlineSubmissionPayload
         {
             CashRegisterId = Guid.NewGuid(),
             RegisterNumber = "R1",
             ReceiptNumber = "B1",
-            QrPayload = "x",
+            QrPayload = "not-a-valid-beleg",
             TimestampUtc = DateTimeOffset.UtcNow,
         });
         Assert.False(result.Success);
-        Assert.Equal(RksvFinanzOnlineSubmissionKnownErrorCodes.SoapTransportNotImplemented, result.ErrorCode);
-        Assert.Contains("example.invalid", result.RawResponseSnapshot ?? "", StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(RksvFinanzOnlineSubmissionKnownErrorCodes.BelegInvalid, result.ErrorCode);
+    }
+
+    [Fact]
+    public async Task Real_WhenEnabledAndComplete_SubmitsBelegpruefungViaSubmissionService()
+    {
+        var beleg = ValidDepBeleg();
+        FinanzOnlineRegisterSubmissionRequest? captured = null;
+        var submission = new Mock<IFinanzOnlineSubmissionService>();
+        submission
+            .Setup(s => s.SubmitAsync(It.IsAny<FinanzOnlineRegisterSubmissionRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<FinanzOnlineRegisterSubmissionRequest, CancellationToken>((req, _) => captured = req)
+            .ReturnsAsync(new FinanzOnlineRegisterSubmissionResponse
+            {
+                Success = true,
+                TransmissionId = "TX-1",
+                Status = "Accepted",
+            });
+
+        var client = CreateReal(CompleteRealOptions(), submission.Object);
+        var result = await client.SubmitStartbelegAsync(new RksvFinanzOnlineSubmissionPayload
+        {
+            CashRegisterId = Guid.NewGuid(),
+            RegisterNumber = "R1",
+            ReceiptNumber = "B1",
+            QrPayload = beleg,
+            TimestampUtc = DateTimeOffset.Parse("2026-01-01T12:00:00Z"),
+            TenantId = "tenant1",
+            CompanyTaxNumber = "ATU12345678",
+        });
+
+        Assert.True(result.Success);
+        Assert.Equal("TX-1", result.ExternalReference);
+        Assert.Equal(RksvSpecialReceiptFinanzOnlineSubmissionStatuses.Verified, result.VerificationStatus);
+        Assert.NotNull(captured);
+        Assert.Equal(FinanzOnlineIntegrationMode.TEST, captured!.Mode);
+        Assert.NotNull(captured.RkdbBelegpruefung);
+        Assert.Equal(beleg, captured.RkdbBelegpruefung!.Beleg);
+        Assert.Equal("ATU12345678", captured.RkdbBelegpruefung.Kundeninfo);
+        Assert.DoesNotContain(beleg, result.RawResponseSnapshot ?? "", StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Real_SubmitMonatsbelegAsync_ReturnsNotRequired()
+    {
+        var client = CreateReal(CompleteRealOptions());
+        var result = await client.SubmitMonatsbelegAsync(new RksvFinanzOnlineSubmissionPayload
+        {
+            CashRegisterId = Guid.NewGuid(),
+            ReceiptNumber = "M1",
+            QrPayload = ValidDepBeleg(),
+        });
+        Assert.False(result.Success);
+        Assert.Equal(RksvFinanzOnlineSubmissionKnownErrorCodes.MonatsbelegNotRequired, result.ErrorCode);
+        Assert.Equal(RksvSpecialReceiptFinanzOnlineSubmissionStatuses.NotRequired, result.VerificationStatus);
+    }
+
+    [Fact]
+    public async Task Fake_SubmitMonatsbelegAsync_ReturnsNotRequired()
+    {
+        var client = CreateFake(new RksvFinanzOnlineSubmissionClientOptions { FakeSuccess = true });
+        var result = await client.SubmitMonatsbelegAsync(new RksvFinanzOnlineSubmissionPayload
+        {
+            CashRegisterId = Guid.NewGuid(),
+            ReceiptNumber = "M1",
+            QrPayload = ValidDepBeleg(),
+        });
+        Assert.False(result.Success);
+        Assert.Equal(RksvFinanzOnlineSubmissionKnownErrorCodes.MonatsbelegNotRequired, result.ErrorCode);
+        Assert.Equal(RksvSpecialReceiptFinanzOnlineSubmissionStatuses.NotRequired, result.VerificationStatus);
     }
 }

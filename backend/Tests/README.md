@@ -26,7 +26,13 @@ Regenerate fixtures:
 | `_jar_*/`, `_bmf_example/` | Local JAR extract / reference scratch |
 | `verification_output/` (repo root) | Prüftool run output |
 
-Obtain JARs from the official BMF RKSV test suite distribution (same bundle that ships `regkassen-verification-depformat-1.1.1.jar` and `lib/`). Place:
+Obtain JARs via the official BMF release (recommended):
+
+```powershell
+pwsh ./scripts/ensure-bmf-prueftool.ps1
+```
+
+Source: [Prüftool V1.1.1](https://github.com/BMF-RKSV-Technik/at-registrierkassen-mustercode/releases/tag/V1.1.1) (`regkassen-verification-1.1.1.zip`, SHA256-pinned in the script). Manual place:
 
 - `regkassen-verification-depformat-1.1.1.jar` → `backend/Tests/`
 - all dependency JARs → `backend/Tests/lib/`
@@ -38,5 +44,7 @@ Java 8 cannot decrypt AES-256 turnover counters; use JDK 17+.
 ```powershell
 .\scripts\verify-rksv-dep-export.ps1 -UseFixtures
 ```
+
+CI: `.github/workflows/dep-prueftool.yml` (fixture script + `Category=DepPrueftool` seeded export smoke).
 
 The script auto-detects Microsoft OpenJDK 17 when installed; override with `$env:PRUEFTOOL_JAVA`.

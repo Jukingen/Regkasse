@@ -1,0 +1,18 @@
+{
+  "pageTitle": "Veritabanı migration'ları",
+  "accessDenied": "Yalnızca Super Admin migration durumunu görebilir.",
+  "introTitle": "Additive şema stratejisi",
+  "introBody": "Bağlı veritabanındaki bekleyen ve uygulanmış EF Core migration'ları.",
+  "strategyHint": "Yalnızca additive, geriye uyumlu değişiklikler. docs/DATABASE_MIGRATION_STRATEGY.md. Staging/Canary otomatik; Production Environment onayı ister.",
+  "status": "Durum",
+  "appliedCount": "Uygulanan",
+  "pendingCount": "Bekleyen",
+  "latestApplied": "Son uygulanan",
+  "pendingWarning": "Bekleyen migration var — trafiği artırmadan migrate/deploy tamamlayın.",
+  "pendingTitle": "Bekleyen migration'lar",
+  "recentTitle": "Son uygulananlar",
+  "noPending": "Bekleyen migration yok",
+  "columns": {
+    "id": "Migration ID"
+  }
+}

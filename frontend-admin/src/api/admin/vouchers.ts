@@ -4,6 +4,7 @@
 import type { UseMutationOptions, UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { SecondParameter, unwrapData } from '@/api/admin/httpHelpers';
 import { AXIOS_INSTANCE, customInstance } from '@/lib/axios';
 import { buildVoucherExportFileName } from '@/features/vouchers/utils/voucherExportFileName';
 import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
@@ -88,14 +89,6 @@ export interface CreateAdminVoucherResponse {
 
 export interface VerifyAdminVoucherCodeResponse {
   matches: boolean;
-}
-
-type SecondParameter<T> = T extends (arg: any, arg2?: infer U) => any ? U : never;
-
-function unwrapData<T>(res: unknown): T {
-  const r = res as { data?: T };
-  if (r?.data !== undefined) return r.data;
-  return res as T;
 }
 
 export function getAdminVouchers(

@@ -198,7 +198,7 @@ export default function TseDisasterRecoveryPage() {
                 <Timeline
                   items={runbook.steps.map((step) => ({
                     color: step.isCompleted ? 'green' : step.error ? 'red' : 'gray',
-                    children: (
+                    content: (
                       <div>
                         <div style={{ fontWeight: 600 }}>{step.action}</div>
                         <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.45)' }}>

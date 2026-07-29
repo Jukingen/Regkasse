@@ -9,6 +9,7 @@
 export interface LicenseSaleResponse {
   /** @nullable */
   activationDateUtc?: string | null;
+  appliedToTenant?: boolean;
   /** @nullable */
   cancellationReason?: string | null;
   /** @nullable */

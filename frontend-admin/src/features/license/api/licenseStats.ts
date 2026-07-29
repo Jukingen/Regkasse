@@ -10,9 +10,12 @@ export interface LicenseActivity {
 }
 
 export interface LicenseDashboardStats {
+  totalTenants: number;
   activeTenantLicenses: number;
   expiringTenantLicenses: number;
   expiredTenantLicenses: number;
+  graceTenantLicenses: number;
+  lockedTenantLicenses: number;
   activeDeploymentLicenses: number;
   expiringDeploymentLicenses: number;
   expiredDeploymentLicenses: number;

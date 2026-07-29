@@ -9,6 +9,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import type { CashRegister } from '@/api/generated/model';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { useNotify } from '@/hooks/useNotify';
 import { customInstance } from '@/lib/axios';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
@@ -37,7 +38,8 @@ function normalizeRegisterRows(data: unknown): CashRegister[] {
 }
 
 export function RksvJahresbelegManualCard() {
-  const { message, modal } = useAntdApp();
+  const { modal } = useAntdApp();
+  const notify = useNotify();
 
   const { hasPermission } = usePermissions();
   const can = hasPermission(PERMISSIONS.RKSV_JAHRESBELEG_CREATE);
@@ -52,7 +54,7 @@ export function RksvJahresbelegManualCard() {
 
   const doPost = useCallback(async () => {
     if (!registerId) {
-      message.warning('Bitte eine Kasse wählen.');
+      notify.warning('rksvHub.sonderbelege.selectRegister');
       return;
     }
     setSubmitting(true);
@@ -67,15 +69,18 @@ export function RksvJahresbelegManualCard() {
           earlyReason: earlyReason.trim() || null,
         },
       });
-      message.success(`Jahresbeleg erstellt: ${res.receiptNumber}`);
+      notify.successKey('rksvHub.sonderbelege.jahresbelegSuccessWithNumber', {
+        receiptNumber: res.receiptNumber,
+      });
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } }; message?: string };
-      const msg = err?.response?.data?.message ?? err?.message ?? 'Anfrage fehlgeschlagen';
-      message.error(String(msg));
+      notify.apiError(e, {
+        logContext: 'RKSV.jahresbelegManual',
+        fallbackKey: 'common.errorGeneric',
+      });
     } finally {
       setSubmitting(false);
     }
-  }, [registerId, year, earlyReason]);
+  }, [registerId, year, earlyReason, notify]);
 
   const onCreateClick = useCallback(() => {
     modal.confirm({
@@ -86,7 +91,7 @@ export function RksvJahresbelegManualCard() {
       okButtonProps: { loading: submitting },
       onOk: () => doPost(),
     });
-  }, [doPost, submitting]);
+  }, [doPost, submitting, modal]);
 
   if (!can) {
     return null;

@@ -65,7 +65,9 @@ public class RksvNullbelegServiceTests
             new Mock<ILogger<RksvSpecialReceiptService>>().Object,
             new RksvSpecialReceiptFinanzOnlineSubmissionTracker(context),
             new FinanzOnlineOutboxService(context, new Mock<ILogger<FinanzOnlineOutboxService>>().Object),
-            Mock.Of<IReportPdfCaptureService>());
+            Mock.Of<IReportPdfCaptureService>(),
+            Mock.Of<IOptionsMonitor<FinanzOnlineModeOptions>>(o => o.CurrentValue == new FinanzOnlineModeOptions { Mode = "Test" }),
+            Mock.Of<IOptionsMonitor<FinanzOnlineCutoverGuardOptions>>(o => o.CurrentValue == new FinanzOnlineCutoverGuardOptions()));
     }
 
     private static async Task<(Guid RegisterId, RksvSpecialReceiptService Service, Mock<ITseService> Tse, Mock<IReceiptSequenceService> Seq)> SeedAndBuildAsync(AppDbContext context)

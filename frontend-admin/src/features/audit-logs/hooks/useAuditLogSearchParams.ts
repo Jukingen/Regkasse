@@ -25,6 +25,8 @@ export type AuditLogListParams = {
   status?: AuditLogStatusFilter;
   statusOutcome?: 'success' | 'failure';
   hasChanges?: boolean;
+  /** Free-text search (user name, email, id, action, entity). */
+  search?: string;
 };
 
 const FILTER_KEYS = [
@@ -39,6 +41,7 @@ const FILTER_KEYS = [
   'status',
   'statusOutcome',
   'hasChanges',
+  'search',
 ] as const;
 
 function parsePositiveInt(raw: string | null, fallback: number): number {
@@ -72,6 +75,7 @@ export function useAuditLogSearchParams() {
           ? raw.statusOutcome
           : undefined,
       hasChanges: raw.hasChanges === 'true' ? true : raw.hasChanges === 'false' ? false : undefined,
+      search: raw.search?.trim() || undefined,
     };
   }, [searchParams]);
 
@@ -103,6 +107,7 @@ export function useAuditLogSearchParams() {
       if (merged.statusOutcome) qp.set('statusOutcome', merged.statusOutcome);
       if (merged.hasChanges === true) qp.set('hasChanges', 'true');
       if (merged.hasChanges === false) qp.set('hasChanges', 'false');
+      if (merged.search) qp.set('search', merged.search);
 
       const qs = qp.toString();
       // App Router: scroll:false avoids full navigation; URL updates without reload.

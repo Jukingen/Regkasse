@@ -24,7 +24,9 @@ import { AdminDesktopSiderResizeHandle } from '@/components/admin-layout/AdminDe
 import { AdminLayout } from '@/components/admin-layout/AdminLayout';
 import { ImpersonationBanner } from '@/components/admin-layout/ImpersonationBanner';
 import { RoleMenuPreviewBanner } from '@/features/users/components/RoleMenuPreviewBanner';
+import { FiscalHostEnvironmentBanners } from '@/features/rksv/components/FiscalHostEnvironmentBanners';
 import { LicenseExpiryBanner } from '@/components/admin-layout/LicenseExpiryBanner';
+import { SignaturkarteProgramBanner } from '@/features/signaturkarte-program/components/SignaturkarteProgramBanner';
 import { SuperAdminModeBanner } from '@/components/admin-layout/SuperAdminModeBanner';
 import { TenantGuard } from '@/components/TenantGuard';
 import { VerwaltungTenantContextGate } from '@/components/admin-layout/VerwaltungTenantContextGate';
@@ -37,6 +39,9 @@ import {
 import { AdminShellHeader } from '@/components/layout/Header';
 import { PageLoader } from '@/components/ui/PageLoader';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { LicenseRenewalModalHost } from '@/features/license/components/LicenseRenewalModalHost';
+import { LicenseRenewalRecoveryBanner } from '@/features/license/components/LicenseRenewalRecoveryBanner';
+import { GracePeriodUrgentWarningHost } from '@/features/license/components/GracePeriodUrgentWarningHost';
 import { TenantProvider } from '@/features/tenancy/providers/TenantProvider';
 import { useI18n } from '@/i18n';
 import { usePersonalization } from '@/lib/personalization/PersonalizationProvider';
@@ -152,7 +157,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <AdminLayout>
                   <MaintenanceBanner />
                   <MaintenanceLimitedModeAlert />
+                  <FiscalHostEnvironmentBanners />
                   <LicenseExpiryBanner />
+                  <SignaturkarteProgramBanner />
+                  <LicenseRenewalRecoveryBanner />
+                  <LicenseRenewalModalHost />
+                  <GracePeriodUrgentWarningHost />
                   <ReadOnlyBanner />
                   <ImpersonationBanner />
                   <RoleMenuPreviewBanner />

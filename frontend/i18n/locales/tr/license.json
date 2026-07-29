@@ -97,5 +97,55 @@
     "ok": "Tamam",
     "featureDeniedTitle": "Lisans özelliği etkin değil",
     "featureDeniedBody": "Bu işlem mevcut lisansınızda yer almıyor ({{featureId}}). Lütfen yöneticinizle iletişime geçin."
+  },
+  "pushReminders": {
+    "title30": "Lisans 30 gün içinde sona eriyor",
+    "title14": "Lisans 14 gün içinde sona eriyor",
+    "title7": "Lisans 7 gün içinde sona eriyor",
+    "title1": "Lisans yarın sona eriyor",
+    "body": "Lütfen lisansınızı zamanında yenileyin."
+  },
+  "lockdownAlert": {
+    "title": "Lisans süresi doldu",
+    "body": "Çalışmaya devam etmek için lütfen lisansınızı yenileyin.",
+    "renewNow": "Şimdi yenile",
+    "later": "Sonra"
+  },
+  "gracePeriodWarning": {
+    "banner": "Lisans {{days}} gün içinde sona eriyor",
+    "bannerUrgent": "ACİL: Lisans {{days}} gün içinde sona eriyor",
+    "details": "Ayrıntılar",
+    "modalTitle": "Grace dönemi",
+    "modalTitleUrgent": "ACİL: Grace dönemi",
+    "modalBody": "Lisansınızın süresi doldu. {{days}} gün grace süreniz kaldı.",
+    "modalLockdown": "Grace döneminden sonra sistem kilitlenir.",
+    "renewNow": "Şimdi yenile",
+    "later": "Sonra"
+  },
+  "expiredScreen": {
+    "title": "Lisans süresi doldu",
+    "subtitleDays": "Regkasse lisansınız {{days}} gündür süresi dolmuş durumda.",
+    "subtitleGeneric": "Regkasse lisansınızın süresi dolmuş.",
+    "complianceNote": "Sistem uyumluluk nedeniyle kilitlendi.",
+    "renewHint": "Çalışmaya devam etmek için lütfen lisansınızı yenileyin.",
+    "renewCta": "Şimdi yenile",
+    "supportCta": "Destekle iletişime geç",
+    "backToLogin": "Girişe dön",
+    "mailtoBody": "Lütfen Regkasse lisansımı yenileyin. Teşekkürler."
+  },
+  "statusChip": {
+    "messageActive": "Lisans aktif",
+    "messageGrace": "Grace: {{days}} gün",
+    "messageLocked": "Süresi doldu",
+    "state": {
+      "Active": "Aktif",
+      "Grace": "Grace dönemi",
+      "Locked": "Kilitli"
+    },
+    "alertTitle": "Lisans durumu",
+    "alertBody": "Durum: {{state}}\nGeçerlilik: {{expiresAt}}\n{{message}}",
+    "renewNow": "Şimdi yenile",
+    "ok": "Tamam",
+    "accessibilityHint": "Ayrıntılar ve yenileme için dokunun"
   }
 }

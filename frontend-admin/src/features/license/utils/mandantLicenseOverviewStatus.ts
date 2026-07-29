@@ -80,3 +80,25 @@ export function mandantLicenseOverviewTagColor(kind: MandantLicenseOverviewKind)
       return 'default';
   }
 }
+
+/**
+ * Maps backend license-overview `status` strings onto FA overview kinds.
+ * API uses `no_license`; UI kind is `none`.
+ */
+export function mapTenantLicenseOverviewApiStatus(status: string): MandantLicenseOverviewKind {
+  switch (status.trim().toLowerCase()) {
+    case 'active':
+      return 'active';
+    case 'expiring_soon':
+      return 'expiring_soon';
+    case 'expired':
+      return 'expired';
+    case 'trial':
+      return 'trial';
+    case 'no_license':
+    case 'none':
+      return 'none';
+    default:
+      return 'none';
+  }
+}

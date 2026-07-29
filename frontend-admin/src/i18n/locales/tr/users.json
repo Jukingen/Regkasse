@@ -94,13 +94,15 @@
       "Waiter": "Garson",
       "Kitchen": "Mutfak",
       "ReportViewer": "Rapor Görüntüleyici",
-      "Accountant": "Muhasebe"
+      "Accountant": "Muhasebe",
+      "ComplianceOfficer": "Uyumluluk yetkilisi"
     },
     "badgeLabels": {
       "SuperAdmin": "Platform yöneticisi",
       "Manager": "Müşteri Yöneticisi",
       "Cashier": "Kasiyer",
       "Accountant": "Muhasebeci",
+      "ComplianceOfficer": "Uyumluluk",
       "Waiter": "Garson",
       "Kitchen": "Mutfak",
       "ReportViewer": "Raporlar"

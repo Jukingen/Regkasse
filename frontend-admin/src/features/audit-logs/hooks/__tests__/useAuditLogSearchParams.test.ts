@@ -15,6 +15,7 @@ function buildAuditLogQueryString(merged: {
   userId?: string;
   entityType?: string;
   status?: string;
+  search?: string;
 }): string {
   const qp = new URLSearchParams();
   if (merged.page !== AUDIT_LOG_LIST_DEFAULTS.page) qp.set('page', String(merged.page));
@@ -26,6 +27,7 @@ function buildAuditLogQueryString(merged: {
   if (merged.userId) qp.set('userId', merged.userId);
   if (merged.entityType) qp.set('entityType', merged.entityType);
   if (merged.status) qp.set('status', toAuditLogStatusUrlParam(merged.status));
+  if (merged.search) qp.set('search', merged.search);
   return qp.toString();
 }
 
@@ -40,6 +42,16 @@ describe('audit log URL query params', () => {
         status: 'Failed',
       })
     ).toBe('userId=u-1&entityType=Payment&status=Failure');
+  });
+
+  it('includes free-text search', () => {
+    expect(
+      buildAuditLogQueryString({
+        page: 1,
+        pageSize: 10,
+        search: 'mustafa',
+      })
+    ).toBe('search=mustafa');
   });
 
   it('includes non-default pagination', () => {

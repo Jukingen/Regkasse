@@ -12,7 +12,7 @@
     "userPlaceholder": "User",
     "actionType": "Action type",
     "actionTypePlaceholder": "Action type",
-    "search": "Search…",
+    "search": "Search (user, action…)",
     "allActions": "All actions"
   },
   "actions": {

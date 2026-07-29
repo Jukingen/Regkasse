@@ -12,6 +12,7 @@ import type { RksvFinanzOnlineSubmissionStatusDto } from '@/api/generated/model'
 import { RECEIPT_KEYS } from '@/features/receipts/hooks/useReceiptListQuery';
 import {
   isRksvFinanzOnlineTrackedSpecialReceiptKind,
+  isRksvMonatsbelegSpecialReceiptKind,
   rksvFinanzOnlineSubmissionStatusTagColor,
   shouldOfferFinanzOnlineReconciliationRetry,
 } from '@/features/receipts/utils/rksvFinanzOnlineSubmissionUi';
@@ -95,6 +96,19 @@ export default function RksvSpecialReceiptFinanzOnlineSubmissionCard({
   const onRetry = useCallback(() => {
     void retryMutation.mutateAsync();
   }, [retryMutation]);
+
+  if (isRksvMonatsbelegSpecialReceiptKind(rksvSpecialReceiptKind)) {
+    return (
+      <Card title={p('monatsbelegCardTitle')}>
+        <Alert
+          type="info"
+          showIcon
+          title={p('monatsbelegNotRequiredTitle')}
+          description={p('monatsbelegNotRequiredBody')}
+        />
+      </Card>
+    );
+  }
 
   if (!isRksvFinanzOnlineTrackedSpecialReceiptKind(rksvSpecialReceiptKind)) {
     return null;

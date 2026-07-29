@@ -68,5 +68,56 @@ public enum AuditEventType
     OperationUndone = 40,
     /// <summary>Product catalog price and/or tax group changed (RKSV price version trail).</summary>
     ProductPriceChanged = 41,
+    /// <summary>Product superseded by a new catalog version due to prior fiscal sales (RKSV).</summary>
+    ProductCatalogVersionCreated = 42,
+    /// <summary>RKSV DEP §7 export created (manual or scheduled).</summary>
+    RksvDepExportCreated = 43,
+    /// <summary>RKSV DEP §7 export downloaded from admin.</summary>
+    RksvDepExportDownloaded = 44,
+    /// <summary>RKSV DEP §7 export archived for long-term retention.</summary>
+    RksvDepExportArchived = 45,
+    /// <summary>RKSV DEP §7 archived export purged after retention.</summary>
+    RksvDepExportPurged = 46,
+    /// <summary>RKSV DEP §7 export validated (manual or automatic).</summary>
+    RksvDepExportValidated = 47,
+    /// <summary>RKSV DEP §7 export generation failed.</summary>
+    RksvDepExportFailed = 48,
+    /// <summary>FA license renewal page or modal viewed (funnel analytics; deduped per day).</summary>
+    LicenseRenewalPageViewed = 49,
+    /// <summary>Operator marked a TSE device compliant for the Mai 2027 Signaturkarte program.</summary>
+    SignaturkarteProgramMarkedCompliant = 50,
+    /// <summary>Signaturkarte program reminder sweep published activity/email for a tenant.</summary>
+    SignaturkarteProgramReminderSent = 51,
+
+    /// <summary>Ausfall / Wiederinbetriebnahme episode created (suggestion or manual).</summary>
+    RksvAusfallEpisodeCreated = 52,
+
+    /// <summary>Ausfall / Wiederinbetriebnahme episode enqueued to FinanzOnline outbox.</summary>
+    RksvAusfallEpisodeEnqueued = 53,
+
+    /// <summary>Episode closed as completed via FinanzOnline portal (manual mark).</summary>
+    RksvAusfallMarkedManualPortal = 54,
+
+    /// <summary>Suggested Ausfall episode cancelled before FON send.</summary>
+    RksvAusfallSuggestionCancelled = 55,
+
+    /// <summary>Super Admin changed a feature flag override (global or tenant).</summary>
+    FeatureFlagChanged = 56,
+
+    /// <summary>Deployment pipeline started (CI report or manual).</summary>
+    DeploymentStarted = 57,
+
+    /// <summary>Deployment completed successfully (incl. smoke when applicable).</summary>
+    DeploymentSucceeded = 58,
+
+    /// <summary>Deployment failed (smoke, webhook, or operator abort).</summary>
+    DeploymentFailed = 59,
+
+    /// <summary>Deployment rollback invoked (stage or tenant).</summary>
+    DeploymentRollback = 60,
+
+    /// <summary>Compliance officer signed off production deployment checklist.</summary>
+    DeploymentComplianceApproved = 61,
+
     Other = 99
 }

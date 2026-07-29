@@ -94,13 +94,15 @@
       "Waiter": "Kellner",
       "Kitchen": "Küche",
       "ReportViewer": "Berichte (nur Lesen)",
-      "Accountant": "Buchhaltung"
+      "Accountant": "Buchhaltung",
+      "ComplianceOfficer": "Compliance-Beauftragter"
     },
     "badgeLabels": {
       "SuperAdmin": "Plattform-Admin",
       "Manager": "Mandanten-Admin",
       "Cashier": "Kassierer",
       "Accountant": "Buchhalter",
+      "ComplianceOfficer": "Compliance",
       "Waiter": "Kellner",
       "Kitchen": "Küche",
       "ReportViewer": "Berichte"

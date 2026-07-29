@@ -49,7 +49,8 @@ describe('Table switching contract (regression)', () => {
 
     it('returns empty cart for table with no entry in cartsByTable', () => {
       const currentCart = getCartForTableNumber(cartsByTable, 3);
-      expect(currentCart).toEqual({ items: [] });
+      expect(currentCart.items).toEqual([]);
+      expect(currentCart.grandTotalGross).toBe(0);
     });
 
     it('does not mutate or mix table data: table 1 cart unchanged when reading table 2', () => {

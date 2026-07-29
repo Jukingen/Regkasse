@@ -182,6 +182,127 @@
       "openSettings": "Ayarları aç",
       "actionRequired": "Mandant lisansının yenilenmesi gerekiyor."
     },
+    "licenseCountdown": {
+      "validUntilLabel": "Lisans geçerlilik tarihi",
+      "expired": "Süresi dolmuş",
+      "expiredHint": "Süresi dolmuş",
+      "remainingHint": "kalan süre",
+      "renewNow": "Şimdi yenile",
+      "progressAria": "Lisans süresi: kalan {{days}} gün"
+    },
+    "licenseHealth": {
+      "title": "Lisans sağlığı",
+      "statusLabel": "Durum",
+      "validUntil": "Geçerlilik",
+      "healthy": "Sağlıklı",
+      "actionNeeded": "İşlem gerekli",
+      "daysLeft": "{{days}} gün",
+      "extend": "Uzat",
+      "extendNow": "Şimdi yenile",
+      "progressAria": "Lisans sağlığı: {{days}} gün",
+      "states": {
+        "Active": "Aktif",
+        "Grace": "Grace dönemi",
+        "Locked": "Kilitli",
+        "Archived": "Arşivlendi"
+      }
+    },
+    "licenseImpact": {
+      "title": "Lisans bitiş etkisi",
+      "states": {
+        "Active": "Aktif",
+        "Grace": "Grace dönemi",
+        "Locked": "Kilitli",
+        "Archived": "Arşivlendi"
+      },
+      "current": {
+        "eyebrow": "Şu an",
+        "daysValid": "{{days}} gün geçerli",
+        "daysGrace": "Grace’te {{days}} gün kaldı",
+        "daysOverdue": "{{days}} gün gecikmiş"
+      },
+      "grace": {
+        "eyebrow": "Grace dönemi ({{days}} gün)",
+        "title": "Uyarı aşaması",
+        "description": "Tam erişim + uyarılar; zamanında yenileyin."
+      },
+      "locked": {
+        "eyebrow": "Grace sonrası",
+        "title": "Tam kilit",
+        "description": "POS kilitli; FA salt okunur + lisans yenileme."
+      },
+      "alert": {
+        "okTitle": "Her şey yolunda",
+        "okDescription": "Lisansınız hâlâ geçerli. Zamanında yenilemeyi planlayın.",
+        "actionTitle": "İşlem gerekli",
+        "actionDescription": "Lisansınız bitiyor veya bitti. Lütfen şimdi yenileyin."
+      }
+    },
+    "licenseRenewalChecklist": {
+      "title": "Lisans yenileme kontrol listesi",
+      "subtitle": "Yenilemeyi adım adım hazırlayın.",
+      "progressLabel": "{{completed}} / {{total}} tamamlandı",
+      "progressAria": "Kontrol listesi: yüzde {{percent}} tamamlandı",
+      "items": {
+        "reviewLicenseData": {
+          "label": "Güncel lisans verilerini kontrol et",
+          "description": "Geçerlilik: {{date}}"
+        },
+        "prepareLicenseKey": {
+          "label": "Yeni lisans anahtarını hazır tut"
+        },
+        "verifyPaymentMethod": {
+          "label": "Ödeme yöntemini kontrol et"
+        },
+        "updateContactData": {
+          "label": "İletişim bilgilerini güncelle"
+        },
+        "contactSupportIfNeeded": {
+          "label": "Sorularınız için destekle iletişime geçin"
+        }
+      }
+    },
+    "licenseSupportOptions": {
+      "title": "Lisans desteği",
+      "subtitle": "Lisans soruları ve yenileme için hızlı yardım.",
+      "liveChat": {
+        "title": "Canlı sohbet",
+        "description": "Anında yardım"
+      },
+      "ticket": {
+        "title": "Destek talebi",
+        "description": "24–48 saat içinde yanıt"
+      },
+      "faq": {
+        "title": "SSS",
+        "description": "Sık sorulan sorular",
+        "modalTitle": "Lisans SSS",
+        "modalClose": "Kapat",
+        "items": {
+          "renew": {
+            "q": "Lisansımı nasıl yenilerim?",
+            "a": "Gösterge panelinde veya Lisans sayfasında „Şimdi yenile“yi kullanın ve Super Admin’den aldığınız REGK anahtarını girin."
+          },
+          "grace": {
+            "q": "Grace döneminde ne olur?",
+            "a": "POS ve FA uyarılarla kullanılabilir kalır. Grace günleri içinde yenileyin."
+          },
+          "locked": {
+            "q": "POS neden kilitli?",
+            "a": "Grace sonrası lisans kilitlenir: POS engellenir, FA salt okunur + yenileme."
+          },
+          "key": {
+            "q": "Lisans anahtarını nereden alırım?",
+            "a": "Mandanten-Admin anahtarları Super Admin / faturalamadan alır. Sorun olursa support@regkasse.at yazın."
+          }
+        }
+      },
+      "phone": {
+        "title": "Telefon",
+        "description": "Pzt–Cum 9–17 · {{phone}}"
+      }
+    },
+
     "recentUsers": {
       "empty": "Kullanıcı yok"
     },

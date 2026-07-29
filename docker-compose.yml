@@ -1,23 +1,47 @@
-# Regkasse — full local stack (PostgreSQL + Redis + API + Admin + optional POS web)
+# Regkasse — full local development stack (PostgreSQL + Redis + API + Admin
+# + optional POS web / Sites)
 #
 # Prerequisites: Docker Desktop (or compatible engine) with Compose v2.
+# Windows setup: docs/DOCKER_WINDOWS_SETUP.md
 #
 # Quick start (from repository root):
 #   cp .env.example .env          # Windows: copy .env.example .env
-#   docker compose up --build
+#   # Edit .env — set JWT_SECRET_KEY to ≥32 random characters
+#   docker compose up --build     # also merges docker-compose.override.yml (Soft TSE)
+#
+# Infra only (host runs API/frontends via npm/dotnet):
+#   docker compose -f docker-compose.dev.yml up -d
+#
+# Production-oriented (no Soft TSE — do not merge override):
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
 #
 # With optional POS static web (Expo export → nginx):
 #   docker compose --profile pos up --build
+#
+# With optional tenant Sites (Next.js storefronts):
+#   docker compose --profile sites up --build
+#
+# Both optional profiles:
+#   docker compose --profile pos --profile sites up --build
 #
 # URLs (host):
 #   API:   http://localhost:5184
 #   Admin: http://localhost:3000
 #   POS:   http://localhost:8081   (profile: pos)
+#   Sites: http://localhost:3001   (profile: sites)
 #   Postgres: localhost:5432
 #   Redis:    localhost:6379
 #
 # Browser clients must call the API via localhost (baked NEXT_PUBLIC_* /
 # EXPO_PUBLIC_*), not the internal Docker DNS name `backend`.
+#
+# Notes:
+# - Compose file format 3.x `version:` key is obsolete under Compose V2 — omitted.
+# - Source bind-mounts onto the API image are intentionally omitted: the
+#   multi-stage Dockerfile publishes DLLs to /app; use host `dotnet run` for
+#   watch mode, or rebuild the image after code changes.
+# - Soft TSE / FON simulation: docker-compose.override.yml (auto-merged on
+#   plain `docker compose up`). See DEVELOPMENT.md § Docker development workflow.
 
 name: regkasse
 
@@ -153,6 +177,30 @@ services:
         condition: service_healthy
     ports:
       - '${POS_PORT:-8081}:80'
+    networks:
+      - regkasse
+
+  # Optional: tenant storefronts / online-order intake (not fiscal POS).
+  frontend-sites:
+    profiles: ['sites']
+    build:
+      context: ./frontend-sites
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:5184}
+    image: regkasse-frontend-sites:local
+    container_name: regkasse-frontend-sites
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - '${SITES_PORT:-3001}:3001'
+    environment:
+      NODE_ENV: production
+      PORT: '3001'
+      HOSTNAME: 0.0.0.0
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:5184}
     networks:
       - regkasse
 

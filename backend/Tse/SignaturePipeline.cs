@@ -67,6 +67,13 @@ namespace KasseAPI_Final.Tse
         }
 
         /// <summary>
+        /// True when the compact JWS payload is F5-compliant RKSV §9 machine code (<c>_R1-…</c>).
+        /// Pre-F5 / legacy signatures embed JSON <see cref="BelegdatenPayload"/> instead and fail BMF Prüftool beleg verification.
+        /// </summary>
+        public static bool IsF5CompliantJws(string? compactJws) =>
+            TryGetMachineCodeFromCompactJws(compactJws, out _);
+
+        /// <summary>
         /// Returns the RKSV §9 machine code for a receipt. Prefer the value stored inside the signed compact JWS;
         /// otherwise reconstructs Belegdaten from persisted payment context.
         /// </summary>

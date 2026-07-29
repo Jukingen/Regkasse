@@ -17,6 +17,7 @@ import {
   warningSeverityToAlertType,
 } from '@/features/rksv/types/monatsbelegWarning';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { useNotify } from '@/hooks/useNotify';
 import { formatViennaYearMonth, getMonthDifference } from '@/shared/utils/viennaCalendar';
 
 export type CreateMonatsbelegModalProps = {
@@ -107,7 +108,8 @@ export function CreateMonatsbelegModal({
   onClose,
   onSuccess,
 }: CreateMonatsbelegModalProps) {
-  const { message, modal } = useAntdApp();
+  const { modal } = useAntdApp();
+  const notify = useNotify();
   const createMonatsbeleg = useCreateMonatsbeleg();
   const [forceMode, setForceMode] = useState(false);
   const [warning, setWarning] = useState<{ message: string; severity: string } | null>(null);
@@ -135,9 +137,7 @@ export function CreateMonatsbelegModal({
     async (explicitForce?: boolean) => {
       const withForce = explicitForce ?? forceMode;
       if (isFutureMonth || isCurrentMonth) {
-        message.error(
-          'Monatsbeleg kann nur für abgeschlossene (vergangene) Kalendermonate erstellt werden.'
-        );
+        notify.errorKey('rksvHub.sonderbelege.pastMonthOnly');
         return;
       }
 
@@ -167,14 +167,14 @@ export function CreateMonatsbelegModal({
           return;
         }
 
-        message.success(
-          `Monatsbeleg für ${formatViennaYearMonth(year, month)} erfolgreich erstellt`
-        );
+        notify.successKey('rksvHub.sonderbelege.monatsbelegCreatedSuccess', {
+          period: formatViennaYearMonth(year, month),
+        });
         onSuccess();
         onClose();
       } catch (error: unknown) {
         if (!isAxiosError(error)) {
-          message.error('Fehler beim Erstellen des Monatsbelegs');
+          notify.errorKey('rksvHub.sonderbelege.monatsbelegCreateFailed');
           return;
         }
 
@@ -217,19 +217,10 @@ export function CreateMonatsbelegModal({
           return;
         }
 
-        const apiError =
-          typeof data === 'object' &&
-          data !== null &&
-          'error' in data &&
-          typeof (data as { error?: unknown }).error === 'string'
-            ? (data as { error: string }).error
-            : typeof data === 'object' &&
-                data !== null &&
-                'message' in data &&
-                typeof (data as { message?: unknown }).message === 'string'
-              ? (data as { message: string }).message
-              : null;
-        message.error(apiError ?? 'Fehler beim Erstellen des Monatsbelegs');
+        notify.apiError(error, {
+          logContext: 'RKSV.createMonatsbeleg',
+          fallbackKey: 'rksvHub.sonderbelege.monatsbelegCreateFailed',
+        });
       }
     },
     [
@@ -240,7 +231,7 @@ export function CreateMonatsbelegModal({
       isFutureMonth,
       isPastMonth,
       lateReason,
-      message,
+      notify,
       modal,
       month,
       monthDiff,

@@ -228,36 +228,58 @@ export function PitrRestoreModal({
                 <Tag color="green">{t('backupDr.pitr.walArchivingActive')}</Tag>
               ) : null}
             </div>
-            <Timeline>
-              <Timeline.Item color="green">
-                <strong>{t('backupDr.pitr.earliestPoint')}:</strong>{' '}
-                {formatPitrDateTime(availability?.earliestRestorePointUtc ?? null, formatLocale)}
-              </Timeline.Item>
-              <Timeline.Item color="blue">
-                <strong>{t('backupDr.pitr.latestPoint')}:</strong>{' '}
-                {formatPitrDateTime(availability?.latestRestorePointUtc ?? null, formatLocale)}
-              </Timeline.Item>
-              {availability?.walArchiveLagMinutes != null ? (
-                <Timeline.Item color="orange">
-                  <strong>{t('backupDr.pitr.walLag')}:</strong>{' '}
-                  {t('backupDr.pitr.walLagMinutes', {
-                    minutes: String(availability.walArchiveLagMinutes),
-                  })}
-                </Timeline.Item>
-              ) : null}
-              {visibleSupportedPoints.map((pointUtc) => (
-                <Timeline.Item key={pointUtc} color="gray">
-                  {formatPitrDateTime(pointUtc, formatLocale)}
-                </Timeline.Item>
-              ))}
-              {hiddenSupportedCount > 0 ? (
-                <Timeline.Item color="gray">
-                  {t('backupDr.pitr.moreSupportedPoints', {
-                    count: String(hiddenSupportedCount),
-                  })}
-                </Timeline.Item>
-              ) : null}
-            </Timeline>
+            <Timeline
+              items={[
+                {
+                  color: 'green',
+                  content: (
+                    <>
+                      <strong>{t('backupDr.pitr.earliestPoint')}:</strong>{' '}
+                      {formatPitrDateTime(availability?.earliestRestorePointUtc ?? null, formatLocale)}
+                    </>
+                  ),
+                },
+                {
+                  color: 'blue',
+                  content: (
+                    <>
+                      <strong>{t('backupDr.pitr.latestPoint')}:</strong>{' '}
+                      {formatPitrDateTime(availability?.latestRestorePointUtc ?? null, formatLocale)}
+                    </>
+                  ),
+                },
+                ...(availability?.walArchiveLagMinutes != null
+                  ? [
+                      {
+                        color: 'orange' as const,
+                        content: (
+                          <>
+                            <strong>{t('backupDr.pitr.walLag')}:</strong>{' '}
+                            {t('backupDr.pitr.walLagMinutes', {
+                              minutes: String(availability.walArchiveLagMinutes),
+                            })}
+                          </>
+                        ),
+                      },
+                    ]
+                  : []),
+                ...visibleSupportedPoints.map((pointUtc) => ({
+                  key: pointUtc,
+                  color: 'gray' as const,
+                  content: formatPitrDateTime(pointUtc, formatLocale),
+                })),
+                ...(hiddenSupportedCount > 0
+                  ? [
+                      {
+                        color: 'gray' as const,
+                        content: t('backupDr.pitr.moreSupportedPoints', {
+                          count: String(hiddenSupportedCount),
+                        }),
+                      },
+                    ]
+                  : []),
+              ]}
+            />
           </div>
 
           <div style={{ marginBottom: 24 }}>

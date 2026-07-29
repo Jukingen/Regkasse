@@ -80,6 +80,7 @@ public sealed class AdminTenantLicenseServiceTests
             Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Production),
             Options.Create(new TseOptions { TseMode = "Device" }),
             Options.Create(new LicenseOptions { Enabled = true }),
+            Options.Create(new EmailSmtpOptions()),
             Mock.Of<IDevelopmentModeService>(d => d.ShouldBypassLicense() == false),
             CreateTenantLicenseService(db));
 
@@ -110,6 +111,7 @@ public sealed class AdminTenantLicenseServiceTests
             Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
             Options.Create(new TseOptions { TseMode = "Device" }),
             Options.Create(new LicenseOptions { Enabled = false }),
+            Options.Create(new EmailSmtpOptions()),
             Mock.Of<IDevelopmentModeService>(d => d.ShouldBypassLicense() == false),
             CreateTenantLicenseService(db));
 
@@ -511,6 +513,7 @@ public sealed class AdminTenantLicenseServiceTests
             Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Production),
             Options.Create(new TseOptions { TseMode = "Device" }),
             Options.Create(new LicenseOptions { Enabled = true }),
+            Options.Create(new EmailSmtpOptions()),
             Mock.Of<IDevelopmentModeService>(d => d.ShouldBypassLicense() == false),
             CreateTenantLicenseService(db));
 

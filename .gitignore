@@ -335,4 +335,50 @@ tools/redis/*.pdb
 
 # Machine-local operator log mirrors (canonical logs live in C:\Scripts\logs)
 scripts/**/*.log
+mode_scripts_test.log
+**/mode_scripts_test.log
+
+# Local Docker / Compose secrets & overrides (examples stay tracked via !.env.*.example)
+.env.production
+.env.production.local
+docker-compose.prod.override.yml
+docker-compose.*.local.yml
+
+# Monitoring stack — local secrets / operator overrides (committed defaults stay tracked)
+monitoring/.env
+monitoring/.env.*
+!monitoring/.env.example
+monitoring/**/*.local.yml
+monitoring/alertmanager/alertmanager.local.yml
+monitoring/grafana/provisioning/**/*.secret*
+monitoring/data/
+monitoring/loki-data/
+monitoring/prometheus-data/
+
+# Generated billing / license invoice PDFs (never commit customer invoices)
+backend/Data/license-invoices/
+!backend/Data/license-invoices/.gitkeep
+
+# Local DEP / Prüftool scratch dumps at repo root
+/dep-export*.json
+/crypto-material*.json
+/_test_out/
+/_build_out/
+
+# Nested local build/test trees (path length + binaries; never commit)
+backend/_test_out/
+backend/_test_out/**
+backend/_test_out_*/
+backend/_test_out_*/**
+**/_test_out/
+**/_test_out_*/
+**/_build_out/
+backend/_maint_build_out/
+backend/**/tmp-build-out/
+backend/**/build-migrate-out/
+backend/**/build-test-out/
+backend/**/Tests/_jar_extract/
+
+# Generated report PDFs on disk (DB metadata is enough; never commit blobs)
+backend/report-pdfs/
 

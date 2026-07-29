@@ -1,3 +1,5 @@
+using KasseAPI_Final.Models;
+
 namespace KasseAPI_Final.DTOs;
 
 public sealed class PriceChangeRequest
@@ -16,6 +18,12 @@ public sealed class PriceChangeRequest
     public string? ChangedByRole { get; set; }
 
     public string? Reason { get; set; }
+
+    /// <summary>
+    /// When true, updates price in place even if the product has fiscal sales history.
+    /// Default false: RKSV path creates a new catalog product version instead.
+    /// </summary>
+    public bool ForceInPlaceUpdate { get; set; }
 }
 
 public sealed class PriceChangeValidationResult
@@ -31,29 +39,52 @@ public sealed class PriceChangeValidationResult
     /// <summary>True when the product already appears on order lines (fiscal sales trail).</summary>
     public bool HasFiscalHistory { get; init; }
 
-    public static PriceChangeValidationResult Success(string? warning = null, bool hasFiscalHistory = false) =>
+    /// <summary>True when ChangePriceAsync will create a new catalog product row.</summary>
+    public bool RequiresNewProductVersion { get; init; }
+
+    /// <summary>Detailed RKSV findings (warnings / errors / requirements).</summary>
+    public RksvPriceChangeComplianceResult? Compliance { get; init; }
+
+    public static PriceChangeValidationResult Success(
+        string? warning = null,
+        bool hasFiscalHistory = false,
+        bool requiresNewProductVersion = false,
+        RksvPriceChangeComplianceResult? compliance = null) =>
         new()
         {
             IsValid = true,
             HasWarning = !string.IsNullOrWhiteSpace(warning),
             WarningMessage = warning,
             HasFiscalHistory = hasFiscalHistory,
+            RequiresNewProductVersion = requiresNewProductVersion,
+            Compliance = compliance,
         };
 
-    public static PriceChangeValidationResult Fail(string errorMessage) =>
+    public static PriceChangeValidationResult Fail(
+        string errorMessage,
+        RksvPriceChangeComplianceResult? compliance = null) =>
         new()
         {
             IsValid = false,
             ErrorMessage = errorMessage,
+            HasFiscalHistory = compliance?.HasFiscalHistory ?? false,
+            RequiresNewProductVersion = compliance?.RequiresNewProductVersion ?? false,
+            Compliance = compliance,
         };
 
-    public static PriceChangeValidationResult Warn(string warningMessage, bool hasFiscalHistory = true) =>
+    public static PriceChangeValidationResult Warn(
+        string warningMessage,
+        bool hasFiscalHistory = true,
+        bool requiresNewProductVersion = true,
+        RksvPriceChangeComplianceResult? compliance = null) =>
         new()
         {
             IsValid = true,
             HasWarning = true,
             WarningMessage = warningMessage,
             HasFiscalHistory = hasFiscalHistory,
+            RequiresNewProductVersion = requiresNewProductVersion,
+            Compliance = compliance,
         };
 }
 
@@ -67,9 +98,17 @@ public sealed class PriceChangeResult
 
     public Guid? ProductId { get; init; }
 
+    /// <summary>Archived predecessor product id when a new catalog version was created.</summary>
+    public Guid? ArchivedProductId { get; init; }
+
     public Guid? PriceVersionId { get; init; }
 
     public string? Version { get; init; }
+
+    /// <summary>Catalog product version number (products.version).</summary>
+    public int? CatalogVersion { get; init; }
+
+    public bool CreatedNewProductVersion { get; init; }
 
     public decimal? OldPrice { get; init; }
 
@@ -96,7 +135,10 @@ public sealed class PriceChangeResult
         Guid newTaxGroupId,
         decimal oldTaxRate,
         decimal newTaxRate,
-        string? warningMessage = null) =>
+        string? warningMessage = null,
+        bool createdNewProductVersion = false,
+        Guid? archivedProductId = null,
+        int? catalogVersion = null) =>
         new()
         {
             Succeeded = true,
@@ -110,5 +152,8 @@ public sealed class PriceChangeResult
             OldTaxRate = oldTaxRate,
             NewTaxRate = newTaxRate,
             WarningMessage = warningMessage,
+            CreatedNewProductVersion = createdNewProductVersion,
+            ArchivedProductId = archivedProductId,
+            CatalogVersion = catalogVersion,
         };
 }

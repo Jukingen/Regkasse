@@ -15,5 +15,5 @@ export type MaintenanceModeStatusDto = {
 
 /** GET /api/pos/maintenance/status */
 export async function checkMaintenanceStatus(): Promise<MaintenanceModeStatusDto> {
-  return apiClient.get<MaintenanceModeStatusDto>('/pos/maintenance/status');
+  return await apiClient.get<MaintenanceModeStatusDto>('/pos/maintenance/status');
 }

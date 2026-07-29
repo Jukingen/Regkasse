@@ -110,6 +110,11 @@ export function buildRksvMenuGroups(
           label: t('nav.rksvLeafComplianceReport'),
         },
         {
+          key: '/rksv/dep-export-compliance',
+          href: '/rksv/dep-export-compliance',
+          label: t('nav.rksvLeafDepExportCompliance'),
+        },
+        {
           key: '/rksv/signature-chain',
           href: '/rksv/signature-chain',
           label: t('nav.rksvLeafSignatureChain'),

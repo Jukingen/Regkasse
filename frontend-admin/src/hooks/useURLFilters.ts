@@ -14,7 +14,7 @@ export function useURLFilters<T extends Record<string, string | number | undefin
 
   // Helper to get current params as object
   const getParams = useCallback((): Partial<T> => {
-    const params: Record<string, any> = {};
+    const params: Record<string, string> = {};
     searchParams.forEach((value, key) => {
       params[key] = value;
     });

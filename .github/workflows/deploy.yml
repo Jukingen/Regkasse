@@ -1,0 +1,250 @@
+# =============================================================================
+# Regkasse — Deploy orchestration (GHCR + staging; production gated)
+#
+# Does NOT replace Backend CI / Deploy Production. This workflow:
+#   - Builds & pushes multi-service images to GHCR on push to main/master
+#   - Deploys API to Staging (webhook + smoke + auto-rollback) when secrets exist
+#   - Optionally promotes to Production only via workflow_dispatch + confirm phrase
+#
+# Production fiscal traffic still requires Deploy Production (compliance) or
+# Backend CI on tag v* with Environment approvals — see docs/CI_CD.md.
+#
+# Docs: docs/CI_CD.md · docs/GITHUB_ACTIONS.md · DEPLOYMENT.md
+# =============================================================================
+
+name: Deploy
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Deploy target after image push
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+        default: staging
+      image_tag:
+        description: Existing GHCR tag to promote (production only; leave empty to use this run's build)
+        required: false
+        type: string
+        default: ''
+      confirm:
+        description: For production type deploy-production
+        required: false
+        type: string
+        default: ''
+
+concurrency:
+  group: deploy-${{ github.event.inputs.target || 'staging' }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE_TAG_PREFIX: sha
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    name: Build & push images
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    outputs:
+      short_sha: ${{ steps.meta.outputs.short_sha }}
+      api_image: ${{ steps.meta.outputs.api_image }}
+      api_tag: ${{ steps.meta.outputs.api_tag }}
+      owner: ${{ steps.meta.outputs.owner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Image metadata
+        id: meta
+        run: |
+          OWNER_LC=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+          SHORT=$(echo '${{ github.sha }}' | cut -c1-7)
+          echo "owner=${OWNER_LC}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${SHORT}" >> "$GITHUB_OUTPUT"
+          echo "api_image=ghcr.io/${OWNER_LC}/regkasse-api" >> "$GITHUB_OUTPUT"
+          echo "api_tag=sha-${SHORT}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push (API + Admin + Sites + POS)
+        shell: pwsh
+        env:
+          DOCKER_REGISTRY: ghcr.io/${{ steps.meta.outputs.owner }}
+          IMAGE_TAG: ${{ steps.meta.outputs.api_tag }}
+          ADMIN_API_URL: ${{ vars.FA_STAGING_API_BASE_URL || 'https://api.staging.regkasse.at' }}
+          POS_API_URL: ${{ vars.POS_STAGING_API_URL || 'https://api.staging.regkasse.at/api' }}
+          ADMIN_PUBLIC_URL: ${{ vars.BACKEND_FA_BASE_URL || 'https://admin.staging.regkasse.at' }}
+          NEXT_PUBLIC_RKSV_ENVIRONMENT: ${{ vars.FA_STAGING_RKSV_ENVIRONMENT || 'TEST' }}
+          RELEASE_STAGE: staging
+        run: |
+          ./scripts/ci-build.ps1 -Docker -Profiles admin,sites,pos -Push -Registry $env:DOCKER_REGISTRY -Tag $env:IMAGE_TAG
+
+  resolve-target:
+    name: Resolve deploy target
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    outputs:
+      target: ${{ steps.out.outputs.target }}
+      api_image_ref: ${{ steps.out.outputs.api_image_ref }}
+    steps:
+      - name: Decide target
+        id: out
+        run: |
+          EVENT="${{ github.event_name }}"
+          TARGET="staging"
+          if [ "${EVENT}" = "workflow_dispatch" ]; then
+            TARGET="${{ github.event.inputs.target }}"
+          fi
+          echo "target=${TARGET}" >> "$GITHUB_OUTPUT"
+
+          PROMOTE="${{ github.event.inputs.image_tag }}"
+          if [ "${TARGET}" = "production" ] && [ -n "${PROMOTE}" ]; then
+            echo "api_image_ref=${{ needs.build-and-push.outputs.api_image }}:${PROMOTE}" >> "$GITHUB_OUTPUT"
+          else
+            echo "api_image_ref=${{ needs.build-and-push.outputs.api_image }}:${{ needs.build-and-push.outputs.api_tag }}" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Deploy target=${TARGET}"
+
+  deploy-staging:
+    name: Deploy Staging (API)
+    needs: [build-and-push, resolve-target]
+    # Default on push: image publish only (Backend CI owns Staging API deploy).
+    # Set repo variable DEPLOY_YML_RUN_STAGING_API=true to also deploy from this workflow,
+    # or use workflow_dispatch target=staging.
+    if: >
+      needs.resolve-target.outputs.target == 'staging' &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        vars.DEPLOY_YML_RUN_STAGING_API == 'true'
+      )
+    uses: ./.github/workflows/deploy-backend-stage.yml
+    with:
+      stage: staging
+      image: ${{ needs.resolve-target.outputs.api_image_ref }}
+      git_sha: ${{ github.sha }}
+      git_ref: ${{ github.ref_name }}
+      github_environment: backend-staging
+      api_base_url: ${{ vars.BACKEND_STAGING_API_BASE_URL || 'https://api.staging.regkasse.at' }}
+      release_stage: staging
+      tenant_ids: smoke
+      run_migrations: true
+      auto_rollback: true
+    secrets:
+      DEPLOY_WEBHOOK_URL: ${{ secrets.BACKEND_STAGING_DEPLOY_WEBHOOK_URL }}
+      ROLLBACK_WEBHOOK_URL: ${{ secrets.BACKEND_STAGING_ROLLBACK_WEBHOOK_URL }}
+      MIGRATE_WEBHOOK_URL: ${{ secrets.BACKEND_STAGING_MIGRATE_WEBHOOK_URL }}
+      DATABASE_CONNECTION: ${{ secrets.BACKEND_STAGING_DATABASE_CONNECTION }}
+      DEPLOYMENT_STATUS_URL: ${{ secrets.DEPLOYMENT_STATUS_URL }}
+      DEPLOYMENT_STATUS_TOKEN: ${{ secrets.DEPLOYMENT_STATUS_TOKEN }}
+      SMOKE_LOGIN_IDENTIFIER: ${{ secrets.SMOKE_LOGIN_IDENTIFIER }}
+      SMOKE_LOGIN_PASSWORD: ${{ secrets.SMOKE_LOGIN_PASSWORD }}
+      ONCALL_WEBHOOK_URL: ${{ secrets.ONCALL_WEBHOOK_URL }}
+
+  frontend-staging-hooks:
+    name: Frontend staging webhooks
+    needs: [build-and-push, resolve-target, deploy-staging]
+    if: >
+      always() &&
+      needs.resolve-target.outputs.target == 'staging' &&
+      needs.build-and-push.result == 'success' &&
+      (
+        needs.deploy-staging.result == 'success' ||
+        needs.deploy-staging.result == 'skipped'
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Notify FA staging deploy hook (optional)
+        env:
+          URL: ${{ secrets.FA_STAGING_DEPLOY_WEBHOOK_URL }}
+          IMAGE: ghcr.io/${{ needs.build-and-push.outputs.owner }}/regkasse-frontend-admin:${{ needs.build-and-push.outputs.api_tag }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [ -z "${URL}" ]; then
+            echo "FA_STAGING_DEPLOY_WEBHOOK_URL not set — skip"
+            exit 0
+          fi
+          curl -sS -X POST -H 'Content-Type: application/json' \
+            --data "{\"image\":\"${IMAGE}\",\"stage\":\"staging\",\"sha\":\"${SHA}\"}" \
+            "${URL}"
+
+  validate-production:
+    name: Validate production confirm
+    needs: [build-and-push, resolve-target]
+    if: needs.resolve-target.outputs.target == 'production'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm phrase
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "deploy-production" ]; then
+            echo "Production requires confirm=deploy-production"
+            echo "Prefer Actions → Deploy Production (compliance gate) for fiscal cutover."
+            exit 1
+          fi
+
+  deploy-production:
+    name: Deploy Production (API)
+    needs: [build-and-push, resolve-target, validate-production]
+    if: >
+      always() &&
+      needs.resolve-target.outputs.target == 'production' &&
+      needs.validate-production.result == 'success'
+    uses: ./.github/workflows/deploy-backend-stage.yml
+    with:
+      stage: production
+      image: ${{ needs.resolve-target.outputs.api_image_ref }}
+      git_sha: ${{ github.sha }}
+      git_ref: ${{ github.ref_name }}
+      github_environment: backend-production
+      api_base_url: ${{ vars.BACKEND_PRODUCTION_API_BASE_URL || 'https://api.regkasse.at' }}
+      release_stage: production
+      tenant_ids: smoke
+      run_migrations: false
+      auto_rollback: false
+    secrets:
+      DEPLOY_WEBHOOK_URL: ${{ secrets.BACKEND_PRODUCTION_DEPLOY_WEBHOOK_URL }}
+      ROLLBACK_WEBHOOK_URL: ${{ secrets.BACKEND_PRODUCTION_ROLLBACK_WEBHOOK_URL }}
+      DEPLOYMENT_STATUS_URL: ${{ secrets.DEPLOYMENT_STATUS_URL }}
+      DEPLOYMENT_STATUS_TOKEN: ${{ secrets.DEPLOYMENT_STATUS_TOKEN }}
+      SMOKE_LOGIN_IDENTIFIER: ${{ secrets.SMOKE_LOGIN_IDENTIFIER }}
+      SMOKE_LOGIN_PASSWORD: ${{ secrets.SMOKE_LOGIN_PASSWORD }}
+      ONCALL_WEBHOOK_URL: ${{ secrets.ONCALL_WEBHOOK_URL }}
+
+  notify-failure:
+    name: Notify on failure
+    needs:
+      [
+        build-and-push,
+        resolve-target,
+        deploy-staging,
+        frontend-staging-hooks,
+        validate-production,
+        deploy-production,
+      ]
+    if: >-
+      always() && (
+        needs.build-and-push.result == 'failure' ||
+        needs.deploy-staging.result == 'failure' ||
+        needs.validate-production.result == 'failure' ||
+        needs.deploy-production.result == 'failure'
+      )
+    uses: ./.github/workflows/notify-failure.yml
+    with:
+      title: Deploy workflow failed
+    secrets: inherit

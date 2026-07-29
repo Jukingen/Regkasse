@@ -87,5 +87,6 @@ Write-Host "[OK] Production-oriented stack is up." -ForegroundColor Green
 Write-Host ""
 Write-Host "Smoke:" -ForegroundColor Cyan
 Write-Host "  curl -fsS http://127.0.0.1:5184/api/health/live"
-Write-Host "Docs: DEPLOYMENT.md · docs/DOCKER_SETUP.md · docs/TSE_PRODUCTION_CONFIG_LOCK.md"
+Write-Host "Docs: docs/DOCKER_PRODUCTION.md · docs/DOCKER_ENV_VARS.md · DEPLOYMENT.md · docs/TSE_PRODUCTION_CONFIG_LOCK.md"
+Write-Host "Logs:  docker-logs-prod.bat   or   .\scripts\docker-logs-prod.ps1"
 Write-Host "Stop:  .\scripts\docker-down.ps1 -Prod"

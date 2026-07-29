@@ -5,6 +5,12 @@ import { Alert, Button, Card, Col, Row, Space, Statistic } from 'antd';
 import Link from 'next/link';
 
 import { CashRegisterSelector } from '@/components/CashRegisterSelector';
+import { GracePeriodWidget } from '@/components/GracePeriodWidget';
+import { LicenseCountdownWidget } from '@/components/LicenseCountdownWidget';
+import { LicenseExpiryImpactCard } from '@/components/LicenseExpiryImpactCard';
+import { LicenseHealthWidget } from '@/components/LicenseHealthWidget';
+import { LicenseRenewalChecklistCard } from '@/components/LicenseRenewalChecklistCard';
+import { LicenseSupportOptionsCard } from '@/components/LicenseSupportOptionsCard';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { ActivitySummary } from '@/features/dashboard/components/ActivitySummary';
 import { Dashboard } from '@/features/dashboard/components/Dashboard';
@@ -144,6 +150,17 @@ export function ManagerDashboard() {
           style={{ marginBottom: 16 }}
         />
       ) : null}
+
+      <Row gutter={16}>
+        <Col span={24}>
+          <LicenseCountdownWidget />
+          <LicenseHealthWidget />
+          <LicenseExpiryImpactCard />
+          <LicenseRenewalChecklistCard />
+          <LicenseSupportOptionsCard />
+          <GracePeriodWidget />
+        </Col>
+      </Row>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>

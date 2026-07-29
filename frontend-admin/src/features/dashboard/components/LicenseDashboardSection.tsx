@@ -20,6 +20,9 @@ import {
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { LicenseStatsSection } from '@/features/dashboard/components/LicenseStatsSection';
+import { LicenseCalendarCard } from '@/features/license/components/LicenseCalendarCard';
+import { LicenseRenewalFunnelCard } from '@/features/license/components/LicenseRenewalFunnelCard';
+import { LicenseUsageAnalyticsCard } from '@/features/license/components/LicenseUsageAnalyticsCard';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
 import { formatDate } from '@/i18n';
@@ -91,6 +94,12 @@ export function LicenseDashboardSection() {
       </Typography.Paragraph>
 
       <LicenseStatsSection />
+
+      <LicenseCalendarCard />
+
+      <LicenseUsageAnalyticsCard />
+
+      <LicenseRenewalFunnelCard />
 
       {isSuperAdminUser ? (
         <>

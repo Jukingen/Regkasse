@@ -445,7 +445,59 @@ namespace KasseAPI_Final.Controllers
                     if (!priceChange.Succeeded)
                         return ErrorResponse(priceChange.ErrorMessage ?? "Price change failed", 400);
 
-                    // Reload tracked entity after transactional price change.
+                    // RKSV: fiscal history → new catalog product; continue update against successor.
+                    if (priceChange.CreatedNewProductVersion
+                        && priceChange.ProductId is { } newProductId
+                        && newProductId != id)
+                    {
+                        var successor = await GetAdminProductByIdAsync(newProductId);
+                        if (successor is null)
+                            return ErrorResponse("New product version was created but could not be loaded", 500);
+
+                        product.Id = newProductId;
+                        ApplyAdminProductUpdate(successor, product);
+                        await _context.Entry(successor).Reference(p => p.TaxGroup).LoadAsync();
+                        successor.UpdatedAt = DateTime.UtcNow;
+                        successor.UpdatedBy = User.Identity?.Name ?? "system";
+                        await _context.SaveChangesAsync();
+                        await _productService.InvalidateProductsCacheAsync(successor.TenantId, id);
+                        await _productService.InvalidateProductsCacheAsync(successor.TenantId, newProductId);
+
+                        var versionUserId = GetCurrentUserId();
+                        if (!string.IsNullOrEmpty(versionUserId))
+                        {
+                            try
+                            {
+                                await _operationLogs.LogAsync(
+                                    successor.TenantId,
+                                    versionUserId,
+                                    OperationTypes.UpdateProduct,
+                                    OperationEntityTypes.Product,
+                                    newProductId.ToString("D"),
+                                    before,
+                                    OperationSnapshots.FromProduct(successor));
+                            }
+                            catch (Exception logEx)
+                            {
+                                _logger.LogWarning(
+                                    logEx,
+                                    "Failed to write operation log for catalog version {ProductId}",
+                                    newProductId);
+                            }
+                        }
+
+                        _logger.LogInformation(
+                            "Admin product catalog version created: {Name} archived {OldId} → {NewId}",
+                            successor.Name,
+                            id,
+                            newProductId);
+                        return SuccessResponse(
+                            AdminProductDto.FromProduct(successor),
+                            priceChange.WarningMessage
+                            ?? "Product version created for RKSV compliance; previous product archived.");
+                    }
+
+                    // Reload tracked entity after transactional in-place price change.
                     await _context.Entry(existingProduct).ReloadAsync();
                 }
 

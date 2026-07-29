@@ -697,7 +697,7 @@ export default function JahresberichtDetailPage() {
                 : item.reportStatus === 'Superseded'
                   ? 'orange'
                   : 'blue',
-              children: (
+              content: (
                 <Space orientation="vertical" size={2}>
                   <Typography.Text strong title={backendApiTooltip}>
                     v{item.reportVersion} · {item.reportId.slice(0, 8)} · {item.reportStatus}

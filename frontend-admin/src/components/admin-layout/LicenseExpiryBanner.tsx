@@ -2,13 +2,13 @@
 
 /**
  * Tenant-first license warning surface for protected admin pages.
- * Mandant grace/lock → {@link LicenseBanner}; SuperAdmin also sees deployment license alerts.
+ * Mandant grace/lock → {@link LicenseStatusBanner}; SuperAdmin also sees deployment license alerts.
  */
 import { Alert, Button, Space } from 'antd';
 import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-import { LicenseBanner } from '@/components/LicenseBanner';
+import { LicenseStatusBanner } from '@/components/LicenseStatusBanner';
 import {
   type LicenseStatus,
   useDeploymentLicenseStatus,
@@ -23,7 +23,11 @@ function hasMandantBanner(license: LicenseStatus | undefined, isSuperAdmin: bool
     return false;
   }
   return (
-    license.kind === 'grace_write' || license.kind === 'lockdown' || license.kind === 'no_license'
+    license.kind === 'grace_write' ||
+    license.kind === 'grace_readonly' ||
+    license.kind === 'lockdown' ||
+    license.kind === 'expired' ||
+    license.kind === 'no_license'
   );
 }
 
@@ -130,7 +134,7 @@ export function LicenseExpiryBanner() {
 
   return (
     <>
-      {showMandant ? <LicenseBanner /> : null}
+      {showMandant ? <LicenseStatusBanner /> : null}
       {deploymentBanner}
     </>
   );

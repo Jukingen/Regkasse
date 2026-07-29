@@ -1,0 +1,333 @@
+# Backend CI — build/test + multi-stage deploy (Staging → Canary → Production)
+#
+# Triggers:
+#   - pull_request: build + test only
+#   - push main/master: build + test + Staging
+#   - push release/*: build + test + Staging + Canary
+#   - tag v*: build + test + Staging + Canary + Production
+#   - workflow_dispatch: choose max stage
+#
+# Deploy hooks (optional secrets):
+#   BACKEND_STAGING_DEPLOY_WEBHOOK_URL / BACKEND_STAGING_ROLLBACK_WEBHOOK_URL
+#   BACKEND_CANARY_DEPLOY_WEBHOOK_URL / BACKEND_CANARY_ROLLBACK_WEBHOOK_URL
+#   BACKEND_PRODUCTION_DEPLOY_WEBHOOK_URL / BACKEND_PRODUCTION_ROLLBACK_WEBHOOK_URL
+#   DEPLOYMENT_STATUS_URL / DEPLOYMENT_STATUS_TOKEN
+#   SMOKE_LOGIN_IDENTIFIER / SMOKE_LOGIN_PASSWORD
+#
+# Variables:
+#   BACKEND_STAGING_API_BASE_URL (default https://api.staging.regkasse.at)
+#   BACKEND_CANARY_API_BASE_URL  (default production API — canary tenants on prod host)
+#   BACKEND_PRODUCTION_API_BASE_URL (default https://api.regkasse.at)
+#   BACKEND_CANARY_TENANT_IDS (default canary) — used on release/* and v* auto canary
+#
+# Docs: DEPLOYMENT.md · docs/ENVIRONMENT_CONFIGURATION.md
+
+name: Backend CI
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'tools/LicenseGenerator.Core/**'
+      - '.github/workflows/backend-ci.yml'
+      - '.github/workflows/deploy-backend-stage.yml'
+      - 'scripts/ci/**'
+  # No path filter on push so tag v* always promotes.
+  push:
+    branches:
+      - main
+      - master
+      - 'release/**'
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      max_stage:
+        description: Highest stage to deploy after green build/test
+        required: true
+        type: choice
+        options:
+          - none
+          - staging
+          - canary
+          - production
+        default: staging
+      canary_tenant_ids:
+        description: Canary tenant slugs/UUIDs (comma-separated)
+        required: false
+        type: string
+        default: ''
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  CI: 'true'
+  IMAGE_NAME: regkasse-api
+  REGKASSE_OPENAPI_EXPORT: ''
+  REGKASSE_TEST_INMEMORY_DB: ''
+
+jobs:
+  build-and-test:
+    name: Build + unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+      tag: ${{ steps.meta.outputs.tag }}
+      git_sha: ${{ steps.meta.outputs.git_sha }}
+      git_ref: ${{ steps.meta.outputs.git_ref }}
+      short_sha: ${{ steps.meta.outputs.short_sha }}
+      deploy_staging: ${{ steps.gates.outputs.deploy_staging }}
+      deploy_canary: ${{ steps.gates.outputs.deploy_canary }}
+      deploy_production: ${{ steps.gates.outputs.deploy_production }}
+      canary_tenants: ${{ steps.gates.outputs.canary_tenants }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve deploy gates
+        id: gates
+        run: |
+          EVENT="${{ github.event_name }}"
+          REF="${{ github.ref }}"
+          REF_NAME="${{ github.ref_name }}"
+          MAX="${{ github.event.inputs.max_stage || '' }}"
+          TENANTS="${{ github.event.inputs.canary_tenant_ids || '' }}"
+          if [ -z "${TENANTS}" ]; then
+            TENANTS="${{ vars.BACKEND_CANARY_TENANT_IDS }}"
+          fi
+          TENANTS="${TENANTS:-canary}"
+
+          STAGING=false
+          CANARY=false
+          PROD=false
+
+          if [ "${EVENT}" = "pull_request" ]; then
+            :
+          elif [ "${EVENT}" = "workflow_dispatch" ]; then
+            case "${MAX}" in
+              staging) STAGING=true ;;
+              canary) STAGING=true; CANARY=true ;;
+              production) STAGING=true; CANARY=true; PROD=true ;;
+            esac
+          elif [[ "${REF}" == refs/tags/v* ]]; then
+            STAGING=true; CANARY=true; PROD=true
+          elif [[ "${REF_NAME}" == release/* ]]; then
+            STAGING=true; CANARY=true
+          elif [ "${REF_NAME}" = "main" ] || [ "${REF_NAME}" = "master" ]; then
+            STAGING=true
+          fi
+
+          echo "deploy_staging=${STAGING}" >> "$GITHUB_OUTPUT"
+          echo "deploy_canary=${CANARY}" >> "$GITHUB_OUTPUT"
+          echo "deploy_production=${PROD}" >> "$GITHUB_OUTPUT"
+          echo "canary_tenants=${TENANTS}" >> "$GITHUB_OUTPUT"
+          echo "Gates: staging=${STAGING} canary=${CANARY} production=${PROD} tenants=${TENANTS}"
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('backend/**/*.csproj', 'backend/**/*.sln') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore
+        working-directory: backend
+        run: dotnet restore KasseAPI_Final.sln
+
+      - name: Build
+        working-directory: backend
+        run: dotnet build KasseAPI_Final.sln --configuration Release --no-restore
+
+      - name: Test (exclude PostgreSql)
+        working-directory: backend
+        run: >-
+          dotnet test KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj
+          --configuration Release
+          --no-build
+          --filter "Category!=PostgreSql"
+          --verbosity minimal
+
+      - name: Image metadata
+        id: meta
+        run: |
+          OWNER_LC=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+          SHORT=$(echo '${{ github.sha }}' | cut -c1-7)
+          IMAGE="ghcr.io/${OWNER_LC}/${{ env.IMAGE_NAME }}"
+          TAG="sha-${SHORT}"
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "git_sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          echo "git_ref=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${SHORT}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        if: steps.gates.outputs.deploy_staging == 'true' || steps.gates.outputs.deploy_canary == 'true' || steps.gates.outputs.deploy_production == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: steps.gates.outputs.deploy_staging == 'true' || steps.gates.outputs.deploy_canary == 'true' || steps.gates.outputs.deploy_production == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push API image
+        if: steps.gates.outputs.deploy_staging == 'true' || steps.gates.outputs.deploy_canary == 'true' || steps.gates.outputs.deploy_production == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}
+            ${{ steps.meta.outputs.image }}:sha-${{ github.sha }}
+          cache-from: type=gha,scope=backend-api
+          cache-to: type=gha,mode=max,scope=backend-api
+
+  deploy-staging:
+    name: Deploy Staging
+    needs: build-and-test
+    if: needs.build-and-test.outputs.deploy_staging == 'true'
+    uses: ./.github/workflows/deploy-backend-stage.yml
+    with:
+      stage: staging
+      image: ${{ needs.build-and-test.outputs.image }}:${{ needs.build-and-test.outputs.tag }}
+      git_sha: ${{ needs.build-and-test.outputs.git_sha }}
+      git_ref: ${{ needs.build-and-test.outputs.git_ref }}
+      github_environment: backend-staging
+      api_base_url: ${{ vars.BACKEND_STAGING_API_BASE_URL || 'https://api.staging.regkasse.at' }}
+      release_stage: staging
+      tenant_ids: smoke
+      run_migrations: true
+      auto_rollback: true
+    secrets:
+      DEPLOY_WEBHOOK_URL: ${{ secrets.BACKEND_STAGING_DEPLOY_WEBHOOK_URL }}
+      ROLLBACK_WEBHOOK_URL: ${{ secrets.BACKEND_STAGING_ROLLBACK_WEBHOOK_URL }}
+      MIGRATE_WEBHOOK_URL: ${{ secrets.BACKEND_STAGING_MIGRATE_WEBHOOK_URL }}
+      DATABASE_CONNECTION: ${{ secrets.BACKEND_STAGING_DATABASE_CONNECTION }}
+      DEPLOYMENT_STATUS_URL: ${{ secrets.DEPLOYMENT_STATUS_URL }}
+      DEPLOYMENT_STATUS_TOKEN: ${{ secrets.DEPLOYMENT_STATUS_TOKEN }}
+      SMOKE_LOGIN_IDENTIFIER: ${{ secrets.SMOKE_LOGIN_IDENTIFIER }}
+      SMOKE_LOGIN_PASSWORD: ${{ secrets.SMOKE_LOGIN_PASSWORD }}
+      ONCALL_WEBHOOK_URL: ${{ secrets.ONCALL_WEBHOOK_URL }}
+
+  deploy-canary:
+    name: Deploy Canary
+    needs: [build-and-test, deploy-staging]
+    if: >
+      always() &&
+      needs.build-and-test.outputs.deploy_canary == 'true' &&
+      needs.build-and-test.result == 'success' &&
+      (needs.deploy-staging.result == 'success' || needs.deploy-staging.result == 'skipped')
+    uses: ./.github/workflows/deploy-backend-stage.yml
+    with:
+      stage: canary
+      image: ${{ needs.build-and-test.outputs.image }}:${{ needs.build-and-test.outputs.tag }}
+      git_sha: ${{ needs.build-and-test.outputs.git_sha }}
+      git_ref: ${{ needs.build-and-test.outputs.git_ref }}
+      github_environment: backend-canary
+      api_base_url: ${{ vars.BACKEND_CANARY_API_BASE_URL || vars.BACKEND_PRODUCTION_API_BASE_URL || 'https://api.regkasse.at' }}
+      release_stage: canary
+      tenant_ids: ${{ needs.build-and-test.outputs.canary_tenants }}
+      run_migrations: true
+      auto_rollback: true
+    secrets:
+      DEPLOY_WEBHOOK_URL: ${{ secrets.BACKEND_CANARY_DEPLOY_WEBHOOK_URL }}
+      ROLLBACK_WEBHOOK_URL: ${{ secrets.BACKEND_CANARY_ROLLBACK_WEBHOOK_URL }}
+      MIGRATE_WEBHOOK_URL: ${{ secrets.BACKEND_CANARY_MIGRATE_WEBHOOK_URL }}
+      DATABASE_CONNECTION: ${{ secrets.BACKEND_CANARY_DATABASE_CONNECTION }}
+      DEPLOYMENT_STATUS_URL: ${{ secrets.DEPLOYMENT_STATUS_URL }}
+      DEPLOYMENT_STATUS_TOKEN: ${{ secrets.DEPLOYMENT_STATUS_TOKEN }}
+      SMOKE_LOGIN_IDENTIFIER: ${{ secrets.SMOKE_LOGIN_IDENTIFIER }}
+      SMOKE_LOGIN_PASSWORD: ${{ secrets.SMOKE_LOGIN_PASSWORD }}
+      ONCALL_WEBHOOK_URL: ${{ secrets.ONCALL_WEBHOOK_URL }}
+
+  # Production schema: separate Environment with required reviewers (manual approval).
+  migrate-production:
+    name: Migrate Production (approval)
+    needs: [build-and-test, deploy-staging, deploy-canary]
+    if: >
+      always() &&
+      needs.build-and-test.outputs.deploy_production == 'true' &&
+      needs.build-and-test.result == 'success' &&
+      (needs.deploy-staging.result == 'success' || needs.deploy-staging.result == 'skipped') &&
+      (needs.deploy-canary.result == 'success' || needs.deploy-canary.result == 'skipped')
+    uses: ./.github/workflows/deploy-backend-stage.yml
+    with:
+      stage: production
+      image: ${{ needs.build-and-test.outputs.image }}:${{ needs.build-and-test.outputs.tag }}
+      git_sha: ${{ needs.build-and-test.outputs.git_sha }}
+      git_ref: ${{ needs.build-and-test.outputs.git_ref }}
+      github_environment: backend-production-migrations
+      api_base_url: ${{ vars.BACKEND_PRODUCTION_API_BASE_URL || 'https://api.regkasse.at' }}
+      release_stage: production
+      tenant_ids: smoke
+      run_migrations: true
+      migrations_only: true
+      require_migrations_configured: true
+    secrets:
+      MIGRATE_WEBHOOK_URL: ${{ secrets.BACKEND_PRODUCTION_MIGRATE_WEBHOOK_URL }}
+      DATABASE_CONNECTION: ${{ secrets.BACKEND_PRODUCTION_DATABASE_CONNECTION }}
+      DEPLOYMENT_STATUS_URL: ${{ secrets.DEPLOYMENT_STATUS_URL }}
+      DEPLOYMENT_STATUS_TOKEN: ${{ secrets.DEPLOYMENT_STATUS_TOKEN }}
+
+  deploy-production:
+    name: Deploy Production
+    needs: [build-and-test, deploy-staging, deploy-canary, migrate-production]
+    if: >
+      always() &&
+      needs.build-and-test.outputs.deploy_production == 'true' &&
+      needs.build-and-test.result == 'success' &&
+      needs.migrate-production.result == 'success' &&
+      (needs.deploy-staging.result == 'success' || needs.deploy-staging.result == 'skipped') &&
+      (needs.deploy-canary.result == 'success' || needs.deploy-canary.result == 'skipped')
+    uses: ./.github/workflows/deploy-backend-stage.yml
+    with:
+      stage: production
+      image: ${{ needs.build-and-test.outputs.image }}:${{ needs.build-and-test.outputs.tag }}
+      git_sha: ${{ needs.build-and-test.outputs.git_sha }}
+      git_ref: ${{ needs.build-and-test.outputs.git_ref }}
+      github_environment: backend-production
+      api_base_url: ${{ vars.BACKEND_PRODUCTION_API_BASE_URL || 'https://api.regkasse.at' }}
+      release_stage: production
+      tenant_ids: smoke
+      run_migrations: false
+      auto_rollback: false
+    secrets:
+      DEPLOY_WEBHOOK_URL: ${{ secrets.BACKEND_PRODUCTION_DEPLOY_WEBHOOK_URL }}
+      ROLLBACK_WEBHOOK_URL: ${{ secrets.BACKEND_PRODUCTION_ROLLBACK_WEBHOOK_URL }}
+      DEPLOYMENT_STATUS_URL: ${{ secrets.DEPLOYMENT_STATUS_URL }}
+      DEPLOYMENT_STATUS_TOKEN: ${{ secrets.DEPLOYMENT_STATUS_TOKEN }}
+      SMOKE_LOGIN_IDENTIFIER: ${{ secrets.SMOKE_LOGIN_IDENTIFIER }}
+      SMOKE_LOGIN_PASSWORD: ${{ secrets.SMOKE_LOGIN_PASSWORD }}
+      ONCALL_WEBHOOK_URL: ${{ secrets.ONCALL_WEBHOOK_URL }}
+
+  notify-failure:
+    name: Notify on failure
+    needs: [build-and-test, deploy-staging, deploy-canary, migrate-production, deploy-production]
+    if: >-
+      always() && (
+        needs.build-and-test.result == 'failure' ||
+        needs.deploy-staging.result == 'failure' ||
+        needs.deploy-canary.result == 'failure' ||
+        needs.migrate-production.result == 'failure' ||
+        needs.deploy-production.result == 'failure'
+      )
+    uses: ./.github/workflows/notify-failure.yml
+    with:
+      title: Backend CI / deploy failed
+    secrets: inherit

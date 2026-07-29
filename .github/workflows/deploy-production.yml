@@ -1,0 +1,137 @@
+# Manual production deploy — compliance gate → migrate (approval) → deploy + smoke.
+#
+# Docs: DEPLOYMENT.md · docs/DEPLOYMENT_COMPLIANCE.md · docs/DATABASE_MIGRATION_STRATEGY.md
+
+name: Deploy Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Image tag to promote (required, e.g. sha-abcdef1 from Staging/Canary)
+        required: true
+        type: string
+      confirm:
+        description: Type deploy-production to confirm
+        required: true
+        type: string
+      compliance_confirm:
+        description: Type approved-by-compliance-officer (after FA sign-off)
+        required: true
+        type: string
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  IMAGE_NAME: regkasse-api
+
+jobs:
+  validate:
+    name: Validate inputs
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.out.outputs.image }}
+      image_tag: ${{ steps.out.outputs.tag }}
+    steps:
+      - name: Confirm phrases
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "deploy-production" ]; then
+            echo "Confirmation phrase mismatch. Type exactly: deploy-production"
+            exit 1
+          fi
+          if [ "${{ github.event.inputs.compliance_confirm }}" != "approved-by-compliance-officer" ]; then
+            echo "Compliance phrase mismatch. Type exactly: approved-by-compliance-officer"
+            echo "Also ensure ComplianceOfficer signed off in FA for this image tag."
+            exit 1
+          fi
+      - name: Resolve image
+        id: out
+        run: |
+          OWNER_LC=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+          TAG="${{ github.event.inputs.image_tag }}"
+          echo "image=ghcr.io/${OWNER_LC}/${{ env.IMAGE_NAME }}:${TAG}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+  compliance-gate:
+    name: RKSV compliance gate
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: backend-production-compliance
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fiscal + ComplianceOfficer sign-off
+        env:
+          API_BASE: ${{ vars.BACKEND_COMPLIANCE_API_BASE_URL || vars.BACKEND_CANARY_API_BASE_URL || vars.BACKEND_STAGING_API_BASE_URL || vars.BACKEND_PRODUCTION_API_BASE_URL || 'https://api.regkasse.at' }}
+          IMAGE_TAG: ${{ needs.validate.outputs.image_tag }}
+          STAGE: production
+          DEPLOYMENT_STATUS_URL: ${{ secrets.DEPLOYMENT_STATUS_URL }}
+          DEPLOYMENT_STATUS_TOKEN: ${{ secrets.DEPLOYMENT_STATUS_TOKEN }}
+          LOGIN_IDENTIFIER: ${{ secrets.SMOKE_LOGIN_IDENTIFIER }}
+          LOGIN_PASSWORD: ${{ secrets.SMOKE_LOGIN_PASSWORD }}
+          TENANT_ID: ${{ vars.BACKEND_SMOKE_TENANT_ID || 'smoke' }}
+          REQUIRE_SIGNOFF: '1'
+          SKIP_FISCAL: '0'
+        run: |
+          chmod +x scripts/ci/deployment-compliance-gate.sh scripts/smoke-test.sh
+          bash scripts/ci/deployment-compliance-gate.sh
+
+  migrate:
+    name: Migrate Production (approval)
+    needs: [validate, compliance-gate]
+    uses: ./.github/workflows/deploy-backend-stage.yml
+    with:
+      stage: production
+      image: ${{ needs.validate.outputs.image }}
+      git_sha: ${{ github.sha }}
+      git_ref: ${{ github.ref_name }}
+      github_environment: backend-production-migrations
+      api_base_url: ${{ vars.BACKEND_PRODUCTION_API_BASE_URL || 'https://api.regkasse.at' }}
+      release_stage: production
+      tenant_ids: smoke
+      run_migrations: true
+      migrations_only: true
+      require_migrations_configured: true
+    secrets:
+      MIGRATE_WEBHOOK_URL: ${{ secrets.BACKEND_PRODUCTION_MIGRATE_WEBHOOK_URL }}
+      DATABASE_CONNECTION: ${{ secrets.BACKEND_PRODUCTION_DATABASE_CONNECTION }}
+      DEPLOYMENT_STATUS_URL: ${{ secrets.DEPLOYMENT_STATUS_URL }}
+      DEPLOYMENT_STATUS_TOKEN: ${{ secrets.DEPLOYMENT_STATUS_TOKEN }}
+
+  deploy:
+    name: Production deploy + smoke
+    needs: [validate, compliance-gate, migrate]
+    uses: ./.github/workflows/deploy-backend-stage.yml
+    with:
+      stage: production
+      image: ${{ needs.validate.outputs.image }}
+      git_sha: ${{ github.sha }}
+      git_ref: ${{ github.ref_name }}
+      github_environment: backend-production
+      api_base_url: ${{ vars.BACKEND_PRODUCTION_API_BASE_URL || 'https://api.regkasse.at' }}
+      release_stage: production
+      tenant_ids: smoke
+      run_migrations: false
+      auto_rollback: false
+    secrets:
+      DEPLOY_WEBHOOK_URL: ${{ secrets.BACKEND_PRODUCTION_DEPLOY_WEBHOOK_URL }}
+      ROLLBACK_WEBHOOK_URL: ${{ secrets.BACKEND_PRODUCTION_ROLLBACK_WEBHOOK_URL }}
+      DEPLOYMENT_STATUS_URL: ${{ secrets.DEPLOYMENT_STATUS_URL }}
+      DEPLOYMENT_STATUS_TOKEN: ${{ secrets.DEPLOYMENT_STATUS_TOKEN }}
+      SMOKE_LOGIN_IDENTIFIER: ${{ secrets.SMOKE_LOGIN_IDENTIFIER }}
+      SMOKE_LOGIN_PASSWORD: ${{ secrets.SMOKE_LOGIN_PASSWORD }}
+      ONCALL_WEBHOOK_URL: ${{ secrets.ONCALL_WEBHOOK_URL }}
+
+  notify-failure:
+    name: Notify on failure
+    needs: [validate, compliance-gate, migrate, deploy]
+    if: always() && (needs.validate.result == 'failure' || needs.compliance-gate.result == 'failure' || needs.migrate.result == 'failure' || needs.deploy.result == 'failure')
+    uses: ./.github/workflows/notify-failure.yml
+    with:
+      title: Production deploy failed
+    secrets: inherit

@@ -5,9 +5,11 @@ Inventory of CI/CD under `.github/workflows/`. Prefer path filters where noted t
 | Workflow | Purpose | Triggers |
 |----------|---------|----------|
 | [`backend-ci.yml`](backend-ci.yml) | Backend build/test + multi-stage deploy (Staging / Canary / Production) | PR (path-filtered); push `main`/`master`/`release/**` / tag `v*`; `workflow_dispatch` |
+| [`ci.yml`](ci.yml) | **Umbrella CI** — backend + Admin + POS tests, Docker build (no push), smoke script syntax | `pull_request` → `main`/`master`; `workflow_dispatch` |
+| [`deploy.yml`](deploy.yml) | **Deploy orchestration** — multi-image GHCR push; Staging deploy+smoke; Production only with confirm phrase | push `main`/`master`; `workflow_dispatch` |
 | [`deploy-backend-stage.yml`](deploy-backend-stage.yml) | Reusable stage deploy + smoke + rollback + status report | `workflow_call` |
 | [`deploy-canary.yml`](deploy-canary.yml) | Manual progressive canary: prefer one tenant, soak hours, smoke, auto-rollback | `workflow_dispatch` |
-| [`deploy-production.yml`](deploy-production.yml) | Manual production: confirm + Environment approval, smoke, rollback | `workflow_dispatch` |
+| [`deploy-production.yml`](deploy-production.yml) | Manual production: compliance gate + confirm, migrate approval, smoke | `workflow_dispatch` |
 | [`backend-unit-tests.yml`](backend-unit-tests.yml) | `dotnet build` + `dotnet test` (exclude `Category=PostgreSql`) | `pull_request`, `push` → `main`/`master` |
 | [`backend-postgres-integration-tests.yml`](backend-postgres-integration-tests.yml) | PostgreSQL-tagged integration tests + service container | `pull_request`, `push` → `main`/`master` |
 | [`frontend-admin-ci.yml`](frontend-admin-ci.yml) | Admin `lint` / `typecheck` / `test` / `build` + Playwright E2E | `pull_request`, `push` → `main`/`master` (path-filtered) |
@@ -45,4 +47,8 @@ Inventory of CI/CD under `.github/workflows/`. Prefer path filters where noted t
 | `SMOKE_LOGIN_IDENTIFIER` / `SMOKE_LOGIN_PASSWORD` | Optional authenticated smoke |
 | `BACKEND_*_API_BASE_URL` / `BACKEND_CANARY_TENANT_IDS` / `BACKEND_FA_BASE_URL` / `BACKEND_POS_BASE_URL` (vars) | Smoke URLs |
 
-Docs: [`DEPLOYMENT.md`](../../DEPLOYMENT.md) · [`docs/DATABASE_MIGRATION_STRATEGY.md`](../../docs/DATABASE_MIGRATION_STRATEGY.md) · [`docs/DEPLOYMENT_SMOKE_TEST.md`](../../docs/DEPLOYMENT_SMOKE_TEST.md).
+Docs: [`DEPLOYMENT.md`](../../DEPLOYMENT.md) · [`docs/CI_CD.md`](../../docs/CI_CD.md) · [`docs/GITHUB_ACTIONS.md`](../../docs/GITHUB_ACTIONS.md) · [`docs/DATABASE_MIGRATION_STRATEGY.md`](../../docs/DATABASE_MIGRATION_STRATEGY.md) · [`docs/DEPLOYMENT_SMOKE_TEST.md`](../../docs/DEPLOYMENT_SMOKE_TEST.md).
+
+Environment checklists (not auto-applied): [`.github/environments/staging.yml`](../environments/staging.yml) · [`production.yml`](../environments/production.yml).
+
+CI helper scripts: [`scripts/ci-build.ps1`](../../scripts/ci-build.ps1) · [`ci-test.ps1`](../../scripts/ci-test.ps1) · [`ci-deploy.ps1`](../../scripts/ci-deploy.ps1).

@@ -16,6 +16,9 @@ import deDevelopmentMode from './locales/de/developmentMode.json';
 import deDigital from './locales/de/digital.json';
 import deErrors from './locales/de/errors.json';
 import deFeedback from './locales/de/feedback.json';
+import deFeatureFlags from './locales/de/featureFlags.json';
+import deDeployments from './locales/de/deployments.json';
+import deDatabaseMigrations from './locales/de/databaseMigrations.json';
 import deMaintenance from './locales/de/maintenance.json';
 import deMonitoring from './locales/de/monitoring.json';
 import deRiskDashboard from './locales/de/riskDashboard.json';
@@ -30,6 +33,8 @@ import deTseDr from './locales/de/tseDr.json';
 import deTseLogs from './locales/de/tseLogs.json';
 import deTseDeveloperTools from './locales/de/tseDeveloperTools.json';
 import deTseCompliance from './locales/de/tseCompliance.json';
+import deSignaturkarteProgram from './locales/de/signaturkarteProgram.json';
+import deTseAusfall from './locales/de/tseAusfall.json';
 import deTseAutoScaling from './locales/de/tseAutoScaling.json';
 import deTseAutoHealing from './locales/de/tseAutoHealing.json';
 import deTseKnowledge from './locales/de/tseKnowledge.json';
@@ -90,6 +95,9 @@ import enDevelopmentMode from './locales/en/developmentMode.json';
 import enDigital from './locales/en/digital.json';
 import enErrors from './locales/en/errors.json';
 import enFeedback from './locales/en/feedback.json';
+import enFeatureFlags from './locales/en/featureFlags.json';
+import enDeployments from './locales/en/deployments.json';
+import enDatabaseMigrations from './locales/en/databaseMigrations.json';
 import enMaintenance from './locales/en/maintenance.json';
 import enMonitoring from './locales/en/monitoring.json';
 import enRiskDashboard from './locales/en/riskDashboard.json';
@@ -104,6 +112,8 @@ import enTseDr from './locales/en/tseDr.json';
 import enTseLogs from './locales/en/tseLogs.json';
 import enTseDeveloperTools from './locales/en/tseDeveloperTools.json';
 import enTseCompliance from './locales/en/tseCompliance.json';
+import enSignaturkarteProgram from './locales/en/signaturkarteProgram.json';
+import enTseAusfall from './locales/en/tseAusfall.json';
 import enTseAutoScaling from './locales/en/tseAutoScaling.json';
 import enTseAutoHealing from './locales/en/tseAutoHealing.json';
 import enTseKnowledge from './locales/en/tseKnowledge.json';
@@ -164,6 +174,9 @@ import trDevelopmentMode from './locales/tr/developmentMode.json';
 import trDigital from './locales/tr/digital.json';
 import trErrors from './locales/tr/errors.json';
 import trFeedback from './locales/tr/feedback.json';
+import trFeatureFlags from './locales/tr/featureFlags.json';
+import trDeployments from './locales/tr/deployments.json';
+import trDatabaseMigrations from './locales/tr/databaseMigrations.json';
 import trMaintenance from './locales/tr/maintenance.json';
 import trMonitoring from './locales/tr/monitoring.json';
 import trRiskDashboard from './locales/tr/riskDashboard.json';
@@ -178,6 +191,8 @@ import trTseDr from './locales/tr/tseDr.json';
 import trTseLogs from './locales/tr/tseLogs.json';
 import trTseDeveloperTools from './locales/tr/tseDeveloperTools.json';
 import trTseCompliance from './locales/tr/tseCompliance.json';
+import trSignaturkarteProgram from './locales/tr/signaturkarteProgram.json';
+import trTseAusfall from './locales/tr/tseAusfall.json';
 import trTseAutoScaling from './locales/tr/tseAutoScaling.json';
 import trTseAutoHealing from './locales/tr/tseAutoHealing.json';
 import trTseKnowledge from './locales/tr/tseKnowledge.json';
@@ -251,6 +266,9 @@ const catalogs = {
     reporting: deReporting,
     errors: deErrors,
     feedback: deFeedback,
+    featureFlags: deFeatureFlags,
+    deployments: deDeployments,
+    databaseMigrations: deDatabaseMigrations,
     maintenance: deMaintenance,
     monitoring: deMonitoring,
     riskDashboard: deRiskDashboard,
@@ -265,6 +283,8 @@ const catalogs = {
     tseLogs: deTseLogs,
     tseDeveloperTools: deTseDeveloperTools,
     tseCompliance: deTseCompliance,
+    signaturkarteProgram: deSignaturkarteProgram,
+    tseAusfall: deTseAusfall,
     tseAutoScaling: deTseAutoScaling,
     tseAutoHealing: deTseAutoHealing,
     tseKnowledge: deTseKnowledge,
@@ -327,6 +347,9 @@ const catalogs = {
     reporting: enReporting,
     errors: enErrors,
     feedback: enFeedback,
+    featureFlags: enFeatureFlags,
+    deployments: enDeployments,
+    databaseMigrations: enDatabaseMigrations,
     maintenance: enMaintenance,
     monitoring: enMonitoring,
     riskDashboard: enRiskDashboard,
@@ -341,6 +364,8 @@ const catalogs = {
     tseLogs: enTseLogs,
     tseDeveloperTools: enTseDeveloperTools,
     tseCompliance: enTseCompliance,
+    signaturkarteProgram: enSignaturkarteProgram,
+    tseAusfall: enTseAusfall,
     tseAutoScaling: enTseAutoScaling,
     tseAutoHealing: enTseAutoHealing,
     tseKnowledge: enTseKnowledge,
@@ -403,6 +428,9 @@ const catalogs = {
     reporting: trReporting,
     errors: trErrors,
     feedback: trFeedback,
+    featureFlags: trFeatureFlags,
+    deployments: trDeployments,
+    databaseMigrations: trDatabaseMigrations,
     maintenance: trMaintenance,
     monitoring: trMonitoring,
     riskDashboard: trRiskDashboard,
@@ -417,6 +445,8 @@ const catalogs = {
     tseLogs: trTseLogs,
     tseDeveloperTools: trTseDeveloperTools,
     tseCompliance: trTseCompliance,
+    signaturkarteProgram: trSignaturkarteProgram,
+    tseAusfall: trTseAusfall,
     tseAutoScaling: trTseAutoScaling,
     tseAutoHealing: trTseAutoHealing,
     tseKnowledge: trTseKnowledge,

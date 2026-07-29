@@ -60,6 +60,7 @@ function AuditLogsPageContent() {
         status: params.status,
         statusOutcome: params.statusOutcome,
         hasChanges: params.hasChanges,
+        search: params.search,
         pageSize: params.pageSize,
       }),
     [params]
@@ -92,6 +93,7 @@ function AuditLogsPageContent() {
       status: toAuditLogStatusApiParam(params.status),
       statusOutcome: params.statusOutcome,
       hasChanges: params.hasChanges,
+      search: params.search,
     }),
     [params, afterCursor, shouldIncludeTotalCount]
   );
@@ -146,6 +148,7 @@ function AuditLogsPageContent() {
   );
 
   const hasActiveFilters = Boolean(
+    params.search ||
     params.action ||
     params.userId ||
     params.targetUserId ||
@@ -184,6 +187,9 @@ function AuditLogsPageContent() {
     ];
     if (params.action) {
       parts.push(t('common.auditLogs.scopeActionIs', { action: actionOptionLabel(params.action) }));
+    }
+    if (params.search) {
+      parts.push(t('common.auditLogs.scopeSearchIs', { search: params.search }));
     }
     if (params.userId) parts.push(t('common.auditLogs.scopeUserIs'));
     if (params.entityType) {
@@ -257,6 +263,7 @@ function AuditLogsPageContent() {
 
       <Card size="small" title={t('common.auditLogs.filterCardTitle')}>
         <AuditFilterBar
+          search={params.search}
           action={params.action}
           userId={params.userId}
           targetUserId={params.targetUserId}
@@ -267,6 +274,7 @@ function AuditLogsPageContent() {
           statusOutcome={params.statusOutcome}
           hasChanges={params.hasChanges}
           dateRange={dateRange}
+          onSearchChange={(search) => setParams({ search })}
           onActionChange={(action) => setParams({ action })}
           onUserIdChange={(userId) => setParams({ userId })}
           onTargetUserIdChange={(targetUserId) => setParams({ targetUserId })}
@@ -297,6 +305,11 @@ function AuditLogsPageContent() {
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
               {t('common.auditLogs.activeFiltersLabel')}
             </Typography.Text>
+            {params.search ? (
+              <Tag closable onClose={() => setParams({ search: undefined })}>
+                {t('common.auditLogs.tagSearchPrefix')} {params.search}
+              </Tag>
+            ) : null}
             {params.userId ? (
               <Tag closable onClose={() => setParams({ userId: undefined })}>
                 {t('common.auditLogs.tagUserPrefix')} {resolveUserLabel(params.userId)}

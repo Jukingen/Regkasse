@@ -18,4 +18,16 @@ public interface IDataAccessNotificationService
         string subject,
         string body,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Export-ready notify with HTML + plain bodies (activity feed uses plain text).
+    /// </summary>
+    Task NotifyUserAsync(
+        string? userId,
+        Guid tenantId,
+        Guid requestId,
+        string subject,
+        string plainBody,
+        string? htmlBody,
+        CancellationToken ct = default);
 }

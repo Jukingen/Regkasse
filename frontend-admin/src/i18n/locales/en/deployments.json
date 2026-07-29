@@ -1,0 +1,113 @@
+{
+  "pageTitle": "Deployments",
+  "accessDenied": "Only Super Administrators can view deployment status.",
+  "introTitle": "Multi-stage pipeline",
+  "introBody": "Staging, Canary, and Production deployment status including smoke results.",
+  "pipelineHint": "Canary: smoke fail → auto-rollback. Production: smoke fail → manual rollback (FA or scripts/rollback-production.sh). Progressive tenants: /admin/deployments/tenants.",
+  "filterStage": "Stage",
+  "allStages": "All",
+  "noRuns": "No reports yet",
+  "noError": "No error",
+  "openRun": "CI run",
+  "columns": {
+    "stage": "Stage",
+    "status": "Status",
+    "smoke": "Smoke",
+    "image": "Image",
+    "git": "Git",
+    "tenants": "Tenants",
+    "updated": "Updated",
+    "run": "Run"
+  },
+  "status": {
+    "pending": "Pending",
+    "deploying": "Deploying",
+    "smoke_running": "Smoke",
+    "succeeded": "Succeeded",
+    "failed": "Failed",
+    "rolled_back": "Rolled back"
+  },
+  "smoke": {
+    "passed": "Smoke OK",
+    "failed": "Smoke fail",
+    "unknown": "No smoke",
+    "summary": "Smoke details"
+  },
+    "rollback": {
+      "button": "Rollback",
+      "confirmTitle": "Roll back deployment?",
+      "confirmBody": "Stage {{stage}}: invoke rollback webhook (previous image).",
+      "confirmOk": "Run rollback",
+      "previousImage": "Target image: {{image}}",
+      "noPrevious": "No previousImageTag stored — webhook/host must know last-known-good.",
+      "success": "Rollback invoked.",
+      "failed": "Rollback failed."
+    },
+    "compliance": {
+      "pageTitle": "Deployment compliance",
+      "accessDenied": "Requires deployment.approve (ComplianceOfficer) or Super Admin.",
+      "introTitle": "RKSV production sign-off",
+      "introBody": "Confirm fiscal checks before production deploy.",
+      "pipelineHint": "All checklist items required. CI gate verifies this sign-off. See docs/DEPLOYMENT_COMPLIANCE.md.",
+      "linkDashboard": "Stage deployment dashboard",
+      "imageTag": "Image tag",
+      "checklistTitle": "Checklist",
+      "notes": "Notes",
+      "signoffButton": "Sign off for production",
+      "signoffSuccess": "Compliance sign-off recorded.",
+      "signoffFailed": "Compliance sign-off failed.",
+      "gateStatus": "Gate status",
+      "gatePassed": "Gate passed",
+      "yes": "Yes",
+      "no": "No",
+      "noSignoff": "No sign-off for this image yet.",
+      "signedBy": "Signed by {{who}} at {{when}}",
+      "items": {
+        "depExport": "DEP export tested",
+        "tseSignature": "TSE signature tested",
+        "finanzOnline": "FinanzOnline test submission successful",
+        "ntp": "NTP time sync checked",
+        "tenantIsolation": "Tenant isolation verified"
+      }
+    },
+    "tenants": {
+    "pageTitle": "Tenant deployments",
+    "introTitle": "Progressive canary",
+    "introBody": "Deployment version and soak status per tenant.",
+    "pipelineHint": "Deploy one tenant → monitor 24–48h → next tenant. See docs/CANARY_DEPLOYMENT.md.",
+    "linkStageDashboard": "Stage deployment dashboard",
+    "soakingCount": "Canary soaking",
+    "failedCount": "Failed",
+    "nextCanary": "Recommended next canary",
+    "nextCanaryNone": "—",
+    "soaking": "Soaking",
+    "columns": {
+      "tenant": "Tenant",
+      "version": "Version",
+      "stage": "Stage",
+      "status": "Status",
+      "deployed": "Deployed",
+      "soakUntil": "Soak until",
+      "actions": "Actions"
+    },
+    "status": {
+      "pending": "Pending",
+      "deploying": "Deploying",
+      "succeeded": "Succeeded",
+      "failed": "Failed",
+      "rolled_back": "Rolled back",
+      "canary_soak": "Canary soak",
+      "promoted": "Promoted"
+    },
+    "rollback": {
+      "button": "Rollback tenant",
+      "confirmTitle": "Roll back this tenant?",
+      "confirmBody": "Tenant {{tenant}}: invoke canary rollback webhook to previousVersion.",
+      "confirmOk": "Rollback tenant",
+      "previousVersion": "Target version: {{version}}",
+      "noPrevious": "No previousVersion available.",
+      "success": "Tenant rollback invoked.",
+      "failed": "Tenant rollback failed."
+    }
+  }
+}

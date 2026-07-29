@@ -4,6 +4,28 @@ Engineering changelog (not legal advice). Dates reflect documentation / feature 
 
 ---
 
+## 2026-07-29 — Production Docker, CI/CD docs, monitoring stack
+
+**Reference:** [`DOCKER_PRODUCTION.md`](DOCKER_PRODUCTION.md) · [`DOCKER_PRODUCTION_READINESS.md`](DOCKER_PRODUCTION_READINESS.md) · [`CI_CD.md`](CI_CD.md) · [`MONITORING.md`](MONITORING.md)
+
+### Ops / Compose
+
+- `docker-compose.prod.yml` + `.env.production.example` / `.env.production.local.example` (Device/Real TSE; Soft TSE only via Dev override)
+- Windows helpers: `docker-up-prod.bat` / `docker-down-prod.bat` (+ build/push/logs scripts)
+- Beginner + test + readiness guides: `DOCKER_FOR_BEGINNERS.md`, `DOCKER_TEST_PLAN.md`, `DOCKER_PRODUCTION_READINESS.md`
+
+### CI/CD & monitoring
+
+- Umbrella `ci.yml` / multi-image `deploy.yml` docs; Environments checklist under `.github/environments/`
+- Optional `monitoring/` Compose (Prometheus, Grafana, Loki, Alertmanager) + `scripts/start-monitoring.*`
+- Docs: `CI_CD.md`, `GITHUB_ACTIONS.md`, `MONITORING.md`, `ALERTING.md`, `METRICS.md`
+
+### Hygiene
+
+- `.gitignore`: local prod env, monitoring data/overrides, generated license invoice PDFs, scratch build dirs
+
+---
+
 ## 2026-07-02 — Backup permissions (Manager / tenant scoping)
 
 **Reference:** [`docs/BACKUP_PERMISSIONS.md`](BACKUP_PERMISSIONS.md) · AI: [`ai/modules/backup_permissions.md`](../ai/modules/backup_permissions.md)

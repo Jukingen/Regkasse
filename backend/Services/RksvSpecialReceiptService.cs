@@ -40,6 +40,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
     private readonly IRksvSpecialReceiptFinanzOnlineSubmissionTracker _fonSubmissionTracker;
     private readonly IFinanzOnlineOutboxService _finanzOnlineOutbox;
     private readonly IReportPdfCaptureService _reportPdfCapture;
+    private readonly IOptionsMonitor<FinanzOnlineModeOptions> _finanzOnlineModeOptions;
+    private readonly IOptionsMonitor<FinanzOnlineCutoverGuardOptions> _finanzOnlineCutoverOptions;
 
     public RksvSpecialReceiptService(
         AppDbContext db,
@@ -52,7 +54,9 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         ILogger<RksvSpecialReceiptService> logger,
         IRksvSpecialReceiptFinanzOnlineSubmissionTracker fonSubmissionTracker,
         IFinanzOnlineOutboxService finanzOnlineOutbox,
-        IReportPdfCaptureService reportPdfCapture)
+        IReportPdfCaptureService reportPdfCapture,
+        IOptionsMonitor<FinanzOnlineModeOptions> finanzOnlineModeOptions,
+        IOptionsMonitor<FinanzOnlineCutoverGuardOptions> finanzOnlineCutoverOptions)
     {
         _db = db;
         _tseService = tseService;
@@ -65,6 +69,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         _fonSubmissionTracker = fonSubmissionTracker;
         _finanzOnlineOutbox = finanzOnlineOutbox;
         _reportPdfCapture = reportPdfCapture;
+        _finanzOnlineModeOptions = finanzOnlineModeOptions;
+        _finanzOnlineCutoverOptions = finanzOnlineCutoverOptions;
     }
 
     private static readonly JsonSerializerOptions RksvFonOutboxJsonOpts = new()
@@ -365,6 +371,26 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         var innerJson = JsonSerializer.Serialize(inner, RksvFonOutboxJsonOpts);
         var payloadHashHex = ComputeSha256HexForOutbox(innerJson);
         var businessKey = $"rksv|{receiptId:N}|{kind}";
+
+        FinanzOnlineIntegrationMode outboxMode;
+        try
+        {
+            outboxMode = FinanzOnlineModeResolver.ResolveOutboxMode(
+                _finanzOnlineModeOptions.CurrentValue.Mode,
+                _finanzOnlineCutoverOptions.CurrentValue,
+                out _);
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Fail closed to TEST when Production cutover is not approved (still enqueue; PROD blocked at submit).
+            _logger.LogWarning(
+                ex,
+                "RKSV FinanzOnline outbox mode resolve fell back to TEST. kind={Kind} receiptId={ReceiptId}",
+                kind,
+                receiptId);
+            outboxMode = FinanzOnlineIntegrationMode.TEST;
+        }
+
         await _finanzOnlineOutbox.EnqueueSubmissionAsync(
             aggregateType: "RksvSpecialReceipt",
             aggregateId: receiptId,
@@ -372,7 +398,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
             businessKey: businessKey,
             payload: new FinanzOnlineOutboxPayload
             {
-                Mode = FinanzOnlineIntegrationMode.TEST,
+                Mode = outboxMode,
                 Scope = new FinanzOnlineScope
                 {
                     TenantId = tenantId.ToString("N"),

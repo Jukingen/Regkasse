@@ -79,6 +79,26 @@ npm start -- --reset-cache
 
 From repo root: `npm run dev:pos`, `npm run test:pos`, `npm run build:pos`.
 
+### Docker (POS web)
+
+Optional static **web** export served by nginx (not Metro / native). Prefer root Compose profile:
+
+```bash
+# From repository root
+docker compose --profile pos up --build
+# → http://localhost:8081
+```
+
+Manual image build (context = **repo root**):
+
+```bash
+docker build -f frontend/Dockerfile \
+  --build-arg EXPO_PUBLIC_API_BASE_URL=http://localhost:5184/api \
+  -t regkasse-frontend-pos-web:local .
+```
+
+`EXPO_PUBLIC_*` are baked at export time — use host-reachable API URLs. See root [`README.md`](../README.md#docker-compose) and [`docker-compose.yml`](../docker-compose.yml).
+
 Dev URLs (typical):
 
 ```text

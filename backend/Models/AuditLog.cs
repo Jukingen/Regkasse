@@ -279,6 +279,9 @@ namespace KasseAPI_Final.Models
         /// <summary>Mandant license key and/or validity updated (masked keys in audit payload).</summary>
         public const string LICENSE_UPDATED = "LICENSE_UPDATED";
 
+        /// <summary>FA renewal UI (page/modal) viewed — license renewal funnel analytics.</summary>
+        public const string LICENSE_RENEWAL_PAGE_VIEWED = "LICENSE_RENEWAL_PAGE_VIEWED";
+
         /// <summary>Super Admin manual validation restore request created (pending approval).</summary>
         public const string RESTORE_REQUESTED = "RESTORE_REQUESTED";
 
@@ -298,6 +301,12 @@ namespace KasseAPI_Final.Models
         public const string MANUAL_RESTORE_REQUEST_CREATED = "MANUAL_RESTORE_REQUEST_CREATED";
         public const string MANUAL_RESTORE_REQUEST_APPROVED = "MANUAL_RESTORE_REQUEST_APPROVED";
         public const string MANUAL_RESTORE_REQUEST_REJECTED = "MANUAL_RESTORE_REQUEST_REJECTED";
+
+        public const string DEPLOYMENT_STARTED = "DEPLOYMENT_STARTED";
+        public const string DEPLOYMENT_SUCCEEDED = "DEPLOYMENT_SUCCEEDED";
+        public const string DEPLOYMENT_FAILED = "DEPLOYMENT_FAILED";
+        public const string DEPLOYMENT_ROLLBACK = "DEPLOYMENT_ROLLBACK";
+        public const string DEPLOYMENT_COMPLIANCE_APPROVED = "DEPLOYMENT_COMPLIANCE_APPROVED";
     }
 
     // Entity types for audit logging
@@ -332,5 +341,9 @@ namespace KasseAPI_Final.Models
         public const string TENANT_SETTINGS_HISTORY = "TenantSettingsHistory";
 
         public const string MANUAL_RESTORE_REQUEST = "ManualRestoreRequest";
+
+        public const string DEPLOYMENT = "Deployment";
+
+        public const string DEPLOYMENT_COMPLIANCE_SIGNOFF = "DeploymentComplianceSignoff";
     }
 }

@@ -18,6 +18,16 @@
   white-space: nowrap;
 }
 
+.licenseLockdownFooter {
+  margin-top: 12px;
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+  border-top: 1px solid var(--ant-color-border-secondary, rgba(0, 0, 0, 0.06));
+}
+
 .siderRoot :global(.ant-layout-sider-children) {
   display: flex;
   flex-direction: column;

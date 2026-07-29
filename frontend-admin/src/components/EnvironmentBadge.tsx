@@ -71,7 +71,7 @@ export function EnvironmentBadge() {
     ),
   });
 
-  const envLabel = buildEnvBadge?.text ?? '🧪 Entwicklung';
+  const envLabel = buildEnvBadge?.text ?? 'DEVELOPMENT';
 
   return (
     <Dropdown
@@ -81,7 +81,7 @@ export function EnvironmentBadge() {
       classNames={{ root: 'admin-header-dropdown' }}
       getPopupContainer={getAdminHeaderPopupContainer}
     >
-      <Tag color="orange" style={{ cursor: 'pointer', marginInlineEnd: 0 }}>
+      <Tag color={buildEnvBadge?.color ?? 'green'} style={{ cursor: 'pointer', marginInlineEnd: 0 }}>
         {envLabel}
         {activeBypasses.length > 0 ? ` · DEV (${activeBypasses.join(', ')})` : ' · DEV'}
       </Tag>

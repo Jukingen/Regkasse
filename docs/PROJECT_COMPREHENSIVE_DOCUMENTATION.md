@@ -457,8 +457,18 @@ EXPO_PUBLIC_DEV_TENANT_ID=dev
 
 ### 5.2 Docker
 
-Root `docker-compose.yml`: PostgreSQL 16, Redis, API, Admin (POS profile optional).  
-See [`../DEVELOPMENT.md`](../DEVELOPMENT.md).
+Hub: [`DOCKER.md`](DOCKER.md) · Setup/migration: [`DOCKER_SETUP.md`](DOCKER_SETUP.md) · Deutsch: [`DOCKER.de.md`](DOCKER.de.md) / [`DOCKER_SETUP.de.md`](DOCKER_SETUP.de.md).
+
+| File | Role |
+|------|------|
+| `docker-compose.yml` + `docker-compose.override.yml` | Dev stack (Soft TSE / FON simulation) |
+| `docker-compose.dev.yml` | Postgres + Redis only (host apps) |
+| `docker-compose.prod.yml` + `.env.production` | Production-oriented (Device/Real TSE) |
+| `backend` / `frontend-admin` / `frontend` / `frontend-sites` Dockerfiles | Multi-stage images |
+| `scripts/docker-*.ps1` | build / up / down / deploy / diagnose |
+
+Windows: [`DOCKER_WINDOWS_SETUP.md`](DOCKER_WINDOWS_SETUP.md) ([DE](DOCKER_WINDOWS_SETUP.de.md)); troubleshooting [`DOCKER_WINDOWS_TROUBLESHOOTING.md`](DOCKER_WINDOWS_TROUBLESHOOTING.md).  
+Workflow: [`../DEVELOPMENT.md`](../DEVELOPMENT.md#docker-compose-full-stack) · prod steps [`../DEPLOYMENT.md`](../DEPLOYMENT.md#docker-compose-production-oriented).
 
 ### 5.3 CI/CD
 

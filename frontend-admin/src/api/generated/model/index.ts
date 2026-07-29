@@ -1011,6 +1011,7 @@ export * from './userActivityReportDto';
 export * from './userActivityTimelineItemDto';
 export * from './userEffectivePermissionsDto';
 export * from './userInfo';
+export * from './userInfoDto';
 export * from './userPerformanceReportDto';
 export * from './userPerformanceRowDto';
 export * from './userPermissionOverrideDto';

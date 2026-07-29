@@ -97,6 +97,7 @@ public sealed class TseFailoverNotificationServiceTests
             email.Object,
             userManager.Object,
             opts,
+            Mock.Of<IRksvAusfallEpisodeService>(),
             NullLogger<TseFailoverNotificationService>.Instance);
 
         return (svc, activity, email);

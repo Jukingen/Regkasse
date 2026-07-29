@@ -1,22 +1,46 @@
 /**
- * Temporary POS environment badge — __DEV__ only (no shared/constants import).
+ * POS environment badge — prefers EXPO_PUBLIC_RELEASE_STAGE; falls back to __DEV__.
  */
+
+import {
+  getReleaseStageBannerColor,
+  getReleaseStageBannerKind,
+  getReleaseStageBannerLabel,
+  normalizeReleaseStage,
+  type EnvironmentBadgeColor,
+  type ReleaseStage,
+} from '../../../shared/constants/environment';
+
+function resolveReleaseStage(): ReleaseStage {
+  const fromEnv = normalizeReleaseStage(process.env.EXPO_PUBLIC_RELEASE_STAGE);
+  if (fromEnv) return fromEnv;
+  return __DEV__ ? 'dev' : 'production';
+}
+
+const releaseStage = resolveReleaseStage();
+const bannerKind = getReleaseStageBannerKind(releaseStage, {
+  isHostDevelopment: __DEV__ && releaseStage === 'dev',
+});
 
 export const ENVIRONMENT_CONFIG = {
   isDevelopment: __DEV__,
   isTest: false,
   isProduction: !__DEV__,
+  releaseStage,
 
   getEnvironmentBadgeText: () => {
-    return __DEV__ ? '🧪 Entwicklung' : '';
+    return bannerKind ? getReleaseStageBannerLabel(bannerKind) : '';
   },
 
-  getEnvironmentBadgeColor: () => {
-    return __DEV__ ? 'orange' : 'green';
+  getEnvironmentBadgeColor: (): EnvironmentBadgeColor => {
+    return bannerKind ? getReleaseStageBannerColor(bannerKind) : 'green';
   },
 
   getEnvironmentBadgeType: () => {
-    return __DEV__ ? ('development' as const) : ('production' as const);
+    if (bannerKind === 'development') return 'development' as const;
+    if (bannerKind === 'staging') return 'staging' as const;
+    if (bannerKind === 'canary') return 'canary' as const;
+    return 'production' as const;
   },
 };
 

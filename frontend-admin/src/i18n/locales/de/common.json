@@ -111,6 +111,23 @@
   },
   "auditLogs": {
     "filterCardTitle": "Filter",
+    "searchPlaceholder": "Benutzername, E-Mail, ID, Aktion oder Entitaet suchen…",
+    "searchButton": "Suchen",
+    "searchHint": "Tipp: Benutzername, E-Mail oder ID eingeben — z. B. „mustafa“ oder einen ID-Prefix.",
+    "tagSearchPrefix": "Suche:",
+    "scopeSearchIs": "Suche = {{search}}",
+    "quickUser": {
+      "title": "Schnell Benutzer finden",
+      "placeholder": "Benutzername oder ID…",
+      "find": "Benutzer finden",
+      "error": "Benutzer konnte nicht gesucht werden.",
+      "noResults": "Kein Benutzer gefunden.",
+      "searchAuditsInstead": "Stattdessen Audit-Protokoll durchsuchen",
+      "filterAudits": "Audits dieses Benutzers",
+      "searchByUserName": "Nach Benutzername suchen",
+      "moreMatches": "{{count}} Treffer",
+      "otherMatches": "Weitere Treffer:"
+    },
     "criteriaLabel": "Kriterien",
     "actionPlaceholder": "Aktion",
     "userPlaceholder": "Benutzer",
@@ -248,6 +265,19 @@
       "details": "Details",
       "reason": "Grund",
       "status": "Status"
+    },
+    "userInfo": {
+      "unknown": "Unbekannt",
+      "unknownRole": "Unbekannte Rolle",
+      "noEmail": "Keine E-Mail",
+      "userName": "Benutzername",
+      "email": "E-Mail",
+      "role": "Rolle",
+      "id": "ID",
+      "goToDetails": "Zur Benutzerdetailseite",
+      "copyId": "ID kopieren",
+      "idCopied": "Benutzer-ID kopiert",
+      "idCopyFailed": "ID konnte nicht kopiert werden"
     }
   },
   "validation": {

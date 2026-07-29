@@ -3,6 +3,7 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.AccountClosure;
 using KasseAPI_Final.Services.DataAccess;
 using KasseAPI_Final.Services.DataDeletion;
 using KasseAPI_Final.Services.DataExport;
@@ -27,6 +28,7 @@ public sealed class AdminTenantDataManagementController : ControllerBase
     private readonly ITenantDataDeletionRequestService _deletionRequests;
     private readonly ICustomerDataRightsService _rights;
     private readonly IDataAccessService _dataAccess;
+    private readonly IAccountClosureService _closure;
     private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly IAuditLogService _audit;
     private readonly IDownloadSecurityService _downloadSecurity;
@@ -37,6 +39,7 @@ public sealed class AdminTenantDataManagementController : ControllerBase
         ITenantDataDeletionRequestService deletionRequests,
         ICustomerDataRightsService rights,
         IDataAccessService dataAccess,
+        IAccountClosureService closure,
         ICurrentTenantAccessor tenantAccessor,
         IAuditLogService audit,
         IDownloadSecurityService downloadSecurity)
@@ -46,6 +49,7 @@ public sealed class AdminTenantDataManagementController : ControllerBase
         _deletionRequests = deletionRequests;
         _rights = rights;
         _dataAccess = dataAccess;
+        _closure = closure;
         _tenantAccessor = tenantAccessor;
         _audit = audit;
         _downloadSecurity = downloadSecurity;
@@ -463,6 +467,110 @@ public sealed class AdminTenantDataManagementController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
+    }
+
+    [HttpPost("deletion-request/{requestId:guid}/cancel")]
+    [HasPermission(AppPermissions.BackupManage)]
+    [ProducesResponseType(typeof(TenantDataDeletionRequestDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TenantDataDeletionRequestDto>> CancelDeletion(
+        Guid tenantId,
+        Guid requestId,
+        CancellationToken ct = default)
+    {
+        if (!TryAuthorizeTenant(tenantId, out var error))
+            return error!;
+
+        try
+        {
+            var userId = User.GetActorUserId() ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var row = await _deletion
+                .CancelDeletionAsync(tenantId, requestId, userId, ct)
+                .ConfigureAwait(false);
+            return Ok(row);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
+        {
+            return NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message, code = DataDeletionErrorCodes.InvalidStatus });
+        }
+    }
+
+    /// <summary>Account closure status (facade over deletion request + RKSV retention flag).</summary>
+    [HttpGet("closure")]
+    [HasPermission(AppPermissions.BackupManage)]
+    [ProducesResponseType(typeof(ClosureResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ClosureResult>> GetClosureStatus(
+        Guid tenantId,
+        CancellationToken ct = default)
+    {
+        if (!TryAuthorizeTenant(tenantId, out var error))
+            return error!;
+
+        var result = await _closure.GetClosureStatusAsync(tenantId, ct).ConfigureAwait(false);
+        if (!result.Succeeded && result.ErrorCode == DataDeletionErrorCodes.NotFound)
+            return NotFound(result);
+        if (!result.Succeeded)
+            return BadRequest(result);
+        return Ok(result);
+    }
+
+    /// <summary>Request account closure (Archived license only; same gates as deletion-request).</summary>
+    [HttpPost("closure")]
+    [HasPermission(AppPermissions.BackupManage)]
+    [ProducesResponseType(typeof(ClosureResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ClosureResult>> RequestClosure(
+        Guid tenantId,
+        [FromBody] RequestTenantDataDeletionDto? body,
+        CancellationToken ct = default)
+    {
+        if (!TryAuthorizeTenant(tenantId, out var error))
+            return error!;
+
+        var userId = User.GetActorUserId() ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var result = await _closure
+            .RequestClosureAsync(tenantId, body?.Reason, userId, ct)
+            .ConfigureAwait(false);
+
+        if (!result.Succeeded)
+        {
+            if (result.ErrorCode == DataDeletionErrorCodes.NotFound)
+                return NotFound(result);
+            return BadRequest(result);
+        }
+
+        return Ok(result);
+    }
+
+    [HttpPost("closure/cancel")]
+    [HasPermission(AppPermissions.BackupManage)]
+    [ProducesResponseType(typeof(ClosureResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ClosureResult>> CancelClosure(
+        Guid tenantId,
+        CancellationToken ct = default)
+    {
+        if (!TryAuthorizeTenant(tenantId, out var error))
+            return error!;
+
+        var userId = User.GetActorUserId() ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var result = await _closure.CancelClosureAsync(tenantId, userId, ct).ConfigureAwait(false);
+        if (!result.Succeeded)
+        {
+            if (result.ErrorCode == DataDeletionErrorCodes.NotFound)
+                return NotFound(result);
+            return BadRequest(result);
+        }
+
+        return Ok(result);
     }
 
     /// <summary>Super Admin manual execute after the 7-day wait (same gates as auto-purge).</summary>

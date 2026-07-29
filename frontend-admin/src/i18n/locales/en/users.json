@@ -94,13 +94,15 @@
       "Waiter": "Waiter",
       "Kitchen": "Kitchen",
       "ReportViewer": "Report Viewer",
-      "Accountant": "Accountant"
+      "Accountant": "Accountant",
+      "ComplianceOfficer": "Compliance Officer"
     },
     "badgeLabels": {
       "SuperAdmin": "Platform admin",
       "Manager": "Tenant Admin",
       "Cashier": "Cashier",
       "Accountant": "Accountant",
+      "ComplianceOfficer": "Compliance",
       "Waiter": "Waiter",
       "Kitchen": "Kitchen",
       "ReportViewer": "Reports"

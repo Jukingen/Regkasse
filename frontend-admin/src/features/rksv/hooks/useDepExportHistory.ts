@@ -16,12 +16,16 @@ export type DepExportHistoryItem = {
   fileSizeBytes: number;
   signatureCount: number;
   groupCount: number;
+  legacyJwsCount?: number;
+  prueftoolCompatible?: boolean;
   status: 'Pending' | 'Processing' | 'Completed' | 'Failed';
   errorMessage?: string | null;
   hasStoredFile: boolean;
   scheduleId?: string | null;
   includeSpecialReceipts: boolean;
   includeDailyClosings: boolean;
+  validationStatus?: string | null;
+  validatedAt?: string | null;
 };
 
 export type DepExportHistoryListResponse = {

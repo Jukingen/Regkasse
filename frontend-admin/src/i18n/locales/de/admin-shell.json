@@ -6,7 +6,8 @@
     "fallbackUserName": "Admin User"
   },
   "sidebar": {
-    "noAccessibleMenus": "Keine Menüpunkte verfügbar."
+    "noAccessibleMenus": "Keine Menüpunkte verfügbar.",
+    "lockdownFooter": "Eingeschränkter Modus — Lizenz abgelaufen"
   },
   "menuPermission": {
     "popoverTitle": "Welche Berechtigung steuert dieses Menü?",
@@ -59,7 +60,7 @@
     "nullReceipt": "Nullbeleg",
     "closingReceipt": "Schlussbeleg",
     "finanzOnline": "FinanzOnline Abgleich",
-    "offlineOrders": "Offline Siparişler",
+    "offlineOrders": "Offline-Bestellungen",
     "depExport": "DEP-Export",
     "signatureVerification": "Signatur Prüfung",
     "auditLogs": "Audit Logs",

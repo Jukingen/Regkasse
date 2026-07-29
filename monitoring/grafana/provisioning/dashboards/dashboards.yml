@@ -1,0 +1,12 @@
+apiVersion: 1
+
+providers:
+  - name: regkasse
+    orgId: 1
+    folder: Regkasse
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards

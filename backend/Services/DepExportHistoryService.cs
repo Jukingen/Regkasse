@@ -1,10 +1,12 @@
 using System.Text.Json;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Export;
 using KasseAPI_Final.Services.Rksv;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services;
 
@@ -71,15 +73,33 @@ public sealed class DepExportHistoryService : IDepExportHistoryService
 {
     private readonly AppDbContext _context;
     private readonly IFileNamingService _fileNaming;
+    private readonly IDepExportRequirementService _requirementService;
+    private readonly IDepExportValidationService _validationService;
+    private readonly IDepExportArchiveService _archiveService;
+    private readonly IDepExportPushNotificationService _pushNotification;
+    private readonly IDepExportAuditService _audit;
+    private readonly IOptionsMonitor<DepExportArchiveOptions> _archiveOptions;
     private readonly ILogger<DepExportHistoryService> _logger;
 
     public DepExportHistoryService(
         AppDbContext context,
         IFileNamingService fileNaming,
+        IDepExportRequirementService requirementService,
+        IDepExportValidationService validationService,
+        IDepExportArchiveService archiveService,
+        IDepExportPushNotificationService pushNotification,
+        IDepExportAuditService audit,
+        IOptionsMonitor<DepExportArchiveOptions> archiveOptions,
         ILogger<DepExportHistoryService> logger)
     {
         _context = context;
         _fileNaming = fileNaming;
+        _requirementService = requirementService;
+        _validationService = validationService;
+        _archiveService = archiveService;
+        _pushNotification = pushNotification;
+        _audit = audit;
+        _archiveOptions = archiveOptions;
         _logger = logger;
     }
 
@@ -88,6 +108,7 @@ public sealed class DepExportHistoryService : IDepExportHistoryService
         CancellationToken cancellationToken = default)
     {
         var (groupCount, signatureCount) = RksvDepExportStats.Count(request.Export);
+        var (_, legacyJwsCount) = RksvDepExportService.CountJwsCompliance(request.Export);
         var json = JsonSerializer.Serialize(request.Export);
         var fileName = string.IsNullOrWhiteSpace(request.FileName)
             ? await BuildFileNameAsync(request.TenantId, request.CashRegisterId, cancellationToken)
@@ -106,15 +127,128 @@ public sealed class DepExportHistoryService : IDepExportHistoryService
             FileSizeBytes = System.Text.Encoding.UTF8.GetByteCount(json),
             SignatureCount = signatureCount,
             GroupCount = groupCount,
+            LegacyJwsCount = legacyJwsCount,
             Status = DepExportStatus.Completed.ToString(),
             StoragePath = request.StoragePath,
             ScheduleId = request.ScheduleId,
             IncludeSpecialReceipts = request.IncludeSpecialReceipts,
             IncludeDailyClosings = request.IncludeDailyClosings,
+            ValidationStatus = DepExportValidationStatuses.Pending,
         };
 
         _context.DepExportHistories.Add(row);
         await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        await TryLogAuditAsync(
+                new DepExportAuditEntry
+                {
+                    TenantId = request.TenantId,
+                    Action = DepExportAuditActions.Created,
+                    ExportName = fileName,
+                    ExportHistoryId = row.Id,
+                    UserId = request.ExportedByUserId,
+                    Details =
+                        $"from={request.FromUtc:O}; to={request.ToUtc:O}; signatures={signatureCount}; schedule={request.ScheduleId}",
+                },
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        var fileHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(json))).ToLowerInvariant();
+
+        try
+        {
+            await _requirementService.TryCompletePeriodsForExportAsync(
+                    request.TenantId,
+                    request.FromUtc,
+                    request.ToUtc,
+                    request.ExportedByUserId,
+                    fileName,
+                    fileHash,
+                    row.Id,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Failed to update DEP compliance periods after history {HistoryId}",
+                row.Id);
+        }
+
+        try
+        {
+            var validation = await _validationService
+                .ValidateExportAsync(row.Id, json, cancellationToken)
+                .ConfigureAwait(false);
+            await _context.Entry(row).ReloadAsync(cancellationToken).ConfigureAwait(false);
+
+            await TryLogAuditAsync(
+                    new DepExportAuditEntry
+                    {
+                        TenantId = request.TenantId,
+                        Action = DepExportAuditActions.Validated,
+                        ExportName = fileName,
+                        ExportHistoryId = row.Id,
+                        UserId = request.ExportedByUserId,
+                        Details =
+                            $"auto=true; valid={validation.IsValid}; status={row.ValidationStatus}",
+                    },
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Automatic DEP export validation failed for history {HistoryId}",
+                row.Id);
+            row.ValidationStatus = DepExportValidationStatuses.Failed;
+            row.ValidatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        try
+        {
+            var archiveOpts = _archiveOptions.CurrentValue;
+            if (archiveOpts.Enabled && archiveOpts.AutoArchiveOnComplete)
+            {
+                var archive = await _archiveService
+                    .ArchiveExportAsync(row.Id, json, cancellationToken)
+                    .ConfigureAwait(false);
+                if (!archive.Success && archive.ErrorMessage is not null)
+                {
+                    _logger.LogWarning(
+                        "Automatic DEP export archive skipped/failed for history {HistoryId}: {Message}",
+                        row.Id,
+                        archive.ErrorMessage);
+                }
+
+                await _context.Entry(row).ReloadAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Automatic DEP export archive failed for history {HistoryId}",
+                row.Id);
+        }
+
+        try
+        {
+            await _pushNotification
+                .SendSuccessNotificationAsync(request.TenantId, fileName, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(
+                ex,
+                "DEP export success push failed for history {HistoryId}",
+                row.Id);
+        }
 
         _logger.LogInformation(
             "DEP export history recorded id={HistoryId} register={RegisterId} signatures={SignatureCount}",
@@ -161,6 +295,20 @@ public sealed class DepExportHistoryService : IDepExportHistoryService
 
         _context.DepExportHistories.Add(row);
         await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        await TryLogAuditAsync(
+                new DepExportAuditEntry
+                {
+                    TenantId = tenantId,
+                    Action = DepExportAuditActions.Failed,
+                    ExportName = fileName,
+                    ExportHistoryId = row.Id,
+                    UserId = exportedByUserId,
+                    Details = errorMessage,
+                },
+                cancellationToken)
+            .ConfigureAwait(false);
+
         return row;
     }
 
@@ -228,11 +376,29 @@ public sealed class DepExportHistoryService : IDepExportHistoryService
             .AsNoTracking()
             .FirstOrDefaultAsync(h => h.Id == id, cancellationToken)
             .ConfigureAwait(false);
-        if (row is null || string.IsNullOrWhiteSpace(row.StoragePath) || !File.Exists(row.StoragePath))
+        if (row is null)
             return null;
 
-        var stream = File.OpenRead(row.StoragePath);
+        var path = ResolveReadablePath(row);
+        if (path is null)
+            return null;
+
+        var stream = File.OpenRead(path);
         return (stream, row.FileName, "application/json");
+    }
+
+    private static string? ResolveReadablePath(DepExportHistory row)
+    {
+        if (row.PurgedAt.HasValue)
+            return null;
+
+        if (!string.IsNullOrWhiteSpace(row.StoragePath) && File.Exists(row.StoragePath))
+            return row.StoragePath;
+
+        if (!string.IsNullOrWhiteSpace(row.ArchivePath) && File.Exists(row.ArchivePath))
+            return row.ArchivePath;
+
+        return null;
     }
 
     /// <summary>Resolves tenant slug + register number for the canonical DEP export file name.</summary>
@@ -274,6 +440,22 @@ public sealed class DepExportHistoryService : IDepExportHistoryService
             at: at);
     }
 
+    private async Task TryLogAuditAsync(DepExportAuditEntry entry, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _audit.LogExportActionAsync(entry, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(
+                ex,
+                "DEP export audit log failed for action {Action} history {HistoryId}",
+                entry.Action,
+                entry.ExportHistoryId);
+        }
+    }
+
     private static DepExportHistoryResponse ToResponse(DepExportHistory row, string? registerNumber) =>
         new()
         {
@@ -288,13 +470,24 @@ public sealed class DepExportHistoryService : IDepExportHistoryService
             FileSizeBytes = row.FileSizeBytes,
             SignatureCount = row.SignatureCount,
             GroupCount = row.GroupCount,
+            LegacyJwsCount = row.LegacyJwsCount,
+            PrueftoolCompatible = row.LegacyJwsCount == 0,
             Status = Enum.TryParse<DepExportStatus>(row.Status, out var status)
                 ? status
                 : DepExportStatus.Completed,
             ErrorMessage = row.ErrorMessage,
-            HasStoredFile = !string.IsNullOrWhiteSpace(row.StoragePath) && File.Exists(row.StoragePath),
             ScheduleId = row.ScheduleId,
             IncludeSpecialReceipts = row.IncludeSpecialReceipts,
             IncludeDailyClosings = row.IncludeDailyClosings,
+            ValidationStatus = row.ValidationStatus,
+            ValidatedAt = row.ValidatedAt,
+            ArchivedAt = row.ArchivedAt,
+            RetentionUntil = row.RetentionUntil,
+            PurgedAt = row.PurgedAt,
+            ArchiveChecksum = row.ArchiveChecksum,
+            HasArchiveFile = !string.IsNullOrWhiteSpace(row.ArchivePath) &&
+                             row.PurgedAt == null &&
+                             File.Exists(row.ArchivePath),
+            HasStoredFile = ResolveReadablePath(row) is not null,
         };
 }

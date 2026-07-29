@@ -84,6 +84,14 @@ export type NotificationConfig = {
   webhookSecret?: string | null;
   enabledEvents: Record<string, boolean>;
   severityThreshold: Record<string, string>;
+  depExportMobilePush?: {
+    pushEnabled: boolean;
+    thirtyDayReminder: boolean;
+    sevenDayReminder: boolean;
+    oneDayReminder: boolean;
+    overdueAlert: boolean;
+    successNotification: boolean;
+  } | null;
 };
 
 export async function fetchNotificationConfig(signal?: AbortSignal): Promise<NotificationConfig> {

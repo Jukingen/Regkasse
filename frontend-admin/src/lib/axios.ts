@@ -4,6 +4,10 @@ import { authStorage } from '@/features/auth/services/authStorage';
 import { resolveTenantSlugForApiRequest } from '@/features/auth/services/devTenant';
 import { TENANT_HTTP_HEADER } from '@/features/auth/services/tenantStorage';
 import { isPublicAuthEntryPath } from '@/features/auth/utils/isPublicAuthEntryPath';
+import {
+  handleLicenseExpiredForbidden,
+  isLicenseExpiredForbiddenPayload,
+} from '@/features/license/utils/licenseLockdownClient';
 import { getStoredLanguage } from '@/i18n/languageStorage';
 import { showAntdError } from '@/lib/antdAppBridge';
 import {
@@ -74,10 +78,11 @@ function isRequestCanceled(error: unknown): boolean {
 /** Expected read-only / grace license enforcement — not an application fault. */
 function isExpectedLicenseWriteBlock403(
   status: number | undefined,
-  data: { error?: string; code?: string; message?: string } | undefined,
+  data: { error?: string; Error?: string; code?: string; message?: string } | undefined,
   serverMessage: string | null
 ): boolean {
   if (status !== 403) return false;
+  if (isLicenseExpiredForbiddenPayload(data)) return true;
   const errorToken = typeof data?.error === 'string' ? data.error : '';
   const codeToken = typeof data?.code === 'string' ? data.code : '';
   const haystack = `${errorToken} ${codeToken} ${serverMessage ?? ''}`.toLowerCase();
@@ -319,11 +324,18 @@ const createAxiosInstance = () => {
             reasonCode?: string;
             requiredPolicy?: string;
             message?: string;
+            Message?: string;
             code?: string;
             error?: string;
+            Error?: string;
           }
         | undefined;
-      const serverMessage = typeof data?.message === 'string' ? data.message : null;
+      const serverMessage =
+        typeof data?.message === 'string'
+          ? data.message
+          : typeof data?.Message === 'string'
+            ? data.Message
+            : null;
       const fallbackMessage = error?.message ?? 'Request failed';
 
       const suppressLogin401Noise = status === 401 && isPublicAuthEntryPath();
@@ -388,10 +400,14 @@ const createAxiosInstance = () => {
           originalRequest?.responseType === 'blob' &&
           /\/api\/admin\/backup\/runs\/[^/]+\/artifacts\/[^/]+\/download\b/.test(urlStr);
         if (!passwordChangeRequired && !isBackupArtifactBlobDownload) {
-          const reasonCode =
-            data?.reasonCode ?? mapRequiredPolicyToReasonCode(data?.requiredPolicy);
-          const userMessage = getForbiddenMessage(reasonCode, getStoredLanguage());
-          showAntdError(userMessage);
+          if (isLicenseExpiredForbiddenPayload(data)) {
+            handleLicenseExpiredForbidden({ locale: getStoredLanguage() });
+          } else {
+            const reasonCode =
+              data?.reasonCode ?? mapRequiredPolicyToReasonCode(data?.requiredPolicy);
+            const userMessage = getForbiddenMessage(reasonCode, getStoredLanguage());
+            showAntdError(userMessage);
+          }
         }
       }
 

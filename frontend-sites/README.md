@@ -23,6 +23,20 @@ npm run dev                  # http://localhost:3001
 
 From repo root: `npm run dev:sites`.
 
+### Docker
+
+```bash
+# From repository root
+docker compose --profile sites up --build
+# → http://localhost:3001
+
+docker build -f frontend-sites/Dockerfile \
+  --build-arg NEXT_PUBLIC_API_BASE_URL=http://localhost:5184 \
+  -t regkasse-frontend-sites:local ./frontend-sites
+```
+
+`NEXT_PUBLIC_API_BASE_URL` is baked at build time (browser → host `localhost`, not the Docker service name `backend`).
+
 ## Scripts
 
 | Script | Description |

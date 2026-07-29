@@ -13,7 +13,9 @@ import type {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { Product } from '@/api/generated/model';
+import { SecondParameter, unwrapData } from '@/api/admin/httpHelpers';
 import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
+import type { ModifierGroupDto } from '@/lib/api/modifierGroups';
 import { buildProductExportFileName } from '@/features/products/utils/productExportFileName';
 import { mapUiProductToApi } from '@/features/products/utils/productMapper';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
@@ -75,8 +77,6 @@ export type UpdateProductResult = {
   fromPayload?: boolean;
 };
 
-type SecondParameter<T> = T extends (arg: any, arg2?: infer U) => any ? U : never;
-
 /** Omit or 'true': active only (API default). 'false': inactive only. 'all': both. */
 export type AdminProductsListIsActiveParam = 'true' | 'false' | 'all';
 
@@ -129,11 +129,6 @@ export interface AdminProductsListResponse {
   };
   activeFilters?: ProductFilterSummaryResponse;
   availableFilters?: ProductAvailableFiltersResponse;
-}
-
-function unwrapData<T>(res: any): T {
-  if (res?.data !== undefined) return res.data as T;
-  return res as T;
 }
 
 /** Builds GET query object for list endpoint (stable contract for tests and axios). */
@@ -374,11 +369,11 @@ export function getAdminProductModifierGroups(
   productId: string,
   options?: SecondParameter<typeof customInstance>,
   signal?: AbortSignal
-) {
-  return customInstance<any>(
+): Promise<ModifierGroupDto[]> {
+  return customInstance<ModifierGroupDto[]>(
     { url: `${ADMIN_PRODUCTS}/${productId}/modifier-groups`, method: 'GET', signal },
     options
-  ).then(unwrapData);
+  ).then((res) => unwrapData<ModifierGroupDto[]>(res));
 }
 
 export function setAdminProductModifierGroups(

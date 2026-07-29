@@ -44,6 +44,7 @@ import type {
   TseCertificateInfo,
   TseDeviceFleetItem,
 } from '@/features/tse-management/types';
+import { RksvDeploymentEnvironmentAlert } from '@/features/rksv/components/RksvDeploymentEnvironmentStatus';
 import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useNotify } from '@/hooks/useNotify';
@@ -416,6 +417,8 @@ export default function TseManagementPage() {
           </Button>
         </Space>
       </div>
+
+      <RksvDeploymentEnvironmentAlert style={{ marginBottom: 16 }} />
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={12} lg={6}>

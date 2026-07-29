@@ -1,0 +1,313 @@
+# Reusable backend stage: migrate → deploy webhook → smoke → rollback → status.
+#
+# Callers: backend-ci.yml, deploy-canary.yml, deploy-production.yml
+# Docs: docs/DATABASE_MIGRATION_STRATEGY.md · DEPLOYMENT.md
+
+name: Deploy backend stage (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      stage:
+        description: staging | canary | production
+        required: true
+        type: string
+      image:
+        description: Fully-qualified image reference to deploy
+        required: true
+        type: string
+      previous_image:
+        description: Previous image for rollback (optional)
+        required: false
+        type: string
+        default: ''
+      git_sha:
+        required: true
+        type: string
+      git_ref:
+        required: false
+        type: string
+        default: ''
+      tenant_ids:
+        description: Comma-separated tenant slugs/UUIDs (canary); empty = stage default smoke tenant
+        required: false
+        type: string
+        default: ''
+      github_environment:
+        description: GitHub Environment name (approval gates)
+        required: true
+        type: string
+      api_base_url:
+        description: Base URL for smoke tests (no trailing slash)
+        required: true
+        type: string
+      release_stage:
+        description: RELEASE_STAGE value for the target host
+        required: true
+        type: string
+      run_migrations:
+        description: Apply EF migrations before deploy (or only migrations when migrations_only)
+        required: false
+        type: boolean
+        default: true
+      migrations_only:
+        description: Skip image deploy/smoke; only run migrations (Production approval job)
+        required: false
+        type: boolean
+        default: false
+      require_migrations_configured:
+        description: Fail if migrate webhook/connection missing (Production)
+        required: false
+        type: boolean
+        default: false
+      auto_rollback:
+        description: On smoke failure, invoke rollback webhook (canary=true; production=false)
+        required: false
+        type: boolean
+        default: true
+      soak_hours:
+        description: Canary soak hours for per-tenant deployment_history (optional)
+        required: false
+        type: string
+        default: ''
+    secrets:
+      DEPLOY_WEBHOOK_URL:
+        required: false
+      ROLLBACK_WEBHOOK_URL:
+        required: false
+      MIGRATE_WEBHOOK_URL:
+        required: false
+      DATABASE_CONNECTION:
+        required: false
+      DEPLOYMENT_STATUS_URL:
+        required: false
+      DEPLOYMENT_STATUS_TOKEN:
+        required: false
+      SMOKE_LOGIN_IDENTIFIER:
+        required: false
+      SMOKE_LOGIN_PASSWORD:
+        required: false
+      ONCALL_WEBHOOK_URL:
+        required: false
+
+jobs:
+  deploy:
+    name: Stage ${{ inputs.stage }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment:
+      name: ${{ inputs.github_environment }}
+    outputs:
+      smoke_ok: ${{ steps.smoke.outputs.ok }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.git_sha }}
+
+      - name: Report deploying
+        if: inputs.migrations_only != true
+        env:
+          DEPLOYMENT_STATUS_URL: ${{ secrets.DEPLOYMENT_STATUS_URL }}
+          DEPLOYMENT_STATUS_TOKEN: ${{ secrets.DEPLOYMENT_STATUS_TOKEN }}
+          STAGE: ${{ inputs.stage }}
+          STATUS: deploying
+          GIT_SHA: ${{ inputs.git_sha }}
+          GIT_REF: ${{ inputs.git_ref }}
+          IMAGE_TAG: ${{ inputs.image }}
+          TENANT_IDS: ${{ inputs.tenant_ids }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TRIGGERED_BY: ${{ github.actor }}
+        run: bash scripts/ci/backend-deploy-status.sh
+
+      - name: Setup .NET (runner-side migrate fallback)
+        if: inputs.run_migrations
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Run EF migrations
+        if: inputs.run_migrations
+        id: migrate
+        env:
+          STAGE: ${{ inputs.stage }}
+          MIGRATE_WEBHOOK_URL: ${{ secrets.MIGRATE_WEBHOOK_URL }}
+          DATABASE_CONNECTION: ${{ secrets.DATABASE_CONNECTION }}
+          GIT_SHA: ${{ inputs.git_sha }}
+          IMAGE: ${{ inputs.image }}
+          SKIP_IF_UNCONFIGURED: ${{ inputs.require_migrations_configured && '0' || '1' }}
+        run: bash scripts/ci/backend-run-migrations.sh
+
+      - name: Call deploy webhook
+        id: deploy
+        if: inputs.migrations_only != true
+        env:
+          WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK_URL }}
+          IMAGE: ${{ inputs.image }}
+          STAGE: ${{ inputs.stage }}
+          RELEASE_STAGE: ${{ inputs.release_stage }}
+          GIT_SHA: ${{ inputs.git_sha }}
+          GIT_REF: ${{ inputs.git_ref }}
+          TENANT_IDS: ${{ inputs.tenant_ids }}
+        run: |
+          if [ -z "${WEBHOOK_URL}" ]; then
+            echo "DEPLOY_WEBHOOK_URL not set for stage=${STAGE}."
+            echo "Image ready: ${IMAGE}"
+            echo "Ops should pull and set RELEASE_STAGE=${RELEASE_STAGE}."
+            if [ -n "${TENANT_IDS}" ]; then
+              echo "Canary tenants: ${TENANT_IDS}"
+              echo "Also set Deployment__CanaryTenantSlugs / CanaryTenantIds on the host."
+            fi
+            exit 0
+          fi
+          curl -sS -X POST \
+            -H 'Content-Type: application/json' \
+            --data "{\"image\":\"${IMAGE}\",\"stage\":\"${STAGE}\",\"releaseStage\":\"${RELEASE_STAGE}\",\"sha\":\"${GIT_SHA}\",\"ref\":\"${GIT_REF}\",\"tenantIds\":\"${TENANT_IDS}\"}" \
+            "${WEBHOOK_URL}"
+          echo "Deploy webhook invoked for ${STAGE}."
+
+      - name: Wait for roll-out
+        if: inputs.migrations_only != true
+        run: sleep 20
+
+      - name: Report smoke_running
+        if: inputs.migrations_only != true
+        env:
+          DEPLOYMENT_STATUS_URL: ${{ secrets.DEPLOYMENT_STATUS_URL }}
+          DEPLOYMENT_STATUS_TOKEN: ${{ secrets.DEPLOYMENT_STATUS_TOKEN }}
+          STAGE: ${{ inputs.stage }}
+          STATUS: smoke_running
+          GIT_SHA: ${{ inputs.git_sha }}
+          GIT_REF: ${{ inputs.git_ref }}
+          IMAGE_TAG: ${{ inputs.image }}
+          TENANT_IDS: ${{ inputs.tenant_ids }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: bash scripts/ci/backend-deploy-status.sh
+
+      - name: Smoke tests
+        id: smoke
+        if: inputs.migrations_only != true
+        env:
+          API_BASE: ${{ inputs.api_base_url }}
+          TENANT_ID: ${{ inputs.tenant_ids || 'smoke' }}
+          TENANT_IDS: ${{ inputs.tenant_ids || 'smoke' }}
+          LOGIN_IDENTIFIER: ${{ secrets.SMOKE_LOGIN_IDENTIFIER }}
+          LOGIN_PASSWORD: ${{ secrets.SMOKE_LOGIN_PASSWORD }}
+          REQUIRE_READY: '1'
+          REQUIRE_MIGRATIONS: '1'
+          REQUIRE_DEP_EXPORT: '1'
+          SMOKE_POS_PAYMENT: '0'
+          FA_BASE: ${{ vars.BACKEND_FA_BASE_URL || '' }}
+          POS_BASE: ${{ vars.BACKEND_POS_BASE_URL || '' }}
+        run: |
+          set +e
+          OUT=$(bash scripts/smoke-test.sh 2>&1)
+          code=$?
+          set -e
+          echo "${OUT}"
+          SUMMARY=$(echo "${OUT}" | sed -n 's/^SMOKE_SUMMARY=//p' | tail -n1)
+          echo "smoke_summary=${SUMMARY}" >> "$GITHUB_OUTPUT"
+          if [ "$code" -eq 0 ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+            echo "smoke_passed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "smoke_passed=false" >> "$GITHUB_OUTPUT"
+            exit "$code"
+          fi
+
+      - name: Report succeeded
+        if: success() && inputs.migrations_only != true
+        env:
+          DEPLOYMENT_STATUS_URL: ${{ secrets.DEPLOYMENT_STATUS_URL }}
+          DEPLOYMENT_STATUS_TOKEN: ${{ secrets.DEPLOYMENT_STATUS_TOKEN }}
+          STAGE: ${{ inputs.stage }}
+          STATUS: succeeded
+          GIT_SHA: ${{ inputs.git_sha }}
+          GIT_REF: ${{ inputs.git_ref }}
+          IMAGE_TAG: ${{ inputs.image }}
+          TENANT_IDS: ${{ inputs.tenant_ids }}
+          SMOKE_PASSED: 'true'
+          SMOKE_SUMMARY: ${{ steps.smoke.outputs.smoke_summary }}
+          SOAK_HOURS: ${{ inputs.soak_hours }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: bash scripts/ci/backend-deploy-status.sh
+
+      - name: Auto-rollback on smoke failure (canary/staging)
+        id: rollback
+        if: >
+          failure() &&
+          steps.smoke.outcome == 'failure' &&
+          inputs.migrations_only != true &&
+          inputs.auto_rollback == true
+        env:
+          ROLLBACK_URL: ${{ secrets.ROLLBACK_WEBHOOK_URL }}
+          PREVIOUS_IMAGE: ${{ inputs.previous_image }}
+          IMAGE: ${{ inputs.image }}
+          STAGE: ${{ inputs.stage }}
+          GIT_SHA: ${{ inputs.git_sha }}
+          ONCALL: ${{ secrets.ONCALL_WEBHOOK_URL }}
+        run: |
+          echo "Smoke failed — auto-rollback for stage=${STAGE}"
+          echo "Note: additive DB migrations are NOT rolled back."
+          if [ -z "${ROLLBACK_URL}" ]; then
+            echo "ROLLBACK_WEBHOOK_URL not set. Manual rollback required."
+            echo "rolled_back=false" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+          curl -sS -X POST \
+            -H 'Content-Type: application/json' \
+            --data "{\"action\":\"rollback\",\"stage\":\"${STAGE}\",\"failedImage\":\"${IMAGE}\",\"previousImage\":\"${PREVIOUS_IMAGE}\",\"sha\":\"${GIT_SHA}\"}" \
+            "${ROLLBACK_URL}"
+          echo "Rollback webhook invoked."
+          echo "rolled_back=true" >> "$GITHUB_OUTPUT"
+          if [ -n "${ONCALL}" ]; then
+            curl -sS -X POST -H 'Content-Type: application/json' \
+              --data "{\"text\":\"[Regkasse] Auto-rollback after smoke fail stage=${STAGE} image=${IMAGE}\"}" \
+              "${ONCALL}" || true
+          fi
+
+      - name: Manual rollback required (production)
+        id: manual_rollback
+        if: >
+          failure() &&
+          steps.smoke.outcome == 'failure' &&
+          inputs.migrations_only != true &&
+          inputs.auto_rollback != true
+        env:
+          IMAGE: ${{ inputs.image }}
+          PREVIOUS_IMAGE: ${{ inputs.previous_image }}
+          STAGE: ${{ inputs.stage }}
+          ONCALL: ${{ secrets.ONCALL_WEBHOOK_URL }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          echo "::error::Smoke failed on ${STAGE}. Auto-rollback is disabled — run manual rollback."
+          echo "Failed image: ${IMAGE}"
+          echo "Previous image: ${PREVIOUS_IMAGE:-unknown}"
+          echo "Operator: MODE=docker PREVIOUS_IMAGE=... REGKASSE_ROLLBACK_CONFIRM=YES ./scripts/rollback-production.sh"
+          echo "Or FA /admin/deployments → Rollback"
+          echo "rolled_back=false" >> "$GITHUB_OUTPUT"
+          if [ -n "${ONCALL}" ]; then
+            curl -sS -X POST -H 'Content-Type: application/json' \
+              --data "{\"text\":\"[Regkasse] MANUAL ROLLBACK REQUIRED stage=${STAGE} image=${IMAGE} run=${RUN_URL}\"}" \
+              "${ONCALL}" || true
+          fi
+          exit 1
+
+      - name: Report failed or rolled_back
+        if: failure() && inputs.migrations_only != true
+        env:
+          DEPLOYMENT_STATUS_URL: ${{ secrets.DEPLOYMENT_STATUS_URL }}
+          DEPLOYMENT_STATUS_TOKEN: ${{ secrets.DEPLOYMENT_STATUS_TOKEN }}
+          STAGE: ${{ inputs.stage }}
+          STATUS: ${{ steps.rollback.outputs.rolled_back == 'true' && 'rolled_back' || 'failed' }}
+          GIT_SHA: ${{ inputs.git_sha }}
+          GIT_REF: ${{ inputs.git_ref }}
+          IMAGE_TAG: ${{ inputs.image }}
+          PREVIOUS_IMAGE_TAG: ${{ inputs.previous_image }}
+          TENANT_IDS: ${{ inputs.tenant_ids }}
+          SMOKE_PASSED: 'false'
+          SMOKE_SUMMARY: ${{ steps.smoke.outputs.smoke_summary }}
+          ERROR_MESSAGE: Smoke tests failed after deploy
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: bash scripts/ci/backend-deploy-status.sh

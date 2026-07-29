@@ -11,6 +11,7 @@ import { formatRksvSpecialReceiptKindDisplay } from '@/features/receipts/utils/f
 import { maskQrPayloadPreview } from '@/features/receipts/utils/maskQrPayloadPreview';
 import { setBelegcheckPrefillSession } from '@/features/rksv/belegcheckPrefillStorage';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { useClipboard } from '@/hooks/useClipboard';
 import { useI18n } from '@/i18n';
 import { formatDateTimeSeconds } from '@/lib/dateUtils';
 import { OPERATOR_LINK_LABELS, OPERATOR_REGISTER_LINK_COPY } from '@/shared/operatorTruthCopy';
@@ -33,6 +34,7 @@ interface ReceiptDetailCardProps {
  */
 export default function ReceiptDetailCard({ receipt }: ReceiptDetailCardProps) {
   const { message } = useAntdApp();
+  const { copy } = useClipboard();
 
   const { t } = useI18n();
   const router = useRouter();
@@ -42,10 +44,10 @@ export default function ReceiptDetailCard({ receipt }: ReceiptDetailCardProps) {
   const qrRaw = receipt.qrCodePayload?.trim() ?? '';
   const copyQrPayload = () => {
     if (!qrRaw) return;
-    void navigator.clipboard.writeText(qrRaw).then(
-      () => message.success(c('copyQrPayloadSuccess')),
-      () => message.error(c('copyQrPayloadFailed'))
-    );
+    void copy(qrRaw).then((ok) => {
+      if (ok) message.success(c('copyQrPayloadSuccess'));
+      else message.error(c('copyQrPayloadFailed'));
+    });
   };
 
   const openBelegcheck = () => {

@@ -182,6 +182,127 @@
       "openSettings": "Einstellungen öffnen",
       "actionRequired": "Mandantenlizenz erfordert eine Verlängerung."
     },
+    "licenseCountdown": {
+      "validUntilLabel": "Lizenz gültig bis",
+      "expired": "Abgelaufen",
+      "expiredHint": "Abgelaufen",
+      "remainingHint": "verbleibende Zeit",
+      "renewNow": "Jetzt verlängern",
+      "progressAria": "Lizenzlaufzeit: noch {{days}} Tag(e)"
+    },
+    "licenseHealth": {
+      "title": "Lizenz-Health",
+      "statusLabel": "Status",
+      "validUntil": "Gültig bis",
+      "healthy": "Gesund",
+      "actionNeeded": "Handlungsbedarf",
+      "daysLeft": "{{days}} Tage",
+      "extend": "Verlängern",
+      "extendNow": "Jetzt verlängern",
+      "progressAria": "Lizenz-Health: {{days}} Tag(e)",
+      "states": {
+        "Active": "Aktiv",
+        "Grace": "Grace-Periode",
+        "Locked": "Gesperrt",
+        "Archived": "Archiviert"
+      }
+    },
+    "licenseImpact": {
+      "title": "Auswirkungen der Lizenzablauf",
+      "states": {
+        "Active": "Aktiv",
+        "Grace": "Grace-Periode",
+        "Locked": "Gesperrt",
+        "Archived": "Archiviert"
+      },
+      "current": {
+        "eyebrow": "Aktuell",
+        "daysValid": "{{days}} Tage gültig",
+        "daysGrace": "Noch {{days}} Tage Grace",
+        "daysOverdue": "{{days}} Tage überfällig"
+      },
+      "grace": {
+        "eyebrow": "Grace-Periode ({{days}} Tage)",
+        "title": "Eingeschränkte Warnphase",
+        "description": "Vollzugriff mit Warnungen; rechtzeitig verlängern empfohlen."
+      },
+      "locked": {
+        "eyebrow": "Nach Grace-Periode",
+        "title": "Vollständige Sperrung",
+        "description": "POS gesperrt; FA nur Lesen und Lizenzverlängerung."
+      },
+      "alert": {
+        "okTitle": "Alles in Ordnung",
+        "okDescription": "Ihre Lizenz ist noch gültig. Bitte denken Sie an die rechtzeitige Verlängerung.",
+        "actionTitle": "Handlungsbedarf",
+        "actionDescription": "Ihre Lizenz läuft ab oder ist abgelaufen. Bitte jetzt verlängern."
+      }
+    },
+    "licenseRenewalChecklist": {
+      "title": "Lizenz-Verlängerungs-Checkliste",
+      "subtitle": "Bereiten Sie die Verlängerung Schritt für Schritt vor.",
+      "progressLabel": "{{completed}} / {{total}} abgeschlossen",
+      "progressAria": "Checkliste: {{percent}} Prozent abgeschlossen",
+      "items": {
+        "reviewLicenseData": {
+          "label": "Aktuelle Lizenzdaten prüfen",
+          "description": "Gültig bis: {{date}}"
+        },
+        "prepareLicenseKey": {
+          "label": "Neuen Lizenzschlüssel bereithalten"
+        },
+        "verifyPaymentMethod": {
+          "label": "Zahlungsmethode prüfen"
+        },
+        "updateContactData": {
+          "label": "Kontaktdaten aktualisieren"
+        },
+        "contactSupportIfNeeded": {
+          "label": "Support kontaktieren bei Fragen"
+        }
+      }
+    },
+    "licenseSupportOptions": {
+      "title": "Lizenz-Support",
+      "subtitle": "Schnelle Hilfe bei Lizenzfragen und Verlängerung.",
+      "liveChat": {
+        "title": "Live Chat",
+        "description": "Sofortige Hilfe"
+      },
+      "ticket": {
+        "title": "Support Ticket",
+        "description": "Antwort in 24–48 Stunden"
+      },
+      "faq": {
+        "title": "FAQ",
+        "description": "Häufige Fragen",
+        "modalTitle": "Lizenz-FAQ",
+        "modalClose": "Schließen",
+        "items": {
+          "renew": {
+            "q": "Wie verlängere ich meine Lizenz?",
+            "a": "Nutzen Sie „Jetzt verlängern“ im Dashboard oder unter Lizenz und geben Sie den von Super Admin erhaltenen REGK-Schlüssel ein."
+          },
+          "grace": {
+            "q": "Was passiert in der Grace-Periode?",
+            "a": "POS und FA bleiben nutzbar, es erscheinen Warnungen. Bitte innerhalb der Grace-Tage verlängern."
+          },
+          "locked": {
+            "q": "Warum ist das POS gesperrt?",
+            "a": "Nach Ablauf der Grace-Periode ist die Lizenz gesperrt: POS blockiert, FA nur Lesen plus Verlängerung."
+          },
+          "key": {
+            "q": "Wo erhalte ich einen Lizenzschlüssel?",
+            "a": "Mandanten-Admins erhalten Schlüssel vom Super Admin / Billing. Bei Problemen schreiben Sie an support@regkasse.at."
+          }
+        }
+      },
+      "phone": {
+        "title": "Telefon",
+        "description": "Mo–Fr 9–17 Uhr · {{phone}}"
+      }
+    },
+
     "recentUsers": {
       "empty": "Keine Benutzer"
     },

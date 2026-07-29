@@ -86,6 +86,11 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.RestoreDrillSucceeded => "Restore drill succeeded",
             ActivityEventType.DailyClosingBackdatedCreated => "Backdated daily closing created",
             ActivityEventType.DailyClosingPendingReminder => "Daily closing pending reminder",
+            ActivityEventType.DepExportDueSoon => "DEP export due soon",
+            ActivityEventType.DepExportOverdue => "DEP export overdue",
+            ActivityEventType.DepExportValidationFailed => "DEP export validation failed",
+            ActivityEventType.CanaryTenantErrors => "Canary tenant errors elevated",
+            ActivityEventType.CanaryTenantHighErrorRate => "Canary tenant high error rate",
             ActivityEventType.OnlineOrderPushedToPos => "Online order pushed to POS",
             ActivityEventType.OnlineOrderPaid => "Online order paid",
             ActivityEventType.OnlineOrderStatusChanged => "Online order status changed",
@@ -122,6 +127,11 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.TseCertificateExpired => "TSE certificate expired",
             ActivityEventType.TseCertificateRenewed => "TSE certificate renewed",
             ActivityEventType.TseCertificateRenewalScheduled => "TSE certificate renewal scheduled",
+            ActivityEventType.SignaturkarteProgramReminder => "Mai 2027 Signaturkarte program reminder",
+            ActivityEventType.SignaturkarteProgramOverdue => "Mai 2027 Signaturkarte program overdue",
+            ActivityEventType.TseAusfallEnqueueSuggested => "TSE Ausfall FON enqueue suggested",
+            ActivityEventType.TseAusfallReported => "TSE Ausfall reported to FinanzOnline",
+            ActivityEventType.TseWiederinbetriebnahmeReported => "TSE Wiederinbetriebnahme reported to FinanzOnline",
             ActivityEventType.TsePerformanceSlow => "TSE performance — slow probe response",
             ActivityEventType.TsePerformanceHighErrorRate => "TSE performance — high probe error rate",
             ActivityEventType.TseCostAnomaly => "TSE cost — operating cost anomaly",
@@ -320,6 +330,11 @@ internal static class ActivityEventPublishBuilder
                 => ("DailyClosing", TryGetString(metadata, "ClosingId")),
             ActivityEventType.DailyClosingPendingReminder
                 => ("cash_register", TryGetString(metadata, "cashRegisterId")),
+            ActivityEventType.DepExportDueSoon
+                or ActivityEventType.DepExportOverdue
+                => ("dep_export_requirement", TryGetString(metadata, "requirementId")),
+            ActivityEventType.DepExportValidationFailed
+                => ("dep_export_history", TryGetString(metadata, "exportId")),
             ActivityEventType.OnlineOrderPushedToPos
                 => ("online_order", TryGetString(metadata, "OnlineOrderId")),
             ActivityEventType.OnlineOrderPaid
@@ -351,6 +366,11 @@ internal static class ActivityEventPublishBuilder
                 or ActivityEventType.TseCertificateExpired
                 or ActivityEventType.TseCertificateRenewed
                 or ActivityEventType.TseCertificateRenewalScheduled
+                or ActivityEventType.SignaturkarteProgramReminder
+                or ActivityEventType.SignaturkarteProgramOverdue
+                or ActivityEventType.TseAusfallEnqueueSuggested
+                or ActivityEventType.TseAusfallReported
+                or ActivityEventType.TseWiederinbetriebnahmeReported
                 or ActivityEventType.TsePerformanceSlow
                 or ActivityEventType.TsePerformanceHighErrorRate
                 or ActivityEventType.TseCostAnomaly

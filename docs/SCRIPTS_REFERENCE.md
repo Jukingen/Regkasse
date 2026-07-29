@@ -34,6 +34,8 @@ Each user-facing script below documents: **Path**, **Purpose**, **When to use**,
 | `scripts\legacy\start-all.bat` | Host multi-window stack | Daily DX without Docker |
 | `start-dev.bat` | Starts all services via `npm run dev` | One-terminal npm workspaces |
 | `docker-up.bat` | Starts Docker containers (`scripts\docker\`) | Prod-like / no local SDKs |
+| `docker-up-prod.bat` | Production-oriented full stack (localhost) | Local test before cloud |
+| `docker-down-prod.bat` | Stops prod Compose stack | After local prod test |
 | `docker-down.bat` | Stops Docker containers | Before gaming or shutdown |
 | `docker-status.bat` | Lists running containers | “Is the stack up?” |
 | `docker-logs.bat` | Follow Compose logs | Debug local Docker stack |
@@ -1028,9 +1030,12 @@ Primary `.ps1` scripts under [`scripts/`](../scripts/):
 | `docker-logs-prod.ps1` | Tail prod Compose logs | `docker-logs-prod.bat` (+ root) |
 | `docker-push-prod.ps1` | Tag + push prod images to registry | `docker-push-prod.bat` (+ root) |
 | `docker-up.ps1` | Compose up helper (profiles/build flags) | `docker-up.bat` |
+| `docker-up-prod.ps1` | Local prod-oriented full stack (admin/sites/pos) | `docker-up-prod.bat` (+ root) |
+| `docker-down-prod.ps1` | Stop prod Compose (optional `-Volumes`) | `docker-down-prod.bat` (+ root) |
 | `ci-build.ps1` | CI: Release build and/or Docker images (+ optional push) | `ci-build.bat` |
 | `ci-test.ps1` | CI: backend / Admin / POS test gates | `ci-test.bat` |
 | `ci-deploy.ps1` | CI/ops: deploy webhook + smoke + rollback | `ci-deploy.bat` |
+| `start-monitoring.ps1` | Optional Prometheus/Grafana/Loki stack | `start-monitoring.bat` |
 | `ensure-bmf-prueftool.ps1` | Download BMF Prüftool JARs | `ensure-bmf-prueftool.bat` |
 | `generate-dep-export-fixtures.ps1` | Write Prüftool fixtures | `generate-dep-export.bat` |
 | `run-comprehensive-smoke.ps1` | Full HTTP smoke | `run-comprehensive-smoke.bat` (lightweight: `smoke-test.bat`) |

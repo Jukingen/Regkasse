@@ -1,0 +1,51 @@
+# =============================================================================
+# GitHub Environment template — STAGING
+# =============================================================================
+# This file is documentation / checklist only. GitHub Environments are created
+# under: Repository → Settings → Environments → New environment
+#
+# Suggested Environment name(s) to create in the UI:
+#   - backend-staging
+#   - (optional) frontend-admin-staging
+#
+# Protection rules (recommended):
+#   - No required reviewers for staging (auto-deploy from main)
+#   - Optional: wait timer 0
+#
+# Docs: docs/CI_CD.md · docs/GITHUB_ACTIONS.md · DEPLOYMENT.md
+# =============================================================================
+
+name: staging
+display_name: Staging
+url: https://api.staging.regkasse.at
+
+variables:
+  BACKEND_STAGING_API_BASE_URL: https://api.staging.regkasse.at
+  FA_STAGING_API_BASE_URL: https://api.staging.regkasse.at
+  FA_STAGING_RKSV_ENVIRONMENT: TEST
+  POS_STAGING_API_URL: https://api.staging.regkasse.at/api
+  BACKEND_FA_BASE_URL: https://admin.staging.regkasse.at
+  BACKEND_POS_BASE_URL: https://pos.staging.regkasse.at
+  BACKEND_SMOKE_TENANT_ID: smoke
+
+secrets:
+  # Deploy / rollback / migrate (host webhooks)
+  BACKEND_STAGING_DEPLOY_WEBHOOK_URL: 'https://…/hooks/deploy-staging'
+  BACKEND_STAGING_ROLLBACK_WEBHOOK_URL: 'https://…/hooks/rollback-staging'
+  BACKEND_STAGING_MIGRATE_WEBHOOK_URL: 'https://…/hooks/migrate-staging'
+  # Optional runner-side EF fallback
+  BACKEND_STAGING_DATABASE_CONNECTION: 'Host=…;Database=…;Username=…;Password=…'
+  # FA image pull/restart (optional)
+  FA_STAGING_DEPLOY_WEBHOOK_URL: 'https://…/hooks/fa-staging'
+  # Shared
+  DEPLOYMENT_STATUS_URL: 'https://api.staging.regkasse.at/api/webhooks/deployments/ci-report'
+  DEPLOYMENT_STATUS_TOKEN: 'same as Deployment__StatusReportToken'
+  SMOKE_LOGIN_IDENTIFIER: 'smoke-admin@…'
+  SMOKE_LOGIN_PASSWORD: '…'
+  ONCALL_WEBHOOK_URL: 'https://hooks.slack.com/…'
+  SLACK_WEBHOOK_URL: 'https://hooks.slack.com/…'
+
+notes:
+  - Soft TSE / FON simulation may be used on staging hosts only — never on production.
+  - Auto-rollback on smoke failure is enabled for staging (deploy-backend-stage.yml).
+  - Images: ghcr.io/<org>/regkasse-api:sha-<short>

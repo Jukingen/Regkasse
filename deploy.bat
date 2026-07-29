@@ -18,6 +18,13 @@ if /i not "%confirm%"=="y" (
 
 cd /d "%~dp0"
 
+if not exist ".env.production" (
+    echo [ERROR] Missing .env.production
+    echo   copy .env.production.example .env.production
+    pause
+    exit /b 1
+)
+
 docker info >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Docker is not running!
@@ -51,7 +58,7 @@ echo [OK] Backup confirmed!
 echo.
 
 echo [3/5] Building images...
-docker compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml --env-file .env.production build
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Build failed!
     pause
@@ -61,7 +68,7 @@ echo [OK] Build complete!
 echo.
 
 echo [4/5] Deploying...
-docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Deployment failed!
     pause
@@ -72,7 +79,7 @@ echo.
 
 echo [5/5] Verifying deployment...
 timeout /t 10 /nobreak >nul
-curl -sS http://localhost:5184/api/health >nul
+curl -sS http://127.0.0.1:5184/api/health/live >nul
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Health check failed!
     echo Rolling back...

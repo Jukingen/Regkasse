@@ -2,10 +2,11 @@
 
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import type { TableProps } from 'antd';
-import { Button, Empty, Popconfirm, Space, Table, Tag } from 'antd';
+import { Button, Empty, Popconfirm, Space, Tag } from 'antd';
 import type { ColumnType } from 'antd/es/table';
-import React, { useMemo } from 'react';
+import React, { memo, useMemo } from 'react';
 
+import { VirtualTable } from '@/components/VirtualTable';
 import { adminTablePaginationDefaults } from '@/components/ui/adminTablePagination';
 import { useI18n } from '@/i18n';
 
@@ -44,7 +45,7 @@ function FiscalCategoryTag({
   }
 }
 
-export default function CategoryTable({
+function CategoryTable({
   data,
   loading,
   canManage = true,
@@ -170,7 +171,7 @@ export default function CategoryTable({
   }, [t, onEdit, onDelete, onUpdateName, deleteLoadingId, canManage]);
 
   return (
-    <Table<AdminCategory>
+    <VirtualTable<AdminCategory>
       columns={columns}
       dataSource={data}
       rowKey="id"
@@ -181,3 +182,5 @@ export default function CategoryTable({
     />
   );
 }
+
+export default memo(CategoryTable);

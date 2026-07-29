@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -36,6 +37,35 @@ public class PosStatusServiceTests
                 .Build(),
             Mock.Of<IHostEnvironment>(h => h.EnvironmentName == Environments.Development));
 
+    private static PosStatusService CreateService(
+        ILicenseService license,
+        IPosCashRegisterReadinessService readiness,
+        AppDbContext ctx)
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["RKSV:Mode"] = "Demo",
+                ["FinanzOnline:Session:UseSimulation"] = "true",
+            })
+            .Build();
+        var tse = new Mock<IOptionsMonitor<TseOptions>>();
+        tse.Setup(m => m.CurrentValue).Returns(new TseOptions
+        {
+            TseMode = "Demo",
+            Mode = "Fake",
+            Provider = "soft",
+        });
+        return new PosStatusService(
+            license,
+            readiness,
+            CreateDemoRksvEnvironment(),
+            Mock.Of<IHostEnvironment>(h => h.EnvironmentName == Environments.Development),
+            config,
+            tse.Object,
+            TenantTestDoubles.TenantAccessorReturning(TenantId),
+            ctx);
+    }
     [Fact]
     public async Task GetOverviewAsync_ReturnsLicenseRegisterAndSettingsSnapshot()
     {
@@ -83,7 +113,7 @@ public class PosStatusServiceTests
                 MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterReady,
             });
 
-        var svc = new PosStatusService(license.Object, readiness.Object, CreateDemoRksvEnvironment(), ctx);
+        var svc = CreateService(license.Object, readiness.Object, ctx);
         var principal = new ClaimsPrincipal(new ClaimsIdentity(
             new[] { new Claim(ClaimTypes.NameIdentifier, UserId) },
             "Test"));
@@ -102,6 +132,8 @@ public class PosStatusServiceTests
         Assert.True((DateTime.UtcNow - overview.ServerTimeUtc).TotalSeconds < 5);
         Assert.Equal("Demo", overview.RksvEnvironment.Environment);
         Assert.True(overview.RksvEnvironment.IsSimulated);
+        Assert.True(overview.RksvEnvironment.IsHostDevelopment);
+        Assert.True(overview.RksvEnvironment.IsSimulationMode);
     }
 
     [Fact]
@@ -171,7 +203,7 @@ public class PosStatusServiceTests
             RksvStartbelegTestDoubles.GateOff(),
             RksvMonatsbelegTestDoubles.GateOff());
 
-        var svc = new PosStatusService(license.Object, readiness, CreateDemoRksvEnvironment(), ctx);
+        var svc = CreateService(license.Object, readiness, ctx);
         var principal = new ClaimsPrincipal(new ClaimsIdentity(
             new[] { new Claim(ClaimTypes.NameIdentifier, UserId) },
             "Test"));
@@ -230,7 +262,7 @@ public class PosStatusServiceTests
                 MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterReady,
             });
 
-        var svc = new PosStatusService(license.Object, readiness.Object, CreateDemoRksvEnvironment(), ctx);
+        var svc = CreateService(license.Object, readiness.Object, ctx);
         var principal = new ClaimsPrincipal(new ClaimsIdentity(
             new[] { new Claim(ClaimTypes.NameIdentifier, UserId) },
             "Test"));

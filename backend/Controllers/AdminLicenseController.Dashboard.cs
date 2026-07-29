@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
@@ -145,6 +146,7 @@ public sealed partial class AdminLicenseController
     {
         var now = DateTime.UtcNow;
         var thirtyDaysLater = now.AddDays(30);
+        var graceDays = Math.Max(1, LicenseGracePeriodConfig.GracePeriodDays);
 
         var tenantLicenseStats = await LoadVisibleTenantLicenseStatsAsync(cancellationToken).ConfigureAwait(false);
         var deploymentLicenseStats = await LoadDeploymentLicenseStatsAsync(cancellationToken).ConfigureAwait(false);
@@ -156,8 +158,15 @@ public sealed partial class AdminLicenseController
             .CountAsync(cancellationToken)
             .ConfigureAwait(false);
 
+        var expiredTenant = tenantLicenseStats
+            .Where(t => t.LicenseValidUntilUtc.HasValue && t.LicenseValidUntilUtc.Value <= now)
+            .ToList();
+        var graceTenant = expiredTenant.Count(t =>
+            (now - t.LicenseValidUntilUtc!.Value).TotalDays <= graceDays);
+
         return new LicenseDashboardStatsDto
         {
+            TotalTenants = tenantLicenseStats.Count,
             ActiveTenantLicenses = tenantLicenseStats.Count(t =>
                 t.LicenseValidUntilUtc.HasValue
                 && t.LicenseValidUntilUtc.Value > now
@@ -168,9 +177,9 @@ public sealed partial class AdminLicenseController
                 && t.LicenseValidUntilUtc.Value > now
                 && t.LicenseValidUntilUtc.Value <= thirtyDaysLater
                 && t.IsActive),
-            ExpiredTenantLicenses = tenantLicenseStats.Count(t =>
-                t.LicenseValidUntilUtc.HasValue
-                && t.LicenseValidUntilUtc.Value <= now),
+            ExpiredTenantLicenses = expiredTenant.Count,
+            GraceTenantLicenses = graceTenant,
+            LockedTenantLicenses = Math.Max(0, expiredTenant.Count - graceTenant),
             ActiveDeploymentLicenses = deploymentLicenseStats.Count(l =>
                 IsActiveDeploymentLicense(l, now)),
             ExpiringDeploymentLicenses = deploymentLicenseStats.Count(l =>
@@ -189,7 +198,10 @@ public sealed partial class AdminLicenseController
 
     private async Task<List<TenantLicenseStatRow>> LoadVisibleTenantLicenseStatsAsync(CancellationToken cancellationToken)
     {
+        // Tenants / memberships are not ambient-tenant business rows; ignore filters so Super Admin
+        // and Manager membership scoping (by user id) see the correct cohort in unit tests and prod.
         var tenantsQuery = _db.Tenants.AsNoTracking()
+            .IgnoreQueryFilters()
             .Where(t => t.Status != TenantStatuses.Deleted);
 
         if (!IsActorSuperAdmin())
@@ -199,6 +211,7 @@ public sealed partial class AdminLicenseController
                 return [];
 
             var userTenantIds = await _db.UserTenantMemberships.AsNoTracking()
+                .IgnoreQueryFilters()
                 .Where(m => m.UserId == actorUserId && m.IsActive)
                 .Select(m => m.TenantId)
                 .ToListAsync(cancellationToken)

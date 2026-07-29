@@ -10,12 +10,38 @@ export type RksvDepExportRoot = {
   'Belege-Gruppe': RksvDepBelegeGruppe[];
 };
 
+/** Inline envelope when `includeEnvelope=true` (camelCase ASP.NET JSON). */
+export type RksvDepExportEnvelope = {
+  legalNotice?: string;
+  dep: RksvDepExportRoot;
+  belegCount?: number;
+  belegeGruppeCount?: number;
+  cashRegisterId?: string;
+  registerNumber?: string;
+  fromUtc?: string;
+  toUtc?: string;
+  isDemo?: boolean;
+  environment?: string;
+  formatValidated?: boolean;
+  legacyJwsCount?: number;
+  f5CompliantJwsCount?: number;
+  legacyJwsWarning?: string | null;
+  prueftoolCompatible?: boolean;
+};
+
 export type DepExportRequestParams = {
   cashRegisterId: string;
   fromUtc: string;
   toUtc: string;
   includeSpecialReceipts: boolean;
   includeDailyClosings: boolean;
+};
+
+export type DepExportLiveMeta = {
+  legacyJwsCount: number;
+  f5CompliantJwsCount: number;
+  legacyJwsWarning: string | null;
+  prueftoolCompatible: boolean;
 };
 
 export type CertificateInfo = {

@@ -8,7 +8,7 @@ import {
   extendTenantLicense,
 } from '@/features/license/api/tenantLicense';
 import { invalidateTenantLicenseQueries } from '@/features/license/utils/invalidateTenantLicenseQueries';
-import { useAntdApp } from '@/hooks/useAntdApp';
+import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
 
 export type ExtendTenantLicenseFormValues = {
@@ -42,7 +42,7 @@ function resolveExtendErrorMessage(error: unknown, t: (key: string) => string): 
 }
 
 export function useExtendTenantLicense(tenantId: string) {
-  const { message } = useAntdApp();
+  const notify = useNotify();
   const { t } = useI18n();
   const queryClient = useQueryClient();
 
@@ -58,6 +58,6 @@ export function useExtendTenantLicense(tenantId: string) {
     onSuccess: () => {
       invalidate();
     },
-    onError: (error) => message.error(resolveExtendErrorMessage(error, t)),
+    onError: (error) => notify.error(resolveExtendErrorMessage(error, t)),
   });
 }

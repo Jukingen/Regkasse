@@ -347,6 +347,191 @@
       "contact": "Contact administrator"
     }
   },
+  "statusBanner": {
+    "grace": {
+      "title": "License expiring — grace period",
+      "description": "Your license has expired. You have {{days}} day(s) of grace period remaining.",
+      "hint": "Please renew your license to keep full access to all features.",
+      "progressAria": "Grace period: {{days}} day(s) remaining"
+    },
+    "locked": {
+      "title": "Restricted mode",
+      "description": "Your license expired {{days}} day(s) ago.",
+      "bulletReadOnly": "You can only access your data in read-only mode",
+      "bulletNoWrite": "Changes or new records are not possible",
+      "bulletRenew": "Please renew your license"
+    },
+    "archived": {
+      "title": "Restricted mode — archived"
+    },
+    "actions": {
+      "renew": "Renew license now",
+      "renewNow": "Renew now",
+      "dataExport": "Request data export",
+      "openLicensePage": "Open license page",
+      "accountManagement": "Account management"
+    }
+  },
+  "gracePeriodCard": {
+    "title": "Grace period",
+    "description": "Your license has expired. You have {{days}} day(s) of grace period remaining. After that the system will be locked.",
+    "progressFormat": "{{days}} days",
+    "progressAria": "Grace period: {{days}} day(s) of {{total}} remaining",
+    "afterTitle": "What happens after the grace period?",
+    "afterDescription": "After {{days}} days the system will be locked. You will then only be able to read data and renew your license."
+  },
+  "gracePeriodBanner": {
+    "title": "License expires in {{days}} day(s)",
+    "titleUrgent": "URGENT: License expires in {{days}} day(s)",
+    "remainingLabel": "Grace period: {{days}} of {{total}} days remaining",
+    "lockdownHint": "After the grace period ends the system will be locked. You will then only have read-only access to your data.",
+    "progressAria": "Grace period consumed: {{days}} day(s) of {{total}} remaining",
+    "renew": "Renew",
+    "renewUrgent": "Renew now"
+  },
+  "gracePeriodWidget": {
+    "title": "Grace period active",
+    "description": "You have {{days}} day(s) left to renew your license. After that the system will be locked.",
+    "daysRemaining": "days remaining",
+    "labelExpired": "License expired",
+    "labelGrace": "Grace period",
+    "labelLockdown": "Lockdown",
+    "progressAria": "Grace period: {{days}} day(s) of {{total}} remaining",
+    "renew": "Renew license"
+  },
+  "gracePeriodDashboard": {
+    "title": "Grace period overview",
+    "subtitle": "Tenants currently in the grace period — sorted by urgency.",
+    "tableTitle": "Tenants in grace period",
+    "stats": {
+      "total": "Grace period",
+      "critical": "Critical (≤2 days)",
+      "medium": "Medium (3–5 days)",
+      "good": "Good (≥6 days)"
+    },
+    "columns": {
+      "tenant": "Tenant",
+      "expiredAt": "License expired",
+      "lockdownAt": "Lockdown on",
+      "daysRemaining": "Days remaining",
+      "actions": "Actions"
+    },
+    "daysTag": "{{days}} days",
+    "sendReminder": "Send reminder",
+    "reminderSent": "Reminder sent to {{email}}.",
+    "reminderFailed": "Could not send reminder."
+  },
+  "graceUrgentWarning": {
+    "title": "URGENT: License locks in 24 hours",
+    "heading": "Your license expires tomorrow!",
+    "description": "If you do not renew your license, the system will be locked tomorrow.",
+    "remainingLabel": "Time remaining:",
+    "countdownUnknown": "—",
+    "renewNow": "Renew immediately",
+    "acknowledge": "I understand"
+  },
+  "renewalFlow": {
+    "steps": {
+      "key": "License key",
+      "confirm": "Confirm",
+      "done": "Done"
+    },
+    "keyIntro": "Enter the license key you received from your administrator or after purchase.",
+    "keyPlaceholder": "REGK-20270101-cafe-A7F3K2D9",
+    "keyFormatHint": "Format: REGK-{YYYYMMDD}-{tenant}-{8 characters}",
+    "next": "Continue",
+    "back": "Back",
+    "activate": "Activate",
+    "confirmTitle": "License will be activated",
+    "confirmDescription": "After activation, all features will be unlocked again.",
+    "licenseKeyLabel": "License key",
+    "planLabel": "Plan",
+    "durationLabel": "Duration",
+    "validUntilLabel": "Valid until",
+    "validUntilFallback": "+ Term from key",
+    "successTitle": "License activated successfully",
+    "successRedirect": "All features are available again. Redirecting to the dashboard…",
+    "successStay": "All features are available again.",
+    "previewInvalid": "License key is invalid.",
+    "previewFailed": "Preview failed.",
+    "activateFailed": "Activation failed.",
+    "payExternal": "Go to payment",
+    "openBilling": "Open license sales",
+    "contactSupport": "Contact support"
+  },
+  "renewalSuccessModal": {
+    "title": "License renewed successfully",
+    "heading": "Your license has been renewed",
+    "description": "Your license is now valid until {{date}}. A confirmation email has been sent.",
+    "validUntilLabel": "New validity:",
+    "licenseKeyLabel": "License key:",
+    "openDashboard": "Open dashboard"
+  },
+  "renewalRecovery": {
+    "title": "License renewal interrupted",
+    "description": "You did not finish renewing your license. Would you like to continue?",
+    "continue": "Continue",
+    "dismiss": "Close"
+  },
+  "renewalModal": {
+    "title": "Renew license",
+    "heading": "Your license has expired",
+    "headingActive": "Renew license",
+    "headingGrace": "Renew license — grace period",
+    "description": "Renew your license to restore full access to all features.",
+    "descriptionActive": "Enter a new license key to extend your validity period.",
+    "descriptionGrace": "Your license has expired. Renew now before the system is locked.",
+    "statusLabel": "Status",
+    "statusActive": "Active",
+    "statusLocked": "Locked",
+    "statusGrace": "Grace period",
+    "statusArchived": "Archived",
+    "validUntilLabel": "Valid until",
+    "expiredAtLabel": "Expired since",
+    "daysRemainingLabel": "Days remaining",
+    "graceDaysRemainingLabel": "Grace days remaining",
+    "daysOverdueLabel": "Days overdue",
+    "licenseKeyLabel": "License key",
+    "licenseKeyPlaceholder": "REGK-XXXXX-XXXXX-XXXXX",
+    "noLicenseKey": "Please enter a license key.",
+    "submit": "Renew license",
+    "success": "License renewed successfully.",
+    "error": "License renewal failed.",
+    "supportContact": "Contact support: support@regkasse.at"
+  },
+  "lockdownToast": {
+    "title": "License expired",
+    "description": "Please renew your license to perform this action.",
+    "guardDescription": "This action is not available while the license is locked.",
+    "guardDescriptionWithAction": "\"{{action}}\" is not available while the license is locked.",
+    "writeBlockedTitle": "Write operation blocked",
+    "writeBlockedDescription": "\"{{operation}}\" is not allowed while the license is locked.",
+    "writeBlockedDescriptionGeneric": "Write operations are not allowed while the license is locked."
+  },
+  "statusDashboard": {
+    "title": "License dashboard",
+    "subtitle": "Status, remaining term, and history of your tenant license.",
+    "status": "Status",
+    "stateActive": "Active",
+    "stateGrace": "Grace",
+    "stateLocked": "Locked",
+    "daysUntilExpiry": "Days until expiry",
+    "graceDaysRemaining": "Grace days remaining",
+    "daysOverdue": "Days overdue",
+    "validUntil": "Valid until",
+    "licensePlan": "License type",
+    "planFallback": "Standard",
+    "progressActive": "{{days}} days",
+    "progressGrace": "{{days}} grace days",
+    "progressExpired": "Expired",
+    "timelineTitle": "License history",
+    "renew": "Renew license",
+    "renewLocked": "Renew license now",
+    "lockedAlertTitle": "System locked",
+    "lockedAlertDescription": "Your license has expired. Please renew your license to restore full functionality.",
+    "graceAlertTitle": "Grace period active",
+    "graceAlertDescription": "Your license has expired. {{days}} grace day(s) remaining — please renew soon."
+  },
   "trialDays": "Trial days remaining",
   "machineHash": "Machine fingerprint (SHA-256)",
   "floatingWarning": "Note: The last activation used no offline certificate (JWT). For a floating license, no device fingerprint is required; share the hash only for machine-bound licenses.",
@@ -637,6 +822,130 @@
     "exportSuccess": "CSV downloaded.",
     "exportFailed": "Export failed.",
     "loadFailed": "Could not load the license dashboard."
+  },
+  "activityLog": {
+    "title": "License activity",
+    "empty": "No recent license activity.",
+    "descriptions": {
+      "activated": "License activated ({{key}})",
+      "generated": "License issued ({{key}})",
+      "extended": "License extended ({{key}})",
+      "renewed": "License renewed ({{key}})",
+      "reminder": "Reminder sent ({{key}})",
+      "revoked": "License revoked ({{key}})",
+      "cancelled": "License cancelled ({{key}})",
+      "deleted": "License deleted ({{key}})",
+      "unregistered": "Machine unregistered ({{key}})",
+      "viewed": "License details viewed ({{key}})",
+      "forceDeactivated": "License force-deactivated ({{key}})",
+      "expired": "License expired / ended ({{key}})",
+      "other": "License event ({{key}})"
+    }
+  },
+  "calendar": {
+    "title": "License calendar",
+    "subtitle": "Tenant expiry overview. KPI “Expiring soon” = ≤30 days; table status “expires soon” = ≤7 days.",
+    "kpiActive": "Active",
+    "kpiExpiring": "Expiring soon (≤30 days)",
+    "kpiExpired": "Expired",
+    "columns": {
+      "tenant": "Tenant",
+      "validUntil": "Valid until",
+      "status": "Status",
+      "action": "Action"
+    },
+    "sendReminder": "Send reminder",
+    "reminderSuccess": "Reminder sent to {{recipient}}",
+    "reminderError": "Could not send reminder",
+    "empty": "No tenants found",
+    "loadFailed": "Could not load license KPIs",
+    "filterAttentionOnly": "Show critical only",
+    "filterShowAll": "Show all"
+  },
+  "emailPreview": {
+    "title": "Reminder email preview",
+    "subtitle": "Same HTML template as sent mandant license reminders (no send).",
+    "subjectLabel": "Subject",
+    "htmlLabel": "HTML preview",
+    "iframeTitle": "License reminder email preview",
+    "error": "Could not load preview",
+    "horizons": {
+      "d30": "30 days",
+      "d14": "14 days",
+      "d7": "7 days",
+      "d1": "1 day",
+      "d0": "Expired"
+    }
+  },
+  "auditLog": {
+    "title": "License audit log",
+    "subtitle": "Merged events from billing audit and license audit (read-only).",
+    "empty": "No audit entries found",
+    "columns": {
+      "time": "Time",
+      "tenant": "Tenant",
+      "action": "Action",
+      "fromStatus": "From",
+      "toStatus": "To",
+      "performedBy": "By",
+      "reason": "Reason"
+    },
+    "statuses": {
+      "Active": "Active",
+      "Grace": "Grace",
+      "Expired": "Expired",
+      "Locked": "Locked",
+      "Archived": "Archived"
+    },
+    "actions": {
+      "SALE_CREATED": "Sale created",
+      "SALE_CANCELLED": "Sale cancelled",
+      "SALE_REFUNDED": "Sale refunded",
+      "LICENSE_ACTIVATED": "License activated",
+      "LICENSE_EXTENDED": "License extended",
+      "LICENSE_RENEWED": "License renewed",
+      "LICENSE_UPDATED": "License updated",
+      "LICENSE_REMINDER_SENT": "Reminder sent",
+      "LICENSE_RENEWAL_PAGE_VIEWED": "Renewal page viewed"
+    }
+  },
+  "renewalFunnel": {
+    "title": "License renewal funnel",
+    "subtitle": "Cohort: tenants with ≥1 reminder in the last 90 days. Steps = distinct tenants.",
+    "lookbackHint": "90 days",
+    "empty": "No reminders in period — funnel is empty",
+    "loadFailed": "Could not load funnel data",
+    "conversionRate": "Conversion rate: {{rate}}%",
+    "steps": {
+      "reminderSent": "Reminder received",
+      "pageViewed": "Renewal page viewed",
+      "renewed": "License renewed",
+      "activated": "Activation complete"
+    }
+  },
+  "usageAnalytics": {
+    "title": "License usage analytics",
+    "subtitle": "Super Admin overview: tenant licenses, activation trend, and CSV export.",
+    "tabs": {
+      "overview": "Overview",
+      "trend": "Trend",
+      "export": "Export"
+    },
+    "kpi": {
+      "totalTenants": "Total tenants",
+      "active": "Active licenses",
+      "grace": "Grace period",
+      "expired": "Expired (locked)"
+    },
+    "trendHint": "Activations over the last 30 days (device / issued-license activations).",
+    "trendEmpty": "No activation data in this period",
+    "chartDay": "Day",
+    "chartWeek": "Week",
+    "exportHint": "Exports issued deployment licenses as CSV (masked keys).",
+    "exportButton": "Export license report",
+    "exportSuccess": "License report downloaded",
+    "exportFailed": "Export failed",
+    "loadFailed": "Could not load usage analytics"
   },
   "supportNotice": "Enter your license key. If you need help, contact support@regkasse.at",
   "publicStatus": {

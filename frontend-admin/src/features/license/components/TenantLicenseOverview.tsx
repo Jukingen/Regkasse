@@ -25,8 +25,8 @@ import {
   mandantLicenseOverviewTagColor,
 } from '@/features/license/utils/mandantLicenseOverviewStatus';
 import { maskTenantLicenseKey } from '@/features/license/utils/tenantLicenseExtend';
-import { useAntdApp } from '@/hooks/useAntdApp';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useNotify } from '@/hooks/useNotify';
 import { formatGermanDateTime, useI18n } from '@/i18n';
 import { formatExportFilenameDate } from '@/lib/dateUtils';
 
@@ -75,7 +75,7 @@ function statusIcon(kind: MandantLicenseOverviewKind): ReactNode {
 }
 
 export function TenantLicenseOverview() {
-  const { message } = useAntdApp();
+  const notify = useNotify();
   const { t, formatLocale } = useI18n();
   const [searchInput, setSearchInput] = useState('');
   const debouncedSearch = useDebounce(searchInput, 300);
@@ -110,7 +110,7 @@ export function TenantLicenseOverview() {
 
   const exportCsv = useCallback(() => {
     if (filteredRows.length === 0) {
-      message.info(t('license.superAdmin.noRowsToExport'));
+      notify.info('license.superAdmin.noRowsToExport');
       return;
     }
 
@@ -139,8 +139,8 @@ export function TenantLicenseOverview() {
       [header.map((value) => toCsvCell(String(value))).join(';'), ...lines].join('\n')
     );
 
-    message.success(t('license.superAdmin.exported', { count: filteredRows.length }));
-  }, [filteredRows, formatLocale, message, t]);
+    notify.successKey('license.superAdmin.exported', { count: filteredRows.length });
+  }, [filteredRows, formatLocale, notify, t]);
 
   const columns = useMemo<ColumnsType<TenantLicenseRow>>(
     () => [

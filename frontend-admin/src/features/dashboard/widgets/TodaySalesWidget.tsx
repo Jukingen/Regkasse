@@ -1,16 +1,9 @@
 'use client';
 
-import { Col, Row, Statistic, Typography } from 'antd';
+import { Col, Row, Skeleton, Statistic, Typography } from 'antd';
 import dayjs from 'dayjs';
-import React, { useMemo } from 'react';
-import {
-  Line,
-  LineChart,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import dynamic from 'next/dynamic';
+import React, { memo, useCallback, useMemo } from 'react';
 
 import { useGetApiReportsSales } from '@/api/generated/reports/reports';
 import type { WidgetShellProps } from '@/features/dashboard/components/WidgetShell';
@@ -21,9 +14,18 @@ import { useI18n } from '@/i18n/I18nProvider';
 import { formatUserMonthDay } from '@/lib/dateFormatter';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
+const TodaySalesChart = dynamic(() => import('./TodaySalesChart'), {
+  ssr: false,
+  loading: () => <Skeleton active paragraph={{ rows: 6 }} />,
+});
+
 type Props = Pick<WidgetShellProps, 'title' | 'dragHandleProps' | 'onRefresh'>;
 
-export function TodaySalesWidget({ title, dragHandleProps, onRefresh }: Props) {
+export const TodaySalesWidget = memo(function TodaySalesWidget({
+  title,
+  dragHandleProps,
+  onRefresh,
+}: Props) {
   const { t } = useI18n();
   const today = dayjs().format('YYYY-MM-DD');
   const { isAuthorized } = useAuthorizationGate({ requiredPermission: PERMISSIONS.REPORT_VIEW });
@@ -47,10 +49,10 @@ export function TodaySalesWidget({ title, dragHandleProps, onRefresh }: Props) {
     [query.data?.dailySales]
   );
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     void query.refetch();
     onRefresh?.();
-  };
+  }, [query, onRefresh]);
 
   return (
     <WidgetShell
@@ -76,14 +78,7 @@ export function TodaySalesWidget({ title, dragHandleProps, onRefresh }: Props) {
         </Col>
         <Col xs={24} sm={12} style={{ minHeight: 120 }}>
           {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={120}>
-              <LineChart data={chartData}>
-                <XAxis dataKey="date" hide />
-                <YAxis hide />
-                <RechartsTooltip formatter={(v) => `€${Number(v ?? 0).toFixed(2)}`} />
-                <Line type="monotone" dataKey="total" stroke="#1677ff" dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
+            <TodaySalesChart data={chartData} />
           ) : (
             <Typography.Text type="secondary">
               {t('dashboard.widgets.todaySales.noSalesToday')}
@@ -93,4 +88,4 @@ export function TodaySalesWidget({ title, dragHandleProps, onRefresh }: Props) {
       </Row>
     </WidgetShell>
   );
-}
+});

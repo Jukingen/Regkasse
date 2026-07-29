@@ -1,0 +1,16 @@
+# Placeholder — replace webhook URLs before enabling Alertmanager in production.
+# Prefer mounting a host secret file derived from alertmanager.yml.example.
+# For local dry-run, null receiver avoids accidental spam.
+
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: null
+  group_by: ['alertname']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+
+receivers:
+  - name: 'null'

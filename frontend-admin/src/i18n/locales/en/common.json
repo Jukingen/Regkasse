@@ -111,6 +111,23 @@
   },
   "auditLogs": {
     "filterCardTitle": "Filters",
+    "searchPlaceholder": "Search username, email, ID, action, or entity…",
+    "searchButton": "Search",
+    "searchHint": "Tip: Search by username, email, or ID — e.g. “mustafa” or an ID prefix.",
+    "tagSearchPrefix": "Search:",
+    "scopeSearchIs": "Search = {{search}}",
+    "quickUser": {
+      "title": "Quick user lookup",
+      "placeholder": "Username or ID…",
+      "find": "Find user",
+      "error": "User lookup failed.",
+      "noResults": "No user found.",
+      "searchAuditsInstead": "Search audit log instead",
+      "filterAudits": "Show audits for this user",
+      "searchByUserName": "Search by username",
+      "moreMatches": "{{count}} matches",
+      "otherMatches": "Other matches:"
+    },
     "criteriaLabel": "Criteria",
     "actionPlaceholder": "Action",
     "userPlaceholder": "User",
@@ -248,6 +265,19 @@
       "details": "Details",
       "reason": "Reason",
       "status": "Status"
+    },
+    "userInfo": {
+      "unknown": "Unknown",
+      "unknownRole": "Unknown role",
+      "noEmail": "No email",
+      "userName": "Username",
+      "email": "Email",
+      "role": "Role",
+      "id": "ID",
+      "goToDetails": "Open user details",
+      "copyId": "Copy ID",
+      "idCopied": "User ID copied",
+      "idCopyFailed": "Could not copy ID"
     }
   },
   "validation": {

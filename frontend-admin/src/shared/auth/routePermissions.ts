@@ -17,6 +17,7 @@ import { ANY_AUTHENTICATED_PERMISSION, AppPermissions, PERMISSIONS } from './per
 export const ROUTE_PERMISSIONS_REQUIRE_ALL = new Set<string>([
   '/rksv/dep-export',
   '/admin/rksv/dep-export',
+  '/rksv/dep-export-compliance',
   '/rksv/integrity',
 ]);
 
@@ -151,6 +152,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   /** Tenant backup schedule/trigger — backup.manage (Manager tenant scope; platform ops gated in UI). */
   '/settings/backup': PERMISSIONS.BACKUP_MANAGE,
   '/settings/data-management': PERMISSIONS.BACKUP_MANAGE,
+  '/settings/account': PERMISSIONS.BACKUP_MANAGE,
   /** Legacy redirect — canonical `/backup/dashboard`. */
   '/settings/backup-dr': PERMISSIONS.SETTINGS_VIEW,
   /** Canonical backup & DR routes */
@@ -173,6 +175,13 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/settings/development-mode': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/system/time-sync': PERMISSIONS.SETTINGS_MANAGE,
   '/admin/license': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SETTINGS_MANAGE],
+  '/license': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.LICENSE_VIEW, PERMISSIONS.SETTINGS_VIEW],
+  '/license/dashboard': [
+    PERMISSIONS.LICENSE_MANAGE,
+    PERMISSIONS.LICENSE_VIEW,
+    PERMISSIONS.SETTINGS_VIEW,
+  ],
+  '/admin/license/grace-period': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/license/test': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/license/debug': PERMISSIONS.SYSTEM_CRITICAL,
   /**
@@ -185,6 +194,11 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/tenants/create': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/approvals': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/maintenance': PERMISSIONS.SYSTEM_CRITICAL,
+  '/admin/feature-flags': PERMISSIONS.SYSTEM_CRITICAL,
+  '/admin/deployments': PERMISSIONS.SYSTEM_CRITICAL,
+  '/admin/deployments/tenants': PERMISSIONS.SYSTEM_CRITICAL,
+  '/admin/deployments/compliance': PERMISSIONS.DEPLOYMENT_APPROVE,
+  '/admin/database/migrations': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/data-management': PERMISSIONS.SYSTEM_CRITICAL,
   /**
    * Super Admin tenant tooling (`/tenant/{id}/customize|domain|…`).
@@ -224,6 +238,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/tse/logs': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/developer-tools': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/compliance': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/tse/signaturkarte-program': [PERMISSIONS.SETTINGS_VIEW],
   '/admin/tse/auto-scaling': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/auto-healing': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/knowledge': [PERMISSIONS.SYSTEM_CRITICAL],
@@ -267,6 +282,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/rksv/fiscal-export-diagnostics': PERMISSIONS.REPORT_EXPORT,
   '/rksv/dep-export': [PERMISSIONS.REPORT_EXPORT, PERMISSIONS.AUDIT_VIEW],
   '/admin/rksv/dep-export': [PERMISSIONS.REPORT_EXPORT, PERMISSIONS.AUDIT_VIEW],
+  '/rksv/dep-export-compliance': [PERMISSIONS.REPORT_EXPORT, PERMISSIONS.AUDIT_VIEW],
   '/admin/rksv/signature-verify': PERMISSIONS.AUDIT_VIEW,
   '/rksv/replay-batch': PERMISSIONS.SETTINGS_VIEW,
   '/rksv/incident': PERMISSIONS.FINANZONLINE_MANAGE,

@@ -28,7 +28,7 @@ export type AcknowledgeMaintenanceNotificationRequest = {
 
 /** GET /api/pos/maintenance-notifications/active */
 export async function fetchActiveMaintenanceNotifications(): Promise<MaintenanceNotificationDto[]> {
-  return apiClient.get<MaintenanceNotificationDto[]>('/pos/maintenance-notifications/active');
+  return await apiClient.get<MaintenanceNotificationDto[]>('/pos/maintenance-notifications/active');
 }
 
 /** POST /api/pos/maintenance-notifications/{id}/acknowledge */
@@ -36,7 +36,7 @@ export async function acknowledgeMaintenanceNotification(
   id: string,
   body: AcknowledgeMaintenanceNotificationRequest = { dismiss: true, markRead: true }
 ): Promise<MaintenanceNotificationDto> {
-  return apiClient.post<MaintenanceNotificationDto>(
+  return await apiClient.post<MaintenanceNotificationDto>(
     `/pos/maintenance-notifications/${id}/acknowledge`,
     body
   );

@@ -34,10 +34,9 @@ import {
 } from '@/features/billing/utils/billingFormatters';
 import { downloadLicenseSaleInvoicePdf } from '@/features/billing/utils/downloadInvoicePdf';
 import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
-import { useAntdApp } from '@/hooks/useAntdApp';
 import { dateColumnRender } from '@/components/DateColumn';
+import { useNotify } from '@/hooks/useNotify';
 import { formatCurrency, formatGermanDateTime, useI18n } from '@/i18n';
-import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 
 type FilterState = {
   page: number;
@@ -53,7 +52,7 @@ const STATUS_OPTIONS = ['active', 'cancelled', 'refunded'] as const;
 
 export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActions?: boolean }) {
   const { t, formatLocale } = useI18n();
-  const { message } = useAntdApp();
+  const notify = useNotify();
   const router = useRouter();
   const queryClient = useQueryClient();
   const canAccess = useBillingAccess();
@@ -74,12 +73,11 @@ export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActi
   const cancelMutation = billingApi.useCancel({
     mutation: {
       onSuccess: async () => {
-        message.success(t('billing.sales.cancelSuccess'));
+        notify.successKey('billing.sales.cancelSuccess');
         setSelectedSale(null);
         await queryClient.invalidateQueries({ queryKey: billingQueryKeys.all });
       },
-      onError: (err) =>
-        openApiErrorMessage(message.open, t, err, { logContext: 'BillingSalesTable.cancel' }),
+      onError: (err) => notify.apiError(err, { logContext: 'BillingSalesTable.cancel' }),
     },
   });
 
@@ -114,7 +112,7 @@ export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActi
         sale.invoiceNumber ? `${sale.invoiceNumber}.pdf` : undefined
       );
     } catch (err) {
-      openApiErrorMessage(message.open, t, err, { logContext: 'BillingSalesTable.downloadPdf' });
+      notify.apiError(err, { logContext: 'BillingSalesTable.downloadPdf' });
     } finally {
       setPdfLoadingId(null);
     }

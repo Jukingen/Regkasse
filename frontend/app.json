@@ -110,6 +110,15 @@
       "expo-secure-store",
       "expo-system-ui",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#2196F3",
+          "sounds": [],
+          "defaultChannel": "license-reminders"
+        }
+      ],
+      [
         "expo-navigation-bar",
         {
           "enforceContrast": true,

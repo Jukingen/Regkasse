@@ -209,9 +209,15 @@ Regkasse/
 ├── docker-compose.override.yml     # Auto Soft TSE / FON simulation (Dev)
 ├── docker-compose.dev.yml          # Infra only (Postgres + Redis) for host apps
 ├── docker-compose.prod.yml         # Production-oriented (Device/Real TSE)
+├── monitoring/                     # Optional Prometheus/Grafana/Loki stack
 ├── .env.example                    # Dev Compose env
-└── .env.production.example         # Prod Compose env template
+├── .env.production.example         # Prod Compose env template
+└── .env.production.local.example   # Localhost prod-like tests (copy → .env.production.local)
 ```
+
+**Guides:** [`docs/DOCKER.md`](docs/DOCKER.md) · beginners [`docs/DOCKER_FOR_BEGINNERS.md`](docs/DOCKER_FOR_BEGINNERS.md) · test plan [`docs/DOCKER_TEST_PLAN.md`](docs/DOCKER_TEST_PLAN.md) · prod readiness [`docs/DOCKER_PRODUCTION_READINESS.md`](docs/DOCKER_PRODUCTION_READINESS.md) · monitoring [`docs/MONITORING.md`](docs/MONITORING.md) · CI/CD [`docs/CI_CD.md`](docs/CI_CD.md).
+
+**Windows prod-like stack:** `docker-up-prod.bat` (uses `docker-compose.prod.yml`; Soft TSE is **not** loaded). Dev Soft TSE: `docker-up.bat` / `start.bat` → Docker.
 
 Postgres and Redis are **Compose services** (`postgres:16-alpine`, `redis:7-alpine`), not folders under the repo.
 

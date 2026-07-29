@@ -40,6 +40,9 @@ public class AdminProductDto
     public string? FiscalCategoryCode { get; set; }
     public string? TaxExemptionReason { get; set; }
     public string RksvProductType { get; set; } = "Standard";
+    public int Version { get; set; } = 1;
+    public Guid? OriginalProductId { get; set; }
+    public DateTime? ArchivedAt { get; set; }
 
     /// <summary>
     /// Map Product entity to flat DTO (no CategoryNavigation, no ModifierGroupAssignments).
@@ -79,7 +82,10 @@ public class AdminProductDto
             IsTaxable = p.IsTaxable,
             FiscalCategoryCode = p.FiscalCategoryCode,
             TaxExemptionReason = p.TaxExemptionReason,
-            RksvProductType = p.RksvProductType ?? "Standard"
+            RksvProductType = p.RksvProductType ?? "Standard",
+            Version = p.Version <= 0 ? 1 : p.Version,
+            OriginalProductId = p.OriginalProductId,
+            ArchivedAt = p.ArchivedAt,
         };
     }
 }

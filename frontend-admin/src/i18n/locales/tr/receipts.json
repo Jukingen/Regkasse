@@ -139,6 +139,9 @@
     },
     "finanzOnlineSubmission": {
       "cardTitle": "FinanzOnline / BMF (Startbeleg ve Jahresbeleg)",
+      "monatsbelegCardTitle": "FinanzOnline / BMF (Monatsbeleg)",
+      "monatsbelegNotRequiredTitle": "Otomatik gönderim yok",
+      "monatsbelegNotRequiredBody": "Monatsbeleg’ler (Ocak–Kasım) FinanzOnline belegpruefung kuyruğuna gönderilmez. Zorunlu kontroller Startbeleg ve Jahresbeleg’tir (Aralık). İsteğe bağlı: QR’ı BMF Belegcheck ile doğrulayın. Ürün kararı: Monatsbeleg FinanzOnline.",
       "disclaimerTitle": "Gosterim notu",
       "disclaimerBody": "Gonderim ve geri bildirimin teknik ozeti. Hukuki danismanlik degildir; vergi dairesi veya BMF karsisinda garanti verilmez.",
       "labelStatus": "Durum",

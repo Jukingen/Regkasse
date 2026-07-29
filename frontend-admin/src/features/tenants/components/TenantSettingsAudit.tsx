@@ -92,7 +92,7 @@ export function TenantSettingsAudit({
       key: entry.id,
       color: statusColor(entry.status),
       dot: statusDot(entry.status),
-      children: (
+      content: (
         <div>
           <Space wrap size="small" style={{ marginBottom: 4 }}>
             <Typography.Text strong>

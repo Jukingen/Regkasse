@@ -26,7 +26,11 @@ public sealed class HealthController : ControllerBase
     [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
     public ContentResult Live() => Content("OK", "text/plain");
 
-    /// <summary>Readiness: database reachable (timeout-bounded). Suitable for orchestrator ready probes.</summary>
+    /// <summary>
+    /// Readiness: database + fiscal config posture (TSE production lock + FinanzOnline simulation gate).
+    /// Device TSE/NTP probes are excluded (see <c>/api/health</c>). In Development, fiscal checks stay Healthy
+    /// when Soft TSE / FON simulation is intentional; in Production, misconfiguration → Unhealthy (HTTP 503).
+    /// </summary>
     [HttpGet("ready")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
@@ -49,6 +53,21 @@ public sealed class HealthController : ControllerBase
     {
         var report = await _healthChecks
             .CheckHealthAsync(r => r.Tags.Contains(DatabaseHealthCheck.DepsTag), cancellationToken)
+            .ConfigureAwait(false);
+        return ToActionResult(report);
+    }
+
+    /// <summary>
+    /// EF Core migration posture: applied vs pending relative to the running binary.
+    /// HTTP 200 for Healthy/Degraded; 503 when the check cannot query the database.
+    /// </summary>
+    [HttpGet("migrations")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> Migrations(CancellationToken cancellationToken)
+    {
+        var report = await _healthChecks
+            .CheckHealthAsync(r => r.Tags.Contains(EfMigrationsHealthCheck.MigrationsTag), cancellationToken)
             .ConfigureAwait(false);
         return ToActionResult(report);
     }

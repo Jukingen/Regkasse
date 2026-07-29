@@ -1027,7 +1027,7 @@ export default function TseFailoverPage() {
           <Timeline
             items={history.map((item) => ({
               color: item.isSuccessful ? 'green' : 'red',
-              children: (
+              content: (
                 <div>
                   <Typography.Text strong>
                     {item.failoverType} {t('tseFailover.historyFailover')}

@@ -2,7 +2,7 @@
 
 import { HolderOutlined, ReloadOutlined } from '@ant-design/icons';
 import { Button, Card, Space, Tooltip } from 'antd';
-import React from 'react';
+import React, { memo } from 'react';
 
 import { useI18n } from '@/i18n/I18nProvider';
 
@@ -16,7 +16,7 @@ export type WidgetShellProps = {
 };
 
 /** Shared card chrome: title, manual refresh, optional drag handle. */
-export function WidgetShell({
+export const WidgetShell = memo(function WidgetShell({
   title,
   dragHandleProps,
   onRefresh,
@@ -75,4 +75,4 @@ export function WidgetShell({
       {children}
     </Card>
   );
-}
+});

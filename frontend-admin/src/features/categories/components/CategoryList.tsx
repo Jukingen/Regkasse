@@ -56,7 +56,7 @@ export default function CategoryList({ data, loading, onEdit, onDelete }: Catego
     {
       title: t('common.categories.table.actions'),
       key: 'actions',
-      render: (_: any, record: Category) => (
+      render: (_: unknown, record: Category) => (
         <Space>
           <Button icon={<EditOutlined />} onClick={() => onEdit(record)} />
           <Popconfirm

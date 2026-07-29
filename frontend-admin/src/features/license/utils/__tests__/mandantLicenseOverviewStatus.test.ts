@@ -1,8 +1,40 @@
 import { describe, expect, it } from 'vitest';
 
-import { resolveMandantLicenseOverviewStatus } from '@/features/license/utils/mandantLicenseOverviewStatus';
+import {
+  mandantLicenseOverviewTagColor,
+  mapTenantLicenseOverviewApiStatus,
+  resolveMandantLicenseOverviewStatus,
+} from '@/features/license/utils/mandantLicenseOverviewStatus';
 
 const NOW = Date.parse('2026-06-22T12:00:00.000Z');
+
+describe('mapTenantLicenseOverviewApiStatus', () => {
+  it('preserves known API statuses', () => {
+    expect(mapTenantLicenseOverviewApiStatus('active')).toBe('active');
+    expect(mapTenantLicenseOverviewApiStatus('expiring_soon')).toBe('expiring_soon');
+    expect(mapTenantLicenseOverviewApiStatus('expired')).toBe('expired');
+    expect(mapTenantLicenseOverviewApiStatus('trial')).toBe('trial');
+  });
+
+  it('maps no_license to none', () => {
+    expect(mapTenantLicenseOverviewApiStatus('no_license')).toBe('none');
+    expect(mapTenantLicenseOverviewApiStatus('NONE')).toBe('none');
+  });
+
+  it('falls back to none for unknown values', () => {
+    expect(mapTenantLicenseOverviewApiStatus('weird')).toBe('none');
+  });
+});
+
+describe('mandantLicenseOverviewTagColor', () => {
+  it('returns Ant Design tag colors per kind', () => {
+    expect(mandantLicenseOverviewTagColor('active')).toBe('green');
+    expect(mandantLicenseOverviewTagColor('expiring_soon')).toBe('gold');
+    expect(mandantLicenseOverviewTagColor('expired')).toBe('red');
+    expect(mandantLicenseOverviewTagColor('trial')).toBe('blue');
+    expect(mandantLicenseOverviewTagColor('none')).toBe('default');
+  });
+});
 
 describe('resolveMandantLicenseOverviewStatus', () => {
   it('returns none when no key and no end date', () => {

@@ -27,6 +27,17 @@ namespace KasseAPI_Final.Models
         public bool IsFakeSigningMode => string.Equals(Mode, "Fake", System.StringComparison.OrdinalIgnoreCase);
 
         /// <summary>
+        /// Production escape hatch: when true, <see cref="Services.Tse.TseProductionOptionsValidator"/>
+        /// allows Off/Demo/Fake/soft fiscal modes (ops emergency only; default false).
+        /// </summary>
+        public bool AllowUnsafeFiscalModesInProduction { get; set; }
+
+        /// <summary>
+        /// When true (default), Staging hosts enforce the same fiscal mode lock as Production.
+        /// </summary>
+        public bool EnforceProductionLockInStaging { get; set; } = true;
+
+        /// <summary>
         /// TSE modu: tek kaynak.
         /// Off: TSE kapalı, tseRequired yok sayılır, sadece NON_FISCAL QR.
         /// Demo: Cihaz yoksa Soft TSE, signature chain DB'den devam eder.

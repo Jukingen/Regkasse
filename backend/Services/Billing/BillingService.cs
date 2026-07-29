@@ -154,14 +154,17 @@ public sealed class BillingService : IBillingService
 
             db.LicenseSales.Add(sale);
 
-            tenant.CurrentLicenseSaleId = sale.Id;
-            tenant.LicenseKey = licenseKey;
-            tenant.LicenseValidUntilUtc = validUntil;
-            tenant.LastLicenseActivationUtc = soldAtUtc;
-            tenant.LicenseActivationCount++;
-            tenant.LicenseGracePeriodStartedAt = null;
-            tenant.LicenseGracePeriodUsedDays = 0;
-            tenant.UpdatedAt = soldAtUtc;
+            if (request.ApplyToTenant)
+            {
+                tenant.CurrentLicenseSaleId = sale.Id;
+                tenant.LicenseKey = licenseKey;
+                tenant.LicenseValidUntilUtc = validUntil;
+                tenant.LastLicenseActivationUtc = soldAtUtc;
+                tenant.LicenseActivationCount++;
+                tenant.LicenseGracePeriodStartedAt = null;
+                tenant.LicenseGracePeriodUsedDays = 0;
+                tenant.UpdatedAt = soldAtUtc;
+            }
 
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
             await transaction.CommitAsync(ct).ConfigureAwait(false);
@@ -172,9 +175,10 @@ public sealed class BillingService : IBillingService
             await ScheduleRemindersForSaleAsync(sale.Id, ct).ConfigureAwait(false);
 
             _logger.LogInformation(
-                "License sale created: {InvoiceNumber} for tenant {TenantSlug}",
+                "License sale created: {InvoiceNumber} for tenant {TenantSlug} (applyToTenant={ApplyToTenant})",
                 invoiceNumber,
-                tenant.Slug);
+                tenant.Slug,
+                request.ApplyToTenant);
 
             sale.Tenant = tenant;
             var response = await MapToResponseAsync(sale, db, ct).ConfigureAwait(false);
@@ -625,6 +629,7 @@ public sealed class BillingService : IBillingService
             ExtendedBy = sale.ExtendedByUserId.HasValue
                 ? ResolveUserDisplayName(sale.ExtendedByUserId.Value, userNames)
                 : null,
+            AppliedToTenant = sale.Tenant?.CurrentLicenseSaleId == sale.Id,
         };
     }
 

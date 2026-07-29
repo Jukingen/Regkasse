@@ -303,36 +303,25 @@ public sealed class RksvSpecialReceiptFinanzOnlineOutboxHandler
     }
 
     private static bool ShouldMarkManualVerificationForTerminalError(string? errorCode) =>
-        string.Equals(errorCode, RksvFinanzOnlineSubmissionKnownErrorCodes.SubmissionDisabled, StringComparison.OrdinalIgnoreCase);
+        string.Equals(errorCode, RksvFinanzOnlineSubmissionKnownErrorCodes.SubmissionDisabled, StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(errorCode, RksvFinanzOnlineSubmissionKnownErrorCodes.OutboundDisabled, StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(errorCode, RksvFinanzOnlineSubmissionKnownErrorCodes.MonatsbelegNotImplemented, StringComparison.OrdinalIgnoreCase);
 
     private static (bool retryable, string category, string terminalStatus) ClassifyRksvClientFailure(string? errorCode)
     {
-        if (string.Equals(errorCode, RksvFinanzOnlineSubmissionKnownErrorCodes.SubmissionDisabled, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(errorCode, RksvFinanzOnlineSubmissionKnownErrorCodes.ConfigIncomplete, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(errorCode, RksvFinanzOnlineSubmissionKnownErrorCodes.SoapTransportNotImplemented, StringComparison.OrdinalIgnoreCase))
-            return (false, FinanzOnlineFailureCategories.PermanentBusiness, FinanzOnlineOutboxStatuses.PermanentFailure);
-
-        if (!string.IsNullOrWhiteSpace(errorCode) && errorCode.StartsWith("FAKE_", StringComparison.OrdinalIgnoreCase))
+        if (RksvFinanzOnlineSubmissionResultMapper.IsTransientErrorCode(errorCode))
             return (true, FinanzOnlineFailureCategories.RetryableTransient, FinanzOnlineOutboxStatuses.PermanentFailure);
 
-        if (string.IsNullOrWhiteSpace(errorCode))
-            return (true, FinanzOnlineFailureCategories.RetryableTransient, FinanzOnlineOutboxStatuses.PermanentFailure);
-        if (errorCode.Contains("HTTP_5", StringComparison.OrdinalIgnoreCase) ||
-            errorCode.Contains("HTTP_429", StringComparison.OrdinalIgnoreCase) ||
-            errorCode.Contains("TRANSIENT", StringComparison.OrdinalIgnoreCase) ||
-            errorCode.Contains("TIMEOUT", StringComparison.OrdinalIgnoreCase))
-            return (true, FinanzOnlineFailureCategories.RetryableTransient, FinanzOnlineOutboxStatuses.PermanentFailure);
-        if (errorCode.Contains("SESSION", StringComparison.OrdinalIgnoreCase))
+        if (!string.IsNullOrWhiteSpace(errorCode) && errorCode.Contains("SESSION", StringComparison.OrdinalIgnoreCase))
             return (false, FinanzOnlineFailureCategories.Session, FinanzOnlineOutboxStatuses.PermanentFailure);
-        if (errorCode.Contains("401", StringComparison.OrdinalIgnoreCase) ||
-            errorCode.Contains("403", StringComparison.OrdinalIgnoreCase) ||
-            errorCode.Contains("UNAUTHORIZED", StringComparison.OrdinalIgnoreCase))
+        if (!string.IsNullOrWhiteSpace(errorCode) &&
+            (errorCode.Contains("401", StringComparison.OrdinalIgnoreCase) ||
+             errorCode.Contains("403", StringComparison.OrdinalIgnoreCase) ||
+             errorCode.Contains("UNAUTHORIZED", StringComparison.OrdinalIgnoreCase) ||
+             errorCode.Contains("CREDENTIALS", StringComparison.OrdinalIgnoreCase)))
             return (false, FinanzOnlineFailureCategories.Authorization, FinanzOnlineOutboxStatuses.PermanentFailure);
-        if (errorCode.Contains("RKDB_XML_STRUCTURE_INVALID", StringComparison.OrdinalIgnoreCase) ||
-            errorCode.Contains("RKDB_COMMAND_INVALID", StringComparison.OrdinalIgnoreCase) ||
-            errorCode.Contains("RKDB_MODE_NOT_SUPPORTED", StringComparison.OrdinalIgnoreCase) ||
-            errorCode.Contains("RKDB_XML_PAYLOAD_REQUIRED", StringComparison.OrdinalIgnoreCase))
-            return (false, FinanzOnlineFailureCategories.PermanentBusiness, FinanzOnlineOutboxStatuses.PermanentFailure);
+
+        // Permanent business / config (incl. outbound disabled, beleg invalid, Monatsbeleg stub, mode resolve).
         return (false, FinanzOnlineFailureCategories.PermanentBusiness, FinanzOnlineOutboxStatuses.PermanentFailure);
     }
 

@@ -22,6 +22,12 @@ public record CreateLicenseSaleRequest
     public decimal VatRate { get; init; } = 20.00m;
 
     public string? Notes { get; init; }
+
+    /// <summary>
+    /// When true (default), immediately assign the new key to the tenant.
+    /// When false, only create the sale; Mandanten-Admin must enter the key to activate/extend.
+    /// </summary>
+    public bool ApplyToTenant { get; init; } = true;
 }
 
 public record LicenseSalePreviewRequest
@@ -111,6 +117,12 @@ public record LicenseSaleResponse
     public DateTime? ActivationDateUtc { get; init; }
     public DateTime? LastExtendedAtUtc { get; init; }
     public string? ExtendedBy { get; init; }
+
+    /// <summary>
+    /// True when this sale is currently applied on the tenant row
+    /// (<c>tenants.current_license_sale_id</c> equals this sale).
+    /// </summary>
+    public bool AppliedToTenant { get; init; }
 }
 
 public record LicenseSaleListResponse

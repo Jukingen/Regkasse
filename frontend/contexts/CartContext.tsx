@@ -12,7 +12,15 @@ import { apiClient } from '../services/api/config';
 import type { Customer } from '../services/api/customerService';
 import type { AddOnSelection } from '../services/api/productModifiersService';
 import { storage } from '../utils/storage';
-import { getCartForTableNumber } from '../utils/tableCartUtils';
+import {
+  createEmptyCart,
+  getCartDisplayTotals,
+  getCartForTableNumber,
+  isCartEmpty,
+} from '../utils/tableCartUtils';
+
+// Re-export pure cart helpers (kept here for existing import paths).
+export { createEmptyCart, getCartDisplayTotals };
 
 // ============================================
 // TYPE DEFINITIONS
@@ -81,24 +89,6 @@ export interface Cart {
     taxAmount: number;
     grossAmount: number;
   }[];
-}
-
-/** Backend alanlarını seçip UI için formatlar - HESAPLAMA YOK */
-export function getCartDisplayTotals(cart: Cart | null | undefined): {
-  subtotalGross: number;
-  includedTaxTotal: number;
-  grandTotalGross: number;
-  itemCount: number;
-  taxSummary?: Cart['taxSummary'];
-} {
-  const itemCount = (cart?.items ?? []).reduce((sum, i) => sum + (i.qty ?? 0), 0);
-  return {
-    subtotalGross: cart?.subtotalGross ?? 0,
-    includedTaxTotal: cart?.includedTaxTotal ?? 0,
-    grandTotalGross: cart?.grandTotalGross ?? 0,
-    itemCount,
-    taxSummary: cart?.taxSummary,
-  };
 }
 
 export interface CartsByTable {
@@ -265,97 +255,100 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           `/pos/cart/current?tableNumber=${tableNumber}`
         );
 
-        if (response && (response.items || response.Items)) {
-          const backendItems = response.items || response.Items || [];
+        const backendItemsRaw = response?.items ?? response?.Items;
+        const backendItems = Array.isArray(backendItemsRaw) ? backendItemsRaw : [];
 
-          setCartsByTable((prev) => {
-            const currentItems = prev[tableNumber]?.items ?? [];
-            const localItems: CartItem[] = backendItems.map((item: any) => {
-              const pName = item.ProductName || item.productName;
-              if (!pName) {
-                console.error('[Cart] ❌ Missing ProductName for item:', item);
-              }
-              const backendItemId = item.Id ?? item.id;
-              const existing = currentItems.find(
-                (e: CartItem) => (e.itemId ?? e.clientId) === backendItemId
-              );
-              const backendMods =
-                item.SelectedModifiers ??
-                item.selectedModifiers ??
-                item.Modifiers ??
-                item.modifiers;
-              let modifierList: CartItemModifier[] | undefined;
-              if (Array.isArray(backendMods) && backendMods.length) {
-                const byId = new Map<string, CartItemModifier>();
-                for (const m of backendMods) {
-                  const id = m.Id ?? m.id;
-                  const qty = Number(m.Quantity ?? m.quantity ?? 1);
-                  const existing = byId.get(id);
-                  if (existing) existing.quantity += qty;
-                  else
-                    byId.set(id, {
-                      id,
-                      name: m.Name ?? m.name,
-                      price: Number(m.Price ?? m.price ?? 0),
-                      quantity: qty,
-                      groupId: m.GroupId ?? m.groupId,
-                    });
-                }
-                modifierList = Array.from(byId.values());
-              } else if (existing?.modifiers?.length) {
-                modifierList = existing.modifiers;
-              }
-              const basePrice = item.UnitPrice ?? item.unitPrice ?? 0;
-              const qty = item.Quantity ?? item.quantity ?? 0;
-              const modTotal = (modifierList ?? []).reduce(
-                (s, m) => s + m.price * (m.quantity ?? 1),
-                0
-              );
-              const totalPrice = basePrice * qty + modTotal;
-
-              return {
-                productId: item.ProductId || item.productId,
-                productName: pName || 'Unknown Product',
-                price: basePrice,
-                qty,
-                unitPrice: basePrice,
-                totalPrice,
-                notes: item.Notes ?? item.notes,
-                itemId: backendItemId,
-                clientId: existing?.clientId,
-                taxRate: item.TaxRate ?? item.taxRate,
-                taxType: item.TaxType ?? item.taxType,
-                modifiers: modifierList,
-              };
-            });
-
-            const grandTotalGross = localItems.reduce((s, i) => s + (i.totalPrice ?? 0), 0);
-            return {
-              ...prev,
-              [tableNumber]: {
-                items: localItems,
-                updatedAt: Date.now(),
-                cartRowId: response.Id ?? response.id,
-                cartId: response.CartId || response.cartId,
-                subtotalGross: response.SubtotalGross ?? response.subtotalGross ?? grandTotalGross,
-                subtotalNet: response.SubtotalNet ?? response.subtotalNet,
-                includedTaxTotal: response.IncludedTaxTotal ?? response.includedTaxTotal,
-                grandTotalGross:
-                  response.GrandTotalGross ?? response.grandTotalGross ?? grandTotalGross,
-                taxSummary: response.TaxSummary ?? response.taxSummary,
-              },
-            };
-          });
-          console.log(
-            `✅ [CartContext] Table ${tableNumber} updated with ${backendItems.length} items`
-          );
-        } else {
-          // If response is null or no items, implies empty cart or new table
+        // Empty table / no order: [] is truthy in JS — must not reuse the "has items" branch with stale totals.
+        if (!response || backendItems.length === 0) {
           setCartsByTable((prev) => ({
             ...prev,
-            [tableNumber]: { items: [], updatedAt: Date.now() },
+            [tableNumber]: createEmptyCart(),
           }));
+          console.log(`✅ [CartContext] Table ${tableNumber} is empty — totals reset to 0`);
+          return;
         }
+
+        setCartsByTable((prev) => {
+          const currentItems = prev[tableNumber]?.items ?? [];
+          const localItems: CartItem[] = backendItems.map((item: any) => {
+            const pName = item.ProductName || item.productName;
+            if (!pName) {
+              console.error('[Cart] ❌ Missing ProductName for item:', item);
+            }
+            const backendItemId = item.Id ?? item.id;
+            const existing = currentItems.find(
+              (e: CartItem) => (e.itemId ?? e.clientId) === backendItemId
+            );
+            const backendMods =
+              item.SelectedModifiers ??
+              item.selectedModifiers ??
+              item.Modifiers ??
+              item.modifiers;
+            let modifierList: CartItemModifier[] | undefined;
+            if (Array.isArray(backendMods) && backendMods.length) {
+              const byId = new Map<string, CartItemModifier>();
+              for (const m of backendMods) {
+                const id = m.Id ?? m.id;
+                const qty = Number(m.Quantity ?? m.quantity ?? 1);
+                const existingMod = byId.get(id);
+                if (existingMod) existingMod.quantity += qty;
+                else
+                  byId.set(id, {
+                    id,
+                    name: m.Name ?? m.name,
+                    price: Number(m.Price ?? m.price ?? 0),
+                    quantity: qty,
+                    groupId: m.GroupId ?? m.groupId,
+                  });
+              }
+              modifierList = Array.from(byId.values());
+            } else if (existing?.modifiers?.length) {
+              modifierList = existing.modifiers;
+            }
+            const basePrice = item.UnitPrice ?? item.unitPrice ?? 0;
+            const qty = item.Quantity ?? item.quantity ?? 0;
+            const modTotal = (modifierList ?? []).reduce(
+              (s, m) => s + m.price * (m.quantity ?? 1),
+              0
+            );
+            const totalPrice = basePrice * qty + modTotal;
+
+            return {
+              productId: item.ProductId || item.productId,
+              productName: pName || 'Unknown Product',
+              price: basePrice,
+              qty,
+              unitPrice: basePrice,
+              totalPrice,
+              notes: item.Notes ?? item.notes,
+              itemId: backendItemId,
+              clientId: existing?.clientId,
+              taxRate: item.TaxRate ?? item.taxRate,
+              taxType: item.TaxType ?? item.taxType,
+              modifiers: modifierList,
+            };
+          });
+
+          const grandTotalGross = localItems.reduce((s, i) => s + (i.totalPrice ?? 0), 0);
+          return {
+            ...prev,
+            [tableNumber]: {
+              items: localItems,
+              updatedAt: Date.now(),
+              cartRowId: response.Id ?? response.id,
+              cartId: response.CartId || response.cartId,
+              subtotalGross: response.SubtotalGross ?? response.subtotalGross ?? grandTotalGross,
+              subtotalNet: response.SubtotalNet ?? response.subtotalNet,
+              includedTaxTotal: response.IncludedTaxTotal ?? response.includedTaxTotal,
+              grandTotalGross:
+                response.GrandTotalGross ?? response.grandTotalGross ?? grandTotalGross,
+              taxSummary: response.TaxSummary ?? response.taxSummary,
+            },
+          };
+        });
+        console.log(
+          `✅ [CartContext] Table ${tableNumber} updated with ${backendItems.length} items`
+        );
       } catch (err: any) {
         console.error(`❌ [CartContext] Failed to fetch table ${tableNumber}:`, err);
         // setError causes global error state which might block UI.
@@ -380,7 +373,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     [activeTableId]
   );
 
-  // Table switch contract: Update activeTableId immediately so UI selected state and cart summary stay in sync; then fetch target table cart.
+  // Table switch: update activeTableId immediately, reset empty target totals to 0, then load that table's cart.
   const switchTable = useCallback(
     async (tableNumber: number) => {
       const current = activeTableIdRef.current;
@@ -393,11 +386,21 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setActiveTableId(tableNumber);
       activeTableIdRef.current = tableNumber;
 
-      if (lastFetchedTableIdRef.current === tableNumber) {
-        lastFetchedTableIdRef.current = null;
-      }
+      // Empty-table path: if local cache has no lines for the target, clear totals now so the UI
+      // does not keep showing a previous table's grandTotalGross while the network fetch is in flight.
+      // Tables with cached lines keep showing them until fetch confirms / replaces.
+      setCartsByTable((prev) => {
+        if (!isCartEmpty(prev[tableNumber])) {
+          return prev;
+        }
+        return {
+          ...prev,
+          [tableNumber]: createEmptyCart(),
+        };
+      });
 
-      await fetchTableCart(tableNumber);
+      // Always refetch on table change (avoid stale skip via lastFetchedTableIdRef).
+      await fetchTableCart(tableNumber, true);
     },
     [fetchTableCart]
   );
@@ -1180,14 +1183,10 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         await apiClient.post(`/pos/cart/clear?tableNumber=${target}`);
 
-        // ✅ Fix: Don't delete the key, just empty the items
+        // Empty items AND reset totals / cart ids — spreading prev left stale grandTotalGross in the UI.
         setCartsByTable((prev) => ({
           ...prev,
-          [target]: {
-            ...prev[target],
-            items: [],
-            updatedAt: Date.now(),
-          },
+          [target]: createEmptyCart(),
         }));
       } catch (e) {
         console.error(e);

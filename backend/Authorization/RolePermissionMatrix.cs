@@ -237,6 +237,21 @@ public static class RolePermissionMatrix
                 AppPermissions.RksvJahresbelegCreate,
                 AppPermissions.RksvJahresbelegView,
             }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
+
+            // Compliance officer: read fiscal surfaces + production deploy sign-off only (no POS, no system.critical).
+            [Roles.ComplianceOfficer] = new[]
+            {
+                AppPermissions.DeploymentApprove,
+                AppPermissions.AuditView, AppPermissions.AuditExport,
+                AppPermissions.ReportView, AppPermissions.ReportExport,
+                AppPermissions.FiscalExportCompliance,
+                AppPermissions.FinanzOnlineView,
+                AppPermissions.CashRegisterView,
+                AppPermissions.SettingsView,
+                AppPermissions.RksvMonatsbelegView,
+                AppPermissions.RksvJahresbelegView,
+                AppPermissions.TenantView,
+            }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
         };
 
         return matrix.ToFrozenDictionary();

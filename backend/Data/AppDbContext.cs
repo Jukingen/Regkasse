@@ -117,6 +117,18 @@ namespace KasseAPI_Final.Data
         public DbSet<AdminUserFeedback> AdminUserFeedback { get; set; }
         public DbSet<TenantSettingsHistory> TenantSettingsHistory { get; set; }
 
+        /// <summary>Key/value settings (feature-flag overrides; TenantId null = global).</summary>
+        public DbSet<TenantSetting> TenantSettings { get; set; }
+
+        /// <summary>CI/CD deployment status rows (platform-wide, not tenant-scoped).</summary>
+        public DbSet<DeploymentRun> DeploymentRuns { get; set; }
+
+        /// <summary>Per-tenant canary / progressive deployment history.</summary>
+        public DbSet<TenantDeploymentHistory> TenantDeploymentHistories { get; set; }
+
+        /// <summary>Compliance officer production deployment sign-offs.</summary>
+        public DbSet<DeploymentComplianceSignoff> DeploymentComplianceSignoffs { get; set; }
+
         /// <summary>Platform-wide scheduled maintenance notices (not tenant-scoped).</summary>
         public DbSet<MaintenanceNotification> MaintenanceNotifications { get; set; }
 
@@ -161,6 +173,9 @@ namespace KasseAPI_Final.Data
         public DbSet<OperationalReportSchedule> OperationalReportSchedules { get; set; }
         public DbSet<DepExportHistory> DepExportHistories { get; set; }
         public DbSet<DepExportSchedule> DepExportSchedules { get; set; }
+        public DbSet<DepExportCompliancePeriod> DepExportCompliancePeriods { get; set; }
+        public DbSet<DepExportComplianceScoreSnapshot> DepExportComplianceScores { get; set; }
+        public DbSet<DepExportAuditEntry> DepExportAuditEntries { get; set; }
         public DbSet<DownloadHistory> DownloadHistories { get; set; }
         public DbSet<ExportEmailDelivery> ExportEmailDeliveries { get; set; }
         public DbSet<SensitiveExportApproval> SensitiveExportApprovals { get; set; }
@@ -216,6 +231,9 @@ namespace KasseAPI_Final.Data
 
         /// <summary>RKSV Startbeleg/Jahresbeleg FinanzOnline submission tracking (no secrets).</summary>
         public DbSet<RksvSpecialReceiptFinanzOnlineSubmission> RksvSpecialReceiptFinanzOnlineSubmissions { get; set; }
+
+        /// <summary>FON Ausfall / Wiederinbetriebnahme episodes (P0-3).</summary>
+        public DbSet<RksvAusfallEpisode> RksvAusfallEpisodes { get; set; }
 
         // RKSV Receipt tables
         public DbSet<Receipt> Receipts { get; set; }
@@ -1225,12 +1243,20 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.UpdatedBy).HasMaxLength(100);
                 entity.Property(e => e.IsActive).IsRequired();
                 entity.Property(e => e.IsSellableAddOn).HasColumnName("is_sellable_addon").HasDefaultValue(false);
+                entity.Property(e => e.Version).HasColumnName("version").HasDefaultValue(1);
+                entity.Property(e => e.OriginalProductId).HasColumnName("original_product_id");
+                entity.Property(e => e.ArchivedAt).HasColumnName("archived_at");
 
                 entity.HasOne(p => p.TaxGroup)
                     .WithMany()
                     .HasForeignKey(p => p.TaxGroupId)
                     .OnDelete(DeleteBehavior.Restrict)
                     .IsRequired();
+
+                entity.HasOne(p => p.OriginalProduct)
+                    .WithMany()
+                    .HasForeignKey(p => p.OriginalProductId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
                 // Indexes
                 entity.HasIndex(e => e.Name);
@@ -1239,6 +1265,8 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.CategoryId);
                 entity.HasIndex(e => e.TaxGroupId);
                 entity.HasIndex(e => e.TenantId);
+                entity.HasIndex(e => e.OriginalProductId);
+                entity.HasIndex(e => new { e.TenantId, e.OriginalProductId, e.Version });
                 // Tenant-scoped name lookup (CategoryId+TenantId already covered by composite FK index).
                 entity.HasIndex(e => new { e.TenantId, e.Name })
                     .HasDatabaseName("idx_products_tenant_name");
@@ -2424,6 +2452,78 @@ namespace KasseAPI_Final.Data
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
+            builder.Entity<TenantSetting>(entity =>
+            {
+                entity.ToTable("tenant_settings");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Key).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Value).IsRequired().HasMaxLength(4000);
+                entity.Property(e => e.UpdatedByUserId).HasMaxLength(450);
+                entity.HasIndex(e => e.Key);
+                entity.HasIndex(e => new { e.TenantId, e.Key })
+                    .IsUnique()
+                    .HasFilter("tenant_id IS NOT NULL");
+                entity.HasOne<Tenant>()
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired(false);
+            });
+
+            builder.Entity<DeploymentRun>(entity =>
+            {
+                entity.ToTable("deployment_runs");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Stage).IsRequired().HasMaxLength(32);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(32);
+                entity.Property(e => e.GitSha).HasMaxLength(64);
+                entity.Property(e => e.GitRef).HasMaxLength(256);
+                entity.Property(e => e.ImageTag).HasMaxLength(512);
+                entity.Property(e => e.PreviousImageTag).HasMaxLength(512);
+                entity.Property(e => e.TenantIdsJson).HasMaxLength(4000);
+                entity.Property(e => e.ErrorMessage).HasMaxLength(2000);
+                entity.Property(e => e.RunUrl).HasMaxLength(1024);
+                entity.Property(e => e.TriggeredBy).HasMaxLength(200);
+                entity.Property(e => e.SmokeSummary).HasMaxLength(2000);
+                entity.HasIndex(e => new { e.Stage, e.UpdatedAtUtc });
+                entity.HasIndex(e => new { e.RunUrl, e.Stage });
+            });
+
+            builder.Entity<TenantDeploymentHistory>(entity =>
+            {
+                entity.ToTable("deployment_history");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Version).IsRequired().HasMaxLength(512);
+                entity.Property(e => e.PreviousVersion).HasMaxLength(512);
+                entity.Property(e => e.Stage).IsRequired().HasMaxLength(32);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(32);
+                entity.Property(e => e.GitSha).HasMaxLength(64);
+                entity.Property(e => e.RunUrl).HasMaxLength(1024);
+                entity.Property(e => e.TriggeredBy).HasMaxLength(200);
+                entity.Property(e => e.ErrorMessage).HasMaxLength(2000);
+                entity.HasIndex(e => new { e.TenantId, e.DeployedAtUtc });
+                entity.HasIndex(e => new { e.Stage, e.Status });
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<DeploymentComplianceSignoff>(entity =>
+            {
+                entity.ToTable("deployment_compliance_signoffs");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ImageTag).IsRequired().HasMaxLength(512);
+                entity.Property(e => e.GitSha).HasMaxLength(64);
+                entity.Property(e => e.Stage).IsRequired().HasMaxLength(32);
+                entity.Property(e => e.ChecklistJson).IsRequired().HasMaxLength(4000);
+                entity.Property(e => e.SignedByUserId).IsRequired().HasMaxLength(450);
+                entity.Property(e => e.SignedByRole).HasMaxLength(100);
+                entity.Property(e => e.SignedByDisplayName).HasMaxLength(200);
+                entity.Property(e => e.Notes).HasMaxLength(2000);
+                entity.HasIndex(e => new { e.ImageTag, e.Stage, e.SignedAtUtc });
+            });
+
             builder.Entity<MaintenanceNotification>(entity =>
             {
                 entity.ToTable("maintenance_notifications");
@@ -3389,6 +3489,17 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.ScheduledRenewalAt)
                     .HasColumnName("ScheduledRenewalAt");
 
+                entity.Property(e => e.SignaturkarteProgramCompliantAtUtc)
+                    .HasColumnName("SignaturkarteProgramCompliantAtUtc");
+
+                entity.Property(e => e.SignaturkarteProgramCompliantBy)
+                    .HasColumnName("SignaturkarteProgramCompliantBy")
+                    .HasMaxLength(128);
+
+                entity.Property(e => e.SignaturkarteProgramNote)
+                    .HasColumnName("SignaturkarteProgramNote")
+                    .HasMaxLength(500);
+
                 entity.Property(e => e.LastFailoverAt)
                     .HasColumnName("LastFailoverAt");
 
@@ -3848,6 +3959,14 @@ namespace KasseAPI_Final.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
+            builder.Entity<RksvAusfallEpisode>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => new { e.TenantId, e.Status });
+                entity.HasIndex(e => e.DeviceId);
+                entity.HasIndex(e => e.OutboxMessageId);
+            });
+
             // Cart configuration - Güvenlik ve performans için index'ler
             builder.Entity<Cart>(entity =>
             {
@@ -4145,10 +4264,20 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.FileSizeBytes).IsRequired();
                 entity.Property(e => e.SignatureCount).IsRequired();
                 entity.Property(e => e.GroupCount).IsRequired();
+                entity.Property(e => e.LegacyJwsCount).IsRequired();
                 entity.Property(e => e.Status).IsRequired().HasMaxLength(32);
                 entity.Property(e => e.StoragePath).HasMaxLength(500);
+                entity.Property(e => e.ValidationStatus).HasMaxLength(16);
+                entity.Property(e => e.ValidationReportJson).HasColumnType("jsonb");
+                entity.Property(e => e.ArchivePath).HasMaxLength(1024);
+                entity.Property(e => e.ArchiveChecksum).HasMaxLength(64);
+                entity.Property(e => e.PurgeReason).HasMaxLength(200);
                 entity.HasIndex(e => new { e.TenantId, e.CashRegisterId, e.ExportedAt });
                 entity.HasIndex(e => e.ScheduleId).HasFilter("\"schedule_id\" IS NOT NULL");
+                entity.HasIndex(e => new { e.TenantId, e.ValidationStatus });
+                entity.HasIndex(e => new { e.TenantId, e.ArchivedAt });
+                entity.HasIndex(e => e.RetentionUntil)
+                    .HasFilter("\"retention_until\" IS NOT NULL AND \"purged_at\" IS NULL");
             });
 
             builder.Entity<ReportPdf>(entity =>
@@ -4181,6 +4310,66 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.CreatedAt).IsRequired();
                 entity.HasIndex(e => new { e.TenantId, e.IsActive, e.NextRunAt });
                 entity.HasIndex(e => e.CashRegisterId);
+            });
+
+            builder.Entity<DepExportCompliancePeriod>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).IsRequired();
+                entity.Property(e => e.PeriodType).IsRequired().HasMaxLength(16);
+                entity.Property(e => e.PeriodStart).IsRequired();
+                entity.Property(e => e.PeriodEnd).IsRequired();
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(16);
+                entity.Property(e => e.ExportedBy).HasMaxLength(450);
+                entity.Property(e => e.FileName).HasMaxLength(260);
+                entity.Property(e => e.FileHash).HasMaxLength(64);
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.HasIndex(e => new { e.TenantId, e.PeriodType, e.PeriodStart, e.PeriodEnd }).IsUnique();
+                entity.HasIndex(e => new { e.TenantId, e.Status });
+                entity.HasIndex(e => e.HistoryId).HasFilter("\"history_id\" IS NOT NULL");
+                entity.HasOne<DepExportHistory>()
+                    .WithMany()
+                    .HasForeignKey(e => e.HistoryId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            builder.Entity<DepExportComplianceScoreSnapshot>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).IsRequired();
+                entity.Property(e => e.Score).IsRequired();
+                entity.Property(e => e.Grade).IsRequired().HasMaxLength(1);
+                entity.Property(e => e.CalculatedAt).IsRequired();
+                entity.Property(e => e.FactorsJson).IsRequired().HasColumnType("jsonb");
+                entity.Property(e => e.CriticalIssuesJson).IsRequired().HasColumnType("jsonb");
+                entity.Property(e => e.WarningsJson).IsRequired().HasColumnType("jsonb");
+                entity.HasIndex(e => new { e.TenantId, e.CalculatedAt });
+                entity.HasOne<Tenant>()
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<DepExportAuditEntry>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).IsRequired();
+                entity.Property(e => e.Action).IsRequired().HasMaxLength(32);
+                entity.Property(e => e.ExportName).IsRequired().HasMaxLength(260);
+                entity.Property(e => e.UserEmail).HasMaxLength(256);
+                entity.Property(e => e.UserId).HasMaxLength(450);
+                entity.Property(e => e.UserRole).HasMaxLength(50);
+                entity.Property(e => e.ActionAt).IsRequired();
+                entity.Property(e => e.IpAddress).HasMaxLength(45);
+                entity.Property(e => e.UserAgent).HasMaxLength(500);
+                entity.Property(e => e.Details).HasColumnType("text");
+                entity.HasIndex(e => new { e.TenantId, e.ActionAt });
+                entity.HasIndex(e => new { e.TenantId, e.Action });
+                entity.HasIndex(e => e.ExportHistoryId);
+                entity.HasOne<Tenant>()
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             builder.Entity<BackupRuntimeExecutionPreference>(entity =>

@@ -182,6 +182,127 @@
       "openSettings": "Open settings",
       "actionRequired": "Tenant license renewal is required."
     },
+    "licenseCountdown": {
+      "validUntilLabel": "License valid until",
+      "expired": "Expired",
+      "expiredHint": "Expired",
+      "remainingHint": "time remaining",
+      "renewNow": "Renew now",
+      "progressAria": "License term: {{days}} day(s) remaining"
+    },
+    "licenseHealth": {
+      "title": "License health",
+      "statusLabel": "Status",
+      "validUntil": "Valid until",
+      "healthy": "Healthy",
+      "actionNeeded": "Action needed",
+      "daysLeft": "{{days}} days",
+      "extend": "Extend",
+      "extendNow": "Renew now",
+      "progressAria": "License health: {{days}} day(s)",
+      "states": {
+        "Active": "Active",
+        "Grace": "Grace period",
+        "Locked": "Locked",
+        "Archived": "Archived"
+      }
+    },
+    "licenseImpact": {
+      "title": "License expiry impact",
+      "states": {
+        "Active": "Active",
+        "Grace": "Grace period",
+        "Locked": "Locked",
+        "Archived": "Archived"
+      },
+      "current": {
+        "eyebrow": "Current",
+        "daysValid": "{{days}} days remaining",
+        "daysGrace": "{{days}} grace days left",
+        "daysOverdue": "{{days}} days overdue"
+      },
+      "grace": {
+        "eyebrow": "Grace period ({{days}} days)",
+        "title": "Warning phase",
+        "description": "Full access with warnings; renew in time."
+      },
+      "locked": {
+        "eyebrow": "After grace period",
+        "title": "Full lockdown",
+        "description": "POS blocked; FA read-only plus license renewal."
+      },
+      "alert": {
+        "okTitle": "All good",
+        "okDescription": "Your license is still valid. Please plan renewal in time.",
+        "actionTitle": "Action needed",
+        "actionDescription": "Your license is expiring or expired. Please renew now."
+      }
+    },
+    "licenseRenewalChecklist": {
+      "title": "License renewal checklist",
+      "subtitle": "Prepare renewal step by step.",
+      "progressLabel": "{{completed}} / {{total}} completed",
+      "progressAria": "Checklist: {{percent}} percent completed",
+      "items": {
+        "reviewLicenseData": {
+          "label": "Review current license data",
+          "description": "Valid until: {{date}}"
+        },
+        "prepareLicenseKey": {
+          "label": "Have a new license key ready"
+        },
+        "verifyPaymentMethod": {
+          "label": "Verify payment method"
+        },
+        "updateContactData": {
+          "label": "Update contact details"
+        },
+        "contactSupportIfNeeded": {
+          "label": "Contact support if you have questions"
+        }
+      }
+    },
+    "licenseSupportOptions": {
+      "title": "License support",
+      "subtitle": "Quick help for license questions and renewal.",
+      "liveChat": {
+        "title": "Live chat",
+        "description": "Immediate help"
+      },
+      "ticket": {
+        "title": "Support ticket",
+        "description": "Reply within 24–48 hours"
+      },
+      "faq": {
+        "title": "FAQ",
+        "description": "Common questions",
+        "modalTitle": "License FAQ",
+        "modalClose": "Close",
+        "items": {
+          "renew": {
+            "q": "How do I renew my license?",
+            "a": "Use “Renew now” on the dashboard or License page and enter the REGK key provided by Super Admin."
+          },
+          "grace": {
+            "q": "What happens during the grace period?",
+            "a": "POS and FA stay usable with warnings. Please renew within the grace days."
+          },
+          "locked": {
+            "q": "Why is POS locked?",
+            "a": "After the grace period the license is locked: POS blocked, FA read-only plus renewal."
+          },
+          "key": {
+            "q": "Where do I get a license key?",
+            "a": "Managers receive keys from Super Admin / billing. If you need help, write to support@regkasse.at."
+          }
+        }
+      },
+      "phone": {
+        "title": "Phone",
+        "description": "Mon–Fri 9–17 · {{phone}}"
+      }
+    },
+
     "recentUsers": {
       "empty": "No users"
     },

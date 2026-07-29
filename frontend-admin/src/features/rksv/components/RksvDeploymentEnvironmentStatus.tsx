@@ -4,7 +4,10 @@ import { Alert, Skeleton, Tag, Tooltip } from 'antd';
 import type { CSSProperties } from 'react';
 
 import { useRksvStatus } from '@/features/rksv/hooks/useRksvBackendEnvironment';
-import type { RksvBackendEnvironmentStatus } from '@/features/rksv/types/rksvBackendEnvironment';
+import {
+  isTseFiscalConfigLockUnsafe,
+  type RksvBackendEnvironmentStatus,
+} from '@/features/rksv/types/rksvBackendEnvironment';
 import { useI18n } from '@/i18n/I18nProvider';
 
 function badgeColor(isDemo: boolean): 'warning' | 'success' {
@@ -59,6 +62,7 @@ export function RksvDeploymentEnvironmentAlert({ style }: AlertProps) {
   const { t } = useI18n();
   const { data, isLoading, isError } = useRksvStatus();
   const isSimulated = data?.isSimulated === true;
+  const lockUnsafe = isTseFiscalConfigLockUnsafe(data);
 
   if (isLoading && !data) {
     return <Skeleton active paragraph={{ rows: 1 }} style={style} />;
@@ -66,6 +70,28 @@ export function RksvDeploymentEnvironmentAlert({ style }: AlertProps) {
 
   if (isError || !data) {
     return null;
+  }
+
+  if (lockUnsafe) {
+    const reasons =
+      data.fiscalConfigLockReasons.length > 0
+        ? data.fiscalConfigLockReasons.join(' · ')
+        : t('rksvHub.env.backend.productionLock.reasonsUnknown');
+    return (
+      <Alert
+        showIcon
+        type="error"
+        title={
+          data.fiscalConfigLockEscapeHatchActive
+            ? t('rksvHub.env.backend.productionLock.escapeTitle')
+            : t('rksvHub.env.backend.productionLock.title')
+        }
+        description={t('rksvHub.env.backend.productionLock.description', { reasons })}
+        style={style}
+        data-rksv-tse-production-lock="unsafe"
+        data-rksv-tse-production-lock-escape={String(data.fiscalConfigLockEscapeHatchActive)}
+      />
+    );
   }
 
   const messageKey = isSimulated

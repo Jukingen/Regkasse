@@ -27,6 +27,7 @@ flowchart LR
         ACT[ActivateLicenseAsync]
         EXT[ExtendLicenseAsync]
     end
+    BILL -->|applyToTenant true| T
     BILL --> LS[(license_sales)]
     ACT --> T
     EXT --> ACT
@@ -34,6 +35,7 @@ flowchart LR
     ACT --> AUD2[(billing_audit_log LICENSE_ACTIVATED)]
 ```
 
+When `applyToTenant` is `false` (FA: “Assign license to tenant immediately” off), only the sale row is created. Mandanten-Admin must enter the key via FA license extend / activate.
 ---
 
 ## Billing license key format
@@ -92,7 +94,7 @@ Controllers use aliases (`IBillingTenantLicenseService`, `IAdminTenantLicenseKey
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | `POST` | `/api/admin/billing/license-sales/preview` | `SuperAdmin` | Price + generated key preview |
-| `POST` | `/api/admin/billing/license-sales` | `SuperAdmin` | Persist sale; updates tenant mandant fields |
+| `POST` | `/api/admin/billing/license-sales` | `SuperAdmin` | Persist sale; optionally assign to tenant (`applyToTenant`, default `true`) |
 | `GET` | `/api/admin/billing/license-sales` | `SuperAdmin` | List/filter sales |
 | `GET` | `/api/admin/billing/license-sales/{id}` | `SuperAdmin` | Sale detail |
 | `GET` | `/api/admin/billing/license-sales/by-key/{licenseKey}` | `SuperAdmin` | Lookup by billing key |

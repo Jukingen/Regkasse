@@ -1,0 +1,153 @@
+# =============================================================================
+# Regkasse — CI umbrella (pull requests + manual)
+#
+# Path-filtered package workflows remain the day-to-day PR gates
+# (backend-ci, frontend-admin-ci, frontend-ci, …). This workflow is the
+# monorepo "full CI" entry: backend + Admin + POS tests, Docker image builds
+# (no push), and a dry smoke script check.
+#
+# Docs: docs/CI_CD.md · docs/GITHUB_ACTIONS.md
+# =============================================================================
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      skip_docker:
+        description: Skip Docker image builds
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+  DOTNET_VERSION: '10.0.x'
+  NODE_VERSION: '22'
+  NEXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+  backend-tests:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('backend/**/*.csproj', 'backend/**/*.sln') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore + build + test
+        shell: pwsh
+        run: ./scripts/ci-test.ps1 -Backend -SkipAdmin -SkipPos
+
+  admin-tests:
+    name: Admin tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: frontend-admin
+    env:
+      NEXT_PUBLIC_RKSV_ENVIRONMENT: TEST
+      NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:5184
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend-admin/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint · typecheck · test
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        run: ./scripts/ci-test.ps1 -Admin -SkipBackend -SkipPos
+
+  pos-tests:
+    name: POS tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        working-directory: frontend
+        run: npm ci --legacy-peer-deps
+
+      - name: Lint · typecheck · test
+        shell: pwsh
+        run: ./scripts/ci-test.ps1 -Pos -SkipBackend -SkipAdmin
+
+  docker-build:
+    name: Build Docker images
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    needs: [backend-tests]
+    if: >
+      always() &&
+      needs.backend-tests.result == 'success' &&
+      (github.event_name != 'workflow_dispatch' || inputs.skip_docker != true)
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build images (no push)
+        shell: pwsh
+        env:
+          # Public build-args for Next/Expo (not production secrets)
+          ADMIN_API_URL: http://127.0.0.1:5184
+          POS_API_URL: http://127.0.0.1:5184/api
+          NEXT_PUBLIC_RKSV_ENVIRONMENT: TEST
+          IMAGE_TAG: ci-${{ github.sha }}
+        run: ./scripts/ci-build.ps1 -Docker -Profiles admin,sites,pos -NoPush
+
+  smoke-script:
+    name: Smoke script syntax
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate smoke-test.sh is executable syntax
+        run: |
+          bash -n scripts/smoke-test.sh
+          bash -n scripts/ci/backend-deploy-smoke.sh
+          bash -n scripts/ci/backend-run-migrations.sh
+          echo "Smoke/deploy shell scripts parse OK"
+
+  notify-failure:
+    name: Notify on failure
+    needs: [backend-tests, admin-tests, pos-tests, docker-build, smoke-script]
+    if: failure()
+    uses: ./.github/workflows/notify-failure.yml
+    with:
+      title: CI umbrella failed
+    secrets: inherit
