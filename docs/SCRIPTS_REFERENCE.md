@@ -3,7 +3,7 @@
 > **Last updated:** 2026-07-29  
 > **Purpose:** Complete reference for all root and `scripts/` Windows `.bat` helpers and related `.ps1` tools.
 
-Related: [`BATCH_FILES.md`](BATCH_FILES.md) · [`SCRIPTS_ECOSYSTEM.md`](SCRIPTS_ECOSYSTEM.md) · [`SCRIPTS_QUICK_REF.md`](SCRIPTS_QUICK_REF.md) · [`GETTING_STARTED_SCRIPTS.md`](GETTING_STARTED_SCRIPTS.md) · [`SCRIPTS_TEST_PLAN.md`](SCRIPTS_TEST_PLAN.md) · [`scripts/README.md`](../scripts/README.md) · root [`README.md`](../README.md#getting-started-with-scripts-windows) · [`CONTRIBUTING.md`](../CONTRIBUTING.md#scripts) · [`DEVELOPMENT.md`](../DEVELOPMENT.md#prefer-scripts-windows)
+Related: [`DOCKER_VS_LEGACY.md`](DOCKER_VS_LEGACY.md) · [`BATCH_FILES.md`](BATCH_FILES.md) · [`SCRIPTS_ECOSYSTEM.md`](SCRIPTS_ECOSYSTEM.md) · [`SCRIPTS_QUICK_REF.md`](SCRIPTS_QUICK_REF.md) · [`GETTING_STARTED_SCRIPTS.md`](GETTING_STARTED_SCRIPTS.md) · [`SCRIPTS_TEST_PLAN.md`](SCRIPTS_TEST_PLAN.md) · [`scripts/README.md`](../scripts/README.md) · root [`README.md`](../README.md#getting-started-with-scripts-windows) · [`CONTRIBUTING.md`](../CONTRIBUTING.md#scripts) · [`DEVELOPMENT.md`](../DEVELOPMENT.md#prefer-scripts-windows)
 
 Each user-facing script below documents: **Path**, **Purpose**, **When to use**, **Prerequisites**, **Example**, **Underlying command(s)**, **Output**, and **Error handling**. CI requires every root `*.bat` and every `scripts/*.ps1` to appear in this file (`npm run validate:scripts`).
 
@@ -30,12 +30,21 @@ Each user-facing script below documents: **Path**, **Purpose**, **When to use**,
 
 | Script | What it does | When to use |
 |--------|--------------|-------------|
-| `start-dev.bat` | Starts all services (API + Admin + POS + Sites) | Daily development |
-| `docker-up.bat` | Starts Docker containers | When using Docker |
+| `start.bat` | Mode chooser → Legacy or Docker | Preferred Windows entry |
+| `scripts\legacy\start-all.bat` | Host multi-window stack | Daily DX without Docker |
+| `start-dev.bat` | Starts all services via `npm run dev` | One-terminal npm workspaces |
+| `docker-up.bat` | Starts Docker containers (`scripts\docker\`) | Prod-like / no local SDKs |
 | `docker-down.bat` | Stops Docker containers | Before gaming or shutdown |
 | `docker-status.bat` | Lists running containers | “Is the stack up?” |
+| `docker-logs.bat` | Follow Compose logs | Debug local Docker stack |
 | `test-all.bat` | Runs all tests | Before commit |
 | `deploy.bat` | Prod Compose deploy (confirm + smoke + backup gate) | Production-style host deploy |
+| `deploy-docker.bat` | Thin wrapper → `scripts/docker-deploy.ps1` (+ optional profiles) | Host Compose prod without full `deploy.bat` checklist |
+| `docker-build-prod.bat` | Build prod images | Before `deploy-docker.bat` |
+| `docker-push-prod.bat` | Push images to `DOCKER_REGISTRY` | GHCR / registry publish |
+| `docker-logs-prod.bat` | Tail prod Compose logs | Debug staging/prod host |
+
+Comparison: [`DOCKER_VS_LEGACY.md`](DOCKER_VS_LEGACY.md). Logs (Legacy + Docker bats): `C:\Scripts\logs`.
 
 ---
 
@@ -47,10 +56,14 @@ Which script to use for which task:
 flowchart TD
   start([Need to…]) --> choice{Task category}
 
+  choice -->|Pick mode| Mode[start.bat]
   choice -->|Daily coding| Dev[Development]
   choice -->|Containers| Docker[Docker]
   choice -->|Cleanup / fiscal fixtures| Maint[Maintenance]
   choice -->|Release dry-run| Deploy[Deployment]
+
+  Mode --> L1[scripts/legacy/start-all.bat]
+  Mode --> K0[scripts/docker/docker-up.bat]
 
   Dev --> D1[start-dev.bat]
   Dev --> D2[start-backend / admin / pos / sites]
@@ -61,6 +74,7 @@ flowchart TD
   Docker --> K2[docker-status.bat]
   Docker --> K3[docker-down.bat]
   Docker --> K4[docker-clean.bat]
+  Docker --> K5[docker-logs.bat]
 
   Maint --> M1[scripts/clean-backend.bat]
   Maint --> M2[scripts/ensure-bmf-prueftool.bat]
@@ -80,7 +94,9 @@ flowchart TD
 
 | Category | Prefer | Instead of |
 |----------|--------|------------|
-| Development | `start-dev.bat` | Manually opening 4 terminals |
+| Mode chooser | `start.bat` | Guessing Legacy vs Docker |
+| Legacy (multi-window) | `scripts\legacy\start-all.bat` | Ad-hoc host terminals |
+| Development (npm) | `start-dev.bat` | Manually opening 4 terminals |
 | Docker | `docker-up.bat` / `docker-down.bat` | Typing full `docker compose …` |
 | Maintenance | `scripts\*.bat` | Remembering long PowerShell paths |
 | Deployment | `deploy.bat` | Prod Compose checklist (smoke + backup gate) |
@@ -775,37 +791,40 @@ deploy.bat
 
 1. Pre-deploy smoke (`run-comprehensive-smoke.ps1` — full suite; lightweight `scripts\smoke-test.bat` is curl-only)
 2. Operator confirms backup done
-3. `docker compose -f docker-compose.prod.yml build`
-4. `docker compose -f docker-compose.prod.yml up -d`
-5. Wait 10s + health check; on failure → `call rollback.bat`
+3. `docker compose -f docker-compose.prod.yml --env-file .env.production build`
+4. `docker compose -f docker-compose.prod.yml --env-file .env.production up -d`
+5. Health check `http://127.0.0.1:5184/api/health/live`
 
-**Output:**
+**Error handling:** Any failed step aborts with non-zero exit; health failure invokes `rollback.bat` (git-oriented — confirm intent).
 
-```text
-========================================
- Regkasse Production Deployment
-========================================
+**CI/CD alternative:** GitHub Actions — [`docs/CI_CD.md`](CI_CD.md) (`ci.yml`, `deploy.yml`, `deploy-production.yml`).
 
-WARNING: This will deploy using docker-compose.prod.yml!
-Are you sure? (y/N): y
+### deploy-docker.bat
 
-[1/5] Running pre-deploy checks...
-[OK] Pre-deploy checks passed!
-...
-[5/5] Verifying deployment...
-[OK] All systems healthy!
+**Path:** [`./deploy-docker.bat`](../deploy-docker.bat)
 
-========================================
- Deployment Successful!
-========================================
-  API:   https://api.regkasse.at
-  Admin: https://admin.regkasse.at
-  POS:   https://pos.regkasse.at
+**Purpose:** Operator shortcut to `scripts/docker-deploy.ps1` (prod Compose + `.env.production`, Soft TSE override not loaded). Optional args = Compose profiles (`admin`, `sites`, `pos`).
+
+**Example:**
+
+```batch
+deploy-docker.bat
+deploy-docker.bat admin
 ```
 
-**Error handling:** Cancelled if deploy or backup confirmation is not `y`. Any failed step stops with `[ERROR]` + pause. Health failure invokes `rollback.bat` (second confirmation).
+### CI scripts (`scripts/ci-*.ps1`)
+
+| Script | Purpose |
+|--------|---------|
+| `ci-build.ps1` | Release / Docker image build (+ optional registry push) |
+| `ci-test.ps1` | Backend / Admin / POS test gates |
+| `ci-deploy.ps1` | Deploy webhook + smoke + rollback (ops / CI) |
+
+See [`CI_CD.md`](CI_CD.md) · [`GITHUB_ACTIONS.md`](GITHUB_ACTIONS.md).
 
 ---
+
+## 🔄 Rollback Scripts
 
 ### rollback.bat
 
@@ -1002,10 +1021,16 @@ Primary `.ps1` scripts under [`scripts/`](../scripts/):
 | `dev-mail-config.ps1` | Dot-sourced mail env helper (**not** double-click) | — |
 | `dev-purge-tenant-catalog.ps1` | Dev catalog hard purge | `dev-purge-tenant.bat` |
 | `docker-build.ps1` | `docker compose build` (dev/prod) | `docker-build.bat` |
+| `docker-build-prod.ps1` | Production Compose image build only | `docker-build-prod.bat` (+ root `docker-build-prod.bat`) |
 | `docker-deploy.ps1` | Production-oriented Compose deploy helper | `docker-deploy.bat` |
 | `docker-diagnose.ps1` | Windows Docker/WSL/ports diagnose | `docker-diagnose.bat` |
 | `docker-down.ps1` | Compose down helper | `docker-down.bat` |
+| `docker-logs-prod.ps1` | Tail prod Compose logs | `docker-logs-prod.bat` (+ root) |
+| `docker-push-prod.ps1` | Tag + push prod images to registry | `docker-push-prod.bat` (+ root) |
 | `docker-up.ps1` | Compose up helper (profiles/build flags) | `docker-up.bat` |
+| `ci-build.ps1` | CI: Release build and/or Docker images (+ optional push) | `ci-build.bat` |
+| `ci-test.ps1` | CI: backend / Admin / POS test gates | `ci-test.bat` |
+| `ci-deploy.ps1` | CI/ops: deploy webhook + smoke + rollback | `ci-deploy.bat` |
 | `ensure-bmf-prueftool.ps1` | Download BMF Prüftool JARs | `ensure-bmf-prueftool.bat` |
 | `generate-dep-export-fixtures.ps1` | Write Prüftool fixtures | `generate-dep-export.bat` |
 | `run-comprehensive-smoke.ps1` | Full HTTP smoke | `run-comprehensive-smoke.bat` (lightweight: `smoke-test.bat`) |
@@ -1020,6 +1045,8 @@ Primary `.ps1` scripts under [`scripts/`](../scripts/):
 | `validate-scripts.ps1` | Pairing + documentation gate (CI) | `validate-scripts.bat` |
 | `verify-rksv-dep-export.ps1` | BMF DEP JSON Prüftool | `verify-rksv-dep-export.bat` |
 | `verify-rksv-receipt-qr.ps1` | Receipt QR Prüftool | `verify-rksv-receipt-qr.bat` |
+
+Also (bat-only alias, no same-name `.ps1`): `test-mode-scripts.bat` — Legacy / Docker / `start.bat` structural smoke.
 
 ### Notable parameters
 

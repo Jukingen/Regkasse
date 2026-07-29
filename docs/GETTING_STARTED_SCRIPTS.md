@@ -20,12 +20,18 @@ First-time backend secrets: see [`../backend/README.md`](../backend/README.md) o
 ### 2. Start developing
 
 ```batch
-REM Option A — Docker Compose (production-like stack)
-docker-up.bat
+REM Preferred — choose Legacy (no Docker) or Docker Mode
+start.bat
 
-REM Option B — Local host services (typical daily DX)
+REM Or pick explicitly:
+REM   scripts\legacy\start-all.bat
+REM   scripts\docker\docker-up.bat
+
+REM Single-terminal npm workspaces (also fine for daily DX)
 start-dev.bat
 ```
+
+Comparison: [`DOCKER_VS_LEGACY.md`](DOCKER_VS_LEGACY.md). Both Legacy and Docker write operator logs to `C:\Scripts\logs`.
 
 | Surface | URL |
 |---------|-----|

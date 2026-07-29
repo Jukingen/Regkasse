@@ -143,18 +143,31 @@ Default local ports: API **5184**, Admin **3000**, POS **8081**, Sites **3001**.
 
 ### Prefer scripts (Windows)
 
-Instead of remembering long commands, use root / `scripts\` helpers:
+Instead of remembering long commands, use root / `scripts\` helpers.
+
+**Two run modes** — full comparison: [`docs/DOCKER_VS_LEGACY.md`](docs/DOCKER_VS_LEGACY.md)
+
+| Mode | Entry | Needs on host | Logs |
+|------|-------|---------------|------|
+| **Legacy** | `start.bat` → `[1]` or `scripts\legacy\start-all.bat` | Node, .NET, Postgres, Redis | `C:\Scripts\logs\` |
+| **Docker** | `start.bat` → `[2]` or `docker-up.bat` | Docker Desktop only | `C:\Scripts\logs\` |
+| **npm (one terminal)** | `start-dev.bat` | Node + .NET (+ DB/Redis) | console |
+
+**Recommendation:** Legacy (or `start-dev.bat`) for daily coding; Docker for prod-like smoke, onboarding, and deploy testing. **Rollback:** if Docker fails, use Legacy.
 
 | Task | Script | Manual equivalent |
 |------|--------|-------------------|
-| Start everything | `start-dev.bat` | `npm run dev` |
+| Choose Legacy / Docker | `start.bat` | — |
+| Legacy all windows | `scripts\legacy\start-all.bat` | separate `dotnet` / `npm` / Redis windows |
+| Docker up / down / status / logs | `docker-up.bat` / `docker-down.bat` / `docker-status.bat` / `docker-logs.bat` | `docker compose …` |
+| Docker clean | `docker-clean.bat` | `compose down -v` + `system prune` (**destructive**) |
+| Start everything (npm) | `start-dev.bat` | `npm run dev` |
 | API only | `start-backend.bat` | `npm run dev:backend` |
 | Admin only | `start-admin.bat` | `npm run dev:admin` |
 | POS only | `start-pos.bat` | `npm run dev:pos` |
 | Sites only | `start-sites.bat` | `npm run dev:sites` |
 | Run tests | `test-all.bat` | `dotnet test` + Admin/POS `npm run test` (sequential) |
 | Clean artifacts | `clean-all.bat` | Confirm + remove `bin`/`obj`/`.next`/… (or `npm run clean`) |
-| Docker up / down / status | `docker-up.bat` / `docker-down.bat` / `docker-status.bat` | `docker compose up -d` / `down` / `ps` |
 | Quick smoke | `scripts\smoke-test.bat` | `curl` API + Admin + POS |
 | Full smoke | `scripts\run-comprehensive-smoke.bat` | `.\scripts\run-comprehensive-smoke.ps1` |
 | Prod Compose deploy | `deploy.bat` | `docker compose -f docker-compose.prod.yml …` (+ gates) |
@@ -171,6 +184,7 @@ Instead of remembering long commands, use root / `scripts\` helpers:
 ```bash
 npm run dev
 # Windows: start-dev.bat
+# Or: start.bat → Legacy / Docker
 ```
 
 ### Backend
@@ -256,6 +270,8 @@ make clean
 ---
 
 ## Docker Compose (full stack)
+
+Windows **bat** entry points: [`scripts/docker/`](scripts/docker/) (via `start.bat` → `[2]` or root `docker-up.bat`). Legacy host alternative: [`scripts/legacy/`](scripts/legacy/). Comparison: [`docs/DOCKER_VS_LEGACY.md`](docs/DOCKER_VS_LEGACY.md).
 
 One-command local environment from the **repository root**: PostgreSQL, Redis, ASP.NET API, Frontend-Admin (Next.js), and optionally POS static web (Expo export → nginx) and/or tenant Sites.
 

@@ -38,10 +38,12 @@ const PS1_OPTIONAL_BAT = new Set([
   'fix-antd.bat', // → fix-antd-deprecations.mjs
   'dev-mail.bat', // env + dev-mail-test.bat
   'dev-mail-test.bat', // → test-forgot-username-email.ps1
+  'test-mode-scripts.bat', // Legacy/Docker mode structural smoke (no .ps1 pair)
 ]);
 
 /** Root-level convenience .bat files (npm / docker / deploy) — no .ps1 pair required. */
 const ROOT_BAT_ONLY = new Set([
+  'start.bat', // mode chooser → scripts/legacy vs scripts/docker
   'start-dev.bat',
   'start-backend.bat',
   'start-admin.bat',
@@ -53,7 +55,12 @@ const ROOT_BAT_ONLY = new Set([
   'docker-down.bat',
   'docker-clean.bat',
   'docker-status.bat',
+  'docker-logs.bat',
+  'docker-build-prod.bat',
+  'docker-logs-prod.bat',
+  'docker-push-prod.bat',
   'deploy.bat',
+  'deploy-docker.bat',
   'rollback.bat',
 ]);
 

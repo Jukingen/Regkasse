@@ -20,26 +20,30 @@ Use `-Force` only when you intentionally want to overwrite auto-generated wrappe
 
 | File | Runs | When to use |
 |------|------|-------------|
-| [`start-dev.bat`](../start-dev.bat) | `npm run dev` | Daily local stack (API + Admin + POS + Sites) |
-| [`start-backend.bat`](../start-backend.bat) | `npm run dev:backend` | API only |
+| [`start.bat`](../start.bat) | Chooser → Legacy or Docker | Preferred entry: pick mode |
+| [`start-dev.bat`](../start-dev.bat) | `npm run dev` | Daily local stack (API + Admin + POS + Sites) in one terminal |
+| [`start-backend.bat`](../start-backend.bat) | `npm run dev:backend` | API only (npm workspace) |
 | [`start-admin.bat`](../start-admin.bat) | `npm run dev:admin` | Admin (FA) only |
 | [`start-pos.bat`](../start-pos.bat) | `npm run dev:pos` | POS (Expo) only |
 | [`start-sites.bat`](../start-sites.bat) | `npm run dev:sites` | Tenant Sites only |
 | [`test-all.bat`](../test-all.bat) | Backend → Admin → POS tests (sequential) | All package tests before commit |
 | [`clean-all.bat`](../clean-all.bat) | Confirm + remove `bin`/`obj`/`.next`/`.expo`/… | Remove shared build artifacts |
-| [`docker-up.bat`](../docker-up.bat) | `docker compose up -d` | Start Compose stack detached |
-| [`docker-down.bat`](../docker-down.bat) | `docker compose down` | Stop Compose stack |
-| [`docker-status.bat`](../docker-status.bat) | Formatted `docker ps` | List running containers |
-| [`docker-clean.bat`](../docker-clean.bat) | `compose down -v` + `system prune` | **Destructive** local Docker cleanup (confirms first) |
+| [`docker-up.bat`](../docker-up.bat) | → [`scripts/docker/docker-up.bat`](../scripts/docker/docker-up.bat) | Start Compose stack detached |
+| [`docker-down.bat`](../docker-down.bat) | → `scripts/docker/docker-down.bat` | Stop Compose stack |
+| [`docker-status.bat`](../docker-status.bat) | → `scripts/docker/docker-status.bat` | List running containers |
+| [`docker-logs.bat`](../docker-logs.bat) | → `scripts/docker/docker-logs.bat` | Follow Compose logs |
+| [`docker-clean.bat`](../docker-clean.bat) | → `scripts/docker/docker-clean.bat` | **Destructive** local Docker cleanup (confirms first) |
 | [`deploy.bat`](../deploy.bat) | Confirm → smoke → backup confirm → `docker-compose.prod.yml` | Production-style Compose deploy |
 | [`rollback.bat`](../rollback.bat) | Confirm → `git reset --hard HEAD~1` + prod Compose rebuild | **Destructive** last-commit undo + redeploy |
 
+**Legacy multi-window / Docker comparison:** [`DOCKER_VS_LEGACY.md`](DOCKER_VS_LEGACY.md) · folders [`scripts/legacy/`](../scripts/legacy/), [`scripts/docker/`](../scripts/docker/). Logs for both modes: `C:\Scripts\logs`.
+
 ### Typical day
 
-1. `start-dev.bat` (or `docker-up.bat` + host apps)
+1. `start.bat` → Legacy or Docker (or `start-dev.bat` for single-terminal npm)
 2. Change code
 3. `test-all.bat` or package-specific tests
-4. `docker-down.bat` when finished with containers
+4. `docker-down.bat` when finished with containers (Docker mode)
 
 ### Cleanup
 

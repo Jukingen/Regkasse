@@ -8,11 +8,13 @@ Prefer root `package.json` aliases when available. This folder is **not** an npm
 | Doc | Use when |
 |-----|----------|
 | [`docs/GETTING_STARTED_SCRIPTS.md`](../docs/GETTING_STARTED_SCRIPTS.md) | 5-minute Windows scripts onboarding |
+| [`docs/DOCKER_VS_LEGACY.md`](../docs/DOCKER_VS_LEGACY.md) | Legacy host vs Docker Compose mode |
 | [`docs/SCRIPTS_REFERENCE.md`](../docs/SCRIPTS_REFERENCE.md) | Full Windows `.bat` / `.ps1` catalog + flowchart |
 | [`docs/SCRIPTS_ECOSYSTEM.md`](../docs/SCRIPTS_ECOSYSTEM.md) | Visual “which script?” map |
 | [`docs/SCRIPTS_QUICK_REF.md`](../docs/SCRIPTS_QUICK_REF.md) | One-screen icon card |
 | [`docs/BATCH_FILES.md`](../docs/BATCH_FILES.md) | Short `.bat` inventory |
-| Root [`*.bat`](../start-dev.bat) | Double-click helpers at repo root |
+| Root [`start.bat`](../start.bat) | Mode chooser (Legacy / Docker) |
+| [`scripts/legacy/`](legacy/) · [`scripts/docker/`](docker/) | Mode-specific Windows helpers |
 
 ### Quick start (Windows)
 

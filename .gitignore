@@ -174,6 +174,7 @@ backend/**/appsettings.*.json
 # Tracked templates (negate after generic ignore rules)
 !backend/appsettings.example.json
 !backend/appsettings.Development.example.json
+!backend/appsettings.Staging.example.json
 !backend/appsettings.Production.example.json
 backend/**/appsettings.Development.json
 backend/**/App_Data/
@@ -317,8 +318,21 @@ backend/UpdateDatabase.cs
 !**/*.example.pem
 # BMF Prüftool — local JARs, JAR extract scratch, run output (see backend/Tests/README.md)
 verification_output/
+verification_output*/
+verification_output_p21/
 backend/Tests/lib/
 backend/Tests/*.jar
 backend/Tests/_jar_*/
 backend/Tests/_bmf_example/
 # Committed: backend/Tests/fixtures/prueftool/*.json + README.md
+
+# Portable Redis binaries downloaded by start-redis-dev / legacy start-redis.bat
+tools/redis/redis-server.exe
+tools/redis/redis-cli.exe
+tools/redis/*.dll
+tools/redis/Logs/
+tools/redis/*.pdb
+
+# Machine-local operator log mirrors (canonical logs live in C:\Scripts\logs)
+scripts/**/*.log
+

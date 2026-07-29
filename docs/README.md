@@ -22,8 +22,10 @@ Human-facing guides for operators and developers.
 | [`PROJECT_COMPREHENSIVE_DOCUMENTATION.md`](PROJECT_COMPREHENSIVE_DOCUMENTATION.md) | Dev / ops | Full improvement inventory, TSE ops wave, deploy checklist |
 | [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md) | Ops | New mandant onboarding |
 | [`GETTING_STARTED_SCRIPTS.md`](GETTING_STARTED_SCRIPTS.md) | Dev (Windows) | 5-minute scripts onboarding |
+| [`DOCKER_VS_LEGACY.md`](DOCKER_VS_LEGACY.md) | Dev (Windows) | **Legacy vs Docker mode** comparison + switch guide |
 | [`TEAM_ANNOUNCEMENT_SCRIPTS.md`](TEAM_ANNOUNCEMENT_SCRIPTS.md) | Dev (Windows) | Team announcement (Slack/email) |
 | [`SCRIPTS_FINAL_SUMMARY.md`](SCRIPTS_FINAL_SUMMARY.md) | Dev (Windows) | Final delivery statistics |
+| [`NEXT_STEPS_AFTER_SCRIPTS.md`](NEXT_STEPS_AFTER_SCRIPTS.md) | Dev / ops | Priority matrix + production Docker plan |
 | [`SCRIPTS_COMPLETION_SUMMARY.md`](SCRIPTS_COMPLETION_SUMMARY.md) | Dev (Windows) | Delivery summary, team checklist, what’s next |
 | [`SCRIPTS_TEAM_ANNOUNCEMENT.md`](SCRIPTS_TEAM_ANNOUNCEMENT.md) | Dev (Windows) | Short team announcement (optional share) |
 | [`SCRIPTS_REFERENCE.md`](SCRIPTS_REFERENCE.md) | Dev (Windows) | `.bat` / `.ps1` catalog, flowchart, troubleshooting |
@@ -84,6 +86,7 @@ FA hub: `/backup` (+ `/backup/costs`, `/backup/compliance`, dashboard, runs, con
 |-----|--------|
 | [`ENVIRONMENT_CONFIGURATION.md`](ENVIRONMENT_CONFIGURATION.md) | **Dev / Staging / Production / Canary, RELEASE_STAGE, banners, promotion** |
 | [`CANARY_DEPLOYMENT.md`](CANARY_DEPLOYMENT.md) | **Tenant-based canary: selection, soak monitoring, rollback** |
+| [`DEPLOYMENT_COMPLIANCE.md`](DEPLOYMENT_COMPLIANCE.md) | **Production RKSV gate, ComplianceOfficer, audit trail** |
 | [`FEATURE_FLAGS.md`](FEATURE_FLAGS.md) | **Feature flags: config defaults, tenant_settings overrides, Admin API, FA UI** |
 | [`DATABASE_MIGRATION_STRATEGY.md`](DATABASE_MIGRATION_STRATEGY.md) | **Additive EF migrations, Staging→Prod CI, rollback posture** |
 | [`DEPLOYMENT_SMOKE_TEST.md`](DEPLOYMENT_SMOKE_TEST.md) | **Smoke checks, manual run, CI auto vs manual rollback** |
@@ -132,6 +135,7 @@ Release notes under [`release/`](release/) (FO reconciliation, offline separatio
 | [`DOCKER_WINDOWS_SETUP.md`](DOCKER_WINDOWS_SETUP.md) | Docker Desktop + WSL2 on Windows |
 | [`DOCKER_WINDOWS_TROUBLESHOOTING.md`](DOCKER_WINDOWS_TROUBLESHOOTING.md) | Docker Windows install / runtime / network fixes |
 | [`DOCKER.md`](DOCKER.md) / [`DOCKER.de.md`](DOCKER.de.md) | **Docker hub** (EN / DE) — Compose modes, links |
+| [`DOCKER_VS_LEGACY.md`](DOCKER_VS_LEGACY.md) | Legacy host scripts vs Docker Compose (Windows bats) |
 | [`DOCKER_SETUP.md`](DOCKER_SETUP.md) / [`DOCKER_SETUP.de.md`](DOCKER_SETUP.de.md) | **Docker migration & setup plan** (EN / DE) |
 | [`DOCKER_WINDOWS_SETUP.de.md`](DOCKER_WINDOWS_SETUP.de.md) / [`DOCKER_WINDOWS_TROUBLESHOOTING.de.md`](DOCKER_WINDOWS_TROUBLESHOOTING.de.md) | Docker Windows (Deutsch) |
 | [`ANDROID_RELEASE_SIGNING.md`](ANDROID_RELEASE_SIGNING.md) | Android signing |
