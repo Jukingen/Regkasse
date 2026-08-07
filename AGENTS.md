@@ -878,3 +878,32 @@ Frontend Sites:
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://localhost:5184
 ```
+
+## Cursor Cloud specific instructions
+
+This section captures durable, non-obvious notes for cloud agents. The VM already has dependencies installed by the startup update script (`npm install`); standard run/test commands live in [`DEVELOPMENT.md`](DEVELOPMENT.md) and package scripts — prefer those and only note deviations here.
+
+### Preinstalled toolchain (already on the VM)
+- **.NET SDK 10** is installed under `~/.dotnet` and added to `PATH` + `DOTNET_ROOT` via `~/.bashrc` (not on the default system PATH). New non-login shells may need `export DOTNET_ROOT="$HOME/.dotnet"; export PATH="$HOME/.dotnet:$PATH"`.
+- **Node 22** and **Java 21** are on PATH. **PostgreSQL 16** and **Redis 7** are installed **natively** (not Docker — Docker is not available in this VM).
+
+### Start local infra + services
+- Databases are native services, started with `sudo service postgresql start` and `sudo service redis-server start` (systemd is not running, so `service`/`pg_ctlcluster` — not `systemctl`). Postgres listens on `localhost:5432`, Redis on `localhost:6379`.
+- DB is `kasse_db`, user/pass `postgres`/`postgres`. Backend reads the connection string + `JwtSettings:SecretKey` from **`dotnet user-secrets`** (already set, persisted in `~/.microsoft/usersecrets`). `backend/appsettings.json` + `backend/appsettings.Development.json` were copied from the `*.example.json` templates (gitignored).
+- Run order: infra → backend (`npm run dev:backend` or `dotnet run --project backend/KasseAPI_Final.csproj --launch-profile http`, port **5184**) → `npm run dev:admin` (**3000**) → POS `npm run dev:pos` / `npm run web` in `frontend/` (Expo web, **8081**). The POS web bundle compiles on the first request (~15–20 s) — a slow first load is normal.
+
+### CRITICAL gotcha — skipped EF migrations on a fresh database
+- The backend applies migrations via `db.Database.Migrate()` on startup. **15 migration files in `backend/Migrations/` have no `[Migration]` attribute / Designer file** (hand-written), so EF never discovers or applies them. Most of their objects are re-created by later applied migrations, but on a **fresh** DB three schema pieces end up missing and startup **seeding crashes** (`42703: column a.deactivated_at does not exist`):
+  - `AspNetUsers.deactivated_at` / `deactivated_by` / `deactivation_reason`
+  - `periodenbericht_runs` table (+ indexes/FK)
+  - `tse_device_health_samples.response_time_ms`
+- The current VM database has already been patched (idempotent SQL) and is fully migrated + seeded; it persists in the environment snapshot, so normal boots need no action. **Only if you drop/recreate/wipe `kasse_db`** (e.g. `docker compose down -v` equivalents, manual `dropdb`), re-apply the patch **after** the first `dotnet run` (which creates the EF-known tables) with:
+  ```bash
+  PGPASSWORD=postgres psql -h localhost -U postgres -d kasse_db -f ~/orphan_schema_patch.sql
+  ```
+  then restart the backend so seeding completes. Do **not** "fix" this by editing migration files unless that is the explicit task.
+
+### Auth / tenant for local testing
+- Seeded dev accounts: `admin@admin.com` / `Admin123!` (SuperAdmin) and `demo@demo.com` (demo). Dev tenant slug is `dev` (send `X-Tenant-Id: dev` or `?tenant=dev`; only honored when `ASPNETCORE_ENVIRONMENT=Development`).
+- `POST /api/Auth/login` requires a `clientApp` field (`"admin"` or `"pos"`) in addition to `loginIdentifier` + `password`.
+- Fiscal/external integrations are simulated in Development (Soft TSE, FinanzOnline simulation, NTP bypass, Mock payment gateway) — no real devices/credentials needed.
