@@ -3,7 +3,26 @@
 Node, PowerShell, shell, and SQL helpers for local development, CI gates, fiscal checks, and ops.  
 Prefer root `package.json` aliases when available. This folder is **not** an npm workspace publish target.
 
-**Last reviewed:** 2026-07-29
+**Last reviewed:** 2026-08-01
+
+Windows `.bat` / `.ps1` live under **categories** (repo root has **zero** `.bat` files).
+
+**DANGER suffix:** Scripts that can wipe data, volumes, or git history are named `*.DANGER.bat` / `*.DANGER.ps1` (e.g. `clean.DANGER.bat`, `rollback.DANGER.bat`). Read their warnings before running.
+
+Windows `.bat` UI strings in this tree are **English**.
+
+| Category | Path |
+|----------|------|
+| Dev / chooser | [`dev/`](dev/) |
+| Docker (PS + host) | [`docker/`](docker/) · [`docker/host/`](docker/host/) |
+| Legacy host | [`legacy/`](legacy/) |
+| CI | [`ci/`](ci/) |
+| RKSV / fiscal | [`rksv/`](rksv/) |
+| Test / smoke | [`test/`](test/) |
+| Ops / deploy | [`ops/`](ops/) |
+| Lib / gates | [`lib/`](lib/) |
+
+Node CI helpers (`.mjs`) stay at `scripts/` root for stable npm paths.
 
 | Doc | Use when |
 |-----|----------|
@@ -13,51 +32,48 @@ Prefer root `package.json` aliases when available. This folder is **not** an npm
 | [`docs/SCRIPTS_ECOSYSTEM.md`](../docs/SCRIPTS_ECOSYSTEM.md) | Visual “which script?” map |
 | [`docs/SCRIPTS_QUICK_REF.md`](../docs/SCRIPTS_QUICK_REF.md) | One-screen icon card |
 | [`docs/BATCH_FILES.md`](../docs/BATCH_FILES.md) | Short `.bat` inventory |
-| Root [`start.bat`](../start.bat) | Mode chooser (Legacy / Docker) |
-| [`scripts/legacy/`](legacy/) · [`scripts/docker/`](docker/) | Mode-specific Windows helpers |
+| [`dev/start.bat`](dev/start.bat) | Mode chooser (Legacy / Docker) |
 
 ### Quick start (Windows)
 
 ```batch
 REM From repo root
-start-dev.bat
-scripts\smoke-test.bat
-test-all.bat
+scripts\dev\start-dev.bat
+scripts\test\smoke-test.bat
+scripts\test\test-all.bat
 npm run validate:scripts
 ```
 
 ---
 
-## Windows `.bat` / `.ps1` in this folder
+## Windows `.bat` / `.ps1` by category
 
 Most PowerShell scripts have a sibling `.bat` for double-click / `cmd` use. Aliases (different basename) are intentional.
 
 | Script / wrapper | Purpose |
 |------------------|---------|
-| [`create-bat-wrappers.ps1`](create-bat-wrappers.ps1) (+ `.bat`) | Generate missing sibling `.bat` for each `.ps1` |
-| [`test-scripts.ps1`](test-scripts.ps1) (+ `.bat`) | Dry-run structural test plan for Windows bats — [`docs/SCRIPTS_TEST_PLAN.md`](../docs/SCRIPTS_TEST_PLAN.md) |
-| [`validate-scripts.ps1`](validate-scripts.ps1) (+ `.bat`) | Pairing + `SCRIPTS_REFERENCE.md` coverage gate (`npm run validate:scripts`) |
-| [`verify-bat-ps1-pairing.mjs`](verify-bat-ps1-pairing.mjs) | CI gate: pairing + allowlists (`npm run verify:bat-ps1`) |
-| [`_common.bat`](_common.bat) | Shared `call` helpers (not double-click) |
-| [`run-with-log.bat`](run-with-log.bat) | Run any command → `logs\run_*.log` |
-| [`smoke-test.bat`](smoke-test.bat) | Lightweight curl API/Admin/POS (full: `run-comprehensive-smoke.bat`) |
-| [`clean-backend.bat`](clean-backend.bat) | → `clean-backend-build.ps1` |
-| [`generate-dep-export.bat`](generate-dep-export.bat) | → `generate-dep-export-fixtures.ps1` |
-| [`dev-purge-tenant.bat`](dev-purge-tenant.bat) | → `dev-purge-tenant-catalog.ps1` |
-| [`fix-antd.bat`](fix-antd.bat) | → `fix-antd-deprecations.mjs` (Node) |
-| [`dev-mail.bat`](dev-mail.bat) | Env setup + `dev-mail-test.bat` |
-| [`ensure-bmf-prueftool.ps1`](ensure-bmf-prueftool.ps1) (+ `.bat`) | Download BMF Prüftool JARs |
-| [`docker-up.ps1`](docker-up.ps1) / [`docker-down.ps1`](docker-down.ps1) / [`docker-build.ps1`](docker-build.ps1) / [`docker-deploy.ps1`](docker-deploy.ps1) / [`docker-diagnose.ps1`](docker-diagnose.ps1) | Compose helpers (+ `.bat`) |
-| [`verify-rksv-dep-export.ps1`](verify-rksv-dep-export.ps1) (+ `.bat`) | BMF DEP verify |
-| [`start-redis-dev.ps1`](start-redis-dev.ps1) (+ `.bat`) | Portable Redis |
-| [`dev-mail-config.ps1`](dev-mail-config.ps1) | **Library only** — no `.bat` (allowlisted) |
-
-Root convenience bats (`start-dev.bat`, `docker-up.bat`, `deploy.bat`, …) live in the **repo root**, not here — see SCRIPTS_REFERENCE.
+| [`lib/create-bat-wrappers.ps1`](lib/create-bat-wrappers.ps1) (+ `.bat`) | Generate missing sibling `.bat` for each `.ps1` |
+| [`test/test-scripts.ps1`](test/test-scripts.ps1) (+ `.bat`) | Dry-run structural test plan — [`docs/SCRIPTS_TEST_PLAN.md`](../docs/SCRIPTS_TEST_PLAN.md) |
+| [`lib/validate-scripts.ps1`](lib/validate-scripts.ps1) (+ `.bat`) | Pairing + `SCRIPTS_REFERENCE.md` coverage (`npm run validate:scripts`) |
+| [`verify-bat-ps1-pairing.mjs`](verify-bat-ps1-pairing.mjs) | CI gate: recursive pairing + allowlists (`npm run verify:bat-ps1`) |
+| [`lib/_common.bat`](lib/_common.bat) | Shared `call` helpers |
+| [`lib/run-with-log.bat`](lib/run-with-log.bat) | Run any command → `logs\run_*.log` |
+| [`test/smoke-test.bat`](test/smoke-test.bat) | Lightweight curl smoke |
+| [`dev/clean-backend.bat`](dev/clean-backend.bat) | → `clean-backend-build.ps1` |
+| [`rksv/generate-dep-export.bat`](rksv/generate-dep-export.bat) | → `generate-dep-export-fixtures.ps1` |
+| [`dev/dev-purge-tenant.bat`](dev/dev-purge-tenant.bat) | → `dev-purge-tenant-catalog.DANGER.ps1` |
+| [`dev/fix-antd.bat`](dev/fix-antd.bat) | → `fix-antd-deprecations.mjs` |
+| [`dev/dev-mail.bat`](dev/dev-mail.bat) | Env setup + `dev-mail-test.bat` |
+| [`rksv/ensure-bmf-prueftool.ps1`](rksv/ensure-bmf-prueftool.ps1) (+ `.bat`) | Download BMF Prüftool JARs |
+| [`docker/docker-up.ps1`](docker/docker-up.ps1) (+ down/build/deploy/diagnose) | Compose helpers |
+| [`rksv/verify-rksv-dep-export.ps1`](rksv/verify-rksv-dep-export.ps1) (+ `.bat`) | BMF DEP verify |
+| [`dev/start-redis-dev.ps1`](dev/start-redis-dev.ps1) (+ `.bat`) | Portable Redis |
+| [`dev/dev-mail-config.ps1`](dev/dev-mail-config.ps1) | **Library only** — no `.bat` (allowlisted) |
 
 ### How to create a new script
 
-1. Add `scripts/my-task.ps1` (or `.mjs` for Node).
-2. For PowerShell: run `scripts\create-bat-wrappers.bat` to create `my-task.bat` (or write a hand-crafted wrapper like DEP bats).
+1. Add `scripts/<category>/my-task.ps1` (or `.mjs` at `scripts/` root for Node CI gates).
+2. For PowerShell: run `scripts\lib\create-bat-wrappers.bat` (or write a hand-crafted wrapper).
 3. Document in [`docs/SCRIPTS_REFERENCE.md`](../docs/SCRIPTS_REFERENCE.md) if it is user-facing.
 4. If the `.bat` basename must differ from the `.ps1` (alias), add it to `PS1_OPTIONAL_BAT` in [`verify-bat-ps1-pairing.mjs`](verify-bat-ps1-pairing.mjs).
 5. If a `.ps1` is a library (dot-sourced only), add it to `BAT_OPTIONAL_PS1`.
@@ -65,7 +81,7 @@ Root convenience bats (`start-dev.bat`, `docker-up.bat`, `deploy.bat`, …) live
 
 ```batch
 REM From repo root
-scripts\create-bat-wrappers.bat
+scripts\lib\create-bat-wrappers.bat
 npm run verify:bat-ps1
 ```
 
@@ -136,7 +152,7 @@ npm run install:git-hooks
 | [`clean-backend-build.ps1`](clean-backend-build.ps1) | Clean backend build artifacts (manual) |
 | [`dev-mail-test.bat`](dev-mail-test.bat) / [`dev-mail-config.ps1`](dev-mail-config.ps1) / [`test-forgot-username-email.ps1`](test-forgot-username-email.ps1) | Dev mail capture — see `docs/EMAIL_CONFIGURATION.md` |
 | [`dev-mail.local.env.example`](dev-mail.local.env.example) | Template (local env is gitignored) |
-| [`dev-purge-tenant-catalog.ps1`](dev-purge-tenant-catalog.ps1) (+ `.bat`) | **Development-only** catalog purge via API (manual; often gitignored locally) |
+| [`dev-purge-tenant-catalog.DANGER.ps1`](dev-purge-tenant-catalog.DANGER.ps1) (+ `.bat`) | **Development-only** catalog purge via API (manual; often gitignored locally) |
 | [`beta-preflight.mjs`](beta-preflight.mjs) | Read-only beta env checks — `docs/beta-env-matrix.md` |
 
 ---

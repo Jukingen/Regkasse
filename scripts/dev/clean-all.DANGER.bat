@@ -1,9 +1,13 @@
 @echo off
+REM =============================================================================
+REM DANGER: This script can destroy data, wipe volumes, or rewrite git history.
+REM Read the warnings below carefully before confirming.
+REM =============================================================================
 setlocal EnableExtensions
 chcp 65001 >nul
 
 echo ========================================
-echo  Cleaning All Build Artifacts
+echo  DANGER: Cleaning All Build Artifacts
 echo ========================================
 echo.
 echo WARNING: This will remove all build artifacts!
@@ -15,7 +19,7 @@ if /i not "%confirm%"=="y" (
     exit /b 0
 )
 
-cd /d "%~dp0"
+cd /d "%~dp0..\.."
 
 echo.
 echo [1/4] Cleaning backend...

@@ -92,15 +92,15 @@ On Windows, prefer root / `scripts\` **`.bat`** helpers instead of typing long n
 
 | Script | What it does |
 |--------|----------------|
-| `start-dev.bat` | Full stack (`npm run dev`) — API + Admin + POS + Sites |
-| `start-backend.bat` / `start-admin.bat` / `start-pos.bat` / `start-sites.bat` | Single surface |
-| `test-all.bat` | Sequential Backend → Admin → POS tests |
-| `clean-all.bat` | Confirm + clean build artifacts |
-| `docker-up.bat` / `docker-down.bat` / `docker-status.bat` | Compose lifecycle |
-| `docker-clean.bat` | Volumes + prune (**data loss**) |
-| `deploy.bat` / `rollback.bat` | Prod Compose deploy / hard-reset rollback (**destructive**) |
-| `scripts\smoke-test.bat` | Lightweight curl smoke |
-| `scripts\run-comprehensive-smoke.bat` | Full smoke suite |
+| `scripts\dev\start-dev.bat` | Full stack (`npm run dev`) — API + Admin + POS + Sites |
+| `scripts\dev\start-backend.bat` / `start-admin.bat` / `start-pos.bat` / `start-sites.bat` | Single surface |
+| `scripts\test\test-all.bat` | Sequential Backend → Admin → POS tests |
+| `scripts\dev\clean-all.DANGER.bat` | Confirm + clean build artifacts |
+| `scripts\docker\host\up.bat` / `down.bat` / `status.bat` | Compose lifecycle |
+| `scripts\docker\host\clean.DANGER.bat` | Volumes + prune (**data loss**) |
+| `scripts\ops\deploy.DANGER.bat` / `scripts\ops\rollback.DANGER.bat` | Prod Compose deploy / hard-reset rollback (**destructive**) |
+| `scripts\test\smoke-test.bat` | Lightweight curl smoke |
+| `scripts\test\run-comprehensive-smoke.bat` | Full smoke suite |
 
 ### Docs
 
@@ -112,7 +112,7 @@ On Windows, prefer root / `scripts\` **`.bat`** helpers instead of typing long n
 
 ### When adding a script (PRs)
 
-1. Prefer `scripts/<name>.ps1` (or `.mjs`) + sibling `.bat` (`scripts\create-bat-wrappers.bat`).
+1. Prefer `scripts/<category>/<name>.ps1` (or `.mjs` at `scripts/` root) + sibling `.bat` (`scripts\lib\create-bat-wrappers.bat`).
 2. Document user-facing scripts in `docs/SCRIPTS_REFERENCE.md`.
 3. Keep pairing green: `npm run verify:bat-ps1` and `npm run validate:scripts` (CI: `scripts-bat-ps1-pairing.yml`).
 4. Aliases / libraries: update allowlists in `scripts/verify-bat-ps1-pairing.mjs`.

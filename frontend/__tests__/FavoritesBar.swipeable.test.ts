@@ -26,13 +26,12 @@ describe('FavoritesBar gesture migration', () => {
 });
 
 describe('Reanimated config', () => {
-  it('registers react-native-reanimated/plugin after other babel plugins', () => {
+  it('relies on babel-preset-expo for reanimated/worklets (no duplicate plugin)', () => {
     const babel = fs.readFileSync(path.join(__dirname, '../babel.config.js'), 'utf8');
-    const reanimatedIdx = babel.indexOf("'react-native-reanimated/plugin'");
-    const moduleResolverIdx = babel.indexOf("'module-resolver'");
-    expect(reanimatedIdx).toBeGreaterThan(-1);
-    expect(moduleResolverIdx).toBeGreaterThan(-1);
-    expect(reanimatedIdx).toBeGreaterThan(moduleResolverIdx);
-    expect(babel).toContain('// Must be last');
+    expect(babel).toContain("'babel-preset-expo'");
+    expect(babel).toContain("'module-resolver'");
+    // Preset injects reanimated/worklets once; listing the plugin again breaks transform order.
+    expect(babel).not.toContain("'react-native-reanimated/plugin'");
+    expect(babel).toMatch(/Do not re-list those plugins|babel-preset-expo already enables/i);
   });
 });

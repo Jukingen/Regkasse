@@ -15,7 +15,7 @@ param(
     [switch]$DetailedOutput
 )
 
-$repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
+$repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 $fixtureDir = Join-Path $repoRoot "backend\Tests\fixtures\prueftool"
 
 if ($UseFixtures) {

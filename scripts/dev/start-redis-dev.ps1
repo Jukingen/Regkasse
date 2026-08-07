@@ -17,7 +17,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$repoRoot = Split-Path -Parent $PSScriptRoot
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $redisDir = Join-Path $repoRoot "tools\redis"
 $serverExe = Join-Path $redisDir "redis-server.exe"
 $cliExe = Join-Path $redisDir "redis-cli.exe"

@@ -88,7 +88,7 @@ Developer experience and CI (see root [`README.md`](README.md), [`CONTRIBUTING.m
 | React (FA) | **19.2.7** |
 | React (POS) | **19.2.3** |
 | Ant Design | **6.4.3** |
-| Expo | SDK **56** (`~56.0.16`) |
+| Expo | SDK **56** (`~56.0.18`) |
 | React Native | **0.85.3** |
 
 - Admin auth boundary: `frontend-admin/src/proxy.ts` (Next.js 16; replaces deprecated `middleware.ts`). Fail-closed: non-public routes require a non-expired JWT cookie/header → else redirect `/login`. Permission RBAC is client-side (`PermissionRouteGuard` → inline 403), not in `proxy.ts`.

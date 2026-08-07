@@ -87,7 +87,7 @@ Orchestration: **npm workspaces** at repo root (not Turborepo). See [`../package
 | Admin UI | React | **^19.2.7** |
 | Admin UI | Ant Design | **^6.4.3** |
 | Admin data | TanStack Query + Orval | Orval **^6.31.0** |
-| POS | Expo | **~56.0.16** |
+| POS | Expo | **~56.0.18** |
 | POS | React Native | **0.85.3** |
 | POS | React | **19.2.3** |
 | Sites | Next.js | **^16.2.6** |

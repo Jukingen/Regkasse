@@ -1,9 +1,13 @@
 @echo off
+REM =============================================================================
+REM DANGER: This script can destroy data, wipe volumes, or rewrite git history.
+REM Read the warnings below carefully before confirming.
+REM =============================================================================
 setlocal EnableExtensions
 chcp 65001 >nul
 
 echo ========================================
-echo  Regkasse Production Deployment
+echo  DANGER: Regkasse Production Deployment
 echo ========================================
 echo.
 echo WARNING: This will deploy using docker-compose.prod.yml!
@@ -16,7 +20,7 @@ if /i not "%confirm%"=="y" (
     exit /b 0
 )
 
-cd /d "%~dp0"
+cd /d "%~dp0..\.."
 
 if not exist ".env.production" (
     echo [ERROR] Missing .env.production
@@ -36,7 +40,7 @@ if %ERRORLEVEL% neq 0 (
 echo.
 echo [1/5] Running pre-deploy checks...
 REM Same suite as scripts\smoke-test.bat, without its interactive pause.
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\run-comprehensive-smoke.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0..\test\run-comprehensive-smoke.ps1"
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Smoke tests failed! Aborting deployment.
     pause
@@ -83,7 +87,7 @@ curl -sS http://127.0.0.1:5184/api/health/live >nul
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Health check failed!
     echo Rolling back...
-    call "%~dp0rollback.bat"
+    call "%~dp0rollback.DANGER.bat"
     pause
     exit /b 1
 )

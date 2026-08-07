@@ -5,7 +5,7 @@ chcp 65001 >nul
 REM Dry-run structural tests for Windows .bat scripts (does not start servers).
 REM See docs\SCRIPTS_TEST_PLAN.md
 
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 
 echo ========================================
 echo  Regkasse Scripts Test Plan (dry-run)

@@ -6,114 +6,107 @@ Double-click helpers for common Regkasse tasks on Windows. Prefer these when you
 
 **Do not gitignore `.bat` files** — they are shared team tooling.
 
+All Windows entry points live under `scripts/<category>/`. **Repo root has no `.bat` files.**
+
 Regenerate missing wrappers for `.ps1` scripts:
 
 ```bat
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\create-bat-wrappers.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\lib\create-bat-wrappers.ps1
 ```
 
 Use `-Force` only when you intentionally want to overwrite auto-generated wrappers (hand-crafted DEP / purge bats are usually better left alone).
 
 ---
 
-## Root shortcuts
+## Category map
+
+| Folder | Use for |
+|--------|---------|
+| [`scripts/dev/`](../scripts/dev/) | Mode chooser, npm start, clean, redis, mail |
+| [`scripts/docker/`](../scripts/docker/) | PowerShell Compose (+ [`host/`](../scripts/docker/host/) chooser bats) |
+| [`scripts/legacy/`](../scripts/legacy/) | Multi-window host starters |
+| [`scripts/ci/`](../scripts/ci/) | CI build/test/deploy helpers |
+| [`scripts/rksv/`](../scripts/rksv/) | DEP / BMF / fiscal |
+| [`scripts/test/`](../scripts/test/) | Smoke + script self-tests |
+| [`scripts/ops/`](../scripts/ops/) | Deploy / rollback / monitoring |
+| [`scripts/lib/`](../scripts/lib/) | Shared bat helpers + validate/wrappers |
+
+---
+
+## Daily entry points
 
 | File | Runs | When to use |
 |------|------|-------------|
-| [`start.bat`](../start.bat) | Chooser → Legacy or Docker | Preferred entry: pick mode |
-| [`start-dev.bat`](../start-dev.bat) | `npm run dev` | Daily local stack (API + Admin + POS + Sites) in one terminal |
-| [`start-backend.bat`](../start-backend.bat) | `npm run dev:backend` | API only (npm workspace) |
-| [`start-admin.bat`](../start-admin.bat) | `npm run dev:admin` | Admin (FA) only |
-| [`start-pos.bat`](../start-pos.bat) | `npm run dev:pos` | POS (Expo) only |
-| [`start-sites.bat`](../start-sites.bat) | `npm run dev:sites` | Tenant Sites only |
-| [`test-all.bat`](../test-all.bat) | Backend → Admin → POS tests (sequential) | All package tests before commit |
-| [`clean-all.bat`](../clean-all.bat) | Confirm + remove `bin`/`obj`/`.next`/`.expo`/… | Remove shared build artifacts |
-| [`docker-up.bat`](../docker-up.bat) | → [`scripts/docker/docker-up.bat`](../scripts/docker/docker-up.bat) | Start Compose stack detached |
-| [`docker-down.bat`](../docker-down.bat) | → `scripts/docker/docker-down.bat` | Stop Compose stack |
-| [`docker-status.bat`](../docker-status.bat) | → `scripts/docker/docker-status.bat` | List running containers |
-| [`docker-logs.bat`](../docker-logs.bat) | → `scripts/docker/docker-logs.bat` | Follow Compose logs |
-| [`docker-clean.bat`](../docker-clean.bat) | → `scripts/docker/docker-clean.bat` | **Destructive** local Docker cleanup (confirms first) |
-| [`deploy.bat`](../deploy.bat) | Confirm → smoke → backup confirm → `docker-compose.prod.yml` | Production-style Compose deploy |
-| [`rollback.bat`](../rollback.bat) | Confirm → `git reset --hard HEAD~1` + prod Compose rebuild | **Destructive** last-commit undo + redeploy |
+| [`scripts/dev/start.bat`](../scripts/dev/start.bat) | Chooser → Legacy or Docker | Preferred entry: pick mode |
+| [`scripts/dev/start-dev.bat`](../scripts/dev/start-dev.bat) | `npm run dev` | Daily local stack in one terminal |
+| [`scripts/dev/start-backend.bat`](../scripts/dev/start-backend.bat) | `npm run dev:backend` | API only |
+| [`scripts/dev/start-admin.bat`](../scripts/dev/start-admin.bat) | `npm run dev:admin` | Admin (FA) only |
+| [`scripts/dev/start-pos.bat`](../scripts/dev/start-pos.bat) | `npm run dev:pos` | POS only |
+| [`scripts/dev/start-sites.bat`](../scripts/dev/start-sites.bat) | `npm run dev:sites` | Sites only |
+| [`scripts/test/test-all.bat`](../scripts/test/test-all.bat) | Backend → Admin → POS tests | Before commit |
+| [`scripts/dev/clean-all.DANGER.bat`](../scripts/dev/clean-all.DANGER.bat) | Confirm + wipe build artifacts | Cleanup |
+| [`scripts/docker/host/up.bat`](../scripts/docker/host/up.bat) | Compose up (POS + Sites) | Docker chooser stack |
+| [`scripts/docker/host/down.bat`](../scripts/docker/host/down.bat) | Compose down | Stop containers |
+| [`scripts/docker/host/status.bat`](../scripts/docker/host/status.bat) | Status | “Is the stack up?” |
+| [`scripts/docker/host/logs.bat`](../scripts/docker/host/logs.bat) | Follow logs | Debug |
+| [`scripts/docker/host/clean.DANGER.bat`](../scripts/docker/host/clean.DANGER.bat) | Destructive cleanup | Wipe volumes (confirms) |
+| [`scripts/ops/deploy.DANGER.bat`](../scripts/ops/deploy.DANGER.bat) | Smoke + backup gate + prod compose | Host prod-style deploy |
+| [`scripts/ops/rollback.DANGER.bat`](../scripts/ops/rollback.DANGER.bat) | `git reset --hard HEAD~1` + rebuild | **Destructive** |
 
-**Legacy multi-window / Docker comparison:** [`DOCKER_VS_LEGACY.md`](DOCKER_VS_LEGACY.md) · folders [`scripts/legacy/`](../scripts/legacy/), [`scripts/docker/`](../scripts/docker/). Logs for both modes: `C:\Scripts\logs`.
+**Legacy / Docker comparison:** [`DOCKER_VS_LEGACY.md`](DOCKER_VS_LEGACY.md). Logs for Legacy + `docker/host`: `C:\Scripts\logs`.
 
 ### Typical day
 
-1. `start.bat` → Legacy or Docker (or `start-dev.bat` for single-terminal npm)
+1. `scripts\dev\start.bat` → Legacy or Docker (or `scripts\dev\start-dev.bat` for npm)
 2. Change code
-3. `test-all.bat` or package-specific tests
-4. `docker-down.bat` when finished with containers (Docker mode)
-
-### Cleanup
-
-1. `clean-all.bat`
-2. Optional: `scripts\clean-backend.bat` if backend `bin`/`obj` is corrupted
-3. Optional: `docker-clean.bat` (wipes volumes)
+3. `scripts\test\test-all.bat`
+4. `scripts\docker\host\down.bat` when finished with containers
 
 ---
 
-## `scripts/` helpers
+## Helpers by category
 
-### Convenience aliases
+### `scripts/dev/`
 
-| File | Target | Notes |
-|------|--------|-------|
-| [`clean-backend.bat`](../scripts/clean-backend.bat) | `clean-backend-build.ps1` | Stop API process + remove backend build dirs |
-| [`dev-purge-tenant.bat`](../scripts/dev-purge-tenant.bat) | confirm → `dev-purge-tenant-catalog.ps1` | **Development only** — hard-deletes catalog |
-| [`generate-dep-export.bat`](../scripts/generate-dep-export.bat) | `generate-dep-export-fixtures.ps1` | Regenerates Prüftool fixtures |
-| [`ensure-bmf-prueftool.bat`](../scripts/ensure-bmf-prueftool.bat) | `ensure-bmf-prueftool.ps1` | Downloads BMF JARs into `backend/Tests/` |
-| [`fix-antd.bat`](../scripts/fix-antd.bat) | `node fix-antd-deprecations.mjs` | Ant Design 6 deprecation fixer |
-| [`dev-mail.bat`](../scripts/dev-mail.bat) | ensures `dev-mail.local.env` + `dev-mail-test.bat` | Local forgot-username mail capture |
-| [`smoke-test.bat`](../scripts/smoke-test.bat) | curl API/Admin/POS | Lightweight smoke (full suite: `run-comprehensive-smoke.bat`) |
+| File | Notes |
+|------|--------|
+| `clean-backend.bat` | → `clean-backend-build.ps1` |
+| `dev-purge-tenant.bat` | Development catalog purge |
+| `fix-antd.bat` | → `scripts/fix-antd-deprecations.mjs` |
+| `dev-mail.bat` | Local forgot-username mail capture |
+| `start-redis-dev.bat` | Portable Redis |
 
-### Shared utilities
+### `scripts/rksv/`
+
+| File | Notes |
+|------|--------|
+| `generate-dep-export.bat` | Prüftool fixtures |
+| `ensure-bmf-prueftool.bat` | Download BMF JARs |
+| `verify-rksv-dep-export.bat` | BMF DEP verify |
+
+### `scripts/test/`
+
+| File | Notes |
+|------|--------|
+| `smoke-test.bat` | Lightweight curl smoke |
+| `run-comprehensive-smoke.bat` | Full suite |
+| `test-scripts.bat` | Structural dry-run (`npm run test:scripts`) |
+
+### `scripts/lib/`
 
 | File | Purpose |
 |------|---------|
-| [`_common.bat`](../scripts/_common.bat) | `call _common.bat check_error\|success\|fail\|info\|warn` helpers |
-| [`run-with-log.bat`](../scripts/run-with-log.bat) | Run any command; append output under `logs/` (gitignored) |
-| [`create-bat-wrappers.ps1`](../scripts/create-bat-wrappers.ps1) (+ `.bat`) | Auto-create sibling `.bat` for each `.ps1` |
+| `_common.bat` | Shared `check_error` / `success` helpers |
+| `run-with-log.bat` | Run any command → `logs/` |
+| `create-bat-wrappers.ps1` | Auto sibling `.bat` for each `.ps1` |
+| `validate-scripts.ps1` | Pairing + docs gate (`npm run validate:scripts`) |
 
-### Auto-generated / existing `.ps1` wrappers
+### `scripts/docker/` (PowerShell)
 
-Sibling `.bat` next to each PowerShell script under `scripts/` (skipped if a hand-crafted `.bat` already exists), including:
+| File | Purpose |
+|------|---------|
+| `docker-up.ps1` / `docker-down.ps1` / `docker-build.ps1` | Compose with `-Dev` / `-Prod` |
+| `docker-deploy.ps1` / `docker-*-prod.ps1` | Prod build / push / deploy / logs |
+| `docker-diagnose.ps1` | Engine / compose diagnostics |
 
-| Wrapper | Script |
-|---------|--------|
-| `clean-backend-build.bat` | `clean-backend-build.ps1` |
-| `run-comprehensive-smoke.bat` | `run-comprehensive-smoke.ps1` |
-| `smoke-tenant-isolation.bat` | `smoke-tenant-isolation.ps1` |
-| `start-redis-dev.bat` | `start-redis-dev.ps1` |
-| `verify-rksv-receipt-qr.bat` | `verify-rksv-receipt-qr.ps1` |
-| `run_fiscal_go_live_validation.bat` | `run_fiscal_go_live_validation.ps1` |
-| `run-testsprite-pos-smoke.bat` | `run-testsprite-pos-smoke.ps1` |
-| `test-forgot-username-email.bat` | `test-forgot-username-email.ps1` |
-
-Hand-crafted (richer UX / logging — do not overwrite lightly):
-
-| Wrapper | Notes |
-|---------|-------|
-| `verify-rksv-dep-export.bat` | BMF DEP Prüftool; fixtures or explicit paths |
-| `generate-dep-export-fixtures.bat` | Fixture regeneration |
-| `run-verify-dep-export-complete.bat` | Full DEP validation pipeline |
-| `dev-purge-tenant-catalog.bat` | Catalog purge with temp log |
-| `dev-mail-test.bat` | Interactive email prompt |
-
----
-
-## Safety notes
-
-- **`rollback.bat`** rewrites git history of the current branch tip (`reset --hard`). Prefer `git revert` on shared branches.
-- **`docker-clean.bat`** removes Compose volumes (DB data) and runs `docker system prune -f`.
-- **`dev-purge-tenant*.bat`** is Development-only and destroys catalog data.
-- Fiscal / DEP bats need JDK 17+ and Prüftool JARs (`ensure-bmf-prueftool.bat`).
-
----
-
-## Related docs
-
-- [`DEVELOPMENT.md`](../DEVELOPMENT.md) — local setup
-- [`docs/DOCKER_WINDOWS_SETUP.md`](DOCKER_WINDOWS_SETUP.md) — Docker Desktop on Windows
-- [`docs/DEP_EXPORT_DEVELOPMENT.md`](DEP_EXPORT_DEVELOPMENT.md) — DEP / Prüftool
-- [`scripts/README.md`](../scripts/README.md) — full script inventory
+Pairing CI: `npm run verify:bat-ps1` · `npm run validate:scripts`.

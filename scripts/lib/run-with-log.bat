@@ -7,7 +7,7 @@ chcp 65001 >nul
 ::   scripts\run-with-log.bat npm run test
 ::   scripts\run-with-log.bat powershell -File scripts\run-comprehensive-smoke.ps1
 
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 
 if "%~1"=="" (
     echo Usage: %~nx0 ^<command^> [args...]
@@ -16,7 +16,7 @@ if "%~1"=="" (
     exit /b 1
 )
 
-set "LOG_DIR=%~dp0..\logs"
+set "LOG_DIR=%~dp0..\..\logs"
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 
 :: Sanitize date/time for filename (locale-independent-ish)

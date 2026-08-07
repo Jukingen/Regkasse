@@ -4,14 +4,11 @@
   Validates Windows script pairing and documentation coverage.
 
 .DESCRIPTION
-  1) Lists root .bat convenience helpers.
-  2) Runs node scripts/verify-bat-ps1-pairing.mjs (allowlisted .bat/.ps1 pairs).
-  3) Ensures required scripts appear in docs/SCRIPTS_REFERENCE.md.
-  4) Soft-warns on excessive blank lines in root .bat files.
+  1) Summarizes scripts/<category> .bat / .ps1 inventory.
+  2) Asserts repo root has zero .bat files.
+  3) Runs node scripts/verify-bat-ps1-pairing.mjs (allowlisted .bat/.ps1 pairs).
+  4) Ensures required scripts appear in docs/SCRIPTS_REFERENCE.md.
   5) Optionally fails if docs/SCRIPTS_TEST_PLAN.md is missing.
-
-  Naive "every .bat needs same-name .ps1" is NOT used for root npm wrappers
-  (start-dev.bat, docker-up.bat, ...) or aliases (smoke-test.bat, fix-antd.bat).
 
 .PARAMETER SkipPairing
   Skip the Node pairing check.
@@ -23,8 +20,7 @@
   Emit JSON summary.
 
 .EXAMPLE
-  .\scripts\validate-scripts.ps1
-  .\scripts\validate-scripts.ps1 -SkipPairing
+  .\scripts\lib\validate-scripts.ps1
   npm run validate:scripts
 #>
 [CmdletBinding()]
@@ -35,7 +31,7 @@ param(
 )
 
 $ErrorActionPreference = 'Continue'
-$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Set-Location $repoRoot
 
 $errors = New-Object System.Collections.Generic.List[string]
@@ -55,6 +51,21 @@ $rootBatFiles = Get-ChildItem -LiteralPath $repoRoot -Filter '*.bat' -File |
     Where-Object { $_.DirectoryName -eq $repoRoot } |
     Sort-Object Name
 
+$categoryDirs = @(
+    'dev', 'docker', 'docker\host', 'legacy', 'ci', 'rksv', 'test', 'ops', 'lib'
+)
+
+$categoryBatFiles = New-Object System.Collections.Generic.List[System.IO.FileInfo]
+$categoryPs1Files = New-Object System.Collections.Generic.List[System.IO.FileInfo]
+foreach ($rel in $categoryDirs) {
+    $dir = Join-Path $repoRoot (Join-Path 'scripts' $rel)
+    if (-not (Test-Path -LiteralPath $dir)) { continue }
+    Get-ChildItem -LiteralPath $dir -Filter '*.bat' -File -ErrorAction SilentlyContinue |
+        ForEach-Object { [void]$categoryBatFiles.Add($_) }
+    Get-ChildItem -LiteralPath $dir -Filter '*.ps1' -File -ErrorAction SilentlyContinue |
+        ForEach-Object { [void]$categoryPs1Files.Add($_) }
+}
+
 if (-not $Json) {
     Write-Host ''
     Write-Host '=== Regkasse validate-scripts ===' -ForegroundColor Cyan
@@ -62,16 +73,18 @@ if (-not $Json) {
     Write-Host ''
     Write-Host 'Validating script ecosystem...' -ForegroundColor Cyan
     Write-Host ''
-    Write-Host ("Found {0} root .bat files:" -f $rootBatFiles.Count) -ForegroundColor Yellow
+    Write-Host ("Root .bat files: {0} (must be 0)" -f $rootBatFiles.Count) -ForegroundColor Yellow
     foreach ($bat in $rootBatFiles) {
-        Write-Host ('  [OK] {0}' -f $bat.Name) -ForegroundColor Green
+        Write-Host ('  [ERR] {0}' -f $bat.Name) -ForegroundColor Red
+        Add-Err ("Root .bat is forbidden: {0} (move under scripts/<category>/)" -f $bat.Name)
     }
+    Write-Host ("Category .bat: {0}  .ps1: {1}" -f $categoryBatFiles.Count, $categoryPs1Files.Count) -ForegroundColor Yellow
     Write-Host ''
 }
 
-# Soft syntax / style checks on root bats
-if (-not $Json) { Write-Host '## Style checks (root .bat)' -ForegroundColor Yellow }
-foreach ($bat in $rootBatFiles) {
+# Soft syntax / style checks on category entry bats
+if (-not $Json) { Write-Host '## Style checks (category .bat)' -ForegroundColor Yellow }
+foreach ($bat in $categoryBatFiles) {
     $content = Get-Content -LiteralPath $bat.FullName -Raw -ErrorAction SilentlyContinue
     if (-not $content) {
         Add-Err ("Cannot read {0}" -f $bat.Name)
@@ -125,42 +138,54 @@ if (-not $SkipDocs) {
         }
         $refText = Get-Content -LiteralPath $refPath -Raw
 
-        foreach ($bat in $rootBatFiles) {
-            $name = $bat.Name
+        $mustDocument = @(
+            'start.bat',
+            'start-dev.bat',
+            'start-backend.bat',
+            'start-admin.bat',
+            'start-pos.bat',
+            'start-sites.bat',
+            'clean-all.DANGER.bat',
+            'test-all.bat',
+            'deploy.DANGER.bat',
+            'rollback.DANGER.bat',
+            'docker-up.ps1',
+            'docker-down.ps1',
+            'docker-build.ps1',
+            'docker-deploy.ps1',
+            'docker-diagnose.ps1',
+            'docker/host/up.bat',
+            'docker/host/clean.DANGER.bat',
+            'smoke-test.bat',
+            'validate-scripts.ps1',
+            'test-scripts.ps1',
+            'verify-bat-ps1-pairing.mjs',
+            'clean-backend.bat',
+            'dev-purge-tenant.DANGER.bat',
+            'generate-dep-export.bat',
+            'ensure-bmf-prueftool.bat',
+            'fix-antd.bat',
+            'dev-mail.bat',
+            'run-with-log.bat',
+            '_common.bat'
+        )
+        foreach ($name in $mustDocument) {
             if ($refText -notlike ('*{0}*' -f $name)) {
-                Add-Err ("Root .bat not documented in SCRIPTS_REFERENCE.md: {0}" -f $name)
+                Add-Err ("Not documented in SCRIPTS_REFERENCE.md: {0}" -f $name)
             }
             elseif (-not $Json) {
                 Write-Host ('  [OK] documented: {0}' -f $name) -ForegroundColor Green
             }
         }
 
-        $ps1Files = Get-ChildItem -LiteralPath (Join-Path $repoRoot 'scripts') -Filter '*.ps1' -File |
-            Select-Object -ExpandProperty Name
-
-        foreach ($name in $ps1Files) {
+        foreach ($ps1 in $categoryPs1Files) {
+            $name = $ps1.Name
+            if ($name -in @('GameMode.ps1', 'WorkMode.ps1', 'dev-mail-config.ps1')) { continue }
             if ($refText -notlike ('*{0}*' -f $name)) {
-                Add-Err ("scripts/{0} not documented in SCRIPTS_REFERENCE.md" -f $name)
+                Add-Err ("scripts/**/{0} not documented in SCRIPTS_REFERENCE.md" -f $name)
             }
             elseif (-not $Json) {
-                Write-Host ('  [OK] documented: scripts/{0}' -f $name) -ForegroundColor Green
-            }
-        }
-
-        $aliasBats = @(
-            'clean-backend.bat',
-            'dev-purge-tenant.bat',
-            'generate-dep-export.bat',
-            'ensure-bmf-prueftool.bat',
-            'fix-antd.bat',
-            'dev-mail.bat',
-            'smoke-test.bat',
-            'run-with-log.bat',
-            '_common.bat'
-        )
-        foreach ($name in $aliasBats) {
-            if ($refText -notlike ('*{0}*' -f $name)) {
-                Add-Err ("Alias .bat not documented in SCRIPTS_REFERENCE.md: {0}" -f $name)
+                Write-Host ('  [OK] documented: {0}' -f $name) -ForegroundColor Green
             }
         }
     }
@@ -175,12 +200,14 @@ if (-not $SkipDocs) {
 
 # --- Summary ---
 $result = [pscustomobject]@{
-    ok           = ($errors.Count -eq 0)
-    rootBatCount = $rootBatFiles.Count
-    errorCount   = $errors.Count
-    warnCount    = $warnings.Count
-    errors       = @($errors)
-    warnings     = @($warnings)
+    ok               = ($errors.Count -eq 0)
+    rootBatCount     = $rootBatFiles.Count
+    categoryBatCount = $categoryBatFiles.Count
+    categoryPs1Count = $categoryPs1Files.Count
+    errorCount       = $errors.Count
+    warnCount        = $warnings.Count
+    errors           = @($errors)
+    warnings         = @($warnings)
 }
 
 if ($Json) {

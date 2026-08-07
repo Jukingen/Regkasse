@@ -10,7 +10,7 @@ REM   verify-rksv-dep-export.bat "path\to\dep-export.json" "path\to\crypto-mater
 REM   verify-rksv-dep-export.bat -DetailedOutput
 REM       -> fixtures + detailed Java output
 
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 set "PS_SCRIPT=%~dp0verify-rksv-dep-export.ps1"
 set "LOG=%TEMP%\regkasse-verify-dep-%RANDOM%.log"
 set "EXTRA_ARGS="

@@ -70,8 +70,8 @@ What it **does not** do: start `npm run dev`, Compose up, deploy, or interactive
 | 1 | Double-click `start-backend.bat` | API on :5184; Ctrl+C → `[OK]`/`[FAILED]` + pause |
 | 2 | `start-admin.bat` (API already up) | FA on :3000 |
 | 3 | `start-pos.bat` | Expo / Metro |
-| 4 | `start-dev.bat` | All four surfaces |
-| 5 | `test-all.bat` | Workspace tests; exit code matches failures |
+| 4 | `scripts\dev\start-dev.bat` | All four surfaces |
+| 5 | `scripts\test\test-all.bat` | Workspace tests; exit code matches failures |
 | 6 | `clean-all.bat` | Removes artifacts; no crash if nothing to delete |
 
 ---
@@ -81,11 +81,11 @@ What it **does not** do: start `npm run dev`, Compose up, deploy, or interactive
 | # | Action | Expected |
 |---|--------|----------|
 | 1 | Docker Desktop running | `docker info` OK |
-| 2 | `docker-up.bat` | Containers start; URLs printed |
+| 2 | `scripts\docker\host\up.bat` | Containers start; URLs printed |
 | 3 | `docker-status.bat` | Lists `regkasse-*` containers |
 | 4 | `docker-down.bat` | Containers stopped |
-| 5 | `docker-clean.bat` → `n` | Cancelled, no wipe |
-| 6 | `docker-clean.bat` → `y` | Volumes removed (**data loss**) |
+| 5 | `scripts\docker\host\clean.DANGER.bat` → `n` | Cancelled, no wipe |
+| 6 | `scripts\docker\host\clean.DANGER.bat` → `y` | Volumes removed (**data loss**) |
 
 ---
 
@@ -108,7 +108,7 @@ What it **does not** do: start `npm run dev`, Compose up, deploy, or interactive
 
 | # | Action | Expected |
 |---|--------|----------|
-| 1 | `deploy.bat` | confirm → smoke → backup gate → prod compose build/up → health |
+| 1 | `scripts\ops\deploy.DANGER.bat` | confirm → smoke → backup gate → prod compose build/up → health |
 | 2 | Fail Docker deliberately | Clear `[ERROR] Docker is not running!` |
 | 3 | `rollback.bat` → `n` | Cancelled |
 | 4 | `rollback.bat` → `y` | **Only on disposable branch** — hard reset + rebuild |

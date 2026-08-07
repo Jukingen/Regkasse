@@ -4,7 +4,7 @@ chcp 65001 >nul
 
 REM Regenerates backend\Tests\fixtures\prueftool\dep-export.json and crypto-material.json
 
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 set "PS_SCRIPT=%~dp0generate-dep-export-fixtures.ps1"
 set "LOG=%TEMP%\regkasse-generate-dep-fixtures-%RANDOM%.log"
 

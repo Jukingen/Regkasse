@@ -29,7 +29,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$repoRoot = Split-Path -Parent $PSScriptRoot
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Set-Location $repoRoot
 
 $envFile = Join-Path $repoRoot '.env.production'
@@ -48,7 +48,7 @@ See docs/DOCKER_SETUP.md and DEPLOYMENT.md § Docker Compose (production-oriente
 
 & docker info 2>$null | Out-Null
 if ($LASTEXITCODE -ne 0) {
-    throw "Docker engine not reachable. Run .\scripts\docker-diagnose.ps1"
+    throw "Docker engine not reachable. Run .\scripts\docker\docker-diagnose.ps1"
 }
 
 Write-Host "Production deploy using:" -ForegroundColor Cyan

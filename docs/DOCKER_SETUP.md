@@ -27,10 +27,10 @@ Complete guide to run Regkasse in Docker: what exists, how to migrate day-to-day
 | Env templates | [`.env.example`](../.env.example) · [`.env.production.example`](../.env.production.example) · [`.env.production.local.example`](../.env.production.local.example) | ✅ Done |
 | Prod ops docs | [`DOCKER_PRODUCTION.md`](DOCKER_PRODUCTION.md) · [`DOCKER_ENV_VARS.md`](DOCKER_ENV_VARS.md) | ✅ Done |
 | Ignore files | `backend/`, `frontend-admin/`, `frontend/`, `frontend-sites/` `.dockerignore` (+ BuildKit `Dockerfile.dockerignore` where needed) | ✅ Done |
-| Build / up / down / deploy | [`scripts/docker-build.ps1`](../scripts/docker-build.ps1) · [`docker-up.ps1`](../scripts/docker-up.ps1) · [`docker-down.ps1`](../scripts/docker-down.ps1) · [`docker-deploy.ps1`](../scripts/docker-deploy.ps1) | ✅ Done |
+| Build / up / down / deploy | [`scripts/docker/docker-build.ps1`](../scripts/docker/docker-build.ps1) · [`docker-up.ps1`](../scripts/docker/docker-up.ps1) · [`docker-down.ps1`](../scripts/docker/docker-down.ps1) · [`docker-deploy.ps1`](../scripts/docker/docker-deploy.ps1) | ✅ Done |
 | Local prod up/down | [`docker-up-prod.bat`](../docker-up-prod.bat) · [`docker-down-prod.bat`](../docker-down-prod.bat) | ✅ Done |
 | Prod bat helpers | [`deploy-docker.bat`](../deploy-docker.bat) · [`docker-build-prod.bat`](../docker-build-prod.bat) · [`docker-push-prod.bat`](../docker-push-prod.bat) · [`docker-logs-prod.bat`](../docker-logs-prod.bat) | ✅ Done |
-| Diagnose | [`scripts/docker-diagnose.ps1`](../scripts/docker-diagnose.ps1) | ✅ Done |
+| Diagnose | [`scripts/docker/docker-diagnose.ps1`](../scripts/docker/docker-diagnose.ps1) | ✅ Done |
 
 Ops detail: [`DOCKER_PRODUCTION.md`](DOCKER_PRODUCTION.md). Prefer `docker-up-prod.bat` for local prod-oriented testing.
 
@@ -64,7 +64,7 @@ Never merge `docker-compose.override.yml` with the production file.
 
 1. Docker Desktop (Compose v2) — Windows: [`DOCKER_WINDOWS_SETUP.md`](DOCKER_WINDOWS_SETUP.md)
 2. Free ports: 5184, 5432, 6379, 3000 (optional 8081 / 3001)
-3. Diagnose: `.\scripts\docker-diagnose.ps1`
+3. Diagnose: `.\scripts\docker\docker-diagnose.ps1`
 
 ---
 
@@ -75,13 +75,13 @@ Never merge `docker-compose.override.yml` with the production file.
 copy .env.example .env
 # Set JWT_SECRET_KEY to ≥32 random characters
 
-.\scripts\docker-build.ps1 -Dev
-.\scripts\docker-up.ps1 -Build
+.\scripts\docker\docker-build.ps1 -Dev
+.\scripts\docker\docker-up.ps1 -Build
 # Optional POS + Sites:
-.\scripts\docker-up.ps1 -Profile pos,sites -Build
+.\scripts\docker\docker-up.ps1 -Profile pos,sites -Build
 
 curl -fsS http://localhost:5184/api/health/live
-.\scripts\docker-down.ps1
+.\scripts\docker\docker-down.ps1
 ```
 
 Equivalent raw Compose:
@@ -96,7 +96,7 @@ docker compose down
 ### Preferred coding workflow (hot reload)
 
 ```powershell
-.\scripts\docker-up.ps1   # stop full stack first if running: .\scripts\docker-down.ps1
+.\scripts\docker\docker-up.ps1   # stop full stack first if running: .\scripts\docker\docker-down.ps1
 docker compose -f docker-compose.dev.yml up -d
 npm run dev
 ```
@@ -109,14 +109,14 @@ npm run dev
 copy .env.production.example .env.production
 # Fill POSTGRES_*, JWT_SECRET_KEY, ADMIN_API_URL, Fiskaly secrets
 
-.\scripts\docker-build-prod.ps1 -Profile admin
-.\scripts\docker-deploy.ps1 -Profile admin
+.\scripts\docker\docker-build-prod.ps1 -Profile admin
+.\scripts\docker\docker-deploy.ps1 -Profile admin
 
 # Or one-shot / Windows bats:
 # deploy-docker.bat admin
-.\scripts\docker-deploy.ps1 -Profile admin,sites
+.\scripts\docker\docker-deploy.ps1 -Profile admin,sites
 
-.\scripts\docker-down.ps1 -Prod
+.\scripts\docker\docker-down.ps1 -Prod
 ```
 
 Step-by-step checklist: [`DOCKER_PRODUCTION.md`](DOCKER_PRODUCTION.md) · [`../DEPLOYMENT.md`](../DEPLOYMENT.md#docker-compose-production-oriented).  
@@ -129,22 +129,22 @@ Env reference: [`DOCKER_ENV_VARS.md`](DOCKER_ENV_VARS.md).
 
 | Script | Purpose |
 |--------|---------|
-| [`docker-build.ps1`](../scripts/docker-build.ps1) | `compose build` for Dev and/or Prod |
-| [`docker-up.ps1`](../scripts/docker-up.ps1) | `compose up -d` (Dev default; `-Prod` optional) |
-| [`docker-down.ps1`](../scripts/docker-down.ps1) | `compose down` (Dev / Prod / `-All`; `-Volumes` destructive) |
-| [`docker-deploy.ps1`](../scripts/docker-deploy.ps1) | Prod build + up with confirmation |
-| [`docker-diagnose.ps1`](../scripts/docker-diagnose.ps1) | Windows Docker/WSL/ports health |
+| [`docker-build.ps1`](../scripts/docker/docker-build.ps1) | `compose build` for Dev and/or Prod |
+| [`docker-up.ps1`](../scripts/docker/docker-up.ps1) | `compose up -d` (Dev default; `-Prod` optional) |
+| [`docker-down.ps1`](../scripts/docker/docker-down.ps1) | `compose down` (Dev / Prod / `-All`; `-Volumes` destructive) |
+| [`docker-deploy.ps1`](../scripts/docker/docker-deploy.ps1) | Prod build + up with confirmation |
+| [`docker-diagnose.ps1`](../scripts/docker/docker-diagnose.ps1) | Windows Docker/WSL/ports health |
 
 ```powershell
-.\scripts\docker-build.ps1              # Dev + Prod images
-.\scripts\docker-build.ps1 -Dev         # Dev only
-.\scripts\docker-build.ps1 -Prod -NoCache
+.\scripts\docker\docker-build.ps1              # Dev + Prod images
+.\scripts\docker\docker-build.ps1 -Dev         # Dev only
+.\scripts\docker\docker-build.ps1 -Prod -NoCache
 
-.\scripts\docker-up.ps1                 # Dev detached
-.\scripts\docker-up.ps1 -Prod -Profile admin
+.\scripts\docker\docker-up.ps1                 # Dev detached
+.\scripts\docker\docker-up.ps1 -Prod -Profile admin
 
-.\scripts\docker-down.ps1
-.\scripts\docker-down.ps1 -All
+.\scripts\docker\docker-down.ps1
+.\scripts\docker\docker-down.ps1 -All
 ```
 
 Also: `just docker-up` / `make docker-up` / `docker-up-dev` / `docker-up-prod`.
@@ -181,11 +181,11 @@ Also: `just docker-up` / `make docker-up` / `docker-up-dev` / `docker-up-prod`.
 | Before | After |
 |--------|--------|
 | Local Postgres + `dotnet run` | Keep, or use `docker-compose.dev.yml` for DB/Redis |
-| Everything on host | Optional full stack: `.\scripts\docker-up.ps1` |
-| Ad-hoc prod VM | `.\scripts\docker-deploy.ps1` + reverse proxy (see DEPLOYMENT.md) |
+| Everything on host | Optional full stack: `.\scripts\docker\docker-up.ps1` |
+| Ad-hoc prod VM | `.\scripts\docker\docker-deploy.ps1` + reverse proxy (see DEPLOYMENT.md) |
 | Soft TSE in “prod” containers | Forbidden — use `.env.production` and prod Compose only |
 
-Rollback: `.\scripts\docker-down.ps1` and return to `npm run dev` / local Postgres.
+Rollback: `.\scripts\docker\docker-down.ps1` and return to `npm run dev` / local Postgres.
 
 ---
 
@@ -203,8 +203,8 @@ Rollback: `.\scripts\docker-down.ps1` and return to `npm run dev` / local Postgr
 
 ## 10. Definition of done
 
-- [ ] `.\scripts\docker-diagnose.ps1` passes on the workstation
-- [ ] `.\scripts\docker-up.ps1 -Build` → API health live + Admin login reachable
+- [ ] `.\scripts\docker\docker-diagnose.ps1` passes on the workstation
+- [ ] `.\scripts\docker\docker-up.ps1 -Build` → API health live + Admin login reachable
 - [ ] Soft TSE confirmed on Dev (`/api/rksv/environment` Development-friendly)
 - [ ] Prod path uses `.env.production` only; override not loaded
 - [ ] Team knows: browser → `localhost`, not Docker DNS `backend`

@@ -29,7 +29,7 @@ param(
 )
 
 $ErrorActionPreference = 'Continue'
-$repoRoot = Split-Path -Parent $PSScriptRoot
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Set-Location $repoRoot
 
 if ($All) {

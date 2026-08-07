@@ -1,7 +1,7 @@
 # Run TestSprite POS smoke (copies POS-specific config + test plan)
 # Requires: Node.js, network access for npx, TestSprite MCP package.
 $ErrorActionPreference = 'Stop'
-$root = Split-Path -Parent $PSScriptRoot
+$root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 
 $posConfig = Join-Path $root 'testsprite_tests\tmp\config_pos.json'
 $posSummary = Join-Path $root 'testsprite_tests\tmp\code_summary_pos.yaml'

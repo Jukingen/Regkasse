@@ -32,7 +32,7 @@
 7. `clean-all.bat` — Clean build artifacts (confirm)  
 8. `docker-up.bat` — Start Docker Compose  
 9. `docker-down.bat` — Stop Docker Compose  
-10. `docker-clean.bat` — Volumes + prune (destructive)  
+10. `scripts\docker\host\clean.DANGER.bat` — Volumes + prune (destructive)  
 11. `docker-status.bat` — Container status table  
 12. `deploy.bat` — Prod Compose deploy checklist  
 13. `rollback.bat` — Hard-reset tip + prod Compose rebuild  

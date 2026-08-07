@@ -75,7 +75,7 @@ Related: [`SCRIPTS_TEST_PLAN.md`](SCRIPTS_TEST_PLAN.md) · [`SCRIPTS_REFERENCE.m
 |--------|-------|
 | **PASS** (error path) | Improved message vs “not running”; full up/status/down **SKIP** until Docker Desktop available |
 
-### docker-clean.bat
+### scripts\docker\host\clean.DANGER.bat
 
 | Result | Notes |
 |--------|-------|

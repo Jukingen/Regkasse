@@ -2456,9 +2456,12 @@ namespace KasseAPI_Final.Data
             {
                 entity.ToTable("tenant_settings");
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.Key).IsRequired().HasMaxLength(200);
-                entity.Property(e => e.Value).IsRequired().HasMaxLength(4000);
-                entity.Property(e => e.UpdatedByUserId).HasMaxLength(450);
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id");
+                entity.Property(e => e.Key).HasColumnName("key").IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Value).HasColumnName("value").IsRequired().HasMaxLength(4000);
+                entity.Property(e => e.UpdatedAtUtc).HasColumnName("updated_at_utc");
+                entity.Property(e => e.UpdatedByUserId).HasColumnName("updated_by_user_id").HasMaxLength(450);
                 entity.HasIndex(e => e.Key);
                 entity.HasIndex(e => new { e.TenantId, e.Key })
                     .IsUnique()
@@ -2474,17 +2477,21 @@ namespace KasseAPI_Final.Data
             {
                 entity.ToTable("deployment_runs");
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.Stage).IsRequired().HasMaxLength(32);
-                entity.Property(e => e.Status).IsRequired().HasMaxLength(32);
-                entity.Property(e => e.GitSha).HasMaxLength(64);
-                entity.Property(e => e.GitRef).HasMaxLength(256);
-                entity.Property(e => e.ImageTag).HasMaxLength(512);
-                entity.Property(e => e.PreviousImageTag).HasMaxLength(512);
-                entity.Property(e => e.TenantIdsJson).HasMaxLength(4000);
-                entity.Property(e => e.ErrorMessage).HasMaxLength(2000);
-                entity.Property(e => e.RunUrl).HasMaxLength(1024);
-                entity.Property(e => e.TriggeredBy).HasMaxLength(200);
-                entity.Property(e => e.SmokeSummary).HasMaxLength(2000);
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.Stage).HasColumnName("stage").IsRequired().HasMaxLength(32);
+                entity.Property(e => e.Status).HasColumnName("status").IsRequired().HasMaxLength(32);
+                entity.Property(e => e.GitSha).HasColumnName("git_sha").HasMaxLength(64);
+                entity.Property(e => e.GitRef).HasColumnName("git_ref").HasMaxLength(256);
+                entity.Property(e => e.ImageTag).HasColumnName("image_tag").HasMaxLength(512);
+                entity.Property(e => e.PreviousImageTag).HasColumnName("previous_image_tag").HasMaxLength(512);
+                entity.Property(e => e.TenantIdsJson).HasColumnName("tenant_ids_json").HasMaxLength(4000);
+                entity.Property(e => e.ErrorMessage).HasColumnName("error_message").HasMaxLength(2000);
+                entity.Property(e => e.RunUrl).HasColumnName("run_url").HasMaxLength(1024);
+                entity.Property(e => e.TriggeredBy).HasColumnName("triggered_by").HasMaxLength(200);
+                entity.Property(e => e.SmokePassed).HasColumnName("smoke_passed");
+                entity.Property(e => e.SmokeSummary).HasColumnName("smoke_summary").HasMaxLength(2000);
+                entity.Property(e => e.CreatedAtUtc).HasColumnName("created_at_utc");
+                entity.Property(e => e.UpdatedAtUtc).HasColumnName("updated_at_utc");
                 entity.HasIndex(e => new { e.Stage, e.UpdatedAtUtc });
                 entity.HasIndex(e => new { e.RunUrl, e.Stage });
             });
@@ -2493,14 +2500,20 @@ namespace KasseAPI_Final.Data
             {
                 entity.ToTable("deployment_history");
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.Version).IsRequired().HasMaxLength(512);
-                entity.Property(e => e.PreviousVersion).HasMaxLength(512);
-                entity.Property(e => e.Stage).IsRequired().HasMaxLength(32);
-                entity.Property(e => e.Status).IsRequired().HasMaxLength(32);
-                entity.Property(e => e.GitSha).HasMaxLength(64);
-                entity.Property(e => e.RunUrl).HasMaxLength(1024);
-                entity.Property(e => e.TriggeredBy).HasMaxLength(200);
-                entity.Property(e => e.ErrorMessage).HasMaxLength(2000);
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id");
+                entity.Property(e => e.Version).HasColumnName("version").IsRequired().HasMaxLength(512);
+                entity.Property(e => e.PreviousVersion).HasColumnName("previous_version").HasMaxLength(512);
+                entity.Property(e => e.Stage).HasColumnName("stage").IsRequired().HasMaxLength(32);
+                entity.Property(e => e.Status).HasColumnName("status").IsRequired().HasMaxLength(32);
+                entity.Property(e => e.GitSha).HasColumnName("git_sha").HasMaxLength(64);
+                entity.Property(e => e.RunUrl).HasColumnName("run_url").HasMaxLength(1024);
+                entity.Property(e => e.TriggeredBy).HasColumnName("triggered_by").HasMaxLength(200);
+                entity.Property(e => e.ErrorMessage).HasColumnName("error_message").HasMaxLength(2000);
+                entity.Property(e => e.SmokePassed).HasColumnName("smoke_passed");
+                entity.Property(e => e.DeployedAtUtc).HasColumnName("deployed_at_utc");
+                entity.Property(e => e.SoakUntilUtc).HasColumnName("soak_until_utc");
+                entity.Property(e => e.UpdatedAtUtc).HasColumnName("updated_at_utc");
                 entity.HasIndex(e => new { e.TenantId, e.DeployedAtUtc });
                 entity.HasIndex(e => new { e.Stage, e.Status });
                 entity.HasOne(e => e.Tenant)
@@ -2513,14 +2526,17 @@ namespace KasseAPI_Final.Data
             {
                 entity.ToTable("deployment_compliance_signoffs");
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.ImageTag).IsRequired().HasMaxLength(512);
-                entity.Property(e => e.GitSha).HasMaxLength(64);
-                entity.Property(e => e.Stage).IsRequired().HasMaxLength(32);
-                entity.Property(e => e.ChecklistJson).IsRequired().HasMaxLength(4000);
-                entity.Property(e => e.SignedByUserId).IsRequired().HasMaxLength(450);
-                entity.Property(e => e.SignedByRole).HasMaxLength(100);
-                entity.Property(e => e.SignedByDisplayName).HasMaxLength(200);
-                entity.Property(e => e.Notes).HasMaxLength(2000);
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.ImageTag).HasColumnName("image_tag").IsRequired().HasMaxLength(512);
+                entity.Property(e => e.GitSha).HasColumnName("git_sha").HasMaxLength(64);
+                entity.Property(e => e.Stage).HasColumnName("stage").IsRequired().HasMaxLength(32);
+                entity.Property(e => e.ChecklistJson).HasColumnName("checklist_json").IsRequired().HasMaxLength(4000);
+                entity.Property(e => e.SignedByUserId).HasColumnName("signed_by_user_id").IsRequired().HasMaxLength(450);
+                entity.Property(e => e.SignedByRole).HasColumnName("signed_by_role").HasMaxLength(100);
+                entity.Property(e => e.SignedByDisplayName).HasColumnName("signed_by_display_name").HasMaxLength(200);
+                entity.Property(e => e.Notes).HasColumnName("notes").HasMaxLength(2000);
+                entity.Property(e => e.SignedAtUtc).HasColumnName("signed_at_utc");
+                entity.Property(e => e.ExpiresAtUtc).HasColumnName("expires_at_utc");
                 entity.HasIndex(e => new { e.ImageTag, e.Stage, e.SignedAtUtc });
             });
 

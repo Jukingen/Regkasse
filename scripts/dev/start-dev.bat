@@ -17,7 +17,7 @@ echo Press Ctrl+C to stop all services
 echo ========================================
 echo.
 
-cd /d "%~dp0"
+cd /d "%~dp0..\.."
 npm run dev
 set "EXIT_CODE=%ERRORLEVEL%"
 

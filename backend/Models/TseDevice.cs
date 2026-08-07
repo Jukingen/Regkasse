@@ -138,15 +138,19 @@ namespace KasseAPI_Final.Models
         /// <summary>
         /// Mai 2027 Signaturkarte program compliance stamp (UTC). Independent of <see cref="ExpiresAt"/>.
         /// Null = not yet marked compliant for the program.
+        /// Legacy <c>TseDevices</c> table uses PascalCase column names (not snake_case).
         /// </summary>
+        [Column("SignaturkarteProgramCompliantAtUtc")]
         public DateTime? SignaturkarteProgramCompliantAtUtc { get; set; }
 
         /// <summary>Actor user id (or system label) that set <see cref="SignaturkarteProgramCompliantAtUtc"/>.</summary>
         [StringLength(128)]
+        [Column("SignaturkarteProgramCompliantBy")]
         public string? SignaturkarteProgramCompliantBy { get; set; }
 
         /// <summary>Optional ticket / note for Mark Compliant audit trail.</summary>
         [StringLength(500)]
+        [Column("SignaturkarteProgramNote")]
         public string? SignaturkarteProgramNote { get; set; }
 
         // Navigation

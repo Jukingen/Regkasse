@@ -7,11 +7,11 @@
   common Regkasse host ports (API, Postgres, Redis, Admin, POS, Sites).
 
 .EXAMPLE
-  .\scripts\docker-diagnose.ps1
-  .\scripts\docker-diagnose.ps1 -SkipPull
+  .\scripts\docker\docker-diagnose.ps1
+  .\scripts\docker\docker-diagnose.ps1 -SkipPull
 
 .NOTES
-  Docs: docs/DOCKER_WINDOWS_TROUBLESHOOTING.md · docs/DOCKER_WINDOWS_SETUP.md
+  Docs: docs/DOCKER_WINDOWS_TROUBLESHOOTING.md , docs/DOCKER_WINDOWS_SETUP.md
 #>
 [CmdletBinding()]
 param(
@@ -39,19 +39,33 @@ function Write-Fail([string]$Message) {
     $script:failed++
 }
 
+$repoRootEarly = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Write-Host "Regkasse Docker diagnose (Windows)" -ForegroundColor White
-Write-Host "Repo root: $(Split-Path -Parent $PSScriptRoot)"
+Write-Host "Repo root: $repoRootEarly"
 
 # --- Docker CLI ---
 Write-Section "Checking Docker..."
-try {
-    $dockerVersion = & docker --version 2>&1
-    if ($LASTEXITCODE -ne 0) { throw $dockerVersion }
-    Write-Ok $dockerVersion
+$dockerOnPath = Get-Command docker -ErrorAction SilentlyContinue
+if (-not $dockerOnPath) {
+    Write-Fail "docker CLI not found - Docker Desktop is NOT installed (or not on PATH)."
+    Write-Host "  This blocks frontend / frontend-admin / full Compose stacks."
+    Write-Host "  Fix (Admin PowerShell):"
+    Write-Host "    wsl --install"
+    Write-Host "    winget install --id Docker.DockerDesktop -e"
+    Write-Host "  Or: .\scripts\docker\ensure-docker-desktop.ps1"
+    Write-Host "  Guide: docs/DOCKER_WINDOWS_SETUP.md"
+    Write-Host "  Without Docker: scripts\dev\start.bat -> [1] Legacy  |  scripts\dev\start-dev.bat"
 }
-catch {
-    Write-Fail "docker --version failed. Is Docker Desktop installed and on PATH?"
-    Write-Host "  Fix: install Desktop (docs/DOCKER_WINDOWS_SETUP.md), start it, open a new terminal."
+else {
+    try {
+        $dockerVersion = & docker --version 2>&1
+        if ($LASTEXITCODE -ne 0) { throw $dockerVersion }
+        Write-Ok $dockerVersion
+    }
+    catch {
+        Write-Fail "docker --version failed despite docker on PATH."
+        Write-Host "  Fix: reinstall Desktop (docs/DOCKER_WINDOWS_SETUP.md), open a new terminal."
+    }
 }
 
 # --- Compose ---
@@ -91,8 +105,13 @@ try {
     Write-Ok "docker info succeeded (engine reachable)."
 }
 catch {
-    Write-Fail "Docker engine not reachable (Desktop not running or stuck)."
-    Write-Host "  Fix: start Docker Desktop; if stuck: wsl --shutdown then restart Desktop."
+    if (-not $dockerOnPath) {
+        Write-Fail "Docker engine unreachable because CLI is missing (install Desktop first)."
+    }
+    else {
+        Write-Fail "Docker engine not reachable (Desktop not running or stuck)."
+        Write-Host "  Fix: start Docker Desktop; if stuck: wsl --shutdown then restart Desktop."
+    }
 }
 
 # --- Optional pull ---
@@ -104,7 +123,7 @@ if (-not $SkipPull) {
         Write-Ok "docker pull hello-world succeeded."
     }
     catch {
-        Write-Warn "Could not pull hello-world (network/proxy/Hub). See docs/DOCKER_WINDOWS_TROUBLESHOOTING.md § Network."
+        Write-Warn "Could not pull hello-world (network/proxy/Hub). See docs/DOCKER_WINDOWS_TROUBLESHOOTING.md"
     }
 }
 else {
@@ -125,7 +144,7 @@ foreach ($port in $ports) {
     }
 }
 if (-not $any) {
-    Write-Host "(none of these ports are listening — OK if Compose is not running)"
+    Write-Host "(none of these ports are listening - OK if Compose is not running)"
 }
 else {
     Write-Warn "If Compose fails with 'port is already allocated', stop the PID above or change .env ports."
@@ -133,9 +152,12 @@ else {
 
 # --- Compose project (optional) ---
 Write-Section "Checking Compose project (if present)..."
-$repoRoot = Split-Path -Parent $PSScriptRoot
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $composeFile = Join-Path $repoRoot 'docker-compose.yml'
-if (Test-Path $composeFile) {
+if (-not $dockerOnPath) {
+    Write-Warn "Skipping docker compose ps (CLI missing)."
+}
+elseif (Test-Path $composeFile) {
     Push-Location $repoRoot
     try {
         $ps = & docker compose ps 2>&1
@@ -164,5 +186,6 @@ if ($failed -eq 0) {
 else {
     Write-Host "Diagnose finished: $failed hard failure(s)." -ForegroundColor Red
     Write-Host "See docs/DOCKER_WINDOWS_TROUBLESHOOTING.md"
+    Write-Host "Install helper: .\scripts\docker\ensure-docker-desktop.ps1"
     exit 1
 }

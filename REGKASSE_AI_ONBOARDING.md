@@ -77,7 +77,7 @@ Pinned / package evidence (FA `package.json`, POS `package.json`, `backend/Kasse
 | Layer | Stack | Version |
 |-------|--------|---------|
 | Backend | ASP.NET Core / C# / EF Core / Npgsql | **.NET 10** (`net10.0`), EF **10.0.10** |
-| POS | Expo / React Native / TypeScript / Zustand / i18next | Expo SDK **56**, RN **0.85.3**, React **19.2.3** |
+| POS | Expo / React Native / TypeScript / Zustand / i18next | Expo **~56.0.18** (SDK 56), RN **0.85.3**, React **19.2.3**, TypeScript **~6.0.3** |
 | Admin (FA) | Next.js App Router / Ant Design / TanStack Query / Orval | Next **16.2.10**, React **19.2.7**, Ant Design **6.4.3** |
 | Sites | Next.js (tenant storefronts) | Next **~16.2.6**, React **~19.2.6** |
 | Database | PostgreSQL | **16+** typical |
@@ -1408,7 +1408,7 @@ You are working on Regkasse, a full-stack Austrian RKSV-compliant POS cash regis
 
 Stack:
 - Backend: ASP.NET Core 10 / C# / EF Core 10.0.10 / PostgreSQL
-- POS: Expo SDK 56 / React Native 0.85 / TypeScript / Zustand / i18n (de-DE UI)
+- POS: Expo ~56.0.18 (SDK 56) / React Native 0.85 / TypeScript ~6.0.3 / Zustand / i18n (de-DE UI)
 - Admin: Next.js 16.2 / Ant Design 6 / TanStack Query / Orval client
 - Sites: Next.js frontend-sites (tenant storefronts; non-fiscal)
 

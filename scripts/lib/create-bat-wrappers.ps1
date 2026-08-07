@@ -3,8 +3,8 @@
 # Existing .bat files are left untouched. Use -Force to overwrite auto-generated wrappers only.
 #
 # Usage (from repo root):
-#   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\create-bat-wrappers.ps1
-#   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\create-bat-wrappers.ps1 -Force
+#   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\lib\create-bat-wrappers.ps1
+#   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\lib\create-bat-wrappers.ps1 -Force
 
 param(
     [switch]$Force
@@ -13,7 +13,7 @@ param(
 $ErrorActionPreference = 'Continue'
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$rootDir = (Resolve-Path (Split-Path -Parent $scriptDir)).Path
+$rootDir = (Resolve-Path (Join-Path $scriptDir '..\..')).Path
 
 function Test-ExcludedPath {
     param([string]$FullName)

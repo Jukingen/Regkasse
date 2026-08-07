@@ -3,16 +3,17 @@ setlocal EnableExtensions
 chcp 65001 >nul
 
 echo ========================================
-echo  Starting Tenant Sites...
+echo  Starting Sites...
 echo ========================================
 echo.
 echo   Sites: http://localhost:3001
 echo.
+
 echo Press Ctrl+C to stop
 echo ========================================
 echo.
 
-cd /d "%~dp0"
+cd /d "%~dp0..\.."
 npm run dev:sites
 set "EXIT_CODE=%ERRORLEVEL%"
 

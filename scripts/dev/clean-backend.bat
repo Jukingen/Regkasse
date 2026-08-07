@@ -4,7 +4,7 @@ chcp 65001 >nul
 
 REM Removes corrupted backend bin/obj outputs. See scripts\clean-backend-build.ps1
 
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 set "PS_SCRIPT=%~dp0clean-backend-build.ps1"
 
 echo Cleaning Backend Build...

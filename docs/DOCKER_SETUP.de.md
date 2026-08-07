@@ -37,11 +37,11 @@ Dockerfiles, Compose-Dateien, `.dockerignore`, Env-Vorlagen und Skripte sind **b
 copy .env.example .env
 # JWT_SECRET_KEY ≥ 32 Zeichen
 
-.\scripts\docker-build.ps1 -Dev
-.\scripts\docker-up.ps1 -Build
+.\scripts\docker\docker-build.ps1 -Dev
+.\scripts\docker\docker-up.ps1 -Build
 
 curl -fsS http://localhost:5184/api/health/live
-.\scripts\docker-down.ps1
+.\scripts\docker\docker-down.ps1
 ```
 
 ### Empfohlen zum Codieren (Hot-Reload)
@@ -59,8 +59,8 @@ npm run dev
 copy .env.production.example .env.production
 # Secrets ausfüllen (Postgres, JWT, Fiskaly, ADMIN_API_URL)
 
-.\scripts\docker-deploy.ps1 -Profile admin
-.\scripts\docker-down.ps1 -Prod
+.\scripts\docker\docker-deploy.ps1 -Profile admin
+.\scripts\docker\docker-down.ps1 -Prod
 ```
 
 Details (EN): [`../DEPLOYMENT.md`](../DEPLOYMENT.md#docker-compose-production-oriented) · [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md).
@@ -78,10 +78,10 @@ Details (EN): [`../DEPLOYMENT.md`](../DEPLOYMENT.md#docker-compose-production-or
 | `docker-diagnose.ps1` | Windows/Docker/WSL/Ports prüfen |
 
 ```powershell
-.\scripts\docker-build.ps1
-.\scripts\docker-up.ps1
-.\scripts\docker-deploy.ps1 -Profile admin
-.\scripts\docker-diagnose.ps1
+.\scripts\docker\docker-build.ps1
+.\scripts\docker\docker-up.ps1
+.\scripts\docker\docker-deploy.ps1 -Profile admin
+.\scripts\docker\docker-diagnose.ps1
 ```
 
 ---

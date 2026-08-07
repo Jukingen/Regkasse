@@ -21,7 +21,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $testsDir = [System.IO.Path]::Combine($repoRoot, "backend", "Tests")
 $depJar = [System.IO.Path]::Combine($testsDir, "regkassen-verification-depformat-1.1.1.jar")
 $receiptsJar = [System.IO.Path]::Combine($testsDir, "regkassen-verification-receipts-1.1.1.jar")

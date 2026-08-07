@@ -3,16 +3,17 @@ setlocal EnableExtensions
 chcp 65001 >nul
 
 echo ========================================
-echo  Starting Frontend Admin...
+echo  Starting Admin (FA)...
 echo ========================================
 echo.
 echo   Admin: http://localhost:3000
 echo.
+
 echo Press Ctrl+C to stop
 echo ========================================
 echo.
 
-cd /d "%~dp0"
+cd /d "%~dp0..\.."
 npm run dev:admin
 set "EXIT_CODE=%ERRORLEVEL%"
 

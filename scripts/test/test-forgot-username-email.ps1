@@ -10,7 +10,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-. (Join-Path $PSScriptRoot "dev-mail-config.ps1")
+. (Join-Path $PSScriptRoot "..\dev\dev-mail-config.ps1")
 $config = Get-DevMailConfig
 
 $Email = $Email.Trim()
@@ -20,7 +20,7 @@ if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($DevMailDir)) {
-    $DevMailDir = Join-Path $PSScriptRoot "..\backend\App_Data\dev-mail"
+    $DevMailDir = Join-Path $PSScriptRoot "..\..\backend\App_Data\dev-mail"
 }
 
 function Write-ResultBox {

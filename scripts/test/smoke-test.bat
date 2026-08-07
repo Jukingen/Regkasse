@@ -5,7 +5,7 @@ chcp 65001 >nul
 REM Lightweight HTTP smoke (API + Admin + POS). For the full suite use:
 REM   scripts\run-comprehensive-smoke.bat
 
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 
 echo ========================================
 echo  Smoke Tests

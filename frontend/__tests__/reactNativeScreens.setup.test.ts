@@ -13,7 +13,7 @@ describe('react-native-screens setup', () => {
     const pkg = JSON.parse(read('package.json')) as {
       dependencies: Record<string, string>;
     };
-    expect(pkg.dependencies['react-native-screens']).toBe('4.25.2');
+    expect(pkg.dependencies['react-native-screens']).toBe('~4.26.0');
   });
 
   it('enables native screens and freeze in root layout before navigators', () => {

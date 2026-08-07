@@ -4,7 +4,7 @@ chcp 65001 >nul
 
 REM Full DEP export validation: backend build, unit tests, Prueftool, FA build.
 
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 set "PS_SCRIPT=%~dp0run-verify-dep-export-complete.ps1"
 set "LOG=%TEMP%\regkasse-dep-complete-%RANDOM%.log"
 

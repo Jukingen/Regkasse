@@ -30,7 +30,7 @@
 | `clean-all.bat` | Confirm + remove build artifacts |
 | `docker-up.bat` | `docker compose up -d` (+ Docker Desktop check) |
 | `docker-down.bat` | `docker compose down` |
-| `docker-clean.bat` | `down -v` + prune (confirm) |
+| `scripts\docker\host\clean.DANGER.bat` | `down -v` + prune (confirm) |
 | `docker-status.bat` | Formatted `docker ps` |
 | `deploy.bat` | Prod Compose deploy (confirm + smoke + backup gate) |
 | `rollback.bat` | `git reset --hard HEAD~1` + `docker-compose.prod.yml` rebuild |
@@ -40,7 +40,7 @@
 | File | Role |
 |------|------|
 | `clean-backend.bat` | → `clean-backend-build.ps1` |
-| `dev-purge-tenant.bat` | Confirm → `dev-purge-tenant-catalog.ps1` |
+| `dev-purge-tenant.bat` | Confirm → `dev-purge-tenant-catalog.DANGER.ps1` |
 | `generate-dep-export.bat` | → `generate-dep-export-fixtures.ps1` |
 | `ensure-bmf-prueftool.bat` | → `ensure-bmf-prueftool.ps1` |
 | `fix-antd.bat` | → `fix-antd-deprecations.mjs` |

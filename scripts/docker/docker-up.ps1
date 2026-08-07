@@ -28,7 +28,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$repoRoot = Split-Path -Parent $PSScriptRoot
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Set-Location $repoRoot
 
 if (-not $Dev -and -not $Prod) { $Dev = $true }
@@ -37,9 +37,17 @@ if ($Dev -and $Prod) {
 }
 
 function Assert-Docker {
+    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+        throw @"
+Docker CLI not found — Docker Desktop is not installed (or not on PATH).
+Install: .\scripts\docker\ensure-docker-desktop.ps1
+Docs:    docs\DOCKER_WINDOWS_SETUP.md
+Legacy:  scripts\dev\start.bat  (option 1) or scripts\dev\start-dev.bat
+"@
+    }
     & docker info 2>$null | Out-Null
     if ($LASTEXITCODE -ne 0) {
-        throw "Docker engine not reachable. Run .\scripts\docker-diagnose.ps1"
+        throw "Docker engine not reachable. Start Docker Desktop, then run .\scripts\docker\docker-diagnose.ps1"
     }
 }
 

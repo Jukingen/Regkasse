@@ -1,9 +1,13 @@
 @echo off
+REM =============================================================================
+REM DANGER: This script can destroy data, wipe volumes, or rewrite git history.
+REM Read the warnings below carefully before confirming.
+REM =============================================================================
 setlocal EnableExtensions
 chcp 65001 >nul
 
 echo ========================================
-echo  Production Rollback
+echo  DANGER: Production Rollback
 echo ========================================
 echo.
 echo WARNING: This will rollback to the previous git commit!
@@ -18,7 +22,7 @@ if /i not "%confirm%"=="y" (
     exit /b 0
 )
 
-cd /d "%~dp0"
+cd /d "%~dp0..\.."
 
 echo.
 echo Rolling back...

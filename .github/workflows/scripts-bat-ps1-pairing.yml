@@ -6,19 +6,19 @@ on:
   pull_request:
     paths:
       - 'scripts/**'
-      - '*.bat'
       - 'docs/SCRIPTS_REFERENCE.md'
       - 'docs/SCRIPTS_TEST_PLAN.md'
       - 'docs/BATCH_FILES.md'
+      - 'package.json'
       - '.github/workflows/scripts-bat-ps1-pairing.yml'
   push:
     branches: [main, master]
     paths:
       - 'scripts/**'
-      - '*.bat'
       - 'docs/SCRIPTS_REFERENCE.md'
       - 'docs/SCRIPTS_TEST_PLAN.md'
       - 'docs/BATCH_FILES.md'
+      - 'package.json'
       - '.github/workflows/scripts-bat-ps1-pairing.yml'
   workflow_dispatch:
 
@@ -46,8 +46,8 @@ jobs:
 
       - name: Full validate-scripts.ps1 (pairing + docs)
         shell: pwsh
-        run: ./scripts/validate-scripts.ps1
+        run: ./scripts/lib/validate-scripts.ps1
 
       - name: Structural dry-run (test-scripts.ps1)
         shell: pwsh
-        run: ./scripts/test-scripts.ps1
+        run: ./scripts/test/test-scripts.ps1

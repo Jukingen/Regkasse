@@ -7,7 +7,7 @@ echo  Running All Tests
 echo ========================================
 echo.
 
-cd /d "%~dp0"
+cd /d "%~dp0..\.."
 
 echo [1/3] Backend tests...
 dotnet test backend/KasseAPI_Final.sln
@@ -27,7 +27,7 @@ if %ERRORLEVEL% neq 0 (
     pause
     exit /b %ERRORLEVEL%
 )
-cd /d "%~dp0"
+cd /d "%~dp0..\.."
 echo [OK] Admin tests passed!
 echo.
 
@@ -39,7 +39,7 @@ if %ERRORLEVEL% neq 0 (
     pause
     exit /b %ERRORLEVEL%
 )
-cd /d "%~dp0"
+cd /d "%~dp0..\.."
 echo [OK] POS tests passed!
 echo.
 

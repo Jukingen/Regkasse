@@ -20,12 +20,12 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$repoRoot = Split-Path -Parent $PSScriptRoot
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Set-Location $repoRoot
 
 & docker info 2>$null | Out-Null
 if ($LASTEXITCODE -ne 0) {
-    throw "Docker engine not reachable. Run .\scripts\docker-diagnose.ps1"
+    throw "Docker engine not reachable. Run .\scripts\docker\docker-diagnose.ps1"
 }
 
 $envFile = Join-Path $repoRoot '.env.production'

@@ -13,11 +13,11 @@ echo Regkasse Frontend Admin Start - %date% %time% >> "%LOG_FILE%"
 echo ======================================== >> "%LOG_FILE%"
 
 if not exist "%PROJECT_PATH%" (
-    echo [HATA] Klasor bulunamadi: %PROJECT_PATH%
-    echo [HATA] Klasor bulunamadi: %PROJECT_PATH% >> "%LOG_FILE%"
+    echo [ERROR] Folder not found: %PROJECT_PATH%
+    echo [ERROR] Folder not found: %PROJECT_PATH% >> "%LOG_FILE%"
     echo.
-    echo Bir hata olustu. Detaylar icin: %LOG_FILE%
-    echo Bu pencereyi kapatmak icin bir tusa basin...
+    echo An error occurred. Details: %LOG_FILE%
+    echo Press any key to close this window...
     pause > nul
     exit /b 1
 )
@@ -26,17 +26,17 @@ cd /d "%PROJECT_PATH%"
 
 echo.
 echo ========================================
-echo    Regkasse Frontend Admin Baslatiliyor...
+echo    Regkasse Frontend Admin Starting...
 echo ========================================
 echo.
-echo Proje yolu: %PROJECT_PATH%
-echo Log dosyasi: %LOG_FILE%
+echo Project path: %PROJECT_PATH%
+echo Log file: %LOG_FILE%
 echo.
 echo ========================================
 echo.
 
 if not exist "node_modules" (
-    echo [UYARI] node_modules bulunamadi!
+    echo [WARN] node_modules not found!
     echo %date% %time% - WARNING: node_modules not found >> "%LOG_FILE%"
 )
 
@@ -46,14 +46,14 @@ npm run dev >> "%LOG_FILE%" 2>&1
 if %errorlevel% neq 0 (
     echo.
     echo ========================================
-    echo [HATA] Frontend Admin baslatilamadi! Hata kodu: %errorlevel%
+    echo [ERROR] Frontend Admin failed to start! Exit code: %errorlevel%
     echo ========================================
     echo.
     echo %date% %time% - ERROR! Exit code: %errorlevel% >> "%LOG_FILE%"
     echo.
-    echo Detaylar icin log dosyasina bakin: %LOG_FILE%
+    echo See log for details: %LOG_FILE%
     echo.
-    echo Bu pencereyi kapatmak icin bir tusa basin...
+    echo Press any key to close this window...
     pause > nul
 ) else (
     echo.
@@ -63,6 +63,6 @@ if %errorlevel% neq 0 (
     echo.
     echo %date% %time% - Admin stopped >> "%LOG_FILE%"
     echo.
-    echo Bu pencereyi kapatmak icin bir tusa basin...
+    echo Press any key to close this window...
     pause > nul
 )

@@ -13,7 +13,7 @@ echo Press Ctrl+C to stop
 echo ========================================
 echo.
 
-cd /d "%~dp0"
+cd /d "%~dp0..\.."
 npm run dev:backend
 set "EXIT_CODE=%ERRORLEVEL%"
 

@@ -5,7 +5,7 @@ chcp 65001 >nul
 REM Validates .bat/.ps1 pairing + docs/SCRIPTS_REFERENCE.md coverage.
 REM See docs\SCRIPTS_TEST_PLAN.md
 
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 
 echo ========================================
 echo  Regkasse validate-scripts

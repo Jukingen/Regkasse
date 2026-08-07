@@ -4,7 +4,7 @@ chcp 65001 >nul
 
 REM Downloads BMF Prüftool JARs into backend/Tests/ (gitignored). PowerShell — not a Node script.
 
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 set "PS_SCRIPT=%~dp0ensure-bmf-prueftool.ps1"
 
 echo Ensuring BMF Prueftool is installed...

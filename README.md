@@ -24,7 +24,7 @@ Regkasse is an npm-workspace monorepo for:
 
 **Boundaries:** POS → `/api/pos/*`; Admin → `/api/admin/*`; Sites → `/api/public/*` + `/api/sites/*`. Cross-tenant access returns **HTTP 404**.
 
-**Windows?** Prefer [`start.bat`](start.bat) (Legacy or Docker) — [`docs/DOCKER_VS_LEGACY.md`](docs/DOCKER_VS_LEGACY.md) · [`docs/GETTING_STARTED_SCRIPTS.md`](docs/GETTING_STARTED_SCRIPTS.md) · [`docs/SCRIPTS_REFERENCE.md`](docs/SCRIPTS_REFERENCE.md).
+**Windows?** Prefer [`scripts/dev/start.bat`](scripts/dev/start.bat) (Legacy or Docker) — [`docs/DOCKER_VS_LEGACY.md`](docs/DOCKER_VS_LEGACY.md) · [`docs/GETTING_STARTED_SCRIPTS.md`](docs/GETTING_STARTED_SCRIPTS.md) · [`docs/SCRIPTS_REFERENCE.md`](docs/SCRIPTS_REFERENCE.md).
 
 ---
 
@@ -66,14 +66,14 @@ npm run dev                 # parallel: API + POS + Admin + Sites
 
 | Mode | How | When |
 |------|-----|------|
-| **Chooser** | `start.bat` | Preferred entry — Legacy or Docker |
+| **Chooser** | `scripts\dev\start.bat` | Preferred entry — Legacy or Docker |
 | **Legacy** | `scripts\legacy\start-all.bat` | Daily DX; host Node/.NET/Postgres/Redis |
-| **Docker** | `docker-up.bat` → `scripts\docker\` | Prod-like stack; no local SDK install |
-| **npm** | `start-dev.bat` | One terminal, all workspaces |
+| **Docker** | `scripts\docker\host\up.bat` | Prod-like stack; no local SDK install |
+| **npm** | `scripts\dev\start-dev.bat` | One terminal, all workspaces |
 
 Comparison + rollback: [`docs/DOCKER_VS_LEGACY.md`](docs/DOCKER_VS_LEGACY.md). Setup: [`docs/DOCKER_SETUP.md`](docs/DOCKER_SETUP.md) · [`DEVELOPMENT.md`](DEVELOPMENT.md#docker-compose-full-stack) · Windows: [`docs/DOCKER_WINDOWS_SETUP.md`](docs/DOCKER_WINDOWS_SETUP.md).
 
-**Docker (optional advanced):** `just docker-up` / `.\scripts\docker-up.ps1` — see [Scripts](#scripts-windows).
+**Docker (optional advanced):** `just docker-up` / `.\scripts\docker\docker-up.ps1` — see [Scripts](#scripts-windows).
 
 ### Run each project
 
@@ -109,27 +109,27 @@ Full setup: [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Getting Started with Scripts (Windows)
 
-> **TL;DR:** Prefer [`start.bat`](start.bat) — choose **Legacy** (host processes) or **Docker** (Compose). Comparison: [`docs/DOCKER_VS_LEGACY.md`](docs/DOCKER_VS_LEGACY.md).
+> **TL;DR:** Prefer [`scripts/dev/start.bat`](scripts/dev/start.bat) — choose **Legacy** (host processes) or **Docker** (Compose). Comparison: [`docs/DOCKER_VS_LEGACY.md`](docs/DOCKER_VS_LEGACY.md).
 
 **Guide:** [`docs/GETTING_STARTED_SCRIPTS.md`](docs/GETTING_STARTED_SCRIPTS.md) · full catalog [`docs/SCRIPTS_REFERENCE.md`](docs/SCRIPTS_REFERENCE.md)
 
 ```batch
 npm install
-start.bat
+scripts\dev\start.bat
 REM [1] Legacy  → scripts\legacy\start-all.bat
-REM [2] Docker  → scripts\docker\docker-up.bat
+REM [2] Docker  → scripts\docker\host\up.bat
 REM [3] Exit
 ```
 
 | Task | Script |
 |------|--------|
-| Choose mode | `start.bat` |
+| Choose mode | `scripts\dev\start.bat` |
 | Legacy (all windows) | `scripts\legacy\start-all.bat` |
-| Docker up / down / status | `docker-up.bat` / `docker-down.bat` / `docker-status.bat` |
-| npm one-terminal stack | `start-dev.bat` |
-| Run tests | `test-all.bat` |
+| Docker up / down / status | `scripts\docker\host\up.bat` / `down.bat` / `status.bat` |
+| npm one-terminal stack | `scripts\dev\start-dev.bat` |
+| Run tests | `scripts\test\test-all.bat` |
 
-**Rollback:** If Docker Desktop is missing or Compose fails, use Legacy mode (`start.bat` → `[1]`). Logs for both modes: `C:\Scripts\logs`.
+**Rollback:** If Docker Desktop is missing or Compose fails, use Legacy mode (`scripts\dev\start.bat` → `[1]`). Logs for both modes: `C:\Scripts\logs`.
 
 More: [Scripts (Windows)](#scripts-windows) · [`docs/SCRIPTS_QUICK_REF.md`](docs/SCRIPTS_QUICK_REF.md)
 
@@ -145,7 +145,7 @@ Double-click helpers for common tasks. Full catalog: [`docs/SCRIPTS_REFERENCE.md
 
 | Script | Description |
 |--------|-------------|
-| `start.bat` | Menu: Legacy Mode / Docker Mode / Exit |
+| `scripts\dev\start.bat` | Menu: Legacy Mode / Docker Mode / Exit |
 
 ### Legacy Mode (`scripts/legacy/`)
 
@@ -163,22 +163,22 @@ Host processes (separate windows). Needs Node, .NET, Postgres, Redis on the mach
 
 | Script | Description |
 |--------|-------------|
-| `start-dev.bat` | Start API + Admin + POS + Sites (`npm run dev`) in one terminal |
-| `start-backend.bat` / `start-admin.bat` / `start-pos.bat` / `start-sites.bat` | Single surface (`:5184` / `:3000` / `:8081` / `:3001`) |
-| `test-all.bat` | Backend → Admin → POS tests (sequential; stops on first failure) |
-| `clean-all.bat` | Confirm + remove build artifacts (`bin` / `obj` / `.next` / `.expo` / …) |
+| `scripts\dev\start-dev.bat` | Start API + Admin + POS + Sites (`npm run dev`) in one terminal |
+| `scripts\dev\start-backend.bat` / `start-admin.bat` / `start-pos.bat` / `start-sites.bat` | Single surface (`:5184` / `:3000` / `:8081` / `:3001`) |
+| `scripts\test\test-all.bat` | Backend → Admin → POS tests (sequential; stops on first failure) |
+| `scripts\dev\clean-all.DANGER.bat` | Confirm + remove build artifacts (`bin` / `obj` / `.next` / `.expo` / …) |
 
 ### Docker Mode (`scripts/docker/`)
 
-Compose stack. Root `docker-*.bat` files are thin wrappers. Logs → `C:\Scripts\logs`.
+Compose stack. Host bats under `scripts/docker/host/`; PowerShell under `scripts/docker/`. Logs → `C:\Scripts\logs`.
 
 | Script | Description |
 |--------|-------------|
-| `docker-up.bat` / `docker-down.bat` / `docker-status.bat` / `docker-logs.bat` | Compose start / stop / status / follow logs |
-| `docker-clean.bat` | Wipe Compose volumes + prune (**destructive**) |
-| `scripts\docker\docker-up-backend.bat` / `docker-up-admin.bat` / `docker-up-pos.bat` | Partial stacks |
-| `scripts\docker-build.ps1` / `docker-up.ps1` / `docker-down.ps1` / `docker-deploy.ps1` | Build Dev/Prod · up · down · prod deploy ([`docs/DOCKER_SETUP.md`](docs/DOCKER_SETUP.md)) |
-| `scripts\docker-diagnose.ps1` | Windows Docker/WSL/ports diagnose |
+| `scripts\docker\host\up.bat` / `down.bat` / `status.bat` / `logs.bat` | Compose start / stop / status / follow logs |
+| `scripts\docker\host\clean.DANGER.bat` | Wipe Compose volumes + prune (**destructive**) |
+| `scripts\docker\host\up-backend.bat` / `up-admin.bat` / `up-pos.bat` | Partial stacks |
+| `scripts\docker\docker-build.ps1` / `docker-up.ps1` / `docker-down.ps1` / `docker-deploy.ps1` | Build Dev/Prod · up · down · prod deploy ([`docs/DOCKER_SETUP.md`](docs/DOCKER_SETUP.md)) |
+| `scripts\docker\docker-diagnose.ps1` | Windows Docker/WSL/ports diagnose |
 
 ### Deploy & checks
 
@@ -217,7 +217,7 @@ Regkasse/
 
 **Guides:** [`docs/DOCKER.md`](docs/DOCKER.md) · beginners [`docs/DOCKER_FOR_BEGINNERS.md`](docs/DOCKER_FOR_BEGINNERS.md) · test plan [`docs/DOCKER_TEST_PLAN.md`](docs/DOCKER_TEST_PLAN.md) · prod readiness [`docs/DOCKER_PRODUCTION_READINESS.md`](docs/DOCKER_PRODUCTION_READINESS.md) · monitoring [`docs/MONITORING.md`](docs/MONITORING.md) · CI/CD [`docs/CI_CD.md`](docs/CI_CD.md).
 
-**Windows prod-like stack:** `docker-up-prod.bat` (uses `docker-compose.prod.yml`; Soft TSE is **not** loaded). Dev Soft TSE: `docker-up.bat` / `start.bat` → Docker.
+**Windows prod-like stack:** `scripts\docker\docker-up-prod.bat` (uses `docker-compose.prod.yml`; Soft TSE is **not** loaded). Dev Soft TSE: `scripts\docker\host\up.bat` / `scripts\dev\start.bat` → Docker.
 
 Postgres and Redis are **Compose services** (`postgres:16-alpine`, `redis:7-alpine`), not folders under the repo.
 

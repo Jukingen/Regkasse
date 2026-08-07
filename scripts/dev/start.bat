@@ -17,12 +17,12 @@ if errorlevel 1 goto legacy
 
 :legacy
 echo Starting Legacy Mode...
-call "%~dp0scripts\legacy\start-all.bat"
+call "%~dp0..\legacy\start-all.bat"
 goto end
 
 :docker
 echo Starting Docker Mode...
-call "%~dp0scripts\docker\docker-up.bat"
+call "%~dp0..\docker\host\up.bat"
 goto end
 
 :end

@@ -4,7 +4,7 @@ chcp 65001 >nul
 
 REM Regenerates Prüftool fixtures. See scripts\generate-dep-export-fixtures.ps1
 
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 set "PS_SCRIPT=%~dp0generate-dep-export-fixtures.ps1"
 
 echo Generating DEP Export Fixtures...

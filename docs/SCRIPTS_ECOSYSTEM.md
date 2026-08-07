@@ -1,8 +1,10 @@
 # Scripts ecosystem map
 
-> **Last updated:** 2026-07-29  
+> **Last updated:** 2026-08-01  
 > Visual guide: which Windows `.bat` to use for which task.  
 > Full detail: [`SCRIPTS_REFERENCE.md`](SCRIPTS_REFERENCE.md) · Pocket card: [`SCRIPTS_QUICK_REF.md`](SCRIPTS_QUICK_REF.md) · Test plan: [`SCRIPTS_TEST_PLAN.md`](SCRIPTS_TEST_PLAN.md)
+
+All entry points live under `scripts/<category>/` (repo root has no `.bat` files).
 
 ---
 
@@ -18,34 +20,34 @@ flowchart TD
     B -->|Deploy / validate stack| F[Deployment Scripts]
     B -->|Debug / CI gates| G[Helpers]
 
-    C --> C1[start-dev.bat]
-    C --> C2[start-backend.bat]
-    C --> C3[start-admin.bat]
-    C --> C4[start-pos.bat]
-    C --> C5[start-sites.bat]
-    C --> C6[test-all.bat]
-    C --> C7[clean-all.bat]
+    C --> C1[scripts/dev/start-dev.bat]
+    C --> C2[scripts/dev/start-backend.bat]
+    C --> C3[scripts/dev/start-admin.bat]
+    C --> C4[scripts/dev/start-pos.bat]
+    C --> C5[scripts/dev/start-sites.bat]
+    C --> C6[scripts/test/test-all.bat]
+    C --> C7[scripts/dev/clean-all.DANGER.bat]
 
-    D --> D1[docker-up.bat]
-    D --> D2[docker-down.bat]
-    D --> D3[docker-clean.bat]
-    D --> D4[docker-status.bat]
+    D --> D1[scripts/docker/host/up.bat]
+    D --> D2[scripts/docker/host/down.bat]
+    D --> D3[scripts/docker/host/clean.DANGER.bat]
+    D --> D4[scripts/docker/host/status.bat]
 
-    E --> E1[clean-backend.bat]
-    E --> E2[dev-purge-tenant.bat]
-    E --> E3[generate-dep-export.bat]
-    E --> E4[ensure-bmf-prueftool.bat]
-    E --> E5[fix-antd.bat]
-    E --> E6[dev-mail.bat]
-    E --> E7[smoke-test.bat]
+    E --> E1[scripts/dev/clean-backend.bat]
+    E --> E2[scripts/dev/dev-purge-tenant.DANGER.bat]
+    E --> E3[scripts/rksv/generate-dep-export.bat]
+    E --> E4[scripts/rksv/ensure-bmf-prueftool.bat]
+    E --> E5[scripts/dev/fix-antd.bat]
+    E --> E6[scripts/dev/dev-mail.bat]
+    E --> E7[scripts/test/smoke-test.bat]
 
-    F --> F1[deploy.bat]
-    F --> F2[rollback.bat]
+    F --> F1[scripts/ops/deploy.DANGER.bat]
+    F --> F2[scripts/ops/rollback.DANGER.bat]
 
-    G --> G1[run-with-log.bat]
-    G --> G2[validate-scripts.bat]
-    G --> G3[test-scripts.bat]
-    G --> G4[create-bat-wrappers.bat]
+    G --> G1[scripts/lib/run-with-log.bat]
+    G --> G2[scripts/lib/validate-scripts.bat]
+    G --> G3[scripts/test/test-scripts.bat]
+    G --> G4[scripts/lib/create-bat-wrappers.bat]
 
     C1 --> N1["npm run dev"]
     D1 --> N2["docker compose up -d"]
@@ -53,7 +55,7 @@ flowchart TD
     F2 --> N4["git reset --hard HEAD~1 + prod rebuild"]
 ```
 
-> **Note:** `deploy.bat` uses `docker-compose.prod.yml` with confirmations (operator checklist on the deploy host). It is **not** a substitute for GitHub Actions cloud CD alone. Prefer `git revert` over `rollback.bat` on shared branches. `scripts\smoke-test.bat` is lightweight curl; full suite is `run-comprehensive-smoke.bat`.
+> **Note:** `scripts\ops\deploy.DANGER.bat` uses `docker-compose.prod.yml` with confirmations. Prefer `git revert` over `rollback.bat` on shared branches. `scripts\test\smoke-test.bat` is lightweight curl; full suite is `scripts\test\run-comprehensive-smoke.bat`.
 
 ---
 
@@ -61,59 +63,29 @@ flowchart TD
 
 | Category | Script | When |
 |----------|--------|------|
-| Development | [`start-dev.bat`](../start-dev.bat) | Daily full stack |
-| Development | [`start-backend.bat`](../start-backend.bat) | API only |
-| Development | [`start-admin.bat`](../start-admin.bat) | FA only |
-| Development | [`start-pos.bat`](../start-pos.bat) | POS only |
-| Development | [`start-sites.bat`](../start-sites.bat) | Tenant Sites only |
-| Development | [`test-all.bat`](../test-all.bat) | Before commit |
-| Development | [`clean-all.bat`](../clean-all.bat) | Stale build artifacts |
-| Docker | [`docker-up.bat`](../docker-up.bat) | Start Compose |
-| Docker | [`docker-down.bat`](../docker-down.bat) | Stop Compose |
-| Docker | [`docker-status.bat`](../docker-status.bat) | Is it up? |
-| Docker | [`docker-clean.bat`](../docker-clean.bat) | Wipe volumes (**data loss**) |
-| Maintenance | [`scripts/clean-backend.bat`](../scripts/clean-backend.bat) | Corrupted `bin`/`obj` |
-| Maintenance | [`scripts/dev-purge-tenant.bat`](../scripts/dev-purge-tenant.bat) | Dev catalog reset |
-| Maintenance | [`scripts/generate-dep-export.bat`](../scripts/generate-dep-export.bat) | DEP fixtures |
-| Maintenance | [`scripts/ensure-bmf-prueftool.bat`](../scripts/ensure-bmf-prueftool.bat) | Prüftool JARs |
-| Maintenance | [`scripts/fix-antd.bat`](../scripts/fix-antd.bat) | Ant Design 6 fixes |
-| Maintenance | [`scripts/dev-mail.bat`](../scripts/dev-mail.bat) | Local mail capture |
-| Maintenance | [`scripts/smoke-test.bat`](../scripts/smoke-test.bat) | Lightweight curl smoke (stack up) |
-| Deployment | [`deploy.bat`](../deploy.bat) | Prod Compose + smoke + backup gate |
-| Deployment | [`rollback.bat`](../rollback.bat) | Discard last commit + rebuild |
-| Helpers | [`scripts/run-with-log.bat`](../scripts/run-with-log.bat) | Log any command |
-| Helpers | [`scripts/validate-scripts.bat`](../scripts/validate-scripts.bat) | Pairing + docs CI gate |
-| Helpers | [`scripts/test-scripts.bat`](../scripts/test-scripts.bat) | Dry-run bat structure |
-| Helpers | [`scripts/create-bat-wrappers.bat`](../scripts/create-bat-wrappers.bat) | Generate missing `.bat` |
+| Development | [`scripts/dev/start-dev.bat`](../scripts/dev/start-dev.bat) | Daily full stack |
+| Development | [`scripts/dev/start-backend.bat`](../scripts/dev/start-backend.bat) | API only |
+| Development | [`scripts/dev/start-admin.bat`](../scripts/dev/start-admin.bat) | FA only |
+| Development | [`scripts/dev/start-pos.bat`](../scripts/dev/start-pos.bat) | POS only |
+| Development | [`scripts/dev/start-sites.bat`](../scripts/dev/start-sites.bat) | Tenant Sites only |
+| Development | [`scripts/test/test-all.bat`](../scripts/test/test-all.bat) | Before commit |
+| Development | [`scripts/dev/clean-all.DANGER.bat`](../scripts/dev/clean-all.DANGER.bat) | Stale build artifacts |
+| Docker | [`scripts/docker/host/up.bat`](../scripts/docker/host/up.bat) | Start Compose |
+| Docker | [`scripts/docker/host/down.bat`](../scripts/docker/host/down.bat) | Stop Compose |
+| Docker | [`scripts/docker/host/status.bat`](../scripts/docker/host/status.bat) | Is it up? |
+| Docker | [`scripts/docker/host/clean.DANGER.bat`](../scripts/docker/host/clean.DANGER.bat) | Wipe volumes (**data loss**) |
+| Maintenance | [`scripts/dev/clean-backend.bat`](../scripts/dev/clean-backend.bat) | Corrupted `bin`/`obj` |
+| Maintenance | [`scripts/dev/dev-purge-tenant.DANGER.bat`](../scripts/dev/dev-purge-tenant.DANGER.bat) | Dev catalog reset |
+| Maintenance | [`scripts/rksv/generate-dep-export.bat`](../scripts/rksv/generate-dep-export.bat) | DEP fixtures |
+| Maintenance | [`scripts/rksv/ensure-bmf-prueftool.bat`](../scripts/rksv/ensure-bmf-prueftool.bat) | Prüftool JARs |
+| Maintenance | [`scripts/dev/fix-antd.bat`](../scripts/dev/fix-antd.bat) | Ant Design 6 fixes |
+| Maintenance | [`scripts/dev/dev-mail.bat`](../scripts/dev/dev-mail.bat) | Local mail capture |
+| Maintenance | [`scripts/test/smoke-test.bat`](../scripts/test/smoke-test.bat) | Lightweight curl smoke |
+| Deployment | [`scripts/ops/deploy.DANGER.bat`](../scripts/ops/deploy.DANGER.bat) | Prod Compose + smoke + backup gate |
+| Deployment | [`scripts/ops/rollback.DANGER.bat`](../scripts/ops/rollback.DANGER.bat) | Discard last commit + rebuild |
+| Helpers | [`scripts/lib/run-with-log.bat`](../scripts/lib/run-with-log.bat) | Log any command |
+| Helpers | [`scripts/lib/validate-scripts.bat`](../scripts/lib/validate-scripts.bat) | Pairing + docs CI gate |
+| Helpers | [`scripts/test/test-scripts.bat`](../scripts/test/test-scripts.bat) | Dry-run bat structure |
+| Helpers | [`scripts/lib/create-bat-wrappers.bat`](../scripts/lib/create-bat-wrappers.bat) | Generate missing `.bat` |
 
-Anchors for deep links in GitHub / VS Code preview: see headings under [`SCRIPTS_REFERENCE.md`](SCRIPTS_REFERENCE.md) (e.g. `#start-devbat`, `#docker-upbat`, `#deploybat`).
-
----
-
-## Typical day
-
-```mermaid
-sequenceDiagram
-    participant Dev as Developer
-    participant Bat as Root .bat
-    participant Stack as API/FA/POS
-
-    Dev->>Bat: start-dev.bat
-    Bat->>Stack: npm run dev
-    Dev->>Dev: Code changes
-    Dev->>Bat: test-all.bat
-    Dev->>Bat: scripts\smoke-test.bat
-    Note over Dev,Stack: Optional Docker path: docker-up → status → docker-down
-```
-
----
-
-## Related
-
-| Doc | Purpose |
-|-----|---------|
-| [`SCRIPTS_QUICK_REF.md`](SCRIPTS_QUICK_REF.md) | One-screen icon card |
-| [`SCRIPTS_REFERENCE.md`](SCRIPTS_REFERENCE.md) | Full reference |
-| [`SCRIPTS_TEST_PLAN.md`](SCRIPTS_TEST_PLAN.md) | Automated + manual tests |
-| [`BATCH_FILES.md`](BATCH_FILES.md) | Short inventory |
-| [`../scripts/README.md`](../scripts/README.md) | Folder conventions |
+Mode chooser: [`scripts/dev/start.bat`](../scripts/dev/start.bat). Comparison: [`DOCKER_VS_LEGACY.md`](DOCKER_VS_LEGACY.md).

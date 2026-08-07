@@ -37,7 +37,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$repoRoot = Split-Path -Parent $PSScriptRoot
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Set-Location $repoRoot
 
 $envFile = Join-Path $repoRoot '.env.production'
@@ -45,9 +45,10 @@ $localExample = Join-Path $repoRoot '.env.production.local.example'
 $cloudExample = Join-Path $repoRoot '.env.production.example'
 
 function Assert-Docker {
+    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { throw 'Docker CLI not found. Run .\scripts\docker\ensure-docker-desktop.ps1' }
     & docker info 2>$null | Out-Null
     if ($LASTEXITCODE -ne 0) {
-        throw "Docker engine not reachable. Start Docker Desktop, then .\scripts\docker-diagnose.ps1"
+        throw "Docker engine not reachable. Start Docker Desktop, then .\scripts\docker\docker-diagnose.ps1"
     }
 }
 

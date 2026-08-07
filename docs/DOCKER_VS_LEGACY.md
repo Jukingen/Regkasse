@@ -1,8 +1,8 @@
 # Docker vs Legacy Mode — Comparison
 
-> **Entry point:** [`start.bat`](../start.bat) at the repository root  
-> **Folders:** [`scripts/legacy/`](../scripts/legacy/) · [`scripts/docker/`](../scripts/docker/)  
-> **Shared logs:** `C:\Scripts\logs` (both modes)
+> **Entry point:** [`scripts/dev/start.bat`](../scripts/dev/start.bat)  
+> **Folders:** [`scripts/legacy/`](../scripts/legacy/) · [`scripts/docker/host/`](../scripts/docker/host/) · [`scripts/docker/`](../scripts/docker/) (PowerShell)  
+> **Shared logs:** `C:\Scripts\logs` (Legacy + `docker/host`)
 
 ---
 
@@ -19,7 +19,7 @@
 **Commands:**
 
 ```batch
-REM From repo root (or via start.bat → [1])
+REM From repo root (or via scripts\dev\start.bat → [1])
 scripts\legacy\start-all.bat
 scripts\legacy\start-backend.bat
 scripts\legacy\start-frontend.bat
@@ -53,110 +53,53 @@ REM C:\Scripts\*.bat shortcuts still redirect here
 - You want a consistent environment with the team
 - You want easy cleanup
 
-**Commands:**
+**Commands (host / chooser bats):**
 
 ```batch
-REM From repo root (or via start.bat → [2])
-scripts\docker\docker-up.bat
-scripts\docker\docker-down.bat
-scripts\docker\docker-status.bat
-scripts\docker\docker-logs.bat
-scripts\docker\docker-clean.bat
+REM From repo root (or via scripts\dev\start.bat → [2])
+scripts\docker\host\up.bat
+scripts\docker\host\down.bat
+scripts\docker\host\status.bat
+scripts\docker\host\logs.bat
+scripts\docker\host\clean.DANGER.bat
 
 REM Partial stacks
-scripts\docker\docker-up-backend.bat
-scripts\docker\docker-up-admin.bat
-scripts\docker\docker-up-pos.bat
-
-REM Root wrappers also work: docker-up.bat, docker-down.bat, …
+scripts\docker\host\up-backend.bat
+scripts\docker\host\up-admin.bat
+scripts\docker\host\up-pos.bat
 ```
 
 | Script | Purpose |
 |--------|---------|
-| `docker-up.bat` | Start everything |
-| `docker-down.bat` | Stop everything |
-| `docker-status.bat` | Check status |
-| `docker-logs.bat` | View logs |
-| `docker-clean.bat` | Clean everything (**destructive** — volumes wiped) |
-| `docker-up-backend.bat` | Infra + API only |
-| `docker-up-admin.bat` | Infra + API + Admin |
-| `docker-up-pos.bat` | Infra + API + POS web |
+| `host\up.bat` | Start everything |
+| `host\down.bat` | Stop everything |
+| `host\status.bat` | Check status |
+| `host\logs.bat` | View logs |
+| `host\clean.bat` | Clean everything (**destructive** — volumes wiped) |
 
-**Logs:** `C:\Scripts\logs\docker.log`, `docker_down.log`, `docker_status.log`, `docker_logs.log`, `docker_clean.log`, …
+**PowerShell Compose** (flags / prod): `scripts\docker\docker-up.ps1`, `docker-down.ps1`, `docker-deploy.ps1`, `docker-diagnose.ps1`.
 
----
-
-## Comparison Table
-
-| Feature | Legacy | Docker |
-|---------|--------|--------|
-| Node.js needed | Yes | No |
-| .NET needed | Yes | No |
-| PostgreSQL needed | Yes | No |
-| Redis needed | Yes | No |
-| Startup time | Fast | Slow (first time) |
-| Memory usage | Low | Medium |
-| Cleanup | Manual | Easy |
-| Team consistency | Varies | Same |
-| Production ready | No | Yes |
-| POS hot reload | Yes (Expo Metro) | No (static web export) |
-
-> Docker still needs **Docker Desktop** installed. Host tooling (Node / .NET / Postgres / Redis) is not required for the Compose stack.
+**Logs (host bats):** `C:\Scripts\logs\docker*.log`
 
 ---
 
-## Recommendation
-
-**Start with Legacy** for daily development (faster, less resource).
-
-**Use Docker for:**
-
-- Testing a production-like environment
-- Onboarding new team members
-- Deployment testing
-- When you want to test without installing dependencies
-
-Or pick either mode from the root chooser:
+## npm single-terminal alternative
 
 ```batch
-start.bat
+scripts\dev\start-dev.bat
 ```
 
----
-
-## Quick Switch
-
-```batch
-REM Current mode (Legacy)
-scripts\legacy\start-all.bat
-REM or: start.bat → [1]
-
-REM Switch to Docker
-scripts\docker\docker-down.bat
-REM (if anything was already up)
-scripts\docker\docker-up.bat
-REM or: start.bat → [2] / root docker-up.bat
-
-REM Switch back to Legacy
-scripts\docker\docker-down.bat
-scripts\legacy\start-all.bat
-```
-
-Stop Legacy Redis/windows (or run `kill-ports.bat`) before `docker-up`, and stop Compose before `start-all` — do not run both Redis instances on **6379**.
+Uses `npm run dev` (workspaces). Not the same as Legacy multi-window or Docker Compose.
 
 ---
 
-## Conflict checklist
+## Decision tips
 
-1. Do **not** run Legacy Redis and Docker Redis together (both use **6379**).
-2. Prefer **one** mode per session.
-3. Stuck ports → `scripts\legacy\kill-ports.bat`.
+| Situation | Prefer |
+|-----------|--------|
+| Fast host DX, SDKs installed | Legacy |
+| Consistent containers / no local SDKs | Docker host `up.bat` or `docker-up.ps1` |
+| One terminal, daily coding | `scripts\dev\start-dev.bat` |
+| Docker Desktop unavailable | Legacy (`start.bat` → `[1]`) |
 
----
-
-## Related
-
-- [`BATCH_FILES.md`](BATCH_FILES.md) — root `.bat` inventory  
-- [`DOCKER_SETUP.md`](DOCKER_SETUP.md) / [`DOCKER_WINDOWS_SETUP.md`](DOCKER_WINDOWS_SETUP.md) — Compose setup  
-- [`GETTING_STARTED_SCRIPTS.md`](GETTING_STARTED_SCRIPTS.md) — scripts onboarding  
-- [`scripts/test-mode-scripts.bat`](../scripts/test-mode-scripts.bat) — structural smoke for mode scripts  
+See also: [`BATCH_FILES.md`](BATCH_FILES.md) · [`SCRIPTS_REFERENCE.md`](SCRIPTS_REFERENCE.md) · [`scripts/docker/README.md`](../scripts/docker/README.md).

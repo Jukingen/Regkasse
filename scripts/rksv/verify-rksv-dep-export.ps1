@@ -15,7 +15,7 @@ param(
     [switch]$DetailedOutput
 )
 
-$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $fixtureDir = [System.IO.Path]::Combine($repoRoot, "backend", "Tests", "fixtures", "prueftool")
 $isWindowsOs = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
     [System.Runtime.InteropServices.OSPlatform]::Windows)

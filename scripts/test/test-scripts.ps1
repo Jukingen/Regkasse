@@ -20,8 +20,8 @@
   Emit a JSON summary to stdout.
 
 .EXAMPLE
-  .\scripts\test-scripts.ps1
-  .\scripts\test-scripts.ps1 -Strict
+  .\scripts\test\test-scripts.ps1
+  .\scripts\test\test-scripts.ps1 -Strict
   npm run test:scripts
 #>
 [CmdletBinding()]
@@ -33,7 +33,7 @@ param(
 
 $ErrorActionPreference = 'Continue'
 
-$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Set-Location $repoRoot
 
 $pass = New-Object System.Collections.Generic.List[string]
@@ -118,44 +118,61 @@ if (-not $Json) {
 if (-not $Json) { Write-Host '## Root convenience' -ForegroundColor Yellow }
 
 $rootBats = @(
-    @{ Path = 'start-dev.bat'; Pattern = 'npm run dev' },
-    @{ Path = 'start-backend.bat'; Pattern = 'npm run dev:backend' },
-    @{ Path = 'start-admin.bat'; Pattern = 'npm run dev:admin' },
-    @{ Path = 'start-pos.bat'; Pattern = 'npm run dev:pos' },
-    @{ Path = 'start-sites.bat'; Pattern = 'npm run dev:sites' },
-    @{ Path = 'test-all.bat'; Pattern = 'dotnet test' },
-    @{ Path = 'clean-all.bat'; Pattern = 'dotnet clean|rmdir' },
-    @{ Path = 'docker-up.bat'; Pattern = 'docker compose up' },
-    @{ Path = 'docker-down.bat'; Pattern = 'docker compose down' },
-    @{ Path = 'docker-clean.bat'; Pattern = 'docker compose down' },
-    @{ Path = 'docker-status.bat'; Pattern = 'docker ps' },
-    @{ Path = 'deploy.bat'; Pattern = 'docker-compose\.prod\.yml' },
-    @{ Path = 'rollback.bat'; Pattern = 'git reset --hard' }
+    @{ Path = 'scripts\dev\start.bat'; Pattern = 'Legacy Mode|Docker Mode' },
+    @{ Path = 'scripts\dev\start-dev.bat'; Pattern = 'npm run dev' },
+    @{ Path = 'scripts\dev\start-backend.bat'; Pattern = 'npm run dev:backend' },
+    @{ Path = 'scripts\dev\start-admin.bat'; Pattern = 'npm run dev:admin' },
+    @{ Path = 'scripts\dev\start-pos.bat'; Pattern = 'npm run dev:pos' },
+    @{ Path = 'scripts\dev\start-sites.bat'; Pattern = 'npm run dev:sites' },
+    @{ Path = 'scripts\test\test-all.bat'; Pattern = 'dotnet test' },
+    @{ Path = 'scripts\dev\clean-all.DANGER.bat'; Pattern = 'dotnet clean|rmdir' },
+    @{ Path = 'scripts\docker\host\up.bat'; Pattern = 'docker compose' },
+    @{ Path = 'scripts\docker\host\down.bat'; Pattern = 'docker compose' },
+    @{ Path = 'scripts\docker\host\clean.DANGER.bat'; Pattern = 'docker compose' },
+    @{ Path = 'scripts\docker\host\status.bat'; Pattern = 'docker' },
+    @{ Path = 'scripts\ops\deploy.DANGER.bat'; Pattern = 'docker-compose\.prod\.yml' },
+    @{ Path = 'scripts\ops\rollback.DANGER.bat'; Pattern = 'git reset --hard' }
 )
 
 foreach ($item in $rootBats) {
     $snippets = @('@echo off')
-    if ($item.Path -ne 'clean-all.bat') {
+    $base = [IO.Path]::GetFileName($item.Path)
+    if ($base -ne 'clean-all.DANGER.bat' -and $base -ne 'start.bat') {
         $snippets += 'ERRORLEVEL'
     }
     Test-BatFile -RelativePath $item.Path -ExpectTargetPattern $item.Pattern -ExpectPause `
         -RequiredSnippets $snippets
 }
 
+# PowerShell Compose entry (not a .bat)
+$dockerUpPs1 = Join-Path $repoRoot 'scripts\docker\docker-up.ps1'
+if (Test-Path -LiteralPath $dockerUpPs1) {
+    $psContent = Get-Content -LiteralPath $dockerUpPs1 -Raw
+    if ($psContent -match 'docker compose') {
+        Add-Pass 'scripts\docker\docker-up.ps1' 'exists + docker compose'
+    }
+    else {
+        Add-Fail 'scripts\docker\docker-up.ps1' 'missing docker compose reference'
+    }
+}
+else {
+    Add-Fail 'scripts\docker\docker-up.ps1' 'file missing'
+}
+
 # --- scripts/ maintenance & helpers ---
 if (-not $Json) { Write-Host ''; Write-Host '## scripts/ helpers' -ForegroundColor Yellow }
 
 $scriptBats = @(
-    @{ Path = 'scripts\clean-backend.bat'; Pattern = 'clean-backend-build\.ps1'; Target = 'scripts\clean-backend-build.ps1' },
-    @{ Path = 'scripts\dev-purge-tenant.bat'; Pattern = 'dev-purge-tenant-catalog\.ps1'; Target = 'scripts\dev-purge-tenant-catalog.ps1' },
-    @{ Path = 'scripts\generate-dep-export.bat'; Pattern = 'generate-dep-export-fixtures\.ps1'; Target = 'scripts\generate-dep-export-fixtures.ps1' },
-    @{ Path = 'scripts\ensure-bmf-prueftool.bat'; Pattern = 'ensure-bmf-prueftool\.ps1'; Target = 'scripts\ensure-bmf-prueftool.ps1' },
-    @{ Path = 'scripts\fix-antd.bat'; Pattern = 'fix-antd-deprecations\.mjs'; Target = 'scripts\fix-antd-deprecations.mjs' },
-    @{ Path = 'scripts\dev-mail.bat'; Pattern = 'dev-mail-test\.bat'; Target = 'scripts\dev-mail-test.bat' },
-    @{ Path = 'scripts\smoke-test.bat'; Pattern = 'curl'; Target = $null },
-    @{ Path = 'scripts\run-with-log.bat'; Pattern = 'LOG_FILE'; Target = $null },
-    @{ Path = 'scripts\validate-scripts.bat'; Pattern = 'validate-scripts\.ps1'; Target = 'scripts\validate-scripts.ps1' },
-    @{ Path = 'scripts\test-scripts.bat'; Pattern = 'test-scripts\.ps1'; Target = 'scripts\test-scripts.ps1' }
+    @{ Path = 'scripts\dev\clean-backend.bat'; Pattern = 'clean-backend-build\.ps1'; Target = 'scripts\dev\clean-backend-build.ps1' },
+    @{ Path = 'scripts\dev\dev-purge-tenant.DANGER.bat'; Pattern = 'dev-purge-tenant-catalog\.DANGER\.ps1'; Target = 'scripts\dev\dev-purge-tenant-catalog.DANGER.ps1' },
+    @{ Path = 'scripts\rksv\generate-dep-export.bat'; Pattern = 'generate-dep-export-fixtures\.ps1'; Target = 'scripts\rksv\generate-dep-export-fixtures.ps1' },
+    @{ Path = 'scripts\rksv\ensure-bmf-prueftool.bat'; Pattern = 'ensure-bmf-prueftool\.ps1'; Target = 'scripts\rksv\ensure-bmf-prueftool.ps1' },
+    @{ Path = 'scripts\dev\fix-antd.bat'; Pattern = 'fix-antd-deprecations\.mjs'; Target = 'scripts\fix-antd-deprecations.mjs' },
+    @{ Path = 'scripts\dev\dev-mail.bat'; Pattern = 'dev-mail-test\.bat'; Target = 'scripts\dev\dev-mail-test.bat' },
+    @{ Path = 'scripts\test\smoke-test.bat'; Pattern = 'curl'; Target = $null },
+    @{ Path = 'scripts\lib\run-with-log.bat'; Pattern = 'LOG_FILE'; Target = $null },
+    @{ Path = 'scripts\lib\validate-scripts.bat'; Pattern = 'validate-scripts\.ps1'; Target = 'scripts\lib\validate-scripts.ps1' },
+    @{ Path = 'scripts\test\test-scripts.bat'; Pattern = 'test-scripts\.ps1'; Target = 'scripts\test\test-scripts.ps1' }
 )
 
 foreach ($item in $scriptBats) {
@@ -174,7 +191,7 @@ foreach ($item in $scriptBats) {
 
 # --- Helpers without pause requirement ---
 if (-not $Json) { Write-Host ''; Write-Host '## Shared helpers' -ForegroundColor Yellow }
-Test-BatFile -RelativePath 'scripts\_common.bat' -ExpectTargetPattern 'check_error' -RequiredSnippets @('check_error', 'success')
+Test-BatFile -RelativePath 'scripts\lib\_common.bat' -ExpectTargetPattern 'check_error' -RequiredSnippets @('check_error', 'success')
 
 # --- Docs presence ---
 if (-not $Json) { Write-Host ''; Write-Host '## Documentation files' -ForegroundColor Yellow }
@@ -219,11 +236,11 @@ if (-not $SkipPairing) {
 if (-not $Json) {
     Write-Host ''
     Write-Host '## Manual / interactive (not auto-run)' -ForegroundColor Yellow
-    Write-Host '  1. start-dev.bat / start-*.bat   -> start stack, Ctrl+C, expect clean pause'
-    Write-Host '  2. docker-up.bat -> docker-status.bat -> docker-down.bat'
-    Write-Host '  3. scripts\smoke-test.bat         -> with API/Admin/POS up'
-    Write-Host '  4. scripts\run-comprehensive-smoke.bat -> full suite'
-    Write-Host '  5. deploy.bat / rollback.bat      -> only on intentional prod Compose host'
+    Write-Host '  1. scripts\dev\start-dev.bat / start-*.bat   -> start stack, Ctrl+C, expect clean pause'
+    Write-Host '  2. scripts\docker\host\up.bat -> status.bat -> down.bat'
+    Write-Host '  3. scripts\test\smoke-test.bat         -> with API/Admin/POS up'
+    Write-Host '  4. scripts\test\run-comprehensive-smoke.bat -> full suite'
+    Write-Host '  5. deploy.DANGER.bat / rollback.DANGER.bat      -> only on intentional prod Compose host'
     Write-Host '  See docs/SCRIPTS_TEST_PLAN.md'
     Write-Host ''
 }
@@ -257,7 +274,7 @@ else {
         Write-Host 'OK (dry-run structural checks finished).' -ForegroundColor Green
     }
     else {
-        Write-Host 'FAILED — fix missing/outdated .bat wrappers before merge.' -ForegroundColor Red
+        Write-Host 'FAILED ÔÇö fix missing/outdated .bat wrappers before merge.' -ForegroundColor Red
     }
 }
 

@@ -1,25 +1,28 @@
 @echo off
-title Regkasse Docker Clean
+setlocal EnableExtensions
+title Regkasse Docker Clean - DANGER
 color 0C
 
-:: Log klasoru
+:: *** DANGER *** Wipes Compose volumes (Postgres/Redis data) and prunes unused images.
+
+:: Log directory
 set LOG_DIR=C:\Scripts\logs
 set LOG_FILE=%LOG_DIR%\docker_clean.log
 
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 
 echo ======================================== > "%LOG_FILE%"
-echo Regkasse Docker Clean - %date% %time% >> "%LOG_FILE%"
+echo Regkasse Docker Clean DANGER - %date% %time% >> "%LOG_FILE%"
 echo ======================================== >> "%LOG_FILE%"
 
-:: Project root
-set PROJECT_ROOT=C:\Users\Juke\local-projects\Regkasse
+:: Project root (scripts\docker\host -> repo root)
+for %%I in ("%~dp0..\..\..") do set "PROJECT_ROOT=%%~fI"
 
 if not exist "%PROJECT_ROOT%" (
-    echo [HATA] Klasor bulunamadi: %PROJECT_ROOT%
-    echo [HATA] Klasor bulunamadi: %PROJECT_ROOT% >> "%LOG_FILE%"
+    echo [ERROR] Folder not found: %PROJECT_ROOT%
+    echo [ERROR] Folder not found: %PROJECT_ROOT% >> "%LOG_FILE%"
     echo.
-    echo Bu pencereyi kapatmak icin bir tusa basin...
+    echo Press any key to close this window...
     pause > nul
     exit /b 1
 )
@@ -28,76 +31,73 @@ cd /d "%PROJECT_ROOT%"
 
 echo.
 echo ========================================
-echo    Regkasse Docker Clean (Full Reset)
+echo    DANGER: Docker Clean ^(Full Reset^)
 echo ========================================
 echo.
-echo Proje yolu: %PROJECT_ROOT%
-echo Log dosyasi: %LOG_FILE%
+echo Project path: %PROJECT_ROOT%
+echo Log file: %LOG_FILE%
 echo.
-echo UYARI: Tum container'lar, volume'lar ve kullanilmayan image'lar silinecek!
-echo Bu Postgres/Redis verisini de siler!
+echo WARNING: This removes ALL containers, volumes, and unused images!
+echo          Postgres/Redis data in Compose volumes will be DELETED!
 echo.
-
-set /p confirm="Emin misiniz? (E/H): "
-if /i not "%confirm%"=="E" (
-    echo Iptal edildi.
+set /p confirm="Type YES to continue: "
+if /i not "%confirm%"=="YES" (
+    echo Cancelled.
     echo %date% %time% - Clean cancelled by user >> "%LOG_FILE%"
     echo.
-    echo Bu pencereyi kapatmak icin bir tusa basin...
+    echo Press any key to close this window...
     pause > nul
     exit /b 0
 )
 
-:: Check Docker
-docker info >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [HATA] Docker calismiyor!
-    echo Lutfen Docker Desktop'i baslatin.
-    echo %date% %time% - ERROR: Docker not running >> "%LOG_FILE%"
+:: Check Docker CLI + engine
+call "%~dp0_require-docker.bat"
+if errorlevel 1 (
+    echo %date% %time% - ERROR: Docker CLI missing or engine down >> "%LOG_FILE%"
     echo.
-    echo Bu pencereyi kapatmak icin bir tusa basin...
+    echo Press any key to close this window...
     pause > nul
-    exit /b 1
+    exit /b %errorlevel%
 )
 
-echo [OK] Docker calisiyor!
+echo [OK] Docker is running!
 echo.
 
 echo %date% %time% - Cleaning Docker stack... >> "%LOG_FILE%"
 
 echo.
-echo Container'lar ve volume'lar kaldiriliyor...
+echo Removing containers and volumes...
 docker compose --profile pos --profile sites down -v >> "%LOG_FILE%" 2>&1
 if %errorlevel% neq 0 (
-    echo [UYARI] Bazi container'lar zaten durmus olabilir.
+    echo [WARN] Some containers may already be stopped.
     echo %date% %time% - WARNING: compose down -v exit %errorlevel% >> "%LOG_FILE%"
 )
 
 echo.
-echo Kullanilmayan image'lar temizleniyor...
+echo Pruning unused images...
 docker system prune -f >> "%LOG_FILE%" 2>&1
 if %errorlevel% neq 0 (
-    echo [HATA] docker system prune basarisiz!
+    echo [ERROR] docker system prune failed!
     echo %date% %time% - ERROR! Exit code: %errorlevel% >> "%LOG_FILE%"
     echo.
-    echo Detaylar icin log dosyasina bakin: %LOG_FILE%
+    echo See log for details: %LOG_FILE%
     echo.
-    echo Bu pencereyi kapatmak icin bir tusa basin...
+    echo Press any key to close this window...
     pause > nul
     exit /b %errorlevel%
 )
 
 echo.
 echo ========================================
-echo    Docker Clean Tamamlandi!
+echo    Docker Clean finished
 echo ========================================
 echo.
-echo Container'lar, volume'lar ve kullanilmayan image'lar temizlendi.
+echo Containers, volumes, and unused images were removed.
 echo.
 echo Log: %LOG_FILE%
 echo ========================================
 echo.
 echo %date% %time% - Clean completed >> "%LOG_FILE%"
-echo Bu pencereyi kapatmak icin bir tusa basin...
+echo Press any key to close this window...
 pause > nul
 exit /b 0

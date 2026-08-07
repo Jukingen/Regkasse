@@ -2,7 +2,7 @@
 # Automated DEP export validation (build, unit tests, Prueftool fixtures, FA build).
 $ErrorActionPreference = "Continue"
 
-$repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
+$repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 $passCount = 0
 $failCount = 0
 $failedSteps = @()

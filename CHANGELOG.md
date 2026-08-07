@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **POS Expo SDK 56 patch bump:** `expo` `~56.0.16` → `~56.0.18` (plus aligned `expo-router`, `expo-linking`, `expo-sharing`, `expo-splash-screen`, `expo-web-browser`, `expo-build-properties`, `react-native-screens` `~4.26.0`, TypeScript `~6.0.3` via `npx expo install --fix`). Pins updated in `AGENTS.md`, `frontend/README.md`, onboarding / comprehensive docs.
 - **Documentation accuracy:** Single POS UI hosts (`pos` / `admin` / `api`.regkasse.at); JWT tenant; Dev-only `X-Tenant-Id` — updates across `docs/`, `ai/`, offline deploy, impersonation, onboarding.
 - **Backup FA docs:** hub `/backup` (+ costs/compliance); Mandanten-Admin `backup.manage`; auto-cleanup audit `BACKUP_AUTO_DELETED`.
 - **`POST /api/Auth/login`:** prefers `loginIdentifier`; resolves email then username (`IdentityLoginLookup`).

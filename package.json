@@ -48,8 +48,8 @@
     "verify:menu-permissions": "node scripts/verify-menu-permissions.mjs",
     "verify:menu-permissions:secondary": "node scripts/verify-menu-permissions.mjs --include-secondary",
     "verify:bat-ps1": "node scripts/verify-bat-ps1-pairing.mjs",
-    "test:scripts": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-scripts.ps1",
-    "validate:scripts": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/validate-scripts.ps1",
+    "test:scripts": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/test-scripts.ps1",
+    "validate:scripts": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/lib/validate-scripts.ps1",
     "precommit": "node scripts/git-hooks/pre-commit.mjs",
     "prepare": "node scripts/install-git-hooks.mjs",
     "install:git-hooks": "node scripts/install-git-hooks.mjs",
@@ -62,7 +62,6 @@
     "testsprite:smoke": "node testsprite/run-api-smoke.mjs"
   },
   "devDependencies": {
-    "husky": "^9.1.7",
-    "typescript": "~5.9.3"
+    "husky": "^9.1.7"
   }
 }

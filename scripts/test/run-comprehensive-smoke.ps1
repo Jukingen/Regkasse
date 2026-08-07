@@ -1,4 +1,4 @@
-﻿# Comprehensive Regkasse smoke test â€” API + route checks
+# Comprehensive Regkasse smoke test â€” API + route checks
 # Usage: .\scripts\run-comprehensive-smoke.ps1
 
 $ErrorActionPreference = 'Continue'
@@ -509,7 +509,7 @@ $skip = @($script:Results | Where-Object Status -eq 'SKIP').Count
 Write-Host ""
 Write-Host "SUMMARY: PASS=$pass FAIL=$fail SKIP=$skip TOTAL=$($script:Results.Count)" -ForegroundColor Cyan
 $script:Results | Format-Table -AutoSize
-$outPath = Join-Path (Join-Path $PSScriptRoot '..') 'test-results\comprehensive-smoke-results.json'
+$outPath = Join-Path (Join-Path $PSScriptRoot '..\..') 'test-results\comprehensive-smoke-results.json'
 $outDir = Split-Path $outPath -Parent
 if (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Path $outDir -Force | Out-Null }
 $script:Results | ConvertTo-Json -Depth 4 | Set-Content -Path $outPath -Encoding UTF8

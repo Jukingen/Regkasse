@@ -2,7 +2,7 @@
 # Run from repo root: .\scripts\clean-backend-build.ps1
 
 $ErrorActionPreference = 'Stop'
-$backend = Join-Path $PSScriptRoot '..\backend' | Resolve-Path
+$backend = Join-Path $PSScriptRoot '..\..\backend' | Resolve-Path
 
 Get-Process -Name 'KasseAPI_Final' -ErrorAction SilentlyContinue | Stop-Process -Force
 

@@ -8,11 +8,12 @@ echo ========================================
 echo.
 echo   POS: http://localhost:8081
 echo.
+
 echo Press Ctrl+C to stop
 echo ========================================
 echo.
 
-cd /d "%~dp0"
+cd /d "%~dp0..\.."
 npm run dev:pos
 set "EXIT_CODE=%ERRORLEVEL%"
 

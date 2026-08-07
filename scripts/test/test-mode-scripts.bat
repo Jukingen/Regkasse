@@ -8,7 +8,7 @@ color 0A
 :: Does NOT leave long-running servers up.
 :: Usage: scripts\test-mode-scripts.bat
 
-set "REPO=%~dp0.."
+set "REPO=%~dp0..\.."
 pushd "%REPO%" >nul
 set "REPO=%CD%"
 popd >nul
@@ -56,11 +56,11 @@ call :assert_file "%REPO%\scripts\legacy\start-backend.bat"
 call :assert_file "%REPO%\scripts\legacy\start-frontend.bat"
 call :assert_file "%REPO%\scripts\legacy\start-frontend-admin.bat"
 call :assert_file "%REPO%\scripts\legacy\start-redis.bat"
-call :assert_file "%REPO%\scripts\docker\docker-up.bat"
-call :assert_file "%REPO%\scripts\docker\docker-down.bat"
-call :assert_file "%REPO%\scripts\docker\docker-status.bat"
-call :assert_file "%REPO%\scripts\docker\docker-logs.bat"
-call :assert_file "%REPO%\scripts\docker\docker-clean.bat"
+call :assert_file "%REPO%\scripts\docker\host\up.bat"
+call :assert_file "%REPO%\scripts\docker\host\down.bat"
+call :assert_file "%REPO%\scripts\docker\host\status.bat"
+call :assert_file "%REPO%\scripts\docker\host\logs.bat"
+call :assert_file "%REPO%\scripts\docker\host\clean.DANGER.bat"
 call :assert_file "%REPO%\docs\DOCKER_VS_LEGACY.md"
 
 echo.
@@ -144,7 +144,7 @@ goto :summary
 
 :docker_error_path
 echo.
-echo --- 5. Docker script error path ^(expect [HATA] when Docker missing^) ---
+echo --- 5. Docker script error path ^(expect [ERROR] when Docker missing^) ---
 :: Run docker info check the same way docker-up.bat does
 docker info >nul 2>&1
 if %ERRORLEVEL% equ 0 (

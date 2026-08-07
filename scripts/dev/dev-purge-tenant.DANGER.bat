@@ -1,11 +1,15 @@
 @echo off
+REM =============================================================================
+REM DANGER: This script can destroy data, wipe volumes, or rewrite git history.
+REM Read the warnings below carefully before confirming.
+REM =============================================================================
 setlocal EnableExtensions
 chcp 65001 >nul
 
-REM Development-only catalog purge via API. See scripts\dev-purge-tenant-catalog.ps1
+REM Development-only catalog purge via API. See scripts\dev-purge-tenant-catalog.DANGER.ps1
 
-cd /d "%~dp0.."
-set "PS_SCRIPT=%~dp0dev-purge-tenant-catalog.ps1"
+cd /d "%~dp0..\.."
+set "PS_SCRIPT=%~dp0dev-purge-tenant-catalog.DANGER.ps1"
 
 echo Purging Tenant Catalog...
 echo.
