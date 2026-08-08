@@ -1,3 +1,4 @@
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
@@ -519,5 +520,67 @@ public class CashRegisterShiftServiceTests
 
         var r = await svc.TryOpenCashRegisterAsync(regId, "u1", 0m, "open", allowIdempotentSameUser: false, CancellationToken.None);
         Assert.Equal(CashRegisterOpenKind.FailedMonatsbelegRequired, r.Kind);
+    }
+
+    [Fact]
+    public async Task ForceClose_WithSystemActor_UsesPreviousOwnerAsTransactionUserId()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        const string ownerId = "owner-1";
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 50,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CurrentUserId = ownerId,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await ctx.SaveChangesAsync();
+
+        var owner = new ApplicationUser
+        {
+            Id = ownerId,
+            UserName = ownerId,
+            Email = "owner@test",
+            FirstName = "A",
+            LastName = "B",
+            IsActive = true
+        };
+        var mgr = CreateUserManager(owner);
+        mgr.Setup(m => m.GetUsersInRoleAsync(Roles.SuperAdmin))
+            .ReturnsAsync(new List<ApplicationUser>());
+
+        var svc = new CashRegisterShiftService(
+            ctx,
+            mgr.Object,
+            Mock.Of<ILogger<CashRegisterShiftService>>(),
+            TenantTestDoubles.PrimaryTenantResolver,
+            RksvStartbelegTestDoubles.GateOff(),
+            RksvMonatsbelegTestDoubles.GateOff());
+
+        var result = await svc.TryForceCloseCashRegisterAsync(
+            regId,
+            actorUserId: "system",
+            closingBalance: 42m,
+            description: "auto-close",
+            CancellationToken.None);
+
+        Assert.Equal(CashRegisterCloseKind.Success, result.Kind);
+
+        var closeTx = await ctx.CashRegisterTransactions
+            .AsNoTracking()
+            .SingleAsync(t => t.CashRegisterId == regId && t.TransactionType == TransactionType.Close);
+        Assert.Equal(ownerId, closeTx.UserId);
+
+        var reg = await ctx.CashRegisters.AsNoTracking().SingleAsync(r => r.Id == regId);
+        Assert.Equal(RegisterStatus.Closed, reg.Status);
+        Assert.Null(reg.CurrentUserId);
     }
 }

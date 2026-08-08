@@ -11240,7 +11240,8 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnName("IssuedAt");
 
                     b.Property<Guid>("KassenId")
-                        .HasColumnType("uuid")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("KassenId");
 
                     b.Property<DateTime>("LastConnectionTime")

@@ -202,6 +202,20 @@ public sealed class TseBackupServiceTests
     }
 
     [Fact]
+    public async Task CreateTseBackupAsync_IncludesLegacyKassenIdOnlyDevices()
+    {
+        await using var db = CreateDb();
+        var (tenantId, _, _) = await SeedAsync(db);
+        // SeedAsync already creates a device with KassenId=registerId and null TenantId/CashRegisterId.
+        var svc = CreateService(db);
+
+        var result = await svc.CreateTseBackupAsync(tenantId, "admin-1");
+
+        Assert.True(result.Success);
+        Assert.Equal(1, result.Backup!.DeviceCount);
+    }
+
+    [Fact]
     public async Task CreateTseBackupAsync_IncludesFailoverFields_AndTenantScopedDevices()
     {
         await using var db = CreateDb();

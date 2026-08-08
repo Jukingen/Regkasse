@@ -90,21 +90,37 @@ public sealed class TseBackupService : ITseBackupService, ITseFullBackupService
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        var devices = await LoadTenantDevicesAsync(tenantId, registerIds, asNoTracking: true, cancellationToken)
-            .ConfigureAwait(false);
+        List<TseDevice> devices;
+        List<SignatureChainState> chains;
+        List<ReceiptSequence> sequences;
+        try
+        {
+            devices = await LoadTenantDevicesAsync(tenantId, registerIds, asNoTracking: true, cancellationToken)
+                .ConfigureAwait(false);
 
-        var chains = await _db.SignatureChainState.AsNoTracking()
-            .IgnoreQueryFilters()
-            .Where(c => c.TenantId == tenantId)
-            .ToListAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        var sequences = registerIds.Count == 0
-            ? new List<ReceiptSequence>()
-            : await _db.ReceiptSequences.AsNoTracking()
-                .Where(s => registerIds.Contains(s.CashRegisterId))
+            chains = await _db.SignatureChainState.AsNoTracking()
+                .IgnoreQueryFilters()
+                .Where(c => c.TenantId == tenantId)
                 .ToListAsync(cancellationToken)
                 .ConfigureAwait(false);
+
+            sequences = registerIds.Count == 0
+                ? new List<ReceiptSequence>()
+                : await _db.ReceiptSequences.AsNoTracking()
+                    .Where(s => registerIds.Contains(s.CashRegisterId))
+                    .ToListAsync(cancellationToken)
+                    .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "TSE backup failed for tenant {TenantId}, registerIds: {RegisterIds}, Error: {Error}",
+                tenantId,
+                string.Join(",", registerIds),
+                ex.Message);
+            throw;
+        }
 
         var backupId = Guid.NewGuid();
         var deviceSnaps = devices.Select(MapDevice).ToList();
@@ -496,15 +512,48 @@ public sealed class TseBackupService : ITseBackupService, ITseFullBackupService
         if (asNoTracking)
             query = query.AsNoTracking();
 
-        // Prefer TenantId; also include legacy rows linked only via KassenId / CashRegisterId.
-        return await query
+        // Prefer TenantId / CashRegisterId (uuid). Never compare KassenId to Guid[] in SQL:
+        // the legacy PostgreSQL column is character varying while the CLR property is Guid
+        // (operator does not exist: character varying = uuid).
+        if (registerIds.Count == 0)
+        {
+            return await query
+                .Where(d => d.TenantId == tenantId)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        var devices = await query
             .Where(d =>
                 d.TenantId == tenantId
-                || (registerIds.Count > 0 && (
-                    registerIds.Contains(d.KassenId)
-                    || (d.CashRegisterId != null && registerIds.Contains(d.CashRegisterId.Value)))))
+                || (d.CashRegisterId != null && registerIds.Contains(d.CashRegisterId.Value)))
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+
+        var seen = devices.Select(d => d.Id).ToHashSet();
+        var registerIdStrings = registerIds
+            .Select(id => id.ToString("D"))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Legacy rows may only store KassenId as text — match in memory after materialization.
+        var legacyCandidates = await query
+            .Where(d =>
+                (d.TenantId == null || d.TenantId == tenantId)
+                && d.CashRegisterId == null)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        foreach (var device in legacyCandidates)
+        {
+            if (seen.Contains(device.Id))
+                continue;
+            if (!registerIdStrings.Contains(device.KassenId.ToString("D")))
+                continue;
+            devices.Add(device);
+            seen.Add(device.Id);
+        }
+
+        return devices;
     }
 
     private async Task<TseDevice?> FindDeviceForSnapshotAsync(
@@ -534,14 +583,17 @@ public sealed class TseBackupService : ITseBackupService, ITseFullBackupService
 
         if (snap.KassenId != Guid.Empty)
         {
-            return await _db.TseDevices
-                .FirstOrDefaultAsync(
-                    d => d.KassenId == snap.KassenId
-                         && d.IsActive
-                         && (d.TenantId == null || d.TenantId == tenantId)
-                         && d.SerialNumber == snap.SerialNumber,
-                    cancellationToken)
+            // Match KassenId in memory: legacy PG column is varchar; avoid uuid SQL compare.
+            var kassenKey = snap.KassenId.ToString("D");
+            var candidates = await _db.TseDevices
+                .Where(d =>
+                    d.IsActive
+                    && (d.TenantId == null || d.TenantId == tenantId)
+                    && d.SerialNumber == snap.SerialNumber)
+                .ToListAsync(cancellationToken)
                 .ConfigureAwait(false);
+            return candidates.FirstOrDefault(d =>
+                string.Equals(d.KassenId.ToString("D"), kassenKey, StringComparison.OrdinalIgnoreCase));
         }
 
         return null;

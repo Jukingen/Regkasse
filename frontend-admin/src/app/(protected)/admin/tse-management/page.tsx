@@ -24,9 +24,10 @@ import {
   Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { dateColumnRender, DateColumn } from '@/components/DateColumn';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import {
   createTseBackup,
   getTseCertificate,
@@ -45,10 +46,13 @@ import type {
   TseDeviceFleetItem,
 } from '@/features/tse-management/types';
 import { RksvDeploymentEnvironmentAlert } from '@/features/rksv/components/RksvDeploymentEnvironmentStatus';
+import { TseActiveTenantTag } from '@/features/tse-shared/components/TseTenantContextUi';
+import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
 import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 
 const { Countdown } = Statistic;
 
@@ -79,12 +83,19 @@ export default function TseManagementPage() {
   const notify = useNotify();
   const { modal } = useAntdApp();
   const queryClient = useQueryClient();
+  const { tenantId: contextTenantId } = useTsePageTenant();
   const [provisionOpen, setProvisionOpen] = useState(false);
   const [backupOpen, setBackupOpen] = useState(false);
   const [details, setDetails] = useState<TseDeviceFleetItem | null>(null);
   const [drTenantId, setDrTenantId] = useState<string | undefined>();
   const [form] = Form.useForm<{ tenantId: string }>();
   const [backupForm] = Form.useForm<{ tenantId: string }>();
+
+  useEffect(() => {
+    if (contextTenantId) {
+      setDrTenantId(contextTenantId);
+    }
+  }, [contextTenantId]);
 
   const fleetQuery = useQuery({
     queryKey: ['admin', 'tse-management'],
@@ -101,13 +112,15 @@ export default function TseManagementPage() {
   const tenantsQuery = useQuery({
     queryKey: ['admin', 'tenants', 'tse-provision'],
     queryFn: () => listAdminTenants(false),
-    enabled: provisionOpen || backupOpen,
     staleTime: 60_000,
   });
 
   const backupsQuery = useQuery({
     queryKey: ['admin', 'tse-management', 'backups', drTenantId ?? 'all'],
-    queryFn: ({ signal }) => listTseBackups(drTenantId, signal),
+    queryFn: ({ signal }) => {
+      const slug = tenantsQuery.data?.find((t) => t.id === drTenantId)?.slug;
+      return listTseBackups(drTenantId, { tenantSlug: slug, signal });
+    },
     refetchInterval: 60_000,
   });
 
@@ -172,12 +185,17 @@ export default function TseManagementPage() {
   });
 
   const createBackupMutation = useMutation({
-    mutationFn: (tenantId: string) => createTseBackup({ tenantId }),
-    onSuccess: async () => {
+    mutationFn: ({ tenantId, tenantSlug }: { tenantId: string; tenantSlug?: string }) =>
+      createTseBackup({ tenantId }, { tenantSlug }),
+    onSuccess: async (_res, vars) => {
       notify.success(t('tseManagement.backupSuccess'));
       setBackupOpen(false);
       backupForm.resetFields();
+      setDrTenantId(vars.tenantId);
       await invalidate();
+      await queryClient.invalidateQueries({
+        queryKey: ['admin', 'tse-management', 'backups'],
+      });
     },
     onError: (err) => {
       notify.apiError(err, {
@@ -385,38 +403,51 @@ export default function TseManagementPage() {
   );
 
   const healthScore = overview?.processHealthScore ?? 0;
-  const tenantOptions = (tenantsQuery.data ?? []).map((tenant) => ({
-    value: tenant.id,
-    label: `${tenant.name} (${tenant.slug})`,
-  }));
+  const tenantOptions = useMemo(() => {
+    if ((tenantsQuery.data?.length ?? 0) > 0) {
+      return (tenantsQuery.data ?? []).map((tenant) => ({
+        value: tenant.id,
+        label: `${tenant.name} (${tenant.slug})`,
+      }));
+    }
+    const map = new Map<string, string>();
+    for (const d of devices) {
+      if (!d.tenantId) continue;
+      map.set(d.tenantId, d.tenantName || d.tenantSlug || d.tenantId);
+    }
+    return Array.from(map.entries()).map(([value, label]) => ({ value, label }));
+  }, [tenantsQuery.data, devices]);
+
+  const openProvisionModal = () => {
+    form.setFieldsValue({ tenantId: contextTenantId });
+    setProvisionOpen(true);
+  };
+
+  const openBackupModal = () => {
+    backupForm.setFieldsValue({ tenantId: contextTenantId });
+    setBackupOpen(true);
+  };
 
   return (
     <div style={{ padding: 24 }}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          marginBottom: 16,
-          gap: 16,
-          flexWrap: 'wrap',
-        }}
-      >
-        <div>
-          <Typography.Title level={3} style={{ margin: 0 }}>
-            {t('tseManagement.title')}
-          </Typography.Title>
-          <Typography.Text type="secondary">{t('tseManagement.subtitle')}</Typography.Text>
-        </div>
-        <Space wrap>
-          <Button type="primary" onClick={() => setBackupOpen(true)}>
-            {t('tseManagement.backupButton')}
-          </Button>
-          <Button onClick={() => setProvisionOpen(true)}>
-            {t('tseManagement.provisionButton')}
-          </Button>
-        </Space>
-      </div>
+      <AdminPageHeader
+        title={t('tseManagement.title')}
+        subtitle={t('tseManagement.subtitle')}
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'securityTse', {
+          title: t('tseManagement.title'),
+        })}
+        extra={
+          <Space wrap>
+            <TseActiveTenantTag />
+            <Button type="primary" onClick={openBackupModal}>
+              {t('tseManagement.backupButton')}
+            </Button>
+            <Button onClick={openProvisionModal}>
+              {t('tseManagement.provisionButton')}
+            </Button>
+          </Space>
+        }
+      />
 
       <RksvDeploymentEnvironmentAlert style={{ marginBottom: 16 }} />
 
@@ -556,7 +587,11 @@ export default function TseManagementPage() {
         <Form
           form={backupForm}
           layout="vertical"
-          onFinish={(values) => createBackupMutation.mutate(values.tenantId)}
+          onFinish={(values) => {
+            const tenantId = values.tenantId;
+            const tenantSlug = tenantsQuery.data?.find((t) => t.id === tenantId)?.slug;
+            createBackupMutation.mutate({ tenantId, tenantSlug });
+          }}
         >
           <Form.Item
             name="tenantId"

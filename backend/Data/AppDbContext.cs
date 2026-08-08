@@ -26,6 +26,18 @@ namespace KasseAPI_Final.Data
             v => v.HasValue ? v.Value.ToString("D") : null,
             v => string.IsNullOrEmpty(v) ? null : Guid.Parse(v));
 
+        /// <summary>
+        /// TseDevices.KassenId is legacy character varying(50); CLR property is Guid.
+        /// </summary>
+        private static readonly ValueConverter<Guid, string> TseDeviceKassenIdConverter = new(
+            v => v == Guid.Empty ? string.Empty : v.ToString("D"),
+            v => ParseTseDeviceKassenId(v));
+
+        private static Guid ParseTseDeviceKassenId(string? value) =>
+            string.IsNullOrWhiteSpace(value)
+                ? Guid.Empty
+                : Guid.TryParse(value, out var parsed) ? parsed : Guid.Empty;
+
         private readonly ICurrentTenantAccessor _tenantAccessor;
         private readonly ILogger<AppDbContext> _logger;
 
@@ -3417,8 +3429,13 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.TimeoutSeconds)
                     .HasColumnName("TimeoutSeconds");
 
+                // Legacy column is character varying(50); CLR is Guid. Without conversion
+                // Npgsql emits uuid comparisons → "operator does not exist: character varying = uuid".
                 entity.Property(e => e.KassenId)
-                    .HasColumnName("KassenId");
+                    .HasColumnName("KassenId")
+                    .HasMaxLength(50)
+                    .HasColumnType("character varying(50)")
+                    .HasConversion(TseDeviceKassenIdConverter);
 
                 entity.Property(e => e.FinanzOnlineUsername)
                     .HasColumnName("FinanzOnlineUsername")
@@ -4282,14 +4299,23 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.GroupCount).IsRequired();
                 entity.Property(e => e.LegacyJwsCount).IsRequired();
                 entity.Property(e => e.Status).IsRequired().HasMaxLength(32);
-                entity.Property(e => e.StoragePath).HasMaxLength(500);
+                entity.Property(e => e.StoragePath).HasMaxLength(1024);
+                entity.Property(e => e.DownloadToken).HasMaxLength(64);
+                entity.Property(e => e.DownloadCount).IsRequired().HasDefaultValue(0);
+                entity.Property(e => e.IsSimulated).IsRequired().HasDefaultValue(false);
+                entity.Property(e => e.SimulationNote).HasMaxLength(500);
                 entity.Property(e => e.ValidationStatus).HasMaxLength(16);
                 entity.Property(e => e.ValidationReportJson).HasColumnType("jsonb");
                 entity.Property(e => e.ArchivePath).HasMaxLength(1024);
                 entity.Property(e => e.ArchiveChecksum).HasMaxLength(64);
                 entity.Property(e => e.PurgeReason).HasMaxLength(200);
                 entity.HasIndex(e => new { e.TenantId, e.CashRegisterId, e.ExportedAt });
+                entity.HasIndex(e => e.ExportedAt);
                 entity.HasIndex(e => e.ScheduleId).HasFilter("\"schedule_id\" IS NOT NULL");
+                entity.HasIndex(e => e.DownloadToken)
+                    .IsUnique()
+                    .HasFilter("\"download_token\" IS NOT NULL");
+                entity.HasIndex(e => new { e.TenantId, e.ExpiresAt });
                 entity.HasIndex(e => new { e.TenantId, e.ValidationStatus });
                 entity.HasIndex(e => new { e.TenantId, e.ArchivedAt });
                 entity.HasIndex(e => e.RetentionUntil)

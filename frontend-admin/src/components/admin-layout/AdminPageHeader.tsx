@@ -32,7 +32,8 @@ export function AdminPageHeader({
   const right = actions ?? extra;
   return (
     <div style={{ marginBottom: 24 }}>
-      {breadcrumbs && <Breadcrumb items={breadcrumbs} />}
+      {/* Auto-derive from pathname when pages omit explicit crumbs (platform IA groups included). */}
+      <Breadcrumb items={breadcrumbs} />
 
       <header>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

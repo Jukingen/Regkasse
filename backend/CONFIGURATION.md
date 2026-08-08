@@ -104,9 +104,11 @@ Operator-facing Lager UI in **frontend-admin** is controlled separately via **Ne
 
    ```bash
    cd backend
-   dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=kasse_db;Username=postgres;Password=YOUR_PASSWORD"
+   dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=kasse_db;Username=postgres;Password=YOUR_PASSWORD;Include Error Detail=true"
    dotnet user-secrets set "JwtSettings:SecretKey" "YOUR_RANDOM_KEY_AT_LEAST_32_CHARS"
    ```
+
+   Development tip: `Include Error Detail=true` surfaces PostgreSQL exception details in EF logs (helpful for type mismatches such as `character varying = uuid`). Do **not** enable this in Production.
 
 The project defines `<UserSecretsId>` in `KasseAPI_Final.csproj` so `dotnet user-secrets` targets this API automatically.
 
@@ -255,6 +257,19 @@ Tracking tables: `rksv_cold_archive_runs`, `rksv_cold_archive_items`. Live `paym
 
 Connection strings printed at startup use `ConnectionStringMasking`; raw passwords must not appear in logs. Do not enable verbose logging of HTTP bodies or SOAP envelopes that might contain session tokens in production without redaction.
 
-Production example uses **JSON console** logging (`Logging:Console:FormatterName=json`) for Promtail/Loki aggregation — see [`docs/MONITORING.md`](../docs/MONITORING.md). Levels: prefer `Information` for `KasseAPI_Final`, `Warning`+ for ASP.NET/EF noise.
+| Environment | Console format | Notes |
+|-------------|----------------|-------|
+| Development | `FormatterName=readable` (`ReadableConsoleFormatter`) | `[HH:mm:ss] LEVEL [Category] message \| Tenant: … \| User: …` |
+| Production | `FormatterName=json` | Promtail/Loki aggregation — see [`docs/MONITORING.md`](../docs/MONITORING.md) |
+
+**Noise reduction (defaults in example configs):**
+
+- JWT validation success → **Debug** (failures stay Warning)
+- Cart statistics → **Debug**
+- Per-request duration → **Debug**; slow requests (≥ `Monitoring:SlowRequestThresholdMs`, default 1000) → **Warning**
+- API exceptions / HTTP 500 → **Error** / **Warning** with User, Tenant, method, path+query
+- Request scope middleware pushes `Tenant` / `TenantId` / `User` / `UserId` / `Role` / `CorrelationId` (unmasked) after auth
+
+Levels: prefer `Information` for `KasseAPI_Final`, `Warning`+ for ASP.NET/EF noise. Category filters mute `KasseAPI_Final.Program` JWT chatter when raised above Debug.
 
 Prometheus: `Monitoring:Enabled` + scrape `GET /metrics` — [`docs/METRICS.md`](../docs/METRICS.md).
