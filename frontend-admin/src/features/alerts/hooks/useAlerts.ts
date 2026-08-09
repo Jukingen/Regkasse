@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
-import { connectActivityStream } from '@/api/manual/activityEvents';
+import { subscribeActivityStream } from '@/api/manual/activityEvents';
 import {
   fetchSuspiciousAlerts,
   markSuspiciousAlertRead,
@@ -54,7 +54,7 @@ function useSuspiciousAlertsActivityRefresh(enabled: boolean) {
 
     const abort = new AbortController();
 
-    void connectActivityStream(
+    void subscribeActivityStream(
       {
         onActivity: (activity) => {
           if (!isSuspiciousActivityType(activity.type)) {
@@ -63,7 +63,7 @@ function useSuspiciousAlertsActivityRefresh(enabled: boolean) {
           void queryClient.invalidateQueries({ queryKey: alertsKey });
         },
       },
-      abort.signal
+      { signal: abort.signal }
     ).catch(() => {
       // Non-fatal; polling remains active.
     });

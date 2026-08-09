@@ -55,9 +55,12 @@ Smoke: [`DEPLOYMENT_SMOKE_TEST.md`](DEPLOYMENT_SMOKE_TEST.md).
 
 | Layer | Format | Levels | Sink |
 |-------|--------|--------|------|
-| API | ASP.NET Core **JSON console** (`Logging:Console:FormatterName=json` in Production example) | Information+ for app; Warning for framework | Container stdout → Promtail → Loki |
+| API (Production) | ASP.NET Core **JSON console** (`Logging:Console:FormatterName=json`) | Information+ for app; Warning for framework; JWT success is Debug | Container stdout → Promtail → Loki |
+| API (Development) | **Readable** console (`FormatterName=readable`) | Same levels; scopes include Tenant/User | Local console |
 | FA | **pino** JSON on Route Handlers | `LOG_LEVEL` | stdout / beacons |
 | Compose | `json-file` rotation (`LOG_MAX_SIZE` / `LOG_MAX_FILES`) | — | Host + Promtail |
+
+Request enrichment: after auth, `RequestLoggingScopeMiddleware` adds unmasked `Tenant` / `User` / `Role` / `CorrelationId` scopes. Failures from `MetricsMiddleware` include method, path+query, user, and tenant. Slow requests (≥ `Monitoring:SlowRequestThresholdMs`) log Warning.
 
 **Retention**
 

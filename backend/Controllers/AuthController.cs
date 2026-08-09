@@ -7,6 +7,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Localization;
+using KasseAPI_Final.Logging;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Security;
@@ -696,7 +697,14 @@ namespace KasseAPI_Final.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "User not authenticated" });
 
-                _logger.LogInformation("Logout requested for user: {UserId}", userId);
+                var userEmail = User.GetActorEmail();
+                var userLogLabel = string.IsNullOrWhiteSpace(userEmail) ? "unknown" : userEmail.Trim();
+                var userLogId = LogIdFormatting.ShortId(userId);
+
+                _logger.LogInformation(
+                    "Logout requested for user: {UserEmail} ({UserId})",
+                    userLogLabel,
+                    userLogId);
 
                 // Immediate access-token revocation (complements session revoke below).
                 BlacklistCurrentAccessToken();
@@ -713,12 +721,19 @@ namespace KasseAPI_Final.Controllers
                     // CartLifecycleService'i IServiceProvider üzerinden al
                     var cartLifecycleService = HttpContext.RequestServices.GetRequiredService<CartLifecycleService>();
                     await cartLifecycleService.CleanupUserCarts(userId);
-                    _logger.LogInformation("User carts cleanup completed for user: {UserId}", userId);
+                    _logger.LogInformation(
+                        "User carts cleanup completed for user: {UserEmail} ({UserId})",
+                        userLogLabel,
+                        userLogId);
                 }
                 catch (Exception cartCleanupEx)
                 {
                     // Cart cleanup hatası logout'u engellemesin
-                    _logger.LogWarning(cartCleanupEx, "Cart cleanup failed for user: {UserId}, but logout will continue", userId);
+                    _logger.LogWarning(
+                        cartCleanupEx,
+                        "Cart cleanup failed for user: {UserEmail} ({UserId}), but logout will continue",
+                        userLogLabel,
+                        userLogId);
                 }
 
                 try
@@ -730,14 +745,18 @@ namespace KasseAPI_Final.Controllers
                 {
                     _logger.LogWarning(
                         shiftCloseEx,
-                        "Auto-close cashier shift failed for user: {UserId}, but logout will continue",
-                        userId);
+                        "Auto-close cashier shift failed for user: {UserEmail} ({UserId}), but logout will continue",
+                        userLogLabel,
+                        userLogId);
                 }
 
                 // Audit: UserLogout (never log the raw JWT — blacklist stores a digest only).
                 await TryLogLogoutAuditAsync(userId, reason: "logout");
 
-                _logger.LogInformation("Logout successful for user: {UserId}", userId);
+                _logger.LogInformation(
+                    "Logout successful for user: {UserEmail} ({UserId})",
+                    userLogLabel,
+                    userLogId);
                 return Ok(new { success = true, message = "Logout successful" });
             }
             catch (Exception ex)
@@ -745,8 +764,13 @@ namespace KasseAPI_Final.Controllers
                 var userId = User.GetActorUserId()
                     ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                     ?? "Unknown";
-                _logger.LogError(ex, "Logout error for user: {UserId}. Exception: {ExceptionType}, Message: {ExceptionMessage}",
-                    userId, ex.GetType().Name, ex.Message);
+                _logger.LogError(
+                    ex,
+                    "Logout error for user: {UserEmail} ({UserId}). Exception: {ExceptionType}, Message: {ExceptionMessage}",
+                    User.GetActorEmail() ?? "unknown",
+                    LogIdFormatting.ShortId(userId),
+                    ex.GetType().Name,
+                    ex.Message);
 
                 return StatusCode(500, new { message = "Logout failed due to a server error." });
             }
@@ -783,19 +807,25 @@ namespace KasseAPI_Final.Controllers
                     return Unauthorized(new { message = "User not authenticated" });
                 }
 
-                _logger.LogInformation("GetCurrentUser: User ID from token: {UserId}", userId);
+                _logger.LogDebug(
+                    "[Auth] GetCurrentUser - resolving UserId: {UserId}",
+                    LogIdFormatting.ShortId(userId));
 
                 // Kullanıcıyı veritabanından bul
                 var user = await _userManager.FindByIdAsync(userId);
                 if (user == null)
                 {
-                    _logger.LogWarning("GetCurrentUser: User not found in database for ID: {UserId}", userId);
+                    _logger.LogWarning(
+                        "GetCurrentUser: User not found in database for ID: {UserId}",
+                        LogIdFormatting.ShortId(userId));
                     return NotFound(new { message = "User not found" });
                 }
 
                 if (!user.IsActive)
                 {
-                    _logger.LogWarning("GetCurrentUser: User account is not active for ID: {UserId}", userId);
+                    _logger.LogWarning(
+                        "GetCurrentUser: User account is not active for ID: {UserId}",
+                        LogIdFormatting.ShortId(userId));
                     return BadRequest(new { message = "User account is not active" });
                 }
 
@@ -842,7 +872,14 @@ namespace KasseAPI_Final.Controllers
                     sessionPolicy,
                 };
 
-                _logger.LogInformation("GetCurrentUser: Successfully retrieved user {Email} with role {Role}, appContext {AppContext}", user.Email, user.Role, appContext ?? "none");
+                _logger.LogInformation(
+                    "[Auth] GetCurrentUser success - User: {User} ({UserId}) | Role: {Role} | Tenant: {Tenant} ({TenantId}) | Client: {Client}",
+                    user.Email ?? "-",
+                    LogIdFormatting.ShortId(user.Id),
+                    canonicalRole,
+                    tenantSnapshot.TenantSlug ?? "-",
+                    LogIdFormatting.ShortId(tenantSnapshot.TenantId),
+                    appContext ?? "none");
                 return Ok(userResponse);
             }
             catch (Exception ex)

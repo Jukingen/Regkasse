@@ -35,4 +35,39 @@ describe('renderDashboardWidget', () => {
     });
     expect(node).not.toBeNull();
   });
+
+  it('renders action-required widget', () => {
+    const node = renderDashboardWidget(DASHBOARD_WIDGET_IDS.actionRequired, {
+      title: 'Handlungsbedarf',
+    });
+    expect(node).not.toBeNull();
+  });
+
+  it('renders manager-license-status widget', () => {
+    const node = renderDashboardWidget(DASHBOARD_WIDGET_IDS.managerLicenseStatus, {
+      title: 'Lizenz-Status',
+    });
+    expect(node).not.toBeNull();
+  });
+
+  it('renders manager-kpi-strip widget', () => {
+    const node = renderDashboardWidget(DASHBOARD_WIDGET_IDS.managerKpiStrip, {
+      title: 'Kennzahlen',
+    });
+    expect(node).not.toBeNull();
+  });
+
+  it('renders manager-activity widget', () => {
+    const node = renderDashboardWidget(DASHBOARD_WIDGET_IDS.managerActivity, {
+      title: 'Aktivität',
+    });
+    expect(node).not.toBeNull();
+  });
+
+  it('renders manager-export-quick-actions widget', () => {
+    const node = renderDashboardWidget(DASHBOARD_WIDGET_IDS.managerExportQuickActions, {
+      title: 'Export-Schnellaktionen',
+    });
+    expect(node).not.toBeNull();
+  });
 });

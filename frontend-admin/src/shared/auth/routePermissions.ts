@@ -83,7 +83,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/staff/list': PERMISSIONS.USER_VIEW,
   '/staff/performance': PERMISSIONS.REPORT_VIEW,
   '/staff/shifts': PERMISSIONS.SHIFT_VIEW,
-  '/tagesabschluss': [PERMISSIONS.DAILY_CLOSING_VIEW],
+  '/tagesabschluss': PERMISSIONS.DAILY_CLOSING_VIEW,
   '/tagesabschluss/execute': [PERMISSIONS.DAILY_CLOSING_EXECUTE],
   /** Manager activity log (tenant-scoped audit rows; platform operators hidden on API). Spec alias: activity.view → audit.view. */
   '/audit-logs/activity': PERMISSIONS.AUDIT_VIEW,
@@ -239,6 +239,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/tse/developer-tools': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/compliance': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/signaturkarte-program': [PERMISSIONS.SETTINGS_VIEW],
+  '/admin/tse/ausfall': [PERMISSIONS.FINANZONLINE_VIEW],
   '/admin/tse/auto-scaling': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/auto-healing': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/knowledge': [PERMISSIONS.SYSTEM_CRITICAL],

@@ -243,7 +243,7 @@ export const PERMISSION_GROUPS = {
     labelKey: 'users.roleDrawer.groups.system',
     icon: 'ToolOutlined',
     menuKeys: ['tenants', 'billing'],
-    sidebarGroupIds: ['administration', 'license'],
+    sidebarGroupIds: ['administration', 'securityTse', 'deploymentSystem', 'monitoringLogs', 'license'],
     resourcePrefixes: ['system', 'tenant', 'risk'],
     permissions: [
       PERMISSIONS.SYSTEM_CRITICAL,

@@ -101,11 +101,15 @@ namespace KasseAPI_Final.Controllers
                 var (items, meta) = await _auditLogService.GetAuditLogsPagedAsync(
                     filters, pageSize, afterCursor, page, includeTotal);
 
+                var list = items.ToList();
+                var actorDisplayNames = await _actorDisplayNameResolver.ResolveAsync(
+                    list.Select(l => l.UserId).Distinct().ToList());
+
                 var totalCount = meta.TotalCount ?? 0;
                 var response = new AuditLogsResponse
                 {
                     Success = true,
-                    AuditLogs = AuditLogEntryMapper.ToDtoList(items.ToList()),
+                    AuditLogs = AuditLogEntryMapper.ToDtoList(list, actorDisplayNames),
                     TotalCount = totalCount,
                     Page = page,
                     PageSize = pageSize,
@@ -181,11 +185,13 @@ namespace KasseAPI_Final.Controllers
                 var auditLogs = await _auditLogService.GetPaymentAuditLogsAsync(
                     paymentId, startDate, endDate, page, pageSize);
                 var paymentList = auditLogs.ToList();
+                var actorDisplayNames = await _actorDisplayNameResolver.ResolveAsync(
+                    paymentList.Select(l => l.UserId).Distinct().ToList());
 
                 var response = new AuditLogsResponse
                 {
                     Success = true,
-                    AuditLogs = AuditLogEntryMapper.ToDtoList(paymentList),
+                    AuditLogs = AuditLogEntryMapper.ToDtoList(paymentList, actorDisplayNames),
                     TotalCount = paymentList.Count,
                     Page = page,
                     PageSize = pageSize,
@@ -271,11 +277,13 @@ namespace KasseAPI_Final.Controllers
             {
                 var auditLogs = await _auditLogService.GetAuditLogsByCorrelationIdAsync(correlationId);
                 var corrList = auditLogs.ToList();
+                var actorDisplayNames = await _actorDisplayNameResolver.ResolveAsync(
+                    corrList.Select(l => l.UserId).Distinct().ToList());
 
                 var response = new AuditLogsResponse
                 {
                     Success = true,
-                    AuditLogs = AuditLogEntryMapper.ToDtoList(corrList),
+                    AuditLogs = AuditLogEntryMapper.ToDtoList(corrList, actorDisplayNames),
                     TotalCount = corrList.Count,
                     Page = 1,
                     PageSize = corrList.Count,
@@ -308,10 +316,12 @@ namespace KasseAPI_Final.Controllers
             {
                 var auditLogs = await _auditLogService.GetSuspiciousAdminActionsAsync(since, limit);
                 var list = auditLogs.ToList();
+                var actorDisplayNames = await _actorDisplayNameResolver.ResolveAsync(
+                    list.Select(l => l.UserId).Distinct().ToList());
                 return Ok(new AuditLogsResponse
                 {
                     Success = true,
-                    AuditLogs = AuditLogEntryMapper.ToDtoList(list),
+                    AuditLogs = AuditLogEntryMapper.ToDtoList(list, actorDisplayNames),
                     TotalCount = list.Count,
                     Page = 1,
                     PageSize = list.Count,
@@ -337,11 +347,13 @@ namespace KasseAPI_Final.Controllers
             {
                 var auditLogs = await _auditLogService.GetAuditLogsByTransactionIdAsync(transactionId);
                 var txList = auditLogs.ToList();
+                var actorDisplayNames = await _actorDisplayNameResolver.ResolveAsync(
+                    txList.Select(l => l.UserId).Distinct().ToList());
 
                 var response = new AuditLogsResponse
                 {
                     Success = true,
-                    AuditLogs = AuditLogEntryMapper.ToDtoList(txList),
+                    AuditLogs = AuditLogEntryMapper.ToDtoList(txList, actorDisplayNames),
                     TotalCount = txList.Count,
                     Page = 1,
                     PageSize = txList.Count,

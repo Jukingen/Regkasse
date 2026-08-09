@@ -38,7 +38,7 @@ import type {
 } from '@/features/tse-compliance/types';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
 
@@ -145,7 +145,7 @@ export default function TseCompliancePage() {
     <>
       <AdminPageHeader
         title={t('tseCompliance.title')}
-        breadcrumbs={[adminOverviewCrumb(t), { title: t('tseCompliance.title') }]}
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'securityTse', { title: t('tseCompliance.title') })}
         extra={
           <Space wrap>
             <TseActiveTenantTag />

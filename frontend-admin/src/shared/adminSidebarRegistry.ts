@@ -35,7 +35,10 @@ export type SidebarGroupId =
   | 'reports'
   | 'backup'
   | 'settings'
-  | 'administration';
+  | 'administration'
+  | 'securityTse'
+  | 'deploymentSystem'
+  | 'monitoringLogs';
 
 /** Keys into `SIDEBAR_ICON_COMPONENTS` in `buildAdminSidebar.tsx`. */
 export type SidebarIconToken =
@@ -850,6 +853,8 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     labelKey: 'nav.dataManagement',
     icon: 'DatabaseOutlined',
     permission: PERMISSIONS.SYSTEM_CRITICAL,
+    /** Deep-link only — Datenverwaltung sidebar entry lives under Einstellungen. */
+    sidebarHidden: true,
   },
   elmahErrors: {
     id: 'elmahErrors',
@@ -1291,7 +1296,7 @@ export const SIDEBAR_GROUP_META: Record<
   },
   rksv: {
     menuKey: ADMIN_SIDEBAR_GROUP_KEYS.rksv,
-    labelKey: 'nav.rksv',
+    labelKey: 'nav.rksv.title',
     icon: 'SafetyOutlined',
   },
   catalog: {
@@ -1316,13 +1321,28 @@ export const SIDEBAR_GROUP_META: Record<
   },
   settings: {
     menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settings,
-    labelKey: 'nav.settings',
+    labelKey: 'nav.settings.title',
     icon: 'SettingOutlined',
   },
   administration: {
     menuKey: ADMIN_SIDEBAR_GROUP_KEYS.admin,
     labelKey: 'nav.administration',
     icon: 'ToolOutlined',
+  },
+  securityTse: {
+    menuKey: ADMIN_SIDEBAR_GROUP_KEYS.securityTse,
+    labelKey: 'nav.securityTse',
+    icon: 'SafetyCertificateOutlined',
+  },
+  deploymentSystem: {
+    menuKey: ADMIN_SIDEBAR_GROUP_KEYS.deploymentSystem,
+    labelKey: 'nav.deploymentSystem',
+    icon: 'CloudServerOutlined',
+  },
+  monitoringLogs: {
+    menuKey: ADMIN_SIDEBAR_GROUP_KEYS.monitoringLogs,
+    labelKey: 'nav.monitoringLogs',
+    icon: 'DashboardOutlined',
   },
 };
 
@@ -1339,9 +1359,16 @@ export type SidebarLayoutBlock =
       labelKey: string;
       icon: SidebarIconToken;
       catalogIds: SidebarCatalogId[];
+      /** Optional nested subgroups (rendered before leaf catalog items). */
+      childGroups?: Array<{
+        menuKey: string;
+        labelKey: string;
+        icon: SidebarIconToken;
+        catalogIds: SidebarCatalogId[];
+      }>;
     }
   | { kind: 'fiscalRksvClosing'; menuKey: string; labelKey: string; icon: SidebarIconToken }
-  | { kind: 'rksvHub'; menuKey: '/rksv'; labelKey: string; icon: SidebarIconToken };
+  | { kind: 'rksvHub'; menuKey: string; labelKey: string; icon: SidebarIconToken };
 
 export type SidebarLayoutRow =
   | { kind: 'divider'; key: string }
@@ -1357,7 +1384,8 @@ export type SidebarLayoutRow =
 
 /**
  * Top-to-bottom shell layout (order = render order).
- * Nine primary groups: Dashboard → Lizenzverwaltung → Betrieb → RKSV → Sortiment → Kunden → Berichte → Einstellungen → Verwaltung.
+ * Primary groups: Dashboard → Lizenz → Betrieb → RKSV → Sortiment → Kunden → Berichte → Backup →
+ * Einstellungen → Verwaltung → Sicherheit & TSE → Deployment & System → Monitoring & Logs.
  */
 export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
   {
@@ -1380,13 +1408,6 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
           'billingOverview',
           'billingDigital',
         ],
-      },
-      {
-        kind: 'nested',
-        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.digitalAdmin,
-        labelKey: 'nav.digital',
-        icon: 'GlobalOutlined',
-        catalogIds: ['digitalServicesManage', 'digitalServiceRequests', 'adminFeedbackInbox'],
       },
     ],
   },
@@ -1427,38 +1448,53 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
     kind: 'group',
     group: 'rksv',
     blocks: [
-      { kind: 'leaves', catalogIds: ['rksvStatusOverview'] },
       {
         kind: 'nested',
-        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.specialReceipts,
-        labelKey: 'nav.specialReceipts',
-        icon: 'SafetyCertificateOutlined',
-        catalogIds: [
-          'specialReceiptStart',
-          'specialReceiptMonthly',
-          'specialReceiptYearly',
-          'specialReceiptNull',
-          'specialReceiptClosing',
-          'specialReceiptTestHelper',
-        ],
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.rksvCurrentStatus,
+        labelKey: 'nav.rksv.currentStatus',
+        icon: 'SafetyOutlined',
+        catalogIds: ['rksvStatusOverview', 'rksvSystemStatus'],
       },
       {
-        kind: 'leaves',
-        catalogIds: [
-          'rksvFinanzOnline',
-          'rksvOfflineOrders',
-          'rksvTestsDepExport',
-          'rksvTestsSignatureVerify',
-          'auditLogs',
-          'rksvSystemStatus',
-          'fiscalExportAuditLogs',
-          'offlineTransactionsAdmin',
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.rksvBelegeExport,
+        labelKey: 'nav.rksv.belegeExport',
+        icon: 'FileDoneOutlined',
+        childGroups: [
+          {
+            menuKey: ADMIN_SIDEBAR_GROUP_KEYS.specialReceipts,
+            labelKey: 'nav.specialReceipts',
+            icon: 'SafetyCertificateOutlined',
+            catalogIds: [
+              'specialReceiptStart',
+              'specialReceiptMonthly',
+              'specialReceiptYearly',
+              'specialReceiptNull',
+              'specialReceiptClosing',
+              'specialReceiptTestHelper',
+            ],
+          },
         ],
+        catalogIds: ['rksvTestsDepExport', 'rksvTestsSignatureVerify'],
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.rksvFinanzOnline,
+        labelKey: 'nav.rksv.finanzOnline',
+        icon: 'CloudSyncOutlined',
+        catalogIds: ['rksvFinanzOnline', 'rksvOfflineOrders'],
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.rksvAuditPruefung,
+        labelKey: 'nav.rksv.auditPruefung',
+        icon: 'AuditOutlined',
+        catalogIds: ['auditLogs', 'fiscalExportAuditLogs', 'offlineTransactionsAdmin'],
       },
       {
         kind: 'rksvHub',
-        menuKey: '/rksv',
-        labelKey: 'nav.rksvAdvancedHub',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.rksvTools,
+        labelKey: 'nav.rksv.werkzeuge',
         icon: 'SafetyOutlined',
       },
     ],
@@ -1515,37 +1551,52 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
     group: 'settings',
     blocks: [
       {
-        kind: 'leaves',
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settingsGeneral,
+        labelKey: 'nav.settings.general',
+        icon: 'SettingOutlined',
+        catalogIds: ['settingsHub', 'companySettings', 'personalization', 'preferences'],
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settingsFinancesTaxes,
+        labelKey: 'nav.settings.financesTaxes',
+        icon: 'WalletOutlined',
+        catalogIds: ['taxGroups', 'taxHistory', 'paymentMethods', 'paymentGateway'],
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settingsOperations,
+        labelKey: 'nav.settings.operations',
+        icon: 'ControlOutlined',
         catalogIds: [
-          'settingsHub',
-          'companySettings',
           'workingHours',
-          'taxGroups',
-          'taxHistory',
-          'settingsDataManagement',
-          'settingsAccount',
-          'adminSignaturkarteProgram',
+          'sessionSettings',
+          'activeSessions',
+          'tseSettings',
+          'finanzonlineSettings',
         ],
       },
       {
         kind: 'nested',
         menuKey: ADMIN_SIDEBAR_GROUP_KEYS.digitalServices,
-        labelKey: 'nav.digital',
+        labelKey: 'nav.settings.digitalServices',
         icon: 'GlobalOutlined',
-        catalogIds: ['websiteGenerator', 'digitalPortal', 'customerPortal'],
+        catalogIds: [
+          'websiteGenerator',
+          'digitalPortal',
+          'customerPortal',
+          'digitalServicesManage',
+          'digitalServiceRequests',
+          'adminFeedbackInbox',
+        ],
       },
       {
-        kind: 'leaves',
-        catalogIds: [
-          'tseSettings',
-          'finanzonlineSettings',
-          'sessionSettings',
-          'activeSessions',
-          'personalization',
-          'preferences',
-          'paymentMethods',
-          'paymentGateway',
-        ],
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settingsCompliance,
+        labelKey: 'nav.settings.compliance',
+        icon: 'SafetyCertificateOutlined',
+        catalogIds: ['settingsDataManagement', 'settingsAccount', 'adminSignaturkarteProgram'],
       },
     ],
   },
@@ -1572,47 +1623,108 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
       },
       {
         kind: 'leaves',
+        catalogIds: ['superAdminTenants', 'superAdminCashRegisters'],
+      },
+    ],
+  },
+  {
+    kind: 'group',
+    group: 'securityTse',
+    blocks: [
+      { kind: 'leaves', catalogIds: ['superAdminApprovals'] },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.tseManagement,
+        labelKey: 'nav.tseGroupManagement',
+        icon: 'SafetyCertificateOutlined',
+        catalogIds: ['adminTseManagement'],
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.tseOpsFailover,
+        labelKey: 'nav.tseGroupOpsFailover',
+        icon: 'SwapOutlined',
         catalogIds: [
-          'superAdminTenants',
-          'superAdminApprovals',
-          'superAdminMaintenance',
-          'superAdminFeatureFlags',
+          'adminTseFailover',
+          'adminTseAutoHealing',
+          'adminTseAutoScaling',
+          'adminTseDr',
+        ],
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.tseAnalyticsMonitoring,
+        labelKey: 'nav.tseGroupAnalyticsMonitoring',
+        icon: 'DashboardOutlined',
+        catalogIds: [
+          'adminTseResourcePools',
+          'adminTseIncidents',
+          'adminTseLogs',
+          'adminTseSla',
+          'adminTseCapacity',
+        ],
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.tseReportsFinance,
+        labelKey: 'nav.tseGroupReportsFinance',
+        icon: 'FundOutlined',
+        catalogIds: ['adminTseCost', 'adminTseSustainability', 'adminTseCompliance'],
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.tseAdvanced,
+        labelKey: 'nav.tseGroupAdvanced',
+        icon: 'ExperimentOutlined',
+        catalogIds: [
+          'adminTseDeveloperTools',
+          'adminTseApiGateway',
+          'adminTseWebhooks',
+          'adminTseBlockchain',
+          'adminTseKnowledge',
+          'adminTseTraining',
+          'adminTseUpdates',
+          'adminTseRecommendations',
+        ],
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.tseDiagnostics,
+        labelKey: 'nav.tseGroupDiagnostics',
+        icon: 'BugOutlined',
+        catalogIds: [
+          'adminTseAnomalies',
+          'adminTseAnalytics',
+          'adminTseUserAnalytics',
+          'adminTseAusfall',
+        ],
+      },
+    ],
+  },
+  {
+    kind: 'group',
+    group: 'deploymentSystem',
+    blocks: [
+      {
+        kind: 'leaves',
+        catalogIds: [
           'superAdminDeployments',
           'superAdminDeploymentTenants',
           'superAdminDeploymentCompliance',
           'superAdminDatabaseMigrations',
-          'superAdminDataManagement',
-          'superAdminCashRegisters',
-          'elmahErrors',
-          'adminMonitoring',
-          'adminRiskDashboard',
-          'adminTseManagement',
-          'adminTseFailover',
-          'adminTseResourcePools',
-          'adminTseIncidents',
-          'adminTseSla',
-          'adminTseCapacity',
-          'adminTseCost',
-          'adminTseDr',
-          'adminTseLogs',
-          'adminTseDeveloperTools',
-          'adminTseCompliance',
-          'adminSignaturkarteProgram',
-          'adminTseAusfall',
-          'adminTseAutoScaling',
-          'adminTseAutoHealing',
-          'adminTseKnowledge',
-          'adminTseApiGateway',
-          'adminTseAnomalies',
-          'adminTseAnalytics',
-          'adminTseUserAnalytics',
-          'adminTseRecommendations',
-          'adminTseUpdates',
-          'adminTseSustainability',
-          'adminTseWebhooks',
-          'adminTseBlockchain',
-          'adminTseTraining',
+          'superAdminFeatureFlags',
+          'superAdminMaintenance',
         ],
+      },
+    ],
+  },
+  {
+    kind: 'group',
+    group: 'monitoringLogs',
+    blocks: [
+      {
+        kind: 'leaves',
+        catalogIds: ['adminMonitoring', 'adminRiskDashboard', 'elmahErrors'],
       },
     ],
   },

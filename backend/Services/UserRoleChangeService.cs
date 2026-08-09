@@ -1,4 +1,5 @@
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Caching;
 using Microsoft.AspNetCore.Identity;
 
 namespace KasseAPI_Final.Services;
@@ -8,17 +9,20 @@ public sealed class UserRoleChangeService : IUserRoleChangeService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IAuditLogService _auditLog;
     private readonly IUserSessionInvalidation _sessionInvalidation;
+    private readonly ICacheService _cache;
     private readonly ILogger<UserRoleChangeService> _logger;
 
     public UserRoleChangeService(
         UserManager<ApplicationUser> userManager,
         IAuditLogService auditLog,
         IUserSessionInvalidation sessionInvalidation,
+        ICacheService cache,
         ILogger<UserRoleChangeService> logger)
     {
         _userManager = userManager;
         _auditLog = auditLog;
         _sessionInvalidation = sessionInvalidation;
+        _cache = cache;
         _logger = logger;
     }
 
@@ -57,6 +61,14 @@ public sealed class UserRoleChangeService : IUserRoleChangeService
             cancellationToken).ConfigureAwait(false);
 
         await _sessionInvalidation.InvalidateSessionsForUserAsync(user.Id, cancellationToken).ConfigureAwait(false);
+        await CacheInvalidationHelper.InvalidateSpecificCacheAsync(
+                _cache,
+                CacheKeys.Format(CacheKeys.UserPermissions, user.Id),
+                cancellationToken)
+            .ConfigureAwait(false);
+        _logger.LogInformation(
+            "User permission cache invalidated after role change for user {UserId}",
+            user.Id);
 
         return (new UserRoleChangeResult
         {

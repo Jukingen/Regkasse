@@ -36,5 +36,6 @@
   "successTrigger": "Episode created",
   "openOutbox": "Open outbox",
   "empty": "No episodes",
-  "demoNote": "Demo/Soft TSE mode never creates FON filings."
+  "demoNote": "Demo/Soft TSE mode never creates FON filings.",
+  "emptySelect": "Select a tenant to view outage episodes."
 }

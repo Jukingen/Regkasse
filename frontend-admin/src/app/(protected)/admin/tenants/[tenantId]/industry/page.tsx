@@ -15,7 +15,7 @@ import {
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
 export default function TenantIndustryPage() {
@@ -65,11 +65,10 @@ export default function TenantIndustryPage() {
     onError: () => message.error(t('tenants.industry.saveError')),
   });
 
-  const breadcrumbs = [
-    adminOverviewCrumb(t),
+  const breadcrumbs = buildPlatformAdminBreadcrumbs(t, 'administration', [
     { title: t('tenants.list.pageTitle'), href: '/admin/tenants' },
     { title: t('tenants.industry.pageTitle') },
-  ];
+  ]);
 
   if (!canView) {
     return (

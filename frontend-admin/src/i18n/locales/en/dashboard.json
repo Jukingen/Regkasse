@@ -57,8 +57,8 @@
     "startbeleg_missing_description": "{{missing}} of {{total}} registers still have no Startbeleg.",
     "monatsbeleg_overdue_title": "Monatsbeleg overdue",
     "monatsbeleg_overdue_description": "{{count}} registers did not create the Monatsbeleg in time.",
-    "monatsbeleg_pending_title": "Monatsbeleg pending",
-    "monatsbeleg_pending_description": "{{count}} registers need a Monatsbeleg.",
+    "monatsbeleg_pending_title": "Monatsbeleg missing",
+    "monatsbeleg_pending_description": "Monatsbeleg missing for {{count}} register(s).",
     "jahresbeleg_pending_title": "Jahresbeleg pending",
     "jahresbeleg_pending_description": "{{count}} registers need a Jahresbeleg.",
     "all_current_title": "All RKSV special receipts are up to date",
@@ -162,7 +162,21 @@
     "refresh": "Refresh",
     "drag_widget": "Move widget"
   },
+  "customize": {
+    "button": "Customize widgets",
+    "drawerTitle": "Customize dashboard",
+    "drawerIntro": "Show or hide widgets. Visible widgets can be reordered by dragging on the dashboard.",
+    "resetLayout": "Restore default layout",
+    "resetConfirmTitle": "Reset layout?",
+    "resetConfirmContent": "Your widget order and visibility will be restored to the defaults.",
+    "loadError": "Dashboard could not be loaded",
+    "saveError": "Layout could not be saved",
+    "toggleAria": "Show {{title}}"
+  },
   "widgets": {
+    "actionRequired": {
+      "noPermission": "No permission to view action-required reminders."
+    },
     "todaySales": {
       "totalToday": "Total revenue today",
       "salesCount": "{{count}} sales",
@@ -183,23 +197,36 @@
       "actionRequired": "Tenant license renewal is required."
     },
     "licenseCountdown": {
-      "validUntilLabel": "License valid until",
+      "validUntilLabel": "Valid until",
       "expired": "Expired",
       "expiredHint": "Expired",
       "remainingHint": "time remaining",
       "renewNow": "Renew now",
       "progressAria": "License term: {{days}} day(s) remaining"
     },
-    "licenseHealth": {
-      "title": "License health",
-      "statusLabel": "Status",
+    "licenseStatus": {
+      "title": "License status",
       "validUntil": "Valid until",
-      "healthy": "Healthy",
+      "status": "Status",
+      "expired": "Expired",
+      "remainingHint": "time remaining",
+      "healthy": "OK",
       "actionNeeded": "Action needed",
       "daysLeft": "{{days}} days",
       "extend": "Extend",
       "extendNow": "Renew now",
-      "progressAria": "License health: {{days}} day(s)",
+      "progressAria": "License status: {{days}} day(s)"
+    },
+    "licenseHealth": {
+      "title": "License status",
+      "statusLabel": "Status",
+      "validUntil": "Valid until",
+      "healthy": "OK",
+      "actionNeeded": "Action needed",
+      "daysLeft": "{{days}} days",
+      "extend": "Extend",
+      "extendNow": "Renew now",
+      "progressAria": "License status: {{days}} day(s)",
       "states": {
         "Active": "Active",
         "Grace": "Grace period",
@@ -208,7 +235,7 @@
       }
     },
     "licenseImpact": {
-      "title": "License expiry impact",
+      "title": "License status",
       "states": {
         "Active": "Active",
         "Grace": "Grace period",
@@ -393,7 +420,8 @@
     "recentActivities": "Recent activities",
     "viewAll": "View all",
     "noActivities": "No activities",
-    "pendingMonatsbeleg": "{{count}} register(s) require a Monatsbeleg",
+    "pendingMonatsbeleg": "Monatsbeleg missing for {{count}} register",
+    "pendingMonatsbelegPlural": "Monatsbeleg missing for {{count}} registers",
     "pendingMonatsbelegDescription": "Please create the outstanding monthly receipts.",
     "createNow": "Catch up now"
   }

@@ -1,10 +1,8 @@
 'use client';
 
-import { CopyOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import {
   Alert,
-  App,
   Button,
   Form,
   Input,
@@ -28,7 +26,6 @@ import { TenantSelector } from '@/features/users/components/TenantSelector';
 import { UserTenantAssignmentModal } from '@/features/users/components/UserTenantAssignmentModal';
 import { useTenantAssignmentModal } from '@/features/users/hooks/useTenantAssignmentModal';
 import { useI18n } from '@/i18n';
-import { copyTextToClipboard } from '@/lib/clipboard';
 
 export type CreateUserFormValues = {
   email: string;
@@ -100,8 +97,6 @@ function CreateUserModalContent({
   onAssignTenants,
   quickMode,
 }: CreateUserModalProps) {
-  const { message } = App.useApp();
-
   const { t } = useI18n();
   const [form] = Form.useForm<CreateUserFormValues>();
   const [quickForm] = Form.useForm<CreateUserQuickFormValues>();
@@ -355,20 +350,6 @@ function CreateUserModalContent({
     }
   };
 
-  const copyPassword = async () => {
-    if (!password) {
-      message.error(t('users.password.noPasswordToCopy'));
-      return;
-    }
-
-    const copied = await copyTextToClipboard(password);
-    if (copied) {
-      message.success(t('tenants.provisioning.copySuccess'));
-    } else {
-      message.error(t('tenants.provisioning.copyFailed'));
-    }
-  };
-
   const closePasswordModal = () => {
     setPasswordResult(null);
     setTenantAssignmentResult(null);
@@ -604,15 +585,7 @@ function CreateUserModalContent({
         mask={{ closable: true }}
         destroyOnHidden
         footer={[
-          <Button
-            key="copy"
-            type="primary"
-            icon={<CopyOutlined />}
-            onClick={() => void copyPassword()}
-          >
-            {t('users.create.copyPassword')}
-          </Button>,
-          <Button key="close" onClick={closePasswordModal}>
+          <Button key="close" type="primary" onClick={closePasswordModal}>
             {t('users.create.close')}
           </Button>,
         ]}

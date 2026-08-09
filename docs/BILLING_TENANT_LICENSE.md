@@ -132,6 +132,29 @@ Controller: `AdminLicenseController.Extend.cs` → `Billing.ITenantLicenseServic
 
 Requires JWT tenant context (`ICurrentTenantAccessor`) and authenticated actor user id.
 
+### Super Admin — temporary license status cache clear (workaround)
+
+> **Temporary:** Remove once create/activate/extend always invalidate `license_status_{tenantId}` in production.
+> Prefer automatic invalidation (`BillingService.CreateLicenseSaleAsync`, `TenantLicenseService` activate/extend).
+
+| Method | Path | Auth | Body | Response |
+|--------|------|------|------|----------|
+| `POST` | `/api/admin/license/cache/clear` | `SuperAdmin` + `system.critical` | `{ "tenantId": "…" }` **or** `{ "tenantSlug": "cafe" }` | `{ success, tenantId, tenantSlug, cacheKey, message }` |
+
+- Clears Cache-Aside entry `license_status_{tenantId}` via `ILicenseStatusCache.InvalidateLicenseCacheAsync`.
+- Writes audit `SYSTEM_CACHE_CLEARED` / `AuditEventType.SystemCacheCleared`.
+- Controller: `AdminLicenseCacheController`.
+- Related general cache ops: `POST /api/admin/cache/clear` (broader; may not target license keys).
+
+Example:
+
+```bash
+curl -X POST "https://api.regkasse.at/api/admin/license/cache/clear" \
+  -H "Authorization: Bearer $SUPERADMIN_JWT" \
+  -H "Content-Type: application/json" \
+  -d '{"tenantSlug":"cafe"}'
+```
+
 ### Legacy Manager mandant paths (still active)
 
 | Method | Path | Permission | Service |

@@ -55,7 +55,7 @@ import { buildAdminUsersPageHref } from '@/features/users/utils/adminUsersPageUr
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useKeyboardShortcutListener } from '@/hooks/useKeyboardShortcutListener';
 import { useI18n } from '@/i18n';
-import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
 import { KEYBOARD_SHORTCUT_EVENTS, type NavigateTabDetail } from '@/shared/keyboardShortcuts';
 
@@ -257,12 +257,10 @@ export default function SuperAdminTenantDetailPage() {
       {impersonationRedirecting ? <ImpersonationRedirectOverlay /> : null}
       <AdminPageHeader
         title={title}
-        breadcrumbs={[
-          adminOverviewCrumb(t),
-          { title: t(ADMIN_NAV_LABEL_KEYS.settingsHub), href: '/settings' },
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'administration', [
           { title: t('tenants.page.title'), href: '/admin/tenants' },
-          { title, href: `/admin/tenants/${tenantId}` },
-        ]}
+          { title },
+        ])}
         actions={
           <Space wrap>
             <Link href="/admin/tenants">

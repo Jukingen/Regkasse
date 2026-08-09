@@ -11,6 +11,12 @@ public sealed class MonitoringOptions
     /// <summary>Prometheus exposition path (default <c>/metrics</c>).</summary>
     public string MetricsEndpoint { get; set; } = "/metrics";
 
+    /// <summary>
+    /// Log a Warning when a non-exempt request exceeds this duration (milliseconds).
+    /// Set to <c>0</c> to disable slow-request warnings. Default <c>1000</c>.
+    /// </summary>
+    public int SlowRequestThresholdMs { get; set; } = 1000;
+
     public PrometheusMonitoringOptions Prometheus { get; set; } = new();
 }
 

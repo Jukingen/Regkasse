@@ -65,7 +65,7 @@ export default function TaxHistoryPage() {
 
   const breadcrumbs = [
     adminOverviewCrumb(t),
-    { title: t('nav.settings'), href: '/settings' },
+    { title: t('nav.settings.title'), href: '/settings' },
     { title: t('settings.taxHistory.pageTitle') },
   ];
 

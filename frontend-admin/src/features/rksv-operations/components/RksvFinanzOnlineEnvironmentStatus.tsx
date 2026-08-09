@@ -3,8 +3,9 @@
 /**
  * RKSV hub FinanzOnline ortam etiketi: strict parse + Alert + Badge (tek hook ile bir kez parse).
  * Türkçe: /rksv sayfasında yeniden kullanım; env yalnızca shared config üzerinden.
+ * Release stage (`NEXT_PUBLIC_RELEASE_STAGE`) is shown next to the TEST/PROD build badge.
  */
-import { Alert, Tag, Tooltip, Typography } from 'antd';
+import { Alert, Space, Tag, Tooltip, Typography } from 'antd';
 import { type CSSProperties, useEffect, useMemo } from 'react';
 
 import { useI18n } from '@/i18n/I18nProvider';
@@ -12,6 +13,9 @@ import {
   type RksvEnvironmentDevParseDebug,
   type StrictParsedRksvPublicEnvironment,
   buildRksvEnvironmentDevParseDebug,
+  getReleaseStageFromConfig,
+  getReleaseStageTagColor,
+  getReleaseStageTagLabel,
   getRksvEnvironmentAlertType,
   getRksvEnvironmentBadgeColor,
   getRksvEnvironmentBannerKeys,
@@ -45,12 +49,25 @@ export function RksvFinanzOnlineEnvironmentBadge({ parsed }: ParsedProp) {
   const { t } = useI18n();
   const labelKey = getRksvEnvironmentDisplayLabelKey(parsed);
   const color = getRksvEnvironmentBadgeColor(parsed);
+  const releaseStage = getReleaseStageFromConfig();
+  const stageLabel =
+    t(`rksvHub.env.releaseStage.displayLabel.${releaseStage}`) ||
+    getReleaseStageTagLabel(releaseStage);
+  const stageColor = getReleaseStageTagColor(releaseStage);
+
   return (
-    <Tooltip title={t('rksvHub.env.buildTimeBadgeTooltip')}>
-      <Tag color={color} data-rksv-environment-state={parsed.state}>
-        {t(labelKey)}
-      </Tag>
-    </Tooltip>
+    <Space size={4} wrap>
+      <Tooltip title={t('rksvHub.env.buildTimeBadgeTooltip')}>
+        <Tag color={color} data-rksv-environment-state={parsed.state}>
+          {t(labelKey)}
+        </Tag>
+      </Tooltip>
+      <Tooltip title={t('rksvHub.env.releaseStageBadgeTooltip')}>
+        <Tag color={stageColor} data-regkasse-release-stage={releaseStage}>
+          {stageLabel}
+        </Tag>
+      </Tooltip>
+    </Space>
   );
 }
 

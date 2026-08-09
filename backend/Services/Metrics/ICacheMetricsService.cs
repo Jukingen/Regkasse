@@ -1,7 +1,7 @@
 namespace KasseAPI_Final.Services.Metrics;
 
 /// <summary>
-/// Cache hit/miss/size Prometheus metrics for <see cref="Cache.ICacheService"/>.
+/// Cache hit/miss/size Prometheus metrics for <see cref="Caching.ICacheService"/>.
 /// </summary>
 public interface ICacheMetricsService
 {

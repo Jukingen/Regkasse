@@ -30,7 +30,7 @@ import {
 import type { TseAnomaly, TseAnomalySeverity } from '@/features/tse-anomaly-detection/types';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
 
@@ -174,7 +174,7 @@ export default function TseAnomalyDetectionPage() {
     <>
       <AdminPageHeader
         title={t('tseAnomalyDetection.title')}
-        breadcrumbs={[adminOverviewCrumb(t), { title: t('tseAnomalyDetection.title') }]}
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'securityTse', { title: t('tseAnomalyDetection.title') })}
         extra={<TseActiveTenantTag />}
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>

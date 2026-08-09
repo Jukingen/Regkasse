@@ -299,6 +299,175 @@ public sealed class RksvDepExportServiceTests
     }
 
     [Fact]
+    public async Task GenerateDepExport_FallsBackToCurrentSoftCert_WhenHistoricalThumbprintMissing()
+    {
+        await using var db = CreateDb();
+        var regId = await SeedRegisterAsync(db);
+        var soft = new SoftwareTseKeyProvider();
+        var currentThumb = soft.GetCurrentCertificateThumbprint()!;
+        const string historicalThumb = "217A529ADEADBEEFDEADBEEFDEADBEEFDEADBEEF";
+        var from = new DateTime(2026, 4, 1, 0, 0, 0, DateTimeKind.Utc);
+        var to = new DateTime(2026, 4, 30, 23, 59, 59, DateTimeKind.Utc);
+
+        db.PaymentDetails.Add(CreatePayment(
+            regId,
+            new DateTime(2026, 4, 5, 10, 0, 0, DateTimeKind.Utc),
+            "AT-TSE-20260405-0001",
+            thumbprint: historicalThumb,
+            tseSignature: ValidJwsFor("soft-fallback")));
+        await db.SaveChangesAsync();
+
+        var logger = new Mock<ILogger<RksvDepExportService>>();
+        var service = new RksvDepExportService(
+            db,
+            soft,
+            CreateProductionEnvironment(), // Soft TSE type gate — not demo/simulation flags
+            Mock.Of<IRksvDepPrueftoolRunner>(),
+            logger.Object);
+
+        var export = await service.GenerateDepExportAsync(regId, from, to);
+
+        Assert.Single(export.BelegeGruppe);
+        Assert.False(string.IsNullOrWhiteSpace(export.BelegeGruppe[0].Signaturzertifikat));
+        Assert.Equal(
+            Convert.ToBase64String(soft.GetCertificateBytes()!),
+            export.BelegeGruppe[0].Signaturzertifikat);
+
+        logger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    v.ToString()!.Contains(historicalThumb, StringComparison.Ordinal)
+                    && v.ToString()!.Contains(currentThumb, StringComparison.Ordinal)),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task GenerateDepExport_DoesNotFallback_ForMockedNonSoftProvider()
+    {
+        await using var db = CreateDb();
+        var regId = await SeedRegisterAsync(db);
+        const string missingThumb = "DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF";
+        var from = new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc);
+        var to = new DateTime(2026, 5, 31, 23, 59, 59, DateTimeKind.Utc);
+
+        db.PaymentDetails.Add(CreatePayment(
+            regId,
+            new DateTime(2026, 5, 5, 10, 0, 0, DateTimeKind.Utc),
+            "AT-TSE-20260505-0001",
+            thumbprint: missingThumb,
+            tseSignature: ValidJwsFor("no-fallback")));
+        await db.SaveChangesAsync();
+
+        // Mock is not SoftwareTseKeyProvider — even with a "current" thumbprint, no Soft fallback.
+        var keyProvider = new Mock<ITseKeyProvider>();
+        keyProvider
+            .Setup(k => k.GetCertificateByThumbprintAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((X509Certificate2?)null);
+        keyProvider
+            .Setup(k => k.GetCertificateChainAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<X509Certificate2>());
+        keyProvider.Setup(k => k.GetCurrentCertificateThumbprint()).Returns("CURRENTTHUMBPRINTCURRENTTHUMBPRINT00");
+
+        var service = new RksvDepExportService(
+            db,
+            keyProvider.Object,
+            CreateDemoEnvironment(),
+            Mock.Of<IRksvDepPrueftoolRunner>(),
+            Mock.Of<ILogger<RksvDepExportService>>());
+
+        var ex = await Assert.ThrowsAsync<RksvDepExportCertificateMissingException>(() =>
+            service.GenerateDepExportAsync(regId, from, to));
+
+        Assert.Equal(missingThumb, ex.Thumbprint);
+    }
+
+    [Fact]
+    public void DepExportStatus_SerializesAsStringNotNumber()
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(new { status = DepExportStatus.Completed });
+        Assert.Contains("\"Completed\"", json, StringComparison.Ordinal);
+        Assert.DoesNotContain(":2", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GenerateDepExport_InDemo_FallsBackToCurrentSoftTseCert_WhenHistoricalThumbprintMissing()
+    {
+        await using var db = CreateDb();
+        var regId = await SeedRegisterAsync(db);
+        var softTse = new SoftwareTseKeyProvider();
+        var currentThumb = softTse.GetCurrentCertificateThumbprint()!;
+        const string staleThumb = "217A529A7415404E3DBF035AE67EEFA7C8A7CFB0";
+        var from = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc);
+        var to = new DateTime(2026, 3, 31, 23, 59, 59, DateTimeKind.Utc);
+
+        db.PaymentDetails.Add(CreatePayment(
+            regId,
+            new DateTime(2026, 3, 5, 10, 0, 0, DateTimeKind.Utc),
+            "AT-TSE-20260305-0001",
+            thumbprint: staleThumb,
+            tseSignature: ValidJwsFor("stale")));
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, softTse, CreateDemoEnvironment());
+        var export = await service.GenerateDepExportAsync(regId, from, to);
+
+        Assert.Single(export.BelegeGruppe);
+        Assert.False(string.IsNullOrWhiteSpace(export.BelegeGruppe[0].Signaturzertifikat));
+        // Group key remains the historical thumbprint; leaf DER comes from current Soft TSE.
+        Assert.NotEqual(staleThumb, currentThumb);
+        Assert.Contains(ValidJwsFor("stale"), export.BelegeGruppe[0].BelegeKompakt);
+    }
+
+    [Fact]
+    public async Task GenerateDepExport_InProduction_DoesNotFallBack_WhenHistoricalThumbprintMissing()
+    {
+        await using var db = CreateDb();
+        var regId = await SeedRegisterAsync(db);
+        var softTse = new SoftwareTseKeyProvider();
+        var currentThumb = softTse.GetCurrentCertificateThumbprint()!;
+        var currentCert = await softTse.GetCertificateByThumbprintAsync(currentThumb);
+        Assert.NotNull(currentCert);
+
+        const string staleThumb = "217A529A7415404E3DBF035AE67EEFA7C8A7CFB0";
+        var from = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc);
+        var to = new DateTime(2026, 3, 31, 23, 59, 59, DateTimeKind.Utc);
+
+        db.PaymentDetails.Add(CreatePayment(
+            regId,
+            new DateTime(2026, 3, 5, 10, 0, 0, DateTimeKind.Utc),
+            "AT-TSE-20260305-0001",
+            thumbprint: staleThumb,
+            tseSignature: ValidJwsFor("stale")));
+        await db.SaveChangesAsync();
+
+        // Current Soft TSE leaf is available, but production must NOT fall back to it.
+        var keyProvider = new Mock<ITseKeyProvider>();
+        keyProvider
+            .Setup(k => k.GetCertificateByThumbprintAsync(staleThumb, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((X509Certificate2?)null);
+        keyProvider
+            .Setup(k => k.GetCertificateByThumbprintAsync(currentThumb, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(currentCert);
+        keyProvider
+            .Setup(k => k.GetCertificateChainAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<X509Certificate2>());
+        keyProvider.Setup(k => k.GetCurrentCertificateThumbprint()).Returns(currentThumb);
+
+        var service = CreateService(db, keyProvider.Object, CreateProductionEnvironment());
+        var ex = await Assert.ThrowsAsync<RksvDepExportCertificateMissingException>(() =>
+            service.GenerateDepExportAsync(regId, from, to));
+
+        Assert.Equal(staleThumb, ex.Thumbprint);
+        keyProvider.Verify(
+            k => k.GetCertificateByThumbprintAsync(currentThumb, It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task GenerateDepExport_IncludesSpecialReceiptsAndDailyClosings_InChronologicalOrder()
     {
         await using var db = CreateDb();
@@ -553,9 +722,11 @@ public sealed class RksvDepExportServiceTests
         var build = await CreateService(db).GenerateDepExportWithValidationAsync(regId, from, to);
 
         Assert.True(build.IsDemo);
+        Assert.True(build.IsSimulated);
         Assert.Equal("Demo", build.Environment);
         Assert.True(build.FormatValidated);
         Assert.Contains("DEMO / NICHT FISKAL", build.LegalNotice, StringComparison.Ordinal);
+        Assert.Equal(RksvDepExportService.SimulationNoteEn, build.SimulationNote);
     }
 
     [Fact]

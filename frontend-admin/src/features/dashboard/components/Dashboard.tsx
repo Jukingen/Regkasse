@@ -2,7 +2,7 @@
 
 import { SettingOutlined } from '@ant-design/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Alert, Button } from 'antd';
+import { Alert, Button, Space } from 'antd';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { PageSkeleton } from '@/components/Skeleton';
@@ -19,8 +19,11 @@ import {
   filterDashboardLayoutByCatalog,
 } from '@/features/dashboard/logic/dashboardWidgetVisibility';
 import type { DashboardWidgetPreference } from '@/features/dashboard/types';
+import { buildDefaultDashboardLayout } from '@/features/dashboard/utils/buildDefaultDashboardLayout';
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useI18n } from '@/i18n/I18nProvider';
 
 type DashboardProps = {
   /** Optional fixed sections rendered above the customizable widget grid. */
@@ -29,6 +32,8 @@ type DashboardProps = {
 
 /** Customizable admin dashboard with persisted per-user widget layout. */
 export function Dashboard({ headerSlot }: DashboardProps) {
+  const { t } = useI18n();
+  const { modal } = useAntdApp();
   const queryClient = useQueryClient();
   const { hasPermission } = usePermissions();
   const [layout, setLayout] = useState<DashboardWidgetPreference[] | null>(null);
@@ -118,19 +123,35 @@ export function Dashboard({ headerSlot }: DashboardProps) {
     [layout, scheduleSave]
   );
 
+  const handleResetLayout = useCallback(() => {
+    modal.confirm({
+      title: t('dashboard.customize.resetConfirmTitle'),
+      content: t('dashboard.customize.resetConfirmContent'),
+      okText: t('dashboard.customize.resetLayout'),
+      onOk: () => {
+        scheduleSave(buildDefaultDashboardLayout(allowedCatalog));
+      },
+    });
+  }, [modal, t, scheduleSave, allowedCatalog]);
+
   const loading = catalogQuery.isLoading || preferencesQuery.isLoading;
   const error = catalogQuery.error ?? preferencesQuery.error;
 
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <Button
-          icon={<SettingOutlined />}
-          onClick={() => setSettingsOpen(true)}
-          disabled={loading || !layout}
-        >
-          Widgets anpassen
-        </Button>
+        <Space>
+          <Button onClick={handleResetLayout} disabled={loading || allowedCatalog.length === 0}>
+            {t('dashboard.customize.resetLayout')}
+          </Button>
+          <Button
+            icon={<SettingOutlined />}
+            onClick={() => setSettingsOpen(true)}
+            disabled={loading || !layout}
+          >
+            {t('dashboard.customize.button')}
+          </Button>
+        </Space>
       </div>
 
       {headerSlot}
@@ -141,7 +162,7 @@ export function Dashboard({ headerSlot }: DashboardProps) {
         <Alert
           type="error"
           showIcon
-          title="Dashboard konnte nicht geladen werden"
+          title={t('dashboard.customize.loadError')}
           style={{ marginBottom: 16 }}
         />
       ) : null}
@@ -160,7 +181,7 @@ export function Dashboard({ headerSlot }: DashboardProps) {
           type="warning"
           showIcon
           closable
-          title="Layout konnte nicht gespeichert werden"
+          title={t('dashboard.customize.saveError')}
           style={{ marginTop: 8 }}
         />
       ) : null}
@@ -171,6 +192,7 @@ export function Dashboard({ headerSlot }: DashboardProps) {
         catalog={allowedCatalog}
         widgets={visibleLayout ?? []}
         onVisibilityChange={handleVisibilityChange}
+        onResetLayout={handleResetLayout}
       />
     </>
   );

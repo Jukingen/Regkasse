@@ -12,7 +12,7 @@ Versions below match `package.json` / monorepo baselines (`AGENTS.md`). Installe
 | **Next.js** | `^16.2.10` (App Router, Turbopack in `next build` / `next dev`) |
 | **React / React DOM** | `^19.2.7` — types via `@types/react` / `@types/react-dom` (React does not ship types) |
 | **Ant Design** | `^6.4.3` (+ `@ant-design/nextjs-registry`, icons, cssinjs) |
-| **TanStack Query** | `^5.101.3` (Orval-generated hooks) |
+| **TanStack Query** | `^5.101.3` (Orval-generated hooks). Align `staleTime` with backend `CacheSettings` TTLs (license ~5m, products ~15m, permissions ~30m) where the same entities are cached server-side — prevents FA showing stale data while Redis still holds a fresh snapshot (or vice versa). When backend cache is cleared (`POST /api/admin/cache/clear` / Systemwartung → Cache leeren), React Query caches in open browsers may need manual invalidation via `queryClient.invalidateQueries()` (or a hard refresh). Optional UX: a Super Admin “Clear Cache” control that calls the backend endpoint and then invalidates matching React Query keys. |
 | **Zustand** | `^5.0.14` — **only** ephemeral UI prefs (`src/stores/`); never auth/API/fiscal state |
 | **Recharts** | `^3.10.0` (page-local / dynamic import; `d3-*` are transitive — do not add as direct deps) |
 | **Axios / SignalR** | `axios`, `@microsoft/signalr` |
@@ -89,7 +89,7 @@ High-level FA changes (see git history / PRs for full detail):
 | **Login** | Single field: email **or** username → `loginIdentifier` on `POST /api/Auth/login`. |
 | **RKSV environment** | `NEXT_PUBLIC_RKSV_ENVIRONMENT=TEST\|PROD` is **build-time**; `/rksv` badge; production build fails if unset/invalid (`next.config.mjs`, `assertRksvPublicEnvironmentForBuild.mjs`). |
 | **Security headers / CSP** | Pragmatic CSP + security headers in `next.config.mjs` (`connect-src` includes API + Sentry ingest). |
-| **React Query** | Shared cache policy (`src/lib/query/queryCachePolicy.ts`): static / dynamic / volatile / realtime. |
+| **React Query** | Shared cache policy (`src/lib/query/queryCachePolicy.ts`): static / dynamic / volatile / realtime. Align policy windows with backend `CacheSettings`. When backend cache is cleared, call `queryClient.invalidateQueries()` (open sessions are not flushed by Redis clear alone). Super Admin cache flush: Systemwartung → Cache leeren → `POST /api/admin/cache/clear`. |
 | **API errors** | `translateApiError` maps backend `code` → i18n; no stack traces in toasts. |
 | **Code splitting** | `next/dynamic` for large hubs (`/backup`, `/rksv`, users/tenants); keep `recharts` / `jszip` out of the shared chunk. |
 | **Client state** | Server data → TanStack Query; auth → `AuthProvider` + `authStorage`; UI prefs → ThemeProvider / personalization **and** narrow Zustand stores (`uiPreferencesStore`, `siderWidthStore`). |
@@ -248,7 +248,16 @@ Zustand **is** a dependency (`zustand` in `package.json`) and lives under `src/s
 | App language / format locale | `languageStorage` + `I18nProvider` | `localStorage` only for prefs. |
 | Lists, forms, backups, RKSV | TanStack Query | Server state — invalidate/refetch. |
 
-Repo-wide rule: `AGENTS.md` → Frontend-Admin conventions.
+#### Cache Alignment
+
+React Query cache TTLs should align with backend `CacheSettings` TTLs to prevent stale data issues:
+
+- `staleTime` should be **less than or equal to** the matching backend TTL (license ~5m, products ~15m Production default / ~30m Staging example, permissions ~30m).
+- `gcTime` should be **greater than** the backend TTL so the client can still serve while a soft refetch runs after `staleTime`.
+- After backend cache clear (`POST /api/admin/cache/clear` / Systemwartung → Cache leeren), call `queryClient.invalidateQueries()` for affected queries (open browsers are not flushed by Redis clear alone).
+- Consider adding a Super Admin **Clear Cache** control in admin settings that calls the backend endpoint and then invalidates matching React Query keys.
+
+Shared policy: `src/lib/query/queryCachePolicy.ts`. Repo-wide rule: `AGENTS.md` → Frontend-Admin conventions + Caching (Backend).
 
 ### Diagnostics logging
 

@@ -3,6 +3,7 @@ using System.Text.Json;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services.Dashboard;
 using KasseAPI_Final.Tenancy;
@@ -70,6 +71,48 @@ public sealed class DashboardControllerTests
         Assert.Null(body.UpdatedAtUtc);
         Assert.Contains(body.Widgets, w => w.WidgetId == "today-sales" && w.IsVisible);
         Assert.Contains(body.Widgets, w => w.WidgetId == "active-cash-registers");
+        Assert.Contains(body.Widgets, w => w.WidgetId == DashboardWidgetCatalog.ActionRequired && w.IsVisible);
+        Assert.Contains(body.Widgets, w => w.WidgetId == DashboardWidgetCatalog.ManagerLicenseStatus && w.IsVisible);
+        Assert.Contains(body.Widgets, w => w.WidgetId == DashboardWidgetCatalog.ManagerKpiStrip);
+        Assert.Contains(body.Widgets, w => w.WidgetId == DashboardWidgetCatalog.LicenseExpiry && !w.IsVisible);
+    }
+
+    [Fact]
+    public async Task GetPreferences_MergesNewManagerWidgetsAsVisibleByDefault()
+    {
+        await using var db = CreateContext();
+        var controller = CreateController(db);
+
+        // Simulate a legacy saved layout that predates manager-* catalog ids.
+        await controller.SavePreferences(new SaveDashboardPreferencesRequestDto
+        {
+            Widgets =
+            [
+                new DashboardWidgetPreferenceDto { WidgetId = "today-sales", Order = 0, IsVisible = true },
+            ],
+        }, CancellationToken.None);
+
+        // Strip manager widgets from DB row to mimic pre-migration prefs (SavePreferences appends missing as hidden).
+        var row = await db.DashboardPreferences.FirstAsync();
+        row.Widgets = row.Widgets
+            .Where(w => !w.WidgetId.StartsWith("manager-", StringComparison.OrdinalIgnoreCase))
+            .Select((w, i) => new DashboardWidget
+            {
+                WidgetId = w.WidgetId,
+                Order = i,
+                IsVisible = w.IsVisible,
+                Settings = w.Settings,
+            })
+            .ToList();
+        await db.SaveChangesAsync();
+
+        var result = await controller.GetPreferences(CancellationToken.None);
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var body = Assert.IsType<DashboardPreferencesResponseDto>(ok.Value);
+
+        var license = Assert.Single(body.Widgets, w => w.WidgetId == DashboardWidgetCatalog.ManagerLicenseStatus);
+        Assert.True(license.IsVisible);
+        Assert.Contains(body.Widgets, w => w.WidgetId == DashboardWidgetCatalog.ManagerActivity);
     }
 
     [Fact]
@@ -136,6 +179,10 @@ public sealed class DashboardControllerTests
         Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.DataRetention);
         Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.OfflineSystemStatus);
         Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.LicenseExpiry);
+        Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.ActionRequired);
+        Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.ManagerLicenseStatus);
+        Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.ManagerKpiStrip);
+        Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.ManagerActivity);
         Assert.DoesNotContain(items, i => i.WidgetId == DashboardWidgetCatalog.SystemMetrics);
     }
 

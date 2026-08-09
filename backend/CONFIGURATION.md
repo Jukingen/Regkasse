@@ -41,8 +41,102 @@ Load order (ASP.NET Core): base → environment overlay → user secrets (Develo
 | PostgreSQL | `ConnectionStrings:DefaultConnection` | `ConnectionStrings__DefaultConnection` | Npgsql connection string; never log unmasked. Production should include `Pooling=true;Minimum Pool Size=5;Maximum Pool Size=20;Connection Lifetime=300;` (ApplicationHost also applies these defaults in Production when omitted). |
 | JWT signing key | `JwtSettings:SecretKey` | `JwtSettings__SecretKey` | Minimum 32 characters; rotate if ever exposed. |
 | JWT issuer / audience | `JwtSettings:Issuer`, `JwtSettings:Audience` | `JwtSettings__Issuer`, `JwtSettings__Audience` | Non-secret values may live in example config. |
-| Redis (distributed cache) | `Redis:ConnectionString` | `Redis__ConnectionString` | Default `localhost:6379`. Used by `ICacheService` (`RedisCacheService`). Process-local `IMemoryCache` remains for lockout/rate-limit/QR. |
-| Redis key prefix | `Redis:InstanceName` | `Redis__InstanceName` | e.g. `Regkasse_Dev` / `Regkasse_Prod`. Prefixed onto all cache keys so environments can share one Redis safely. |
+| Redis (distributed cache) | `Redis:ConnectionString` | `Redis__ConnectionString` | Default `localhost:6379`. Used by `ICacheService` (`RedisCacheService`). On Redis failure the service falls back to process-local `IMemoryCache` (Error logged; `IsRedisAvailable=false`). Process-local `IMemoryCache` also remains for lockout/rate-limit/QR. |
+| Redis enabled | `Redis:Enabled` | `Redis__Enabled` | Development default `false` (memory). Production/Staging default on when unset (`true` recommended). |
+| Redis key prefix | `Redis:InstanceName` | `Redis__InstanceName` | e.g. `Regkasse_Dev` / `Regkasse_Prod`. Applied by `AddStackExchangeRedisCache`. |
+| Domain cache TTLs | `CacheSettings:*` | `CacheSettings__*` | See § CacheSettings below. |
+
+### Cache Settings (domain `ICacheService`)
+
+Bound from section `CacheSettings` (`KasseAPI_Final.Configuration.CacheSettings`). Env overrides use double-underscore (`CacheSettings__LicenseCacheMinutes`).
+
+| Key | Default | Env override | Description |
+|-----|---------|--------------|-------------|
+| `CacheSettings:LicenseCacheMinutes` | `5` | `CacheSettings__LicenseCacheMinutes` | Mandant license status TTL |
+| `CacheSettings:ProductCacheMinutes` | `15` | `CacheSettings__ProductCacheMinutes` | Product list TTL |
+| `CacheSettings:PermissionCacheMinutes` | `30` | `CacheSettings__PermissionCacheMinutes` | Effective user permissions TTL |
+| `CacheSettings:TenantSettingsCacheMinutes` | `60` | `CacheSettings__TenantSettingsCacheMinutes` | Tenant settings snapshot TTL |
+| `CacheSettings:TseHealthCacheSeconds` | `30` | `CacheSettings__TseHealthCacheSeconds` | Reserved for domain TSE health via `CacheKeys.TseHealth` (process TSE monitor stays in-memory today) |
+
+**Environment-specific TTL guidance:**
+
+| Environment | Guidance |
+|-------------|----------|
+| Development | Shorter TTLs (example: products ~10m, permissions ~15m, tenant settings ~30m) for faster feedback after writes |
+| Staging | Production-like or slightly longer TTLs for realistic hit/miss observation (`docs/CACHE_OPTIMIZATION.md`) |
+| Production | Defaults or longer (15–60m for catalogs/settings) after Staging confirms freshness; keep **license** short (`5`) |
+
+Related Redis keys (same process):
+
+| Key | Default / example | Env override | Description |
+|-----|-------------------|--------------|-------------|
+| `Redis:Enabled` | Dev `false`; Prod/Staging `true` | `Redis__Enabled` | When false, domain cache uses `MemoryCacheService` |
+| `Redis:ConnectionString` | `localhost:6379` | `Redis__ConnectionString` | StackExchange Redis endpoint |
+| `Redis:InstanceName` | e.g. `Regkasse_Prod` | `Redis__InstanceName` | Key prefix via `AddStackExchangeRedisCache` |
+
+#### Redis vs MemoryCache fallback
+
+| Mode | When | Behavior |
+|------|------|----------|
+| Memory | Development default, or `Redis:Enabled=false` | `MemoryCacheService` only |
+| Redis | Staging/Production when enabled | `RedisCacheService` over `IDistributedCache` |
+| Fallback | Redis unreachable / op failure | Same process serves from in-process `IMemoryCache`; **Error** logged; callers of `ICacheService` see no exception |
+
+**Transparent fallback (`RedisCacheService`):** Every Get/Set/Remove/Exists/`GetOrCreate` Redis call is try/catch’d. On transient Redis failure the service:
+
+1. Sets **`IsRedisAvailable = false`** (returns to `true` after a later successful Redis round-trip).
+2. Logs at **Error** (`Redis cache unavailable; falling back to in-process IMemoryCache…`).
+3. Serves/writes via injected **`IMemoryCache`** (and keeps a memory mirror on successful Redis writes for blip resilience).
+
+Domain services keep depending only on `ICacheService` — they do not branch on Redis vs memory.
+
+**Health:** `GET /api/health/ready` check `cache` (`RedisCacheHealthCheck`) reads `RedisCacheService.IsRedisAvailable`. A ping that only succeeds via memory fallback still yields **`redisStatus`: `Degraded`** (never Unhealthy / HTTP 503 for Redis alone). Entry data includes `isRedisAvailable`.
+
+Process-local `IMemoryCache` remains separately for CSRF, lockout, rate-limit, QR — never move those onto `ICacheService`.
+
+#### Cache key naming conventions
+
+Use `CacheKeys` helpers only (`backend/Services/Caching/CacheKeys.cs`) — no ad-hoc strings.
+
+| Pattern | Example | Notes |
+|---------|---------|-------|
+| `CacheKeys.LicenseStatus` → `license_status_{tenantId}` | `license_status_a1b2-…` | Billing/mandant license Cache-Aside |
+| `CacheKeys.ProductList` → `product_list_{tenantId}` | `product_list_a1b2-…` | Unfiltered list; also **prefix** for category variants |
+| `CacheKeys.ProductListByCategory` → `product_list_{tenantId}_cat_{categoryId}` | `product_list_…_cat_…` | Category-filtered list |
+| `CacheKeys.ProductDetail` → `product_detail_{productId}` | `product_detail_…` | Optional single-product projection |
+| `CacheKeys.UserPermissions` → `user_permissions_{userId}` | `user_permissions_…` | Effective permission snapshot |
+| `CacheKeys.TenantSettings` → `tenant_settings_{tenantId}` | `tenant_settings_…` | Tenant settings snapshot |
+| `CacheKeys.TseHealth` → `tse_health_{scopeId}` | `tse_health_…` | Reserved template for TSE health via `ICacheService` |
+| `CacheKeys.HealthPing` | `health_check_ping` | Ready probe only — not business data |
+
+Build keys with `CacheKeys.Format(CacheKeys.LicenseStatus, tenantId)` (never interpolate magic strings).
+
+Invalidation: `CacheInvalidationHelper` (event-based after writes). Never store passwords, voucher codes, or payment details in domain cache keys/values.
+
+#### Cache Tuning (Staging)
+
+Full observation worksheet: [`docs/CACHE_OPTIMIZATION.md`](../docs/CACHE_OPTIMIZATION.md). Summary:
+
+| Rule of thumb | Action |
+|---------------|--------|
+| Hit rate &gt; ~80% + event invalidation on writes | Consider **increasing** TTL (Staging products → 30m, permissions → 60m) |
+| Hit rate &lt; ~50% | Consider **decreasing** TTL or dropping that key later |
+| License / SaaS gate | Keep **short** TTL (`5`) even if hit rate is only moderate |
+
+**Observation (~1 week on Staging):** set `Logging:LogLevel:KasseAPI_Final.Services.Caching` to **`Debug`** (hit/miss lines are Debug-level; `Information` alone will **not** show them), then revert to **`Warning`**.
+
+**Provisional Staging TTLs** (applied in `appsettings.Staging.example.json` pending live hit/miss fill-in):
+
+| Domain | Staging TTL | Rationale |
+|--------|-------------|-----------|
+| License | **5** min | Freshness-critical SaaS gate; event invalidation on sale/activate |
+| Products | **30** min | Expect high list-read hit rate; writes invalidate prefix |
+| Permissions | **60** min (1h) | Expect high authz hit rate; role change invalidates key |
+| Tenant settings | **90** min | Low write frequency |
+
+Live hit rates: fill the table in `docs/CACHE_OPTIMIZATION.md` §2 after the observation week, then revise TTLs here if measured rates disagree. Do not copy Staging TTLs to Production until Demo & QA confirms freshness.
+
+**Fallback note:** The system automatically falls back to `IMemoryCache` if Redis becomes unavailable. This ensures continued operation, though cache effectiveness may decrease. When Redis is unavailable, cache entries are stored **in memory per instance**, not shared across instances, until Redis recovers. When Redis recovers, `RedisCacheService` logs **Information** (`Redis is available again, switching back from MemoryCache`) and sets `IsRedisAvailable=true` again.
 
 **Local Redis (Windows):** Docker/WSL optional. Portable build under `tools/redis` (gitignored). Start with:
 

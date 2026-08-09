@@ -38,7 +38,7 @@ import type { TseHealingHistoryItem, TseHealingRule } from '@/features/tse-auto-
 import { getTseDevices } from '@/features/tse-failover/api/tse';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
 
@@ -222,7 +222,7 @@ export default function TseAutoHealingPage() {
     <>
       <AdminPageHeader
         title={t('tseAutoHealing.title')}
-        breadcrumbs={[adminOverviewCrumb(t), { title: t('tseAutoHealing.title') }]}
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'securityTse', { title: t('tseAutoHealing.title') })}
         extra={<TseActiveTenantTag />}
       />
 

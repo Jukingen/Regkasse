@@ -319,7 +319,8 @@ namespace KasseAPI_Final.Services
                     .Distinct()
                     .CountAsync();
 
-                _logger.LogInformation("📊 Cart Statistics - Active: {Active}, Completed: {Completed}, Total Items: {TotalItems}, Active Users: {ActiveUsers}",
+                _logger.LogDebug(
+                    "Cart statistics - Active: {Active}, Completed: {Completed}, Total Items: {TotalItems}, Active Users: {ActiveUsers}",
                     stats.FirstOrDefault(s => s.Status == CartStatus.Active)?.Count ?? 0,
                     stats.FirstOrDefault(s => s.Status == CartStatus.Completed)?.Count ?? 0,
                     totalItems,
@@ -327,7 +328,7 @@ namespace KasseAPI_Final.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Cart statistics logging error");
+                _logger.LogError(ex, "Cart statistics logging error");
             }
         }
 

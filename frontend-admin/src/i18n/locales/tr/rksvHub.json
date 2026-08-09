@@ -21,6 +21,15 @@
       "invalid": "FinanzOnline ortamı: INVALID — `{{envVar}}` şunu okuyor: \"{{value}}\". Yalnızca TEST veya PROD geçerlidir; build yapılandırmasını düzeltin."
     },
     "buildTimeBadgeTooltip": "Yalnızca admin derleme etiketi (derlemede TEST/PROD). Canlı FinanzOnline veya BMF durumu değil — bağlantı ve mutabakatı ayrı doğrulayın.",
+    "releaseStageBadgeTooltip": "Derleme zamanı release stage (`NEXT_PUBLIC_RELEASE_STAGE`: dev | staging | canary | production). Varsayılan: dev. Öncelikle Demo & QA / staging doğrulaması için; canlı stage için API tercih edilir (`/api/rksv/environment`).",
+    "releaseStage": {
+      "displayLabel": {
+        "dev": "DEVELOPMENT",
+        "staging": "STAGING",
+        "canary": "CANARY",
+        "production": "PRODUCTION"
+      }
+    },
     "backend": {
       "displayLabel": {
         "demo": "🧪 DEMO",
@@ -316,7 +325,26 @@
     "includeSpecialReceipts": "Özel fişler (başlangıç/aylık/yıllık/kapanış/null)",
     "includeDailyClosings": "Günlük kapanışlar",
     "exportButton": "DEP dışa aktarımını başlat",
-    "downloadButton": "JSON indir",
+    "downloadButton": "İndir",
+    "downloadNow": "Şimdi indir",
+    "downloadStoredButton": "Kayıtlı JSON indir",
+    "downloadLiveButton": "Canlı JSON indir",
+    "downloadSuccess": "DEP dışa aktarımı indirildi.",
+    "downloadFailed": "Dosya indirilirken hata oluştu",
+    "exportReady": "Dosyanız indirmeye hazır.",
+    "exportExpired": "Dışa aktarımın süresi dolmuş",
+    "downloadCount": "İndirilme: {count} kez",
+    "historyTitle": "Son dışa aktarımlar",
+    "noExports": "Dışa aktarım yok",
+    "recentExportsTitle": "Son dışa aktarımlar",
+    "recentExportsEmpty": "Dışa aktarım yok",
+    "recentExportsViewAll": "Tüm geçmişi göster",
+    "expiresLabel": "Bitiş",
+    "deleteButton": "Sil",
+    "deleteConfirmTitle": "Dışa aktarım silinsin mi?",
+    "deleteConfirmBody": "İndirme dosyası kaldırılır. Arşivlenmiş RKSV verileri korunur.",
+    "deleteSuccess": "Dışa aktarım listeden kaldırıldı.",
+    "deleteFailed": "Silme başarısız",
     "copyButton": "Panoya kopyala",
     "statsTitle": "Dışa aktarım istatistikleri",
     "statsGroups": "Belege-Gruppen",
@@ -326,7 +354,7 @@
     "emptyHintBody": "Kasa ve dönem seçin, ardından «DEP dışa aktarımını başlat».",
     "selectRegisterWarning": "Lütfen bir kasa seçin.",
     "selectDateRangeWarning": "Lütfen bir tarih aralığı seçin.",
-    "exportSuccess": "DEP dışa aktarımı başarıyla oluşturuldu.",
+    "exportSuccess": "DEP dışa aktarımı başarıyla oluşturuldu",
     "exportFailed": "DEP dışa aktarımı başarısız",
     "copySuccess": "JSON panoya kopyalandı.",
     "copyFailed": "Kopyalama başarısız.",
@@ -370,7 +398,7 @@
     "historyColumnActions": "İşlemler",
     "historyLoadParams": "Parametreleri yükle",
     "historyParamsLoaded": "Dışa aktarım parametreleri yüklendi.",
-    "historyFootnoteServer": "Geçmiş kiracı başına sunucuda saklanır (meta veri; dosya indirme yalnızca zamanlanmış exportlarda).",
+    "historyFootnoteServer": "Geçmiş kiracı başına sunucuda saklanır. Tamamlanan dışa aktarımlar JSON olarak indirilebilir.",
     "historyDownloadStored": "Kayıtlı JSON indir",
     "tabSchedules": "⏰ Zamanlama",
     "scheduleTitle": "Zamanlanmış DEP dışa aktarımları",
@@ -395,7 +423,15 @@
     "cryptoMaterialGenerateButton": "Test materyali oluştur",
     "cryptoMaterialDownloadButton": "crypto-material.json indir",
     "cryptoMaterialSuccess": "Test materyali başarıyla oluşturuldu.",
-    "cryptoMaterialFailed": "Test materyali oluşturulamadı"
+    "cryptoMaterialFailed": "Test materyali oluşturulamadı",
+    "simulationWarning": "DEP dışa aktarımı simülasyon modunda oluşturuluyor",
+    "simulationDescription": "TSE imzaları simüle edilmiştir ve hukuken geçerli değildir. Yalnızca test ve geliştirme için.",
+    "lastExportLabel": "Son dışa aktarım",
+    "noExportYet": "Henüz dışa aktarım yapılmadı",
+    "simulatedBadge": "Simüle",
+    "downloadCountLabel": "İndirilme: {count} kez",
+    "productionMode": "Üretim modu — imzalar hukuken geçerlidir",
+    "simulationMode": "Simülasyon modu — imzalar hukuken GEÇERLİ DEĞİLDİR"
   },
   "incident": {
     "pageTitle": "Olay (correlation) — inceleme",

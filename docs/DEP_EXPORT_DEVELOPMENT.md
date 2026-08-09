@@ -63,6 +63,23 @@ curl -H "Authorization: Bearer {token}" \
      "http://localhost:5184/api/admin/rksv/dep-export?cashRegisterId={guid}&fromUtc=2026-01-01T00:00:00Z&toUtc=2026-01-31T23:59:59Z"
 ```
 
+## Download (stored history)
+
+Completed exports are written under `DepExportStorage` (default `App_Data/dep-exports/{tenantId}/`) and listed with `hasStoredFile` / `downloadUrl`.
+
+| Method | Path | Notes |
+|--------|------|-------|
+| `GET` | `/api/admin/rksv/dep-export/download/{id}` | Auth download by history id (canonical) |
+| `GET` | `/api/admin/rksv/dep-export/history/{id}/download` | Alias |
+| `POST` | `/api/admin/rksv/dep-export/download/{id}/token` | Issue/rotate opaque token (default TTL **24h**) |
+| `GET` | `/api/admin/rksv/dep-export/download/token/{token}` | Token download (JWT + permissions still required) |
+
+Every attempt is audited (`DepExportAuditActions.Downloaded` → `AuditEventType.RksvDepExportDownloaded`). Cross-tenant → HTTP **404**.
+
+Migration: `20260807120000_AddDepExportHistoryDownloadToken` (`download_token`, `download_token_expires_at_utc`, `expires_at`, `downloaded_at`).
+
+---
+
 ## Data sources
 
 | Source | Receipt type | Date filter | Thumbprint column |

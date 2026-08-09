@@ -29,7 +29,7 @@ import {
 import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
 
@@ -118,7 +118,7 @@ export default function TseAnalyticsPage() {
     <>
       <AdminPageHeader
         title={t('tseAnalytics.title')}
-        breadcrumbs={[adminOverviewCrumb(t), { title: t('tseAnalytics.title') }]}
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'securityTse', { title: t('tseAnalytics.title') })}
         extra={<TseActiveTenantTag />}
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>

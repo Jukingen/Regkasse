@@ -41,6 +41,12 @@ public sealed class RksvDepExportEnvelopeDto
 
     public bool IsDemo { get; set; }
 
+    /// <summary>True when RKSV demo mode or TSE simulation is active.</summary>
+    public bool IsSimulated { get; set; }
+
+    /// <summary>Operator note when <see cref="IsSimulated"/>; null in production.</summary>
+    public string? SimulationNote { get; set; }
+
     public string Environment { get; set; } = string.Empty;
 
     public bool FormatValidated { get; set; }
@@ -58,4 +64,22 @@ public sealed class RksvDepExportEnvelopeDto
 
     /// <summary>True when no legacy JWS entries are present in the export.</summary>
     public bool PrueftoolCompatible { get; set; } = true;
+
+    /// <summary>History / export id for <c>GET …/download/{id}</c> (same as <see cref="HistoryId"/>).</summary>
+    public Guid? ExportId { get; set; }
+
+    /// <summary>History row id for subsequent download via <c>/download/{historyId}</c>.</summary>
+    public Guid? HistoryId { get; set; }
+
+    /// <summary>Canonical download file name stored with the history row.</summary>
+    public string? FileName { get; set; }
+
+    /// <summary>Relative download URL for the stored JSON (auth required).</summary>
+    public string? DownloadUrl { get; set; }
+
+    /// <summary>When the hot download copy expires (UTC); archive may remain longer.</summary>
+    public DateTime? ExpiresAt { get; set; }
+
+    /// <summary>Stored file size in bytes when persisted.</summary>
+    public long? FileSizeBytes { get; set; }
 }

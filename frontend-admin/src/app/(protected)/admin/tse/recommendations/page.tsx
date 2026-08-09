@@ -28,7 +28,7 @@ import {
 import type { TseRecommendation } from '@/features/tse-recommendations/types';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
 
@@ -142,7 +142,7 @@ export default function TseRecommendationsPage() {
     <>
       <AdminPageHeader
         title={t('tseRecommendations.title')}
-        breadcrumbs={[adminOverviewCrumb(t), { title: t('tseRecommendations.title') }]}
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'securityTse', { title: t('tseRecommendations.title') })}
         extra={<TseActiveTenantTag />}
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>

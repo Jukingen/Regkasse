@@ -21,6 +21,15 @@
       "invalid": "FinanzOnline environment: INVALID — `{{envVar}}` reads \"{{value}}\". Only TEST or PROD are permitted; fix the build configuration."
     },
     "buildTimeBadgeTooltip": "Admin build-time label only (TEST/PROD at compile). Not live FinanzOnline or BMF status — check connectivity and reconciliation separately.",
+    "releaseStageBadgeTooltip": "Build-time release stage (`NEXT_PUBLIC_RELEASE_STAGE`: dev | staging | canary | production). Fallback: dev. Primarily for Demo & QA / staging verification; prefer live stage from the API (`/api/rksv/environment`).",
+    "releaseStage": {
+      "displayLabel": {
+        "dev": "DEVELOPMENT",
+        "staging": "STAGING",
+        "canary": "CANARY",
+        "production": "PRODUCTION"
+      }
+    },
     "backend": {
       "displayLabel": {
         "demo": "🧪 DEMO",
@@ -316,7 +325,26 @@
     "includeSpecialReceipts": "Special receipts (start/monthly/yearly/closing/null)",
     "includeDailyClosings": "Daily closings",
     "exportButton": "Start DEP export",
-    "downloadButton": "Download JSON",
+    "downloadButton": "Download",
+    "downloadNow": "Download now",
+    "downloadStoredButton": "Download stored JSON",
+    "downloadLiveButton": "Download live JSON",
+    "downloadSuccess": "DEP export downloaded.",
+    "downloadFailed": "Failed to download the file",
+    "exportReady": "Your file is ready to download.",
+    "exportExpired": "Export has expired",
+    "downloadCount": "Downloaded: {count} times",
+    "historyTitle": "Recent exports",
+    "noExports": "No exports yet",
+    "recentExportsTitle": "Recent exports",
+    "recentExportsEmpty": "No exports yet",
+    "recentExportsViewAll": "View full history",
+    "expiresLabel": "Expires",
+    "deleteButton": "Delete",
+    "deleteConfirmTitle": "Delete export?",
+    "deleteConfirmBody": "The download file will be removed. Archived RKSV data is retained.",
+    "deleteSuccess": "Export removed from the list.",
+    "deleteFailed": "Delete failed",
     "copyButton": "Copy to clipboard",
     "statsTitle": "Export statistics",
     "statsGroups": "Belege-Gruppen",
@@ -326,7 +354,7 @@
     "emptyHintBody": "Select register and period, then click «Start DEP export».",
     "selectRegisterWarning": "Please select a cash register.",
     "selectDateRangeWarning": "Please select a date range.",
-    "exportSuccess": "DEP export created successfully.",
+    "exportSuccess": "DEP export created successfully",
     "exportFailed": "DEP export failed",
     "copySuccess": "JSON copied to clipboard.",
     "copyFailed": "Copy failed.",
@@ -370,7 +398,7 @@
     "historyColumnActions": "Actions",
     "historyLoadParams": "Load parameters",
     "historyParamsLoaded": "Export parameters loaded.",
-    "historyFootnoteServer": "History is stored server-side per tenant (metadata; file download only for scheduled exports).",
+    "historyFootnoteServer": "History is stored server-side per tenant. Completed exports can be downloaded as JSON.",
     "historyDownloadStored": "Download stored JSON",
     "tabSchedules": "⏰ Schedule",
     "scheduleTitle": "Scheduled DEP exports",
@@ -395,7 +423,15 @@
     "cryptoMaterialGenerateButton": "Generate test material",
     "cryptoMaterialDownloadButton": "Download crypto-material.json",
     "cryptoMaterialSuccess": "Test material created successfully.",
-    "cryptoMaterialFailed": "Failed to create test material"
+    "cryptoMaterialFailed": "Failed to create test material",
+    "simulationWarning": "DEP export is created in simulation mode",
+    "simulationDescription": "TSE signatures are simulated and not legally binding. For testing and development only.",
+    "lastExportLabel": "Last export",
+    "noExportYet": "No export performed yet",
+    "simulatedBadge": "Simulated",
+    "downloadCountLabel": "Downloaded: {count} times",
+    "productionMode": "Production mode — signatures are legally binding",
+    "simulationMode": "Simulation mode — signatures are NOT legally binding"
   },
   "incident": {
     "pageTitle": "Incident (correlation) — investigation",

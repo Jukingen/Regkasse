@@ -1,12 +1,13 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
-using KasseAPI_Final.Services.Cache;
+using KasseAPI_Final.Services.Caching;
 using KasseAPI_Final.Services.Metrics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using Xunit;
 
 namespace KasseAPI_Final.Tests.Services;
@@ -43,7 +44,8 @@ public sealed class ProductServiceTests : IAsyncDisposable
             new MemoryCacheService(
                 new MemoryCache(new MemoryCacheOptions()),
                 NullLogger<MemoryCacheService>.Instance,
-                new CacheMetricsService()));
+                new CacheMetricsService()),
+            Microsoft.Extensions.Options.Options.Create(new KasseAPI_Final.Configuration.CacheSettings()));
     }
 
     public async ValueTask DisposeAsync() => await _db.DisposeAsync();
@@ -203,6 +205,43 @@ public sealed class ProductServiceTests : IAsyncDisposable
         Assert.Equal(1, page.Page);
         Assert.Equal(1, page.PageSize);
         Assert.Single(page.Items);
+    }
+
+    /// <summary>
+    /// Product updates invalidate via <see cref="IProductService.InvalidateProductsCacheAsync"/> —
+    /// Moq verifies product-list prefix + optional single-product key removal.
+    /// </summary>
+    [Fact]
+    public async Task UpdateProduct_ThenProductListCacheIsInvalidated()
+    {
+        var category = NewCategory("Invalidate");
+        _db.Categories.Add(category);
+        var product = NewProduct(category.Id, "Before", 2m);
+        _db.Products.Add(product);
+        await _db.SaveChangesAsync();
+
+        var cache = new Mock<ICacheService>();
+        cache.Setup(c => c.RemoveByPrefixAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        cache.Setup(c => c.RemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var sut = new ProductService(
+            _db,
+            cache.Object,
+            Microsoft.Extensions.Options.Options.Create(new KasseAPI_Final.Configuration.CacheSettings()));
+
+        // Simulate post-update invalidation (admin controllers call this after product writes).
+        product.Name = "After";
+        await _db.SaveChangesAsync();
+        await sut.InvalidateProductsCacheAsync(_tenantId, product.Id);
+
+        cache.Verify(
+            c => c.RemoveByPrefixAsync(CacheKeys.Format(CacheKeys.ProductList, _tenantId), It.IsAny<CancellationToken>()),
+            Times.Once);
+        cache.Verify(
+            c => c.RemoveAsync(CacheKeys.Format(CacheKeys.ProductDetail, product.Id), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     private Category NewCategory(string name, string? key = null) => new()

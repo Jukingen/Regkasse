@@ -1,4 +1,4 @@
-using KasseAPI_Final.Services.Cache;
+using KasseAPI_Final.Services.Caching;
 using KasseAPI_Final.Services.Metrics;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -14,13 +14,13 @@ public sealed class MemoryCacheServiceTests
         var sut = CreateSut();
         var calls = 0;
 
-        var first = await sut.GetOrCreateAsync("k1", async () =>
+        var first = await sut.GetOrCreateAsync("k1", async _ =>
         {
             calls++;
             await Task.Yield();
             return 42;
         });
-        var second = await sut.GetOrCreateAsync("k1", () =>
+        var second = await sut.GetOrCreateAsync("k1", _ =>
         {
             calls++;
             return Task.FromResult(99);
@@ -36,7 +36,7 @@ public sealed class MemoryCacheServiceTests
     {
         var sut = CreateSut();
         var calls = 0;
-        Func<Task<string>> factory = () =>
+        Func<CancellationToken, Task<string>> factory = _ =>
         {
             calls++;
             return Task.FromResult($"v{calls}");
@@ -52,20 +52,20 @@ public sealed class MemoryCacheServiceTests
     public async Task RemoveByPrefixAsync_RemovesMatchingKeysOnly()
     {
         var sut = CreateSut();
-        await sut.GetOrCreateAsync("products:t1", () => Task.FromResult("a"));
-        await sut.GetOrCreateAsync("products:t2", () => Task.FromResult("b"));
-        await sut.GetOrCreateAsync("other:x", () => Task.FromResult("c"));
+        await sut.GetOrCreateAsync("products:t1", _ => Task.FromResult("a"));
+        await sut.GetOrCreateAsync("products:t2", _ => Task.FromResult("b"));
+        await sut.GetOrCreateAsync("other:x", _ => Task.FromResult("c"));
 
         await sut.RemoveByPrefixAsync("products:");
 
         var productsCalls = 0;
         var otherCalls = 0;
-        var products = await sut.GetOrCreateAsync("products:t1", () =>
+        var products = await sut.GetOrCreateAsync("products:t1", _ =>
         {
             productsCalls++;
             return Task.FromResult("a2");
         });
-        var other = await sut.GetOrCreateAsync("other:x", () =>
+        var other = await sut.GetOrCreateAsync("other:x", _ =>
         {
             otherCalls++;
             return Task.FromResult("c2");
@@ -83,11 +83,30 @@ public sealed class MemoryCacheServiceTests
         var sut = CreateSut();
         Assert.False(await sut.ExistsAsync("missing"));
 
-        await sut.GetOrCreateAsync("present", () => Task.FromResult(1));
+        await sut.GetOrCreateAsync("present", _ => Task.FromResult(1));
         Assert.True(await sut.ExistsAsync("present"));
 
         await sut.RemoveAsync("present");
         Assert.False(await sut.ExistsAsync("present"));
+    }
+
+    [Fact]
+    public async Task GetSetAsync_RoundTripsValue()
+    {
+        var sut = CreateSut();
+        await sut.SetAsync("g1", "hello", TimeSpan.FromMinutes(1));
+        Assert.Equal("hello", await sut.GetAsync<string>("g1"));
+    }
+
+    [Fact]
+    public async Task ClearAllAsync_RemovesTrackedKeys()
+    {
+        var sut = CreateSut();
+        await sut.SetAsync("a", 1);
+        await sut.SetAsync("b", 2);
+        await sut.ClearAllAsync();
+        Assert.False(await sut.ExistsAsync("a"));
+        Assert.False(await sut.ExistsAsync("b"));
     }
 
     private static MemoryCacheService CreateSut() =>
@@ -96,4 +115,3 @@ public sealed class MemoryCacheServiceTests
             NullLogger<MemoryCacheService>.Instance,
             new CacheMetricsService());
 }
-

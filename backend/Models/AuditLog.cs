@@ -213,6 +213,8 @@ namespace KasseAPI_Final.Models
         public const string TSE_STATUS_CHECK = "TSE_STATUS_CHECK";
         public const string BACKUP_CREATE = "BACKUP_CREATE";
         public const string SYSTEM_MAINTENANCE = "SYSTEM_MAINTENANCE";
+        /// <summary>Super Admin cleared application cache (troubleshooting).</summary>
+        public const string SYSTEM_CACHE_CLEARED = "SYSTEM_CACHE_CLEARED";
 
         // Generic CRUD operations
         public const string CREATE = "CREATE";

@@ -33,7 +33,7 @@ import {
   getTseSustainabilityReport,
 } from '@/features/tse-sustainability/api/sustainability';
 import { useI18n } from '@/i18n/I18nProvider';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
 
@@ -75,7 +75,7 @@ export default function TseSustainabilityPage() {
     <>
       <AdminPageHeader
         title={t('tseSustainability.title')}
-        breadcrumbs={[adminOverviewCrumb(t), { title: t('tseSustainability.title') }]}
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'securityTse', { title: t('tseSustainability.title') })}
         extra={<TseActiveTenantTag />}
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>

@@ -13,9 +13,17 @@
     "modalTitle": "Sistem bakımı",
     "windowLabel": "Bakım penceresi:",
     "countdownLabel": "Bakıma kalan süre:",
+    "countdownEndsLabel": "Tahmini kalan süre",
     "forceNotice": "Bu bakım penceresi kapatılamaz. Sistem geçici olarak kullanılamayabilir.",
     "starts": "Başlangıç",
+    "scheduledEnd": "Planlanan bitiş",
+    "note": "Anlayışınız için teşekkürler.",
     "dismiss": "Kapat",
-    "paymentBlocked": "Sistem bakımı sırasında ödemeler geçici olarak devre dışıdır. Lütfen daha sonra tekrar deneyin."
+    "paymentBlocked": "Sistem bakımı sırasında ödemeler geçici olarak devre dışıdır. Lütfen daha sonra tekrar deneyin.",
+    "superAdminBannerTitle": "Bakım modu aktif",
+    "superAdminBannerDescription": "Sistem bakımda. Süper Yönetici olarak çalışmaya devam edebilirsiniz.",
+    "endMaintenance": "Bakımı bitir",
+    "disabling": "Bitiriliyor…",
+    "endFailed": "Bakım bitirilemedi. Lütfen tekrar deneyin."
   }
 }

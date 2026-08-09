@@ -62,7 +62,7 @@ export const LOCKDOWN_VISIBLE_MENUS = [
   },
   {
     key: 'settings',
-    labelKey: 'nav.settings',
+    labelKey: 'nav.settings.title',
     path: '/settings',
     icon: 'SettingOutlined',
     sidebarKeys: [ADMIN_SIDEBAR_GROUP_KEYS.settings, '/settings', '/settings/account'],

@@ -1,7 +1,9 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.Caching;
 using KasseAPI_Final.Services.License;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -16,6 +18,15 @@ internal static class BillingTestDoubles
             Enabled = false,
             BackupOnSaleCreation = false,
         });
+
+    internal static ILicenseStatusCache CreateLicenseStatusCache() =>
+        new LicenseStatusCache(
+            new MemoryCacheService(
+                new MemoryCache(new MemoryCacheOptions()),
+                NullLogger<MemoryCacheService>.Instance,
+                new KasseAPI_Final.Services.Metrics.CacheMetricsService()),
+            Options.Create(new KasseAPI_Final.Configuration.CacheSettings()),
+            NullLogger<LicenseStatusCache>.Instance);
 
     internal static BillingAuditService CreateAuditService(AppDbContext db) =>
         new(db, NullCurrentUserService.Instance, NullLogger<BillingAuditService>.Instance);

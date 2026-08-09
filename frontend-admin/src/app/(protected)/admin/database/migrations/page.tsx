@@ -13,7 +13,7 @@ import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
 const QUERY_KEY = ['admin', 'database', 'migrations'] as const;
@@ -36,11 +36,9 @@ export default function DatabaseMigrationsAdminPage() {
   const { isSuperAdmin, hasPermission } = usePermissions();
   const canView = isSuperAdmin || hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
 
-  const breadcrumbs = [
-    adminOverviewCrumb(t),
-    { title: t('nav.administration'), href: '/admin' },
-    { title: t('nav.databaseMigrations') },
-  ];
+  const breadcrumbs = buildPlatformAdminBreadcrumbs(t, 'deploymentSystem', {
+    title: t('nav.databaseMigrations'),
+  });
 
   const query = useQuery({
     queryKey: QUERY_KEY,

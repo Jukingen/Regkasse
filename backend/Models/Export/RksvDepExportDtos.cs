@@ -41,6 +41,18 @@ public sealed class RksvDepExportBuildResult
 
     public bool IsDemo { get; set; }
 
+    /// <summary>
+    /// True when RKSV demo mode or TSE simulation is active.
+    /// Indicates TSE signatures are simulated, not legally binding.
+    /// </summary>
+    public bool IsSimulated { get; set; }
+
+    /// <summary>
+    /// Operator-facing note explaining simulation mode.
+    /// Null when <see cref="IsSimulated"/> is false.
+    /// </summary>
+    public string? SimulationNote { get; set; }
+
     public string Environment { get; set; } = string.Empty;
 
     public bool FormatValidated { get; set; }

@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { useI18n } from '@/i18n';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { formatTime } from '@/lib/dateUtils';
 import {
   type ApiMetricSample,
@@ -82,6 +83,7 @@ export default function AdminMonitoringPage() {
     <AdminPageShell>
       <AdminPageHeader
         title={t('monitoring.pageTitle')}
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'monitoringLogs', { title: t('monitoring.pageTitle') })}
         subtitle={t('monitoring.pageSubtitle')}
         extra={
           <Space>

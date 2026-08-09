@@ -1,10 +1,13 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.Caching;
+using KasseAPI_Final.Services.Metrics;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -33,6 +36,69 @@ public sealed class BillingTenantLicenseServiceTests
         Assert.True(status.IsTrial);
         Assert.InRange(status.DaysRemaining!.Value, 29, 30);
         Assert.True(status.IsExpiringSoon);
+    }
+
+    [Fact]
+    public async Task GetCurrentStatusAsync_PrefersActiveLicenseSaleOverStaleTenantFields()
+    {
+        await using var ctx = await CreateContextAsync();
+        var tenant = await SeedTenantAsync(
+            ctx.Db,
+            slug: "cafe",
+            validUntil: DateTime.UtcNow.AddDays(5),
+            licenseKey: "REGK-20270101-cafe-STALEKEY");
+        var actorUserId = await SeedUserAsync(ctx.Db);
+        var sale = await CreateDetachedSaleAsync(
+            ctx,
+            tenant,
+            actorUserId,
+            validUntil: DateTime.UtcNow.AddDays(90));
+
+        var trackedTenant = await ctx.Db.Tenants.SingleAsync(t => t.Id == tenant.Id);
+        trackedTenant.CurrentLicenseSaleId = sale.Id;
+        await ctx.Db.SaveChangesAsync();
+        ctx.Db.ChangeTracker.Clear();
+
+        var service = CreateService(ctx);
+        var status = await service.GetCurrentStatusAsync(tenant.Id);
+
+        Assert.Equal("valid", status.Status);
+        Assert.True(status.IsValid);
+        Assert.Equal(sale.LicenseKey, status.LicenseKey);
+        Assert.Equal(sale.ValidUntilUtc, status.ValidUntilUtc);
+        Assert.Equal(LicenseSalePlans.TwelveMonths, status.LicensePlan);
+        Assert.InRange(status.DaysRemaining!.Value, 89, 90);
+    }
+
+    [Fact]
+    public async Task GetCurrentStatusAsync_CacheAside_SecondCallUsesCache()
+    {
+        await using var ctx = await CreateContextAsync();
+        var tenant = await SeedTenantAsync(
+            ctx.Db,
+            validUntil: DateTime.UtcNow.AddDays(40),
+            licenseKey: "REGK-20270101-cafe-CACHE01");
+
+        var memory = new MemoryCacheService(
+            new MemoryCache(new MemoryCacheOptions()),
+            NullLogger<MemoryCacheService>.Instance,
+            new CacheMetricsService());
+        var cache = new LicenseStatusCache(memory, Microsoft.Extensions.Options.Options.Create(new KasseAPI_Final.Configuration.CacheSettings()), NullLogger<LicenseStatusCache>.Instance);
+        var service = CreateService(ctx, cache);
+
+        var first = await service.GetCurrentStatusAsync(tenant.Id);
+        Assert.True(await memory.ExistsAsync(LicenseStatusCache.BuildKey(tenant.Id)));
+        Assert.Equal("REGK-20270101-cafe-CACHE01", first.LicenseKey);
+
+        // Mutate DB without invalidating — cache-aside must keep serving the cached snapshot.
+        var trackedTenant = await ctx.Db.Tenants.SingleAsync(t => t.Id == tenant.Id);
+        trackedTenant.LicenseValidUntilUtc = DateTime.UtcNow.AddDays(1);
+        await ctx.Db.SaveChangesAsync();
+        ctx.Db.ChangeTracker.Clear();
+
+        var second = await service.GetCurrentStatusAsync(tenant.Id);
+        Assert.Equal(first.ValidUntilUtc, second.ValidUntilUtc);
+        Assert.InRange(second.DaysRemaining!.Value, 39, 40);
     }
 
     [Fact]
@@ -164,7 +230,64 @@ public sealed class BillingTenantLicenseServiceTests
         Assert.All(history, item => Assert.Equal(tenant.Id, item.TenantId));
     }
 
-    private static BillingTenantLicenseService CreateService(TestContext ctx)
+    /// <summary>
+    /// After create-license, <see cref="ICacheService.RemoveAsync"/> must run for
+    /// <c>license_status_{tenantId}</c> (Moq verifies the exact <see cref="CacheKeys"/> key).
+    /// </summary>
+    [Fact]
+    public async Task CreateLicense_ThenCacheIsInvalidated()
+    {
+        await using var ctx = await CreateContextAsync();
+        var tenant = await SeedTenantAsync(ctx.Db, slug: "cafe-moq");
+        var actorUserId = await SeedUserAsync(ctx.Db);
+        var expectedKey = CacheKeys.Format(CacheKeys.LicenseStatus, tenant.Id);
+
+        var cacheMock = new Mock<ICacheService>();
+        cacheMock.Setup(c => c.RemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var licenseStatusCache = new LicenseStatusCache(
+            cacheMock.Object,
+            Microsoft.Extensions.Options.Options.Create(new KasseAPI_Final.Configuration.CacheSettings()),
+            NullLogger<LicenseStatusCache>.Instance);
+
+        var billingService = CreateBillingService(ctx, licenseStatusCache);
+
+        await billingService.CreateLicenseSaleAsync(
+            new CreateLicenseSaleRequest
+            {
+                TenantId = tenant.Id,
+                LicensePlan = LicenseSalePlans.TwelveMonths,
+                PriceNet = 299.00m,
+                VatRate = 20.00m,
+                ApplyToTenant = false,
+            },
+            actorUserId);
+
+        cacheMock.Verify(
+            c => c.RemoveAsync(expectedKey, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    private static BillingTenantLicenseService CreateService(
+        TestContext ctx,
+        ILicenseStatusCache? licenseStatusCache = null)
+    {
+        var cache = licenseStatusCache ?? BillingTestDoubles.CreateLicenseStatusCache();
+        var billingService = CreateBillingService(ctx, cache);
+
+        return new BillingTenantLicenseService(
+            ctx.Db,
+            billingService,
+            new LicenseKeyGenerator(),
+            BillingTestDoubles.CreateAuditService(ctx.Db),
+            cache,
+            NullLogger<BillingTenantLicenseService>.Instance);
+    }
+
+    private static BillingService CreateBillingService(
+        TestContext ctx,
+        ILicenseStatusCache licenseStatusCache)
     {
         var environment = new Mock<IWebHostEnvironment>();
         environment.SetupGet(e => e.ContentRootPath).Returns(Path.GetTempPath());
@@ -180,14 +303,9 @@ public sealed class BillingTenantLicenseServiceTests
             pdfGenerator,
             new InvoiceNumberGenerator(ctx.Db),
             BillingTestDoubles.DisabledBackupOptions,
+            licenseStatusCache,
             NullLogger<BillingService>.Instance);
-
-        return new BillingTenantLicenseService(
-            ctx.Db,
-            billingService,
-            new LicenseKeyGenerator(),
-            BillingTestDoubles.CreateAuditService(ctx.Db),
-            NullLogger<BillingTenantLicenseService>.Instance);
+        return billingService;
     }
 
     private static async Task<TestContext> CreateContextAsync()

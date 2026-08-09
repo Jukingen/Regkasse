@@ -1,6 +1,9 @@
 using System.Net;
 using System.Text.Json;
+using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Services.Deployment;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.HealthChecks;
 
@@ -10,6 +13,7 @@ public static class HealthCheckJsonResponse
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
         WriteIndented = false,
     };
 
@@ -23,22 +27,17 @@ public static class HealthCheckJsonResponse
             _ => (int)HttpStatusCode.ServiceUnavailable,
         };
 
-        var payload = new
+        // releaseStage on /health/ready: primarily for debugging and staging verification.
+        string? releaseStage = null;
+        if (httpContext.Request.Path.StartsWithSegments("/health/ready"))
         {
-            status = report.Status.ToString(),
-            totalDurationMs = report.TotalDuration.TotalMilliseconds,
-            checkedAtUtc = DateTime.UtcNow,
-            entries = report.Entries.ToDictionary(
-                e => e.Key,
-                e => new
-                {
-                    status = e.Value.Status.ToString(),
-                    description = e.Value.Description,
-                    durationMs = e.Value.Duration.TotalMilliseconds,
-                    data = e.Value.Data,
-                }),
-        };
+            var host = httpContext.RequestServices.GetService<IHostEnvironment>();
+            var deployment = httpContext.RequestServices.GetService<IOptions<DeploymentOptions>>()?.Value;
+            if (host != null)
+                releaseStage = ReleaseStageResolver.Resolve(host, deployment);
+        }
 
+        var payload = HealthProbeResponseFactory.FromReport(report, releaseStage);
         await httpContext.Response.WriteAsync(JsonSerializer.Serialize(payload, JsonOptions))
             .ConfigureAwait(false);
     }
@@ -52,22 +51,7 @@ public static class HealthCheckJsonResponse
             _ => StatusCodes.Status503ServiceUnavailable,
         };
 
-        var payload = new
-        {
-            status = report.Status.ToString(),
-            totalDurationMs = report.TotalDuration.TotalMilliseconds,
-            checkedAtUtc = DateTime.UtcNow,
-            entries = report.Entries.ToDictionary(
-                e => e.Key,
-                e => new
-                {
-                    status = e.Value.Status.ToString(),
-                    description = e.Value.Description,
-                    durationMs = e.Value.Duration.TotalMilliseconds,
-                    data = e.Value.Data,
-                }),
-        };
-
+        var payload = HealthProbeResponseFactory.FromReport(report);
         return Results.Json(payload, statusCode: statusCode);
     }
 }

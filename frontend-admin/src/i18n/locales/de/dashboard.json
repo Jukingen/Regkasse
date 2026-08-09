@@ -57,8 +57,8 @@
     "startbeleg_missing_description": "{{missing}} von {{total}} Kassen haben noch keinen Startbeleg.",
     "monatsbeleg_overdue_title": "Monatsbeleg überfällig",
     "monatsbeleg_overdue_description": "{{count}} Kassen haben den Monatsbeleg nicht rechtzeitig erstellt.",
-    "monatsbeleg_pending_title": "Monatsbeleg ausstehend",
-    "monatsbeleg_pending_description": "{{count}} Kassen benötigen einen Monatsbeleg.",
+    "monatsbeleg_pending_title": "Monatsbeleg fehlt",
+    "monatsbeleg_pending_description": "Monatsbeleg fehlt für {{count}} Kasse(n).",
     "jahresbeleg_pending_title": "Jahresbeleg ausstehend",
     "jahresbeleg_pending_description": "{{count}} Kassen benötigen einen Jahresbeleg.",
     "all_current_title": "Alle RKSV-Sonderbelege sind aktuell",
@@ -162,7 +162,21 @@
     "refresh": "Aktualisieren",
     "drag_widget": "Widget verschieben"
   },
+  "customize": {
+    "button": "Widgets anpassen",
+    "drawerTitle": "Dashboard anpassen",
+    "drawerIntro": "Widgets ein- oder ausblenden. Sichtbare Widgets können per Ziehen auf dem Dashboard sortiert werden.",
+    "resetLayout": "Standardlayout wiederherstellen",
+    "resetConfirmTitle": "Layout zurücksetzen?",
+    "resetConfirmContent": "Ihre Widget-Reihenfolge und Sichtbarkeit werden auf die Standardwerte zurückgesetzt.",
+    "loadError": "Dashboard konnte nicht geladen werden",
+    "saveError": "Layout konnte nicht gespeichert werden",
+    "toggleAria": "{{title}} anzeigen"
+  },
   "widgets": {
+    "actionRequired": {
+      "noPermission": "Keine Berechtigung für Handlungsbedarf-Hinweise."
+    },
     "todaySales": {
       "totalToday": "Gesamtumsatz heute",
       "salesCount": "{{count}} Verkäufe",
@@ -183,23 +197,36 @@
       "actionRequired": "Mandantenlizenz erfordert eine Verlängerung."
     },
     "licenseCountdown": {
-      "validUntilLabel": "Lizenz gültig bis",
+      "validUntilLabel": "Gültig bis",
       "expired": "Abgelaufen",
       "expiredHint": "Abgelaufen",
       "remainingHint": "verbleibende Zeit",
       "renewNow": "Jetzt verlängern",
       "progressAria": "Lizenzlaufzeit: noch {{days}} Tag(e)"
     },
-    "licenseHealth": {
-      "title": "Lizenz-Health",
-      "statusLabel": "Status",
+    "licenseStatus": {
+      "title": "Lizenz-Status",
       "validUntil": "Gültig bis",
-      "healthy": "Gesund",
+      "status": "Status",
+      "expired": "Abgelaufen",
+      "remainingHint": "verbleibende Zeit",
+      "healthy": "In Ordnung",
       "actionNeeded": "Handlungsbedarf",
       "daysLeft": "{{days}} Tage",
       "extend": "Verlängern",
       "extendNow": "Jetzt verlängern",
-      "progressAria": "Lizenz-Health: {{days}} Tag(e)",
+      "progressAria": "Lizenz-Status: {{days}} Tag(e)"
+    },
+    "licenseHealth": {
+      "title": "Lizenz-Status",
+      "statusLabel": "Status",
+      "validUntil": "Gültig bis",
+      "healthy": "In Ordnung",
+      "actionNeeded": "Handlungsbedarf",
+      "daysLeft": "{{days}} Tage",
+      "extend": "Verlängern",
+      "extendNow": "Jetzt verlängern",
+      "progressAria": "Lizenz-Status: {{days}} Tag(e)",
       "states": {
         "Active": "Aktiv",
         "Grace": "Grace-Periode",
@@ -208,7 +235,7 @@
       }
     },
     "licenseImpact": {
-      "title": "Auswirkungen der Lizenzablauf",
+      "title": "Lizenz-Status",
       "states": {
         "Active": "Aktiv",
         "Grace": "Grace-Periode",
@@ -393,7 +420,8 @@
     "recentActivities": "Letzte Aktivitäten",
     "viewAll": "Alle anzeigen",
     "noActivities": "Keine Aktivitäten",
-    "pendingMonatsbeleg": "{{count}} Kassen mit fehlendem Monatsbeleg",
+    "pendingMonatsbeleg": "Monatsbeleg fehlt für {{count}} Kasse",
+    "pendingMonatsbelegPlural": "Monatsbeleg fehlt für {{count}} Kassen",
     "pendingMonatsbelegDescription": "Bitte erstellen Sie die ausstehenden Monatsbelege.",
     "createNow": "Jetzt nachholen"
   }

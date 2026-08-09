@@ -36,6 +36,10 @@ export const ADMIN_NAV_GROUP_LABEL_KEYS = {
   reportingAnalytics: 'adminShell.group.reportingAnalytics',
   fiscalCompliance: 'adminShell.group.fiscalCompliance',
   verwaltung: 'adminShell.group.verwaltung',
+  administration: 'nav.administration',
+  securityTse: 'nav.securityTse',
+  deploymentSystem: 'nav.deploymentSystem',
+  monitoringLogs: 'nav.monitoringLogs',
   rksv: 'adminShell.group.rksv',
 } as const;
 
@@ -98,7 +102,7 @@ export const ADMIN_NAV_LABEL_KEYS = {
   activeSessions: 'nav.activeSessions',
   offlineSettings: 'nav.offlineSettings',
   personalization: 'nav.personalization',
-  settings: 'nav.settings',
+  settings: 'nav.settings.title',
   paymentMethods: 'nav.paymentMethods',
   paymentGateway: 'nav.paymentGateway',
   backupDr: 'nav.backupDr',

@@ -57,8 +57,8 @@
     "startbeleg_missing_description": "{{total}} kasadan {{missing}} tanesinde henüz Startbeleg yok.",
     "monatsbeleg_overdue_title": "Monatsbeleg gecikmiş",
     "monatsbeleg_overdue_description": "{{count}} kasa Monatsbeleg’i zamanında oluşturmadı.",
-    "monatsbeleg_pending_title": "Monatsbeleg bekliyor",
-    "monatsbeleg_pending_description": "{{count}} kasa Monatsbeleg gerektiriyor.",
+    "monatsbeleg_pending_title": "Monatsbeleg eksik",
+    "monatsbeleg_pending_description": "{{count}} kasa için Monatsbeleg eksik.",
     "jahresbeleg_pending_title": "Jahresbeleg bekliyor",
     "jahresbeleg_pending_description": "{{count}} kasa Jahresbeleg gerektiriyor.",
     "all_current_title": "Tüm RKSV özel fişler güncel",
@@ -162,7 +162,21 @@
     "refresh": "Yenile",
     "drag_widget": "Widget taşı"
   },
+  "customize": {
+    "button": "Widget'ları özelleştir",
+    "drawerTitle": "Panoyu özelleştir",
+    "drawerIntro": "Widget'ları gösterin veya gizleyin. Görünür widget'lar panoda sürüklenerek sıralanabilir.",
+    "resetLayout": "Varsayılan düzene dön",
+    "resetConfirmTitle": "Düzen sıfırlansın mı?",
+    "resetConfirmContent": "Widget sırası ve görünürlük varsayılan değerlere döner.",
+    "loadError": "Pano yüklenemedi",
+    "saveError": "Düzen kaydedilemedi",
+    "toggleAria": "{{title}} göster"
+  },
   "widgets": {
+    "actionRequired": {
+      "noPermission": "İşlem gerektiren hatırlatmaları görme yetkiniz yok."
+    },
     "todaySales": {
       "totalToday": "Bugünkü toplam ciro",
       "salesCount": "{{count}} satış",
@@ -183,23 +197,36 @@
       "actionRequired": "Mandant lisansının yenilenmesi gerekiyor."
     },
     "licenseCountdown": {
-      "validUntilLabel": "Lisans geçerlilik tarihi",
+      "validUntilLabel": "Geçerlilik",
       "expired": "Süresi dolmuş",
       "expiredHint": "Süresi dolmuş",
       "remainingHint": "kalan süre",
       "renewNow": "Şimdi yenile",
       "progressAria": "Lisans süresi: kalan {{days}} gün"
     },
-    "licenseHealth": {
-      "title": "Lisans sağlığı",
-      "statusLabel": "Durum",
+    "licenseStatus": {
+      "title": "Lisans durumu",
       "validUntil": "Geçerlilik",
-      "healthy": "Sağlıklı",
+      "status": "Durum",
+      "expired": "Süresi dolmuş",
+      "remainingHint": "kalan süre",
+      "healthy": "Sorun yok",
       "actionNeeded": "İşlem gerekli",
       "daysLeft": "{{days}} gün",
       "extend": "Uzat",
       "extendNow": "Şimdi yenile",
-      "progressAria": "Lisans sağlığı: {{days}} gün",
+      "progressAria": "Lisans durumu: {{days}} gün"
+    },
+    "licenseHealth": {
+      "title": "Lisans durumu",
+      "statusLabel": "Durum",
+      "validUntil": "Geçerlilik",
+      "healthy": "Sorun yok",
+      "actionNeeded": "İşlem gerekli",
+      "daysLeft": "{{days}} gün",
+      "extend": "Uzat",
+      "extendNow": "Şimdi yenile",
+      "progressAria": "Lisans durumu: {{days}} gün",
       "states": {
         "Active": "Aktif",
         "Grace": "Grace dönemi",
@@ -208,7 +235,7 @@
       }
     },
     "licenseImpact": {
-      "title": "Lisans bitiş etkisi",
+      "title": "Lisans durumu",
       "states": {
         "Active": "Aktif",
         "Grace": "Grace dönemi",
@@ -393,7 +420,8 @@
     "recentActivities": "Son aktiviteler",
     "viewAll": "Tümünü göster",
     "noActivities": "Aktivite yok",
-    "pendingMonatsbeleg": "{{count}} kasa Monatsbeleg gerektiriyor",
+    "pendingMonatsbeleg": "{{count}} kasa için Monatsbeleg eksik",
+    "pendingMonatsbelegPlural": "{{count}} kasa için Monatsbeleg eksik",
     "pendingMonatsbelegDescription": "Lütfen bekleyen aylık belgeleri oluşturun.",
     "createNow": "Eksikleri tamamla"
   }

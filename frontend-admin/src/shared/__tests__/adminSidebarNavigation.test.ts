@@ -130,6 +130,24 @@ describe('adminSidebarNavigation', () => {
     expect(getNonRksvSidebarOpenGroupKeys('/settings/payment-methods')).toContain(
       ADMIN_SIDEBAR_GROUP_KEYS.settings
     );
+    expect(getNonRksvSidebarOpenGroupKeys('/settings/payment-methods')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.settingsFinancesTaxes
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/settings/tse')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.settingsOperations
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/settings/data-management')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.settingsCompliance
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/rksv/dep-export')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.rksvBelegeExport
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/rksv/finanz-online-outbox')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.rksvFinanzOnline
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/audit-logs')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.rksvAuditPruefung
+    );
     expect(getNonRksvSidebarOpenGroupKeys('/backup/dashboard')).toContain(
       ADMIN_SIDEBAR_GROUP_KEYS.backup
     );
@@ -145,6 +163,30 @@ describe('adminSidebarNavigation', () => {
     expect(getNonRksvSidebarOpenGroupKeys('/admin/users')).toContain(
       ADMIN_SIDEBAR_GROUP_KEYS.accessArea
     );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/tse/failover')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.securityTse
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/tse/failover')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.tseOpsFailover
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/digital')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.settings
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/digital')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.digitalServices
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/digital')).not.toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.license
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/orders/online')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/deployments')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.deploymentSystem
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/monitoring')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.monitoringLogs
+    );
   });
 
   it('detects Verwaltung routes for tenant context card', () => {
@@ -152,6 +194,9 @@ describe('adminSidebarNavigation', () => {
     expect(isVerwaltungAdminPath('/settings/backup-dr')).toBe(false);
     expect(isVerwaltungAdminPath('/backup/dashboard')).toBe(false);
     expect(isVerwaltungAdminPath('/admin/tenants')).toBe(true);
+    expect(isVerwaltungAdminPath('/admin/tse/failover')).toBe(true);
+    expect(isVerwaltungAdminPath('/admin/deployments')).toBe(true);
+    expect(isVerwaltungAdminPath('/admin/monitoring')).toBe(true);
     expect(isVerwaltungAdminPath('/products')).toBe(false);
     expect(isVerwaltungAdminPath('/receipts/abc')).toBe(false);
   });
@@ -278,7 +323,7 @@ describe('computeSidebarOpenKeysMerge', () => {
       rksvGroups: groups,
     });
     expect(next).toContain(ADMIN_SIDEBAR_GROUP_KEYS.rksv);
-    expect(next).toContain('/rksv');
+    expect(next).toContain(ADMIN_SIDEBAR_GROUP_KEYS.rksvTools);
     expect(next).toContain('rksv-grp-investigation');
   });
 
@@ -290,6 +335,7 @@ describe('computeSidebarOpenKeysMerge', () => {
       rksvGroups: groups,
     });
     expect(next).not.toContain(ADMIN_SIDEBAR_GROUP_KEYS.rksv);
+    expect(next).not.toContain(ADMIN_SIDEBAR_GROUP_KEYS.rksvTools);
     expect(next).not.toContain('/rksv');
   });
 
@@ -323,6 +369,7 @@ describe('computeSidebarOpenKeysMerge', () => {
       rksvGroups: groups,
     });
     expect(next).toContain(ADMIN_SIDEBAR_GROUP_KEYS.rksv);
+    expect(next).not.toContain(ADMIN_SIDEBAR_GROUP_KEYS.rksvTools);
     expect(next).toContain(ADMIN_SIDEBAR_GROUP_KEYS.specialReceipts);
     expect(next).not.toContain('/rksv');
   });

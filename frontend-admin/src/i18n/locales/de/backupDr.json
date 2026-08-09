@@ -1638,6 +1638,7 @@
     "allOkTitle": "Alle gelisteten Backups erfüllen die Produktregeln",
     "allOkDescription": "Erfolgreiche Backups im Zeitraum haben gültiges SHA-256. Restore bleibt validation-only mit Dual-Approval.",
     "loadFailed": "Compliance-Status konnte nicht geladen werden.",
+    "loadFailedDetail": "Keine weiteren Serverdetails verfügbar. Netzwerk, Anmeldung oder API-Antwort prüfen.",
     "empty": "Keine erfolgreichen Backups in den letzten 30 Tagen.",
     "listTitle": "Backup-Compliance-Liste",
     "stats": {

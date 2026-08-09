@@ -14,7 +14,7 @@ import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { useNotify } from '@/hooks/useNotify';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
 const QUERY_KEY = ['admin', 'deployments', 'compliance'] as const;
@@ -36,12 +36,10 @@ export default function DeploymentCompliancePage() {
     tenantIsolationVerified: false,
   });
 
-  const breadcrumbs = [
-    adminOverviewCrumb(t),
-    { title: t('nav.administration'), href: '/admin' },
+  const breadcrumbs = buildPlatformAdminBreadcrumbs(t, 'deploymentSystem', [
     { title: t('nav.deployments'), href: '/admin/deployments' },
     { title: t('nav.deploymentCompliance') },
-  ];
+  ]);
 
   const gateQuery = useQuery({
     queryKey: [...QUERY_KEY, imageTag],

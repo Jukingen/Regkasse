@@ -5,6 +5,7 @@ namespace KasseAPI_Final.Services;
 
 /// <summary>
 /// Periodic DEP export archive backfill + 7-year retention purge.
+/// Hot storage cleanup is handled by <see cref="DepExportCleanupHostedService"/>.
 /// Distinct from cron export runner and compliance reminder workers.
 /// </summary>
 public sealed class DepExportArchiveHostedService : BackgroundService
@@ -64,6 +65,8 @@ public sealed class DepExportArchiveHostedService : BackgroundService
                             purge.CutoffUtc);
                     }
                 }
+
+                // Hot storage / token / stale-metadata cleanup runs in DepExportCleanupHostedService.
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {

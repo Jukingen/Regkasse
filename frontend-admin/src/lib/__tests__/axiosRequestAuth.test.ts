@@ -51,6 +51,24 @@ describe('applyAxiosRequestAuthHeaders', () => {
     expect(readAxiosHeader(config.headers, 'X-XSRF-TOKEN')).toBe('csrf-1');
   });
 
+  it('preserves an explicit X-Tenant-Id override', () => {
+    const config = applyAxiosRequestAuthHeaders(
+      emptyConfig({
+        headers: new AxiosHeaders({ [TENANT_HTTP_HEADER]: 'selected-cafe' }),
+        params: { tenant: 'selected-cafe' },
+      }),
+      {
+        tenantSlug: 'default',
+        accessToken: null,
+        acceptLanguage: 'de',
+        injectDevTenantQuery: true,
+      }
+    );
+
+    expect(readAxiosHeader(config.headers, TENANT_HTTP_HEADER)).toBe('selected-cafe');
+    expect(config.params).toEqual({ tenant: 'selected-cafe' });
+  });
+
   it('injects dev tenant query only when requested and unset', () => {
     const withInject = applyAxiosRequestAuthHeaders(emptyConfig({ params: { page: 1 } }), {
       tenantSlug: 'dev',

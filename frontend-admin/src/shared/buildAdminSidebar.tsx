@@ -135,16 +135,25 @@ function buildNestedSidebarGroup(
     labelKey: string;
     icon: SidebarIconToken;
     catalogIds: SidebarCatalogId[];
+    childGroups?: Array<{
+      menuKey: string;
+      labelKey: string;
+      icon: SidebarIconToken;
+      catalogIds: SidebarCatalogId[];
+    }>;
   }
 ): NonNullable<MenuProps['items']>[number] {
   const text = t(block.labelKey);
   const nestedIds = filterCatalogIdsForInventoryNav(visibleCatalogIds(block.catalogIds));
+  const childMenus = (block.childGroups ?? []).map((child) =>
+    buildNestedSidebarGroup(t, { ...child, catalogIds: child.catalogIds })
+  );
   return {
     key: block.menuKey,
     icon: iconEl(block.icon),
     label: text,
     title: text,
-    children: nestedIds.map((id) => catalogLeaf(t, id)),
+    children: [...childMenus, ...nestedIds.map((id) => catalogLeaf(t, id))],
   };
 }
 

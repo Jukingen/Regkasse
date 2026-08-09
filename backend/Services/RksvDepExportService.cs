@@ -8,6 +8,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services;
 
+/// <summary>
+/// Builds the official BMF RKSV DEP JSON export (§7 Signaturjournal) for one cash register and UTC period.
+/// Persist / download tokens: use <see cref="IDepExportHistoryService"/> after generate (controller does this).
+/// Do not write history rows from this class — keep BMF generation free of storage side effects
+/// so unit/Prüftool tests remain isolated.
+/// </summary>
 public class RksvDepExportService : IRksvDepExportService
 {
     private static readonly TimeSpan MaxPeriod = TimeSpan.FromDays(366);
@@ -19,6 +25,10 @@ public class RksvDepExportService : IRksvDepExportService
     internal const string ProductionLegalNoticeDe =
         "Dieser DEP-Export (Signaturjournal) dient der Datenerfassung gemäß RKSV §7. "
         + "Er ersetzt keine amtliche Betriebsprüfung; die fiskalische Gültigkeit erfordert eine erfolgreiche BMF-Prüfung.";
+
+    /// <summary>English operator note when RKSV/TSE simulation is active (API envelope / history only — not BMF JSON).</summary>
+    public const string SimulationNoteEn =
+        "This export was generated in simulation mode. TSE signatures are simulated and not legally binding.";
 
     private readonly AppDbContext _context;
     private readonly ITseKeyProvider _tseKeyProvider;
@@ -159,8 +169,8 @@ public class RksvDepExportService : IRksvDepExportService
         var (f5Count, legacyCount) = CountJwsCompliance(export);
         var exportJson = JsonSerializer.Serialize(export, BmfJsonOptions);
         var validation = await ValidateExportFormatAsync(exportJson, cancellationToken).ConfigureAwait(false);
-        var isDemo = _rksvEnv.IsDemoMode() || _rksvEnv.IsTseSimulated();
-        var environment = isDemo ? "Demo" : "Production";
+        var isSimulated = _rksvEnv.IsDemoMode() || _rksvEnv.IsTseSimulated();
+        var environment = isSimulated ? "Demo" : "Production";
 
         var registerNumber = await _context.CashRegisters
             .AsNoTracking()
@@ -171,17 +181,19 @@ public class RksvDepExportService : IRksvDepExportService
 
         return new RksvDepExportBuildResult
         {
-            Root = export,
+            Root = export, // Pure BMF schema — no simulation wrapper (Prüftool-safe)
             CashRegisterId = cashRegisterId,
             RegisterNumber = registerNumber,
             FromUtc = NormalizeUtc(fromUtc),
             ToUtc = NormalizeUtc(toUtc),
             BelegCount = belegCount,
             BelegeGruppeCount = groupCount,
-            IsDemo = isDemo,
+            IsDemo = isSimulated,
+            IsSimulated = isSimulated,
+            SimulationNote = isSimulated ? SimulationNoteEn : null,
             Environment = environment,
             FormatValidated = validation.IsValid,
-            LegalNotice = isDemo ? DemoLegalNoticeDe : ProductionLegalNoticeDe,
+            LegalNotice = isSimulated ? DemoLegalNoticeDe : ProductionLegalNoticeDe,
             F5CompliantJwsCount = f5Count,
             LegacyJwsCount = legacyCount,
             LegacyJwsWarning = BuildLegacyJwsWarning(legacyCount),
@@ -817,8 +829,7 @@ public class RksvDepExportService : IRksvDepExportService
         string thumbprint,
         CancellationToken cancellationToken)
     {
-        var certificate = await _tseKeyProvider
-            .GetCertificateByThumbprintAsync(thumbprint, cancellationToken)
+        var certificate = await ResolveLeafCertificateAsync(thumbprint, cancellationToken)
             .ConfigureAwait(false);
         if (certificate == null)
         {
@@ -834,12 +845,83 @@ public class RksvDepExportService : IRksvDepExportService
         string thumbprint,
         CancellationToken cancellationToken)
     {
+        var resolvedThumbprint = await ResolveCertificateThumbprintAsync(thumbprint, cancellationToken)
+            .ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(resolvedThumbprint))
+            return new List<string>();
+
         var chain = await _tseKeyProvider
-            .GetCertificateChainAsync(thumbprint, cancellationToken)
+            .GetCertificateChainAsync(resolvedThumbprint, cancellationToken)
             .ConfigureAwait(false);
 
         return TseCertificateChainBuilder.ToBase64DerList(chain).ToList();
     }
+
+    /// <summary>
+    /// Soft TSE recreates the signing cert on process restart; historical payment thumbprints then miss
+    /// the in-memory registry. When <see cref="SoftwareTseKeyProvider"/> is active (non-Production DI),
+    /// fall back to the current signing leaf so DEP export can still emit Signaturzertifikat.
+    /// Fiskaly / Production never falls back — missing leaf remains empty / throw upstream.
+    /// </summary>
+    private async Task<X509Certificate2?> ResolveLeafCertificateAsync(
+        string thumbprint,
+        CancellationToken cancellationToken)
+    {
+        var resolvedThumbprint = await ResolveCertificateThumbprintAsync(thumbprint, cancellationToken)
+            .ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(resolvedThumbprint))
+            return null;
+
+        return await _tseKeyProvider
+            .GetCertificateByThumbprintAsync(resolvedThumbprint, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<string?> ResolveCertificateThumbprintAsync(
+        string thumbprint,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(thumbprint))
+            return null;
+
+        var requested = thumbprint.Trim();
+        if (string.Equals(requested, "UNKNOWN", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        var direct = await _tseKeyProvider
+            .GetCertificateByThumbprintAsync(requested, cancellationToken)
+            .ConfigureAwait(false);
+        if (direct is not null)
+            return requested;
+
+        if (!AllowSoftTseCertificateFallback())
+            return null;
+
+        var current = _tseKeyProvider.GetCurrentCertificateThumbprint()?.Trim();
+        if (string.IsNullOrWhiteSpace(current) ||
+            string.Equals(current, requested, StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        var fallback = await _tseKeyProvider
+            .GetCertificateByThumbprintAsync(current, cancellationToken)
+            .ConfigureAwait(false);
+        if (fallback is null)
+            return null;
+
+        _logger.LogWarning(
+            "DEP export: thumbprint {Requested} not found; using current Soft TSE cert {Current}",
+            requested,
+            current);
+
+        return current;
+    }
+
+    /// <summary>
+    /// Soft TSE is registered only outside Production (<see cref="SoftwareTseKeyProvider"/>).
+    /// Type check keeps Fiskaly / production paths strict.
+    /// </summary>
+    private bool AllowSoftTseCertificateFallback() =>
+        _tseKeyProvider is SoftwareTseKeyProvider;
 
     /// <summary>JWS compact: exactly three Base64URL segments separated by '.'.</summary>
     internal static bool IsValidCompactJws(string? value)

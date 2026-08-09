@@ -88,6 +88,7 @@ internal static class AuditLogQueryExtensions
         if (!string.IsNullOrWhiteSpace(filters.Search))
         {
             var term = $"%{filters.Search.Trim()}%";
+            // AuditLog.User is Ignore()'d — search only columns on audit_logs (no AspNetUsers join).
             query = query.Where(a =>
                 EF.Functions.ILike(a.Action, term)
                 || (a.Description != null && EF.Functions.ILike(a.Description, term))
@@ -95,11 +96,7 @@ internal static class AuditLogQueryExtensions
                 || (a.EntityName != null && EF.Functions.ILike(a.EntityName, term))
                 || (a.IpAddress != null && EF.Functions.ILike(a.IpAddress, term))
                 || EF.Functions.ILike(a.UserId, term)
-                || (a.ActorDisplayName != null && EF.Functions.ILike(a.ActorDisplayName, term))
-                || (a.User != null && a.User.UserName != null && EF.Functions.ILike(a.User.UserName, term))
-                || (a.User != null && a.User.Email != null && EF.Functions.ILike(a.User.Email, term))
-                || (a.User != null && a.User.FirstName != null && EF.Functions.ILike(a.User.FirstName, term))
-                || (a.User != null && a.User.LastName != null && EF.Functions.ILike(a.User.LastName, term)));
+                || (a.ActorDisplayName != null && EF.Functions.ILike(a.ActorDisplayName, term)));
         }
 
         return query;

@@ -36,5 +36,6 @@
   "successTrigger": "Episode angelegt",
   "openOutbox": "Outbox öffnen",
   "empty": "Keine Episoden",
-  "demoNote": "In Demo/Soft-TSE-Modus werden keine FON-Meldungen erzeugt."
+  "demoNote": "In Demo/Soft-TSE-Modus werden keine FON-Meldungen erzeugt.",
+  "emptySelect": "Mandant auswählen, um Ausfall-Episoden zu sehen."
 }

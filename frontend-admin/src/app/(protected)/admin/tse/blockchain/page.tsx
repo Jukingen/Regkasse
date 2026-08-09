@@ -32,7 +32,7 @@ import {
 import type { TseBlockchainTransaction } from '@/features/tse-blockchain/types';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
 
@@ -143,7 +143,7 @@ export default function TseBlockchainPage() {
     <div className="space-y-4">
       <AdminPageHeader
         title={t('tseBlockchain.title')}
-        breadcrumbs={[adminOverviewCrumb(t), { title: t('tseBlockchain.title') }]}
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'securityTse', { title: t('tseBlockchain.title') })}
         extra={<TseActiveTenantTag />}
       />
 

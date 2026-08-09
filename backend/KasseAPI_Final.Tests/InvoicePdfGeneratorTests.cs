@@ -108,6 +108,7 @@ public sealed class InvoicePdfGeneratorTests
             generator,
             new InvoiceNumberGenerator(_db),
             BillingTestDoubles.DisabledBackupOptions,
+            BillingTestDoubles.CreateLicenseStatusCache(),
             NullLogger<BillingService>.Instance);
 
         _billingService = billingService;

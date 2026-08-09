@@ -1638,6 +1638,7 @@
     "allOkTitle": "Listedeki tüm yedekler ürün kapılarını geçti",
     "allOkDescription": "Penceredeki başarılı yedeklerde geçerli SHA-256 var. Geri yükleme yine validation-only ve dual onaylıdır.",
     "loadFailed": "Uyumluluk durumu yüklenemedi.",
+    "loadFailedDetail": "Daha fazla sunucu ayrıntısı yok. Ağ, oturum veya API yanıtını kontrol edin.",
     "empty": "Son 30 günde başarılı yedek yok.",
     "listTitle": "Yedek uyumluluk listesi",
     "stats": {

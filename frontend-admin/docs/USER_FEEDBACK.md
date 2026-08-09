@@ -6,6 +6,8 @@
 
 Operators submit structured feedback from any protected FA page. Super Admins triage status so submitters see progress in the same widget.
 
+For the **2026-08 sidebar IA / breadcrumb redesign**, use the dedicated checklist and interview form in [`MENU_IA_REDESIGN_QA.md`](./MENU_IA_REDESIGN_QA.md) (in-app feedback: category **Ease of use**, title prefix `Menu IA 2026-08:`).
+
 ---
 
 ## 1. How it works

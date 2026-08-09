@@ -1,37 +1,15 @@
 'use client';
 
-import { ClockCircleOutlined, DollarOutlined, TeamOutlined } from '@ant-design/icons';
-import { Alert, Button, Card, Col, Row, Space, Statistic } from 'antd';
+import { Alert, Button, Card, Space } from 'antd';
 import Link from 'next/link';
 
 import { CashRegisterSelector } from '@/components/CashRegisterSelector';
-import { GracePeriodWidget } from '@/components/GracePeriodWidget';
-import { LicenseCountdownWidget } from '@/components/LicenseCountdownWidget';
-import { LicenseExpiryImpactCard } from '@/components/LicenseExpiryImpactCard';
-import { LicenseHealthWidget } from '@/components/LicenseHealthWidget';
-import { LicenseRenewalChecklistCard } from '@/components/LicenseRenewalChecklistCard';
-import { LicenseSupportOptionsCard } from '@/components/LicenseSupportOptionsCard';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { ActivitySummary } from '@/features/dashboard/components/ActivitySummary';
 import { Dashboard } from '@/features/dashboard/components/Dashboard';
-import { DashboardMonatsbelegSection } from '@/features/dashboard/components/DashboardMonatsbelegSection';
-import { HospitalityQuickLinksCard } from '@/features/dashboard/components/HospitalityQuickLinksCard';
-import { OfflineQueueDashboardCard } from '@/features/dashboard/components/OfflineQueueDashboardCard';
-import { RksvReminderCard } from '@/features/dashboard/components/RksvReminderCard';
-import { TagesabschlussReminder } from '@/features/dashboard/components/TagesabschlussReminder';
-import { TseHealthCard } from '@/features/dashboard/components/TseHealthCard';
-import { ExportQuickActionsCard } from '@/features/exports/components/ExportQuickActionsCard';
-import { useTodaySales } from '@/features/reports/hooks/useTodaySales';
 import { usePendingMonatsbeleg } from '@/features/rksv/hooks/usePendingMonatsbeleg';
-import { useOpenShifts } from '@/features/shifts/hooks/useOpenShifts';
-import { useActiveStaff } from '@/features/staff/hooks/useActiveStaff';
-import { useAuthorizationGate } from '@/hooks/useAuthorizedQuery';
 import { useCashRegisterSelection } from '@/hooks/useCashRegisterSelection';
 import { useFormattedDate } from '@/hooks/useFormattedDate';
-import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n/I18nProvider';
-import { formatCurrency } from '@/i18n/formatting';
-import { AppPermissions, PERMISSIONS } from '@/shared/auth/permissions';
 import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
 
 function resolveUserDisplayName(
@@ -59,31 +37,22 @@ function formatRegisterLabel(
   return number || place || fallback;
 }
 
+/**
+ * Mandanten-Admin home: welcome + cash register selector, optional Monatsbeleg alert,
+ * then the preference-driven sortable Dashboard widget grid (Handlungsbedarf / Lizenz / …).
+ */
 export function ManagerDashboard() {
-  const { t, formatLocale } = useI18n();
+  const { t } = useI18n();
   const { format: formatLocalizedDate } = useFormattedDate();
   const { user } = useAuth();
-  const { hasPermission } = usePermissions();
-  const { isAuthorized: canSeeRksvReminder } = useAuthorizationGate({
-    requiredPermission: AppPermissions.CashRegisterView,
-  });
-  const { isAuthorized: canSeeTagesabschlussReminder } = useAuthorizationGate({
-    requiredPermission: PERMISSIONS.DAILY_CLOSING_VIEW,
-  });
 
-  const offlineQueueCardEnabled = hasPermission(PERMISSIONS.PAYMENT_VIEW);
-  const tseHealthCardEnabled = hasPermission(AppPermissions.CashRegisterView);
   const { selectedRegister, selectedRegisterId, setSelectedRegisterId, hasMultipleRegisters } =
     useCashRegisterSelection({
       autoSelect: true,
       persistSelection: true,
     });
 
-  const registerId = selectedRegisterId ?? undefined;
-  const { data: sales, isLoading: salesLoading } = useTodaySales(registerId);
   const { data: pendingMonatsbeleg = [] } = usePendingMonatsbeleg();
-  const { data: openShifts = [], isLoading: shiftsLoading } = useOpenShifts(registerId);
-  const { data: activeStaff = [], isLoading: staffLoading } = useActiveStaff(registerId);
 
   const userName = resolveUserDisplayName(user?.firstName, user?.lastName, user?.userName);
   const noRegisterLabel = t('dashboard.manager.noRegister');
@@ -95,19 +64,11 @@ export function ManagerDashboard() {
       )
     : noRegisterLabel;
   const todayLabel = formatLocalizedDate(new Date(), 'medium');
-  const balance = selectedRegister?.currentBalance ?? 0;
-  const transactionCount = sales?.count ?? 0;
-
-  const operationalHeader = (
-    <>
-      {offlineQueueCardEnabled ? <OfflineQueueDashboardCard /> : null}
-      {tseHealthCardEnabled ? <TseHealthCard /> : null}
-      {canSeeRksvReminder ? <RksvReminderCard /> : null}
-      {canSeeRksvReminder ? <DashboardMonatsbelegSection enabled={canSeeRksvReminder} /> : null}
-      <HospitalityQuickLinksCard />
-      <ExportQuickActionsCard />
-    </>
-  );
+  const pendingMonatsbelegCount = pendingMonatsbeleg.length;
+  const pendingMonatsbelegTitle =
+    pendingMonatsbelegCount === 1
+      ? t('dashboard.manager.pendingMonatsbeleg', { count: pendingMonatsbelegCount })
+      : t('dashboard.manager.pendingMonatsbelegPlural', { count: pendingMonatsbelegCount });
 
   return (
     <div style={{ padding: 24 }}>
@@ -128,15 +89,9 @@ export function ManagerDashboard() {
         </Space>
       </Card>
 
-      {canSeeTagesabschlussReminder ? (
-        <TagesabschlussReminder cashRegisterId={selectedRegisterId} register={selectedRegister} />
-      ) : null}
-
-      {pendingMonatsbeleg.length > 0 ? (
+      {pendingMonatsbelegCount > 0 ? (
         <Alert
-          title={t('dashboard.manager.pendingMonatsbeleg', {
-            count: pendingMonatsbeleg.length,
-          })}
+          title={pendingMonatsbelegTitle}
           description={t('dashboard.manager.pendingMonatsbelegDescription')}
           type="warning"
           showIcon
@@ -151,94 +106,7 @@ export function ManagerDashboard() {
         />
       ) : null}
 
-      <Row gutter={16}>
-        <Col span={24}>
-          <LicenseCountdownWidget />
-          <LicenseHealthWidget />
-          <LicenseExpiryImpactCard />
-          <LicenseRenewalChecklistCard />
-          <LicenseSupportOptionsCard />
-          <GracePeriodWidget />
-        </Col>
-      </Row>
-
-      <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title={t('dashboard.manager.todaySales')}
-              value={sales?.total ?? 0}
-              precision={2}
-              prefix={<DollarOutlined />}
-              suffix="€"
-              loading={salesLoading}
-              styles={{ content: { color: '#16a34a' } }}
-            />
-            <small style={{ color: '#64748b' }}>
-              {t('dashboard.manager.transactionCount', {
-                count: transactionCount,
-              })}
-            </small>
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title={t('dashboard.manager.openShifts')}
-              value={openShifts.length}
-              prefix={<ClockCircleOutlined />}
-              loading={shiftsLoading}
-              styles={{ content: { color: '#eab308' } }}
-            />
-            <small style={{ color: '#64748b' }}>
-              {openShifts.length > 0
-                ? t('dashboard.manager.shiftOpen')
-                : t('dashboard.manager.allClosed')}
-            </small>
-            <div style={{ marginTop: 8 }}>
-              <Link href="/staff/shifts">{t('dashboard.manager.viewStaffShifts')}</Link>
-            </div>
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title={t('dashboard.manager.activeStaff')}
-              value={activeStaff.length}
-              prefix={<TeamOutlined />}
-              loading={staffLoading}
-              styles={{ content: { color: '#1a56db' } }}
-            />
-            <small style={{ color: '#64748b' }}>{t('dashboard.manager.onDutyToday')}</small>
-            <div style={{ marginTop: 8 }}>
-              <Link href="/staff">{t('dashboard.manager.viewStaffHub')}</Link>
-            </div>
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title={t('dashboard.manager.cashBalance')}
-              value={balance}
-              formatter={(value) => formatCurrency(Number(value ?? 0), formatLocale)}
-              prefix={<DollarOutlined />}
-              styles={{ content: { color: '#1a56db' } }}
-            />
-            <small style={{ color: '#64748b' }}>{registerLabel}</small>
-          </Card>
-        </Col>
-      </Row>
-
-      <div style={{ marginTop: 16 }}>
-        <ActivitySummary limit={5} />
-      </div>
-
-      <div style={{ marginTop: 24 }}>
-        <Dashboard headerSlot={operationalHeader} />
-      </div>
+      <Dashboard />
     </div>
   );
 }

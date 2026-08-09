@@ -38,10 +38,9 @@ import type {
   TseIncidentReport,
   TseIncidentSeverity,
 } from '@/features/tse-incidents/types';
-import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
 
@@ -81,7 +80,7 @@ export default function TseIncidentsPage() {
   const { hasPermission } = usePermissions();
   const allowed = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
   const queryClient = useQueryClient();
-  const { tenantId: contextTenantId } = useTsePageTenant();
+  const { tenantId: contextTenantId, tenant, isReady } = useTsePageTenant();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [detailsId, setDetailsId] = useState<string | null>(null);
@@ -99,13 +98,6 @@ export default function TseIncidentsPage() {
     queryKey: INCIDENTS_KEY,
     queryFn: ({ signal }) => getTseIncidentDashboard(undefined, signal),
     enabled: allowed,
-  });
-
-  const tenantsQuery = useQuery({
-    queryKey: ['admin', 'tenants', 'tse-incidents'],
-    queryFn: () => listAdminTenants(false),
-    enabled: allowed && createOpen,
-    staleTime: 60_000,
   });
 
   const detailsQuery = useQuery({
@@ -234,12 +226,13 @@ export default function TseIncidentsPage() {
     <>
       <AdminPageHeader
         title={t('tseIncidents.title')}
-        breadcrumbs={[adminOverviewCrumb(t), { title: t('tseIncidents.title') }]}
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'securityTse', { title: t('tseIncidents.title') })}
         extra={
           <Space>
             <TseActiveTenantTag />
             <Button
               type="primary"
+              disabled={!isReady}
               onClick={() => {
                 createForm.setFieldsValue({
                   severity: 'Medium',
@@ -273,6 +266,7 @@ export default function TseIncidentsPage() {
           </Space>
           <Button
             type="primary"
+            disabled={!isReady}
             onClick={() => {
               createForm.setFieldsValue({
                 severity: 'Medium',
@@ -312,17 +306,17 @@ export default function TseIncidentsPage() {
             name="tenantId"
             label={t('tseIncidents.tenantLabel')}
             rules={[{ required: true, message: t('tseIncidents.tenantRequired') }]}
+            hidden
           >
-            <Select
-              showSearch
-              optionFilterProp="label"
-              loading={tenantsQuery.isLoading}
-              options={(tenantsQuery.data ?? []).map((tenant) => ({
-                value: tenant.id,
-                label: `${tenant.name} (${tenant.slug})`,
-              }))}
-            />
+            <Input />
           </Form.Item>
+          {tenant ? (
+            <Form.Item label={t('tseIncidents.tenantLabel')}>
+              <Tag color="blue">
+                {tenant.name} ({tenant.slug})
+              </Tag>
+            </Form.Item>
+          ) : null}
           <Form.Item
             name="title"
             label={t('tseIncidents.titleLabel')}

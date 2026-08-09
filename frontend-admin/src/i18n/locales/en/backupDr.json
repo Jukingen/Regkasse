@@ -1638,6 +1638,7 @@
     "allOkTitle": "All listed backups pass product gates",
     "allOkDescription": "Succeeded backups in the window have a valid stored SHA-256. Restore still runs validation-only with dual approval.",
     "loadFailed": "Could not load compliance status.",
+    "loadFailedDetail": "No further server details available. Check network, sign-in, or API response.",
     "empty": "No succeeded backups in the last 30 days.",
     "listTitle": "Backup compliance list",
     "stats": {

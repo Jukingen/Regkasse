@@ -31,8 +31,10 @@ internal sealed class BillingServiceTestHarness : IAsyncDisposable
         return Task.FromResult(new BillingServiceTestHarness(db, factory));
     }
 
-    public BillingService CreateBillingService(string? contentRootPath = null) =>
-        BillingServiceTestInfrastructure.CreateService(_db, contentRootPath);
+    public BillingService CreateBillingService(
+        string? contentRootPath = null,
+        ILicenseStatusCache? licenseStatusCache = null) =>
+        BillingServiceTestInfrastructure.CreateService(_db, contentRootPath, licenseStatusCache);
 
     public async Task<Tenant> CreateTestTenantAsync(string slug = "dev")
     {
@@ -119,7 +121,8 @@ internal static class BillingServiceTestInfrastructure
 {
     internal static BillingService CreateService(
         AppDbContext db,
-        string? contentRootPath = null)
+        string? contentRootPath = null,
+        ILicenseStatusCache? licenseStatusCache = null)
     {
         var environment = new Mock<IWebHostEnvironment>();
         environment.SetupGet(e => e.ContentRootPath).Returns(contentRootPath ?? Path.GetTempPath());
@@ -135,6 +138,7 @@ internal static class BillingServiceTestInfrastructure
             pdfGenerator,
             new InvoiceNumberGenerator(db),
             BillingTestDoubles.DisabledBackupOptions,
+            licenseStatusCache ?? BillingTestDoubles.CreateLicenseStatusCache(),
             NullLogger<BillingService>.Instance);
 
         return billingService;

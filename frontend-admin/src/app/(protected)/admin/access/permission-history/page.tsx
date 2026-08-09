@@ -8,7 +8,7 @@ import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { PermissionAuditHistoryPanel } from '@/features/users/components/PermissionAuditHistoryPanel';
 import { useI18n } from '@/i18n';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
 
@@ -18,11 +18,10 @@ export default function PermissionHistoryPage() {
   const canView = hasPermission(PERMISSIONS.AUDIT_VIEW);
   const canManageRoles = hasPermission(PERMISSIONS.ROLE_MANAGE);
 
-  const breadcrumbs = [
-    adminOverviewCrumb(t),
+  const breadcrumbs = buildPlatformAdminBreadcrumbs(t, 'administration', [
     { title: t('access.hub.pageTitle'), href: '/admin/access' },
     { title: t('access.permissionHistory.pageTitle') },
-  ];
+  ]);
 
   if (!canView) {
     return (

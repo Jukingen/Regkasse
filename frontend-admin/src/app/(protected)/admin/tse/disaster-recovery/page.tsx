@@ -30,7 +30,7 @@ import { generateTseDrRunbook, getTseDrStatus, runTseDrDrill } from '@/features/
 import type { TseDrReport, TseDrRunbook } from '@/features/tse-dr/types';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
 
@@ -100,7 +100,7 @@ export default function TseDisasterRecoveryPage() {
     <>
       <AdminPageHeader
         title={t('tseDr.title')}
-        breadcrumbs={[adminOverviewCrumb(t), { title: t('tseDr.title') }]}
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'securityTse', { title: t('tseDr.title') })}
         extra={
           <Space wrap>
             <TseActiveTenantTag />

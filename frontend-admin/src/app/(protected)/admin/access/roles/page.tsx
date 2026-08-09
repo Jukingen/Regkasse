@@ -16,7 +16,7 @@ import {
 } from '@/features/users/constants/validation';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
 export default function AccessRolesPage() {
@@ -30,11 +30,10 @@ export default function AccessRolesPage() {
   const initialMenuFilter = searchParams.get('menu');
   const initialPermissionFocus = searchParams.get('permission');
 
-  const breadcrumbs = [
-    adminOverviewCrumb(t),
+  const breadcrumbs = buildPlatformAdminBreadcrumbs(t, 'administration', [
     { title: t('access.hub.pageTitle'), href: '/admin/access' },
     { title: t('access.roles.pageTitle') },
-  ];
+  ]);
 
   if (!workspace.enabled && !workspace.policy.canView) {
     return (

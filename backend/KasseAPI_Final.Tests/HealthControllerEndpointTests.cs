@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using KasseAPI_Final.HealthChecks;
+using KasseAPI_Final.Services.Deployment;
 using KasseAPI_Final.Tests.Integration;
 using Xunit;
 
@@ -47,6 +48,10 @@ public sealed class HealthControllerEndpointTests : IClassFixture<TestWebApplica
         await using var stream = await response.Content.ReadAsStreamAsync();
         using var doc = await JsonDocument.ParseAsync(stream);
         Assert.True(doc.RootElement.TryGetProperty("status", out _));
+        Assert.True(
+            doc.RootElement.TryGetProperty("releaseStage", out var releaseStage),
+            "ready should include releaseStage for Staging (Demo & QA) / smoke verification");
+        Assert.Equal(ReleaseStageResolver.Dev, releaseStage.GetString());
         Assert.True(doc.RootElement.TryGetProperty("entries", out var entries));
         Assert.True(entries.TryGetProperty("database", out _));
         Assert.False(entries.TryGetProperty("tse", out _), "ready must not run device TSE check");
@@ -60,6 +65,17 @@ public sealed class HealthControllerEndpointTests : IClassFixture<TestWebApplica
             entries.TryGetProperty("finanzonline", out _)
             || entries.TryGetProperty(FinanzOnlineHealthCheck.Name, out _),
             "ready should include FinanzOnline posture");
+        Assert.True(
+            entries.TryGetProperty("cache", out _)
+            || entries.TryGetProperty(RedisCacheHealthCheck.Name, out _),
+            "ready should include cache (Redis/memory) posture");
+        Assert.True(
+            doc.RootElement.TryGetProperty("redisStatus", out var redisStatus),
+            "ready should expose top-level redisStatus (Healthy|Degraded)");
+        var redisStatusValue = redisStatus.GetString();
+        Assert.True(
+            redisStatusValue is "Healthy" or "Degraded",
+            $"redisStatus must be Healthy or Degraded, got: {redisStatusValue}");
     }
 
     [Fact]

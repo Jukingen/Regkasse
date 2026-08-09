@@ -12,7 +12,7 @@ import { tenantSettingsQueryKeys } from '@/features/tenants/api/tenantSettings';
 import { TenantSettingsChangePanel } from '@/features/tenants/components/TenantSettingsChangePanel';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
-import { adminOverviewCrumb, ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
 export default function TenantSettingsPage() {
@@ -24,16 +24,14 @@ export default function TenantSettingsPage() {
 
   const canAccess = isSuperAdmin || hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
 
-  const breadcrumbs = [
-    adminOverviewCrumb(t),
-    { title: t(ADMIN_NAV_LABEL_KEYS.settingsHub), href: '/settings' },
+  const breadcrumbs = buildPlatformAdminBreadcrumbs(t, 'administration', [
     { title: t('tenants.page.title'), href: '/admin/tenants' },
     {
       title: tenantId || t('tenants.settingsChange.pageTitle'),
       href: tenantId ? `/admin/tenants/${tenantId}` : '/admin/tenants',
     },
     { title: t('tenants.settingsChange.pageTitle') },
-  ];
+  ]);
 
   if (!canAccess) {
     return (

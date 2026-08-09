@@ -21,6 +21,15 @@
       "invalid": "FinanzOnline-Umgebung: INVALID — `{{envVar}}` liefert „{{value}}“. Nur TEST oder PROD sind zulässig; Build-Konfiguration korrigieren."
     },
     "buildTimeBadgeTooltip": "Nur Admin-Build-Kennzeichnung (TEST/PROD beim Kompilieren). Kein Live-Status zu FinanzOnline oder BMF — Verbindung und Abgleich separat prüfen.",
+    "releaseStageBadgeTooltip": "Build-Zeit Release-Stage (`NEXT_PUBLIC_RELEASE_STAGE`: dev | staging | canary | production). Fallback: dev. Primär für Demo & QA / Staging-Verifikation; Live-Stage bevorzugt vom Backend (`/api/rksv/environment`).",
+    "releaseStage": {
+      "displayLabel": {
+        "dev": "DEVELOPMENT",
+        "staging": "STAGING",
+        "canary": "CANARY",
+        "production": "PRODUCTION"
+      }
+    },
     "backend": {
       "displayLabel": {
         "demo": "🧪 DEMO",
@@ -316,7 +325,26 @@
     "includeSpecialReceipts": "Sonderbelege (Start/Monats/Jahres/Schluss/Null)",
     "includeDailyClosings": "Tagesabschlüsse",
     "exportButton": "DEP Export starten",
-    "downloadButton": "JSON herunterladen",
+    "downloadButton": "Herunterladen",
+    "downloadNow": "Jetzt herunterladen",
+    "downloadStoredButton": "Gespeicherte JSON herunterladen",
+    "downloadLiveButton": "Live-JSON herunterladen",
+    "downloadSuccess": "DEP Export wurde heruntergeladen.",
+    "downloadFailed": "Fehler beim Herunterladen der Datei",
+    "exportReady": "Ihre Datei ist zum Download bereit.",
+    "exportExpired": "Export ist abgelaufen",
+    "downloadCount": "Heruntergeladen: {count} mal",
+    "historyTitle": "Letzte Exporte",
+    "noExports": "Keine Exporte vorhanden",
+    "recentExportsTitle": "Letzte Exporte",
+    "recentExportsEmpty": "Keine Exporte vorhanden",
+    "recentExportsViewAll": "Gesamten Verlauf anzeigen",
+    "expiresLabel": "Ablauf",
+    "deleteButton": "Löschen",
+    "deleteConfirmTitle": "Export löschen?",
+    "deleteConfirmBody": "Die Download-Datei wird entfernt. Archivierte RKSV-Daten bleiben erhalten.",
+    "deleteSuccess": "Export aus der Liste entfernt.",
+    "deleteFailed": "Löschen fehlgeschlagen",
     "copyButton": "In Zwischenablage kopieren",
     "statsTitle": "Export-Statistik",
     "statsGroups": "Belege-Gruppen",
@@ -326,7 +354,7 @@
     "emptyHintBody": "Kasse und Zeitraum wählen, dann «DEP Export starten».",
     "selectRegisterWarning": "Bitte wählen Sie eine Kasse aus.",
     "selectDateRangeWarning": "Bitte wählen Sie einen Zeitraum aus.",
-    "exportSuccess": "DEP Export erfolgreich erstellt.",
+    "exportSuccess": "DEP-Export erfolgreich erstellt",
     "exportFailed": "DEP Export fehlgeschlagen",
     "copySuccess": "JSON in Zwischenablage kopiert.",
     "copyFailed": "Kopieren fehlgeschlagen.",
@@ -370,7 +398,7 @@
     "historyColumnActions": "Aktionen",
     "historyLoadParams": "Parameter laden",
     "historyParamsLoaded": "Export-Parameter geladen.",
-    "historyFootnoteServer": "Der Verlauf wird serverseitig pro Mandant gespeichert (Metadaten; Datei-Download nur bei geplanten Exporten).",
+    "historyFootnoteServer": "Der Verlauf wird serverseitig pro Mandant gespeichert. Abgeschlossene Exporte können als JSON heruntergeladen werden.",
     "historyDownloadStored": "Gespeicherte JSON",
     "tabSchedules": "⏰ Zeitplan",
     "scheduleTitle": "Geplante DEP-Exporte",
@@ -395,7 +423,15 @@
     "cryptoMaterialGenerateButton": "Test Material generieren",
     "cryptoMaterialDownloadButton": "crypto-material.json herunterladen",
     "cryptoMaterialSuccess": "Test-Material erfolgreich erstellt.",
-    "cryptoMaterialFailed": "Test-Material konnte nicht erstellt werden"
+    "cryptoMaterialFailed": "Test-Material konnte nicht erstellt werden",
+    "simulationWarning": "DEP Export wird im Simulationsmodus erstellt",
+    "simulationDescription": "Die TSE-Signaturen sind simuliert und nicht rechtsgültig. Nur für Test- und Entwicklungszwecke.",
+    "lastExportLabel": "Letzter Export",
+    "noExportYet": "Noch kein Export durchgeführt",
+    "simulatedBadge": "Simuliert",
+    "downloadCountLabel": "Heruntergeladen: {count} mal",
+    "productionMode": "Produktionsmodus — Signaturen sind rechtsgültig",
+    "simulationMode": "Simulationsmodus — Signaturen sind NICHT rechtsgültig"
   },
   "incident": {
     "pageTitle": "Incident (Correlation) — Untersuchung",

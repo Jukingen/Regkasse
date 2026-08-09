@@ -139,6 +139,7 @@ Developer experience and CI (see root [`README.md`](README.md), [`CONTRIBUTING.m
 - Access via `admin.regkasse.at`
 - Can impersonate any tenant via `POST /api/admin/tenants/{id}/impersonate`
 - Tenant CRUD via `/api/admin/tenants/*`
+- **Cache management:** Super Admins can clear tenant-specific or all caches via `POST /api/admin/cache/clear` (`{"tenantId":"…"}` or `{"clearAll":true}`). Use this only in emergency situations or after database migrations / manual DB fixes — not for routine deploys. Clearing all caches will temporarily impact performance as caches are rebuilt. FA: Systemwartung → Cache leeren. Prefer automatic invalidation; see [`docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md`](docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md) § Cache Management.
 - **Digital services:** create / publish / edit / delete websites and apps; approve digital requests (`/admin/digital`, `/admin/digital/requests`)
 - **Online orders:** full FA control including optional POS cart bridge (`digital.orders.approve`)
 - **Tenant hard-delete is disabled in production; use soft-delete (archive) for tenant removal.**
@@ -269,6 +270,7 @@ Canonical backend role names (database / JWT / API) and Admin UI display labels 
 | **ReportViewer** | Berichte (nur Lesen) | Read-only reports |
 
 - **SuperAdmin**: Full system access; platform operator on `admin.regkasse.at`.
+- **Cache troubleshooting:** Super Admin may clear domain cache via `POST /api/admin/cache/clear` (`tenantId` / `prefix` / `clearAll`) or FA Systemwartung → Cache leeren. Prefer automatic invalidation; manual clear is for emergencies (see `docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md` § Cache Management).
 - **Mandanten-Admin (`Manager`)**: Tenant administrator — users, settings, reports, backup (`backup.manage`) for **their** tenant only; cannot access other tenants.
 - Backend role string remains `"Manager"` for compatibility; only UI labels use **Mandanten-Admin** (see `users.roles.displayNames` in FA i18n).
 
@@ -723,14 +725,75 @@ Use `/ai` docs selectively based on the task:
 - `tenant_id uuid REFERENCES tenants(id)` on tenant-scoped tables (indexed)
 - All foreign keys MUST have indexes
 
+## Caching (Backend)
+
+The system uses Redis as a distributed cache (`RedisCacheService`) with automatic fallback to process-local `IMemoryCache`. Prefer incremental Cache-Aside on hot reads — do not invent parallel cache stacks. Always depend on `ICacheService` (`backend/Services/Caching/`), never Redis or `IMemoryCache` directly from domain services.
+
+| Environment | Implementation | Notes |
+|-------------|----------------|-------|
+| Development | `MemoryCacheService` | Default unless `Redis:Enabled=true` |
+| Staging/Production | `RedisCacheService` (`IDistributedCache`) | Falls back to `IMemoryCache` if Redis fails |
+
+### When to use cache
+
+- **Do cache:** Read-heavy, rarely changing domain snapshots — mandant license status, product catalogs, effective user permissions, tenant settings.
+- **Do not put on `ICacheService`:** CSRF tokens, lockout counters, rate-limits, 2FA challenges — those stay on process-local `IMemoryCache`.
+- **Never cache sensitive data:** passwords (including hashes), voucher codes, payment card / payment detail payloads, PII, TSE/JWS secrets, raw fiscal signature material.
+- **Never cache real-time accuracy data:** live stock levels, payment/checkout status, open cart contents.
+
+### TTL recommendations (defaults via `CacheSettings`)
+
+| Domain | Default TTL | Config key |
+|--------|-------------|------------|
+| Licenses (`license_status_{tenantId}` / `CacheKeys.LicenseStatus`) | **5 min** | `CacheSettings:LicenseCacheMinutes` |
+| Products (`product_list_{tenantId}` / `CacheKeys.ProductList`) | **15 min** | `CacheSettings:ProductCacheMinutes` |
+| Permissions (`user_permissions_{userId}` / `CacheKeys.UserPermissions`) | **30 min** | `CacheSettings:PermissionCacheMinutes` |
+| Tenant settings (`tenant_settings_{tenantId}` / `CacheKeys.TenantSettings`) | **60 min** | `CacheSettings:TenantSettingsCacheMinutes` |
+| TSE health (`tse_health_{scopeId}` / `CacheKeys.TseHealth`) | **30 sec** | `CacheSettings:TseHealthCacheSeconds` (reserved; process monitor is in-memory) |
+
+Override per environment in appsettings / env (`CacheSettings__*`). Details: `backend/CONFIGURATION.md`.
+
+### Cache-Aside pattern
+
+```csharp
+// Always use Cache-Aside (via ICacheService.GetOrCreateAsync or explicit get/set)
+var cached = await _cache.GetAsync<MyDto>(key);
+if (cached != null) return cached;
+var data = await _db.QueryAsync(/* … */);
+await _cache.SetAsync(key, data, ttl);
+return data;
+```
+
+Prefer `GetOrCreateAsync` + `CacheKeys.Format(...)` + `IOptions<CacheSettings>` TTLs over ad-hoc strings / hardcoded `TimeSpan`s.
+
+### Invalidation patterns
+
+- **Event-based (preferred):** After writes, call `CacheInvalidationHelper` with `CacheKeys.*` — license sale/activate/extend, product create/update/delete/stock, user role change → drop `user_permissions_{userId}`. Do not rely on TTL alone for correctness after mutations.
+- **Time-based:** TTL expiry is a safety net for missed invalidation and natural refresh; keep license TTL short so SaaS gating stays fresh.
+- **Ops / emergency:** Super Admin `POST /api/admin/cache/clear` (tenant / prefix / clearAll) — not a substitute for automatic invalidation.
+
+### Best practices
+
+1. Always use `ICacheService` (not Redis or `IMemoryCache` directly from domain code).
+2. Use Cache-Aside: check cache → on miss load from DB → store with TTL.
+3. Include tenant (or user) id in keys via `CacheKeys` for multi-tenant isolation.
+4. Log cache get/set/hit/miss at **Debug**; Redis failures at **Error**.
+5. Monitor hit/miss in Staging before changing Production TTLs (`docs/CACHE_OPTIMIZATION.md`).
+
+**Keys:** Always use `CacheKeys.*` — no magic strings.
+
+**Ops / health:** Readiness includes `cache` on `/api/health/ready` with top-level `redisStatus` (`Healthy`\|`Degraded`). Redis failure must not fail the process solely for cache.
+
+**Logging:** `RedisCacheService` logs get/set/remove and hit/miss at **Debug**, Redis failures at **Error**. In Development, enable cache observability by setting `Logging:LogLevel:KasseAPI_Final.Services.Caching` to `Debug` (hit/miss) or at least `Information`/`Warning` (errors only). Production example keeps Caching at **Warning** to avoid log noise.
+
 ## Frontend-Admin (FA) Conventions
 - Routes: `frontend-admin/src/app/(protected)/`
 - Features: `frontend-admin/src/features/{domain}/` (components, api hooks)
 - **Client state (do not invent a second source of truth):**
-  - **Server / API data:** TanStack Query (Orval hooks). Do not mirror API payloads in global client stores.
-  - **Auth:** `AuthProvider` + `useAuth` / `authStorage` (tokens in `localStorage` via `authStorage` only — never in a UI store).
-  - **UI preferences:** React context + `localStorage` today (`ThemeProvider` / personalization under `src/lib/personalization/`, sidebar width via `usePersistedAdminSiderWidth`, language via `languageStorage` / `I18nProvider`). Synced prefs use React Query (`useUserPreferences` → `/api/admin/user/preferences`).
-  - **Zustand:** used only for ephemeral UI prefs in `frontend-admin/src/stores/` (`uiPreferencesStore`, `siderWidthStore` — theme/density/landing/formats/a11y, sidebar width). **Never** put tokens, user profiles, tenant secrets, payment/RKSV payloads, or React Query cache duplicates in Zustand. Auth stays in `AuthProvider` + `authStorage` + React Query; tenant stays in `TenantProvider` + RQ; i18n stays in `I18nProvider`.
+ - **Server / API data:** TanStack Query (Orval hooks). Do not mirror API payloads in global client stores. Align React Query `staleTime` with backend `CacheSettings` TTLs where the same entity is cached server-side (e.g. product lists ~15m backend → avoid FA refetch storms below that window unless the user explicitly refreshes).
+ - **Auth:** `AuthProvider` + `useAuth` / `authStorage` (tokens in `localStorage` via `authStorage` only — never in a UI store).
+ - **UI preferences:** React context + `localStorage` today (`ThemeProvider` / personalization under `src/lib/personalization/`, sidebar width via `usePersistedAdminSiderWidth`, language via `languageStorage` / `I18nProvider`). Synced prefs use React Query (`useUserPreferences` → `/api/admin/user/preferences`).
+ - **Zustand:** used only for ephemeral UI prefs in `frontend-admin/src/stores/` (`uiPreferencesStore`, `siderWidthStore` — theme/density/landing/formats/a11y, sidebar width). **Never** put tokens, user profiles, tenant secrets, payment/RKSV payloads, or React Query cache duplicates in Zustand. Auth stays in `AuthProvider` + `authStorage` + React Query; tenant stays in `TenantProvider` + RQ; i18n stays in `I18nProvider`.
 - Generate API client: after OpenAPI changes run `node scripts/generate-backend-openapi.mjs`, then `cd frontend-admin && npm run generate:api`; verify with `node scripts/verify-api-client.mjs` (CI: `api-client-alignment.yml`; optional hook: `npm run install:git-hooks`)
 - UI: Ant Design 6 + `@ant-design/nextjs-registry` (`AntdRegistry` in `src/app/layout.tsx`); no official `@ant-design/codemod-v6` — migrate deprecated props manually (see stack table above)
 - **Toasts / notifications:** prefer `useNotify()` (`frontend-admin/src/hooks/useNotify.ts`) in React components; plain modules use `notifySuccess` / `notifyError` / … from `frontend-admin/src/lib/notificationService.ts` (registered by `AntdAppBridgeRegistrar` via `useAntdApp`). Defaults: message duration 3s, notification duration 8s, placement `topRight`. Pass already-translated strings or i18n keys (`successKey` / `errorKey` / dotted keys). Do **not** import static `message` / `notification` from `antd`. Keep `useAntdApp()` for `modal` (and rare escape hatches).

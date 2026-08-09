@@ -33,6 +33,8 @@ public class UserLifecycleAuditIntegrationTests
         httpContextAccessor.Setup(x => x.HttpContext).Returns((HttpContext?)null);
         var actorResolver = new Mock<IActorDisplayNameResolver>();
         actorResolver.Setup(x => x.ResolveAsync(It.IsAny<IList<string>>())).ReturnsAsync(new Dictionary<string, string>());
+        actorResolver.Setup(x => x.ResolveLoginLabelsAsync(It.IsAny<IList<string>>()))
+            .ReturnsAsync(new Dictionary<string, string>());
         var retentionOptions = new Mock<IOptions<AuditRetentionOptions>>();
         retentionOptions.Setup(x => x.Value).Returns(new AuditRetentionOptions());
         return new AuditLogService(

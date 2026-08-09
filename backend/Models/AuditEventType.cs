@@ -119,5 +119,8 @@ public enum AuditEventType
     /// <summary>Compliance officer signed off production deployment checklist.</summary>
     DeploymentComplianceApproved = 61,
 
+    /// <summary>Super Admin manually cleared application cache (troubleshooting).</summary>
+    SystemCacheCleared = 62,
+
     Other = 99
 }

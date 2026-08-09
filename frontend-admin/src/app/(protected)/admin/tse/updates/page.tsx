@@ -30,7 +30,7 @@ import {
 import type { TseAvailableUpdate, TseUpdateHistoryItem } from '@/features/tse-updates/types';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
 
@@ -165,7 +165,7 @@ export default function TseUpdatesPage() {
     <>
       <AdminPageHeader
         title={t('tseUpdates.title')}
-        breadcrumbs={[adminOverviewCrumb(t), { title: t('tseUpdates.title') }]}
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'securityTse', { title: t('tseUpdates.title') })}
         extra={<TseActiveTenantTag />}
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>

@@ -5,11 +5,9 @@ import Link from 'next/link';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { Dashboard } from '@/features/dashboard/components/Dashboard';
-import { DashboardMonatsbelegSection } from '@/features/dashboard/components/DashboardMonatsbelegSection';
 import { HospitalityQuickLinksCard } from '@/features/dashboard/components/HospitalityQuickLinksCard';
 import { LicenseDashboardSection } from '@/features/dashboard/components/LicenseDashboardSection';
 import { OfflineQueueDashboardCard } from '@/features/dashboard/components/OfflineQueueDashboardCard';
-import { RksvReminderCard } from '@/features/dashboard/components/RksvReminderCard';
 import { TimeSyncDriftAlertCard } from '@/features/dashboard/components/TimeSyncDriftAlertCard';
 import { TseHealthCard } from '@/features/dashboard/components/TseHealthCard';
 import { ExportQuickActionsCard } from '@/features/exports/components/ExportQuickActionsCard';
@@ -30,22 +28,18 @@ export function SuperAdminDashboard() {
   const { isAuthorized: canFetchTenantLicense } = useAuthorizationGate({
     requiredRole: 'SuperAdmin',
   });
-  const { isAuthorized: canSeeRksvReminder } = useAuthorizationGate({
-    requiredPermission: AppPermissions.CashRegisterView,
-  });
 
   const offlineQueueCardEnabled = hasPermission(PERMISSIONS.PAYMENT_VIEW);
   const timeSyncDriftAlertEnabled = hasPermission(PERMISSIONS.SETTINGS_MANAGE);
   const tseHealthCardEnabled = hasPermission(AppPermissions.CashRegisterView);
 
+  // RKSV reminders / Monatsbeleg live in catalog widgets (action-required, manager-monatsbeleg).
   const operationalHeader = (
     <>
       {canFetchTenantLicense ? <LicenseDashboardSection /> : null}
       {offlineQueueCardEnabled ? <OfflineQueueDashboardCard /> : null}
       {timeSyncDriftAlertEnabled ? <TimeSyncDriftAlertCard /> : null}
       {tseHealthCardEnabled ? <TseHealthCard /> : null}
-      {canSeeRksvReminder ? <RksvReminderCard /> : null}
-      {canSeeRksvReminder ? <DashboardMonatsbelegSection enabled={canSeeRksvReminder} /> : null}
       <HospitalityQuickLinksCard />
       <ExportQuickActionsCard />
     </>

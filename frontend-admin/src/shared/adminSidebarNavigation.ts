@@ -45,27 +45,55 @@ export const ADMIN_SIDEBAR_GROUP_KEYS = {
   /** Super Admin: license management + billing sales; tenant license leaf when permitted. */
   license: 'grp-license',
   operations: 'grp-operations',
-  /** Nested under Betrieb: receipts, payments, … */
+  /** Nested under Betrieb: receipts, payments, online orders, … */
   salesTransactions: 'grp-sales-transactions',
   rksv: 'grp-rksv',
-  /** Nested under RKSV: Sonderbelege leaves */
+  /** Nested under RKSV & FinanzOnline (approved IA) */
+  rksvCurrentStatus: 'grp-rksv-current-status',
+  rksvBelegeExport: 'grp-rksv-belege-export',
+  /** Nested under Belege & Export: Sonderbelege leaves */
   specialReceipts: 'grp-special-receipts',
+  rksvFinanzOnline: 'grp-rksv-finanzonline',
+  rksvAuditPruefung: 'grp-rksv-audit-pruefung',
+  /** Nested under RKSV: advanced RKSV Werkzeuge hub */
+  rksvTools: 'grp-rksv-tools',
   catalog: 'grp-catalog',
   customers: 'grp-customers',
   reports: 'grp-reports',
   settings: 'grp-settings',
-  /** Verwaltung: Zugriff & Rollen + Mandanten (platform) */
+  /** Nested under Einstellungen (approved IA) */
+  settingsGeneral: 'grp-settings-general',
+  settingsFinancesTaxes: 'grp-settings-finances-taxes',
+  settingsOperations: 'grp-settings-operations',
+  settingsCompliance: 'grp-settings-compliance',
+  /** Verwaltung: Zugriff & Rollen + Mandanten */
   admin: 'grp-admin',
   /** Nested under Verwaltung: Zugriff & Rollen hub */
   accessArea: 'grp-access',
+  /** Sicherheit & TSE (platform Super Admin ops) */
+  securityTse: 'grp-security-tse',
+  /** Nested under Sicherheit & TSE */
+  tseManagement: 'grp-tse-management',
+  tseOpsFailover: 'grp-tse-ops-failover',
+  tseAnalyticsMonitoring: 'grp-tse-analytics-monitoring',
+  tseReportsFinance: 'grp-tse-reports-finance',
+  tseAdvanced: 'grp-tse-advanced',
+  tseDiagnostics: 'grp-tse-diagnostics',
+  /** Deployment & System */
+  deploymentSystem: 'grp-deployment-system',
+  /** Monitoring & Logs */
+  monitoringLogs: 'grp-monitoring-logs',
   /** Backup & Disaster Recovery */
   backup: 'grp-backup',
   /** Nested under Backup: schedule vs platform settings */
   backupConfig: 'grp-backup-config',
-  /** Nested under Einstellungen: website / digital portal / customer portal */
+  /** Nested under Einstellungen: digital services (tenant + Super Admin manage) */
   digitalServices: 'grp-digital-services',
-  /** Nested under Lizenzverwaltung: Super Admin digital manage + requests */
-  digitalAdmin: 'grp-digital-admin',
+  /**
+   * @deprecated Digitale Dienste lives under Einstellungen (`digitalServices`) only.
+   * Alias kept so open-key / lockdown merges stay stable during migration.
+   */
+  digitalAdmin: 'grp-digital-services',
   /** @deprecated Use `settings` — kept for open-keys merge during migration */
   settingsArea: 'grp-settings',
   /** @deprecated Use `rksv` */
@@ -94,9 +122,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/admin/billing/sales',
     '/admin/billing/stats',
     '/billing/digital',
-    '/admin/digital',
   ],
-  [ADMIN_SIDEBAR_GROUP_KEYS.digitalAdmin]: ['/admin/digital', '/admin/digital/requests'],
   [ADMIN_SIDEBAR_GROUP_KEYS.operations]: [
     '/operations-center',
     '/tables',
@@ -131,6 +157,18 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/reporting/monatsbericht',
     '/reporting/jahresbericht',
   ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.rksvCurrentStatus]: ['/rksv/operations', '/rksv', '/rksv/status'],
+  [ADMIN_SIDEBAR_GROUP_KEYS.rksvBelegeExport]: [
+    '/admin/rksv/dep-export',
+    '/admin/rksv/signature-verify',
+    '/rksv/sb/startbeleg',
+    '/rksv/sb/monatsbeleg',
+    '/rksv/sb/jahresbeleg',
+    '/rksv/sb/nullbeleg',
+    '/rksv/sb/schlussbeleg',
+    '/rksv/sb/test-helper',
+    '/rksv/sonderbelege',
+  ],
   [ADMIN_SIDEBAR_GROUP_KEYS.specialReceipts]: [
     '/rksv/sb/startbeleg',
     '/rksv/sb/monatsbeleg',
@@ -140,6 +178,16 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/rksv/sb/test-helper',
     '/rksv/sonderbelege',
   ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.rksvFinanzOnline]: [
+    '/rksv/finanz-online-outbox',
+    '/rksv/offline-orders',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.rksvAuditPruefung]: [
+    '/audit-logs',
+    '/admin/audit/fiscal-exports',
+    '/admin/tse/offline-transactions',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.rksvTools]: ['/admin/rksv'],
   [ADMIN_SIDEBAR_GROUP_KEYS.catalog]: [
     '/products',
     '/modifier-groups',
@@ -168,13 +216,44 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     ...SETTINGS_AREA_ROUTE_PATHS,
     '/settings/website',
     '/settings/digital',
+    '/settings/data-management',
+    '/settings/account',
+    '/settings/preferences',
     '/digital/customer-portal',
     '/admin/system/time-sync',
+    '/admin/tse/signaturkarte-program',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.settingsGeneral]: [
+    '/settings',
+    '/settings/company',
+    '/settings/personalization',
+    '/settings/preferences',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.settingsFinancesTaxes]: [
+    '/settings/tax-groups',
+    '/settings/tax-history',
+    '/settings/payment-methods',
+    '/settings/payment',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.settingsOperations]: [
+    '/settings/working-hours',
+    '/settings/session',
+    '/settings/sessions',
+    '/settings/tse',
+    '/settings/finanzonline',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.settingsCompliance]: [
+    '/settings/data-management',
+    '/settings/account',
+    '/admin/tse/signaturkarte-program',
   ],
   [ADMIN_SIDEBAR_GROUP_KEYS.digitalServices]: [
     '/settings/website',
     '/settings/digital',
     '/digital/customer-portal',
+    '/admin/digital',
+    '/admin/digital/requests',
+    '/admin/feedback',
   ],
   [ADMIN_SIDEBAR_GROUP_KEYS.backup]: [...BACKUP_AREA_ROUTE_PATHS],
   [ADMIN_SIDEBAR_GROUP_KEYS.admin]: [
@@ -183,11 +262,15 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/admin/access/roles',
     '/admin/access/matrix',
     '/admin/tenants',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.accessArea]: [
+    '/admin/access',
+    '/admin/users',
+    '/admin/access/roles',
+    '/admin/access/matrix',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.securityTse]: [
     '/admin/approvals',
-    '/admin/maintenance',
-    '/admin/errors',
-    '/admin/monitoring',
-    '/admin/risk-dashboard',
     '/admin/tse-management',
     '/admin/tse/failover',
     '/admin/tse/resource-pools',
@@ -199,7 +282,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/admin/tse/logs',
     '/admin/tse/developer-tools',
     '/admin/tse/compliance',
-    '/admin/tse/signaturkarte-program',
+    '/admin/tse/ausfall',
     '/admin/tse/auto-scaling',
     '/admin/tse/auto-healing',
     '/admin/tse/knowledge',
@@ -214,11 +297,53 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/admin/tse/blockchain',
     '/admin/tse/training',
   ],
-  [ADMIN_SIDEBAR_GROUP_KEYS.accessArea]: [
-    '/admin/access',
-    '/admin/users',
-    '/admin/access/roles',
-    '/admin/access/matrix',
+  [ADMIN_SIDEBAR_GROUP_KEYS.tseManagement]: ['/admin/tse-management'],
+  [ADMIN_SIDEBAR_GROUP_KEYS.tseOpsFailover]: [
+    '/admin/tse/failover',
+    '/admin/tse/auto-healing',
+    '/admin/tse/auto-scaling',
+    '/admin/tse/disaster-recovery',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.tseAnalyticsMonitoring]: [
+    '/admin/tse/resource-pools',
+    '/admin/tse/incidents',
+    '/admin/tse/logs',
+    '/admin/tse/sla',
+    '/admin/tse/capacity',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.tseReportsFinance]: [
+    '/admin/tse/cost',
+    '/admin/tse/sustainability',
+    '/admin/tse/compliance',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.tseAdvanced]: [
+    '/admin/tse/developer-tools',
+    '/admin/tse/api-gateway',
+    '/admin/tse/webhooks',
+    '/admin/tse/blockchain',
+    '/admin/tse/knowledge',
+    '/admin/tse/training',
+    '/admin/tse/updates',
+    '/admin/tse/recommendations',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.tseDiagnostics]: [
+    '/admin/tse/anomalies',
+    '/admin/tse/analytics',
+    '/admin/tse/user-analytics',
+    '/admin/tse/ausfall',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.deploymentSystem]: [
+    '/admin/deployments',
+    '/admin/deployments/tenants',
+    '/admin/deployments/compliance',
+    '/admin/database/migrations',
+    '/admin/feature-flags',
+    '/admin/maintenance',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.monitoringLogs]: [
+    '/admin/errors',
+    '/admin/monitoring',
+    '/admin/risk-dashboard',
   ],
 };
 
@@ -304,7 +429,7 @@ export function resolveAdminMenuSelectedKeys(
   return [p];
 }
 
-/** True when pathname is under Einstellungen or Verwaltung sidebar groups (excludes backup hub). */
+/** True when pathname is under Einstellungen or platform admin sidebar groups (excludes backup hub). */
 export function isVerwaltungAdminPath(pathname: string | null | undefined): boolean {
   const p = normalizeAdminPathname(pathname);
   if (BACKUP_AREA_ROUTE_PATHS.some((r) => p === r || p.startsWith(`${r}/`))) {
@@ -312,9 +437,15 @@ export function isVerwaltungAdminPath(pathname: string | null | undefined): bool
   }
   const settingsRoutes = ADMIN_SIDEBAR_GROUP_ROUTES[ADMIN_SIDEBAR_GROUP_KEYS.settings];
   const adminRoutes = ADMIN_SIDEBAR_GROUP_ROUTES[ADMIN_SIDEBAR_GROUP_KEYS.admin];
+  const securityRoutes = ADMIN_SIDEBAR_GROUP_ROUTES[ADMIN_SIDEBAR_GROUP_KEYS.securityTse];
+  const deploymentRoutes = ADMIN_SIDEBAR_GROUP_ROUTES[ADMIN_SIDEBAR_GROUP_KEYS.deploymentSystem];
+  const monitoringRoutes = ADMIN_SIDEBAR_GROUP_ROUTES[ADMIN_SIDEBAR_GROUP_KEYS.monitoringLogs];
   return (
     settingsRoutes.some((r) => p === r || p.startsWith(`${r}/`)) ||
-    adminRoutes.some((r) => p === r || p.startsWith(`${r}/`))
+    adminRoutes.some((r) => p === r || p.startsWith(`${r}/`)) ||
+    securityRoutes.some((r) => p === r || p.startsWith(`${r}/`)) ||
+    deploymentRoutes.some((r) => p === r || p.startsWith(`${r}/`)) ||
+    monitoringRoutes.some((r) => p === r || p.startsWith(`${r}/`))
   );
 }
 
@@ -338,11 +469,23 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     p.startsWith('/admin/users/') ||
     p === '/admin/tenants' ||
     p.startsWith('/admin/tenants/') ||
-    p === '/admin/data-management' ||
-    p === '/admin/errors' ||
-    p === '/admin/monitoring' ||
-    p === '/admin/risk-dashboard' ||
+    p === '/admin/data-management'
+  ) {
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.admin);
+  }
+  if (
+    p === '/admin/access' ||
+    p.startsWith('/admin/access/') ||
+    p === '/admin/users' ||
+    p.startsWith('/admin/users/')
+  ) {
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.accessArea);
+  }
+  if (
+    p === '/admin/approvals' ||
+    p.startsWith('/admin/approvals/') ||
     p === '/admin/tse-management' ||
+    p.startsWith('/admin/tse-management/') ||
     p === '/admin/tse/failover' ||
     p.startsWith('/admin/tse/failover/') ||
     p === '/admin/tse/resource-pools' ||
@@ -363,8 +506,8 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     p.startsWith('/admin/tse/developer-tools/') ||
     p === '/admin/tse/compliance' ||
     p.startsWith('/admin/tse/compliance/') ||
-    p === '/admin/tse/signaturkarte-program' ||
-    p.startsWith('/admin/tse/signaturkarte-program/') ||
+    p === '/admin/tse/ausfall' ||
+    p.startsWith('/admin/tse/ausfall/') ||
     p === '/admin/tse/auto-scaling' ||
     p.startsWith('/admin/tse/auto-scaling/') ||
     p === '/admin/tse/auto-healing' ||
@@ -392,15 +535,29 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     p === '/admin/tse/training' ||
     p.startsWith('/admin/tse/training/')
   ) {
-    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.admin);
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.securityTse);
   }
   if (
-    p === '/admin/access' ||
-    p.startsWith('/admin/access/') ||
-    p === '/admin/users' ||
-    p.startsWith('/admin/users/')
+    p === '/admin/deployments' ||
+    p.startsWith('/admin/deployments/') ||
+    p === '/admin/database/migrations' ||
+    p.startsWith('/admin/database/') ||
+    p === '/admin/feature-flags' ||
+    p.startsWith('/admin/feature-flags/') ||
+    p === '/admin/maintenance' ||
+    p.startsWith('/admin/maintenance/')
   ) {
-    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.accessArea);
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.deploymentSystem);
+  }
+  if (
+    p === '/admin/errors' ||
+    p.startsWith('/admin/errors/') ||
+    p === '/admin/monitoring' ||
+    p.startsWith('/admin/monitoring/') ||
+    p === '/admin/risk-dashboard' ||
+    p.startsWith('/admin/risk-dashboard/')
+  ) {
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.monitoringLogs);
   }
   if (
     p === '/license' ||
@@ -411,14 +568,9 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     p === '/admin/billing' ||
     p.startsWith('/admin/billing/') ||
     p === '/billing/digital' ||
-    p.startsWith('/billing/digital/') ||
-    p === '/admin/digital' ||
-    p.startsWith('/admin/digital/')
+    p.startsWith('/billing/digital/')
   ) {
     keys.push(ADMIN_SIDEBAR_GROUP_KEYS.license);
-  }
-  if (p === '/admin/digital' || p.startsWith('/admin/digital/')) {
-    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.digitalAdmin);
   }
   if (
     p === '/settings/website' ||
@@ -426,7 +578,11 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     p === '/settings/digital' ||
     p.startsWith('/settings/digital/') ||
     p === '/digital/customer-portal' ||
-    p.startsWith('/digital/customer-portal/')
+    p.startsWith('/digital/customer-portal/') ||
+    p === '/admin/digital' ||
+    p.startsWith('/admin/digital/') ||
+    p === '/admin/feedback' ||
+    p.startsWith('/admin/feedback/')
   ) {
     keys.push(ADMIN_SIDEBAR_GROUP_KEYS.settings);
     keys.push(ADMIN_SIDEBAR_GROUP_KEYS.digitalServices);
@@ -458,10 +614,21 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     p === '/rksv/sonderbelege' ||
     p.startsWith('/rksv/sonderbelege/')
   ) {
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.rksvBelegeExport);
     keys.push(ADMIN_SIDEBAR_GROUP_KEYS.specialReceipts);
   }
   if (p === '/admin/rksv' || p.startsWith('/admin/rksv/')) {
-    keys.push('/admin/rksv');
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.rksv);
+    const isExportLeaf =
+      p === '/admin/rksv/dep-export' ||
+      p.startsWith('/admin/rksv/dep-export/') ||
+      p === '/admin/rksv/signature-verify' ||
+      p.startsWith('/admin/rksv/signature-verify/');
+    if (isExportLeaf) {
+      keys.push(ADMIN_SIDEBAR_GROUP_KEYS.rksvBelegeExport);
+    } else {
+      keys.push(ADMIN_SIDEBAR_GROUP_KEYS.rksvTools);
+    }
   }
   return keys;
 }
@@ -566,7 +733,7 @@ export type SidebarOpenKeysMergeParams = {
 
 /**
  * Derives next `openKeys` after a navigation or permission change.
- * - Prunes stale `/rksv` and `rksv-grp-*` when the route leaves `/rksv/*` (avoids Ant Design inline menu drift).
+ * - Prunes stale RKSV Werkzeuge / `rksv-grp-*` when the route leaves `/rksv/*` (avoids Ant Design inline menu drift).
  * - Closes the fiscal top group when neither audit nor RKSV routes are active.
  * - Merges route-driven auto-open hints; preserves unrelated user-opened keys.
  */
@@ -574,10 +741,14 @@ export function computeSidebarOpenKeysMerge(params: SidebarOpenKeysMergeParams):
   const p = normalizeAdminPathname(params.pathname);
   const keys = new Set(params.prevOpenKeys);
 
-  /** Drop RKSV submenu keys when the route is outside `/rksv` or the user cannot see RKSV at all. */
+  /** Drop RKSV Werkzeuge submenu keys when the route is outside `/rksv` or the user cannot see RKSV at all. */
   if (!params.canSeeRksv || !p.startsWith('/rksv')) {
     for (const k of Array.from(keys)) {
-      if (k === '/rksv' || k.startsWith('rksv-grp-')) {
+      if (
+        k === '/rksv' ||
+        k === ADMIN_SIDEBAR_GROUP_KEYS.rksvTools ||
+        k.startsWith('rksv-grp-')
+      ) {
         keys.delete(k);
       }
     }
@@ -616,7 +787,7 @@ export function computeSidebarOpenKeysMerge(params: SidebarOpenKeysMergeParams):
 
   if (params.canSeeRksv && p.startsWith('/rksv') && !sonderOnly) {
     keys.add(ADMIN_SIDEBAR_GROUP_KEYS.rksv);
-    keys.add('/rksv');
+    keys.add(ADMIN_SIDEBAR_GROUP_KEYS.rksvTools);
     for (const k of getRksvOpenSubgroupKeys(p, params.rksvGroups)) {
       keys.add(k);
     }

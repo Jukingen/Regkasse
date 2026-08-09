@@ -31,10 +31,19 @@ export const useDepExport = () => {
         return {
           dep: envelope.dep,
           meta: {
+            isSimulated: envelope.isSimulated ?? envelope.isDemo ?? false,
+            simulationNote: envelope.simulationNote ?? null,
+            environment: envelope.environment ?? null,
             legacyJwsCount: envelope.legacyJwsCount ?? 0,
             f5CompliantJwsCount: envelope.f5CompliantJwsCount ?? 0,
             legacyJwsWarning: envelope.legacyJwsWarning ?? null,
             prueftoolCompatible: envelope.prueftoolCompatible ?? (envelope.legacyJwsCount ?? 0) === 0,
+            historyId: envelope.historyId ?? envelope.exportId ?? null,
+            exportId: envelope.exportId ?? envelope.historyId ?? null,
+            fileName: envelope.fileName ?? null,
+            downloadUrl: envelope.downloadUrl ?? null,
+            expiresAt: envelope.expiresAt ?? null,
+            fileSizeBytes: envelope.fileSizeBytes ?? null,
           },
         };
       }
@@ -42,10 +51,19 @@ export const useDepExport = () => {
       return {
         dep: body as RksvDepExportRoot,
         meta: {
+          isSimulated: false,
+          simulationNote: null,
+          environment: null,
           legacyJwsCount: 0,
           f5CompliantJwsCount: 0,
           legacyJwsWarning: null,
           prueftoolCompatible: true,
+          historyId: null,
+          exportId: null,
+          fileName: null,
+          downloadUrl: null,
+          expiresAt: null,
+          fileSizeBytes: null,
         },
       };
     },

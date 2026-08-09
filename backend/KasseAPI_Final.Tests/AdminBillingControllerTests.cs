@@ -157,6 +157,7 @@ public sealed class AdminBillingControllerTests
                 .Setup(x => x.GenerateInvoicePdfAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new byte[] { 0x25, 0x50, 0x44, 0x46 });
 
+            var licenseStatusCache = BillingTestDoubles.CreateLicenseStatusCache();
             var billingService = new BillingService(
                 _db,
                 new LicenseKeyGenerator(),
@@ -166,6 +167,7 @@ public sealed class AdminBillingControllerTests
                 PdfGeneratorMock.Object,
                 new InvoiceNumberGenerator(_db),
                 BillingTestDoubles.DisabledBackupOptions,
+                licenseStatusCache,
                 NullLogger<BillingService>.Instance);
 
             var tenantLicenseService = new TenantLicenseService(
@@ -173,6 +175,7 @@ public sealed class AdminBillingControllerTests
                 billingService,
                 new LicenseKeyGenerator(),
                 BillingTestDoubles.CreateAuditService(_db),
+                licenseStatusCache,
                 NullLogger<TenantLicenseService>.Instance);
 
             var controller = new AdminBillingController(
@@ -283,6 +286,7 @@ public sealed class AdminBillingControllerTests
                 PdfGeneratorMock.Object,
                 new InvoiceNumberGenerator(_db),
                 BillingTestDoubles.DisabledBackupOptions,
+                BillingTestDoubles.CreateLicenseStatusCache(),
                 NullLogger<BillingService>.Instance);
 
             return await billingService.CreateLicenseSaleAsync(

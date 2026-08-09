@@ -21,9 +21,21 @@ describe('reorderDashboardWidgets', () => {
     expect(next?.find((x) => x.widgetId === 'hidden')?.isVisible).toBe(false);
   });
 
-  it('returns null when ids match or are unknown', () => {
-    const widgets = [w('a', 0, true), w('b', 1, true)];
-    expect(reorderDashboardWidgets(widgets, 'a', 'a')).toBeNull();
-    expect(reorderDashboardWidgets(widgets, 'missing', 'a')).toBeNull();
+  it('keeps hidden widgets after reorder of manager and catalog ids', () => {
+    const widgets = [
+      w('manager-license-status', 0, true),
+      w('manager-kpi-strip', 1, true),
+      w('today-sales', 2, true),
+      w('hidden', 3, false),
+    ];
+
+    const next = reorderDashboardWidgets(widgets, 'manager-license-status', 'today-sales');
+    expect(next?.map((x) => x.widgetId)).toEqual([
+      'manager-kpi-strip',
+      'today-sales',
+      'manager-license-status',
+      'hidden',
+    ]);
+    expect(next?.find((x) => x.widgetId === 'hidden')?.isVisible).toBe(false);
   });
 });

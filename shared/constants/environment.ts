@@ -33,13 +33,51 @@ export function normalizeReleaseStage(raw: string | null | undefined): ReleaseSt
   return null;
 }
 
-function readBuildTimeReleaseStage(): ReleaseStage | null {
-  if (typeof process === 'undefined') return null;
+/**
+ * Raw build-time release stage from public env (Next / Expo / process).
+ * Prefer direct `NEXT_PUBLIC_RELEASE_STAGE` property access so Next.js can inline it.
+ */
+export function readRawReleaseStageFromConfig(): string | undefined {
+  if (typeof process === 'undefined') return undefined;
+  // Literal property access — dynamic `process.env[key]` may stay undefined in the client bundle.
   const fromPublic =
     process.env.NEXT_PUBLIC_RELEASE_STAGE ??
     process.env.EXPO_PUBLIC_RELEASE_STAGE ??
     process.env.RELEASE_STAGE;
-  return normalizeReleaseStage(fromPublic);
+  if (fromPublic === undefined || fromPublic === null) return undefined;
+  return String(fromPublic);
+}
+
+/**
+ * Build-time release stage for FA/POS badges and banner fallbacks.
+ * Reads `NEXT_PUBLIC_RELEASE_STAGE` (or Expo / `RELEASE_STAGE` equivalents).
+ * When unset or invalid → `dev` (safe local-development default).
+ */
+export function getReleaseStageFromConfig(
+  raw: string | null | undefined = readRawReleaseStageFromConfig(),
+): ReleaseStage {
+  return normalizeReleaseStage(raw) ?? 'dev';
+}
+
+/** Operator-facing tag label for a release stage (includes Production). */
+export function getReleaseStageTagLabel(stage: ReleaseStage): string {
+  switch (stage) {
+    case 'dev':
+      return 'DEVELOPMENT';
+    case 'staging':
+      return 'STAGING';
+    case 'canary':
+      return 'CANARY';
+    case 'production':
+      return 'PRODUCTION';
+  }
+}
+
+/** Ant Design Tag color for a release stage badge. */
+export function getReleaseStageTagColor(stage: ReleaseStage): EnvironmentBadgeColor {
+  const kind = getReleaseStageBannerKind(stage);
+  if (kind) return getReleaseStageBannerColor(kind);
+  return 'blue';
 }
 
 export function readEnvironmentSnapshot(
@@ -55,10 +93,8 @@ export function readEnvironmentSnapshot(
   const isProduction = overrides?.isProduction ?? nodeEnv === 'production';
   const isTest = overrides?.isTest ?? rksvEnv === 'TEST';
 
-  let releaseStage: ReleaseStage =
-    overrides?.releaseStage ??
-    readBuildTimeReleaseStage() ??
-    (isDevelopment ? 'dev' : isProduction ? 'production' : 'dev');
+  const releaseStage: ReleaseStage =
+    overrides?.releaseStage ?? getReleaseStageFromConfig();
 
   return {
     isDevelopment,

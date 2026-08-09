@@ -2,6 +2,7 @@
 
 import {
   CopyOutlined,
+  DeleteOutlined,
   DownloadOutlined,
   EyeOutlined,
   HistoryOutlined,
@@ -20,6 +21,7 @@ import {
   Empty,
   Form,
   Input,
+  List,
   Modal,
   Select,
   Space,
@@ -44,6 +46,7 @@ import { FilePreviewModal } from '@/components/ui/FilePreviewModal';
 import { recordDownloadHistory } from '@/features/download-history/api/downloadHistoryApi';
 import { DownloadHistoryPanel } from '@/features/download-history/components/DownloadHistoryPanel';
 import { useExportDownloadNotifications } from '@/hooks/useExportDownloadNotifications';
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useNotify } from '@/hooks/useNotify';
 import { DepExportValidationCard } from '@/features/rksv/dep-export-compliance/DepExportValidationCard';
 import { useCryptoMaterial } from '@/features/rksv/hooks/useCryptoMaterial';
@@ -53,13 +56,20 @@ import {
   type DepExportScheduleItem,
   createDepExportSchedule,
   deactivateDepExportSchedule,
+  deleteDepExportHistory,
   depExportHistoryQueryKey,
   depExportSchedulesQueryKey,
+  downloadDepExportHistoryFile,
   fetchDepExportHistoryBlob,
   fetchDepExportHistoryDetail,
+  isDepExportHistoryCompleted,
+  normalizeDepExportHistoryStatus,
   useDepExportHistory,
+  useDepExportLastExport,
   useDepExportSchedules,
+  useDepExportStatus,
 } from '@/features/rksv/hooks/useDepExportHistory';
+import { ensureDepExportApiErrorTranslations } from '@/features/rksv/depExportApiErrors';
 import { resolveValidationBadgeStatus } from '@/features/rksv/hooks/useDepExportValidation';
 import {
   type CryptoMaterial,
@@ -96,9 +106,13 @@ type ScheduleFormValues = {
 
 const DEFAULT_SCHEDULE_DAY_OF_MONTH = 1;
 const DEFAULT_SCHEDULE_TIME_OF_DAY = '02:00';
+const EXPORT_READY_NOTIFY_KEY = 'dep-export-ready';
+const RECENT_EXPORTS_LIMIT = 5;
 
 const PRUEFTOOL_COMMAND =
   '.\\scripts\\verify-rksv-dep-export.ps1 -DepExportPath "./dep-export.json" -CryptoMaterialPath "./crypto-material.json"';
+
+ensureDepExportApiErrorTranslations();
 
 type DepDownloadPreviewState = {
   fileName: string;
@@ -269,6 +283,7 @@ function DepExportSchedulesTab({
 export function DepExportTestPage() {
   const { t, formatLocale } = useI18n();
   const notify = useNotify();
+  const { notification, modal } = useAntdApp();
   const exportNotify = useExportDownloadNotifications();
   const { tenant } = useTenant();
   const { user } = useAuth();
@@ -307,6 +322,12 @@ export function DepExportTestPage() {
     selectedRegisterId,
     historyPage
   );
+  const { data: recentHistoryData, isLoading: recentHistoryLoading } = useDepExportHistory(
+    selectedRegisterId,
+    1
+  );
+  const { data: depExportStatus } = useDepExportStatus(selectedRegisterId);
+  const { data: lastExport } = useDepExportLastExport(selectedRegisterId);
   const {
     data: schedules,
     isLoading: schedulesLoading,
@@ -356,6 +377,72 @@ export function DepExportTestPage() {
 
   const stats = useMemo(() => computeDepExportStats(exportResult), [exportResult]);
   const previewJson = exportResult ? JSON.stringify(exportResult, null, 2) : '';
+  const recentExports = useMemo(
+    () =>
+      (recentHistoryData?.items ?? [])
+        .filter((row) => row.canDelete !== false)
+        .slice(0, RECENT_EXPORTS_LIMIT),
+    [recentHistoryData?.items]
+  );
+
+  const downloadStoredExport = useCallback(
+    async (exportId: string, fileName?: string | null) => {
+      const name =
+        fileName?.trim() ||
+        `dep-export-${new Date().toISOString().replaceAll(':', '-').replaceAll('.', '-')}.json`;
+      try {
+        await downloadDepExportHistoryFile(exportId, name);
+        notification.destroy(EXPORT_READY_NOTIFY_KEY);
+        notify.successKey('rksvHub.depExportPage.downloadSuccess');
+      } catch (err) {
+        const apiCode =
+          err &&
+          typeof err === 'object' &&
+          'response' in err &&
+          err.response &&
+          typeof err.response === 'object' &&
+          'data' in err.response &&
+          err.response.data &&
+          typeof err.response.data === 'object' &&
+          'code' in err.response.data
+            ? String((err.response.data as { code?: string }).code ?? '')
+            : '';
+        notify.apiError(err, {
+          logContext: 'RKSV.depExport.download',
+          fallbackKey:
+            apiCode === 'RKSV_DEP_EXPORT_EXPIRED'
+              ? 'rksvHub.depExportPage.exportExpired'
+              : 'rksvHub.depExportPage.downloadFailed',
+        });
+      }
+    },
+    [notification, notify]
+  );
+
+  const deleteRecentExport = useCallback(
+    (row: DepExportHistoryItem) => {
+      if (!row.canDelete) return;
+      modal.confirm({
+        title: tp('deleteConfirmTitle'),
+        content: tp('deleteConfirmBody'),
+        okText: tp('deleteButton'),
+        okButtonProps: { danger: true },
+        onOk: async () => {
+          try {
+            await deleteDepExportHistory(row.id);
+            void queryClient.invalidateQueries({ queryKey: ['rksv', 'dep-export', 'history'] });
+            notify.successKey('rksvHub.depExportPage.deleteSuccess');
+          } catch (err) {
+            notify.apiError(err, {
+              logContext: 'RKSV.depExport.delete',
+              fallbackKey: 'rksvHub.depExportPage.deleteFailed',
+            });
+          }
+        },
+      });
+    },
+    [modal, notify, queryClient, tp]
+  );
 
   const buildRequestParams = (): DepExportRequestParams | null => {
     const fromUtc = dateRange?.[0]?.toISOString();
@@ -386,9 +473,39 @@ export function DepExportTestPage() {
         setExportResult(data.dep);
         setExportMeta(data.meta);
         void queryClient.invalidateQueries({
-          queryKey: depExportHistoryQueryKey(selectedRegisterId),
+          queryKey: ['rksv', 'dep-export', 'history'],
         });
-        notify.successKey('rksvHub.depExportPage.exportSuccess');
+        void queryClient.invalidateQueries({
+          queryKey: ['rksv', 'dep-export', 'status'],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ['rksv', 'dep-export', 'last-export'],
+        });
+
+        const exportId = data.meta.exportId ?? data.meta.historyId ?? null;
+        if (exportId) {
+          const readyDescription = data.meta.expiresAt
+            ? `${t('rksvHub.depExportPage.exportReady')} ${t('rksvHub.depExportPage.expiresLabel')}: ${formatDateTime(data.meta.expiresAt, formatLocale)}`
+            : t('rksvHub.depExportPage.exportReady');
+
+          notify.successKey('rksvHub.depExportPage.exportSuccess', undefined, {
+            mode: 'notification',
+            description: readyDescription,
+            duration: 30,
+            key: EXPORT_READY_NOTIFY_KEY,
+            btn: (
+              <Button
+                type="primary"
+                icon={<DownloadOutlined />}
+                onClick={() => void downloadStoredExport(exportId, data.meta.fileName)}
+              >
+                {t('rksvHub.depExportPage.downloadNow')}
+              </Button>
+            ),
+          });
+        } else {
+          notify.successKey('rksvHub.depExportPage.exportSuccess');
+        }
       },
       onError: (error) => {
         notify.apiError(error, {
@@ -487,27 +604,12 @@ export function DepExportTestPage() {
     notify.info('rksvHub.depExportPage.historyParamsLoaded');
   };
 
-  const openHistoryDownloadPreview = (row: DepExportHistoryItem) => {
-    if (!row.hasStoredFile) {
-      notify.info('rksvHub.depExportPage.historyDownloadUnavailable');
-      return;
-    }
-    setDownloadPreview({
-      fileName: row.fileName,
-      sizeBytes: row.fileSizeBytes,
-      createdAt: row.exportedAt,
-      contentSummary: t('common.exportDownload.contentDep', {
-        signatures: row.signatureCount,
-        groups: row.groupCount,
-      }),
-      registerName: row.registerNumber ?? row.cashRegisterId,
-      historyId: row.id,
-    });
-  };
-
   const resolvePreviewBlob = async (preview: DepDownloadPreviewState): Promise<Blob> => {
     if (preview.blob) return preview.blob;
-    if (preview.historyId) return fetchDepExportHistoryBlob(preview.historyId);
+    if (preview.historyId) {
+      const stored = await fetchDepExportHistoryBlob(preview.historyId);
+      return stored.blob;
+    }
     throw new Error('No export payload available');
   };
 
@@ -525,7 +627,7 @@ export function DepExportTestPage() {
           fileType: 'json',
           fileSize: blob.size,
           downloadUrl: downloadPreview.historyId
-            ? `/api/admin/rksv/dep-export/history/${downloadPreview.historyId}/download`
+            ? `/api/admin/rksv/dep-export/download/${downloadPreview.historyId}`
             : undefined,
           sourceKind: downloadPreview.historyId ? 'dep-export' : 'dep-export-live',
           sourceId: downloadPreview.historyId ?? null,
@@ -567,7 +669,7 @@ export function DepExportTestPage() {
           fileType: 'json',
           fileSize: blob.size,
           downloadUrl: downloadPreview.historyId
-            ? `/api/admin/rksv/dep-export/history/${downloadPreview.historyId}/download`
+            ? `/api/admin/rksv/dep-export/download/${downloadPreview.historyId}`
             : undefined,
           sourceKind: downloadPreview.historyId ? 'dep-export' : 'dep-export-live',
           sourceId: downloadPreview.historyId ?? null,
@@ -591,10 +693,6 @@ export function DepExportTestPage() {
     }
   };
 
-  const downloadExport = (row: DepExportHistoryItem) => {
-    openHistoryDownloadPreview(row);
-  };
-
   const viewExport = async (historyId: string) => {
     setViewingHistoryId(historyId);
     try {
@@ -611,16 +709,17 @@ export function DepExportTestPage() {
     }
   };
 
-  const renderHistoryStatusTag = (status: DepExportHistoryItem['status']) => {
+  const renderHistoryStatusTag = (status: DepExportHistoryItem['status'] | number | string) => {
+    const normalized = normalizeDepExportHistoryStatus(status);
     const color =
-      status === 'Completed'
+      normalized === 'Completed'
         ? 'green'
-        : status === 'Failed'
+        : normalized === 'Failed'
           ? 'red'
-          : status === 'Processing'
+          : normalized === 'Processing'
             ? 'blue'
             : 'default';
-    return <Tag color={color}>{status}</Tag>;
+    return <Tag color={color}>{normalized}</Tag>;
   };
 
   const historyColumns: ColumnsType<DepExportHistoryItem> = [
@@ -667,7 +766,12 @@ export function DepExportTestPage() {
       title: tp('historyColumnStatus'),
       dataIndex: 'status',
       key: 'status',
-      render: (status: DepExportHistoryItem['status']) => renderHistoryStatusTag(status),
+      render: (status: DepExportHistoryItem['status'], row) => (
+        <Space size={4} wrap>
+          {renderHistoryStatusTag(status)}
+          {row.isSimulated ? <Tag color="orange">{tp('simulatedBadge')}</Tag> : null}
+        </Space>
+      ),
     },
     {
       title: tp('historyColumnValidation'),
@@ -684,19 +788,35 @@ export function DepExportTestPage() {
       title: tp('historyColumnActions'),
       key: 'actions',
       render: (_, row) => (
-        <Space>
+        <Space wrap>
           <Button
+            type="primary"
+            size="small"
             icon={<DownloadOutlined />}
-            aria-label={tp('historyDownloadStored')}
-            disabled={!row.hasStoredFile}
-            onClick={() => void downloadExport(row)}
-          />
+            disabled={!row.hasStoredFile || !isDepExportHistoryCompleted(row.status)}
+            onClick={() => void downloadStoredExport(row.id, row.fileName)}
+          >
+            {tp('downloadButton')}
+          </Button>
           <Button
+            size="small"
             icon={<EyeOutlined />}
             aria-label={tp('historyViewTitle')}
             loading={viewingHistoryId === row.id}
             onClick={() => void viewExport(row.id)}
           />
+          <Button size="small" onClick={() => applyHistoryEntry(row)}>
+            {tp('historyLoadParams')}
+          </Button>
+          <Button
+            size="small"
+            danger
+            icon={<DeleteOutlined />}
+            disabled={row.canDelete === false}
+            onClick={() => deleteRecentExport(row)}
+          >
+            {tp('deleteButton')}
+          </Button>
         </Space>
       ),
     },
@@ -705,6 +825,30 @@ export function DepExportTestPage() {
   const exportTab = (
     <Card size="small">
       <Space orientation="vertical" size="large" style={{ width: '100%' }}>
+        <div>
+          <Typography.Text type="secondary">{tp('lastExportLabel')}: </Typography.Text>
+          {lastExport?.hasExport ? (
+            <Space size={8} wrap>
+              <Typography.Text strong>
+                {lastExport.formatted ??
+                  (lastExport.lastExportAt
+                    ? formatDateTime(lastExport.lastExportAt, formatLocale)
+                    : '—')}
+              </Typography.Text>
+              {lastExport.isSimulated ? <Tag color="orange">{tp('simulatedBadge')}</Tag> : null}
+              {typeof lastExport.downloadCount === 'number' ? (
+                <Typography.Text type="secondary">
+                  {t('rksvHub.depExportPage.downloadCountLabel', {
+                    count: String(lastExport.downloadCount),
+                  })}
+                </Typography.Text>
+              ) : null}
+            </Space>
+          ) : (
+            <Typography.Text type="secondary">{tp('noExportYet')}</Typography.Text>
+          )}
+        </div>
+
         <div>
           <Typography.Text strong>{tp('cashRegisterLabel')}</Typography.Text>
           <Select
@@ -760,13 +904,27 @@ export function DepExportTestPage() {
           >
             {tp('exportButton')}
           </Button>
+          {exportMeta?.exportId || exportMeta?.historyId ? (
+            <Button
+              type="primary"
+              icon={<DownloadOutlined />}
+              onClick={() =>
+                void downloadStoredExport(
+                  exportMeta.exportId ?? exportMeta.historyId!,
+                  exportMeta.fileName
+                )
+              }
+            >
+              {tp('downloadStoredButton')}
+            </Button>
+          ) : null}
           {exportResult ? (
             <>
               <Button icon={<EyeOutlined />} onClick={() => setFilePreviewOpen(true)}>
                 {t('common.filePreview.open')}
               </Button>
               <Button icon={<DownloadOutlined />} onClick={handleDownload}>
-                {tp('downloadButton')}
+                {tp('downloadLiveButton')}
               </Button>
               <Button icon={<CopyOutlined />} onClick={() => void handleCopy()}>
                 {tp('copyButton')}
@@ -787,6 +945,85 @@ export function DepExportTestPage() {
             </Button>
           ) : null}
         </Space>
+
+        <Card size="small" title={tp('historyTitle')}>
+          {recentHistoryLoading ? (
+            <TableSkeleton rows={3} cols={3} />
+          ) : recentExports.length > 0 ? (
+            <List
+              size="small"
+              dataSource={recentExports}
+              renderItem={(row) => (
+                <List.Item
+                  actions={[
+                    <Button
+                      key="download"
+                      type="link"
+                      icon={<DownloadOutlined />}
+                      disabled={!row.hasStoredFile || !isDepExportHistoryCompleted(row.status)}
+                      onClick={() => void downloadStoredExport(row.id, row.fileName)}
+                    >
+                      {tp('downloadButton')}
+                    </Button>,
+                    <Button
+                      key="delete"
+                      type="link"
+                      danger
+                      icon={<DeleteOutlined />}
+                      disabled={row.canDelete === false}
+                      onClick={() => deleteRecentExport(row)}
+                    >
+                      {tp('deleteButton')}
+                    </Button>,
+                  ]}
+                >
+                  <List.Item.Meta
+                    title={
+                      <Space wrap size={8}>
+                        <Typography.Text>{row.fileName}</Typography.Text>
+                        {renderHistoryStatusTag(row.status)}
+                        {row.isSimulated ? <Tag color="orange">{tp('simulatedBadge')}</Tag> : null}
+                        {!row.hasStoredFile ? (
+                          <Tag>{tp('historyDownloadUnavailable')}</Tag>
+                        ) : null}
+                      </Space>
+                    }
+                    description={
+                      <Space wrap size={8} split={<Typography.Text type="secondary">·</Typography.Text>}>
+                        <Typography.Text type="secondary">
+                          {formatDateTime(row.exportedAt, formatLocale)}
+                        </Typography.Text>
+                        <Typography.Text type="secondary">
+                          {row.registerNumber ?? row.cashRegisterId}
+                        </Typography.Text>
+                        <Typography.Text type="secondary">
+                          {formatBytes(row.fileSizeBytes, formatLocale)}
+                        </Typography.Text>
+                        {row.expiresAt ? (
+                          <Typography.Text type="secondary">
+                            {tp('expiresLabel')}: {formatDateTime(row.expiresAt, formatLocale)}
+                          </Typography.Text>
+                        ) : null}
+                        {typeof row.downloadCount === 'number' && row.downloadCount > 0 ? (
+                          <Typography.Text type="secondary">
+                            {t('rksvHub.depExportPage.downloadCount', {
+                              count: String(row.downloadCount),
+                            })}
+                          </Typography.Text>
+                        ) : null}
+                      </Space>
+                    }
+                  />
+                </List.Item>
+              )}
+            />
+          ) : (
+            <Empty description={tp('noExports')} />
+          )}
+          <Button type="link" style={{ paddingInline: 0, marginTop: 8 }} onClick={() => setActiveTab('history')}>
+            {tp('recentExportsViewAll')}
+          </Button>
+        </Card>
 
         {exportMeta && exportMeta.legacyJwsCount > 0 ? (
           <Alert
@@ -993,6 +1230,17 @@ export function DepExportTestPage() {
         />
       ) : null}
 
+      {(depExportStatus?.isSimulated || exportMeta?.isSimulated) && (
+        <Alert
+          type="warning"
+          showIcon
+          closable
+          style={{ marginBottom: 16 }}
+          title={tp('simulationWarning')}
+          description={tp('simulationDescription')}
+        />
+      )}
+
       <Alert
         type="info"
         showIcon
@@ -1019,10 +1267,14 @@ export function DepExportTestPage() {
               <Space>
                 {viewingHistory?.hasStoredFile ? (
                   <Button
+                    type="primary"
                     icon={<DownloadOutlined />}
-                    onClick={() => viewingHistory && void downloadExport(viewingHistory)}
+                    onClick={() =>
+                      viewingHistory &&
+                      void downloadStoredExport(viewingHistory.id, viewingHistory.fileName)
+                    }
                   >
-                    {tp('historyDownloadStored')}
+                    {tp('downloadButton')}
                   </Button>
                 ) : null}
                 <Button
@@ -1063,7 +1315,12 @@ export function DepExportTestPage() {
                     {formatBytes(viewingHistory.fileSizeBytes, formatLocale)}
                   </Descriptions.Item>
                   <Descriptions.Item label={tp('historyColumnStatus')}>
-                    {renderHistoryStatusTag(viewingHistory.status)}
+                    <Space size={4} wrap>
+                      {renderHistoryStatusTag(viewingHistory.status)}
+                      {viewingHistory.isSimulated ? (
+                        <Tag color="orange">{tp('simulatedBadge')}</Tag>
+                      ) : null}
+                    </Space>
                   </Descriptions.Item>
                   {viewingHistory.errorMessage ? (
                     <Descriptions.Item label={tp('historyColumnError')}>

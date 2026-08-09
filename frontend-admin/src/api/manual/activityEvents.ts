@@ -119,13 +119,107 @@ export type ActivityStreamHandlers = {
   onPing?: () => void;
 };
 
-/** Authenticated SSE via fetch (supports Authorization header). */
+export type ActivityStreamSubscribeOptions = {
+  signal?: AbortSignal;
+  /** Unexpected disconnect retries before giving up. Default 8. */
+  maxRetries?: number;
+  /** Initial reconnect delay in ms. Default 1000. */
+  initialBackoffMs?: number;
+  /** Cap for exponential backoff in ms. Default 30000. */
+  maxBackoffMs?: number;
+};
+
+function isAbortError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+  const name = 'name' in error ? String(error.name) : '';
+  return name === 'AbortError';
+}
+
+function delay(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason instanceof Error ? signal.reason : new DOMException('Aborted', 'AbortError'));
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+
+    const onAbort = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+      reject(signal?.reason instanceof Error ? signal.reason : new DOMException('Aborted', 'AbortError'));
+    };
+
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+/**
+ * Keeps an authenticated activity SSE subscription alive with bounded reconnect.
+ * Stops immediately when `signal` is aborted (component unmount / disabled).
+ */
+export async function subscribeActivityStream(
+  handlers: ActivityStreamHandlers,
+  options?: ActivityStreamSubscribeOptions
+): Promise<void> {
+  const signal = options?.signal;
+  const maxRetries = options?.maxRetries ?? 8;
+  const initialBackoffMs = options?.initialBackoffMs ?? 1_000;
+  const maxBackoffMs = options?.maxBackoffMs ?? 30_000;
+
+  let attempt = 0;
+
+  while (!signal?.aborted) {
+    try {
+      await connectActivityStream(handlers, signal);
+      if (signal?.aborted) {
+        return;
+      }
+
+      // Server closed the stream cleanly — reconnect with backoff.
+      attempt += 1;
+      if (attempt > maxRetries) {
+        return;
+      }
+    } catch (error) {
+      if (signal?.aborted || isAbortError(error)) {
+        return;
+      }
+
+      attempt += 1;
+      if (attempt > maxRetries) {
+        throw error;
+      }
+    }
+
+    const backoffMs = Math.min(maxBackoffMs, initialBackoffMs * 2 ** (attempt - 1));
+    try {
+      await delay(backoffMs, signal);
+    } catch (error) {
+      if (signal?.aborted || isAbortError(error)) {
+        return;
+      }
+      throw error;
+    }
+  }
+}
+
+/** Authenticated SSE via fetch (supports Authorization header). Single connection attempt. */
 export async function connectActivityStream(
   handlers: ActivityStreamHandlers,
   signal?: AbortSignal
 ): Promise<void> {
   if (!API_BASE) {
     throw new Error('NEXT_PUBLIC_API_BASE_URL is not configured.');
+  }
+
+  if (signal?.aborted) {
+    return;
   }
 
   const headers: Record<string, string> = {
@@ -140,11 +234,19 @@ export async function connectActivityStream(
     headers[TENANT_HTTP_HEADER] = tenantSlug;
   }
 
-  const response = await fetch(`${API_BASE}/api/admin/activities/stream`, {
-    method: 'GET',
-    headers,
-    signal,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}/api/admin/activities/stream`, {
+      method: 'GET',
+      headers,
+      signal,
+    });
+  } catch (error) {
+    if (signal?.aborted || isAbortError(error)) {
+      return;
+    }
+    throw error;
+  }
 
   if (!response.ok) {
     throw new Error(`Activity stream failed: ${response.status}`);
@@ -158,36 +260,49 @@ export async function connectActivityStream(
   const decoder = new TextDecoder();
   let buffer = '';
 
-  while (!signal?.aborted) {
-    const { done, value } = await reader.read();
-    if (done) {
-      break;
-    }
+  try {
+    while (!signal?.aborted) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
 
-    buffer += decoder.decode(value, { stream: true });
-    const frames = buffer.split('\n\n');
-    buffer = frames.pop() ?? '';
+      buffer += decoder.decode(value, { stream: true });
+      const frames = buffer.split('\n\n');
+      buffer = frames.pop() ?? '';
 
-    for (const frame of frames) {
-      if (!frame.trim()) {
-        continue;
-      }
-      const parsed = parseSseFrame(frame);
-      if (!parsed) {
-        continue;
-      }
-      if (parsed.event === 'ping') {
-        handlers.onPing?.();
-        continue;
-      }
-      if (parsed.event === 'activity' && parsed.data) {
-        try {
-          const activity = JSON.parse(parsed.data) as ActivityDto;
-          handlers.onActivity(activity);
-        } catch {
-          // ignore malformed frames
+      for (const frame of frames) {
+        if (!frame.trim()) {
+          continue;
+        }
+        const parsed = parseSseFrame(frame);
+        if (!parsed) {
+          continue;
+        }
+        if (parsed.event === 'ping') {
+          handlers.onPing?.();
+          continue;
+        }
+        if (parsed.event === 'activity' && parsed.data) {
+          try {
+            const activity = JSON.parse(parsed.data) as ActivityDto;
+            handlers.onActivity(activity);
+          } catch {
+            // ignore malformed frames
+          }
         }
       }
+    }
+  } catch (error) {
+    if (signal?.aborted || isAbortError(error)) {
+      return;
+    }
+    throw error;
+  } finally {
+    try {
+      await reader.cancel();
+    } catch {
+      // Reader may already be closed after abort/disconnect.
     }
   }
 }

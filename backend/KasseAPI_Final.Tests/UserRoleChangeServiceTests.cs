@@ -3,12 +3,15 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Caching;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -60,6 +63,34 @@ public sealed class UserRoleChangeServiceTests
 
         Assert.Null(error);
         Assert.False(result.RoleChanged);
+    }
+
+    [Fact]
+    public async Task UpdateUserRole_ThenPermissionCacheIsInvalidated()
+    {
+        await using var db = CreateDb();
+        await SeedRolesAsync(db);
+        var userManager = CreateUserManager(db);
+        var user = await CreateUserAsync(userManager, Roles.Manager);
+        var expectedKey = CacheKeys.Format(CacheKeys.UserPermissions, user.Id);
+
+        var cache = new Mock<ICacheService>();
+        cache.Setup(c => c.RemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var service = CreateService(db, userManager, cache: cache.Object);
+        var (result, error) = await service.ChangeUserRoleAsync(
+            user,
+            Roles.Cashier,
+            actorUserId: "actor-1",
+            actorRole: Roles.SuperAdmin,
+            tenantIdForAudit: null);
+
+        Assert.Null(error);
+        Assert.True(result.RoleChanged);
+        cache.Verify(
+            c => c.RemoveAsync(expectedKey, It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -137,14 +168,22 @@ public sealed class UserRoleChangeServiceTests
         AppDbContext db,
         UserManager<ApplicationUser> userManager,
         Mock<IAuditLogService>? audit = null,
-        Mock<IUserSessionInvalidation>? sessionInvalidation = null)
+        Mock<IUserSessionInvalidation>? sessionInvalidation = null,
+        ICacheService? cache = null)
     {
         return new UserRoleChangeService(
             userManager,
             (audit ?? CreateAuditMock()).Object,
             (sessionInvalidation ?? new Mock<IUserSessionInvalidation>()).Object,
+            cache ?? CreateMemoryCacheService(),
             Mock.Of<ILogger<UserRoleChangeService>>());
     }
+
+    private static ICacheService CreateMemoryCacheService() =>
+        new MemoryCacheService(
+            new MemoryCache(new MemoryCacheOptions()),
+            NullLogger<MemoryCacheService>.Instance,
+            new KasseAPI_Final.Services.Metrics.CacheMetricsService());
 
     private static TenantUserService CreateTenantUserService(
         AppDbContext db,
@@ -156,6 +195,7 @@ public sealed class UserRoleChangeServiceTests
             userManager,
             auditMock.Object,
             Mock.Of<IUserSessionInvalidation>(),
+            CreateMemoryCacheService(),
             Mock.Of<ILogger<UserRoleChangeService>>());
 
         return new TenantUserService(

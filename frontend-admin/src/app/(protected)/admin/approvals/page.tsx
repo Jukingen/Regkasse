@@ -19,7 +19,7 @@ import { useAntdApp } from '@/hooks/useAntdApp';
 import { useNotify } from '@/hooks/useNotify';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 
 const PENDING_APPROVALS_QUERY_KEY = ['admin', 'approvals', 'pending'] as const;
 
@@ -31,11 +31,9 @@ export default function ApprovalsPage() {
   const queryClient = useQueryClient();
   const [detail, setDetail] = useState<ApprovalRequestDto | null>(null);
 
-  const breadcrumbs = [
-    adminOverviewCrumb(t),
-    { title: t('nav.administration'), href: '/admin' },
-    { title: t('common.approvals.pageTitle') },
-  ];
+  const breadcrumbs = buildPlatformAdminBreadcrumbs(t, 'securityTse', {
+    title: t('common.approvals.pageTitle'),
+  });
 
   const { data: approvals = [], isLoading, isError, refetch } = useQuery({
     queryKey: PENDING_APPROVALS_QUERY_KEY,

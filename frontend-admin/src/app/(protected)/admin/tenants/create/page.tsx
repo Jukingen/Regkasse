@@ -27,7 +27,7 @@ import {
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
 import { useI18n } from '@/i18n';
-import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
 
 export default function SuperAdminCreateTenantPage() {
@@ -81,12 +81,10 @@ export default function SuperAdminCreateTenantPage() {
     <AdminPageShell>
       <AdminPageHeader
         title={t('tenants.create.title')}
-        breadcrumbs={[
-          adminOverviewCrumb(t),
-          { title: t(ADMIN_NAV_LABEL_KEYS.settingsHub), href: '/settings' },
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'administration', [
           { title: t('tenants.page.title'), href: '/admin/tenants' },
-          { title: t('tenants.create.title'), href: '/admin/tenants/create' },
-        ]}
+          { title: t('tenants.create.title') },
+        ])}
         actions={
           <Link href="/admin/tenants">
             <Button icon={<ArrowLeftOutlined />}>{t('tenants.page.title')}</Button>

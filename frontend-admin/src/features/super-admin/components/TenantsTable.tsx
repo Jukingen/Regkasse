@@ -39,7 +39,7 @@ import { useAntdApp } from '@/hooks/useAntdApp';
 import { useKeyboardShortcutListener } from '@/hooks/useKeyboardShortcutListener';
 import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
 import { useI18n } from '@/i18n';
-import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
 import { KEYBOARD_SHORTCUT_EVENTS } from '@/shared/keyboardShortcuts';
 
@@ -260,11 +260,9 @@ export function TenantsTable() {
       {impersonationRedirecting ? <ImpersonationRedirectOverlay /> : null}
       <AdminPageHeader
         title={t('tenants.page.title')}
-        breadcrumbs={[
-          adminOverviewCrumb(t),
-          { title: t(ADMIN_NAV_LABEL_KEYS.settingsHub), href: '/settings' },
-          { title: t('tenants.page.title'), href: '/admin/tenants' },
-        ]}
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'administration', {
+          title: t('tenants.page.title'),
+        })}
         actions={
           <Tooltip title={isMaintenanceMode ? maintenanceDisabledTooltip : undefined}>
             <span>

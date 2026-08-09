@@ -75,15 +75,6 @@ export function PasswordViewModal({ open, userId, userEmail, onClose }: Password
         <Button key="close" onClick={onClose}>
           {t('common.buttons.close')}
         </Button>,
-        <Button
-          key="copy"
-          type="primary"
-          icon={<CopyOutlined />}
-          onClick={() => void handleCopy()}
-          disabled={!password}
-        >
-          {t('tenants.provisioning.copyPassword')}
-        </Button>,
       ]}
     >
       <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
@@ -104,8 +95,16 @@ export function PasswordViewModal({ open, userId, userEmail, onClose }: Password
           </Button>
         ) : (
           <Space.Compact style={{ width: '100%' }}>
-            <Input value={password} readOnly style={{ fontFamily: 'monospace', fontSize: 16 }} />
-            <Button onClick={() => void handleCopy()}>
+            <Input
+              value={password}
+              readOnly
+              style={{ fontFamily: 'monospace', fontSize: 16 }}
+            />
+            <Button
+              type="primary"
+              icon={<CopyOutlined />}
+              onClick={() => void handleCopy()}
+            >
               {t('tenants.provisioning.copyPassword')}
             </Button>
           </Space.Compact>

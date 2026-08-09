@@ -82,7 +82,7 @@ import {
 } from '@/features/users/utils/roleDisplayLabel';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n/I18nProvider';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { useUsersPolicy } from '@/shared/auth/usersPolicy';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 
@@ -527,7 +527,9 @@ export default function UsersPage() {
       <AdminPageShell>
         <AdminPageHeader
           title={t('users.page.title')}
-          breadcrumbs={[adminOverviewCrumb(t), { title: t('users.page.title') }]}
+          breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'administration', {
+            title: t('users.page.title'),
+          })}
         />
         <Alert
           type="warning"
@@ -544,15 +546,16 @@ export default function UsersPage() {
       {!isSuperAdminLayout ? <AccessSecondaryNav /> : null}
       <AdminPageHeader
         title={t('users.page.title')}
-        breadcrumbs={[
-          adminOverviewCrumb(t),
-          ...(isSuperAdminLayout
-            ? [{ title: t('users.page.title') }]
+        breadcrumbs={buildPlatformAdminBreadcrumbs(
+          t,
+          'administration',
+          isSuperAdminLayout
+            ? { title: t('users.page.title') }
             : [
                 { title: t('access.hub.pageTitle'), href: '/admin/access' },
                 { title: t('users.page.title') },
-              ]),
-        ]}
+              ]
+        )}
         actions={
           <Space wrap>
             {policy.canCreateRole && (

@@ -234,7 +234,15 @@ const createAxiosInstance = () => {
       }
       if (tenantSlug) {
         config.headers = config.headers ?? {};
-        config.headers[TENANT_HTTP_HEADER] = tenantSlug;
+        // Preserve an explicit per-request override (e.g. Super Admin TSE backup modal).
+        const existingTenantHeader = config.headers[TENANT_HTTP_HEADER];
+        const hasExplicitTenant =
+          typeof existingTenantHeader === 'string'
+            ? existingTenantHeader.trim().length > 0
+            : existingTenantHeader != null && String(existingTenantHeader).trim().length > 0;
+        if (!hasExplicitTenant) {
+          config.headers[TENANT_HTTP_HEADER] = tenantSlug;
+        }
         if (isDev && config.url) {
           const params = config.params ?? {};
           if (typeof params === 'object' && params !== null && !Array.isArray(params)) {

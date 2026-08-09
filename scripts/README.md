@@ -221,9 +221,13 @@ Requires JDK 17+ for Prüftool scripts. See `docs/DEP_EXPORT_DEVELOPMENT.md`, `A
 
 | Script | Purpose |
 |--------|---------|
+| [`ops/preflight-production.sh`](ops/preflight-production.sh) | Production host checks (pg_dump, backup dirs, env hints) |
+| [`ops/deploy-production.sh`](ops/deploy-production.sh) | Confirm-gated publish + migrate + systemd restart + smoke |
 | [`prepare-rollback-backup.sh`](prepare-rollback-backup.sh) | Pre-deploy backup prep |
 | [`rollback-production.sh`](rollback-production.sh) | Production rollback helper |
 | [`document-rollback.sh`](document-rollback.sh) | Rollback documentation helper |
+
+**Runbook:** [`docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md`](../docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md).
 
 **Do not** use these to roll back EF migrations casually. Prefer forward-fix migrations. See `docs/` backup/restore hubs for data restore policy (no production restore via API).
 

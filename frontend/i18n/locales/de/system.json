@@ -13,9 +13,17 @@
     "modalTitle": "Systemwartung",
     "windowLabel": "Wartungsfenster:",
     "countdownLabel": "Zeit bis zur Wartung:",
+    "countdownEndsLabel": "Voraussichtliche Restdauer",
     "forceNotice": "Dieses Wartungsfenster kann nicht geschlossen werden. Das System ist vorübergehend möglicherweise nicht verfügbar.",
     "starts": "Beginn",
+    "scheduledEnd": "Geplantes Ende",
+    "note": "Vielen Dank für Ihr Verständnis.",
     "dismiss": "Schließen",
-    "paymentBlocked": "Zahlungen sind während der Systemwartung vorübergehend deaktiviert. Bitte versuchen Sie es später erneut."
+    "paymentBlocked": "Zahlungen sind während der Systemwartung vorübergehend deaktiviert. Bitte versuchen Sie es später erneut.",
+    "superAdminBannerTitle": "Wartungsmodus ist aktiv",
+    "superAdminBannerDescription": "System wird gewartet. Sie können als Super-Administrator weiterarbeiten.",
+    "endMaintenance": "Wartung beenden",
+    "disabling": "Wird beendet…",
+    "endFailed": "Wartung konnte nicht beendet werden. Bitte erneut versuchen."
   }
 }

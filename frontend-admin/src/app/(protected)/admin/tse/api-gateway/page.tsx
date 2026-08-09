@@ -31,7 +31,7 @@ import {
 import type { TseGatewayEndpoint } from '@/features/tse-api-gateway/types';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
 
@@ -186,7 +186,7 @@ export default function TseApiGatewayPage() {
     <>
       <AdminPageHeader
         title={t('tseApiGateway.title')}
-        breadcrumbs={[adminOverviewCrumb(t), { title: t('tseApiGateway.title') }]}
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'securityTse', { title: t('tseApiGateway.title') })}
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
           {t('tseApiGateway.subtitle')}

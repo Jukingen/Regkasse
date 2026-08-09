@@ -57,6 +57,8 @@ public class AuditLogControllerGetUserAuditLogsTests
         var mock = new Mock<IActorDisplayNameResolver>();
         mock.Setup(x => x.ResolveAsync(It.IsAny<IList<string>>()))
             .ReturnsAsync(new Dictionary<string, string>());
+        mock.Setup(x => x.ResolveLoginLabelsAsync(It.IsAny<IList<string>>()))
+            .ReturnsAsync(new Dictionary<string, string>());
         return mock.Object;
     }
 

@@ -26,6 +26,7 @@ public sealed class BillingService : IBillingService
     private readonly IInvoicePdfGenerator _invoicePdfGenerator;
     private readonly IInvoiceNumberGenerator _invoiceNumberGenerator;
     private readonly BillingBackupConfig _backupConfig;
+    private readonly ILicenseStatusCache _licenseStatusCache;
     private readonly ILogger<BillingService> _logger;
 
     public BillingService(
@@ -37,6 +38,7 @@ public sealed class BillingService : IBillingService
         IInvoicePdfGenerator invoicePdfGenerator,
         IInvoiceNumberGenerator invoiceNumberGenerator,
         IOptions<BillingBackupConfig> backupConfig,
+        ILicenseStatusCache licenseStatusCache,
         ILogger<BillingService> logger)
     {
         _dbContext = dbContext;
@@ -47,6 +49,7 @@ public sealed class BillingService : IBillingService
         _invoicePdfGenerator = invoicePdfGenerator;
         _invoiceNumberGenerator = invoiceNumberGenerator;
         _backupConfig = backupConfig.Value;
+        _licenseStatusCache = licenseStatusCache;
         _logger = logger;
     }
 
@@ -169,6 +172,14 @@ public sealed class BillingService : IBillingService
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
             await transaction.CommitAsync(ct).ConfigureAwait(false);
 
+            // Invalidate after commit so concurrent readers never see a stale cached status
+            // while the transaction is still open (Cache-Aside write path).
+            await InvalidateLicenseCacheAsync(request.TenantId, ct).ConfigureAwait(false);
+            _logger.LogInformation(
+                "License status cache invalidated after sale for tenant {TenantId} ({TenantSlug})",
+                request.TenantId,
+                tenant.Slug);
+
             await _billingAudit.LogLicenseSoldAsync(sale, soldByUserId, ipAddress: null, cancellationToken: ct)
                 .ConfigureAwait(false);
 
@@ -191,6 +202,12 @@ public sealed class BillingService : IBillingService
             throw;
         }
     }
+
+    /// <summary>
+    /// Drops cached license status for <paramref name="tenantId"/> (<c>license_status_{tenantId}</c>).
+    /// </summary>
+    private Task InvalidateLicenseCacheAsync(Guid tenantId, CancellationToken ct = default) =>
+        _licenseStatusCache.InvalidateLicenseCacheAsync(tenantId, ct);
 
     public async Task<LicenseSaleResponse> GetLicenseSaleAsync(
         Guid saleId,
@@ -316,6 +333,8 @@ public sealed class BillingService : IBillingService
 
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
             await transaction.CommitAsync(ct).ConfigureAwait(false);
+
+            await InvalidateLicenseCacheAsync(sale.TenantId, ct).ConfigureAwait(false);
 
             await _billingAudit.LogLicenseCancelledAsync(sale, cancelledByUserId, reason, ipAddress: null, cancellationToken: ct)
                 .ConfigureAwait(false);

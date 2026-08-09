@@ -10,6 +10,10 @@ export {
   getReleaseStageBannerColor,
   getReleaseStageBannerKind,
   getReleaseStageBannerLabel,
+  getReleaseStageFromConfig,
+  getReleaseStageTagColor,
+  getReleaseStageTagLabel,
   normalizeReleaseStage,
   readEnvironmentSnapshot,
+  readRawReleaseStageFromConfig,
 } from '../../../../shared/constants/environment';

@@ -1,7 +1,9 @@
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Logging;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
+using KasseAPI_Final.Security;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
@@ -156,9 +158,11 @@ namespace KasseAPI_Final.Services
         /// <summary>Read-only audit log queries — append-only stream is never mutated on read paths.</summary>
         private IQueryable<AuditLog> AuditLogsReadOnly => _context.AuditLogs.AsNoTracking();
 
-        /// <summary>Read-only list queries with actor Identity user for DTO user fields.</summary>
-        private IQueryable<AuditLog> AuditLogsReadOnlyWithUser =>
-            AuditLogsReadOnly.Include(a => a.User);
+        /// <summary>
+        /// Same as <see cref="AuditLogsReadOnly"/>. AuditLog.User is Ignore()'d in EF (no AspNetUsers join);
+        /// resolve actor display names via <see cref="IActorDisplayNameResolver"/> after materialization.
+        /// </summary>
+        private IQueryable<AuditLog> AuditLogsReadOnlyWithUser => AuditLogsReadOnly;
 
         /// <summary>
         /// Log payment operations with comprehensive details
@@ -216,15 +220,17 @@ namespace KasseAPI_Final.Services
                 _context.AuditLogs.Add(auditLog);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Payment audit log created: {Action} on {EntityType} by user {UserId}",
-                    action, entityType, userId);
+                var actorLabel = ResolveClaimLoginLabel(httpContext, userId);
+                _logger.LogInformation(
+                    "Payment audit log created: {Action} on {EntityType} by user: {UserEmail} ({UserId})",
+                    action, entityType, actorLabel, LogIdFormatting.ShortId(userId));
 
                 return auditLog;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create payment audit log for action {Action} by user {UserId}",
-                    action, userId);
+                _logger.LogError(ex, "Failed to create payment audit log for action {Action} by user: {UserEmail} ({UserId})",
+                    action, ResolveClaimLoginLabel(_httpContextAccessor.HttpContext, userId), LogIdFormatting.ShortId(userId));
                 throw;
             }
         }
@@ -284,15 +290,20 @@ namespace KasseAPI_Final.Services
                 _context.AuditLogs.Add(auditLog);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Entity change audit log created: {Action} on {EntityType} {EntityId} by user {UserId}",
-                    action, entityType, entityId, userId);
+                var actorLabel = ResolveClaimLoginLabel(httpContext, userId);
+                _logger.LogInformation(
+                    "Entity change audit log created: {Action} on {EntityType} {EntityId} by user: {UserEmail} ({UserId})",
+                    action, entityType, entityId, actorLabel, LogIdFormatting.ShortId(userId));
 
                 return auditLog;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create entity change audit log for action {Action} on {EntityType} {EntityId} by user {UserId}",
-                    action, entityType, entityId, userId);
+                _logger.LogError(ex,
+                    "Failed to create entity change audit log for action {Action} on {EntityType} {EntityId} by user: {UserEmail} ({UserId})",
+                    action, entityType, entityId,
+                    ResolveClaimLoginLabel(_httpContextAccessor.HttpContext, userId),
+                    LogIdFormatting.ShortId(userId));
                 throw;
             }
         }
@@ -359,15 +370,20 @@ namespace KasseAPI_Final.Services
                 _context.AuditLogs.Add(auditLog);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("System operation audit log created: {Action} on {EntityType} by user {UserId}",
-                    action, entityType, userId);
+                var actorLabel = ResolveClaimLoginLabel(httpContext, userId);
+                _logger.LogInformation(
+                    "System operation audit log created: {Action} on {EntityType} by user: {UserEmail} ({UserId})",
+                    action, entityType, actorLabel, LogIdFormatting.ShortId(userId));
 
                 return auditLog;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create system operation audit log for action {Action} on {EntityType} by user {UserId}",
-                    action, entityType, userId);
+                _logger.LogError(ex,
+                    "Failed to create system operation audit log for action {Action} on {EntityType} by user: {UserEmail} ({UserId})",
+                    action, entityType,
+                    ResolveClaimLoginLabel(_httpContextAccessor.HttpContext, userId),
+                    LogIdFormatting.ShortId(userId));
                 throw;
             }
         }
@@ -425,15 +441,20 @@ namespace KasseAPI_Final.Services
                 _context.AuditLogs.Add(auditLog);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("User activity audit log created: {Action} by user {UserId}",
-                    action, userId);
+                var actorLabel = ResolveClaimLoginLabel(httpContext, userId);
+                _logger.LogInformation(
+                    "User activity audit log created: {Action} by user: {UserEmail} ({UserId})",
+                    action, actorLabel, LogIdFormatting.ShortId(userId));
 
                 return auditLog;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create user activity audit log for action {Action} by user {UserId}",
-                    action, userId);
+                _logger.LogError(ex,
+                    "Failed to create user activity audit log for action {Action} by user: {UserEmail} ({UserId})",
+                    action,
+                    ResolveClaimLoginLabel(_httpContextAccessor.HttpContext, userId),
+                    LogIdFormatting.ShortId(userId));
                 throw;
             }
         }
@@ -494,15 +515,38 @@ namespace KasseAPI_Final.Services
             var requestData = new { targetUserId, reason };
 
             string? actorDisplayName = null;
+            string? actorLoginLabel = null;
+            string? targetLoginLabel = null;
             try
             {
-                var names = await _actorDisplayNameResolver.ResolveAsync(new List<string> { actorUserId });
-                names.TryGetValue(actorUserId, out actorDisplayName);
+                var resolveIds = new List<string>(capacity: 2);
+                if (!string.IsNullOrWhiteSpace(actorUserId))
+                    resolveIds.Add(actorUserId);
+                if (!string.IsNullOrWhiteSpace(targetUserId)
+                    && !string.Equals(targetUserId, actorUserId, StringComparison.OrdinalIgnoreCase))
+                    resolveIds.Add(targetUserId);
+
+                if (resolveIds.Count > 0)
+                {
+                    var names = await _actorDisplayNameResolver.ResolveAsync(resolveIds).ConfigureAwait(false);
+                    names.TryGetValue(actorUserId, out actorDisplayName);
+
+                    var loginLabels = await _actorDisplayNameResolver.ResolveLoginLabelsAsync(resolveIds)
+                        .ConfigureAwait(false);
+                    loginLabels.TryGetValue(actorUserId, out actorLoginLabel);
+                    loginLabels.TryGetValue(targetUserId, out targetLoginLabel);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Could not resolve actor display name for {UserId}", actorUserId);
+                _logger.LogWarning(ex, "Could not resolve actor display name for {UserId}",
+                    LogIdFormatting.ShortId(actorUserId));
             }
+
+            actorLoginLabel ??= ResolveClaimLoginLabel(httpContext, actorUserId);
+            targetLoginLabel ??= string.Equals(targetUserId, actorUserId, StringComparison.OrdinalIgnoreCase)
+                ? actorLoginLabel
+                : null;
 
             // Structured diff: only changed fields (whitelist). Do not log unchanged values.
             var changeList = UserAuditDiffHelper.BuildStructuredChanges(oldValues, newValues);
@@ -567,8 +611,13 @@ namespace KasseAPI_Final.Services
             _context.AuditLogs.Add(auditLog);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("User lifecycle audit: {ActionType} on user {TargetUserId} by {ActorUserId}",
-                actionType, targetUserId, actorUserId);
+            _logger.LogInformation(
+                "User lifecycle audit: {ActionType} on user: {UserEmail} ({UserId}) by: {ActorEmail} ({ActorId})",
+                actionType,
+                targetLoginLabel ?? "unknown",
+                LogIdFormatting.ShortId(targetUserId),
+                actorLoginLabel ?? "unknown",
+                LogIdFormatting.ShortId(actorUserId));
 
             return auditLog;
         }
@@ -637,6 +686,7 @@ namespace KasseAPI_Final.Services
                 AuditEventType.DeploymentFailed => AuditLogActions.DEPLOYMENT_FAILED,
                 AuditEventType.DeploymentRollback => AuditLogActions.DEPLOYMENT_ROLLBACK,
                 AuditEventType.DeploymentComplianceApproved => AuditLogActions.DEPLOYMENT_COMPLIANCE_APPROVED,
+                AuditEventType.SystemCacheCleared => AuditLogActions.SYSTEM_CACHE_CLEARED,
                 _ => AuditLogActions.USER_UPDATE
             };
         }
@@ -691,6 +741,7 @@ namespace KasseAPI_Final.Services
                 AuditLogActions.DEPLOYMENT_FAILED => AuditEventType.DeploymentFailed,
                 AuditLogActions.DEPLOYMENT_ROLLBACK => AuditEventType.DeploymentRollback,
                 AuditLogActions.DEPLOYMENT_COMPLIANCE_APPROVED => AuditEventType.DeploymentComplianceApproved,
+                AuditLogActions.SYSTEM_CACHE_CLEARED => AuditEventType.SystemCacheCleared,
                 AuditLogActions.MANUAL_RESTORE_REQUEST_CREATED => AuditEventType.RestoreRequested,
                 AuditLogActions.MANUAL_RESTORE_REQUEST_APPROVED => AuditEventType.RestoreApproved,
                 AuditLogActions.MANUAL_RESTORE_REQUEST_REJECTED => AuditEventType.RestoreRejected,
@@ -737,8 +788,8 @@ namespace KasseAPI_Final.Services
                 if (includeTotalCount)
                     total = await filtered.CountAsync();
 
+                // Do not Include(a => a.User): navigation is Ignore()'d on AuditLog (see AppDbContext).
                 var query = filtered
-                    .Include(a => a.User)
                     .OrderByDescending(a => a.Timestamp)
                     .ThenByDescending(a => a.Id);
 
@@ -1208,6 +1259,28 @@ namespace KasseAPI_Final.Services
             return _tenantAccessor.TenantId is Guid ambientTenantId && ambientTenantId != Guid.Empty
                 ? ambientTenantId
                 : SystemTenantId;
+        }
+
+        /// <summary>
+        /// Prefer JWT email when the claim user id matches the audited user; otherwise <c>unknown</c>
+        /// (callers may replace via <see cref="IActorDisplayNameResolver.ResolveLoginLabelsAsync"/>).
+        /// </summary>
+        private static string ResolveClaimLoginLabel(HttpContext? httpContext, string? userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+                return "system";
+
+            var principal = httpContext?.User;
+            if (principal?.Identity?.IsAuthenticated != true)
+                return "unknown";
+
+            var claimUserId = principal.GetActorUserId();
+            if (!string.IsNullOrWhiteSpace(claimUserId)
+                && !string.Equals(claimUserId, userId, StringComparison.OrdinalIgnoreCase))
+                return "unknown";
+
+            var email = principal.GetActorEmail();
+            return string.IsNullOrWhiteSpace(email) ? "unknown" : email.Trim();
         }
     }
 }

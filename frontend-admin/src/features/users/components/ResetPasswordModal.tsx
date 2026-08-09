@@ -51,7 +51,10 @@ export function ResetPasswordModal({ open, user, onClose, onSuccess }: ResetPass
   };
 
   const copyPassword = async () => {
-    if (!generatedPassword) return;
+    if (!generatedPassword) {
+      message.error(t('users.password.noPasswordToCopy'));
+      return;
+    }
     const copied = await copyTextToClipboard(generatedPassword);
     if (copied) {
       message.success(t('tenants.provisioning.copySuccess'));

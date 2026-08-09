@@ -94,6 +94,7 @@ public sealed class TenantLicenseServiceTests
 
         BillingService? billingService = null;
         var pdfGenerator = CreateInvoicePdfGenerator(_db, environment.Object, () => billingService!);
+        var licenseStatusCache = BillingTestDoubles.CreateLicenseStatusCache();
         billingService = new BillingService(
             _db,
             new LicenseKeyGenerator(),
@@ -103,6 +104,7 @@ public sealed class TenantLicenseServiceTests
             pdfGenerator,
             new InvoiceNumberGenerator(_db),
             BillingTestDoubles.DisabledBackupOptions,
+            licenseStatusCache,
             NullLogger<BillingService>.Instance);
 
         return new TenantLicenseService(
@@ -110,6 +112,7 @@ public sealed class TenantLicenseServiceTests
             billingService,
             new LicenseKeyGenerator(),
             BillingTestDoubles.CreateAuditService(_db),
+            licenseStatusCache,
             NullLogger<TenantLicenseService>.Instance);
     }
 

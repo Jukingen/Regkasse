@@ -36,7 +36,11 @@ export function applyAxiosRequestAuthHeaders<T extends AxiosRequestConfig>(
 
   const tenantSlug = input.tenantSlug?.trim();
   if (tenantSlug) {
-    headers.set(TENANT_HTTP_HEADER, tenantSlug);
+    // Preserve an explicit per-request override (e.g. Super Admin TSE backup modal).
+    const existingTenantHeader = readAxiosHeader(headers, TENANT_HTTP_HEADER)?.trim();
+    if (!existingTenantHeader) {
+      headers.set(TENANT_HTTP_HEADER, tenantSlug);
+    }
 
     if (input.injectDevTenantQuery) {
       const params = config.params ?? {};

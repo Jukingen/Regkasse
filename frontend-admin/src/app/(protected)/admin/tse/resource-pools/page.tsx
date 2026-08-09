@@ -37,10 +37,12 @@ import type {
   CreateTseResourcePoolRequest,
   TseResourcePool,
 } from '@/features/tse-resource-pools/types';
+import { TseActiveTenantTag } from '@/features/tse-shared/components/TseTenantContextUi';
+import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
 import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
 
@@ -52,6 +54,7 @@ export default function TseResourcePoolsPage() {
   const { hasPermission } = usePermissions();
   const allowed = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
   const queryClient = useQueryClient();
+  const { tenantId: contextTenantId } = useTsePageTenant();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [assignPoolId, setAssignPoolId] = useState<string | null>(null);
@@ -202,7 +205,16 @@ export default function TseResourcePoolsPage() {
           <Button size="small" onClick={() => setDetailsPoolId(record.id)}>
             {t('tseResourcePools.actionDetails')}
           </Button>
-          <Button size="small" onClick={() => setAssignPoolId(record.id)}>
+          <Button
+            size="small"
+            onClick={() => {
+              assignForm.setFieldsValue({
+                tenantId: contextTenantId,
+                reservedCapacity: 1,
+              });
+              setAssignPoolId(record.id);
+            }}
+          >
             {t('tseResourcePools.actionAssign')}
           </Button>
         </Space>
@@ -226,11 +238,14 @@ export default function TseResourcePoolsPage() {
     <>
       <AdminPageHeader
         title={t('tseResourcePools.title')}
-        breadcrumbs={[adminOverviewCrumb(t), { title: t('tseResourcePools.title') }]}
-        actions={
-          <Button type="primary" onClick={() => setCreateOpen(true)}>
-            {t('tseResourcePools.createButton')}
-          </Button>
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'securityTse', { title: t('tseResourcePools.title') })}
+        extra={
+          <Space wrap>
+            <TseActiveTenantTag />
+            <Button type="primary" onClick={() => setCreateOpen(true)}>
+              {t('tseResourcePools.createButton')}
+            </Button>
+          </Space>
         }
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>

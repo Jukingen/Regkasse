@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { App } from 'antd';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -54,6 +54,9 @@ describe('BackupComplianceDashboard', () => {
       },
       isLoading: false,
       isError: false,
+      error: null,
+      refetch: vi.fn(),
+      isFetching: false,
     });
 
     render(
@@ -64,5 +67,38 @@ describe('BackupComplianceDashboard', () => {
 
     expect(screen.getByText('backupDr.compliance.warningTitle')).toBeInTheDocument();
     expect(screen.getByText('backupDr.compliance.listTitle')).toBeInTheDocument();
+  });
+
+  it('shows API error detail and retries on demand', () => {
+    const refetch = vi.fn();
+    useComplianceStatusMock.mockReturnValue({
+      data: null,
+      isLoading: false,
+      isError: true,
+      error: {
+        message: 'Request failed with status code 403',
+        response: {
+          status: 403,
+          data: { message: 'Permission denied', code: 'FORBIDDEN' },
+        },
+        normalized: { message: 'Permission denied' },
+      },
+      refetch,
+      isFetching: false,
+    });
+
+    render(
+      <App>
+        <BackupComplianceDashboard />
+      </App>
+    );
+
+    expect(screen.getByText('backupDr.compliance.loadFailed')).toBeInTheDocument();
+    expect(screen.getByText(/HTTP 403/)).toBeInTheDocument();
+    expect(screen.getByText(/FORBIDDEN/)).toBeInTheDocument();
+    expect(screen.getByText(/Permission denied/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'common.buttons.retry' }));
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 });

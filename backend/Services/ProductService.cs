@@ -1,8 +1,10 @@
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
-using KasseAPI_Final.Services.Cache;
+using KasseAPI_Final.Services.Caching;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services;
 
@@ -35,15 +37,15 @@ public interface IProductService
 /// </summary>
 public sealed class ProductService : IProductService
 {
-    private static readonly TimeSpan ProductsListCacheExpiry = TimeSpan.FromMinutes(10);
-
     private readonly AppDbContext _db;
     private readonly ICacheService _cache;
+    private readonly CacheSettings _cacheSettings;
 
-    public ProductService(AppDbContext db, ICacheService cache)
+    public ProductService(AppDbContext db, ICacheService cache, IOptions<CacheSettings> cacheSettings)
     {
         _db = db;
         _cache = cache;
+        _cacheSettings = cacheSettings.Value;
     }
 
     public async Task<List<ProductListDto>> GetProductsAsync(
@@ -55,11 +57,12 @@ public sealed class ProductService : IProductService
 
         return await _cache.GetOrCreateAsync(
             cacheKey,
-            async () => await ProjectToListDto(BuildActiveProductsQuery(tenantId, categoryId))
+            async ct => await ProjectToListDto(BuildActiveProductsQuery(tenantId, categoryId))
                 .OrderBy(p => p.CategoryName)
                 .ThenBy(p => p.Name)
-                .ToListAsync(cancellationToken),
-            ProductsListCacheExpiry);
+                .ToListAsync(ct),
+            _cacheSettings.ProductCacheTtl,
+            cancellationToken);
     }
 
     public async Task<PagedResult<ProductListDto>> GetProductsPagedAsync(
@@ -92,14 +95,8 @@ public sealed class ProductService : IProductService
         };
     }
 
-    public async Task InvalidateProductsCacheAsync(Guid tenantId, Guid? productId = null)
-    {
-        // Prefix covers unfiltered + category-filtered list keys for this tenant.
-        await _cache.RemoveByPrefixAsync(ProductsCachePrefix(tenantId));
-
-        if (productId is { } id)
-            await _cache.RemoveAsync($"product_{id}");
-    }
+    public Task InvalidateProductsCacheAsync(Guid tenantId, Guid? productId = null) =>
+        CacheInvalidationHelper.InvalidateProductCacheAsync(_cache, tenantId, productId);
 
     private IQueryable<Product> BuildActiveProductsQuery(Guid tenantId, Guid? categoryId)
     {
@@ -131,10 +128,8 @@ public sealed class ProductService : IProductService
             CreatedAt = p.CreatedAt,
         });
 
-    private static string ProductsCachePrefix(Guid tenantId) => $"products_{tenantId}";
-
     private static string BuildProductsListCacheKey(Guid tenantId, Guid? categoryId) =>
         categoryId is { } cat
-            ? $"{ProductsCachePrefix(tenantId)}_cat_{cat}"
-            : ProductsCachePrefix(tenantId);
+            ? CacheKeys.Format(CacheKeys.ProductListByCategory, tenantId, cat)
+            : CacheKeys.Format(CacheKeys.ProductList, tenantId);
 }

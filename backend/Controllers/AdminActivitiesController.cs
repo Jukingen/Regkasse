@@ -1,10 +1,12 @@
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Logging;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KasseAPI_Final.Controllers;
@@ -19,17 +21,23 @@ public sealed class AdminActivitiesController : ControllerBase
     private readonly INotificationConfigService _notificationConfig;
     private readonly IActivityStreamHub _streamHub;
     private readonly ISettingsTenantResolver _tenantResolver;
+    private readonly ICurrentTenantAccessor _tenantAccessor;
+    private readonly ILogger<AdminActivitiesController> _logger;
 
     public AdminActivitiesController(
         IActivityEventService activity,
         INotificationConfigService notificationConfig,
         IActivityStreamHub streamHub,
-        ISettingsTenantResolver tenantResolver)
+        ISettingsTenantResolver tenantResolver,
+        ICurrentTenantAccessor tenantAccessor,
+        ILogger<AdminActivitiesController> logger)
     {
         _activity = activity;
         _notificationConfig = notificationConfig;
         _streamHub = streamHub;
         _tenantResolver = tenantResolver;
+        _tenantAccessor = tenantAccessor;
+        _logger = logger;
     }
 
     [HasPermission(AppPermissions.SettingsView)]
@@ -58,6 +66,12 @@ public sealed class AdminActivitiesController : ControllerBase
     [Produces("text/event-stream")]
     public async Task Stream(CancellationToken cancellationToken)
     {
+        // Action CT is normally RequestAborted; link explicitly so disconnect always cancels the hub.
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            HttpContext.RequestAborted);
+        var ct = linkedCts.Token;
+
         var userId = User.GetActorUserId();
         if (string.IsNullOrEmpty(userId))
         {
@@ -65,14 +79,22 @@ public sealed class AdminActivitiesController : ControllerBase
             return;
         }
 
-        var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
-        var config = await _notificationConfig.GetAsync(tenantId, cancellationToken).ConfigureAwait(false);
-        if (!config.InAppEnabled)
+        Guid tenantId;
+        try
         {
-            Response.StatusCode = StatusCodes.Status403Forbidden;
-            await Response.WriteAsJsonAsync(
-                new { message = "In-app notifications are disabled for this tenant." },
-                cancellationToken).ConfigureAwait(false);
+            tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(ct).ConfigureAwait(false);
+            var config = await _notificationConfig.GetAsync(tenantId, ct).ConfigureAwait(false);
+            if (!config.InAppEnabled)
+            {
+                Response.StatusCode = StatusCodes.Status403Forbidden;
+                await Response.WriteAsJsonAsync(
+                    new { message = "In-app notifications are disabled for this tenant." },
+                    ct).ConfigureAwait(false);
+                return;
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
             return;
         }
 
@@ -81,10 +103,81 @@ public sealed class AdminActivitiesController : ControllerBase
         Response.Headers.CacheControl = "no-cache";
         Response.Headers.Connection = "keep-alive";
         Response.Headers.Append("X-Accel-Buffering", "no");
+        HttpContext.Features.Get<IHttpResponseBodyFeature>()?.DisableBuffering();
 
-        await foreach (var message in _streamHub.SubscribeAsync(tenantId, cancellationToken).ConfigureAwait(false))
+        var userEmail = User.GetActorEmail();
+        var tenantSlug = _tenantAccessor.TenantSlug;
+        _logger.LogInformation(
+            "Activity SSE stream started for tenant: {TenantSlug} ({TenantId}) user: {UserEmail} ({UserId})",
+            string.IsNullOrWhiteSpace(tenantSlug) ? "-" : tenantSlug.Trim(),
+            LogIdFormatting.ShortGuid(tenantId),
+            string.IsNullOrWhiteSpace(userEmail) ? "unknown" : userEmail.Trim(),
+            LogIdFormatting.ShortId(userId));
+
+        var disconnected = false;
+        try
         {
-            await ActivitySseFormatter.WriteAsync(Response, message, cancellationToken).ConfigureAwait(false);
+            await foreach (var message in _streamHub
+                .SubscribeAsync(tenantId, ct)
+                .WithCancellation(ct)
+                .ConfigureAwait(false))
+            {
+                await ActivitySseFormatter.WriteAsync(Response, message, ct).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // Client disconnected or request aborted — expected for SSE.
+            disconnected = true;
+            _logger.LogInformation(
+                "Activity SSE client disconnected for tenant: {TenantSlug} ({TenantId}) user: {UserEmail} ({UserId})",
+                string.IsNullOrWhiteSpace(tenantSlug) ? "-" : tenantSlug.Trim(),
+                LogIdFormatting.ShortGuid(tenantId),
+                string.IsNullOrWhiteSpace(userEmail) ? "unknown" : userEmail.Trim(),
+                LogIdFormatting.ShortId(userId));
+        }
+        catch (IOException ex)
+        {
+            // Broken pipe / connection reset while writing an event.
+            disconnected = true;
+            _logger.LogInformation(
+                ex,
+                "Activity SSE client disconnected (IO) for tenant: {TenantSlug} ({TenantId}) user: {UserEmail} ({UserId})",
+                string.IsNullOrWhiteSpace(tenantSlug) ? "-" : tenantSlug.Trim(),
+                LogIdFormatting.ShortGuid(tenantId),
+                string.IsNullOrWhiteSpace(userEmail) ? "unknown" : userEmail.Trim(),
+                LogIdFormatting.ShortId(userId));
+        }
+        catch (ObjectDisposedException ex)
+        {
+            disconnected = true;
+            _logger.LogInformation(
+                ex,
+                "Activity SSE client disconnected (disposed) for tenant: {TenantSlug} ({TenantId}) user: {UserEmail} ({UserId})",
+                string.IsNullOrWhiteSpace(tenantSlug) ? "-" : tenantSlug.Trim(),
+                LogIdFormatting.ShortGuid(tenantId),
+                string.IsNullOrWhiteSpace(userEmail) ? "unknown" : userEmail.Trim(),
+                LogIdFormatting.ShortId(userId));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Activity SSE stream failed for tenant: {TenantSlug} ({TenantId})",
+                string.IsNullOrWhiteSpace(tenantSlug) ? "-" : tenantSlug.Trim(),
+                LogIdFormatting.ShortGuid(tenantId));
+            if (!Response.HasStarted)
+                Response.StatusCode = StatusCodes.Status500InternalServerError;
+        }
+        finally
+        {
+            _logger.LogInformation(
+                "Activity SSE stream ended for tenant: {TenantSlug} ({TenantId}) user: {UserEmail} ({UserId}) (disconnected={Disconnected})",
+                string.IsNullOrWhiteSpace(tenantSlug) ? "-" : tenantSlug.Trim(),
+                LogIdFormatting.ShortGuid(tenantId),
+                string.IsNullOrWhiteSpace(userEmail) ? "unknown" : userEmail.Trim(),
+                LogIdFormatting.ShortId(userId),
+                disconnected || ct.IsCancellationRequested);
         }
     }
 

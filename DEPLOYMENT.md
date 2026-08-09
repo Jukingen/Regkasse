@@ -3,11 +3,13 @@
 Production-oriented deployment notes for Regkasse (API, POS, Admin).  
 Local setup stays in [`DEVELOPMENT.md`](DEVELOPMENT.md). Coupled FA+API releases: [`docs/ADMIN_FA_DEPLOY.md`](docs/ADMIN_FA_DEPLOY.md).
 
-**Last updated:** 2026-07-29
+**Last updated:** 2026-08-09
 
 **CI/CD (Actions):** [`docs/CI_CD.md`](docs/CI_CD.md) · [`docs/GITHUB_ACTIONS.md`](docs/GITHUB_ACTIONS.md) · [`.github/workflows/README.md`](.github/workflows/README.md)
 
 **Monitoring:** [`docs/MONITORING.md`](docs/MONITORING.md) · [`docs/ALERTING.md`](docs/ALERTING.md) · [`docs/METRICS.md`](docs/METRICS.md) · stack [`monitoring/`](monitoring/)
+
+**Release notes (2026-08-08 wave):** [`docs/RELEASE_NOTES_2026-08-08.md`](docs/RELEASE_NOTES_2026-08-08.md) · Go-live: [`docs/GO_LIVE_CHECKLIST.md`](docs/GO_LIVE_CHECKLIST.md) · Runbook: [`docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md`](docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md)
 
 **Production hosts (Single POS UI):**
 
@@ -18,16 +20,18 @@ Local setup stays in [`DEVELOPMENT.md`](DEVELOPMENT.md). Coupled FA+API releases
 | API | `https://api.regkasse.at` |
 | Tenant sites | `/[slug]` (and optional verified custom domains) |
 
-**Environment separation:** see [`docs/ENVIRONMENT_CONFIGURATION.md`](docs/ENVIRONMENT_CONFIGURATION.md) (`ASPNETCORE_ENVIRONMENT` + `RELEASE_STAGE`, Staging template, FA/POS banners).
+**Environment separation:** see [`docs/ENVIRONMENT_CONFIGURATION.md`](docs/ENVIRONMENT_CONFIGURATION.md) (`ASPNETCORE_ENVIRONMENT` + `RELEASE_STAGE`, Staging as Demo & QA template, FA/POS banners).
 
 ---
 
 ## Multi-stage CI/CD (backend)
 
-GitHub Actions promotes the API image through **Staging → Canary → Production**. Canary lets you roll out to selected tenants first.
+GitHub Actions promotes the API image through **Staging (Demo & QA) → Canary → Production**. Canary lets you roll out to selected tenants first.
 
-| Trigger | Build + test | Staging | Canary | Production |
-|---------|--------------|---------|--------|------------|
+**Staging** is the primary **Demo & QA** environment: customer demonstrations, manual QA, and automated smoke after every merge to `main`. It also remains the pre-production staging area before Canary/Production promotion (same fiscal posture as Production, with clear STAGING / demo visual indicators — see [`docs/ENVIRONMENT_CONFIGURATION.md`](docs/ENVIRONMENT_CONFIGURATION.md)).
+
+| Trigger | Build + test | Staging (Demo & QA) | Canary | Production |
+|---------|--------------|---------------------|--------|------------|
 | PR (`backend/**`…) | Yes | — | — | — |
 | Push `main` / `master` | Yes | Yes | — | — |
 | Push `release/*` | Yes | Yes | Yes (default canary tenants) | — |
@@ -53,7 +57,7 @@ Create Environments (Settings → Environments) with optional required reviewers
 
 | Environment | Used for |
 |-------------|----------|
-| `backend-staging` | Staging migrate + deploy (automatic on `main`) |
+| `backend-staging` | Staging (Demo & QA): migrate + deploy — **automated from `main`** (no required reviewers by default) |
 | `backend-canary` | Canary migrate + deploy |
 | `backend-production-migrations` | Production schema — **require reviewers** |
 | `backend-production` | Production app deploy — **require reviewers** |
@@ -96,7 +100,7 @@ Permission: `system.critical`.
 
 ### Manual production
 
-1. Promote a known-good image tag (from Staging/Canary).
+1. Promote a known-good image tag (from Staging / Demo & QA or Canary).
 2. Type confirmation phrase `deploy-production` (and compliance phrase on **Deploy Production**).
 3. Approve **`backend-production-migrations`** (schema), then **`backend-production`** (app).
 4. Smoke on production; **auto-rollback is off** — use rollback webhook / FA if smoke fails (schema Down is never automatic).
@@ -108,7 +112,7 @@ Full guide: [`docs/CI_CD.md`](docs/CI_CD.md) · Actions map: [`docs/GITHUB_ACTIO
 | Step | Action |
 |------|--------|
 | 1. PR quality | Umbrella [`ci.yml`](.github/workflows/ci.yml) + path-filtered package workflows |
-| 2. Merge to `main` | [`deploy.yml`](.github/workflows/deploy.yml) multi-image GHCR push (+ optional Staging API if `DEPLOY_YML_RUN_STAGING_API`); [`backend-ci.yml`](.github/workflows/backend-ci.yml) Staging API deploy + smoke + auto-rollback |
+| 2. Merge to `main` | [`deploy.yml`](.github/workflows/deploy.yml) multi-image GHCR push (+ optional Staging API if `DEPLOY_YML_RUN_STAGING_API`); [`backend-ci.yml`](.github/workflows/backend-ci.yml) Staging (Demo & QA) API deploy via `backend-staging` + smoke + auto-rollback |
 | 3. Canary (optional) | Actions → **Deploy Canary** ([`docs/CANARY_DEPLOYMENT.md`](docs/CANARY_DEPLOYMENT.md)) |
 | 4. Production | Actions → **Deploy Production** (compliance + Environments) — preferred over `deploy.yml` production target |
 | 5. Verify | Smoke + FA `/admin/deployments`; fiscal lock docs |
@@ -142,7 +146,7 @@ Reserved labels (never tenant slugs): `pos`, `api`, `admin`, `www`. Details: [`d
 ### Environment / secrets readiness
 
 - PostgreSQL production database (migrations applied).
-- Redis (recommended for Production cache / CSRF session store patterns).
+- Redis required for Production domain `ICacheService` (see Production checklist below).
 - Secrets injected via env / secret store — **never** bake JWT, DB passwords, or PEMs into images or git.
 - Build-time vars for Admin (`NEXT_PUBLIC_*`) and POS (`EXPO_PUBLIC_*`) set **before** build.
 
@@ -217,23 +221,98 @@ docker run --rm -p 8080:8080 \
 
 ### Production checklist (API)
 
-- [ ] `ASPNETCORE_ENVIRONMENT=Production`
-- [ ] `RELEASE_STAGE=production` (or `canary` for a canary slot / canary tenant list)
-- [ ] Real TSE / FinanzOnline mode (not Fake/Simulation) per runbook
-- [ ] `TwoFactorAuth__Enabled=true` for SuperAdmin
-- [ ] `Security__Csrf__Enabled=true` (no Dev bypass)
-- [ ] `Cors__AllowedOrigins` includes production FA/POS/Sites origins; custom site domains listed
-- [ ] Backup paths / `Backup__ExecutionAdapterKind=PgDump` when using real backups
-- [ ] License public PEM configured (`License` / OfflineVerification)
-- [ ] FA/POS show **no** DEVELOPMENT/STAGING banner (CANARY only for intended tenants)
+Verify against tracked template [`backend/appsettings.Production.example.json`](backend/appsettings.Production.example.json). Set process env (systemd / Docker); **do not** commit secrets.
 
-### Staging checklist (API)
+| Check | Expected |
+|-------|----------|
+| `ASPNETCORE_ENVIRONMENT` | `Production` (process env, not JSON) |
+| `RELEASE_STAGE` / `Deployment:ReleaseStage` | `production` (or `canary` for canary slot) |
+| `Tse:TseMode` | `Device` |
+| `Tse:Mode` | `Real` |
+| `RKSV:TseMode` / `RKSV:FinanzOnlineMode` | `Real` / `Real` (no Soft/Demo label) |
+| `FinanzOnline:Session:UseSimulation` (and Registrierkassen / TransmissionQuery) | `false` |
+| `FinanzOnline:RksvSubmission:ClientKind` | `Real` |
+| `Backup:ExecutionAdapterKind` | `PgDump` |
+| `TwoFactorAuth:Enabled` | `true` (`BypassInDevelopment=false`) |
+| `Security:Csrf:Enabled` | `true` (`BypassInDevelopment=false`) |
+| `Cors:AllowedOrigins` | production FA/POS/Sites origins |
+| License public PEM | configured (`License` / OfflineVerification) |
+| FA/POS banners | no DEVELOPMENT/STAGING; CANARY only for intended tenants |
+| **Redis `Redis__Enabled`** | `true` |
+| **Redis `Redis__ConnectionString`** | reachable Production Redis (e.g. `redis-cluster:6379`) |
+| **Redis `Redis__InstanceName`** | distinct prefix (e.g. `Regkasse_Prod`) |
+| **`CacheSettings__*` TTLs** | reviewed (defaults: license 5 / products 15 / permissions 30 / tenant settings 60) — see [`backend/CONFIGURATION.md`](backend/CONFIGURATION.md) |
+| **Ready cache probe** | `GET /api/health/ready` → `entries.cache` + top-level `redisStatus` is `Healthy` (or `Degraded` only while investigating Redis); Redis alone must not force HTTP 503 |
+
+**Cache warm-up after deployment:** There is no dedicated warm-up job. After cutover, expect a short cold-cache window — first license/product/permission reads refill Cache-Aside entries under `CacheSettings` TTLs. Prefer natural traffic (or a light smoke that hits FA license status + product list for a canary tenant) over flushing Redis. Avoid `POST /api/admin/cache/clear` with `clearAll` right after deploy unless recovering from a known stale-data incident.
+
+**TTL tuning without redeploying code:** After deployment, cache TTLs can be tuned via `CacheSettings` / `CacheSettings__*` env overrides (license / products / permissions / tenant settings / TSE health) without code changes — restart the API process so options rebind.
+
+Also: [`docs/TSE_PRODUCTION_CONFIG_LOCK.md`](docs/TSE_PRODUCTION_CONFIG_LOCK.md), [`docs/FINANZONLINE_PROD_CUTOVER_CHECKLIST.md`](docs/FINANZONLINE_PROD_CUTOVER_CHECKLIST.md), [`docs/ENVIRONMENT_CONFIGURATION.md`](docs/ENVIRONMENT_CONFIGURATION.md), [`backend/docs/HEALTH_GUARDRAILS.md`](backend/docs/HEALTH_GUARDRAILS.md).
+
+### Pre-deploy verification (2026-08-08)
+
+Run these checks before promoting out of **Staging (Demo & QA)** toward Canary or Production. After merge to `main`, Staging is deployed automatically; use this list for local/CI gates and for Demo & QA sign-off on the staging hosts.
+
+```bash
+# Backend (from repo root)
+dotnet test backend/KasseAPI_Final.sln
+
+# Critical fiscal / dashboard slice (faster gate)
+cd backend && dotnet test --filter "FullyQualifiedName~DashboardControllerTests|FullyQualifiedName~RksvDepExportServiceTests|FullyQualifiedName~DepExportHistory"
+
+# EF: list + model sync (EF Core 10 has no database update --dry-run)
+cd backend
+dotnet ef migrations list --project KasseAPI_Final.csproj
+dotnet ef migrations has-pending-model-changes --project KasseAPI_Final.csproj
+# Expect: "No changes have been made to the model since the last migration."
+
+# Frontend
+cd frontend-admin && npm run test   # see release notes if monorepo dual-React failures locally
+cd frontend && npm run test
+```
+
+**Migrations to apply on Production (additive):** ensure `__EFMigrationsHistory` includes at least:
+
+- `20260807120000_AddDepExportHistoryDownloadToken`
+- `20260807150000_AddDepExportHistoryIsSimulated`
+- `20260808130000_AddDownloadCountToDepExportHistory`
+- `20260808214645_SyncDepExportAndPendingModelSnapshot` (snapshot-only / **no SQL**)
+
+Apply via approved migrate job / webhook — never ad-hoc `Down` on Production. Strategy: [`docs/DATABASE_MIGRATION_STRATEGY.md`](docs/DATABASE_MIGRATION_STRATEGY.md).
+
+### Deploy strategy (Staging / Demo & QA → Canary → Production)
+
+This repo uses **progressive promotion**, not classic dual-cluster blue-green naming:
+
+1. **Staging (Demo & QA)** — primary demo/QA lane; automatic on `main` via GitHub Environment `backend-staging` (`backend-ci` + deploy webhook + smoke + auto-rollback).
+2. **Canary** — selected tenants (`deploy-canary.yml` / FA `/admin/deployments/tenants`); soak 24–48h.
+3. **Production** — tag `v*` or `deploy-production.yml` with confirmation phrase + ComplianceOfficer gate; **auto-rollback off** (manual rollback webhook / scripts).
+
+**Before Production cutover**
+
+- [ ] System backup succeeded within last 24h (`Backup:ExecutionAdapterKind=PgDump`)
+- [ ] `./scripts/prepare-rollback-backup.sh` (or platform image digest noted)
+- [ ] Compliance sign-off ([`docs/DEPLOYMENT_COMPLIANCE.md`](docs/DEPLOYMENT_COMPLIANCE.md))
+- [ ] Smoke plan ready ([`docs/DEPLOYMENT_SMOKE_TEST.md`](docs/DEPLOYMENT_SMOKE_TEST.md), `scripts/smoke-test.sh`)
+
+**After Production cutover**
+
+- [ ] Smoke: `/api/health/live`, `/api/health/ready`, `/health/tse/mode`, authenticated `/api/rksv/environment`
+- [ ] DEP history download smoke (Manager): create → download → history status string `Completed`
+- [ ] Manager dashboard: Handlungsbedarf pinned; widget reorder persists via `/api/admin/dashboard/preferences`
+- [ ] Audit log list returns 200 for Mandanten-Admin
+- [ ] On failure: previous image / `scripts/rollback-production.sh` (schema `Down` is **not** automatic)
+
+### Staging checklist (API) — Demo & QA
+
+Primary environment for **customer demos** and **QA** (also the pre-production staging lane).
 
 - [ ] `ASPNETCORE_ENVIRONMENT=Staging` + `RELEASE_STAGE=staging`
-- [ ] `appsettings.Staging.json` from `appsettings.Staging.example.json` (secrets via env/vault)
+- [ ] `appsettings.Staging.json` from `appsettings.Staging.example.json` (secrets via env/vault; `RKSV:ShowDemoLabel=true` for clear demo labeling)
 - [ ] Fiscal lock Healthy (`/health/ready`, `/health/tse/mode`)
-- [ ] FA/POS show yellow **STAGING** banner
-- [ ] Promote only after smoke + fiscal checks — see [`docs/ENVIRONMENT_CONFIGURATION.md`](docs/ENVIRONMENT_CONFIGURATION.md) § Promoting a release
+- [ ] FA/POS show yellow **STAGING** / demo banner (not confused with Production)
+- [ ] Smoke + Demo & QA sign-off before promoting to Canary/Production — see [`docs/ENVIRONMENT_CONFIGURATION.md`](docs/ENVIRONMENT_CONFIGURATION.md) § Promoting a release
 
 ---
 
@@ -323,7 +402,7 @@ Self-hosted reference stack: [`docker-compose.prod.yml`](docker-compose.prod.yml
 
 **Do not** use [`docker-compose.override.yml`](docker-compose.override.yml) here — that file enables Soft TSE / FON simulation for local Development (`docker compose up`).
 
-**Host Compose vs GitHub Actions:** use `deploy-docker.bat` / `scripts/docker-deploy.ps1` on a Docker VM. Staging→Canary→Production image promotion stays in the workflows above (webhook + Environments).
+**Host Compose vs GitHub Actions:** use `deploy-docker.bat` / `scripts/docker-deploy.ps1` on a Docker VM. Staging (Demo & QA) → Canary → Production image promotion stays in the workflows above (webhook + Environments).
 
 #### Operator scripts (Windows)
 
@@ -477,8 +556,10 @@ Local Soft TSE workflow: [`DEVELOPMENT.md`](DEVELOPMENT.md#docker-development-wo
 | `ConnectionStrings__DefaultConnection` | PostgreSQL |
 | `JwtSettings__SecretKey` | JWT signing (≥32 chars) |
 | `JwtSettings__Issuer` / `JwtSettings__Audience` | Token validation |
-| `Redis__ConnectionString` | Distributed cache (recommended) |
+| `Redis__Enabled` | `true` in Production (domain `ICacheService`) |
+| `Redis__ConnectionString` | Distributed cache endpoint (required when enabled) |
 | `Redis__InstanceName` | Key prefix (e.g. `Regkasse_Prod`) |
+| `CacheSettings__LicenseCacheMinutes` (etc.) | Optional TTL overrides — see CONFIGURATION.md |
 | `Cors__AllowedOrigins` | Explicit origins beyond `*.regkasse.at` HTTPS |
 | `TwoFactorAuth__Enabled` | `true` in Staging/Production |
 | `Security__Csrf__Enabled` | `true` in Staging/Production |
@@ -486,6 +567,16 @@ Local Soft TSE workflow: [`DEVELOPMENT.md`](DEVELOPMENT.md#docker-development-wo
 | `Backup__*` | Staging/archive roots, `ExecutionAdapterKind`, `pg_dump` path when using real backups |
 | Fiskaly / TSE secrets | Via secure config — see `CONFIGURATION.md` |
 | FinanzOnline | Credentials typically DB/company settings; cutover tokens per runbook |
+
+#### Redis configuration (Production)
+
+- [ ] Redis enabled: `Redis__Enabled=true`
+- [ ] Redis connection string set: `Redis__ConnectionString` (reachable cluster/host)
+- [ ] Redis instance name set: `Redis__InstanceName` (e.g. `Regkasse_Prod`)
+- [ ] Redis HA / connection resilience reviewed (StackExchange.Redis defaults; prefer managed Redis with failover)
+- [ ] Redis health check passing: `GET /api/health/ready` → `redisStatus` / `entries.cache` is `Healthy` (or `Degraded` only while investigating)
+- [ ] Cache TTLs reviewed via `CacheSettings__*` for production workload (see `backend/CONFIGURATION.md`)
+- [ ] After deploy: TTL tuning possible via env without code changes (restart API to rebind options)
 
 Full map: [`backend/CONFIGURATION.md`](backend/CONFIGURATION.md) · [`docs/ENVIRONMENT_CONFIGURATION.md`](docs/ENVIRONMENT_CONFIGURATION.md).
 
@@ -524,6 +615,14 @@ Full map: [`backend/CONFIGURATION.md`](backend/CONFIGURATION.md) · [`docs/ENVIR
 Ops scripts under [`scripts/`](scripts/README.md) (typical server layout `/var/www/regkasse`):
 
 ```bash
+# Preflight (pg_dump, backup dirs, Production env hints)
+./scripts/ops/preflight-production.sh
+
+# Full API deploy (confirm required)
+export REGKASSE_DEPLOY_CONFIRM=YES
+export CONNECTION_STRING='…'
+sudo -E ./scripts/ops/deploy-production.sh
+
 # Before deploy — archive current release (excludes secrets by design)
 sudo ./scripts/prepare-rollback-backup.sh
 
@@ -531,6 +630,8 @@ sudo ./scripts/prepare-rollback-backup.sh
 sudo REGKASSE_ROLLBACK_CONFIRM=YES ./scripts/rollback-production.sh
 # or: sudo REGKASSE_ROLLBACK_CONFIRM=YES ./scripts/rollback-production.sh 20260719-120000
 ```
+
+**Runbook:** [`docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md`](docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md) (Dev Fake vs Prod PgDump, config key corrections, post-checks).
 
 - Restores **backend**, **frontend-admin**, and **frontend** package trees from `backup/<stamp>`.
 - Does **not** roll back PostgreSQL / EF migrations (schema rollback is a separate, high-risk procedure).

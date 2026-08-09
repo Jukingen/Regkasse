@@ -10,6 +10,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.HealthChecks;
 using KasseAPI_Final.Hubs;
+using KasseAPI_Final.Logging;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
@@ -23,7 +24,7 @@ using KasseAPI_Final.Services.Auth;
 using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Services.Backup.PgDump;
 using KasseAPI_Final.Services.Billing;
-using KasseAPI_Final.Services.Cache;
+using KasseAPI_Final.Services.Caching;
 using KasseAPI_Final.Services.CriticalActions;
 using KasseAPI_Final.Services.Operations;
 using KasseAPI_Final.Services.GracePeriods;
@@ -74,7 +75,6 @@ using Microsoft.OpenApi;
 using Npgsql;
 using Prometheus;
 using QuestPDF.Infrastructure;
-using StackExchange.Redis;
 using AdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.TenantLicenseService;
 using BillingTenantLicenseService = KasseAPI_Final.Services.Billing.TenantLicenseService;
 using IAdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.ITenantLicenseService;
@@ -262,6 +262,9 @@ internal static class ApplicationHost
             builder.Logging.AddFilter<EventLogLoggerProvider>(null, LogLevel.None);
         }
 
+        // Development-friendly single-line console; Production keeps FormatterName=json (Promtail/Loki).
+        builder.Logging.AddConsoleFormatter<ReadableConsoleFormatter, ReadableConsoleFormatterOptions>();
+
         // Configuration Binding
         builder.Services.AddScoped<ICompanyProfileProvider, CompanyProfileProvider>();
         builder.Services.Configure<ProductMediaOptions>(builder.Configuration.GetSection(ProductMediaOptions.SectionName));
@@ -362,6 +365,10 @@ internal static class ApplicationHost
             .AddCheck<FinanzOnlineHealthCheck>(
                 FinanzOnlineHealthCheck.Name,
                 tags: new[] { DatabaseHealthCheck.ReadyTag })
+            .AddCheck<RedisCacheHealthCheck>(
+                RedisCacheHealthCheck.Name,
+                failureStatus: HealthStatus.Degraded,
+                tags: new[] { DatabaseHealthCheck.ReadyTag, DatabaseHealthCheck.DepsTag })
             .AddCheck<BackupHealthCheck>("backup")
             .AddCheck<ElmahHealthCheck>("elmah")
             .AddCheck<EfMigrationsHealthCheck>(
@@ -623,10 +630,18 @@ internal static class ApplicationHost
                             return;
                         }
                     }
-                    logger.LogInformation(
-                        "JWT token validated successfully: userId={UserId}, correlationId={CorrelationId}",
-                        userId,
-                        correlationId);
+                    var email = context.Principal?.GetActorEmail() ?? "-";
+                    var tenantClaim = context.Principal?.FindFirst(ScopeCheckService.TenantIdClaim)?.Value;
+                    var tenantShort = string.IsNullOrWhiteSpace(tenantClaim)
+                        ? "-"
+                        : LogIdFormatting.ShortId(tenantClaim);
+                    // Success path is Debug — every authenticated request hit this; failures stay Warning.
+                    logger.LogDebug(
+                        "[Auth] JWT validated - User: {User}, TenantId: {TenantId}, UserId: {UserId}, Correlation: {CorrelationId}",
+                        email,
+                        tenantShort,
+                        string.IsNullOrWhiteSpace(userId) ? "-" : LogIdFormatting.ShortId(userId),
+                        string.IsNullOrWhiteSpace(correlationId) ? "-" : LogIdFormatting.ShortId(correlationId));
                 },
                 OnAuthenticationFailed = context =>
                 {
@@ -711,7 +726,8 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IAdminTenantLicenseService, AdminTenantLicenseService>();
         builder.Services.AddSingleton<ITenantLicenseExtensionRateLimiter, TenantLicenseExtensionRateLimiter>();
 
-        // Billing services (scoped â€” injected AppDbContext is request-scoped; do not use Singleton)
+        // Billing services (scoped — injected AppDbContext is request-scoped; do not use Singleton)
+        builder.Services.AddScoped<ILicenseStatusCache, LicenseStatusCache>();
         builder.Services.AddScoped<IBillingService, BillingService>();
         builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
         builder.Services.AddScoped<IBillingTenantLicenseService, BillingTenantLicenseService>();
@@ -858,17 +874,35 @@ internal static class ApplicationHost
         // Memory cache for QR image, lockout, rate limits (process-local; not ICacheService)
         builder.Services.AddMemoryCache();
 
-        // Redis connection for distributed ICacheService read-through caching
+        // Domain ICacheService: Memory in Development (default); Redis when Redis:Enabled=true
         builder.Services.Configure<RedisOptions>(builder.Configuration.GetSection(RedisOptions.SectionName));
-        builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+        builder.Services.Configure<CacheSettings>(builder.Configuration.GetSection(CacheSettings.SectionName));
+        var redisOptions = builder.Configuration.GetSection(RedisOptions.SectionName).Get<RedisOptions>()
+            ?? new RedisOptions();
+        var redisEnabledExplicit = builder.Configuration.GetValue<bool?>("Redis:Enabled");
+        var useRedisCache = redisEnabledExplicit ?? !isDevelopment;
+
+        if (useRedisCache)
         {
-            var options = sp.GetRequiredService<IOptions<RedisOptions>>().Value;
-            var connectionString = string.IsNullOrWhiteSpace(options.ConnectionString)
+            var redisConnection = string.IsNullOrWhiteSpace(redisOptions.ConnectionString)
                 ? "localhost:6379"
-                : options.ConnectionString;
-            return ConnectionMultiplexer.Connect(connectionString);
-        });
-        builder.Services.AddScoped<ICacheService, RedisCacheService>();
+                : redisOptions.ConnectionString;
+            builder.Services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = redisConnection;
+                options.InstanceName = string.IsNullOrWhiteSpace(redisOptions.InstanceName)
+                    ? "Regkasse:"
+                    : redisOptions.InstanceName.TrimEnd(':') + ":";
+            });
+            builder.Services.AddSingleton<ICacheService, RedisCacheService>();
+        }
+        else
+        {
+            builder.Services.AddDistributedMemoryCache();
+            builder.Services.AddSingleton<ICacheService, MemoryCacheService>();
+        }
+
+        builder.Services.AddScoped<ICacheManagementService, CacheManagementService>();
 
         // API servisleri
         builder.Services.AddControllers()
@@ -1374,6 +1408,8 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IDepExportValidationService, DepExportValidationService>();
         builder.Services.Configure<DepExportArchiveOptions>(
             builder.Configuration.GetSection(DepExportArchiveOptions.SectionName));
+        builder.Services.Configure<DepExportStorageOptions>(
+            builder.Configuration.GetSection(DepExportStorageOptions.SectionName));
         builder.Services.AddScoped<IDepExportArchiveService, DepExportArchiveService>();
         builder.Services.Configure<DepExportReminderOptions>(
             builder.Configuration.GetSection(DepExportReminderOptions.SectionName));
@@ -1383,6 +1419,7 @@ internal static class ApplicationHost
             KasseAPI_Final.Services.Push.LoggingPushNotificationService>();
         builder.Services.AddHostedService<DepExportSchedulerHostedService>();
         builder.Services.AddHostedService<DepExportReminderHostedService>();
+        builder.Services.AddHostedService<DepExportCleanupHostedService>();
         builder.Services.AddHostedService<DepExportArchiveHostedService>();
         builder.Services.Configure<SignaturkarteProgramOptions>(
             builder.Configuration.GetSection(SignaturkarteProgramOptions.SectionName));
@@ -1616,6 +1653,8 @@ internal static class ApplicationHost
         app.UseMiddleware<KasseAPI_Final.Middleware.TokenValidationMiddleware>();
         app.UseAuthentication();
         app.UseMiddleware<KasseAPI_Final.Middleware.TenantContextMiddleware>();
+        // Push Tenant/User/Role/CorrelationId into logging scopes for subsequent middleware + controllers.
+        app.UseMiddleware<KasseAPI_Final.Middleware.RequestLoggingScopeMiddleware>();
         // Fail-closed: tenant-scoped API paths return 404 when ICurrentTenantAccessor.TenantId is unset.
         app.UseMiddleware<KasseAPI_Final.Middleware.TenantValidationMiddleware>();
         app.UseMiddleware<KasseAPI_Final.Middleware.SessionActivityMiddleware>();

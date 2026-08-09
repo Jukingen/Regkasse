@@ -7,7 +7,7 @@ import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { SuperAdminDataManagementDashboard } from '@/features/data-management/components/SuperAdminDataManagementDashboard';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 
 /**
  * Super Admin cross-tenant data management: lifecycle, grace/lock, deletion requests, RKSV retention.
@@ -32,11 +32,9 @@ export default function AdminDataManagementPage() {
     <AdminPageShell>
       <AdminPageHeader
         title={t('dataManagement.admin.pageTitle')}
-        breadcrumbs={[
-          adminOverviewCrumb(t),
-          { title: t('nav.platformAdminHub'), href: '/admin' },
-          { title: t('dataManagement.admin.pageTitle') },
-        ]}
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'administration', {
+          title: t('dataManagement.admin.pageTitle'),
+        })}
       />
       <SuperAdminDataManagementDashboard />
     </AdminPageShell>

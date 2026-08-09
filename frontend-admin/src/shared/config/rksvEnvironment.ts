@@ -3,11 +3,23 @@
  * Şu an yalnızca TEST ve PROD kabul edilir; genişletme için RKSV_ENV_ACCEPTED_PUBLIC kullanılır.
  * Türkçe: process.env doğrudan başka yerde okunmaz; strict state makinesi.
  * Üretim derlemesi: `next.config.mjs` aynı değişkeni `next build` öncesi doğrular (sessiz artefakt önlenir).
+ *
+ * Release stage (`NEXT_PUBLIC_RELEASE_STAGE`) is orthogonal — see {@link getReleaseStageFromConfig}.
  */
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 
 /** Next.js public env anahtarı — projede yalnızca bu modül okur. */
 export const RKSV_PUBLIC_ENV_VAR_NAME = 'NEXT_PUBLIC_RKSV_ENVIRONMENT' as const;
+
+/** Build-time release-stage var (Demo & QA / canary / production lane). */
+export const RELEASE_STAGE_PUBLIC_ENV_VAR_NAME = 'NEXT_PUBLIC_RELEASE_STAGE' as const;
+
+export {
+  getReleaseStageFromConfig,
+  getReleaseStageTagColor,
+  getReleaseStageTagLabel,
+  type ReleaseStage,
+} from '../../../../shared/constants/environment';
 
 export const RKSV_ENV_ACCEPTED_PUBLIC = ['TEST', 'PROD'] as const;
 

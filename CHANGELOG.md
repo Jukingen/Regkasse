@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Dashboard widget customization (P2):** Manager license / KPI / Monatsbeleg / activity / TSE / offline / license checklist / export quick-actions participate in existing `@dnd-kit` `WidgetGrid` + `GET/POST /api/admin/dashboard/preferences`. Handlungsbedarf (Tagesabschluss + RKSV) remains pinned. Reset layout + i18n for “Widgets anpassen”. See [`docs/RELEASE_NOTES_2026-08-08.md`](docs/RELEASE_NOTES_2026-08-08.md).
+- **DEP export history:** download token / expiry / `download_count` / `is_simulated` migrations; Soft TSE leaf/chain fallback for **demo/simulation only** when historical thumbprint is missing; `DepExportStatus` JSON string enum for FA.
+- **EF snapshot sync migration** `20260808214645_SyncDepExportAndPendingModelSnapshot` (no SQL) so `dotnet ef migrations has-pending-model-changes` is clean.
+- **Production release notes:** [`docs/RELEASE_NOTES_2026-08-08.md`](docs/RELEASE_NOTES_2026-08-08.md); expanded Production checklist in [`DEPLOYMENT.md`](DEPLOYMENT.md).
 - **Comprehensive Windows script ecosystem:**
   - **13** root-level `.bat` files for common tasks (`start-dev`, `start-backend` / `admin` / `pos` / `sites`, `test-all`, `clean-all`, `docker-up` / `down` / `clean` / `status`, `deploy`, `rollback`)
   - **8** `scripts\` maintenance helpers (`clean-backend`, `dev-purge-tenant`, `generate-dep-export`, `ensure-bmf-prueftool`, `fix-antd`, `dev-mail`, `smoke-test`, `run-with-log`)
@@ -42,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Dashboard catalog:** `DashboardWidgetCatalog.FilterByPermissions` honors `PermissionImplication` (manage→view) so Mandanten-Admin sees cash-register / license view widgets.
 - **POS Expo SDK 56 patch bump:** `expo` `~56.0.16` → `~56.0.18` (plus aligned `expo-router`, `expo-linking`, `expo-sharing`, `expo-splash-screen`, `expo-web-browser`, `expo-build-properties`, `react-native-screens` `~4.26.0`, TypeScript `~6.0.3` via `npx expo install --fix`). Pins updated in `AGENTS.md`, `frontend/README.md`, onboarding / comprehensive docs.
 - **Documentation accuracy:** Single POS UI hosts (`pos` / `admin` / `api`.regkasse.at); JWT tenant; Dev-only `X-Tenant-Id` — updates across `docs/`, `ai/`, offline deploy, impersonation, onboarding.
 - **Backup FA docs:** hub `/backup` (+ costs/compliance); Mandanten-Admin `backup.manage`; auto-cleanup audit `BACKUP_AUTO_DELETED`.
@@ -54,6 +59,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **AuditLog Manager 500:** removed `.Include(a => a.User)` / search on ignored navigation; actor display names resolved after materialization — [`docs/FIXES.md`](docs/FIXES.md).
+- **DEP Soft TSE missing certificate (demo only):** fallback to current Soft leaf/chain; Production still throws.
+- **DEP history FA download disabled:** `DepExportStatus` string enum + FA status normalizers.
 - **AI contracts:** removed false “Customer not `ITenantEntity`” claim; Production tenancy framed as JWT on reserved hosts (not subdomain-only).
 - **Auth docs:** invalid login expected status **401** (not 400) in TestSprite / API contract summaries.
 - **Seed / smoke scripts:** `seed-test-data.mjs` uses `loginIdentifier` and clearer API-unreachable errors; FA E2E uses Dev tenant header `dev`.

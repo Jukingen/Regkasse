@@ -17,6 +17,19 @@ import { LowStockAlertsWidget } from '@/features/dashboard/widgets/LowStockAlert
 import { parsePaymentTrendPeriod } from '@/features/dashboard/widgets/paymentTrendPeriod';
 import { RecentPermissionChangesWidget } from '@/features/dashboard/widgets/RecentPermissionChangesWidget';
 import { RecentUsersWidget } from '@/features/dashboard/widgets/RecentUsersWidget';
+import {
+  ActionRequiredWidget,
+  ManagerActivityWidget,
+  ManagerExportQuickActionsWidget,
+  ManagerHospitalityLinksWidget,
+  ManagerKpiStripWidget,
+  ManagerLicenseChecklistWidget,
+  ManagerLicenseStatusWidget,
+  ManagerLicenseSupportWidget,
+  ManagerMonatsbelegWidget,
+  ManagerOfflineQueueWidget,
+  ManagerTseHealthWidget,
+} from '@/features/dashboard/widgets/ManagerDashboardWidgets';
 import { TopSellingProductsWidget } from '@/features/dashboard/widgets/TopSellingProductsWidget';
 
 const TodaySalesWidget = dynamic(
@@ -49,6 +62,28 @@ export function renderDashboardWidget(
   };
 
   switch (widgetId) {
+    case DASHBOARD_WIDGET_IDS.actionRequired:
+      return <ActionRequiredWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.managerLicenseStatus:
+      return <ManagerLicenseStatusWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.managerKpiStrip:
+      return <ManagerKpiStripWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.managerMonatsbeleg:
+      return <ManagerMonatsbelegWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.managerActivity:
+      return <ManagerActivityWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.managerTseHealth:
+      return <ManagerTseHealthWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.managerOfflineQueue:
+      return <ManagerOfflineQueueWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.managerLicenseChecklist:
+      return <ManagerLicenseChecklistWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.managerLicenseSupport:
+      return <ManagerLicenseSupportWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.managerHospitalityLinks:
+      return <ManagerHospitalityLinksWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.managerExportQuickActions:
+      return <ManagerExportQuickActionsWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.todaySales:
       return <TodaySalesWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.activeCashRegisters:
