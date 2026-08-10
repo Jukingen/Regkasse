@@ -1,7 +1,15 @@
-/* Sidebar menu: ellipsis for long German labels; leaf link structure */
+/* Sidebar menu: ellipsis for long German labels; leaf link + subtitle structure */
 .siderMenu :global(.ant-menu-item .ant-menu-title-content),
 .siderMenu :global(.ant-menu-submenu-title .ant-menu-title-content) {
   overflow: hidden;
+}
+
+/* Allow two-line labels (title + subtitle) without clipping. */
+.siderMenu :global(.ant-menu-item),
+.siderMenu :global(.ant-menu-submenu-title) {
+  height: auto !important;
+  line-height: 1.3 !important;
+  padding-block: 8px !important;
 }
 
 .siderMenu :global(.admin-sidebar-leaf-link) {
@@ -17,6 +25,44 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.siderMenu :global(.admin-sidebar-item-label) {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.siderMenu :global(.admin-sidebar-item-title) {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.siderMenu :global(.admin-sidebar-item-subtitle) {
+  display: block;
+  margin-top: 0;
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 400;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * Collapsed Menu applies `.ant-menu-inline-collapsed` on the same root as `.siderMenu`
+ * (not a descendant). Subtitles must hide so only icons remain.
+ */
+.siderMenu:global(.ant-menu-inline-collapsed) :global(.admin-sidebar-item-subtitle) {
+  display: none;
+}
+
+/* Narrow drawers / mobile still show subtitles when the menu is expanded. */
 
 .licenseLockdownFooter {
   margin-top: 12px;

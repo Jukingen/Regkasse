@@ -38,6 +38,11 @@
   width: 100%;
 }
 
+.fiscalClosingLeafLinkInner :global(.admin-sidebar-item-label) {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .fiscalClosingLeafText {
   flex: 1 1 auto;
   min-width: 0;

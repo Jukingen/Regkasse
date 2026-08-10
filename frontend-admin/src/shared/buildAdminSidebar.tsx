@@ -6,11 +6,14 @@
  *
  * Permission-group sync (labels/order/menu areas): `permissionGroupRegistry.getSidebarPermissionGroupSyncRows()`.
  * Full IA remains `SIDEBAR_LAYOUT_ROWS`; do not invent a second sidebar tree.
+ *
+ * Contextual help: short subtitles under titles (`nav.subtitle.*`) — no hover tooltips.
  */
 import * as Icons from '@ant-design/icons';
-import { type MenuProps, Tag, Tooltip } from 'antd';
+import { type MenuProps, Tag } from 'antd';
 import React from 'react';
 
+import { AdminSidebarItemLabel } from '@/components/admin-layout/AdminSidebarItemLabel';
 import { AdminSidebarLeafLink } from '@/components/admin-layout/AdminSidebarLeafLink';
 import { MenuPermissionInfoTrigger } from '@/components/admin-layout/MenuPermissionInfoTrigger';
 import sidebarStyles from '@/components/admin-layout/adminSidebarFiscal.module.css';
@@ -30,6 +33,7 @@ import {
 } from '@/shared/fiscalRksvClosingSidebar';
 import { getSidebarPermissionGroupSyncRows } from '@/shared/auth/permissionGroupRegistry';
 import type { RksvMenuGroup } from '@/shared/rksvMenuModel';
+import { resolveSidebarSubtitle } from '@/shared/sidebarSubtitle';
 
 const ICON_MAP: Record<SidebarIconToken, React.ComponentType> = {
   ThunderboltOutlined: Icons.ThunderboltOutlined,
@@ -129,6 +133,13 @@ function visibleCatalogIds(catalogIds: readonly SidebarCatalogId[]): SidebarCata
   });
 }
 
+function labeledTitle(
+  text: string,
+  subtitle: string | undefined
+): React.ReactNode {
+  return <AdminSidebarItemLabel title={text} subtitle={subtitle} />;
+}
+
 function buildNestedSidebarGroup(
   t: (key: string) => string,
   block: {
@@ -145,6 +156,7 @@ function buildNestedSidebarGroup(
   }
 ): NonNullable<MenuProps['items']>[number] {
   const text = t(block.labelKey);
+  const subtitle = resolveSidebarSubtitle(t, block.labelKey);
   const nestedIds = filterCatalogIdsForInventoryNav(visibleCatalogIds(block.catalogIds));
   const childMenus = (block.childGroups ?? []).map((child) =>
     buildNestedSidebarGroup(t, { ...child, catalogIds: child.catalogIds })
@@ -152,7 +164,7 @@ function buildNestedSidebarGroup(
   return {
     key: block.menuKey,
     icon: iconEl(block.icon),
-    label: text,
+    label: labeledTitle(text, subtitle),
     title: text,
     children: [...childMenus, ...nestedIds.map((id) => catalogLeaf(t, id))],
   };
@@ -164,6 +176,7 @@ function catalogLeaf(
 ): NonNullable<MenuProps['items']>[number] {
   const def = SIDEBAR_NAV_ITEM_CATALOG[catalogId];
   const text = t(def.labelKey);
+  const subtitle = resolveSidebarSubtitle(t, def.labelKey);
   const missingPermission =
     process.env.NODE_ENV === 'development' &&
     (def.permission === undefined ||
@@ -179,7 +192,9 @@ function catalogLeaf(
         menuLabel={text}
         missingPermission={missingPermission}
       >
-        <AdminSidebarLeafLink href={def.href}>{text}</AdminSidebarLeafLink>
+        <AdminSidebarLeafLink href={def.href}>
+          <AdminSidebarItemLabel title={text} subtitle={subtitle} />
+        </AdminSidebarLeafLink>
       </MenuPermissionInfoTrigger>
     ),
   };
@@ -189,30 +204,28 @@ function fiscalRksvClosingLeaves(t: (key: string) => string): NonNullable<MenuPr
   return FISCAL_RKSV_CLOSING_SIDEBAR_LEAVES.map((item) => {
     const text = t(item.labelKey);
     const badgeText = fiscalRksvClosingBadgeLabel(item.badge);
-    const titleCollapsed = `${text} (${badgeText})`;
+    const subtitle = resolveSidebarSubtitle(t, item.labelKey);
     return {
       key: item.menuKey,
-      title: titleCollapsed,
+      title: text,
       className: sidebarStyles.fiscalClosingMenuItem,
       label: (
-        <Tooltip title={item.tooltipTr} placement="right">
-          <span
-            className={sidebarStyles.fiscalClosingLeafRow}
-            style={{ borderLeft: `3px solid ${item.accentColor}` }}
-          >
-            <span className={sidebarStyles.fiscalClosingEmoji} aria-hidden>
-              {item.emoji}
-            </span>
-            <AdminSidebarLeafLink href={item.href}>
-              <span className={sidebarStyles.fiscalClosingLeafLinkInner}>
-                <span className={sidebarStyles.fiscalClosingLeafText}>{text}</span>
-                <Tag className={sidebarStyles.fiscalClosingBadge} variant="filled">
-                  {badgeText}
-                </Tag>
-              </span>
-            </AdminSidebarLeafLink>
+        <span
+          className={sidebarStyles.fiscalClosingLeafRow}
+          style={{ borderLeft: `3px solid ${item.accentColor}` }}
+        >
+          <span className={sidebarStyles.fiscalClosingEmoji} aria-hidden>
+            {item.emoji}
           </span>
-        </Tooltip>
+          <AdminSidebarLeafLink href={item.href}>
+            <span className={sidebarStyles.fiscalClosingLeafLinkInner}>
+              <AdminSidebarItemLabel title={text} subtitle={subtitle} />
+              <Tag className={sidebarStyles.fiscalClosingBadge} variant="filled">
+                {badgeText}
+              </Tag>
+            </span>
+          </AdminSidebarLeafLink>
+        </span>
       ),
     };
   });
@@ -238,10 +251,11 @@ function buildDomainBlocks(
     }
     if (block.kind === 'fiscalRksvClosing') {
       const text = t(block.labelKey);
+      const subtitle = resolveSidebarSubtitle(t, block.labelKey);
       out.push({
         key: block.menuKey,
         icon: iconEl(block.icon),
-        label: text,
+        label: labeledTitle(text, subtitle),
         title: text,
         children: fiscalRksvClosingLeaves(t),
       });
@@ -249,6 +263,7 @@ function buildDomainBlocks(
     }
     if (block.kind === 'rksvHub') {
       const hubText = t(block.labelKey);
+      const hubSubtitle = resolveSidebarSubtitle(t, block.labelKey);
       const rksvSubtree = rksvMenuGroups.map((g) => ({
         key: `rksv-grp-${g.id}`,
         label: g.groupLabel,
@@ -262,7 +277,7 @@ function buildDomainBlocks(
       out.push({
         key: block.menuKey,
         icon: iconEl(block.icon),
-        label: hubText,
+        label: labeledTitle(hubText, hubSubtitle),
         title: hubText,
         children: rksvSubtree,
       });
@@ -312,10 +327,11 @@ export function buildAdminSidebarMenuItems(params: {
 
     const meta = SIDEBAR_GROUP_META[row.group];
     const groupLabel = t(meta.labelKey);
+    const groupSubtitle = resolveSidebarSubtitle(t, meta.labelKey);
     menuItems.push({
       key: meta.menuKey,
       icon: iconEl(resolveSidebarGroupIcon(row.group, meta.icon)),
-      label: groupLabel,
+      label: labeledTitle(groupLabel, groupSubtitle),
       title: groupLabel,
       children: buildDomainBlocks(t, row.blocks, rksvMenuGroups),
     });

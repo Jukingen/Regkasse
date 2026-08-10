@@ -1,6 +1,6 @@
 /**
  * Sidebar metadata for “Fiskal & RKSV” closing / formal reports grouping (German labels via i18n).
- * Tooltip copy is intentionally Turkish per product guidance for this menu.
+ * Prefer `nav.subtitle.*` under the title; `tooltipTr` is legacy unused fallback.
  */
 
 export type FiscalRksvClosingBadgeKind = 'daily' | 'monthly' | 'yearly' | 'one-time';

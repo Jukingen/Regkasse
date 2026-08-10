@@ -148,7 +148,8 @@ export type MenuPermissionInfoTriggerProps = {
 };
 
 /**
- * Wraps a sidebar leaf label with ℹ️ popover + Ctrl/Cmd+Click permission info.
+ * Wraps a sidebar leaf label with Ctrl/Cmd+Click permission info.
+ * Info icons and hover tooltips removed — subtitles provide context.
  */
 export function MenuPermissionInfoTrigger({
   menuKey,
@@ -175,63 +176,40 @@ export function MenuPermissionInfoTrigger({
     : children;
 
   return (
-    <span
-      className={
-        highlightMissing
-          ? 'admin-sidebar-leaf-with-info admin-sidebar-leaf--missing-permission'
-          : 'admin-sidebar-leaf-with-info'
-      }
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 4,
-        maxWidth: '100%',
-        outline: highlightMissing ? '1px dashed #faad14' : undefined,
-        borderRadius: 4,
-      }}
-      title={
-        highlightMissing ? t('adminShell.menuPermission.missingMappingDevHint') : undefined
+    <Popover
+      open={open}
+      onOpenChange={setOpen}
+      // Permission popover opens via Ctrl/Cmd+Click on the leaf.
+      trigger={[]}
+      placement="rightTop"
+      title={t('adminShell.menuPermission.popoverTitle')}
+      content={
+        <MenuPermissionInfoContent
+          menuKey={menuKey}
+          menuLabel={menuLabel}
+          onClose={() => setOpen(false)}
+        />
       }
     >
-      <span style={{ minWidth: 0, flex: 1 }}>{linkedChildren}</span>
-      <Popover
-        open={open}
-        onOpenChange={setOpen}
-        trigger="click"
-        placement="rightTop"
-        title={t('adminShell.menuPermission.popoverTitle')}
-        content={
-          <MenuPermissionInfoContent
-            menuKey={menuKey}
-            menuLabel={menuLabel}
-            onClose={() => setOpen(false)}
-          />
+      <span
+        className={
+          highlightMissing
+            ? 'admin-sidebar-leaf-with-info admin-sidebar-leaf--missing-permission'
+            : 'admin-sidebar-leaf-with-info'
+        }
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          maxWidth: '100%',
+          outline: highlightMissing ? '1px dashed #faad14' : undefined,
+          borderRadius: 4,
+        }}
+        title={
+          highlightMissing ? t('adminShell.menuPermission.missingMappingDevHint') : undefined
         }
       >
-        <button
-          type="button"
-          className="admin-sidebar-menu-permission-info"
-          aria-label={t('adminShell.menuPermission.infoAria', { menu: menuLabel })}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setOpen(true);
-          }}
-          style={{
-            border: 'none',
-            background: 'transparent',
-            padding: 0,
-            margin: 0,
-            cursor: 'pointer',
-            lineHeight: 1,
-            color: 'rgba(0,0,0,0.45)',
-            flexShrink: 0,
-            fontSize: 12,
-          }}
-        >
-          ℹ️
-        </button>
-      </Popover>
-    </span>
+        <span style={{ minWidth: 0, flex: 1 }}>{linkedChildren}</span>
+      </span>
+    </Popover>
   );
 }

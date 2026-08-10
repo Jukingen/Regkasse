@@ -14,7 +14,9 @@ type AdminSidebarLeafLinkProps = {
 };
 
 /**
- * Sidebar leaf link with ellipsis overflow; pair with Menu `title` for collapsed tooltips.
+ * Sidebar leaf link with ellipsis overflow.
+ * Menu `title` stays the plain item name (collapsed icon discoverability only — not contextual help).
+ * Ctrl/Cmd+Click opens menu permission info. Contextual help uses visible subtitles.
  */
 export function AdminSidebarLeafLink({
   href,
