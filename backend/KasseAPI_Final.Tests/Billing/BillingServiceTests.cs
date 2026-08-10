@@ -57,6 +57,7 @@ public sealed class BillingServiceTests
         Assert.NotNull(result);
         Assert.Equal(299.00m, result.PriceNet);
         Assert.Equal(LicenseSaleStatuses.Active, result.Status);
+        Assert.Equal(Models.Enums.LicenseType.Starter, result.LicenseType);
         Assert.StartsWith("RE", result.InvoiceNumber, StringComparison.Ordinal);
 
         var updatedTenant = await harness.GetTenantAsync(tenant.Id);
@@ -64,6 +65,28 @@ public sealed class BillingServiceTests
         Assert.Equal(result.ValidUntilUtc, updatedTenant.LicenseValidUntilUtc);
         Assert.Equal(result.Id, updatedTenant.CurrentLicenseSaleId);
         Assert.True(result.AppliedToTenant);
+    }
+
+    [Fact]
+    public async Task CreateLicenseSale_ExplicitLicenseType_PersistsPackageTier()
+    {
+        var harness = await BillingServiceTestHarness.CreateAsync();
+        await using var _ = harness;
+
+        var tenant = await harness.CreateTestTenantAsync();
+        var actorUserId = await harness.CreateTestUserAsync();
+        var request = new CreateLicenseSaleRequest
+        {
+            TenantId = tenant.Id,
+            LicensePlan = LicenseSalePlans.TwelveMonths,
+            LicenseType = Models.Enums.LicenseType.Plus,
+            PriceNet = 499.00m,
+            VatRate = 20.00m,
+        };
+
+        var result = await harness.CreateBillingService().CreateLicenseSaleAsync(request, actorUserId);
+
+        Assert.Equal(Models.Enums.LicenseType.Plus, result.LicenseType);
     }
 
     [Fact]

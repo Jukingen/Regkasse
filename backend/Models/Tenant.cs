@@ -29,7 +29,10 @@ public class Tenant : BaseEntity
     [Column("address")]
     public string? Address { get; set; }
 
-    /// <summary><see cref="TenantStatuses"/> value.</summary>
+    /// <summary>
+    /// Lifecycle status (<see cref="TenantStatuses"/> / <see cref="Enums.TenantStatus"/>).
+    /// Default for seeded operational tenants is Active; new onboarding creates InOnboarding.
+    /// </summary>
     [Required]
     [MaxLength(20)]
     [Column("status")]

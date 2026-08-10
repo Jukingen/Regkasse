@@ -171,6 +171,7 @@ public sealed class AdminTenantsLicenseOverviewControllerTests
 
         var controller = new AdminTenantsController(
             Mock.Of<IAdminTenantService>(),
+            Mock.Of<IAdminTenantCsvExportService>(),
             licenseService.Object,
             Mock.Of<ITenantDeletionService>(),
             Mock.Of<KasseAPI_Final.Services.ActivityReports.IActivityReportService>(),

@@ -1,5 +1,6 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -112,7 +113,7 @@ public sealed class BillingService : IBillingService
                 .ConfigureAwait(false)
                 ?? throw new KeyNotFoundException($"Tenant {request.TenantId} not found");
 
-            if (tenant.Status == TenantStatuses.Deleted)
+            if (TenantStatuses.IsRemoved(tenant.Status))
                 throw new InvalidOperationException("Deleted tenants cannot receive license sales.");
 
             ValidatePricing(request.PriceNet, request.VatRate);
@@ -138,6 +139,7 @@ public sealed class BillingService : IBillingService
                 TenantId = request.TenantId,
                 LicenseKey = licenseKey,
                 LicensePlan = plan,
+                LicenseType = request.LicenseType ?? LicenseType.Starter,
                 CustomValidUntilUtc = plan == LicenseSalePlans.Custom ? validUntil : null,
                 ValidFromUtc = validFrom,
                 ValidUntilUtc = validUntil,
@@ -582,7 +584,7 @@ public sealed class BillingService : IBillingService
             .AsNoTracking()
             .AnyAsync(
                 t => t.LicenseKey == key
-                     && t.Status != TenantStatuses.Deleted
+                     && !TenantStatuses.RemovedStatuses.Contains(t.Status)
                      && (t.LicenseValidUntilUtc == null || t.LicenseValidUntilUtc > now),
                 ct)
             .ConfigureAwait(false);
@@ -628,6 +630,7 @@ public sealed class BillingService : IBillingService
             TenantSlug = sale.Tenant?.Slug ?? "Unknown",
             LicenseKey = sale.LicenseKey,
             LicensePlan = sale.LicensePlan,
+            LicenseType = sale.LicenseType,
             ValidFromUtc = sale.ValidFromUtc,
             ValidUntilUtc = sale.ValidUntilUtc,
             PriceNet = sale.PriceNet,

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using KasseAPI_Final.Models.Enums;
 
 namespace KasseAPI_Final.Models;
 
@@ -28,6 +29,10 @@ public class LicenseSale : ITenantEntity
     [Column("license_plan")]
     [MaxLength(50)]
     public string LicensePlan { get; set; } = string.Empty;
+
+    /// <summary>Package tier (Trial / Starter / Business / Plus). Null only for legacy rows before backfill.</summary>
+    [Column("license_type")]
+    public LicenseType? LicenseType { get; set; }
 
     [Column("custom_valid_until_utc")]
     public DateTime? CustomValidUntilUtc { get; set; }

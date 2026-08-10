@@ -49,7 +49,7 @@ import {
   invalidateTenantLifecycleQueries,
 } from '@/features/super-admin/utils/invalidateTenantLifecycleQueries';
 import { buildTenantDeletePreparationHref } from '@/features/super-admin/utils/tenantDeleteDependencyUi';
-import { tenantStatusColor } from '@/features/super-admin/utils/tenantStatusLabel';
+import { isTenantRemovedStatus, tenantStatusColor } from '@/features/super-admin/utils/tenantStatusLabel';
 import { DemoImportModal } from '@/features/tenants/components/DemoImportModal';
 import { buildAdminUsersPageHref } from '@/features/users/utils/adminUsersPageUrl';
 import { useAntdApp } from '@/hooks/useAntdApp';
@@ -250,7 +250,7 @@ export default function SuperAdminTenantDetailPage() {
 
   const tenant = tenantQuery.data;
   const title = tenant ? `${tenant.name} (${tenant.slug})` : tenantId;
-  const showDevelopmentHardDeleteEntry = isDevelopment() && tenant?.status !== 'deleted';
+  const showDevelopmentHardDeleteEntry = isDevelopment() && !isTenantRemovedStatus(tenant?.status);
 
   return (
     <AdminPageShell>
@@ -274,7 +274,7 @@ export default function SuperAdminTenantDetailPage() {
                 <Button>{t('tenants.deleteDependencies.checkDependencies')}</Button>
               </Link>
             ) : null}
-            {tenant && tenant.status !== 'deleted' ? (
+            {tenant && !isTenantRemovedStatus(tenant.status) ? (
               <>
                 <Button icon={<ImportOutlined />} onClick={() => setDemoImportOpen(true)}>
                   Demo Produkte importieren

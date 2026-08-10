@@ -378,12 +378,20 @@
     "status": "Durum",
     "adminUser": "Yönetici",
     "license": "Lisans",
+    "licenseType": "Paket",
+    "registers": "Kasalar",
+    "users": "Kullanıcılar",
+    "lastActivity": "Son aktivite",
     "created": "Oluşturulma",
     "actions": "İşlemler"
   },
   "status": {
+    "lead": "Aday",
+    "in_onboarding": "Onboarding",
     "active": "Aktif",
     "suspended": "Askıda",
+    "cancelled": "İptal",
+    "archived": "Arşivlendi",
     "deleted": "Arşivlendi"
   },
   "fields": {
@@ -641,11 +649,26 @@
     "copyFailed": "Kopyalama başarısız"
   },
   "filters": {
-    "includeDeleted": "Silinenleri göster"
+    "includeDeleted": "Silinenleri göster",
+    "searchPlaceholder": "Ad veya alt alan ara",
+    "statusPlaceholder": "Durum",
+    "licenseTypePlaceholder": "Lisans tipi",
+    "sortByPlaceholder": "Sıralama",
+    "allStatuses": "Tüm durumlar",
+    "allLicenseTypes": "Tüm lisans tipleri",
+    "sortName": "Ad",
+    "sortCreated": "Oluşturma",
+    "sortLicenseDays": "Kalan lisans günü",
+    "sortRegisters": "Kasa sayısı",
+    "sortUsers": "Kullanıcı sayısı",
+    "sortLastActivity": "Son aktivite"
   },
   "actions": {
     "create": "Kiracı oluştur",
     "edit": "Düzenle",
+    "exportCsv": "CSV dışa aktar",
+    "exportSuccess": "Dışa aktarma başladı.",
+    "exportFailed": "CSV dışa aktarma başarısız.",
     "decommission": "Kiracıyı decommission et",
     "delete": "Sil",
     "archive": "Arşivle",
@@ -657,7 +680,16 @@
     "manageLicense": "Lisans",
     "suspend": "Askıya al",
     "reactivate": "Yeniden etkinleştir",
-    "view": "Detay"
+    "view": "Detay",
+    "changeStatus": "Durumu değiştir"
+  },
+  "analytics": {
+    "title": "Müşteri özeti",
+    "totalTenants": "Toplam kiracı",
+    "activeTenants": "Aktif",
+    "expiringSoon": "Yakında bitiyor",
+    "mrr": "MRR",
+    "loadFailed": "İstatistikler yüklenemedi."
   },
   "detail": {
     "demoPreset": "Demo kiracı",

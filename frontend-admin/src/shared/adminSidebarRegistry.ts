@@ -95,7 +95,8 @@ export type SidebarIconToken =
   | 'DisconnectOutlined'
   | 'UnorderedListOutlined'
   | 'BugOutlined'
-  | 'ApiOutlined';
+  | 'ApiOutlined'
+  | 'MailOutlined';
 
 export type SidebarNavCatalogItem = {
   /** Stable id for tests and layout references */
@@ -924,6 +925,22 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     icon: 'FundOutlined',
     permission: [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
   },
+  bulkEmail: {
+    id: 'bulkEmail',
+    menuKey: '/admin/communication/bulk-email',
+    href: '/admin/communication/bulk-email',
+    labelKey: 'nav.communication.bulkEmail',
+    icon: 'MailOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  tenantPortal: {
+    id: 'tenantPortal',
+    menuKey: '/tenant/dashboard',
+    href: '/tenant/dashboard',
+    labelKey: 'nav.tenantPortal',
+    icon: 'ShopOutlined',
+    permission: [PERMISSIONS.LICENSE_VIEW, PERMISSIONS.SYSTEM_CRITICAL],
+  },
   digitalServicesManage: {
     id: 'digitalServicesManage',
     menuKey: '/admin/digital',
@@ -1407,7 +1424,15 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
           'superAdminLicenses',
           'billingOverview',
           'billingDigital',
+          'tenantPortal',
         ],
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.communication,
+        labelKey: 'nav.communication.title',
+        icon: 'MailOutlined',
+        catalogIds: ['bulkEmail'],
       },
     ],
   },

@@ -166,6 +166,11 @@
   "billingSalesNew": "Neuer Verkauf",
   "billingStats": "Statistiken",
   "billingDigital": "Digitale Dienste (Umsatz)",
+  "communication": {
+    "title": "Kommunikation",
+    "bulkEmail": "Massensendung"
+  },
+  "tenantPortal": "Mandanten-Portal",
   "digitalServicesManage": "Digitale Dienste (Verwaltung)",
   "digitalServiceRequests": "Digitale Dienst-Anfragen",
   "adminFeedback": "Benutzer-Feedback",

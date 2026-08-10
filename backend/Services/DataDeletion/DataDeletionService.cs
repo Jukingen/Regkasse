@@ -452,7 +452,7 @@ public sealed class DataDeletionService : IDataDeletionService
                 where m.UserId == user.Id
                     && m.IsActive
                     && t.IsActive
-                    && t.Status != TenantStatuses.Deleted
+                    && !TenantStatuses.RemovedStatuses.Contains(t.Status)
                 select m.Id
             ).AnyAsync(ct).ConfigureAwait(false);
 

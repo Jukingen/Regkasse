@@ -4,6 +4,7 @@ import { Typography } from 'antd';
 import Link from 'next/link';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { CustomerAnalyticsCards } from '@/features/dashboard/components/CustomerAnalyticsCards';
 import { Dashboard } from '@/features/dashboard/components/Dashboard';
 import { HospitalityQuickLinksCard } from '@/features/dashboard/components/HospitalityQuickLinksCard';
 import { LicenseDashboardSection } from '@/features/dashboard/components/LicenseDashboardSection';
@@ -36,6 +37,7 @@ export function SuperAdminDashboard() {
   // RKSV reminders / Monatsbeleg live in catalog widgets (action-required, manager-monatsbeleg).
   const operationalHeader = (
     <>
+      <CustomerAnalyticsCards />
       {canFetchTenantLicense ? <LicenseDashboardSection /> : null}
       {offlineQueueCardEnabled ? <OfflineQueueDashboardCard /> : null}
       {timeSyncDriftAlertEnabled ? <TimeSyncDriftAlertCard /> : null}

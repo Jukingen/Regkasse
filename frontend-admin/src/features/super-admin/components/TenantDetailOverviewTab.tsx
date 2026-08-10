@@ -10,7 +10,7 @@ import { useBillingTenantLicense } from '@/features/billing/hooks';
 import { useBillingAccess } from '@/features/billing/hooks/useBillingAccess';
 import type { AdminTenantDetail } from '@/features/super-admin/api/adminTenants';
 import { TenantLicenseBadge } from '@/features/super-admin/components/TenantLicenseBadge';
-import { tenantStatusColor } from '@/features/super-admin/utils/tenantStatusLabel';
+import { isTenantRemovedStatus, tenantStatusColor } from '@/features/super-admin/utils/tenantStatusLabel';
 import { TenantActivityReport } from '@/features/tenants/components/TenantActivityReport';
 import { buildAdminUsersPageHref } from '@/features/users/utils/adminUsersPageUrl';
 import { formatDate, formatDateTime, useI18n } from '@/i18n';
@@ -83,7 +83,7 @@ export function TenantDetailOverviewTab({
             />
           </Descriptions.Item>
         </Descriptions>
-        {tenant.status !== 'deleted' ? (
+        {!isTenantRemovedStatus(tenant.status) ? (
           <Space wrap style={{ marginTop: 16 }}>
             {tenant.status === 'active' ? (
               <Popconfirm
@@ -177,7 +177,7 @@ export function TenantDetailOverviewTab({
         </Card>
       ) : null}
 
-      {tenant.status === 'deleted' ? (
+      {isTenantRemovedStatus(tenant.status) ? (
         <Typography.Paragraph type="secondary">
           {t('tenants.detail.settings.danger.deletedSettingsHint')}
         </Typography.Paragraph>

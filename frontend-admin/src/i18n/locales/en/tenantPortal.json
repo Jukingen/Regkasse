@@ -1,0 +1,29 @@
+{
+  "page": {
+    "title": "Customer portal",
+    "subtitle": "License status, activity, and support",
+    "requestSupport": "Request support",
+    "requestSupportHint": "Opens the feedback form"
+  },
+  "license": {
+    "title": "License",
+    "status": "Status",
+    "expiry": "Valid until",
+    "package": "Package",
+    "registers": "Register count",
+    "unknown": "—"
+  },
+  "activity": {
+    "title": "Recent activity"
+  },
+  "onboarding": {
+    "title": "Onboarding",
+    "complete": "Mark complete",
+    "steps": {
+      "AccountCreated": "Account created",
+      "ProductsImported": "Products imported",
+      "StartbelegDone": "Startbeleg done",
+      "TrainingComplete": "Training complete"
+    }
+  }
+}

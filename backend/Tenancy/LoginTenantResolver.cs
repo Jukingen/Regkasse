@@ -37,7 +37,7 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
             .Where(m => m.UserId == userId
                 && m.IsActive
                 && m.Tenant != null
-                && m.Tenant.Status != TenantStatuses.Deleted
+                && !TenantStatuses.RemovedStatuses.Contains(m.Tenant.Status)
                 && m.Tenant.IsActive)
             .OrderBy(m => m.CreatedAtUtc)
             .ThenBy(m => m.Id)
@@ -156,7 +156,7 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
                 t => t.Id,
                 (_, t) => t)
             .AnyAsync(
-                t => t.Status != TenantStatuses.Deleted && t.IsActive,
+                t => !TenantStatuses.RemovedStatuses.Contains(t.Status) && t.IsActive,
                 cancellationToken);
 
     private async Task<bool> HasDeletedTenantMembershipOnlyAsync(
@@ -181,11 +181,11 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
 
         var hasEligible = rows.Any(m =>
             m.IsActive
-            && m.TenantStatus != TenantStatuses.Deleted
+            && !TenantStatuses.IsRemoved(m.TenantStatus)
             && m.TenantIsActive);
 
         return !hasEligible
-            && rows.Any(m => m.TenantStatus == TenantStatuses.Deleted);
+            && rows.Any(m => TenantStatuses.IsRemoved(m.TenantStatus));
     }
 
     private async Task<AuthTenantSnapshot> ResolveLegacyDefaultSnapshotAsync(CancellationToken cancellationToken)

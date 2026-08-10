@@ -166,6 +166,11 @@
   "billingSalesNew": "Yeni satış",
   "billingStats": "İstatistikler",
   "billingDigital": "Dijital hizmetler (gelir)",
+  "communication": {
+    "title": "İletişim",
+    "bulkEmail": "Toplu E-posta"
+  },
+  "tenantPortal": "Müşteri portalı",
   "digitalServicesManage": "Dijital hizmetler (yönetim)",
   "digitalServiceRequests": "Dijital hizmet talepleri",
   "adminFeedback": "Kullanıcı geri bildirimi",

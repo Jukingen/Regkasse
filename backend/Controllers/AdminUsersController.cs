@@ -164,7 +164,7 @@ public partial class AdminUsersController : ControllerBase
             && m.TenantId == tenantId
             && m.Tenant != null
             && m.Tenant.IsActive
-            && m.Tenant.Status != TenantStatuses.Deleted);
+            && !TenantStatuses.IsRemoved(m.Tenant.Status));
 
     /// <summary>
     /// SuperAdmin role or no active business-tenant membership (platform operator).
@@ -182,7 +182,7 @@ public partial class AdminUsersController : ControllerBase
             && businessTenantIds.Contains(m.TenantId)
             && m.Tenant != null
             && m.Tenant.IsActive
-            && m.Tenant.Status != TenantStatuses.Deleted);
+            && !TenantStatuses.IsRemoved(m.Tenant.Status));
     }
 
     private bool CanAccessUserInAmbientTenant(
@@ -203,7 +203,7 @@ public partial class AdminUsersController : ControllerBase
         await _context.Tenants
             .AsNoTracking()
             .Where(t => t.IsActive
-                && t.Status != TenantStatuses.Deleted
+                && !TenantStatuses.RemovedStatuses.Contains(t.Status)
                 && t.Slug != "admin"
                 && t.Slug != LegacyDefaultTenantIds.PrimarySlug)
             .Select(t => t.Id)
@@ -272,7 +272,7 @@ public partial class AdminUsersController : ControllerBase
 
         var operationalTenantIds = await _context.Tenants
             .AsNoTracking()
-            .Where(t => t.IsActive && t.Status != TenantStatuses.Deleted)
+            .Where(t => t.IsActive && !TenantStatuses.RemovedStatuses.Contains(t.Status))
             .Select(t => t.Id)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -476,7 +476,7 @@ public partial class AdminUsersController : ControllerBase
             .Where(m => m.IsActive
                 && m.Tenant != null
                 && m.Tenant.IsActive
-                && m.Tenant.Status != TenantStatuses.Deleted)
+                && !TenantStatuses.IsRemoved(m.Tenant.Status))
             .ToList();
 
         if (active.Count == 0)
@@ -546,7 +546,7 @@ public partial class AdminUsersController : ControllerBase
                 && m.IsActive
                 && m.Tenant != null
                 && m.Tenant.IsActive
-                && m.Tenant.Status != TenantStatuses.Deleted)
+                && !TenantStatuses.IsRemoved(m.Tenant.Status))
             .OrderByDescending(m => m.IsOwner)
             .ThenBy(m => m.CreatedAtUtc)
             .ThenBy(m => m.Id)

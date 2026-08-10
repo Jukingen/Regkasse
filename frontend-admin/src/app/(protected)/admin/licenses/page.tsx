@@ -55,6 +55,7 @@ import {
   type AdminTenantListItem,
   listAdminTenants,
 } from '@/features/super-admin/api/adminTenants';
+import { isTenantRemovedStatus } from '@/features/super-admin/utils/tenantStatusLabel';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useDebounce } from '@/hooks/useDebounce';
 import { formatDate, useI18n } from '@/i18n';
@@ -328,7 +329,7 @@ export default function AdminTenantLicensesPage() {
     const normalizedSearch = debouncedSearch.trim().toLowerCase();
 
     return rows.filter((row) => {
-      if (!includeDeleted && row.status === 'deleted') {
+      if (!includeDeleted && isTenantRemovedStatus(row.status)) {
         return false;
       }
 

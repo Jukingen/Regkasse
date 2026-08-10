@@ -103,8 +103,10 @@ public sealed class DemoTenantAdminSeedTests
             Assert.NotNull(user);
             Assert.Equal(Roles.Manager, user!.Role);
 
-            var membership = await db.UserTenantMemberships.SingleAsync(m =>
-                m.UserId == user.Id && m.TenantId == tenant.Id && m.IsActive);
+            var membership = await db.UserTenantMemberships
+                .IgnoreQueryFilters()
+                .SingleAsync(m =>
+                    m.UserId == user.Id && m.TenantId == tenant.Id && m.IsActive);
             Assert.True(membership.IsOwner);
         }
     }
@@ -123,7 +125,8 @@ public sealed class DemoTenantAdminSeedTests
         await DemoTenantAdminSeed.SeedAsync(db, userManager, provisioner, hostEnv);
 
         Assert.Equal(2, await db.Tenants.CountAsync(t => t.Slug == "dev" || t.Slug == "prod"));
-        Assert.Equal(2, await db.UserTenantMemberships.CountAsync(m => m.IsActive && m.IsOwner));
+        Assert.Equal(2, await db.UserTenantMemberships.IgnoreQueryFilters()
+            .CountAsync(m => m.IsActive && m.IsOwner));
     }
 
     [Fact]

@@ -100,7 +100,7 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         CancellationToken cancellationToken = default)
     {
         var tenants = await _db.Tenants.AsNoTracking()
-            .Where(t => t.Status != TenantStatuses.Deleted)
+            .Where(t => !TenantStatuses.RemovedStatuses.Contains(t.Status))
             .OrderBy(t => t.Name)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -142,7 +142,7 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         var tenant = await LoadMutableTenantAsync(tenantId, cancellationToken).ConfigureAwait(false);
         if (tenant == null)
             return (null, "Tenant not found.");
-        if (tenant.Status == TenantStatuses.Deleted)
+        if (TenantStatuses.IsRemoved(tenant.Status))
             return (null, "Deleted tenants cannot receive a trial license.");
 
         var now = DateTime.UtcNow;
@@ -165,7 +165,7 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         var tenant = await LoadMutableTenantAsync(tenantId, cancellationToken).ConfigureAwait(false);
         if (tenant == null)
             return (null, "Tenant not found.");
-        if (tenant.Status == TenantStatuses.Deleted)
+        if (TenantStatuses.IsRemoved(tenant.Status))
             return (null, "Deleted tenants cannot be updated.");
 
         var isSuperAdmin = string.Equals(actorRole, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase);
@@ -387,7 +387,7 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         var tenant = await LoadMutableTenantAsync(tenantId, cancellationToken).ConfigureAwait(false);
         if (tenant == null)
             return (null, "Tenant not found.");
-        if (tenant.Status == TenantStatuses.Deleted)
+        if (TenantStatuses.IsRemoved(tenant.Status))
             return (null, "Deleted tenants cannot be updated.");
 
         var now = DateTime.UtcNow;
@@ -419,7 +419,7 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
             .ConfigureAwait(false);
         if (tenant == null)
             return (null, "Tenant not found.");
-        if (tenant.Status == TenantStatuses.Deleted)
+        if (TenantStatuses.IsRemoved(tenant.Status))
             return (null, "Deleted tenants cannot be checked.");
 
         var warnings = new List<string>();
@@ -567,7 +567,7 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
             .ConfigureAwait(false);
         if (tenant == null)
             return (null, "Tenant not found.");
-        if (tenant.Status == TenantStatuses.Deleted)
+        if (TenantStatuses.IsRemoved(tenant.Status))
             return (null, "Deleted tenants cannot receive license reminders.");
 
         var recipientEmail = await ResolveReminderRecipientEmailAsync(tenantId, tenant.Email, cancellationToken)

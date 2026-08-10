@@ -721,6 +721,15 @@ internal static class ApplicationHost
         builder.Services.AddHostedService<RksvDataCleanupHostedService>();
         builder.Services.AddScoped<ITenantService, TenantService>();
         builder.Services.AddScoped<IAdminTenantService, AdminTenantService>();
+        builder.Services.AddScoped<IAdminTenantCsvExportService, AdminTenantCsvExportService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Analytics.ICustomerAnalyticsService, KasseAPI_Final.Services.Analytics.CustomerAnalyticsService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Email.IEmailService, KasseAPI_Final.Services.Email.EmailService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Communication.IBulkEmailService, KasseAPI_Final.Services.Communication.BulkEmailService>();
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Communication.IBulkEmailRateLimiter, KasseAPI_Final.Services.Communication.BulkEmailRateLimiter>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Billing.ISubscriptionInvoiceService, KasseAPI_Final.Services.Billing.SubscriptionInvoiceService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Onboarding.ITenantOnboardingChecklistService, KasseAPI_Final.Services.Onboarding.TenantOnboardingChecklistService>();
+        builder.Services.AddHostedService<SubscriptionInvoiceHostedService>();
+        builder.Services.AddHostedService<TenantLifecycleArchiveHostedService>();
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddScoped<IAdminTenantLicenseKeyService, AdminTenantLicenseKeyService>();
         builder.Services.AddScoped<IAdminTenantLicenseService, AdminTenantLicenseService>();

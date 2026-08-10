@@ -86,6 +86,7 @@ const ICON_MAP: Record<SidebarIconToken, React.ComponentType> = {
   UnorderedListOutlined: Icons.UnorderedListOutlined,
   BugOutlined: Icons.BugOutlined,
   ApiOutlined: Icons.ApiOutlined,
+  MailOutlined: Icons.MailOutlined,
 };
 
 /** Shared icon token → component map (sidebar + permission UI). */

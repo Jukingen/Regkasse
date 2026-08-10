@@ -312,6 +312,12 @@ namespace KasseAPI_Final.Data
 
         public DbSet<BillingAuditLog> BillingAuditLogs { get; set; }
 
+        public DbSet<CommunicationLog> CommunicationLogs { get; set; }
+
+        public DbSet<SubscriptionInvoice> SubscriptionInvoices { get; set; }
+
+        public DbSet<TenantOnboardingStatus> TenantOnboardingStatuses { get; set; }
+
         public DbSet<BillingBackupHistory> BillingBackupHistories { get; set; }
 
         public DbSet<LicenseReminder> LicenseReminders { get; set; }
@@ -2652,6 +2658,7 @@ namespace KasseAPI_Final.Data
 
                 entity.Property(e => e.LicenseKey).HasMaxLength(100).IsRequired();
                 entity.Property(e => e.LicensePlan).HasMaxLength(50).IsRequired();
+                entity.Property(e => e.LicenseType).HasColumnName("license_type");
                 entity.Property(e => e.Currency).HasMaxLength(3).HasDefaultValue("EUR").IsRequired();
                 entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue(LicenseSaleStatuses.Active).IsRequired();
                 entity.Property(e => e.InvoiceNumber).HasMaxLength(50).IsRequired();
@@ -2835,6 +2842,58 @@ namespace KasseAPI_Final.Data
                     .WithMany()
                     .HasForeignKey(e => e.TenantId)
                     .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            builder.Entity<CommunicationLog>(entity =>
+            {
+                entity.ToTable("communication_log");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Email).IsRequired().HasMaxLength(320);
+                entity.Property(e => e.Subject).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.ErrorMessage).HasMaxLength(2000);
+                entity.Property(e => e.SentAt).IsRequired();
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.HasIndex(e => e.TenantId);
+                entity.HasIndex(e => e.SentAt);
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<SubscriptionInvoice>(entity =>
+            {
+                entity.ToTable("subscription_invoices");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.InvoiceNumber).IsRequired().HasMaxLength(40);
+                entity.Property(e => e.Currency).IsRequired().HasMaxLength(3);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.PdfPath).HasMaxLength(500);
+                entity.Property(e => e.AmountNet).HasColumnType("numeric(18,2)");
+                entity.Property(e => e.VatRate).HasColumnType("numeric(5,2)");
+                entity.Property(e => e.AmountVat).HasColumnType("numeric(18,2)");
+                entity.Property(e => e.AmountGross).HasColumnType("numeric(18,2)");
+                entity.HasIndex(e => e.TenantId);
+                entity.HasIndex(e => e.InvoiceNumber).IsUnique();
+                entity.HasIndex(e => new { e.TenantId, e.PeriodStartUtc, e.PeriodEndUtc }).IsUnique();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<TenantOnboardingStatus>(entity =>
+            {
+                entity.ToTable("tenant_onboarding_status");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Step).IsRequired().HasMaxLength(40);
+                entity.Property(e => e.CompletedByUserId).HasMaxLength(450);
+                entity.HasIndex(e => new { e.TenantId, e.Step }).IsUnique();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             builder.Entity<BillingBackupHistory>(entity =>

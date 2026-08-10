@@ -202,7 +202,7 @@ public sealed partial class AdminLicenseController
         // and Manager membership scoping (by user id) see the correct cohort in unit tests and prod.
         var tenantsQuery = _db.Tenants.AsNoTracking()
             .IgnoreQueryFilters()
-            .Where(t => t.Status != TenantStatuses.Deleted);
+            .Where(t => !TenantStatuses.RemovedStatuses.Contains(t.Status));
 
         if (!IsActorSuperAdmin())
         {

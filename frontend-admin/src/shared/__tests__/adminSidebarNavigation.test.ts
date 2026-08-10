@@ -187,6 +187,12 @@ describe('adminSidebarNavigation', () => {
     expect(getNonRksvSidebarOpenGroupKeys('/admin/monitoring')).toContain(
       ADMIN_SIDEBAR_GROUP_KEYS.monitoringLogs
     );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/communication/bulk-email')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.license
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/communication/bulk-email')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.communication
+    );
   });
 
   it('detects Verwaltung routes for tenant context card', () => {

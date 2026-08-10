@@ -378,12 +378,20 @@
     "status": "Status",
     "adminUser": "Admin user",
     "license": "License",
+    "licenseType": "Package",
+    "registers": "Registers",
+    "users": "Users",
+    "lastActivity": "Last activity",
     "created": "Created",
     "actions": "Actions"
   },
   "status": {
+    "lead": "Lead",
+    "in_onboarding": "Onboarding",
     "active": "Active",
     "suspended": "Suspended",
+    "cancelled": "Cancelled",
+    "archived": "Archived",
     "deleted": "Archived"
   },
   "fields": {
@@ -641,11 +649,26 @@
     "copyFailed": "Copy failed"
   },
   "filters": {
-    "includeDeleted": "Include deleted"
+    "includeDeleted": "Include deleted",
+    "searchPlaceholder": "Search name or subdomain",
+    "statusPlaceholder": "Status",
+    "licenseTypePlaceholder": "License type",
+    "sortByPlaceholder": "Sort by",
+    "allStatuses": "All statuses",
+    "allLicenseTypes": "All license types",
+    "sortName": "Name",
+    "sortCreated": "Created",
+    "sortLicenseDays": "License days left",
+    "sortRegisters": "Register count",
+    "sortUsers": "User count",
+    "sortLastActivity": "Last activity"
   },
   "actions": {
     "create": "Create tenant",
     "edit": "Edit",
+    "exportCsv": "Export CSV",
+    "exportSuccess": "Export started.",
+    "exportFailed": "CSV export failed.",
     "decommission": "Decommission tenant",
     "delete": "Delete",
     "archive": "Archive",
@@ -657,7 +680,16 @@
     "manageLicense": "License",
     "suspend": "Suspend",
     "reactivate": "Reactivate",
-    "view": "Details"
+    "view": "Details",
+    "changeStatus": "Change status"
+  },
+  "analytics": {
+    "title": "Customer overview",
+    "totalTenants": "Total tenants",
+    "activeTenants": "Active",
+    "expiringSoon": "Expiring soon",
+    "mrr": "MRR",
+    "loadFailed": "Could not load analytics."
   },
   "detail": {
     "demoPreset": "Demo tenant",

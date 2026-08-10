@@ -1,0 +1,29 @@
+{
+  "page": {
+    "title": "Müşteri portalı",
+    "subtitle": "Lisans durumu, aktivite ve destek",
+    "requestSupport": "Destek iste",
+    "requestSupportHint": "Geri bildirim formunu açar"
+  },
+  "license": {
+    "title": "Lisans",
+    "status": "Durum",
+    "expiry": "Geçerlilik",
+    "package": "Paket",
+    "registers": "Kasa sayısı",
+    "unknown": "—"
+  },
+  "activity": {
+    "title": "Son aktivite"
+  },
+  "onboarding": {
+    "title": "Onboarding",
+    "complete": "Tamamlandı olarak işaretle",
+    "steps": {
+      "AccountCreated": "Hesap oluşturuldu",
+      "ProductsImported": "Ürünler içe aktarıldı",
+      "StartbelegDone": "Startbeleg tamam",
+      "TrainingComplete": "Eğitim tamam"
+    }
+  }
+}

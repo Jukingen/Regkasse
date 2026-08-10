@@ -72,7 +72,7 @@ public sealed class LicenseRenewalService : ILicenseRenewalService
             return new LicenseRenewalResult { Success = false, Message = "Tenant not found" };
         }
 
-        if (string.Equals(tenant.Status, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase))
+        if (TenantStatuses.IsRemoved(tenant.Status))
         {
             return new LicenseRenewalResult { Success = false, Message = "Deleted tenants cannot be renewed." };
         }

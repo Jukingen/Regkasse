@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Enums;
 
 namespace KasseAPI_Final.Services.AdminTenants;
 
@@ -17,7 +18,39 @@ public sealed record AdminTenantListItemDto(
     DateTime? UpdatedAt,
     int? LicenseDaysRemaining = null,
     string? OwnerAdminEmail = null,
-    bool IsDemoPreset = false);
+    bool IsDemoPreset = false,
+    LicenseType? LicenseType = null,
+    int RegisterCount = 0,
+    int UserCount = 0,
+    DateTime? LastActivityAtUtc = null);
+
+/// <summary>Query for Super Admin tenant list (filter / sort / page).</summary>
+public sealed class AdminTenantListQuery
+{
+    public bool IncludeDeleted { get; init; }
+
+    /// <summary>
+    /// Lifecycle filter: lead, in_onboarding, active, suspended, cancelled, archived
+    /// (also accepts enum names; legacy deleted → archived).
+    /// </summary>
+    public string? Status { get; init; }
+
+    /// <summary>Filter by package tier (Trial / Starter / Business / Plus).</summary>
+    public LicenseType? LicenseType { get; init; }
+
+    /// <summary>Case-insensitive partial match on name or slug.</summary>
+    public string? Search { get; init; }
+
+    /// <summary>Name | CreatedAt | LicenseDaysLeft | RegisterCount | UserCount | LastActivity. Default: CreatedAt.</summary>
+    public string? SortBy { get; init; }
+
+    /// <summary>Asc | Desc. Default: Desc.</summary>
+    public string? SortOrder { get; init; }
+
+    public int Page { get; init; } = 1;
+
+    public int PageSize { get; init; } = 20;
+}
 
 public sealed record AdminTenantDetailDto(
     Guid Id,

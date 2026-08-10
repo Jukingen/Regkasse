@@ -216,6 +216,8 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/billing/sales/new': [PERMISSIONS.SYSTEM_CRITICAL],
   /** Sale detail (`/admin/billing/sales/{id}`) — longest-prefix match via `/admin/billing/sales`. */
   '/admin/billing/stats': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/communication/bulk-email': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/tenant/dashboard': [PERMISSIONS.LICENSE_VIEW, PERMISSIONS.SYSTEM_CRITICAL],
   '/billing/digital': [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/digital': [
     PERMISSIONS.DIGITAL_MANAGE,

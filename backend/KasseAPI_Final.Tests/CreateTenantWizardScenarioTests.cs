@@ -68,11 +68,17 @@ public sealed class CreateTenantWizardScenarioTests
             TseProvisioningTestDoubles.Successful(),
             Mock.Of<ILogger<TenantProvisioningService>>());
 
+        var checklist = new Mock<KasseAPI_Final.Services.Onboarding.ITenantOnboardingChecklistService>();
+        checklist
+            .Setup(c => c.EnsureAndGetAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new KasseAPI_Final.Services.Onboarding.TenantOnboardingOverviewDto());
+
         return new TenantOnboardingService(
             db,
             provisioning,
             Mock.Of<IWelcomeEmailService>(),
             Mock.Of<IAuditLogService>(),
+            checklist.Object,
             Mock.Of<ILogger<TenantOnboardingService>>());
     }
 

@@ -1,8 +1,20 @@
+using KasseAPI_Final.Models;
+
 namespace KasseAPI_Final.Services.AdminTenants;
 
 public interface IAdminTenantService
 {
     Task<IReadOnlyList<AdminTenantListItemDto>> ListAsync(bool includeDeleted, CancellationToken cancellationToken = default);
+
+    /// <summary>Filtered, sorted, paginated Super Admin tenant inventory.</summary>
+    Task<PagedResult<AdminTenantListItemDto>> ListPagedAsync(
+        AdminTenantListQuery query,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Filtered Super Admin tenant inventory without pagination (CSV / full export).</summary>
+    Task<IReadOnlyList<AdminTenantListItemDto>> ListForExportAsync(
+        AdminTenantListQuery query,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Dev/header tenant switcher: all tenants for SuperAdmin; membership-scoped for other users.

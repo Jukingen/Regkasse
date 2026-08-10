@@ -24,6 +24,7 @@ import type { AdminTenantListItem } from '@/features/super-admin/api/adminTenant
 import { TenantArchiveConfirmModal } from '@/features/super-admin/components/TenantArchiveConfirmModal';
 import { TenantPermanentDeleteModal } from '@/features/super-admin/components/TenantPermanentDeleteModal';
 import { buildTenantDeletePreparationHref } from '@/features/super-admin/utils/tenantDeleteDependencyUi';
+import { isTenantRemovedStatus } from '@/features/super-admin/utils/tenantStatusLabel';
 import { buildAdminUsersPageHref } from '@/features/users/utils/adminUsersPageUrl';
 import { useI18n } from '@/i18n';
 
@@ -61,7 +62,7 @@ export function TenantTableActions({
   const closePermanentDeleteModal = useCallback(() => setPermanentDeleteOpen(false), []);
   const closeRestoreConfirm = useCallback(() => setRestoreConfirmOpen(false), []);
 
-  if (tenant.status === 'deleted') {
+  if (isTenantRemovedStatus(tenant.status)) {
     return (
       <Space size="small" wrap>
         <Link href={`/admin/tenants/${tenant.id}`}>

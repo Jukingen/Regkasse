@@ -210,7 +210,7 @@ public sealed class TenantContextService : ITenantContextService
             return LegacyDefaultTenantIds.Primary;
         }
 
-        if (string.Equals(tenant.Status, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase)
+        if (TenantStatuses.IsRemoved(tenant.Status)
             || !tenant.IsActive)
         {
             _logger.LogWarning(
@@ -237,7 +237,7 @@ public sealed class TenantContextService : ITenantContextService
             .ConfigureAwait(false);
 
         if (row == null
-            || string.Equals(row.Status, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase)
+            || TenantStatuses.IsRemoved(row.Status)
             || !row.IsActive)
         {
             return null;
@@ -259,7 +259,7 @@ public sealed class TenantContextService : ITenantContextService
             .ConfigureAwait(false);
 
         if (row == null
-            || string.Equals(row.Status, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase)
+            || TenantStatuses.IsRemoved(row.Status)
             || !row.IsActive)
         {
             return null;

@@ -80,7 +80,7 @@ public sealed class TenantOperationalGateMiddleware
             return;
         }
 
-        if (string.Equals(row.Status, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase))
+        if (TenantStatuses.IsRemoved(row.Status))
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
             await context.Response.WriteAsJsonAsync(new

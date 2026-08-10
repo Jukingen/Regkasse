@@ -1,0 +1,29 @@
+{
+  "page": {
+    "title": "Mandanten-Portal",
+    "subtitle": "Lizenzstatus, Aktivität und Support",
+    "requestSupport": "Support anfragen",
+    "requestSupportHint": "Öffnet das Feedback-Formular"
+  },
+  "license": {
+    "title": "Lizenz",
+    "status": "Status",
+    "expiry": "Gültig bis",
+    "package": "Paket",
+    "registers": "Kassenzahl",
+    "unknown": "—"
+  },
+  "activity": {
+    "title": "Letzte Aktivität"
+  },
+  "onboarding": {
+    "title": "Onboarding",
+    "complete": "Als erledigt markieren",
+    "steps": {
+      "AccountCreated": "Konto erstellt",
+      "ProductsImported": "Produkte importiert",
+      "StartbelegDone": "Startbeleg erstellt",
+      "TrainingComplete": "Schulung abgeschlossen"
+    }
+  }
+}

@@ -14,7 +14,13 @@ export function TenantStatusBadge({ status }: TenantStatusBadgeProps) {
   const resolved = resolveStatusType(status);
   const normalized = status?.toLowerCase() ?? '';
   const tenantLabelKey =
-    normalized === 'active' || normalized === 'suspended' || normalized === 'deleted'
+    normalized === 'active' ||
+    normalized === 'suspended' ||
+    normalized === 'deleted' ||
+    normalized === 'lead' ||
+    normalized === 'in_onboarding' ||
+    normalized === 'cancelled' ||
+    normalized === 'archived'
       ? (`tenants.status.${normalized}` as const)
       : null;
 

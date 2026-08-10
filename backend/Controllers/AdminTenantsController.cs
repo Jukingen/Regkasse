@@ -1,6 +1,8 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
+using KasseAPI_Final.Models.Enums;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.ActivityReports;
@@ -19,6 +21,7 @@ namespace KasseAPI_Final.Controllers;
 public sealed class AdminTenantsController : ControllerBase
 {
     private readonly IAdminTenantService _tenantService;
+    private readonly IAdminTenantCsvExportService _csvExport;
     private readonly IAdminTenantLicenseService _tenantLicenseService;
     private readonly ITenantDeletionService _tenantDeletionService;
     private readonly IActivityReportService _activityReportService;
@@ -28,6 +31,7 @@ public sealed class AdminTenantsController : ControllerBase
 
     public AdminTenantsController(
         IAdminTenantService tenantService,
+        IAdminTenantCsvExportService csvExport,
         IAdminTenantLicenseService tenantLicenseService,
         ITenantDeletionService tenantDeletionService,
         IActivityReportService activityReportService,
@@ -36,6 +40,7 @@ public sealed class AdminTenantsController : ControllerBase
         ILogger<AdminTenantsController> logger)
     {
         _tenantService = tenantService;
+        _csvExport = csvExport;
         _tenantLicenseService = tenantLicenseService;
         _tenantDeletionService = tenantDeletionService;
         _activityReportService = activityReportService;
@@ -46,15 +51,97 @@ public sealed class AdminTenantsController : ControllerBase
 
     private string? ActorUserId => User.GetActorUserId();
 
-    /// <summary>List all tenants (optionally include soft-deleted).</summary>
+    /// <summary>List tenants with optional filter, sort, and pagination.</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<AdminTenantListItemDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<AdminTenantListItemDto>>> List(
+    [ProducesResponseType(typeof(PagedResult<AdminTenantListItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<AdminTenantListItemDto>>> List(
         [FromQuery] bool includeDeleted = false,
+        [FromQuery] string? status = null,
+        [FromQuery] string? licenseType = null,
+        [FromQuery] string? search = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] string? sortOrder = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        var items = await _tenantService.ListAsync(includeDeleted, cancellationToken).ConfigureAwait(false);
-        return Ok(items);
+        LicenseType? parsedLicenseType = null;
+        if (!string.IsNullOrWhiteSpace(licenseType))
+        {
+            if (!Enum.TryParse<LicenseType>(licenseType.Trim(), ignoreCase: true, out var lt))
+            {
+                return Ok(new PagedResult<AdminTenantListItemDto>
+                {
+                    Items = [],
+                    TotalCount = 0,
+                    Page = Math.Max(1, page),
+                    PageSize = Math.Clamp(pageSize <= 0 ? 20 : pageSize, 1, 100),
+                    TotalPages = 0,
+                });
+            }
+
+            parsedLicenseType = lt;
+        }
+
+        var result = await _tenantService
+            .ListPagedAsync(
+                new AdminTenantListQuery
+                {
+                    IncludeDeleted = includeDeleted,
+                    Status = status,
+                    LicenseType = parsedLicenseType,
+                    Search = search,
+                    SortBy = sortBy,
+                    SortOrder = sortOrder,
+                    Page = page,
+                    PageSize = pageSize,
+                },
+                cancellationToken)
+            .ConfigureAwait(false);
+        return Ok(result);
+    }
+
+    /// <summary>Export filtered tenant inventory as CSV (same filters as list; no pagination).</summary>
+    [HttpGet("export")]
+    [Produces("text/csv")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ExportCsv(
+        [FromQuery] bool includeDeleted = false,
+        [FromQuery] string? status = null,
+        [FromQuery] string? licenseType = null,
+        [FromQuery] string? search = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] string? sortOrder = null,
+        CancellationToken cancellationToken = default)
+    {
+        LicenseType? parsedLicenseType = null;
+        if (!string.IsNullOrWhiteSpace(licenseType))
+        {
+            if (!Enum.TryParse<LicenseType>(licenseType.Trim(), ignoreCase: true, out var lt))
+                return BadRequest(new { message = "Invalid licenseType." });
+            parsedLicenseType = lt;
+        }
+
+        var rows = await _tenantService
+            .ListForExportAsync(
+                new AdminTenantListQuery
+                {
+                    IncludeDeleted = includeDeleted,
+                    Status = status,
+                    LicenseType = parsedLicenseType,
+                    Search = search,
+                    SortBy = sortBy,
+                    SortOrder = sortOrder,
+                    Page = 1,
+                    PageSize = int.MaxValue,
+                },
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        var bytes = _csvExport.BuildCsv(rows);
+        var fileName = $"tenants_export_{DateTime.UtcNow:yyyyMMdd_HHmmss}_UTC.csv";
+        Response.Headers.ContentDisposition = $"attachment; filename=\"{fileName}\"";
+        return File(bytes, "text/csv; charset=utf-8", fileName);
     }
 
     /// <summary>Super Admin mandant license inventory for <c>/admin/license</c> overview table.</summary>

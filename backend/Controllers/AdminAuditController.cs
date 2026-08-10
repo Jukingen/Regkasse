@@ -29,6 +29,7 @@ public class AdminAuditController : ControllerBase
     private readonly AuditRetentionOptions _retentionOptions;
     private readonly ILogger<AdminAuditController> _logger;
     private readonly IDownloadSecurityService _downloadSecurity;
+    private readonly IActorDisplayNameResolver _actorDisplayNameResolver;
 
     public AdminAuditController(
         IAuditExportService exportService,
@@ -39,7 +40,8 @@ public class AdminAuditController : ControllerBase
         AppDbContext db,
         IOptions<AuditRetentionOptions> retentionOptions,
         ILogger<AdminAuditController> logger,
-        IDownloadSecurityService downloadSecurity)
+        IDownloadSecurityService downloadSecurity,
+        IActorDisplayNameResolver actorDisplayNameResolver)
     {
         _exportService = exportService;
         _exportJobs = exportJobs;
@@ -50,6 +52,7 @@ public class AdminAuditController : ControllerBase
         _retentionOptions = retentionOptions.Value;
         _logger = logger;
         _downloadSecurity = downloadSecurity;
+        _actorDisplayNameResolver = actorDisplayNameResolver;
     }
 
     [HttpGet("retention")]
@@ -63,6 +66,109 @@ public class AdminAuditController : ControllerBase
             RetentionYears = years,
             MinCutoffDate = minCutoff,
             Message = $"Audit logs must be retained for at least {years} years (RKSV compliance).",
+        });
+    }
+
+    /// <summary>
+    /// Super Admin: paginated audit log for a specific tenant (cross-tenant; IgnoreQueryFilters).
+    /// </summary>
+    [HttpGet("tenant/{tenantId:guid}")]
+    [Authorize(Roles = Roles.SuperAdmin)]
+    [ProducesResponseType(typeof(TenantAuditLogsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TenantAuditLogsResponse>> GetTenantAuditLogs(
+        Guid tenantId,
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null,
+        [FromQuery] string? action = null,
+        [FromQuery] string? userId = null,
+        [FromQuery] string sortBy = "timestamp",
+        [FromQuery] string sortOrder = "desc",
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantExists = await _db.Tenants.AsNoTracking()
+            .IgnoreQueryFilters()
+            .AnyAsync(t => t.Id == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (!tenantExists)
+            return NotFound(new { message = "Tenant not found." });
+
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize <= 0 ? 50 : pageSize, 1, 100);
+
+        var filters = new AuditLogQueryFilters
+        {
+            StartDate = startDate,
+            EndDate = endDate,
+            Action = action,
+            UserId = userId,
+        };
+
+        var query = _db.AuditLogs.AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(a => a.TenantId == tenantId)
+            .ApplyFilters(filters);
+
+        var totalCount = await query.CountAsync(cancellationToken).ConfigureAwait(false);
+
+        var sortAction = string.Equals(sortBy, "action", StringComparison.OrdinalIgnoreCase);
+        var asc = string.Equals(sortOrder, "asc", StringComparison.OrdinalIgnoreCase);
+
+        IOrderedQueryable<AuditLog> ordered = sortAction
+            ? (asc
+                ? query.OrderBy(a => a.Action).ThenByDescending(a => a.Timestamp)
+                : query.OrderByDescending(a => a.Action).ThenByDescending(a => a.Timestamp))
+            : (asc
+                ? query.OrderBy(a => a.Timestamp).ThenBy(a => a.Id)
+                : query.OrderByDescending(a => a.Timestamp).ThenByDescending(a => a.Id));
+
+        var rows = await ordered
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(a => new
+            {
+                a.Id,
+                a.Timestamp,
+                a.UserId,
+                a.Action,
+                a.Description,
+                a.Notes,
+            })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var displayNames = await _actorDisplayNameResolver
+            .ResolveAsync(rows.Select(r => r.UserId).Distinct().ToList())
+            .ConfigureAwait(false);
+
+        var items = rows.Select(r => new TenantAuditLogItemDto
+        {
+            Id = r.Id,
+            Timestamp = r.Timestamp,
+            UserId = r.UserId,
+            UserDisplayName = displayNames.TryGetValue(r.UserId, out var name) ? name : null,
+            Action = r.Action,
+            Details = r.Description ?? r.Notes,
+        }).ToList();
+
+        _logger.LogInformation(
+            "Super Admin retrieved {Count} audit logs for tenant {TenantId} (page {Page})",
+            items.Count,
+            tenantId,
+            page);
+
+        return Ok(new TenantAuditLogsResponse
+        {
+            Success = true,
+            TenantId = tenantId,
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize,
+            TotalPages = totalCount > 0 ? (int)Math.Ceiling(totalCount / (double)pageSize) : 0,
+            Message = "Tenant audit logs retrieved successfully",
         });
     }
 

@@ -13,4 +13,20 @@ public sealed class BillingOptions
 
     /// <summary>UTC minute (0–59) for the daily billing reminder tick.</summary>
     public int ReminderCheckMinuteUtc { get; set; } = 0;
+
+    /// <summary>When true, hosted service generates monthly SaaS invoices for active paid tenants.</summary>
+    public bool AutoMonthlyInvoicingEnabled { get; set; } = true;
+
+    /// <summary>Day of month (1–28) to run monthly invoice generation (UTC).</summary>
+    public int MonthlyInvoiceDayOfMonth { get; set; } = 1;
+
+    public int MonthlyInvoiceHourUtc { get; set; } = 6;
+
+    public int MonthlyInvoiceMinuteUtc { get; set; } = 0;
+
+    public decimal MonthlyNetStarter { get; set; } = 49m;
+
+    public decimal MonthlyNetBusiness { get; set; } = 99m;
+
+    public decimal MonthlyNetPlus { get; set; } = 149m;
 }

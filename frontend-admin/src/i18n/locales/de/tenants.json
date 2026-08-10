@@ -378,12 +378,20 @@
     "status": "Status",
     "adminUser": "Administrator",
     "license": "Lizenz",
+    "licenseType": "Paket",
+    "registers": "Kassen",
+    "users": "Benutzer",
+    "lastActivity": "Letzte Aktivität",
     "created": "Erstellt",
     "actions": "Aktionen"
   },
   "status": {
+    "lead": "Lead",
+    "in_onboarding": "Onboarding",
     "active": "Aktiv",
     "suspended": "Gesperrt",
+    "cancelled": "Gekündigt",
+    "archived": "Archiviert",
     "deleted": "Archiviert"
   },
   "fields": {
@@ -641,11 +649,26 @@
     "copyFailed": "Kopieren fehlgeschlagen"
   },
   "filters": {
-    "includeDeleted": "Gelöschte anzeigen"
+    "includeDeleted": "Gelöschte anzeigen",
+    "searchPlaceholder": "Name oder Subdomain suchen",
+    "statusPlaceholder": "Status",
+    "licenseTypePlaceholder": "Lizenztyp",
+    "sortByPlaceholder": "Sortierung",
+    "allStatuses": "Alle Status",
+    "allLicenseTypes": "Alle Lizenztypen",
+    "sortName": "Name",
+    "sortCreated": "Erstellt",
+    "sortLicenseDays": "Lizenz-Resttage",
+    "sortRegisters": "Kassenanzahl",
+    "sortUsers": "Benutzeranzahl",
+    "sortLastActivity": "Letzte Aktivität"
   },
   "actions": {
     "create": "Mandant anlegen",
     "edit": "Bearbeiten",
+    "exportCsv": "CSV exportieren",
+    "exportSuccess": "Export gestartet.",
+    "exportFailed": "CSV-Export fehlgeschlagen.",
     "decommission": "Mandant decommission",
     "delete": "Löschen",
     "archive": "Archivieren",
@@ -657,7 +680,16 @@
     "manageLicense": "Lizenz",
     "suspend": "Sperren",
     "reactivate": "Reaktivieren",
-    "view": "Details"
+    "view": "Details",
+    "changeStatus": "Status ändern"
+  },
+  "analytics": {
+    "title": "Kundenübersicht",
+    "totalTenants": "Mandanten gesamt",
+    "activeTenants": "Aktiv",
+    "expiringSoon": "Läuft bald ab",
+    "mrr": "MRR",
+    "loadFailed": "Statistiken konnten nicht geladen werden."
   },
   "detail": {
     "demoPreset": "Demo-Mandant",

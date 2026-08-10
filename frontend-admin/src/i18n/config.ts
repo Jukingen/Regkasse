@@ -9,6 +9,7 @@ import deCalendar from './locales/de/calendar.json';
 import deCardTransactions from './locales/de/cardTransactions.json';
 import deCashRegisters from './locales/de/cashRegisters.json';
 import deCommon from './locales/de/common.json';
+import deCommunication from './locales/de/communication.json';
 import deCustomers from './locales/de/customers.json';
 import deDashboard from './locales/de/dashboard.json';
 import deDataManagement from './locales/de/dataManagement.json';
@@ -74,6 +75,7 @@ import deSuperadmin from './locales/de/superadmin.json';
 import deSuspiciousAlerts from './locales/de/suspiciousAlerts.json';
 import deTagesabschluss from './locales/de/tagesabschluss.json';
 import deTenants from './locales/de/tenants.json';
+import deTenantPortal from './locales/de/tenantPortal.json';
 import deTimeSync from './locales/de/timeSync.json';
 import deUsers from './locales/de/users.json';
 import deVouchers from './locales/de/vouchers.json';
@@ -88,6 +90,7 @@ import enCalendar from './locales/en/calendar.json';
 import enCardTransactions from './locales/en/cardTransactions.json';
 import enCashRegisters from './locales/en/cashRegisters.json';
 import enCommon from './locales/en/common.json';
+import enCommunication from './locales/en/communication.json';
 import enCustomers from './locales/en/customers.json';
 import enDashboard from './locales/en/dashboard.json';
 import enDataManagement from './locales/en/dataManagement.json';
@@ -153,6 +156,7 @@ import enSuperadmin from './locales/en/superadmin.json';
 import enSuspiciousAlerts from './locales/en/suspiciousAlerts.json';
 import enTagesabschluss from './locales/en/tagesabschluss.json';
 import enTenants from './locales/en/tenants.json';
+import enTenantPortal from './locales/en/tenantPortal.json';
 import enTimeSync from './locales/en/timeSync.json';
 import enUsers from './locales/en/users.json';
 import enVouchers from './locales/en/vouchers.json';
@@ -167,6 +171,7 @@ import trCalendar from './locales/tr/calendar.json';
 import trCardTransactions from './locales/tr/cardTransactions.json';
 import trCashRegisters from './locales/tr/cashRegisters.json';
 import trCommon from './locales/tr/common.json';
+import trCommunication from './locales/tr/communication.json';
 import trCustomers from './locales/tr/customers.json';
 import trDashboard from './locales/tr/dashboard.json';
 import trDataManagement from './locales/tr/dataManagement.json';
@@ -232,6 +237,7 @@ import trSuperadmin from './locales/tr/superadmin.json';
 import trSuspiciousAlerts from './locales/tr/suspiciousAlerts.json';
 import trTagesabschluss from './locales/tr/tagesabschluss.json';
 import trTenants from './locales/tr/tenants.json';
+import trTenantPortal from './locales/tr/tenantPortal.json';
 import trTimeSync from './locales/tr/timeSync.json';
 import trUsers from './locales/tr/users.json';
 import trVouchers from './locales/tr/vouchers.json';
@@ -266,6 +272,7 @@ const catalogs = {
     reporting: deReporting,
     errors: deErrors,
     feedback: deFeedback,
+    communication: deCommunication,
     featureFlags: deFeatureFlags,
     deployments: deDeployments,
     databaseMigrations: deDatabaseMigrations,
@@ -312,6 +319,7 @@ const catalogs = {
     fiscalExportAudit: deFiscalExportAudit,
     developmentMode: deDevelopmentMode,
     tenants: deTenants,
+    tenantPortal: deTenantPortal,
     superadmin: deSuperadmin,
     dashboard: deDashboard,
     cashRegisters: deCashRegisters,
@@ -347,6 +355,7 @@ const catalogs = {
     reporting: enReporting,
     errors: enErrors,
     feedback: enFeedback,
+    communication: enCommunication,
     featureFlags: enFeatureFlags,
     deployments: enDeployments,
     databaseMigrations: enDatabaseMigrations,
@@ -393,6 +402,7 @@ const catalogs = {
     fiscalExportAudit: enFiscalExportAudit,
     developmentMode: enDevelopmentMode,
     tenants: enTenants,
+    tenantPortal: enTenantPortal,
     superadmin: enSuperadmin,
     dashboard: enDashboard,
     cashRegisters: enCashRegisters,
@@ -428,6 +438,7 @@ const catalogs = {
     reporting: trReporting,
     errors: trErrors,
     feedback: trFeedback,
+    communication: trCommunication,
     featureFlags: trFeatureFlags,
     deployments: trDeployments,
     databaseMigrations: trDatabaseMigrations,
@@ -474,6 +485,7 @@ const catalogs = {
     fiscalExportAudit: trFiscalExportAudit,
     developmentMode: trDevelopmentMode,
     tenants: trTenants,
+    tenantPortal: trTenantPortal,
     superadmin: trSuperadmin,
     dashboard: trDashboard,
     cashRegisters: trCashRegisters,

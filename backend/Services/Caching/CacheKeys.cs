@@ -61,6 +61,11 @@ public static class CacheKeys
     public const string HealthPing = "health_check_ping";
 
     /// <summary>
+    /// Super Admin customer analytics snapshot. Fixed string — do not <see cref="Format"/>.
+    /// </summary>
+    public const string CustomerAnalytics = "admin_customer_analytics";
+
+    /// <summary>
     /// Formats a template from this class (e.g. <see cref="LicenseStatus"/>) with the given arguments.
     /// </summary>
     public static string Format(string key, params object[] args) =>

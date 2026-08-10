@@ -979,7 +979,7 @@ namespace KasseAPI_Final.Controllers
                 .AnyAsync(
                     t => t.Id == targetTenantId
                         && t.IsActive
-                        && t.Status != TenantStatuses.Deleted,
+                        && !TenantStatuses.RemovedStatuses.Contains(t.Status),
                     cancellationToken)
                 .ConfigureAwait(false);
             if (!tenantExists)

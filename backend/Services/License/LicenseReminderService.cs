@@ -100,6 +100,19 @@ public sealed class LicenseReminderService : ILicenseReminderService
                 continue;
             }
 
+            if (isExpiredDue)
+            {
+                await _db.Tenants
+                    .Where(t => t.Id == tenant.Id && t.Status == TenantStatuses.Active)
+                    .ExecuteUpdateAsync(
+                        setters => setters
+                            .SetProperty(t => t.Status, TenantStatuses.Suspended)
+                            .SetProperty(t => t.IsActive, false)
+                            .SetProperty(t => t.UpdatedAt, now),
+                        cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
             var daysBefore = isExpiredDue ? 0 : daysRemaining!.Value;
             var validUntil = DateTime.SpecifyKind(tenant.LicenseValidUntilUtc!.Value, DateTimeKind.Utc);
             var dedupKey = BuildDedupKey(tenant.Id, validUntil, daysBefore);
@@ -372,7 +385,7 @@ public sealed class LicenseReminderService : ILicenseReminderService
         foreach (var reminder in pending)
         {
             var tenant = reminder.Tenant;
-            if (tenant == null || tenant.Status == TenantStatuses.Deleted)
+            if (tenant == null || TenantStatuses.IsRemoved(tenant.Status))
             {
                 reminder.Status = LicenseReminderStatuses.Cancelled;
                 continue;
@@ -412,7 +425,8 @@ public sealed class LicenseReminderService : ILicenseReminderService
                             mappedDays ?? daysRemaining,
                             recipient.DisplayName,
                             renewUrl,
-                            supportEmail));
+                            supportEmail,
+                            sale.LicenseType ?? Models.Enums.LicenseType.Starter));
                     var delivered = await _emailSender
                         .TrySendTenantLicenseReminderAsync(
                             recipient.Email,
@@ -426,10 +440,10 @@ public sealed class LicenseReminderService : ILicenseReminderService
                         anyDelivered = true;
                         sent++;
                         _logger.LogInformation(
-                            "Billing license reminder email sent for tenant {TenantSlug} sale {SaleId} to {RecipientEmail}",
+                            "License reminder sent to {Email} for tenant {TenantSlug}, days remaining: {Days}",
+                            recipient.Email,
                             tenant.Slug,
-                            sale.Id,
-                            recipient.Email);
+                            mappedDays ?? daysRemaining);
                     }
                     else
                     {

@@ -2,6 +2,7 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Email;
+using KasseAPI_Final.Services.Onboarding;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services.AdminTenants;
@@ -21,6 +22,7 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
     private readonly ITenantProvisioningService _provisioningService;
     private readonly IWelcomeEmailService _welcomeEmail;
     private readonly IAuditLogService _auditLog;
+    private readonly ITenantOnboardingChecklistService _checklist;
     private readonly ILogger<TenantOnboardingService> _logger;
 
     public TenantOnboardingService(
@@ -28,12 +30,14 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
         ITenantProvisioningService provisioningService,
         IWelcomeEmailService welcomeEmail,
         IAuditLogService auditLog,
+        ITenantOnboardingChecklistService checklist,
         ILogger<TenantOnboardingService> logger)
     {
         _db = db;
         _provisioningService = provisioningService;
         _welcomeEmail = welcomeEmail;
         _auditLog = auditLog;
+        _checklist = checklist;
         _logger = logger;
     }
 
@@ -109,7 +113,7 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
             Email = TrimOrNull(request.Email),
             Phone = TrimOrNull(request.Phone),
             Address = TrimOrNull(request.Address),
-            Status = TenantStatuses.Active,
+            Status = TenantStatuses.InOnboarding,
             IsActive = true,
             LicenseKey = TrimOrNull(request.LicenseKey),
             LicenseValidUntilUtc = request.LicenseValidUntilUtc.HasValue
@@ -217,6 +221,24 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
                 AuditLogStatus.Success,
                 cancellationToken,
                 tenant.Id).ConfigureAwait(false);
+
+            tenant.Status = TenantStatuses.Active;
+            tenant.IsActive = true;
+            tenant.UpdatedAt = DateTime.UtcNow;
+            tenant.UpdatedBy = actorUserId;
+            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+            try
+            {
+                await _checklist.EnsureAndGetAsync(tenant.Id, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception checklistEx)
+            {
+                _logger.LogWarning(
+                    checklistEx,
+                    "Failed to seed onboarding checklist for tenant {TenantId}",
+                    tenant.Id);
+            }
 
             _logger.LogInformation(
                 "Super-admin onboarded tenant {TenantId} slug {Slug} (welcomeEmailSent={WelcomeSent})",

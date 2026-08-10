@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using KasseAPI_Final.Models.Enums;
 
 namespace KasseAPI_Final.Services.Billing;
 
@@ -11,6 +12,9 @@ public record CreateLicenseSaleRequest
 
     [Required]
     public string LicensePlan { get; init; } = "12_months";
+
+    /// <summary>Package tier; defaults to <see cref="LicenseType.Starter"/> when omitted.</summary>
+    public LicenseType? LicenseType { get; init; }
 
     public DateTime? CustomValidUntilUtc { get; init; }
 
@@ -99,6 +103,7 @@ public record LicenseSaleResponse
     public string TenantSlug { get; init; } = string.Empty;
     public string LicenseKey { get; init; } = string.Empty;
     public string LicensePlan { get; init; } = string.Empty;
+    public LicenseType? LicenseType { get; init; }
     public DateTime ValidFromUtc { get; init; }
     public DateTime ValidUntilUtc { get; init; }
     public decimal PriceNet { get; init; }

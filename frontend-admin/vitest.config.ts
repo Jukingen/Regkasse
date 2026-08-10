@@ -14,7 +14,13 @@ export default defineConfig({
     // Mirrors tsconfig paths: `@/*` -> `./src/*`
     alias: {
       '@': path.resolve(rootDir, './src'),
+      // Workspace can install react in both root and frontend-admin; pin one copy for jsdom.
+      react: path.resolve(rootDir, '../node_modules/react'),
+      'react-dom': path.resolve(rootDir, '../node_modules/react-dom'),
+      'react/jsx-runtime': path.resolve(rootDir, '../node_modules/react/jsx-runtime.js'),
+      'react/jsx-dev-runtime': path.resolve(rootDir, '../node_modules/react/jsx-dev-runtime.js'),
     },
+    dedupe: ['react', 'react-dom'],
   },
   // Prefer Oxc (Vitest 4 default). JSX runtime comes from tsconfig `jsx: "react-jsx"`.
   oxc: {

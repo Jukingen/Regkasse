@@ -166,6 +166,11 @@
   "billingSalesNew": "New sale",
   "billingStats": "Statistics",
   "billingDigital": "Digital services (revenue)",
+  "communication": {
+    "title": "Communication",
+    "bulkEmail": "Bulk Email"
+  },
+  "tenantPortal": "Customer portal",
   "digitalServicesManage": "Digital services (management)",
   "digitalServiceRequests": "Digital service requests",
   "adminFeedback": "User feedback",

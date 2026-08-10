@@ -55,7 +55,7 @@ public sealed class LicenseTestService : ILicenseTestService
             .ConfigureAwait(false);
         if (tenant == null)
             throw new KeyNotFoundException("Tenant not found.");
-        if (tenant.Status == TenantStatuses.Deleted)
+        if (TenantStatuses.IsRemoved(tenant.Status))
             throw new InvalidOperationException("Deleted tenants cannot be modified.");
 
         var expiry = ResolveTargetExpiryUtc(request);
@@ -99,7 +99,7 @@ public sealed class LicenseTestService : ILicenseTestService
             .ConfigureAwait(false);
         if (tenant == null)
             throw new KeyNotFoundException("Tenant not found.");
-        if (tenant.Status == TenantStatuses.Deleted)
+        if (TenantStatuses.IsRemoved(tenant.Status))
             throw new InvalidOperationException("Deleted tenants cannot be modified.");
 
         var expiry = DateTime.SpecifyKind(request.ValidUntil.Value, DateTimeKind.Utc);

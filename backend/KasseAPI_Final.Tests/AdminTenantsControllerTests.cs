@@ -7,6 +7,7 @@ using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Enums;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminCashRegisters;
 using KasseAPI_Final.Services.AdminTenants;
@@ -87,11 +88,17 @@ public sealed class AdminTenantsControllerTests
         ITenantProvisioningService? provisioning = null)
     {
         var provisioningMock = provisioning ?? CreateSuccessfulProvisioningMock();
+        var checklist = new Mock<KasseAPI_Final.Services.Onboarding.ITenantOnboardingChecklistService>();
+        checklist
+            .Setup(c => c.EnsureAndGetAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new KasseAPI_Final.Services.Onboarding.TenantOnboardingOverviewDto());
+
         return new TenantOnboardingService(
             db,
             provisioningMock,
             Mock.Of<IWelcomeEmailService>(),
             Mock.Of<IAuditLogService>(),
+            checklist.Object,
             Mock.Of<ILogger<TenantOnboardingService>>());
     }
 
@@ -188,6 +195,7 @@ public sealed class AdminTenantsControllerTests
     {
         var controller = new AdminTenantsController(
             tenantService ?? Mock.Of<IAdminTenantService>(),
+            Mock.Of<IAdminTenantCsvExportService>(),
             tenantLicenseService ?? Mock.Of<IAdminTenantLicenseService>(),
             tenantDeletionService ?? Mock.Of<ITenantDeletionService>(),
             Mock.Of<KasseAPI_Final.Services.ActivityReports.IActivityReportService>(),
@@ -379,7 +387,7 @@ public sealed class AdminTenantsControllerTests
         Assert.True(success);
         Assert.Null(error);
         var row = await db.Tenants.AsNoTracking().SingleAsync(t => t.Id == tenant.Id);
-        Assert.Equal(TenantStatuses.Deleted, row.Status);
+        Assert.Equal(TenantStatuses.Cancelled, row.Status);
         Assert.False(row.IsActive);
     }
 
@@ -600,7 +608,7 @@ public sealed class AdminTenantsControllerTests
         Assert.Null(httpContextAccessor.HttpContext!.User.FindFirst(ScopeCheckService.TenantIdClaim));
 
         var tenantRow = await db.Tenants.AsNoTracking().SingleAsync(t => t.Id == tenantId);
-        Assert.Equal(TenantStatuses.Deleted, tenantRow.Status);
+        Assert.Equal(TenantStatuses.Cancelled, tenantRow.Status);
         Assert.False(tenantRow.IsActive);
     }
 
@@ -671,6 +679,391 @@ public sealed class AdminTenantsControllerTests
 
         var dev = list.Single(x => x.Slug == "dev");
         Assert.True(dev.IsDemoPreset);
+    }
+
+    [Fact]
+    public async Task ListAsync_Enriches_Aggregates_From_Related_Tables()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        var saleUntil = now.AddDays(20);
+
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Aggregate Cafe",
+            Slug = "aggregate-cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            LicenseKey = "REGK-AGG-KEY",
+            LicenseValidUntilUtc = now.AddDays(5),
+            CreatedAt = now.AddDays(-10),
+        });
+
+        db.Users.AddRange(
+            new ApplicationUser
+            {
+                Id = "owner-agg",
+                UserName = "owner@aggregate.test",
+                Email = "owner@aggregate.test",
+                FirstName = "Owner",
+                LastName = "Agg",
+                Role = Roles.Manager,
+                IsActive = true,
+                EmailConfirmed = true,
+            },
+            new ApplicationUser
+            {
+                Id = "cashier-agg",
+                UserName = "cashier@aggregate.test",
+                Email = "cashier@aggregate.test",
+                FirstName = "Cash",
+                LastName = "Agg",
+                Role = Roles.Cashier,
+                IsActive = true,
+                EmailConfirmed = true,
+            });
+
+        db.UserTenantMemberships.AddRange(
+            new UserTenantMembership
+            {
+                UserId = "owner-agg",
+                TenantId = tenantId,
+                IsActive = true,
+                IsOwner = true,
+                CreatedAtUtc = now,
+            },
+            new UserTenantMembership
+            {
+                UserId = "cashier-agg",
+                TenantId = tenantId,
+                IsActive = true,
+                IsOwner = false,
+                CreatedAtUtc = now,
+            });
+
+        db.CashRegisters.AddRange(
+            new CashRegister
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                RegisterNumber = "K1",
+                Location = "Front",
+                StartingBalance = 0,
+                CurrentBalance = 0,
+                LastBalanceUpdate = now,
+                Status = RegisterStatus.Closed,
+                CreatedAt = now,
+                IsActive = true,
+            },
+            new CashRegister
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                RegisterNumber = "K2",
+                Location = "Bar",
+                StartingBalance = 0,
+                CurrentBalance = 0,
+                LastBalanceUpdate = now,
+                Status = RegisterStatus.Closed,
+                CreatedAt = now,
+                IsActive = true,
+            });
+
+        db.LicenseSales.Add(new LicenseSale
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            LicenseKey = "REGK-AGG-SALE",
+            LicensePlan = LicenseSalePlans.TwelveMonths,
+            LicenseType = LicenseType.Business,
+            ValidFromUtc = now.AddDays(-10),
+            ValidUntilUtc = saleUntil,
+            PriceNet = 100m,
+            VatRate = 20m,
+            VatAmount = 20m,
+            PriceGross = 120m,
+            Currency = "EUR",
+            SoldAtUtc = now.AddDays(-10),
+            SoldByUserId = Guid.NewGuid(),
+            InvoiceNumber = "RE202608AGG01",
+            Status = LicenseSaleStatuses.Active,
+            CreatedAt = now.AddDays(-10),
+            UpdatedAt = now.AddDays(-10),
+        });
+
+        var olderAudit = now.AddDays(-2);
+        var newerAudit = now.AddHours(-1);
+        db.AuditLogs.AddRange(
+            new AuditLog
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                SessionId = "s1",
+                UserId = "owner-agg",
+                UserRole = Roles.Manager,
+                Action = "LOGIN",
+                EntityType = "User",
+                Status = AuditLogStatus.Success,
+                Timestamp = olderAudit,
+            },
+            new AuditLog
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                SessionId = "s2",
+                UserId = "cashier-agg",
+                UserRole = Roles.Cashier,
+                Action = "PAYMENT",
+                EntityType = "Payment",
+                Status = AuditLogStatus.Success,
+                Timestamp = newerAudit,
+            });
+
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var list = await service.ListAsync(false);
+        var row = Assert.Single(list, x => x.Id == tenantId);
+
+        Assert.Equal(LicenseType.Business, row.LicenseType);
+        Assert.Equal(2, row.RegisterCount);
+        Assert.Equal(2, row.UserCount);
+        Assert.Equal("owner@aggregate.test", row.OwnerAdminEmail);
+        Assert.Equal(newerAudit, row.LastActivityAtUtc);
+        Assert.NotNull(row.LicenseDaysRemaining);
+        Assert.InRange(row.LicenseDaysRemaining!.Value, 19, 21);
+    }
+
+    [Fact]
+    public async Task ListPagedAsync_Filters_Sorts_And_Paginates()
+    {
+        await using var db = CreateDb();
+        var now = DateTime.UtcNow;
+
+        var alphaId = Guid.NewGuid();
+        var betaId = Guid.NewGuid();
+        var gammaId = Guid.NewGuid();
+        var suspendedId = Guid.NewGuid();
+
+        db.Tenants.AddRange(
+            new Tenant
+            {
+                Id = alphaId,
+                Name = "Alpha Cafe",
+                Slug = "alpha-cafe",
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                LicenseKey = "REGK-ALPHA",
+                LicenseValidUntilUtc = now.AddDays(30),
+                CreatedAt = now.AddDays(-3),
+            },
+            new Tenant
+            {
+                Id = betaId,
+                Name = "Beta Bar",
+                Slug = "beta-bar",
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                LicenseKey = null,
+                LicenseValidUntilUtc = now.AddDays(14),
+                CreatedAt = now.AddDays(-2),
+            },
+            new Tenant
+            {
+                Id = gammaId,
+                Name = "Gamma Grill",
+                Slug = "gamma-grill",
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                LicenseKey = "REGK-GAMMA",
+                LicenseValidUntilUtc = now.AddDays(10),
+                CreatedAt = now.AddDays(-1),
+            },
+            new Tenant
+            {
+                Id = suspendedId,
+                Name = "Suspended Shop",
+                Slug = "suspended-shop",
+                Status = TenantStatuses.Suspended,
+                IsActive = false,
+                CreatedAt = now,
+            });
+
+        db.LicenseSales.Add(new LicenseSale
+        {
+            Id = Guid.NewGuid(),
+            TenantId = alphaId,
+            LicenseKey = "REGK-ALPHA-SALE",
+            LicensePlan = LicenseSalePlans.TwelveMonths,
+            LicenseType = LicenseType.Business,
+            ValidFromUtc = now.AddDays(-30),
+            ValidUntilUtc = now.AddDays(30),
+            PriceNet = 100m,
+            VatRate = 20m,
+            VatAmount = 20m,
+            PriceGross = 120m,
+            Currency = "EUR",
+            SoldAtUtc = now.AddDays(-30),
+            SoldByUserId = Guid.NewGuid(),
+            InvoiceNumber = "RE202608PAGE01",
+            Status = LicenseSaleStatuses.Active,
+            CreatedAt = now.AddDays(-30),
+            UpdatedAt = now.AddDays(-30),
+        });
+
+        db.LicenseSales.Add(new LicenseSale
+        {
+            Id = Guid.NewGuid(),
+            TenantId = gammaId,
+            LicenseKey = "REGK-GAMMA-SALE",
+            LicensePlan = LicenseSalePlans.SixMonths,
+            LicenseType = LicenseType.Starter,
+            ValidFromUtc = now.AddDays(-10),
+            ValidUntilUtc = now.AddDays(10),
+            PriceNet = 80m,
+            VatRate = 20m,
+            VatAmount = 16m,
+            PriceGross = 96m,
+            Currency = "EUR",
+            SoldAtUtc = now.AddDays(-10),
+            SoldByUserId = Guid.NewGuid(),
+            InvoiceNumber = "RE202608PAGE02",
+            Status = LicenseSaleStatuses.Active,
+            CreatedAt = now.AddDays(-10),
+            UpdatedAt = now.AddDays(-10),
+        });
+
+        db.CashRegisters.AddRange(
+            new CashRegister
+            {
+                Id = Guid.NewGuid(),
+                TenantId = alphaId,
+                RegisterNumber = "A1",
+                Location = "L",
+                StartingBalance = 0,
+                CurrentBalance = 0,
+                LastBalanceUpdate = now,
+                Status = RegisterStatus.Closed,
+                CreatedAt = now,
+                IsActive = true,
+            },
+            new CashRegister
+            {
+                Id = Guid.NewGuid(),
+                TenantId = alphaId,
+                RegisterNumber = "A2",
+                Location = "L",
+                StartingBalance = 0,
+                CurrentBalance = 0,
+                LastBalanceUpdate = now,
+                Status = RegisterStatus.Closed,
+                CreatedAt = now,
+                IsActive = true,
+            },
+            new CashRegister
+            {
+                Id = Guid.NewGuid(),
+                TenantId = gammaId,
+                RegisterNumber = "G1",
+                Location = "L",
+                StartingBalance = 0,
+                CurrentBalance = 0,
+                LastBalanceUpdate = now,
+                Status = RegisterStatus.Closed,
+                CreatedAt = now,
+                IsActive = true,
+            });
+
+        await db.SaveChangesAsync();
+        var service = CreateService(db);
+
+        var byStatus = await service.ListPagedAsync(new AdminTenantListQuery
+        {
+            Status = "Active",
+            SortBy = "Name",
+            SortOrder = "Asc",
+            Page = 1,
+            PageSize = 50,
+        });
+        Assert.Equal(3, byStatus.TotalCount);
+        Assert.DoesNotContain(byStatus.Items, t => t.Id == suspendedId);
+
+        var bySearch = await service.ListPagedAsync(new AdminTenantListQuery
+        {
+            Search = "beta",
+            Page = 1,
+            PageSize = 20,
+        });
+        Assert.Equal(1, bySearch.TotalCount);
+        Assert.Equal(betaId, Assert.Single(bySearch.Items).Id);
+
+        var byLicense = await service.ListPagedAsync(new AdminTenantListQuery
+        {
+            Status = TenantStatuses.Active,
+            LicenseType = LicenseType.Trial,
+            Page = 1,
+            PageSize = 20,
+        });
+        Assert.Equal(1, byLicense.TotalCount);
+        Assert.Equal(betaId, Assert.Single(byLicense.Items).Id);
+        Assert.Equal(LicenseType.Trial, byLicense.Items[0].LicenseType);
+
+        var byBusiness = await service.ListPagedAsync(new AdminTenantListQuery
+        {
+            LicenseType = LicenseType.Business,
+            Page = 1,
+            PageSize = 20,
+        });
+        Assert.Equal(1, byBusiness.TotalCount);
+        Assert.Equal(alphaId, Assert.Single(byBusiness.Items).Id);
+
+        var sorted = await service.ListPagedAsync(new AdminTenantListQuery
+        {
+            Status = TenantStatuses.Active,
+            SortBy = "RegisterCount",
+            SortOrder = "Desc",
+            Page = 1,
+            PageSize = 20,
+        });
+        Assert.Equal(3, sorted.Items.Count);
+        Assert.Equal(alphaId, sorted.Items[0].Id);
+        Assert.Equal(2, sorted.Items[0].RegisterCount);
+
+        var page1 = await service.ListPagedAsync(new AdminTenantListQuery
+        {
+            Status = TenantStatuses.Active,
+            SortBy = "Name",
+            SortOrder = "Asc",
+            Page = 1,
+            PageSize = 2,
+        });
+        Assert.Equal(3, page1.TotalCount);
+        Assert.Equal(2, page1.PageSize);
+        Assert.Equal(2, page1.TotalPages);
+        Assert.Equal(2, page1.Items.Count);
+        Assert.Equal(alphaId, page1.Items[0].Id);
+        Assert.Equal(betaId, page1.Items[1].Id);
+
+        var page2 = await service.ListPagedAsync(new AdminTenantListQuery
+        {
+            Status = TenantStatuses.Active,
+            SortBy = "Name",
+            SortOrder = "Asc",
+            Page = 2,
+            PageSize = 2,
+        });
+        Assert.Equal(1, page2.Items.Count);
+        Assert.Equal(gammaId, page2.Items[0].Id);
+
+        var clamped = await service.ListPagedAsync(new AdminTenantListQuery
+        {
+            Page = 0,
+            PageSize = 500,
+        });
+        Assert.Equal(1, clamped.Page);
+        Assert.Equal(100, clamped.PageSize);
     }
 
     [Fact]

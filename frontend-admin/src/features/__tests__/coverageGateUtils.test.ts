@@ -104,6 +104,8 @@ describe('tenantStatusLabel', () => {
     expect(tenantStatusColor('active')).toBe('green');
     expect(tenantStatusColor('suspended')).toBe('orange');
     expect(tenantStatusColor('deleted')).toBe('red');
+    expect(tenantStatusColor('archived')).toBe('red');
+    expect(tenantStatusColor('in_onboarding')).toBe('blue');
     expect(tenantStatusColor('unknown')).toBe('default');
     expect(registerStatusColor('OPEN')).toBe('green');
     expect(registerStatusColor('decommissioned')).toBe('red');

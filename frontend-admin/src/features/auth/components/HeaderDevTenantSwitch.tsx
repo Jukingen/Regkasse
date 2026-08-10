@@ -24,6 +24,7 @@ import {
   dedupeAdminTenantsById,
   formatTenantDisplay,
   getTenantSwitcherLicenseBadge,
+  isTenantRemovedStatus,
   partitionTenantsForSwitcher,
   shouldShowHeaderDevTenantSwitch,
   tenantHeaderShowsNoAdminWarning,
@@ -95,7 +96,7 @@ function TenantSwitcherItem({ tenant, isActiveTenant, onSwitch }: TenantSwitcher
   const licenseBadge = getTenantSwitcherLicenseBadge(source, t);
   const showNoAdmin = tenantHeaderShowsNoAdminWarning(source);
   const { displayName, displaySlug } = formatTenantDisplay(source);
-  const isDeleted = source.status === 'deleted' || !source.isActive;
+  const isDeleted = isTenantRemovedStatus(source.status) || !source.isActive;
 
   return (
     <div

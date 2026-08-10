@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Enums;
 using KasseAPI_Final.Services.AdminCashRegisters;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
@@ -64,9 +65,115 @@ public sealed partial class AdminTenantService : IAdminTenantService
         bool includeDeleted,
         CancellationToken cancellationToken = default)
     {
+        return await BuildEnrichedListAsync(
+                includeDeleted,
+                status: null,
+                search: null,
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<PagedResult<AdminTenantListItemDto>> ListPagedAsync(
+        AdminTenantListQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var page = Math.Max(1, query.Page);
+        var pageSize = Math.Clamp(query.PageSize <= 0 ? 20 : query.PageSize, 1, 100);
+
+        IReadOnlyList<AdminTenantListItemDto> items = await BuildEnrichedListAsync(
+                query.IncludeDeleted,
+                query.Status,
+                query.Search,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        if (query.LicenseType.HasValue)
+        {
+            var licenseType = query.LicenseType.Value;
+            items = items
+                .Where(t => t.LicenseType == licenseType)
+                .ToList();
+        }
+
+        items = ApplyListSort(items, query.SortBy, query.SortOrder);
+
+        var totalCount = items.Count;
+        var totalPages = totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)pageSize);
+        var pageItems = items
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return new PagedResult<AdminTenantListItemDto>
+        {
+            Items = pageItems,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize,
+            TotalPages = totalPages,
+        };
+    }
+
+    public async Task<IReadOnlyList<AdminTenantListItemDto>> ListForExportAsync(
+        AdminTenantListQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        IReadOnlyList<AdminTenantListItemDto> items = await BuildEnrichedListAsync(
+                query.IncludeDeleted,
+                query.Status,
+                query.Search,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        if (query.LicenseType.HasValue)
+        {
+            var licenseType = query.LicenseType.Value;
+            items = items
+                .Where(t => t.LicenseType == licenseType)
+                .ToList();
+        }
+
+        return ApplyListSort(items, query.SortBy, query.SortOrder);
+    }
+
+    private async Task<IReadOnlyList<AdminTenantListItemDto>> BuildEnrichedListAsync(
+        bool includeDeleted,
+        string? status,
+        string? search,
+        CancellationToken cancellationToken)
+    {
         var query = _db.Tenants.AsNoTracking();
         if (!includeDeleted)
-            query = query.Where(t => t.Status != TenantStatuses.Deleted);
+            query = query.Where(t => !TenantStatuses.RemovedStatuses.Contains(t.Status));
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            var statusFilter = TenantStatuses.Normalize(status);
+            if (statusFilter.Length > 0)
+            {
+                // Legacy "deleted" normalizes to archived; also match leftover deleted rows.
+                if (statusFilter == TenantStatuses.Archived)
+                {
+                    query = query.Where(t =>
+                        t.Status == TenantStatuses.Archived || t.Status == TenantStatuses.Deleted);
+                }
+                else
+                {
+                    query = query.Where(t => t.Status == statusFilter);
+                }
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLowerInvariant();
+            query = query.Where(t =>
+                t.Name.ToLower().Contains(term) || t.Slug.ToLower().Contains(term));
+        }
 
         var tenants = await query
             .OrderBy(t => t.Name)
@@ -77,6 +184,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
             return Array.Empty<AdminTenantListItemDto>();
 
         var tenantIds = tenants.Select(t => t.Id).ToList();
+
         var ownerRows = await _db.UserTenantMemberships
             .IgnoreQueryFilters()
             .AsNoTracking()
@@ -89,15 +197,137 @@ public sealed partial class AdminTenantService : IAdminTenantService
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
+        var userCountRows = await _db.UserTenantMemberships
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(m => tenantIds.Contains(m.TenantId) && m.IsActive)
+            .GroupBy(m => m.TenantId)
+            .Select(g => new { TenantId = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var registerCountRows = await _db.CashRegisters
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(cr => tenantIds.Contains(cr.TenantId))
+            .GroupBy(cr => cr.TenantId)
+            .Select(g => new { TenantId = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var activeSales = await _db.LicenseSales
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(s => tenantIds.Contains(s.TenantId) && s.Status == LicenseSaleStatuses.Active)
+            .Select(s => new
+            {
+                s.TenantId,
+                s.LicenseType,
+                s.ValidUntilUtc,
+                s.SoldAtUtc,
+            })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var paymentActivityRows = await _db.PaymentDetails
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Join(
+                _db.CashRegisters.IgnoreQueryFilters().AsNoTracking(),
+                p => p.CashRegisterId,
+                cr => cr.Id,
+                (p, cr) => new { cr.TenantId, p.CreatedAt })
+            .Where(x => tenantIds.Contains(x.TenantId))
+            .GroupBy(x => x.TenantId)
+            .Select(g => new { TenantId = g.Key, MaxAt = g.Max(x => (DateTime?)x.CreatedAt) })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var auditActivityRows = await _db.AuditLogs
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(a => tenantIds.Contains(a.TenantId))
+            .GroupBy(a => a.TenantId)
+            .Select(g => new { TenantId = g.Key, MaxAt = g.Max(a => (DateTime?)a.Timestamp) })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
         var ownerByTenant = ownerRows
             .GroupBy(x => x.TenantId)
             .ToDictionary(g => g.Key, g => g.First().Email);
 
+        var userCountByTenant = userCountRows.ToDictionary(x => x.TenantId, x => x.Count);
+        var registerCountByTenant = registerCountRows.ToDictionary(x => x.TenantId, x => x.Count);
+
+        var latestSaleByTenant = activeSales
+            .GroupBy(s => s.TenantId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(s => s.SoldAtUtc)
+                    .ThenByDescending(s => s.ValidUntilUtc)
+                    .First());
+
+        var lastActivityByTenant = new Dictionary<Guid, DateTime?>();
+        foreach (var row in paymentActivityRows)
+            lastActivityByTenant[row.TenantId] = row.MaxAt;
+        foreach (var row in auditActivityRows)
+        {
+            lastActivityByTenant.TryGetValue(row.TenantId, out var existing);
+            lastActivityByTenant[row.TenantId] = MaxUtc(existing, row.MaxAt);
+        }
+
         return tenants
-            .Select(t => ToListItem(
-                t,
-                ownerByTenant.TryGetValue(t.Id, out var ownerEmail) ? ownerEmail : null))
+            .Select(t =>
+            {
+                latestSaleByTenant.TryGetValue(t.Id, out var sale);
+                return ToListItem(
+                    t,
+                    ownerByTenant.TryGetValue(t.Id, out var ownerEmail) ? ownerEmail : null,
+                    hasActiveSale: sale != null,
+                    sale?.LicenseType,
+                    sale?.ValidUntilUtc,
+                    registerCountByTenant.GetValueOrDefault(t.Id),
+                    userCountByTenant.GetValueOrDefault(t.Id),
+                    lastActivityByTenant.TryGetValue(t.Id, out var lastActivity) ? lastActivity : null);
+            })
             .ToList();
+    }
+
+    private static IReadOnlyList<AdminTenantListItemDto> ApplyListSort(
+        IReadOnlyList<AdminTenantListItemDto> items,
+        string? sortBy,
+        string? sortOrder)
+    {
+        var descending = !string.Equals(sortOrder?.Trim(), "asc", StringComparison.OrdinalIgnoreCase);
+        var key = (sortBy ?? "CreatedAt").Trim();
+
+        IOrderedEnumerable<AdminTenantListItemDto> ordered = key.ToLowerInvariant() switch
+        {
+            "name" => descending
+                ? items.OrderByDescending(t => t.Name, StringComparer.OrdinalIgnoreCase)
+                : items.OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase),
+            "registercount" => descending
+                ? items.OrderByDescending(t => t.RegisterCount)
+                : items.OrderBy(t => t.RegisterCount),
+            "usercount" => descending
+                ? items.OrderByDescending(t => t.UserCount)
+                : items.OrderBy(t => t.UserCount),
+            "licensedaysleft" or "licensedaysremaining" => descending
+                ? items.OrderByDescending(t => t.LicenseDaysRemaining.HasValue)
+                    .ThenByDescending(t => t.LicenseDaysRemaining)
+                : items.OrderBy(t => t.LicenseDaysRemaining.HasValue)
+                    .ThenBy(t => t.LicenseDaysRemaining),
+            "lastactivity" or "lastactivityatutc" => descending
+                ? items.OrderByDescending(t => t.LastActivityAtUtc.HasValue)
+                    .ThenByDescending(t => t.LastActivityAtUtc)
+                : items.OrderBy(t => t.LastActivityAtUtc.HasValue)
+                    .ThenBy(t => t.LastActivityAtUtc),
+            _ => descending
+                ? items.OrderByDescending(t => t.CreatedAt)
+                : items.OrderBy(t => t.CreatedAt),
+        };
+
+        return ordered.ThenBy(t => t.Name, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
     public async Task<IReadOnlyList<AdminTenantListItemDto>> ListForSwitcherAsync(
@@ -129,7 +359,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
                 (m, t) => new { m.TenantId, t.Status, t.IsActive })
             .Where(x =>
                 x.IsActive
-                && x.Status != TenantStatuses.Deleted)
+                && !TenantStatuses.RemovedStatuses.Contains(x.Status))
             .Select(x => x.TenantId)
             .Distinct()
             .ToListAsync(cancellationToken)
@@ -343,19 +573,34 @@ public sealed partial class AdminTenantService : IAdminTenantService
         if (tenant == null)
             return (null, "Tenant not found.");
 
-        if (tenant.Status == TenantStatuses.Deleted)
+        if (TenantStatuses.IsRemoved(tenant.Status))
             return (null, "Deleted tenants cannot be updated.");
 
         if (!string.IsNullOrWhiteSpace(request.Status))
         {
-            var status = request.Status.Trim().ToLowerInvariant();
+            var status = TenantStatuses.Normalize(request.Status);
             if (!TenantStatuses.IsKnown(status))
-                return (null, "Invalid status. Use active, suspended, or deleted.");
+            {
+                return (null,
+                    "Invalid status. Use lead, in_onboarding, active, suspended, cancelled, or archived.");
+            }
+
             tenant.Status = status;
-            if (status == TenantStatuses.Suspended)
+            if (TenantStatuses.IsRemoved(status) || status == TenantStatuses.Suspended)
+            {
                 tenant.IsActive = false;
-            else if (status == TenantStatuses.Active)
+                if (TenantStatuses.IsRemoved(status))
+                {
+                    tenant.DeletedAtUtc ??= DateTime.UtcNow;
+                    tenant.DeletedByUserId ??= actorUserId;
+                }
+            }
+            else if (status is TenantStatuses.Active or TenantStatuses.InOnboarding or TenantStatuses.Lead)
+            {
                 tenant.IsActive = true;
+                tenant.DeletedAtUtc = null;
+                tenant.DeletedByUserId = null;
+            }
         }
 
         if (request.IsActive.HasValue)
@@ -393,7 +638,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
         if (tenant is null)
             return (null, "Tenant not found.");
 
-        if (tenant.Status == TenantStatuses.Deleted)
+        if (TenantStatuses.IsRemoved(tenant.Status))
             return (null, "Deleted tenants cannot change operation mode.");
 
         var mode = TenantOperationModes.Normalize(request.OperationMode);
@@ -490,7 +735,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
         if (tenant == null)
             return (false, "Tenant not found.", null);
 
-        if (tenant.Status == TenantStatuses.Deleted)
+        if (TenantStatuses.IsRemoved(tenant.Status))
             return (false, "Tenant is already deleted.", null);
 
         var checks = await GetDecommissionChecksAsync(tenantId, cancellationToken).ConfigureAwait(false);
@@ -542,7 +787,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
             .ConfigureAwait(false);
         if (tenant == null)
             return (null, "Tenant not found.");
-        if (tenant.Status == TenantStatuses.Deleted)
+        if (TenantStatuses.IsRemoved(tenant.Status))
             return (null, "Cannot impersonate a deleted tenant.");
         if (!tenant.IsActive || tenant.Status == TenantStatuses.Suspended)
             return (null, "Tenant is not active.");
@@ -648,10 +893,19 @@ public sealed partial class AdminTenantService : IAdminTenantService
         return string.IsNullOrEmpty(t) ? null : t;
     }
 
-    private static AdminTenantListItemDto ToListItem(Tenant t, string? ownerAdminEmail = null)
+    private static AdminTenantListItemDto ToListItem(
+        Tenant t,
+        string? ownerAdminEmail = null,
+        bool hasActiveSale = false,
+        LicenseType? activeSaleLicenseType = null,
+        DateTime? activeSaleValidUntilUtc = null,
+        int registerCount = 0,
+        int userCount = 0,
+        DateTime? lastActivityAtUtc = null)
     {
+        var licenseUntil = activeSaleValidUntilUtc ?? t.LicenseValidUntilUtc;
         var (licenseDaysRemaining, _) = TenantLicenseStatusMapper.ComputeKindAndDays(
-            t.LicenseValidUntilUtc,
+            licenseUntil,
             t.LicenseKey);
         return new(
             t.Id,
@@ -667,7 +921,24 @@ public sealed partial class AdminTenantService : IAdminTenantService
             t.UpdatedAt,
             licenseDaysRemaining,
             ownerAdminEmail,
-            DemoTenantIds.IsDemoPresetSlug(t.Slug));
+            DemoTenantIds.IsDemoPresetSlug(t.Slug),
+            ResolveListLicenseType(hasActiveSale, activeSaleLicenseType),
+            registerCount,
+            userCount,
+            lastActivityAtUtc);
+    }
+
+    /// <summary>
+    /// Active sale → stored tier (Starter fallback); otherwise Trial.
+    /// </summary>
+    private static LicenseType ResolveListLicenseType(
+        bool hasActiveSale,
+        LicenseType? saleLicenseType)
+    {
+        if (hasActiveSale)
+            return saleLicenseType ?? LicenseType.Starter;
+
+        return LicenseType.Trial;
     }
 
     private static AdminTenantDetailDto ToDetail(

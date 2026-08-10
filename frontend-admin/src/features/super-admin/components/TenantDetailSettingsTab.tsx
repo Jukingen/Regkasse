@@ -1,3 +1,4 @@
+import { isTenantRemovedStatus } from '@/features/super-admin/utils/tenantStatusLabel';
 'use client';
 
 import { useMutation } from '@tanstack/react-query';
@@ -77,7 +78,7 @@ export function TenantDetailSettingsTab({
             email: tenant.email ?? undefined,
             phone: tenant.phone ?? undefined,
             address: tenant.address ?? undefined,
-            status: tenant.status === 'deleted' ? undefined : tenant.status,
+            status: isTenantRemovedStatus(tenant.status) ? undefined : tenant.status,
           }}
           onFinish={(values) => saveMutation.mutate(values)}
         >
@@ -86,21 +87,21 @@ export function TenantDetailSettingsTab({
             label={t('tenants.fields.name')}
             rules={[{ required: true, message: t('tenants.validation.nameRequired') }]}
           >
-            <Input disabled={tenant.status === 'deleted'} />
+            <Input disabled={isTenantRemovedStatus(tenant.status)} />
           </Form.Item>
           <Form.Item label={t('tenants.fields.slug')}>
             <Input value={tenant.slug} disabled />
           </Form.Item>
           <Form.Item name="email" label={t('tenants.fields.email')}>
-            <Input type="email" disabled={tenant.status === 'deleted'} />
+            <Input type="email" disabled={isTenantRemovedStatus(tenant.status)} />
           </Form.Item>
           <Form.Item name="phone" label={t('tenants.fields.phone')}>
-            <Input disabled={tenant.status === 'deleted'} />
+            <Input disabled={isTenantRemovedStatus(tenant.status)} />
           </Form.Item>
           <Form.Item name="address" label={t('tenants.fields.address')}>
-            <Input.TextArea rows={2} disabled={tenant.status === 'deleted'} />
+            <Input.TextArea rows={2} disabled={isTenantRemovedStatus(tenant.status)} />
           </Form.Item>
-          {tenant.status !== 'deleted' ? (
+          {!isTenantRemovedStatus(tenant.status) ? (
             <Form.Item name="status" label={t('tenants.fields.status')}>
               <Select
                 options={[
@@ -110,7 +111,7 @@ export function TenantDetailSettingsTab({
               />
             </Form.Item>
           ) : null}
-          {tenant.status !== 'deleted' ? (
+          {!isTenantRemovedStatus(tenant.status) ? (
             <SaveButton
               htmlType="submit"
               loading={saveMutation.isPending}
@@ -123,7 +124,7 @@ export function TenantDetailSettingsTab({
         </Form>
       </Card>
 
-      {tenant.status !== 'deleted' ? (
+      {!isTenantRemovedStatus(tenant.status) ? (
         <TenantOperationModeCard tenant={tenant} onUpdated={onUpdated} />
       ) : null}
 

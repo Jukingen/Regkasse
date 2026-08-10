@@ -89,6 +89,8 @@ export const ADMIN_SIDEBAR_GROUP_KEYS = {
   backupConfig: 'grp-backup-config',
   /** Nested under Einstellungen: digital services (tenant + Super Admin manage) */
   digitalServices: 'grp-digital-services',
+  /** Nested under Lizenzverwaltung: Super Admin outbound communication */
+  communication: 'grp-communication',
   /**
    * @deprecated Digitale Dienste lives under Einstellungen (`digitalServices`) only.
    * Alias kept so open-key / lockdown merges stay stable during migration.
@@ -122,7 +124,9 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/admin/billing/sales',
     '/admin/billing/stats',
     '/billing/digital',
+    '/admin/communication',
   ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.communication]: ['/admin/communication'],
   [ADMIN_SIDEBAR_GROUP_KEYS.operations]: [
     '/operations-center',
     '/tables',
@@ -568,9 +572,14 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     p === '/admin/billing' ||
     p.startsWith('/admin/billing/') ||
     p === '/billing/digital' ||
-    p.startsWith('/billing/digital/')
+    p.startsWith('/billing/digital/') ||
+    p === '/admin/communication' ||
+    p.startsWith('/admin/communication/')
   ) {
     keys.push(ADMIN_SIDEBAR_GROUP_KEYS.license);
+    if (p === '/admin/communication' || p.startsWith('/admin/communication/')) {
+      keys.push(ADMIN_SIDEBAR_GROUP_KEYS.communication);
+    }
   }
   if (
     p === '/settings/website' ||

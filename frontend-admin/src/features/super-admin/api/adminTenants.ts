@@ -31,6 +31,14 @@ export type AdminTenantListItem = {
   updatedAt?: string | null;
   ownerAdminEmail?: string | null;
   isDemoPreset?: boolean;
+  /**
+   * Package tier from license_sales (Trial | Starter | Business | Plus).
+   * Tenants without an active sale default to Trial.
+   */
+  licenseType?: 'Trial' | 'Starter' | 'Business' | 'Plus' | null;
+  registerCount?: number;
+  userCount?: number;
+  lastActivityAtUtc?: string | null;
 };
 
 export type TenantProvisioning = {
@@ -175,11 +183,64 @@ export async function getAdminTenantSlugSuggestions(
   return data.suggestions ?? [];
 }
 
-export async function listAdminTenants(includeDeleted = false): Promise<AdminTenantListItem[]> {
-  const { data } = await AXIOS_INSTANCE.get<AdminTenantListItem[]>('/api/admin/tenants', {
-    params: { includeDeleted },
+export type AdminTenantListQuery = {
+  includeDeleted?: boolean;
+  status?: string;
+  licenseType?: 'Trial' | 'Starter' | 'Business' | 'Plus';
+  search?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc' | 'Asc' | 'Desc';
+  page?: number;
+  pageSize?: number;
+};
+
+export type AdminTenantListPagedResult = {
+  items: AdminTenantListItem[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
+export async function listAdminTenantsPaged(
+  query: AdminTenantListQuery = {}
+): Promise<AdminTenantListPagedResult> {
+  const { data } = await AXIOS_INSTANCE.get<AdminTenantListPagedResult>('/api/admin/tenants', {
+    params: {
+      includeDeleted: query.includeDeleted ?? false,
+      status: query.status,
+      licenseType: query.licenseType,
+      search: query.search,
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? 20,
+    },
   });
   return data;
+}
+
+/** Backward-compatible full list (fetches all pages, max 100 per request). */
+export async function listAdminTenants(includeDeleted = false): Promise<AdminTenantListItem[]> {
+  const pageSize = 100;
+  let page = 1;
+  let totalPages = 1;
+  const all: AdminTenantListItem[] = [];
+
+  do {
+    const result = await listAdminTenantsPaged({
+      includeDeleted,
+      page,
+      pageSize,
+      sortBy: 'Name',
+      sortOrder: 'Asc',
+    });
+    all.push(...(result.items ?? []));
+    totalPages = Math.max(1, result.totalPages ?? 1);
+    page += 1;
+  } while (page <= totalPages);
+
+  return all;
 }
 
 export async function getAdminTenantById(tenantId: string): Promise<AdminTenantDetail> {
@@ -202,6 +263,47 @@ export async function updateAdminTenant(
     `/api/admin/tenants/${tenantId}`,
     body
   );
+  return data;
+}
+
+/** Super Admin: set lifecycle status (lead | in_onboarding | active | suspended | cancelled | archived). */
+export async function updateTenantStatus(
+  tenantId: string,
+  status: string
+): Promise<AdminTenantDetail> {
+  return updateAdminTenant(tenantId, { status });
+}
+
+export async function exportTenantsCsv(query: AdminTenantListQuery = {}): Promise<Blob> {
+  const { data } = await AXIOS_INSTANCE.get<Blob>('/api/admin/tenants/export', {
+    params: {
+      includeDeleted: query.includeDeleted ?? false,
+      status: query.status,
+      licenseType: query.licenseType,
+      search: query.search,
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+    },
+    responseType: 'blob',
+  });
+  return data;
+}
+
+export type CustomerAnalyticsDto = {
+  totalTenants: number;
+  activeTenants: number;
+  inOnboardingTenants: number;
+  suspendedTenants: number;
+  trialTenants: number;
+  paidTenants: number;
+  expiringSoon: number;
+  expiredTenants: number;
+  mrr: number;
+  newTenantsLast30Days: number;
+};
+
+export async function getCustomerAnalytics(): Promise<CustomerAnalyticsDto> {
+  const { data } = await AXIOS_INSTANCE.get<CustomerAnalyticsDto>('/api/admin/analytics/customers');
   return data;
 }
 

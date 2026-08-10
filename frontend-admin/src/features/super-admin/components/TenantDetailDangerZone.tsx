@@ -14,6 +14,7 @@ import {
   buildTenantDeletePreparationHref,
   resolveTenantDeleteFailureMessage,
 } from '@/features/super-admin/utils/tenantDeleteDependencyUi';
+import { isTenantRemovedStatus } from '@/features/super-admin/utils/tenantStatusLabel';
 import { useI18n } from '@/i18n';
 
 export type TenantDetailDangerZoneProps = {
@@ -46,7 +47,7 @@ export function TenantDetailDangerZone({
   const [permanentDeleteOpen, setPermanentDeleteOpen] = useState(false);
   const [developmentHardDeleteOpen, setDevelopmentHardDeleteOpen] = useState(false);
 
-  const isDeleted = tenant.status === 'deleted';
+  const isDeleted = isTenantRemovedStatus(tenant.status);
   const showDevelopmentHardDelete =
     isDevelopment() && typeof onDevelopmentHardDelete === 'function';
 

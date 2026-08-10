@@ -27,7 +27,7 @@ public sealed class TenantLicenseService : ITenantLicenseService
             .ConfigureAwait(false);
         if (tenant == null)
             return (null, "Tenant not found.");
-        if (tenant.Status == TenantStatuses.Deleted)
+        if (TenantStatuses.IsRemoved(tenant.Status))
             return (null, "Deleted tenants cannot be updated.");
 
         if (string.IsNullOrWhiteSpace(licenseKey))
@@ -163,7 +163,7 @@ public sealed class TenantLicenseService : ITenantLicenseService
             .AnyAsync(
                 t => t.Id != tenantId
                      && t.LicenseKey == key
-                     && t.Status != TenantStatuses.Deleted
+                     && !TenantStatuses.RemovedStatuses.Contains(t.Status)
                      && (t.LicenseValidUntilUtc == null || t.LicenseValidUntilUtc > now),
                 cancellationToken)
             .ConfigureAwait(false);

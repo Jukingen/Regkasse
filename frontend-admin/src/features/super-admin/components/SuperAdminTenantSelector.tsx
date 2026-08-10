@@ -1,3 +1,4 @@
+import { isTenantRemovedStatus } from '@/features/super-admin/utils/tenantStatusLabel';
 'use client';
 
 import { LoginOutlined } from '@ant-design/icons';
@@ -26,7 +27,7 @@ const TENANT_LIST_QUERY_KEY = ['admin', 'tenants', false] as const;
 function statusColor(status: string): string {
   if (status === 'active') return 'green';
   if (status === 'suspended') return 'orange';
-  if (status === 'deleted') return 'red';
+  if (isTenantRemovedStatus(status)) return 'red';
   return 'default';
 }
 
