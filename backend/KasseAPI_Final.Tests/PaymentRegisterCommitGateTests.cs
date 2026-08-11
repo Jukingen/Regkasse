@@ -36,7 +36,7 @@ public class PaymentRegisterCommitGateTests
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
         // Customer is tenant-scoped; run under the primary tenant so the seeded customer is visible.
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static PaymentService CreatePaymentService(
@@ -139,12 +139,12 @@ public class PaymentRegisterCommitGateTests
         var customerId = Guid.NewGuid();
         var cashRegisterId = Guid.NewGuid();
 
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
-        ctx.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
+        ctx.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
         ctx.Products.Add(new Product
         {
             Id = productId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Döner",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -163,7 +163,7 @@ public class PaymentRegisterCommitGateTests
         ctx.Customers.Add(new Customer { Id = customerId, Name = "K", Email = "k@test", Phone = "1", IsActive = true });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = cashRegisterId,
             RegisterNumber = "K01",
             Location = "T",

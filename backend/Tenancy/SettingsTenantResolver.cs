@@ -3,7 +3,7 @@ namespace KasseAPI_Final.Tenancy;
 /// <inheritdoc />
 /// <remarks>
 /// Prefers the ambient <see cref="ICurrentTenantAccessor"/> (subdomain, dev header, impersonation).
-/// Falls back to <see cref="IAuthTenantSnapshotProvider"/> (JWT <c>tenant_id</c>, else legacy default).
+/// Falls back to <see cref="IAuthTenantSnapshotProvider"/> (JWT <c>tenant_id</c>, else platform sentinel).
 /// </remarks>
 public sealed class SettingsTenantResolver : ISettingsTenantResolver
 {

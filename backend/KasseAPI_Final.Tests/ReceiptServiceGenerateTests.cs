@@ -43,16 +43,16 @@ public class ReceiptServiceGenerateTests
     [Fact]
     public async Task GenerateReceiptAsync_UsesPaymentCompanySnapshot_NotLiveSettings()
     {
-        var tenantAccessor = TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary);
+        var tenantAccessor = TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform);
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"ReceiptGen_{Guid.NewGuid()}")
             .Options;
         await using var db = new AppDbContext(options, tenantAccessor);
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
 
         db.CompanySettings.Add(new CompanySettings
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CompanyName = "Live GmbH",
             CompanyAddress = "Live Str, 1020 Wien",
             CompanyTaxNumber = "ATU99999999",
@@ -72,7 +72,7 @@ public class ReceiptServiceGenerateTests
         var regId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "T",
@@ -122,16 +122,16 @@ public class ReceiptServiceGenerateTests
     [Fact]
     public async Task GenerateReceiptAsync_UsesCompanySettings_WhenPaymentSnapshotMissing()
     {
-        var tenantAccessor = TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary);
+        var tenantAccessor = TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform);
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"ReceiptCompanyDb_{Guid.NewGuid()}")
             .Options;
         await using var db = new AppDbContext(options, tenantAccessor);
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
 
         db.CompanySettings.Add(new CompanySettings
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CompanyName = "DB Firma GmbH",
             CompanyAddress = "DB Gasse 9, 4020 Linz",
             CompanyTaxNumber = "ATU11111111",
@@ -151,7 +151,7 @@ public class ReceiptServiceGenerateTests
         var regId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-DB",
             Location = "T",
@@ -197,7 +197,7 @@ public class ReceiptServiceGenerateTests
             new DbContextOptionsBuilder<AppDbContext>()
                 .UseInMemoryDatabase($"ReceiptRksvFooter_{Guid.NewGuid()}")
                 .Options,
-            TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary)));
+            TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform)));
 
         var result = service.GetRksvFooter(TenantTestDoubles.HostEnvironmentReturning(Environments.Development));
 
@@ -211,7 +211,7 @@ public class ReceiptServiceGenerateTests
             new DbContextOptionsBuilder<AppDbContext>()
                 .UseInMemoryDatabase($"ReceiptRksvFooter_{Guid.NewGuid()}")
                 .Options,
-            TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary)));
+            TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform)));
 
         var result = service.GetRksvFooter(TenantTestDoubles.ProductionHostEnvironment);
 
@@ -230,7 +230,7 @@ public class ReceiptServiceGenerateTests
                 new DbContextOptionsBuilder<AppDbContext>()
                     .UseInMemoryDatabase($"ReceiptRksvFooterDemoMode_{Guid.NewGuid()}")
                     .Options,
-                TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary)),
+                TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform)),
             NullLogger<ReceiptService>.Instance,
             Mock.Of<ITseService>(),
             TenantTestDoubles.CompanyProfileProviderReturning(new CompanyProfileOptions()),
@@ -252,7 +252,7 @@ public class ReceiptServiceGenerateTests
             new DbContextOptionsBuilder<AppDbContext>()
                 .UseInMemoryDatabase($"ReceiptTse_{Guid.NewGuid()}")
                 .Options,
-            TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary)));
+            TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform)));
 
         var result = service.GetTseSignatureDisplay(new PaymentDetails { TseSignature = null });
 
@@ -266,7 +266,7 @@ public class ReceiptServiceGenerateTests
             new DbContextOptionsBuilder<AppDbContext>()
                 .UseInMemoryDatabase($"ReceiptTse_{Guid.NewGuid()}")
                 .Options,
-            TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary)));
+            TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform)));
 
         var longSig = new string('a', 60);
         var result = service.GetTseSignatureDisplay(new PaymentDetails { TseSignature = longSig });
@@ -278,17 +278,17 @@ public class ReceiptServiceGenerateTests
     [Fact]
     public async Task MapToDto_UsesCashierUserName_WhenNameEmpty()
     {
-        var tenantAccessor = TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary);
+        var tenantAccessor = TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform);
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"ReceiptCashier_{Guid.NewGuid()}")
             .Options;
         await using var db = new AppDbContext(options, tenantAccessor);
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
 
         var regId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-02",
             Location = "T",
@@ -350,17 +350,17 @@ public class ReceiptServiceGenerateTests
     [Fact]
     public async Task MapToDto_UsesCashierEmail_WhenUserNameEmpty()
     {
-        var tenantAccessor = TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary);
+        var tenantAccessor = TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform);
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"ReceiptCashierEmail_{Guid.NewGuid()}")
             .Options;
         await using var db = new AppDbContext(options, tenantAccessor);
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
 
         var regId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-03",
             Location = "T",

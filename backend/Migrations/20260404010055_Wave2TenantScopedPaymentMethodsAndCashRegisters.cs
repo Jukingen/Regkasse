@@ -20,7 +20,7 @@ namespace KasseAPI_Final.Migrations
                 table: "cash_registers");
 
             // Default to legacy primary tenant so existing single-tenant rows satisfy FK and composite uniques.
-            var defaultTenant = LegacyDefaultTenantIds.Primary;
+            var defaultTenant = SystemTenantIds.Platform;
             migrationBuilder.AddColumn<Guid>(
                 name: "tenant_id",
                 table: "payment_method_definitions",

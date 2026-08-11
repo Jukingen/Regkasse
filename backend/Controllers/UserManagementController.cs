@@ -95,7 +95,7 @@ namespace KasseAPI_Final.Controllers
         private Guid ResolveActivityTenantId() =>
             _tenantAccessor.TenantId is Guid tid && tid != Guid.Empty
                 ? tid
-                : LegacyDefaultTenantIds.Primary;
+                : SystemTenantIds.Platform;
 
         private async Task PublishPermissionActivityAsync(
             ActivityEventType type,
@@ -703,7 +703,7 @@ namespace KasseAPI_Final.Controllers
                         }
                         else if (IsCurrentUserSuperAdmin())
                         {
-                            membershipTenantId = LegacyDefaultTenantIds.Primary;
+                            membershipTenantId = SystemTenantIds.Platform;
                         }
                         else
                         {

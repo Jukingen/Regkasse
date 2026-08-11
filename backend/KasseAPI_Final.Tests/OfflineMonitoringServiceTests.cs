@@ -17,12 +17,12 @@ public sealed class OfflineMonitoringServiceTests
     [Fact]
     public async Task GetOrderStatsAsync_CountsPendingAndExpired()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var registerId = Guid.NewGuid();
         var now = DateTime.UtcNow;
 
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         ctx.CashRegisters.Add(new CashRegister
         {
             TenantId = tenantId,
@@ -55,12 +55,12 @@ public sealed class OfflineMonitoringServiceTests
     [Fact]
     public async Task CheckAnomaliesAsync_FlagsTenantPendingLimitFromAlertRules()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var registerId = Guid.NewGuid();
         var now = DateTime.UtcNow;
 
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         ctx.CashRegisters.Add(new CashRegister
         {
             TenantId = tenantId,
@@ -97,12 +97,12 @@ public sealed class OfflineMonitoringServiceTests
     [Fact]
     public async Task CheckAnomaliesAsync_FlagsBacklogAndExpiry()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var registerId = Guid.NewGuid();
         var now = DateTime.UtcNow;
 
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         ctx.CashRegisters.Add(new CashRegister
         {
             TenantId = tenantId,
@@ -134,12 +134,12 @@ public sealed class OfflineMonitoringServiceTests
     [Fact]
     public async Task GetSystemStatusAsync_ReturnsCriticalWhenExpiredPendingExists()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var registerId = Guid.NewGuid();
         var now = DateTime.UtcNow;
 
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         ctx.CashRegisters.Add(new CashRegister
         {
             TenantId = tenantId,

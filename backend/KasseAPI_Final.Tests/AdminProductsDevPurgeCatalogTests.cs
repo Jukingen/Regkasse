@@ -39,7 +39,7 @@ public sealed class AdminProductsDevPurgeCatalogTests
             .UseInMemoryDatabase($"AdminProductsDevPurge_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static AdminProductsController CreateController(AppDbContext ctx, bool isDevelopment)
@@ -53,7 +53,7 @@ public sealed class AdminProductsDevPurgeCatalogTests
             ctx,
             Mock.Of<IGenericRepository<Product>>(),
             NullLogger<AdminProductsController>.Instance,
-            TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary),
+            TenantTestDoubles.SettingsResolverReturning(SystemTenantIds.Platform),
             env,
             Options.Create(new ProductMediaOptions()),
             new ProductImageThumbnailService(
@@ -61,7 +61,7 @@ public sealed class AdminProductsDevPurgeCatalogTests
                 NullLogger<ProductImageThumbnailService>.Instance),
             Mock.Of<IDemoProductImportService>(),
             NullCurrentTenantAccessor.Instance,
-            new AdminProductListService(ctx, TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary)),
+            new AdminProductListService(ctx, TenantTestDoubles.SettingsResolverReturning(SystemTenantIds.Platform)),
             Mock.Of<IProductService>(),
             Mock.Of<IProductExportService>(),
             Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>(),

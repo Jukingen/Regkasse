@@ -28,7 +28,7 @@ public sealed class AdminShiftManagementServiceTests
     [Fact]
     public async Task ForceCloseRegisterAsync_ClosesOpenRegisterHeldByOtherUser()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var ctx = CreateContext(tenantId);
         var regId = Guid.NewGuid();
         var ownerId = "owner-user";
@@ -85,7 +85,7 @@ public sealed class ShiftAutoCloseServiceTests
     [Fact]
     public async Task CloseStaleOpenRegistersAsync_ClosesRegisterOlderThanMaxHours()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"ShiftAutoClose_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
@@ -157,7 +157,7 @@ public sealed class ShiftAutoCloseServiceTests
     [Fact]
     public async Task CloseStaleOpenRegistersAsync_SoftClosesOrphanActiveShift()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"ShiftAutoCloseOrphan_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))

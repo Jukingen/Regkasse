@@ -75,7 +75,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
             await AddMinimalUserAsync(seed, "u1");
             seed.CashRegisters.Add(new CashRegister
             {
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 Id = regId,
                 RegisterNumber = "PG-LOCK-1",
                 Location = "T",
@@ -126,7 +126,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
             await AddMinimalUserAsync(seed, "u1");
             seed.CashRegisters.Add(new CashRegister
             {
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 Id = regId,
                 RegisterNumber = "PG-CLOSE-1",
                 Location = "T",
@@ -195,7 +195,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
             seed.Users.Add(u2);
             seed.CashRegisters.Add(new CashRegister
             {
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 Id = r1,
                 RegisterNumber = "PG-R1",
                 Location = "T",
@@ -209,7 +209,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
             });
             seed.CashRegisters.Add(new CashRegister
             {
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 Id = r2,
                 RegisterNumber = "PG-R2",
                 Location = "T",
@@ -268,12 +268,12 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
         await using (var seed = CreateContext())
         {
             await AddMinimalUserAsync(seed, "u1");
-            TenantTestDoubles.EnsureDefaultTenant(seed);
-            seed.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+            TenantTestDoubles.EnsurePlatformTenant(seed);
+            seed.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
             seed.Products.Add(new Product
             {
                 Id = productId,
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 Name = "Item",
                 Price = 6.90m,
                 CategoryId = categoryId,
@@ -299,7 +299,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
             });
             seed.CashRegisters.Add(new CashRegister
             {
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 Id = cashRegisterId,
                 RegisterNumber = "PG-PAY-1",
                 Location = "T",
@@ -356,11 +356,11 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
         await using (var seed = CreateContext())
         {
             await AddMinimalUserAsync(seed, "u1");
-            TenantTestDoubles.EnsureDefaultTenant(seed);
-            seed.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
-            seed.Products.Add(new Product { Id = productId, TenantId = LegacyDefaultTenantIds.Primary, Name = "Item", Price = 6.90m, CategoryId = categoryId, Category = "Speisen", StockQuantity = 100, Unit = "Stk", TaxType = 2, TaxRate = TaxTypes.GetTaxRate(2), IsFiscalCompliant = true, IsTaxable = true, IsActive = true });
+            TenantTestDoubles.EnsurePlatformTenant(seed);
+            seed.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
+            seed.Products.Add(new Product { Id = productId, TenantId = SystemTenantIds.Platform, Name = "Item", Price = 6.90m, CategoryId = categoryId, Category = "Speisen", StockQuantity = 100, Unit = "Stk", TaxType = 2, TaxRate = TaxTypes.GetTaxRate(2), IsFiscalCompliant = true, IsTaxable = true, IsActive = true });
             seed.Customers.Add(new Customer { Id = customerId, Name = "C", IsActive = true });
-            seed.CashRegisters.Add(new CashRegister { TenantId = LegacyDefaultTenantIds.Primary, Id = cashRegisterId, RegisterNumber = "PG-PAY-RES1", Status = RegisterStatus.Open, CurrentUserId = "u1", IsActive = true, CreatedAt = DateTime.UtcNow, LastBalanceUpdate = DateTime.UtcNow, Location = "T" });
+            seed.CashRegisters.Add(new CashRegister { TenantId = SystemTenantIds.Platform, Id = cashRegisterId, RegisterNumber = "PG-PAY-RES1", Status = RegisterStatus.Open, CurrentUserId = "u1", IsActive = true, CreatedAt = DateTime.UtcNow, LastBalanceUpdate = DateTime.UtcNow, Location = "T" });
             await seed.SaveChangesAsync();
         }
 

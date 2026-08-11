@@ -1021,9 +1021,9 @@ public class AdminUsersControllerTests
         db.Tenants.AddRange(
             new Tenant
             {
-                Id = LegacyDefaultTenantIds.Primary,
-                Name = "Default",
-                Slug = LegacyDefaultTenantIds.PrimarySlug,
+                Id = SystemTenantIds.Platform,
+                Name = "Platform",
+                Slug = SystemTenantIds.PlatformSlug,
                 Status = TenantStatuses.Active,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
@@ -1105,7 +1105,7 @@ public class AdminUsersControllerTests
             {
                 Id = Guid.NewGuid(),
                 UserId = "platform-1",
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 IsActive = true,
                 IsOwner = false,
                 CreatedAtUtc = DateTime.UtcNow,
@@ -1133,8 +1133,8 @@ public class AdminUsersControllerTests
         Assert.Equal("cafe-alpha", dtos["cashier-1"].TenantSlug);
 
         Assert.Equal("Tenant", dtos["platform-1"].UserType);
-        Assert.Equal(LegacyDefaultTenantIds.Primary.ToString(), dtos["platform-1"].TenantId);
-        Assert.Equal("default", dtos["platform-1"].TenantSlug);
+        Assert.Equal(SystemTenantIds.Platform.ToString(), dtos["platform-1"].TenantId);
+        Assert.Equal(SystemTenantIds.PlatformSlug, dtos["platform-1"].TenantSlug);
 
         Assert.Equal("cashier", dtos["cashier-1"].UserName);
         Assert.Equal("platform", dtos["platform-1"].UserName);

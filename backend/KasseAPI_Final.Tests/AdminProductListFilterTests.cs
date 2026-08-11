@@ -39,7 +39,7 @@ public sealed class AdminProductListFilterTests
         db.Categories.Add(new Category
         {
             Id = catId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Drinks",
             VatRate = 10m,
         });
@@ -59,7 +59,7 @@ public sealed class AdminProductListFilterTests
         };
 
         var query = db.Products.AsNoTracking()
-            .ApplyTenantScope(LegacyDefaultTenantIds.Primary)
+            .ApplyTenantScope(SystemTenantIds.Platform)
             .ApplyPriceRangeFilter(filter)
             .ApplyTaxTypeFilter(filter.TaxTypes);
 
@@ -76,7 +76,7 @@ public sealed class AdminProductListFilterTests
         db.Categories.Add(new Category
         {
             Id = catId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Food",
             VatRate = 10m,
         });
@@ -102,8 +102,8 @@ public sealed class AdminProductListFilterTests
     public async Task QueryAsync_InvalidPriceRange_ReturnsError()
     {
         await using var db = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(db);
-        var service = new AdminProductListService(db, TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary));
+        TenantTestDoubles.EnsurePlatformTenant(db);
+        var service = new AdminProductListService(db, TenantTestDoubles.SettingsResolverReturning(SystemTenantIds.Platform));
 
         var (_, code, _) = await service.QueryAsync(new ProductFilterDto { MinPrice = 20m, MaxPrice = 5m });
 
@@ -118,7 +118,7 @@ public sealed class AdminProductListFilterTests
         db.Categories.Add(new Category
         {
             Id = catId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Food",
             VatRate = 10m,
         });
@@ -151,7 +151,7 @@ public sealed class AdminProductListFilterTests
         int? maxStock = null) => new()
         {
             Id = id,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = name,
             Price = price,
             CategoryId = categoryId,
@@ -175,8 +175,8 @@ public sealed class AdminProductListFilterTests
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        var ctx = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        var ctx = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         return ctx;
     }
 }

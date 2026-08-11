@@ -12,21 +12,21 @@ describe('resolveTenantIdentityFromApiAndSwitcher', () => {
     licenseDaysRemaining: 100,
   };
 
-  const apiDefault = {
-    id: 'default-id',
-    slug: 'default',
-    name: 'Default',
+  const apiOther = {
+    id: 'acme-id',
+    slug: 'acme',
+    name: 'Acme',
     licenseValidUntilUtc: '2026-01-01T00:00:00Z',
   };
 
   it('prefers switcher/dev identity when API snapshot is a different mandant', () => {
     const result = resolveTenantIdentityFromApiAndSwitcher({
-      apiTenant: apiDefault,
+      apiTenant: apiOther,
       resolvedRow: resolvedDev,
       ctxSlug: 'dev',
       ctxName: 'Development',
-      jwtTenantId: 'default-id',
-      jwtTenantSlug: 'default',
+      jwtTenantId: 'acme-id',
+      jwtTenantSlug: 'acme',
     });
 
     expect(result).toEqual({
@@ -60,16 +60,16 @@ describe('resolveTenantIdentityFromApiAndSwitcher', () => {
 
   it('falls back to API when switcher row is missing', () => {
     const result = resolveTenantIdentityFromApiAndSwitcher({
-      apiTenant: apiDefault,
+      apiTenant: apiOther,
       resolvedRow: null,
       ctxSlug: 'admin',
       ctxName: null,
-      jwtTenantId: 'default-id',
-      jwtTenantSlug: 'default',
+      jwtTenantId: 'acme-id',
+      jwtTenantSlug: 'acme',
     });
 
-    expect(result.tenantId).toBe('default-id');
-    expect(result.tenantSlug).toBe('default');
-    expect(result.tenantName).toBe('Default');
+    expect(result.tenantId).toBe('acme-id');
+    expect(result.tenantSlug).toBe('acme');
+    expect(result.tenantName).toBe('Acme');
   });
 });

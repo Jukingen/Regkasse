@@ -15,7 +15,7 @@ namespace KasseAPI_Final.Tests;
 
 public sealed class CashRegisterManagementServiceTests
 {
-    private static readonly Guid PrimaryTenantId = LegacyDefaultTenantIds.Primary;
+    private static readonly Guid PrimaryTenantId = SystemTenantIds.Platform;
     private static readonly Guid OtherTenantId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
 
     private static AppDbContext CreateContext()
@@ -24,7 +24,7 @@ public sealed class CashRegisterManagementServiceTests
             .UseInMemoryDatabase($"CashRegMgmt_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        var ctx = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        var ctx = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
         ctx.Tenants.AddRange(
             new Tenant { Id = PrimaryTenantId, Name = "Primary", Slug = "primary" },
             new Tenant { Id = OtherTenantId, Name = "Other", Slug = "other" });

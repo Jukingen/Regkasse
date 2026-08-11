@@ -17,16 +17,16 @@ public class LoginTenantResolverTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"login_tenant_resolver_{Guid.NewGuid()}")
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static void SeedDefaultTenant(AppDbContext db)
     {
         db.Tenants.Add(new Tenant
         {
-            Id = LegacyDefaultTenantIds.Primary,
-            Name = "Default Org",
-            Slug = LegacyDefaultTenantIds.PrimarySlug,
+            Id = SystemTenantIds.Platform,
+            Name = "Platform",
+            Slug = SystemTenantIds.PlatformSlug,
         });
     }
 
@@ -63,7 +63,7 @@ public class LoginTenantResolverTests
     public async Task HasActiveMembershipAsync_True_When_Active_Row_Exists()
     {
         await using var db = CreateDb();
-        var tid = LegacyDefaultTenantIds.Primary;
+        var tid = SystemTenantIds.Platform;
         db.Tenants.Add(new Tenant { Id = tid, Name = "T", Slug = "t" });
         db.UserTenantMemberships.Add(new UserTenantMembership
         {
@@ -88,8 +88,8 @@ public class LoginTenantResolverTests
         var resolver = CreateResolver(db);
         var snap = await resolver.ResolveSnapshotForLoginAsync("user-1");
 
-        Assert.Equal(LegacyDefaultTenantIds.Primary.ToString("D"), snap.TenantId);
-        Assert.Equal("Default Org", snap.TenantDisplayName);
+        Assert.Equal(SystemTenantIds.Platform.ToString("D"), snap.TenantId);
+        Assert.Equal("Platform", snap.TenantDisplayName);
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public class LoginTenantResolverTests
     {
         await using var db = CreateDb();
         var otherId = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
-        db.Tenants.Add(new Tenant { Id = LegacyDefaultTenantIds.Primary, Name = "Default", Slug = "d" });
+        db.Tenants.Add(new Tenant { Id = SystemTenantIds.Platform, Name = "Default", Slug = "d" });
         db.Tenants.Add(new Tenant { Id = otherId, Name = "Member Org", Slug = "member" });
         db.UserTenantMemberships.Add(new UserTenantMembership
         {
@@ -173,7 +173,7 @@ public class LoginTenantResolverTests
     {
         await using var db = CreateDb();
         var tid = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
-        db.Tenants.Add(new Tenant { Id = LegacyDefaultTenantIds.Primary, Name = "Default", Slug = "d" });
+        db.Tenants.Add(new Tenant { Id = SystemTenantIds.Platform, Name = "Default", Slug = "d" });
         db.Tenants.Add(new Tenant { Id = tid, Name = "Inactive Org", Slug = "inact" });
         db.UserTenantMemberships.Add(new UserTenantMembership
         {
@@ -187,7 +187,7 @@ public class LoginTenantResolverTests
         var resolver = CreateResolver(db);
         var snap = await resolver.ResolveSnapshotForLoginAsync("u1");
 
-        Assert.Equal(LegacyDefaultTenantIds.Primary.ToString("D"), snap.TenantId);
+        Assert.Equal(SystemTenantIds.Platform.ToString("D"), snap.TenantId);
     }
 
     [Fact]
@@ -232,7 +232,7 @@ public class LoginTenantResolverTests
     public async Task Duplicate_User_Tenant_Pair_Throws_On_Save_When_Provider_Enforces_Uniqueness()
     {
         await using var db = CreateDb();
-        var tid = LegacyDefaultTenantIds.Primary;
+        var tid = SystemTenantIds.Platform;
         db.Tenants.Add(new Tenant { Id = tid, Name = "T", Slug = "t" });
         db.UserTenantMemberships.Add(new UserTenantMembership
         {
@@ -310,7 +310,7 @@ public class LoginTenantResolverTests
         db.UserTenantMemberships.Add(new UserTenantMembership
         {
             UserId = "manager1",
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             IsActive = true,
             CreatedAtUtc = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
         });
@@ -338,7 +338,7 @@ public class LoginTenantResolverTests
     }
 
     [Fact]
-    public async Task Multiple_Memberships_Explicit_Default_Slug_Still_Selects_Legacy_Default()
+    public async Task Multiple_Memberships_Explicit_Platform_Slug_Still_Selects_Platform()
     {
         await using var db = CreateDb();
         SeedDefaultTenant(db);
@@ -353,7 +353,7 @@ public class LoginTenantResolverTests
         db.UserTenantMemberships.Add(new UserTenantMembership
         {
             UserId = "manager1",
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             IsActive = true,
             CreatedAtUtc = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
         });
@@ -373,17 +373,17 @@ public class LoginTenantResolverTests
             return;
         }
 
-        var resolver = CreateResolver(db, requestTenantSlug: "default", isDevelopment: true);
+        var resolver = CreateResolver(db, requestTenantSlug: SystemTenantIds.PlatformSlug, isDevelopment: true);
         var snap = await resolver.ResolveSnapshotForLoginAsync("manager1");
 
-        Assert.Equal(LegacyDefaultTenantIds.Primary.ToString("D"), snap.TenantId);
-        Assert.Equal(LegacyDefaultTenantIds.PrimarySlug, snap.TenantSlug);
+        Assert.Equal(SystemTenantIds.Platform.ToString("D"), snap.TenantId);
+        Assert.Equal(SystemTenantIds.PlatformSlug, snap.TenantSlug);
     }
 
     [Fact]
     public async Task Multiple_Memberships_Prefers_Dev_Even_When_Ambient_Tenant_Is_Legacy_Default()
     {
-        await using var db = CreateDbWithAmbientTenant(LegacyDefaultTenantIds.Primary);
+        await using var db = CreateDbWithAmbientTenant(SystemTenantIds.Platform);
         SeedDefaultTenant(db);
         db.Tenants.Add(new Tenant
         {
@@ -396,7 +396,7 @@ public class LoginTenantResolverTests
         db.UserTenantMemberships.Add(new UserTenantMembership
         {
             UserId = "manager1",
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             IsActive = true,
             CreatedAtUtc = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
         });

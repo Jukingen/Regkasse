@@ -19,10 +19,20 @@ public class AuthOptions
     public int ReuseDetectionRevokeLookbackDays { get; set; } = 30;
 
     /// <summary>
-    /// When true, password login is denied if the user has no active <c>user_tenant_memberships</c> row.
-    /// Default false: legacy default-tenant snapshot is still used when membership is missing.
+    /// When true, password login is denied if the user has no active <c>user_tenant_memberships</c> row
+    /// (SuperAdmin is exempt — platform operator).
+    /// Development templates keep this <c>false</c> for DX; Staging/Production templates and ValidateOnStart
+    /// require <c>true</c> so misconfigured Production cannot issue JWTs without membership.
     /// </summary>
     public bool RequireTenantMembershipForLogin { get; set; } = false;
+
+    /// <summary>
+    /// When true, authenticated requests on mandant subdomain / custom domain hosts must have JWT
+    /// <c>tenant_id</c> equal to the Host-resolved tenant. Shared platform hosts (<c>api</c>/<c>pos</c>/<c>admin</c>/<c>www</c>)
+    /// and SuperAdmin impersonation tokens are exempt. Emergency kill-switch: set <c>false</c> in Production.
+    /// Templates: Development <c>false</c>; base/Staging/Production <c>true</c>.
+    /// </summary>
+    public bool RequireTenantHostMatch { get; set; } = true;
 
     /// <summary>
     /// Legacy override for SuperAdmin 2FA. Prefer <c>TwoFactorAuth</c> section.

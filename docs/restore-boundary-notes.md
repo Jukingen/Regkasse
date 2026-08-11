@@ -24,7 +24,7 @@
   - **Tenant** `*.tenant.zip` → **not** `pg_restore`-compatible (`TENANT_PACKAGE_RESTORE_NOT_SUPPORTED`); export/archive for Mandanten-Admin, not validation restore input.
 - **Same-tenant gate:** when ambient tenant and labeled `backup_runs.tenant_id` disagree → **404**. Cross-tenant production restore via API is forbidden by design.
 - **Who may restore:** Super Admin only. Mandanten-Admin may view/download own Tenant packages but **cannot** request or approve restore.
-- **Audit:** every request/approve/reject/complete/fail writes `AuditEventType.Restore*` with correlation id, restore timestamps (`RequestedAt` / `ApprovedAt` / `AuditRecordedAtUtc`), `SourceBackupTenantId`, and `RestoreScope` (`tenant_access_scoped` | `deployment_wide`). Audit `tenant_id` is stamped from the source backup tenant when set; otherwise `LegacyDefaultTenantIds.Primary` (platform convention).
+- **Audit:** every request/approve/reject/complete/fail writes `AuditEventType.Restore*` with correlation id, restore timestamps (`RequestedAt` / `ApprovedAt` / `AuditRecordedAtUtc`), `SourceBackupTenantId`, and `RestoreScope` (`tenant_access_scoped` | `deployment_wide`). Audit `tenant_id` is stamped from the source backup tenant when set; otherwise `SystemTenantIds.Platform` (platform convention).
 - **No backdating:** the workflow does not rewrite fiscal `IssuedAt` / receipt timestamps; it only restores into an isolated clone for validation.
 - **No silent production modification:** `ManualRestoreTargetDatabaseGuard` + `ValidationRestoreExecutionService` block `DefaultConnection` and require ValidationOnly.
 

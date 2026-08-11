@@ -30,7 +30,7 @@ namespace KasseAPI_Final.Data
             {
                 Id = WalkInCustomerConstants.GuestCustomerId,
                 // Startup has no ambient tenant; stamp the default tenant explicitly so StampTenantIdsOnInsert doesn't leave it empty.
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 Name = "Walk-in Customer",
                 CustomerNumber = "GUEST-000",
                 Email = "walkin@system.local",

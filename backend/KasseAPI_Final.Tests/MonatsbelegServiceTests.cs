@@ -62,9 +62,9 @@ public sealed class MonatsbelegServiceTests
     [Fact]
     public async Task CreateMonatsbelegAsync_PersistsAggregatedTotals_AndSignatureChain()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
 
         var regId = Guid.NewGuid();
         var (currentYear, currentMonth) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
@@ -109,9 +109,9 @@ public sealed class MonatsbelegServiceTests
     [Fact]
     public async Task CreateMonatsbelegAsync_ThrowsWhenDuplicate()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
 
         var regId = Guid.NewGuid();
         var (currentYear, currentMonth) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
@@ -156,9 +156,9 @@ public sealed class MonatsbelegServiceTests
     [Fact]
     public async Task GetMonatsbelegHistoryAsync_ReturnsOrderedSummaries()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
 
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister

@@ -58,7 +58,7 @@ describe('applyAxiosRequestAuthHeaders', () => {
         params: { tenant: 'selected-cafe' },
       }),
       {
-        tenantSlug: 'default',
+        tenantSlug: 'dev',
         accessToken: null,
         acceptLanguage: 'de',
         injectDevTenantQuery: true,

@@ -33,7 +33,7 @@ public sealed class DevCleanupControllerTests
         return new DevCleanupController(
             env.Object,
             db,
-            TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary),
+            TenantTestDoubles.SettingsResolverReturning(SystemTenantIds.Platform),
             Mock.Of<ILogger<DevCleanupController>>());
     }
 

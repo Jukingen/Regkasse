@@ -60,7 +60,7 @@ public sealed class PriceChangeServiceTests
     [Fact]
     public async Task ChangePriceAsync_UpdatesProductAndCreatesVersion()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var db = CreateDb(tenantId);
         var (productId, taxGroupId) = await SeedProductAsync(db, tenantId, price: 3.5m, taxRate: 20m);
 
@@ -93,7 +93,7 @@ public sealed class PriceChangeServiceTests
     [Fact]
     public async Task ChangePriceAsync_WithFiscalHistory_CreatesNewCatalogProduct()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var db = CreateDb(tenantId);
         var (productId, taxGroupId) = await SeedProductAsync(db, tenantId, price: 3.5m, taxRate: 20m);
 
@@ -146,7 +146,7 @@ public sealed class PriceChangeServiceTests
     [Fact]
     public async Task ValidatePriceChangeAsync_WarnsWhenOrderHistoryExists()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var db = CreateDb(tenantId);
         var (productId, taxGroupId) = await SeedProductAsync(db, tenantId, price: 3.5m, taxRate: 20m);
 
@@ -190,7 +190,7 @@ public sealed class PriceChangeServiceTests
     [Fact]
     public async Task ChangePriceAsync_RejectsUnchangedPrice()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var db = CreateDb(tenantId);
         var (productId, taxGroupId) = await SeedProductAsync(db, tenantId, price: 3.5m, taxRate: 20m);
 

@@ -380,12 +380,12 @@ public sealed partial class AdminTenantService : IAdminTenantService
         items.DistinctBy(t => t.Id).ToList();
 
     /// <summary>
-    /// Default tenant is excluded as it's not used in development (legacy Wave-0 row; prefer seeded <c>dev</c>).
+    /// Platform sentinel is excluded from switcher (not a business mandant).
     /// </summary>
     private static IReadOnlyList<AdminTenantListItemDto> ExcludeUnusedDefaultTenant(
         IEnumerable<AdminTenantListItemDto> items) =>
         items
-            .Where(t => !string.Equals(t.Slug, LegacyDefaultTenantIds.PrimarySlug, StringComparison.OrdinalIgnoreCase))
+            .Where(t => !SystemTenantIds.IsPlatformSlug(t.Slug))
             .ToList();
 
     public async Task<AdminTenantDetailDto?> GetByIdAsync(Guid tenantId, CancellationToken cancellationToken = default)

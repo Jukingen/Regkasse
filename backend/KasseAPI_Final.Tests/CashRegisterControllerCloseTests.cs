@@ -29,7 +29,7 @@ public class CashRegisterControllerCloseTests
             .UseInMemoryDatabase($"CashRegClose_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static UserManager<ApplicationUser> CreateTestUserManager()
@@ -51,7 +51,7 @@ public class CashRegisterControllerCloseTests
             CreateTestUserManager(),
             shift,
             TenantTestDoubles.PrimaryTenantResolver,
-            TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary),
+            TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform),
             Mock.Of<ICashRegisterManagementService>(),
             Mock.Of<ICashRegisterListEnrichmentService>(),
             LocalizationTestDoubles.ApiMessageLocalizer());
@@ -87,7 +87,7 @@ public class CashRegisterControllerCloseTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -129,7 +129,7 @@ public class CashRegisterControllerCloseTests
         const string otherId = "other-2";
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -163,7 +163,7 @@ public class CashRegisterControllerCloseTests
         const string ownerId = "owner-1";
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",

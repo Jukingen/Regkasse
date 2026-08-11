@@ -29,7 +29,7 @@ public class VoucherPaymentRedemptionTests
             .UseInMemoryDatabase(databaseName: $"VoucherPay_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static PaymentService CreatePaymentService(AppDbContext context, string tseMode = "Demo")
@@ -110,17 +110,17 @@ public class VoucherPaymentRedemptionTests
 
     private static async Task<(Guid categoryId, Guid productId, Guid customerId, Guid regId)> SeedSaleCatalogOnlyAsync(AppDbContext context)
     {
-        TenantTestDoubles.EnsureDefaultTenant(context);
+        TenantTestDoubles.EnsurePlatformTenant(context);
         var categoryId = Guid.NewGuid();
         var productId = Guid.NewGuid();
         var customerId = Guid.NewGuid();
         var regId = Guid.NewGuid();
 
-        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        context.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Soup",
             Price = 5.00m,
             CategoryId = categoryId,
@@ -139,7 +139,7 @@ public class VoucherPaymentRedemptionTests
         context.Customers.Add(new Customer { Id = customerId, Name = "Walk", Email = "t@t.com", Phone = "1", IsActive = true });
         context.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "Test",
@@ -167,7 +167,7 @@ public class VoucherPaymentRedemptionTests
         context.Vouchers.Add(new Voucher
         {
             Id = voucherId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CodeHash = hash,
             MaskedCode = "****001",
             InitialAmount = 100m,
@@ -189,7 +189,7 @@ public class VoucherPaymentRedemptionTests
         await using var context = CreateContext();
         await SeedCatalogAndVoucherAsync(context, 100m, DateTime.UtcNow.AddDays(10), VoucherStatus.Active);
         var svc = new VoucherService(context, Mock.Of<ILogger<VoucherService>>());
-        var r = await svc.ValidateVoucherByCodeAsync(LegacyDefaultTenantIds.Primary, PlainCode, null);
+        var r = await svc.ValidateVoucherByCodeAsync(SystemTenantIds.Platform, PlainCode, null);
         Assert.True(r.Ok);
         Assert.Equal(100m, r.RemainingAmount);
         Assert.Equal("****001", r.MaskedCode);
@@ -266,7 +266,7 @@ public class VoucherPaymentRedemptionTests
     public async Task CreatePayment_Voucher_MultiRedemptions_SumsToTotal()
     {
         await using var context = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(context);
+        TenantTestDoubles.EnsurePlatformTenant(context);
         var categoryId = Guid.NewGuid();
         var productId = Guid.NewGuid();
         var customerId = Guid.NewGuid();
@@ -274,11 +274,11 @@ public class VoucherPaymentRedemptionTests
         var v1 = Guid.NewGuid();
         var v2 = Guid.NewGuid();
 
-        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        context.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Combo",
             Price = 10.00m,
             CategoryId = categoryId,
@@ -297,7 +297,7 @@ public class VoucherPaymentRedemptionTests
         context.Customers.Add(new Customer { Id = customerId, Name = "Walk", Email = "t@t.com", Phone = "1", IsActive = true });
         context.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "Test",
@@ -315,7 +315,7 @@ public class VoucherPaymentRedemptionTests
             context.Vouchers.Add(new Voucher
             {
                 Id = id,
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 CodeHash = hash,
                 MaskedCode = "****",
                 InitialAmount = 100m,
@@ -412,7 +412,7 @@ public class VoucherPaymentRedemptionTests
         await using var context = CreateContext();
         await SeedCatalogAndVoucherAsync(context, 50m, DateTime.UtcNow.AddDays(-1), VoucherStatus.Active);
         var svc = new VoucherService(context, Mock.Of<ILogger<VoucherService>>());
-        var r = await svc.ValidateVoucherByCodeAsync(LegacyDefaultTenantIds.Primary, PlainCode, null);
+        var r = await svc.ValidateVoucherByCodeAsync(SystemTenantIds.Platform, PlainCode, null);
         Assert.False(r.Ok);
         Assert.Equal(VoucherValidateErrorCodes.Expired, r.ErrorCode);
     }
@@ -423,7 +423,7 @@ public class VoucherPaymentRedemptionTests
         await using var context = CreateContext();
         await SeedCatalogAndVoucherAsync(context, 50m, DateTime.UtcNow.AddDays(30), VoucherStatus.Cancelled);
         var svc = new VoucherService(context, Mock.Of<ILogger<VoucherService>>());
-        var r = await svc.ValidateVoucherByCodeAsync(LegacyDefaultTenantIds.Primary, PlainCode, null);
+        var r = await svc.ValidateVoucherByCodeAsync(SystemTenantIds.Platform, PlainCode, null);
         Assert.False(r.Ok);
         Assert.Equal(VoucherValidateErrorCodes.NotFound, r.ErrorCode);
         Assert.Equal("Voucher not found or not valid for this location.", r.Message);
@@ -435,7 +435,7 @@ public class VoucherPaymentRedemptionTests
         await using var context = CreateContext();
         await SeedCatalogAndVoucherAsync(context, 0m, DateTime.UtcNow.AddDays(30), VoucherStatus.Redeemed);
         var svc = new VoucherService(context, Mock.Of<ILogger<VoucherService>>());
-        var r = await svc.ValidateVoucherByCodeAsync(LegacyDefaultTenantIds.Primary, PlainCode, null);
+        var r = await svc.ValidateVoucherByCodeAsync(SystemTenantIds.Platform, PlainCode, null);
         Assert.False(r.Ok);
         Assert.Equal(VoucherValidateErrorCodes.NoBalance, r.ErrorCode);
         Assert.Equal("Voucher has no remaining balance.", r.Message);
@@ -447,7 +447,7 @@ public class VoucherPaymentRedemptionTests
         await using var context = CreateContext();
         await SeedCatalogAndVoucherAsync(context, 0m, DateTime.UtcNow.AddDays(30), VoucherStatus.Active);
         var svc = new VoucherService(context, Mock.Of<ILogger<VoucherService>>());
-        var r = await svc.ValidateVoucherByCodeAsync(LegacyDefaultTenantIds.Primary, PlainCode, null);
+        var r = await svc.ValidateVoucherByCodeAsync(SystemTenantIds.Platform, PlainCode, null);
         Assert.False(r.Ok);
         Assert.Equal(VoucherValidateErrorCodes.NoBalance, r.ErrorCode);
     }
@@ -458,7 +458,7 @@ public class VoucherPaymentRedemptionTests
         await using var context = CreateContext();
         await SeedCatalogAndVoucherAsync(context, 20m, DateTime.UtcNow.AddDays(30), VoucherStatus.Active);
         var svc = new VoucherService(context, Mock.Of<ILogger<VoucherService>>());
-        var r = await svc.ValidateVoucherByCodeAsync(LegacyDefaultTenantIds.Primary, PlainCode, 10m);
+        var r = await svc.ValidateVoucherByCodeAsync(SystemTenantIds.Platform, PlainCode, 10m);
         Assert.True(r.Ok);
         Assert.Equal(10m, r.MaxRedeemableAmount);
         Assert.Equal(20m, r.RemainingAmount);
@@ -470,7 +470,7 @@ public class VoucherPaymentRedemptionTests
         await using var context = CreateContext();
         await SeedCatalogAndVoucherAsync(context, 20m, DateTime.UtcNow.AddDays(30), VoucherStatus.Active);
         var svc = new VoucherService(context, Mock.Of<ILogger<VoucherService>>());
-        var r = await svc.ValidateVoucherByCodeAsync(LegacyDefaultTenantIds.Primary, PlainCode, 999m);
+        var r = await svc.ValidateVoucherByCodeAsync(SystemTenantIds.Platform, PlainCode, 999m);
         Assert.False(r.Ok);
         Assert.Equal(VoucherValidateErrorCodes.AmountExceedsBalance, r.ErrorCode);
         Assert.Equal("Voucher redemption exceeds remaining balance.", r.Message);
@@ -545,7 +545,7 @@ public class VoucherPaymentRedemptionTests
     public async Task CreatePayment_Voucher_MultiRedemption_OneLineExceedsThatVouchersBalance_Fails()
     {
         await using var context = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(context);
+        TenantTestDoubles.EnsurePlatformTenant(context);
         var categoryId = Guid.NewGuid();
         var productId = Guid.NewGuid();
         var customerId = Guid.NewGuid();
@@ -553,11 +553,11 @@ public class VoucherPaymentRedemptionTests
         var v1 = Guid.NewGuid();
         var v2 = Guid.NewGuid();
 
-        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        context.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Combo",
             Price = 10.00m,
             CategoryId = categoryId,
@@ -576,7 +576,7 @@ public class VoucherPaymentRedemptionTests
         context.Customers.Add(new Customer { Id = customerId, Name = "Walk", Email = "t@t.com", Phone = "1", IsActive = true });
         context.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "Test",
@@ -594,7 +594,7 @@ public class VoucherPaymentRedemptionTests
             context.Vouchers.Add(new Voucher
             {
                 Id = id,
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 CodeHash = hash,
                 MaskedCode = "****",
                 InitialAmount = 20m,
@@ -678,7 +678,7 @@ public class VoucherPaymentRedemptionTests
         await using var context = CreateContext();
         var admin = new AdminVoucherService(context, Mock.Of<ILogger<AdminVoucherService>>(), Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
         var (res, err) = await admin.CreateAsync(
-            LegacyDefaultTenantIds.Primary,
+            SystemTenantIds.Platform,
             "admin1",
             new CreateAdminVoucherRequest
             {
@@ -699,7 +699,7 @@ public class VoucherPaymentRedemptionTests
         var admin = new AdminVoucherService(context, Mock.Of<ILogger<AdminVoucherService>>(), Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
         var target = DateTime.UtcNow.AddDays(88);
         var (res, err) = await admin.CreateAsync(
-            LegacyDefaultTenantIds.Primary,
+            SystemTenantIds.Platform,
             "admin1",
             new CreateAdminVoucherRequest
             {
@@ -719,7 +719,7 @@ public class VoucherPaymentRedemptionTests
         await using var context = CreateContext();
         var admin = new AdminVoucherService(context, Mock.Of<ILogger<AdminVoucherService>>(), Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
         var (created, err) = await admin.CreateAsync(
-            LegacyDefaultTenantIds.Primary,
+            SystemTenantIds.Platform,
             "admin1",
             new CreateAdminVoucherRequest
             {
@@ -731,7 +731,7 @@ public class VoucherPaymentRedemptionTests
         Assert.NotNull(created);
 
         var (ok, codeErr) = await admin.VerifyCodeMatchesAsync(
-            LegacyDefaultTenantIds.Primary,
+            SystemTenantIds.Platform,
             created!.Id,
             created.PlaintextCode);
         Assert.Null(codeErr);
@@ -739,7 +739,7 @@ public class VoucherPaymentRedemptionTests
         Assert.True(ok!.Matches);
 
         var (wrong, _) = await admin.VerifyCodeMatchesAsync(
-            LegacyDefaultTenantIds.Primary,
+            SystemTenantIds.Platform,
             created.Id,
             "GUT-XXXXXXXXXXXXXX");
         Assert.NotNull(wrong);
@@ -752,7 +752,7 @@ public class VoucherPaymentRedemptionTests
         await using var context = CreateContext();
         var admin = new AdminVoucherService(context, Mock.Of<ILogger<AdminVoucherService>>(), Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
         var (created, _) = await admin.CreateAsync(
-            LegacyDefaultTenantIds.Primary,
+            SystemTenantIds.Platform,
             "admin1",
             new CreateAdminVoucherRequest
             {
@@ -762,7 +762,7 @@ public class VoucherPaymentRedemptionTests
             });
         Assert.NotNull(created);
 
-        var (resp, codeErr) = await admin.VerifyCodeMatchesAsync(LegacyDefaultTenantIds.Primary, created!.Id, "   ");
+        var (resp, codeErr) = await admin.VerifyCodeMatchesAsync(SystemTenantIds.Platform, created!.Id, "   ");
         Assert.Equal("CODE_REQUIRED", codeErr);
         Assert.Null(resp);
     }
@@ -773,7 +773,7 @@ public class VoucherPaymentRedemptionTests
         await using var context = CreateContext();
         var admin = new AdminVoucherService(context, Mock.Of<ILogger<AdminVoucherService>>(), Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
         var (res, _) = await admin.CreateAsync(
-            LegacyDefaultTenantIds.Primary,
+            SystemTenantIds.Platform,
             "admin1",
             new CreateAdminVoucherRequest
             {
@@ -782,7 +782,7 @@ public class VoucherPaymentRedemptionTests
                 ExpiryMode = "DefaultOneYear",
             });
         Assert.NotNull(res);
-        var (ok, code) = await admin.CancelAsync(LegacyDefaultTenantIds.Primary, "admin1", res!.Id, "no");
+        var (ok, code) = await admin.CancelAsync(SystemTenantIds.Platform, "admin1", res!.Id, "no");
         Assert.False(ok);
         Assert.Equal("REASON_TOO_SHORT", code);
     }
@@ -794,7 +794,7 @@ public class VoucherPaymentRedemptionTests
         var (_, productId, customerId, regId) = await SeedSaleCatalogOnlyAsync(context);
         var admin = new AdminVoucherService(context, Mock.Of<ILogger<AdminVoucherService>>(), Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
         var (created, createErr) = await admin.CreateAsync(
-            LegacyDefaultTenantIds.Primary,
+            SystemTenantIds.Platform,
             "admin1",
             new CreateAdminVoucherRequest
             {
@@ -806,7 +806,7 @@ public class VoucherPaymentRedemptionTests
         Assert.NotNull(created);
 
         var (cancelOk, cancelErr) = await admin.CancelAsync(
-            LegacyDefaultTenantIds.Primary,
+            SystemTenantIds.Platform,
             "admin1",
             created!.Id,
             "Customer returned goods — cancel per policy.");
@@ -814,7 +814,7 @@ public class VoucherPaymentRedemptionTests
         Assert.Null(cancelErr);
 
         var validate = new VoucherService(context, Mock.Of<ILogger<VoucherService>>());
-        var vr = await validate.ValidateVoucherByCodeAsync(LegacyDefaultTenantIds.Primary, created.PlaintextCode, null);
+        var vr = await validate.ValidateVoucherByCodeAsync(SystemTenantIds.Platform, created.PlaintextCode, null);
         Assert.False(vr.Ok);
         Assert.Equal(VoucherValidateErrorCodes.NotFound, vr.ErrorCode);
 
@@ -851,7 +851,7 @@ public class VoucherPaymentRedemptionTests
         context.PaymentMethodDefinitions.Add(new PaymentMethodDefinition
         {
             Id = Guid.NewGuid(),
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             Code = "voucher",
             Name = "Gutschein",

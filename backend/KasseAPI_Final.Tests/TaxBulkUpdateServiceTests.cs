@@ -21,7 +21,7 @@ public sealed class TaxBulkUpdateServiceTests
     [Fact]
     public async Task UpdateTaxForProductsAsync_MovesProductsAndWritesHistory()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var db = CreateDb(tenantId);
         db.Tenants.Add(new Tenant { Id = tenantId, Name = "Legacy", Slug = "legacy", IsActive = true });
 
@@ -91,7 +91,7 @@ public sealed class TaxBulkUpdateServiceTests
     [Fact]
     public async Task UpdateTaxForProductsAsync_SameGroups_Throws()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var db = CreateDb(tenantId);
         var groupId = Guid.NewGuid();
         var sut = CreateSut(db);
@@ -103,7 +103,7 @@ public sealed class TaxBulkUpdateServiceTests
     [Fact]
     public async Task ApplyTaxGroupToProductsAsync_UpdatesSelectionAndWritesHistory()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var db = CreateDb(tenantId);
         db.Tenants.Add(new Tenant { Id = tenantId, Name = "Legacy", Slug = "legacy", IsActive = true });
 

@@ -217,7 +217,7 @@ public partial class LicenseController : ControllerBase
     {
         var tenantId = _tenantAccessor.TenantId;
         if (tenantId == Guid.Empty)
-            tenantId = LegacyDefaultTenantIds.Primary;
+            tenantId = SystemTenantIds.Platform;
 
         var tenant = await _db.Tenants
             .AsNoTracking()
@@ -230,7 +230,7 @@ public partial class LicenseController : ControllerBase
         var resolvedId = tenant?.Id ?? tenantId;
         var slug = tenant?.Slug;
         if (string.IsNullOrWhiteSpace(slug))
-            slug = LegacyDefaultTenantIds.PrimarySlug;
+            slug = SystemTenantIds.PlatformSlug;
 
         return result with
         {

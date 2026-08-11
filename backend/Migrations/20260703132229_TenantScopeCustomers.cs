@@ -24,13 +24,13 @@ namespace KasseAPI_Final.Migrations
                 table: "customers");
 
             // Backfill existing (global) customer rows, including the walk-in guest, to the seeded default tenant.
-            // Matches the Wave2/Wave3 tenant-scoping precedent (LegacyDefaultTenantIds.Primary).
+            // Matches the Wave2/Wave3 tenant-scoping precedent (SystemTenantIds.Platform).
             migrationBuilder.AddColumn<Guid>(
                 name: "tenant_id",
                 table: "customers",
                 type: "uuid",
                 nullable: false,
-                defaultValue: LegacyDefaultTenantIds.Primary);
+                defaultValue: SystemTenantIds.Platform);
 
             migrationBuilder.CreateIndex(
                 name: "IX_customers_tenant_id",

@@ -15,8 +15,8 @@ namespace KasseAPI_Final.Tests;
 /// <summary>Shared test doubles for controllers that depend on tenant resolution / membership provisioning.</summary>
 internal static class TenantTestDoubles
 {
-    /// <summary>Resolver fixed to <see cref="LegacyDefaultTenantIds.Primary"/> for legacy single-tenant test data.</summary>
-    public static ISettingsTenantResolver PrimaryTenantResolver => SettingsResolverReturning(LegacyDefaultTenantIds.Primary);
+    /// <summary>Resolver fixed to <see cref="SystemTenantIds.Platform"/> for platform-sentinel test data.</summary>
+    public static ISettingsTenantResolver PrimaryTenantResolver => SettingsResolverReturning(SystemTenantIds.Platform);
 
     public static ISettingsTenantResolver SettingsResolverReturning(Guid tenantId)
     {
@@ -32,7 +32,7 @@ internal static class TenantTestDoubles
     public static IDbContextFactory<AppDbContext> DbContextFactoryForTests(
         DbContextOptions<AppDbContext> options,
         ICurrentTenantAccessor? tenantAccessor = null) =>
-        new TestAppDbContextFactory(options, tenantAccessor ?? TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        new TestAppDbContextFactory(options, tenantAccessor ?? TenantAccessorReturning(SystemTenantIds.Platform));
 
     internal sealed class TestAppDbContextFactory(
         DbContextOptions<AppDbContext> options,
@@ -75,16 +75,16 @@ internal static class TenantTestDoubles
         return m.Object;
     }
 
-    /// <summary>Inserts legacy primary tenant if missing (required for FK on tenant-scoped catalog rows in in-memory tests).</summary>
-    public static void EnsureDefaultTenant(AppDbContext context)
+    /// <summary>Inserts platform sentinel tenant if missing (required for FK on tenant-scoped catalog rows in in-memory tests).</summary>
+    public static void EnsurePlatformTenant(AppDbContext context)
     {
-        if (!context.Tenants.AsNoTracking().Any(t => t.Id == LegacyDefaultTenantIds.Primary))
+        if (!context.Tenants.AsNoTracking().Any(t => t.Id == SystemTenantIds.Platform))
         {
             context.Tenants.Add(new Tenant
             {
-                Id = LegacyDefaultTenantIds.Primary,
-                Name = "Default",
-                Slug = LegacyDefaultTenantIds.PrimarySlug
+                Id = SystemTenantIds.Platform,
+                Name = "Platform",
+                Slug = SystemTenantIds.PlatformSlug
             });
         }
     }

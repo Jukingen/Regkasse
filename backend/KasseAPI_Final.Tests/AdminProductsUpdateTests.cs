@@ -28,7 +28,7 @@ public sealed class AdminProductsUpdateTests
             .UseInMemoryDatabase($"AdminProductsUpdate_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, tenantAccessor ?? TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, tenantAccessor ?? TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static AdminProductsController CreateController(AppDbContext ctx)
@@ -70,15 +70,15 @@ public sealed class AdminProductsUpdateTests
             ctx,
             Mock.Of<IGenericRepository<Product>>(),
             NullLogger<AdminProductsController>.Instance,
-            TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary),
+            TenantTestDoubles.SettingsResolverReturning(SystemTenantIds.Platform),
             Mock.Of<IWebHostEnvironment>(),
             Options.Create(new ProductMediaOptions()),
             new ProductImageThumbnailService(
                 Options.Create(new ProductMediaOptions()),
                 NullLogger<ProductImageThumbnailService>.Instance),
             Mock.Of<IDemoProductImportService>(),
-            TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary),
-            new AdminProductListService(ctx, TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary)),
+            TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform),
+            new AdminProductListService(ctx, TenantTestDoubles.SettingsResolverReturning(SystemTenantIds.Platform)),
             Mock.Of<IProductService>(),
             Mock.Of<IProductExportService>(),
             Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>(),
@@ -102,7 +102,7 @@ public sealed class AdminProductsUpdateTests
         var catId = Guid.NewGuid();
         ctx.Categories.Add(new Category
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = catId,
             Key = $"key-{catId:N}"[..20],
             Name = categoryName,
@@ -115,7 +115,7 @@ public sealed class AdminProductsUpdateTests
         ctx.TaxGroups.Add(new TaxGroup
         {
             Id = taxGroupId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Normalsatz",
             Rate = 20m,
             IsActive = true,
@@ -133,7 +133,7 @@ public sealed class AdminProductsUpdateTests
     public async Task Update_Product_WithModifierAssignments_DoesNotFail()
     {
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         var (catId, taxGroupId) = await SeedCatalogAsync(ctx, "Drinks", 20m);
 
         var productId = Guid.NewGuid();
@@ -141,7 +141,7 @@ public sealed class AdminProductsUpdateTests
         ctx.ProductModifierGroups.Add(new ProductModifierGroup
         {
             Id = groupId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Extras",
             IsActive = true,
         });
@@ -150,7 +150,7 @@ public sealed class AdminProductsUpdateTests
         {
             ProductId = productId,
             ModifierGroupId = groupId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             SortOrder = 0,
         });
         await ctx.SaveChangesAsync();
@@ -174,7 +174,7 @@ public sealed class AdminProductsUpdateTests
     public async Task Update_Product_PreservesIsSellableAddOn()
     {
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         var (catId, taxGroupId) = await SeedCatalogAsync(ctx, "Addons", 10m);
 
         var productId = Guid.NewGuid();
@@ -198,7 +198,7 @@ public sealed class AdminProductsUpdateTests
     public async Task Update_Product_WithOnlyTurkishDescription_DoesNotNullCanonicalDescription()
     {
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         var (catId, taxGroupId) = await SeedCatalogAsync(ctx, "Pizza", 10m);
 
         var productId = Guid.NewGuid();
@@ -229,7 +229,7 @@ public sealed class AdminProductsUpdateTests
     public async Task Update_Product_WithDescriptionExceedingMaxLength_ReturnsBadRequest()
     {
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         var (catId, taxGroupId) = await SeedCatalogAsync(ctx, "Pizza", 10m);
 
         var productId = Guid.NewGuid();
@@ -251,7 +251,7 @@ public sealed class AdminProductsUpdateTests
     private static Product NewProduct(Guid id, string name, Guid categoryId, string barcode, Guid taxGroupId) => new()
     {
         Id = id,
-        TenantId = LegacyDefaultTenantIds.Primary,
+        TenantId = SystemTenantIds.Platform,
         Name = name,
         Price = 1m,
         CategoryId = categoryId,

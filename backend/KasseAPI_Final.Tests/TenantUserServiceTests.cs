@@ -497,7 +497,7 @@ public sealed class TenantUserServiceTests
     [Fact]
     public async Task CreateAsync_Succeeds_When_Ambient_Tenant_Differs_From_Target()
     {
-        var tenantAccessor = new CurrentTenantAccessor { TenantId = LegacyDefaultTenantIds.Primary };
+        var tenantAccessor = new CurrentTenantAccessor { TenantId = SystemTenantIds.Platform };
         await using var db = CreateDb(tenantAccessor);
         await SeedRolesAsync(db);
         var targetTenantId = Guid.NewGuid();

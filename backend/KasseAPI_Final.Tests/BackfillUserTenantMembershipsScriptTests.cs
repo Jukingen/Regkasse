@@ -16,7 +16,7 @@ public class BackfillUserTenantMembershipsScriptTests
         var text = File.ReadAllText(path);
         Assert.Contains("user_tenant_memberships", text, StringComparison.Ordinal);
         Assert.Contains("AspNetUsers", text, StringComparison.Ordinal);
-        Assert.Contains(LegacyDefaultTenantIds.Primary.ToString("D"), text, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SystemTenantIds.Platform.ToString("D"), text, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("NOT EXISTS", text, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("is_active = true", text, StringComparison.OrdinalIgnoreCase);
     }
@@ -31,7 +31,7 @@ public class BackfillUserTenantMembershipsScriptTests
         var text = File.ReadAllText(files[0]);
         Assert.Contains("user_tenant_memberships", text, StringComparison.Ordinal);
         Assert.Contains("AspNetUsers", text, StringComparison.Ordinal);
-        Assert.Contains(LegacyDefaultTenantIds.Primary.ToString("D"), text, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SystemTenantIds.Platform.ToString("D"), text, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("NOT EXISTS", text, StringComparison.OrdinalIgnoreCase);
     }
 

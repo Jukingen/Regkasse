@@ -48,7 +48,7 @@ Mevcut tek-kiracılı PostgreSQL kurulumları için repoda **dalga dalga** migra
 ### Pattern (EF Core)
 
 1. `tenants` tablosu + default kiracı seed (`20260403190133_AddTenantsAndSettingsTenantId`).
-2. İlgili tablolara `tenant_id uuid NOT NULL` ekle — geçici/default: `LegacyDefaultTenantIds.Primary` (sabit Guid; string `'legacy'` değil).
+2. İlgili tablolara `tenant_id uuid NOT NULL` ekle — geçici/default: `SystemTenantIds.Platform` (sabit Guid; string `'legacy'` değil).
 3. Veri backfill migration’ları (ör. `BackfillUserTenantMembershipsData`).
 4. Wave migrations: payment methods / cash registers (Wave2), categories / products (Wave3A), modifiers (Wave3B), fiscal / audit / offline (`20260516101549_AddTenantIdToFiscalAndAuditTables`).
 5. `HasIndex(e => e.TenantId)` — `AppDbContext` içinde.

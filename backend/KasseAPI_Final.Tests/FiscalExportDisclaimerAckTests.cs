@@ -32,7 +32,7 @@ public class FiscalExportDisclaimerAckTests
             .UseInMemoryDatabase($"fiscal_export_ctrl_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        var tenantAccessor = new FixedTenantAccessor(LegacyDefaultTenantIds.Primary);
+        var tenantAccessor = new FixedTenantAccessor(SystemTenantIds.Platform);
         var db = new AppDbContext(options, tenantAccessor);
         return new FiscalExportController(
             exportSvc,

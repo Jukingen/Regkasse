@@ -27,7 +27,7 @@ public class RksvSchlussbelegServiceTests
             .Options;
         return new AppDbContext(
             options,
-            TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+            TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static RksvSpecialReceiptService CreateService(
@@ -76,7 +76,7 @@ public class RksvSchlussbelegServiceTests
         RegisterStatus status,
         string? currentUserId = null)
     {
-        TenantTestDoubles.EnsureDefaultTenant(context);
+        TenantTestDoubles.EnsurePlatformTenant(context);
         context.Customers.Add(new Customer
         {
             Id = WalkInCustomerConstants.GuestCustomerId,
@@ -88,7 +88,7 @@ public class RksvSchlussbelegServiceTests
         var regId = Guid.NewGuid();
         context.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "T",

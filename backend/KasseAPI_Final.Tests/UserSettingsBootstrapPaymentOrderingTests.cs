@@ -27,7 +27,7 @@ public class UserSettingsBootstrapPaymentOrderingTests
             .UseInMemoryDatabase($"UsrBootOrder_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static UserSettingsController CreateController(AppDbContext ctx, string userId)
@@ -59,7 +59,7 @@ public class UserSettingsBootstrapPaymentOrderingTests
 
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -73,7 +73,7 @@ public class UserSettingsBootstrapPaymentOrderingTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "Z",
             Location = "L",
@@ -118,7 +118,7 @@ public class UserSettingsBootstrapPaymentOrderingTests
         var openId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = openId,
             RegisterNumber = "K1",
             Location = "A",
@@ -132,7 +132,7 @@ public class UserSettingsBootstrapPaymentOrderingTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "D",
             Location = "B",

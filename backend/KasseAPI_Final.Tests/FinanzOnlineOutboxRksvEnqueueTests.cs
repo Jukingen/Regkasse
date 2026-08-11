@@ -19,7 +19,7 @@ public sealed class FinanzOnlineOutboxRksvEnqueueTests
             .UseInMemoryDatabase($"FonOutboxIdem_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        await using var ctx = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        await using var ctx = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
         var svc = new FinanzOnlineOutboxService(ctx, new Mock<ILogger<FinanzOnlineOutboxService>>().Object);
         var receiptId = Guid.NewGuid();
         var paymentId = Guid.NewGuid();

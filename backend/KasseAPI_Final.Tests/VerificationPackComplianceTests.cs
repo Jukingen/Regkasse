@@ -49,7 +49,7 @@ public sealed class VerificationPackComplianceTests
             .UseInMemoryDatabase($"VerifyPack_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     /// <summary>VERIFICATION: daily closing succeeds with more than ten reconciled (invoiced) payments for Vienna “today”.</summary>
@@ -57,7 +57,7 @@ public sealed class VerificationPackComplianceTests
     public async Task DailyClosing_WithElevenInvoicedPaymentsToday_Succeeds()
     {
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         var custId = WalkInCustomerConstants.GuestCustomerId;
         if (!await ctx.Customers.AsNoTracking().AnyAsync(c => c.Id == custId))
         {
@@ -74,7 +74,7 @@ public sealed class VerificationPackComplianceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-VERIFY",
             Location = "T",
@@ -184,7 +184,7 @@ public sealed class VerificationPackComplianceTests
     public async Task MonatsbelegStatus_AfterSeventhViennaDay_WhenPriorMonthMissing_ReturnsYellow()
     {
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         var custId = WalkInCustomerConstants.GuestCustomerId;
         if (!await ctx.Customers.AsNoTracking().AnyAsync(c => c.Id == custId))
         {
@@ -201,7 +201,7 @@ public sealed class VerificationPackComplianceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-MB",
             Location = "T",

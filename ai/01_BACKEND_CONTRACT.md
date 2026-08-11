@@ -10,7 +10,7 @@
 
 **Güvenlik:** çapraz kiracı IDOR → 404; Production’da `X-Tenant-Id` yok; reserved hostlar (`pos`/`api`/`admin`/`www`) slug değildir. Ayrıntı: `docs/MULTI_TENANT.md`, `docs/POS_PRODUCTION_ARCHITECTURE.md`.
 
-**Migration:** dalga migration zinciri; `LegacyDefaultTenantIds.Primary` default Guid — `ai/02_DATABASE_CONTRACT.md`, `docs/MULTI_TENANT.md`.
+**Migration:** dalga migration zinciri; `SystemTenantIds.Platform` default Guid — `ai/02_DATABASE_CONTRACT.md`, `docs/MULTI_TENANT.md`.
 
 Ayrıntı: `docs/MULTI_TENANT.md`, `docs/POS_PRODUCTION_ARCHITECTURE.md`, `REGKASSE_AI_ONBOARDING.md`, `backend/README.md`.
 

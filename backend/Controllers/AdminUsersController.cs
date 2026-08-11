@@ -205,7 +205,7 @@ public partial class AdminUsersController : ControllerBase
             .Where(t => t.IsActive
                 && !TenantStatuses.RemovedStatuses.Contains(t.Status)
                 && t.Slug != "admin"
-                && t.Slug != LegacyDefaultTenantIds.PrimarySlug)
+                && !SystemTenantIds.IsPlatformSlug(t.Slug))
             .Select(t => t.Id)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -980,7 +980,7 @@ public partial class AdminUsersController : ControllerBase
             if (!string.Equals(roleName, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
             {
                 await _tenantMembershipProvisioner.ProvisionActiveMembershipAsync(
-                    user.Id, LegacyDefaultTenantIds.Primary, cancellationToken: createCt).ConfigureAwait(false);
+                    user.Id, SystemTenantIds.Platform, cancellationToken: createCt).ConfigureAwait(false);
             }
 
             await tx.CommitAsync(createCt).ConfigureAwait(false);
@@ -1009,7 +1009,7 @@ public partial class AdminUsersController : ControllerBase
         }
 
         await _activityEvents.TryPublishAsync(
-            LegacyDefaultTenantIds.Primary,
+            SystemTenantIds.Platform,
             ActivityEventType.UserCreated,
             new
             {

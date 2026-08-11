@@ -35,7 +35,7 @@ public sealed class TaxReportServiceTests
     [Fact]
     public async Task GetReportAsync_AggregatesByRate()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var db = CreateDb(tenantId);
         db.Tenants.Add(new Tenant { Id = tenantId, Name = "Legacy", Slug = "legacy", IsActive = true });
 
@@ -99,7 +99,7 @@ public sealed class TaxReportServiceTests
     [Fact]
     public async Task GetTrendAsync_BucketsByDayAndRate()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var db = CreateDb(tenantId);
         db.Tenants.Add(new Tenant { Id = tenantId, Name = "Legacy", Slug = "legacy", IsActive = true });
         var receiptId = Guid.NewGuid();

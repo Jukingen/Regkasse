@@ -93,7 +93,7 @@ namespace KasseAPI_Final.Data
                     if (result.Succeeded)
                     {
                         await userManager.AddToRoleAsync(adminUser, Roles.SuperAdmin);
-                        await tenantMembershipProvisioner.ProvisionActiveMembershipAsync(adminUser.Id, LegacyDefaultTenantIds.Primary);
+                        await tenantMembershipProvisioner.ProvisionActiveMembershipAsync(adminUser.Id, SystemTenantIds.Platform);
                         Console.WriteLine("Admin user created successfully (role: SuperAdmin)");
                     }
                     else
@@ -124,7 +124,7 @@ namespace KasseAPI_Final.Data
                     Console.WriteLine("admin@admin.com updated to role SuperAdmin");
                 }
 
-                await tenantMembershipProvisioner.ProvisionActiveMembershipAsync(adminUser.Id, LegacyDefaultTenantIds.Primary);
+                await tenantMembershipProvisioner.ProvisionActiveMembershipAsync(adminUser.Id, SystemTenantIds.Platform);
             }
 
             // Demo kasiyer kullanıcısı var mı kontrol et
@@ -155,7 +155,7 @@ namespace KasseAPI_Final.Data
                     if (result.Succeeded)
                     {
                         await userManager.AddToRoleAsync(demoUser, Roles.Cashier);
-                        await tenantMembershipProvisioner.ProvisionActiveMembershipAsync(demoUser.Id, LegacyDefaultTenantIds.Primary);
+                        await tenantMembershipProvisioner.ProvisionActiveMembershipAsync(demoUser.Id, SystemTenantIds.Platform);
                         Console.WriteLine("Demo cashier user created successfully");
                     }
                     else
@@ -181,7 +181,7 @@ namespace KasseAPI_Final.Data
         {
             var u = await userManager.FindByEmailAsync(email);
             if (u != null)
-                await provisioner.ProvisionActiveMembershipAsync(u.Id, LegacyDefaultTenantIds.Primary);
+                await provisioner.ProvisionActiveMembershipAsync(u.Id, SystemTenantIds.Platform);
         }
     }
 }

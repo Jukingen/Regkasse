@@ -18,7 +18,7 @@ namespace KasseAPI_Final.Tests;
 
 public class PosStatusServiceTests
 {
-    private static readonly Guid TenantId = LegacyDefaultTenantIds.Primary;
+    private static readonly Guid TenantId = SystemTenantIds.Platform;
     private const string UserId = "cashier-status-overview";
 
     private static AppDbContext CreateContext()

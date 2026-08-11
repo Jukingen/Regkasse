@@ -152,7 +152,7 @@ public sealed class AppGeneratorServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(name + Guid.NewGuid().ToString("N"))
             .Options;
-        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
 
         var sut = new AppGeneratorService(
             new Factory(options),
@@ -187,7 +187,7 @@ public sealed class AppGeneratorServiceTests
         public Factory(DbContextOptions<AppDbContext> options) => _options = options;
         public AppDbContext CreateDbContext() => new(_options);
         public ValueTask<AppDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
-            ValueTask.FromResult(new AppDbContext(_options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary)));
+            ValueTask.FromResult(new AppDbContext(_options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform)));
     }
 
     private sealed class Env : IHostEnvironment

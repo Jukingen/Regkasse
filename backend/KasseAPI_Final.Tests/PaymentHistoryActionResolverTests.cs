@@ -19,12 +19,12 @@ public sealed class PaymentHistoryActionResolverTests
             .UseInMemoryDatabase($"PaymentHistoryActions_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        var ctx = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        var ctx = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
 
         var reversalMock = new Mock<IPaymentReversalApprovalService>();
         return new PaymentHistoryService(
             ctx,
-            TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary),
+            TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform),
             TenantTestDoubles.PrimaryTenantResolver,
             Mock.Of<IUserService>(),
             reversalMock.Object,

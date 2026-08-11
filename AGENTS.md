@@ -122,7 +122,8 @@ Developer experience and CI (see root [`README.md`](README.md), [`CONTRIBUTING.m
 ### Tenant Identification
 - **Production (POS):** Shared host `pos.regkasse.at` — tenant from JWT `tenant_id` after login (not from Host slug). Reserved labels: `pos`, `api`, `admin`, `www`.
 - **Production (API):** `api.regkasse.at` — authenticated traffic scoped by JWT `tenant_id`; do not use `X-Tenant-Id` / `?tenant=` in Production.
-- **Development:** `X-Tenant-Id` header or `?tenant={slug}` query (POS: `EXPO_PUBLIC_DEV_TENANT_ID` + DevTenantSwitcher; FA: header switcher).
+- **Development:** `X-Tenant-Id` header or `?tenant={slug}` query (POS: `EXPO_PUBLIC_DEV_TENANT_ID` + DevTenantSwitcher; FA: header switcher). Prefer slug **`dev`** (seeded demo). There is **no** business tenant slug `default`.
+- **Platform sentinel:** Wave-0 Guid `SystemTenantIds.Platform` / slug `platform` — inactive system row for audit/host fallbacks; hidden from switchers; not a mandant. Do not hard-delete while FKs reference it.
 - JWT contains `tenant_id` claim after authentication
 - Super Admin / FA: `admin.regkasse.at`
 - **Custom website domains:** verified `TenantDomain` rows map Host → tenant slug before `TenantHostNames` (`ITenantDomainService`); FA: `/settings/website` (`website.manage`)

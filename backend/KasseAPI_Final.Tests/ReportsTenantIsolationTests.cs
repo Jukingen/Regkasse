@@ -25,12 +25,12 @@ public sealed class ReportsTenantIsolationTests
             .UseInMemoryDatabase($"RepTenant_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static void EnsureTenants(AppDbContext ctx)
     {
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         if (!ctx.Tenants.AsNoTracking().Any(t => t.Id == TenantB))
             ctx.Tenants.Add(new Tenant { Id = TenantB, Name = "Tenant B", Slug = "rep-isolation-b" });
     }
@@ -96,7 +96,7 @@ public sealed class ReportsTenantIsolationTests
         var regB = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regA,
             RegisterNumber = "KA",
             Location = "L",
@@ -132,7 +132,7 @@ public sealed class ReportsTenantIsolationTests
     }
 
     private static ReportsController ControllerForTenantA(AppDbContext ctx) =>
-        new(ctx, NullLogger<ReportsController>.Instance, TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary));
+        new(ctx, NullLogger<ReportsController>.Instance, TenantTestDoubles.SettingsResolverReturning(SystemTenantIds.Platform));
 
     [Fact]
     public async Task GetSalesReport_AsTenantA_ExcludesTenantBInvoices()
@@ -193,14 +193,14 @@ public sealed class ReportsTenantIsolationTests
         EnsureTenants(ctx);
         var catA = Guid.NewGuid();
         var catB = Guid.NewGuid();
-        ctx.Categories.Add(new Category { Id = catA, TenantId = LegacyDefaultTenantIds.Primary, Name = "CA", VatRate = 20m });
+        ctx.Categories.Add(new Category { Id = catA, TenantId = SystemTenantIds.Platform, Name = "CA", VatRate = 20m });
         ctx.Categories.Add(new Category { Id = catB, TenantId = TenantB, Name = "CB", VatRate = 20m });
         var prodA = Guid.NewGuid();
         var prodB = Guid.NewGuid();
         ctx.Products.Add(new Product
         {
             Id = prodA,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "PA",
             Price = 10m,
             TaxType = TaxTypes.Standard,

@@ -27,15 +27,15 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
             .UseInMemoryDatabase($"Wave3A_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
-    private static readonly Guid TenantA = LegacyDefaultTenantIds.Primary;
+    private static readonly Guid TenantA = SystemTenantIds.Platform;
     private static readonly Guid TenantB = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
 
     private static void EnsureTwoTenants(AppDbContext ctx)
     {
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         if (!ctx.Tenants.AsNoTracking().Any(t => t.Id == TenantB))
         {
             ctx.Tenants.Add(new Tenant { Id = TenantB, Name = "Tenant B", Slug = "wave3a-test-tenant-b" });
@@ -162,7 +162,7 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
     public async Task CreateCategory_DuplicateNameSameTenant_ReturnsConflict()
     {
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         ctx.Categories.Add(new Category { TenantId = TenantA, Name = "Existing", VatRate = 10m });
         await ctx.SaveChangesAsync();
 
@@ -182,7 +182,7 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
     public async Task CreateCategory_DuplicateNameInactiveCategorySameTenant_ReturnsConflict()
     {
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         ctx.Categories.Add(new Category { TenantId = TenantA, Name = "Archived", VatRate = 10m, IsActive = false });
         await ctx.SaveChangesAsync();
 
@@ -292,7 +292,7 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
     public async Task LegacyPrimaryTenant_Data_StillQueryableByResolver()
     {
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         var catId = Guid.NewGuid();
         var pId = Guid.NewGuid();
         ctx.Categories.Add(new Category { TenantId = TenantA, Id = catId, Name = "Legacy", VatRate = 10m });

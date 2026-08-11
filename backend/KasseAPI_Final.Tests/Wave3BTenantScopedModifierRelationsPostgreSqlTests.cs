@@ -23,7 +23,7 @@ public sealed class Wave3BTenantScopedModifierRelationsPostgreSqlTests
 
     private static readonly Guid TenantB = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
 
-    private static readonly Guid TenantA = LegacyDefaultTenantIds.Primary;
+    private static readonly Guid TenantA = SystemTenantIds.Platform;
 
     private static async Task EnsureSecondaryTenantAsync(AppDbContext ctx)
     {
@@ -40,7 +40,7 @@ public sealed class Wave3BTenantScopedModifierRelationsPostgreSqlTests
     {
         Skip.IfNot(_fixture.HasDatabase, _fixture.SkipReason);
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         await ctx.SaveChangesAsync();
         await EnsureSecondaryTenantAsync(ctx);
 
@@ -97,7 +97,7 @@ public sealed class Wave3BTenantScopedModifierRelationsPostgreSqlTests
     {
         Skip.IfNot(_fixture.HasDatabase, _fixture.SkipReason);
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         await ctx.SaveChangesAsync();
         await EnsureSecondaryTenantAsync(ctx);
 
@@ -153,7 +153,7 @@ public sealed class Wave3BTenantScopedModifierRelationsPostgreSqlTests
     {
         Skip.IfNot(_fixture.HasDatabase, _fixture.SkipReason);
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         await ctx.SaveChangesAsync();
         await EnsureSecondaryTenantAsync(ctx);
 
@@ -230,7 +230,7 @@ public sealed class Wave3BTenantScopedModifierRelationsPostgreSqlTests
     {
         Skip.IfNot(_fixture.HasDatabase, _fixture.SkipReason);
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         await ctx.SaveChangesAsync();
         await EnsureSecondaryTenantAsync(ctx);
 
@@ -297,7 +297,7 @@ public sealed class Wave3BTenantScopedModifierRelationsPostgreSqlTests
     {
         Skip.IfNot(_fixture.HasDatabase, _fixture.SkipReason);
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         await ctx.SaveChangesAsync();
 
         var catId = Guid.NewGuid();

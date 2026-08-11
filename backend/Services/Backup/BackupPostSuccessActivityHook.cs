@@ -48,7 +48,7 @@ public sealed class BackupPostSuccessActivityHook : IBackupPostSuccessOrchestrat
                 .ConfigureAwait(false);
 
             await _activity.TryPublishAsync(
-                LegacyDefaultTenantIds.Primary,
+                SystemTenantIds.Platform,
                 ActivityEventType.BackupSucceeded,
                 new
                 {

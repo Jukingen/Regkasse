@@ -35,7 +35,7 @@ public class UserManagementControllerUserLifecycleTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: $"UserMgmt_{Guid.NewGuid()}")
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static (UserManager<ApplicationUser> UserManager, RoleManager<IdentityRole> RoleManager) CreateMockUserAndRoleManagers(
@@ -978,8 +978,8 @@ public class UserManagementControllerUserLifecycleTests
     public async Task After_UserManager_Create_Provisioner_Adds_Active_Membership()
     {
         var (context, userManager, _, _) = await CreateInMemoryUserManagerWithUsersAsync();
-        var tid = LegacyDefaultTenantIds.Primary;
-        context.Tenants.Add(new Tenant { Id = tid, Name = "Default", Slug = LegacyDefaultTenantIds.PrimarySlug });
+        var tid = SystemTenantIds.Platform;
+        context.Tenants.Add(new Tenant { Id = tid, Name = "Default", Slug = SystemTenantIds.PlatformSlug });
         await context.SaveChangesAsync();
 
         var u = new ApplicationUser
@@ -1010,8 +1010,8 @@ public class UserManagementControllerUserLifecycleTests
     public async Task CreateUser_WhenValid_CreatesActivePrimaryMembership()
     {
         var (context, userManager, roleManager, uniquenessValidation) = await CreateInMemoryUserManagerWithUsersAsync();
-        var tid = LegacyDefaultTenantIds.Primary;
-        context.Tenants.Add(new Tenant { Id = tid, Name = "Default", Slug = LegacyDefaultTenantIds.PrimarySlug });
+        var tid = SystemTenantIds.Platform;
+        context.Tenants.Add(new Tenant { Id = tid, Name = "Default", Slug = SystemTenantIds.PlatformSlug });
         await context.SaveChangesAsync();
 
         var provisioner = new UserTenantMembershipProvisioner(context);
@@ -1278,7 +1278,7 @@ public class UserManagementControllerUserLifecycleTests
             .UseInMemoryDatabase(databaseName: dbName)
             .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        var context = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        var context = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
         foreach (var u in users)
         {
             EnsureNormalizedFields(u);

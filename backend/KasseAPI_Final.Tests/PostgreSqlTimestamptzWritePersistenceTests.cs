@@ -52,7 +52,7 @@ public sealed class PostgreSqlTimestamptzWritePersistenceTests
             await AddMinimalUserAsync(seed, userId);
             seed.CashRegisters.Add(new CashRegister
             {
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 Id = regId,
                 RegisterNumber = "TZ-DC-1",
                 Location = "T",
@@ -170,7 +170,7 @@ public sealed class PostgreSqlTimestamptzWritePersistenceTests
             await AddMinimalUserAsync(seed, userId);
             seed.CashRegisters.Add(new CashRegister
             {
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 Id = regId,
                 RegisterNumber = "TZ-R-1",
                 Location = "T",

@@ -144,9 +144,9 @@ public class AuthControllerTests
     {
         var mock = new Mock<IAuthTenantSnapshotProvider>();
         var snapshot = new AuthTenantSnapshot(
-            LegacyDefaultTenantIds.Primary.ToString("D"),
+            SystemTenantIds.Platform.ToString("D"),
             "Default",
-            LegacyDefaultTenantIds.PrimarySlug,
+            SystemTenantIds.PlatformSlug,
             null,
             null);
         mock.Setup(p => p.GetSnapshotAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal?>(), It.IsAny<CancellationToken>()))
@@ -159,9 +159,9 @@ public class AuthControllerTests
     private static Mock<ILoginTenantResolver> CreateLoginTenantResolverMock(AuthTenantSnapshot? snapshot = null)
     {
         var snap = snapshot ?? new AuthTenantSnapshot(
-            LegacyDefaultTenantIds.Primary.ToString("D"),
+            SystemTenantIds.Platform.ToString("D"),
             "Default",
-            LegacyDefaultTenantIds.PrimarySlug,
+            SystemTenantIds.PlatformSlug,
             null,
             null);
         var mock = new Mock<ILoginTenantResolver>();
@@ -761,7 +761,7 @@ public class AuthControllerTests
         var ok = Assert.IsType<OkObjectResult>(result);
         var json = JsonSerializer.Serialize(ok.Value, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
         Assert.Contains("resolver.contract.test", json, StringComparison.Ordinal);
-        Assert.Contains(LegacyDefaultTenantIds.Primary.ToString("D"), json, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SystemTenantIds.Platform.ToString("D"), json, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("\"tenantDisplayName\":\"Default\"", json, StringComparison.Ordinal);
     }
 
@@ -894,7 +894,7 @@ public class AuthControllerTests
         var user = ActiveUser();
         var tenantMock = new Mock<IAuthTenantSnapshotProvider>();
         tenantMock.Setup(p => p.GetSnapshotAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AuthTenantSnapshot(LegacyDefaultTenantIds.Primary.ToString("D"), "Acme", LegacyDefaultTenantIds.PrimarySlug, null, null));
+            .ReturnsAsync(new AuthTenantSnapshot(SystemTenantIds.Platform.ToString("D"), "Acme", SystemTenantIds.PlatformSlug, null, null));
 
         var controller = CreateController(user, roles: new List<string> { "Cashier" }, allowLegacy: true, authTenantSnapshotMock: tenantMock);
         var http = new Microsoft.AspNetCore.Http.DefaultHttpContext();
@@ -909,7 +909,7 @@ public class AuthControllerTests
         var ok = Assert.IsType<OkObjectResult>(result);
         var json = JsonSerializer.Serialize(ok.Value, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
         Assert.Contains("acme", json, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains(LegacyDefaultTenantIds.Primary.ToString("D"), json, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SystemTenantIds.Platform.ToString("D"), json, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -918,7 +918,7 @@ public class AuthControllerTests
         var user = ActiveUser();
         var tenantMock = new Mock<IAuthTenantSnapshotProvider>();
         tenantMock.Setup(p => p.GetSnapshotAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AuthTenantSnapshot(LegacyDefaultTenantIds.Primary.ToString("D"), "Acme", LegacyDefaultTenantIds.PrimarySlug, null, null));
+            .ReturnsAsync(new AuthTenantSnapshot(SystemTenantIds.Platform.ToString("D"), "Acme", SystemTenantIds.PlatformSlug, null, null));
 
         var controller = CreateController(user, roles: new List<string> { "Cashier" }, allowLegacy: true, authTenantSnapshotMock: tenantMock);
         var http = new Microsoft.AspNetCore.Http.DefaultHttpContext();
@@ -941,7 +941,7 @@ public class AuthControllerTests
         var user = ActiveUser();
         var tenantMock = new Mock<IAuthTenantSnapshotProvider>();
         tenantMock.Setup(p => p.GetSnapshotAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AuthTenantSnapshot(LegacyDefaultTenantIds.Primary.ToString("D"), "Acme", LegacyDefaultTenantIds.PrimarySlug, null, null));
+            .ReturnsAsync(new AuthTenantSnapshot(SystemTenantIds.Platform.ToString("D"), "Acme", SystemTenantIds.PlatformSlug, null, null));
 
         var controller = CreateController(user, roles: new List<string> { "Cashier" }, allowLegacy: true, authTenantSnapshotMock: tenantMock);
         var http = new Microsoft.AspNetCore.Http.DefaultHttpContext();
@@ -959,7 +959,7 @@ public class AuthControllerTests
     }
 
     [Fact]
-    public async Task Login_RequireTenantMembershipForLogin_ReturnsBadRequest_When_No_Membership()
+    public async Task Login_RequireMembershipTrue_BlocksNonMembership()
     {
         var loginMock = new Mock<ILoginTenantResolver>();
         loginMock.Setup(p => p.HasActiveMembershipAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -977,8 +977,101 @@ public class AuthControllerTests
         var bad = Assert.IsType<BadRequestObjectResult>(result);
         var json = JsonSerializer.Serialize(bad.Value);
         Assert.Contains("TENANT_MEMBERSHIP_REQUIRED", json, StringComparison.Ordinal);
-        Assert.Contains("Kein Zugriff auf diesen Mandanten", json, StringComparison.Ordinal);
+        Assert.Contains("Benutzer hat keine aktive Mandanten-Mitgliedschaft", json, StringComparison.Ordinal);
         loginMock.Verify(p => p.ResolveSnapshotForLoginAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Login_RequireMembershipTrue_AllowsMembership()
+    {
+        var loginMock = new Mock<ILoginTenantResolver>();
+        loginMock.Setup(p => p.HasActiveMembershipAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        loginMock.Setup(p => p.ResolveSnapshotForLoginAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AuthTenantSnapshot(DemoTenantIds.Dev.ToString("D"), "Development", "dev", null, null));
+
+        var controller = CreateController(
+            ActiveUser(),
+            roles: new List<string> { "Cashier" },
+            allowLegacy: true,
+            loginTenantResolverMock: loginMock,
+            requireTenantMembershipForLogin: true);
+
+        var result = await controller.Login(new LoginModel { Email = "test@test.com", Password = "pass", ClientApp = "pos" });
+
+        Assert.IsType<OkObjectResult>(result);
+        loginMock.Verify(p => p.HasActiveMembershipAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        loginMock.Verify(p => p.ResolveSnapshotForLoginAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Login_RequireMembershipFalse_AllowsAll()
+    {
+        var loginMock = new Mock<ILoginTenantResolver>();
+        loginMock.Setup(p => p.HasActiveMembershipAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        loginMock.Setup(p => p.ResolveSnapshotForLoginAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AuthTenantSnapshot(DemoTenantIds.Dev.ToString("D"), "Development", "dev", null, null));
+
+        var controller = CreateController(
+            ActiveUser(),
+            roles: new List<string> { "Cashier" },
+            allowLegacy: true,
+            loginTenantResolverMock: loginMock,
+            requireTenantMembershipForLogin: false);
+
+        var result = await controller.Login(new LoginModel { Email = "test@test.com", Password = "pass", ClientApp = "pos" });
+
+        Assert.IsType<OkObjectResult>(result);
+        loginMock.Verify(p => p.HasActiveMembershipAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        loginMock.Verify(p => p.ResolveSnapshotForLoginAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task MembershipRequired_ReturnsCorrectErrorCode()
+    {
+        var loginMock = new Mock<ILoginTenantResolver>();
+        loginMock.Setup(p => p.HasActiveMembershipAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var controller = CreateController(
+            ActiveUser(),
+            roles: new List<string> { "Cashier" },
+            allowLegacy: true,
+            loginTenantResolverMock: loginMock,
+            requireTenantMembershipForLogin: true);
+
+        var result = await controller.Login(new LoginModel { Email = "test@test.com", Password = "pass", ClientApp = "pos" });
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        var json = JsonSerializer.Serialize(bad.Value);
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal("TENANT_MEMBERSHIP_REQUIRED", doc.RootElement.GetProperty("code").GetString());
+        Assert.Equal(
+            "Benutzer hat keine aktive Mandanten-Mitgliedschaft",
+            doc.RootElement.GetProperty("message").GetString());
+    }
+
+    [Fact]
+    public async Task Login_RequireMembershipTrue_SuperAdmin_ExemptWithoutMembership()
+    {
+        var loginMock = new Mock<ILoginTenantResolver>();
+        loginMock.Setup(p => p.HasActiveMembershipAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        loginMock.Setup(p => p.ResolveSnapshotForLoginAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AuthTenantSnapshot(SystemTenantIds.Platform.ToString("D"), "Platform", "platform", null, null));
+
+        var controller = CreateController(
+            ActiveUser(Roles.SuperAdmin),
+            roles: new List<string> { Roles.SuperAdmin },
+            allowLegacy: true,
+            loginTenantResolverMock: loginMock,
+            requireTenantMembershipForLogin: true);
+
+        var result = await controller.Login(new LoginModel { Email = "test@test.com", Password = "pass", ClientApp = "admin" });
+
+        Assert.IsType<OkObjectResult>(result);
+        loginMock.Verify(p => p.HasActiveMembershipAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

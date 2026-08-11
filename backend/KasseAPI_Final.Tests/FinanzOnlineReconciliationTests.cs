@@ -28,7 +28,7 @@ public class FinanzOnlineReconciliationTests
             .UseInMemoryDatabase(databaseName: $"FORecon_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static PaymentService CreatePaymentService(AppDbContext context, Mock<IFinanzOnlineService> finanzMock)
@@ -66,7 +66,7 @@ public class FinanzOnlineReconciliationTests
     {
         var regId = Guid.NewGuid();
         var customerId = Guid.NewGuid();
-        context.CashRegisters.Add(new CashRegister { TenantId = LegacyDefaultTenantIds.Primary, Id = regId, RegisterNumber = "R1", Location = "L", StartingBalance = 0, CurrentBalance = 0, LastBalanceUpdate = DateTime.UtcNow, Status = RegisterStatus.Open, CreatedAt = DateTime.UtcNow, IsActive = true });
+        context.CashRegisters.Add(new CashRegister { TenantId = SystemTenantIds.Platform, Id = regId, RegisterNumber = "R1", Location = "L", StartingBalance = 0, CurrentBalance = 0, LastBalanceUpdate = DateTime.UtcNow, Status = RegisterStatus.Open, CreatedAt = DateTime.UtcNow, IsActive = true });
         context.Customers.Add(new Customer { Id = customerId, Name = "C", Email = "c@c.com", Phone = "1", IsActive = true });
         await context.SaveChangesAsync();
 
@@ -101,7 +101,7 @@ public class FinanzOnlineReconciliationTests
         context.Invoices.Add(new Invoice
         {
             Id = invoiceId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             SourcePaymentId = paymentId,
             InvoiceNumber = payment.ReceiptNumber,
             InvoiceDate = payment.CreatedAt,

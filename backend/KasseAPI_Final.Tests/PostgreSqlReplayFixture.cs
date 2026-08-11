@@ -118,7 +118,7 @@ public sealed class PostgreSqlReplayFixture : IAsyncLifetime
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseAppNpgsql(connectionString)
             .Options;
-        await using var ctx = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        await using var ctx = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
 
         if (ShouldResetIntegrationDatabase(connectionString))
             await ctx.Database.EnsureDeletedAsync().ConfigureAwait(false);

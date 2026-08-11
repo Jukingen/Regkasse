@@ -47,7 +47,7 @@ public sealed class ActivityBackupAlertPublisher : IBackupAlertPublisher
             var tenantAccessor = scope.ServiceProvider.GetRequiredService<ICurrentTenantAccessor>();
             var activity = scope.ServiceProvider.GetRequiredService<IActivityEventService>();
 
-            var tenantId = tenantAccessor.TenantId ?? LegacyDefaultTenantIds.Primary;
+            var tenantId = tenantAccessor.TenantId ?? SystemTenantIds.Platform;
             var (type, dedup) = MapKind(evt.Kind);
             var metadata = BuildMetadata(evt);
 

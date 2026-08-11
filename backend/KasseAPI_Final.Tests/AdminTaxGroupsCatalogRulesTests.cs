@@ -14,14 +14,14 @@ public sealed class AdminTaxGroupsCatalogRulesTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"tax_groups_rules_{Guid.NewGuid():N}")
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     [Fact]
     public async Task Seed_ThenCustomGroup_CanBeRemoved_SystemCannot()
     {
         await using var db = CreateDb();
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         db.Tenants.Add(new Tenant { Id = tenantId, Name = "Legacy", Slug = "legacy", IsActive = true });
         await db.SaveChangesAsync();
 
@@ -56,7 +56,7 @@ public sealed class AdminTaxGroupsCatalogRulesTests
     public async Task OnlyOneDefault_AfterClearingOthers()
     {
         await using var db = CreateDb();
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         db.Tenants.Add(new Tenant { Id = tenantId, Name = "Legacy", Slug = "legacy", IsActive = true });
         await db.SaveChangesAsync();
         await TaxGroupSeedData.SeedSystemTaxGroupsAsync(db, tenantId);

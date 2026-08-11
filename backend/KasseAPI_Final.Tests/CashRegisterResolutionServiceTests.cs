@@ -20,7 +20,7 @@ public class CashRegisterResolutionServiceTests
             .UseInMemoryDatabase($"CashRegRes_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static CashRegisterResolutionService CreateService(AppDbContext ctx) =>
@@ -48,7 +48,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -61,7 +61,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "ARCH",
             Location = "L",
@@ -96,7 +96,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -109,7 +109,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "MNT",
             Location = "L",
@@ -144,7 +144,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -157,7 +157,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "OLD",
             Location = "L",
@@ -192,7 +192,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -227,7 +227,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -262,7 +262,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -299,7 +299,7 @@ public class CashRegisterResolutionServiceTests
         {
             ctx.CashRegisters.Add(new CashRegister
             {
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 Id = Guid.NewGuid(),
                 RegisterNumber = $"K{i}",
                 Location = "L",
@@ -338,7 +338,7 @@ public class CashRegisterResolutionServiceTests
         var otherId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = otherId,
             RegisterNumber = "K-OTHER",
             Location = "Bar",
@@ -352,7 +352,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = defaultId,
             RegisterNumber = "KASSE-001",
             Location = "Haupt",
@@ -389,7 +389,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -416,7 +416,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -449,7 +449,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -482,7 +482,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -496,7 +496,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "X",
             Location = "L",
@@ -523,7 +523,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -537,7 +537,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "MNT",
             Location = "L",
@@ -565,7 +565,7 @@ public class CashRegisterResolutionServiceTests
         var rOther = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = rDefault,
             RegisterNumber = "K1",
             Location = "L",
@@ -579,7 +579,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = rOther,
             RegisterNumber = "K2",
             Location = "L",
@@ -592,7 +592,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "OLD",
             Location = "L",
@@ -628,7 +628,7 @@ public class CashRegisterResolutionServiceTests
         var r2 = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = r1,
             RegisterNumber = r1.ToString()[..8],
             Location = "L",
@@ -642,7 +642,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = r2,
             RegisterNumber = r2.ToString()[..8],
             Location = "L",
@@ -679,7 +679,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -708,7 +708,7 @@ public class CashRegisterResolutionServiceTests
         var other = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = owned,
             RegisterNumber = "K1",
             Location = "A",
@@ -722,7 +722,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = other,
             RegisterNumber = "K2",
             Location = "B",
@@ -752,7 +752,7 @@ public class CashRegisterResolutionServiceTests
         var openId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = openId,
             RegisterNumber = "K-OPEN",
             Location = "A",
@@ -766,7 +766,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "K-CLOSED",
             Location = "B",
@@ -779,7 +779,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "K-MNT",
             Location = "C",
@@ -792,7 +792,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "K-DIS",
             Location = "D",
@@ -822,7 +822,7 @@ public class CashRegisterResolutionServiceTests
         var theirs = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = mine,
             RegisterNumber = "K1",
             Location = "A",
@@ -836,7 +836,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = theirs,
             RegisterNumber = "K2",
             Location = "B",
@@ -865,7 +865,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -893,7 +893,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -921,7 +921,7 @@ public class CashRegisterResolutionServiceTests
         await using var ctx = CreateContext();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "K1",
             Location = "A",
@@ -935,7 +935,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "K2",
             Location = "B",
@@ -963,7 +963,7 @@ public class CashRegisterResolutionServiceTests
         var onlyId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = onlyId,
             RegisterNumber = "K1",
             Location = "A",
@@ -992,7 +992,7 @@ public class CashRegisterResolutionServiceTests
         var onlyId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = onlyId,
             RegisterNumber = "K1",
             Location = "A",
@@ -1006,7 +1006,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "X",
             Location = "B",
@@ -1033,7 +1033,7 @@ public class CashRegisterResolutionServiceTests
         await using var ctx = CreateContext();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "D1",
             Location = "A",
@@ -1046,7 +1046,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "M1",
             Location = "B",
@@ -1073,7 +1073,7 @@ public class CashRegisterResolutionServiceTests
         await using var ctx = CreateContext();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "K1",
             Location = "A",
@@ -1110,7 +1110,7 @@ public class CashRegisterResolutionServiceTests
         await using var db = CreateContext();
         db.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "K1",
             Location = "A",
@@ -1138,7 +1138,7 @@ public class CashRegisterResolutionServiceTests
         {
             db.CashRegisters.Add(new CashRegister
             {
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 Id = Guid.NewGuid(),
                 RegisterNumber = uid,
                 Location = "A",
@@ -1171,7 +1171,7 @@ public class CashRegisterResolutionServiceTests
         {
             ctx.CashRegisters.Add(new CashRegister
             {
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 Id = id,
                 RegisterNumber = id.ToString()[..8],
                 Location = "L",
@@ -1208,7 +1208,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -1238,7 +1238,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -1283,7 +1283,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -1318,7 +1318,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -1351,7 +1351,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -1384,7 +1384,7 @@ public class CashRegisterResolutionServiceTests
         var theirs = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = mine,
             RegisterNumber = "K1",
             Location = "A",
@@ -1398,7 +1398,7 @@ public class CashRegisterResolutionServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = theirs,
             RegisterNumber = "K2",
             Location = "B",
@@ -1431,7 +1431,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -1471,7 +1471,7 @@ public class CashRegisterResolutionServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",

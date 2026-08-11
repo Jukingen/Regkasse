@@ -13,14 +13,14 @@ public sealed class CategorySeedDataTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"category_seed_{Guid.NewGuid():N}")
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     [Fact]
     public async Task SeedLegacyDevCategoriesAsync_CreatesFiveCategoriesOnEmptyDatabase()
     {
         await using var db = CreateDb();
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         db.Tenants.Add(new Tenant { Id = tenantId, Name = "Legacy", Slug = "legacy", IsActive = true });
         await db.SaveChangesAsync();
 
@@ -35,7 +35,7 @@ public sealed class CategorySeedDataTests
     public async Task SeedLegacyDevCategoriesAsync_IsIdempotentWhenCategoriesAlreadyExist()
     {
         await using var db = CreateDb();
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         db.Tenants.Add(new Tenant { Id = tenantId, Name = "Legacy", Slug = "legacy", IsActive = true });
         db.Categories.Add(new Category
         {

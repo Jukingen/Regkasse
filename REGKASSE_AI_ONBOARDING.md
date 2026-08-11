@@ -313,7 +313,7 @@ Source of truth for permissions: `backend/Authorization/RolePermissionMatrix.cs`
 
 ### Super Admin
 
-Access: **`admin.regkasse.at`** (host slug `admin`; operational business APIs use legacy default tenant until impersonation).
+Access: **`admin.regkasse.at`** (host slug `admin`; operational business APIs use platform sentinel / Development `dev` until impersonation).
 
 #### Super Admin capabilities
 
@@ -323,7 +323,7 @@ Access: **`admin.regkasse.at`** (host slug `admin`; operational business APIs us
 | Create tenant | `POST /api/admin/tenants` | Unique `slug`; seeds `status=active` |
 | Edit tenant | `PUT /api/admin/tenants/{id}` | Name, contact, license fields on tenant row |
 | Suspend / reactivate | `PUT` with `status` | `suspended` sets `isActive=false`; `active` re-enables |
-| Soft-delete | `DELETE /api/admin/tenants/{id}` | `status=deleted`; legacy default tenant cannot be deleted |
+| Soft-delete | `DELETE /api/admin/tenants/{id}` | `status=deleted`; platform sentinel cannot be deleted |
 | Issue licenses | `/admin/license` + tenant `licenseKey` | Issued-license flows are tenant-scoped; use impersonation for another tenant’s context |
 | Record billing license sales | `POST /api/admin/billing/license-sales` | Creates `license_sales` + billing key; see **`docs/BILLING_TENANT_LICENSE.md`** |
 | Billing audit / reminders | `GET /api/admin/billing/audit`, `POST …/reminders/check` | Super Admin; `billing_audit_log`, `license_reminders` |
@@ -428,7 +428,7 @@ For existing single-tenant PostgreSQL databases, apply the **existing migration 
 | Fiscal / audit / offline | `20260516101549_AddTenantIdToFiscalAndAuditTables` |
 | Super Admin tenant columns | `20260516104349_ExtendTenantsForSuperAdmin` |
 
-**Backfill pattern in migrations:** add `tenant_id uuid NOT NULL` with `defaultValue: LegacyDefaultTenantIds.Primary` (Guid constant), then indexes. Do not use string `'legacy'` as the column default.
+**Backfill pattern in migrations:** add `tenant_id uuid NOT NULL` with `defaultValue: SystemTenantIds.Platform` (Guid constant), then indexes. Do not use string `'legacy'` as the column default.
 
 ```bash
 dotnet ef database update --project backend/KasseAPI_Final.csproj --startup-project backend/KasseAPI_Final.csproj

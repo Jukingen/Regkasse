@@ -16,14 +16,14 @@ public sealed class AdminShiftOverviewServiceTests
             .UseInMemoryDatabase($"AdminShiftOverview_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     [Fact]
     public async Task GetOverview_SplitsActiveHistoryAndClosings()
     {
         await using var ctx = CreateContext();
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var regId = Guid.NewGuid();
         var closingId = Guid.NewGuid();
 
@@ -108,7 +108,7 @@ public sealed class AdminShiftOverviewServiceTests
     public async Task GetOverview_CompletedShiftAndClosedRegister_ShowsNoActiveRows()
     {
         await using var ctx = CreateContext();
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var regId = Guid.NewGuid();
 
         ctx.CashRegisters.Add(new CashRegister

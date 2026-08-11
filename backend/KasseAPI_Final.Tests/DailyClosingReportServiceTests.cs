@@ -25,7 +25,7 @@ public sealed class DailyClosingReportServiceTests
             .UseInMemoryDatabase($"DailyClosingReport_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static DailyClosingReportService CreateReportService(
@@ -294,7 +294,7 @@ public sealed class DailyClosingReportServiceTests
 
     private static void SeedShiftWithClosing(AppDbContext ctx, Guid closingId, string cashierId)
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var registerId = Guid.NewGuid();
 
         ctx.CashRegisters.Add(new CashRegister

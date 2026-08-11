@@ -30,7 +30,7 @@ public sealed class CashRegisterControllerGetTransactionsFilterTests
             .UseInMemoryDatabase($"CashRegGetTx_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static UserManager<ApplicationUser> CreateTestUserManager()
@@ -52,7 +52,7 @@ public sealed class CashRegisterControllerGetTransactionsFilterTests
             CreateTestUserManager(),
             shift,
             TenantTestDoubles.PrimaryTenantResolver,
-            TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary),
+            TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform),
             Mock.Of<ICashRegisterManagementService>(),
             Mock.Of<ICashRegisterListEnrichmentService>(),
             LocalizationTestDoubles.ApiMessageLocalizer());
@@ -77,7 +77,7 @@ public sealed class CashRegisterControllerGetTransactionsFilterTests
     {
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "TX-SEED",
             Location = "T",

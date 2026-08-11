@@ -121,7 +121,7 @@ Code:
 - `backend/Tenancy/SubdomainTenantProvider.cs`
 - `backend/Tenancy/CurrentTenantService.cs`
 
-**Admin host:** slug `admin` is normalized to the **legacy default tenant** (`LegacyDefaultTenantIds.PrimarySlug`) for operational APIs until Super Admin **impersonates** a target tenant.
+**Admin host:** slug `admin` is normalized to the **platform sentinel tenant** (`SystemTenantIds.Platform` / slug `platform`) for operational APIs until Super Admin **impersonates** a target tenant. In Development, localhost/`admin` remaps to the seeded **`dev`** business tenant for DX.
 
 ---
 
@@ -227,7 +227,7 @@ Permanent tenant removal is **compliance-gated**. Implementation: **`TenantDelet
 
 | Step | Operator action | API | Production |
 |------|-----------------|-----|------------|
-| **Archive (primary)** | *Mandant archivieren* | `DELETE /api/admin/tenants/{id}` | ✅ Allowed (except legacy default tenant) |
+| **Archive (primary)** | *Mandant archivieren* | `DELETE /api/admin/tenants/{id}` | ✅ Allowed (except platform sentinel) |
 | **Review dependencies** | *Abhängigkeiten prüfen* | `GET /api/admin/tenants/{id}/delete-dependencies` | ✅ Returns counts + `canHardDelete` |
 | **Permanent delete** | *Endgültig löschen* (archived only) | `DELETE /api/admin/tenants/{id}/permanent` | ❌ `403 production_policy` |
 | **Restore** | *Wiederherstellen* | `POST /api/admin/tenants/{id}/restore` | ✅ |
@@ -238,7 +238,7 @@ Permanent tenant removal is **compliance-gated**. Implementation: **`TenantDelet
 - `confirmSlug` must match `tenants.slug`
 - No **cash registers** on tenant
 - No **fiscal footprint** (payments, signed receipts, daily closings, etc.)
-- Not the **legacy default tenant**
+- Not the **platform sentinel** (`SystemTenantIds.Platform` / slug `platform`)
 
 **RKSV:** Payment and audit data may require **7-year retention**; archive (soft-delete) is the recommended path. See [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md) → Delete section.
 
@@ -370,7 +370,7 @@ Body (`UpdateAdminTenantRequest`): partial fields including `status` (`active` |
 ### `DELETE /api/admin/tenants/{tenantId}`
 
 Soft-delete (archive): `status=deleted`, `isActive=false`  
-`400` if legacy default tenant
+`400` if platform sentinel tenant
 
 ### `GET /api/admin/tenants/{tenantId}/delete-dependencies`
 
@@ -426,7 +426,9 @@ dotnet ef database update \
 
 | Migration | Purpose |
 |-----------|---------|
-| `20260403190133_AddTenantsAndSettingsTenantId` | `tenants` table + default tenant seed |
+| `20260403190133_AddTenantsAndSettingsTenantId` | `tenants` table + Wave-0 seed (now `SystemTenantIds.Platform` / slug `platform`) |
+| `20260811140000_RenameDefaultTenantToPlatform` | Rename leftover `default` → `platform`, deactivate sentinel |
+| `20260811150000_DeleteLeftoverDefaultTenantSlug` | Idempotent delete of any leftover `slug=default` row (same Guid only if still `default`) |
 | `20260403203332_UserTenantMemberships` | User–tenant links |
 | `20260403202249_AuthSessionTenantId` | Session tenant |
 | `20260404010055_Wave2TenantScopedPaymentMethodsAndCashRegisters` | Wave 2 |
@@ -437,12 +439,12 @@ dotnet ef database update \
 
 ### Pattern for adding `tenant_id` to a table
 
-1. Add column `uuid NOT NULL` with **default** `LegacyDefaultTenantIds.Primary` (Guid constant in migrations)
+1. Add column `uuid NOT NULL` with **default** `SystemTenantIds.Platform` (Guid constant in migrations)
 2. Backfill if needed (separate data migration)
 3. Add FK to `tenants.id` and index
 4. Map entity to `ITenantEntity` + global filter in `AppDbContext`
 
-**Do not** use string `'legacy'` as SQL default — use the seeded default tenant **Guid**.
+**Do not** use string `'legacy'` as SQL default — use the seeded platform sentinel **Guid**. Business DX default is the **`dev`** tenant, not `platform`.
 
 ### New migration
 
@@ -549,7 +551,7 @@ See `REGKASSE_AI_ONBOARDING.md` (Scoped service resolution, License service arch
 |---------|--------|
 | Sees another tenant’s rows | JWT `tenant_id` vs host slug; dev header stale in `localStorage` |
 | Empty lists | Accessor tenant UUID mismatch; missing `tenants` row for slug |
-| Super Admin sees only default tenant data | Expected until impersonation; use impersonate API |
+| Super Admin sees only platform/ambient data | Expected until impersonation; use impersonate API |
 
 **Fix (dev):** clear `dev_tenant_id`, re-select tenant in FA header switcher, re-login.
 
@@ -567,7 +569,7 @@ Tenant may be `suspended`, `deleted`, or `isActive=false`. Check `GET /api/admin
 |-------|--------|
 | `tenants.slug` matches host first label | `dev.localhost` → slug `dev`, not `dev` |
 | Hosts file for `*.regkasse.local` | Use `dev.regkasse.local` or dev header |
-| `admin` host | Maps to legacy default tenant, not “all tenants” |
+| `admin` host | Maps to platform sentinel (`platform`); Development remaps to `dev` |
 
 ### CORS errors with `*.localhost` API host
 

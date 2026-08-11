@@ -35,7 +35,7 @@ public sealed class IncrementalBackupServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"incr_count_{Guid.NewGuid():N}")
             .Options;
-        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
 
         db.Tenants.Add(new Tenant
         {
@@ -91,7 +91,7 @@ public sealed class IncrementalBackupServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"incr_enq_{Guid.NewGuid():N}")
             .Options;
-        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
 
         db.Tenants.Add(new Tenant
         {
@@ -184,7 +184,7 @@ public sealed class TenantScopedBackupExporterIncrementalTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"incr_export_{Guid.NewGuid():N}")
             .Options;
-        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
 
         db.Tenants.Add(new Tenant
         {

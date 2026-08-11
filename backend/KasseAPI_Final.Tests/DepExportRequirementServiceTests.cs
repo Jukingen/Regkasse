@@ -10,7 +10,7 @@ namespace KasseAPI_Final.Tests;
 
 public sealed class DepExportRequirementServiceTests
 {
-    private static readonly Guid TenantId = LegacyDefaultTenantIds.Primary;
+    private static readonly Guid TenantId = SystemTenantIds.Platform;
 
     private static AppDbContext CreateDb(Guid? tenantId = null)
     {
@@ -39,7 +39,7 @@ public sealed class DepExportRequirementServiceTests
     public async Task GetRequirementsAsync_IncludesLegalYearlyRequirement()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
 
         var sut = CreateSut(db, new DateTime(2026, 7, 15, 12, 0, 0, DateTimeKind.Utc));
         var requirements = await sut.GetRequirementsAsync(TenantId);
@@ -56,7 +56,7 @@ public sealed class DepExportRequirementServiceTests
     public async Task GetRequirementsAsync_MarksYearlyCompleted_WhenHistoryCoversYear()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
 
         db.DepExportHistories.Add(new DepExportHistory
         {
@@ -89,7 +89,7 @@ public sealed class DepExportRequirementServiceTests
     public async Task GetRequirementsAsync_AddsUrgent_Within30DaysOfDeadline()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
 
         var sut = CreateSut(db, new DateTime(2026, 1, 15, 12, 0, 0, DateTimeKind.Utc));
         var requirements = await sut.GetRequirementsAsync(TenantId);
@@ -102,7 +102,7 @@ public sealed class DepExportRequirementServiceTests
     public async Task GetNextRequirementAsync_ReturnsHighestPriorityIncomplete()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
 
         var sut = CreateSut(db, new DateTime(2026, 7, 15, 12, 0, 0, DateTimeKind.Utc));
         var next = await sut.GetNextRequirementAsync(TenantId);
@@ -116,7 +116,7 @@ public sealed class DepExportRequirementServiceTests
     public async Task EnsurePeriodsAsync_CreatesYearlyAndQuarterlyRows()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
 
         var sut = CreateSut(db, new DateTime(2026, 7, 15, 12, 0, 0, DateTimeKind.Utc));
         await sut.EnsurePeriodsAsync(TenantId);
@@ -136,7 +136,7 @@ public sealed class DepExportRequirementServiceTests
     public async Task TryCompletePeriodsForExportAsync_MarksCoveredPeriodCompleted()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
 
         var sut = CreateSut(db, new DateTime(2026, 7, 15, 12, 0, 0, DateTimeKind.Utc));
         await sut.EnsurePeriodsAsync(TenantId);
@@ -162,7 +162,7 @@ public sealed class DepExportRequirementServiceTests
     public async Task GetCurrentPeriodAsync_PrefersYearlyOverQuarterly()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
 
         var sut = CreateSut(db, new DateTime(2026, 7, 15, 12, 0, 0, DateTimeKind.Utc));
         var current = await sut.GetCurrentPeriodAsync(TenantId);

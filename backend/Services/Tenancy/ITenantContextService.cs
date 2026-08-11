@@ -36,4 +36,12 @@ public interface ITenantContextService
     Task ApplyFromHostAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Resolves the Host / custom-domain tenant Guid without mutating ambient accessor.
+    /// Returns null when the host is unknown, inactive, or reserved-platform unbound.
+    /// </summary>
+    Task<Guid?> TryResolveHostBoundTenantIdAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken = default);
 }

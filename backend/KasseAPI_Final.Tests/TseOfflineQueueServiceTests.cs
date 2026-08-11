@@ -19,12 +19,12 @@ public sealed class TseOfflineQueueServiceTests
     [Fact]
     public async Task GetQueueStatusAsync_FlagsWarningAndCriticalByTenantTotals()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var registerId = Guid.NewGuid();
         var now = DateTime.UtcNow;
 
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         ctx.CashRegisters.Add(Register(tenantId, registerId, "Q-K01", now));
 
         for (var i = 0; i < 30; i++)
@@ -61,12 +61,12 @@ public sealed class TseOfflineQueueServiceTests
     [Fact]
     public async Task SoftClearQueueAsync_RequiresConfirmToken_AndMarksFailed()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var registerId = Guid.NewGuid();
         var now = DateTime.UtcNow;
 
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         ctx.CashRegisters.Add(Register(tenantId, registerId, "Q-K02", now));
         ctx.OfflineTransactions.Add(NonFiscal(tenantId, registerId, now));
         ctx.OfflineTransactions.Add(new OfflineTransaction
@@ -127,12 +127,12 @@ public sealed class TseOfflineQueueServiceTests
     [Fact]
     public async Task SendQueueAlertAsync_PublishesWhenAboveWarning()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var registerId = Guid.NewGuid();
         var now = DateTime.UtcNow;
 
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         ctx.CashRegisters.Add(Register(tenantId, registerId, "Q-K03", now));
         for (var i = 0; i < 31; i++)
             ctx.OfflineTransactions.Add(NonFiscal(tenantId, registerId, now.AddMinutes(-i)));

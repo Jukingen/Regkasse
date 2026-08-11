@@ -11,7 +11,7 @@ namespace KasseAPI_Final.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            var legacyTenant = LegacyDefaultTenantIds.Primary;
+            var legacyTenant = SystemTenantIds.Platform;
 
             migrationBuilder.AddColumn<Guid>(
                 name: "tenant_id",

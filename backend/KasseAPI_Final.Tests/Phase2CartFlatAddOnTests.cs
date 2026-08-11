@@ -35,12 +35,12 @@ public class Phase2CartFlatAddOnTests
         var productId = Guid.NewGuid();
         var cartId = Guid.NewGuid().ToString("N")[..24];
 
-        TenantTestDoubles.EnsureDefaultTenant(context);
-        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsurePlatformTenant(context);
+        context.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Döner",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -88,7 +88,7 @@ public class Phase2CartFlatAddOnTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: $"CartFlatAddOn_{Guid.NewGuid()}")
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     /// <summary>Add-item with IsSellableAddOn product creates one CartItem and zero CartItemModifiers.</summary>
@@ -100,12 +100,12 @@ public class Phase2CartFlatAddOnTests
         var productId = Guid.NewGuid();
         var cartId = Guid.NewGuid().ToString("N")[..24];
 
-        TenantTestDoubles.EnsureDefaultTenant(context);
-        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Extras", VatRate = 10m });
+        TenantTestDoubles.EnsurePlatformTenant(context);
+        context.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Extras", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Extra Käse",
             Price = 1.50m,
             CategoryId = categoryId,
@@ -181,12 +181,12 @@ public class Phase2CartFlatAddOnTests
         var modifierId = Guid.NewGuid();
         var cartId = Guid.NewGuid().ToString("N")[..24];
 
-        TenantTestDoubles.EnsureDefaultTenant(context);
-        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsurePlatformTenant(context);
+        context.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Döner",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -202,8 +202,8 @@ public class Phase2CartFlatAddOnTests
             RksvProductType = RksvProductTypes.Standard,
             IsActive = true
         });
-        context.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupId, TenantId = LegacyDefaultTenantIds.Primary, Name = "Saucen", SortOrder = 0, IsActive = true });
-        context.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment { ProductId = productId, ModifierGroupId = groupId, TenantId = LegacyDefaultTenantIds.Primary, SortOrder = 0 });
+        context.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupId, TenantId = SystemTenantIds.Platform, Name = "Saucen", SortOrder = 0, IsActive = true });
+        context.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment { ProductId = productId, ModifierGroupId = groupId, TenantId = SystemTenantIds.Platform, SortOrder = 0 });
         context.Carts.Add(new Cart
         {
             CartId = cartId,
@@ -250,12 +250,12 @@ public class Phase2CartFlatAddOnTests
         var cartId = Guid.NewGuid().ToString("N")[..24];
         var cartItemId = Guid.NewGuid();
 
-        TenantTestDoubles.EnsureDefaultTenant(context);
-        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsurePlatformTenant(context);
+        context.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Döner",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -271,7 +271,7 @@ public class Phase2CartFlatAddOnTests
             RksvProductType = RksvProductTypes.Standard,
             IsActive = true
         });
-        context.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupId, TenantId = LegacyDefaultTenantIds.Primary, Name = "Saucen", SortOrder = 0, IsActive = true });
+        context.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupId, TenantId = SystemTenantIds.Platform, Name = "Saucen", SortOrder = 0, IsActive = true });
         context.Carts.Add(new Cart
         {
             CartId = cartId,

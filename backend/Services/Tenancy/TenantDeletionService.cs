@@ -37,12 +37,12 @@ public sealed partial class TenantDeletionService : ITenantDeletionService
         bool forceDelete = false,
         CancellationToken ct = default)
     {
-        if (tenantId == LegacyDefaultTenantIds.Primary)
+        if (SystemTenantIds.IsPlatformTenantId(tenantId))
         {
             return Task.FromResult<(bool, string?, string?)>((
                 false,
                 TenantPermanentDeleteFailureCodes.LegacyDefaultTenant,
-                "The legacy default tenant cannot be permanently deleted."));
+                "The platform tenant cannot be permanently deleted."));
         }
 
         return WithDbAsync<(bool Success, string? ErrorCode, string? ErrorMessage)>(
@@ -57,12 +57,12 @@ public sealed partial class TenantDeletionService : ITenantDeletionService
                         "Tenant not found.");
                 }
 
-                if (string.Equals(tenant.Slug, LegacyDefaultTenantIds.PrimarySlug, StringComparison.Ordinal))
+                if (SystemTenantIds.IsPlatformSlug(tenant.Slug))
                 {
                     return (
                         false,
                         TenantPermanentDeleteFailureCodes.LegacyDefaultTenant,
-                        "The legacy default tenant cannot be permanently deleted.");
+                        "The platform tenant cannot be permanently deleted.");
                 }
 
                 if (!TenantStatuses.IsRemoved(tenant.Status))
@@ -120,11 +120,11 @@ public sealed partial class TenantDeletionService : ITenantDeletionService
         string? failureCode = null;
         string? failureMessage = null;
 
-        if (tenant.Id == LegacyDefaultTenantIds.Primary
-            || string.Equals(tenant.Slug, LegacyDefaultTenantIds.PrimarySlug, StringComparison.Ordinal))
+        if (SystemTenantIds.IsPlatformTenantId(tenant.Id)
+            || SystemTenantIds.IsPlatformSlug(tenant.Slug))
         {
             failureCode = TenantPermanentDeleteFailureCodes.LegacyDefaultTenant;
-            failureMessage = "The legacy default tenant cannot be permanently deleted.";
+            failureMessage = "The platform tenant cannot be permanently deleted.";
         }
         else if (!TenantStatuses.IsRemoved(tenant.Status))
         {

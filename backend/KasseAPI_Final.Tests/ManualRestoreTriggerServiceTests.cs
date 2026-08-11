@@ -59,7 +59,7 @@ public sealed class ManualRestoreTriggerServiceTests
                 It.IsAny<ImpersonationAuditContext.Snapshot?>(),
                 AuditEventType.RestoreRequested,
                 It.IsAny<Guid?>(),
-                LegacyDefaultTenantIds.Primary),
+                SystemTenantIds.Platform),
             Times.Once);
     }
 
@@ -131,7 +131,7 @@ public sealed class ManualRestoreTriggerServiceTests
     public void ResolveRestoreAuditTenantId_uses_platform_tenant_for_deployment_wide_dump()
     {
         Assert.Equal(
-            LegacyDefaultTenantIds.Primary,
+            SystemTenantIds.Platform,
             ManualRestoreAudit.ResolveRestoreAuditTenantId(null));
         Assert.Equal(
             "deployment_wide",
@@ -366,7 +366,7 @@ public sealed class ManualRestoreTriggerServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(dbName)
             .Options;
-        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
 
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>

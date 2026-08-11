@@ -24,7 +24,7 @@ public class CategoriesControllerProductsDtoTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"CategoryProducts_{Guid.NewGuid()}")
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     [Fact]
@@ -34,10 +34,10 @@ public class CategoriesControllerProductsDtoTests
         var categoryId = Guid.NewGuid();
         var productId = Guid.NewGuid();
 
-        TenantTestDoubles.EnsureDefaultTenant(context);
+        TenantTestDoubles.EnsurePlatformTenant(context);
         context.Categories.Add(new Category
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = categoryId,
             Name = "Getranke",
             Description = "Desc",
@@ -47,7 +47,7 @@ public class CategoriesControllerProductsDtoTests
 
         context.Products.Add(new Product
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = productId,
             Name = "Cola",
             Description = "Soft drink",

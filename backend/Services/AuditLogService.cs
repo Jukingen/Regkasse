@@ -133,7 +133,7 @@ namespace KasseAPI_Final.Services
 
     public class AuditLogService : IAuditLogService
     {
-        private static readonly Guid SystemTenantId = LegacyDefaultTenantIds.Primary;
+        private static readonly Guid SystemTenantId = SystemTenantIds.Platform;
 
         private readonly AppDbContext _context;
         private readonly ILogger<AuditLogService> _logger;

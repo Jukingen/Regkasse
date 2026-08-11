@@ -17,7 +17,7 @@ public sealed class BackupRunQueryServicePgDumpTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(dbName)
             .Options;
-        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
         var pg = Guid.NewGuid();
         var fake = Guid.NewGuid();
         db.BackupRuns.Add(new BackupRun

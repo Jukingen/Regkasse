@@ -34,7 +34,7 @@ Never persist passwords, tokens, security stamps, voucher codes, or tax numbers 
 - `AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn` redacts known sensitive property names, then truncates to 4000 chars (defense-in-depth; not a substitute for safe callers).
 - POS critical audits never include voucher code values (`PosCriticalActionAuditService`).
 
-All `IAuditLogService` write paths stamp `TenantId` via ambient tenant or `LegacyDefaultTenantIds.Primary` fallback. With null ambient tenant, EF global filters hide those rows on read (fail-closed) — Super Admin / ops queries must use an ambient tenant or `IgnoreQueryFilters` where policy allows.
+All `IAuditLogService` write paths stamp `TenantId` via ambient tenant or `SystemTenantIds.Platform` fallback. With null ambient tenant, EF global filters hide those rows on read (fail-closed) — Super Admin / ops queries must use an ambient tenant or `IgnoreQueryFilters` where policy allows.
 
 ## Auth events
 

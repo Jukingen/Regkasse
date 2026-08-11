@@ -21,7 +21,7 @@ public sealed class RksvCompliantReportingServiceTests
     [Fact]
     public async Task GenerateHistoricalReportAsync_UsesReceiptTaxLineRatesNotCatalog()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var db = CreateDb(tenantId);
         db.Tenants.Add(new Tenant { Id = tenantId, Name = "Legacy", Slug = "legacy", IsActive = true });
 
@@ -120,7 +120,7 @@ public sealed class RksvCompliantReportingServiceTests
     [Fact]
     public async Task GetTaxBreakdownForPeriodAsync_BucketsSingleDay()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var db = CreateDb(tenantId);
         db.Tenants.Add(new Tenant { Id = tenantId, Name = "Legacy", Slug = "legacy", IsActive = true });
 
@@ -165,7 +165,7 @@ public sealed class RksvCompliantReportingServiceTests
     [Fact]
     public async Task GenerateHistoricalReportAsync_WarnsWhenTseMissing()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var db = CreateDb(tenantId);
         db.Tenants.Add(new Tenant { Id = tenantId, Name = "Legacy", Slug = "legacy", IsActive = true });
 
@@ -211,7 +211,7 @@ public sealed class RksvCompliantReportingServiceTests
     [Fact]
     public async Task GetPriceHistoryForProductAsync_ReturnsJournalAndVersions()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var db = CreateDb(tenantId);
         db.Tenants.Add(new Tenant { Id = tenantId, Name = "Legacy", Slug = "legacy", IsActive = true });
 

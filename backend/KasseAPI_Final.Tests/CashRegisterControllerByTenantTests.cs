@@ -20,7 +20,7 @@ namespace KasseAPI_Final.Tests;
 
 public sealed class CashRegisterControllerByTenantTests
 {
-    private static readonly Guid PrimaryTenantId = LegacyDefaultTenantIds.Primary;
+    private static readonly Guid PrimaryTenantId = SystemTenantIds.Platform;
 
     private static AppDbContext CreateContext(ICurrentTenantAccessor? tenantAccessor = null)
     {

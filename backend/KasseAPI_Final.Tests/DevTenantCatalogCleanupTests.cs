@@ -16,26 +16,26 @@ public sealed class DevTenantCatalogCleanupTests
             .UseInMemoryDatabase($"DevTenantCatalogCleanup_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, new CurrentTenantAccessor { TenantId = LegacyDefaultTenantIds.Primary });
+        return new AppDbContext(options, new CurrentTenantAccessor { TenantId = SystemTenantIds.Platform });
     }
 
     [Fact]
     public async Task ExecuteAsync_RemovesProductsAndCategoriesForTenant()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var catId = Guid.NewGuid();
         db.Categories.Add(new Category
         {
             Id = catId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Salate",
             VatRate = 10m,
         });
         db.Products.Add(new Product
         {
             Id = Guid.NewGuid(),
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "chefsalat",
             Price = 9.5m,
             CategoryId = catId,
@@ -54,7 +54,7 @@ public sealed class DevTenantCatalogCleanupTests
 
         var result = await DevTenantCatalogCleanup.ExecuteAsync(
             db,
-            LegacyDefaultTenantIds.Primary,
+            SystemTenantIds.Platform,
             includeCategories: true,
             allowFiscalOverride: false);
 
@@ -68,12 +68,12 @@ public sealed class DevTenantCatalogCleanupTests
     public async Task ExecuteAsync_UnsignedPayments_DoNotBlockPurge()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var registerId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
             Id = registerId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             RegisterNumber = "KASSE-001",
             Location = "Dev",
             StartingBalance = 0,
@@ -102,14 +102,14 @@ public sealed class DevTenantCatalogCleanupTests
         db.Categories.Add(new Category
         {
             Id = catId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "C",
             VatRate = 10m,
         });
         db.Products.Add(new Product
         {
             Id = Guid.NewGuid(),
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Item",
             Price = 1m,
             CategoryId = catId,
@@ -128,7 +128,7 @@ public sealed class DevTenantCatalogCleanupTests
 
         var result = await DevTenantCatalogCleanup.ExecuteAsync(
             db,
-            LegacyDefaultTenantIds.Primary,
+            SystemTenantIds.Platform,
             includeCategories: true,
             allowFiscalOverride: false);
 
@@ -140,12 +140,12 @@ public sealed class DevTenantCatalogCleanupTests
     public async Task ExecuteAsync_SignedPayments_BlockWithoutOverride()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var registerId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
             Id = registerId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             RegisterNumber = "KASSE-001",
             Location = "Dev",
             StartingBalance = 0,
@@ -176,7 +176,7 @@ public sealed class DevTenantCatalogCleanupTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             DevTenantCatalogCleanup.ExecuteAsync(
                 db,
-                LegacyDefaultTenantIds.Primary,
+                SystemTenantIds.Platform,
                 includeCategories: true,
                 allowFiscalOverride: false));
 

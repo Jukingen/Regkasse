@@ -26,7 +26,7 @@ public sealed class RksvDepExportServiceTests
             .UseInMemoryDatabase($"RksvDepExport_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, new FixedTenantAccessor(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, new FixedTenantAccessor(SystemTenantIds.Platform));
     }
 
     private sealed class FixedTenantAccessor(Guid tenantId) : ICurrentTenantAccessor
@@ -37,11 +37,11 @@ public sealed class RksvDepExportServiceTests
 
     private static async Task<Guid> SeedRegisterAsync(AppDbContext db)
     {
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var regId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "Test",
@@ -94,7 +94,7 @@ public sealed class RksvDepExportServiceTests
         new()
         {
             Id = Guid.NewGuid(),
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = registerId,
             UserId = "user-1",
             ClosingDate = closingDate,

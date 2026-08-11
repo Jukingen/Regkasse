@@ -52,7 +52,7 @@ public sealed class CustomerTenantIsolationTests
     private static Customer Guest() => new()
     {
         Id = WalkInCustomerConstants.GuestCustomerId,
-        TenantId = LegacyDefaultTenantIds.Primary,
+        TenantId = SystemTenantIds.Platform,
         Name = "Walk-in Customer",
         CustomerNumber = "GUEST-000",
         Email = "walkin@system.local",

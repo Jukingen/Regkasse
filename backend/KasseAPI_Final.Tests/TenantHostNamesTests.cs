@@ -48,6 +48,21 @@ public sealed class TenantHostNamesTests
     }
 
     [Theory]
+    [InlineData("api.regkasse.at", true)]
+    [InlineData("pos.regkasse.at", true)]
+    [InlineData("admin.regkasse.at", true)]
+    [InlineData("www.regkasse.at", true)]
+    [InlineData("regkasse.at", true)]
+    [InlineData("localhost", true)]
+    [InlineData("tenant.localhost", true)]
+    [InlineData("cafe.regkasse.at", false)]
+    [InlineData("dev.regkasse.at", false)]
+    public void IsSharedPlatformHostForJwtMatch_ExemptsSharedHostsOnly(string host, bool expected)
+    {
+        Assert.Equal(expected, TenantHostNames.IsSharedPlatformHostForJwtMatch(host));
+    }
+
+    [Theory]
     [InlineData("pos.regkasse.at", "admin")]
     [InlineData("api.regkasse.at", "admin")]
     [InlineData("admin.regkasse.at", "admin")]

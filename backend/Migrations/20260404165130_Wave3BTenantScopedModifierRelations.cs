@@ -11,7 +11,7 @@ namespace KasseAPI_Final.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            var defaultTenant = LegacyDefaultTenantIds.Primary;
+            var defaultTenant = SystemTenantIds.Platform;
             var defaultTenantSql = defaultTenant.ToString();
 
             migrationBuilder.DropForeignKey(

@@ -22,7 +22,7 @@ public sealed class BackupPhase1OrchestrationTests
             .UseInMemoryDatabase($"backup_phase1_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static IOptionsMonitor<BackupOptions> OptionsMonitor(BackupOptions value)

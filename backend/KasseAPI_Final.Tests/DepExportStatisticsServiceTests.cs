@@ -11,7 +11,7 @@ namespace KasseAPI_Final.Tests;
 
 public sealed class DepExportStatisticsServiceTests
 {
-    private static readonly Guid TenantId = LegacyDefaultTenantIds.Primary;
+    private static readonly Guid TenantId = SystemTenantIds.Platform;
 
     private static AppDbContext CreateDb()
     {
@@ -60,7 +60,7 @@ public sealed class DepExportStatisticsServiceTests
     public async Task GetStatisticsAsync_ComputesSuccessRateAndStorage()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         db.DepExportHistories.AddRange(
             new DepExportHistory
             {
@@ -113,7 +113,7 @@ public sealed class DepExportStatisticsServiceTests
     public async Task GetTrendAsync_FillsMonthlyBuckets()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         db.DepExportHistories.Add(new DepExportHistory
         {
             TenantId = TenantId,
@@ -143,7 +143,7 @@ public sealed class DepExportStatisticsServiceTests
     public async Task GetForecastAsync_ProjectsThreeMonths()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var requirements = new Mock<IDepExportRequirementService>();
         requirements
             .Setup(r => r.GetNextRequirementAsync(TenantId, It.IsAny<CancellationToken>()))

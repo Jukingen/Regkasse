@@ -28,7 +28,7 @@ public sealed class AdminProductsDeactivateAllTests
             .UseInMemoryDatabase($"AdminProductsDeactivateAll_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, new CurrentTenantAccessor { TenantId = LegacyDefaultTenantIds.Primary });
+        return new AppDbContext(options, new CurrentTenantAccessor { TenantId = SystemTenantIds.Platform });
     }
 
     private static void AttachHttpContext(AdminProductsController controller)
@@ -45,7 +45,7 @@ public sealed class AdminProductsDeactivateAllTests
             ctx,
             Mock.Of<IGenericRepository<Product>>(),
             NullLogger<AdminProductsController>.Instance,
-            TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary),
+            TenantTestDoubles.SettingsResolverReturning(SystemTenantIds.Platform),
             Mock.Of<IWebHostEnvironment>(),
             Options.Create(new ProductMediaOptions()),
             new ProductImageThumbnailService(
@@ -53,7 +53,7 @@ public sealed class AdminProductsDeactivateAllTests
                 NullLogger<ProductImageThumbnailService>.Instance),
             Mock.Of<IDemoProductImportService>(),
             NullCurrentTenantAccessor.Instance,
-            new AdminProductListService(ctx, TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary)),
+            new AdminProductListService(ctx, TenantTestDoubles.SettingsResolverReturning(SystemTenantIds.Platform)),
             Mock.Of<IProductService>(),
             Mock.Of<IProductExportService>(),
             Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>(),
@@ -67,7 +67,7 @@ public sealed class AdminProductsDeactivateAllTests
     public async Task DeactivateAllProducts_RequiresConfirmPhrase()
     {
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         var controller = CreateController(ctx);
 
         var result = await controller.DeactivateAllProducts(new DeactivateAllProductsRequest
@@ -82,17 +82,17 @@ public sealed class AdminProductsDeactivateAllTests
     public async Task DeactivateAllProducts_SoftDeactivatesAllActiveForTenant()
     {
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         var catId = Guid.NewGuid();
-        ctx.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = catId, Name = "C", VatRate = 10m });
+        ctx.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = catId, Name = "C", VatRate = 10m });
 
         var activeA = Guid.NewGuid();
         var activeB = Guid.NewGuid();
         var inactive = Guid.NewGuid();
         ctx.Products.AddRange(
-            NewProduct(activeA, LegacyDefaultTenantIds.Primary, "A", isActive: true, catId),
-            NewProduct(activeB, LegacyDefaultTenantIds.Primary, "B", isActive: true, catId),
-            NewProduct(inactive, LegacyDefaultTenantIds.Primary, "I", isActive: false, catId));
+            NewProduct(activeA, SystemTenantIds.Platform, "A", isActive: true, catId),
+            NewProduct(activeB, SystemTenantIds.Platform, "B", isActive: true, catId),
+            NewProduct(inactive, SystemTenantIds.Platform, "I", isActive: false, catId));
         await ctx.SaveChangesAsync();
 
         var controller = CreateController(ctx);

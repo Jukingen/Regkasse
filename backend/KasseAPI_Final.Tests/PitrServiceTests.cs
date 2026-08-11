@@ -144,6 +144,6 @@ public sealed class PitrServiceTests
         var opts = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"pitr_{Guid.NewGuid():N}")
             .Options;
-        return new AppDbContext(opts, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(opts, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 }

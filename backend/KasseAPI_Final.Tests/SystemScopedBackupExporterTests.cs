@@ -19,7 +19,7 @@ public sealed class SystemScopedBackupExporterTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(nameof(ExportAsync_includes_active_tenants_identity_and_nested_tenant_packages) + Guid.NewGuid())
             .Options;
-        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
 
         db.Tenants.AddRange(
             new Tenant { Id = tenantA, Name = "Active", Slug = "active", IsActive = true, CreatedAt = DateTime.UtcNow },

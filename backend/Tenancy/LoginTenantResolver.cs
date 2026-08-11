@@ -68,9 +68,9 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
             }
 
             _logger.LogWarning(
-                "Login tenant: user {UserId} has no active membership; using legacy default tenant (configure membership provisioning or enable RequireTenantMembershipForLogin to block).",
+                "Login tenant: user {UserId} has no active membership; using fallback tenant (configure membership provisioning or enable RequireTenantMembershipForLogin to block).",
                 userId);
-            return await ResolveLegacyDefaultSnapshotAsync(cancellationToken).ConfigureAwait(false);
+            return await ResolveFallbackTenantSnapshotAsync(cancellationToken).ConfigureAwait(false);
         }
 
         if (active.Count > 1)
@@ -107,7 +107,7 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
             return dev;
         }
 
-        var nonLegacy = active.FirstOrDefault(m => m.TenantId != LegacyDefaultTenantIds.Primary);
+        var nonLegacy = active.FirstOrDefault(m => m.TenantId != SystemTenantIds.Platform);
         if (nonLegacy != null)
         {
             return nonLegacy;
@@ -188,34 +188,31 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
             && rows.Any(m => TenantStatuses.IsRemoved(m.TenantStatus));
     }
 
-    private async Task<AuthTenantSnapshot> ResolveLegacyDefaultSnapshotAsync(CancellationToken cancellationToken)
+    private async Task<AuthTenantSnapshot> ResolveFallbackTenantSnapshotAsync(CancellationToken cancellationToken)
     {
-        // Development: prefer seeded `dev` over unused legacy `default` when login has no membership.
-        if (_environment.IsDevelopment())
+        // Prefer seeded demo `dev` when present (local DX + login without membership).
+        var devRow = await _db.Tenants.AsNoTracking()
+            .FirstOrDefaultAsync(
+                t => t.Id == DemoTenantIds.Dev
+                    || t.Slug == "dev",
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (devRow != null
+            && !TenantStatuses.IsRemoved(devRow.Status)
+            && devRow.IsActive)
         {
-            var devRow = await _db.Tenants.AsNoTracking()
-                .FirstOrDefaultAsync(
-                    t => t.Id == DemoTenantIds.Dev
-                        || t.Slug == "dev",
-                    cancellationToken)
-                .ConfigureAwait(false);
-            if (devRow != null
-                && !TenantStatuses.IsRemoved(devRow.Status)
-                && devRow.IsActive)
-            {
-                _logger.LogInformation(
-                    "Login tenant: Development fallback bound to seeded preset {TenantId} ({Slug}) instead of legacy default",
-                    devRow.Id,
-                    devRow.Slug);
-                return new AuthTenantSnapshot(devRow.Id.ToString("D"), devRow.Name, devRow.Slug, null, null);
-            }
+            _logger.LogInformation(
+                "Login tenant: fallback bound to seeded preset {TenantId} ({Slug})",
+                devRow.Id,
+                devRow.Slug);
+            return new AuthTenantSnapshot(devRow.Id.ToString("D"), devRow.Name, devRow.Slug, null, null);
         }
 
-        var primary = LegacyDefaultTenantIds.Primary;
-        var rowDefault = await _db.Tenants.AsNoTracking()
-            .FirstOrDefaultAsync(t => t.Id == primary, cancellationToken)
+        var platformId = SystemTenantIds.Platform;
+        var platformRow = await _db.Tenants.AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == platformId, cancellationToken)
             .ConfigureAwait(false);
 
-        return new AuthTenantSnapshot(primary.ToString("D"), rowDefault?.Name, rowDefault?.Slug, null, null);
+        return new AuthTenantSnapshot(platformId.ToString("D"), platformRow?.Name, platformRow?.Slug, null, null);
     }
 }

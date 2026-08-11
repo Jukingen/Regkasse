@@ -11,7 +11,7 @@ namespace KasseAPI_Final.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            var defaultTenant = LegacyDefaultTenantIds.Primary;
+            var defaultTenant = SystemTenantIds.Platform;
 
             // FixProductsCategoryIdUuidAndFk adds the FK without quoted identifiers, so PostgreSQL
             // stores it as fk_products_categories_category_id. EF DropForeignKey would quote

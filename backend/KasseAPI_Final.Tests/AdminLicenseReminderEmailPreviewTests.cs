@@ -52,7 +52,7 @@ public sealed class AdminLicenseReminderEmailPreviewTests
             .Options;
         var db = new AppDbContext(
             options,
-            new CurrentTenantAccessor { TenantId = LegacyDefaultTenantIds.Primary });
+            new CurrentTenantAccessor { TenantId = SystemTenantIds.Platform });
 
         var controller = new AdminLicenseController(
             Mock.Of<ILicenseService>(),

@@ -27,7 +27,7 @@ public class AuditLogControllerGetUserAuditLogsTests
         var logger = new Mock<ILogger<AuditLogController>>().Object;
         var resolver = actorDisplayNameResolver ?? CreateDefaultResolver();
         var export = new Mock<IAuditExportService>();
-        var tenantAccessor = TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary);
+        var tenantAccessor = TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform);
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"audit_log_ctrl_{Guid.NewGuid():N}")
             .Options;

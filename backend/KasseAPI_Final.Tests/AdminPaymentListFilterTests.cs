@@ -39,7 +39,7 @@ public sealed class AdminPaymentListFilterTests
         db.CashRegisters.Add(new CashRegister
         {
             Id = regId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             RegisterNumber = "K1",
             Location = "L",
             StartingBalance = 0,
@@ -75,9 +75,9 @@ public sealed class AdminPaymentListFilterTests
     [Fact]
     public async Task QueryAsync_WithCalendarRangeAndEnrichment_ReturnsPaymentRows()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var db = CreateContext(TenantTestDoubles.TenantAccessorReturning(tenantId));
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var regId = Guid.NewGuid();
         var customerId = Guid.NewGuid();
         var paymentId = Guid.NewGuid();
@@ -216,6 +216,6 @@ public sealed class AdminPaymentListFilterTests
             .Options;
         return new AppDbContext(
             options,
-            tenantAccessor ?? TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+            tenantAccessor ?? TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 }

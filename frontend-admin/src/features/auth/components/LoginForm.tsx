@@ -90,7 +90,7 @@ export const LoginForm: FC = () => {
       // Do not pair legacy JWT tenant id with slug `dev` — HeaderDevTenantSwitch / TenantGuard rebind correctly.
       if (process.env.NODE_ENV === 'development') {
         const slug = loginUser?.tenantSlug?.trim().toLowerCase() ?? '';
-        if (!slug || slug === 'default' || slug === 'admin') {
+        if (!slug || slug === 'platform' || slug === 'admin') {
           writeDevTenantSlug('dev');
         } else if (slug === 'dev') {
           writeDevTenantSlug('dev', loginUser?.tenantId);

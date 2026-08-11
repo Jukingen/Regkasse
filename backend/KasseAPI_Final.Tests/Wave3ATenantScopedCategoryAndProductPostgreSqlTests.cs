@@ -37,12 +37,12 @@ public sealed class Wave3ATenantScopedCategoryAndProductPostgreSqlTests
     {
         Skip.IfNot(_fixture.HasDatabase, _fixture.SkipReason);
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         await ctx.SaveChangesAsync();
 
-        ctx.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Name = "DupPg", VatRate = 10m });
+        ctx.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Name = "DupPg", VatRate = 10m });
         await ctx.SaveChangesAsync();
-        ctx.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Name = "DupPg", VatRate = 10m });
+        ctx.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Name = "DupPg", VatRate = 10m });
         await Assert.ThrowsAnyAsync<DbUpdateException>(() => ctx.SaveChangesAsync());
     }
 
@@ -51,17 +51,17 @@ public sealed class Wave3ATenantScopedCategoryAndProductPostgreSqlTests
     {
         Skip.IfNot(_fixture.HasDatabase, _fixture.SkipReason);
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         await ctx.SaveChangesAsync();
 
         var catId = Guid.NewGuid();
-        ctx.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = catId, Name = "CPg", VatRate = 10m });
+        ctx.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = catId, Name = "CPg", VatRate = 10m });
         await ctx.SaveChangesAsync();
         const string barcode = "DUP-PG-BC";
         ctx.Products.Add(new Product
         {
             Id = Guid.NewGuid(),
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "P1",
             Description = "-",
             Price = 1m,
@@ -82,7 +82,7 @@ public sealed class Wave3ATenantScopedCategoryAndProductPostgreSqlTests
         ctx.Products.Add(new Product
         {
             Id = Guid.NewGuid(),
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "P2",
             Description = "-",
             Price = 2m,
@@ -107,7 +107,7 @@ public sealed class Wave3ATenantScopedCategoryAndProductPostgreSqlTests
     {
         Skip.IfNot(_fixture.HasDatabase, _fixture.SkipReason);
         await using var ctx = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         await ctx.SaveChangesAsync();
         await EnsureSecondaryTenantAsync(ctx);
 
@@ -118,7 +118,7 @@ public sealed class Wave3ATenantScopedCategoryAndProductPostgreSqlTests
         ctx.Products.Add(new Product
         {
             Id = Guid.NewGuid(),
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Cross",
             Description = "-",
             Price = 1m,

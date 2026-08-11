@@ -27,7 +27,7 @@ namespace KasseAPI_Final.Migrations
                 name: "IX_company_settings_CompanyVatNumber",
                 table: "company_settings");
 
-            var defaultTenantId = LegacyDefaultTenantIds.Primary;
+            var defaultTenantId = SystemTenantIds.Platform;
             var seededAt = new DateTime(2026, 4, 3, 0, 0, 0, DateTimeKind.Utc);
 
             migrationBuilder.CreateTable(
@@ -51,7 +51,7 @@ namespace KasseAPI_Final.Migrations
             migrationBuilder.InsertData(
                 table: "tenants",
                 columns: new[] { "id", "Name", "Slug", "created_at", "is_active" },
-                values: new object[] { defaultTenantId, "Default", LegacyDefaultTenantIds.PrimarySlug, seededAt, true });
+                values: new object[] { defaultTenantId, "Default", SystemTenantIds.PlatformSlug, seededAt, true });
 
             migrationBuilder.CreateIndex(
                 name: "IX_tenants_Slug",

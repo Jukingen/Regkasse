@@ -45,7 +45,7 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseAppNpgsql(_fixture.ConnectionString)
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static TseService CreateTseService(AppDbContext ctx, SignaturePipeline pipeline, ITseKeyProvider keyProvider)
@@ -61,10 +61,10 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
         var customerId = Guid.NewGuid();
         var cashRegisterId = Guid.NewGuid();
 
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         ctx.Categories.Add(new Category
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = categoryId,
             Name = "Speisen",
             VatRate = 10m
@@ -72,7 +72,7 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
         ctx.Products.Add(new Product
         {
             Id = productId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Döner",
             Description = "-",
             Price = 6.90m,
@@ -92,7 +92,7 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
         ctx.Customers.Add(new Customer { Id = customerId, Name = "PGTest", Email = "pg@test.com", Phone = "1", IsActive = true });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = cashRegisterId,
             RegisterNumber = "PG-K01",
             Location = "T",

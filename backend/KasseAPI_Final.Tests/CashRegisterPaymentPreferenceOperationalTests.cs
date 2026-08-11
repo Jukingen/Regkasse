@@ -23,7 +23,7 @@ public class CashRegisterPaymentPreferenceOperationalTests
             .UseInMemoryDatabase($"PrefVsOp_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     [Fact]
@@ -36,7 +36,7 @@ public class CashRegisterPaymentPreferenceOperationalTests
 
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = closedPref,
             RegisterNumber = "K-CLOSED",
             Location = "L",
@@ -49,7 +49,7 @@ public class CashRegisterPaymentPreferenceOperationalTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = openOther,
             RegisterNumber = "K-OPEN",
             Location = "L",
@@ -109,7 +109,7 @@ public class CashRegisterPaymentPreferenceOperationalTests
 
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",

@@ -18,7 +18,7 @@ public sealed class ProductServiceTests
     public async Task GetProductsAsync_FiltersInactiveAndProjectsCategoryName()
     {
         await using var db = CreateContext();
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var catId = Guid.NewGuid();
         db.Categories.Add(new Category
         {
@@ -46,7 +46,7 @@ public sealed class ProductServiceTests
     public async Task GetProductsAsync_FiltersByCategoryId()
     {
         await using var db = CreateContext();
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var catA = Guid.NewGuid();
         var catB = Guid.NewGuid();
         db.Categories.AddRange(
@@ -68,7 +68,7 @@ public sealed class ProductServiceTests
     public async Task GetProductsPagedAsync_ReturnsTotalAndPageSlice()
     {
         await using var db = CreateContext();
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var catId = Guid.NewGuid();
         db.Categories.Add(new Category
         {
@@ -96,7 +96,7 @@ public sealed class ProductServiceTests
     public async Task GetProductsAsync_UsesCacheUntilInvalidated()
     {
         await using var db = CreateContext();
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var catId = Guid.NewGuid();
         db.Categories.Add(new Category
         {
@@ -134,7 +134,7 @@ public sealed class ProductServiceTests
     public async Task UpdateProduct_ThenCacheIsInvalidated()
     {
         await using var db = CreateContext();
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var catId = Guid.NewGuid();
         db.Categories.Add(new Category
         {
@@ -195,8 +195,8 @@ public sealed class ProductServiceTests
             .Options;
         var ctx = new AppDbContext(
             options,
-            TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+            TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         return ctx;
     }
 }

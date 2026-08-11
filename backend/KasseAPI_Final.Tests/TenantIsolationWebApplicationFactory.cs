@@ -143,9 +143,9 @@ public sealed class TenantIsolationWebApplicationFactory : WebApplicationFactory
         db.Tenants.AddRange(
             new Tenant
             {
-                Id = LegacyDefaultTenantIds.Primary,
+                Id = SystemTenantIds.Platform,
                 Name = "Default Legacy",
-                Slug = LegacyDefaultTenantIds.PrimarySlug,
+                Slug = SystemTenantIds.PlatformSlug,
                 Status = TenantStatuses.Active,
                 IsActive = true,
                 CreatedAt = now,
@@ -259,7 +259,7 @@ public sealed class TenantIsolationWebApplicationFactory : WebApplicationFactory
             new UserTenantMembership
             {
                 UserId = superAdmin.Id,
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 IsActive = true,
                 IsOwner = true,
                 CreatedAtUtc = now,

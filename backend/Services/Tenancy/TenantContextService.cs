@@ -9,7 +9,7 @@ namespace KasseAPI_Final.Services.Tenancy;
 
 /// <summary>
 /// Resolves tenant id/slug/name for the current HTTP request and binds <see cref="ICurrentTenantAccessor"/>.
-/// Priority: JWT → (Development only) header/query → (Development SuperAdmin) seeded <c>dev</c> → host slug → admin/default fallback.
+/// Priority: JWT → (Development only) header/query → (Development SuperAdmin) seeded <c>dev</c> → host slug → admin fallback.
 /// Production authenticated binding uses <see cref="ApplyAuthenticatedTenantAsync"/> (JWT only; never silent SuperAdmin defaults).
 /// </summary>
 public sealed class TenantContextService : ITenantContextService
@@ -70,7 +70,7 @@ public sealed class TenantContextService : ITenantContextService
                 }
             }
 
-            // Super Admin on FA localhost without JWT/header: prefer seeded `dev` over legacy `default`.
+            // Super Admin on FA localhost without JWT/header: prefer seeded `dev`.
             if (!jwtTenantId.HasValue && IsSuperAdmin(httpContext))
             {
                 var superAdminDefault = await TryResolveSuperAdminDevelopmentDefaultAsync(cancellationToken)
@@ -152,6 +152,15 @@ public sealed class TenantContextService : ITenantContextService
         BindAmbient(tenantId, tenantId.HasValue ? NormalizeSlug(slug) : null);
     }
 
+    /// <inheritdoc />
+    public async Task<Guid?> TryResolveHostBoundTenantIdAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken = default)
+    {
+        var slug = await GetHostTenantSlugAsync(httpContext, cancellationToken).ConfigureAwait(false);
+        return await ResolveTenantIdFromSlugBindingAsync(slug, cancellationToken).ConfigureAwait(false);
+    }
+
     private void BindAmbient(Guid? tenantId, string? tenantSlug)
     {
         _tenantAccessor.TenantId = tenantId;
@@ -203,11 +212,35 @@ public sealed class TenantContextService : ITenantContextService
 
         if (tenant == null)
         {
-            _logger.LogWarning(
-                "Tenant slug {Slug} not found; using legacy default tenant {DefaultTenantId}",
-                slug,
-                LegacyDefaultTenantIds.Primary);
-            return LegacyDefaultTenantIds.Primary;
+            // Fail-closed for unknown / typo mandant slugs (do not invent platform ambient).
+            // Reserved platform sentinel slug may still bind by well-known Guid when the row is missing
+            // (admin host → NormalizeSlug → "platform").
+            if (SystemTenantIds.IsPlatformSlug(slug))
+            {
+                _logger.LogWarning(
+                    "Platform slug {Slug} row missing; binding well-known platform tenant {PlatformTenantId}",
+                    slug,
+                    SystemTenantIds.Platform);
+                return SystemTenantIds.Platform;
+            }
+
+            _logger.LogWarning("Tenant slug {Slug} not found; refusing host tenant binding", slug);
+            return null;
+        }
+
+        // Platform sentinel may be isActive=false (frozen for business) but remains bindable for system host fallbacks.
+        if (SystemTenantIds.IsPlatformTenantId(tenant.Id))
+        {
+            if (TenantStatuses.IsRemoved(tenant.Status))
+            {
+                _logger.LogWarning(
+                    "Platform tenant slug {Slug} is removed (status={Status}); refusing host tenant binding",
+                    slug,
+                    tenant.Status);
+                return null;
+            }
+
+            return tenant.Id;
         }
 
         if (TenantStatuses.IsRemoved(tenant.Status)
@@ -237,11 +270,13 @@ public sealed class TenantContextService : ITenantContextService
             .ConfigureAwait(false);
 
         if (row == null
-            || TenantStatuses.IsRemoved(row.Status)
-            || !row.IsActive)
+            || TenantStatuses.IsRemoved(row.Status))
         {
             return null;
         }
+
+        if (!row.IsActive && !SystemTenantIds.IsPlatformTenantId(row.Id))
+            return null;
 
         return new TenantContext(row.Id, row.Slug, row.Name);
     }
@@ -259,11 +294,13 @@ public sealed class TenantContextService : ITenantContextService
             .ConfigureAwait(false);
 
         if (row == null
-            || TenantStatuses.IsRemoved(row.Status)
-            || !row.IsActive)
+            || TenantStatuses.IsRemoved(row.Status))
         {
             return null;
         }
+
+        if (!row.IsActive && !SystemTenantIds.IsPlatformTenantId(row.Id))
+            return null;
 
         return new TenantContext(row.Id, row.Slug, row.Name);
     }
@@ -371,9 +408,10 @@ public sealed class TenantContextService : ITenantContextService
     }
 
     /// <summary>
-    /// Development: platform <c>admin</c> and unused legacy <c>default</c> bind to seeded <c>dev</c>.
-    /// Production/Staging: <c>admin</c> still maps to the legacy default row for host-binding fallbacks;
-    /// explicit <c>default</c> slug still aliases to <c>dev</c> via <see cref="DevTenantSlugAliases"/>.
+    /// Development: platform <c>admin</c> binds to seeded <c>dev</c>; legacy demo aliases (<c>cafe</c>→<c>dev</c>) apply.
+    /// Production/Staging: <c>admin</c> maps to the platform sentinel slug for reserved-host binding only.
+    /// Demo aliases are Development-only — Production resolves the exact slug (unknown → null / 404).
+    /// Explicit <c>default</c> is not aliased (legacy slug removed).
     /// </summary>
     private string NormalizeSlug(string slug)
     {
@@ -385,17 +423,12 @@ public sealed class TenantContextService : ITenantContextService
                 return "dev";
             }
 
-            return LegacyDefaultTenantIds.PrimarySlug;
+            return SystemTenantIds.PlatformSlug;
         }
 
-        var canonical = DevTenantSlugAliases.ResolveCanonical(slug);
-        if (_environment.IsDevelopment()
-            && string.Equals(canonical, LegacyDefaultTenantIds.PrimarySlug, StringComparison.OrdinalIgnoreCase))
-        {
-            _logger.LogWarning("Attempted to resolve 'default' tenant - redirecting to dev");
-            return "dev";
-        }
+        if (_environment.IsDevelopment())
+            return DevTenantSlugAliases.ResolveCanonical(slug);
 
-        return canonical;
+        return string.IsNullOrWhiteSpace(slug) ? slug : slug.Trim();
     }
 }

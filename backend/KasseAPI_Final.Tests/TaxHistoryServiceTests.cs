@@ -21,7 +21,7 @@ public sealed class TaxHistoryServiceTests
     [Fact]
     public async Task RecordChangeAsync_PersistsAndListsWithProductName()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var db = CreateDb(tenantId);
         db.Tenants.Add(new Tenant { Id = tenantId, Name = "Legacy", Slug = "legacy", IsActive = true });
 

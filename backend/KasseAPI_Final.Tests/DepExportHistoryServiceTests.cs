@@ -24,7 +24,7 @@ public sealed class DepExportHistoryServiceTests
             .UseInMemoryDatabase($"DepExportHistory_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, new FixedTenantAccessor(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, new FixedTenantAccessor(SystemTenantIds.Platform));
     }
 
     private sealed class FixedTenantAccessor(Guid tenantId) : ICurrentTenantAccessor
@@ -147,11 +147,11 @@ public sealed class DepExportHistoryServiceTests
     public async Task RecordCompletedAsync_PersistsHistoryRow()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var regId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "Test",
@@ -170,7 +170,7 @@ public sealed class DepExportHistoryServiceTests
 
         var row = await service.RecordCompletedAsync(new DepExportHistoryRecordRequest
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             FromUtc = from,
             ToUtc = to,
@@ -192,13 +192,13 @@ public sealed class DepExportHistoryServiceTests
         Assert.NotNull(row.DownloadTokenExpiresAtUtc);
         Assert.True(row.DownloadTokenExpiresAtUtc > DateTime.UtcNow);
 
-        var list = await service.ListAsync(LegacyDefaultTenantIds.Primary, regId);
+        var list = await service.ListAsync(SystemTenantIds.Platform, regId);
         Assert.Equal(1, list.TotalCount);
         Assert.Equal("KASSE-01", list.Items[0].RegisterNumber);
         Assert.True(list.Items[0].HasStoredFile);
         Assert.False(list.Items[0].IsSimulated);
 
-        var last = await service.GetLastExportAsync(LegacyDefaultTenantIds.Primary, regId);
+        var last = await service.GetLastExportAsync(SystemTenantIds.Platform, regId);
         Assert.True(last.HasExport);
         Assert.Equal(row.Id, last.ExportId);
         Assert.False(last.IsSimulated);
@@ -211,11 +211,11 @@ public sealed class DepExportHistoryServiceTests
     public async Task RecordCompletedAsync_StampsSimulationMetadata_WhenRequested()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var regId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-02",
             Location = "Test",
@@ -231,7 +231,7 @@ public sealed class DepExportHistoryServiceTests
         var service = CreateService(db);
         var row = await service.RecordCompletedAsync(new DepExportHistoryRecordRequest
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             FromUtc = new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc),
             ToUtc = new DateTime(2026, 2, 28, 0, 0, 0, DateTimeKind.Utc),
@@ -244,7 +244,7 @@ public sealed class DepExportHistoryServiceTests
         Assert.True(row.IsSimulated);
         Assert.Equal(RksvDepExportService.SimulationNoteEn, row.SimulationNote);
 
-        var last = await service.GetLastExportAsync(LegacyDefaultTenantIds.Primary);
+        var last = await service.GetLastExportAsync(SystemTenantIds.Platform);
         Assert.True(last.HasExport);
         Assert.True(last.IsSimulated);
     }
@@ -253,10 +253,10 @@ public sealed class DepExportHistoryServiceTests
     public async Task GetLastExportAsync_ReturnsEmpty_WhenNoCompletedExports()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var service = CreateService(db);
 
-        var last = await service.GetLastExportAsync(LegacyDefaultTenantIds.Primary);
+        var last = await service.GetLastExportAsync(SystemTenantIds.Platform);
         Assert.False(last.HasExport);
         Assert.Null(last.LastExportAt);
     }
@@ -265,11 +265,11 @@ public sealed class DepExportHistoryServiceTests
     public async Task MarkDownloadedAsync_IncrementsDownloadCount()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var regId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "Test",
@@ -285,7 +285,7 @@ public sealed class DepExportHistoryServiceTests
         var service = CreateService(db);
         var row = await service.RecordCompletedAsync(new DepExportHistoryRecordRequest
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             FromUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             ToUtc = new DateTime(2026, 1, 31, 0, 0, 0, DateTimeKind.Utc),
@@ -306,11 +306,11 @@ public sealed class DepExportHistoryServiceTests
     public async Task GetExportEntityByTokenAsync_ReturnsRow_WhenTokenValid()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var regId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "Test",
@@ -326,7 +326,7 @@ public sealed class DepExportHistoryServiceTests
         var service = CreateService(db);
         var row = await service.RecordCompletedAsync(new DepExportHistoryRecordRequest
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             FromUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             ToUtc = new DateTime(2026, 1, 31, 0, 0, 0, DateTimeKind.Utc),
@@ -336,7 +336,7 @@ public sealed class DepExportHistoryServiceTests
 
         var byToken = await service.GetExportEntityByTokenAsync(
             row.DownloadToken!,
-            LegacyDefaultTenantIds.Primary);
+            SystemTenantIds.Platform);
         Assert.NotNull(byToken);
         Assert.Equal(row.Id, byToken!.Id);
 
@@ -346,18 +346,18 @@ public sealed class DepExportHistoryServiceTests
 
         Assert.Null(await service.GetExportEntityByTokenAsync(
             row.DownloadToken!,
-            LegacyDefaultTenantIds.Primary));
+            SystemTenantIds.Platform));
     }
 
     [Fact]
     public async Task GetRecentExportsAsync_ReturnsNewestFirst()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var regId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "Test",
@@ -375,7 +375,7 @@ public sealed class DepExportHistoryServiceTests
         {
             await service.RecordCompletedAsync(new DepExportHistoryRecordRequest
             {
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 CashRegisterId = regId,
                 FromUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
                 ToUtc = new DateTime(2026, 1, 31, 0, 0, 0, DateTimeKind.Utc),
@@ -385,7 +385,7 @@ public sealed class DepExportHistoryServiceTests
             });
         }
 
-        var recent = await service.GetRecentExportsAsync(LegacyDefaultTenantIds.Primary, limit: 2);
+        var recent = await service.GetRecentExportsAsync(SystemTenantIds.Platform, limit: 2);
         Assert.Equal(2, recent.Count);
         Assert.True(recent[0].ExportedAt >= recent[1].ExportedAt);
     }
@@ -394,11 +394,11 @@ public sealed class DepExportHistoryServiceTests
     public async Task TryOpenDownloadAsync_ReturnsHotExpired_WhenPastExpiresAndNoFile()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var regId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "Test",
@@ -414,7 +414,7 @@ public sealed class DepExportHistoryServiceTests
         var service = CreateService(db);
         var row = await service.RecordCompletedAsync(new DepExportHistoryRecordRequest
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             FromUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             ToUtc = new DateTime(2026, 1, 31, 0, 0, 0, DateTimeKind.Utc),
@@ -430,7 +430,7 @@ public sealed class DepExportHistoryServiceTests
         tracked.ExpiresAt = DateTime.UtcNow.AddDays(-1);
         await db.SaveChangesAsync();
 
-        var attempt = await service.TryOpenDownloadAsync(row.Id, LegacyDefaultTenantIds.Primary);
+        var attempt = await service.TryOpenDownloadAsync(row.Id, SystemTenantIds.Platform);
         Assert.Equal(DepExportDownloadFailureKind.HotExpired, attempt.Failure);
     }
 
@@ -438,11 +438,11 @@ public sealed class DepExportHistoryServiceTests
     public async Task TryOpenDownloadAsync_ReturnsStoredJsonStream()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var regId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "Test",
@@ -458,7 +458,7 @@ public sealed class DepExportHistoryServiceTests
         var service = CreateService(db);
         var row = await service.RecordCompletedAsync(new DepExportHistoryRecordRequest
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             FromUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             ToUtc = new DateTime(2026, 1, 31, 0, 0, 0, DateTimeKind.Utc),
@@ -466,7 +466,7 @@ public sealed class DepExportHistoryServiceTests
             Export = SampleExport(),
         });
 
-        var opened = await service.TryOpenDownloadAsync(row.Id, LegacyDefaultTenantIds.Primary);
+        var opened = await service.TryOpenDownloadAsync(row.Id, SystemTenantIds.Platform);
         Assert.Null(opened.Failure);
         Assert.NotNull(opened.Open);
         await using (opened.Open!.Stream)
@@ -480,7 +480,7 @@ public sealed class DepExportHistoryServiceTests
 
         var byToken = await service.TryOpenDownloadByTokenAsync(
             row.DownloadToken!,
-            LegacyDefaultTenantIds.Primary);
+            SystemTenantIds.Platform);
         Assert.Null(byToken.Failure);
         Assert.NotNull(byToken.Open);
         await byToken.Open!.Stream.DisposeAsync();
@@ -490,11 +490,11 @@ public sealed class DepExportHistoryServiceTests
     public async Task TryOpenDownloadByTokenAsync_ReturnsTokenExpired()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var regId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "Test",
@@ -510,7 +510,7 @@ public sealed class DepExportHistoryServiceTests
         var service = CreateService(db);
         var row = await service.RecordCompletedAsync(new DepExportHistoryRecordRequest
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             FromUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             ToUtc = new DateTime(2026, 1, 31, 0, 0, 0, DateTimeKind.Utc),
@@ -524,7 +524,7 @@ public sealed class DepExportHistoryServiceTests
 
         var attempt = await service.TryOpenDownloadByTokenAsync(
             row.DownloadToken!,
-            LegacyDefaultTenantIds.Primary);
+            SystemTenantIds.Platform);
         Assert.Equal(DepExportDownloadFailureKind.TokenExpired, attempt.Failure);
         Assert.Null(attempt.Open);
     }
@@ -533,11 +533,11 @@ public sealed class DepExportHistoryServiceTests
     public async Task TryOpenDownloadAsync_RejectsWrongTenant()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var regId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "Test",
@@ -553,7 +553,7 @@ public sealed class DepExportHistoryServiceTests
         var service = CreateService(db);
         var row = await service.RecordCompletedAsync(new DepExportHistoryRecordRequest
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             FromUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             ToUtc = new DateTime(2026, 1, 31, 0, 0, 0, DateTimeKind.Utc),
@@ -570,11 +570,11 @@ public sealed class DepExportHistoryServiceTests
     public async Task CleanupExpiredStorageAsync_ClearsExpiredTokens()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var regId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "Test",
@@ -590,7 +590,7 @@ public sealed class DepExportHistoryServiceTests
         var service = CreateService(db);
         var row = await service.RecordCompletedAsync(new DepExportHistoryRecordRequest
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             FromUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             ToUtc = new DateTime(2026, 1, 31, 0, 0, 0, DateTimeKind.Utc),
@@ -614,11 +614,11 @@ public sealed class DepExportHistoryServiceTests
     public async Task IssueDownloadTokenAsync_RotatesToken()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var regId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "Test",
@@ -634,7 +634,7 @@ public sealed class DepExportHistoryServiceTests
         var service = CreateService(db);
         var row = await service.RecordCompletedAsync(new DepExportHistoryRecordRequest
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             FromUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             ToUtc = new DateTime(2026, 1, 31, 0, 0, 0, DateTimeKind.Utc),
@@ -654,12 +654,12 @@ public sealed class DepExportHistoryServiceTests
     public async Task RecordFailedAsync_PersistsFailedStatus()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var regId = Guid.NewGuid();
 
         var service = CreateService(db);
         var row = await service.RecordFailedAsync(
-            LegacyDefaultTenantIds.Primary,
+            SystemTenantIds.Platform,
             regId,
             DateTime.UtcNow.AddDays(-7),
             DateTime.UtcNow,
@@ -674,11 +674,11 @@ public sealed class DepExportHistoryServiceTests
     public async Task DeleteRecentExportAsync_SoftPurgesCompletedAndBlocksDownload()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var regId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "Test",
@@ -694,7 +694,7 @@ public sealed class DepExportHistoryServiceTests
         var service = CreateService(db);
         var row = await service.RecordCompletedAsync(new DepExportHistoryRecordRequest
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             FromUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             ToUtc = new DateTime(2026, 1, 31, 0, 0, 0, DateTimeKind.Utc),
@@ -710,11 +710,11 @@ public sealed class DepExportHistoryServiceTests
         Assert.Null(reloaded.StoragePath);
         Assert.Null(reloaded.DownloadToken);
 
-        var attempt = await service.TryOpenDownloadAsync(row.Id, LegacyDefaultTenantIds.Primary);
+        var attempt = await service.TryOpenDownloadAsync(row.Id, SystemTenantIds.Platform);
         Assert.Equal(DepExportDownloadFailureKind.Purged, attempt.Failure);
 
         // Soft-purged rows are hidden from the recent-exports list.
-        var list = await service.ListAsync(LegacyDefaultTenantIds.Primary);
+        var list = await service.ListAsync(SystemTenantIds.Platform);
         Assert.Empty(list.Items);
         Assert.Equal(0, list.TotalCount);
     }
@@ -723,11 +723,11 @@ public sealed class DepExportHistoryServiceTests
     public async Task DeleteRecentExportAsync_HardDeletesFailedRow()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var regId = Guid.NewGuid();
         var service = CreateService(db);
         var row = await service.RecordFailedAsync(
-            LegacyDefaultTenantIds.Primary,
+            SystemTenantIds.Platform,
             regId,
             DateTime.UtcNow.AddDays(-1),
             DateTime.UtcNow,
@@ -743,11 +743,11 @@ public sealed class DepExportHistoryServiceTests
     public async Task CleanupExpiredStorageAsync_HardDeletesStaleFailedMetadata()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var regId = Guid.NewGuid();
         var service = CreateService(db);
         var row = await service.RecordFailedAsync(
-            LegacyDefaultTenantIds.Primary,
+            SystemTenantIds.Platform,
             regId,
             DateTime.UtcNow.AddDays(-40),
             DateTime.UtcNow.AddDays(-39),
@@ -767,11 +767,11 @@ public sealed class DepExportHistoryServiceTests
     public async Task RecordCompletedAsync_SetsExpiresAtFromHotRetention()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var regId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "Test",
@@ -788,7 +788,7 @@ public sealed class DepExportHistoryServiceTests
         var before = DateTime.UtcNow;
         var row = await service.RecordCompletedAsync(new DepExportHistoryRecordRequest
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             FromUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             ToUtc = new DateTime(2026, 1, 31, 0, 0, 0, DateTimeKind.Utc),

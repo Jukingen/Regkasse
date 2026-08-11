@@ -223,7 +223,7 @@ Code: `Services/AdminTenants/`, `Controllers/AdminTenantsController.cs`.
 dotnet ef database update --project KasseAPI_Final.csproj --startup-project KasseAPI_Final.csproj
 ```
 
-Legacy backfills use `LegacyDefaultTenantIds.Primary`. Contracts: `ai/02_DATABASE_CONTRACT.md`, [`../docs/MULTI_TENANT.md`](../docs/MULTI_TENANT.md).
+Legacy backfills use `SystemTenantIds.Platform`. Contracts: `ai/02_DATABASE_CONTRACT.md`, [`../docs/MULTI_TENANT.md`](../docs/MULTI_TENANT.md).
 
 ### Migration inventory & squash (high risk)
 

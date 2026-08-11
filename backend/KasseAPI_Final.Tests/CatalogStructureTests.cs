@@ -22,7 +22,7 @@ public class CatalogStructureTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: $"CatalogStructure_{Guid.NewGuid()}")
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static void SetAuth(ProductController controller, string userId = "u1")
@@ -59,12 +59,12 @@ public class CatalogStructureTests
         var addOnProductId = Guid.NewGuid();
         var groupId = Guid.NewGuid();
 
-        TenantTestDoubles.EnsureDefaultTenant(context);
-        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsurePlatformTenant(context);
+        context.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = mainProductId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Döner",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -83,7 +83,7 @@ public class CatalogStructureTests
         context.Products.Add(new Product
         {
             Id = addOnProductId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Extra Käse",
             Price = 1.50m,
             CategoryId = categoryId,
@@ -103,7 +103,7 @@ public class CatalogStructureTests
         context.ProductModifierGroups.Add(new ProductModifierGroup
         {
             Id = groupId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Extras",
             SortOrder = 0,
             IsActive = true
@@ -112,14 +112,14 @@ public class CatalogStructureTests
         {
             ModifierGroupId = groupId,
             ProductId = addOnProductId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             SortOrder = 0
         });
         context.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment
         {
             ProductId = mainProductId,
             ModifierGroupId = groupId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             SortOrder = 0
         });
         await context.SaveChangesAsync();
@@ -179,12 +179,12 @@ public class CatalogStructureTests
         var addOnProductId = Guid.NewGuid();
         var groupId = Guid.NewGuid();
 
-        TenantTestDoubles.EnsureDefaultTenant(context);
-        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsurePlatformTenant(context);
+        context.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = mainProductId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Pizza",
             Price = 8.50m,
             CategoryId = categoryId,
@@ -203,7 +203,7 @@ public class CatalogStructureTests
         context.Products.Add(new Product
         {
             Id = addOnProductId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Oliven",
             Price = 0.80m,
             CategoryId = categoryId,
@@ -223,7 +223,7 @@ public class CatalogStructureTests
         context.ProductModifierGroups.Add(new ProductModifierGroup
         {
             Id = groupId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Toppings",
             SortOrder = 0,
             IsActive = true
@@ -232,14 +232,14 @@ public class CatalogStructureTests
         {
             ModifierGroupId = groupId,
             ProductId = addOnProductId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             SortOrder = 0
         });
         context.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment
         {
             ProductId = mainProductId,
             ModifierGroupId = groupId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             SortOrder = 0
         });
         await context.SaveChangesAsync();

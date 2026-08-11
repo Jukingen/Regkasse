@@ -21,7 +21,7 @@ public class Phase2TableOrderRecoveryTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: $"TableOrderRecovery_{Guid.NewGuid()}")
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static void SetAuth(CartController controller, string userId = "u1")
@@ -147,12 +147,12 @@ public class Phase2TableOrderRecoveryTests
             EmailConfirmed = true,
             SecurityStamp = Guid.NewGuid().ToString()
         });
-        TenantTestDoubles.EnsureDefaultTenant(context);
-        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsurePlatformTenant(context);
+        context.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Döner",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -168,7 +168,7 @@ public class Phase2TableOrderRecoveryTests
             RksvProductType = RksvProductTypes.Standard,
             IsActive = true
         });
-        context.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupId, TenantId = LegacyDefaultTenantIds.Primary, Name = "Saucen", SortOrder = 0, IsActive = true });
+        context.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupId, TenantId = SystemTenantIds.Platform, Name = "Saucen", SortOrder = 0, IsActive = true });
         context.Carts.Add(new Cart
         {
             CartId = cartId,

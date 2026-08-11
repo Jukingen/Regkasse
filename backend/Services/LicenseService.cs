@@ -440,13 +440,13 @@ public sealed class LicenseService : ILicenseService
             if (snapshot.IsExpired)
             {
                 await _activityPublisher.TryPublishAsync(
-                    LegacyDefaultTenantIds.Primary,
+                    SystemTenantIds.Platform,
                     ActivityEventType.LicenseExpired,
                     new
                     {
                         DaysRemaining = 0,
                         ExpiryDate = snapshot.ExpiryDate,
-                        TenantId = LegacyDefaultTenantIds.Primary,
+                        TenantId = SystemTenantIds.Platform,
                     },
                     dedupKey: "deployment_license_expired").ConfigureAwait(false);
                 return;
@@ -456,13 +456,13 @@ public sealed class LicenseService : ILicenseService
                 return;
 
             await _activityPublisher.TryPublishAsync(
-                LegacyDefaultTenantIds.Primary,
+                SystemTenantIds.Platform,
                 ActivityEventType.LicenseExpiringSoon,
                 new
                 {
                     DaysRemaining = snapshot.DaysRemaining,
                     ExpiryDate = snapshot.ExpiryDate,
-                    TenantId = LegacyDefaultTenantIds.Primary,
+                    TenantId = SystemTenantIds.Platform,
                 },
                 dedupKey: $"deployment_license_expiry_{snapshot.DaysRemaining}d").ConfigureAwait(false);
         }

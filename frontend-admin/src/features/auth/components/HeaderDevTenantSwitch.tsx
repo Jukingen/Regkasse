@@ -235,7 +235,7 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
     const hasUsableContext =
       Boolean(apiTenant?.id || currentTenantId) &&
       currentSlug !== '' &&
-      currentSlug !== 'default' &&
+      currentSlug !== 'platform' &&
       currentSlug !== 'admin';
     if (hasUsableContext) {
       return;

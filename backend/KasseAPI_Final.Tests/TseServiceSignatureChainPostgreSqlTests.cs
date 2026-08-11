@@ -41,10 +41,10 @@ public sealed class TseServiceSignatureChainPostgreSqlTests
         await using var context = CreateContext();
 
         var cashRegisterId = Guid.NewGuid();
-        TenantTestDoubles.EnsureDefaultTenant(context);
+        TenantTestDoubles.EnsurePlatformTenant(context);
         context.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = cashRegisterId,
             RegisterNumber = "TSE-PG-1",
             Location = "Test",

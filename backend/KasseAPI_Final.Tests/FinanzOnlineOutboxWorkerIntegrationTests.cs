@@ -129,7 +129,7 @@ public sealed class FinanzOnlineOutboxWorkerIntegrationTests
         RksvSpecialReceiptFinanzOnlineOutboxPayloadBody inner,
         string registerNumber)
     {
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         if (!await db.Customers.AnyAsync(c => c.Id == WalkInCustomerConstants.GuestCustomerId))
         {
             db.Customers.Add(new Customer
@@ -150,7 +150,7 @@ public sealed class FinanzOnlineOutboxWorkerIntegrationTests
             db.CashRegisters.Add(new CashRegister
             {
                 Id = inner.CashRegisterId,
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 RegisterNumber = registerNumber,
                 Location = "T",
                 StartingBalance = 0,

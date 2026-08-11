@@ -20,7 +20,7 @@ public sealed class ImpersonationAuditLogIntegrationTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"ImpersonationAudit_{Guid.NewGuid():N}")
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static AuditLogService CreateAuditService(AppDbContext context, ClaimsPrincipal? user = null)

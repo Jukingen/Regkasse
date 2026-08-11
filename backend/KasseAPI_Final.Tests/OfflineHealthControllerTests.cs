@@ -16,7 +16,7 @@ namespace KasseAPI_Final.Tests;
 
 public sealed class OfflineHealthControllerTests
 {
-    private static readonly Guid TenantId = LegacyDefaultTenantIds.Primary;
+    private static readonly Guid TenantId = SystemTenantIds.Platform;
 
     [Fact]
     public async Task GetSyncHealth_ReturnsHealthyWhenPendingBelowThreshold()
@@ -25,7 +25,7 @@ public sealed class OfflineHealthControllerTests
         var now = DateTime.UtcNow;
 
         await using var db = CreateContext(TenantId);
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         db.CashRegisters.Add(new CashRegister
         {
             TenantId = TenantId,
@@ -75,7 +75,7 @@ public sealed class OfflineHealthControllerTests
         var now = DateTime.UtcNow;
 
         await using var db = CreateContext(TenantId);
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         db.CashRegisters.Add(new CashRegister
         {
             TenantId = TenantId,

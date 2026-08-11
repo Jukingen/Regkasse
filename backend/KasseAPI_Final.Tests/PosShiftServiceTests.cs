@@ -21,7 +21,7 @@ public class PosShiftServiceTests
             .UseInMemoryDatabase($"PosShift_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static Mock<UserManager<ApplicationUser>> CreateUserManager(ApplicationUser user)
@@ -94,7 +94,7 @@ public class PosShiftServiceTests
         ctx.Users.Add(actor);
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "Front",
@@ -131,7 +131,7 @@ public class PosShiftServiceTests
         var regId = Guid.NewGuid();
         ctx.CashierShifts.Add(new CashierShift
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             CashierId = userId,
             CashierName = "Max",
@@ -162,7 +162,7 @@ public class PosShiftServiceTests
         ctx.Users.Add(actor);
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K2",
             Location = "Front",
@@ -176,7 +176,7 @@ public class PosShiftServiceTests
         });
         ctx.CashierShifts.Add(new CashierShift
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             CashierId = userId,
             CashierName = "Max",
@@ -235,7 +235,7 @@ public class PosShiftServiceTests
 
         ctx.CashierShifts.Add(new CashierShift
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             CashierId = userId,
             CashierName = "Max",
@@ -284,7 +284,7 @@ public class PosShiftServiceTests
         ctx.Users.Add(actor);
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "Front",
@@ -320,7 +320,7 @@ public class PosShiftServiceTests
         ctx.CashierShifts.Add(new CashierShift
         {
             Id = existingId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             CashierId = userId,
             CashierName = "Max",
@@ -353,7 +353,7 @@ public class PosShiftServiceTests
         ctx.Users.Add(actor);
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K2",
             Location = "Front",
@@ -367,7 +367,7 @@ public class PosShiftServiceTests
         });
         ctx.CashierShifts.Add(new CashierShift
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = regId,
             CashierId = userId,
             CashierName = "Max",

@@ -17,7 +17,7 @@ namespace KasseAPI_Final.Tests;
 /// </summary>
 public sealed class PricingRuleTenantizationTests
 {
-    private static readonly Guid TenantA = LegacyDefaultTenantIds.Primary;
+    private static readonly Guid TenantA = SystemTenantIds.Platform;
     private static readonly Guid TenantB = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
 
     private static AppDbContext CreateContext()
@@ -26,12 +26,12 @@ public sealed class PricingRuleTenantizationTests
             .UseInMemoryDatabase($"PricingTenant_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static void EnsureTenants(AppDbContext ctx)
     {
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         if (!ctx.Tenants.AsNoTracking().Any(t => t.Id == TenantB))
             ctx.Tenants.Add(new Tenant { Id = TenantB, Name = "Tenant B", Slug = "pricing-tenant-b" });
     }

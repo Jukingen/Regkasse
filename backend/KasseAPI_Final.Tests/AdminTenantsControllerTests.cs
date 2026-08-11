@@ -522,7 +522,7 @@ public sealed class AdminTenantsControllerTests
     [Fact]
     public async Task DecommissionAsync_UsesTenantScopeForRegisters_AndSoftDeletesTenant()
     {
-        var tenantAccessor = new CurrentTenantAccessor { TenantId = LegacyDefaultTenantIds.Primary };
+        var tenantAccessor = new CurrentTenantAccessor { TenantId = SystemTenantIds.Platform };
         await using var db = CreateDb(tenantAccessor);
         var tenantId = Guid.NewGuid();
         db.Tenants.Add(new Tenant
@@ -604,7 +604,7 @@ public sealed class AdminTenantsControllerTests
                 Roles.SuperAdmin,
                 It.IsAny<CancellationToken>()),
             Times.Exactly(2));
-        Assert.Equal(LegacyDefaultTenantIds.Primary, tenantAccessor.TenantId);
+        Assert.Equal(SystemTenantIds.Platform, tenantAccessor.TenantId);
         Assert.Null(httpContextAccessor.HttpContext!.User.FindFirst(ScopeCheckService.TenantIdClaim));
 
         var tenantRow = await db.Tenants.AsNoTracking().SingleAsync(t => t.Id == tenantId);
@@ -1200,9 +1200,9 @@ public sealed class AdminTenantsControllerTests
         await using var db = CreateDb();
         db.Tenants.Add(new Tenant
         {
-            Id = LegacyDefaultTenantIds.Primary,
+            Id = SystemTenantIds.Platform,
             Name = "Default",
-            Slug = LegacyDefaultTenantIds.PrimarySlug,
+            Slug = SystemTenantIds.PlatformSlug,
             Status = TenantStatuses.Active,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
@@ -1221,7 +1221,7 @@ public sealed class AdminTenantsControllerTests
         var service = CreateService(db);
         var list = await service.ListForSwitcherAsync("super-1", actorIsSuperAdmin: true, includeDeleted: false);
 
-        Assert.DoesNotContain(list, t => t.Slug == LegacyDefaultTenantIds.PrimarySlug);
+        Assert.DoesNotContain(list, t => t.Slug == SystemTenantIds.PlatformSlug);
         Assert.Contains(list, t => t.Slug == "dev");
     }
 
@@ -1421,9 +1421,9 @@ public sealed class AdminTenantsControllerTests
         await using var db = CreateDb();
         db.Tenants.Add(new Tenant
         {
-            Id = LegacyDefaultTenantIds.Primary,
+            Id = SystemTenantIds.Platform,
             Name = "Default",
-            Slug = LegacyDefaultTenantIds.PrimarySlug,
+            Slug = SystemTenantIds.PlatformSlug,
             Status = TenantStatuses.Active,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
@@ -1431,7 +1431,7 @@ public sealed class AdminTenantsControllerTests
         await db.SaveChangesAsync();
 
         var service = CreateService(db);
-        var (success, error) = await service.SoftDeleteAsync(LegacyDefaultTenantIds.Primary, "actor-1");
+        var (success, error) = await service.SoftDeleteAsync(SystemTenantIds.Platform, "actor-1");
 
         Assert.False(success);
         Assert.NotNull(error);

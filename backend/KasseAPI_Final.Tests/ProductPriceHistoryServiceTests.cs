@@ -21,7 +21,7 @@ public sealed class ProductPriceHistoryServiceTests
     [Fact]
     public async Task EnsureInitialVersionAsync_SeedsHistoryAndCurrentVersion()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var db = CreateDb(tenantId);
         var (productId, taxGroupId) = await SeedProductAsync(db, tenantId, price: 3.5m, taxRate: 20m);
 
@@ -44,7 +44,7 @@ public sealed class ProductPriceHistoryServiceTests
     [Fact]
     public async Task RecordChangeAsync_ClosesPreviousAndBumpsVersion()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var db = CreateDb(tenantId);
         var (productId, taxGroupId) = await SeedProductAsync(db, tenantId, price: 3.5m, taxRate: 20m);
 
@@ -80,7 +80,7 @@ public sealed class ProductPriceHistoryServiceTests
     [Fact]
     public async Task RecordChangeAsync_NoOpWhenUnchanged()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var db = CreateDb(tenantId);
         var (productId, taxGroupId) = await SeedProductAsync(db, tenantId, price: 3.5m, taxRate: 20m);
 

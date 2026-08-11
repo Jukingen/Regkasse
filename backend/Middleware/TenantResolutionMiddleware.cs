@@ -9,8 +9,10 @@ namespace KasseAPI_Final.Middleware;
 /// <item><description>Production/Staging: shared platform hosts (<c>api</c>/<c>pos</c>/<c>admin</c>/<c>www</c>) and loopback leave ambient tenant unset — JWT <c>tenant_id</c> binds later via <see cref="TenantContextMiddleware"/>.</description></item>
 /// <item><description>Production/Staging: custom domains / mandant subdomains still bind from Host for public site APIs.</description></item>
 /// </list>
-/// Pipeline: runs after <see cref="CsrfMiddleware"/> and before authentication.
-/// </summary>
+    /// Pre-auth host/dev header → Guid on <see cref="ICurrentTenantAccessor"/>.
+    /// Unknown slugs leave ambient unset (TenantValidationMiddleware → HTTP 404 on tenant-scoped paths).
+    /// Pipeline: runs after <see cref="CsrfMiddleware"/> and before authentication.
+    /// </summary>
 public sealed class TenantResolutionMiddleware
 {
     private readonly RequestDelegate _next;

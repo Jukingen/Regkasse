@@ -318,7 +318,12 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IRksvEnvironmentService, RksvEnvironmentService>();
         builder.Services.Configure<FiskalyOptions>(builder.Configuration.GetSection(FiskalyOptions.SectionName));
         builder.Services.AddSingleton<IPostConfigureOptions<FiskalyOptions>, FiskalyOptionsFromTseProvidersPostConfigure>();
-        builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.SectionName));
+        builder.Services.AddOptions<AuthOptions>()
+            .Bind(builder.Configuration.GetSection(AuthOptions.SectionName))
+            .Validate<IHostEnvironment>(
+                (opts, env) => env.IsDevelopment() || opts.RequireTenantMembershipForLogin,
+                "Auth:RequireTenantMembershipForLogin must be true when ASPNETCORE_ENVIRONMENT is not Development.")
+            .ValidateOnStart();
         builder.Services.Configure<SessionPolicyOptions>(builder.Configuration.GetSection(SessionPolicyOptions.SectionName));
         builder.Services.Configure<TemporaryPermissionsOptions>(
             builder.Configuration.GetSection(TemporaryPermissionsOptions.SectionName));
@@ -834,7 +839,7 @@ internal static class ApplicationHost
         }
         builder.Services.AddScoped<IUserUsernameHistoryService, UserUsernameHistoryService>();
         // ScopeCheckService claim constants are used statically; instance methods unused â€” no DI registration.
-        // Wave 0â€“1 follow-through: JWT + /me tenant snapshot (claim when valid, else legacy default row).
+        // Wave 0–1 follow-through: JWT + /me tenant snapshot (claim when valid, else platform sentinel).
         builder.Services.AddScoped<IAuthTenantSnapshotProvider, AuthTenantSnapshotProvider>();
         builder.Services.AddScoped<ILoginTenantResolver, LoginTenantResolver>();
         builder.Services.AddScoped<IUserTenantMembershipProvisioner, UserTenantMembershipProvisioner>();

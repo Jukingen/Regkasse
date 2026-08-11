@@ -15,7 +15,7 @@ public sealed class BackupAutomaticRetryCoordinatorTests
     private static AppDbContext CreateDb(string name)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(name).Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static BackupOptions RetryOpts(int max, bool allowVerificationRetry = false) => new()

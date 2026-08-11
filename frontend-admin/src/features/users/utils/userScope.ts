@@ -6,9 +6,9 @@ export function isPlatformUserRole(role: string | undefined | null): boolean {
   return (PLATFORM_USER_ROLES as readonly string[]).includes(role);
 }
 
-/** Business tenants only — excludes platform host slug `admin` and unused legacy `default`. */
+/** Business tenants only — excludes platform host slug `admin` and system sentinel `platform`. */
 export function isBusinessTenantSlug(slug: string | undefined | null): boolean {
   if (!slug) return false;
   const normalized = slug.trim().toLowerCase();
-  return normalized !== 'admin' && normalized !== 'default';
+  return normalized !== 'admin' && normalized !== 'platform';
 }

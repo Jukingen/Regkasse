@@ -24,16 +24,16 @@ public sealed class SequenceReservationServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseAppNpgsql(_fixture.ConnectionString)
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static async Task<Guid> SeedRegisterAsync(AppDbContext ctx)
     {
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         var registerId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = registerId,
             RegisterNumber = "SEQ-K01",
             Location = "T",

@@ -145,6 +145,16 @@ Live hit rates: fill the table in `docs/CACHE_OPTIMIZATION.md` §2 after the obs
 .\scripts\start-redis-dev.ps1 -PingOnly
 ```
 
+### Authentication (`Auth`)
+
+| Setting | JSON path | Environment variable | Notes |
+|--------|------------|----------------------|--------|
+| Require membership on login | `Auth:RequireTenantMembershipForLogin` | `Auth__RequireTenantMembershipForLogin` | **Staging/Production: `true` (ValidateOnStart).** Development template may use `false` for DX. When enabled, password login returns `400` + `TENANT_MEMBERSHIP_REQUIRED` if the user has no active `user_tenant_memberships` row. SuperAdmin is exempt. |
+| JWT↔Host match | `Auth:RequireTenantHostMatch` | `Auth__RequireTenantHostMatch` | Default/`AuthOptions`: `true`. Development overlay: `false`. Staging/Production templates: `true`. On mandant subdomain / custom domain, JWT `tenant_id` must equal Host-resolved tenant (**HTTP 403** + `TENANT_HOST_MISMATCH` on mismatch). Shared hosts (`api`/`pos`/`admin`/`www`/`regkasse.at`/loopback) and SuperAdmin impersonation (`tenant_impersonation=true`) are exempt. Emergency kill-switch: set `false`. |
+| Access token lifetime | `Auth:AccessTokenLifetimeMinutes` | `Auth__AccessTokenLifetimeMinutes` | Default 1440 (24h). |
+| Refresh token lifetime | `Auth:RefreshTokenLifetimeDays` | `Auth__RefreshTokenLifetimeDays` | Default 14. |
+| Legacy login without clientApp | `Auth:AllowLegacyLoginWithoutClientApp` | `Auth__AllowLegacyLoginWithoutClientApp` | Production/Staging: `false`. |
+
 ### SuperAdmin two-factor authentication (`TwoFactorAuth`)
 
 Hub: [`docs/AUTH_TWO_FACTOR.md`](../docs/AUTH_TWO_FACTOR.md).

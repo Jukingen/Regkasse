@@ -18,7 +18,7 @@ namespace KasseAPI_Final.Tests;
 
 public sealed class PosStornoControllerTests
 {
-    private static readonly Guid TenantId = LegacyDefaultTenantIds.Primary;
+    private static readonly Guid TenantId = SystemTenantIds.Platform;
     private const string CashierId = "cashier-storno";
 
     private static AppDbContext CreateContext()

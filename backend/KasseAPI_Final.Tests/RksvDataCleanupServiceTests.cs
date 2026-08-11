@@ -146,7 +146,7 @@ public sealed class RksvDataCleanupServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
             .Options;
-        return (new Factory(options), new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary)));
+        return (new Factory(options), new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform)));
     }
 
     private sealed class Factory : IDbContextFactory<AppDbContext>
@@ -158,6 +158,6 @@ public sealed class RksvDataCleanupServiceTests
         public AppDbContext CreateDbContext() => new(_options);
 
         public ValueTask<AppDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
-            new(new AppDbContext(_options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary)));
+            new(new AppDbContext(_options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform)));
     }
 }

@@ -67,7 +67,7 @@ public sealed class BackupComplianceStatusServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"bcs_{Guid.NewGuid():N}")
             .Options;
-        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
 
         db.BackupRuns.Add(new BackupRun
         {

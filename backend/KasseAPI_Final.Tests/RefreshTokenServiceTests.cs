@@ -27,7 +27,7 @@ public class RefreshTokenServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"refresh_token_tests_{Guid.NewGuid()}")
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static RefreshTokenService CreateService(AppDbContext db)
@@ -175,7 +175,7 @@ public class RefreshTokenServiceTests
     public async Task Login_Persists_Session_TenantId_When_Provided()
     {
         using var db = CreateContext();
-        var tid = LegacyDefaultTenantIds.Primary;
+        var tid = SystemTenantIds.Platform;
         db.Tenants.Add(new Tenant { Id = tid, Name = "T", Slug = "t" });
         await db.SaveChangesAsync();
 
@@ -191,7 +191,7 @@ public class RefreshTokenServiceTests
     public async Task RotateAsync_Passes_Persisted_Session_Tenant_To_BuildAccessToken()
     {
         using var db = CreateContext();
-        var tid = LegacyDefaultTenantIds.Primary;
+        var tid = SystemTenantIds.Platform;
         db.Tenants.Add(new Tenant { Id = tid, Name = "T", Slug = "t" });
         await db.SaveChangesAsync();
 
@@ -275,9 +275,9 @@ public class RefreshTokenServiceTests
     public async Task RotateAsync_With_Tenant_Override_Updates_Session_And_Passes_To_BuildAccessToken()
     {
         using var db = CreateContext();
-        var loginTenant = LegacyDefaultTenantIds.Primary;
+        var loginTenant = SystemTenantIds.Platform;
         var switchTenant = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
-        db.Tenants.Add(new Tenant { Id = loginTenant, Name = "Default", Slug = "default" });
+        db.Tenants.Add(new Tenant { Id = loginTenant, Name = "Platform", Slug = "platform" });
         db.Tenants.Add(new Tenant { Id = switchTenant, Name = "Dev", Slug = "dev" });
         await db.SaveChangesAsync();
 
@@ -319,9 +319,9 @@ public class RefreshTokenServiceTests
     public async Task RotateAsync_Tenant_Override_Rejected_Does_Not_Consume_Refresh_Token()
     {
         using var db = CreateContext();
-        var loginTenant = LegacyDefaultTenantIds.Primary;
+        var loginTenant = SystemTenantIds.Platform;
         var switchTenant = Guid.Parse("bbbbbbbb-cccc-dddd-eeee-ffffffffffff");
-        db.Tenants.Add(new Tenant { Id = loginTenant, Name = "Default", Slug = "default" });
+        db.Tenants.Add(new Tenant { Id = loginTenant, Name = "Platform", Slug = "platform" });
         db.Tenants.Add(new Tenant { Id = switchTenant, Name = "Other", Slug = "other" });
         await db.SaveChangesAsync();
 

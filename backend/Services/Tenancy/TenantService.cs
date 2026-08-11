@@ -35,15 +35,15 @@ public sealed class TenantService : ITenantService
         string? actorUserId,
         CancellationToken cancellationToken = default)
     {
-        if (tenantId == LegacyDefaultTenantIds.Primary)
-            return (false, "The legacy default tenant cannot be deleted.");
+        if (SystemTenantIds.IsPlatformTenantId(tenantId))
+            return (false, "The platform tenant cannot be deleted.");
 
         var tenant = await _db.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken).ConfigureAwait(false);
         if (tenant == null)
             return (false, "Tenant not found.");
 
-        if (string.Equals(tenant.Slug, LegacyDefaultTenantIds.PrimarySlug, StringComparison.Ordinal))
-            return (false, "The legacy default tenant cannot be deleted.");
+        if (SystemTenantIds.IsPlatformSlug(tenant.Slug))
+            return (false, "The platform tenant cannot be deleted.");
 
         if (TenantStatuses.IsRemoved(tenant.Status))
             return (true, null);

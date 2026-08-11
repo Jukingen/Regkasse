@@ -25,16 +25,16 @@ public class InvoiceServiceGenerateTests
     [Fact]
     public async Task GenerateInvoiceAsync_UsesPaymentCompanySnapshot()
     {
-        var tenantAccessor = TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary);
+        var tenantAccessor = TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform);
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"InvoiceGen_{Guid.NewGuid()}")
             .Options;
         await using var db = new AppDbContext(options, tenantAccessor);
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
 
         db.CompanySettings.Add(new CompanySettings
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CompanyName = "Live GmbH",
             CompanyAddress = "Live Str, 1020 Wien",
             CompanyTaxNumber = "ATU99999999",
@@ -53,7 +53,7 @@ public class InvoiceServiceGenerateTests
         var regId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "T",
@@ -100,18 +100,18 @@ public class InvoiceServiceGenerateTests
     [Fact]
     public async Task GenerateInvoiceAsync_PrefersPersistedInvoiceRow()
     {
-        var tenantAccessor = TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary);
+        var tenantAccessor = TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform);
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"InvoiceGen_{Guid.NewGuid()}")
             .Options;
         await using var db = new AppDbContext(options, tenantAccessor);
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
 
         var paymentId = Guid.NewGuid();
         var regId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "T",
@@ -125,7 +125,7 @@ public class InvoiceServiceGenerateTests
         db.Invoices.Add(new Invoice
         {
             Id = Guid.NewGuid(),
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             SourcePaymentId = paymentId,
             InvoiceNumber = "INV-1",
             InvoiceDate = DateTime.UtcNow,

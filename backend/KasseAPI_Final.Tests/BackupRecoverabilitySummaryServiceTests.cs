@@ -56,7 +56,7 @@ public sealed class BackupRecoverabilitySummaryServiceTests
         IBackupOperationalReadiness? readiness = null)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(dbName).Options;
-        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
         var time = new FixedUtcTimeProvider(utcNow);
         var svc = new BackupRecoverabilitySummaryService(db, time, readiness ?? StubReadiness());
         return (svc, db);

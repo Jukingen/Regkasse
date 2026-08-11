@@ -8,19 +8,19 @@ namespace KasseAPI_Final.Services.RestoreVerification;
 /// <summary>
 /// Typed audit trail for Super Admin validation-only manual restore workflow.
 /// Always stamps an explicit audit <c>tenantId</c> (source backup tenant when set; otherwise
-/// <see cref="LegacyDefaultTenantIds.Primary"/> as the platform/system convention) so ambient
+/// <see cref="SystemTenantIds.Platform"/> as the platform/system convention) so ambient
 /// impersonation cannot mis-attribute restore events.
 /// </summary>
 internal static class ManualRestoreAudit
 {
     /// <summary>
-    /// Platform restore / deployment-wide dump: audit row uses the legacy system tenant id
+    /// Platform restore / deployment-wide dump: audit row uses the platform system tenant id
     /// (non-nullable <c>audit_logs.tenant_id</c>) while <c>requestData.SourceBackupTenantId</c> stays null.
     /// </summary>
     public static Guid ResolveRestoreAuditTenantId(Guid? sourceBackupTenantId) =>
         sourceBackupTenantId is Guid tid && tid != Guid.Empty
             ? tid
-            : LegacyDefaultTenantIds.Primary;
+            : SystemTenantIds.Platform;
 
     public static string ResolveRestoreScope(Guid? sourceBackupTenantId) =>
         sourceBackupTenantId is Guid tid && tid != Guid.Empty

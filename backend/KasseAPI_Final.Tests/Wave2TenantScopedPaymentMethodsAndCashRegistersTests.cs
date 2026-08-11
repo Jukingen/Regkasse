@@ -24,7 +24,7 @@ public sealed class Wave2TenantScopedPaymentMethodsAndCashRegistersTests
         return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(tenantId));
     }
 
-    private static readonly Guid TenantA = LegacyDefaultTenantIds.Primary;
+    private static readonly Guid TenantA = SystemTenantIds.Platform;
     private static readonly Guid TenantB = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
 
     private static CashRegister SeedRegister(AppDbContext ctx, Guid tenantId, Guid regId, string number)

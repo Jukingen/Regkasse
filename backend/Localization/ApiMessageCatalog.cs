@@ -60,9 +60,9 @@ public static class ApiMessageCatalog
                 en: "User created successfully",
                 tr: "Kullanıcı başarıyla oluşturuldu"),
             [ApiMessageKeys.TenantMembershipRequired] = Msg(
-                de: "Kein Zugriff auf diesen Mandanten",
-                en: "No access to this tenant",
-                tr: "Bu kiracıya erişim yok"),
+                de: "Benutzer hat keine aktive Mandanten-Mitgliedschaft",
+                en: "User does not have an active tenant membership",
+                tr: "Kullanıcının aktif bir kiracı üyeliği yok"),
             [ApiMessageKeys.TenantDisabled] = Msg(
                 de: "Dieser Mandant wurde deaktiviert.",
                 en: "This tenant has been deactivated.",

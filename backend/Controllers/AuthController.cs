@@ -33,7 +33,7 @@ namespace KasseAPI_Final.Controllers
     /// Auth endpoints. Effective permissions for JSON responses (login user payload, GET /me) must match JWT
     /// <c>permission</c> claims: both use <see cref="IRolePermissionResolver"/> (system roles → RolePermissionMatrix;
     /// custom roles → AspNetRoleClaims), same as <see cref="ITokenClaimsService.BuildClaimsAsync"/>.
-    /// Tenant fields on login come from <see cref="ILoginTenantResolver"/> (membership, else legacy default).
+    /// Tenant fields on login come from <see cref="ILoginTenantResolver"/> (membership, else <c>dev</c>/platform fallback).
     /// GET /me uses <see cref="IAuthTenantSnapshotProvider"/> (JWT <c>tenant_id</c> when valid, else default).
     /// </summary>
     public class AuthController : ControllerBase
@@ -343,7 +343,10 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 var authCt = HttpContext?.RequestAborted ?? CancellationToken.None;
-                if (_authOptions.RequireTenantMembershipForLogin)
+                // SuperAdmin is platform-scoped and may only hold sentinel memberships; require
+                // active business-tenant membership for all other roles when the flag is on.
+                if (_authOptions.RequireTenantMembershipForLogin
+                    && !string.Equals(canonicalRole, Roles.SuperAdmin, StringComparison.Ordinal))
                 {
                     var hasMembership = await _loginTenantResolver.HasActiveMembershipAsync(user.Id, authCt);
                     if (!hasMembership)
@@ -1062,7 +1065,7 @@ namespace KasseAPI_Final.Controllers
 
                     await _tenantMembershipProvisioner.ProvisionActiveMembershipAsync(
                         user.Id,
-                        LegacyDefaultTenantIds.Primary,
+                        SystemTenantIds.Platform,
                         cancellationToken: regCt);
                     await tx.CommitAsync(regCt);
                 }

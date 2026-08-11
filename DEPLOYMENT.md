@@ -234,6 +234,8 @@ Verify against tracked template [`backend/appsettings.Production.example.json`](
 | `FinanzOnline:RksvSubmission:ClientKind` | `Real` |
 | `Backup:ExecutionAdapterKind` | `PgDump` |
 | `TwoFactorAuth:Enabled` | `true` (`BypassInDevelopment=false`) |
+| `Auth:RequireTenantMembershipForLogin` | `true` (API refuses to start if false outside Development) |
+| `Auth:RequireTenantHostMatch` | `true` (mandant/custom Host must match JWT `tenant_id`; mismatch → 403 `TENANT_HOST_MISMATCH`; shared hosts exempt) |
 | `Security:Csrf:Enabled` | `true` (`BypassInDevelopment=false`) |
 | `Cors:AllowedOrigins` | production FA/POS/Sites origins |
 | License public PEM | configured (`License` / OfflineVerification) |

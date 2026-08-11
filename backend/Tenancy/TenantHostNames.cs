@@ -86,6 +86,29 @@ public static class TenantHostNames
     }
 
     /// <summary>
+    /// Hosts where JWT↔Host tenant match is not enforced (Single POS UI / shared API / apex / loopback).
+    /// Mandant subdomains and verified custom domains are <strong>not</strong> exempt.
+    /// </summary>
+    public static bool IsSharedPlatformHostForJwtMatch(string? host)
+    {
+        if (ShouldSkipPreAuthHostBinding(host))
+            return true;
+
+        if (string.IsNullOrWhiteSpace(host))
+            return true;
+
+        var hostWithoutPort = host.Split(':', 2)[0].Trim();
+        if (hostWithoutPort.Equals("regkasse.at", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        // Explicit *.localhost (beyond bare loopback) for local multi-host experiments.
+        if (hostWithoutPort.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return false;
+    }
+
+    /// <summary>
     /// First subdomain label when not a reserved platform host; loopback and reserved hosts map to <c>admin</c>
     /// (platform ambient binding — JWT <c>tenant_id</c> is authoritative after login for POS/API).
     /// </summary>
