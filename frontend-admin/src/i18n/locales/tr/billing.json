@@ -52,14 +52,19 @@
     "dateFrom": "Başlangıç",
     "dateTo": "Bitiş",
     "columns": {
+      "invoice": "Fatura numarası",
       "invoiceNumber": "Fatura",
       "tenant": "Kiracı",
+      "slug": "Slug",
       "licenseKey": "Lisans anahtarı",
-      "plan": "Plan",
+      "plan": "Lisans planı",
+      "priceNet": "Tutar (net)",
       "priceGross": "Brüt",
       "validUntil": "Geçerlilik",
+      "daysRemaining": "Kalan Gün",
       "status": "Durum",
-      "soldAt": "Satış tarihi"
+      "soldAt": "Satış tarihi",
+      "actions": "İşlemler"
     },
     "detailTitle": "Satış detayı",
     "downloadPdf": "Fatura (PDF)",
@@ -189,7 +194,7 @@
       "expiresInOne": "Bu lisans {{days}} gün içinde sona eriyor",
       "expiresToday": "Bu lisans bugün sona eriyor",
       "expired": "Bu lisans {{days}} gün önce sona erdi",
-      "longTerm": "Uzun vadeli lisans (2 yıldan uzun süre geçerli)"
+      "longTerm": "Uzun vadeli lisans ({{years}} yıldan uzun süre geçerli)"
     },
     "filters": {
       "searchPlaceholder": "Lisans anahtarı veya fatura no …",

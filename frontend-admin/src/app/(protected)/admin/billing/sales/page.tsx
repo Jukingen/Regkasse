@@ -2,7 +2,7 @@
 
 import { FilePdfOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Button, DatePicker, Space, Table, Tooltip } from 'antd';
+import { Button, DatePicker, Form, Input, Modal, Space, Table, Tooltip } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
 import { type Dayjs } from 'dayjs';
@@ -20,9 +20,14 @@ import {
   BillingSalesBulkProgressModal,
 } from '@/features/billing/components/BillingSalesBulkModals';
 import { BillingSalesFilterBar } from '@/features/billing/components/BillingSalesFilterBar';
+import { LicenseSaleDetailDrawer } from '@/features/billing/components/LicenseSaleDetailDrawer';
 import { LicenseValidityCell } from '@/features/billing/components/LicenseValidityCell';
 import { useBillingAccess } from '@/features/billing/hooks/useBillingAccess';
-import { useBillingSalesList, useLicenseSalesBulkActions } from '@/features/billing/hooks';
+import {
+  useBillingSalesList,
+  useCancelLicenseSale,
+  useLicenseSalesBulkActions,
+} from '@/features/billing/hooks';
 import {
   DEFAULT_BILLING_SALES_FILTERS,
   DEFAULT_LICENSE_SALES_SORT_BY,
@@ -37,6 +42,7 @@ import {
 import { downloadLicenseSaleInvoicePdf } from '@/features/billing/utils/downloadInvoicePdf';
 import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
 import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 
@@ -47,12 +53,16 @@ export default function BillingSalesPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { message } = useAntdApp();
+  const notify = useNotify();
   const { t } = useI18n();
   const canAccess = useBillingAccess();
   const [pdfLoadingId, setPdfLoadingId] = useState<string | null>(null);
+  const [selectedSale, setSelectedSale] = useState<LicenseSaleResponse | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<LicenseSaleResponse | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectedRows, setSelectedRows] = useState<LicenseSaleResponse[]>([]);
   const bulk = useLicenseSalesBulkActions();
+  const cancelMutation = useCancelLicenseSale();
 
   const [filters, setFilters] = useState<BillingSalesFilterState>(() => ({
     ...DEFAULT_BILLING_SALES_FILTERS,
@@ -138,18 +148,14 @@ export default function BillingSalesPage() {
 
   const columns: ColumnsType<LicenseSaleResponse> = [
     {
-      title: 'Rechnungsnummer',
+      title: t('billing.sales.columns.invoice'),
       dataIndex: 'invoiceNumber',
       key: 'invoiceNumber',
       sorter: true,
       sortOrder: getLicenseSalesAntSortOrder('invoiceNumber', filters.sortBy, filters.sortDir),
       render: (text: string | null | undefined, record) =>
         record.id ? (
-          <Button
-            type="link"
-            style={{ padding: 0 }}
-            onClick={() => router.push(`/admin/billing/sales/${record.id}`)}
-          >
+          <Button type="link" style={{ padding: 0 }} onClick={() => setSelectedSale(record)}>
             {text ?? '—'}
           </Button>
         ) : (
@@ -157,7 +163,7 @@ export default function BillingSalesPage() {
         ),
     },
     {
-      title: 'Mandant',
+      title: t('billing.sales.columns.tenant'),
       dataIndex: 'tenantName',
       key: 'tenant',
       sorter: true,
@@ -175,16 +181,20 @@ export default function BillingSalesPage() {
           (text ?? '—')
         ),
     },
-    { title: 'Slug', dataIndex: 'tenantSlug', key: 'tenantSlug' },
     {
-      title: 'Lizenzplan',
+      title: t('billing.sales.columns.slug'),
+      dataIndex: 'tenantSlug',
+      key: 'tenantSlug',
+    },
+    {
+      title: t('billing.sales.columns.plan'),
       dataIndex: 'licensePlan',
       key: 'licensePlan',
       sorter: true,
       sortOrder: getLicenseSalesAntSortOrder('licensePlan', filters.sortBy, filters.sortDir),
     },
     {
-      title: 'Lizenzschlüssel',
+      title: t('billing.sales.columns.licenseKey'),
       dataIndex: 'licenseKey',
       key: 'licenseKey',
       sorter: true,
@@ -200,7 +210,7 @@ export default function BillingSalesPage() {
       },
     },
     {
-      title: 'Gültig bis',
+      title: t('billing.sales.columns.validUntil'),
       dataIndex: 'validUntilUtc',
       key: 'validUntilUtc',
       sorter: true,
@@ -211,7 +221,7 @@ export default function BillingSalesPage() {
       ),
     },
     {
-      title: t('billing.licenseSales.daysRemaining'),
+      title: t('billing.sales.columns.daysRemaining'),
       key: 'daysRemaining',
       width: 160,
       sorter: true,
@@ -221,7 +231,7 @@ export default function BillingSalesPage() {
       ),
     },
     {
-      title: 'Betrag (Netto)',
+      title: t('billing.sales.columns.priceNet'),
       dataIndex: 'priceNet',
       key: 'priceNet',
       sorter: true,
@@ -230,7 +240,7 @@ export default function BillingSalesPage() {
       render: (value: number | undefined) => (value != null ? `€ ${value.toFixed(2)}` : '—'),
     },
     {
-      title: 'Status',
+      title: t('billing.sales.columns.status'),
       dataIndex: 'status',
       key: 'status',
       render: (status: string | null | undefined) => {
@@ -251,7 +261,7 @@ export default function BillingSalesPage() {
       },
     },
     {
-      title: 'Verkauft am',
+      title: t('billing.sales.columns.soldAt'),
       dataIndex: 'soldAtUtc',
       key: 'soldAtUtc',
       sorter: true,
@@ -259,12 +269,15 @@ export default function BillingSalesPage() {
       render: dateColumnRender('datetime'),
     },
     {
-      title: 'Aktionen',
+      title: t('billing.sales.columns.actions'),
       key: 'actions',
-      width: 80,
+      width: 140,
       render: (_, record) =>
         record.id ? (
           <Space>
+            <Button type="link" size="small" onClick={() => setSelectedSale(record)}>
+              {t('billing.sales.view')}
+            </Button>
             <Button
               type="link"
               size="small"
@@ -291,17 +304,15 @@ export default function BillingSalesPage() {
           }}
         >
           <div>
-            <h1 style={{ margin: 0 }}>Lizenzverkäufe</h1>
-            <p style={{ color: '#64748b', marginBottom: 0 }}>
-              Alle Lizenzverkäufe und -verlängerungen im Überblick.
-            </p>
+            <h1 style={{ margin: 0 }}>{t('billing.sales.pageTitle')}</h1>
+            <p style={{ color: '#64748b', marginBottom: 0 }}>{t('billing.sales.pageSubtitle')}</p>
           </div>
           <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => router.push('/admin/billing/sales/new')}
           >
-            Neuer Verkauf
+            {t('billing.sales.newSale')}
           </Button>
         </div>
 
@@ -318,7 +329,7 @@ export default function BillingSalesPage() {
                 onChange={handleDateRange}
               />
               <Button icon={<ReloadOutlined />} onClick={() => void refetch()}>
-                Aktualisieren
+                {t('billing.sales.refresh')}
               </Button>
             </>
           }
@@ -378,7 +389,85 @@ export default function BillingSalesPage() {
           }}
         />
         <BillingSalesBulkProgressModal open={bulk.progressOpen} progress={bulk.progress} />
+
+        <LicenseSaleDetailDrawer
+          open={selectedSale != null}
+          saleId={selectedSale?.id ?? null}
+          initialSale={selectedSale}
+          onClose={() => setSelectedSale(null)}
+          pdfLoading={selectedSale?.id != null && pdfLoadingId === selectedSale.id}
+          onDownloadInvoice={(sale) => {
+            if (sale.id) void handlePdfDownload(sale.id, sale.invoiceNumber);
+          }}
+          onCancelSale={(sale) => setCancelTarget(sale)}
+        />
+
+        {cancelTarget ? (
+          <BillingSaleCancelModal
+            sale={cancelTarget}
+            loading={cancelMutation.isPending}
+            onClose={() => setCancelTarget(null)}
+            onConfirm={async (cancellationReason) => {
+              try {
+                await cancelMutation.mutateAsync({
+                  id: cancelTarget.id!,
+                  data: { cancellationReason },
+                });
+                notify.successKey('billing.sales.cancelSuccess');
+                setCancelTarget(null);
+                setSelectedSale(null);
+                await refetch();
+              } catch (err) {
+                notify.apiError(err, { logContext: 'BillingSalesPage.cancel' });
+              }
+            }}
+          />
+        ) : null}
       </div>
     </BillingAccessGate>
+  );
+}
+
+type BillingSaleCancelModalProps = {
+  sale: LicenseSaleResponse;
+  loading: boolean;
+  onClose: () => void;
+  onConfirm: (cancellationReason: string) => Promise<void>;
+};
+
+function BillingSaleCancelModal({ loading, onClose, onConfirm }: BillingSaleCancelModalProps) {
+  const { t } = useI18n();
+  const [form] = Form.useForm<{ cancellationReason: string }>();
+
+  const handleOk = async () => {
+    const values = await form.validateFields();
+    await onConfirm(values.cancellationReason);
+  };
+
+  return (
+    <Modal
+      open
+      title={t('billing.sales.cancelConfirmTitle')}
+      onCancel={onClose}
+      onOk={handleOk}
+      confirmLoading={loading}
+      okText={t('billing.sales.cancelSale')}
+      okButtonProps={{ danger: true }}
+      cancelText={t('common.buttons.cancel')}
+      destroyOnHidden
+    >
+      <Form form={form} layout="vertical" style={{ marginTop: 8 }}>
+        <Form.Item
+          name="cancellationReason"
+          label={t('billing.sales.cancelReasonLabel')}
+          rules={[
+            { required: true, message: t('billing.sales.cancelReasonRequired') },
+            { min: 10, message: t('billing.sales.cancelReasonRequired') },
+          ]}
+        >
+          <Input.TextArea rows={3} />
+        </Form.Item>
+      </Form>
+    </Modal>
   );
 }

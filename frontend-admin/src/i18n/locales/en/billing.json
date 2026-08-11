@@ -52,14 +52,19 @@
     "dateFrom": "From",
     "dateTo": "To",
     "columns": {
+      "invoice": "Invoice number",
       "invoiceNumber": "Invoice",
       "tenant": "Tenant",
+      "slug": "Slug",
       "licenseKey": "License key",
-      "plan": "Plan",
+      "plan": "License plan",
+      "priceNet": "Amount (net)",
       "priceGross": "Gross",
       "validUntil": "Valid until",
+      "daysRemaining": "Days Remaining",
       "status": "Status",
-      "soldAt": "Sold at"
+      "soldAt": "Sold at",
+      "actions": "Actions"
     },
     "detailTitle": "Sale details",
     "downloadPdf": "Invoice (PDF)",
@@ -189,7 +194,7 @@
       "expiresInOne": "This license expires in {{days}} day",
       "expiresToday": "This license expires today",
       "expired": "This license expired {{days}} days ago",
-      "longTerm": "Long-term license (valid for more than 2 years)"
+      "longTerm": "Long-term license (valid for more than {{years}} years)"
     },
     "filters": {
       "searchPlaceholder": "License key or invoice number …",

@@ -12,6 +12,10 @@ import {
 } from '@/features/billing/utils/billingFormatters';
 import { useI18n } from '@/i18n';
 
+/**
+ * Colored validity cell for license sales tables.
+ * Thresholds live in `licenseValidityThresholds.ts` (optional NEXT_PUBLIC_LICENSE_* overrides).
+ */
 type LicenseValidityCellProps = {
   validUntilUtc: string | null | undefined;
   /** `date` → Gültig bis; `days` → Kalan Gün / Days Remaining */

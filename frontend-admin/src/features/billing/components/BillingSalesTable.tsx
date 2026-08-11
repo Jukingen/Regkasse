@@ -129,9 +129,7 @@ export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActi
     setCancelTarget(sale);
   };
 
-  const columns: ColumnsType<LicenseSaleResponse> = [
-    {
-      title: t('billing.sales.columns.invoiceNumber'),
+      title: t('billing.sales.columns.invoice'),
       dataIndex: 'invoiceNumber',
       key: 'invoiceNumber',
       sorter: true,
@@ -187,7 +185,7 @@ export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActi
       ),
     },
     {
-      title: t('billing.licenseSales.daysRemaining'),
+      title: t('billing.sales.columns.daysRemaining'),
       key: 'daysRemaining',
       width: 160,
       sorter: true,
@@ -211,6 +209,7 @@ export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActi
       render: dateColumnRender('datetime'),
     },
     {
+      title: t('billing.sales.columns.actions'),
       key: 'actions',
       width: 120,
       render: (_, row) => (

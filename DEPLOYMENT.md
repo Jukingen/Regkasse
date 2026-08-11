@@ -236,6 +236,8 @@ Verify against tracked template [`backend/appsettings.Production.example.json`](
 | `TwoFactorAuth:Enabled` | `true` (`BypassInDevelopment=false`) |
 | `Auth:RequireTenantMembershipForLogin` | `true` (API refuses to start if false outside Development) |
 | `Auth:RequireTenantHostMatch` | `true` (mandant/custom Host must match JWT `tenant_id`; mismatch → 403 `TENANT_HOST_MISMATCH`; shared hosts exempt) |
+| Super Admin ambient exemptions | Only SuperAdmin may call `/api/admin/tenants|billing|cache` (and `/api/tenants/switcher`) without ambient tenant; mandant data APIs still require ambient |
+| Super Admin route tenant ops | Impersonate / get-by-id validate target tenant exists → 404 |
 | `Security:Csrf:Enabled` | `true` (`BypassInDevelopment=false`) |
 | `Cors:AllowedOrigins` | production FA/POS/Sites origins |
 | License public PEM | configured (`License` / OfflineVerification) |

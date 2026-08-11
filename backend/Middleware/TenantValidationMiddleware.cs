@@ -1,8 +1,23 @@
+using System.Security.Claims;
 using System.Text.Json;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Tenancy;
 
 namespace KasseAPI_Final.Middleware;
 
+/// <summary>
+/// Fail-closed ambient tenant gate: tenant-scoped API paths require
+/// <see cref="ICurrentTenantAccessor.TenantId"/> (HTTP 404 when unset).
+/// <para>
+/// Exemptions:
+/// </para>
+/// <list type="bullet">
+/// <item><description>PublicPaths — unauthenticated / pre-login surfaces.</description></item>
+/// <item><description>SuperAdminPlatformPathPrefixes — <strong>only when</strong> the caller is
+/// authenticated SuperAdmin. These routes target tenants by route/body id (or are deployment-wide),
+/// not by ambient mandant. Non–SuperAdmin callers still need ambient tenant.</description></item>
+/// </list>
+/// </summary>
 public class TenantValidationMiddleware
 {
     private readonly RequestDelegate _next;
@@ -23,13 +38,30 @@ public class TenantValidationMiddleware
         "/swagger/index.html",
     };
 
-    // Super Admin platform endpoints that work without mandant tenant context (admin.regkasse.at).
-    private static readonly HashSet<string> SuperAdminPaths = new(StringComparer.OrdinalIgnoreCase)
-    {
+    /// <summary>
+    /// Prefixes (segment-safe) exempt from ambient tenant <strong>for SuperAdmin only</strong>.
+    /// Keep this list minimal — mandant data APIs (<c>/api/admin/products</c>, etc.) must NOT be listed.
+    /// </summary>
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item><description><c>/api/admin/tenants</c> — SaaS tenant CRUD + impersonate; target = route <c>tenantId</c>.</description></item>
+    /// <item><description><c>/api/admin/billing</c> — license sales (SystemCritical); target tenant in body/route.</description></item>
+    /// <item><description><c>/api/admin/cache</c> — deployment/tenant cache clear; optional body tenantId.</description></item>
+    /// </list>
+    /// Exact path <c>/api/tenants/switcher</c> is also exempt for SuperAdmin (membership-wide list;
+    /// <c>/api/tenants/current</c> still requires ambient).
+    /// </remarks>
+    private static readonly string[] SuperAdminPlatformPathPrefixes =
+    [
         "/api/admin/tenants",
-        "/api/admin/tenants/switcher",
         "/api/admin/billing",
-    };
+        "/api/admin/cache",
+    ];
+
+    private static readonly string[] SuperAdminExactExemptPaths =
+    [
+        "/api/tenants/switcher",
+    ];
 
     public TenantValidationMiddleware(RequestDelegate next, ILogger<TenantValidationMiddleware> logger)
     {
@@ -39,26 +71,22 @@ public class TenantValidationMiddleware
 
     public async Task InvokeAsync(HttpContext context, ICurrentTenantAccessor tenantAccessor)
     {
-        var path = context.Request.Path.Value?.ToLower() ?? "";
+        var path = context.Request.Path.Value?.ToLowerInvariant() ?? "";
 
-        var isPublicEndpoint = PublicPaths.Any(p => path.StartsWith(p, StringComparison.OrdinalIgnoreCase));
-        var isSuperAdminEndpoint = SuperAdminPaths.Any(p => path.StartsWith(p, StringComparison.OrdinalIgnoreCase));
-
-        // Super Admin endpoints work without tenant
-        if (isSuperAdminEndpoint)
+        if (IsPublicPath(path))
         {
-            await _next(context);
+            await _next(context).ConfigureAwait(false);
             return;
         }
 
-        // Public endpoints work without tenant
-        if (isPublicEndpoint)
+        // SuperAdmin platform SaaS routes may run without ambient mandant.
+        // Non–SuperAdmin on the same URL still require ambient tenant (fail-closed).
+        if (IsSuperAdmin(context.User) && IsSuperAdminPlatformExemptPath(path))
         {
-            await _next(context);
+            await _next(context).ConfigureAwait(false);
             return;
         }
 
-        // All other endpoints require tenant context
         if (tenantAccessor.TenantId == null)
         {
             _logger.LogWarning("Request to {Path} rejected: No tenant context", path);
@@ -73,10 +101,63 @@ public class TenantValidationMiddleware
                 status = 404,
             };
 
-            await context.Response.WriteAsync(JsonSerializer.Serialize(error));
+            await context.Response.WriteAsync(JsonSerializer.Serialize(error)).ConfigureAwait(false);
             return;
         }
 
-        await _next(context);
+        await _next(context).ConfigureAwait(false);
+    }
+
+    /// <summary>True when path is a documented SuperAdmin platform exemption (role not checked here).</summary>
+    public static bool IsSuperAdminPlatformExemptPath(string path)
+    {
+        if (string.IsNullOrEmpty(path))
+            return false;
+
+        foreach (var exact in SuperAdminExactExemptPaths)
+        {
+            if (path.Equals(exact, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        foreach (var prefix in SuperAdminPlatformPathPrefixes)
+        {
+            if (MatchesPathPrefix(path, prefix))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsPublicPath(string path) =>
+        PublicPaths.Any(p => path.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// Segment-safe prefix: <c>/api/admin/tenants</c> matches itself and
+    /// <c>/api/admin/tenants/…</c>, but not <c>/api/admin/tenantsfoo</c>.
+    /// </summary>
+    internal static bool MatchesPathPrefix(string path, string prefix)
+    {
+        if (path.Equals(prefix, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return path.StartsWith(prefix + "/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsSuperAdmin(ClaimsPrincipal? user)
+    {
+        if (user?.Identity?.IsAuthenticated != true)
+            return false;
+
+        if (user.IsInRole(Roles.SuperAdmin))
+            return true;
+
+        foreach (var claim in user.FindAll("role"))
+        {
+            if (string.Equals(claim.Value, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
     }
 }

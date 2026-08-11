@@ -52,14 +52,19 @@
     "dateFrom": "Von",
     "dateTo": "Bis",
     "columns": {
+      "invoice": "Rechnungsnummer",
       "invoiceNumber": "Rechnung",
       "tenant": "Mandant",
+      "slug": "Slug",
       "licenseKey": "Lizenzschlüssel",
-      "plan": "Plan",
+      "plan": "Lizenzplan",
+      "priceNet": "Betrag (Netto)",
       "priceGross": "Brutto",
       "validUntil": "Gültig bis",
+      "daysRemaining": "Verbleibende Tage",
       "status": "Status",
-      "soldAt": "Verkauft am"
+      "soldAt": "Verkauft am",
+      "actions": "Aktionen"
     },
     "detailTitle": "Verkaufsdetails",
     "downloadPdf": "Rechnung (PDF)",
@@ -189,7 +194,7 @@
       "expiresInOne": "Diese Lizenz läuft in {{days}} Tag ab",
       "expiresToday": "Diese Lizenz läuft heute ab",
       "expired": "Diese Lizenz ist seit {{days}} Tagen abgelaufen",
-      "longTerm": "Langfristige Lizenz (noch über 2 Jahre gültig)"
+      "longTerm": "Langfristige Lizenz (noch über {{years}} Jahre gültig)"
     },
     "filters": {
       "searchPlaceholder": "Lizenzschlüssel oder Rechnungsnummer …",

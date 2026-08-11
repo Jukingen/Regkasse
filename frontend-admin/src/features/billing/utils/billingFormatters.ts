@@ -1,11 +1,20 @@
 import type { LicenseSaleResponse } from '@/api/generated/model';
 import { LICENSE_SALE_PLAN_VALUES } from '@/features/billing/constants/licensePlans';
+import {
+  LICENSE_DAYS_CRITICAL_THROUGH,
+  LICENSE_DAYS_HEALTHY_AFTER,
+  LICENSE_DAYS_LONG_TERM_THRESHOLD,
+  LICENSE_DAYS_UNLIMITED_THRESHOLD,
+  licenseLongTermThresholdYears,
+} from '@/features/billing/constants/licenseValidityThresholds';
 
-/** Licenses valid more than this many days are shown as unlimited. */
-export const LICENSE_DAYS_UNLIMITED_THRESHOLD = 5 * 365;
-
-/** Long-term / gray band: more than 2 years remaining. */
-export const LICENSE_DAYS_LONG_TERM_THRESHOLD = 2 * 365;
+export {
+  LICENSE_DAYS_CRITICAL_THROUGH,
+  LICENSE_DAYS_HEALTHY_AFTER,
+  LICENSE_DAYS_LONG_TERM_THRESHOLD,
+  LICENSE_DAYS_UNLIMITED_THRESHOLD,
+  LICENSE_VALIDITY_THRESHOLDS,
+} from '@/features/billing/constants/licenseValidityThresholds';
 
 export type LicenseValidityHealth =
   | 'longTerm'
@@ -79,12 +88,8 @@ export function isLicenseDaysUnlimited(days: number): boolean {
 }
 
 /**
- * Visual health band for validity cells.
- * - gray longTerm: > 2 years
- * - green healthy: > 30 days (and ≤ 2 years)
- * - yellow warning: 8–30 days
- * - orange critical: 0–7 days (ends today through 7 days; overlaps “7–30” → critical wins)
- * - red expired: < 0
+ * Visual health band for validity cells (see `licenseValidityThresholds.ts`).
+ * At the critical/warning boundary, critical wins (≤ criticalThroughDays → orange).
  */
 export function resolveLicenseValidityHealth(
   validUntilUtc: string | null | undefined,
@@ -93,8 +98,8 @@ export function resolveLicenseValidityHealth(
   const days = computeLicenseDaysRemaining(validUntilUtc, now);
   if (days == null) return 'unknown';
   if (days > LICENSE_DAYS_LONG_TERM_THRESHOLD) return 'longTerm';
-  if (days > 30) return 'healthy';
-  if (days > 7) return 'warning';
+  if (days > LICENSE_DAYS_HEALTHY_AFTER) return 'healthy';
+  if (days > LICENSE_DAYS_CRITICAL_THROUGH) return 'warning';
   if (days >= 0) return 'critical';
   return 'expired';
 }
@@ -105,15 +110,15 @@ export function licenseValidityHealthTagColor(
 ): string | undefined {
   switch (health) {
     case 'longTerm':
-      return 'default';
+      return 'default'; // gray — long horizon / review
     case 'healthy':
-      return 'success';
+      return 'success'; // green — > healthyAfterDays
     case 'warning':
-      return 'gold';
+      return 'gold'; // yellow — between critical and healthy
     case 'critical':
-      return 'orange';
+      return 'orange'; // 0 … criticalThroughDays
     case 'expired':
-      return 'error';
+      return 'error'; // red — overdue
     default:
       return undefined;
   }
@@ -130,7 +135,9 @@ export function formatLicenseValidityTooltip(
   const health = resolveLicenseValidityHealth(validUntilUtc, now);
 
   if (health === 'longTerm' || isLicenseDaysUnlimited(days)) {
-    return t('billing.licenseSales.healthTooltip.longTerm');
+    return t('billing.licenseSales.healthTooltip.longTerm', {
+      years: licenseLongTermThresholdYears(),
+    });
   }
   if (days < 0) {
     return t('billing.licenseSales.healthTooltip.expired', { days: Math.abs(days) });

@@ -34,7 +34,7 @@ const t = (key: string, options?: Record<string, string | number>) => {
     case 'billing.licenseSales.healthTooltip.expired':
       return `This license expired ${days} days ago`;
     case 'billing.licenseSales.healthTooltip.longTerm':
-      return 'Long-term license (valid for more than 2 years)';
+      return `Long-term license (valid for more than ${options?.years ?? 2} years)`;
     default:
       return key;
   }
