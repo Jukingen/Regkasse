@@ -5,6 +5,7 @@
  * Registrierkasse API â€” RKSV-compliant POS / Admin / shared Auth surfaces
  * OpenAPI spec version: v1
  */
+import type { LicenseType } from './licenseType';
 
 export type GetApiAdminBillingLicenseSalesParams = {
 page?: number;
@@ -12,10 +13,7 @@ pageSize?: number;
 tenantId?: string;
 status?: string;
 licensePlan?: string;
-/**
- * Trial | Starter | Business | Plus
- */
-licenseType?: string;
+licenseType?: LicenseType;
 minDurationDays?: number;
 fromDate?: string;
 toDate?: string;
