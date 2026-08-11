@@ -60,6 +60,14 @@ public sealed class TenantResolutionMiddlewareTests
     {
         await using var db = CreateContext();
         TenantTestDoubles.EnsureDefaultTenant(db);
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
         await db.SaveChangesAsync();
 
         var accessor = new CurrentTenantAccessor();
@@ -83,7 +91,47 @@ public sealed class TenantResolutionMiddlewareTests
 
         await middleware.InvokeAsync(httpContext, currentTenantService, accessor);
 
-        Assert.Equal(LegacyDefaultTenantIds.Primary, accessor.TenantId);
+        // Development: platform host (localhost → admin) remaps unused legacy `default` to seeded `dev`.
+        Assert.Equal(DemoTenantIds.Dev, accessor.TenantId);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Development_DefaultSlugHeader_RemapsToDev()
+    {
+        await using var db = CreateContext();
+        TenantTestDoubles.EnsureDefaultTenant(db);
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var accessor = new CurrentTenantAccessor();
+        var environment = new Mock<IWebHostEnvironment>();
+        environment.SetupGet(e => e.EnvironmentName).Returns(Environments.Development);
+
+        var tenantContextService = new TenantContextService(
+            db,
+            accessor,
+            environment.Object,
+            Mock.Of<KasseAPI_Final.Services.Tenancy.ITenantDomainService>(),
+            NullLogger<TenantContextService>.Instance);
+
+        var httpContextAccessor = new HttpContextAccessor();
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers[SubdomainTenantProvider.DevTenantHeaderName] = "default";
+        httpContextAccessor.HttpContext = httpContext;
+
+        var currentTenantService = new CurrentTenantService(tenantContextService, httpContextAccessor, environment.Object);
+        var middleware = new TenantResolutionMiddleware(_ => Task.CompletedTask, environment.Object);
+
+        await middleware.InvokeAsync(httpContext, currentTenantService, accessor);
+
+        Assert.Equal(DemoTenantIds.Dev, accessor.TenantId);
     }
 
     [Fact]

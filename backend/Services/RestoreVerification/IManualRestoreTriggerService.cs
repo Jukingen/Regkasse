@@ -9,6 +9,7 @@ public interface IManualRestoreTriggerService
         string actorUserId,
         string? actorEmail,
         string? correlationId,
+        bool actorIsSuperAdmin,
         CancellationToken cancellationToken = default);
 
     Task<RestoreRequestStatus> ProcessApprovalAsync(

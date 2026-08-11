@@ -1,5 +1,6 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Models.Enums;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Billing;
@@ -157,9 +158,14 @@ public sealed class AdminBillingController : ControllerBase
         [FromQuery] int pageSize = 20,
         [FromQuery] Guid? tenantId = null,
         [FromQuery] string? status = null,
+        [FromQuery] string? licensePlan = null,
+        [FromQuery] LicenseType? licenseType = null,
+        [FromQuery] int? minDurationDays = null,
         [FromQuery] DateTime? fromDate = null,
         [FromQuery] DateTime? toDate = null,
         [FromQuery] string? search = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] string? sortDir = null,
         CancellationToken ct = default)
     {
         var query = new LicenseSaleListQuery
@@ -168,9 +174,14 @@ public sealed class AdminBillingController : ControllerBase
             PageSize = Math.Min(pageSize, 100),
             TenantId = tenantId,
             Status = status,
+            LicensePlan = licensePlan,
+            LicenseType = licenseType,
+            MinDurationDays = minDurationDays,
             FromDate = fromDate,
             ToDate = toDate,
             Search = search,
+            SortBy = sortBy,
+            SortDir = sortDir,
         };
 
         try

@@ -79,6 +79,7 @@
     "cancelWarning": "Die Lizenz wird deaktiviert und der Mandant verliert den Zugang.",
     "cancelSuccess": "Lizenzverkauf wurde storniert",
     "cancelFailed": "Stornierung fehlgeschlagen",
+    "cancelDefaultReason": "Storniert durch Administrator",
     "invoiceNumber": "Rechnungsnummer",
     "date": "Datum",
     "user": "Bearbeiter",
@@ -175,6 +176,126 @@
     "sixMonths": "6 Monate",
     "twelveMonths": "1 Jahr",
     "custom": "Benutzerdefiniert"
+  },
+  "licenseSales": {
+    "daysRemaining": "Verbleibende Tage",
+    "daysRemainingFormat": "{{days}} Tage",
+    "daysRemainingFormatOne": "{{days}} Tag",
+    "endsToday": "Läuft heute ab",
+    "unlimited": "Unbegrenzt",
+    "overdue": "{{days}} Tage überfällig",
+    "healthTooltip": {
+      "expiresIn": "Diese Lizenz läuft in {{days}} Tagen ab",
+      "expiresInOne": "Diese Lizenz läuft in {{days}} Tag ab",
+      "expiresToday": "Diese Lizenz läuft heute ab",
+      "expired": "Diese Lizenz ist seit {{days}} Tagen abgelaufen",
+      "longTerm": "Langfristige Lizenz (noch über 2 Jahre gültig)"
+    },
+    "filters": {
+      "searchPlaceholder": "Lizenzschlüssel oder Rechnungsnummer …",
+      "statusLabel": "Status",
+      "planLabel": "Plan",
+      "tenantLabel": "Mandant",
+      "tenantPlaceholder": "Mandant",
+      "clear": "Filter zurücksetzen",
+      "activeCount": "{{count}} aktive Filter",
+      "status": {
+        "all": "Alle",
+        "active": "Aktiv",
+        "expired": "Abgelaufen",
+        "pending": "Ausstehend",
+        "revoked": "Widerrufen"
+      },
+      "plan": {
+        "all": "Alle",
+        "trial": "Trial",
+        "oneYear": "1 Jahr",
+        "twoYears": "2 Jahre",
+        "custom": "Benutzerdefiniert"
+      }
+    },
+    "sort": {
+      "clickToSort": "Klicken zum Sortieren",
+      "defaultHint": "Standard: Gültig bis (aufsteigend — bald ablaufend zuerst)"
+    },
+    "bulk": {
+      "selectedCount": "{{count}} Lizenz(en) ausgewählt",
+      "actionsLabel": "Massenaktionen",
+      "actions": {
+        "extend30": "Lizenz verlängern (+30 Tage)",
+        "extend90": "Lizenz verlängern (+90 Tage)",
+        "extend365": "Lizenz verlängern (+1 Jahr)",
+        "revoke": "Lizenz widerrufen",
+        "exportCsv": "Als CSV exportieren"
+      },
+      "confirm": {
+        "title": "Massenaktion bestätigen",
+        "extend30Title": "Lizenzen um 30 Tage verlängern",
+        "extend90Title": "Lizenzen um 90 Tage verlängern",
+        "extend365Title": "Lizenzen um 1 Jahr verlängern",
+        "revokeTitle": "Lizenzen widerrufen",
+        "extendMessage": "{{count}} Mandantenlizenz(en) werden verlängert (von {{selected}} ausgewählt).",
+        "revokeMessage": "{{count}} aktive Lizenzverkauf(e) werden widerrufen (von {{selected}} ausgewählt).",
+        "message": "{{count}} Einträge betroffen.",
+        "noneEligible": "Keine ausgewählten Einträge sind für diese Aktion geeignet.",
+        "ok": "Bestätigen",
+        "revokeReasonLabel": "Widerrufsgrund",
+        "revokeReasonRequired": "Bitte mindestens 10 Zeichen eingeben.",
+        "revokeDefaultReason": "Massenwiderruf durch Super-Administrator"
+      },
+      "progress": {
+        "title": "Massenaktion läuft…",
+        "status": "{{current}} / {{total}}: {{label}}"
+      },
+      "result": {
+        "success": "{{count}} Aktion(en) erfolgreich abgeschlossen",
+        "partial": "{{success}} erfolgreich, {{failed}} fehlgeschlagen",
+        "exportSuccess": "{{count}} Lizenz(en) als CSV exportiert"
+      }
+    },
+    "detail": {
+      "title": "Lizenzverkauf — Details",
+      "pageTitle": "Lizenzverkauf {{invoice}}",
+      "back": "Zurück",
+      "notFound": "Verkauf nicht gefunden",
+      "openFullPage": "Vollständige Seite öffnen",
+      "extendLicense": "Lizenz verlängern",
+      "viewTenant": "Mandant anzeigen",
+      "downloadInvoice": "Rechnung herunterladen",
+      "yes": "Ja",
+      "no": "Nein",
+      "tenantActive": "Aktiv",
+      "tenantInactive": "Inaktiv",
+      "sections": {
+        "license": "Lizenz",
+        "tenant": "Mandant",
+        "invoice": "Rechnung",
+        "usage": "Nutzung"
+      },
+      "labels": {
+        "licenseKey": "Lizenzschlüssel",
+        "plan": "Lizenzplan",
+        "licenseType": "Lizenztyp",
+        "status": "Status",
+        "validFrom": "Gültig ab",
+        "validUntil": "Gültig bis",
+        "daysRemaining": "Verbleibende Tage",
+        "appliedToTenant": "Dem Mandanten zugewiesen",
+        "soldBy": "Verkauft von",
+        "notes": "Notizen",
+        "cancellationReason": "Stornierungsgrund",
+        "tenantName": "Name",
+        "tenantSlug": "Slug",
+        "tenantStatus": "Status",
+        "invoiceNumber": "Rechnungsnummer",
+        "invoiceDate": "Rechnungsdatum",
+        "priceNet": "Netto",
+        "vat": "MwSt.",
+        "priceGross": "Brutto",
+        "registerCount": "Kassen",
+        "userCount": "Benutzer"
+      }
+    }
   },
   "status": {
     "active": "Aktiv",

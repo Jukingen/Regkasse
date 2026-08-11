@@ -37,12 +37,18 @@ internal static class ManualRestoreAudit
         string? notes = null)
     {
         var recordedAtUtc = DateTime.UtcNow;
+        var description = requiresApproval
+            ? $"Manual restore request {entity.Id} pending approval (validation-only)."
+            : $"Manual restore request {entity.Id} auto-approved in Development (validation-only).";
+        var complianceNotes = requiresApproval
+            ? RksvComplianceNotes
+            : RksvComplianceNotesDevAutoApprove;
         return audit.LogSystemOperationAsync(
             AuditLogActions.RESTORE_REQUESTED,
             AuditLogEntityTypes.MANUAL_RESTORE_REQUEST,
             actorUserId,
             Roles.SuperAdmin,
-            description: $"Manual restore request {entity.Id} pending approval (validation-only).",
+            description: description,
             notes: notes,
             requestData: new
             {
@@ -56,7 +62,7 @@ internal static class ManualRestoreAudit
                 Reason = entity.Reason,
                 RequestedAtUtc = entity.RequestedAt,
                 AuditRecordedAtUtc = recordedAtUtc,
-                RksvCompliance = RksvComplianceNotes
+                RksvCompliance = complianceNotes
             },
             correlationIdOverride: correlationId,
             impersonationSnapshot: null,
@@ -180,4 +186,7 @@ internal static class ManualRestoreAudit
     /// </summary>
     private const string RksvComplianceNotes =
         "validation_only;isolated_target;no_production_write;no_fiscal_timestamp_rewrite;dual_superadmin_approval";
+
+    private const string RksvComplianceNotesDevAutoApprove =
+        "validation_only;isolated_target;no_production_write;no_fiscal_timestamp_rewrite;dev_superadmin_auto_approve";
 }

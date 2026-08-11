@@ -69,10 +69,19 @@ public sealed class CurrentTenantServiceTests
     }
 
     [Fact]
-    public async Task ApplyCurrentTenantAsync_AdminSlug_MapsToDefaultTenant()
+    public async Task ApplyCurrentTenantAsync_AdminSlug_MapsToDevTenantInDevelopment()
     {
         await using var db = CreateContext();
         TenantTestDoubles.EnsureDefaultTenant(db);
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
 
         var (service, accessor, _) = CreateHarness(db, ctx =>
         {
@@ -81,7 +90,7 @@ public sealed class CurrentTenantServiceTests
 
         await service.ApplyCurrentTenantAsync();
 
-        Assert.Equal(LegacyDefaultTenantIds.Primary, accessor.TenantId);
+        Assert.Equal(DemoTenantIds.Dev, accessor.TenantId);
     }
 
     [Fact]

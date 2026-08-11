@@ -52,9 +52,9 @@ public enum AuditEventType
     PermissionConfigBackupCreated = 32,
     /// <summary>Generic admin file download (history / exports).</summary>
     FileDownloaded = 33,
-    /// <summary>System backup artifact downloaded (sensitive; may require 2FA + approval).</summary>
+    /// <summary>System backup artifact downloaded (sensitive; may require approval / privacy ack).</summary>
     SystemBackupDownloaded = 34,
-    /// <summary>Audit log export file downloaded (sensitive; may require 2FA + approval).</summary>
+    /// <summary>Audit log export file downloaded (sensitive; may require approval / privacy ack).</summary>
     AuditLogExportDownloaded = 35,
     /// <summary>GDPR / tenant data-rights ZIP downloaded (sensitive; may require approval).</summary>
     GdprDataExportDownloaded = 36,

@@ -56,6 +56,10 @@ Detail: [`restore-boundary-notes.md`](restore-boundary-notes.md), restore drill 
 
 Detail: [`BACKUP_PERMISSIONS.md`](BACKUP_PERMISSIONS.md), AI short: [`ai/modules/backup_permissions.md`](../ai/modules/backup_permissions.md).
 
+### Download security
+
+Backup artifact downloads are gated by JWT authentication, role / permission checks, and tenant isolation (cross-tenant → 404). Sensitive system downloads may still require privacy acknowledgement and (when configured) Super Admin approval. **Step-up 2FA is not required** for backup downloads (`DownloadSecurity:RequireTwoFactorForCriticalExports=false`).
+
 ---
 
 ## Frontend Admin

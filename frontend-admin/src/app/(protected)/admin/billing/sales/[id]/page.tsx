@@ -1,43 +1,23 @@
 'use client';
 
-import { ArrowLeftOutlined, DeleteOutlined, FilePdfOutlined } from '@ant-design/icons';
-import { Button, Card, Descriptions, Form, Input, Modal, Space, Tag } from 'antd';
+import { ArrowLeftOutlined } from '@ant-design/icons';
+import { useQuery } from '@tanstack/react-query';
+import { Button, Card, Form, Input, Modal, Space, Tag } from 'antd';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import { CardSkeleton } from '@/components/Skeleton';
 import { BillingAccessGate } from '@/features/billing/components/BillingAccessGate';
+import { LicenseSaleDetailPanel } from '@/features/billing/components/LicenseSaleDetailPanel';
 import { useBillingSale, useCancelLicenseSale } from '@/features/billing/hooks';
+import { formatSaleStatusLabel } from '@/features/billing/utils/billingFormatters';
 import { downloadLicenseSaleInvoicePdf } from '@/features/billing/utils/downloadInvoicePdf';
+import { getAdminTenantById } from '@/features/super-admin/api/adminTenants';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
-import { formatGermanDateTime } from '@/lib/dateFormatter';
 import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 
 const CANCEL_REASON_MIN_LENGTH = 10;
-
-function resolveStatusPresentation(status: string | null | undefined): {
-  color: string;
-  label: string;
-} {
-  switch (status) {
-    case 'active':
-      return { color: 'green', label: 'Aktiv' };
-    case 'cancelled':
-      return { color: 'red', label: 'Storniert' };
-    case 'refunded':
-      return { color: 'orange', label: 'Rückerstattet' };
-    default:
-      return { color: 'default', label: status ?? '—' };
-  }
-}
-
-function daysUntil(validUntilUtc: string | undefined): number | null {
-  if (!validUntilUtc) return null;
-  const end = new Date(validUntilUtc).getTime();
-  if (Number.isNaN(end)) return null;
-  return Math.ceil((end - Date.now()) / (1000 * 60 * 60 * 24));
-}
 
 export default function BillingSaleDetailPage() {
   const params = useParams<{ id: string }>();
@@ -50,6 +30,13 @@ export default function BillingSaleDetailPage() {
 
   const { data: sale, isLoading, refetch } = useBillingSale(id);
   const cancelMutation = useCancelLicenseSale();
+
+  const tenantQuery = useQuery({
+    queryKey: ['admin-tenant', 'billing-sale-detail', sale?.tenantId],
+    queryFn: () => getAdminTenantById(sale!.tenantId!),
+    enabled: !!sale?.tenantId,
+    staleTime: 60_000,
+  });
 
   const handlePdfDownload = async () => {
     if (!sale?.id) return;
@@ -68,11 +55,6 @@ export default function BillingSaleDetailPage() {
     }
   };
 
-  const handleCancel = () => {
-    if (!id) return;
-    setCancelOpen(true);
-  };
-
   if (isLoading) {
     return (
       <BillingAccessGate>
@@ -84,13 +66,14 @@ export default function BillingSaleDetailPage() {
   if (!sale) {
     return (
       <BillingAccessGate>
-        <div style={{ padding: 24 }}>Verkauf nicht gefunden</div>
+        <div style={{ padding: 24 }}>{t('billing.licenseSales.detail.notFound')}</div>
       </BillingAccessGate>
     );
   }
 
-  const { color: statusColor, label: statusLabel } = resolveStatusPresentation(sale.status);
-  const remainingDays = daysUntil(sale.validUntilUtc);
+  const statusKey = (sale.status ?? '').toLowerCase();
+  const statusColor =
+    statusKey === 'active' ? 'green' : statusKey === 'cancelled' ? 'red' : statusKey === 'refunded' ? 'orange' : 'default';
 
   return (
     <BillingAccessGate>
@@ -107,106 +90,37 @@ export default function BillingSaleDetailPage() {
           >
             <Space wrap>
               <Button icon={<ArrowLeftOutlined />} onClick={() => router.back()}>
-                Zurück
+                {t('billing.licenseSales.detail.back')}
               </Button>
-              <h1 style={{ margin: 0 }}>Lizenzverkauf {sale.invoiceNumber ?? sale.id}</h1>
-              <Tag color={statusColor}>{statusLabel}</Tag>
-            </Space>
-            <Space wrap>
-              <Button
-                icon={<FilePdfOutlined />}
-                loading={pdfLoading}
-                onClick={() => void handlePdfDownload()}
-              >
-                PDF Herunterladen
-              </Button>
-              {sale.status === 'active' ? (
-                <Button
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={handleCancel}
-                  loading={cancelMutation.isPending}
-                >
-                  Stornieren
-                </Button>
-              ) : null}
+              <h1 style={{ margin: 0 }}>
+                {t('billing.licenseSales.detail.pageTitle', {
+                  invoice: sale.invoiceNumber ?? sale.id ?? '',
+                })}
+              </h1>
+              <Tag color={statusColor}>{formatSaleStatusLabel(sale.status, t)}</Tag>
             </Space>
           </div>
 
           <Card>
-            <Descriptions column={{ xs: 1, sm: 2, md: 3 }} bordered size="small">
-              <Descriptions.Item label="Rechnungsnummer">
-                {sale.invoiceNumber ?? '—'}
-              </Descriptions.Item>
-              <Descriptions.Item label="Datum">
-                {sale.soldAtUtc ? formatGermanDateTime(sale.soldAtUtc) : '—'}
-              </Descriptions.Item>
-              <Descriptions.Item label="Bearbeiter">{sale.soldBy ?? 'System'}</Descriptions.Item>
-
-              <Descriptions.Item label="Mandant">{sale.tenantName ?? '—'}</Descriptions.Item>
-              <Descriptions.Item label="Slug">{sale.tenantSlug ?? '—'}</Descriptions.Item>
-              <Descriptions.Item label="Lizenzplan">{sale.licensePlan ?? '—'}</Descriptions.Item>
-
-              <Descriptions.Item label="Lizenzschlüssel" span={2}>
-                <code>{sale.licenseKey ?? '—'}</code>
-              </Descriptions.Item>
-              <Descriptions.Item label="Status">
-                <Tag color={statusColor}>{statusLabel}</Tag>
-              </Descriptions.Item>
-
-              <Descriptions.Item label="Gültig ab">
-                {sale.validFromUtc ? formatGermanDateTime(sale.validFromUtc) : '—'}
-              </Descriptions.Item>
-              <Descriptions.Item label="Gültig bis">
-                <span style={{ fontWeight: 600 }}>
-                  {sale.validUntilUtc ? formatGermanDateTime(sale.validUntilUtc) : '—'}
-                </span>
-              </Descriptions.Item>
-              <Descriptions.Item label="Tage">
-                {remainingDays != null ? `${remainingDays} Tage` : '—'}
-              </Descriptions.Item>
-
-              <Descriptions.Item label="Preis (Netto)">
-                {sale.priceNet != null ? `€ ${sale.priceNet.toFixed(2)}` : '—'}
-              </Descriptions.Item>
-              <Descriptions.Item label={`MwSt. (${sale.vatRate ?? 0}%)`}>
-                {sale.vatAmount != null ? `€ ${sale.vatAmount.toFixed(2)}` : '—'}
-              </Descriptions.Item>
-              <Descriptions.Item label="Preis (Brutto)">
-                <span style={{ fontSize: 18, fontWeight: 700, color: '#1a56db' }}>
-                  {sale.priceGross != null ? `€ ${sale.priceGross.toFixed(2)}` : '—'}
-                </span>
-              </Descriptions.Item>
-            </Descriptions>
+            <LicenseSaleDetailPanel
+              sale={sale}
+              tenant={tenantQuery.data}
+              tenantLoading={tenantQuery.isLoading}
+              pdfLoading={pdfLoading}
+              onDownloadInvoice={() => void handlePdfDownload()}
+              onCancelSale={() => setCancelOpen(true)}
+              showFullPageLink={false}
+            />
           </Card>
-
-          {sale.notes ? (
-            <Card title="Notizen">
-              <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{sale.notes}</p>
-            </Card>
-          ) : null}
-
-          {sale.status === 'cancelled' && sale.cancellationReason ? (
-            <Card title="Stornierungsinformationen" style={{ borderColor: '#dc2626' }}>
-              <p>
-                <strong>Grund:</strong> {sale.cancellationReason}
-              </p>
-              <p style={{ marginBottom: 0 }}>
-                <strong>Datum:</strong>{' '}
-                {sale.cancelledAtUtc ? formatGermanDateTime(sale.cancelledAtUtc) : '—'}
-              </p>
-            </Card>
-          ) : null}
         </Space>
       </div>
 
       {cancelOpen ? (
         <BillingSaleDetailCancelModal
-          saleId={id}
           loading={cancelMutation.isPending}
           onClose={() => setCancelOpen(false)}
           onSuccess={async () => {
-            message.success('Lizenzverkauf wurde storniert');
+            message.success(t('billing.sales.cancelSuccess'));
             setCancelOpen(false);
             await refetch();
           }}
@@ -225,7 +139,6 @@ export default function BillingSaleDetailPage() {
 }
 
 type BillingSaleDetailCancelModalProps = {
-  saleId: string;
   loading: boolean;
   onClose: () => void;
   onSuccess: () => void | Promise<void>;
@@ -240,6 +153,7 @@ function BillingSaleDetailCancelModal({
   onError,
   onCancel,
 }: BillingSaleDetailCancelModalProps) {
+  const { t } = useI18n();
   const [form] = Form.useForm<{ cancellationReason: string }>();
 
   const handleOk = async () => {
@@ -256,31 +170,28 @@ function BillingSaleDetailCancelModal({
   return (
     <Modal
       open
-      title="Lizenzverkauf stornieren"
+      title={t('billing.sales.cancelConfirmTitle')}
       onCancel={onClose}
       onOk={handleOk}
       confirmLoading={loading}
-      okText="Ja, stornieren"
+      okText={t('billing.sales.cancelSale')}
       okButtonProps={{ danger: true }}
-      cancelText="Abbrechen"
+      cancelText={t('common.buttons.cancel')}
       destroyOnHidden
     >
-      <p>Möchten Sie diesen Lizenzverkauf wirklich stornieren?</p>
-      <p style={{ color: '#dc2626', fontSize: 12 }}>
-        Die Lizenz wird deaktiviert und der Mandant verliert den Zugang.
-      </p>
+      <p>{t('billing.detail.cancelConfirmMessage')}</p>
       <Form
         form={form}
         layout="vertical"
         style={{ marginTop: 16 }}
-        initialValues={{ cancellationReason: 'Storniert durch Administrator' }}
+        initialValues={{ cancellationReason: t('billing.detail.cancelDefaultReason') }}
       >
         <Form.Item
           name="cancellationReason"
-          label="Stornierungsgrund"
+          label={t('billing.sales.cancelReasonLabel')}
           rules={[
-            { required: true, message: 'Bitte einen Grund angeben (mind. 10 Zeichen).' },
-            { min: CANCEL_REASON_MIN_LENGTH, message: 'Bitte mindestens 10 Zeichen eingeben.' },
+            { required: true, message: t('billing.sales.cancelReasonRequired') },
+            { min: CANCEL_REASON_MIN_LENGTH, message: t('billing.sales.cancelReasonRequired') },
           ]}
         >
           <Input.TextArea rows={3} />

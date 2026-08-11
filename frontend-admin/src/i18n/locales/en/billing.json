@@ -79,6 +79,7 @@
     "cancelWarning": "The license will be deactivated and the tenant will lose access.",
     "cancelSuccess": "License sale cancelled",
     "cancelFailed": "Cancellation failed",
+    "cancelDefaultReason": "Cancelled by administrator",
     "invoiceNumber": "Invoice number",
     "date": "Date",
     "user": "Processed by",
@@ -175,6 +176,126 @@
     "sixMonths": "6 months",
     "twelveMonths": "1 year",
     "custom": "Custom"
+  },
+  "licenseSales": {
+    "daysRemaining": "Days Remaining",
+    "daysRemainingFormat": "{{days}} days",
+    "daysRemainingFormatOne": "{{days}} day",
+    "endsToday": "Ends today",
+    "unlimited": "Unlimited",
+    "overdue": "{{days}} days overdue",
+    "healthTooltip": {
+      "expiresIn": "This license expires in {{days}} days",
+      "expiresInOne": "This license expires in {{days}} day",
+      "expiresToday": "This license expires today",
+      "expired": "This license expired {{days}} days ago",
+      "longTerm": "Long-term license (valid for more than 2 years)"
+    },
+    "filters": {
+      "searchPlaceholder": "License key or invoice number …",
+      "statusLabel": "Status",
+      "planLabel": "Plan",
+      "tenantLabel": "Tenant",
+      "tenantPlaceholder": "Tenant",
+      "clear": "Clear filters",
+      "activeCount": "{{count}} active filters",
+      "status": {
+        "all": "All",
+        "active": "Active",
+        "expired": "Expired",
+        "pending": "Pending",
+        "revoked": "Revoked"
+      },
+      "plan": {
+        "all": "All",
+        "trial": "Trial",
+        "oneYear": "1 year",
+        "twoYears": "2 years",
+        "custom": "Custom"
+      }
+    },
+    "sort": {
+      "clickToSort": "Click to sort",
+      "defaultHint": "Default: Valid until (ascending — expiring first)"
+    },
+    "bulk": {
+      "selectedCount": "{{count}} license(s) selected",
+      "actionsLabel": "Bulk actions",
+      "actions": {
+        "extend30": "Extend license (+30 days)",
+        "extend90": "Extend license (+90 days)",
+        "extend365": "Extend license (+1 year)",
+        "revoke": "Revoke license",
+        "exportCsv": "Export as CSV"
+      },
+      "confirm": {
+        "title": "Confirm bulk action",
+        "extend30Title": "Extend licenses by 30 days",
+        "extend90Title": "Extend licenses by 90 days",
+        "extend365Title": "Extend licenses by 1 year",
+        "revokeTitle": "Revoke licenses",
+        "extendMessage": "{{count}} tenant license(s) will be extended (of {{selected}} selected).",
+        "revokeMessage": "{{count}} active license sale(s) will be revoked (of {{selected}} selected).",
+        "message": "{{count}} item(s) affected.",
+        "noneEligible": "None of the selected items are eligible for this action.",
+        "ok": "Confirm",
+        "revokeReasonLabel": "Revocation reason",
+        "revokeReasonRequired": "Please enter at least 10 characters.",
+        "revokeDefaultReason": "Bulk revocation by Super Admin"
+      },
+      "progress": {
+        "title": "Bulk action in progress…",
+        "status": "{{current}} / {{total}}: {{label}}"
+      },
+      "result": {
+        "success": "{{count}} action(s) completed successfully",
+        "partial": "{{success}} succeeded, {{failed}} failed",
+        "exportSuccess": "Exported {{count}} license(s) as CSV"
+      }
+    },
+    "detail": {
+      "title": "License sale — Details",
+      "pageTitle": "License sale {{invoice}}",
+      "back": "Back",
+      "notFound": "Sale not found",
+      "openFullPage": "Open full page",
+      "extendLicense": "Extend license",
+      "viewTenant": "View tenant",
+      "downloadInvoice": "Download invoice",
+      "yes": "Yes",
+      "no": "No",
+      "tenantActive": "Active",
+      "tenantInactive": "Inactive",
+      "sections": {
+        "license": "License",
+        "tenant": "Tenant",
+        "invoice": "Invoice",
+        "usage": "Usage"
+      },
+      "labels": {
+        "licenseKey": "License key",
+        "plan": "License plan",
+        "licenseType": "License type",
+        "status": "Status",
+        "validFrom": "Valid from",
+        "validUntil": "Valid until",
+        "daysRemaining": "Days remaining",
+        "appliedToTenant": "Applied to tenant",
+        "soldBy": "Sold by",
+        "notes": "Notes",
+        "cancellationReason": "Cancellation reason",
+        "tenantName": "Name",
+        "tenantSlug": "Slug",
+        "tenantStatus": "Status",
+        "invoiceNumber": "Invoice number",
+        "invoiceDate": "Invoice date",
+        "priceNet": "Net",
+        "vat": "VAT",
+        "priceGross": "Gross",
+        "registerCount": "Registers",
+        "userCount": "Users"
+      }
+    }
   },
   "status": {
     "active": "Active",

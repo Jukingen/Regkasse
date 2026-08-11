@@ -531,7 +531,7 @@
         "placeholder": "ör. Café Örnek GmbH",
         "hint": "Bu ad fiş ve faturalarınızda görünür.",
         "errors": {
-          "required": "Lütfen bir şirket adı girin.",
+          "required": "Lütfen bir şirket adı girin",
           "tooShort": "Şirket adı en az 2 karakter olmalıdır.",
           "tooLong": "Şirket adı en fazla 200 karakter olabilir."
         }
@@ -541,14 +541,16 @@
         "tooltip": "Müşterinin kasa ve yönetim adresi",
         "placeholder": "cafe-ornek",
         "hint": "Şirket adından otomatik önerilir",
+        "subdomainHint": "Subdomain için kullanılır: {{slug}}.{{domain}}",
         "availableShort": "Uygun",
-        "takenShort": "Zaten alınmış",
+        "takenShort": "Uygun değil",
         "checkingShort": "Uygunluk kontrol ediliyor …",
+        "suggestionsLabel": "Öneriler:",
         "success": "Bu adres kullanılabilir.",
         "errors": {
-          "required": "Lütfen bir subdomain girin (ör. cafe-example).",
-          "pattern": "Yalnızca küçük harf, rakam ve tire kullanılabilir",
-          "invalid": "Yalnızca küçük harf, rakam ve tire; tam domain yapıştırmayın.",
+          "required": "Lütfen bir subdomain girin (ör. cafe-ornek).",
+          "pattern": "Slug yalnızca küçük harf, rakam ve tire içerebilir",
+          "invalid": "Slug yalnızca küçük harf, rakam ve tire içerebilir; tam domain yapıştırmayın.",
           "reserved": "Bu subdomain rezerve (ör. admin, www).",
           "taken": "Bu subdomain zaten kullanılıyor.",
           "checking": "Uygunluk kontrol ediliyor …",
@@ -559,10 +561,10 @@
         "label": "E-posta (iletişim)",
         "tooltip": "Bildirimler ve destek talepleri için",
         "placeholder": "iletisim@cafe-example.at",
-        "hint": "Önemli sistem bildirimlerini bu adrese göndeririz.",
+        "hint": "Bu e-posta admin kullanıcısı için kullanılır",
         "errors": {
-          "required": "Lütfen geçerli bir e-posta adresi girin.",
-          "invalid": "Lütfen geçerli bir e-posta adresi girin."
+          "required": "Lütfen geçerli bir e-posta adresi girin",
+          "invalid": "Lütfen geçerli bir e-posta adresi girin"
         }
       },
       "phone": {
@@ -595,10 +597,6 @@
         "label": "30 günlük demo lisansını etkinleştir (ücretsiz)",
         "tooltip": "30 gün ücretsiz deneme, ardından uzatma mümkün"
       },
-      "autoDemoSetup": {
-        "label": "Demo ürünler ve kasayı otomatik oluştur",
-        "tooltip": "Ana kasa ve üç demo ürün oluşturur (önerilir)"
-      },
       "importDemoProducts": {
         "label": "Demo ürünleri otomatik içe aktar",
         "tooltip": "Yalnızca üç örnek ürün yerine tam demo menüsünü (salatalar, pizzalar, makarna, kebap, …) içe aktarır"
@@ -620,6 +618,9 @@
     "passwordWarning": "Bu şifre yalnızca ŞİMDİ, bir kez gösterilir!",
     "credentialsTitle": "Erişim bilgileri (tek seferlik!)",
     "adminEmailLabel": "Admin e-posta",
+    "usernameLabel": "Kullanıcı adı",
+    "loginUrlLabel": "Giriş URL’si",
+    "tenantPortalLabel": "Mandant portalı",
     "password": "Şifre",
     "showPassword": "Şifreyi göster",
     "hidePassword": "Şifreyi gizle",
@@ -631,14 +632,20 @@
       "good": "İyi",
       "strong": "Çok güçlü"
     },
-    "firstStepsTitle": "İlk adımlar",
+    "firstStepsTitle": "Sonraki adımlar",
     "firstStepLogin": "Müşteri girişi:",
     "firstStepChangePassword": "Şifreyi değiştir",
     "firstStepProducts": "Ürünleri uyarla",
     "firstStepPrinter": "Kasayı yazıcıya bağla",
     "firstStepTestSale": "Test satışı yap",
+    "firstStepLoginAdmin": "Admin paneline giriş yapın",
+    "firstStepCompanySettings": "Firma ayarlarını yapılandırın (vergi numarası, adres)",
+    "firstStepCashRegister": "Kasayı kurun ve bağlayın",
+    "firstStepStartPos": "POS’u kullanmaya başlayın ve test satışı yapın",
     "emailSent": "Erişim bilgileri içeren e-posta {{email}} adresine gönderildi.",
     "emailNotSent": "SMTP yapılandırılmadı veya gönderim başarısız. Erişim bilgilerini {{email}} ile manuel paylaşın.",
+    "emailCredentials": "Kimlik bilgilerini e-posta ile gönder",
+    "emailCredentialsDisabled": "Hoş geldiniz e-postası oluşturma sırasında otomatik denenir (SMTP).",
     "forcePasswordChange": "Müşteri ilk girişte şifreyi değiştirmelidir.",
     "createAnother": "Yeni müşteri ekle",
     "switchToTenant": "Müşteriye geç",

@@ -820,7 +820,8 @@
       "reject": "Ablehnen"
     },
     "messages": {
-      "requestCreated": "Restore-Anfrage erstellt — Freigabe durch zweiten Administrator erforderlich.",
+      "requestCreated": "Restore-Anfrage erstellt — Freigabe erforderlich",
+      "requestExecuting": "Restore wird ausgeführt…",
       "approvalSubmitted": "Freigabe übermittelt — Validierung läuft im Hintergrund.",
       "rejected": "Anfrage abgelehnt."
     },

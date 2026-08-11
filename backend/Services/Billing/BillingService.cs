@@ -232,6 +232,7 @@ public sealed class BillingService : IBillingService
         CancellationToken ct = default)
     {
         var db = _dbContext;
+        var now = DateTime.UtcNow;
 
         var page = Math.Max(1, query.Page);
         var pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
@@ -248,11 +249,26 @@ public sealed class BillingService : IBillingService
             var status = query.Status.Trim();
             if (!string.Equals(status, "all", StringComparison.OrdinalIgnoreCase))
             {
-                if (!LicenseSaleStatuses.IsValid(status))
-                    throw new ArgumentException("Invalid status filter.", nameof(query));
-
-                salesQuery = salesQuery.Where(l => l.Status == status);
+                salesQuery = ApplyStatusFilter(salesQuery, status, now);
             }
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.LicensePlan))
+        {
+            var plan = query.LicensePlan.Trim();
+            if (!LicenseSalePlans.IsValid(plan))
+                throw new ArgumentException("Invalid license plan filter.", nameof(query));
+
+            salesQuery = salesQuery.Where(l => l.LicensePlan == plan);
+        }
+
+        if (query.LicenseType.HasValue)
+            salesQuery = salesQuery.Where(l => l.LicenseType == query.LicenseType.Value);
+
+        if (query.MinDurationDays is > 0)
+        {
+            var minDays = query.MinDurationDays.Value;
+            salesQuery = salesQuery.Where(l => l.ValidUntilUtc >= l.ValidFromUtc.AddDays(minDays));
         }
 
         if (query.FromDate.HasValue)
@@ -271,8 +287,8 @@ public sealed class BillingService : IBillingService
         }
 
         var totalCount = await salesQuery.CountAsync(ct).ConfigureAwait(false);
-        var items = await salesQuery
-            .OrderByDescending(l => l.SoldAtUtc)
+        var orderedQuery = ApplySort(salesQuery, query.SortBy, query.SortDir);
+        var items = await orderedQuery
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct)
@@ -289,6 +305,81 @@ public sealed class BillingService : IBillingService
             PageSize = pageSize,
             TotalPages = totalPages,
         };
+    }
+
+    private static IQueryable<LicenseSale> ApplySort(
+        IQueryable<LicenseSale> salesQuery,
+        string? sortBy,
+        string? sortDir)
+    {
+        var desc = string.Equals(sortDir?.Trim(), "desc", StringComparison.OrdinalIgnoreCase);
+        var key = (sortBy ?? "validUntilUtc").Trim().ToLowerInvariant();
+
+        IOrderedQueryable<LicenseSale> ordered = key switch
+        {
+            "invoicenumber" => desc
+                ? salesQuery.OrderByDescending(l => l.InvoiceNumber)
+                : salesQuery.OrderBy(l => l.InvoiceNumber),
+            "tenant" => desc
+                ? salesQuery.OrderByDescending(l => l.Tenant != null ? l.Tenant.Name : string.Empty)
+                : salesQuery.OrderBy(l => l.Tenant != null ? l.Tenant.Name : string.Empty),
+            "licensekey" => desc
+                ? salesQuery.OrderByDescending(l => l.LicenseKey)
+                : salesQuery.OrderBy(l => l.LicenseKey),
+            "licenseplan" or "plan" => desc
+                ? salesQuery.OrderByDescending(l => l.LicensePlan)
+                : salesQuery.OrderBy(l => l.LicensePlan),
+            "pricegross" or "brutto" => desc
+                ? salesQuery.OrderByDescending(l => l.PriceGross)
+                : salesQuery.OrderBy(l => l.PriceGross),
+            "pricenet" or "netto" => desc
+                ? salesQuery.OrderByDescending(l => l.PriceNet)
+                : salesQuery.OrderBy(l => l.PriceNet),
+            "soldatutc" or "soldat" => desc
+                ? salesQuery.OrderByDescending(l => l.SoldAtUtc)
+                : salesQuery.OrderBy(l => l.SoldAtUtc),
+            // daysRemaining is derived from valid-until (ascending = expiring first)
+            "daysremaining" or "validuntilutc" or "validuntil" => desc
+                ? salesQuery.OrderByDescending(l => l.ValidUntilUtc)
+                : salesQuery.OrderBy(l => l.ValidUntilUtc),
+            _ => throw new ArgumentException("Invalid sort field.", nameof(sortBy)),
+        };
+
+        return ordered.ThenByDescending(l => l.Id);
+    }
+
+    private static IQueryable<LicenseSale> ApplyStatusFilter(
+        IQueryable<LicenseSale> salesQuery,
+        string status,
+        DateTime nowUtc)
+    {
+        if (string.Equals(status, "expired", StringComparison.OrdinalIgnoreCase))
+        {
+            return salesQuery.Where(l =>
+                l.Status == LicenseSaleStatuses.Active && l.ValidUntilUtc <= nowUtc);
+        }
+
+        if (string.Equals(status, "pending", StringComparison.OrdinalIgnoreCase))
+        {
+            return salesQuery.Where(l =>
+                l.Status == LicenseSaleStatuses.Active
+                && (l.Tenant == null || l.Tenant.CurrentLicenseSaleId != l.Id));
+        }
+
+        if (string.Equals(status, "revoked", StringComparison.OrdinalIgnoreCase))
+            return salesQuery.Where(l => l.Status == LicenseSaleStatuses.Cancelled);
+
+        // "active" in the list UI means currently valid (not past valid-until).
+        if (string.Equals(status, LicenseSaleStatuses.Active, StringComparison.OrdinalIgnoreCase))
+        {
+            return salesQuery.Where(l =>
+                l.Status == LicenseSaleStatuses.Active && l.ValidUntilUtc > nowUtc);
+        }
+
+        if (!LicenseSaleStatuses.IsValid(status))
+            throw new ArgumentException("Invalid status filter.", nameof(status));
+
+        return salesQuery.Where(l => l.Status == status);
     }
 
     public async Task<LicenseSaleResponse> CancelLicenseSaleAsync(

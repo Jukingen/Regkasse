@@ -190,6 +190,27 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
 
     private async Task<AuthTenantSnapshot> ResolveLegacyDefaultSnapshotAsync(CancellationToken cancellationToken)
     {
+        // Development: prefer seeded `dev` over unused legacy `default` when login has no membership.
+        if (_environment.IsDevelopment())
+        {
+            var devRow = await _db.Tenants.AsNoTracking()
+                .FirstOrDefaultAsync(
+                    t => t.Id == DemoTenantIds.Dev
+                        || t.Slug == "dev",
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (devRow != null
+                && !TenantStatuses.IsRemoved(devRow.Status)
+                && devRow.IsActive)
+            {
+                _logger.LogInformation(
+                    "Login tenant: Development fallback bound to seeded preset {TenantId} ({Slug}) instead of legacy default",
+                    devRow.Id,
+                    devRow.Slug);
+                return new AuthTenantSnapshot(devRow.Id.ToString("D"), devRow.Name, devRow.Slug, null, null);
+            }
+        }
+
         var primary = LegacyDefaultTenantIds.Primary;
         var rowDefault = await _db.Tenants.AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == primary, cancellationToken)

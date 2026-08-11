@@ -1,7 +1,8 @@
 'use client';
 
 /**
- * Super-admin tenant onboarding wizard: form → progress → success or structured error.
+ * Single-step tenant creation wizard. Multi-step version removed to reduce confusion.
+ * Form → processing progress → success or structured error.
  */
 import { useMutation } from '@tanstack/react-query';
 import { Button, Form, Modal } from 'antd';
@@ -13,7 +14,7 @@ import {
   createAdminTenant,
 } from '@/features/super-admin/api/adminTenants';
 import { CreateTenantProcessingView } from '@/features/super-admin/components/CreateTenantProcessingView';
-import { type CreateTenantFormValues } from '@/features/super-admin/components/CreateTenantWizard/types';
+import { type CreateTenantFormValues } from '@/features/super-admin/components/createTenantFormTypes';
 import { OnboardingErrorModal } from '@/features/super-admin/components/OnboardingErrorModal';
 import {
   OnboardingSuccessModal,
@@ -127,7 +128,6 @@ function CreateTenantWizardContent({
     } else if (phase === 'form') {
       form.setFieldsValue({
         grantTrialLicense: true,
-        autoDemoSetup: true,
         importDemoProducts: true,
       });
     }
@@ -234,7 +234,7 @@ function CreateTenantWizardContent({
           form={form}
           layout="vertical"
           requiredMark="optional"
-          initialValues={{ grantTrialLicense: true, autoDemoSetup: true, importDemoProducts: true }}
+          initialValues={{ grantTrialLicense: true, importDemoProducts: true }}
           onFinish={submitFromForm}
         >
           <TenantFormFields form={form} open={open} fieldState={formFields} />

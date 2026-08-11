@@ -4,8 +4,6 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Services.TwoFactor;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -150,23 +148,17 @@ public sealed class DownloadSecurityService : IDownloadSecurityService
 
     private readonly AppDbContext _db;
     private readonly DownloadSecurityOptions _options;
-    private readonly ITwoFactorService _twoFactor;
-    private readonly UserManager<ApplicationUser> _userManager;
     private readonly IAuditLogService _audit;
     private readonly ILogger<DownloadSecurityService> _logger;
 
     public DownloadSecurityService(
         AppDbContext db,
         IOptions<DownloadSecurityOptions> options,
-        ITwoFactorService twoFactor,
-        UserManager<ApplicationUser> userManager,
         IAuditLogService audit,
         ILogger<DownloadSecurityService> logger)
     {
         _db = db;
         _options = options.Value;
-        _twoFactor = twoFactor;
-        _userManager = userManager;
         _audit = audit;
         _logger = logger;
     }
@@ -275,33 +267,6 @@ public sealed class DownloadSecurityService : IDownloadSecurityService
                 }
 
                 approvalId = approval.Id;
-            }
-        }
-
-        if (_options.RequireTwoFactorForCriticalExports
-            && SensitiveExportKinds.RequiresCriticalTwoFactor(kind))
-        {
-            if (string.IsNullOrWhiteSpace(request.TwoFactorCode))
-            {
-                return DownloadSecurityEvaluateResult.Deny(
-                    403,
-                    "SENSITIVE_EXPORT_2FA_REQUIRED",
-                    "Two-factor authentication code is required (header X-2FA-Code).");
-            }
-
-            var user = await _userManager.FindByIdAsync(request.UserId).ConfigureAwait(false);
-            if (user == null)
-                return DownloadSecurityEvaluateResult.Deny(401, "DOWNLOAD_AUTH_REQUIRED", "User not found.");
-
-            var ok = await _twoFactor
-                .VerifyTwoFactorTokenAsync(user, request.TwoFactorCode.Trim(), cancellationToken)
-                .ConfigureAwait(false);
-            if (!ok)
-            {
-                return DownloadSecurityEvaluateResult.Deny(
-                    403,
-                    "SENSITIVE_EXPORT_2FA_INVALID",
-                    "Invalid two-factor authentication code.");
             }
         }
 

@@ -3,32 +3,33 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { getApiAdminBillingLicenseSales } from '@/api/generated/admin/admin';
-import type { LicenseSaleListQuery } from '@/features/billing/api/billingApi';
+import type { GetApiAdminBillingLicenseSalesParams } from '@/api/generated/model';
 import { billingQueryKeys } from '@/features/billing/constants/billingQueryKeys';
 import { useBillingAccess } from '@/features/billing/hooks/useBillingAccess';
+import {
+  type BillingSalesFilterState,
+  toBillingSalesListApiParams,
+} from '@/features/billing/utils/billingSalesFilters';
 
-export type BillingSalesListFilters = LicenseSaleListQuery;
+export type BillingSalesListFilters = BillingSalesFilterState;
 
-function normalizeSalesListParams(filters: BillingSalesListFilters) {
-  return {
-    page: filters.page,
-    pageSize: filters.pageSize,
-    tenantId: filters.tenantId,
-    search: filters.search?.trim() || undefined,
-    status: filters.status && filters.status !== 'all' ? filters.status : undefined,
-    fromDate: filters.fromDate,
-    toDate: filters.toDate,
-  };
-}
-
-export function useBillingSalesList(filters: BillingSalesListFilters) {
+export function useBillingSalesList(filters: BillingSalesFilterState) {
   const canAccess = useBillingAccess();
-  const params = normalizeSalesListParams(filters);
+  const params = toBillingSalesListApiParams(filters) as GetApiAdminBillingLicenseSalesParams & {
+    page: number;
+    pageSize: number;
+    licensePlan?: string;
+    licenseType?: string;
+    minDurationDays?: number;
+    sortBy?: string;
+    sortDir?: string;
+  };
 
   return useQuery({
     queryKey: billingQueryKeys.salesList(params),
     queryFn: () => getApiAdminBillingLicenseSales(params),
     enabled: canAccess,
     staleTime: 30 * 1000,
+    placeholderData: (previous) => previous,
   });
 }

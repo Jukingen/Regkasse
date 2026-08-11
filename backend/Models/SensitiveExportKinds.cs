@@ -1,6 +1,6 @@
 namespace KasseAPI_Final.Models;
 
-/// <summary>Sensitive export categories that may require approval / 2FA / privacy ack.</summary>
+/// <summary>Sensitive export categories that may require approval / privacy ack.</summary>
 public static class SensitiveExportKinds
 {
     public const string GdprDataExport = "gdpr-data-export";
@@ -17,9 +17,15 @@ public static class SensitiveExportKinds
     public static bool IsValid(string? kind) =>
         !string.IsNullOrWhiteSpace(kind) && All.Contains(kind.Trim());
 
-    public static bool RequiresCriticalTwoFactor(string kind) =>
-        string.Equals(kind, SystemBackup, StringComparison.OrdinalIgnoreCase)
-        || string.Equals(kind, AuditLogExport, StringComparison.OrdinalIgnoreCase);
+    /// <summary>
+    /// Legacy classifier for kinds that formerly required step-up TOTP.
+    /// Download security no longer enforces 2FA; kept for policy DTO compatibility.
+    /// </summary>
+    public static bool RequiresCriticalTwoFactor(string kind)
+    {
+        _ = kind;
+        return false;
+    }
 
     public static bool RequiresPrivacyAck(string kind) => IsValid(kind);
 }

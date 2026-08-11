@@ -1,7 +1,8 @@
 'use client';
 
 /**
- * Dedicated Super Admin route for the multi-step create-tenant wizard.
+ * Dedicated Super Admin route for single-step tenant creation
+ * (`CreateTenantWizard.tsx`). Multi-step version archived to reduce confusion.
  */
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';

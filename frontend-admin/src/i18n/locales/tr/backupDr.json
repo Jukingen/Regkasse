@@ -820,7 +820,8 @@
       "reject": "Reddet"
     },
     "messages": {
-      "requestCreated": "Geri yükleme isteği oluşturuldu — ikinci yönetici onayı gerekli.",
+      "requestCreated": "Geri yükleme isteği oluşturuldu — onay gerekli",
+      "requestExecuting": "Restore çalışıyor…",
       "approvalSubmitted": "Onay gönderildi — doğrulama arka planda çalışıyor.",
       "rejected": "İstek reddedildi."
     },

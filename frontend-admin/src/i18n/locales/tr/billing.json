@@ -79,6 +79,7 @@
     "cancelWarning": "Lisans devre dışı bırakılır ve kiracı erişimini kaybeder.",
     "cancelSuccess": "Lisans satışı iptal edildi",
     "cancelFailed": "İptal başarısız",
+    "cancelDefaultReason": "Yönetici tarafından iptal edildi",
     "invoiceNumber": "Fatura numarası",
     "date": "Tarih",
     "user": "İşleyen",
@@ -175,6 +176,126 @@
     "sixMonths": "6 ay",
     "twelveMonths": "1 yıl",
     "custom": "Özel"
+  },
+  "licenseSales": {
+    "daysRemaining": "Kalan Gün",
+    "daysRemainingFormat": "{{days}} gün",
+    "daysRemainingFormatOne": "{{days}} gün",
+    "endsToday": "Bugün bitiyor",
+    "unlimited": "Süresiz",
+    "overdue": "{{days}} gün gecikti",
+    "healthTooltip": {
+      "expiresIn": "Bu lisans {{days}} gün içinde sona eriyor",
+      "expiresInOne": "Bu lisans {{days}} gün içinde sona eriyor",
+      "expiresToday": "Bu lisans bugün sona eriyor",
+      "expired": "Bu lisans {{days}} gün önce sona erdi",
+      "longTerm": "Uzun vadeli lisans (2 yıldan uzun süre geçerli)"
+    },
+    "filters": {
+      "searchPlaceholder": "Lisans anahtarı veya fatura no …",
+      "statusLabel": "Durum",
+      "planLabel": "Plan",
+      "tenantLabel": "Kiracı",
+      "tenantPlaceholder": "Kiracı",
+      "clear": "Filtreleri temizle",
+      "activeCount": "{{count}} aktif filtre",
+      "status": {
+        "all": "Tümü",
+        "active": "Aktif",
+        "expired": "Süresi dolmuş",
+        "pending": "Beklemede",
+        "revoked": "İptal"
+      },
+      "plan": {
+        "all": "Tümü",
+        "trial": "Trial",
+        "oneYear": "1 Yıl",
+        "twoYears": "2 Yıl",
+        "custom": "Özel"
+      }
+    },
+    "sort": {
+      "clickToSort": "Sıralamak için tıklayın",
+      "defaultHint": "Varsayılan: Geçerlilik (artan — önce bitenler)"
+    },
+    "bulk": {
+      "selectedCount": "{{count}} lisans seçildi",
+      "actionsLabel": "Toplu işlemler",
+      "actions": {
+        "extend30": "Lisansı uzat (+30 gün)",
+        "extend90": "Lisansı uzat (+90 gün)",
+        "extend365": "Lisansı uzat (+1 yıl)",
+        "revoke": "Lisansı iptal et",
+        "exportCsv": "CSV olarak dışa aktar"
+      },
+      "confirm": {
+        "title": "Toplu işlemi onayla",
+        "extend30Title": "Lisansları 30 gün uzat",
+        "extend90Title": "Lisansları 90 gün uzat",
+        "extend365Title": "Lisansları 1 yıl uzat",
+        "revokeTitle": "Lisansları iptal et",
+        "extendMessage": "{{count}} müşteri lisansı uzatılacak ({{selected}} seçimden).",
+        "revokeMessage": "{{count}} aktif lisans satışı iptal edilecek ({{selected}} seçimden).",
+        "message": "{{count}} kayıt etkilenecek.",
+        "noneEligible": "Seçilen kayıtların hiçbiri bu işlem için uygun değil.",
+        "ok": "Onayla",
+        "revokeReasonLabel": "İptal nedeni",
+        "revokeReasonRequired": "Lütfen en az 10 karakter girin.",
+        "revokeDefaultReason": "Süper yönetici tarafından toplu iptal"
+      },
+      "progress": {
+        "title": "Toplu işlem sürüyor…",
+        "status": "{{current}} / {{total}}: {{label}}"
+      },
+      "result": {
+        "success": "{{count}} işlem başarıyla tamamlandı",
+        "partial": "{{success}} başarılı, {{failed}} başarısız",
+        "exportSuccess": "{{count}} lisans CSV olarak dışa aktarıldı"
+      }
+    },
+    "detail": {
+      "title": "Lisans satışı — Detay",
+      "pageTitle": "Lisans satışı {{invoice}}",
+      "back": "Geri",
+      "notFound": "Satış bulunamadı",
+      "openFullPage": "Tam sayfayı aç",
+      "extendLicense": "Lisansı uzat",
+      "viewTenant": "Kiracıyı göster",
+      "downloadInvoice": "Faturayı indir",
+      "yes": "Evet",
+      "no": "Hayır",
+      "tenantActive": "Aktif",
+      "tenantInactive": "Pasif",
+      "sections": {
+        "license": "Lisans",
+        "tenant": "Kiracı",
+        "invoice": "Fatura",
+        "usage": "Kullanım"
+      },
+      "labels": {
+        "licenseKey": "Lisans anahtarı",
+        "plan": "Lisans planı",
+        "licenseType": "Lisans tipi",
+        "status": "Durum",
+        "validFrom": "Başlangıç",
+        "validUntil": "Bitiş",
+        "daysRemaining": "Kalan gün",
+        "appliedToTenant": "Kiracıya atandı",
+        "soldBy": "Satan",
+        "notes": "Notlar",
+        "cancellationReason": "İptal gerekçesi",
+        "tenantName": "Ad",
+        "tenantSlug": "Slug",
+        "tenantStatus": "Durum",
+        "invoiceNumber": "Fatura no",
+        "invoiceDate": "Fatura tarihi",
+        "priceNet": "Net",
+        "vat": "KDV",
+        "priceGross": "Brüt",
+        "registerCount": "Kasa sayısı",
+        "userCount": "Kullanıcı sayısı"
+      }
+    }
   },
   "status": {
     "active": "Aktif",

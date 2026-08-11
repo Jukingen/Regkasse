@@ -5,6 +5,7 @@ import { resolveActiveTenantId, tenantSlugsMatch } from '../resolveActiveTenantI
 describe('resolveActiveTenantIdentity', () => {
   it('matches canonical dev tenant slug aliases', () => {
     expect(tenantSlugsMatch('dev', 'test_cafe')).toBe(true);
+    // Legacy `default` must not match `dev` — JWT tenant_id would be the wrong Guid.
     expect(tenantSlugsMatch('default', 'dev')).toBe(false);
   });
 

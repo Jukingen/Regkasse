@@ -343,7 +343,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
         if (actorIsSuperAdmin || string.IsNullOrWhiteSpace(actorUserId))
         {
             var all = await ListAsync(includeDeleted, cancellationToken).ConfigureAwait(false);
-            return DeduplicateSwitcherItems(all);
+            return ExcludeUnusedDefaultTenant(DeduplicateSwitcherItems(all));
         }
 
         var items = await ListAsync(includeDeleted: false, cancellationToken).ConfigureAwait(false);
@@ -371,13 +371,22 @@ public sealed partial class AdminTenantService : IAdminTenantService
         }
 
         var allowed = memberTenantIds.ToHashSet();
-        return DeduplicateSwitcherItems(items.Where(t => allowed.Contains(t.Id)));
+        return ExcludeUnusedDefaultTenant(DeduplicateSwitcherItems(items.Where(t => allowed.Contains(t.Id))));
     }
 
     /// <summary>Guards switcher API against duplicate tenant ids (defensive; ListAsync is already one row per tenant).</summary>
     private static List<AdminTenantListItemDto> DeduplicateSwitcherItems(
         IEnumerable<AdminTenantListItemDto> items) =>
         items.DistinctBy(t => t.Id).ToList();
+
+    /// <summary>
+    /// Default tenant is excluded as it's not used in development (legacy Wave-0 row; prefer seeded <c>dev</c>).
+    /// </summary>
+    private static IReadOnlyList<AdminTenantListItemDto> ExcludeUnusedDefaultTenant(
+        IEnumerable<AdminTenantListItemDto> items) =>
+        items
+            .Where(t => !string.Equals(t.Slug, LegacyDefaultTenantIds.PrimarySlug, StringComparison.OrdinalIgnoreCase))
+            .ToList();
 
     public async Task<AdminTenantDetailDto?> GetByIdAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {

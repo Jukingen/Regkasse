@@ -37,6 +37,7 @@ export default defineConfig({
     exclude: [
       ...configDefaults.exclude,
       'tests/e2e/**',
+      '**/_archive/**',
       '**/.next/**',
       '**/node_modules/**',
       '**/coverage/**',

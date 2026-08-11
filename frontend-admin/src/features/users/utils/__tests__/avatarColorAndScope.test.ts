@@ -23,7 +23,9 @@ describe('userScope', () => {
     expect(isPlatformUserRole('SuperAdmin')).toBe(true);
     expect(isBusinessTenantSlug(null)).toBe(false);
     expect(isBusinessTenantSlug('admin')).toBe(false);
+    expect(isBusinessTenantSlug('default')).toBe(false);
     expect(isBusinessTenantSlug('cafe')).toBe(true);
+    expect(isBusinessTenantSlug('dev')).toBe(true);
   });
 });
 

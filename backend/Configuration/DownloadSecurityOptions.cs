@@ -17,8 +17,11 @@ public sealed class DownloadSecurityOptions
     /// <summary>Require Super Admin approval for GDPR / system backup / audit exports.</summary>
     public bool RequireApprovalForSensitiveExports { get; set; } = true;
 
-    /// <summary>Require step-up TOTP for system backup and audit log export downloads.</summary>
-    public bool RequireTwoFactorForCriticalExports { get; set; } = true;
+    /// <summary>
+    /// Legacy flag: step-up TOTP for critical exports is no longer enforced.
+    /// Kept for config / policy API compatibility; prefer leaving <c>false</c>.
+    /// </summary>
+    public bool RequireTwoFactorForCriticalExports { get; set; } = false;
 
     /// <summary>When true, Super Admin may self-approve without a second actor.</summary>
     public bool SuperAdminMaySelfApprove { get; set; } = true;

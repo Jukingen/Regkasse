@@ -18,6 +18,7 @@ import {
 import { CHANGE_PASSWORD_PATH } from '@/features/auth/constants/changePasswordRoute';
 import { buildLoginFormRules } from '@/features/auth/constants/loginValidation';
 import { tenantStorage } from '@/features/auth/services/tenantStorage';
+import { writeDevTenantSlug } from '@/features/auth/services/devTenant';
 import { useI18n } from '@/i18n';
 import { getDefaultLandingPathFromStorage } from '@/lib/personalization/PersonalizationProvider';
 import { userPreferencesQueryKey } from '@/lib/personalization/userPreferencesApi';
@@ -85,7 +86,15 @@ export const LoginForm: FC = () => {
         tenantId: loginUser?.tenantId,
         tenantSlug: loginUser?.tenantSlug,
       });
+      // In development, automatically prefer "dev" when login resolved unused legacy `default` / platform slug.
+      // Do not pair legacy JWT tenant id with slug `dev` — HeaderDevTenantSwitch / TenantGuard rebind correctly.
       if (process.env.NODE_ENV === 'development') {
+        const slug = loginUser?.tenantSlug?.trim().toLowerCase() ?? '';
+        if (!slug || slug === 'default' || slug === 'admin') {
+          writeDevTenantSlug('dev');
+        } else if (slug === 'dev') {
+          writeDevTenantSlug('dev', loginUser?.tenantId);
+        }
         technicalConsole.devLog(
           '[LoginForm] JWT token pair saved to local storage (shared across tabs)'
         );

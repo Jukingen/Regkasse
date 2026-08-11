@@ -11,7 +11,15 @@ page?: number;
 pageSize?: number;
 tenantId?: string;
 status?: string;
+licensePlan?: string;
+/**
+ * Trial | Starter | Business | Plus
+ */
+licenseType?: string;
+minDurationDays?: number;
 fromDate?: string;
 toDate?: string;
 search?: string;
+sortBy?: string;
+sortDir?: string;
 };

@@ -1,60 +1,87 @@
 'use client';
 
 import { FilePdfOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
-import { Button, DatePicker, Input, Select, Space, Table, Tooltip } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import { useQuery } from '@tanstack/react-query';
+import { Button, DatePicker, Space, Table, Tooltip } from 'antd';
+import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
+import type { FilterValue, SorterResult } from 'antd/es/table/interface';
 import { type Dayjs } from 'dayjs';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import type { LicenseSaleResponse } from '@/api/generated/model';
+import { dateColumnRender } from '@/components/DateColumn';
 import { EmptyState } from '@/components/EmptyState';
 import { StatusBadge, resolveStatusType } from '@/components/StatusBadge';
 import { BillingAccessGate } from '@/features/billing/components/BillingAccessGate';
-import { useBillingSalesList } from '@/features/billing/hooks';
+import { BillingSalesBulkBar } from '@/features/billing/components/BillingSalesBulkBar';
+import {
+  BillingSalesBulkConfirmModal,
+  BillingSalesBulkProgressModal,
+} from '@/features/billing/components/BillingSalesBulkModals';
+import { BillingSalesFilterBar } from '@/features/billing/components/BillingSalesFilterBar';
+import { LicenseValidityCell } from '@/features/billing/components/LicenseValidityCell';
+import { useBillingAccess } from '@/features/billing/hooks/useBillingAccess';
+import { useBillingSalesList, useLicenseSalesBulkActions } from '@/features/billing/hooks';
+import {
+  DEFAULT_BILLING_SALES_FILTERS,
+  DEFAULT_LICENSE_SALES_SORT_BY,
+  DEFAULT_LICENSE_SALES_SORT_DIR,
+  type BillingSalesFilterState,
+  type LicenseSalesSortField,
+  billingSalesFiltersToSearchParams,
+  getLicenseSalesAntSortOrder,
+  isLicenseSalesSortField,
+  parseBillingSalesFiltersFromSearchParams,
+} from '@/features/billing/utils/billingSalesFilters';
 import { downloadLicenseSaleInvoicePdf } from '@/features/billing/utils/downloadInvoicePdf';
-import { dateColumnRender } from '@/components/DateColumn';
+import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 
 const { RangePicker } = DatePicker;
 
-const STATUS_OPTIONS = [
-  { value: 'all', label: 'Alle Status' },
-  { value: 'active', label: 'Aktiv' },
-  { value: 'cancelled', label: 'Storniert' },
-  { value: 'refunded', label: 'Rückerstattet' },
-] as const;
-
 export default function BillingSalesPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { message } = useAntdApp();
   const { t } = useI18n();
+  const canAccess = useBillingAccess();
   const [pdfLoadingId, setPdfLoadingId] = useState<string | null>(null);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [selectedRows, setSelectedRows] = useState<LicenseSaleResponse[]>([]);
+  const bulk = useLicenseSalesBulkActions();
 
-  const initialTenantId = useMemo(() => searchParams.get('tenantId') ?? undefined, [searchParams]);
+  const [filters, setFilters] = useState<BillingSalesFilterState>(() => ({
+    ...DEFAULT_BILLING_SALES_FILTERS,
+    ...parseBillingSalesFiltersFromSearchParams(new URLSearchParams(searchParams.toString())),
+  }));
 
-  const [filters, setFilters] = useState({
-    page: 1,
-    pageSize: 20,
-    search: '',
-    status: 'all',
-    tenantId: initialTenantId,
-    fromDate: undefined as string | undefined,
-    toDate: undefined as string | undefined,
+  const tenantsQuery = useQuery({
+    queryKey: ['admin-tenants', 'billing-filter'],
+    queryFn: () => listAdminTenants(false),
+    enabled: canAccess,
   });
 
-  const { data, isLoading, refetch } = useBillingSalesList(filters);
+  const tenantOptions = useMemo(
+    () =>
+      (tenantsQuery.data ?? []).map((tenant) => ({
+        value: tenant.id,
+        label: `${tenant.name} (${tenant.slug})`,
+      })),
+    [tenantsQuery.data]
+  );
 
-  const handleSearch = (value: string) => {
-    setFilters((prev) => ({ ...prev, search: value, page: 1 }));
-  };
+  const { data, isLoading, isFetching, refetch } = useBillingSalesList(filters);
 
-  const handleStatusChange = (value: string) => {
-    setFilters((prev) => ({ ...prev, status: value, page: 1 }));
-  };
+  useEffect(() => {
+    const next = billingSalesFiltersToSearchParams(filters).toString();
+    const current = searchParams.toString();
+    if (next === current) return;
+    router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
+  }, [filters, pathname, router, searchParams]);
 
   const handleDateRange = (range: [Dayjs | null, Dayjs | null] | null) => {
     setFilters((prev) => ({
@@ -62,6 +89,36 @@ export default function BillingSalesPage() {
       fromDate: range?.[0]?.startOf('day').toISOString(),
       toDate: range?.[1]?.endOf('day').toISOString(),
       page: 1,
+    }));
+  };
+
+  const clearFilters = () => {
+    setFilters({ ...DEFAULT_BILLING_SALES_FILTERS });
+  };
+
+  const handleTableChange = (
+    pagination: TablePaginationConfig,
+    _tableFilters: Record<string, FilterValue | null>,
+    sorter: SorterResult<LicenseSaleResponse> | SorterResult<LicenseSaleResponse>[]
+  ) => {
+    const active = Array.isArray(sorter) ? sorter[0] : sorter;
+    const columnKey = String(active.columnKey ?? active.field ?? '');
+    const nextSortBy: LicenseSalesSortField = isLicenseSalesSortField(columnKey)
+      ? columnKey
+      : DEFAULT_LICENSE_SALES_SORT_BY;
+    const nextSortDir =
+      active.order === 'ascend'
+        ? 'asc'
+        : active.order === 'descend'
+          ? 'desc'
+          : DEFAULT_LICENSE_SALES_SORT_DIR;
+
+    setFilters((prev) => ({
+      ...prev,
+      page: pagination.current ?? prev.page,
+      pageSize: pagination.pageSize ?? prev.pageSize,
+      sortBy: active.order ? nextSortBy : DEFAULT_LICENSE_SALES_SORT_BY,
+      sortDir: active.order ? nextSortDir : DEFAULT_LICENSE_SALES_SORT_DIR,
     }));
   };
 
@@ -84,6 +141,8 @@ export default function BillingSalesPage() {
       title: 'Rechnungsnummer',
       dataIndex: 'invoiceNumber',
       key: 'invoiceNumber',
+      sorter: true,
+      sortOrder: getLicenseSalesAntSortOrder('invoiceNumber', filters.sortBy, filters.sortDir),
       render: (text: string | null | undefined, record) =>
         record.id ? (
           <Button
@@ -100,7 +159,9 @@ export default function BillingSalesPage() {
     {
       title: 'Mandant',
       dataIndex: 'tenantName',
-      key: 'tenantName',
+      key: 'tenant',
+      sorter: true,
+      sortOrder: getLicenseSalesAntSortOrder('tenant', filters.sortBy, filters.sortDir),
       render: (text: string | null | undefined, record) =>
         record.tenantId ? (
           <Button
@@ -115,11 +176,19 @@ export default function BillingSalesPage() {
         ),
     },
     { title: 'Slug', dataIndex: 'tenantSlug', key: 'tenantSlug' },
-    { title: 'Lizenzplan', dataIndex: 'licensePlan', key: 'licensePlan' },
+    {
+      title: 'Lizenzplan',
+      dataIndex: 'licensePlan',
+      key: 'licensePlan',
+      sorter: true,
+      sortOrder: getLicenseSalesAntSortOrder('licensePlan', filters.sortBy, filters.sortDir),
+    },
     {
       title: 'Lizenzschlüssel',
       dataIndex: 'licenseKey',
       key: 'licenseKey',
+      sorter: true,
+      sortOrder: getLicenseSalesAntSortOrder('licenseKey', filters.sortBy, filters.sortDir),
       render: (text: string | null | undefined) => {
         if (!text) return '—';
         const short = text.length > 15 ? `${text.substring(0, 15)}…` : text;
@@ -134,12 +203,29 @@ export default function BillingSalesPage() {
       title: 'Gültig bis',
       dataIndex: 'validUntilUtc',
       key: 'validUntilUtc',
-      render: dateColumnRender('datetime'),
+      sorter: true,
+      sortOrder: getLicenseSalesAntSortOrder('validUntilUtc', filters.sortBy, filters.sortDir),
+      defaultSortOrder: 'ascend',
+      render: (value: string | null | undefined) => (
+        <LicenseValidityCell validUntilUtc={value} mode="date" />
+      ),
+    },
+    {
+      title: t('billing.licenseSales.daysRemaining'),
+      key: 'daysRemaining',
+      width: 160,
+      sorter: true,
+      sortOrder: getLicenseSalesAntSortOrder('daysRemaining', filters.sortBy, filters.sortDir),
+      render: (_, record) => (
+        <LicenseValidityCell validUntilUtc={record.validUntilUtc} mode="days" />
+      ),
     },
     {
       title: 'Betrag (Netto)',
       dataIndex: 'priceNet',
       key: 'priceNet',
+      sorter: true,
+      sortOrder: getLicenseSalesAntSortOrder('priceNet', filters.sortBy, filters.sortDir),
       align: 'right',
       render: (value: number | undefined) => (value != null ? `€ ${value.toFixed(2)}` : '—'),
     },
@@ -168,6 +254,8 @@ export default function BillingSalesPage() {
       title: 'Verkauft am',
       dataIndex: 'soldAtUtc',
       key: 'soldAtUtc',
+      sorter: true,
+      sortOrder: getLicenseSalesAntSortOrder('soldAtUtc', filters.sortBy, filters.sortDir),
       render: dateColumnRender('datetime'),
     },
     {
@@ -217,38 +305,53 @@ export default function BillingSalesPage() {
           </Button>
         </div>
 
-        <div style={{ marginBottom: 16, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Input.Search
-            placeholder="Suchen (Mandant, Schlüssel, Rechnung)"
-            onSearch={handleSearch}
-            style={{ width: 280 }}
-            allowClear
-          />
-          <Select
-            value={filters.status}
-            onChange={handleStatusChange}
-            style={{ width: 150 }}
-            options={STATUS_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
-          />
-          <RangePicker onChange={handleDateRange} />
-          <Button icon={<ReloadOutlined />} onClick={() => void refetch()}>
-            Aktualisieren
-          </Button>
-        </div>
+        <BillingSalesFilterBar
+          filters={filters}
+          onChange={setFilters}
+          onClear={clearFilters}
+          tenantOptions={tenantOptions}
+          tenantsLoading={tenantsQuery.isLoading}
+          extra={
+            <>
+              <RangePicker
+                key={`range-${filters.fromDate ?? ''}-${filters.toDate ?? ''}`}
+                onChange={handleDateRange}
+              />
+              <Button icon={<ReloadOutlined />} onClick={() => void refetch()}>
+                Aktualisieren
+              </Button>
+            </>
+          }
+        />
+
+        <BillingSalesBulkBar
+          selectedCount={selectedRows.length}
+          disabled={bulk.running}
+          onAction={(action) => bulk.requestAction(action, selectedRows)}
+        />
 
         <Table<LicenseSaleResponse>
           columns={columns}
           dataSource={data?.items ?? []}
           rowKey={(row) => row.id ?? row.licenseKey ?? row.invoiceNumber ?? 'row'}
-          loading={isLoading}
+          loading={isLoading || isFetching}
+          onChange={handleTableChange}
+          rowSelection={{
+            selectedRowKeys,
+            onChange: (keys, rows) => {
+              setSelectedRowKeys(keys);
+              setSelectedRows(rows);
+            },
+            preserveSelectedRowKeys: true,
+          }}
+          showSorterTooltip={{
+            title: t('billing.licenseSales.sort.clickToSort'),
+          }}
           pagination={{
             current: filters.page,
             pageSize: filters.pageSize,
             total: data?.totalCount ?? 0,
             showSizeChanger: true,
-            onChange: (page, pageSize) => {
-              setFilters((prev) => ({ ...prev, page, pageSize: pageSize ?? prev.pageSize }));
-            },
           }}
           locale={{
             emptyText: (
@@ -260,6 +363,21 @@ export default function BillingSalesPage() {
             ),
           }}
         />
+
+        <BillingSalesBulkConfirmModal
+          open={bulk.confirmOpen}
+          action={bulk.pendingAction}
+          selectedCount={selectedRows.length}
+          eligibleCount={bulk.eligibleCountForPending}
+          loading={bulk.running}
+          onCancel={bulk.closeConfirm}
+          onConfirm={async (reason) => {
+            await bulk.confirmPending(reason);
+            setSelectedRowKeys([]);
+            setSelectedRows([]);
+          }}
+        />
+        <BillingSalesBulkProgressModal open={bulk.progressOpen} progress={bulk.progress} />
       </div>
     </BillingAccessGate>
   );

@@ -16,6 +16,7 @@ import {
   PitrRestoreApprovalError,
   triggerPitrRestoreWithApproval,
 } from '@/features/backup/logic/pitrRestoreApproval';
+import { manualRestoreSuccessMessageKey } from '@/features/backup/logic/manualRestoreSuccessMessage';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 
@@ -45,9 +46,9 @@ export function PitrRestoreWorkflow({
     async (payload: PitrRestorePayload) => {
       setSubmitting(true);
       try {
-        await triggerPitrRestoreWithApproval(payload);
+        const result = await triggerPitrRestoreWithApproval(payload);
         setPitrModalOpen(false);
-        message.success(t('backupDr.manualRestore.messages.requestCreated'));
+        message.success(t(manualRestoreSuccessMessageKey(result.status)));
         void queryClient.invalidateQueries({ queryKey: ['/api/admin/restore'] });
       } catch (err) {
         if (err instanceof PitrRestoreApprovalError) {
@@ -63,7 +64,7 @@ export function PitrRestoreWorkflow({
         setSubmitting(false);
       }
     },
-    [queryClient, t]
+    [message, queryClient, t]
   );
 
   if (!canRestore) {

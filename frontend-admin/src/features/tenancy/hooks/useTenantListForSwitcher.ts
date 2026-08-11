@@ -63,7 +63,12 @@ export function useTenantListForSwitcher(options?: { includeDeleted?: boolean })
     }
   );
 
-  const tenants = useMemo(() => (query.data ?? []).map(mapTenantForSwitcher), [query.data]);
+  const tenants = useMemo(() => {
+    // Default tenant is excluded as it's not used in development (backend also filters; safety net).
+    return (query.data ?? [])
+      .filter((row) => row.slug !== 'default')
+      .map(mapTenantForSwitcher);
+  }, [query.data]);
 
   return {
     tenants,

@@ -825,7 +825,10 @@
   },
   "activityLog": {
     "title": "Lisans etkinlikleri",
-    "empty": "Yakın zamanda lisans etkinliği yok.",
+    "empty": "Son 30 günde lisans etkinliği yok",
+    "meta": "{{tenant}} · {{user}}",
+    "unknownTenant": "Bilinmeyen mandant",
+    "unknownUser": "Bilinmiyor",
     "descriptions": {
       "activated": "Lisans etkinleştirildi ({{key}})",
       "generated": "Lisans oluşturuldu ({{key}})",

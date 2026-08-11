@@ -215,7 +215,11 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
     [isSuperAdminUser, message, refreshTenantContext, refreshToken, setOpen, setTenant, t]
   );
 
-  /** Development DX: prefer `dev` mandant when Super Admin has no active context yet. */
+  /**
+   * Development DX: prefer `dev` mandant when Super Admin has no active context yet,
+   * or when JWT/bootstrap still points at unused legacy `default`.
+   * Production/Staging: no auto-redirect — JWT tenant after login; switcher is hidden.
+   */
   useEffect(() => {
     if (!shouldShowHeaderDevTenantSwitch() || !isSuperAdminUser) {
       return;
@@ -223,16 +227,24 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
     if (autoSelectAttemptedRef.current || isLoading) {
       return;
     }
-    if (apiTenant?.id || currentTenantId) {
+    if (tenants.length === 0) {
       return;
     }
-    if (tenants.length === 0) {
+
+    const currentSlug = (apiTenant?.slug ?? '').trim().toLowerCase();
+    const hasUsableContext =
+      Boolean(apiTenant?.id || currentTenantId) &&
+      currentSlug !== '' &&
+      currentSlug !== 'default' &&
+      currentSlug !== 'admin';
+    if (hasUsableContext) {
       return;
     }
 
     const preferred =
       tenants.find((row) => row.slug === 'dev' && row.isActive && row.status === 'active') ??
-      tenants.find((row) => row.isActive && row.status === 'active' && !tenantNeedsNoAdminWarning(row));
+      tenants.find((row) => row.isActive && row.status === 'active' && !tenantNeedsNoAdminWarning(row)) ??
+      tenants[0];
 
     if (!preferred) {
       return;
@@ -242,6 +254,7 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
     void handleTenantChange(preferred, { skipNoAdminWarning: preferred.slug === 'dev' });
   }, [
     apiTenant?.id,
+    apiTenant?.slug,
     currentTenantId,
     handleTenantChange,
     isLoading,

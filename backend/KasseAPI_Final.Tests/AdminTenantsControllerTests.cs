@@ -1195,6 +1195,37 @@ public sealed class AdminTenantsControllerTests
     }
 
     [Fact]
+    public async Task ListForSwitcherAsync_Excludes_Unused_Default_Tenant()
+    {
+        await using var db = CreateDb();
+        db.Tenants.Add(new Tenant
+        {
+            Id = LegacyDefaultTenantIds.Primary,
+            Name = "Default",
+            Slug = LegacyDefaultTenantIds.PrimarySlug,
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var list = await service.ListForSwitcherAsync("super-1", actorIsSuperAdmin: true, includeDeleted: false);
+
+        Assert.DoesNotContain(list, t => t.Slug == LegacyDefaultTenantIds.PrimarySlug);
+        Assert.Contains(list, t => t.Slug == "dev");
+    }
+
+    [Fact]
     public async Task ListForSwitcherAsync_SuperAdmin_Returns_Unique_Tenant_Ids_Even_With_Multiple_Owner_Memberships()
     {
         await using var db = CreateDb();

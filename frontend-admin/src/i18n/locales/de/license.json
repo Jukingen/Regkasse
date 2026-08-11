@@ -825,7 +825,10 @@
   },
   "activityLog": {
     "title": "Lizenz-Aktivitäten",
-    "empty": "Keine aktuellen Lizenz-Aktivitäten.",
+    "empty": "Keine Lizenzaktivitäten in den letzten 30 Tagen",
+    "meta": "{{tenant}} · {{user}}",
+    "unknownTenant": "Unbekannter Mandant",
+    "unknownUser": "Unbekannt",
     "descriptions": {
       "activated": "Lizenz aktiviert ({{key}})",
       "generated": "Lizenz ausgestellt ({{key}})",

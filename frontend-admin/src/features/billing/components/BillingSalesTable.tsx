@@ -1,54 +1,57 @@
 'use client';
 
-import { DownloadOutlined, PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Button,
   Card,
   DatePicker,
-  Descriptions,
-  Drawer,
   Form,
   Input,
   Modal,
-  Select,
   Space,
   Table,
   Tag,
 } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
-import dayjs, { type Dayjs } from 'dayjs';
+import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
+import type { FilterValue, SorterResult } from 'antd/es/table/interface';
+import { type Dayjs } from 'dayjs';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useMemo, useState } from 'react';
 
 import type { LicenseSaleResponse } from '@/api/generated/model';
+import { dateColumnRender } from '@/components/DateColumn';
 import { billingApi } from '@/features/billing/api/billingApi';
+import { BillingSalesBulkBar } from '@/features/billing/components/BillingSalesBulkBar';
+import {
+  BillingSalesBulkConfirmModal,
+  BillingSalesBulkProgressModal,
+} from '@/features/billing/components/BillingSalesBulkModals';
+import { BillingSalesFilterBar } from '@/features/billing/components/BillingSalesFilterBar';
+import { LicenseSaleDetailDrawer } from '@/features/billing/components/LicenseSaleDetailDrawer';
+import { LicenseValidityCell } from '@/features/billing/components/LicenseValidityCell';
 import { billingQueryKeys } from '@/features/billing/constants/billingQueryKeys';
 import { useBillingAccess } from '@/features/billing/hooks/useBillingAccess';
+import { useLicenseSalesBulkActions } from '@/features/billing/hooks/useLicenseSalesBulkActions';
 import { useBillingSalesList } from '@/features/billing/hooks/useBillingSalesList';
 import {
   formatLicensePlanLabel,
   formatSaleStatusLabel,
-  isSaleCancellable,
 } from '@/features/billing/utils/billingFormatters';
+import {
+  DEFAULT_BILLING_SALES_FILTERS,
+  DEFAULT_LICENSE_SALES_SORT_BY,
+  DEFAULT_LICENSE_SALES_SORT_DIR,
+  type BillingSalesFilterState,
+  type LicenseSalesSortField,
+  getLicenseSalesAntSortOrder,
+  isLicenseSalesSortField,
+} from '@/features/billing/utils/billingSalesFilters';
 import { downloadLicenseSaleInvoicePdf } from '@/features/billing/utils/downloadInvoicePdf';
 import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
-import { dateColumnRender } from '@/components/DateColumn';
 import { useNotify } from '@/hooks/useNotify';
-import { formatCurrency, formatGermanDateTime, useI18n } from '@/i18n';
-
-type FilterState = {
-  page: number;
-  pageSize: number;
-  search?: string;
-  status?: string;
-  tenantId?: string;
-  fromDate?: string;
-  toDate?: string;
-};
-
-const STATUS_OPTIONS = ['active', 'cancelled', 'refunded'] as const;
+import { formatCurrency, useI18n } from '@/i18n';
 
 export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActions?: boolean }) {
   const { t, formatLocale } = useI18n();
@@ -57,10 +60,13 @@ export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActi
   const queryClient = useQueryClient();
   const canAccess = useBillingAccess();
 
-  const [filters, setFilters] = useState<FilterState>({ page: 1, pageSize: 20 });
+  const [filters, setFilters] = useState<BillingSalesFilterState>(DEFAULT_BILLING_SALES_FILTERS);
   const [selectedSale, setSelectedSale] = useState<LicenseSaleResponse | null>(null);
   const [cancelTarget, setCancelTarget] = useState<LicenseSaleResponse | null>(null);
   const [pdfLoadingId, setPdfLoadingId] = useState<string | null>(null);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [selectedRows, setSelectedRows] = useState<LicenseSaleResponse[]>([]);
+  const bulk = useLicenseSalesBulkActions();
 
   const tenantsQuery = useQuery({
     queryKey: ['admin-tenants', 'billing-filter'],
@@ -128,11 +134,15 @@ export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActi
       title: t('billing.sales.columns.invoiceNumber'),
       dataIndex: 'invoiceNumber',
       key: 'invoiceNumber',
+      sorter: true,
+      sortOrder: getLicenseSalesAntSortOrder('invoiceNumber', filters.sortBy, filters.sortDir),
       render: (value: string | null | undefined) => value ?? '—',
     },
     {
       title: t('billing.sales.columns.tenant'),
       key: 'tenant',
+      sorter: true,
+      sortOrder: getLicenseSalesAntSortOrder('tenant', filters.sortBy, filters.sortDir),
       render: (_, row) => (
         <Link href={`/admin/tenants/${row.tenantId}`}>
           {row.tenantName ?? row.tenantSlug ?? row.tenantId}
@@ -143,18 +153,24 @@ export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActi
       title: t('billing.sales.columns.licenseKey'),
       dataIndex: 'licenseKey',
       key: 'licenseKey',
+      sorter: true,
+      sortOrder: getLicenseSalesAntSortOrder('licenseKey', filters.sortBy, filters.sortDir),
       ellipsis: true,
     },
     {
       title: t('billing.sales.columns.plan'),
       dataIndex: 'licensePlan',
       key: 'licensePlan',
+      sorter: true,
+      sortOrder: getLicenseSalesAntSortOrder('licensePlan', filters.sortBy, filters.sortDir),
       render: (plan: string | null | undefined) => formatLicensePlanLabel(plan, t),
     },
     {
       title: t('billing.sales.columns.priceGross'),
       dataIndex: 'priceGross',
       key: 'priceGross',
+      sorter: true,
+      sortOrder: getLicenseSalesAntSortOrder('priceGross', filters.sortBy, filters.sortDir),
       align: 'right',
       render: (value: number | undefined) =>
         value != null ? formatCurrency(value, formatLocale, { currency: 'EUR' }) : '—',
@@ -163,7 +179,20 @@ export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActi
       title: t('billing.sales.columns.validUntil'),
       dataIndex: 'validUntilUtc',
       key: 'validUntilUtc',
-      render: dateColumnRender('datetime'),
+      sorter: true,
+      sortOrder: getLicenseSalesAntSortOrder('validUntilUtc', filters.sortBy, filters.sortDir),
+      defaultSortOrder: 'ascend',
+      render: (value: string | null | undefined) => (
+        <LicenseValidityCell validUntilUtc={value} mode="date" />
+      ),
+    },
+    {
+      title: t('billing.licenseSales.daysRemaining'),
+      key: 'daysRemaining',
+      width: 160,
+      sorter: true,
+      sortOrder: getLicenseSalesAntSortOrder('daysRemaining', filters.sortBy, filters.sortDir),
+      render: (_, row) => <LicenseValidityCell validUntilUtc={row.validUntilUtc} mode="days" />,
     },
     {
       title: t('billing.sales.columns.status'),
@@ -177,6 +206,8 @@ export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActi
       title: t('billing.sales.columns.soldAt'),
       dataIndex: 'soldAtUtc',
       key: 'soldAtUtc',
+      sorter: true,
+      sortOrder: getLicenseSalesAntSortOrder('soldAtUtc', filters.sortBy, filters.sortDir),
       render: dateColumnRender('datetime'),
     },
     {
@@ -201,40 +232,57 @@ export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActi
     }));
   };
 
+  const clearFilters = () => {
+    setFilters({ ...DEFAULT_BILLING_SALES_FILTERS });
+  };
+
+  const handleTableChange = (
+    pagination: TablePaginationConfig,
+    _tableFilters: Record<string, FilterValue | null>,
+    sorter: SorterResult<LicenseSaleResponse> | SorterResult<LicenseSaleResponse>[]
+  ) => {
+    const active = Array.isArray(sorter) ? sorter[0] : sorter;
+    const columnKey = String(active.columnKey ?? active.field ?? '');
+    const nextSortBy: LicenseSalesSortField = isLicenseSalesSortField(columnKey)
+      ? columnKey
+      : DEFAULT_LICENSE_SALES_SORT_BY;
+    const nextSortDir =
+      active.order === 'ascend'
+        ? 'asc'
+        : active.order === 'descend'
+          ? 'desc'
+          : DEFAULT_LICENSE_SALES_SORT_DIR;
+
+    setFilters((prev) => ({
+      ...prev,
+      page: pagination.current ?? prev.page,
+      pageSize: pagination.pageSize ?? prev.pageSize,
+      sortBy: active.order ? nextSortBy : DEFAULT_LICENSE_SALES_SORT_BY,
+      sortDir: active.order ? nextSortDir : DEFAULT_LICENSE_SALES_SORT_DIR,
+    }));
+  };
+
   return (
     <>
       <Card variant="borderless">
-        <Space wrap style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-          <Space wrap>
-            <Input.Search
-              allowClear
-              placeholder={t('billing.sales.searchPlaceholder')}
-              onSearch={(value) =>
-                setFilters((prev) => ({ ...prev, page: 1, search: value.trim() || undefined }))
-              }
-              style={{ width: 280 }}
-            />
-            <Select
-              allowClear
-              placeholder={t('billing.sales.statusFilter')}
-              style={{ width: 160 }}
-              options={STATUS_OPTIONS.map((status) => ({
-                value: status,
-                label: formatSaleStatusLabel(status, t),
-              }))}
-              onChange={(status) => setFilters((prev) => ({ ...prev, page: 1, status }))}
-            />
-            <Select
-              allowClear
-              showSearch
-              optionFilterProp="label"
-              placeholder={t('billing.sales.tenantFilter')}
-              style={{ width: 240 }}
-              options={tenantOptions}
-              onChange={(tenantId) => setFilters((prev) => ({ ...prev, page: 1, tenantId }))}
-            />
-            <DatePicker.RangePicker onChange={onDateRangeChange} />
-          </Space>
+        <div
+          style={{
+            marginBottom: 16,
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 12,
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+          }}
+        >
+          <BillingSalesFilterBar
+            filters={filters}
+            onChange={setFilters}
+            onClear={clearFilters}
+            tenantOptions={tenantOptions}
+            tenantsLoading={tenantsQuery.isLoading}
+            extra={<DatePicker.RangePicker key={`range-${filters.fromDate ?? ''}-${filters.toDate ?? ''}`} onChange={onDateRangeChange} />}
+          />
           {showHeaderActions ? (
             <Button
               type="primary"
@@ -244,79 +292,64 @@ export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActi
               {t('billing.sales.newSale')}
             </Button>
           ) : null}
-        </Space>
+        </div>
+
+        <BillingSalesBulkBar
+          selectedCount={selectedRows.length}
+          disabled={bulk.running}
+          onAction={(action) => bulk.requestAction(action, selectedRows)}
+        />
 
         <Table<LicenseSaleResponse>
           rowKey={(row) => row.id ?? row.licenseKey ?? row.invoiceNumber ?? 'row'}
           columns={columns}
           dataSource={salesQuery.data?.items ?? []}
-          loading={salesQuery.isLoading}
+          loading={salesQuery.isLoading || salesQuery.isFetching}
+          onChange={handleTableChange}
+          rowSelection={{
+            selectedRowKeys,
+            onChange: (keys, rows) => {
+              setSelectedRowKeys(keys);
+              setSelectedRows(rows);
+            },
+            preserveSelectedRowKeys: true,
+          }}
+          showSorterTooltip={{
+            title: t('billing.licenseSales.sort.clickToSort'),
+          }}
           pagination={{
             current: filters.page,
             pageSize: filters.pageSize,
             total: salesQuery.data?.totalCount ?? 0,
             showSizeChanger: true,
-            onChange: (page, pageSize) =>
-              setFilters((prev) => ({ ...prev, page, pageSize: pageSize ?? prev.pageSize })),
           }}
         />
       </Card>
 
-      <Drawer
-        title={t('billing.sales.detailTitle')}
+      <BillingSalesBulkConfirmModal
+        open={bulk.confirmOpen}
+        action={bulk.pendingAction}
+        selectedCount={selectedRows.length}
+        eligibleCount={bulk.eligibleCountForPending}
+        loading={bulk.running}
+        onCancel={bulk.closeConfirm}
+        onConfirm={async (reason) => {
+          await bulk.confirmPending(reason);
+          setSelectedRowKeys([]);
+          setSelectedRows([]);
+        }}
+      />
+      <BillingSalesBulkProgressModal open={bulk.progressOpen} progress={bulk.progress} />
+
+      <LicenseSaleDetailDrawer
         open={selectedSale != null}
+        saleId={selectedSale?.id ?? null}
+        initialSale={selectedSale}
         onClose={() => setSelectedSale(null)}
-        size={520}
-        destroyOnHidden
-        extra={
-          selectedSale?.id ? (
-            <Space>
-              <Button
-                icon={<DownloadOutlined />}
-                loading={pdfLoadingId === selectedSale.id}
-                onClick={() => void handleDownloadPdf(selectedSale)}
-              >
-                {t('billing.sales.downloadPdf')}
-              </Button>
-              {isSaleCancellable(selectedSale) ? (
-                <Button danger onClick={() => handleCancel(selectedSale)}>
-                  {t('billing.sales.cancelSale')}
-                </Button>
-              ) : null}
-            </Space>
-          ) : null
-        }
-      >
-        {selectedSale ? (
-          <Descriptions column={1} size="small" bordered>
-            <Descriptions.Item label={t('billing.sales.columns.invoiceNumber')}>
-              {selectedSale.invoiceNumber ?? '—'}
-            </Descriptions.Item>
-            <Descriptions.Item label={t('billing.sales.columns.tenant')}>
-              {selectedSale.tenantName ?? selectedSale.tenantSlug ?? '—'}
-            </Descriptions.Item>
-            <Descriptions.Item label={t('billing.sales.columns.licenseKey')}>
-              {selectedSale.licenseKey ?? '—'}
-            </Descriptions.Item>
-            <Descriptions.Item label={t('billing.sales.columns.plan')}>
-              {formatLicensePlanLabel(selectedSale.licensePlan, t)}
-            </Descriptions.Item>
-            <Descriptions.Item label={t('billing.sales.columns.priceGross')}>
-              {selectedSale.priceGross != null
-                ? formatCurrency(selectedSale.priceGross, formatLocale, { currency: 'EUR' })
-                : '—'}
-            </Descriptions.Item>
-            <Descriptions.Item label={t('billing.sales.columns.validUntil')}>
-              {selectedSale.validUntilUtc ? formatGermanDateTime(selectedSale.validUntilUtc) : '—'}
-            </Descriptions.Item>
-            <Descriptions.Item label={t('billing.sales.columns.status')}>
-              <Tag color={statusColor(selectedSale.status)}>
-                {formatSaleStatusLabel(selectedSale.status, t)}
-              </Tag>
-            </Descriptions.Item>
-          </Descriptions>
-        ) : null}
-      </Drawer>
+        pdfLoading={selectedSale?.id != null && pdfLoadingId === selectedSale.id}
+        onDownloadInvoice={(sale) => void handleDownloadPdf(sale)}
+        onCancelSale={handleCancel}
+      />
 
       {cancelTarget ? (
         <BillingSaleCancelModal
@@ -329,6 +362,7 @@ export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActi
               data: { cancellationReason },
             });
             setCancelTarget(null);
+            setSelectedSale(null);
           }}
         />
       ) : null}

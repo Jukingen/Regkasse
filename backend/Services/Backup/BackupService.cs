@@ -240,6 +240,7 @@ public sealed class BackupService : IBackupService
             userId.ToString(),
             actorEmail: null,
             correlationId: $"restore-service-{Guid.NewGuid():N}",
+            actorIsSuperAdmin: true,
             ct);
 
         _logger.LogInformation(

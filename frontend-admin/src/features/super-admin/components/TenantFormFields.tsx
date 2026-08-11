@@ -8,7 +8,7 @@ import { Checkbox, Collapse, Divider, Form, Input, Space } from 'antd';
 import React from 'react';
 
 import { CreateTenantFormField } from '@/features/super-admin/components/CreateTenantFormField';
-import type { CreateTenantFormValues } from '@/features/super-admin/components/CreateTenantWizard/types';
+import type { CreateTenantFormValues } from '@/features/super-admin/components/createTenantFormTypes';
 import { TenantSlugFieldExtras } from '@/features/super-admin/components/TenantSlugFieldExtras';
 import type { useTenantCreateFormFields } from '@/features/super-admin/hooks/useTenantCreateFormFields';
 import styles from '@/styles/tenant-form.module.css';
@@ -28,6 +28,8 @@ export function TenantFormFields({ form, fieldState }: TenantFormFieldsProps) {
     slugFieldStatus,
     slugAvailabilityUi,
     portalPreviewUrl,
+    slugSuggestions,
+    applySlugSuggestion,
     nameRules,
     nameFieldStatus,
     emailRules,
@@ -40,6 +42,14 @@ export function TenantFormFields({ form, fieldState }: TenantFormFieldsProps) {
     handleSlugBlur,
     handleNameBlur,
   } = fieldState;
+
+  const slugHint =
+    slugWatch?.trim() && slugAvailabilityUi === 'available'
+      ? t('tenants.create.fields.slug.subdomainHint', {
+          slug: slugWatch.trim(),
+          domain: baseDomain,
+        })
+      : t('tenants.create.fields.slug.hint');
 
   return (
     <>
@@ -96,7 +106,7 @@ export function TenantFormFields({ form, fieldState }: TenantFormFieldsProps) {
         name="slug"
         label={t('tenants.create.fields.slug.label')}
         tooltip={t('tenants.create.fields.slug.tooltip')}
-        hint={t('tenants.create.fields.slug.hint')}
+        hint={slugHint}
         required
         validateTrigger={['onChange', 'onBlur']}
         validateStatus={slugFieldStatus}
@@ -115,6 +125,8 @@ export function TenantFormFields({ form, fieldState }: TenantFormFieldsProps) {
             baseDomain={baseDomain}
             portalUrl={portalPreviewUrl}
             availabilityUi={slugAvailabilityUi}
+            suggestions={slugSuggestions}
+            onSelectSuggestion={applySlugSuggestion}
           />
         </Space>
       </CreateTenantFormField>
@@ -129,17 +141,6 @@ export function TenantFormFields({ form, fieldState }: TenantFormFieldsProps) {
       >
         <Checkbox>
           <span>{t('tenants.create.fields.grantTrialLicense.label')}</span>
-        </Checkbox>
-      </Form.Item>
-
-      <Form.Item
-        name="autoDemoSetup"
-        valuePropName="checked"
-        tooltip={t('tenants.create.fields.autoDemoSetup.tooltip')}
-        style={{ marginBottom: 4 }}
-      >
-        <Checkbox disabled>
-          <span>{t('tenants.create.fields.autoDemoSetup.label')}</span>
         </Checkbox>
       </Form.Item>
 

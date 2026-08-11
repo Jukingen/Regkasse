@@ -173,8 +173,10 @@
     "badgeImpersonatingTooltip": "Support impersonation active",
     "badgeSupportModeTag": "Support mode",
     "badgeDevOverrideTooltip": "Development: tenant overridden via header dropdown",
-    "badgeDevModeTag": "Development",
+    "badgeDevModeTag": "DEV",
     "badgeDevModeTooltip": "Development mode – for testing only",
+    "badgeDevTenantName": "Development",
+    "badgeDevAutoSelectedTooltip": "Development tenant (auto-selected)",
     "badgeApiSlugHint": "API (X-Tenant-Id): {slug}",
     "infoCardTitle": "Current company",
     "infoCardEyebrow": "Company info",
@@ -237,7 +239,8 @@
       "title": "Select tenant",
       "body": "Please select a tenant to continue. The context applies to all pages.",
       "confirm": "Apply tenant",
-      "applyFailed": "Could not set tenant context."
+      "applyFailed": "Could not set tenant context.",
+      "devAutoSelecting": "Selecting development tenant…"
     },
     "tseLayout": {
       "title": "No tenant selected",

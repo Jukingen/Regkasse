@@ -50,7 +50,7 @@ export interface BackupArtifactsDownloadCardProps {
   realPostgreSqlLogicalDumpConfigured?: boolean | null;
   /** Fake/Stub ortamı — başlık ve kapsam metni “gerçek yedek dosyası” ima etmez. */
   simulatedOperationalMode?: boolean;
-  /** When true, download requires privacy ack + 2FA (system backup). */
+  /** When true, download requires privacy ack (system backup). */
   requireSensitiveSystemGate?: boolean;
   loadingArtifacts?: boolean;
   t: (key: string, options?: Record<string, string | number>) => string;

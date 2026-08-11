@@ -1,10 +1,10 @@
 'use client';
 
 /**
- * Live address preview and availability below the subdomain field.
+ * Live address preview, availability status, and clickable slug suggestions.
  */
-import { LinkOutlined } from '@ant-design/icons';
-import { Spin, Typography } from 'antd';
+import { CheckCircleOutlined, CloseCircleOutlined, LinkOutlined } from '@ant-design/icons';
+import { Space, Spin, Tag, Typography } from 'antd';
 import React from 'react';
 
 import type { SlugAvailabilityUi } from '@/features/super-admin/hooks/useTenantCreateFormFields';
@@ -17,6 +17,8 @@ export type TenantSlugFieldExtrasProps = {
   baseDomain: string;
   portalUrl?: string | null;
   availabilityUi: SlugAvailabilityUi;
+  suggestions?: string[];
+  onSelectSuggestion?: (slug: string) => void;
 };
 
 export function TenantSlugFieldExtras({
@@ -24,6 +26,8 @@ export function TenantSlugFieldExtras({
   baseDomain,
   portalUrl,
   availabilityUi,
+  suggestions = [],
+  onSelectSuggestion,
 }: TenantSlugFieldExtrasProps) {
   const { t } = useI18n();
   const previewSegment = getTenantSlugPreviewSegment(slugValue);
@@ -38,13 +42,42 @@ export function TenantSlugFieldExtras({
       ) : null}
       {availabilityUi === 'available' ? (
         <p className={`${styles.availability} ${styles.availabilityAvailable}`}>
+          <CheckCircleOutlined aria-hidden style={{ marginRight: 6 }} />
           {t('tenants.create.fields.slug.availableShort')}
         </p>
       ) : null}
       {availabilityUi === 'taken' ? (
         <p className={`${styles.availability} ${styles.availabilityTaken}`}>
+          <CloseCircleOutlined aria-hidden style={{ marginRight: 6 }} />
           {t('tenants.create.fields.slug.takenShort')}
         </p>
+      ) : null}
+
+      {availabilityUi === 'taken' && suggestions.length > 0 ? (
+        <div className={styles.suggestionsBlock}>
+          <Typography.Text type="secondary" className={styles.suggestionsLabel}>
+            {t('tenants.create.fields.slug.suggestionsLabel')}
+          </Typography.Text>
+          <Space size={[8, 8]} wrap className={styles.suggestionsChips}>
+            {suggestions.map((slug) => (
+              <Tag
+                key={slug}
+                className={styles.suggestionChip}
+                onClick={() => onSelectSuggestion?.(slug)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onSelectSuggestion?.(slug);
+                  }
+                }}
+              >
+                {slug}
+              </Tag>
+            ))}
+          </Space>
+        </div>
       ) : null}
 
       {previewSegment && availabilityUi === 'available' ? (

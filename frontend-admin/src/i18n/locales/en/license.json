@@ -825,7 +825,10 @@
   },
   "activityLog": {
     "title": "License activity",
-    "empty": "No recent license activity.",
+    "empty": "No license activity in the last 30 days",
+    "meta": "{{tenant}} · {{user}}",
+    "unknownTenant": "Unknown tenant",
+    "unknownUser": "Unknown",
     "descriptions": {
       "activated": "License activated ({{key}})",
       "generated": "License issued ({{key}})",

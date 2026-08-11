@@ -531,7 +531,7 @@
         "placeholder": "Café Example",
         "hint": "Shown on receipts",
         "errors": {
-          "required": "Please enter a company name.",
+          "required": "Please enter a company name",
           "tooShort": "Company name must be at least 2 characters.",
           "tooLong": "Company name must be at most 200 characters."
         }
@@ -541,14 +541,16 @@
         "tooltip": "Web address for the customer's register and admin",
         "placeholder": "cafe-example",
         "hint": "Suggested automatically from the company name",
+        "subdomainHint": "Used for the subdomain: {{slug}}.{{domain}}",
         "availableShort": "Available",
-        "takenShort": "Already taken",
+        "takenShort": "Not available",
         "checkingShort": "Checking availability …",
+        "suggestionsLabel": "Suggestions:",
         "success": "This address is available.",
         "errors": {
           "required": "Please enter a subdomain (e.g. cafe-example).",
-          "pattern": "Only lowercase letters, digits, and hyphens are allowed",
-          "invalid": "Only lowercase letters, digits, and hyphens; do not paste the full domain.",
+          "pattern": "Slug can only contain lowercase letters, numbers, and hyphens",
+          "invalid": "Slug can only contain lowercase letters, numbers, and hyphens; do not paste the full domain.",
           "reserved": "This subdomain is reserved (e.g. admin, www).",
           "taken": "This subdomain is already taken.",
           "checking": "Checking availability …",
@@ -559,10 +561,10 @@
         "label": "Email (contact)",
         "tooltip": "Also used as the administrator sign-in email",
         "placeholder": "owner@cafe-example.at",
-        "hint": "For invoices, support, and administrator sign-in",
+        "hint": "This email is used for the admin user",
         "errors": {
-          "required": "Please enter a valid email address.",
-          "invalid": "Please enter a valid email address."
+          "required": "Please enter a valid email",
+          "invalid": "Please enter a valid email"
         }
       },
       "phone": {
@@ -595,10 +597,6 @@
         "label": "Enable 30-day demo license (free)",
         "tooltip": "30 days free trial, renewal available afterwards"
       },
-      "autoDemoSetup": {
-        "label": "Create demo products and register automatically",
-        "tooltip": "Creates main register and three demo products (recommended)"
-      },
       "importDemoProducts": {
         "label": "Import demo products automatically",
         "tooltip": "Imports the full demo menu (salads, pizzas, pasta, kebab, …) instead of only three sample products"
@@ -620,6 +618,9 @@
     "passwordWarning": "This password is shown only NOW, once!",
     "credentialsTitle": "Credentials (one-time display!)",
     "adminEmailLabel": "Admin email",
+    "usernameLabel": "Username",
+    "loginUrlLabel": "Login URL",
+    "tenantPortalLabel": "Tenant portal",
     "password": "Password",
     "showPassword": "Show password",
     "hidePassword": "Hide password",
@@ -631,14 +632,20 @@
       "good": "Good",
       "strong": "Very strong"
     },
-    "firstStepsTitle": "First steps",
+    "firstStepsTitle": "Next steps",
     "firstStepLogin": "Customer sign-in:",
     "firstStepChangePassword": "Change password",
     "firstStepProducts": "Adjust products",
     "firstStepPrinter": "Connect register to printer",
     "firstStepTestSale": "Run a test transaction",
+    "firstStepLoginAdmin": "Sign in to the admin panel",
+    "firstStepCompanySettings": "Configure company settings (tax number, address)",
+    "firstStepCashRegister": "Set up and connect the cash register",
+    "firstStepStartPos": "Start using POS and run a test sale",
     "emailSent": "An email with the credentials was sent to {{email}}.",
     "emailNotSent": "SMTP is not configured or delivery failed. Please share the credentials manually with {{email}}.",
+    "emailCredentials": "Email credentials",
+    "emailCredentialsDisabled": "Welcome email is attempted automatically on create (SMTP).",
     "forcePasswordChange": "The customer must change the password on first sign-in.",
     "createAnother": "Add another customer",
     "switchToTenant": "Switch to customer",

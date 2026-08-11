@@ -287,11 +287,7 @@ export function LicenseStatsSection() {
           <Title level={4} style={{ marginTop: 24 }}>
             {t('license.activityLog.title')}
           </Title>
-          <LicenseActivityLogCard
-            embedded
-            activities={data?.recentActivities ?? []}
-            loading={isLoading}
-          />
+          <LicenseActivityLogCard embedded />
         </>
       ) : (
         <>

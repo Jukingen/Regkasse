@@ -8,6 +8,7 @@ using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Services.OperationalRuns;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.RestoreVerification;
@@ -22,6 +23,7 @@ public sealed class ManualRestoreTriggerService : IManualRestoreTriggerService
     private readonly IManualRestoreApprovalNotificationService _notification;
     private readonly IOptionsMonitor<ManualRestoreApprovalOptions> _options;
     private readonly IOptionsMonitor<RestoreVerificationOptions> _restoreOptions;
+    private readonly IHostEnvironment _env;
     private readonly ILogger<ManualRestoreTriggerService> _logger;
 
     public ManualRestoreTriggerService(
@@ -33,6 +35,7 @@ public sealed class ManualRestoreTriggerService : IManualRestoreTriggerService
         IManualRestoreApprovalNotificationService notification,
         IOptionsMonitor<ManualRestoreApprovalOptions> options,
         IOptionsMonitor<RestoreVerificationOptions> restoreOptions,
+        IHostEnvironment env,
         ILogger<ManualRestoreTriggerService> logger)
     {
         _db = db;
@@ -43,6 +46,7 @@ public sealed class ManualRestoreTriggerService : IManualRestoreTriggerService
         _notification = notification;
         _options = options;
         _restoreOptions = restoreOptions;
+        _env = env;
         _logger = logger;
     }
 
@@ -51,6 +55,7 @@ public sealed class ManualRestoreTriggerService : IManualRestoreTriggerService
         string actorUserId,
         string? actorEmail,
         string? correlationId,
+        bool actorIsSuperAdmin,
         CancellationToken cancellationToken = default)
     {
         EnsureEnabled();
@@ -82,6 +87,20 @@ public sealed class ManualRestoreTriggerService : IManualRestoreTriggerService
                 throw new ArgumentException(compliance.Error, nameof(request));
 
             throw new InvalidOperationException(compliance.Error ?? "Restore compliance check failed.");
+        }
+
+        // Development + Super Admin: skip dual approval and enqueue validation restore immediately.
+        // Staging/Production Super Admin and any non–Super Admin path still require approval.
+        if (_env.IsDevelopment() && actorIsSuperAdmin)
+        {
+            return await CreateAndAutoExecuteAsync(
+                request,
+                targetDb,
+                actorUserId,
+                actorEmail,
+                correlationId,
+                compliance.TenantId,
+                cancellationToken);
         }
 
         var ttlMinutes = Math.Max(1, _options.CurrentValue.ApprovalTokenTtlMinutes);
@@ -134,6 +153,65 @@ public sealed class ManualRestoreTriggerService : IManualRestoreTriggerService
             entity.BackupRunId,
             entity.TargetDatabaseName,
             approverEmails.Count);
+
+        return ToStatusDto(entity);
+    }
+
+    private async Task<RestoreRequestStatus> CreateAndAutoExecuteAsync(
+        RestoreRequest request,
+        string targetDb,
+        string actorUserId,
+        string? actorEmail,
+        string? correlationId,
+        Guid? sourceBackupTenantId,
+        CancellationToken cancellationToken)
+    {
+        var entity = new ManualRestoreRequest
+        {
+            Status = ManualRestoreRequestStatus.Approved,
+            BackupRunId = request.BackupRunId,
+            TargetDatabaseName = targetDb,
+            ValidationOnly = true,
+            Reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim(),
+            ApprovalTokenHash = null,
+            ApprovalTokenExpiresAtUtc = null,
+            RequestedByUserId = actorUserId,
+            RequestedByEmail = actorEmail,
+            ApprovedByUserId = actorUserId,
+            ApprovedAt = DateTime.UtcNow,
+            CorrelationId = correlationId,
+        };
+
+        _db.ManualRestoreRequests.Add(entity);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        var drillRun = await EnqueueRestoreVerificationRunAsync(entity, actorUserId, correlationId, cancellationToken);
+        entity.Status = ManualRestoreRequestStatus.Executing;
+        entity.RestoreVerificationRunId = drillRun.Id;
+        await _db.SaveChangesAsync(cancellationToken);
+
+        await ManualRestoreAudit.LogRequestedAsync(
+            _audit,
+            actorUserId,
+            entity,
+            sourceBackupTenantId,
+            requiresApproval: false,
+            correlationId,
+            notes: "Restore auto-approved for Super Admin in Development.");
+
+        await ManualRestoreAudit.LogApprovedAsync(
+            _audit,
+            actorUserId,
+            entity,
+            sourceBackupTenantId,
+            drillRun.Id,
+            correlationId);
+
+        _logger.LogInformation(
+            "Restore auto-approved for Super Admin in Development: requestId={RequestId}, backupRunId={BackupRunId}, drillRunId={DrillRunId}",
+            entity.Id,
+            entity.BackupRunId,
+            drillRun.Id);
 
         return ToStatusDto(entity);
     }

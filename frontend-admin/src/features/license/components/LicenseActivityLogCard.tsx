@@ -10,18 +10,19 @@ import {
 import { Card, Empty, Flex, Skeleton, Typography } from 'antd';
 import React, { useMemo } from 'react';
 
+import type { LicenseAuditLogItem } from '@/api/manual/adminLicense';
+import { useBillingAccess } from '@/features/billing/hooks/useBillingAccess';
+import { useLicenseAuditLog } from '@/features/license/hooks/useLicenseAuditLog';
 import {
-  type LicenseActivity,
-  useLicenseDashboardStats,
-} from '@/features/license/api/licenseStats';
-import {
-  mapLicenseActivityFeedItem,
+  mapLicenseAuditFeedItem,
   type LicenseActivityFeedType,
 } from '@/features/license/utils/licenseActivityFeed';
 import { useI18n } from '@/i18n';
 import dayjs from '@/lib/dayjs';
 
 const FEED_MAX_HEIGHT = 384;
+const FEED_PAGE_SIZE = 15;
+const LOOKBACK_DAYS = 30;
 
 function feedIcon(type: LicenseActivityFeedType) {
   switch (type) {
@@ -54,25 +55,30 @@ function feedIconBackground(type: LicenseActivityFeedType): string {
 }
 
 type FeedRowProps = {
-  activity: LicenseActivity;
+  item: LicenseAuditLogItem;
 };
 
-function LicenseActivityFeedRow({ activity }: FeedRowProps) {
+function LicenseActivityFeedRow({ item }: FeedRowProps) {
   const { t } = useI18n();
-  const mapped = mapLicenseActivityFeedItem({
-    action: activity.action,
-    sourceCode: activity.sourceCode,
-    licenseKeyMasked: activity.licenseKeyMasked,
-    timestampUtc: activity.timestampUtc,
+  const mapped = mapLicenseAuditFeedItem({
+    action: item.action,
+    tenantName: item.tenantName,
+    performedBy: item.performedBy,
+    createdAtUtc: item.createdAtUtc,
   });
 
-  const when = dayjs(activity.timestampUtc);
+  const when = dayjs(mapped.timestampUtc);
   const absolute = when.isValid() ? when.format('DD.MM.YYYY HH:mm') : '—';
-  const relative = when.isValid() ? when.fromNow() : '—';
+
+  const translatedAction = t(mapped.actionLabelKey, { key: mapped.actionCode });
+  const actionLabel =
+    translatedAction === mapped.actionLabelKey ? mapped.actionCode : translatedAction;
+  const tenantLabel = mapped.tenantName ?? t('license.activityLog.unknownTenant');
+  const userLabel = mapped.performedBy ?? t('license.activityLog.unknownUser');
 
   return (
     <Flex
-      align="center"
+      align="flex-start"
       gap={12}
       style={{
         padding: '8px 4px',
@@ -88,16 +94,15 @@ function LicenseActivityFeedRow({ activity }: FeedRowProps) {
           borderRadius: 8,
           background: feedIconBackground(mapped.type),
           flexShrink: 0,
+          marginTop: 2,
         }}
       >
         {feedIcon(mapped.type)}
       </Flex>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <Typography.Text style={{ display: 'block' }}>
-          {t(mapped.descriptionKey, mapped.descriptionParams)}
-        </Typography.Text>
-        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          {relative}
+        <Typography.Text style={{ display: 'block' }}>{actionLabel}</Typography.Text>
+        <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
+          {t('license.activityLog.meta', { tenant: tenantLabel, user: userLabel })}
         </Typography.Text>
       </div>
       <Typography.Text type="secondary" style={{ fontSize: 12, flexShrink: 0 }}>
@@ -108,31 +113,34 @@ function LicenseActivityFeedRow({ activity }: FeedRowProps) {
 }
 
 export type LicenseActivityLogCardProps = {
-  /** When provided, skip the stats query (parent already loaded activities). */
-  activities?: LicenseActivity[] | null;
-  loading?: boolean;
   /** Compact card without outer title when embedded under a section heading. */
   embedded?: boolean;
 };
 
 /**
- * Scrollable Super Admin feed of recent license lifecycle / activation events.
+ * Scrollable Super Admin feed of recent mandant license lifecycle events
+ * (GET /api/admin/license/audit, last 30 days).
  */
-export function LicenseActivityLogCard({
-  activities: activitiesProp,
-  loading: loadingProp,
-  embedded = false,
-}: LicenseActivityLogCardProps = {}) {
+export function LicenseActivityLogCard({ embedded = false }: LicenseActivityLogCardProps = {}) {
   const { t } = useI18n();
-  const statsQuery = useLicenseDashboardStats({
-    enabled: activitiesProp === undefined,
-  });
-
-  const loading = loadingProp ?? (activitiesProp === undefined && statsQuery.isLoading);
-  const activities = useMemo(
-    () => activitiesProp ?? statsQuery.data?.recentActivities ?? [],
-    [activitiesProp, statsQuery.data?.recentActivities]
+  const canAccess = useBillingAccess();
+  const fromUtc = useMemo(
+    () => dayjs.utc().subtract(LOOKBACK_DAYS, 'day').startOf('day').toISOString(),
+    []
   );
+
+  const auditQuery = useLicenseAuditLog(
+    {
+      page: 1,
+      pageSize: FEED_PAGE_SIZE,
+      fromUtc,
+    },
+    canAccess
+  );
+
+  // Disabled queries stay pending without fetching — avoid empty-state flash during auth.
+  const loading = !canAccess || auditQuery.isLoading || auditQuery.isPending;
+  const activities = auditQuery.data?.items ?? [];
 
   const body = loading ? (
     <Skeleton active paragraph={{ rows: 5 }} title={false} />
@@ -143,11 +151,8 @@ export function LicenseActivityLogCard({
     />
   ) : (
     <div style={{ maxHeight: FEED_MAX_HEIGHT, overflowY: 'auto' }}>
-      {activities.map((row, index) => (
-        <LicenseActivityFeedRow
-          key={`lic-feed-${row.timestampUtc}-${row.sourceCode}-${row.licenseKeyMasked}-${row.action}-${index}`}
-          activity={row}
-        />
+      {activities.map((row) => (
+        <LicenseActivityFeedRow key={row.id || `${row.createdAtUtc}-${row.action}`} item={row} />
       ))}
     </div>
   );

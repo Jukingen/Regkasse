@@ -64,10 +64,39 @@ public record LicenseSaleListQuery
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 20;
     public Guid? TenantId { get; init; }
-    public string? Status { get; init; } // active, cancelled, refunded, all
+
+    /// <summary>
+    /// Stored statuses (<c>active</c>/<c>cancelled</c>/<c>refunded</c>) plus list aliases:
+    /// <c>expired</c> (active but past valid-until), <c>pending</c> (not applied to tenant),
+    /// <c>revoked</c> (alias for cancelled), <c>all</c>.
+    /// </summary>
+    public string? Status { get; init; }
+
+    /// <summary>Exact <c>license_plan</c> (<c>6_months</c>/<c>12_months</c>/<c>custom</c>).</summary>
+    public string? LicensePlan { get; init; }
+
+    /// <summary>Optional package tier filter (<see cref="LicenseType"/>).</summary>
+    public LicenseType? LicenseType { get; init; }
+
+    /// <summary>
+    /// When set, only sales whose validity window is at least this many calendar days
+    /// (<c>ValidUntilUtc - ValidFromUtc</c>).
+    /// </summary>
+    public int? MinDurationDays { get; init; }
+
     public DateTime? FromDate { get; init; }
     public DateTime? ToDate { get; init; }
     public string? Search { get; init; } // search by tenant name, slug, license key, invoice number
+
+    /// <summary>
+    /// Sort field: <c>invoiceNumber</c>, <c>tenant</c>, <c>licenseKey</c>, <c>licensePlan</c>,
+    /// <c>priceGross</c>, <c>validUntilUtc</c>, <c>daysRemaining</c>, <c>soldAtUtc</c>.
+    /// Default: <c>validUntilUtc</c>.
+    /// </summary>
+    public string? SortBy { get; init; }
+
+    /// <summary><c>asc</c> or <c>desc</c>. Default: <c>asc</c>.</summary>
+    public string? SortDir { get; init; }
 }
 
 #endregion

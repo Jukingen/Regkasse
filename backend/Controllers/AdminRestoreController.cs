@@ -10,7 +10,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace KasseAPI_Final.Controllers;
 
 /// <summary>
-/// Super Admin manual restore with second-admin approval. Validation-only isolated database restore; never production.
+/// Super Admin manual restore. In Development, Super Admin requests auto-execute (validation-only).
+/// In Staging/Production, second Super Admin approval is required. Never production DB restore.
 /// </summary>
 [Authorize(Roles = Roles.SuperAdmin)]
 [ApiController]
@@ -32,7 +33,7 @@ public sealed class AdminRestoreController : ControllerBase
         _complianceCheck = complianceCheck;
     }
 
-    /// <summary>Request a validation-only restore (pending second Super Admin approval).</summary>
+    /// <summary>Request a validation-only restore (auto-executes in Development for Super Admin; otherwise pending second approval).</summary>
     [HttpPost("request")]
     [ProducesResponseType(typeof(RestoreRequestStatus), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -49,6 +50,7 @@ public sealed class AdminRestoreController : ControllerBase
                 User.GetActorUserId() ?? "unknown",
                 User.GetActorEmail(),
                 correlationId,
+                actorIsSuperAdmin: User.IsInRole(Roles.SuperAdmin),
                 cancellationToken);
             return CreatedAtAction(nameof(GetRequest), new { requestId = status.RequestId }, status);
         }

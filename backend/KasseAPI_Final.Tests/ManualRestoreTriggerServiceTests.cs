@@ -4,12 +4,14 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
+using KasseAPI_Final.Models.RestoreVerification;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Services.RestoreVerification;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -38,7 +40,8 @@ public sealed class ManualRestoreTriggerServiceTests
             },
             "requester",
             "requester@test.com",
-            "corr-1");
+            "corr-1",
+            actorIsSuperAdmin: true);
 
         audit.Verify(
             a => a.LogSystemOperationAsync(
@@ -76,9 +79,13 @@ public sealed class ManualRestoreTriggerServiceTests
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<AuditLogStatus>(), It.IsAny<string>(),
                 It.IsAny<object>(), It.IsAny<object>(), It.IsAny<string>(),
                 It.IsAny<ImpersonationAuditContext.Snapshot?>(),
-                It.IsAny<AuditEventType?>(), It.IsAny<Guid?>(), It.IsAny<Guid?>()))
-            .Callback<string, string, string, string, string?, string?, AuditLogStatus, string?, object?, object?, string?, ImpersonationAuditContext.Snapshot?, AuditEventType?, Guid?, Guid?>(
-                (_, _, _, _, _, _, _, _, requestData, _, _, _, _, _, _) => capturedRequestData = requestData)
+                It.IsAny<AuditEventType?>(), It.IsAny<Guid?>(), It.IsAny<Guid?>(),
+                It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>()))
+            .Callback(new InvocationAction(invocation =>
+            {
+                // requestData is the 9th argument (index 8) of LogSystemOperationAsync.
+                capturedRequestData = invocation.Arguments[8];
+            }))
             .ReturnsAsync(new AuditLog());
 
         await svc.CreateRequestAsync(
@@ -91,7 +98,8 @@ public sealed class ManualRestoreTriggerServiceTests
             },
             "requester",
             "requester@test.com",
-            "corr-tenant");
+            "corr-tenant",
+            actorIsSuperAdmin: true);
 
         audit.Verify(
             a => a.LogSystemOperationAsync(
@@ -144,7 +152,8 @@ public sealed class ManualRestoreTriggerServiceTests
                 },
                 "u1",
                 "a@test.com",
-                null));
+                null,
+                actorIsSuperAdmin: true));
         Assert.Contains("ValidationOnly", ex.Message, StringComparison.Ordinal);
     }
 
@@ -169,10 +178,127 @@ public sealed class ManualRestoreTriggerServiceTests
                 },
                 "requester",
                 "requester@test.com",
-                null));
+                null,
+                actorIsSuperAdmin: true));
 
         Assert.Contains(backupId.ToString(), ex.Message, StringComparison.Ordinal);
         Assert.Equal(0, await db.ManualRestoreRequests.CountAsync());
+    }
+
+    [Fact]
+    public async Task CreateRequestAsync_in_Development_auto_approves_for_SuperAdmin()
+    {
+        var dbName = $"mr_dev_auto_{Guid.NewGuid():N}";
+        var notification = new Mock<IManualRestoreApprovalNotificationService>();
+        var (svc, db) = CreateSut(
+            dbName,
+            environmentName: Environments.Development,
+            notification: notification);
+        var backupId = Guid.NewGuid();
+        SeedSucceededSystemBackup(db, backupId);
+        await db.SaveChangesAsync();
+
+        var created = await svc.CreateRequestAsync(
+            new RestoreRequest
+            {
+                BackupRunId = backupId,
+                TargetDatabaseName = "restore_validation_dev_auto",
+                ValidationOnly = true,
+                Reason = "dev frictionless"
+            },
+            "super-1",
+            "super@test.com",
+            "corr-dev",
+            actorIsSuperAdmin: true);
+
+        Assert.Equal("Executing", created.Status);
+        Assert.NotNull(created.RestoreVerificationRunId);
+        Assert.Equal("super-1", created.ApprovedByUserId);
+        Assert.NotNull(created.ApprovedAt);
+
+        var entity = await db.ManualRestoreRequests.SingleAsync(r => r.Id == created.RequestId);
+        Assert.Equal(ManualRestoreRequestStatus.Executing, entity.Status);
+        Assert.Null(entity.ApprovalTokenHash);
+        Assert.Equal(1, await db.RestoreVerificationRuns.CountAsync());
+
+        notification.Verify(
+            n => n.SendApprovalTokenAsync(
+                It.IsAny<IReadOnlyList<string>>(),
+                It.IsAny<string>(),
+                It.IsAny<ManualRestoreApprovalNotificationContext>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Theory]
+    [InlineData("Production")]
+    [InlineData("Staging")]
+    public async Task CreateRequestAsync_outside_Development_requires_pending_approval_for_SuperAdmin(
+        string environmentName)
+    {
+        var dbName = $"mr_pending_{environmentName}_{Guid.NewGuid():N}";
+        var notification = new Mock<IManualRestoreApprovalNotificationService>();
+        notification.Setup(n => n.SendApprovalTokenAsync(
+                It.IsAny<IReadOnlyList<string>>(),
+                It.IsAny<string>(),
+                It.IsAny<ManualRestoreApprovalNotificationContext>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+        var (svc, db) = CreateSut(dbName, environmentName: environmentName, notification: notification);
+        var backupId = Guid.NewGuid();
+        SeedSucceededSystemBackup(db, backupId);
+        await db.SaveChangesAsync();
+
+        var created = await svc.CreateRequestAsync(
+            new RestoreRequest
+            {
+                BackupRunId = backupId,
+                TargetDatabaseName = "restore_validation_pending",
+                ValidationOnly = true
+            },
+            "super-1",
+            "super@test.com",
+            null,
+            actorIsSuperAdmin: true);
+
+        Assert.Equal("PendingApproval", created.Status);
+        Assert.Null(created.RestoreVerificationRunId);
+        Assert.Null(created.ApprovedByUserId);
+        Assert.Equal(0, await db.RestoreVerificationRuns.CountAsync());
+        notification.Verify(
+            n => n.SendApprovalTokenAsync(
+                It.IsAny<IReadOnlyList<string>>(),
+                It.IsAny<string>(),
+                It.IsAny<ManualRestoreApprovalNotificationContext>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateRequestAsync_in_Development_keeps_approval_when_not_SuperAdmin()
+    {
+        // Defense-in-depth: Manager (or any non–Super Admin) never auto-executes even in Development.
+        var dbName = $"mr_dev_manager_{Guid.NewGuid():N}";
+        var (svc, db) = CreateSut(dbName, environmentName: Environments.Development);
+        var backupId = Guid.NewGuid();
+        SeedSucceededSystemBackup(db, backupId);
+        await db.SaveChangesAsync();
+
+        var created = await svc.CreateRequestAsync(
+            new RestoreRequest
+            {
+                BackupRunId = backupId,
+                TargetDatabaseName = "restore_validation_manager_dev",
+                ValidationOnly = true
+            },
+            "manager-1",
+            "manager@test.com",
+            null,
+            actorIsSuperAdmin: false);
+
+        Assert.Equal("PendingApproval", created.Status);
+        Assert.Null(created.RestoreVerificationRunId);
+        Assert.Equal(0, await db.RestoreVerificationRuns.CountAsync());
     }
 
     [Fact]
@@ -193,7 +319,8 @@ public sealed class ManualRestoreTriggerServiceTests
             },
             "requester",
             "requester@test.com",
-            null);
+            null,
+            actorIsSuperAdmin: true);
 
         var entity = await db.ManualRestoreRequests.FirstAsync(r => r.Id == created.RequestId);
         const string plainToken = "123456";
@@ -222,15 +349,19 @@ public sealed class ManualRestoreTriggerServiceTests
 
     private static (ManualRestoreTriggerService Svc, AppDbContext Db) CreateSut(
         string dbName,
-        Guid? ambientTenantId = null)
+        Guid? ambientTenantId = null,
+        string? environmentName = null,
+        Mock<IManualRestoreApprovalNotificationService>? notification = null)
     {
-        var (svc, db, _) = CreateSutCore(dbName, ambientTenantId);
+        var (svc, db, _) = CreateSutCore(dbName, ambientTenantId, environmentName, notification);
         return (svc, db);
     }
 
     private static (ManualRestoreTriggerService Svc, AppDbContext Db, Mock<IAuditLogService> Audit) CreateSutCore(
         string dbName,
-        Guid? ambientTenantId)
+        Guid? ambientTenantId,
+        string? environmentName = null,
+        Mock<IManualRestoreApprovalNotificationService>? notificationMock = null)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(dbName)
@@ -248,13 +379,16 @@ public sealed class ManualRestoreTriggerServiceTests
         var manualOpts = Options.Create(new ManualRestoreApprovalOptions { Enabled = true });
         var restoreOpts = Options.Create(new RestoreVerificationOptions());
         var guard = new ManualRestoreTargetDatabaseGuard(config, new StubMonitor<ManualRestoreApprovalOptions>(manualOpts.Value));
-        var notification = new Mock<IManualRestoreApprovalNotificationService>();
-        notification.Setup(n => n.SendApprovalTokenAsync(
-                It.IsAny<IReadOnlyList<string>>(),
-                It.IsAny<string>(),
-                It.IsAny<ManualRestoreApprovalNotificationContext>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+        var notification = notificationMock ?? new Mock<IManualRestoreApprovalNotificationService>();
+        if (notificationMock is null)
+        {
+            notification.Setup(n => n.SendApprovalTokenAsync(
+                    It.IsAny<IReadOnlyList<string>>(),
+                    It.IsAny<string>(),
+                    It.IsAny<ManualRestoreApprovalNotificationContext>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(1);
+        }
 
         var audit = new Mock<IAuditLogService>();
         audit.Setup(a => a.LogSystemOperationAsync(
@@ -279,6 +413,9 @@ public sealed class ManualRestoreTriggerServiceTests
             new StubMonitor<BackupOptions>(new BackupOptions { ArtifactStagingRoot = null }),
             NullLogger<ComplianceCheckService>.Instance);
 
+        var hostEnv = Mock.Of<IHostEnvironment>(e =>
+            e.EnvironmentName == (environmentName ?? Environments.Production));
+
         var svc = new ManualRestoreTriggerService(
             db,
             audit.Object,
@@ -288,6 +425,7 @@ public sealed class ManualRestoreTriggerServiceTests
             notification.Object,
             new StubMonitor<ManualRestoreApprovalOptions>(manualOpts.Value),
             new StubMonitor<RestoreVerificationOptions>(restoreOpts.Value),
+            hostEnv,
             NullLogger<ManualRestoreTriggerService>.Instance);
 
         return (svc, db, audit);

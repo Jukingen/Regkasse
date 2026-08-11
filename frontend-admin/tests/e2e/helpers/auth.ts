@@ -32,8 +32,6 @@ export async function injectAdminSession(page: Page, token = makeE2eJwt()): Prom
     ({ accessToken, refreshToken }) => {
       window.localStorage.setItem('rk_admin_access_token', accessToken);
       window.localStorage.setItem('rk_admin_refresh_token', refreshToken);
-      // Avoid stale CreateTenantWizard drafts poisoning slug validation in E2E.
-      window.localStorage.removeItem('fa:draft:create-tenant-wizard:v1');
     },
     { accessToken: token, refreshToken: 'e2e-refresh' }
   );

@@ -194,8 +194,6 @@ function mapAxiosDownloadErrorAsync(err: unknown): Promise<never> {
       if (
         code === 'SENSITIVE_EXPORT_ACK_REQUIRED' ||
         code === 'SENSITIVE_EXPORT_APPROVAL_REQUIRED' ||
-        code === 'SENSITIVE_EXPORT_2FA_REQUIRED' ||
-        code === 'SENSITIVE_EXPORT_2FA_INVALID' ||
         code === 'DOWNLOAD_TICKET_INVALID'
       ) {
         const securityErr = new Error(code);

@@ -820,7 +820,8 @@
       "reject": "Reject"
     },
     "messages": {
-      "requestCreated": "Restore request created — second administrator approval required.",
+      "requestCreated": "Restore request created — approval required",
+      "requestExecuting": "Restore is running…",
       "approvalSubmitted": "Approval submitted — validation running in background.",
       "rejected": "Request rejected."
     },

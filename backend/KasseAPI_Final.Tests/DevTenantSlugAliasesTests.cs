@@ -6,6 +6,7 @@ namespace KasseAPI_Final.Tests;
 public sealed class DevTenantSlugAliasesTests
 {
     [Theory]
+    [InlineData("default", "dev")]
     [InlineData("test_cafe", "dev")]
     [InlineData("test-cafe", "dev")]
     [InlineData("cafe", "dev")]

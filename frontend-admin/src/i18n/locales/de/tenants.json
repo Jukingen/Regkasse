@@ -531,7 +531,7 @@
         "placeholder": "Café Beispiel",
         "hint": "Wie der Kunde auf Belegen erscheint",
         "errors": {
-          "required": "Bitte geben Sie einen Firmennamen ein.",
+          "required": "Bitte geben Sie einen Firmennamen ein",
           "tooShort": "Der Firmenname muss mindestens 2 Zeichen haben.",
           "tooLong": "Der Firmenname darf höchstens 200 Zeichen haben."
         }
@@ -541,14 +541,16 @@
         "tooltip": "Internet-Adresse für Kasse und Verwaltung des Kunden",
         "placeholder": "cafe-beispiel",
         "hint": "Wird automatisch aus dem Firmennamen vorgeschlagen",
-        "availableShort": "✅ Verfügbar",
-        "takenShort": "Bereits vergeben",
+        "subdomainHint": "Wird für die Subdomain verwendet: {{slug}}.{{domain}}",
+        "availableShort": "Verfügbar",
+        "takenShort": "Nicht verfügbar",
         "checkingShort": "Verfügbarkeit wird geprüft …",
+        "suggestionsLabel": "Vorschläge:",
         "success": "Diese Adresse ist verfügbar.",
         "errors": {
-          "required": "Bitte eine Subdomain eingeben (z. B. cafe-example).",
-          "pattern": "Nur Kleinbuchstaben, Zahlen und Bindestriche erlaubt",
-          "invalid": "Nur Kleinbuchstaben, Zahlen und Bindestriche erlaubt; nicht die volle Domain einfügen.",
+          "required": "Bitte eine Subdomain eingeben (z. B. cafe-beispiel).",
+          "pattern": "Der Slug darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten",
+          "invalid": "Der Slug darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten; nicht die volle Domain einfügen.",
           "reserved": "Diese Subdomain ist reserviert (z. B. admin, www).",
           "taken": "Diese Subdomain ist bereits vergeben.",
           "checking": "Verfügbarkeit wird geprüft …",
@@ -559,10 +561,10 @@
         "label": "E-Mail (Kontakt)",
         "tooltip": "Wird auch als Anmelde-E-Mail für den Administrator verwendet",
         "placeholder": "geschaeftsfuehrer@cafe-beispiel.at",
-        "hint": "Für Rechnungen, Support und Administrator-Anmeldung",
+        "hint": "Diese E-Mail wird für den Admin-Benutzer verwendet",
         "errors": {
-          "required": "Bitte eine gültige E-Mail-Adresse eingeben.",
-          "invalid": "Bitte eine gültige E-Mail-Adresse eingeben."
+          "required": "Bitte geben Sie eine gültige E-Mail-Adresse ein",
+          "invalid": "Bitte geben Sie eine gültige E-Mail-Adresse ein"
         }
       },
       "phone": {
@@ -595,10 +597,6 @@
         "label": "Demo-Lizenz (30 Tage kostenlos) aktivieren",
         "tooltip": "30 Tage kostenlos testen, danach Verlängerung möglich"
       },
-      "autoDemoSetup": {
-        "label": "Demo-Produkte und Kasse automatisch anlegen",
-        "tooltip": "Legt Hauptkasse und drei Demo-Produkte an (empfohlen)"
-      },
       "importDemoProducts": {
         "label": "Demo-Produkte automatisch importieren",
         "tooltip": "Importiert das vollständige Demo-Menü (Salate, Pizzen, Pasta, Kebap, …) statt nur drei Beispielprodukte"
@@ -620,6 +618,9 @@
     "passwordWarning": "Dieses Passwort wird nur JETZT einmal angezeigt!",
     "credentialsTitle": "Zugangsdaten (einmalige Anzeige!)",
     "adminEmailLabel": "Admin E-Mail",
+    "usernameLabel": "Benutzername",
+    "loginUrlLabel": "Login-URL",
+    "tenantPortalLabel": "Mandanten-Portal",
     "password": "Passwort",
     "showPassword": "Passwort anzeigen",
     "hidePassword": "Passwort verbergen",
@@ -631,14 +632,20 @@
       "good": "Gut",
       "strong": "Sehr stark"
     },
-    "firstStepsTitle": "Erste Schritte",
+    "firstStepsTitle": "Nächste Schritte",
     "firstStepLogin": "Kunde einloggen:",
     "firstStepChangePassword": "Passwort ändern",
     "firstStepProducts": "Produkte anpassen",
     "firstStepPrinter": "Kasse mit Drucker verbinden",
     "firstStepTestSale": "Test-Transaktion durchführen",
+    "firstStepLoginAdmin": "Im Admin-Portal anmelden",
+    "firstStepCompanySettings": "Firmeneinstellungen konfigurieren (Steuernummer, Adresse)",
+    "firstStepCashRegister": "Kasse einrichten und verbinden",
+    "firstStepStartPos": "POS nutzen und erste Testbuchung durchführen",
     "emailSent": "Eine E-Mail mit den Zugangsdaten wurde an {{email}} gesendet.",
     "emailNotSent": "SMTP ist nicht konfiguriert oder der Versand ist fehlgeschlagen. Bitte übermitteln Sie die Zugangsdaten manuell an {{email}}.",
+    "emailCredentials": "Zugangsdaten per E-Mail senden",
+    "emailCredentialsDisabled": "Willkommens-E-Mail wird beim Anlegen automatisch versucht (SMTP).",
     "forcePasswordChange": "Der Kunde muss das Passwort bei der ersten Anmeldung ändern.",
     "createAnother": "Neuen Kunden anlegen",
     "switchToTenant": "Zum Kunden wechseln",

@@ -370,13 +370,32 @@ public sealed class TenantContextService : ITenantContextService
         return Guid.TryParse(raw, out var tenantId) && tenantId != Guid.Empty ? tenantId : null;
     }
 
-    private static string NormalizeSlug(string slug)
+    /// <summary>
+    /// Development: platform <c>admin</c> and unused legacy <c>default</c> bind to seeded <c>dev</c>.
+    /// Production/Staging: <c>admin</c> still maps to the legacy default row for host-binding fallbacks;
+    /// explicit <c>default</c> slug still aliases to <c>dev</c> via <see cref="DevTenantSlugAliases"/>.
+    /// </summary>
+    private string NormalizeSlug(string slug)
     {
         if (string.Equals(slug, "admin", StringComparison.OrdinalIgnoreCase))
         {
+            if (_environment.IsDevelopment())
+            {
+                // In development, we always use 'dev' tenant. Tenant switcher / X-Tenant-Id can still override.
+                return "dev";
+            }
+
             return LegacyDefaultTenantIds.PrimarySlug;
         }
 
-        return DevTenantSlugAliases.ResolveCanonical(slug);
+        var canonical = DevTenantSlugAliases.ResolveCanonical(slug);
+        if (_environment.IsDevelopment()
+            && string.Equals(canonical, LegacyDefaultTenantIds.PrimarySlug, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning("Attempted to resolve 'default' tenant - redirecting to dev");
+            return "dev";
+        }
+
+        return canonical;
     }
 }

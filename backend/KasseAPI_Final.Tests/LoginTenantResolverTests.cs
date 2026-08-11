@@ -93,6 +93,29 @@ public class LoginTenantResolverTests
     }
 
     [Fact]
+    public async Task Development_No_Active_Membership_Prefers_Seeded_Dev_Over_Legacy_Default()
+    {
+        await using var db = CreateDb();
+        SeedDefaultTenant(db);
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var resolver = CreateResolver(db, isDevelopment: true);
+        var snap = await resolver.ResolveSnapshotForLoginAsync("user-1");
+
+        Assert.Equal(DemoTenantIds.Dev.ToString("D"), snap.TenantId);
+        Assert.Equal("dev", snap.TenantSlug);
+        Assert.Equal("Development", snap.TenantDisplayName);
+    }
+
+    [Fact]
     public async Task Single_Active_Membership_Uses_That_Tenant()
     {
         await using var db = CreateDb();

@@ -6,6 +6,7 @@ import {
   EyeInvisibleOutlined,
   EyeOutlined,
   LoginOutlined,
+  MailOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
 import { Alert, Button, Input, Modal, Space, Typography } from 'antd';
@@ -22,6 +23,7 @@ import {
 import { CopyIconButton } from '@/features/super-admin/components/CopyIconButton';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
+import { getTenantAppBaseDomain } from '@/lib/auth/impersonationHandoff';
 import styles from '@/styles/tenant-form.module.css';
 
 export type TenantOnboardingSuccessState = {
@@ -40,6 +42,13 @@ export type OnboardingSuccessModalProps = {
   switchToTenantLoading?: boolean;
 };
 
+function resolveAdminLoginUrl(): string {
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return `${window.location.origin}/login`;
+  }
+  return `https://admin.${getTenantAppBaseDomain()}/login`;
+}
+
 export function OnboardingSuccessModal({
   success,
   onClose,
@@ -53,6 +62,7 @@ export function OnboardingSuccessModal({
   const [passwordVisible, setPasswordVisible] = useState(false);
 
   const portalUrl = useMemo(() => (success ? buildTenantPortalUrl(success.slug) : ''), [success]);
+  const adminLoginUrl = useMemo(() => resolveAdminLoginUrl(), []);
 
   const handoffText = useMemo(() => {
     if (!success?.provisioning) {
@@ -65,6 +75,17 @@ export function OnboardingSuccessModal({
       success.contactEmail
     );
   }, [success]);
+
+  const compactCopyText = useMemo(() => {
+    if (!success?.provisioning) {
+      return '';
+    }
+    return [
+      success.provisioning.adminEmail,
+      success.provisioning.generatedPassword,
+      adminLoginUrl,
+    ].join('\n');
+  }, [success, adminLoginUrl]);
 
   const handleClose = useCallback(() => {
     setPasswordVisible(false);
@@ -85,16 +106,17 @@ export function OnboardingSuccessModal({
   }, [success?.tenantId, onSwitchToTenant]);
 
   const copyHandoff = useCallback(async () => {
-    if (!handoffText) {
+    const text = compactCopyText || handoffText;
+    if (!text) {
       return;
     }
     try {
-      await navigator.clipboard.writeText(handoffText);
+      await navigator.clipboard.writeText(text);
       message.success(t('tenants.provisioning.copySuccess'));
     } catch {
       message.error(t('tenants.provisioning.copyFailed'));
     }
-  }, [handoffText, t]);
+  }, [compactCopyText, handoffText, message, t]);
 
   const notifyEmail = success?.contactEmail?.trim() || success?.provisioning?.adminEmail;
   const welcomeEmailSent = success?.provisioning?.welcomeEmailSent === true;
@@ -156,7 +178,7 @@ export function OnboardingSuccessModal({
                 <div className={styles.successPanel}>
                   <div className={styles.successCredentialRow}>
                     <Typography.Text strong>
-                      {t('tenants.provisioning.adminEmailLabel')}:
+                      {t('tenants.provisioning.usernameLabel')}:
                     </Typography.Text>
                     <Typography.Text>{success.provisioning.adminEmail}</Typography.Text>
                     <CopyIconButton
@@ -190,6 +212,34 @@ export function OnboardingSuccessModal({
                       />
                     </Space.Compact>
                   </div>
+                  <div className={styles.successCredentialRow}>
+                    <Typography.Text strong>
+                      {t('tenants.provisioning.loginUrlLabel')}:
+                    </Typography.Text>
+                    <Typography.Link
+                      href={adminLoginUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      copyable={{ text: adminLoginUrl }}
+                    >
+                      {adminLoginUrl}
+                    </Typography.Link>
+                  </div>
+                  {portalUrl ? (
+                    <div className={styles.successCredentialRow}>
+                      <Typography.Text strong>
+                        {t('tenants.provisioning.tenantPortalLabel')}:
+                      </Typography.Text>
+                      <Typography.Link
+                        href={portalUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        copyable={{ text: portalUrl }}
+                      >
+                        {portalUrl}
+                      </Typography.Link>
+                    </div>
+                  ) : null}
                 </div>
                 <Alert
                   type="warning"
@@ -209,21 +259,10 @@ export function OnboardingSuccessModal({
                   {t('tenants.provisioning.firstStepsTitle')}
                 </Typography.Title>
                 <ol className={styles.successStepsList}>
-                  <li>
-                    {t('tenants.provisioning.firstStepLogin')}{' '}
-                    <Typography.Link
-                      href={portalUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      copyable={{ text: portalUrl }}
-                    >
-                      {portalUrl}
-                    </Typography.Link>
-                  </li>
-                  <li>{t('tenants.provisioning.firstStepChangePassword')}</li>
-                  <li>{t('tenants.provisioning.firstStepProducts')}</li>
-                  <li>{t('tenants.provisioning.firstStepPrinter')}</li>
-                  <li>{t('tenants.provisioning.firstStepTestSale')}</li>
+                  <li>{t('tenants.provisioning.firstStepLoginAdmin')}</li>
+                  <li>{t('tenants.provisioning.firstStepCompanySettings')}</li>
+                  <li>{t('tenants.provisioning.firstStepCashRegister')}</li>
+                  <li>{t('tenants.provisioning.firstStepStartPos')}</li>
                 </ol>
               </div>
 
@@ -238,14 +277,20 @@ export function OnboardingSuccessModal({
                 </Typography.Paragraph>
               ) : null}
 
-              <Button
-                type="link"
-                icon={<CopyOutlined />}
-                onClick={() => void copyHandoff()}
-                style={{ padding: 0 }}
-              >
-                {t('tenants.provisioning.copyAll')}
-              </Button>
+              <Space wrap>
+                <Button type="link" icon={<CopyOutlined />} onClick={() => void copyHandoff()} style={{ padding: 0 }}>
+                  {t('tenants.provisioning.copyAll')}
+                </Button>
+                <Button
+                  type="link"
+                  icon={<MailOutlined />}
+                  disabled
+                  title={t('tenants.provisioning.emailCredentialsDisabled')}
+                  style={{ padding: 0 }}
+                >
+                  {t('tenants.provisioning.emailCredentials')}
+                </Button>
+              </Space>
             </>
           )}
         </Space>

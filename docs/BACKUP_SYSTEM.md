@@ -43,7 +43,7 @@ Related docs:
 | **Artifact** | `*.tenant.zip` (tenant-filtered JSON tables) |
 | **Retention** | **30** days default (admin API / FA clamp **7–90**) |
 | **Size (estimate)** | Roughly **~100–500 MB** per tenant (volume-dependent; ZIP-compressed) |
-| **Access** | Mandanten-Admin: own tenant list / download / import only. Super Admin can see all. |
+| **Access** | Mandanten-Admin: own tenant list / download / import only. Super Admin can see all. Downloads use JWT + RBAC + tenant isolation (no step-up 2FA). |
 | **Restore** | Tenant ZIP is **not** `pg_restore`-compatible. Mandanten-Admin **cannot** restore via API. |
 
 ### System Backup
@@ -57,7 +57,7 @@ Related docs:
 | **Artifact** | `pg_dump -Fc` (PostgreSQL custom format, zlib **`-Z6`**) **+** `*.system.zip` |
 | **Retention** | **90** days default |
 | **Size (estimate)** | Roughly **~1–5 GB** per instance dump (deployment-dependent) |
-| **Access** | **Super Admin only** for list/download of System rows. Mandanten-Admin never sees System dumps (Identity / all-tenants risk). |
+| **Access** | **Super Admin only** for list/download of System rows. Mandanten-Admin never sees System dumps (Identity / all-tenants risk). Downloads use JWT + RBAC + tenant isolation; sensitive system downloads may require privacy ack / approval — **not** step-up 2FA. |
 | **Recovery capability** | Validation restore / restore drills use System `pg_dump` into isolated `restore_validation_*` DB. Live production recovery is **operator/DBA-led** outside the API. |
 
 ---

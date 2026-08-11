@@ -243,6 +243,7 @@ public sealed class BackupServiceTests
                 It.IsAny<string>(),
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
+                It.IsAny<bool>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new RestoreRequestStatus
             {

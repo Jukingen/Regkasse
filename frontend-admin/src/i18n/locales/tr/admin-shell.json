@@ -173,8 +173,10 @@
     "badgeImpersonatingTooltip": "Destek kimliği (impersonation) etkin",
     "badgeSupportModeTag": "Destek modu",
     "badgeDevOverrideTooltip": "Geliştirme: kiracı üst bilgi açılır menüsüyle geçersiz kılındı",
-    "badgeDevModeTag": "Geliştirme",
+    "badgeDevModeTag": "DEV",
     "badgeDevModeTooltip": "Geliştirme modu – yalnızca test için",
+    "badgeDevTenantName": "Geliştirme",
+    "badgeDevAutoSelectedTooltip": "Geliştirme kiracısı (otomatik seçildi)",
     "badgeApiSlugHint": "API (X-Tenant-Id): {slug}",
     "infoCardTitle": "Geçerli firma",
     "infoCardEyebrow": "Firma bilgisi",
@@ -237,7 +239,8 @@
       "title": "Kiracı seçin",
       "body": "Devam etmek için bir kiracı seçin. Bağlam tüm sayfalarda geçerli olur.",
       "confirm": "Kiracıyı uygula",
-      "applyFailed": "Kiracı bağlamı ayarlanamadı."
+      "applyFailed": "Kiracı bağlamı ayarlanamadı.",
+      "devAutoSelecting": "Geliştirme kiracısı seçiliyor…"
     },
     "tseLayout": {
       "title": "Kiracı seçilmedi",

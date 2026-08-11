@@ -76,6 +76,11 @@ describe('useTenantListForSwitcher', () => {
           ownerAdminEmail: ' admin@adler.at ',
           licenseDaysRemaining: 12,
         }),
+        source({
+          id: 'legacy',
+          name: 'Default',
+          slug: 'default',
+        }),
       ],
       isLoading: false,
       isFetching: false,
@@ -90,6 +95,7 @@ describe('useTenantListForSwitcher', () => {
     expect(result.current.tenants[0]?.adminEmail).toBe('admin@adler.at');
     expect(result.current.tenants[0]?.licenseDaysLeft).toBe(12);
     expect(result.current.tenants[0]?.source.slug).toBe('adler');
+    expect(result.current.tenants.every((row) => row.slug !== 'default')).toBe(true);
   });
 
   it('passes includeDeleted through to the tenants query', () => {

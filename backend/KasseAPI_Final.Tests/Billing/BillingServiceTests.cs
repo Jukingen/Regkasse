@@ -508,6 +508,16 @@ public sealed class BillingServiceTests
         Assert.Single(activeOnly.Items);
         Assert.Equal(devSale.Id, activeOnly.Items[0].Id);
 
+        var revokedOnly = await service.ListLicenseSalesAsync(
+            new LicenseSaleListQuery { Status = "revoked" });
+        Assert.Single(revokedOnly.Items);
+        Assert.Equal(prodSale.Id, revokedOnly.Items[0].Id);
+
+        var planFilter = await service.ListLicenseSalesAsync(
+            new LicenseSaleListQuery { LicensePlan = LicenseSalePlans.SixMonths });
+        Assert.Single(planFilter.Items);
+        Assert.Equal(devSale.Id, planFilter.Items[0].Id);
+
         var searchBySlug = await service.ListLicenseSalesAsync(
             new LicenseSaleListQuery { Search = "dev" });
         Assert.Single(searchBySlug.Items);
@@ -516,6 +526,97 @@ public sealed class BillingServiceTests
         var searchByInvoice = await service.ListLicenseSalesAsync(
             new LicenseSaleListQuery { Search = devSale.InvoiceNumber });
         Assert.Single(searchByInvoice.Items);
+    }
+
+    [Fact]
+    public async Task ListLicenseSalesAsync_FiltersExpiredAndPending()
+    {
+        var (db, _) = BillingServiceTestInfrastructure.CreateDb();
+        await using var _db = db;
+        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
+        var userId = BillingServiceTestInfrastructure.SeedUser(db);
+        var service = BillingServiceTestInfrastructure.CreateService(db);
+
+        var applied = await service.CreateLicenseSaleAsync(
+            new CreateLicenseSaleRequest
+            {
+                TenantId = tenant.Id,
+                LicensePlan = LicenseSalePlans.SixMonths,
+                PriceNet = 50m,
+                ApplyToTenant = true,
+            },
+            Guid.Parse(userId));
+
+        var pending = await service.CreateLicenseSaleAsync(
+            new CreateLicenseSaleRequest
+            {
+                TenantId = tenant.Id,
+                LicensePlan = LicenseSalePlans.TwelveMonths,
+                PriceNet = 100m,
+                ApplyToTenant = false,
+            },
+            Guid.Parse(userId));
+
+        var expiredRow = await db.LicenseSales.IgnoreQueryFilters().SingleAsync(s => s.Id == applied.Id);
+        expiredRow.ValidUntilUtc = DateTime.UtcNow.AddDays(-3);
+        await db.SaveChangesAsync();
+
+        var expired = await service.ListLicenseSalesAsync(new LicenseSaleListQuery { Status = "expired" });
+        Assert.Single(expired.Items);
+        Assert.Equal(applied.Id, expired.Items[0].Id);
+
+        var pendingList = await service.ListLicenseSalesAsync(new LicenseSaleListQuery { Status = "pending" });
+        Assert.Contains(pendingList.Items, i => i.Id == pending.Id);
+        Assert.DoesNotContain(pendingList.Items, i => i.Id == applied.Id);
+
+        var activeValid = await service.ListLicenseSalesAsync(
+            new LicenseSaleListQuery { Status = LicenseSaleStatuses.Active });
+        Assert.DoesNotContain(activeValid.Items, i => i.Id == applied.Id);
+        Assert.Contains(activeValid.Items, i => i.Id == pending.Id);
+    }
+
+    [Fact]
+    public async Task ListLicenseSalesAsync_SortsByValidUntilAscendingByDefault()
+    {
+        var (db, _) = BillingServiceTestInfrastructure.CreateDb();
+        await using var _db = db;
+        var tenant = BillingServiceTestInfrastructure.SeedTenant(db, "dev");
+        var userId = BillingServiceTestInfrastructure.SeedUser(db);
+        var service = BillingServiceTestInfrastructure.CreateService(db);
+
+        var later = await service.CreateLicenseSaleAsync(
+            new CreateLicenseSaleRequest
+            {
+                TenantId = tenant.Id,
+                LicensePlan = LicenseSalePlans.TwelveMonths,
+                PriceNet = 100m,
+            },
+            Guid.Parse(userId));
+        var sooner = await service.CreateLicenseSaleAsync(
+            new CreateLicenseSaleRequest
+            {
+                TenantId = tenant.Id,
+                LicensePlan = LicenseSalePlans.SixMonths,
+                PriceNet = 50m,
+                ApplyToTenant = false,
+            },
+            Guid.Parse(userId));
+
+        var laterRow = await db.LicenseSales.IgnoreQueryFilters().SingleAsync(s => s.Id == later.Id);
+        var soonerRow = await db.LicenseSales.IgnoreQueryFilters().SingleAsync(s => s.Id == sooner.Id);
+        laterRow.ValidUntilUtc = DateTime.UtcNow.AddDays(90);
+        soonerRow.ValidUntilUtc = DateTime.UtcNow.AddDays(10);
+        await db.SaveChangesAsync();
+
+        var sorted = await service.ListLicenseSalesAsync(new LicenseSaleListQuery
+        {
+            SortBy = "validUntilUtc",
+            SortDir = "asc",
+        });
+
+        Assert.Equal(2, sorted.Items.Count);
+        Assert.Equal(sooner.Id, sorted.Items[0].Id);
+        Assert.Equal(later.Id, sorted.Items[1].Id);
     }
 
     [Fact]

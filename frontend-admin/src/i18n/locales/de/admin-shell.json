@@ -173,8 +173,10 @@
     "badgeImpersonatingTooltip": "Support-Impersonation aktiv",
     "badgeSupportModeTag": "Support-Modus",
     "badgeDevOverrideTooltip": "Entwicklung: Mandant per Header-Dropdown überschrieben",
-    "badgeDevModeTag": "Entwicklung",
+    "badgeDevModeTag": "DEV",
     "badgeDevModeTooltip": "Entwicklungsmodus – nur für Tests",
+    "badgeDevTenantName": "Entwicklung",
+    "badgeDevAutoSelectedTooltip": "Entwicklungstenant (automatisch ausgewählt)",
     "badgeApiSlugHint": "API (X-Tenant-Id): {slug}",
     "infoCardTitle": "Aktuelle Firma",
     "infoCardEyebrow": "Firmen-Info",
@@ -237,7 +239,8 @@
       "title": "Mandant auswählen",
       "body": "Bitte wählen Sie einen Mandanten aus, um fortzufahren. Der Kontext gilt für alle Seiten.",
       "confirm": "Mandant übernehmen",
-      "applyFailed": "Mandant konnte nicht gesetzt werden."
+      "applyFailed": "Mandant konnte nicht gesetzt werden.",
+      "devAutoSelecting": "Entwicklungstenant wird ausgewählt…"
     },
     "tseLayout": {
       "title": "Kein Mandant ausgewählt",
