@@ -1794,6 +1794,8 @@
     "durationMinutes": "{{minutes}} min",
     "retryConfirmTitle": "Neues Backup einreihen?",
     "retryConfirmDescription": "Es wird ein neuer manueller Backup-Lauf in die Warteschlange gestellt (kein erneutes Abspielen desselben Laufs).",
+    "verifyChecksum": "Checksum prüfen",
+    "lastVerification": "Letzte Prüfung",
     "statusLabels": {
       "queued": "Wartend",
       "running": "Läuft",
@@ -1811,6 +1813,24 @@
       "4": "Manifest",
       "5": "Backup log"
     }
+  },
+  "checksumVerify": {
+    "verifyChecksum": "Checksum prüfen",
+    "checksumPassed": "Integritätsprüfung bestanden",
+    "checksumFailed": "Datei beschädigt oder Prüfsumme stimmt nicht",
+    "checksumNotAvailable": "Checksum für dieses Backup nicht verfügbar",
+    "lastVerification": "Letzte Prüfung",
+    "verifying": "Checksum wird geprüft…",
+    "badgePassed": "Checksum OK",
+    "badgeFailed": "Checksum fehlgeschlagen",
+    "badgeUnknown": "Noch nicht geprüft",
+    "rpoAlert": "Kein erfolgreiches System-Backup seit {{days}} Tagen. RPO gefährdet.",
+    "validateContent": "Inhalt prüfen",
+    "contentPassed": "Alle Tabellen geprüft",
+    "contentWarning": "Inhaltsprüfung mit Warnungen",
+    "contentFailed": "Inhaltsprüfung fehlgeschlagen",
+    "contentUnavailable": "Inhaltsprüfung nicht verfügbar",
+    "contentReportTitle": "Inhaltsprüfbericht"
   },
   "verificationReport": {
     "sectionTitle": "Backup-Verifizierungsbericht",

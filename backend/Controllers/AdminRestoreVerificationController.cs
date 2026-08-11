@@ -61,7 +61,12 @@ public sealed class AdminRestoreVerificationController : ControllerBase
         var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
         try
         {
-            var result = await _trigger.EnqueueManualAsync(userId, correlationId, body?.IdempotencyKey, cancellationToken);
+            var result = await _trigger.EnqueueManualAsync(
+                userId,
+                correlationId,
+                body?.IdempotencyKey,
+                sourceBackupRunId: null,
+                cancellationToken);
             var dto = RestoreVerificationRunMapper.ToTriggerResponseDto(result);
             return AcceptedAtAction(nameof(GetById), new { id = result.Run.Id }, dto);
         }

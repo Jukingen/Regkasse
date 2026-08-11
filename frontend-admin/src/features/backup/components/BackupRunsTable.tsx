@@ -6,9 +6,9 @@
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
-  App,
   Badge,
   Button,
+  Modal,
   Popconfirm,
   Progress,
   Select,
@@ -39,10 +39,22 @@ import {
   useTriggerBackup,
 } from '@/features/backup/api/backupHooks';
 import { BackupDetailModal } from '@/features/backup/components/BackupDetailModal';
+import {
+  BackupContentValidationReport,
+  ContentValidationStatusBadge,
+} from '@/features/backup/components/BackupContentValidationReport';
 import { BackupStatusBadge } from '@/features/backup/components/BackupStatusBadge';
 import { BackupVerificationReport } from '@/features/backup/components/BackupVerificationReport';
 import { useBackupPermissions } from '@/features/backup/hooks/useBackupPermissions';
 import { useTenants } from '@/features/backup/hooks/useTenants';
+import { verifyBackupChecksum } from '@/features/backup/logic/backupChecksumVerifyApi';
+import {
+  getBackupContentValidation,
+  normalizeContentValidationStatus,
+  type BackupContentValidationDto,
+} from '@/features/backup/logic/backupContentValidationApi';
+import { resolveContentValidationBadgeStatus } from '@/features/backup/logic/backupContentValidationPresentation';
+import { runRestoreDrill } from '@/features/backup/logic/backupDrillApi';
 import { isBackupRunSucceeded } from '@/features/backup/logic/backupRunDetailPresentation';
 import {
   compareBackupRunsByRequestedAtDesc,
@@ -52,6 +64,12 @@ import {
   resolveBackupRunSizeLabel,
   resolveBackupRunTotalBytes,
 } from '@/features/backup/logic/backupRunTablePresentation';
+import {
+  isVerificationFailed,
+  isVerificationPassed,
+  resolveLatestVerification,
+} from '@/features/backup/logic/backupVerificationPresentation';
+import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
 import { formatUserTime } from '@/lib/dateFormatter';
 
@@ -67,18 +85,24 @@ export function BackupRunsTable({
   onRetryInvalidate,
   hideTitle = false,
 }: BackupRunsTableProps) {
-  const { message } = App.useApp();
+  const notify = useNotify();
 
   const { t, formatLocale } = useI18n();
   const queryClient = useQueryClient();
   const permissions = useBackupPermissions();
-  const { canTrigger, canFilterRunsByTenant, isSuperAdmin } = permissions;
+  const { canTrigger, canFilterRunsByTenant, isSuperAdmin, canRestore } = permissions;
   const [page, setPage] = useState(1);
   const [selectedTenantId, setSelectedTenantId] = useState<string | undefined>();
   const [detailRunId, setDetailRunId] = useState<string | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [verificationReportRunId, setVerificationReportRunId] = useState<string | null>(null);
   const [verificationReportOpen, setVerificationReportOpen] = useState(false);
+  const [verifyingRunId, setVerifyingRunId] = useState<string | null>(null);
+  const [contentValidatingRunId, setContentValidatingRunId] = useState<string | null>(null);
+  const [contentReport, setContentReport] = useState<BackupContentValidationDto | null>(null);
+  const [contentReportOpen, setContentReportOpen] = useState(false);
+  const [contentStatusByRunId, setContentStatusByRunId] = useState<Record<string, string>>({});
+  const [drillingRunId, setDrillingRunId] = useState<string | null>(null);
 
   const { tenants, isLoading: tenantsLoading } = useTenants({
     enabled: canFilterRunsByTenant,
@@ -93,14 +117,14 @@ export function BackupRunsTable({
         ? ` ${t('backupDr.messages.orchestrationStateSuffix', { state: res.orchestrationState })}`
         : '';
       const text = `${t(fb.messageKey)}${suffix}`;
-      if (fb.level === 'success') message.success(text);
-      else message.info(text);
+      if (fb.level === 'success') notify.success(text);
+      else notify.info(text);
       await queryClient.invalidateQueries({ queryKey: backupQueryKeys.all });
       await queryClient.invalidateQueries({ queryKey: backupQueryKeys.dashboardStats() });
       await queryClient.invalidateQueries({ queryKey: backupQueryKeys.recoverability() });
       if (onRetryInvalidate) await onRetryInvalidate();
     },
-    [onRetryInvalidate, queryClient, t]
+    [notify, onRetryInvalidate, queryClient, t]
   );
 
   const pollPeek = usePollBackupLatestDashboardInterval();
@@ -149,6 +173,101 @@ export function BackupRunsTable({
       }
     },
     [onViewDetails]
+  );
+
+  const handleVerifyChecksum = useCallback(
+    async (runId: string) => {
+      setVerifyingRunId(runId);
+      try {
+        const result = await verifyBackupChecksum(runId);
+        if (result.isValid) {
+          notify.successKey('backupDr.checksumVerify.checksumPassed');
+        } else if (
+          result.artifacts?.some((a) => a.status === 'missing_hash') &&
+          !result.artifacts.some((a) => a.status === 'failed' || a.status === 'missing_file')
+        ) {
+          notify.warning('backupDr.checksumVerify.checksumNotAvailable');
+        } else {
+          notify.error('backupDr.checksumVerify.checksumFailed', {
+            description: result.failureReason ?? undefined,
+          });
+        }
+        await queryClient.invalidateQueries({ queryKey: backupQueryKeys.all });
+      } catch (err) {
+        notify.apiError(err, {
+          logContext: 'BackupRunsTable.verifyChecksum',
+          fallbackKey: 'backupDr.checksumVerify.checksumFailed',
+        });
+      } finally {
+        setVerifyingRunId(null);
+      }
+    },
+    [notify, queryClient]
+  );
+
+  const handleValidateContent = useCallback(
+    async (runId: string) => {
+      setContentValidatingRunId(runId);
+      try {
+        const result = await getBackupContentValidation(runId);
+        setContentReport(result);
+        setContentReportOpen(true);
+        setContentStatusByRunId((prev) => ({ ...prev, [runId]: result.overallStatus }));
+        const status = normalizeContentValidationStatus(result.overallStatus);
+        if (status === 'passed') {
+          notify.successKey('backup.contentValidationPassed');
+        } else if (status === 'partial') {
+          notify.warning(t('backup.contentValidationPartial'));
+        } else if (status === 'unavailable') {
+          notify.warning(t('backup.contentValidationUnavailable'));
+        } else {
+          notify.error(t('backup.contentValidationFailed'), {
+            description: result.summary ?? undefined,
+          });
+        }
+      } catch (err) {
+        notify.apiError(err, {
+          logContext: 'BackupRunsTable.validateContent',
+          fallbackKey: 'backup.contentValidationFailed',
+        });
+      } finally {
+        setContentValidatingRunId(null);
+      }
+    },
+    [notify, t]
+  );
+
+  const handleRunDrill = useCallback(
+    async (runId: string) => {
+      setDrillingRunId(runId);
+      notify.info(t('backup.drillRunning'));
+      try {
+        const result = await runRestoreDrill({ backupRunId: runId });
+        if (result.success) {
+          if (result.newQueuedRunCreated) {
+            notify.successKey('backup.drillCompleted');
+          } else if (result.existingRunReturned) {
+            notify.info(t('backup.drillExisting'));
+          } else {
+            notify.successKey('backup.drillCompleted');
+          }
+        } else {
+          notify.error(t('backup.drillFailed'), {
+            description: result.errors?.join(' · ') || result.status,
+          });
+        }
+        await queryClient.invalidateQueries({ queryKey: backupQueryKeys.dashboardStats() });
+        await queryClient.invalidateQueries({ queryKey: ['/api/admin/restore-verification'] });
+      } catch (err) {
+        notify.apiError(err, {
+          logContext: 'BackupRunsTable.runDrill',
+          fallbackKey: 'backup.drillFailed',
+        });
+      } finally {
+        setDrillingRunId(null);
+      }
+    },
+    [notify, queryClient, t]
   );
 
   const columns: ColumnsType<BackupRunResponseDto> = useMemo(
@@ -278,6 +397,62 @@ export function BackupRunsTable({
         },
       },
       {
+        title: t('backupDr.runsTable.lastVerification'),
+        key: 'lastVerification',
+        render: (_: unknown, record: BackupRunResponseDto) => {
+          const latest = resolveLatestVerification(record);
+          if (!latest) return t('backupDr.runsTable.noValue');
+          const when = formatTime(latest.completedAt ?? latest.startedAt);
+          if (isVerificationPassed(latest.status)) {
+            return (
+              <Badge
+                status="success"
+                text={
+                  <Typography.Text style={{ fontSize: 12 }}>
+                    {when}
+                  </Typography.Text>
+                }
+              />
+            );
+          }
+          if (isVerificationFailed(latest.status)) {
+            return (
+              <Badge
+                status="error"
+                text={
+                  <Typography.Text type="danger" style={{ fontSize: 12 }}>
+                    {when}
+                  </Typography.Text>
+                }
+              />
+            );
+          }
+          return (
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              {when}
+            </Typography.Text>
+          );
+        },
+      },
+      {
+        title: t('backup.contentValidation'),
+        key: 'contentValidation',
+        render: (_: unknown, record: BackupRunResponseDto) => {
+          const status = resolveContentValidationBadgeStatus(
+            record,
+            record.id ? contentStatusByRunId[record.id] : null
+          );
+          if (!status) {
+            return (
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                {t('backup.contentValidationUnknown')}
+              </Typography.Text>
+            );
+          }
+          return <ContentValidationStatusBadge status={status} />;
+        },
+      },
+      {
         title: t('backupDr.runsTable.actions'),
         key: 'actions',
         render: (_: unknown, record: BackupRunResponseDto) => (
@@ -290,6 +465,51 @@ export function BackupRunsTable({
             <Button type="link" size="small" onClick={() => viewDetails(record)}>
               {t('backupDr.runsTable.details')}
             </Button>
+            {record.id && isBackupRunSucceeded(record.status) ? (
+              <Button
+                type="link"
+                size="small"
+                loading={verifyingRunId === record.id}
+                disabled={
+                  verifyingRunId != null ||
+                  contentValidatingRunId != null ||
+                  drillingRunId != null
+                }
+                onClick={() => void handleVerifyChecksum(record.id!)}
+              >
+                {t('backupDr.runsTable.verifyChecksum')}
+              </Button>
+            ) : null}
+            {record.id && isBackupRunSucceeded(record.status) ? (
+              <Button
+                type="link"
+                size="small"
+                loading={contentValidatingRunId === record.id}
+                disabled={
+                  verifyingRunId != null ||
+                  contentValidatingRunId != null ||
+                  drillingRunId != null
+                }
+                onClick={() => void handleValidateContent(record.id!)}
+              >
+                {t('backup.validateContent')}
+              </Button>
+            ) : null}
+            {record.id && isBackupRunSucceeded(record.status) && canRestore ? (
+              <Button
+                type="link"
+                size="small"
+                loading={drillingRunId === record.id}
+                disabled={
+                  verifyingRunId != null ||
+                  contentValidatingRunId != null ||
+                  drillingRunId != null
+                }
+                onClick={() => void handleRunDrill(record.id!)}
+              >
+                {t('backup.runRestoreDrill')}
+              </Button>
+            ) : null}
             {record.id && isBackupRunSucceeded(record.status) ? (
               <Button
                 type="link"
@@ -312,7 +532,9 @@ export function BackupRunsTable({
                   void triggerBackup
                     .mutateAsync({ tenantId: selectedTenantId })
                     .then(handleRetrySuccess)
-                    .catch((err) => message.error(triggerErrorMessageBackupDashboard(err, t)))
+                    .catch((err) =>
+                      notify.error(triggerErrorMessageBackupDashboard(err, t))
+                    )
                 }
               >
                 <Button
@@ -338,14 +560,23 @@ export function BackupRunsTable({
     ],
     [
       artifactTypeLabel,
+      canRestore,
       canTrigger,
+      contentStatusByRunId,
+      contentValidatingRunId,
+      drillingRunId,
       formatLocale,
       formatTime,
       handleRetrySuccess,
+      handleRunDrill,
+      handleValidateContent,
+      handleVerifyChecksum,
       isSuperAdmin,
+      notify,
       selectedTenantId,
       t,
       triggerBackup.isPending,
+      verifyingRunId,
       viewDetails,
     ]
   );
@@ -456,6 +687,20 @@ export function BackupRunsTable({
           }}
         />
       ) : null}
+      <Modal
+        title={t('backup.contentValidation')}
+        open={contentReportOpen}
+        onCancel={() => setContentReportOpen(false)}
+        footer={
+          <Button onClick={() => setContentReportOpen(false)}>
+            {t('backupDr.verificationReport.close')}
+          </Button>
+        }
+        width={720}
+        destroyOnHidden
+      >
+        {contentReport ? <BackupContentValidationReport report={contentReport} /> : null}
+      </Modal>
     </>
   );
 }

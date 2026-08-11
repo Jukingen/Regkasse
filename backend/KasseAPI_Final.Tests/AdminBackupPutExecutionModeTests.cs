@@ -8,6 +8,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Services.RestoreVerification;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -91,6 +92,9 @@ public sealed class AdminBackupPutExecutionModeTests
             Mock.Of<IBackupStorageCostService>(),
             Mock.Of<IPitrService>(),
             Mock.Of<IBackupVerificationReportService>(),
+            Mock.Of<IBackupChecksumVerificationService>(),
+            Mock.Of<IBackupContentValidationService>(),
+            Mock.Of<IRestoreVerificationManualTriggerService>(),
             Mock.Of<ICurrentTenantAccessor>(),
             Mock.Of<IBackupRunTenantAccessService>(),
             Mock.Of<IBackupArtifactImportService>(),

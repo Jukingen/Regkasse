@@ -263,6 +263,22 @@ public sealed class BackupOptions
 
     /// <summary>Interval between automatic cleanup passes. Minimum enforced: 1 hour. Default: 1 day.</summary>
     public TimeSpan AutomaticCleanupInterval { get; set; } = TimeSpan.FromDays(1);
+
+    /// <summary>
+    /// When true, <c>BackupRpoOverdueAlertService</c> alerts if no successful System backup
+    /// completed within <see cref="AlertOnNoBackupDays"/>. Also requires <see cref="WorkerEnabled"/>
+    /// and <see cref="ScheduledBackupEnabled"/> with a configured cron (avoids tenant-only false positives).
+    /// </summary>
+    public bool RpoOverdueAlertEnabled { get; set; }
+
+    /// <summary>Days without a successful System backup before RPO overdue alert. Default 2.</summary>
+    public int AlertOnNoBackupDays { get; set; } = 2;
+
+    /// <summary>Minimum interval between repeated RPO overdue alerts. Default 12 hours.</summary>
+    public TimeSpan RpoOverdueAlertMinInterval { get; set; } = TimeSpan.FromHours(12);
+
+    /// <summary>Poll interval for RPO overdue checks. Minimum enforced: 30 minutes. Default 6 hours.</summary>
+    public TimeSpan RpoOverdueAlertCheckInterval { get; set; } = TimeSpan.FromHours(6);
 }
 
 /// <summary>Maps to registered <see cref="Services.Backup.IBackupExecutionAdapter"/> implementation.</summary>

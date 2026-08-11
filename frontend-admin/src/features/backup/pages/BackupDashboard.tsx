@@ -4,9 +4,9 @@
  * Backup monitoring dashboard — GET /api/admin/backup/dashboard/stats (30s refresh).
  */
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert, Col, Row, Space, Typography } from 'antd';
+import { Alert, Button, Col, Row, Space, Typography } from 'antd';
 import { useRouter } from 'next/navigation';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 
 import { useGetApiAdminBackupStatusLatest } from '@/api/generated/admin-backup/admin-backup';
 import { BackupRunStatus } from '@/api/generated/model/backupRunStatus';
@@ -19,6 +19,7 @@ import { MetricCard } from '@/features/backup/components/MetricCard';
 import { RecentBackupsTable } from '@/features/backup/components/RecentBackupsTable';
 import { RestoreReadinessCard } from '@/features/backup/components/RestoreReadinessCard';
 import { useBackupPermissions } from '@/features/backup/hooks/useBackupPermissions';
+import { getBackupDashboardHealthQueryKey } from '@/features/backup/logic/backupDashboardHealthApi';
 import {
   BACKUP_DASHBOARD_STATS_POLL_MS,
   type BackupDashboardStatsResponseDto,
@@ -31,6 +32,8 @@ import {
   metricStatusFromStats,
   statsToRecoverabilitySummary,
 } from '@/features/backup/logic/backupDashboardStatsMapper';
+import { runRestoreDrill } from '@/features/backup/logic/backupDrillApi';
+import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
 import { formatDateTime } from '@/i18n/formatting';
 
@@ -41,9 +44,11 @@ function formatDt(iso: string | undefined | null, formatLocale: string): string 
 
 export function BackupDashboard() {
   const { t, formatLocale } = useI18n();
+  const notify = useNotify();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { canManageBackup, canRestore } = useBackupPermissions();
+  const [drilling, setDrilling] = useState(false);
 
   const statsQuery = useQuery({
     queryKey: getBackupDashboardStatsQueryKey(),
@@ -96,8 +101,35 @@ export function BackupDashboard() {
 
   const invalidateAll = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: getBackupDashboardStatsQueryKey() });
+    await queryClient.invalidateQueries({ queryKey: getBackupDashboardHealthQueryKey() });
     await queryClient.invalidateQueries({ queryKey: ['/api/admin/backup'] });
   }, [queryClient]);
+
+  const handleRunDrill = useCallback(async () => {
+    setDrilling(true);
+    notify.info(t('backup.drillRunning'));
+    try {
+      const result = await runRestoreDrill();
+      if (result.success) {
+        if (result.newQueuedRunCreated) notify.successKey('backup.drillCompleted');
+        else if (result.existingRunReturned) notify.info(t('backup.drillExisting'));
+        else notify.successKey('backup.drillCompleted');
+      } else {
+        notify.error(t('backup.drillFailed'), {
+          description: result.errors?.join(' · ') || result.status,
+        });
+      }
+      await invalidateAll();
+      await queryClient.invalidateQueries({ queryKey: ['/api/admin/restore-verification'] });
+    } catch (err) {
+      notify.apiError(err, {
+        logContext: 'BackupDashboard.runDrill',
+        fallbackKey: 'backup.drillFailed',
+      });
+    } finally {
+      setDrilling(false);
+    }
+  }, [invalidateAll, notify, queryClient, t]);
 
   if (statsQuery.isLoading && !stats) {
     return <PageSkeleton widgets={6} />;
@@ -136,6 +168,8 @@ export function BackupDashboard() {
       formatLocale={formatLocale}
       canManageBackup={canManageBackup}
       canRestore={canRestore}
+      drilling={drilling}
+      onRunDrill={handleRunDrill}
       statsFetching={statsQuery.isFetching}
       activeBackupHint={
         latestFromStatus?.status === BackupRunStatus.NUMBER_1 ||
@@ -159,6 +193,8 @@ function DashboardBody({
   formatLocale,
   canManageBackup,
   canRestore,
+  drilling,
+  onRunDrill,
   statsFetching,
   activeBackupHint,
   navigateToRun,
@@ -175,6 +211,8 @@ function DashboardBody({
   formatLocale: string;
   canManageBackup: boolean;
   canRestore: boolean;
+  drilling: boolean;
+  onRunDrill: () => void;
   statsFetching: boolean;
   activeBackupHint: boolean;
   navigateToRun: (runId: string) => void;
@@ -197,6 +235,83 @@ function DashboardBody({
           })}
         />
       ) : null}
+
+      {canRestore ? (
+        <Space>
+          <Button type="primary" loading={drilling} onClick={onRunDrill}>
+            {t('backup.runRestoreDrill')}
+          </Button>
+        </Space>
+      ) : null}
+
+      <Row gutter={[16, 16]}>
+        <Col xs={24} sm={12} lg={6}>
+          <MetricCard
+            title={t('backup.dashboard.overallHealth')}
+            value={`${stats.healthScore ?? '—'}%`}
+            status={
+              (stats.healthLevel ?? '').toLowerCase() === 'healthy'
+                ? 'success'
+                : (stats.healthLevel ?? '').toLowerCase() === 'critical'
+                  ? 'error'
+                  : 'warning'
+            }
+            loading={statsFetching}
+          />
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <MetricCard
+            title={t('backup.dashboard.verificationStatus')}
+            value={
+              stats.lastVerificationStatus === 1
+                ? t('backup.dashboard.verificationPassed')
+                : stats.lastVerificationStatus === 2
+                  ? t('backup.dashboard.verificationFailed')
+                  : t('backup.dashboard.verificationNone')
+            }
+            status={
+              stats.lastVerificationStatus === 1
+                ? 'success'
+                : stats.lastVerificationStatus === 2
+                  ? 'error'
+                  : 'info'
+            }
+            loading={statsFetching}
+          />
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <MetricCard
+            title={t('backup.dashboard.contentValidation')}
+            value={(stats.contentValidationSummary?.status ?? 'unknown').toString()}
+            status={
+              (stats.contentValidationSummary?.status ?? '').toLowerCase() === 'passed'
+                ? 'success'
+                : (stats.contentValidationSummary?.status ?? '').toLowerCase() === 'failed'
+                  ? 'error'
+                  : 'warning'
+            }
+            loading={statsFetching}
+          />
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <MetricCard
+            title={t('backup.dashboard.rpoStatus')}
+            value={`${stats.rpoStatus ?? '—'}${
+              stats.rpoHours != null ? ` (${Math.round(stats.rpoHours)}h)` : ''
+            }`}
+            status={
+              (stats.rpoStatus ?? '').toLowerCase() === 'healthy' ||
+              (stats.rpoStatus ?? '').toLowerCase() === 'ok'
+                ? 'success'
+                : (stats.rpoStatus ?? '').toLowerCase() === 'critical' ||
+                    (stats.rpoStatus ?? '').toLowerCase() === 'overdue'
+                  ? 'error'
+                  : 'warning'
+            }
+            loading={statsFetching}
+          />
+        </Col>
+      </Row>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>

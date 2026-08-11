@@ -77,7 +77,10 @@ import type {
   AuditReportScheduleResponse,
   AuditRetentionInfoResponse,
   BackupArtifactImportResponseDto,
+  BackupChecksumVerifyResponseDto,
   BackupComplianceStatusResponseDto,
+  BackupContentValidationDto,
+  BackupDashboardHealthResponseDto,
   BackupDashboardStatsResponseDto,
   BackupExecutionModePutRequestDto,
   BackupExecutionModeResponseDto,
@@ -615,6 +618,7 @@ import type {
   ResolveSensitiveExportApprovalBody,
   RestoreApprovalRequest,
   RestoreComplianceCheckResponseDto,
+  RestoreDrillResultDto,
   RestorePointValidationResultDto,
   RestoreProofMilestonesResponseDto,
   RestoreReportResponseDto,
@@ -651,6 +655,7 @@ import type {
   RoleAssignedPackageDto,
   RolePermissionSimulateRequest,
   RolePermissionSimulateResultDto,
+  RunRestoreDrillRequestDto,
   SaveDashboardPreferencesRequestDto,
   SaveUserPreferencesRequestDto,
   ScheduleAuditReportRequest,
@@ -2593,6 +2598,61 @@ export const useGetApiAdminBackupDashboardStats = <TData = Awaited<ReturnType<ty
 
 
 
+export const getApiAdminBackupDashboardHealth = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<BackupDashboardHealthResponseDto>(
+      {url: `/api/admin/backup/dashboard/health`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminBackupDashboardHealthQueryKey = () => {
+    return [`/api/admin/backup/dashboard/health`] as const;
+    }
+
+    
+export const getGetApiAdminBackupDashboardHealthQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBackupDashboardHealth>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupDashboardHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBackupDashboardHealthQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBackupDashboardHealth>>> = ({ signal }) => getApiAdminBackupDashboardHealth(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupDashboardHealth>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminBackupDashboardHealthQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupDashboardHealth>>>
+export type GetApiAdminBackupDashboardHealthQueryError = unknown
+
+export const useGetApiAdminBackupDashboardHealth = <TData = Awaited<ReturnType<typeof getApiAdminBackupDashboardHealth>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupDashboardHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminBackupDashboardHealthQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
 export const getApiAdminBackupComplianceStatus = (
     
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -3257,7 +3317,168 @@ export const useGetApiAdminBackupRunsIdVerificationReport = <TData = Awaited<Ret
 
 
 
-export const getApiAdminBackupVerificationLatest = (
+export const getApiAdminBackupRunsIdVerifyChecksum = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<BackupChecksumVerifyResponseDto>(
+      {url: `/api/admin/backup/runs/${id}/verify-checksum`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminBackupRunsIdVerifyChecksumQueryKey = (id: string,) => {
+    return [`/api/admin/backup/runs/${id}/verify-checksum`] as const;
+    }
+
+    
+export const getGetApiAdminBackupRunsIdVerifyChecksumQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBackupRunsIdVerifyChecksum>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsIdVerifyChecksum>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBackupRunsIdVerifyChecksumQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBackupRunsIdVerifyChecksum>>> = ({ signal }) => getApiAdminBackupRunsIdVerifyChecksum(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsIdVerifyChecksum>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminBackupRunsIdVerifyChecksumQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupRunsIdVerifyChecksum>>>
+export type GetApiAdminBackupRunsIdVerifyChecksumQueryError = ProblemDetails
+
+export const useGetApiAdminBackupRunsIdVerifyChecksum = <TData = Awaited<ReturnType<typeof getApiAdminBackupRunsIdVerifyChecksum>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsIdVerifyChecksum>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminBackupRunsIdVerifyChecksumQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminBackupRunsIdContentValidation = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<BackupContentValidationDto>(
+      {url: `/api/admin/backup/runs/${id}/content-validation`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminBackupRunsIdContentValidationQueryKey = (id: string,) => {
+    return [`/api/admin/backup/runs/${id}/content-validation`] as const;
+    }
+
+    
+export const getGetApiAdminBackupRunsIdContentValidationQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBackupRunsIdContentValidation>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsIdContentValidation>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBackupRunsIdContentValidationQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBackupRunsIdContentValidation>>> = ({ signal }) => getApiAdminBackupRunsIdContentValidation(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsIdContentValidation>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminBackupRunsIdContentValidationQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupRunsIdContentValidation>>>
+export type GetApiAdminBackupRunsIdContentValidationQueryError = ProblemDetails
+
+export const useGetApiAdminBackupRunsIdContentValidation = <TData = Awaited<ReturnType<typeof getApiAdminBackupRunsIdContentValidation>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsIdContentValidation>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminBackupRunsIdContentValidationQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminBackupDrillRun = (
+    runRestoreDrillRequestDto: RunRestoreDrillRequestDto,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<RestoreDrillResultDto>(
+      {url: `/api/admin/backup/drill/run`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: runRestoreDrillRequestDto
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminBackupDrillRunMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupDrillRun>>, TError,{data: RunRestoreDrillRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupDrillRun>>, TError,{data: RunRestoreDrillRequestDto}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminBackupDrillRun>>, {data: RunRestoreDrillRequestDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminBackupDrillRun(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminBackupDrillRunMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminBackupDrillRun>>>
+    export type PostApiAdminBackupDrillRunMutationBody = RunRestoreDrillRequestDto
+    export type PostApiAdminBackupDrillRunMutationError = ProblemDetails
+
+    export const usePostApiAdminBackupDrillRun = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupDrillRun>>, TError,{data: RunRestoreDrillRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminBackupDrillRun>>,
+        TError,
+        {data: RunRestoreDrillRequestDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminBackupDrillRunMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminBackupVerificationLatest = (
     
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {

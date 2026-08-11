@@ -460,6 +460,9 @@ internal static class ApplicationHost
             builder.Services.AddOptions<RestoreVerificationOptions>()
                 .Bind(builder.Configuration.GetSection(RestoreVerificationOptions.SectionName))
                 .ValidateOnStart();
+
+            builder.Services.AddOptions<BackupReVerificationOptions>()
+                .Bind(builder.Configuration.GetSection(BackupReVerificationOptions.SectionName));
         }
         else
         {
@@ -467,6 +470,8 @@ internal static class ApplicationHost
                 .Bind(builder.Configuration.GetSection(BackupOptions.SectionName));
             builder.Services.AddOptions<RestoreVerificationOptions>()
                 .Bind(builder.Configuration.GetSection(RestoreVerificationOptions.SectionName));
+            builder.Services.AddOptions<BackupReVerificationOptions>()
+                .Bind(builder.Configuration.GetSection(BackupReVerificationOptions.SectionName));
         }
 
         // Local development iÃ§in explicit host binding; production host binding platform tarafÄ±ndan yÃ¶netilmelidir.
@@ -1316,6 +1321,8 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IBackupStorageCostService, BackupStorageCostService>();
         builder.Services.AddScoped<IBackupVerificationService, BackupVerificationService>();
         builder.Services.AddScoped<IBackupVerificationReportService, BackupVerificationReportService>();
+        builder.Services.AddScoped<IBackupChecksumVerificationService, BackupChecksumVerificationService>();
+        builder.Services.AddScoped<IBackupContentValidationService, BackupContentValidationService>();
         builder.Services.AddSingleton<IRestoreOrchestrationBoundary, DeferredRestoreOrchestrationBoundary>();
         builder.Services.AddSingleton<IBackupPostgresClientToolingProbeState, BackupPostgresClientToolingProbeState>();
         builder.Services.AddSingleton<IBackupOperationalReadiness, BackupOperationalReadinessService>();
@@ -1329,6 +1336,8 @@ internal static class ApplicationHost
         builder.Services.AddHostedService<BackupSchedulerService>();
         builder.Services.AddHostedService<BackupRetentionPolicyDiagnosticsHostedService>();
         builder.Services.AddHostedService<StorageAlertService>();
+        builder.Services.AddHostedService<BackupReVerificationHostedService>();
+        builder.Services.AddHostedService<BackupRpoOverdueAlertService>();
         builder.Services.AddHostedService<AutomaticCleanupService>();
 
         builder.Services.AddSingleton<IPgRestoreListInspector, PgRestoreListInspector>();

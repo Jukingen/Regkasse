@@ -1071,6 +1071,25 @@
         }
       }
     },
+    "/api/admin/backup/dashboard/health": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupDashboardHealthResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/backup/compliance-status": {
       "get": {
         "tags": [
@@ -1475,6 +1494,144 @@
           },
           "404": {
             "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/backup/runs/{id}/verify-checksum": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupChecksumVerifyResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/backup/runs/{id}/content-validation": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupContentValidationDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/backup/drill/run": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunRestoreDrillRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestoreDrillResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
             "content": {
               "application/json": {
                 "schema": {
@@ -47152,6 +47309,69 @@
         "type": "integer",
         "format": "int32"
       },
+      "BackupChecksumArtifactResultDto": {
+        "type": "object",
+        "properties": {
+          "artifactType": {
+            "type": "string",
+            "nullable": true
+          },
+          "storedChecksum": {
+            "type": "string",
+            "nullable": true
+          },
+          "computedChecksum": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "BackupChecksumVerifyResponseDto": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "isValid": {
+            "type": "boolean"
+          },
+          "verifiedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "verifierSource": {
+            "type": "string",
+            "nullable": true
+          },
+          "verificationId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "failureReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BackupChecksumArtifactResultDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "BackupComplianceListItemDto": {
         "type": "object",
         "properties": {
@@ -47326,6 +47546,238 @@
         },
         "additionalProperties": false
       },
+      "BackupContentFiscalCheckDto": {
+        "type": "object",
+        "properties": {
+          "checkName": {
+            "type": "string",
+            "nullable": true
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "details": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "BackupContentFiscalValidationDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "paymentsInManifest": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "receiptsInManifest": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "liveSignedPayments": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "liveUnsignedPayments": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "chainBreakCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "sequenceGapCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "duplicateReceiptCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "BackupContentTableValidationDto": {
+        "type": "object",
+        "properties": {
+          "tableKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "tableName": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "manifestCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "liveCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "actualCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true,
+            "readOnly": true
+          },
+          "match": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "BackupContentValidationDto": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "validatedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "verificationId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "overallStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "summary": {
+            "type": "string",
+            "nullable": true
+          },
+          "strategy": {
+            "type": "string",
+            "nullable": true
+          },
+          "tables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BackupContentTableValidationDto"
+            },
+            "nullable": true
+          },
+          "fiscalChecks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BackupContentFiscalCheckDto"
+            },
+            "nullable": true
+          },
+          "fiscal": {
+            "$ref": "#/components/schemas/BackupContentFiscalValidationDto"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "BackupDashboardContentValidationSummaryDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "summary": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastSucceededRunId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "BackupDashboardHealthResponseDto": {
+        "type": "object",
+        "properties": {
+          "healthScore": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "healthLevel": {
+            "type": "string",
+            "nullable": true
+          },
+          "verificationStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastVerificationRunId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "contentValidationStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "contentValidationSummary": {
+            "type": "string",
+            "nullable": true
+          },
+          "rpoStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "rpoHours": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "lastSuccessfulBackupAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "BackupDashboardHistoryPointDto": {
         "type": "object",
         "properties": {
@@ -47446,6 +47898,29 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          },
+          "lastVerificationStatus": {
+            "$ref": "#/components/schemas/BackupVerificationStatus"
+          },
+          "lastVerificationRunId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "rpoStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "healthScore": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "healthLevel": {
+            "type": "string",
+            "nullable": true
+          },
+          "contentValidationSummary": {
+            "$ref": "#/components/schemas/BackupDashboardContentValidationSummaryDto"
           },
           "averageSucceededBackupDurationSeconds": {
             "type": "number",
@@ -61652,6 +62127,15 @@
           "apiBaseUrl": {
             "type": "string",
             "nullable": true
+          },
+          "daysRemaining": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -72851,6 +73335,56 @@
         "type": "integer",
         "format": "int32"
       },
+      "RestoreDrillResultDto": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "sourceBackupRunId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "newQueuedRunCreated": {
+            "type": "boolean"
+          },
+          "existingRunReturned": {
+            "type": "boolean"
+          },
+          "orchestrationState": {
+            "type": "string",
+            "nullable": true
+          },
+          "run": {
+            "$ref": "#/components/schemas/RestoreVerificationRunResponseDto"
+          },
+          "aliasOf": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "RestoreDrillStage": {
         "enum": [
           0,
@@ -75075,6 +75609,23 @@
             "items": {
               "$ref": "#/components/schemas/PermissionGroupDto"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RunRestoreDrillRequestDto": {
+        "type": "object",
+        "properties": {
+          "backupRunId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "idempotencyKey": {
+            "maxLength": 200,
+            "minLength": 0,
+            "type": "string",
             "nullable": true
           }
         },

@@ -56,6 +56,23 @@ public sealed class BackupDashboardStatsResponseDto
 
     public DateTime? LastVerifiedBackupAtUtc { get; init; }
 
+    /// <summary>Latest accessible verification row status (Passed/Failed/Pending); null when none.</summary>
+    public BackupVerificationStatus? LastVerificationStatus { get; init; }
+
+    public Guid? LastVerificationRunId { get; init; }
+
+    /// <summary>Healthy | AtRisk | Critical | Unknown — derived from RPO vs AlertOnNoBackupDays.</summary>
+    public string RpoStatus { get; init; } = "Unknown";
+
+    /// <summary>0–100 composite health score (config + RPO + verification + drill).</summary>
+    public int HealthScore { get; init; }
+
+    /// <summary>healthy (80–100) | warning (50–79) | critical (0–49)</summary>
+    public string HealthLevel { get; init; } = "warning";
+
+    /// <summary>Lightweight content-validation summary for dashboard (not a full report).</summary>
+    public BackupDashboardContentValidationSummaryDto? ContentValidationSummary { get; init; }
+
     public double? AverageSucceededBackupDurationSeconds { get; init; }
 
     public int AverageSucceededBackupDurationSampleCount { get; init; }
@@ -66,6 +83,44 @@ public sealed class BackupDashboardStatsResponseDto
 
     public IReadOnlyList<BackupDashboardHistoryPointDto> History30Days { get; init; } =
         Array.Empty<BackupDashboardHistoryPointDto>();
+}
+
+/// <summary>
+/// Aggregated backup health projection for widgets (from dashboard/stats; not a parallel computation path).
+/// </summary>
+public sealed class BackupDashboardHealthResponseDto
+{
+    public int HealthScore { get; init; }
+
+    /// <summary>healthy | warning | critical</summary>
+    public string HealthLevel { get; init; } = "warning";
+
+    /// <summary>Passed | Failed | None</summary>
+    public string VerificationStatus { get; init; } = "None";
+
+    public Guid? LastVerificationRunId { get; init; }
+
+    /// <summary>passed | failed | partial | unavailable | unknown</summary>
+    public string ContentValidationStatus { get; init; } = "unknown";
+
+    public string? ContentValidationSummary { get; init; }
+
+    /// <summary>Healthy | AtRisk | Critical | Unknown</summary>
+    public string RpoStatus { get; init; } = "Unknown";
+
+    public double? RpoHours { get; init; }
+
+    public DateTime? LastSuccessfulBackupAtUtc { get; init; }
+}
+
+public sealed class BackupDashboardContentValidationSummaryDto
+{
+    /// <summary>passed | failed | partial | available | unavailable | unknown</summary>
+    public string Status { get; init; } = "unknown";
+
+    public string? Summary { get; init; }
+
+    public Guid? LastSucceededRunId { get; init; }
 }
 
 public sealed class BackupDashboardHistoryPointDto

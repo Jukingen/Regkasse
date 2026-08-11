@@ -1,5 +1,6 @@
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.RestoreVerification;
 using KasseAPI_Final.Services.OperationalRuns;
 using Microsoft.EntityFrameworkCore;
@@ -32,9 +33,18 @@ public sealed class RestoreVerificationManualTriggerService : IRestoreVerificati
         string? requestedByUserId,
         string? correlationId,
         string? idempotencyKey,
+        Guid? sourceBackupRunId = null,
         CancellationToken cancellationToken = default)
     {
         var normalizedKey = NormalizeIdempotencyKey(idempotencyKey);
+        Guid? pinnedBackupRunId = null;
+        if (sourceBackupRunId.HasValue)
+        {
+            pinnedBackupRunId = await ResolveAndValidateSourceBackupRunIdAsync(
+                    sourceBackupRunId.Value,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
 
         for (var attempt = 0; attempt < IdempotencyInsertRetryMax; attempt++)
         {
@@ -83,6 +93,7 @@ public sealed class RestoreVerificationManualTriggerService : IRestoreVerificati
                 RequestedByUserId = requestedByUserId,
                 CorrelationId = correlationId,
                 IdempotencyKey = normalizedKey,
+                SourceBackupRunId = pinnedBackupRunId,
                 ConfigSnapshotJson = OperationalRunConfigSnapshotBuilder.SerializeRestore(
                     ro,
                     "restore_manual_enqueue",
@@ -94,9 +105,10 @@ public sealed class RestoreVerificationManualTriggerService : IRestoreVerificati
             {
                 await _db.SaveChangesAsync(cancellationToken);
                 _logger.LogInformation(
-                    "Restore verification manual trigger: new run queued. RunId={RunId}, IdempotencyKeySet={HasKey}",
+                    "Restore verification manual trigger: new run queued. RunId={RunId}, IdempotencyKeySet={HasKey}, SourceBackupRunId={SourceBackupRunId}",
                     run.Id,
-                    normalizedKey != null);
+                    normalizedKey != null,
+                    pinnedBackupRunId);
                 return new RestoreVerificationManualTriggerResult
                 {
                     Run = run,
@@ -115,6 +127,35 @@ public sealed class RestoreVerificationManualTriggerService : IRestoreVerificati
 
         throw new InvalidOperationException(
             "Could not enqueue restore verification: idempotency key contention exceeded retry limit.");
+    }
+
+    /// <summary>
+    /// Ensures the backup run exists, succeeded, and has a LogicalDump artifact (drill-eligible).
+    /// </summary>
+    private async Task<Guid> ResolveAndValidateSourceBackupRunIdAsync(
+        Guid backupRunId,
+        CancellationToken cancellationToken)
+    {
+        var run = await _db.BackupRuns.AsNoTracking()
+            .Include(r => r.Artifacts)
+            .FirstOrDefaultAsync(r => r.Id == backupRunId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (run == null)
+            throw new KeyNotFoundException($"Backup run {backupRunId} not found.");
+
+        if (run.Status != BackupRunStatus.Succeeded)
+            throw new ArgumentException(
+                $"Backup run {backupRunId} is not Succeeded (status={run.Status}); cannot pin restore drill.",
+                nameof(backupRunId));
+
+        var hasDump = run.Artifacts.Any(a => a.ArtifactType == BackupArtifactType.LogicalDump);
+        if (!hasDump)
+            throw new ArgumentException(
+                $"Backup run {backupRunId} has no LogicalDump artifact; cannot pin restore drill.",
+                nameof(backupRunId));
+
+        return backupRunId;
     }
 
     private static string? NormalizeIdempotencyKey(string? idempotencyKey)

@@ -1794,6 +1794,8 @@
     "durationMinutes": "{{minutes}} min",
     "retryConfirmTitle": "Enqueue a new backup?",
     "retryConfirmDescription": "A new manual backup run is queued (this does not replay the same run).",
+    "verifyChecksum": "Verify checksum",
+    "lastVerification": "Last verification",
     "statusLabels": {
       "queued": "Queued",
       "running": "Running",
@@ -1811,6 +1813,24 @@
       "4": "Manifest",
       "5": "Backup log"
     }
+  },
+  "checksumVerify": {
+    "verifyChecksum": "Verify checksum",
+    "checksumPassed": "Integrity check passed",
+    "checksumFailed": "File corrupted or checksum mismatch",
+    "checksumNotAvailable": "Checksum not available for this backup",
+    "lastVerification": "Last verification",
+    "verifying": "Verifying checksum…",
+    "badgePassed": "Checksum OK",
+    "badgeFailed": "Checksum failed",
+    "badgeUnknown": "Not verified yet",
+    "rpoAlert": "No successful system backup for {{days}} days. RPO may be at risk.",
+    "validateContent": "Validate content",
+    "contentPassed": "All tables validated",
+    "contentWarning": "Content validation completed with warnings",
+    "contentFailed": "Content validation failed",
+    "contentUnavailable": "Content validation not available",
+    "contentReportTitle": "Content validation report"
   },
   "verificationReport": {
     "sectionTitle": "Backup verification report",

@@ -1794,6 +1794,8 @@
     "durationMinutes": "{{minutes}} dk",
     "retryConfirmTitle": "Yeni yedek kuyruğa alınsın mı?",
     "retryConfirmDescription": "Yeni bir manuel yedek çalıştırması kuyruğa alınır (aynı çalıştırma tekrarlanmaz).",
+    "verifyChecksum": "Checksum doğrula",
+    "lastVerification": "Son doğrulama",
     "statusLabels": {
       "queued": "Beklemede",
       "running": "Çalışıyor",
@@ -1811,6 +1813,24 @@
       "4": "Manifest",
       "5": "Backup log"
     }
+  },
+  "checksumVerify": {
+    "verifyChecksum": "Checksum doğrula",
+    "checksumPassed": "Bütünlük kontrolü başarılı",
+    "checksumFailed": "Dosya bozuk veya checksum uyuşmuyor",
+    "checksumNotAvailable": "Bu yedek için checksum yok",
+    "lastVerification": "Son doğrulama",
+    "verifying": "Checksum doğrulanıyor…",
+    "badgePassed": "Checksum OK",
+    "badgeFailed": "Checksum başarısız",
+    "badgeUnknown": "Henüz doğrulanmadı",
+    "rpoAlert": "{{days}} gündür başarılı sistem yedeği yok. RPO risk altında olabilir.",
+    "validateContent": "İçeriği doğrula",
+    "contentPassed": "Tüm tablolar doğrulandı",
+    "contentWarning": "İçerik doğrulama uyarılarla tamamlandı",
+    "contentFailed": "İçerik doğrulama başarısız",
+    "contentUnavailable": "İçerik doğrulama kullanılamıyor",
+    "contentReportTitle": "İçerik doğrulama raporu"
   },
   "verificationReport": {
     "sectionTitle": "Yedek doğrulama raporu",

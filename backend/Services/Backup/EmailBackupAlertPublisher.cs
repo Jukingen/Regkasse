@@ -5,8 +5,8 @@ using Microsoft.EntityFrameworkCore;
 namespace KasseAPI_Final.Services.Backup;
 
 /// <summary>
-/// Bridges <see cref="BackupAlertKind.BackupFailed"/> / <see cref="BackupAlertKind.VerificationFailed"/>
-/// into German ops email via <see cref="IBackupFailureEmailAlertService"/>.
+/// Bridges <see cref="BackupAlertKind.BackupFailed"/> / <see cref="BackupAlertKind.VerificationFailed"/> /
+/// <see cref="BackupAlertKind.RpoOverdue"/> into German ops email via <see cref="IBackupFailureEmailAlertService"/>.
 /// </summary>
 public sealed class EmailBackupAlertPublisher : IBackupAlertPublisher
 {
@@ -28,7 +28,8 @@ public sealed class EmailBackupAlertPublisher : IBackupAlertPublisher
 
     private async Task PublishInBackgroundAsync(BackupAlertEvent evt)
     {
-        if (evt.Kind is not (BackupAlertKind.BackupFailed or BackupAlertKind.VerificationFailed))
+        if (evt.Kind is not (BackupAlertKind.BackupFailed or BackupAlertKind.VerificationFailed
+            or BackupAlertKind.RpoOverdue))
             return;
 
         try

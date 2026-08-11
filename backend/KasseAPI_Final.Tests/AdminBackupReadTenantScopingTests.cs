@@ -8,6 +8,7 @@ using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Services.RestoreVerification;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -45,7 +46,8 @@ public sealed class AdminBackupReadTenantScopingTests
         string role,
         Guid? tenantId,
         IBackupRunTenantAccessService tenantAccess,
-        IBackupRunQueryService? query = null)
+        IBackupRunQueryService? query = null,
+        IBackupChecksumVerificationService? checksumVerification = null)
     {
         var host = Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development);
         var policy = BackupArtifactPipelinePolicyEvaluator.Evaluate(new BackupOptions(), host);
@@ -75,6 +77,9 @@ public sealed class AdminBackupReadTenantScopingTests
             Mock.Of<IBackupStorageCostService>(),
             Mock.Of<IPitrService>(),
             Mock.Of<IBackupVerificationReportService>(),
+            checksumVerification ?? Mock.Of<IBackupChecksumVerificationService>(),
+            Mock.Of<IBackupContentValidationService>(),
+            Mock.Of<IRestoreVerificationManualTriggerService>(),
             Mock.Of<ICurrentTenantAccessor>(a => a.TenantId == tenantId),
             tenantAccess,
             Mock.Of<IBackupArtifactImportService>(),
@@ -269,6 +274,68 @@ public sealed class AdminBackupReadTenantScopingTests
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var dto = Assert.IsType<BackupVerificationResponseDto>(ok.Value);
         Assert.Equal(runA, dto.BackupRunId);
+    }
+
+    [Fact]
+    public async Task VerifyChecksum_Manager_CrossTenant_Returns404()
+    {
+        await using var db = CreateDb();
+        await SeedRunsAsync(db);
+        var otherRunId = await db.BackupRuns
+            .Where(r => r.IdempotencyKey!.Contains(TenantB.ToString("D")))
+            .Select(r => r.Id)
+            .FirstAsync();
+
+        var checksum = new Mock<IBackupChecksumVerificationService>(MockBehavior.Strict);
+        var controller = CreateController(
+            db,
+            Roles.Manager,
+            TenantA,
+            new BackupRunTenantAccessService(db),
+            checksumVerification: checksum.Object);
+
+        var result = await controller.VerifyChecksum(otherRunId, CancellationToken.None);
+
+        Assert.IsType<NotFoundResult>(result.Result);
+        checksum.Verify(
+            c => c.VerifyChecksumAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task VerifyChecksum_Manager_OwnTenant_Returns200()
+    {
+        await using var db = CreateDb();
+        await SeedRunsAsync(db);
+        var ownRunId = await db.BackupRuns
+            .Where(r => r.IdempotencyKey!.Contains(TenantA.ToString("D")))
+            .Select(r => r.Id)
+            .FirstAsync();
+
+        var checksum = new Mock<IBackupChecksumVerificationService>();
+        checksum
+            .Setup(c => c.VerifyChecksumAsync(ownRunId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BackupChecksumVerifyResponseDto
+            {
+                RunId = ownRunId,
+                IsValid = true,
+                VerifiedAtUtc = DateTime.UtcNow,
+                VerifierSource = IBackupChecksumVerificationService.VerifierSourceOnDemandHttp,
+            });
+
+        var controller = CreateController(
+            db,
+            Roles.Manager,
+            TenantA,
+            new BackupRunTenantAccessService(db),
+            checksumVerification: checksum.Object);
+
+        var result = await controller.VerifyChecksum(ownRunId, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<BackupChecksumVerifyResponseDto>(ok.Value);
+        Assert.True(dto.IsValid);
+        Assert.Equal(ownRunId, dto.RunId);
     }
 
     [Fact]

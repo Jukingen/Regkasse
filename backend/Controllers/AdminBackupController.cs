@@ -5,12 +5,15 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
+using KasseAPI_Final.Models.RestoreVerification;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Tenancy;
+using KasseAPI_Final.Services.RestoreVerification;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -44,6 +47,9 @@ public sealed class AdminBackupController : ControllerBase
     private readonly IBackupStorageCostService _storageCosts;
     private readonly IPitrService _pitr;
     private readonly IBackupVerificationReportService _verificationReport;
+    private readonly IBackupChecksumVerificationService _checksumVerification;
+    private readonly IBackupContentValidationService _contentValidation;
+    private readonly IRestoreVerificationManualTriggerService _restoreDrillTrigger;
     private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly IBackupRunTenantAccessService _backupTenantAccess;
     private readonly IBackupArtifactImportService _artifactImport;
@@ -69,6 +75,9 @@ public sealed class AdminBackupController : ControllerBase
         IBackupStorageCostService storageCosts,
         IPitrService pitr,
         IBackupVerificationReportService verificationReport,
+        IBackupChecksumVerificationService checksumVerification,
+        IBackupContentValidationService contentValidation,
+        IRestoreVerificationManualTriggerService restoreDrillTrigger,
         ICurrentTenantAccessor tenantAccessor,
         IBackupRunTenantAccessService backupTenantAccess,
         IBackupArtifactImportService artifactImport,
@@ -93,6 +102,9 @@ public sealed class AdminBackupController : ControllerBase
         _storageCosts = storageCosts;
         _pitr = pitr;
         _verificationReport = verificationReport;
+        _checksumVerification = checksumVerification;
+        _contentValidation = contentValidation;
+        _restoreDrillTrigger = restoreDrillTrigger;
         _tenantAccessor = tenantAccessor;
         _backupTenantAccess = backupTenantAccess;
         _artifactImport = artifactImport;
@@ -257,6 +269,23 @@ public sealed class AdminBackupController : ControllerBase
             return tenantGuard;
 
         return Ok(await _dashboardStats.GetAsync(BuildRunAccessScope(), cancellationToken));
+    }
+
+    /// <summary>
+    /// Aggregated backup health for widgets (score, verification, content validation, RPO).
+    /// Projection of <c>dashboard/stats</c> — not a parallel metrics pipeline.
+    /// </summary>
+    [HttpGet("dashboard/health")]
+    [HasPermission(AppPermissions.SettingsView)]
+    [ProducesResponseType(typeof(BackupDashboardHealthResponseDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<BackupDashboardHealthResponseDto>> GetDashboardHealth(
+        CancellationToken cancellationToken)
+    {
+        var tenantGuard = ValidateScopedReadTenantContext();
+        if (tenantGuard != null)
+            return tenantGuard;
+
+        return Ok(await _dashboardStats.GetHealthAsync(BuildRunAccessScope(), cancellationToken));
     }
 
     /// <summary>
@@ -796,6 +825,142 @@ public sealed class AdminBackupController : ControllerBase
         catch (KeyNotFoundException)
         {
             return NotFound();
+        }
+    }
+
+    /// <summary>
+    /// On-demand SHA-256 re-hash of backup artifacts vs stored <c>content_hash_sha256</c>.
+    /// Writes a <c>backup_verifications</c> row (<c>on_demand_http</c>). Not restore proof.
+    /// </summary>
+    [HttpGet("runs/{id:guid}/verify-checksum")]
+    [HasPermission(AppPermissions.SettingsView)]
+    [ProducesResponseType(typeof(BackupChecksumVerifyResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<BackupChecksumVerifyResponseDto>> VerifyChecksum(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var tenantGuard = ValidateScopedReadTenantContext();
+        if (tenantGuard != null)
+            return tenantGuard;
+
+        var isSuperAdmin = User.IsInRole(Roles.SuperAdmin);
+        var accessibleRun = await _backupTenantAccess.TryGetAccessibleRunAsync(
+            id,
+            isSuperAdmin,
+            _tenantAccessor.TenantId,
+            User.GetActorUserId(),
+            cancellationToken);
+        if (accessibleRun == null)
+            return NotFound();
+
+        var result = await _checksumVerification.VerifyChecksumAsync(id, cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Content validation: manifest row counts vs live DB + fiscal checks.
+    /// Returns cached <c>content_validation</c> verification when present; otherwise runs and persists.
+    /// Distinct from SHA-256 verify-checksum and from TOC verification-report.
+    /// </summary>
+    [HttpGet("runs/{id:guid}/content-validation")]
+    [HasPermission(AppPermissions.SettingsView)]
+    [ProducesResponseType(typeof(BackupContentValidationDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<BackupContentValidationDto>> GetContentValidation(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var tenantGuard = ValidateScopedReadTenantContext();
+        if (tenantGuard != null)
+            return tenantGuard;
+
+        var isSuperAdmin = User.IsInRole(Roles.SuperAdmin);
+        var accessibleRun = await _backupTenantAccess.TryGetAccessibleRunAsync(
+            id,
+            isSuperAdmin,
+            _tenantAccessor.TenantId,
+            User.GetActorUserId(),
+            cancellationToken);
+        if (accessibleRun == null)
+            return NotFound();
+
+        try
+        {
+            var report = await _contentValidation.GetOrRunValidationAsync(id, cancellationToken);
+            return Ok(report);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
+    /// <summary>
+    /// Alias for <c>POST /api/admin/restore-verification/trigger</c> (restore drill enqueue).
+    /// Optional <c>backupRunId</c> pins the drill to that succeeded LogicalDump; omit to use latest eligible dump.
+    /// Work runs asynchronously in the restore-verification orchestrator — response is enqueue acceptance, not terminal drill proof.
+    /// </summary>
+    [HttpPost("drill/run")]
+    [HasPermission(AppPermissions.SettingsManage)]
+    [ProducesResponseType(typeof(RestoreDrillResultDto), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<RestoreDrillResultDto>> RunRestoreDrill(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] RunRestoreDrillRequestDto? body,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.GetActorUserId();
+        var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
+        try
+        {
+            var result = await _restoreDrillTrigger.EnqueueManualAsync(
+                userId,
+                correlationId,
+                body?.IdempotencyKey,
+                body?.BackupRunId,
+                cancellationToken);
+            var triggerDto = RestoreVerificationRunMapper.ToTriggerResponseDto(result);
+            var run = result.Run;
+            var errors = new List<string>();
+            if (run.Status == RestoreVerificationStatus.Failed)
+            {
+                if (!string.IsNullOrWhiteSpace(run.FailureCode))
+                    errors.Add(run.FailureCode!);
+                if (!string.IsNullOrWhiteSpace(run.FailureDetail))
+                    errors.Add(run.FailureDetail!);
+            }
+
+            return Accepted(new RestoreDrillResultDto
+            {
+                RunId = triggerDto.RunId,
+                Success = run.Status != RestoreVerificationStatus.Failed,
+                Status = run.Status.ToString(),
+                CompletedAt = run.CompletedAt ?? run.RequestedAt,
+                Errors = errors,
+                SourceBackupRunId = run.SourceBackupRunId,
+                NewQueuedRunCreated = triggerDto.NewQueuedRunCreated,
+                ExistingRunReturned = triggerDto.ExistingRunReturned,
+                OrchestrationState = triggerDto.OrchestrationState.ToString(),
+                Run = triggerDto.Run,
+            });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { code = "RESTORE_VERIFICATION_TRIGGER_VALIDATION", error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new
+            {
+                code = "RESTORE_VERIFICATION_ENQUEUE_CONTENTION",
+                message = ex.Message
+            });
         }
     }
 

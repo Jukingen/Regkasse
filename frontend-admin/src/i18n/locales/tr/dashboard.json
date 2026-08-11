@@ -128,7 +128,21 @@
     "storage_alert": "Depolama limitine yaklaşıyor (staging ≥ %80)",
     "config_health": "Yapılandırma: {{level}}",
     "view_details": "Yedekleme özetini aç",
-    "load_failed": "Yedekleme durumu yüklenemedi."
+    "load_failed": "Yedekleme durumu yüklenemedi.",
+    "health_score": "Yedek sağlığı",
+    "rpo_status": "RPO",
+    "rpo_ok": "Tamam",
+    "rpo_warning": "Uyarı",
+    "rpo_overdue": "Gecikmiş",
+    "rpo_unknown": "Bilinmiyor",
+    "last_verification": "Son doğrulama",
+    "verification_passed": "Geçti",
+    "verification_failed": "Başarısız",
+    "verification_none": "Yok",
+    "content_validation": "İçerik doğrulama",
+    "health_healthy": "Sağlıklı",
+    "health_warning": "Uyarı",
+    "health_critical": "Kritik"
   },
   "metricsWidget": {
     "operational": "Çalışıyor",

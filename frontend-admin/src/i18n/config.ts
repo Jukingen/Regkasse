@@ -3,6 +3,7 @@ import deActivity from './locales/de/activity.json';
 import deActivityNotifications from './locales/de/activityNotifications.json';
 import deAdminShell from './locales/de/admin-shell.json';
 import deBackupDr from './locales/de/backupDr.json';
+import deBackup from './locales/de/backup.json';
 import deBenefits from './locales/de/benefits.json';
 import deBilling from './locales/de/billing.json';
 import deCalendar from './locales/de/calendar.json';
@@ -84,6 +85,7 @@ import enActivity from './locales/en/activity.json';
 import enActivityNotifications from './locales/en/activityNotifications.json';
 import enAdminShell from './locales/en/admin-shell.json';
 import enBackupDr from './locales/en/backupDr.json';
+import enBackup from './locales/en/backup.json';
 import enBenefits from './locales/en/benefits.json';
 import enBilling from './locales/en/billing.json';
 import enCalendar from './locales/en/calendar.json';
@@ -165,6 +167,7 @@ import trActivity from './locales/tr/activity.json';
 import trActivityNotifications from './locales/tr/activityNotifications.json';
 import trAdminShell from './locales/tr/admin-shell.json';
 import trBackupDr from './locales/tr/backupDr.json';
+import trBackup from './locales/tr/backup.json';
 import trBenefits from './locales/tr/benefits.json';
 import trBilling from './locales/tr/billing.json';
 import trCalendar from './locales/tr/calendar.json';
@@ -314,6 +317,7 @@ const catalogs = {
     invoices: deInvoices,
     license: deLicense,
     backupDr: deBackupDr,
+    backup: deBackup,
     timeSync: deTimeSync,
     vouchers: deVouchers,
     fiscalExportAudit: deFiscalExportAudit,
@@ -397,6 +401,7 @@ const catalogs = {
     invoices: enInvoices,
     license: enLicense,
     backupDr: enBackupDr,
+    backup: enBackup,
     timeSync: enTimeSync,
     vouchers: enVouchers,
     fiscalExportAudit: enFiscalExportAudit,
@@ -480,6 +485,7 @@ const catalogs = {
     invoices: trInvoices,
     license: trLicense,
     backupDr: trBackupDr,
+    backup: trBackup,
     timeSync: trTimeSync,
     vouchers: trVouchers,
     fiscalExportAudit: trFiscalExportAudit,

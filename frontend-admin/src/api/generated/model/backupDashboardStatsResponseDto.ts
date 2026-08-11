@@ -7,8 +7,10 @@
  */
 import type { BackupArtifactPipelinePolicyResponseDto } from './backupArtifactPipelinePolicyResponseDto';
 import type { BackupConfigurationHealthResponseDto } from './backupConfigurationHealthResponseDto';
+import type { BackupDashboardContentValidationSummaryDto } from './backupDashboardContentValidationSummaryDto';
 import type { BackupDashboardHistoryPointDto } from './backupDashboardHistoryPointDto';
 import type { BackupRunStatus } from './backupRunStatus';
+import type { BackupVerificationStatus } from './backupVerificationStatus';
 import type { RestoreVerificationStatus } from './restoreVerificationStatus';
 
 export interface BackupDashboardStatsResponseDto {
@@ -19,7 +21,11 @@ export interface BackupDashboardStatsResponseDto {
   /** @nullable */
   backupSizeBytes?: number | null;
   configurationHealth?: BackupConfigurationHealthResponseDto;
+  contentValidationSummary?: BackupDashboardContentValidationSummaryDto;
   failedRuns30Days?: number;
+  /** @nullable */
+  healthLevel?: string | null;
+  healthScore?: number;
   /** @nullable */
   history30Days?: BackupDashboardHistoryPointDto[] | null;
   /** @nullable */
@@ -32,6 +38,9 @@ export interface BackupDashboardStatsResponseDto {
   /** @nullable */
   lastSuccessfulRestoreDrillAtUtc?: string | null;
   /** @nullable */
+  lastVerificationRunId?: string | null;
+  lastVerificationStatus?: BackupVerificationStatus;
+  /** @nullable */
   lastVerifiedBackupAtUtc?: string | null;
   latestRestoreDrillStatus?: RestoreVerificationStatus;
   /** @nullable */
@@ -39,6 +48,8 @@ export interface BackupDashboardStatsResponseDto {
   pendingRunsCount?: number;
   /** @nullable */
   rpoHours?: number | null;
+  /** @nullable */
+  rpoStatus?: string | null;
   /** @nullable */
   rtoMinutes?: number | null;
   stagingDiskAlert?: boolean;

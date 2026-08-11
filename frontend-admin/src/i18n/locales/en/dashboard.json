@@ -128,7 +128,21 @@
     "storage_alert": "Storage limit approaching (staging ≥ 80%)",
     "config_health": "Configuration: {{level}}",
     "view_details": "Open backup overview",
-    "load_failed": "Could not load backup status."
+    "load_failed": "Could not load backup status.",
+    "health_score": "Backup health",
+    "rpo_status": "RPO",
+    "rpo_ok": "OK",
+    "rpo_warning": "Warning",
+    "rpo_overdue": "Overdue",
+    "rpo_unknown": "Unknown",
+    "last_verification": "Last verification",
+    "verification_passed": "Passed",
+    "verification_failed": "Failed",
+    "verification_none": "None",
+    "content_validation": "Content validation",
+    "health_healthy": "Healthy",
+    "health_warning": "Warning",
+    "health_critical": "Critical"
   },
   "metricsWidget": {
     "operational": "Operational",

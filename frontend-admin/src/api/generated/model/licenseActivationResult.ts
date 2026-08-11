@@ -10,9 +10,13 @@ export interface LicenseActivationResult {
   /** @nullable */
   apiBaseUrl?: string | null;
   /** @nullable */
+  daysRemaining?: number | null;
+  /** @nullable */
   licenseType?: string | null;
   /** @nullable */
   message?: string | null;
+  /** @nullable */
+  status?: string | null;
   success?: boolean;
   /** @nullable */
   tenantId?: string | null;

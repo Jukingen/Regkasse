@@ -128,7 +128,21 @@
     "storage_alert": "Speicherlimit nähert sich (Staging ≥ 80%)",
     "config_health": "Konfiguration: {{level}}",
     "view_details": "Backup-Übersicht öffnen",
-    "load_failed": "Backup-Status konnte nicht geladen werden."
+    "load_failed": "Backup-Status konnte nicht geladen werden.",
+    "health_score": "Backup-Gesundheit",
+    "rpo_status": "RPO",
+    "rpo_ok": "OK",
+    "rpo_warning": "Warnung",
+    "rpo_overdue": "Überfällig",
+    "rpo_unknown": "Unbekannt",
+    "last_verification": "Letzte Prüfung",
+    "verification_passed": "Bestanden",
+    "verification_failed": "Fehlgeschlagen",
+    "verification_none": "Keine",
+    "content_validation": "Inhaltsprüfung",
+    "health_healthy": "Gesund",
+    "health_warning": "Warnung",
+    "health_critical": "Kritisch"
   },
   "metricsWidget": {
     "operational": "Betriebsbereit",
