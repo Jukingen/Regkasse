@@ -202,7 +202,9 @@ public partial class LicenseController : ControllerBase
             true,
             result.Message,
             result.ValidUntilUtc,
-            result.LicensePlan);
+            result.LicensePlan,
+            DaysRemaining: LicenseService.ComputeActivationDaysRemaining(result.ValidUntilUtc),
+            Status: "active");
 
         var enriched = await EnrichActivationResultWithTenantAsync(activationResult, cancellationToken)
             .ConfigureAwait(false);

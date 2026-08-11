@@ -68,6 +68,16 @@
   "activationKeyHint": "Biçim: REGK, beş karakter, tire, beş karakter, tire, beş karakter (boşluksuz).",
   "activationSubmit": "Etkinleştir",
   "activationSuccess": "Lisans etkinleştirildi.",
+  "activation": {
+    "success": "✅ Lisans başarıyla etkinleştirildi!",
+    "successMessage": "Yeni geçerlilik: {{date}}",
+    "loading": "Lisans etkinleştiriliyor...",
+    "error": "❌ Etkinleştirme başarısız: {{error}}"
+  },
+  "header": {
+    "activating": "Lisans etkinleştiriliyor...",
+    "activated": "Lisans etkinleştirildi"
+  },
   "activationInvalidFormat": "Geçersiz biçim. Beklenen: REGK-XXXXX-XXXXX-XXXXX",
   "activationFailed": "Etkinleştirme başarısız. Anahtarı kontrol edin veya desteğe yazın.",
   "activationNetwork": "Ağ hatası. Bağlantıyı kontrol edip yeniden deneyin.",

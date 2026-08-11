@@ -68,6 +68,16 @@
   "activationKeyHint": "Format: REGK, fünf Zeichen, Bindestrich, fünf Zeichen, Bindestrich, fünf Zeichen (ohne Leerzeichen).",
   "activationSubmit": "Aktivieren",
   "activationSuccess": "Lizenz wurde aktiviert.",
+  "activation": {
+    "success": "✅ Lizenz erfolgreich aktiviert!",
+    "successMessage": "Neue Gültigkeit: {{date}}",
+    "loading": "Aktiviere Lizenz...",
+    "error": "❌ Aktivierung fehlgeschlagen: {{error}}"
+  },
+  "header": {
+    "activating": "Lizenz wird aktiviert...",
+    "activated": "Lizenz aktiviert"
+  },
   "activationInvalidFormat": "Ungültiges Format. Erwartet: REGK-XXXXX-XXXXX-XXXXX",
   "activationFailed": "Aktivierung fehlgeschlagen. Bitte Schlüssel prüfen oder Support kontaktieren.",
   "activationNetwork": "Netzwerkfehler. Verbindung prüfen und erneut versuchen.",

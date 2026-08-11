@@ -58,15 +58,18 @@ export function LicenseStatusIndicator({
   expandedTouchTarget = false,
 }: LicenseStatusIndicatorProps) {
   const { t } = useTranslation(['license', 'common']);
-  const { status, loading, refetch } = useLicenseStatus();
+  const { status, loading, isActivating, refetch } = useLicenseStatus();
   const [detailOpen, setDetailOpen] = useState(false);
 
-  const tone = useMemo(() => resolveTone(status), [status]);
+  const tone = useMemo(() => (isActivating ? 'neutral' : resolveTone(status)), [isActivating, status]);
 
   const unlimitedPaid =
     !!status && status.isValid && !status.isTrial && !status.isExpired && !status.expiryDate;
 
   const badgeLabel = useMemo(() => {
+    if (isActivating) {
+      return t('license:header.activating');
+    }
     if (loading && !status) {
       return null;
     }
@@ -84,9 +87,10 @@ export function LicenseStatusIndicator({
       return t('license:badge.hoursShort', { count: remaining.hours });
     }
     return t('license:badge.daysShort', { count: status.daysRemaining });
-  }, [loading, status, unlimitedPaid, t]);
+  }, [isActivating, loading, status, unlimitedPaid, t]);
 
   const accessibilityLabel = useMemo(() => {
+    if (isActivating) return t('license:header.activating');
     if (!status) return t('license:badge.unknown');
     if (status.isExpired) return t('license:warningExpired');
     const remaining = preferLicenseHoursRemaining(status.daysRemaining, status.expiryDate);
@@ -97,7 +101,7 @@ export function LicenseStatusIndicator({
     }
     if (status.isTrial) return `${t('license:typeTrial')}, ${status.daysRemaining} Tag(e)`;
     return `${t('license:typePaid')}, ${status.daysRemaining} Tag(e)`;
-  }, [status, t]);
+  }, [isActivating, status, t]);
 
   return (
     <>
@@ -114,8 +118,15 @@ export function LicenseStatusIndicator({
           expandedTouchTarget ? styles.badgeExpanded : null,
           { backgroundColor: badgeBackground(tone) },
         ]}>
-        {!status && loading ? (
-          <ActivityIndicator size="small" color={SoftColors.textInverse} />
+        {isActivating || (!status && loading) ? (
+          <View style={styles.badgeInner}>
+            <ActivityIndicator size="small" color={SoftColors.textInverse} />
+            {isActivating && badgeLabel ? (
+              <Text style={[styles.badgeText, { color: badgeForeground(tone) }]} numberOfLines={1}>
+                {badgeLabel}
+              </Text>
+            ) : null}
+          </View>
         ) : (
           <View style={styles.badgeInner}>
             <Ionicons

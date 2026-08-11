@@ -247,7 +247,11 @@ public sealed record LicenseActivationResult(
     string? LicenseType = null,
     Guid? TenantId = null,
     string? TenantSlug = null,
-    string? ApiBaseUrl = null);
+    string? ApiBaseUrl = null,
+    /// <summary>Whole days remaining until <see cref="ValidUntil"/> (UTC); null when expiry unknown.</summary>
+    int? DaysRemaining = null,
+    /// <summary>Coarse lifecycle label for clients (e.g. <c>active</c>).</summary>
+    string? Status = null);
 
 /// <summary>Optional HTTP client metadata stored on each activation audit row.</summary>
 public sealed record LicenseActivationClientInfo(
@@ -947,7 +951,14 @@ public sealed class LicenseService : ILicenseService
 
             _logger.LogInformation("License: activation succeeded for key prefix {Prefix}.", SafePrefix(normalizedKey));
             var licenseType = MapPublicLicenseTypeLabel(st);
-            return new LicenseActivationResult(true, "Lizenz erfolgreich aktiviert", st.ExpiryDate, licenseType);
+            var daysRemaining = ComputeActivationDaysRemaining(st.ExpiryDate);
+            return new LicenseActivationResult(
+                true,
+                "Lizenz erfolgreich aktiviert",
+                st.ExpiryDate,
+                licenseType,
+                DaysRemaining: daysRemaining,
+                Status: "active");
         }
         catch (Exception ex)
         {
@@ -966,6 +977,19 @@ public sealed class LicenseService : ILicenseService
         if (trialActive)
             return "Trial";
         return "Expired";
+    }
+
+    /// <summary>Whole calendar days remaining until expiry (ceil); null when expiry is unknown.</summary>
+    internal static int? ComputeActivationDaysRemaining(DateTime? expiryUtc, DateTime? nowUtc = null)
+    {
+        if (expiryUtc is not DateTime until)
+            return null;
+        var now = nowUtc ?? DateTime.UtcNow;
+        var untilUtc = until.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(until, DateTimeKind.Utc)
+            : until.ToUniversalTime();
+        var days = (int)Math.Ceiling((untilUtc - now).TotalDays);
+        return Math.Max(0, days);
     }
 
     private LicenseStatusResponse BuildSnapshot(LicensePersistedState blob, bool paidValid)

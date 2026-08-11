@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { useAuth } from './AuthContext';
-import { licenseApi } from '../api/license';
+import { licenseApi, type LicenseActivationResultDto } from '../api/license';
 import { fetchPosStatusOverview } from '../services/api/posStatusOverviewService';
 import type { PosStatusOverviewDto } from '../services/api/posStatusOverviewTypes';
 import {
@@ -13,13 +13,17 @@ import {
 import { registerPosStatusOverviewRefresh } from '../services/pos/posStatusOverviewRefreshBridge';
 import { subscribePosStatusReconnectRefresh } from '../services/pos/posStatusOverviewSyncNotifier';
 import type { MandantLicenseWarningState } from '../types/mandantLicenseWarning';
+import { licenseStatusFromActivationResult } from '../utils/licenseActivationSnapshot';
 import {
   deriveMandantWarningFlags,
   mapOverviewLicenseToStatus,
   mapOverviewToMandantWarning,
 } from '../utils/mapPosStatusOverview';
 import type { PosCashRegisterContextDto } from '../utils/posCashRegisterReadinessParse';
-import { applyPersistedLicenseOverride } from '../utils/posLicenseLocalOverride';
+import {
+  applyPersistedLicenseOverride,
+  persistPosLicenseLocalOverride,
+} from '../utils/posLicenseLocalOverride';
 
 type PosStatusOverviewContextValue = {
   overview: PosStatusOverviewDto | null;
@@ -31,6 +35,17 @@ type PosStatusOverviewContextValue = {
   settingsCashRegisterId: string | null;
   settingsVersion: number;
   loading: boolean;
+  /** True while POST /license/activate is in flight (header hides stale badge). */
+  isActivating: boolean;
+  setIsActivating: (value: boolean) => void;
+  /**
+   * Apply activation response immediately, persist local override, invalidate caches,
+   * then force overview refetch in the background.
+   */
+  applyLicenseActivation: (
+    result: LicenseActivationResultDto,
+    activatedKey?: string
+  ) => Promise<void>;
   refreshOverview: (force?: boolean) => Promise<void>;
 };
 
@@ -83,6 +98,7 @@ export function PosStatusOverviewProvider({ children }: { children: React.ReactN
   );
   const [mandantWarning, setMandantWarning] = useState<MandantLicenseWarningState | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isActivating, setIsActivating] = useState(false);
 
   const applyOverview = useCallback(async (next: PosStatusOverviewDto) => {
     cachedOverview = next;
@@ -120,6 +136,30 @@ export function PosStatusOverviewProvider({ children }: { children: React.ReactN
       }
     },
     [applyOverview, isAuthenticated, user?.id, user?.tenantId, user?.mustChangePasswordOnNextLogin]
+  );
+
+  const applyLicenseActivation = useCallback(
+    async (result: LicenseActivationResultDto, activatedKey?: string) => {
+      const snapshot = licenseStatusFromActivationResult(result, licenseStatus);
+
+      const expiry = snapshot.expiryDate;
+      const key = activatedKey?.trim();
+      if (key && expiry) {
+        try {
+          await persistPosLicenseLocalOverride(key, expiry);
+        } catch {
+          // Non-fatal: UI already has the activation snapshot.
+        }
+      }
+
+      invalidateLicenseStatusCache();
+      clearCachedPosStatusOverview();
+      setCachedLicenseStatus(snapshot);
+      setLicenseStatus(snapshot);
+
+      void refreshOverview(true);
+    },
+    [licenseStatus, refreshOverview]
   );
 
   useEffect(() => {
@@ -160,6 +200,9 @@ export function PosStatusOverviewProvider({ children }: { children: React.ReactN
       settingsCashRegisterId: overview?.settings.cashRegisterId ?? null,
       settingsVersion: overview?.settings.settingsVersion ?? 0,
       loading,
+      isActivating,
+      setIsActivating,
+      applyLicenseActivation,
       refreshOverview,
     }),
     [
@@ -169,6 +212,8 @@ export function PosStatusOverviewProvider({ children }: { children: React.ReactN
       shouldShowGrace,
       shouldShowPreExpiry,
       loading,
+      isActivating,
+      applyLicenseActivation,
       refreshOverview,
     ]
   );

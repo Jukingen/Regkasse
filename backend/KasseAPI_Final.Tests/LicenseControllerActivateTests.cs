@@ -81,6 +81,9 @@ public sealed class LicenseControllerActivateTests
         Assert.Equal("Lizenz wurde erfolgreich aktiviert.", payload.Message);
         Assert.Equal(validUntil, payload.ValidUntil);
         Assert.Equal("12_months", payload.LicenseType);
+        Assert.Equal("active", payload.Status);
+        Assert.NotNull(payload.DaysRemaining);
+        Assert.True(payload.DaysRemaining >= 364);
     }
 
     private static LicenseController CreateController(

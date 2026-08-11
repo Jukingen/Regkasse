@@ -48,10 +48,17 @@ function readApiErrorMessage(err: unknown): string | undefined {
 export default function LicenseActivationScreen() {
   const router = useRouter();
   const { t } = useTranslation(['license', 'common']);
-  const { status, loading: statusLoading, refetch } = useLicenseStatus();
+  const {
+    status,
+    loading: statusLoading,
+    applyLicenseActivation,
+    setIsActivating,
+  } = useLicenseStatus();
 
   const [licenseKey, setLicenseKey] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [activationSucceeded, setActivationSucceeded] = useState(false);
+  const [activatedExpiryIso, setActivatedExpiryIso] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; text: string } | null>(
     null
   );
@@ -60,6 +67,7 @@ export default function LicenseActivationScreen() {
     !!status && status.isValid && !status.isTrial && !status.isExpired && !status.expiryDate;
 
   const statusHeadline = useMemo(() => {
+    if (activationSucceeded) return t('license:header.activated');
     if (statusLoading && !status) return t('license:activationStatusLoading');
     if (!status) return t('license:activationStatusUnknown');
     if (status.isExpired) return t('license:typeExpired');
@@ -68,24 +76,32 @@ export default function LicenseActivationScreen() {
     if (lt === 'licensed' || lt === 'paid') return t('license:typeLicensed');
     if (status.isTrial) return t('license:typeTrial');
     return t('license:typePaid');
-  }, [status, statusLoading, t]);
+  }, [activationSucceeded, status, statusLoading, t]);
+
+  const displayExpiryIso = activatedExpiryIso ?? status?.expiryDate ?? null;
 
   const statusSubline = useMemo(() => {
+    if (activationSucceeded && displayExpiryIso) {
+      const formatted = formatUserDateTime(displayExpiryIso);
+      if (formatted) {
+        return t('license:activation.successMessage', { date: formatted });
+      }
+    }
     if (!status) return null;
-    if (unlimitedPaid) return t('license:expiryNone');
-    const remaining = preferLicenseHoursRemaining(status.daysRemaining, status.expiryDate);
+    if (unlimitedPaid && !activationSucceeded) return t('license:expiryNone');
+    const remaining = preferLicenseHoursRemaining(status.daysRemaining, displayExpiryIso);
     const remainingText =
       remaining?.kind === 'hours'
         ? t('license:hoursRemainingValue', { count: remaining.hours })
         : t('license:daysRemainingValue', { count: status.daysRemaining });
-    if (status.expiryDate) {
-      const formatted = formatUserDateTime(status.expiryDate);
+    if (displayExpiryIso) {
+      const formatted = formatUserDateTime(displayExpiryIso);
       if (formatted) {
         return `${t('license:activationExpiryLine', { date: formatted })} · ${remainingText}`;
       }
     }
     return remainingText;
-  }, [status, unlimitedPaid, t]);
+  }, [activationSucceeded, displayExpiryIso, status, unlimitedPaid, t]);
 
   const hasConfiguredExtensionUrl = useMemo(() => adminRedirector.isAvailable('licenseExtend'), []);
 
@@ -110,14 +126,25 @@ export default function LicenseActivationScreen() {
     }
 
     setSubmitting(true);
+    setIsActivating(true);
     try {
       const res = await licenseApi.activate(trimmed);
       if (res.success) {
-        setFeedback({ kind: 'success', text: t('license:activationSuccess') });
-        await refetch();
+        const expiry =
+          typeof res.validUntil === 'string' && res.validUntil.trim().length > 0
+            ? res.validUntil.trim()
+            : null;
+        setActivatedExpiryIso(expiry);
+        setActivationSucceeded(true);
+        setFeedback({ kind: 'success', text: t('license:activation.success') });
+        setLicenseKey('');
+        await applyLicenseActivation(res, trimmed);
         return;
       }
-      setFeedback({ kind: 'error', text: t('license:activationFailed') });
+      setFeedback({
+        kind: 'error',
+        text: t('license:activation.error', { error: t('license:activationFailed') }),
+      });
     } catch (err: unknown) {
       const st =
         err &&
@@ -128,17 +155,19 @@ export default function LicenseActivationScreen() {
           : undefined;
       const serverMsg = readApiErrorMessage(err);
       const noResponse = st === undefined;
+      const mapped =
+        noResponse && !serverMsg
+          ? t('license:activationNetwork')
+          : mapActivationFailureToGerman(serverMsg, t);
       setFeedback({
         kind: 'error',
-        text:
-          noResponse && !serverMsg
-            ? t('license:activationNetwork')
-            : mapActivationFailureToGerman(serverMsg, t),
+        text: t('license:activation.error', { error: mapped }),
       });
     } finally {
       setSubmitting(false);
+      setIsActivating(false);
     }
-  }, [licenseKey, refetch, t]);
+  }, [applyLicenseActivation, licenseKey, setIsActivating, t]);
 
   return (
     <View style={styles.root}>
@@ -169,53 +198,79 @@ export default function LicenseActivationScreen() {
 
         <View style={styles.card}>
           <Text style={styles.sectionLabel}>{t('license:activationKeyLabel')}</Text>
-          <TextInput
-            value={licenseKey}
-            onChangeText={onChangeKey}
-            placeholder={t('license:activationKeyPlaceholder')}
-            placeholderTextColor={SoftColors.textMuted}
-            autoCapitalize="characters"
-            autoCorrect={false}
-            editable={!submitting}
-            style={styles.input}
-            accessibilityLabel={t('license:activationKeyLabel')}
-          />
-          <Text style={styles.hint}>{t('license:activationKeyHint')}</Text>
-
-          {feedback ? (
-            <View
-              style={[
-                styles.feedbackBox,
-                feedback.kind === 'success' ? styles.feedbackOk : styles.feedbackErr,
-              ]}
-              accessibilityLiveRegion="polite">
-              <Ionicons
-                name={feedback.kind === 'success' ? 'checkmark-circle' : 'alert-circle'}
-                size={18}
-                color={feedback.kind === 'success' ? '#1b5e20' : '#b71c1c'}
-              />
-              <Text
-                style={[
-                  styles.feedbackText,
-                  feedback.kind === 'success' ? styles.feedbackTextOk : styles.feedbackTextErr,
-                ]}>
-                {feedback.text}
-              </Text>
+          {activationSucceeded ? (
+            <View style={[styles.feedbackBox, styles.feedbackOk]} accessibilityLiveRegion="polite">
+              <Ionicons name="checkmark-circle" size={18} color="#1b5e20" />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.feedbackText, styles.feedbackTextOk]}>
+                  {t('license:activation.success')}
+                </Text>
+                {displayExpiryIso ? (
+                  <Text style={[styles.feedbackText, styles.feedbackTextOk]}>
+                    {t('license:activation.successMessage', {
+                      date: formatUserDateTime(displayExpiryIso) || displayExpiryIso,
+                    })}
+                  </Text>
+                ) : null}
+              </View>
             </View>
-          ) : null}
+          ) : (
+            <>
+              <TextInput
+                value={licenseKey}
+                onChangeText={onChangeKey}
+                placeholder={t('license:activationKeyPlaceholder')}
+                placeholderTextColor={SoftColors.textMuted}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                editable={!submitting}
+                style={[styles.input, submitting && { opacity: 0.65 }]}
+                accessibilityLabel={t('license:activationKeyLabel')}
+              />
+              {submitting ? (
+                <View style={styles.loadingRow}>
+                  <ActivityIndicator size="small" color={SoftColors.accentDark} />
+                  <Text style={styles.loadingText}>{t('license:activation.loading')}</Text>
+                </View>
+              ) : (
+                <Text style={styles.hint}>{t('license:activationKeyHint')}</Text>
+              )}
 
-          <TouchableOpacity
-            style={[styles.primaryBtn, submitting && styles.primaryBtnDisabled]}
-            onPress={() => void onActivate()}
-            disabled={submitting}
-            accessibilityRole="button"
-            accessibilityLabel={t('license:activationSubmit')}>
-            {submitting ? (
-              <ActivityIndicator color={SoftColors.textInverse} />
-            ) : (
-              <Text style={styles.primaryBtnText}>{t('license:activationSubmit')}</Text>
-            )}
-          </TouchableOpacity>
+              {feedback?.kind === 'error' ? (
+                <View
+                  style={[styles.feedbackBox, styles.feedbackErr]}
+                  accessibilityLiveRegion="polite">
+                  <Ionicons name="alert-circle" size={18} color="#b71c1c" />
+                  <Text style={[styles.feedbackText, styles.feedbackTextErr]}>{feedback.text}</Text>
+                </View>
+              ) : null}
+
+              <TouchableOpacity
+                style={[styles.primaryBtn, submitting && styles.primaryBtnDisabled]}
+                onPress={() => void onActivate()}
+                disabled={submitting}
+                accessibilityRole="button"
+                accessibilityLabel={t('license:activationSubmit')}>
+                {submitting ? (
+                  <ActivityIndicator color={SoftColors.textInverse} />
+                ) : (
+                  <Text style={styles.primaryBtnText}>{t('license:activationSubmit')}</Text>
+                )}
+              </TouchableOpacity>
+            </>
+          )}
+
+          {activationSucceeded ? (
+            <TouchableOpacity
+              style={styles.primaryBtn}
+              onPress={() => {
+                router.back();
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={t('common:continue')}>
+              <Text style={styles.primaryBtnText}>{t('common:continue')}</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
 
         <View style={styles.card}>
@@ -331,6 +386,17 @@ const styles = StyleSheet.create({
     ...SoftTypography.caption,
     color: SoftColors.textMuted,
     marginTop: SoftSpacing.xs,
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SoftSpacing.xs,
+    marginTop: SoftSpacing.sm,
+  },
+  loadingText: {
+    ...SoftTypography.caption,
+    color: SoftColors.accentDark,
+    fontWeight: '600',
   },
   feedbackBox: {
     flexDirection: 'row',

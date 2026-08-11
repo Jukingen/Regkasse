@@ -47,6 +47,10 @@ export type LicenseActivationResultDto = {
   validUntil?: string | null;
   /** Licensed, Trial, or Expired (same coarse labels as GET /api/license/status). */
   licenseType?: string | null;
+  /** Whole days remaining until validUntil when provided by the API. */
+  daysRemaining?: number | null;
+  /** Coarse lifecycle label (e.g. `active`). */
+  status?: string | null;
   tenantId?: string | null;
   tenantSlug?: string | null;
   apiBaseUrl?: string | null;

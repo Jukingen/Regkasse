@@ -68,6 +68,16 @@
   "activationKeyHint": "Format: REGK, five characters, hyphen, five characters, hyphen, five characters (no spaces).",
   "activationSubmit": "Activate",
   "activationSuccess": "License has been activated.",
+  "activation": {
+    "success": "✅ License successfully activated!",
+    "successMessage": "New expiry: {{date}}",
+    "loading": "Activating license...",
+    "error": "❌ Activation failed: {{error}}"
+  },
+  "header": {
+    "activating": "Activating license...",
+    "activated": "License activated"
+  },
   "activationInvalidFormat": "Invalid format. Expected: REGK-XXXXX-XXXXX-XXXXX",
   "activationFailed": "Activation failed. Check the key or contact support.",
   "activationNetwork": "Network error. Check the connection and try again.",
