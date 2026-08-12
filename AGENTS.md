@@ -122,11 +122,22 @@ Developer experience and CI (see root [`README.md`](README.md), [`CONTRIBUTING.m
 ### Tenant Identification
 - **Production (POS):** Shared host `pos.regkasse.at` — tenant from JWT `tenant_id` after login (not from Host slug). Reserved labels: `pos`, `api`, `admin`, `www`.
 - **Production (API):** `api.regkasse.at` — authenticated traffic scoped by JWT `tenant_id`; do not use `X-Tenant-Id` / `?tenant=` in Production.
-- **Development:** `X-Tenant-Id` header or `?tenant={slug}` query (POS: `EXPO_PUBLIC_DEV_TENANT_ID` + DevTenantSwitcher; FA: header switcher). Prefer slug **`dev`** (seeded demo). There is **no** business tenant slug `default`.
+- **Development:** Prefer `X-Tenant-Id` header; `?tenant={slug}` remains a fallback (POS: `EXPO_PUBLIC_DEV_TENANT_ID` + DevTenantSwitcher; FA: header switcher). Prefer slug **`dev`** (seeded demo). There is **no** business tenant slug `default`.
 - **Platform sentinel:** Wave-0 Guid `SystemTenantIds.Platform` / slug `platform` — inactive system row for audit/host fallbacks; hidden from switchers; not a mandant. Do not hard-delete while FKs reference it.
 - JWT contains `tenant_id` claim after authentication
 - Super Admin / FA: `admin.regkasse.at`
 - **Custom website domains:** verified `TenantDomain` rows map Host → tenant slug before `TenantHostNames` (`ITenantDomainService`); FA: `/settings/website` (`website.manage`)
+
+#### Tenant resolution order
+
+| Environment | Order (first match wins) |
+|-------------|--------------------------|
+| **Development** | `X-Tenant-Id` header → `?tenant=` query → Host slug → DX default (`dev` when Host is loopback / `admin`) |
+| **Production** (shared `api`/`pos`/`admin`/`www`) | JWT `tenant_id` after auth (pre-auth ambient left unset; header/query ignored) |
+| **Production** (mandant subdomain / custom domain) | Host slug (pre-auth) → JWT `tenant_id` rebind after auth |
+
+- Prefer **header** over query in Development (more RESTful, less likely to be cached). FA axios sends `X-Tenant-Id` only; query is opt-in fallback.
+- Production `?tenant=` presence is logged as **Warning** (`TenantResolutionMiddleware`) for ops alerting — the value is never applied.
 
 ### Tenant Isolation
 - Tenant-scoped tables MUST have non-null `tenant_id` on entities implementing `ITenantEntity`
@@ -178,10 +189,10 @@ API:        http://localhost:5184
 ### Testing Multi-Tenant Locally
 
 ```bash
-# Header (Development only)
+# Prefer header (Development only)
 curl -H "X-Tenant-Id: dev" http://localhost:5184/api/health
 
-# Query parameter
+# Query parameter (Development fallback; ignored + Warning-logged in Production)
 curl http://localhost:5184/api/health?tenant=dev
 
 # Hosts file simulation (optional; FA often uses admin.regkasse.local)

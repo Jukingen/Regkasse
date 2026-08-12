@@ -13,7 +13,9 @@ export type AxiosRequestAuthInput = {
   /** Extra headers (e.g. CSRF) applied after auth/tenant. */
   extraHeaders?: Record<string, string>;
   /**
-   * Development only: also set `?tenant=` when the slug is present and not already set.
+   * Optional Development fallback: also set `?tenant=` when the slug is present and not already set.
+   * Prefer `X-Tenant-Id` (always set when slug is present). The FA axios interceptor does **not**
+   * inject the query by default — enable only for callers that cannot send headers.
    * Production must not inject this query param.
    */
   injectDevTenantQuery?: boolean;
@@ -21,7 +23,7 @@ export type AxiosRequestAuthInput = {
 
 /**
  * Sets Authorization, X-Tenant-Id, Accept-Language (and optional extras) via AxiosHeaders.
- * Mutates and returns `config` for interceptor chaining.
+ * Prefers header over query for tenant resolution. Mutates and returns `config` for interceptor chaining.
  */
 export function applyAxiosRequestAuthHeaders<T extends AxiosRequestConfig>(
   config: T,
@@ -42,6 +44,7 @@ export function applyAxiosRequestAuthHeaders<T extends AxiosRequestConfig>(
       headers.set(TENANT_HTTP_HEADER, tenantSlug);
     }
 
+    // Query is opt-in fallback only — prefer header (see injectDevTenantQuery).
     if (input.injectDevTenantQuery) {
       const params = config.params ?? {};
       if (typeof params === 'object' && params !== null && !Array.isArray(params)) {

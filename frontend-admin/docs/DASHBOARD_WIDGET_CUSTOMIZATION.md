@@ -50,7 +50,7 @@ Filter uses `PermissionImplication.IsSatisfied` (manage→view).
 - **No longer fixed:** Lizenz, Handlungsbedarf (Tagesabschluss/RKSV), KPI, Activity, TSE, Offline, etc.
 
 ### SuperAdmin (`headerSlot`)
-- `LicenseDashboardSection`, Offline, TimeSync, TSE, hospitality, export
+- Offline, TimeSync, TSE, hospitality, export (license analytics: `/admin/license` → Reports)
 - **Removed from header:** `RksvReminderCard`, `DashboardMonatsbelegSection` (now catalog / settings)
 
 ---

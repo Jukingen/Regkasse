@@ -2,7 +2,8 @@ namespace KasseAPI_Final.Tenancy;
 
 /// <summary>
 /// Maps request host subdomain to a tenant slug (e.g. <c>companyA.regkasse.at</c> → <c>companyA</c>).
-/// <see cref="DevTenantHeaderName"/> / <see cref="DevTenantQueryName"/> are read only when
+/// Development resolution order: <see cref="DevTenantHeaderName"/> → <see cref="DevTenantQueryName"/> → Host.
+/// Prefer header over query (REST-friendly, less cacheable). Header/query are read only when
 /// <see cref="IHostEnvironment.IsDevelopment"/> — ignored in Production/Staging.
 /// </summary>
 public sealed class SubdomainTenantProvider : ITenantProvider
@@ -24,6 +25,7 @@ public sealed class SubdomainTenantProvider : ITenantProvider
     {
         var httpContext = _httpContextAccessor.HttpContext;
         // Fail-closed: never honor client-supplied tenant overrides outside Development.
+        // Order: header → query → host (prefer header).
         if (_environment.IsDevelopment() && httpContext != null)
         {
             if (httpContext.Request.Headers.TryGetValue(DevTenantHeaderName, out var headerTenant)

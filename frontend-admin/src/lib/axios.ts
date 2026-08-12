@@ -234,6 +234,8 @@ const createAxiosInstance = () => {
       }
       if (tenantSlug) {
         config.headers = config.headers ?? {};
+        // Prefer X-Tenant-Id over ?tenant= (REST-friendly, less cacheable). Backend still accepts
+        // ?tenant= as Development fallback when the header is absent — do not auto-inject query here.
         // Preserve an explicit per-request override (e.g. Super Admin TSE backup modal).
         const existingTenantHeader = config.headers[TENANT_HTTP_HEADER];
         const hasExplicitTenant =
@@ -242,17 +244,6 @@ const createAxiosInstance = () => {
             : existingTenantHeader != null && String(existingTenantHeader).trim().length > 0;
         if (!hasExplicitTenant) {
           config.headers[TENANT_HTTP_HEADER] = tenantSlug;
-        }
-        if (isDev && config.url) {
-          const params = config.params ?? {};
-          if (typeof params === 'object' && params !== null && !Array.isArray(params)) {
-            const record = params as Record<string, unknown>;
-            if (record.tenant == null) {
-              config.params = { ...record, tenant: tenantSlug };
-            }
-          } else if (config.params == null) {
-            config.params = { tenant: tenantSlug };
-          }
         }
       }
 

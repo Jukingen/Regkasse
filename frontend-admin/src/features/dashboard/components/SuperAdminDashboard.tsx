@@ -7,12 +7,10 @@ import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { CustomerAnalyticsCards } from '@/features/dashboard/components/CustomerAnalyticsCards';
 import { Dashboard } from '@/features/dashboard/components/Dashboard';
 import { HospitalityQuickLinksCard } from '@/features/dashboard/components/HospitalityQuickLinksCard';
-import { LicenseDashboardSection } from '@/features/dashboard/components/LicenseDashboardSection';
 import { OfflineQueueDashboardCard } from '@/features/dashboard/components/OfflineQueueDashboardCard';
 import { TimeSyncDriftAlertCard } from '@/features/dashboard/components/TimeSyncDriftAlertCard';
 import { TseHealthCard } from '@/features/dashboard/components/TseHealthCard';
 import { ExportQuickActionsCard } from '@/features/exports/components/ExportQuickActionsCard';
-import { useAuthorizationGate } from '@/hooks/useAuthorizedQuery';
 import { useCanAccessPath } from '@/hooks/useCanAccessPath';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n/I18nProvider';
@@ -26,19 +24,15 @@ export function SuperAdminDashboard() {
   const { hasPermission } = usePermissions();
   const canOpenRksvHub = useCanAccessPath(RKSV_HUB_PATH);
 
-  const { isAuthorized: canFetchTenantLicense } = useAuthorizationGate({
-    requiredRole: 'SuperAdmin',
-  });
-
   const offlineQueueCardEnabled = hasPermission(PERMISSIONS.PAYMENT_VIEW);
   const timeSyncDriftAlertEnabled = hasPermission(PERMISSIONS.SETTINGS_MANAGE);
   const tseHealthCardEnabled = hasPermission(AppPermissions.CashRegisterView);
 
+  // License analytics (calendar / usage / funnel / audit) live under /admin/license → Reports.
   // RKSV reminders / Monatsbeleg live in catalog widgets (action-required, manager-monatsbeleg).
   const operationalHeader = (
     <>
       <CustomerAnalyticsCards />
-      {canFetchTenantLicense ? <LicenseDashboardSection /> : null}
       {offlineQueueCardEnabled ? <OfflineQueueDashboardCard /> : null}
       {timeSyncDriftAlertEnabled ? <TimeSyncDriftAlertCard /> : null}
       {tseHealthCardEnabled ? <TseHealthCard /> : null}

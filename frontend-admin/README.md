@@ -485,10 +485,10 @@ Optional **custom website domains** map Host → tenant via verified `TenantDoma
 
 ### Tenant identification (API)
 
-| Environment     | Mechanism                                                      |
-| --------------- | -------------------------------------------------------------- |
-| **Production**  | JWT `tenant_id` after auth; Host reserved labels are not slugs |
-| **Development** | `X-Tenant-Id: {slug}` and/or `?tenant={slug}` (slug, not UUID) |
+| Environment     | Mechanism                                                                 |
+| --------------- | ------------------------------------------------------------------------- |
+| **Production**  | JWT `tenant_id` after auth; Host reserved labels are not slugs            |
+| **Development** | Prefer `X-Tenant-Id: {slug}`; `?tenant={slug}` is backend fallback only |
 
 ### Data isolation
 
@@ -502,7 +502,7 @@ Optional **custom website domains** map Host → tenant via verified `TenantDoma
 
 - Local FA: often `http://admin.regkasse.local:3000` with hosts-file entry
 - Dev tenant selector in the header: `HeaderDevTenantSwitch` → `GET /api/tenants/switcher`
-- Selection persists slug (`localStorage` / `dev_tenant_id`) and sets **`X-Tenant-Id`** on API calls, then reloads
+- Selection persists slug (`localStorage` / `dev_tenant_id`) and sets **`X-Tenant-Id`** on API calls (FA does **not** auto-inject `?tenant=`), then reloads
 - Backend must be `ASPNETCORE_ENVIRONMENT=Development` for header/query resolution
 
 See [Tenant Switching](#tenant-switching) and [`docs/TENANT_MANAGEMENT.md`](../docs/TENANT_MANAGEMENT.md).

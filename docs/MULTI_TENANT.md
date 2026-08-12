@@ -109,7 +109,7 @@ Host: dev.regkasse.local  (or Development X-Tenant-Id / ?tenant=)
 |-------------|------------|
 | **Production (POS / shared API)** | Tenant from JWT `tenant_id` after login. Hosts `pos.regkasse.at` / `api.regkasse.at` are **not** tenant slugs. |
 | **Production (legacy slug host)** | First label of `Host` (`cafe.regkasse.at` → `cafe`), except reserved `admin` / `www` / `pos` / `api` |
-| **Development** | `X-Tenant-Id: {slug}` **or** `?tenant={slug}` **or** hosts-file slug host |
+| **Development** | Prefer `X-Tenant-Id: {slug}`; fallback `?tenant={slug}`; or hosts-file slug host |
 | **After login** | JWT `tenant_id` claim **overrides** ambient/host-resolved accessor (`TenantContextMiddleware`) |
 | **Stored value** | Always **UUID** on rows; slug is for routing / display / login membership |
 

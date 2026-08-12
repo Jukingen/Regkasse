@@ -96,6 +96,7 @@ import { IssuedLicenseUpgradeModal } from './IssuedLicenseUpgradeModal';
 import { LicenseActivationHistoryCard } from './LicenseActivationHistoryCard';
 import { LicenseGenerationCard } from './LicenseGenerationCard';
 import { LicenseAuditLogCard } from '@/features/license/components/LicenseAuditLogCard';
+import { LicenseCalendarCard } from '@/features/license/components/LicenseCalendarCard';
 import { LicenseReminderEmailPreviewCard } from '@/features/license/components/LicenseReminderEmailPreviewCard';
 import { LicenseRenewalFunnelCard } from '@/features/license/components/LicenseRenewalFunnelCard';
 import { LicenseUsageAnalyticsCard } from '@/features/license/components/LicenseUsageAnalyticsCard';
@@ -1364,6 +1365,7 @@ function DeploymentLicensePanel({
                   <LicenseAuditLogCard />
                   <LicenseRenewalFunnelCard />
                   <LicenseUsageAnalyticsCard />
+                  <LicenseCalendarCard />
                 </>
               ),
             },

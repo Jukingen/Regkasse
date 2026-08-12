@@ -198,6 +198,16 @@ Regkasse uses a multi-tenant architecture where a single backend instance serves
 2. **`TenantContextMiddleware`** (after auth) — may override accessor from JWT `tenant_id` claim.
 3. **`AppDbContext`** — global query filters on all `ITenantEntity` types: `e.TenantId == ambient TenantId` when set.
 
+### Tenant resolution order
+
+| Environment | Order (first match wins) |
+|-------------|--------------------------|
+| **Development** | `X-Tenant-Id` header → `?tenant=` query → Host slug → DX default (`dev` when Host is loopback / `admin`) |
+| **Production** (shared `api`/`pos`/`admin`/`www`) | JWT `tenant_id` after auth (pre-auth ambient unset; header/query ignored) |
+| **Production** (mandant subdomain / custom domain) | Host slug (pre-auth) → JWT `tenant_id` rebind after auth |
+
+Prefer **header** over query in Development (REST-friendly, less cacheable). FA sends `X-Tenant-Id` only; `?tenant=` remains a backend fallback. Production `?tenant=` presence is logged as **Warning** for ops alerting and never applied.
+
 ### Data Isolation
 
 - Tenant-scoped domain tables implement `ITenantEntity` with non-null `tenant_id uuid` (see **Database Schema** above).
@@ -207,8 +217,8 @@ Regkasse uses a multi-tenant architecture where a single backend instance serves
 
 ### Development Mode
 
-- **Localhost:** `X-Tenant-Id` header (tenant **slug**) or `?tenant=` query parameter — see **§10 API Headers** and **Development Setup for Multi-Tenant Testing** below (`SubdomainTenantProvider`, Development only).
-- **Frontend Admin:** dev tenant selector (development only); presets in `frontend-admin/src/features/auth/constants/devTenantPresets.ts`.
+- **Localhost:** Prefer `X-Tenant-Id` header (tenant **slug**); `?tenant=` query remains a fallback — see **§10 API Headers** and **Development Setup for Multi-Tenant Testing** below (`SubdomainTenantProvider`, Development only).
+- **Frontend Admin:** dev tenant selector (development only); presets in `frontend-admin/src/features/auth/constants/devTenantPresets.ts`. FA axios sets `X-Tenant-Id` only (does not auto-inject `?tenant=`).
 - **Hosts file:** `*.regkasse.local` or other `*.local` dev domains (e.g. `dev.regkasse.local`) — see `TenantHostNames.IsLocalDevelopmentDomain`.
 
 ### Development Setup for Multi-Tenant Testing
@@ -1043,13 +1053,14 @@ The authoritative API contract is `backend/swagger.json`.
 
 #### Tenant Identification
 
-- **Production:** Tenant derived from request `Host` subdomain automatically (`{slug}.regkasse.at` → `tenants.slug`).
-- **Development:** `X-Tenant-Id: {slug}` header — tenant **slug** (e.g. `dev`), not the UUID; see `SubdomainTenantProvider.DevTenantHeaderName`.
-- **Development:** `?tenant={slug}` query parameter (same slug semantics as the header).
+- **Production (shared hosts):** JWT `tenant_id` after auth; do not send `X-Tenant-Id` / `?tenant=`.
+- **Production (mandant Host / custom domain):** Host slug for pre-auth public APIs; JWT rebinds after auth.
+- **Development (preferred):** `X-Tenant-Id: {slug}` header — tenant **slug** (e.g. `dev`), not the UUID; see `SubdomainTenantProvider.DevTenantHeaderName`.
+- **Development (fallback):** `?tenant={slug}` query parameter (same slug semantics; prefer header). Production presence → Warning log, ignored.
 
 After resolution, the backend sets `ICurrentTenantAccessor.TenantId` (Guid). Authenticated requests may also carry JWT claim `tenant_id` (Guid), applied by `TenantContextMiddleware`.
 
-Clients (POS/admin): in Development on loopback, send `X-Tenant-Id` from `tenantStorage` / dev tenant selector (`frontend/services/tenant/tenantStorage.ts`, `frontend-admin` dev presets).
+Clients (POS/admin): in Development on loopback, send `X-Tenant-Id` from `tenantStorage` / dev tenant selector (`frontend/services/tenant/tenantStorage.ts`, `frontend-admin` header switcher).
 
 #### Super Admin Endpoints
 
@@ -1317,8 +1328,8 @@ Local development alternative: hosts-file entries such as `dev.regkasse.local` (
 
 **Tenant resolution mode (backend):**
 
-- **`Development`:** `X-Tenant-Id` header and `?tenant=` query overrides are allowed (`SubdomainTenantProvider`).
-- **`Production`** (and other non-Development values such as `Staging`): **only** subdomain / `Host`-based resolution; header and query overrides are ignored.
+- **`Development`:** `X-Tenant-Id` header (preferred) then `?tenant=` query overrides are allowed (`SubdomainTenantProvider`); then Host → DX default `dev`.
+- **`Production`** (and other non-Development values such as `Staging`): shared hosts use JWT `tenant_id`; mandant Host may bind pre-auth; header and query overrides are ignored (`?tenant=` → Warning log).
 
 Ensure production deployments set `ASPNETCORE_ENVIRONMENT=Production` (not `Development`) so tenant cannot be spoofed via headers.
 

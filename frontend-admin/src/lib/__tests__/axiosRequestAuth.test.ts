@@ -69,7 +69,7 @@ describe('applyAxiosRequestAuthHeaders', () => {
     expect(config.params).toEqual({ tenant: 'selected-cafe' });
   });
 
-  it('injects dev tenant query only when requested and unset', () => {
+  it('does not inject tenant query by default (header preferred)', () => {
     const withInject = applyAxiosRequestAuthHeaders(emptyConfig({ params: { page: 1 } }), {
       tenantSlug: 'dev',
       accessToken: null,
@@ -86,12 +86,13 @@ describe('applyAxiosRequestAuthHeaders', () => {
     });
     expect(alreadySet.params).toEqual({ tenant: 'other' });
 
-    const prod = applyAxiosRequestAuthHeaders(emptyConfig({ params: { page: 1 } }), {
+    const headerOnly = applyAxiosRequestAuthHeaders(emptyConfig({ params: { page: 1 } }), {
       tenantSlug: 'dev',
       accessToken: null,
       acceptLanguage: 'de',
       injectDevTenantQuery: false,
     });
-    expect(prod.params).toEqual({ page: 1 });
+    expect(headerOnly.params).toEqual({ page: 1 });
+    expect(readAxiosHeader(headerOnly.headers, TENANT_HTTP_HEADER)).toBe('dev');
   });
 });

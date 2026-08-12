@@ -214,6 +214,8 @@ backend/**/ntp-bypass-build/
 backend/**/TestResults/
 backend/**/coverage/
 backend/**/coverage.*.json
+backend/_cov_out/
+backend/_cov_out/**
 
 # Local dotnet publish output (never commit — includes DLLs, appsettings copies, test extracts)
 backend/publish/
