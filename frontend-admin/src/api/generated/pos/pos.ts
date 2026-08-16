@@ -56,6 +56,7 @@ import type {
   GetApiPosPaymentStatisticsParams,
   GetApiPosSearchParams,
   GetApiPosShiftDailyClosingDailyClosingIdReportPdfParams,
+  GetApiPosTseStatusParams,
   MaintenanceModeStatusDto,
   MaintenanceNotificationDto,
   MergeTableCartsRequest,
@@ -71,6 +72,7 @@ import type {
   PosDailyClosingStatusDto,
   PosSelectableListResult,
   PosStatusOverviewDto,
+  PosTseStatusDto,
   PostApiPosCartClearParams,
   PostApiPosOfflineOrdersReplayParams,
   ProblemDetails,
@@ -3936,6 +3938,62 @@ export const useGetApiPosStatusOverview = <TData = Awaited<ReturnType<typeof get
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiPosStatusOverviewQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiPosTseStatus = (
+    params?: GetApiPosTseStatusParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<PosTseStatusDto>(
+      {url: `/api/pos/tse/status`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiPosTseStatusQueryKey = (params?: GetApiPosTseStatusParams,) => {
+    return [`/api/pos/tse/status`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiPosTseStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosTseStatus>>, TError = void>(params?: GetApiPosTseStatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosTseStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiPosTseStatusQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosTseStatus>>> = ({ signal }) => getApiPosTseStatus(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosTseStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiPosTseStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosTseStatus>>>
+export type GetApiPosTseStatusQueryError = void
+
+export const useGetApiPosTseStatus = <TData = Awaited<ReturnType<typeof getApiPosTseStatus>>, TError = void>(
+ params?: GetApiPosTseStatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosTseStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiPosTseStatusQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
