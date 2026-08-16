@@ -34,6 +34,7 @@ import deTseCost from './locales/de/tseCost.json';
 import deTseDr from './locales/de/tseDr.json';
 import deTseLogs from './locales/de/tseLogs.json';
 import deTseDeveloperTools from './locales/de/tseDeveloperTools.json';
+import deTseFiskaly from './locales/de/tseFiskaly.json';
 import deTseCompliance from './locales/de/tseCompliance.json';
 import deSignaturkarteProgram from './locales/de/signaturkarteProgram.json';
 import deTseAusfall from './locales/de/tseAusfall.json';
@@ -118,6 +119,7 @@ import enTseCost from './locales/en/tseCost.json';
 import enTseDr from './locales/en/tseDr.json';
 import enTseLogs from './locales/en/tseLogs.json';
 import enTseDeveloperTools from './locales/en/tseDeveloperTools.json';
+import enTseFiskaly from './locales/en/tseFiskaly.json';
 import enTseCompliance from './locales/en/tseCompliance.json';
 import enSignaturkarteProgram from './locales/en/signaturkarteProgram.json';
 import enTseAusfall from './locales/en/tseAusfall.json';
@@ -202,6 +204,7 @@ import trTseCost from './locales/tr/tseCost.json';
 import trTseDr from './locales/tr/tseDr.json';
 import trTseLogs from './locales/tr/tseLogs.json';
 import trTseDeveloperTools from './locales/tr/tseDeveloperTools.json';
+import trTseFiskaly from './locales/tr/tseFiskaly.json';
 import trTseCompliance from './locales/tr/tseCompliance.json';
 import trSignaturkarteProgram from './locales/tr/signaturkarteProgram.json';
 import trTseAusfall from './locales/tr/tseAusfall.json';
@@ -298,6 +301,7 @@ const catalogs = {
     tseDr: deTseDr,
     tseLogs: deTseLogs,
     tseDeveloperTools: deTseDeveloperTools,
+    tseFiskaly: deTseFiskaly,
     tseCompliance: deTseCompliance,
     signaturkarteProgram: deSignaturkarteProgram,
     tseAusfall: deTseAusfall,
@@ -384,6 +388,7 @@ const catalogs = {
     tseDr: enTseDr,
     tseLogs: enTseLogs,
     tseDeveloperTools: enTseDeveloperTools,
+    tseFiskaly: enTseFiskaly,
     tseCompliance: enTseCompliance,
     signaturkarteProgram: enSignaturkarteProgram,
     tseAusfall: enTseAusfall,
@@ -470,6 +475,7 @@ const catalogs = {
     tseDr: trTseDr,
     tseLogs: trTseLogs,
     tseDeveloperTools: trTseDeveloperTools,
+    tseFiskaly: trTseFiskaly,
     tseCompliance: trTseCompliance,
     signaturkarteProgram: trSignaturkarteProgram,
     tseAusfall: trTseAusfall,

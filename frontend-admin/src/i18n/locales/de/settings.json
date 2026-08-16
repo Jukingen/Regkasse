@@ -449,6 +449,8 @@
     },
     "tse": {
       "cardTitle": "TSE (Technische Sicherheitseinrichtung)",
+      "fiskalyEnabled": "Fiskaly TSE aktiviert",
+      "fiskalyEnabledHint": "SIGN AT-Anbindung für diesen Mandanten. Standard: aktiv. API-Schlüssel bleiben in der Serverkonfiguration.",
       "autoConnect": "Beim Start automatisch verbinden",
       "defaultDeviceId": "Standard-TSE-Geräte-ID",
       "defaultDeviceIdMax": "Maximal 100 Zeichen",

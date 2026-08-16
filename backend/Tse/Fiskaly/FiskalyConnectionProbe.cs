@@ -25,16 +25,19 @@ public sealed class FiskalyConnectionProbe : IFiskalyConnectionProbe
 
     private readonly HttpClient _httpClient;
     private readonly IOptionsMonitor<FiskalyOptions> _options;
+    private readonly FiskalyEnabledOverrideCache? _enabledCache;
     private readonly ILogger<FiskalyConnectionProbe> _logger;
 
     public FiskalyConnectionProbe(
         HttpClient httpClient,
         IOptionsMonitor<FiskalyOptions> options,
-        ILogger<FiskalyConnectionProbe> logger)
+        ILogger<FiskalyConnectionProbe> logger,
+        FiskalyEnabledOverrideCache? enabledCache = null)
     {
         _httpClient = httpClient;
         _options = options;
         _logger = logger;
+        _enabledCache = enabledCache;
 
         var baseUrl = options.CurrentValue.BaseUrl;
         if (!string.IsNullOrWhiteSpace(baseUrl))
@@ -51,6 +54,18 @@ public sealed class FiskalyConnectionProbe : IFiskalyConnectionProbe
         var apiBaseUrl = string.IsNullOrWhiteSpace(opts.BaseUrl)
             ? "https://rksv.fiskaly.com/api/v1"
             : opts.BaseUrl.TrimEnd('/');
+
+        if (!opts.IsEffectivelyEnabled(_enabledCache?.OverrideEnabled))
+        {
+            return new FiskalyConnectionProbeResult
+            {
+                Success = false,
+                Authentication = Failed("Authentication", null, "Fiskaly is disabled."),
+                ScuCreation = Skipped("ScuCreation", "Fiskaly is disabled."),
+                CashRegisterCreation = Skipped("CashRegisterCreation", "Fiskaly is disabled."),
+                ApiBaseUrl = apiBaseUrl
+            };
+        }
 
         var auth = await AuthenticateAsync(opts, cancellationToken).ConfigureAwait(false);
         if (!auth.Step.Success || string.IsNullOrWhiteSpace(auth.AccessToken))

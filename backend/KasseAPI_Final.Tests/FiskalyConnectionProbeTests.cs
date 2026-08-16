@@ -11,6 +11,21 @@ namespace KasseAPI_Final.Tests;
 public sealed class FiskalyConnectionProbeTests
 {
     [Fact]
+    public async Task ProbeAsync_Disabled_FailsWithoutHttp()
+    {
+        var handler = new SequenceHandler();
+        var probe = CreateProbe(handler, enabled: false);
+
+        var result = await probe.ProbeAsync(new FiskalyConnectionProbeRequest { CreateResources = true });
+
+        Assert.False(result.Success);
+        Assert.Equal("Failed", result.Authentication.Status);
+        Assert.Contains("disabled", result.Authentication.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("Skipped", result.ScuCreation.Status);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
     public async Task ProbeAsync_MissingCredentials_FailsAuthenticationWithoutHttp()
     {
         var handler = new SequenceHandler();
@@ -150,7 +165,8 @@ public sealed class FiskalyConnectionProbeTests
     private static FiskalyConnectionProbe CreateProbe(
         SequenceHandler handler,
         string apiKey = "test-key",
-        string apiSecret = "test-secret")
+        string apiSecret = "test-secret",
+        bool enabled = true)
     {
         var http = new HttpClient(handler)
         {
@@ -158,7 +174,7 @@ public sealed class FiskalyConnectionProbeTests
         };
         var options = new FiskalyOptions
         {
-            Enabled = true,
+            Enabled = enabled,
             ApiBaseUrl = "https://rksv.fiskaly.com/api/v1",
             ApiKey = apiKey,
             ApiSecret = apiSecret

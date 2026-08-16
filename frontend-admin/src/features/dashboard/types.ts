@@ -7,6 +7,7 @@ export const DASHBOARD_WIDGET_IDS = {
   managerMonatsbeleg: 'manager-monatsbeleg',
   managerActivity: 'manager-activity',
   managerTseHealth: 'manager-tse-health',
+  fiskalyStatus: 'fiskaly-status',
   managerOfflineQueue: 'manager-offline-queue',
   managerLicenseChecklist: 'manager-license-checklist',
   managerLicenseSupport: 'manager-license-support',

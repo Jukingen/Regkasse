@@ -90,6 +90,8 @@ public sealed class TenantValidationMiddlewareTests
     [InlineData("/api/admin/support/admin/tickets")]
     [InlineData("/api/admin/trials")]
     [InlineData("/api/admin/trials/analytics")]
+    [InlineData("/api/admin/fiskaly")]
+    [InlineData("/api/admin/fiskaly/settings")]
     [InlineData("/api/tenants/switcher")]
     public async Task SuperAdmin_CanAccessPlatformPaths_WithoutAmbientTenant(string path)
     {

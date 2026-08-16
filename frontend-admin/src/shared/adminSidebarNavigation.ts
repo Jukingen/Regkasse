@@ -306,6 +306,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/admin/tse/disaster-recovery',
     '/admin/tse/logs',
     '/admin/tse/developer-tools',
+    '/admin/tse/fiskaly',
     '/admin/tse/compliance',
     '/admin/tse/ausfall',
     '/admin/tse/auto-scaling',
@@ -343,6 +344,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
   ],
   [ADMIN_SIDEBAR_GROUP_KEYS.tseAdvanced]: [
     '/admin/tse/developer-tools',
+    '/admin/tse/fiskaly',
     '/admin/tse/api-gateway',
     '/admin/tse/webhooks',
     '/admin/tse/blockchain',
@@ -539,6 +541,8 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     p.startsWith('/admin/tse/logs/') ||
     p === '/admin/tse/developer-tools' ||
     p.startsWith('/admin/tse/developer-tools/') ||
+    p === '/admin/tse/fiskaly' ||
+    p.startsWith('/admin/tse/fiskaly/') ||
     p === '/admin/tse/compliance' ||
     p.startsWith('/admin/tse/compliance/') ||
     p === '/admin/tse/ausfall' ||

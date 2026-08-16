@@ -5,6 +5,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Tse;
 using KasseAPI_Final.Time;
 using KasseAPI_Final.Tse;
+using KasseAPI_Final.Tse.Fiskaly;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Options;
@@ -25,6 +26,7 @@ namespace KasseAPI_Final.Services
         private readonly IOptionsMonitor<FiskalyOptions>? _fiskalyOptions;
         private readonly IOptionsMonitor<TseOptions>? _tseOptions;
         private readonly ISoftTseService? _softTse;
+        private readonly FiskalyEnabledOverrideCache? _fiskalyEnabledCache;
 
         public TseService(
             AppDbContext context,
@@ -38,7 +40,8 @@ namespace KasseAPI_Final.Services
             IFiskalyTseService? fiskalyTse = null,
             IOptionsMonitor<FiskalyOptions>? fiskalyOptions = null,
             IOptionsMonitor<TseOptions>? tseOptions = null,
-            ISoftTseService? softTse = null)
+            ISoftTseService? softTse = null,
+            FiskalyEnabledOverrideCache? fiskalyEnabledCache = null)
         {
             _context = context;
             _pipeline = pipeline;
@@ -52,6 +55,7 @@ namespace KasseAPI_Final.Services
             _fiskalyOptions = fiskalyOptions;
             _tseOptions = tseOptions;
             _softTse = softTse;
+            _fiskalyEnabledCache = fiskalyEnabledCache;
         }
 
         private bool CanUseSoftTseFallback() =>
@@ -142,7 +146,8 @@ namespace KasseAPI_Final.Services
 
         private async Task<(bool Connected, string? ErrorMessage)> TryGetFiskalyAuthStatusAsync()
         {
-            if (_fiskalyTse is null || _fiskalyOptions?.CurrentValue.HasCredentials != true)
+            if (_fiskalyTse is null
+                || _fiskalyOptions?.CurrentValue.HasActiveCredentials(_fiskalyEnabledCache?.OverrideEnabled) != true)
                 return (false, null);
 
             try

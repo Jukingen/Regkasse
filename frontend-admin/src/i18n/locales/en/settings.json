@@ -449,6 +449,8 @@
     },
     "tse": {
       "cardTitle": "TSE (Technical security device)",
+      "fiskalyEnabled": "Fiskaly TSE enabled",
+      "fiskalyEnabledHint": "SIGN AT connection for this tenant. Default: on. API keys stay in server configuration.",
       "autoConnect": "Connect automatically on startup",
       "defaultDeviceId": "Default TSE device ID",
       "defaultDeviceIdMax": "Maximum 100 characters",

@@ -39,6 +39,47 @@ public sealed class FiskalyHttpClientTests
     }
 
     [Fact]
+    public async Task AuthenticateAsync_Disabled_ReturnsUnsuccessfulWithoutHttp()
+    {
+        var handler = new SequenceHandler();
+        var client = CreateClient(handler, new FiskalyAccessTokenCache(), enabled: false);
+
+        var result = await client.AuthenticateAsync();
+
+        Assert.False(result.Success);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task CreateSignatureCreationUnit_Disabled_ReturnsMockWithoutHttp()
+    {
+        var scuId = Guid.Parse("11111111-1111-4111-8111-111111111111");
+        var handler = new SequenceHandler();
+        var client = CreateClient(handler, new FiskalyAccessTokenCache(), enabled: false);
+
+        var scu = await client.CreateSignatureCreationUnitAsync(scuId, "ATU73948115");
+
+        Assert.True(scu.IsMock);
+        Assert.Equal("CREATED", scu.State);
+        Assert.Equal(scuId.ToString("D"), scu.Id);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task SignReceiptAsync_Disabled_ThrowsWithoutHttp()
+    {
+        var handler = new SequenceHandler();
+        var client = CreateClient(handler, new FiskalyAccessTokenCache(), enabled: false);
+
+        var ex = await Assert.ThrowsAsync<FiskalyApiException>(() => client.SignReceiptAsync(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            new FiskalyTransactionData { TotalAmount = 1m }));
+        Assert.Contains("disabled", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
     public async Task AuthenticateAsync_MissingCredentials_ThrowsWithoutHttp()
     {
         var handler = new SequenceHandler();
@@ -96,7 +137,7 @@ public sealed class FiskalyHttpClientTests
                 {
                     Assert.Equal(HttpMethod.Put, req.Method);
                     Assert.Contains($"/cash-register/{crId:D}/receipt/{rxId:D}", req.RequestUri!.AbsolutePath);
-                    return Json(HttpStatusCode.OK, $$"""{"_id":"{{rxId:D}}","state":"SIGNED","_env":"TEST","qr_code_data":"_R1-AT1_test"}""");
+                    return Json(HttpStatusCode.OK, $$"""{"_id":"{{rxId:D}}","state":"SIGNED","signed":true,"_env":"TEST","qr_code_data":"_R1-AT1_test","receipt_number":"42","time_signature":1577833200}""");
                 }
             }
         };
@@ -111,13 +152,166 @@ public sealed class FiskalyHttpClientTests
         Assert.Equal("SIGNED", signed.State);
         Assert.Equal("TEST", signed.Environment);
         Assert.Equal("_R1-AT1_test", signed.QrCodeData);
+        Assert.True(signed.Signed);
+        Assert.Equal("42", signed.ReceiptNumber);
+        Assert.Equal(1577833200, signed.TimeSignature);
+    }
+
+    [Fact]
+    public async Task SignReceiptAsync_PostsMixedVatRates()
+    {
+        var crId = Guid.Parse("33333333-3333-4333-8333-333333333333");
+        var rxId = Guid.Parse("55555555-5555-4555-8555-555555555555");
+        string? body = null;
+        var handler = new SequenceHandler
+        {
+            Responders =
+            {
+                _ => Json(HttpStatusCode.OK, """{"access_token":"tok"}"""),
+                req =>
+                {
+                    body = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+                    return Json(HttpStatusCode.OK, $$"""{"_id":"{{rxId:D}}","state":"SIGNED","signed":true}""");
+                }
+            }
+        };
+        var client = CreateClient(handler, new FiskalyAccessTokenCache());
+
+        await client.SignReceiptAsync(crId, rxId, new FiskalyTransactionData
+        {
+            ReceiptType = "NORMAL",
+            AmountsPerVatRate =
+            [
+                new FiskalyVatAmount { VatRate = "STANDARD", Amount = 10.00m },
+                new FiskalyVatAmount { VatRate = "REDUCED_1", Amount = 5.50m }
+            ]
+        });
+
+        Assert.Contains("\"vat_rate\":\"STANDARD\"", body, StringComparison.Ordinal);
+        Assert.Contains("\"amount\":\"10.00\"", body, StringComparison.Ordinal);
+        Assert.Contains("\"vat_rate\":\"REDUCED_1\"", body, StringComparison.Ordinal);
+        Assert.Contains("\"amount\":\"5.50\"", body, StringComparison.Ordinal);
+        Assert.Contains("\"amount\":\"15.50\"", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetReceiptAsync_GetsByReceiptNumber()
+    {
+        var crId = Guid.Parse("33333333-3333-4333-8333-333333333333");
+        var handler = new SequenceHandler
+        {
+            Responders =
+            {
+                _ => Json(HttpStatusCode.OK, """{"access_token":"tok"}"""),
+                req =>
+                {
+                    Assert.Equal(HttpMethod.Get, req.Method);
+                    Assert.Contains($"/cash-register/{crId:D}/receipt/42", req.RequestUri!.AbsolutePath);
+                    return Json(HttpStatusCode.OK, """{"_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","state":"SIGNED","signed":true,"receipt_number":"42","qr_code_data":"_R1-AT3_x"}""");
+                }
+            }
+        };
+        var client = CreateClient(handler, new FiskalyAccessTokenCache());
+
+        var receipt = await client.GetReceiptAsync(crId, "42");
+
+        Assert.Equal("42", receipt.ReceiptNumber);
+        Assert.True(receipt.Signed);
+        Assert.Equal("_R1-AT3_x", receipt.QrCodeData);
+    }
+
+    [Fact]
+    public async Task GetReceiptAsync_Disabled_ThrowsWithoutHttp()
+    {
+        var handler = new SequenceHandler();
+        var client = CreateClient(handler, new FiskalyAccessTokenCache(), enabled: false);
+
+        var ex = await Assert.ThrowsAsync<FiskalyApiException>(() => client.GetReceiptAsync(Guid.NewGuid(), "42"));
+        Assert.Contains("disabled", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task AuthenticateFonAsync_PutsFonAuth()
+    {
+        var handler = new SequenceHandler
+        {
+            Responders =
+            {
+                _ => Json(HttpStatusCode.OK, """{"access_token":"tok"}"""),
+                req =>
+                {
+                    Assert.Equal(HttpMethod.Put, req.Method);
+                    Assert.Contains("/fon/auth", req.RequestUri!.AbsolutePath, StringComparison.OrdinalIgnoreCase);
+                    return Json(HttpStatusCode.OK, """{"fon_participant_id":"12345678","fon_user_id":"user1","authentication_status":"AUTHENTICATED","time_authentication":1700000000}""");
+                }
+            }
+        };
+        var client = CreateClient(handler, new FiskalyAccessTokenCache());
+
+        var result = await client.AuthenticateFonAsync(new FiskalyFonAuthRequest("12345678", "user1", "secret-pin"));
+
+        Assert.True(result.IsAuthenticated);
+        Assert.Equal("AUTHENTICATED", result.AuthenticationStatus);
+        Assert.Equal("12345678", result.ParticipantId);
+        Assert.Equal(2, handler.Requests.Count);
+    }
+
+    [Fact]
+    public async Task AuthenticateFonAsync_Disabled_ReturnsUnsuccessfulWithoutHttp()
+    {
+        var handler = new SequenceHandler();
+        var client = CreateClient(handler, new FiskalyAccessTokenCache(), enabled: false);
+
+        var result = await client.AuthenticateFonAsync(new FiskalyFonAuthRequest("12345678", "user1", "pin12"));
+
+        Assert.False(result.IsAuthenticated);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task UpdateSignatureCreationUnitStateAsync_PatchesInitialized()
+    {
+        var scuId = Guid.Parse("11111111-1111-4111-8111-111111111111");
+        var handler = new SequenceHandler
+        {
+            Responders =
+            {
+                _ => Json(HttpStatusCode.OK, """{"access_token":"tok"}"""),
+                req =>
+                {
+                    Assert.Equal(HttpMethod.Patch, req.Method);
+                    Assert.Contains($"/signature-creation-unit/{scuId:D}", req.RequestUri!.AbsolutePath);
+                    return Json(HttpStatusCode.OK, $$"""{"_id":"{{scuId:D}}","state":"INITIALIZED"}""");
+                }
+            }
+        };
+        var client = CreateClient(handler, new FiskalyAccessTokenCache());
+
+        var scu = await client.UpdateSignatureCreationUnitStateAsync(scuId.ToString("D"), "INITIALIZED");
+
+        Assert.Equal("INITIALIZED", scu.State);
+        Assert.Equal(scuId.ToString("D"), scu.Id);
+    }
+
+    [Fact]
+    public async Task UpdateCashRegisterStateAsync_Disabled_ThrowsWithoutHttp()
+    {
+        var handler = new SequenceHandler();
+        var client = CreateClient(handler, new FiskalyAccessTokenCache(), enabled: false);
+
+        var ex = await Assert.ThrowsAsync<FiskalyApiException>(() =>
+            client.UpdateCashRegisterStateAsync(Guid.NewGuid(), "INITIALIZED"));
+        Assert.Contains("disabled", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(handler.Requests);
     }
 
     private static FiskalyHttpClient CreateClient(
         SequenceHandler handler,
         FiskalyAccessTokenCache cache,
         string apiKey = "test-key",
-        string apiSecret = "test-secret")
+        string apiSecret = "test-secret",
+        bool enabled = true)
     {
         var http = new HttpClient(handler)
         {
@@ -125,7 +319,7 @@ public sealed class FiskalyHttpClientTests
         };
         var options = Options.Create(new FiskalyOptions
         {
-            Enabled = true,
+            Enabled = enabled,
             ApiKey = apiKey,
             ApiSecret = apiSecret,
             ApiBaseUrl = "https://rksv.fiskaly.com/api/v1",

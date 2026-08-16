@@ -20,6 +20,7 @@ import { usePutApiAdminCashRegistersId } from '@/api/generated/admin/admin';
 import { CardSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ChangeMyPasswordForm } from '@/features/settings/components/ChangeMyPasswordForm';
+import { FiskalyEnabledSwitch } from '@/features/settings/components/FiskalyEnabledSwitch';
 import { LanguageSelector } from '@/features/settings/components/LanguageSelector';
 import { TenantTseStatusCard } from '@/features/settings/components/TenantTseStatusCard';
 import { useTenantSettings } from '@/features/settings/hooks/useTenantSettings';
@@ -227,6 +228,7 @@ export function ManagerSettings() {
         <TenantTseStatusCard />
 
         <Card title={t('settings.manager.fiscal.title')}>
+          <FiskalyEnabledSwitch />
           <Descriptions column={2} bordered size="small">
             <Descriptions.Item label={t('settings.manager.fiscal.tseStatus')}>
               <Tag color={settings?.tseConnected ? 'green' : 'red'}>

@@ -35,6 +35,7 @@ public sealed class TseProvisioningService : ITseProvisioningService
     private readonly IFiskalyTseService _fiskalyTse;
     private readonly IHostEnvironment _environment;
     private readonly ILogger<TseProvisioningService> _logger;
+    private readonly FiskalyEnabledOverrideCache? _fiskalyEnabledCache;
 
     public TseProvisioningService(
         AppDbContext db,
@@ -46,7 +47,8 @@ public sealed class TseProvisioningService : ITseProvisioningService
         IAuditLogService auditLog,
         IFiskalyTseService fiskalyTse,
         IHostEnvironment environment,
-        ILogger<TseProvisioningService> logger)
+        ILogger<TseProvisioningService> logger,
+        FiskalyEnabledOverrideCache? fiskalyEnabledCache = null)
     {
         _db = db;
         _tseOptions = tseOptions;
@@ -58,6 +60,7 @@ public sealed class TseProvisioningService : ITseProvisioningService
         _fiskalyTse = fiskalyTse;
         _environment = environment;
         _logger = logger;
+        _fiskalyEnabledCache = fiskalyEnabledCache;
     }
 
     public async Task<TseProvisioningResult> ProvisionTseForTenantAsync(
@@ -202,7 +205,7 @@ public sealed class TseProvisioningService : ITseProvisioningService
 
         var fellBackToSoft = false;
         if (string.Equals(deviceType, "fiskaly", StringComparison.OrdinalIgnoreCase)
-            && _fiskalyOptions.CurrentValue.HasCredentials)
+            && _fiskalyOptions.CurrentValue.HasActiveCredentials(_fiskalyEnabledCache?.OverrideEnabled))
         {
             var resources = await EnsureFiskalyResourcesWithRetryAsync(
                     tenantId,
@@ -643,7 +646,7 @@ public sealed class TseProvisioningService : ITseProvisioningService
         }
 
         var fiskaly = _fiskalyOptions.CurrentValue;
-        var fiskalyReady = fiskaly.HasCredentials
+        var fiskalyReady = fiskaly.HasActiveCredentials(_fiskalyEnabledCache?.OverrideEnabled)
             || _tseProviderFactory.IsProviderConfigured(TseOptions.ProviderFiskaly)
             || fiskaly.IsConfigured;
         // Only stamp DeviceType=fiskaly when credentials exist or Provider was set explicitly.

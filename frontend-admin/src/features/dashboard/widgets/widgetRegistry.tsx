@@ -12,6 +12,7 @@ import { DASHBOARD_WIDGET_IDS } from '@/features/dashboard/types';
 import { ActiveCashRegistersWidget } from '@/features/dashboard/widgets/ActiveCashRegistersWidget';
 import { BackupStatusWidget } from '@/features/dashboard/widgets/BackupStatusWidget';
 import { DailyClosingWidget } from '@/features/dashboard/widgets/DailyClosingWidget';
+import { FiskalyStatusWidget } from '@/features/dashboard/widgets/FiskalyStatusWidget';
 import { FinanzOnlineStatusWidget } from '@/features/dashboard/widgets/FinanzOnlineStatusWidget';
 import { LicenseExpiryWidget } from '@/features/dashboard/widgets/LicenseExpiryWidget';
 import { LowStockAlertsWidget } from '@/features/dashboard/widgets/LowStockAlertsWidget';
@@ -77,6 +78,8 @@ export function renderDashboardWidget(
       return <ManagerActivityWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.managerTseHealth:
       return <ManagerTseHealthWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.fiskalyStatus:
+      return <FiskalyStatusWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.managerOfflineQueue:
       return <ManagerOfflineQueueWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.managerLicenseChecklist:

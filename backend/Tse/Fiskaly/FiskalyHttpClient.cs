@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using KasseAPI_Final.Configuration;
 using Microsoft.Extensions.Options;
@@ -18,6 +19,7 @@ public sealed class FiskalyHttpClient : IFiskalyClient
     private readonly HttpClient _httpClient;
     private readonly FiskalyOptions _options;
     private readonly FiskalyAccessTokenCache _tokenCache;
+    private readonly FiskalyEnabledOverrideCache? _enabledCache;
     private readonly ILogger<FiskalyHttpClient> _logger;
     private readonly ConcurrentDictionary<string, SigningCertificateBundle> _registry =
         new(StringComparer.OrdinalIgnoreCase);
@@ -28,11 +30,13 @@ public sealed class FiskalyHttpClient : IFiskalyClient
         HttpClient httpClient,
         IOptions<FiskalyOptions> options,
         FiskalyAccessTokenCache tokenCache,
-        ILogger<FiskalyHttpClient> logger)
+        ILogger<FiskalyHttpClient> logger,
+        FiskalyEnabledOverrideCache? enabledCache = null)
     {
         _httpClient = httpClient;
         _options = options.Value;
         _tokenCache = tokenCache;
+        _enabledCache = enabledCache;
         _logger = logger;
 
         if (!string.IsNullOrWhiteSpace(_options.BaseUrl))
@@ -40,6 +44,8 @@ public sealed class FiskalyHttpClient : IFiskalyClient
 
         RegisterConfiguredCertificates();
     }
+
+    public bool IsEnabled => _options.IsEffectivelyEnabled(_enabledCache?.OverrideEnabled);
 
     public async Task<ECDsa> GetSigningKeyAsync(string signatureCreationUnitId, CancellationToken cancellationToken = default)
     {
@@ -115,6 +121,12 @@ public sealed class FiskalyHttpClient : IFiskalyClient
         string signatureCreationUnitId,
         CancellationToken cancellationToken = default)
     {
+        if (!IsEnabled)
+        {
+            _logger.LogInformation("Fiskaly is disabled — returning mock SCU {ScuId}", signatureCreationUnitId);
+            return MockScu(signatureCreationUnitId);
+        }
+
         await EnsureAuthenticatedAsync(cancellationToken);
 
         using var request = new HttpRequestMessage(
@@ -144,6 +156,12 @@ public sealed class FiskalyHttpClient : IFiskalyClient
 
     public async Task<FiskalyAuthResult> AuthenticateAsync(CancellationToken cancellationToken = default)
     {
+        if (!IsEnabled)
+        {
+            _logger.LogWarning("Fiskaly is disabled — skipping authentication.");
+            return new FiskalyAuthResult(false, null, 0);
+        }
+
         await EnsureAuthenticatedAsync(cancellationToken).ConfigureAwait(false);
         if (!_tokenCache.TryGet(out var token, out var expiresAt))
             throw new FiskalyApiException("fiskaly authentication succeeded but the token cache is empty.");
@@ -165,6 +183,12 @@ public sealed class FiskalyHttpClient : IFiskalyClient
             throw new ArgumentException("SCU id must be a UUIDv4.", nameof(signatureCreationUnitId));
         if (string.IsNullOrWhiteSpace(vatId))
             throw new ArgumentException("VAT id is required to create an SCU.", nameof(vatId));
+
+        if (!IsEnabled)
+        {
+            _logger.LogInformation("Fiskaly is disabled — returning mock SCU {ScuId}", signatureCreationUnitId);
+            return MockScu(signatureCreationUnitId.ToString("D"));
+        }
 
         var token = await RequireAccessTokenAsync(cancellationToken).ConfigureAwait(false);
         using var request = new HttpRequestMessage(HttpMethod.Put, $"signature-creation-unit/{signatureCreationUnitId:D}");
@@ -203,6 +227,12 @@ public sealed class FiskalyHttpClient : IFiskalyClient
         if (cashRegisterId == Guid.Empty)
             throw new ArgumentException("Cash register id must be a UUIDv4.", nameof(cashRegisterId));
 
+        if (!IsEnabled)
+        {
+            _logger.LogInformation("Fiskaly is disabled — returning mock cash register {CashRegisterId}", cashRegisterId);
+            return MockCashRegister(cashRegisterId.ToString("D"));
+        }
+
         var token = await RequireAccessTokenAsync(cancellationToken).ConfigureAwait(false);
         using var request = new HttpRequestMessage(HttpMethod.Put, $"cash-register/{cashRegisterId:D}");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -231,6 +261,12 @@ public sealed class FiskalyHttpClient : IFiskalyClient
         Guid cashRegisterId,
         CancellationToken cancellationToken = default)
     {
+        if (!IsEnabled)
+        {
+            _logger.LogInformation("Fiskaly is disabled — returning mock cash register {CashRegisterId}", cashRegisterId);
+            return MockCashRegister(cashRegisterId.ToString("D"));
+        }
+
         var token = await RequireAccessTokenAsync(cancellationToken).ConfigureAwait(false);
         using var request = new HttpRequestMessage(HttpMethod.Get, $"cash-register/{cashRegisterId:D}");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -258,11 +294,14 @@ public sealed class FiskalyHttpClient : IFiskalyClient
         if (receiptId == Guid.Empty)
             throw new ArgumentException("Receipt id is required.", nameof(receiptId));
 
+        if (!IsEnabled)
+            throw new FiskalyApiException("Fiskaly is disabled. Fiscal signing is not available.");
+
         var token = await RequireAccessTokenAsync(cancellationToken).ConfigureAwait(false);
-        var amount = data.TotalAmount.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
-        var vatRate = string.IsNullOrWhiteSpace(data.VatRate) ? "STANDARD" : data.VatRate.Trim().ToUpperInvariant();
+        var vatRows = ResolveVatRows(data);
         var paymentType = string.IsNullOrWhiteSpace(data.PaymentType) ? "CASH" : data.PaymentType.Trim().ToUpperInvariant();
         var receiptType = string.IsNullOrWhiteSpace(data.ReceiptType) ? "NORMAL" : data.ReceiptType.Trim().ToUpperInvariant();
+        var paymentAmount = FormatAmount(vatRows.Sum(row => row.Amount));
 
         using var request = new HttpRequestMessage(
             HttpMethod.Put,
@@ -277,13 +316,12 @@ public sealed class FiskalyHttpClient : IFiskalyClient
                 {
                     receipt = new
                     {
-                        amounts_per_vat_rate = new[]
-                        {
-                            new { vat_rate = vatRate, amount }
-                        },
+                        amounts_per_vat_rate = vatRows
+                            .Select(row => new { vat_rate = row.VatRate, amount = FormatAmount(row.Amount) })
+                            .ToArray(),
                         amounts_per_payment_type = new[]
                         {
-                            new { payment_type = paymentType, amount }
+                            new { payment_type = paymentType, amount = paymentAmount }
                         }
                     }
                 }
@@ -295,13 +333,207 @@ public sealed class FiskalyHttpClient : IFiskalyClient
         var dto = await response.Content.ReadFromJsonAsync<FiskalyReceiptResponseDto>(cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
-        return new FiskalySignedReceipt(
-            dto?.Id ?? receiptId.ToString("D"),
-            dto?.CashRegisterId ?? cashRegisterId.ToString("D"),
-            dto?.State ?? "SIGNED",
-            dto?.QrCodeData,
-            dto?.ReceiptNumber,
-            dto?.Environment);
+        return MapReceipt(dto, cashRegisterId, receiptId);
+    }
+
+    public async Task<FiskalySignedReceipt> GetReceiptAsync(
+        Guid cashRegisterId,
+        string receiptIdOrNumber,
+        CancellationToken cancellationToken = default)
+    {
+        if (cashRegisterId == Guid.Empty)
+            throw new ArgumentException("Cash register id is required.", nameof(cashRegisterId));
+        if (string.IsNullOrWhiteSpace(receiptIdOrNumber))
+            throw new ArgumentException("Receipt id or number is required.", nameof(receiptIdOrNumber));
+
+        if (!IsEnabled)
+            throw new FiskalyApiException("Fiskaly is disabled. Fiscal signing is not available.");
+
+        var token = await RequireAccessTokenAsync(cancellationToken).ConfigureAwait(false);
+        var encoded = Uri.EscapeDataString(receiptIdOrNumber.Trim());
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"cash-register/{cashRegisterId:D}/receipt/{encoded}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        await EnsureSuccessAsync(response, "Get receipt", cancellationToken).ConfigureAwait(false);
+        var dto = await response.Content.ReadFromJsonAsync<FiskalyReceiptResponseDto>(cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+
+        Guid? parsedReceiptId = Guid.TryParse(receiptIdOrNumber, out var id) ? id : null;
+        return MapReceipt(dto, cashRegisterId, parsedReceiptId);
+    }
+
+    public async Task<FiskalyFonAuthResult> AuthenticateFonAsync(
+        FiskalyFonAuthRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (!IsEnabled)
+        {
+            _logger.LogWarning("Fiskaly is disabled — skipping FON authentication.");
+            return new FiskalyFonAuthResult(
+                false,
+                null,
+                null,
+                "NOT_AUTHENTICATED",
+                null,
+                "Fiskaly is disabled.");
+        }
+
+        var token = await RequireAccessTokenAsync(cancellationToken).ConfigureAwait(false);
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Put, "fon/auth");
+        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        httpRequest.Content = JsonContent.Create(new FiskalyFonAuthRequestDto
+        {
+            FonParticipantId = request.FonParticipantId.Trim(),
+            FonUserId = request.FonUserId.Trim(),
+            FonUserPin = request.FonUserPin
+        });
+
+        using var response = await _httpClient.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await ReadBodyPreviewAsync(response, cancellationToken).ConfigureAwait(false);
+            _logger.LogWarning("fiskaly FON authenticate failed HTTP {Status}", (int)response.StatusCode);
+            return new FiskalyFonAuthResult(
+                false,
+                request.FonParticipantId.Trim(),
+                request.FonUserId.Trim(),
+                "NOT_AUTHENTICATED",
+                null,
+                SanitizeFonError(body, response.StatusCode));
+        }
+
+        var dto = await response.Content
+            .ReadFromJsonAsync<FiskalyFonAuthResponseDto>(cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+        return MapFonAuth(dto, request.FonParticipantId.Trim(), request.FonUserId.Trim());
+    }
+
+    public async Task<FiskalyFonAuthResult> GetFonAuthStatusAsync(CancellationToken cancellationToken = default)
+    {
+        if (!IsEnabled)
+        {
+            return new FiskalyFonAuthResult(false, null, null, "NOT_AUTHENTICATED", null, "Fiskaly is disabled.");
+        }
+
+        var token = await RequireAccessTokenAsync(cancellationToken).ConfigureAwait(false);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "fon/auth");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            return new FiskalyFonAuthResult(
+                false,
+                null,
+                null,
+                "UNKNOWN",
+                null,
+                SanitizeFonError(await ReadBodyPreviewAsync(response, cancellationToken).ConfigureAwait(false), response.StatusCode));
+        }
+
+        var dto = await response.Content
+            .ReadFromJsonAsync<FiskalyFonAuthResponseDto>(cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+        return MapFonAuth(dto, dto?.FonParticipantId, dto?.FonUserId);
+    }
+
+    public async Task<FiskalyScuInfo> UpdateSignatureCreationUnitStateAsync(
+        string signatureCreationUnitId,
+        string state,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(signatureCreationUnitId))
+            throw new ArgumentException("SCU id is required.", nameof(signatureCreationUnitId));
+        if (string.IsNullOrWhiteSpace(state))
+            throw new ArgumentException("State is required.", nameof(state));
+        if (!IsEnabled)
+            throw new FiskalyApiException("Fiskaly is disabled. SCU initialization is not available.");
+
+        var token = await RequireAccessTokenAsync(cancellationToken).ConfigureAwait(false);
+        using var request = new HttpRequestMessage(HttpMethod.Patch, $"signature-creation-unit/{signatureCreationUnitId.Trim()}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Content = JsonContent.Create(new { state = state.Trim().ToUpperInvariant() });
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        await EnsureSuccessAsync(response, "Update SCU", cancellationToken).ConfigureAwait(false);
+        var dto = await response.Content.ReadFromJsonAsync<FiskalyScuResponseDto>(cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+        return new FiskalyScuInfo(
+            dto?.Id ?? signatureCreationUnitId.Trim(),
+            dto?.State ?? state.Trim().ToUpperInvariant(),
+            dto?.CertificateSerialNumber);
+    }
+
+    public async Task<FiskalyCashRegisterInfo> UpdateCashRegisterStateAsync(
+        Guid cashRegisterId,
+        string state,
+        CancellationToken cancellationToken = default)
+    {
+        if (cashRegisterId == Guid.Empty)
+            throw new ArgumentException("Cash register id is required.", nameof(cashRegisterId));
+        if (string.IsNullOrWhiteSpace(state))
+            throw new ArgumentException("State is required.", nameof(state));
+        if (!IsEnabled)
+            throw new FiskalyApiException("Fiskaly is disabled. Cash register initialization is not available.");
+
+        var token = await RequireAccessTokenAsync(cancellationToken).ConfigureAwait(false);
+        using var request = new HttpRequestMessage(HttpMethod.Patch, $"cash-register/{cashRegisterId:D}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Content = JsonContent.Create(new { state = state.Trim().ToUpperInvariant() });
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        await EnsureSuccessAsync(response, "Update cash register", cancellationToken).ConfigureAwait(false);
+        var dto = await response.Content.ReadFromJsonAsync<FiskalyResourceResponseDto>(cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+        return new FiskalyCashRegisterInfo(
+            dto?.Id ?? cashRegisterId.ToString("D"),
+            dto?.State ?? state.Trim().ToUpperInvariant());
+    }
+
+    private static FiskalyFonAuthResult MapFonAuth(
+        FiskalyFonAuthResponseDto? dto,
+        string? fallbackParticipant,
+        string? fallbackUser)
+    {
+        var status = string.IsNullOrWhiteSpace(dto?.AuthenticationStatus)
+            ? "UNKNOWN"
+            : dto.AuthenticationStatus.Trim().ToUpperInvariant();
+        var authenticated = string.Equals(status, FiskalyResourceStates.Authenticated, StringComparison.OrdinalIgnoreCase);
+        DateTimeOffset? at = null;
+        if (dto?.TimeAuthentication is long unix && unix > 0)
+            at = DateTimeOffset.FromUnixTimeSeconds(unix);
+
+        return new FiskalyFonAuthResult(
+            authenticated,
+            string.IsNullOrWhiteSpace(dto?.FonParticipantId) ? fallbackParticipant : dto.FonParticipantId,
+            string.IsNullOrWhiteSpace(dto?.FonUserId) ? fallbackUser : dto.FonUserId,
+            status,
+            at);
+    }
+
+    private static string SanitizeFonError(string body, System.Net.HttpStatusCode status)
+    {
+        var preview = string.IsNullOrWhiteSpace(body) ? "(empty response)" : body;
+        return $"FON request failed ({(int)status}): {preview}";
+    }
+
+    private static async Task<string> ReadBodyPreviewAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken)
+    {
+        var body = response.Content is null
+            ? string.Empty
+            : await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(body))
+            return string.Empty;
+        var trimmed = body.Trim()
+            .Replace("fon_user_pin", "***", StringComparison.OrdinalIgnoreCase)
+            .Replace("api_secret", "***", StringComparison.OrdinalIgnoreCase)
+            .Replace("api_key", "***", StringComparison.OrdinalIgnoreCase);
+        return trimmed.Length <= 240 ? trimmed : trimmed[..240] + "…";
     }
 
     private async Task<SigningCertificateBundle> ResolveActiveBundleAsync(
@@ -380,6 +612,9 @@ public sealed class FiskalyHttpClient : IFiskalyClient
 
     private async Task EnsureAuthenticatedAsync(CancellationToken cancellationToken)
     {
+        if (!IsEnabled)
+            throw new FiskalyApiException("Fiskaly is disabled.");
+
         if (_tokenCache.TryGet(out _, out _))
             return;
 
@@ -401,7 +636,7 @@ public sealed class FiskalyHttpClient : IFiskalyClient
                 ApiSecret = _options.ApiSecret,
             };
 
-            using var response = await _httpClient.PostAsJsonAsync("auth", authBody, cancellationToken);
+            using var response = await PostAuthWithRetryAsync(authBody, cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
                 await ThrowApiErrorAsync(response, "Authenticate", cancellationToken).ConfigureAwait(false);
 
@@ -412,8 +647,7 @@ public sealed class FiskalyHttpClient : IFiskalyClient
             if (string.IsNullOrWhiteSpace(auth.AccessToken))
                 throw new FiskalyApiException("fiskaly auth returned no access_token.");
 
-            var lifetimeHours = _options.TokenCacheHours <= 0 ? 24 : _options.TokenCacheHours;
-            var expiresAt = auth.ExpiresAt ?? DateTimeOffset.UtcNow.AddHours(lifetimeHours);
+            var expiresAt = auth.ExpiresAt ?? DateTimeOffset.UtcNow.Add(_options.ResolveTokenCacheLifetime());
             _tokenCache.Set(auth.AccessToken, expiresAt);
         }
         finally
@@ -421,6 +655,42 @@ public sealed class FiskalyHttpClient : IFiskalyClient
             _authLock.Release();
         }
     }
+
+    private async Task<HttpResponseMessage> PostAuthWithRetryAsync(
+        FiskalyAuthRequestDto authBody,
+        CancellationToken cancellationToken)
+    {
+        var attempts = _options.ResolveMaxRetries();
+        var delay = _options.ResolveRetryDelay();
+        HttpResponseMessage? last = null;
+        for (var attempt = 1; attempt <= attempts; attempt++)
+        {
+            last?.Dispose();
+            last = await _httpClient.PostAsJsonAsync("auth", authBody, cancellationToken).ConfigureAwait(false);
+            if (!IsTransient(last) || attempt == attempts)
+                return last;
+
+            _logger.LogWarning(
+                "fiskaly auth transient failure HTTP {Status} (attempt {Attempt}/{Attempts})",
+                (int)last.StatusCode,
+                attempt,
+                attempts);
+            await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+        }
+
+        return last!;
+    }
+
+    private static bool IsTransient(HttpResponseMessage response) =>
+        (int)response.StatusCode == 408
+        || (int)response.StatusCode == 429
+        || (int)response.StatusCode >= 500;
+
+    private static FiskalyScuInfo MockScu(string scuId) =>
+        new(string.IsNullOrWhiteSpace(scuId) ? Guid.NewGuid().ToString("D") : scuId, "CREATED", null, IsMock: true);
+
+    private static FiskalyCashRegisterInfo MockCashRegister(string cashRegisterId) =>
+        new(cashRegisterId, "CREATED", IsMock: true);
 
     private static async Task EnsureSuccessAsync(
         HttpResponseMessage response,
@@ -509,6 +779,59 @@ public sealed class FiskalyHttpClient : IFiskalyClient
         public string? State { get; set; }
     }
 
+    private static FiskalySignedReceipt MapReceipt(
+        FiskalyReceiptResponseDto? dto,
+        Guid cashRegisterId,
+        Guid? receiptId)
+    {
+        var signed = dto?.Signed
+            ?? string.Equals(dto?.State, "SIGNED", StringComparison.OrdinalIgnoreCase);
+        var fonJson = dto?.FonValidations is { ValueKind: JsonValueKind.Undefined or JsonValueKind.Null }
+            ? null
+            : dto?.FonValidations?.GetRawText();
+        return new FiskalySignedReceipt(
+            dto?.Id ?? receiptId?.ToString("D") ?? string.Empty,
+            dto?.CashRegisterId ?? cashRegisterId.ToString("D"),
+            dto?.State ?? "UNKNOWN",
+            dto?.QrCodeData,
+            dto?.ReceiptNumber,
+            dto?.Environment,
+            dto?.TimeSignature,
+            signed,
+            dto?.CashRegisterSerialNumber,
+            dto?.Hints,
+            dto?.ReceiptType,
+            fonJson);
+    }
+
+    internal static IReadOnlyList<FiskalyVatAmount> ResolveVatRows(FiskalyTransactionData data)
+    {
+        if (data.AmountsPerVatRate is { Count: > 0 })
+        {
+            return data.AmountsPerVatRate
+                .Select(row => new FiskalyVatAmount
+                {
+                    VatRate = string.IsNullOrWhiteSpace(row.VatRate)
+                        ? "STANDARD"
+                        : row.VatRate.Trim().ToUpperInvariant(),
+                    Amount = row.Amount
+                })
+                .ToArray();
+        }
+
+        return
+        [
+            new FiskalyVatAmount
+            {
+                VatRate = string.IsNullOrWhiteSpace(data.VatRate) ? "STANDARD" : data.VatRate.Trim().ToUpperInvariant(),
+                Amount = data.TotalAmount
+            }
+        ];
+    }
+
+    private static string FormatAmount(decimal amount) =>
+        amount.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+
     private sealed class FiskalyReceiptResponseDto
     {
         [JsonPropertyName("_id")]
@@ -528,5 +851,50 @@ public sealed class FiskalyHttpClient : IFiskalyClient
 
         [JsonPropertyName("receipt_number")]
         public string? ReceiptNumber { get; set; }
+
+        [JsonPropertyName("time_signature")]
+        public long? TimeSignature { get; set; }
+
+        [JsonPropertyName("signed")]
+        public bool? Signed { get; set; }
+
+        [JsonPropertyName("cash_register_serial_number")]
+        public string? CashRegisterSerialNumber { get; set; }
+
+        [JsonPropertyName("receipt_type")]
+        public string? ReceiptType { get; set; }
+
+        [JsonPropertyName("hints")]
+        public List<string>? Hints { get; set; }
+
+        [JsonPropertyName("fon_validations")]
+        public JsonElement? FonValidations { get; set; }
+    }
+
+    private sealed class FiskalyFonAuthRequestDto
+    {
+        [JsonPropertyName("fon_participant_id")]
+        public string FonParticipantId { get; set; } = string.Empty;
+
+        [JsonPropertyName("fon_user_id")]
+        public string FonUserId { get; set; } = string.Empty;
+
+        [JsonPropertyName("fon_user_pin")]
+        public string FonUserPin { get; set; } = string.Empty;
+    }
+
+    private sealed class FiskalyFonAuthResponseDto
+    {
+        [JsonPropertyName("fon_participant_id")]
+        public string? FonParticipantId { get; set; }
+
+        [JsonPropertyName("fon_user_id")]
+        public string? FonUserId { get; set; }
+
+        [JsonPropertyName("authentication_status")]
+        public string? AuthenticationStatus { get; set; }
+
+        [JsonPropertyName("time_authentication")]
+        public long? TimeAuthentication { get; set; }
     }
 }

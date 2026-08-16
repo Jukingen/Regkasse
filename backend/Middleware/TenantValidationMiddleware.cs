@@ -50,6 +50,7 @@ public class TenantValidationMiddleware
     /// <item><description><c>/api/admin/cache</c> — deployment/tenant cache clear; optional body tenantId.</description></item>
     /// <item><description><c>/api/admin/support</c> — Super Admin ticket inbox (all tenants).</description></item>
     /// <item><description><c>/api/admin/trials</c> — SaaS trial dashboard / conversion (SystemCritical).</description></item>
+    /// <item><description><c>/api/admin/fiskaly</c> — Super Admin may set a global Fiskaly overlay without ambient tenant. Mandanten-Admin still needs ambient tenant (tenant overlay).</description></item>
     /// </list>
     /// Exact path <c>/api/tenants/switcher</c> is also exempt for SuperAdmin (membership-wide list;
     /// <c>/api/tenants/current</c> still requires ambient).
@@ -61,6 +62,7 @@ public class TenantValidationMiddleware
         "/api/admin/cache",
         "/api/admin/support",
         "/api/admin/trials",
+        "/api/admin/fiskaly",
     ];
 
     private static readonly string[] SuperAdminExactExemptPaths =

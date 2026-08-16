@@ -90,6 +90,15 @@
     "failures_in_row": "Ardışık hata: {{count}}.",
     "next_probe_eta": "Sonraki planlı kontrol (ETA): {{time}}."
   },
+  "fiskalyStatus": {
+    "disabled": "Devre dışı",
+    "not_configured": "Yapılandırılmadı",
+    "auth_failed": "Kimlik doğrulama başarısız",
+    "active": "Aktif",
+    "environment": "Ortam: {{env}}",
+    "last_check": "Son kontrol: {{time}}",
+    "refresh": "Yenile"
+  },
   "cashRegistersWidget": {
     "open_count_title": "Açık kasalar",
     "status_open": "Açık",

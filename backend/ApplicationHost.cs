@@ -320,6 +320,10 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IRksvEnvironmentService, RksvEnvironmentService>();
         builder.Services.Configure<FiskalyOptions>(builder.Configuration.GetSection(FiskalyOptions.SectionName));
         builder.Services.AddSingleton<IPostConfigureOptions<FiskalyOptions>, FiskalyOptionsFromTseProvidersPostConfigure>();
+        builder.Services.AddScoped<FiskalyEnabledOverrideCache>();
+        builder.Services.AddScoped<IFiskalySettingsService, FiskalySettingsService>();
+        builder.Services.AddScoped<IFiskalySetupService, FiskalySetupService>();
+        builder.Services.AddScoped<IFiskalySignTestService, FiskalySignTestService>();
         builder.Services.AddOptions<AuthOptions>()
             .Bind(builder.Configuration.GetSection(AuthOptions.SectionName))
             .Validate<IHostEnvironment>(

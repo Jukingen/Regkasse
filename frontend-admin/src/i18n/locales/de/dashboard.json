@@ -90,6 +90,15 @@
     "failures_in_row": "Fehler in Folge: {{count}}.",
     "next_probe_eta": "Nächste geplante Prüfung (ETA): {{time}}."
   },
+  "fiskalyStatus": {
+    "disabled": "Deaktiviert",
+    "not_configured": "Nicht konfiguriert",
+    "auth_failed": "Authentifizierung fehlgeschlagen",
+    "active": "Aktiv",
+    "environment": "Umgebung: {{env}}",
+    "last_check": "Letzte Prüfung: {{time}}",
+    "refresh": "Aktualisieren"
+  },
   "cashRegistersWidget": {
     "open_count_title": "Geöffnete Kassen",
     "status_open": "Geöffnet",

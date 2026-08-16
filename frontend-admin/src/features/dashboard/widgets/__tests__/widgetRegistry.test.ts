@@ -64,9 +64,16 @@ describe('renderDashboardWidget', () => {
     expect(node).not.toBeNull();
   });
 
-  it('renders manager-activity widget', () => {
-    const node = renderDashboardWidget(DASHBOARD_WIDGET_IDS.managerActivity, {
-      title: 'Aktivität',
+  it('renders manager-tse-health widget', () => {
+    const node = renderDashboardWidget(DASHBOARD_WIDGET_IDS.managerTseHealth, {
+      title: 'TSE-Gesundheit',
+    });
+    expect(node).not.toBeNull();
+  });
+
+  it('renders fiskaly-status widget', () => {
+    const node = renderDashboardWidget(DASHBOARD_WIDGET_IDS.fiskalyStatus, {
+      title: 'Fiskaly TSE',
     });
     expect(node).not.toBeNull();
   });

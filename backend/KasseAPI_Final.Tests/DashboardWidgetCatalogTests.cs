@@ -15,6 +15,7 @@ public sealed class DashboardWidgetCatalogTests
 
         Assert.Contains(filtered, w => w.WidgetId == DashboardWidgetCatalog.ActiveCashRegisters);
         Assert.Contains(filtered, w => w.WidgetId == DashboardWidgetCatalog.ManagerTseHealth);
+        Assert.Contains(filtered, w => w.WidgetId == DashboardWidgetCatalog.FiskalyStatus);
         Assert.Contains(filtered, w => w.WidgetId == DashboardWidgetCatalog.ManagerMonatsbeleg);
     }
 

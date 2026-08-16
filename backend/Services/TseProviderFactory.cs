@@ -1,6 +1,7 @@
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tse;
+using KasseAPI_Final.Tse.Fiskaly;
 using KasseAPI_Final.Tse.Providers;
 using Microsoft.Extensions.Options;
 
@@ -26,19 +27,22 @@ public sealed class TseProviderFactory : ITseProviderFactory
     private readonly IOptionsMonitor<TseOptions> _tseOptions;
     private readonly IOptionsMonitor<FiskalyOptions> _fiskalyOptions;
     private readonly ILogger<TseProviderFactory> _logger;
+    private readonly FiskalyEnabledOverrideCache? _fiskalyEnabledCache;
 
     public TseProviderFactory(
         FakeTseProvider fake,
         RealTseProvider real,
         IOptionsMonitor<TseOptions> tseOptions,
         IOptionsMonitor<FiskalyOptions> fiskalyOptions,
-        ILogger<TseProviderFactory> logger)
+        ILogger<TseProviderFactory> logger,
+        FiskalyEnabledOverrideCache? fiskalyEnabledCache = null)
     {
         _fake = fake;
         _real = real;
         _tseOptions = tseOptions;
         _fiskalyOptions = fiskalyOptions;
         _logger = logger;
+        _fiskalyEnabledCache = fiskalyEnabledCache;
     }
 
     public IReadOnlyList<string> GetKnownProviderNames() => KnownProviders;
@@ -56,7 +60,9 @@ public sealed class TseProviderFactory : ITseProviderFactory
         if (!string.IsNullOrEmpty(configured))
             return configured;
 
-        if (_fiskalyOptions.CurrentValue.IsConfigured || IsVendorBlockConfigured(TseOptions.ProviderFiskaly))
+        if (_fiskalyOptions.CurrentValue.HasActiveCredentials(_fiskalyEnabledCache?.OverrideEnabled)
+            || _fiskalyOptions.CurrentValue.IsConfigured
+            || IsVendorBlockConfigured(TseOptions.ProviderFiskaly))
             return TseOptions.ProviderFiskaly;
 
         if (opts.UseSoftTseWhenNoDevice)
@@ -73,7 +79,8 @@ public sealed class TseProviderFactory : ITseProviderFactory
         return name switch
         {
             TseOptions.ProviderFake or TseOptions.ProviderSoft => true,
-            TseOptions.ProviderFiskaly => _fiskalyOptions.CurrentValue.IsConfigured
+            TseOptions.ProviderFiskaly => _fiskalyOptions.CurrentValue.HasActiveCredentials(_fiskalyEnabledCache?.OverrideEnabled)
+                || _fiskalyOptions.CurrentValue.IsConfigured
                 || IsVendorBlockConfigured(TseOptions.ProviderFiskaly),
             TseOptions.ProviderEpson => IsVendorBlockConfigured(TseOptions.ProviderEpson),
             TseOptions.ProviderSwissbit => IsVendorBlockConfigured(TseOptions.ProviderSwissbit),

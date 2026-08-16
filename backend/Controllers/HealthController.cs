@@ -2,6 +2,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.HealthChecks;
 using KasseAPI_Final.Services.Deployment;
+using KasseAPI_Final.Tse.Fiskaly;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -20,15 +21,18 @@ public sealed class HealthController : ControllerBase
     private readonly HealthCheckService _healthChecks;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly DeploymentOptions _deploymentOptions;
+    private readonly IFiskalySettingsService _fiskalySettings;
 
     public HealthController(
         HealthCheckService healthChecks,
         IHostEnvironment hostEnvironment,
-        IOptions<DeploymentOptions> deploymentOptions)
+        IOptions<DeploymentOptions> deploymentOptions,
+        IFiskalySettingsService fiskalySettings)
     {
         _healthChecks = healthChecks;
         _hostEnvironment = hostEnvironment;
         _deploymentOptions = deploymentOptions.Value;
+        _fiskalySettings = fiskalySettings;
     }
 
     /// <summary>Liveness: process is up. No dependency I/O.</summary>
@@ -72,6 +76,20 @@ public sealed class HealthController : ControllerBase
             .CheckHealthAsync(r => r.Tags.Contains(DatabaseHealthCheck.DepsTag), cancellationToken)
             .ConfigureAwait(false);
         return ToActionResult(report);
+    }
+
+    /// <summary>
+    /// Fiskaly SIGN AT status (no secrets). Anonymous for ops dashboards.
+    /// When enabled and API keys are present, probes authentication (token is cached).
+    /// </summary>
+    [HttpGet("fiskaly/status")]
+    [ProducesResponseType(typeof(FiskalyStatusDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<FiskalyStatusDto>> GetFiskalyStatus(CancellationToken cancellationToken)
+    {
+        var status = await _fiskalySettings
+            .GetStatusAsync(probeAuthentication: true, cancellationToken)
+            .ConfigureAwait(false);
+        return Ok(status);
     }
 
     /// <summary>

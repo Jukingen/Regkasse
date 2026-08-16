@@ -90,6 +90,15 @@
     "failures_in_row": "Failures in a row: {{count}}.",
     "next_probe_eta": "Next scheduled check (ETA): {{time}}."
   },
+  "fiskalyStatus": {
+    "disabled": "Disabled",
+    "not_configured": "Not configured",
+    "auth_failed": "Authentication failed",
+    "active": "Active",
+    "environment": "Environment: {{env}}",
+    "last_check": "Last check: {{time}}",
+    "refresh": "Refresh"
+  },
   "cashRegistersWidget": {
     "open_count_title": "Open registers",
     "status_open": "Open",

@@ -16,6 +16,7 @@ public sealed class FiskalyTseService : IFiskalyTseService
 
     private readonly IFiskalyClient _client;
     private readonly IOptionsMonitor<FiskalyOptions> _options;
+    private readonly FiskalyEnabledOverrideCache? _enabledCache;
     private readonly AppDbContext _db;
     private readonly ILogger<FiskalyTseService> _logger;
 
@@ -23,12 +24,14 @@ public sealed class FiskalyTseService : IFiskalyTseService
         IFiskalyClient client,
         IOptionsMonitor<FiskalyOptions> options,
         AppDbContext db,
-        ILogger<FiskalyTseService> logger)
+        ILogger<FiskalyTseService> logger,
+        FiskalyEnabledOverrideCache? enabledCache = null)
     {
         _client = client;
         _options = options;
         _db = db;
         _logger = logger;
+        _enabledCache = enabledCache;
     }
 
     public async Task<FiskalyAuthResult> AuthenticateAsync(CancellationToken cancellationToken = default)
@@ -153,12 +156,15 @@ public sealed class FiskalyTseService : IFiskalyTseService
         string registerNumber,
         CancellationToken cancellationToken = default)
     {
-        if (!_options.CurrentValue.HasCredentials)
+        if (!_options.CurrentValue.HasActiveCredentials(_enabledCache?.OverrideEnabled))
         {
+            var disabled = !_options.CurrentValue.IsEffectivelyEnabled(_enabledCache?.OverrideEnabled);
             return new FiskalyResourceEnsureResult
             {
                 Success = false,
-                Message = "Fiskaly credentials are not configured."
+                Message = disabled
+                    ? "Fiskaly is disabled."
+                    : "Fiskaly credentials are not configured."
             };
         }
 
@@ -239,20 +245,17 @@ public sealed class FiskalyTseService : IFiskalyTseService
 
     private void EnsureCredentials()
     {
-        if (!_options.CurrentValue.HasCredentials)
+        if (!_options.CurrentValue.HasActiveCredentials(_enabledCache?.OverrideEnabled))
         {
             throw new FiskalyApiException(
-                "Fiskaly:Enabled is false or ApiKey/ApiSecret are missing. "
-                + "Set user-secrets Fiskaly:ApiKey / Fiskaly:ApiSecret.");
+                "Fiskaly is disabled or ApiKey/ApiSecret are missing. "
+                + "Set Fiskaly:Enabled and user-secrets Fiskaly:ApiKey / Fiskaly:ApiSecret.");
         }
     }
 
     private string DescribeEnvironment()
     {
-        var tseEnv = string.IsNullOrWhiteSpace(_options.CurrentValue.ApiBaseUrl)
-            ? "unknown"
-            : _options.CurrentValue.ApiBaseUrl;
-        return tseEnv.Contains("rksv.fiskaly.com", StringComparison.OrdinalIgnoreCase) ? "TEST/SIGN-AT" : tseEnv;
+        return _options.CurrentValue.ResolveEnvironment();
     }
 
     private FiskalyApiException Wrap(Exception ex, string operation) =>

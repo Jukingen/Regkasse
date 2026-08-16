@@ -1127,6 +1127,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     icon: 'ToolOutlined',
     permission: [PERMISSIONS.SYSTEM_CRITICAL],
   },
+  adminTseFiskaly: {
+    id: 'adminTseFiskaly',
+    menuKey: '/admin/tse/fiskaly',
+    href: '/admin/tse/fiskaly',
+    labelKey: 'nav.adminTseFiskaly',
+    icon: 'ApiOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
   adminTseCompliance: {
     id: 'adminTseCompliance',
     menuKey: '/admin/tse/compliance',
@@ -1781,6 +1789,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         icon: 'ExperimentOutlined',
         catalogIds: [
           'adminTseDeveloperTools',
+          'adminTseFiskaly',
           'adminTseApiGateway',
           'adminTseWebhooks',
           'adminTseBlockchain',

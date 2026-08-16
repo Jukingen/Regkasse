@@ -449,6 +449,8 @@
     },
     "tse": {
       "cardTitle": "TSE (Teknik guvenlik cihazi)",
+      "fiskalyEnabled": "Fiskaly TSE etkin",
+      "fiskalyEnabledHint": "Bu mandant icin SIGN AT baglantisi. Varsayilan: acik. API anahtarlari sunucu yapilandirmasinda kalir.",
       "autoConnect": "Baslangicta otomatik baglan",
       "defaultDeviceId": "Varsayilan TSE cihaz kimligi",
       "defaultDeviceIdMax": "En fazla 100 karakter",

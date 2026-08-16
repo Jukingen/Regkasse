@@ -395,6 +395,47 @@
           "OnlineOrderStatusChanged",
           "OnlineOrderConfirmed"
         ]
+      },
+      {
+        "id": "tseFiskaly.test.checks",
+        "description": "Fiskaly sign-test receipt validation tags",
+        "staticPrefix": "tseFiskaly.test.checks",
+        "suffixes": [
+          "qrFormatValid",
+          "hasReceiptNumber",
+          "receiptNumberLooksSequential",
+          "hasTimeSignature",
+          "hasCashRegisterSerial",
+          "signed"
+        ]
+      },
+      {
+        "id": "tseFiskaly.test.scenarios",
+        "description": "Fiskaly sign-test scenario labels",
+        "staticPrefix": "tseFiskaly.test.scenarios",
+        "suffixes": [
+          "normal",
+          "cancellation",
+          "training",
+          "mixed_vat",
+          "zero_amount",
+          "monthly_close",
+          "yearly_close"
+        ]
+      },
+      {
+        "id": "tseFiskaly.test.scenarioHints",
+        "description": "Fiskaly sign-test scenario descriptions",
+        "staticPrefix": "tseFiskaly.test.scenarioHints",
+        "suffixes": [
+          "normal",
+          "cancellation",
+          "training",
+          "mixed_vat",
+          "zero_amount",
+          "monthly_close",
+          "yearly_close"
+        ]
       }
     ]
   }

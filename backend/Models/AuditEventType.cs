@@ -125,5 +125,20 @@ public enum AuditEventType
     /// <summary>SaaS trial converted to a paid license sale.</summary>
     TrialConvertedToPaid = 63,
 
+    /// <summary>Super Admin changed the Fiskaly SIGN AT enable/disable overlay.</summary>
+    FiskalySettingsChanged = 64,
+
+    /// <summary>FON (FinanzOnline) credentials submitted to fiskaly SIGN AT (PIN never logged).</summary>
+    FiskalyFonAuthenticated = 65,
+
+    /// <summary>fiskaly SCU transitioned to INITIALIZED (FON registration).</summary>
+    FiskalyScuInitialized = 66,
+
+    /// <summary>fiskaly cash register transitioned to INITIALIZED (initial receipt).</summary>
+    FiskalyCashRegisterInitialized = 67,
+
+    /// <summary>Development-only Super Admin fiskaly SIGN AT test receipt signed (not a POS payment).</summary>
+    FiskalyTestReceiptSigned = 68,
+
     Other = 99
 }

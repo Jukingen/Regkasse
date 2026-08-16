@@ -31,6 +31,7 @@ import type { CompanySettings } from '@/api/generated/model';
 import { FormSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ChangeMyPasswordForm } from '@/features/settings/components/ChangeMyPasswordForm';
+import { FiskalyEnabledSwitch } from '@/features/settings/components/FiskalyEnabledSwitch';
 import { LanguageSelector } from '@/features/settings/components/LanguageSelector';
 import {
   resolveSettingsHubTabForField,
@@ -584,6 +585,8 @@ function TSETab() {
   const ts = (key: string) => t(`settings.form.tse.${key}`);
   return (
     <Card title={ts('cardTitle')}>
+      <FiskalyEnabledSwitch />
+
       <Form.Item name="tseAutoConnect" valuePropName="checked" label={ts('autoConnect')}>
         <Switch />
       </Form.Item>

@@ -56,9 +56,39 @@ public interface IFiskalyClient
         FiskalyTransactionData data,
         CancellationToken cancellationToken = default) =>
         throw new NotSupportedException("SignReceiptAsync is not implemented by this IFiskalyClient.");
+
+    /// <summary>GET /cash-register/{id}/receipt/{receiptIdOrNumber} — UUID or fiskaly receipt number.</summary>
+    Task<FiskalySignedReceipt> GetReceiptAsync(
+        Guid cashRegisterId,
+        string receiptIdOrNumber,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("GetReceiptAsync is not implemented by this IFiskalyClient.");
+
+    /// <summary>PUT /fon/auth — FinanzOnline Cash Register Webservice User credentials (stored by fiskaly, not locally).</summary>
+    Task<FiskalyFonAuthResult> AuthenticateFonAsync(
+        FiskalyFonAuthRequest request,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("AuthenticateFonAsync is not implemented by this IFiskalyClient.");
+
+    /// <summary>GET /fon/auth — current FON authentication status (no PIN).</summary>
+    Task<FiskalyFonAuthResult> GetFonAuthStatusAsync(CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("GetFonAuthStatusAsync is not implemented by this IFiskalyClient.");
+
+    Task<FiskalyScuInfo> UpdateSignatureCreationUnitStateAsync(
+        string signatureCreationUnitId,
+        string state,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("UpdateSignatureCreationUnitStateAsync is not implemented by this IFiskalyClient.");
+
+    Task<FiskalyCashRegisterInfo> UpdateCashRegisterStateAsync(
+        Guid cashRegisterId,
+        string state,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("UpdateCashRegisterStateAsync is not implemented by this IFiskalyClient.");
 }
 
 public sealed record FiskalyScuInfo(
     string Id,
     string State,
-    string? CertificateSerialNumber);
+    string? CertificateSerialNumber,
+    bool IsMock = false);
