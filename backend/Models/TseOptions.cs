@@ -63,6 +63,18 @@ namespace KasseAPI_Final.Models
         /// </summary>
         public bool AllowSimulatedDailyClosing { get; set; } = false;
 
+        /// <summary>
+        /// Development-only: when Fiskaly is unavailable, allow Soft TSE fallback (status, provisioning, closing).
+        /// Must stay false in Production (startup lock).
+        /// </summary>
+        public bool FallbackEnabled { get; set; }
+
+        /// <summary>
+        /// When true with <see cref="FallbackEnabled"/>, local simulated JWS (<c>FakeTseProvider</c>) may be used.
+        /// Must stay false in Production.
+        /// </summary>
+        public bool SoftTseEnabled { get; set; }
+
         /// <summary>Background probe interval for hardware TSE readiness (seconds).</summary>
         public int HealthCheckIntervalSeconds { get; set; } = 30;
 

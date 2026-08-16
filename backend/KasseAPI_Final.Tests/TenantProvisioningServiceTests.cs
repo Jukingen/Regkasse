@@ -267,4 +267,45 @@ public sealed class TenantProvisioningServiceTests
         var products = await db.Products.Where(p => p.TenantId == tenant.Id).ToListAsync();
         Assert.Empty(products);
     }
+
+    [Fact]
+    public async Task ProvisionAsync_ContinuesWhenTseProvisioningFails()
+    {
+        await using var db = CreateDb();
+        var tenant = new Tenant
+        {
+            Id = Guid.NewGuid(),
+            Name = "TSE Fail Cafe",
+            Slug = "tse-fail",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        };
+        db.Tenants.Add(tenant);
+        await db.SaveChangesAsync();
+
+        var uniqueness = new Mock<IUserUniquenessValidationService>();
+        uniqueness.Setup(x => x.IsEmailTakenByOtherUserAsync(It.IsAny<string?>(), It.IsAny<string?>()))
+            .ReturnsAsync(false);
+
+        var service = new TenantProvisioningService(
+            db,
+            CreateUserManagerMock().Object,
+            new UserTenantMembershipProvisioner(db),
+            uniqueness.Object,
+            Mock.Of<IDemoProductImportService>(),
+            new PaymentMethodDefinitionBootstrapService(db),
+            TseProvisioningTestDoubles.Failed("fiskaly timeout"),
+            CreateTrialServiceStub(),
+            Mock.Of<ILogger<TenantProvisioningService>>());
+
+        var (result, error) = await service.ProvisionAsync(tenant, null, null, grantTrialLicense: false);
+
+        Assert.Null(error);
+        Assert.NotNull(result);
+        Assert.False(result!.TseProvisioned);
+        Assert.Null(result.TseDeviceId);
+        Assert.False(result.TseFellBackToSoft);
+        Assert.Equal(1, await db.CashRegisters.IgnoreQueryFilters().CountAsync(r => r.TenantId == tenant.Id));
+    }
 }

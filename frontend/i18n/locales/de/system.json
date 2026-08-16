@@ -8,6 +8,25 @@
   "update": "Aktualisieren",
   "maintenance": "Wartung",
   "tseStatus": "TSE-Status",
+  "tse": {
+    "indicator": {
+      "active": "TSE aktiv",
+      "degraded": "TSE eingeschränkt",
+      "inactive": "TSE inaktiv",
+      "checking": "TSE …"
+    },
+    "tooltip": {
+      "title": "TSE-Status",
+      "hint": "Details anzeigen",
+      "status": "Status",
+      "message": "Hinweis",
+      "lastCheck": "Letzte Prüfung",
+      "scuId": "SCU-ID",
+      "certificateUntil": "Zertifikat gültig bis",
+      "cached": "Zwischengespeicherter Status (letzte bekannte Prüfung)",
+      "na": "—"
+    }
+  },
   "printerStatus": "Druckerstatus",
   "maintenanceNotice": {
     "modalTitle": "Systemwartung",

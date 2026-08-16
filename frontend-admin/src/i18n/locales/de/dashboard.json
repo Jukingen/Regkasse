@@ -438,5 +438,21 @@
     "pendingMonatsbelegPlural": "Monatsbeleg fehlt für {{count}} Kassen",
     "pendingMonatsbelegDescription": "Bitte erstellen Sie die ausstehenden Monatsbelege.",
     "createNow": "Jetzt nachholen"
+  },
+  "dailyClosing": {
+    "title": "Tagesabschluss",
+    "todayClosed": "Heute geschlossen",
+    "todayOpen": "Heute offen ({{count}} Transaktionen)",
+    "todayEmpty": "Keine Transaktionen — leerer Abschluss möglich",
+    "weekSummaryTitle": "Diese Woche",
+    "weekSummary": "{{closed}} / {{total}} geschlossen",
+    "lastClosing": "Letzter Abschluss: {{date}}",
+    "noClosingYet": "Noch kein Abschluss",
+    "open": "Tagesabschluss öffnen",
+    "closeNow": "Heute schließen",
+    "closeNowConfirmTitle": "Heutigen Tagesabschluss ausführen?",
+    "closeNowConfirm": "RKSV-relevante Operation. Nur ausführen, wenn die Kasse fachlich bereit ist.",
+    "noPermission": "Keine Berechtigung für den Tagesabschluss.",
+    "loadError": "Tagesabschluss-Status konnte nicht geladen werden"
   }
 }

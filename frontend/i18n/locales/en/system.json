@@ -8,6 +8,25 @@
   "update": "Update",
   "maintenance": "Maintenance",
   "tseStatus": "TSE Status",
+  "tse": {
+    "indicator": {
+      "active": "TSE active",
+      "degraded": "TSE degraded",
+      "inactive": "TSE inactive",
+      "checking": "TSE …"
+    },
+    "tooltip": {
+      "title": "TSE status",
+      "hint": "Show details",
+      "status": "Status",
+      "message": "Note",
+      "lastCheck": "Last check",
+      "scuId": "SCU ID",
+      "certificateUntil": "Certificate valid until",
+      "cached": "Cached status (last known check)",
+      "na": "—"
+    }
+  },
   "printerStatus": "Printer Status",
   "maintenanceNotice": {
     "modalTitle": "System maintenance",

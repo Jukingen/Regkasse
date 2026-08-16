@@ -11101,6 +11101,20 @@ namespace KasseAPI_Final.Migrations
                         .HasDefaultValue("active")
                         .HasColumnName("status");
 
+                    b.Property<DateTime?>("TseProvisionedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("tse_provisioned_at_utc");
+
+                    b.Property<string>("TseScuId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("tse_scu_id");
+
+                    b.Property<string>("TseStatus")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("tse_status");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");

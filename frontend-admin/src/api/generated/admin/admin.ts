@@ -170,6 +170,8 @@ import type {
   CurrentTenantSettingsDto,
   CustomerAnalyticsDto,
   CustomerDigitalServiceDto,
+  DailyClosingCalendarDto,
+  DailyClosingDashboardSummaryDto,
   DailyClosingSummaryDto,
   DailyReconciliationReportDto,
   DashboardPreferencesResponseDto,
@@ -278,6 +280,8 @@ import type {
   GetApiAdminCardTransactionsParams,
   GetApiAdminCashRegistersParams,
   GetApiAdminCategoriesSearchParams,
+  GetApiAdminDailyClosingCalendarParams,
+  GetApiAdminDailyClosingDashboardSummaryParams,
   GetApiAdminDatabaseMigrationsParams,
   GetApiAdminDeploymentsComplianceGateParams,
   GetApiAdminDeploymentsParams,
@@ -6044,7 +6048,131 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminReportsDailyClosing = (
+    /**
+ * @summary GET: month grid of closed / open / empty / future Vienna days for the ambient tenant.
+ */
+export const getApiAdminDailyClosingCalendar = (
+    params?: GetApiAdminDailyClosingCalendarParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<DailyClosingCalendarDto>(
+      {url: `/api/admin/daily-closing/calendar`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminDailyClosingCalendarQueryKey = (params?: GetApiAdminDailyClosingCalendarParams,) => {
+    return [`/api/admin/daily-closing/calendar`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminDailyClosingCalendarQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminDailyClosingCalendar>>, TError = ProblemDetails>(params?: GetApiAdminDailyClosingCalendarParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDailyClosingCalendar>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminDailyClosingCalendarQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminDailyClosingCalendar>>> = ({ signal }) => getApiAdminDailyClosingCalendar(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDailyClosingCalendar>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminDailyClosingCalendarQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminDailyClosingCalendar>>>
+export type GetApiAdminDailyClosingCalendarQueryError = ProblemDetails
+
+/**
+ * @summary GET: month grid of closed / open / empty / future Vienna days for the ambient tenant.
+ */
+export const useGetApiAdminDailyClosingCalendar = <TData = Awaited<ReturnType<typeof getApiAdminDailyClosingCalendar>>, TError = ProblemDetails>(
+ params?: GetApiAdminDailyClosingCalendarParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDailyClosingCalendar>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminDailyClosingCalendarQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * @summary GET: Vienna-today status plus ISO week (Mon–Sun) counts for the dashboard widget.
+ */
+export const getApiAdminDailyClosingDashboardSummary = (
+    params?: GetApiAdminDailyClosingDashboardSummaryParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<DailyClosingDashboardSummaryDto>(
+      {url: `/api/admin/daily-closing/dashboard-summary`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminDailyClosingDashboardSummaryQueryKey = (params?: GetApiAdminDailyClosingDashboardSummaryParams,) => {
+    return [`/api/admin/daily-closing/dashboard-summary`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminDailyClosingDashboardSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminDailyClosingDashboardSummary>>, TError = ProblemDetails>(params?: GetApiAdminDailyClosingDashboardSummaryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDailyClosingDashboardSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminDailyClosingDashboardSummaryQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminDailyClosingDashboardSummary>>> = ({ signal }) => getApiAdminDailyClosingDashboardSummary(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDailyClosingDashboardSummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminDailyClosingDashboardSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminDailyClosingDashboardSummary>>>
+export type GetApiAdminDailyClosingDashboardSummaryQueryError = ProblemDetails
+
+/**
+ * @summary GET: Vienna-today status plus ISO week (Mon–Sun) counts for the dashboard widget.
+ */
+export const useGetApiAdminDailyClosingDashboardSummary = <TData = Awaited<ReturnType<typeof getApiAdminDailyClosingDashboardSummary>>, TError = ProblemDetails>(
+ params?: GetApiAdminDailyClosingDashboardSummaryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDailyClosingDashboardSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminDailyClosingDashboardSummaryQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminReportsDailyClosing = (
     params?: GetApiAdminReportsDailyClosingParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {

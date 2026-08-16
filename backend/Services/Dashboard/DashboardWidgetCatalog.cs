@@ -7,6 +7,7 @@ namespace KasseAPI_Final.Services.Dashboard;
 public static class DashboardWidgetCatalog
 {
     public const string ActionRequired = "action-required";
+    public const string DailyClosing = "daily-closing";
     public const string ManagerLicenseStatus = "manager-license-status";
     public const string ManagerKpiStrip = "manager-kpi-strip";
     public const string ManagerMonatsbeleg = "manager-monatsbeleg";
@@ -36,34 +37,35 @@ public static class DashboardWidgetCatalog
     [
         // Compliance Handlungsbedarf (Tagesabschluss + RKSV reminders) — default first for Mandanten-Admin.
         new(ActionRequired, "Handlungsbedarf", "Tagesabschluss und RKSV-Sonderbeleg Erinnerungen", AppPermissions.DailyClosingView, 0, true, true),
+        new(DailyClosing, "Tagesabschluss", "Heutiger Kassenabschluss, Wochenstand und Schnellaktion", AppPermissions.DailyClosingView, 1, true, true),
 
         // Manager dashboard cards (migrated from fixed ManagerDashboard layout)
-        new(ManagerLicenseStatus, "Lizenz-Status", "Mandantenlizenz Countdown und Gesundheit", AppPermissions.LicenseView, 1, true, true),
-        new(ManagerKpiStrip, "Kennzahlen", "Umsatz, Schichten, Personal und Kassenstand", AppPermissions.ReportView, 2, true, true),
-        new(ManagerMonatsbeleg, "Monatsbeleg & RKSV", "Monatsbeleg-Status und Compliance-Hinweise", AppPermissions.CashRegisterView, 3, true, true),
-        new(ManagerActivity, "Aktivität", "Letzte Aktivitäten im Mandanten", AppPermissions.AuditView, 4, true, true),
-        new(ManagerTseHealth, "TSE-Gesundheit", "TSE-Status und Offline-Hinweise", AppPermissions.CashRegisterView, 5, true, true),
-        new(ManagerOfflineQueue, "Offline-Warteschlange", "Ausstehende Offline-Zahlungen", AppPermissions.PaymentView, 6, true, true),
-        new(ManagerLicenseChecklist, "Lizenz-Checkliste", "Erneuerungs-Checkliste", AppPermissions.LicenseView, 7, true, true),
-        new(ManagerLicenseSupport, "Lizenz-Support", "Support- und Zahlungsoptionen", AppPermissions.LicenseView, 8, true, true),
-        new(ManagerHospitalityLinks, "Gastronomie-Links", "Schnelle Links für den Betrieb", AppPermissions.CashRegisterView, 9, true, false),
-        new(ManagerExportQuickActions, "Export-Schnellaktionen", "Häufige Exporte starten", AppPermissions.ReportExport, 10, true, false),
+        new(ManagerLicenseStatus, "Lizenz-Status", "Mandantenlizenz Countdown und Gesundheit", AppPermissions.LicenseView, 2, true, true),
+        new(ManagerKpiStrip, "Kennzahlen", "Umsatz, Schichten, Personal und Kassenstand", AppPermissions.ReportView, 3, true, true),
+        new(ManagerMonatsbeleg, "Monatsbeleg & RKSV", "Monatsbeleg-Status und Compliance-Hinweise", AppPermissions.CashRegisterView, 4, true, true),
+        new(ManagerActivity, "Aktivität", "Letzte Aktivitäten im Mandanten", AppPermissions.AuditView, 5, true, true),
+        new(ManagerTseHealth, "TSE-Gesundheit", "TSE-Status und Offline-Hinweise", AppPermissions.CashRegisterView, 6, true, true),
+        new(ManagerOfflineQueue, "Offline-Warteschlange", "Ausstehende Offline-Zahlungen", AppPermissions.PaymentView, 7, true, true),
+        new(ManagerLicenseChecklist, "Lizenz-Checkliste", "Erneuerungs-Checkliste", AppPermissions.LicenseView, 8, true, true),
+        new(ManagerLicenseSupport, "Lizenz-Support", "Support- und Zahlungsoptionen", AppPermissions.LicenseView, 9, true, true),
+        new(ManagerHospitalityLinks, "Gastronomie-Links", "Schnelle Links für den Betrieb", AppPermissions.CashRegisterView, 10, true, false),
+        new(ManagerExportQuickActions, "Export-Schnellaktionen", "Häufige Exporte starten", AppPermissions.ReportExport, 11, true, false),
 
         // Existing catalog widgets
-        new(TodaySales, "Heutiger Umsatz", "Umsatz und Verkäufe für heute", AppPermissions.ReportView, 11, true, true),
-        new(PaymentTrends, "Zahlungstrends", "Tägliche, wöchentliche und monatliche Zahlungsentwicklung", AppPermissions.PaymentView, 12, true, true),
-        new(ActiveCashRegisters, "Aktive Kassen", "Kassenstatus und Anzahl", AppPermissions.CashRegisterView, 13, true, true),
-        new(LowStockAlerts, "Niedriger Bestand", "Artikel unter Mindestbestand", AppPermissions.InventoryView, 14, true, true),
-        new(TopSellingProducts, "Top-Artikel", "Meistverkaufte Produkte", AppPermissions.ReportView, 15, true, true),
-        new(RecentUsers, "Neue Benutzer", "Zuletzt angelegte Benutzer", AppPermissions.UserView, 16, true, true),
-        new(RecentPermissionChanges, "📜 Berechtigungsänderungen", "Zuletzt geänderte Rollen und Berechtigungen", AppPermissions.AuditView, 17, true, true),
+        new(TodaySales, "Heutiger Umsatz", "Umsatz und Verkäufe für heute", AppPermissions.ReportView, 12, true, true),
+        new(PaymentTrends, "Zahlungstrends", "Tägliche, wöchentliche und monatliche Zahlungsentwicklung", AppPermissions.PaymentView, 13, true, true),
+        new(ActiveCashRegisters, "Aktive Kassen", "Kassenstatus und Anzahl", AppPermissions.CashRegisterView, 14, true, true),
+        new(LowStockAlerts, "Niedriger Bestand", "Artikel unter Mindestbestand", AppPermissions.InventoryView, 15, true, true),
+        new(TopSellingProducts, "Top-Artikel", "Meistverkaufte Produkte", AppPermissions.ReportView, 16, true, true),
+        new(RecentUsers, "Neue Benutzer", "Zuletzt angelegte Benutzer", AppPermissions.UserView, 17, true, true),
+        new(RecentPermissionChanges, "📜 Berechtigungsänderungen", "Zuletzt geänderte Rollen und Berechtigungen", AppPermissions.AuditView, 18, true, true),
         // Slim expiry widget — off by default so Mandanten-Admin uses manager-license-status (no duplicate).
-        new(LicenseExpiry, "Lizenzablauf", "Verbleibende Tage Mandantenlizenz", AppPermissions.LicenseManage, 18, false, true),
-        new(FinanzOnlineStatus, "FinanzOnline", "Ausstehende oder fehlgeschlagene Übermittlungen", AppPermissions.FinanzOnlineView, 19, true, true),
-        new(OfflineSystemStatus, "Offline-System", "Offline-Bestellungen, Sync-Gesundheit und Rückstau", AppPermissions.PaymentView, 20, true, true),
-        new(BackupStatus, "Backup-Status", "Letztes Backup, Erfolgsrate und Konfigurationszustand", AppPermissions.SettingsView, 21, true, true),
-        new(DataRetention, "Datenaufbewahrung", "Lizenz-Lebenszyklus, Grace/Lock und Löschanfragen (RKSV 7 Jahre)", AppPermissions.BackupManage, 22, true, true),
-        new(SystemMetrics, "System-Metriken", "API-Leistung, Cache, Uptime und aktive Mandanten", AppPermissions.SystemCritical, 23, true, true),
+        new(LicenseExpiry, "Lizenzablauf", "Verbleibende Tage Mandantenlizenz", AppPermissions.LicenseManage, 19, false, true),
+        new(FinanzOnlineStatus, "FinanzOnline", "Ausstehende oder fehlgeschlagene Übermittlungen", AppPermissions.FinanzOnlineView, 20, true, true),
+        new(OfflineSystemStatus, "Offline-System", "Offline-Bestellungen, Sync-Gesundheit und Rückstau", AppPermissions.PaymentView, 21, true, true),
+        new(BackupStatus, "Backup-Status", "Letztes Backup, Erfolgsrate und Konfigurationszustand", AppPermissions.SettingsView, 22, true, true),
+        new(DataRetention, "Datenaufbewahrung", "Lizenz-Lebenszyklus, Grace/Lock und Löschanfragen (RKSV 7 Jahre)", AppPermissions.BackupManage, 23, true, true),
+        new(SystemMetrics, "System-Metriken", "API-Leistung, Cache, Uptime und aktive Mandanten", AppPermissions.SystemCritical, 24, true, true),
     ];
 
     public static IReadOnlyList<DashboardWidgetDefinition> GetAll() => All;

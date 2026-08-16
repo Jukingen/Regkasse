@@ -102,7 +102,19 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
             .ConfigureAwait(false);
         if (!tseResult.IsSuccess)
         {
-            return (null, tseResult.Error ?? "TSE provisioning failed.");
+            _logger.LogWarning(
+                "TSE provisioning failed for tenant {TenantId} register {CashRegisterId}: {Error}. Tenant create continues; operator can provision TSE later.",
+                tenant.Id,
+                cashRegister.Id,
+                tseResult.Error);
+        }
+        else if (tseResult.FellBackToSoftTse)
+        {
+            _logger.LogWarning(
+                "Fiskaly SCU provisioning fell back to Soft TSE for tenant {TenantId} register {CashRegisterId}: {Detail}",
+                tenant.Id,
+                cashRegister.Id,
+                tseResult.Detail);
         }
 
         Category category;
@@ -251,6 +263,9 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
             TrialLicenseValidUntilUtc = trialUntil,
             TseDeviceId = tseResult.Device?.Id,
             TseProvisioned = tseResult.Outcome == TseProvisioningOutcome.Success,
+            TseScuId = tseResult.TseScuId,
+            TseStatus = tseResult.TseStatus,
+            TseFellBackToSoft = tseResult.FellBackToSoftTse,
         }, null);
     }
 

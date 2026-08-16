@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Serialization;
@@ -16,21 +17,22 @@ public sealed class FiskalyHttpClient : IFiskalyClient
 {
     private readonly HttpClient _httpClient;
     private readonly FiskalyOptions _options;
+    private readonly FiskalyAccessTokenCache _tokenCache;
     private readonly ILogger<FiskalyHttpClient> _logger;
     private readonly ConcurrentDictionary<string, SigningCertificateBundle> _registry =
         new(StringComparer.OrdinalIgnoreCase);
 
     private readonly SemaphoreSlim _authLock = new(1, 1);
-    private string? _accessToken;
-    private DateTimeOffset _tokenExpiresAt = DateTimeOffset.MinValue;
 
     public FiskalyHttpClient(
         HttpClient httpClient,
         IOptions<FiskalyOptions> options,
+        FiskalyAccessTokenCache tokenCache,
         ILogger<FiskalyHttpClient> logger)
     {
         _httpClient = httpClient;
         _options = options.Value;
+        _tokenCache = tokenCache;
         _logger = logger;
 
         if (!string.IsNullOrWhiteSpace(_options.BaseUrl))
@@ -104,9 +106,9 @@ public sealed class FiskalyHttpClient : IFiskalyClient
             "Use receipt-level fiscalization or a signing bridge.",
             signatureCreationUnitId);
 
-        throw new InvalidOperationException(
-            "fiskaly SIGN AT signs receipts via PUT /cash-register/{id}/receipt/{id}. " +
-            "Raw JWS hash signing is not available on the public API.");
+        throw new FiskalyApiException(
+            "fiskaly SIGN AT does not expose raw hash signing. Use SignReceiptAsync " +
+            "(PUT /cash-register/{id}/receipt/{id}). Local RKSV compact JWS remains SignaturePipeline.");
     }
 
     public async Task<FiskalyScuInfo?> GetSignatureCreationUnitAsync(
@@ -119,7 +121,7 @@ public sealed class FiskalyHttpClient : IFiskalyClient
             HttpMethod.Get,
             $"signature-creation-unit/{signatureCreationUnitId}");
 
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await RequireAccessTokenAsync(cancellationToken));
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         if (!response.IsSuccessStatusCode)
@@ -138,6 +140,168 @@ public sealed class FiskalyHttpClient : IFiskalyClient
             return null;
 
         return new FiskalyScuInfo(dto.Id ?? signatureCreationUnitId, dto.State ?? "UNKNOWN", dto.CertificateSerialNumber);
+    }
+
+    public async Task<FiskalyAuthResult> AuthenticateAsync(CancellationToken cancellationToken = default)
+    {
+        await EnsureAuthenticatedAsync(cancellationToken).ConfigureAwait(false);
+        if (!_tokenCache.TryGet(out var token, out var expiresAt))
+            throw new FiskalyApiException("fiskaly authentication succeeded but the token cache is empty.");
+
+        _logger.LogInformation(
+            "fiskaly authentication succeeded, tokenLength={TokenLength}, expiresAt={ExpiresAt}",
+            token.Length,
+            expiresAt);
+        return new FiskalyAuthResult(true, expiresAt, token.Length);
+    }
+
+    public async Task<FiskalyScuInfo> CreateSignatureCreationUnitAsync(
+        Guid signatureCreationUnitId,
+        string vatId,
+        string? legalEntityName = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (signatureCreationUnitId == Guid.Empty)
+            throw new ArgumentException("SCU id must be a UUIDv4.", nameof(signatureCreationUnitId));
+        if (string.IsNullOrWhiteSpace(vatId))
+            throw new ArgumentException("VAT id is required to create an SCU.", nameof(vatId));
+
+        var token = await RequireAccessTokenAsync(cancellationToken).ConfigureAwait(false);
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"signature-creation-unit/{signatureCreationUnitId:D}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Content = JsonContent.Create(new
+        {
+            legal_entity_id = new { vat_id = vatId.Trim().ToUpperInvariant() },
+            legal_entity_name = string.IsNullOrWhiteSpace(legalEntityName)
+                ? "Regkasse"
+                : legalEntityName.Trim()
+        });
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+        {
+            var existing = await GetSignatureCreationUnitAsync(signatureCreationUnitId.ToString("D"), cancellationToken)
+                .ConfigureAwait(false);
+            if (existing != null)
+                return existing;
+        }
+
+        await EnsureSuccessAsync(response, "Create SCU", cancellationToken).ConfigureAwait(false);
+        var dto = await response.Content.ReadFromJsonAsync<FiskalyScuResponseDto>(cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+        return new FiskalyScuInfo(
+            dto?.Id ?? signatureCreationUnitId.ToString("D"),
+            dto?.State ?? "CREATED",
+            dto?.CertificateSerialNumber);
+    }
+
+    public async Task<FiskalyCashRegisterInfo> CreateCashRegisterAsync(
+        Guid cashRegisterId,
+        string description,
+        CancellationToken cancellationToken = default)
+    {
+        if (cashRegisterId == Guid.Empty)
+            throw new ArgumentException("Cash register id must be a UUIDv4.", nameof(cashRegisterId));
+
+        var token = await RequireAccessTokenAsync(cancellationToken).ConfigureAwait(false);
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"cash-register/{cashRegisterId:D}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Content = JsonContent.Create(new
+        {
+            description = string.IsNullOrWhiteSpace(description) ? "Regkasse POS" : description.Trim()
+        });
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+        {
+            var existing = await GetCashRegisterAsync(cashRegisterId, cancellationToken).ConfigureAwait(false);
+            if (existing != null)
+                return existing;
+        }
+
+        await EnsureSuccessAsync(response, "Create cash register", cancellationToken).ConfigureAwait(false);
+        var dto = await response.Content.ReadFromJsonAsync<FiskalyResourceResponseDto>(cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+        return new FiskalyCashRegisterInfo(
+            dto?.Id ?? cashRegisterId.ToString("D"),
+            dto?.State ?? "CREATED");
+    }
+
+    public async Task<FiskalyCashRegisterInfo?> GetCashRegisterAsync(
+        Guid cashRegisterId,
+        CancellationToken cancellationToken = default)
+    {
+        var token = await RequireAccessTokenAsync(cancellationToken).ConfigureAwait(false);
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"cash-register/{cashRegisterId:D}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+            return null;
+
+        var dto = await response.Content.ReadFromJsonAsync<FiskalyResourceResponseDto>(cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+        if (dto == null)
+            return null;
+
+        return new FiskalyCashRegisterInfo(dto.Id ?? cashRegisterId.ToString("D"), dto.State ?? "UNKNOWN");
+    }
+
+    public async Task<FiskalySignedReceipt> SignReceiptAsync(
+        Guid cashRegisterId,
+        Guid receiptId,
+        FiskalyTransactionData data,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        if (cashRegisterId == Guid.Empty)
+            throw new ArgumentException("Cash register id is required.", nameof(cashRegisterId));
+        if (receiptId == Guid.Empty)
+            throw new ArgumentException("Receipt id is required.", nameof(receiptId));
+
+        var token = await RequireAccessTokenAsync(cancellationToken).ConfigureAwait(false);
+        var amount = data.TotalAmount.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+        var vatRate = string.IsNullOrWhiteSpace(data.VatRate) ? "STANDARD" : data.VatRate.Trim().ToUpperInvariant();
+        var paymentType = string.IsNullOrWhiteSpace(data.PaymentType) ? "CASH" : data.PaymentType.Trim().ToUpperInvariant();
+        var receiptType = string.IsNullOrWhiteSpace(data.ReceiptType) ? "NORMAL" : data.ReceiptType.Trim().ToUpperInvariant();
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Put,
+            $"cash-register/{cashRegisterId:D}/receipt/{receiptId:D}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Content = JsonContent.Create(new
+        {
+            receipt_type = receiptType,
+            schema = new
+            {
+                standard_v1 = new
+                {
+                    receipt = new
+                    {
+                        amounts_per_vat_rate = new[]
+                        {
+                            new { vat_rate = vatRate, amount }
+                        },
+                        amounts_per_payment_type = new[]
+                        {
+                            new { payment_type = paymentType, amount }
+                        }
+                    }
+                }
+            }
+        });
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        await EnsureSuccessAsync(response, "Sign receipt", cancellationToken).ConfigureAwait(false);
+        var dto = await response.Content.ReadFromJsonAsync<FiskalyReceiptResponseDto>(cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+
+        return new FiskalySignedReceipt(
+            dto?.Id ?? receiptId.ToString("D"),
+            dto?.CashRegisterId ?? cashRegisterId.ToString("D"),
+            dto?.State ?? "SIGNED",
+            dto?.QrCodeData,
+            dto?.ReceiptNumber,
+            dto?.Environment);
     }
 
     private async Task<SigningCertificateBundle> ResolveActiveBundleAsync(
@@ -205,15 +369,30 @@ public sealed class FiskalyHttpClient : IFiskalyClient
         _registry[thumbprint] = bundle;
     }
 
+    private async Task<string> RequireAccessTokenAsync(CancellationToken cancellationToken)
+    {
+        await EnsureAuthenticatedAsync(cancellationToken).ConfigureAwait(false);
+        if (_tokenCache.TryGet(out var token, out _))
+            return token;
+
+        throw new FiskalyApiException("fiskaly access token is not available.");
+    }
+
     private async Task EnsureAuthenticatedAsync(CancellationToken cancellationToken)
     {
-        if (_accessToken != null && DateTimeOffset.UtcNow < _tokenExpiresAt.AddMinutes(-1))
+        if (_tokenCache.TryGet(out _, out _))
             return;
+
+        if (string.IsNullOrWhiteSpace(_options.ApiKey) || string.IsNullOrWhiteSpace(_options.ApiSecret))
+        {
+            throw new FiskalyApiException(
+                "Fiskaly:ApiKey / Fiskaly:ApiSecret are not configured. Set user-secrets in Development.");
+        }
 
         await _authLock.WaitAsync(cancellationToken);
         try
         {
-            if (_accessToken != null && DateTimeOffset.UtcNow < _tokenExpiresAt.AddMinutes(-1))
+            if (_tokenCache.TryGet(out _, out _))
                 return;
 
             var authBody = new FiskalyAuthRequestDto
@@ -223,22 +402,56 @@ public sealed class FiskalyHttpClient : IFiskalyClient
             };
 
             using var response = await _httpClient.PostAsJsonAsync("auth", authBody, cancellationToken);
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+                await ThrowApiErrorAsync(response, "Authenticate", cancellationToken).ConfigureAwait(false);
 
             var auth = await response.Content.ReadFromJsonAsync<FiskalyAuthResponseDto>(
                 cancellationToken: cancellationToken)
-                ?? throw new InvalidOperationException("fiskaly auth returned empty body.");
+                ?? throw new FiskalyApiException("fiskaly auth returned empty body.");
 
             if (string.IsNullOrWhiteSpace(auth.AccessToken))
-                throw new InvalidOperationException("fiskaly auth returned no access_token.");
+                throw new FiskalyApiException("fiskaly auth returned no access_token.");
 
-            _accessToken = auth.AccessToken;
-            _tokenExpiresAt = auth.ExpiresAt ?? DateTimeOffset.UtcNow.AddHours(1);
+            var lifetimeHours = _options.TokenCacheHours <= 0 ? 24 : _options.TokenCacheHours;
+            var expiresAt = auth.ExpiresAt ?? DateTimeOffset.UtcNow.AddHours(lifetimeHours);
+            _tokenCache.Set(auth.AccessToken, expiresAt);
         }
         finally
         {
             _authLock.Release();
         }
+    }
+
+    private static async Task EnsureSuccessAsync(
+        HttpResponseMessage response,
+        string operation,
+        CancellationToken cancellationToken)
+    {
+        if (response.IsSuccessStatusCode)
+            return;
+
+        await ThrowApiErrorAsync(response, operation, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task ThrowApiErrorAsync(
+        HttpResponseMessage response,
+        string operation,
+        CancellationToken cancellationToken)
+    {
+        var body = response.Content is null
+            ? string.Empty
+            : await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        var truncated = string.IsNullOrWhiteSpace(body)
+            ? "(empty response)"
+            : (body.Length <= 400 ? body.Trim() : body.Trim()[..400] + "…");
+        var requestId = response.Headers.TryGetValues("request-id", out var values)
+            ? values.FirstOrDefault()
+            : null;
+
+        throw new FiskalyApiException(
+            $"fiskaly {operation} failed ({(int)response.StatusCode}): {truncated}",
+            response.StatusCode,
+            requestId);
     }
 
     private static ECDsa CreateVerifyKey(X509Certificate2 certificate)
@@ -285,5 +498,35 @@ public sealed class FiskalyHttpClient : IFiskalyClient
 
         [JsonPropertyName("certificate_serial_number")]
         public string? CertificateSerialNumber { get; set; }
+    }
+
+    private sealed class FiskalyResourceResponseDto
+    {
+        [JsonPropertyName("_id")]
+        public string? Id { get; set; }
+
+        [JsonPropertyName("state")]
+        public string? State { get; set; }
+    }
+
+    private sealed class FiskalyReceiptResponseDto
+    {
+        [JsonPropertyName("_id")]
+        public string? Id { get; set; }
+
+        [JsonPropertyName("cash_register_id")]
+        public string? CashRegisterId { get; set; }
+
+        [JsonPropertyName("state")]
+        public string? State { get; set; }
+
+        [JsonPropertyName("_env")]
+        public string? Environment { get; set; }
+
+        [JsonPropertyName("qr_code_data")]
+        public string? QrCodeData { get; set; }
+
+        [JsonPropertyName("receipt_number")]
+        public string? ReceiptNumber { get; set; }
     }
 }

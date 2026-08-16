@@ -43,6 +43,13 @@ describe('renderDashboardWidget', () => {
     expect(node).not.toBeNull();
   });
 
+  it('renders daily-closing widget', () => {
+    const node = renderDashboardWidget(DASHBOARD_WIDGET_IDS.dailyClosing, {
+      title: 'Tagesabschluss',
+    });
+    expect(node).not.toBeNull();
+  });
+
   it('renders manager-license-status widget', () => {
     const node = renderDashboardWidget(DASHBOARD_WIDGET_IDS.managerLicenseStatus, {
       title: 'Lizenz-Status',

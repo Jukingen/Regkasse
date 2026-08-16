@@ -24,6 +24,11 @@ export interface TenantProvisioningDto {
   trialLicenseValidUntilUtc?: string | null;
   /** @nullable */
   tseDeviceId?: string | null;
+  tseFellBackToSoft?: boolean;
   tseProvisioned?: boolean;
+  /** @nullable */
+  tseScuId?: string | null;
+  /** @nullable */
+  tseStatus?: string | null;
   welcomeEmailSent?: boolean;
 }

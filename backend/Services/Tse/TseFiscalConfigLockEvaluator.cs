@@ -14,6 +14,8 @@ public static class TseFiscalConfigLockEvaluator
     public const string ReasonProviderNotRealVendor =
         "Tse:Provider must be a real vendor in Production (fiskaly, epson, or swissbit).";
     public const string ReasonSimulatedDailyClosing = "Tse:AllowSimulatedDailyClosing must be false in Production.";
+    public const string ReasonFallbackEnabled = "Tse:FallbackEnabled must be false in Production (Development-only Soft TSE fallback).";
+    public const string ReasonSoftTseEnabled = "Tse:SoftTseEnabled must be false in Production.";
     public const string ReasonRksvTseSimulation = "RKSV:TseMode=Simulation is forbidden in Production.";
     public const string ReasonRksvModeNotProduction = "RKSV:Mode must be Production in Production.";
     public const string ReasonFinanzOnlineSimulation =
@@ -108,6 +110,12 @@ public static class TseFiscalConfigLockEvaluator
 
         if (options.AllowSimulatedDailyClosing)
             reasons.Add(ReasonSimulatedDailyClosing);
+
+        if (options.FallbackEnabled)
+            reasons.Add(ReasonFallbackEnabled);
+
+        if (options.SoftTseEnabled)
+            reasons.Add(ReasonSoftTseEnabled);
 
         if (string.Equals(configuration["RKSV:TseMode"], "Simulation", StringComparison.OrdinalIgnoreCase))
             reasons.Add(ReasonRksvTseSimulation);

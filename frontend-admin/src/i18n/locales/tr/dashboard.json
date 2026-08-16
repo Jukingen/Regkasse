@@ -438,5 +438,21 @@
     "pendingMonatsbelegPlural": "{{count}} kasa için Monatsbeleg eksik",
     "pendingMonatsbelegDescription": "Lütfen bekleyen aylık belgeleri oluşturun.",
     "createNow": "Eksikleri tamamla"
+  },
+  "dailyClosing": {
+    "title": "Gün sonu",
+    "todayClosed": "Bugün kapalı",
+    "todayOpen": "Bugün açık ({{count}} işlem)",
+    "todayEmpty": "İşlem yok — boş kapanış mümkün",
+    "weekSummaryTitle": "Bu hafta",
+    "weekSummary": "{{closed}} / {{total}} kapalı",
+    "lastClosing": "Son kapanış: {{date}}",
+    "noClosingYet": "Henüz kapanış yok",
+    "open": "Gün sonunu aç",
+    "closeNow": "Bugünü kapat",
+    "closeNowConfirmTitle": "Bugünkü gün sonu çalıştırılsın mı?",
+    "closeNowConfirm": "RKSV işlemi. Kasayı hazır olduğunda kapatın.",
+    "noPermission": "Gün sonu için yetkiniz yok.",
+    "loadError": "Gün sonu durumu yüklenemedi"
   }
 }

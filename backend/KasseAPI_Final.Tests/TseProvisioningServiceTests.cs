@@ -5,9 +5,11 @@ using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Tse;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Tse;
+using KasseAPI_Final.Tse.Fiskaly;
 using KasseAPI_Final.Tse.Providers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -30,7 +32,9 @@ public sealed class TseProvisioningServiceTests
         AppDbContext db,
         TseOptions? tseOptions = null,
         FiskalyOptions? fiskalyOptions = null,
-        bool providerReady = true)
+        bool providerReady = true,
+        IFiskalyTseService? fiskalyTse = null,
+        IHostEnvironment? environment = null)
     {
         var tse = tseOptions ?? new TseOptions
         {
@@ -57,6 +61,13 @@ public sealed class TseProvisioningServiceTests
             fiskalyMonitor,
             NullLogger<TseProviderFactory>.Instance);
 
+        if (environment is null)
+        {
+            var env = new Mock<IHostEnvironment>();
+            env.Setup(e => e.EnvironmentName).Returns(Environments.Development);
+            environment = env.Object;
+        }
+
         return new TseProvisioningService(
             db,
             tseMonitor,
@@ -65,6 +76,8 @@ public sealed class TseProvisioningServiceTests
             factory,
             AlwaysOnlineTseHealthMonitor.Instance,
             Mock.Of<IAuditLogService>(),
+            fiskalyTse ?? Mock.Of<IFiskalyTseService>(),
+            environment,
             NullLogger<TseProvisioningService>.Instance);
     }
 
@@ -106,10 +119,18 @@ public sealed class TseProvisioningServiceTests
         Assert.True(result.Device.CanCreateInvoices);
         Assert.True(result.SignatureChainInitialized);
         Assert.False(result.StartbelegCreated);
+        Assert.Equal(TenantTseStatuses.Fake, result.TseStatus);
+        Assert.Null(result.TseScuId);
+        Assert.False(result.FellBackToSoftTse);
 
         Assert.Equal(1, await db.TseDevices.CountAsync(d => d.KassenId == register.Id));
         Assert.Equal(1, await db.SignatureChainState.IgnoreQueryFilters()
             .CountAsync(s => s.CashRegisterId == register.Id && s.TenantId == tenantId));
+
+        var tenant = await db.Tenants.AsNoTracking().SingleAsync(t => t.Id == tenantId);
+        Assert.Equal(TenantTseStatuses.Fake, tenant.TseStatus);
+        Assert.Null(tenant.TseScuId);
+        Assert.NotNull(tenant.TseProvisionedAtUtc);
     }
 
     [Fact]
@@ -409,6 +430,356 @@ public sealed class TseProvisioningServiceTests
         Assert.False(result.Device!.IsConnected);
         Assert.False(result.Device.CanCreateInvoices);
         Assert.Equal("Device", result.Device.DeviceType);
+        Assert.Equal(TenantTseStatuses.Pending, result.TseStatus);
+
+        var tenant = await db.Tenants.AsNoTracking().SingleAsync(t => t.Id == tenantId);
+        Assert.Equal(TenantTseStatuses.Pending, tenant.TseStatus);
+        Assert.Null(tenant.TseScuId);
+    }
+
+    [Fact]
+    public async Task ProvisionTseForCashRegisterAsync_FiskalyCredentials_StampsScuAndCashRegisterIds()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Fiskaly Cafe",
+            Slug = "fiskaly-cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        var register = new CashRegister
+        {
+            TenantId = tenantId,
+            RegisterNumber = "KASSE-FY",
+            Location = "Hauptkasse",
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+            IsDefaultForTenant = true,
+        };
+        db.CashRegisters.Add(register);
+        await db.SaveChangesAsync();
+
+        var scuId = Guid.Parse("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+        var crId = register.Id;
+        var fiskalyTse = new Mock<IFiskalyTseService>();
+        fiskalyTse
+            .Setup(s => s.EnsureResourcesForCashRegisterAsync(
+                tenantId, register.Id, "KASSE-FY", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FiskalyResourceEnsureResult
+            {
+                Success = true,
+                ScuId = scuId.ToString("D"),
+                ScuState = "CREATED",
+                CashRegisterId = crId.ToString("D"),
+                CashRegisterState = "CREATED",
+                Message = "ok"
+            });
+
+        var svc = CreateService(
+            db,
+            new TseOptions { TseMode = "Device", Mode = "Real", Provider = "fiskaly", Environment = "Test" },
+            new FiskalyOptions
+            {
+                Enabled = true,
+                ApiKey = "test-key",
+                ApiSecret = "test-secret",
+                ApiBaseUrl = "https://rksv.fiskaly.com/api/v1"
+            },
+            fiskalyTse: fiskalyTse.Object);
+
+        var result = await svc.ProvisionTseForCashRegisterAsync(register.Id);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("fiskaly", result.Device!.DeviceType);
+        Assert.Equal(scuId.ToString("D"), result.Device.SerialNumber);
+        Assert.Equal(scuId.ToString("D"), result.Device.DeviceId);
+        Assert.Equal(crId.ToString("D"), result.Device.ProductId);
+        Assert.True(result.Device.IsConnected);
+        Assert.True(result.Device.CanCreateInvoices);
+        Assert.Equal(TenantTseStatuses.Active, result.TseStatus);
+        Assert.Equal(scuId.ToString("D"), result.TseScuId);
+        Assert.False(result.FellBackToSoftTse);
+        fiskalyTse.Verify(
+            s => s.EnsureResourcesForCashRegisterAsync(
+                tenantId, register.Id, "KASSE-FY", It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        var tenant = await db.Tenants.AsNoTracking().SingleAsync(t => t.Id == tenantId);
+        Assert.Equal(scuId.ToString("D"), tenant.TseScuId);
+        Assert.Equal(TenantTseStatuses.Active, tenant.TseStatus);
+        Assert.NotNull(tenant.TseProvisionedAtUtc);
+    }
+
+    [Fact]
+    public async Task ProvisionTseForCashRegisterAsync_FiskalyFailsThenSucceeds_RetriesAndStampsScu()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Retry Cafe",
+            Slug = "retry-cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        var register = new CashRegister
+        {
+            TenantId = tenantId,
+            RegisterNumber = "KASSE-FY",
+            Location = "Hauptkasse",
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+            IsDefaultForTenant = true,
+        };
+        db.CashRegisters.Add(register);
+        await db.SaveChangesAsync();
+
+        var scuId = Guid.Parse("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
+        var fiskalyTse = new Mock<IFiskalyTseService>();
+        fiskalyTse
+            .SetupSequence(s => s.EnsureResourcesForCashRegisterAsync(
+                tenantId, register.Id, "KASSE-FY", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FiskalyResourceEnsureResult { Success = false, Message = "timeout" })
+            .ReturnsAsync(new FiskalyResourceEnsureResult
+            {
+                Success = true,
+                ScuId = scuId.ToString("D"),
+                ScuState = "CREATED",
+                CashRegisterId = register.Id.ToString("D"),
+                CashRegisterState = "CREATED",
+                Message = "ok"
+            });
+
+        var svc = CreateService(
+            db,
+            new TseOptions { TseMode = "Device", Mode = "Real", Provider = "fiskaly", Environment = "Test" },
+            new FiskalyOptions
+            {
+                Enabled = true,
+                ApiKey = "test-key",
+                ApiSecret = "test-secret",
+                ApiBaseUrl = "https://rksv.fiskaly.com/api/v1"
+            },
+            fiskalyTse: fiskalyTse.Object);
+
+        var result = await svc.ProvisionTseForCashRegisterAsync(register.Id);
+
+        Assert.True(result.IsSuccess);
+        Assert.False(result.FellBackToSoftTse);
+        Assert.Equal(scuId.ToString("D"), result.TseScuId);
+        Assert.Equal(TenantTseStatuses.Active, result.TseStatus);
+        fiskalyTse.Verify(
+            s => s.EnsureResourcesForCashRegisterAsync(
+                tenantId, register.Id, "KASSE-FY", It.IsAny<CancellationToken>()),
+            Times.Exactly(2));
+
+        var tenant = await db.Tenants.AsNoTracking().SingleAsync(t => t.Id == tenantId);
+        Assert.Equal(scuId.ToString("D"), tenant.TseScuId);
+        Assert.Equal(TenantTseStatuses.Active, tenant.TseStatus);
+    }
+
+    [Fact]
+    public async Task ProvisionTseForCashRegisterAsync_FiskalyFailsAllRetries_FallsBackToSoftTse()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Fallback Cafe",
+            Slug = "fallback-cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        var register = new CashRegister
+        {
+            TenantId = tenantId,
+            RegisterNumber = "KASSE-FY",
+            Location = "Hauptkasse",
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+            IsDefaultForTenant = true,
+        };
+        db.CashRegisters.Add(register);
+        await db.SaveChangesAsync();
+
+        var fiskalyTse = new Mock<IFiskalyTseService>();
+        fiskalyTse
+            .Setup(s => s.EnsureResourcesForCashRegisterAsync(
+                tenantId, register.Id, "KASSE-FY", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("fiskaly unavailable"));
+
+        var svc = CreateService(
+            db,
+            new TseOptions
+            {
+                TseMode = "Device",
+                Mode = "Real",
+                Provider = "fiskaly",
+                Environment = "Test",
+                FallbackEnabled = true,
+                SoftTseEnabled = true,
+            },
+            new FiskalyOptions
+            {
+                Enabled = true,
+                ApiKey = "test-key",
+                ApiSecret = "test-secret",
+                ApiBaseUrl = "https://rksv.fiskaly.com/api/v1"
+            },
+            fiskalyTse: fiskalyTse.Object);
+
+        var result = await svc.ProvisionTseForCashRegisterAsync(register.Id);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.FellBackToSoftTse);
+        Assert.Equal(TenantTseStatuses.SoftFallback, result.TseStatus);
+        Assert.Null(result.TseScuId);
+        Assert.Equal("Soft", result.Device!.DeviceType);
+        Assert.True(result.Device.IsConnected);
+        Assert.True(result.Device.CanCreateInvoices);
+        Assert.Contains("Fiskaly fallback", result.Device.ErrorMessage ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+        fiskalyTse.Verify(
+            s => s.EnsureResourcesForCashRegisterAsync(
+                tenantId, register.Id, "KASSE-FY", It.IsAny<CancellationToken>()),
+            Times.Exactly(3));
+
+        var tenant = await db.Tenants.AsNoTracking().SingleAsync(t => t.Id == tenantId);
+        Assert.Null(tenant.TseScuId);
+        Assert.Equal(TenantTseStatuses.SoftFallback, tenant.TseStatus);
+        Assert.NotNull(tenant.TseProvisionedAtUtc);
+    }
+
+    [Fact]
+    public async Task ProvisionTseForCashRegisterAsync_FiskalyFails_WithoutFallbackFlags_LeavesDisconnectedDevice()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "No Fallback Cafe",
+            Slug = "no-fallback-cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        var register = new CashRegister
+        {
+            TenantId = tenantId,
+            RegisterNumber = "KASSE-FY",
+            Location = "Hauptkasse",
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+            IsDefaultForTenant = true,
+        };
+        db.CashRegisters.Add(register);
+        await db.SaveChangesAsync();
+
+        var fiskalyTse = new Mock<IFiskalyTseService>();
+        fiskalyTse
+            .Setup(s => s.EnsureResourcesForCashRegisterAsync(
+                tenantId, register.Id, "KASSE-FY", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("fiskaly unavailable"));
+
+        var svc = CreateService(
+            db,
+            new TseOptions { TseMode = "Device", Mode = "Real", Provider = "fiskaly", Environment = "Test" },
+            new FiskalyOptions
+            {
+                Enabled = true,
+                ApiKey = "test-key",
+                ApiSecret = "test-secret",
+                ApiBaseUrl = "https://rksv.fiskaly.com/api/v1"
+            },
+            fiskalyTse: fiskalyTse.Object);
+
+        var result = await svc.ProvisionTseForCashRegisterAsync(register.Id);
+
+        Assert.True(result.IsSuccess);
+        Assert.False(result.FellBackToSoftTse);
+        Assert.Equal(TenantTseStatuses.Pending, result.TseStatus);
+        Assert.Equal("fiskaly", result.Device!.DeviceType, StringComparer.OrdinalIgnoreCase);
+        Assert.False(result.Device.IsConnected);
+        Assert.False(result.Device.CanCreateInvoices);
+        Assert.Contains("Fiskaly ensure failed", result.Device.ErrorMessage ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ProvisionTseForCashRegisterAsync_FiskalyFails_InProduction_DoesNotUseSoftTse()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Prod Cafe",
+            Slug = "prod-cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        var register = new CashRegister
+        {
+            TenantId = tenantId,
+            RegisterNumber = "KASSE-FY",
+            Location = "Hauptkasse",
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+            IsDefaultForTenant = true,
+        };
+        db.CashRegisters.Add(register);
+        await db.SaveChangesAsync();
+
+        var fiskalyTse = new Mock<IFiskalyTseService>();
+        fiskalyTse
+            .Setup(s => s.EnsureResourcesForCashRegisterAsync(
+                tenantId, register.Id, "KASSE-FY", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("fiskaly unavailable"));
+
+        var env = new Mock<IHostEnvironment>();
+        env.Setup(e => e.EnvironmentName).Returns(Environments.Production);
+
+        var svc = CreateService(
+            db,
+            new TseOptions
+            {
+                TseMode = "Device",
+                Mode = "Real",
+                Provider = "fiskaly",
+                Environment = "Production",
+                FallbackEnabled = true,
+                SoftTseEnabled = true,
+            },
+            new FiskalyOptions
+            {
+                Enabled = true,
+                ApiKey = "test-key",
+                ApiSecret = "test-secret",
+                ApiBaseUrl = "https://rksv.fiskaly.com/api/v1"
+            },
+            fiskalyTse: fiskalyTse.Object,
+            environment: env.Object);
+
+        var result = await svc.ProvisionTseForCashRegisterAsync(register.Id);
+
+        Assert.True(result.IsSuccess);
+        Assert.False(result.FellBackToSoftTse);
+        Assert.Equal(TenantTseStatuses.Pending, result.TseStatus);
+        Assert.Equal("fiskaly", result.Device!.DeviceType, StringComparer.OrdinalIgnoreCase);
+        Assert.False(result.Device.IsConnected);
     }
 }
 

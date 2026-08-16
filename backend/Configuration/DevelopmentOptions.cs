@@ -8,7 +8,7 @@ public sealed class DevelopmentOptions
 {
     public const string SectionName = "DevelopmentOptions";
 
-    /// <summary>GET /api/tse/health returns Offline while true (Development only).</summary>
+    /// <summary>GET /api/tse/health and GET /api/pos/tse/status return Inactive/Offline while true (Development only).</summary>
     public bool SimulateTseUnavailable { get; set; }
 
     /// <summary>NTP fiscal guard behaves as if sync failed (Development only; requires NtpSettings.Enabled).</summary>

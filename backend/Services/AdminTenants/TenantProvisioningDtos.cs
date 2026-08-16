@@ -13,7 +13,10 @@ public sealed record TenantProvisioningDto(
     bool WelcomeEmailSent = false,
     bool ForcePasswordChangeOnNextLogin = false,
     Guid? TseDeviceId = null,
-    bool TseProvisioned = false);
+    bool TseProvisioned = false,
+    string? TseScuId = null,
+    string? TseStatus = null,
+    bool TseFellBackToSoft = false);
 
 public sealed class TenantProvisioningResult
 {
@@ -27,6 +30,9 @@ public sealed class TenantProvisioningResult
     public DateTime? TrialLicenseValidUntilUtc { get; init; }
     public Guid? TseDeviceId { get; init; }
     public bool TseProvisioned { get; init; }
+    public string? TseScuId { get; init; }
+    public string? TseStatus { get; init; }
+    public bool TseFellBackToSoft { get; init; }
 
     public TenantProvisioningDto ToDto(bool welcomeEmailSent = false, bool forcePasswordChangeOnNextLogin = false) =>
         new(
@@ -41,5 +47,8 @@ public sealed class TenantProvisioningResult
             welcomeEmailSent,
             forcePasswordChangeOnNextLogin,
             TseDeviceId,
-            TseProvisioned);
+            TseProvisioned,
+            TseScuId,
+            TseStatus,
+            TseFellBackToSoft);
 }

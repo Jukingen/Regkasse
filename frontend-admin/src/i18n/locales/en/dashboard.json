@@ -438,5 +438,21 @@
     "pendingMonatsbelegPlural": "Monatsbeleg missing for {{count}} registers",
     "pendingMonatsbelegDescription": "Please create the outstanding monthly receipts.",
     "createNow": "Catch up now"
+  },
+  "dailyClosing": {
+    "title": "Daily closing",
+    "todayClosed": "Closed today",
+    "todayOpen": "Open today ({{count}} transactions)",
+    "todayEmpty": "No transactions — empty closing possible",
+    "weekSummaryTitle": "This week",
+    "weekSummary": "{{closed}} / {{total}} closed",
+    "lastClosing": "Last closing: {{date}}",
+    "noClosingYet": "No closing yet",
+    "open": "Open daily closing",
+    "closeNow": "Close today",
+    "closeNowConfirmTitle": "Run today's daily closing?",
+    "closeNowConfirm": "RKSV-relevant operation. Run only when the register is ready.",
+    "noPermission": "You do not have permission for daily closing.",
+    "loadError": "Could not load daily closing status"
   }
 }

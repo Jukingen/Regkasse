@@ -28,6 +28,34 @@ public interface IFiskalyClient
     Task<FiskalyScuInfo?> GetSignatureCreationUnitAsync(
         string signatureCreationUnitId,
         CancellationToken cancellationToken = default);
+
+    Task<FiskalyAuthResult> AuthenticateAsync(CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("AuthenticateAsync is not implemented by this IFiskalyClient.");
+
+    Task<FiskalyScuInfo> CreateSignatureCreationUnitAsync(
+        Guid signatureCreationUnitId,
+        string vatId,
+        string? legalEntityName = null,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("CreateSignatureCreationUnitAsync is not implemented by this IFiskalyClient.");
+
+    Task<FiskalyCashRegisterInfo> CreateCashRegisterAsync(
+        Guid cashRegisterId,
+        string description,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("CreateCashRegisterAsync is not implemented by this IFiskalyClient.");
+
+    Task<FiskalyCashRegisterInfo?> GetCashRegisterAsync(
+        Guid cashRegisterId,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("GetCashRegisterAsync is not implemented by this IFiskalyClient.");
+
+    Task<FiskalySignedReceipt> SignReceiptAsync(
+        Guid cashRegisterId,
+        Guid receiptId,
+        FiskalyTransactionData data,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("SignReceiptAsync is not implemented by this IFiskalyClient.");
 }
 
 public sealed record FiskalyScuInfo(

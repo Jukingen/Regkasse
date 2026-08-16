@@ -114,6 +114,26 @@ public sealed class TseProductionOptionsValidatorTests
     }
 
     [Fact]
+    public void Validate_Production_Rejects_FallbackEnabled()
+    {
+        var opts = SafeOptions();
+        opts.FallbackEnabled = true;
+        var r = CreateValidator(Environments.Production).Validate(null, opts);
+        Assert.True(r.Failed);
+        Assert.Contains("FallbackEnabled", r.FailureMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Validate_Production_Rejects_SoftTseEnabled()
+    {
+        var opts = SafeOptions();
+        opts.SoftTseEnabled = true;
+        var r = CreateValidator(Environments.Production).Validate(null, opts);
+        Assert.True(r.Failed);
+        Assert.Contains("SoftTseEnabled", r.FailureMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Validate_Production_SafeConfig_Succeeds()
     {
         var r = CreateValidator(Environments.Production).Validate(null, SafeOptions());

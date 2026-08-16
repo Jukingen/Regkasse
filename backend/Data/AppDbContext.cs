@@ -2249,6 +2249,9 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.TrialGracePeriodEndsAtUtc).HasColumnName("trial_grace_period_ends_at_utc");
                 entity.HasIndex(e => e.TrialStatus).HasDatabaseName("IX_tenants_trial_status");
                 entity.HasIndex(e => e.TrialEndsAtUtc).HasDatabaseName("IX_tenants_trial_ends_at");
+                entity.Property(e => e.TseScuId).HasColumnName("tse_scu_id").HasMaxLength(64);
+                entity.Property(e => e.TseStatus).HasColumnName("tse_status").HasMaxLength(32);
+                entity.Property(e => e.TseProvisionedAtUtc).HasColumnName("tse_provisioned_at_utc");
             });
 
             builder.Entity<TenantDataDeletionRequest>(entity =>

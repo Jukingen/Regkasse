@@ -3739,6 +3739,112 @@
         }
       }
     },
+    "/api/admin/daily-closing/calendar": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "GET: month grid of closed / open / empty / future Vienna days for the ambient tenant.",
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyClosingCalendarDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/daily-closing/dashboard-summary": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "GET: Vienna-today status plus ISO week (Mon–Sun) counts for the dashboard widget.",
+        "parameters": [
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyClosingDashboardSummaryDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/reports/daily-closing": {
       "get": {
         "tags": [
@@ -39275,6 +39381,41 @@
         }
       }
     },
+    "/api/pos/tse/status": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
+        "parameters": [
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PosTseStatusDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/api/pos/storno": {
       "post": {
         "tags": [
@@ -55758,6 +55899,193 @@
         },
         "additionalProperties": false
       },
+      "DailyClosingCalendarDto": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyClosingDayDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DailyClosingDayDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "isClosed": {
+            "type": "boolean"
+          },
+          "dayKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "closingType": {
+            "type": "string",
+            "nullable": true,
+            "description": "Calendar day kind (normal/empty), not Daily/Monthly/Yearly."
+          },
+          "transactionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "canClose": {
+            "type": "boolean"
+          },
+          "closingId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "isToday": {
+            "type": "boolean"
+          },
+          "isFuture": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DailyClosingDashboardSummaryDto": {
+        "type": "object",
+        "properties": {
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "today": {
+            "$ref": "#/components/schemas/DailyClosingDaySummaryDto"
+          },
+          "week": {
+            "$ref": "#/components/schemas/DailyClosingWeekSummaryDto"
+          },
+          "lastClosing": {
+            "$ref": "#/components/schemas/DailyClosingLastClosingDto"
+          },
+          "requiresAttention": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DailyClosingDaySummaryDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "isClosed": {
+            "type": "boolean"
+          },
+          "dayKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "closingType": {
+            "type": "string",
+            "nullable": true
+          },
+          "transactionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "canClose": {
+            "type": "boolean"
+          },
+          "closingId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DailyClosingLastClosingDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "closedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dayKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "closingId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "transactionCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DailyClosingWeekSummaryDto": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "format": "date"
+          },
+          "totalDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "closedDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "emptyDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "openDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "noTransactionDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "futureDays": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "DailyClosingRequest": {
         "required": [
           "cashRegisterId"
@@ -71179,6 +71507,61 @@
         },
         "additionalProperties": false
       },
+      "PosTseStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "lastCheck": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "scuId": {
+            "type": "string",
+            "nullable": true
+          },
+          "tssId": {
+            "type": "string",
+            "nullable": true
+          },
+          "certificateValidUntil": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "cached": {
+            "type": "boolean"
+          },
+          "operationalHealth": {
+            "type": "string"
+          },
+          "lastErrorMessageSafe": {
+            "type": "string",
+            "nullable": true
+          },
+          "nonFiscalPendingQueueCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "estimatedRecoveryTimeUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastSuccessfulPingUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "PosStatusSettingsSnapshotDto": {
         "type": "object",
         "properties": {
@@ -82605,6 +82988,17 @@
             "nullable": true
           },
           "tseProvisioned": {
+            "type": "boolean"
+          },
+          "tseScuId": {
+            "type": "string",
+            "nullable": true
+          },
+          "tseStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "tseFellBackToSoft": {
             "type": "boolean"
           }
         },

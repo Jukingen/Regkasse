@@ -169,6 +169,65 @@
     "registerUnavailable": "Cash register is not available for daily closing (missing or decommissioned).",
     "tseNotConnected": "TSE is not connected. Daily closing cannot be performed.",
     "tenantContextRequired": "Tenant context is required. Please select a tenant first.",
-    "noRegister": "No cash register found for this tenant."
+    "noRegister": "No cash register found for this tenant.",
+    "loadCalendarTitle": "Could not load the calendar"
+  },
+  "calendar": {
+    "viewCalendar": "Calendar",
+    "viewList": "List",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "gridLabel": "Daily closing calendar {{month}}",
+    "loadErrorTitle": "Could not load the calendar",
+    "txCount": "{{count}} transactions",
+    "summaryTotal": "Days in month",
+    "summaryClosed": "Closed",
+    "summaryOpen": "Open",
+    "summaryNoTx": "No transactions",
+    "summaryEmpty": "Empty closings",
+    "bulkClose": "Close all open days",
+    "bulkCloseConfirmTitle": "Close open days?",
+    "bulkCloseConfirm": "{{count}} open days will be closed one after another. Past days are late (nachträglich) closings (TSE/RKSV).",
+    "bulkCloseSuccess": "Closed {{done}} of {{total}} days.",
+    "bulkClosePartial": "Closed {{done}} of {{total}} days. {{failed}} failed.",
+    "bulkCloseNone": "No open days in this month.",
+    "exportMonth": "Export month",
+    "detailsTitle": "Daily closing {{date}}",
+    "weekdays": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    },
+    "legend": {
+      "closed": "Closed (normal)",
+      "empty": "Closed (empty)",
+      "open": "Open",
+      "noTransactions": "No transactions",
+      "future": "Future",
+      "today": "Today"
+    },
+    "tooltip": {
+      "closed": "Closed - {{count}} transactions",
+      "empty": "Empty (0 transactions)",
+      "open": "Open - {{count}} transactions pending",
+      "noTransactions": "No transactions - empty closing possible",
+      "future": "Future date",
+      "today": "Today"
+    },
+    "menu": {
+      "close": "Close",
+      "details": "View details",
+      "export": "Export summary"
+    },
+    "csv": {
+      "date": "Date",
+      "status": "Status",
+      "transactionCount": "Transactions",
+      "canClose": "Can close"
+    }
   }
 }

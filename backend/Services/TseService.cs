@@ -2,6 +2,7 @@ using System.Data;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Tse;
 using KasseAPI_Final.Time;
 using KasseAPI_Final.Tse;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,10 @@ namespace KasseAPI_Final.Services
         private readonly IHostEnvironment? _hostEnvironment;
         private readonly IOptionsMonitor<DevelopmentOptions>? _developmentOptions;
         private readonly IDevelopmentModeService? _developmentModeService;
+        private readonly IFiskalyTseService? _fiskalyTse;
+        private readonly IOptionsMonitor<FiskalyOptions>? _fiskalyOptions;
+        private readonly IOptionsMonitor<TseOptions>? _tseOptions;
+        private readonly ISoftTseService? _softTse;
 
         public TseService(
             AppDbContext context,
@@ -29,7 +34,11 @@ namespace KasseAPI_Final.Services
             ILogger<TseService> logger,
             IHostEnvironment? hostEnvironment = null,
             IOptionsMonitor<DevelopmentOptions>? developmentOptions = null,
-            IDevelopmentModeService? developmentModeService = null)
+            IDevelopmentModeService? developmentModeService = null,
+            IFiskalyTseService? fiskalyTse = null,
+            IOptionsMonitor<FiskalyOptions>? fiskalyOptions = null,
+            IOptionsMonitor<TseOptions>? tseOptions = null,
+            ISoftTseService? softTse = null)
         {
             _context = context;
             _pipeline = pipeline;
@@ -39,7 +48,14 @@ namespace KasseAPI_Final.Services
             _hostEnvironment = hostEnvironment;
             _developmentOptions = developmentOptions;
             _developmentModeService = developmentModeService;
+            _fiskalyTse = fiskalyTse;
+            _fiskalyOptions = fiskalyOptions;
+            _tseOptions = tseOptions;
+            _softTse = softTse;
         }
+
+        private bool CanUseSoftTseFallback() =>
+            TseSoftFallbackPolicy.IsAllowed(_tseOptions?.CurrentValue ?? new TseOptions(), _hostEnvironment);
 
         public async Task<TseStatus> GetTseStatusAsync()
         {
@@ -73,15 +89,43 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
+                var fiskalyStatus = await TryGetFiskalyAuthStatusAsync().ConfigureAwait(false);
+                if (!fiskalyStatus.Connected
+                    && CanUseSoftTseFallback()
+                    && _softTse is not null)
+                {
+                    _logger.LogWarning(
+                        "Fiskaly unavailable; Soft TSE fallback active for status probe ({Error})",
+                        fiskalyStatus.ErrorMessage ?? "no Fiskaly credentials or auth failed");
+                    return new TseStatus
+                    {
+                        IsConnected = true,
+                        IsReady = true,
+                        IsOperational = true,
+                        DeviceId = tseDevice.Id.ToString(),
+                        SerialNumber = tseDevice.SerialNumber,
+                        Status = "SoftFallback",
+                        LastConnectionTime = tseDevice.LastFinanzOnlineSync,
+                        ErrorMessage = fiskalyStatus.ErrorMessage
+                            ?? "Fiskaly unavailable; Soft TSE fallback is active (Development only)."
+                    };
+                }
+
+                var connected = tseDevice.IsConnected || fiskalyStatus.Connected;
+                var error = fiskalyStatus.ErrorMessage
+                    ?? (connected ? "" : "TSE device is not connected");
+
                 return new TseStatus
                 {
-                    IsConnected = tseDevice.IsConnected,
+                    IsConnected = connected,
                     DeviceId = tseDevice.Id.ToString(),
                     SerialNumber = tseDevice.SerialNumber,
-                    IsOperational = tseDevice.CanCreateInvoices,
-                    Status = tseDevice.IsConnected ? "Connected" : "Disconnected",
+                    IsOperational = tseDevice.CanCreateInvoices || fiskalyStatus.Connected,
+                    Status = fiskalyStatus.Connected
+                        ? "FiskalyAuthenticated"
+                        : (tseDevice.IsConnected ? "Connected" : "Disconnected"),
                     LastConnectionTime = tseDevice.LastFinanzOnlineSync,
-                    ErrorMessage = tseDevice.IsConnected ? "" : "TSE device is not connected"
+                    ErrorMessage = error
                 };
             }
             catch (Exception ex)
@@ -93,6 +137,23 @@ namespace KasseAPI_Final.Services
                     Status = "Error",
                     ErrorMessage = ex.Message
                 };
+            }
+        }
+
+        private async Task<(bool Connected, string? ErrorMessage)> TryGetFiskalyAuthStatusAsync()
+        {
+            if (_fiskalyTse is null || _fiskalyOptions?.CurrentValue.HasCredentials != true)
+                return (false, null);
+
+            try
+            {
+                var auth = await _fiskalyTse.AuthenticateAsync().ConfigureAwait(false);
+                return (auth.Success, null);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "fiskaly status probe failed");
+                return (false, ex.Message);
             }
         }
 
@@ -415,8 +476,27 @@ namespace KasseAPI_Final.Services
                 throw new ArgumentException("cashRegisterId must not be empty.", nameof(cashRegisterId));
             if (string.IsNullOrWhiteSpace(registerNumber))
                 throw new ArgumentException("registerNumber is required.", nameof(registerNumber));
+            var useSoftFallback = false;
             if (!await _tseProvider.IsReadyAsync())
-                throw new InvalidOperationException("TSE is not ready for closing signing.");
+            {
+                if (CanUseSoftTseFallback()
+                    && _softTse is not null
+                    && await _softTse.IsReadyAsync())
+                {
+                    useSoftFallback = true;
+                    _logger.LogWarning(
+                        "TSE provider not ready; signing closing with Soft TSE fallback (Development only) type={SignatureType}",
+                        signatureType);
+                }
+                else if (_hostEnvironment?.IsProduction() == true)
+                {
+                    throw new InvalidOperationException("Soft TSE fallback is not allowed in Production.");
+                }
+                else
+                {
+                    throw new InvalidOperationException("TSE is not ready for closing signing.");
+                }
+            }
 
             var kId = registerNumber.Trim();
             var ownTransaction = dbTransaction == null;
@@ -435,7 +515,9 @@ namespace KasseAPI_Final.Services
                     prevSig,
                     turnoverCents,
                     incrementTurnover: true);
-                var signResult = await _tseProvider.SignAsync(payload, correlationId);
+                var signResult = useSoftFallback
+                    ? await _softTse!.SignAsync(payload, correlationId)
+                    : await _tseProvider.SignAsync(payload, correlationId);
                 var compactJws = signResult.CompactJws;
                 _context.TseSignatures.Add(new TseSignature
                 {

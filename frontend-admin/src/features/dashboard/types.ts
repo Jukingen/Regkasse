@@ -1,6 +1,7 @@
 /** Widget ids — must match backend `DashboardWidgetCatalog`. */
 export const DASHBOARD_WIDGET_IDS = {
   actionRequired: 'action-required',
+  dailyClosing: 'daily-closing',
   managerLicenseStatus: 'manager-license-status',
   managerKpiStrip: 'manager-kpi-strip',
   managerMonatsbeleg: 'manager-monatsbeleg',
@@ -55,3 +56,4 @@ export type SaveDashboardPreferencesRequest = {
 };
 
 export const DASHBOARD_AUTO_REFRESH_MS = 30_000;
+export const DASHBOARD_DAILY_CLOSING_REFRESH_MS = 5 * 60_000;

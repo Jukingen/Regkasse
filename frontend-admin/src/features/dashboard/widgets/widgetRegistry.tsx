@@ -11,6 +11,7 @@ import type { WidgetShellProps } from '@/features/dashboard/components/WidgetShe
 import { DASHBOARD_WIDGET_IDS } from '@/features/dashboard/types';
 import { ActiveCashRegistersWidget } from '@/features/dashboard/widgets/ActiveCashRegistersWidget';
 import { BackupStatusWidget } from '@/features/dashboard/widgets/BackupStatusWidget';
+import { DailyClosingWidget } from '@/features/dashboard/widgets/DailyClosingWidget';
 import { FinanzOnlineStatusWidget } from '@/features/dashboard/widgets/FinanzOnlineStatusWidget';
 import { LicenseExpiryWidget } from '@/features/dashboard/widgets/LicenseExpiryWidget';
 import { LowStockAlertsWidget } from '@/features/dashboard/widgets/LowStockAlertsWidget';
@@ -64,6 +65,8 @@ export function renderDashboardWidget(
   switch (widgetId) {
     case DASHBOARD_WIDGET_IDS.actionRequired:
       return <ActionRequiredWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.dailyClosing:
+      return <DailyClosingWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.managerLicenseStatus:
       return <ManagerLicenseStatusWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.managerKpiStrip:

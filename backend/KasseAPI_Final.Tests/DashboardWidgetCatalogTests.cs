@@ -52,7 +52,18 @@ public sealed class DashboardWidgetCatalogTests
         var layout = DashboardWidgetCatalog.BuildDefaultLayout(permissions);
 
         Assert.Contains(layout, w => w.WidgetId == DashboardWidgetCatalog.ActionRequired && w.IsVisible);
+        Assert.Contains(layout, w => w.WidgetId == DashboardWidgetCatalog.DailyClosing && w.IsVisible);
         Assert.Contains(layout, w => w.WidgetId == DashboardWidgetCatalog.ManagerLicenseStatus && w.IsVisible);
         Assert.Contains(layout, w => w.WidgetId == DashboardWidgetCatalog.LicenseExpiry && !w.IsVisible);
+        var actionOrder = layout.Single(w => w.WidgetId == DashboardWidgetCatalog.ActionRequired).Order;
+        var closingOrder = layout.Single(w => w.WidgetId == DashboardWidgetCatalog.DailyClosing).Order;
+        Assert.True(closingOrder > actionOrder);
+    }
+
+    [Fact]
+    public void FilterByPermissions_WithoutDailyClosingView_ExcludesDailyClosingWidget()
+    {
+        var filtered = DashboardWidgetCatalog.FilterByPermissions([AppPermissions.ReportView]);
+        Assert.DoesNotContain(filtered, w => w.WidgetId == DashboardWidgetCatalog.DailyClosing);
     }
 }

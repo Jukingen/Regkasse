@@ -8,6 +8,25 @@
   "update": "Güncelle",
   "maintenance": "Bakım",
   "tseStatus": "TSE Durumu",
+  "tse": {
+    "indicator": {
+      "active": "TSE aktif",
+      "degraded": "TSE kısıtlı",
+      "inactive": "TSE kapalı",
+      "checking": "TSE …"
+    },
+    "tooltip": {
+      "title": "TSE durumu",
+      "hint": "Ayrıntıları göster",
+      "status": "Durum",
+      "message": "Not",
+      "lastCheck": "Son kontrol",
+      "scuId": "SCU kimliği",
+      "certificateUntil": "Sertifika geçerliliği",
+      "cached": "Önbellekteki durum (son bilinen kontrol)",
+      "na": "—"
+    }
+  },
   "printerStatus": "Yazıcı Durumu",
   "maintenanceNotice": {
     "modalTitle": "Sistem bakımı",

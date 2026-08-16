@@ -169,6 +169,65 @@
     "registerUnavailable": "Kasa gun sonu icin kullanilamiyor (bulunamadi veya hizmet disi).",
     "tseNotConnected": "TSE bagli degil. Gun sonu kapanisi yapilamaz.",
     "tenantContextRequired": "Musteri (tenant) baglami eksik. Lutfen once bir musteri secin.",
-    "noRegister": "Bu musteri icin kasa bulunamadi."
+    "noRegister": "Bu musteri icin kasa bulunamadi.",
+    "loadCalendarTitle": "Takvim yuklenemedi"
+  },
+  "calendar": {
+    "viewCalendar": "Takvim",
+    "viewList": "Liste",
+    "prevMonth": "Onceki ay",
+    "nextMonth": "Sonraki ay",
+    "gridLabel": "Gun sonu takvimi {{month}}",
+    "loadErrorTitle": "Takvim yuklenemedi",
+    "txCount": "{{count}} islem",
+    "summaryTotal": "Aydaki gunler",
+    "summaryClosed": "Kapali",
+    "summaryOpen": "Acik",
+    "summaryNoTx": "Islem yok",
+    "summaryEmpty": "Bos kapanislar",
+    "bulkClose": "Tum acik gunleri kapat",
+    "bulkCloseConfirmTitle": "Acik gunler kapatilsin mi?",
+    "bulkCloseConfirm": "{{count}} acik gun sirayla kapatilacak. Gecmis gunler gecikmeli (nachtraglich) kapanistir (TSE/RKSV).",
+    "bulkCloseSuccess": "{{total}} gunden {{done}} tanesi kapatildi.",
+    "bulkClosePartial": "{{total}} gunden {{done}} tanesi kapatildi. {{failed}} basarisiz.",
+    "bulkCloseNone": "Bu ayda acik gun yok.",
+    "exportMonth": "Ayi disa aktar",
+    "detailsTitle": "Gun sonu {{date}}",
+    "weekdays": {
+      "mon": "Pzt",
+      "tue": "Sal",
+      "wed": "Car",
+      "thu": "Per",
+      "fri": "Cum",
+      "sat": "Cmt",
+      "sun": "Paz"
+    },
+    "legend": {
+      "closed": "Kapali (normal)",
+      "empty": "Kapali (bos)",
+      "open": "Acik",
+      "noTransactions": "Islem yok",
+      "future": "Gelecek",
+      "today": "Bugun"
+    },
+    "tooltip": {
+      "closed": "Kapali - {{count}} islem",
+      "empty": "Bos (0 islem)",
+      "open": "Acik - {{count}} islem bekliyor",
+      "noTransactions": "Islem yok - bos kapanis mumkun",
+      "future": "Gelecek tarih",
+      "today": "Bugun"
+    },
+    "menu": {
+      "close": "Kapat",
+      "details": "Detaylari goster",
+      "export": "Ozeti disa aktar"
+    },
+    "csv": {
+      "date": "Tarih",
+      "status": "Durum",
+      "transactionCount": "Islemler",
+      "canClose": "Kapatilabilir"
+    }
   }
 }

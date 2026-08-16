@@ -4,7 +4,9 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Tse;
 using KasseAPI_Final.Tse;
+using KasseAPI_Final.Tse.Fiskaly;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services;
@@ -21,6 +23,7 @@ public sealed class TseProvisioningService : ITseProvisioningService
     private const string ActionProvisioned = "TSE_PROVISIONED";
     private const string ActionSkipped = "TSE_PROVISIONING_SKIPPED";
     private const string ActionRevoked = "TSE_REVOKED";
+    private const int FiskalyEnsureMaxAttempts = 3;
 
     private readonly AppDbContext _db;
     private readonly IOptionsMonitor<TseOptions> _tseOptions;
@@ -29,6 +32,8 @@ public sealed class TseProvisioningService : ITseProvisioningService
     private readonly ITseProviderFactory _tseProviderFactory;
     private readonly ITseHealthMonitor _healthMonitor;
     private readonly IAuditLogService _auditLog;
+    private readonly IFiskalyTseService _fiskalyTse;
+    private readonly IHostEnvironment _environment;
     private readonly ILogger<TseProvisioningService> _logger;
 
     public TseProvisioningService(
@@ -39,6 +44,8 @@ public sealed class TseProvisioningService : ITseProvisioningService
         ITseProviderFactory tseProviderFactory,
         ITseHealthMonitor healthMonitor,
         IAuditLogService auditLog,
+        IFiskalyTseService fiskalyTse,
+        IHostEnvironment environment,
         ILogger<TseProvisioningService> logger)
     {
         _db = db;
@@ -48,6 +55,8 @@ public sealed class TseProvisioningService : ITseProvisioningService
         _tseProviderFactory = tseProviderFactory;
         _healthMonitor = healthMonitor;
         _auditLog = auditLog;
+        _fiskalyTse = fiskalyTse;
+        _environment = environment;
         _logger = logger;
     }
 
@@ -79,7 +88,13 @@ public sealed class TseProvisioningService : ITseProvisioningService
                 reason,
                 AuditLogStatus.Success,
                 cancellationToken).ConfigureAwait(false);
-            return TseProvisioningResult.Skipped(reason);
+            await StampTenantTseAsync(
+                tenantId,
+                scuId: null,
+                TenantTseStatuses.Skipped,
+                cancellationToken,
+                overwrite: false).ConfigureAwait(false);
+            return TseProvisioningResult.Skipped(reason, TenantTseStatuses.Skipped);
         }
 
         var cashRegister = await _db.CashRegisters
@@ -132,11 +147,20 @@ public sealed class TseProvisioningService : ITseProvisioningService
             var chainReady = await EnsureSignatureChainAsync(tenantId, cashRegisterId, cancellationToken)
                 .ConfigureAwait(false);
             await TryBindDefaultTseDeviceAsync(tenantId, existing.Id, cancellationToken).ConfigureAwait(false);
+            var existingStamp = DeriveTenantTseStamp(existing, fellBack: false);
+            await StampTenantTseAsync(
+                tenantId,
+                existingStamp.ScuId,
+                existingStamp.Status,
+                cancellationToken,
+                overwrite: false).ConfigureAwait(false);
 
             return TseProvisioningResult.Success(
                 existing,
                 chainReady,
-                detail: "TSE device already provisioned for this cash register.");
+                detail: "TSE device already provisioned for this cash register.",
+                tseScuId: existingStamp.ScuId,
+                tseStatus: existingStamp.Status);
         }
 
         var now = DateTime.UtcNow;
@@ -157,6 +181,10 @@ public sealed class TseProvisioningService : ITseProvisioningService
             CanCreateInvoices = canSign,
             TimeoutSeconds = 30,
             KassenId = cashRegisterId,
+            TenantId = tenantId,
+            CashRegisterId = cashRegisterId,
+            Provider = string.Equals(deviceType, "fiskaly", StringComparison.OrdinalIgnoreCase) ? "fiskaly" : null,
+            DeviceId = string.Equals(deviceType, "fiskaly", StringComparison.OrdinalIgnoreCase) ? serial : null,
             FinanzOnlineUsername = string.Empty,
             FinanzOnlineEnabled = false,
             LastFinanzOnlineSync = now,
@@ -172,42 +200,110 @@ public sealed class TseProvisioningService : ITseProvisioningService
         _db.TseDevices.Add(device);
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
+        var fellBackToSoft = false;
+        if (string.Equals(deviceType, "fiskaly", StringComparison.OrdinalIgnoreCase)
+            && _fiskalyOptions.CurrentValue.HasCredentials)
+        {
+            var resources = await EnsureFiskalyResourcesWithRetryAsync(
+                    tenantId,
+                    cashRegisterId,
+                    cashRegister.RegisterNumber,
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            if (resources.Success && !string.IsNullOrWhiteSpace(resources.ScuId))
+            {
+                device.SerialNumber = Truncate(resources.ScuId, 100);
+                device.DeviceId = Truncate(resources.ScuId, 200);
+                if (!string.IsNullOrWhiteSpace(resources.CashRegisterId))
+                    device.ProductId = Truncate(resources.CashRegisterId, 100);
+                device.IsConnected = true;
+                device.CanCreateInvoices = true;
+                device.ErrorMessage = null;
+                device.UpdatedAt = DateTime.UtcNow;
+                await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            }
+            else if (TseSoftFallbackPolicy.IsAllowed(_tseOptions.CurrentValue, _environment))
+            {
+                ApplySoftTseFallback(device, cashRegister, resources.Message);
+                fellBackToSoft = true;
+                await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                _logger.LogWarning(
+                    "fiskaly resource ensure failed for register {CashRegisterId} after {Attempts} attempts ({Message}); fell back to Soft TSE",
+                    cashRegisterId,
+                    FiskalyEnsureMaxAttempts,
+                    resources.Message);
+            }
+            else
+            {
+                device.IsConnected = false;
+                device.CanCreateInvoices = false;
+                device.CertificateStatus = "UNKNOWN";
+                device.ErrorMessage = Truncate($"Fiskaly ensure failed: {resources.Message}", 500);
+                device.UpdatedAt = DateTime.UtcNow;
+                await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                _logger.LogError(
+                    "fiskaly resource ensure failed for register {CashRegisterId} after {Attempts} attempts ({Message}); Soft TSE fallback is not allowed",
+                    cashRegisterId,
+                    FiskalyEnsureMaxAttempts,
+                    resources.Message);
+            }
+        }
+
+        var stamp = DeriveTenantTseStamp(device, fellBackToSoft);
+        await StampTenantTseAsync(tenantId, stamp.ScuId, stamp.Status, cancellationToken).ConfigureAwait(false);
+
         var chainInitialized = await EnsureSignatureChainAsync(tenantId, cashRegisterId, cancellationToken)
             .ConfigureAwait(false);
 
         await TryBindDefaultTseDeviceAsync(tenantId, device.Id, cancellationToken).ConfigureAwait(false);
 
+        var auditDeviceType = device.DeviceType;
         await TryAuditAsync(
             ActionProvisioned,
             tenantId,
             device.Id,
-            $"TSE provisioned for register {cashRegister.RegisterNumber} ({deviceType}/{serial})",
+            fellBackToSoft
+                ? $"TSE Soft fallback for register {cashRegister.RegisterNumber} after Fiskaly failure"
+                : $"TSE provisioned for register {cashRegister.RegisterNumber} ({auditDeviceType}/{device.SerialNumber})",
             AuditLogStatus.Success,
             cancellationToken,
             new
             {
                 DeviceId = device.Id,
                 CashRegisterId = cashRegisterId,
-                DeviceType = deviceType,
-                SerialNumber = serial,
-                IsConnected = connected,
-                CanCreateInvoices = canSign,
+                DeviceType = auditDeviceType,
+                SerialNumber = device.SerialNumber,
+                IsConnected = device.IsConnected,
+                CanCreateInvoices = device.CanCreateInvoices,
                 SignatureChainInitialized = chainInitialized,
                 StartbelegCreated = false,
                 Forced = force,
+                TseScuId = stamp.ScuId,
+                TseStatus = stamp.Status,
+                FellBackToSoftTse = fellBackToSoft,
             }).ConfigureAwait(false);
 
         _logger.LogInformation(
-            "Provisioned TSE device {DeviceId} type={DeviceType} for cash register {CashRegisterId} tenant {TenantId}",
+            "Provisioned TSE device {DeviceId} type={DeviceType} for cash register {CashRegisterId} tenant {TenantId} status={TseStatus} fallback={FellBack}",
             device.Id,
-            deviceType,
+            device.DeviceType,
             cashRegisterId,
-            tenantId);
+            tenantId,
+            stamp.Status,
+            fellBackToSoft);
+
+        var detail = fellBackToSoft
+            ? "Fiskaly SCU provisioning failed; Soft TSE fallback is active. Startbeleg must be created via RKSV special receipts when ready."
+            : $"TSE device provisioned ({device.DeviceType}). Startbeleg must be created via RKSV special receipts when ready.";
 
         return TseProvisioningResult.Success(
             device,
             chainInitialized,
-            detail: $"TSE device provisioned ({deviceType}). Startbeleg must be created via RKSV special receipts when ready.");
+            detail,
+            tseScuId: stamp.ScuId,
+            tseStatus: stamp.Status,
+            fellBackToSoftTse: fellBackToSoft);
     }
 
     public async Task<IReadOnlyList<TseDeviceFleetItemDto>> ListDevicesAsync(
@@ -547,7 +643,8 @@ public sealed class TseProvisioningService : ITseProvisioningService
         }
 
         var fiskaly = _fiskalyOptions.CurrentValue;
-        var fiskalyReady = _tseProviderFactory.IsProviderConfigured(TseOptions.ProviderFiskaly)
+        var fiskalyReady = fiskaly.HasCredentials
+            || _tseProviderFactory.IsProviderConfigured(TseOptions.ProviderFiskaly)
             || fiskaly.IsConfigured;
         // Only stamp DeviceType=fiskaly when credentials exist or Provider was set explicitly.
         if (fiskalyReady || explicitProvider is TseOptions.ProviderFiskaly)
@@ -566,6 +663,127 @@ public sealed class TseProvisioningService : ITseProvisioningService
         var deviceType = string.IsNullOrEmpty(explicitProvider) ? "Device" : explicitProvider;
         return (deviceType, Truncate($"PENDING-{cashRegister.RegisterNumber}-{cashRegister.Id:N}", 100),
             Connected: false, CanSign: false);
+    }
+
+    private async Task<FiskalyResourceEnsureResult> EnsureFiskalyResourcesWithRetryAsync(
+        Guid tenantId,
+        Guid cashRegisterId,
+        string registerNumber,
+        CancellationToken cancellationToken)
+    {
+        var last = new FiskalyResourceEnsureResult
+        {
+            Success = false,
+            Message = "fiskaly ensure was not attempted.",
+        };
+
+        for (var attempt = 1; attempt <= FiskalyEnsureMaxAttempts; attempt++)
+        {
+            try
+            {
+                last = await _fiskalyTse
+                    .EnsureResourcesForCashRegisterAsync(tenantId, cashRegisterId, registerNumber, cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (last.Success && !string.IsNullOrWhiteSpace(last.ScuId))
+                    return last;
+
+                _logger.LogWarning(
+                    "fiskaly ensure attempt {Attempt}/{Max} failed for register {CashRegisterId}: {Message}",
+                    attempt,
+                    FiskalyEnsureMaxAttempts,
+                    cashRegisterId,
+                    last.Message);
+            }
+            catch (Exception ex)
+            {
+                last = new FiskalyResourceEnsureResult
+                {
+                    Success = false,
+                    Message = Truncate(ex.Message, 400),
+                };
+                _logger.LogWarning(
+                    ex,
+                    "fiskaly ensure attempt {Attempt}/{Max} threw for register {CashRegisterId}",
+                    attempt,
+                    FiskalyEnsureMaxAttempts,
+                    cashRegisterId);
+            }
+
+            if (attempt < FiskalyEnsureMaxAttempts)
+                await Task.Delay(TimeSpan.FromMilliseconds(25 * attempt), cancellationToken).ConfigureAwait(false);
+        }
+
+        return last;
+    }
+
+    private static void ApplySoftTseFallback(TseDevice device, CashRegister cashRegister, string reason)
+    {
+        var serial = Truncate($"AUTO-Soft-{cashRegister.RegisterNumber}-{cashRegister.Id:N}", 100);
+        device.DeviceType = "Soft";
+        device.Provider = TseOptions.ProviderSoft;
+        device.SerialNumber = serial;
+        device.DeviceId = null;
+        device.ProductId = "PID_AUTO";
+        device.IsConnected = true;
+        device.CanCreateInvoices = true;
+        device.CertificateStatus = "VALID";
+        device.ErrorMessage = Truncate($"Fiskaly fallback: {reason}", 500);
+        device.UpdatedAt = DateTime.UtcNow;
+        device.UpdatedBy = "tse-provisioning";
+    }
+
+    private static (string? ScuId, string Status) DeriveTenantTseStamp(TseDevice device, bool fellBack)
+    {
+        if (fellBack)
+            return (null, TenantTseStatuses.SoftFallback);
+
+        if (string.Equals(device.DeviceType, "fiskaly", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!device.IsConnected)
+                return (null, TenantTseStatuses.Pending);
+
+            var scu = !string.IsNullOrWhiteSpace(device.DeviceId) ? device.DeviceId : device.SerialNumber;
+            return (scu, TenantTseStatuses.Active);
+        }
+
+        if (string.Equals(device.DeviceType, "Fake", StringComparison.OrdinalIgnoreCase))
+            return (null, TenantTseStatuses.Fake);
+
+        if (string.Equals(device.DeviceType, "Soft", StringComparison.OrdinalIgnoreCase))
+            return (null, TenantTseStatuses.Soft);
+
+        return (null, TenantTseStatuses.Pending);
+    }
+
+    private async Task StampTenantTseAsync(
+        Guid tenantId,
+        string? scuId,
+        string status,
+        CancellationToken cancellationToken,
+        bool overwrite = true)
+    {
+        try
+        {
+            var tenant = await _db.Tenants
+                .FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken)
+                .ConfigureAwait(false);
+            if (tenant is null)
+                return;
+
+            if (!overwrite && !string.IsNullOrWhiteSpace(tenant.TseStatus))
+                return;
+
+            tenant.TseScuId = string.IsNullOrWhiteSpace(scuId) ? null : Truncate(scuId.Trim(), 64);
+            tenant.TseStatus = Truncate(status, 32);
+            tenant.TseProvisionedAtUtc = DateTime.UtcNow;
+            tenant.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to stamp tenant TSE fields for {TenantId}", tenantId);
+        }
     }
 
     private static string Truncate(string value, int maxLength) =>

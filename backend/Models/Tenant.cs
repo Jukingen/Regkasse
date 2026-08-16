@@ -141,4 +141,21 @@ public class Tenant : BaseEntity
 
     [Column("trial_grace_period_ends_at_utc")]
     public DateTime? TrialGracePeriodEndsAtUtc { get; set; }
+
+    /// <summary>
+    /// Fiskaly SIGN AT Signature Creation Unit id (German TSS analog). UUIDv4, not a REGK-slug id.
+    /// Null when Soft / Fake / pending TSE is used.
+    /// </summary>
+    [MaxLength(64)]
+    [Column("tse_scu_id")]
+    public string? TseScuId { get; set; }
+
+    /// <summary>TSE provisioning outcome (<see cref="TenantTseStatuses"/>).</summary>
+    [MaxLength(32)]
+    [Column("tse_status")]
+    public string? TseStatus { get; set; }
+
+    /// <summary>UTC when Fiskaly SCU or Soft-TSE fallback was last stamped on this tenant.</summary>
+    [Column("tse_provisioned_at_utc")]
+    public DateTime? TseProvisionedAtUtc { get; set; }
 }

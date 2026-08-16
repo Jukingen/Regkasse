@@ -54,10 +54,16 @@ public sealed class FiskalyOptions
     /// <summary>FinanzOnline-registered AES-256 turnover counter key (32 bytes, Base64).</summary>
     public string? TurnoverCounterAesKeyBase64 { get; set; }
 
-    public bool IsConfigured =>
+    /// <summary>Fallback bearer lifetime when fiskaly omits <c>expires_at</c> (SIGN AT TEST often does).</summary>
+    public int TokenCacheHours { get; set; } = 24;
+
+    public bool HasCredentials =>
         Enabled
         && !string.IsNullOrWhiteSpace(ApiKey)
-        && !string.IsNullOrWhiteSpace(ApiSecret)
+        && !string.IsNullOrWhiteSpace(ApiSecret);
+
+    public bool IsConfigured =>
+        HasCredentials
         && !string.IsNullOrWhiteSpace(SignatureCreationUnitId)
         && !string.IsNullOrWhiteSpace(SigningCertificateDerBase64);
 }

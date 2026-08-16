@@ -72,6 +72,7 @@ public sealed class DashboardControllerTests
         Assert.Contains(body.Widgets, w => w.WidgetId == "today-sales" && w.IsVisible);
         Assert.Contains(body.Widgets, w => w.WidgetId == "active-cash-registers");
         Assert.Contains(body.Widgets, w => w.WidgetId == DashboardWidgetCatalog.ActionRequired && w.IsVisible);
+        Assert.Contains(body.Widgets, w => w.WidgetId == DashboardWidgetCatalog.DailyClosing && w.IsVisible);
         Assert.Contains(body.Widgets, w => w.WidgetId == DashboardWidgetCatalog.ManagerLicenseStatus && w.IsVisible);
         Assert.Contains(body.Widgets, w => w.WidgetId == DashboardWidgetCatalog.ManagerKpiStrip);
         Assert.Contains(body.Widgets, w => w.WidgetId == DashboardWidgetCatalog.LicenseExpiry && !w.IsVisible);
@@ -180,6 +181,7 @@ public sealed class DashboardControllerTests
         Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.OfflineSystemStatus);
         Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.LicenseExpiry);
         Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.ActionRequired);
+        Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.DailyClosing);
         Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.ManagerLicenseStatus);
         Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.ManagerKpiStrip);
         Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.ManagerActivity);

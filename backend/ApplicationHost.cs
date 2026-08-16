@@ -997,15 +997,24 @@ internal static class ApplicationHost
 
         // RKSV SignaturePipeline (Checklist 1-5)
         // Use hardware TSE (fiskaly) in production; software TSE for dev/test.
+        builder.Services.AddHttpClient<IFiskalyConnectionProbe, FiskalyConnectionProbe>((sp, client) =>
+        {
+            var options = sp.GetRequiredService<IOptions<FiskalyOptions>>().Value;
+            if (!string.IsNullOrWhiteSpace(options.BaseUrl))
+                client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+        builder.Services.AddSingleton<FiskalyAccessTokenCache>();
+        builder.Services.AddHttpClient<IFiskalyClient, FiskalyHttpClient>((sp, client) =>
+        {
+            var options = sp.GetRequiredService<IOptions<FiskalyOptions>>().Value;
+            if (!string.IsNullOrWhiteSpace(options.BaseUrl))
+                client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+        builder.Services.AddScoped<IFiskalyTseService, FiskalyTseService>();
         if (builder.Environment.IsProduction())
         {
-            builder.Services.AddHttpClient<IFiskalyClient, FiskalyHttpClient>((sp, client) =>
-            {
-                var options = sp.GetRequiredService<IOptions<FiskalyOptions>>().Value;
-                if (!string.IsNullOrWhiteSpace(options.BaseUrl))
-                    client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
-                client.Timeout = TimeSpan.FromSeconds(30);
-            });
             builder.Services.AddSingleton<ITseKeyProvider, FiskalyTseKeyProvider>();
         }
         else
@@ -1017,6 +1026,7 @@ internal static class ApplicationHost
 
         // Closing-flow signing: Fake (dev) vs Real (SignaturePipeline). Multi-vendor via ITseProviderFactory.
         builder.Services.AddScoped<FakeTseProvider>();
+        builder.Services.AddScoped<ISoftTseService, SoftTseService>();
         builder.Services.AddScoped<RealTseProvider>();
         builder.Services.AddScoped<ITseProviderFactory, TseProviderFactory>();
         var tseOpts = builder.Configuration.GetSection(TseOptions.SectionName).Get<TseOptions>() ?? new TseOptions();
@@ -1139,6 +1149,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<ICashRegisterListEnrichmentService, CashRegisterListEnrichmentService>();
         builder.Services.AddScoped<IPosCashRegisterReadinessService, PosCashRegisterReadinessService>();
         builder.Services.AddScoped<IPosStatusService, PosStatusService>();
+        builder.Services.AddScoped<IPosTseStatusService, PosTseStatusService>();
         builder.Services.AddScoped<IPosShiftService, PosShiftService>();
         builder.Services.AddScoped<IPosDailyClosingService, PosDailyClosingService>();
         builder.Services.AddScoped<IPosCartTableOpsService, PosCartTableOpsService>();

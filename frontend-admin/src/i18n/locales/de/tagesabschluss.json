@@ -169,6 +169,65 @@
     "registerUnavailable": "Kasse ist für den Tagesabschluss nicht verfügbar (fehlt oder außer Betrieb).",
     "tseNotConnected": "TSE ist nicht verbunden. Tagesabschluss kann nicht durchgeführt werden.",
     "tenantContextRequired": "Mandantenkontext fehlt. Bitte zuerst einen Mandanten wählen.",
-    "noRegister": "Keine Kasse für diesen Mandanten gefunden."
+    "noRegister": "Keine Kasse für diesen Mandanten gefunden.",
+    "loadCalendarTitle": "Kalender konnte nicht geladen werden"
+  },
+  "calendar": {
+    "viewCalendar": "Kalender",
+    "viewList": "Liste",
+    "prevMonth": "Vorheriger Monat",
+    "nextMonth": "Nächster Monat",
+    "gridLabel": "Tagesabschluss-Kalender {{month}}",
+    "loadErrorTitle": "Kalender konnte nicht geladen werden",
+    "txCount": "{{count}} Transaktionen",
+    "summaryTotal": "Tage im Monat",
+    "summaryClosed": "Geschlossen",
+    "summaryOpen": "Offen",
+    "summaryNoTx": "Ohne Transaktionen",
+    "summaryEmpty": "Leere Abschlüsse",
+    "bulkClose": "Alle offenen Tage schließen",
+    "bulkCloseConfirmTitle": "Offene Tage schließen?",
+    "bulkCloseConfirm": "{{count}} offene Tage werden nacheinander geschlossen. Vergangene Tage gelten als nachträglich (TSE/RKSV).",
+    "bulkCloseSuccess": "{{done}} von {{total}} Tagen geschlossen.",
+    "bulkClosePartial": "{{done}} von {{total}} Tagen geschlossen. {{failed}} fehlgeschlagen.",
+    "bulkCloseNone": "Keine offenen Tage in diesem Monat.",
+    "exportMonth": "Monat exportieren",
+    "detailsTitle": "Tagesabschluss {{date}}",
+    "weekdays": {
+      "mon": "Mo",
+      "tue": "Di",
+      "wed": "Mi",
+      "thu": "Do",
+      "fri": "Fr",
+      "sat": "Sa",
+      "sun": "So"
+    },
+    "legend": {
+      "closed": "Geschlossen (normal)",
+      "empty": "Geschlossen (leer)",
+      "open": "Offen",
+      "noTransactions": "Keine Transaktionen",
+      "future": "Zukunft",
+      "today": "Heute"
+    },
+    "tooltip": {
+      "closed": "Geschlossen - {{count}} Transaktionen",
+      "empty": "Leer (0 Transaktionen)",
+      "open": "Offen - {{count}} Transaktionen ausstehend",
+      "noTransactions": "Keine Transaktionen - Leerer Abschluss möglich",
+      "future": "Zukünftiges Datum",
+      "today": "Heute"
+    },
+    "menu": {
+      "close": "Abschließen",
+      "details": "Details anzeigen",
+      "export": "Zusammenfassung exportieren"
+    },
+    "csv": {
+      "date": "Datum",
+      "status": "Status",
+      "transactionCount": "Transaktionen",
+      "canClose": "Schließbar"
+    }
   }
 }

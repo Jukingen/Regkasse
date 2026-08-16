@@ -114,4 +114,16 @@ internal static class TseProvisioningTestDoubles
             .ReturnsAsync(TseProvisioningResult.Skipped("TseMode=Off; TSE provisioning skipped."));
         return mock.Object;
     }
+
+    public static ITseProvisioningService Failed(string error = "TSE provisioning failed.")
+    {
+        var mock = new Mock<ITseProvisioningService>();
+        mock.Setup(x => x.ProvisionTseForCashRegisterAsync(
+                It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TseProvisioningResult.Fail(error));
+        mock.Setup(x => x.ProvisionTseForTenantAsync(
+                It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TseProvisioningResult.Fail(error));
+        return mock.Object;
+    }
 }
