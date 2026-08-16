@@ -1,7 +1,7 @@
 {
   "page": {
     "title": "Müşteri portalı",
-    "subtitle": "Lisans durumu, aktivite ve destek",
+    "subtitle": "Lisans durumu, faturalar, profil ve destek",
     "requestSupport": "Destek iste",
     "requestSupportHint": "Geri bildirim formunu açar"
   },
@@ -25,5 +25,97 @@
       "StartbelegDone": "Startbeleg tamam",
       "TrainingComplete": "Eğitim tamam"
     }
+  },
+  "portal": {
+    "title": "Hesabım",
+    "welcome": "Tekrar hoş geldiniz, {{name}}!",
+    "licenseStatus": "Lisans durumu",
+    "invoices": "Faturalar",
+    "profile": "Profil",
+    "support": "Destek",
+    "quickLinks": "Hızlı erişim",
+    "openHub": "Hesaba git",
+    "goLicense": "Lisans",
+    "goInvoices": "Faturalarım",
+    "goProfile": "Profilim",
+    "goSupport": "Destek",
+    "openTickets": "{{count}} açık ticket",
+    "licenseActive": "Aktif",
+    "licenseGrace": "Ek süre",
+    "licenseExpired": "Süresi doldu",
+    "daysRemaining": "{{days}} gün kaldı",
+    "expiredDays": "{{days}} gündür süresi dolmuş",
+    "totalInvoices": "{{count}} fatura",
+    "openInvoices": "{{count}} açık",
+    "profileComplete": "Profil tamam",
+    "profileIncomplete": "Profil eksik"
+  },
+  "hub": {
+    "licenseStatus": "Lisans durumu",
+    "invoices": "Faturalar",
+    "profile": "Profil",
+    "support": "Destek",
+    "openLicense": "Lisans panosu",
+    "openInvoices": "Faturalarım",
+    "openProfile": "Profili aç",
+    "openSupport": "Desteği aç",
+    "invoicesPaid": "Ödendi",
+    "invoicesCancelledCount": "{{count}} iptal",
+    "profileCompletion": "Onboarding"
+  },
+  "invoices": {
+    "title": "Faturalarım",
+    "invoiceNumber": "Fatura no",
+    "date": "Tarih",
+    "amount": "Tutar",
+    "status": "Durum",
+    "actions": "İşlemler",
+    "download": "PDF indir",
+    "downloadError": "Fatura indirilemedi",
+    "noInvoices": "Fatura bulunamadı",
+    "filterStatus": "Durum filtrele",
+    "filterDate": "Tarih aralığı",
+    "statuses": {
+      "paid": "Ödendi",
+      "unpaid": "Açık",
+      "overdue": "Gecikmiş",
+      "cancelled": "İptal",
+      "refunded": "İade"
+    }
+  },
+  "support": {
+    "title": "Destek",
+    "subtitle": "Regkasse ekibine ticket'lar",
+    "createTitle": "Ticket oluştur",
+    "category": "Kategori",
+    "priority": "Öncelik",
+    "message": "Mesaj",
+    "reply": "Yanıt",
+    "sendReply": "Yanıt gönder",
+    "backToList": "Listeye dön",
+    "detailTitle": "Ticket",
+    "tenant": "Kiracı",
+    "createdAt": "Oluşturuldu",
+    "inboxTitle": "Destek talepleri",
+    "inboxSubtitle": "Tüm kiracı talepleri",
+    "categories": {
+      "technical": "Teknik",
+      "billing": "Faturalama",
+      "license": "Lisans",
+      "feature": "Özellik talebi"
+    },
+    "priorities": {
+      "low": "Düşük",
+      "medium": "Orta",
+      "high": "Yüksek"
+    },
+    "statuses": {
+      "open": "Açık",
+      "waitingOnTenant": "Kiracı yanıtı bekleniyor",
+      "waitingOnStaff": "Destek yanıtı bekleniyor",
+      "closed": "Kapalı"
+    },
+    "myTickets": "Ticket'larım",
+    "emptyTickets": "Henüz ticket yok."
   }
 }

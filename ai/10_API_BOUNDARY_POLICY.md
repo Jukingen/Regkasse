@@ -25,12 +25,12 @@
 
 ## Hard rules
 1. Yeni endpointler canonical boundary altında açılır (POS / Admin / Sites ayrı aileler).
-2. Legacy alias (`/api/Payment`, `/api/Cart`, `/api/Product`) genişletilmez.
-3. Legacy route sadece geçiş uyumluluğu içindir; yeni feature eklenmez.
+2. Legacy aliases (`/api/Payment`, `/api/Cart`, `/api/Product`) were **removed** (2026-08-13). Do not reintroduce them.
+3. New POS/admin features go under `/api/pos/*` or `/api/admin/*` only.
 4. Contract değişikliği OpenAPI diff ile review edilir.
 5. `offline_transactions` ile `offline_orders` birleştirilmez / tek UI’ya karıştırılmaz.
 
-**Timeline / Sunset:** [`docs/API_LEGACY_DEPRECATION.md`](../docs/API_LEGACY_DEPRECATION.md) (soft Sunset **2026-09-30**).
+**Removal note:** [`docs/API_LEGACY_DEPRECATION.md`](../docs/API_LEGACY_DEPRECATION.md).
 
 ## Explicit exceptions (shared surfaces)
 Aşağıdaki yüzeyler boundary dışı ama bilinçli şekilde paylaşılıyor veya geçişte:
@@ -51,4 +51,4 @@ Aşağıdaki yüzeyler boundary dışı ama bilinçli şekilde paylaşılıyor v
 
 ## POS guidance
 - API erişimini `frontend/services/api/*` içinde tut.
-- Yeni kodda `/api/Payment`, `/api/Cart`, `/api/Product` doğrudan kullanılmaz.
+- Yeni kodda `/api/Payment`, `/api/Cart`, `/api/Product` kullanılmaz (aliases removed).

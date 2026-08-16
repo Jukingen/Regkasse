@@ -8,6 +8,7 @@ using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.ActivityReports;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Services.Tenancy;
+using KasseAPI_Final.Services.Trial;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -26,6 +27,7 @@ public sealed class AdminTenantsController : ControllerBase
     private readonly ITenantDeletionService _tenantDeletionService;
     private readonly IActivityReportService _activityReportService;
     private readonly IAuditLogService _auditLogService;
+    private readonly ITrialConversionService _trialConversion;
     private readonly IHostEnvironment _environment;
     private readonly ILogger<AdminTenantsController> _logger;
 
@@ -36,6 +38,7 @@ public sealed class AdminTenantsController : ControllerBase
         ITenantDeletionService tenantDeletionService,
         IActivityReportService activityReportService,
         IAuditLogService auditLogService,
+        ITrialConversionService trialConversion,
         IHostEnvironment environment,
         ILogger<AdminTenantsController> logger)
     {
@@ -45,11 +48,13 @@ public sealed class AdminTenantsController : ControllerBase
         _tenantDeletionService = tenantDeletionService;
         _activityReportService = activityReportService;
         _auditLogService = auditLogService;
+        _trialConversion = trialConversion;
         _environment = environment;
         _logger = logger;
     }
 
     private string? ActorUserId => User.GetActorUserId();
+    private string? ActorRole => User.GetActorRole();
 
     /// <summary>List tenants with optional filter, sort, and pagination.</summary>
     [HttpGet]
@@ -222,6 +227,40 @@ public sealed class AdminTenantsController : ControllerBase
             return NotFound(new { message = "Tenant not found." });
 
         return Ok(checks);
+    }
+
+    /// <summary>
+    /// Convert an open SaaS trial to a paid license sale (Super Admin).
+    /// Managers use <c>POST /api/admin/tenants/{tenantId}/license/convert-to-paid</c> instead.
+    /// </summary>
+    [HttpPost("{tenantId:guid}/convert-to-paid")]
+    [HasPermission(AppPermissions.TenantManage)]
+    [ProducesResponseType(typeof(TrialConversionResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TrialConversionResult>> ConvertToPaid(
+        Guid tenantId,
+        [FromBody] ConvertToPaidRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request.LicenseSaleId == Guid.Empty)
+            return BadRequest(new { message = "licenseSaleId is required." });
+
+        var (result, error) = await _trialConversion
+            .ConvertToPaidAsync(
+                tenantId,
+                request.LicenseSaleId,
+                request.AddRemainingTrialDays ?? true,
+                request.Notes,
+                ActorUserId,
+                ActorRole ?? Roles.SuperAdmin,
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (error == "Tenant not found.")
+            return NotFound(new { message = error });
+        if (error != null)
+            return BadRequest(new { message = error });
+        return Ok(result);
     }
 
     /// <summary>Create a new tenant (generates id, unique slug).</summary>

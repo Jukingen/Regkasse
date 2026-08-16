@@ -180,7 +180,9 @@ public sealed class TenantLicenseService : ITenantLicenseService
 
         try
         {
-            if (!_licenseKeyGenerator.ValidateLicenseKeyFormat(licenseKey))
+            if (!_licenseKeyGenerator.ValidateLicenseKeyFormat(licenseKey)
+                && !_licenseKeyGenerator.ValidateLicenseKeyFormat(
+                    await ResolveCanonicalLicenseKeyAsync(licenseKey, ct).ConfigureAwait(false)))
             {
                 return new ActivationResult
                 {
@@ -190,10 +192,11 @@ public sealed class TenantLicenseService : ITenantLicenseService
             }
 
             var normalizedKey = licenseKey.Trim();
+            var lookupKey = await ResolveCanonicalLicenseKeyAsync(normalizedKey, ct).ConfigureAwait(false);
             var sale = await db.LicenseSales
                 .IgnoreQueryFilters()
                 .Include(l => l.Tenant)
-                .FirstOrDefaultAsync(l => l.LicenseKey == normalizedKey, ct)
+                .FirstOrDefaultAsync(l => l.LicenseKey == lookupKey || l.LicenseKey == normalizedKey, ct)
                 .ConfigureAwait(false);
 
             if (sale == null)
@@ -256,7 +259,7 @@ public sealed class TenantLicenseService : ITenantLicenseService
 
             var now = DateTime.UtcNow;
             tenant.CurrentLicenseSaleId = sale.Id;
-            tenant.LicenseKey = normalizedKey;
+            tenant.LicenseKey = sale.LicenseKey;
             tenant.LicenseValidUntilUtc = sale.ValidUntilUtc;
             tenant.LastLicenseActivationUtc = now;
             tenant.LicenseActivationCount++;
@@ -285,7 +288,7 @@ public sealed class TenantLicenseService : ITenantLicenseService
             {
                 Success = true,
                 Message = "Lizenz wurde erfolgreich aktiviert.",
-                LicenseKey = normalizedKey,
+                LicenseKey = sale.LicenseKey,
                 ValidUntilUtc = sale.ValidUntilUtc,
                 LicensePlan = sale.LicensePlan,
                 Sale = saleResponse,
@@ -463,5 +466,17 @@ public sealed class TenantLicenseService : ITenantLicenseService
             LicenseSaleId = sale.Id,
             TenantEmail = sale.Tenant?.Email,
         }).ToList();
+    }
+
+    private async Task<string> ResolveCanonicalLicenseKeyAsync(string licenseKey, CancellationToken ct)
+    {
+        var trimmed = licenseKey.Trim();
+        var mapped = await _dbContext.LicenseKeyMappings.AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(m => m.OldLicenseKey == trimmed || m.NewLicenseKey == trimmed)
+            .Select(m => m.NewLicenseKey)
+            .FirstOrDefaultAsync(ct)
+            .ConfigureAwait(false);
+        return string.IsNullOrEmpty(mapped) ? trimmed : mapped;
     }
 }

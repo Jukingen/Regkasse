@@ -13,6 +13,7 @@ export interface TagesabschlussCanCloseResponse {
   /** @nullable */
   closingDate?: string | null;
   isBackdated: boolean;
+  isEmptyDay: boolean;
   /** @nullable */
   lastClosingDate?: string | null;
   /** @nullable */
@@ -28,4 +29,5 @@ export interface TagesabschlussCanCloseResponse {
   /** @nullable */
   message?: string | null;
   paymentsWithoutInvoiceCount: number;
+  transactionCount: number;
 }

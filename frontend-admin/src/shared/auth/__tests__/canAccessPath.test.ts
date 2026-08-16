@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+rimport { describe, expect, it } from 'vitest';
 
 import {
   CASHIER_ADMIN_PERMISSIONS,
@@ -66,14 +66,29 @@ describe('canAccessPath', () => {
     expect(canAccessPath('/receipts', perms)).toBe(false);
     expect(canAccessPath('/kassenverwaltung', perms)).toBe(false);
     expect(canAccessPath('/admin/license', perms)).toBe(false);
+    expect(canAccessPath('/admin/license-management', perms)).toBe(false);
   });
 
-  it('Manager can access /admin/license with license.manage', () => {
+  it('Manager can access /admin/license-management with license.manage', () => {
+    expect(canAccessPath('/admin/license-management', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
     expect(canAccessPath('/admin/license', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
   });
 
-  it('Manager can access /license/dashboard with license.manage', () => {
-    expect(canAccessPath('/license/dashboard', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+  it('Manager can access /tenant/invoices with license.manage', () => {
+    expect(canAccessPath('/tenant/invoices', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+    expect(canAccessPath('/tenant/support', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+    expect(canAccessPath('/tenant/dashboard', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+    expect(canAccessPath('/tenant/portal', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+    expect(canAccessPath('/tenant/license', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+    expect(canAccessPath('/tenant/profile', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+  });
+
+  it('Cashier license.view does not unlock tenant invoices', () => {
+    const cashier = [...CASHIER_ADMIN_PERMISSIONS, PERMISSIONS.LICENSE_VIEW];
+    expect(canAccessPath('/tenant/invoices', cashier)).toBe(false);
+    expect(canAccessPath('/tenant/support', cashier)).toBe(false);
+    expect(canAccessPath('/tenant/dashboard', cashier)).toBe(false);
+    expect(canAccessPath('/tenant/portal', cashier)).toBe(false);
   });
 
   it('Manager can access staff hub sub-routes (user.view / report.view / shift.view, not staff.*)', () => {
@@ -108,6 +123,11 @@ describe('canAccessPath', () => {
   it('Super Admin data-management overview requires system.critical', () => {
     expect(canAccessPath('/admin/data-management', [PERMISSIONS.SYSTEM_CRITICAL])).toBe(true);
     expect(canAccessPath('/admin/data-management', [...MANAGER_ADMIN_PERMISSIONS])).toBe(false);
+  });
+
+  it('Super Admin can access /admin/support; Manager cannot', () => {
+    expect(canAccessPath('/admin/support', [PERMISSIONS.SYSTEM_CRITICAL])).toBe(true);
+    expect(canAccessPath('/admin/support', [...MANAGER_ADMIN_PERMISSIONS])).toBe(false);
   });
 
   it('staff list requires user.view only', () => {

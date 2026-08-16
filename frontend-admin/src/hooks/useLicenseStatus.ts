@@ -13,6 +13,7 @@ import {
   type LicenseStatus,
   useTenantLicenseStatus,
 } from '@/features/license/hooks/useLicenseStatus';
+import { resolveLicenseValidUntilIso, shouldShowSystemLockedAlert } from '@/features/license/utils/licenseStatus';
 import { useTenantLicense } from '@/hooks/useTenantLicense';
 
 /** Mandant lifecycle states for FA lockdown UI (mirrors backend `LicenseLifecycleState`). */
@@ -37,12 +38,16 @@ export type LicenseStatusView = {
 
 /** Maps resolved tenant license → FA lockdown lifecycle state. */
 export function mapLicenseLifecycleUiState(license: LicenseStatus): LicenseLifecycleUiState {
-  if (license.kind === 'active') {
-    return 'Active';
-  }
-
   if (license.kind === 'grace_write' || license.kind === 'grace_readonly') {
     return 'Grace';
+  }
+
+  // A still-valid (or just-extended) license is Active even if stale isLocked/lockdown flags remain.
+  if (
+    license.kind === 'active' ||
+    (license.daysRemaining >= 0 && license.kind !== 'no_license')
+  ) {
+    return 'Active';
   }
 
   const daysOverdue = Math.max(0, license.daysExpired);
@@ -60,6 +65,20 @@ export function mapLicenseLifecycleUiState(license: LicenseStatus): LicenseLifec
   }
 
   return 'Active';
+}
+
+export function shouldShowSystemLockedAlertFromView(view: {
+  kind: LicenseStatus['kind'];
+  state: LicenseLifecycleUiState;
+  daysUntilExpiry: number;
+  daysOverdue: number;
+}): boolean {
+  return shouldShowSystemLockedAlert({
+    kind: view.kind,
+    daysRemaining: view.state === 'Active' ? view.daysUntilExpiry : -Math.max(0, view.daysOverdue),
+    daysExpired: view.daysOverdue,
+    state: view.state,
+  });
 }
 
 function toView(
@@ -106,9 +125,7 @@ export function useLicenseStatus() {
       return null;
     }
 
-    const expiredAt =
-      licenseQuery.data?.validUntil ??
-      (typeof statusQuery.data.lockDate === 'string' ? statusQuery.data.lockDate : null);
+    const expiredAt = resolveLicenseValidUntilIso(licenseQuery.data?.validUntil);
     const licensePlan =
       typeof licenseQuery.data?.licenseType === 'string' &&
       licenseQuery.data.licenseType.trim().length > 0

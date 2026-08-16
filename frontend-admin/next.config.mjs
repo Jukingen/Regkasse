@@ -145,9 +145,12 @@ const nextConfig = {
       { protocol: 'https', hostname: 'api.regkasse.at', pathname: '/**' },
     ],
   },
-  turbopack: {
-    root: path.join(__dirname, '..'),
-  },
+  // Bundler: webpack only (package.json `dev`/`build` use `--webpack`).
+  // Next.js 16 defaults to Turbopack; we opt out — monorepo + Turbopack caused
+  // Windows RAM exhaustion (thousands of `.next/dev/build` workers). Do not
+  // re-add a `turbopack` config block unless intentionally re-enabling Turbopack.
+  // Silence multi-lockfile root inference (repo root + frontend-admin lockfile).
+  outputFileTracingRoot: path.join(__dirname, '..'),
   experimental: {
     // Tree-shake heavy icon/component barrels.
     optimizePackageImports: ['antd', '@ant-design/icons'],

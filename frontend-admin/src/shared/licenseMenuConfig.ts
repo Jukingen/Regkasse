@@ -58,6 +58,7 @@ export const LOCKDOWN_VISIBLE_MENUS = [
       '/license',
       '/license/dashboard',
       '/admin/license',
+      '/admin/license-management',
     ],
   },
   {
@@ -95,7 +96,7 @@ export const LOCKDOWN_VISIBLE_MENUS = [
     /** Support CTA lives on the license surfaces (no `/support` page). */
     path: '/license',
     icon: 'CustomerServiceOutlined',
-    sidebarKeys: ['/license', '/admin/license'],
+    sidebarKeys: ['/license', '/admin/license', '/admin/license-management', '/tenant/support', '/tenant/invoices', '/tenant/dashboard', '/tenant/portal', '/tenant/license', '/tenant/profile'],
   },
 ] as const satisfies readonly LockdownVisibleMenuEntry[];
 

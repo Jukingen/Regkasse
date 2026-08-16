@@ -9,7 +9,7 @@ Versions below match `package.json` / monorepo baselines (`AGENTS.md`). Installe
 
 | Component | Version / notes |
 | --------- | --------------- |
-| **Next.js** | `^16.2.10` (App Router, Turbopack in `next build` / `next dev`) |
+| **Next.js** | `^16.2.10` (App Router; **webpack** via `next dev --webpack` / `next build --webpack` — Turbopack opted out for Windows monorepo RAM stability) |
 | **React / React DOM** | `^19.2.7` — types via `@types/react` / `@types/react-dom` (React does not ship types) |
 | **Ant Design** | `^6.4.3` (+ `@ant-design/nextjs-registry`, icons, cssinjs) |
 | **TanStack Query** | `^5.101.3` (Orval-generated hooks). Align `staleTime` with backend `CacheSettings` TTLs (license ~5m, products ~15m, permissions ~30m) where the same entities are cached server-side — prevents FA showing stale data while Redis still holds a fresh snapshot (or vice versa). When backend cache is cleared (`POST /api/admin/cache/clear` / Systemwartung → Cache leeren), React Query caches in open browsers may need manual invalidation via `queryClient.invalidateQueries()` (or a hard refresh). Optional UX: a Super Admin “Clear Cache” control that calls the backend endpoint and then invalidates matching React Query keys. |
@@ -732,6 +732,29 @@ npm run test -- src/lib/monitoring/__tests__/webVitalsBudgets.test.ts
 | No Speed Insights data | Not on Vercel, or insights disabled | Vercel-hosted only for that dashboard; use Sentry Web Vitals elsewhere. Set `NEXT_PUBLIC_SPEED_INSIGHTS=true` only if needed locally (still needs Vercel backend). |
 | Web Vitals beacon 404 | `NEXT_PUBLIC_WEB_VITALS_BEACON` not `true` at build | Rebuild with the flag; see [`docs/PERFORMANCE_MONITORING.md`](docs/PERFORMANCE_MONITORING.md). |
 
+## Self-service portal (Mein Konto)
+
+Mandanten-Admin hub (`license.manage`). Super Admin uses the same pages with `system.critical`.
+
+| Page | Route | Notes |
+|------|-------|-------|
+| Mein Konto | `/tenant/portal` | License snapshot, invoices count, onboarding, links |
+| License | `/tenant/license` | Activate / extend unified REGK key (`POST /api/license/activate`) |
+| Invoices | `/tenant/invoices` | Tenant billing invoices + PDF download |
+| Profile | `/tenant/profile` | Company / account |
+| Support | `/tenant/support` | Own tickets: `GET/POST /api/admin/support/tickets` |
+
+Logic helpers: `src/features/tenant-portal/utils/tenantPortalDisplay.ts`. Trial banner: `src/features/trial/components/TrialStatusBanner.tsx` (layout-wide).
+
+## Support tickets
+
+| Actor | Route | API |
+|-------|-------|-----|
+| Mandanten-Admin | `/tenant/support` | `/api/admin/support/tickets` |
+| Super Admin inbox | `/admin/support` | `/api/admin/support/admin/tickets` |
+
+Cross-tenant ticket IDs → HTTP 404. Internal staff notes are hidden from tenant GET. Notifications: activity feed + Super Admin email.
+
 ## Super Admin Features
 
 Access: **`admin.regkasse.at`** (or local dev on platform host). Role: **`SuperAdmin`** or `system.critical`.
@@ -743,6 +766,8 @@ Access: **`admin.regkasse.at`** (or local dev on platform host). Role: **`SuperA
 | Impersonate (“Login as”)                       | list / detail / home selector | `impersonateAdminTenant`, `ImpersonationRedirectOverlay`                                                                       |
 | Platform home (pick tenant)                    | `/admin`                      | `SuperAdminTenantSelector`                                                                                                     |
 | Server license (On-Premise)                    | `/admin/license`              | `api/manual/adminLicense.ts` — **Server-Lizenz**; not Mandantenlizenz (see header badge)                                       |
+| Trial dashboard                                | `/admin/trials`               | `GET /api/admin/trials`, grant/extend/convert (`system.critical`)                                                              |
+| Support inbox                                  | `/admin/support`              | `/api/admin/support/admin/tickets`                                                                                             |
 | Billing tenant license (docs)                  | —                             | [`../docs/BILLING_TENANT_LICENSE.md`](../docs/BILLING_TENANT_LICENSE.md); Mandanten-Admin API `POST /api/admin/license/extend` |
 
 **Create tenant** runs backend `TenantProvisioningService` (cash register, demo products, owner admin, optional 30-day trial). Success modal shows one-time credentials.

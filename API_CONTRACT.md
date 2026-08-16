@@ -276,7 +276,7 @@ Older narrative detail remains in [`docs/API_CONTRACTS.md`](docs/API_CONTRACTS.m
 
 | Doc | Topic |
 |-----|--------|
-| [`docs/API_LEGACY_DEPRECATION.md`](docs/API_LEGACY_DEPRECATION.md) | Legacy `/api/Payment` etc. sunset |
+| [`docs/API_LEGACY_DEPRECATION.md`](docs/API_LEGACY_DEPRECATION.md) | Removed `/api/Payment` etc. aliases |
 | [`ai/09_LEGACY_CANONICAL_ROUTE_INVENTORY.md`](ai/09_LEGACY_CANONICAL_ROUTE_INVENTORY.md) | Route inventory |
 | [`testsprite/api/`](testsprite/api/) | Smoke YAML vs swagger |
 | Swagger UI (Dev) | `http://localhost:5184/swagger` |

@@ -127,6 +127,8 @@ namespace KasseAPI_Final.Data
         public DbSet<RksvColdArchiveItem> RksvColdArchiveItems { get; set; }
         public DbSet<DigitalServiceRequest> DigitalServiceRequests { get; set; }
         public DbSet<AdminUserFeedback> AdminUserFeedback { get; set; }
+        public DbSet<SupportTicket> SupportTickets { get; set; }
+        public DbSet<SupportTicketMessage> SupportTicketMessages { get; set; }
         public DbSet<TenantSettingsHistory> TenantSettingsHistory { get; set; }
 
         /// <summary>Key/value settings (feature-flag overrides; TenantId null = global).</summary>
@@ -299,6 +301,9 @@ namespace KasseAPI_Final.Data
         public DbSet<LicenseActivationAttempt> LicenseActivationAttempts { get; set; }
 
         public DbSet<LicenseSale> LicenseSales { get; set; }
+
+        /// <summary>Legacy REGK display key → unified <c>REGK-yyyyMMdd-slug-xxxxxxxx</c> alias rows.</summary>
+        public DbSet<LicenseKeyMapping> LicenseKeyMappings { get; set; }
 
         public DbSet<Subscription> Subscriptions { get; set; }
 
@@ -2233,6 +2238,17 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.IndustryTemplateCustomizations)
                     .HasColumnName("industry_template_customizations")
                     .HasColumnType("jsonb");
+                entity.Property(e => e.TrialStartedAtUtc).HasColumnName("trial_started_at_utc");
+                entity.Property(e => e.TrialEndsAtUtc).HasColumnName("trial_ends_at_utc");
+                entity.Property(e => e.TrialStatus).HasColumnName("trial_status").HasMaxLength(20);
+                entity.Property(e => e.TrialReminder7dSent).HasColumnName("trial_reminder_7d_sent").HasDefaultValue(false);
+                entity.Property(e => e.TrialReminder3dSent).HasColumnName("trial_reminder_3d_sent").HasDefaultValue(false);
+                entity.Property(e => e.TrialReminder1dSent).HasColumnName("trial_reminder_1d_sent").HasDefaultValue(false);
+                entity.Property(e => e.TrialConvertedAtUtc).HasColumnName("trial_converted_at_utc");
+                entity.Property(e => e.TrialDeletedAtUtc).HasColumnName("trial_deleted_at_utc");
+                entity.Property(e => e.TrialGracePeriodEndsAtUtc).HasColumnName("trial_grace_period_ends_at_utc");
+                entity.HasIndex(e => e.TrialStatus).HasDatabaseName("IX_tenants_trial_status");
+                entity.HasIndex(e => e.TrialEndsAtUtc).HasDatabaseName("IX_tenants_trial_ends_at");
             });
 
             builder.Entity<TenantDataDeletionRequest>(entity =>
@@ -2440,6 +2456,57 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => new { e.Status, e.CreatedAtUtc })
                     .HasDatabaseName("idx_admin_user_feedback_status_created");
                 entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<SupportTicket>(entity =>
+            {
+                entity.ToTable("support_tickets");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TicketNumber).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.Category).IsRequired().HasMaxLength(32);
+                entity.Property(e => e.Priority).IsRequired().HasMaxLength(16);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(32);
+                entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Message).IsRequired().HasMaxLength(4000);
+                entity.Property(e => e.CreatedByUserId).IsRequired().HasMaxLength(450);
+                entity.Property(e => e.CreatedByDisplayName).HasMaxLength(200);
+                entity.Property(e => e.AssignedToUserId).HasMaxLength(450);
+                entity.Property(e => e.AssignedToDisplayName).HasMaxLength(200);
+                entity.Property(e => e.CreatedAtUtc).IsRequired();
+                entity.Property(e => e.UpdatedAtUtc).IsRequired();
+                entity.HasIndex(e => e.TicketNumber)
+                    .IsUnique()
+                    .HasDatabaseName("idx_support_tickets_ticket_number");
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_support_tickets_tenant_id");
+                entity.HasIndex(e => e.Status).HasDatabaseName("idx_support_tickets_status");
+                entity.HasIndex(e => e.CreatedAtUtc).HasDatabaseName("idx_support_tickets_created_at");
+                entity.HasIndex(e => new { e.Status, e.CreatedAtUtc })
+                    .HasDatabaseName("idx_support_tickets_status_created");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasMany(e => e.Messages)
+                    .WithOne(m => m.Ticket)
+                    .HasForeignKey(m => m.TicketId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<SupportTicketMessage>(entity =>
+            {
+                entity.ToTable("support_ticket_messages");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.AuthorUserId).IsRequired().HasMaxLength(450);
+                entity.Property(e => e.AuthorDisplayName).HasMaxLength(200);
+                entity.Property(e => e.Body).IsRequired().HasMaxLength(4000);
+                entity.Property(e => e.IsInternal).IsRequired().HasDefaultValue(false);
+                entity.Property(e => e.CreatedAtUtc).IsRequired();
+                entity.HasIndex(e => e.TicketId).HasDatabaseName("idx_support_ticket_messages_ticket_id");
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_support_ticket_messages_tenant_id");
+                entity.HasOne<Tenant>()
                     .WithMany()
                     .HasForeignKey(e => e.TenantId)
                     .OnDelete(DeleteBehavior.Cascade);
@@ -2679,13 +2746,29 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.ExtendedByUserId)
                     .HasMaxLength(450)
                     .HasConversion(NullableAspNetUserIdConverter);
-                entity.Property(e => e.CreatedAt).IsRequired();
-                entity.Property(e => e.UpdatedAt).IsRequired();
+                entity.Property(e => e.ConvertedFromTrial)
+                    .HasColumnName("converted_from_trial")
+                    .HasDefaultValue(false);
+                entity.Property(e => e.RemainingTrialDaysAdded)
+                    .HasColumnName("remaining_trial_days_added");
+                entity.Property(e => e.TrialConvertedAtUtc)
+                    .HasColumnName("trial_converted_at_utc");
+            });
 
-                entity.HasOne(e => e.Tenant)
-                    .WithMany()
-                    .HasForeignKey(e => e.TenantId)
-                    .OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<LicenseKeyMapping>(entity =>
+            {
+                entity.ToTable("license_key_mappings");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.OldLicenseKey)
+                    .IsUnique()
+                    .HasDatabaseName("idx_license_key_mappings_old_license_key");
+                entity.HasIndex(e => e.NewLicenseKey)
+                    .HasDatabaseName("idx_license_key_mappings_new_license_key");
+                entity.Property(e => e.OldLicenseKey).HasMaxLength(100).IsRequired();
+                entity.Property(e => e.NewLicenseKey).HasMaxLength(100).IsRequired();
+                entity.Property(e => e.LicenseKind).HasMaxLength(16).IsRequired();
+                entity.Property(e => e.SourceTable).HasMaxLength(32).IsRequired();
+                entity.Property(e => e.CreatedAtUtc).IsRequired();
             });
 
             builder.Entity<Subscription>(entity =>
@@ -3735,6 +3818,11 @@ namespace KasseAPI_Final.Data
                     .HasColumnName("shift_number")
                     .HasDefaultValue(0);
                 entity.Property(e => e.ClosingType).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.DayKind)
+                    .HasColumnName("day_kind")
+                    .IsRequired()
+                    .HasMaxLength(20)
+                    .HasDefaultValue(DailyClosingDayKinds.Normal);
                 entity.Property(e => e.IsBackdated)
                     .HasColumnName("is_backdated")
                     .HasDefaultValue(false);

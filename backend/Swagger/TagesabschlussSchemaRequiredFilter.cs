@@ -30,13 +30,20 @@ public sealed class TagesabschlussSchemaRequiredFilter : ISchemaFilter
                 "totalTaxAmount",
                 "transactionCount",
                 "paymentsWithoutInvoiceCount",
-                "isBackdated");
+                "isBackdated",
+                "isEmpty");
             return;
         }
 
         if (context.Type == typeof(TagesabschlussCanCloseResponse))
         {
-            Require(openApiSchema, "canClose", "paymentsWithoutInvoiceCount", "isBackdated");
+            Require(
+                openApiSchema,
+                "canClose",
+                "paymentsWithoutInvoiceCount",
+                "isBackdated",
+                "transactionCount",
+                "isEmptyDay");
             return;
         }
 

@@ -1,6 +1,7 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Trial;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,6 +16,7 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
     private readonly ICashRegisterListEnrichmentService _enrichment;
     private readonly IPaymentMethodDefinitionBootstrapService _paymentMethodBootstrap;
     private readonly ITseProvisioningService _tseProvisioning;
+    private readonly ITrialLimitGuard _trialLimitGuard;
     private readonly ILogger<CashRegisterManagementService> _logger;
 
     public CashRegisterManagementService(
@@ -24,6 +26,7 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
         ICashRegisterListEnrichmentService enrichment,
         IPaymentMethodDefinitionBootstrapService paymentMethodBootstrap,
         ITseProvisioningService tseProvisioning,
+        ITrialLimitGuard trialLimitGuard,
         ILogger<CashRegisterManagementService> logger)
     {
         _db = db;
@@ -32,6 +35,7 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
         _enrichment = enrichment;
         _paymentMethodBootstrap = paymentMethodBootstrap;
         _tseProvisioning = tseProvisioning;
+        _trialLimitGuard = trialLimitGuard;
         _logger = logger;
     }
 
@@ -54,6 +58,9 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
             throw new ArgumentException("Location is required.", nameof(request));
 
         var tenantId = await ResolveTargetTenantIdAsync(request, actorIsSuperAdmin, cancellationToken)
+            .ConfigureAwait(false);
+
+        await _trialLimitGuard.EnsureCanCreateCashRegisterAsync(tenantId, cancellationToken)
             .ConfigureAwait(false);
 
         var exists = await _db.CashRegisters
@@ -136,7 +143,8 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
         query = ApplyExcludeStatusFilter(query, excludeStatus);
 
         var ordered = query
-            .OrderBy(r => r.Tenant != null ? r.Tenant.Name : string.Empty)
+            .OrderBy(r => r.Status == RegisterStatus.Open ? 0 : r.Status == RegisterStatus.Decommissioned ? 2 : 1)
+            .ThenBy(r => r.Tenant != null ? r.Tenant.Name : string.Empty)
             .ThenByDescending(r => r.IsDefaultForTenant)
             .ThenBy(r => r.RegisterNumber);
         var totalCount = await ordered.CountAsync(cancellationToken).ConfigureAwait(false);

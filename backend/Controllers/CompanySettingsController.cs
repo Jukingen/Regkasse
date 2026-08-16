@@ -120,7 +120,7 @@ namespace KasseAPI_Final.Controllers
                 settings.InvoiceNumbering = request.InvoiceNumbering;
                 settings.ReceiptNumbering = request.ReceiptNumbering;
                 settings.DefaultPaymentMethod = request.DefaultPaymentMethod;
-                // TODO: optional – tenant/branch restriction if multi-tenant; FinanzOnline config is typically tenant-wide.
+                // FinanzOnline credentials are tenant-wide CompanySettings (one row per mandant).
                 if (request.FinanzOnlineUsername != null)
                     settings.FinanzOnlineUsername = request.FinanzOnlineUsername;
                 if (request.FinanzOnlinePassword != null)

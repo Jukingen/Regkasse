@@ -15,6 +15,7 @@ $ports = @(
     @{Number=5184; Name="Backend API"},
     @{Number=8081; Name="POS Metro"},
     @{Number=3000; Name="Admin Panel"},
+    @{Number=3001; Name="Sites"},
     @{Number=6379; Name="Redis"}
 )
 
@@ -106,6 +107,18 @@ if ($foundPorts.Count -gt 0) {
             Write-Host "  redis-server (PID: $($_.Id)) sonlandiriliyor..."
             Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
             Write-Host "  [OK] redis-server kapatildi." -ForegroundColor Green
+        }
+
+        # Orphan Next.js / Expo workers (RAM leak; parent often already dead)
+        # PSScriptRoot = <repo>/scripts/legacy
+        $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+        Write-Host ""
+        Write-Host "  Orphan Next/Expo node workers temizleniyor (npm run dev:cleanup)..." -ForegroundColor Yellow
+        Push-Location $repoRoot
+        try {
+            npm run dev:cleanup
+        } finally {
+            Pop-Location
         }
         
         Write-Host ""

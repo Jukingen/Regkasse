@@ -75,6 +75,22 @@ describe('adminSidebarNavigation', () => {
     ]);
   });
 
+  it('maps Mein Konto aliases to sidebar leaves', () => {
+    const leaves = ['/tenant/portal', '/tenant/profile', '/tenant/invoices'];
+    expect(resolveAdminMenuSelectedKeys('/tenant/dashboard', leaves)).toEqual(['/tenant/portal']);
+    expect(resolveAdminMenuSelectedKeys('/profile', leaves)).toEqual(['/tenant/profile']);
+    expect(resolveAdminMenuSelectedKeys('/tenant/portal', leaves)).toEqual(['/tenant/portal']);
+  });
+
+  it('opens Mein Konto when visiting the portal or profile', () => {
+    expect(getNonRksvSidebarOpenGroupKeys('/tenant/portal')).toEqual(
+      expect.arrayContaining([ADMIN_SIDEBAR_GROUP_KEYS.license, ADMIN_SIDEBAR_GROUP_KEYS.myAccount])
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/profile')).toEqual(
+      expect.arrayContaining([ADMIN_SIDEBAR_GROUP_KEYS.license, ADMIN_SIDEBAR_GROUP_KEYS.myAccount])
+    );
+  });
+
   it('maps Sonderbelege focus query to virtual sidebar keys when present in selectable leaves', () => {
     const leaves = ['/rksv/sonderbelege', '/rksv/sb/startbeleg', '/rksv/sb/schlussbeleg'];
     expect(resolveAdminMenuSelectedKeys('/rksv/sonderbelege', leaves, 'focus=startbeleg')).toEqual([

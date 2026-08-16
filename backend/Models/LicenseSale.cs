@@ -99,6 +99,17 @@ public class LicenseSale : ITenantEntity
     [Column("extended_by_user_id")]
     public Guid? ExtendedByUserId { get; set; }
 
+    /// <summary>True when this sale was linked via trial → paid conversion.</summary>
+    [Column("converted_from_trial")]
+    public bool ConvertedFromTrial { get; set; }
+
+    /// <summary>Remaining trial calendar days appended to <see cref="ValidUntilUtc"/> at conversion (if any).</summary>
+    [Column("remaining_trial_days_added")]
+    public int? RemainingTrialDaysAdded { get; set; }
+
+    [Column("trial_converted_at_utc")]
+    public DateTime? TrialConvertedAtUtc { get; set; }
+
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

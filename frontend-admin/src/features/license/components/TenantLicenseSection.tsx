@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 
 import { LicenseExtendModal } from '@/features/license/components/LicenseExtendModal';
 import { LicenseHistory } from '@/features/license/components/LicenseHistory';
+import { UnifiedLicenseDetailDrawer } from '@/features/license/components/UnifiedLicenseDetailDrawer';
 import { useTenantLicenseDetail } from '@/features/license/hooks/useTenantLicenseDetail';
 import {
   getLicenseStatusLabel,
@@ -16,12 +17,13 @@ import {
   resolveTenantLicenseStatus,
 } from '@/features/license/utils/licenseStatus';
 import { maskTenantLicenseKey } from '@/features/license/utils/tenantLicenseExtend';
+import { formatLicenseValidUntil } from '@/features/license/utils/licenseValidUntil';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { useTenant } from '@/features/tenancy/providers/TenantProvider';
 import { FirmenInfo } from '@/features/tenants/components/FirmenInfo';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useTenantLicense } from '@/hooks/useTenantLicense';
-import { formatGermanDateTime, useI18n } from '@/i18n';
+import { useI18n } from '@/i18n';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
 const EXPIRING_SOON_THRESHOLD_DAYS = 7;
@@ -32,6 +34,7 @@ export function TenantLicenseSection() {
   const { tenant, isLoading: tenantLoading, error: tenantError } = useTenant();
   const { hasPermission } = usePermissions();
   const [extendOpen, setExtendOpen] = useState(false);
+  const [detailKey, setDetailKey] = useState<string | null>(null);
 
   const tenantId = currentTenant.tenantId ?? '';
   const isSuperAdmin = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
@@ -150,7 +153,7 @@ export function TenantLicenseSection() {
               </Descriptions.Item>
             ) : null}
             <Descriptions.Item label={t('license.mandant.validUntil')}>
-              {formatGermanDateTime(status.validUntilUtc)}
+              {formatLicenseValidUntil(status.validUntilUtc)}
             </Descriptions.Item>
             {resolvedStatus ? (
               <Descriptions.Item label={t('tenants.detail.license.remaining')}>
@@ -168,9 +171,16 @@ export function TenantLicenseSection() {
           />
         ) : null}
         <div style={{ marginTop: 16 }}>
-          <Button type="primary" onClick={() => setExtendOpen(true)}>
-            {t('license.mandant.extendButton')}
-          </Button>
+          <Space wrap>
+            <Button type="primary" onClick={() => setExtendOpen(true)}>
+              {t('license.mandant.extendButton')}
+            </Button>
+            {status?.licenseKey ? (
+              <Button onClick={() => setDetailKey(status.licenseKey ?? null)}>
+                {t('license.management.viewDetails')}
+              </Button>
+            ) : null}
+          </Space>
         </div>
       </Card>
 
@@ -181,6 +191,8 @@ export function TenantLicenseSection() {
         resolvedStatus={resolvedStatus}
         onClose={() => setExtendOpen(false)}
       />
+
+      <UnifiedLicenseDetailDrawer licenseKey={detailKey} onClose={() => setDetailKey(null)} />
 
       <LicenseHistory tenantId={tenantId} />
     </Space>

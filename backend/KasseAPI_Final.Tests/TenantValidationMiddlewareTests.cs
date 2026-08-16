@@ -51,6 +51,11 @@ public sealed class TenantValidationMiddlewareTests
     [InlineData("/api/auth/login")]
     [InlineData("/api/auth/refresh")]
     [InlineData("/api/auth/verify-2fa")]
+    [InlineData("/api/Auth/me")]
+    [InlineData("/api/auth/me")]
+    [InlineData("/api/auth/logout")]
+    [InlineData("/api/auth/forgot-password")]
+    [InlineData("/api/auth/forgot-username")]
     [InlineData("/api/csrf/token")]
     [InlineData("/api/health")]
     [InlineData("/api/health/live")]
@@ -81,6 +86,10 @@ public sealed class TenantValidationMiddlewareTests
     [InlineData("/api/admin/billing/license-sales")]
     [InlineData("/api/admin/billing/stats")]
     [InlineData("/api/admin/cache/clear")]
+    [InlineData("/api/admin/support/tickets/all")]
+    [InlineData("/api/admin/support/admin/tickets")]
+    [InlineData("/api/admin/trials")]
+    [InlineData("/api/admin/trials/analytics")]
     [InlineData("/api/tenants/switcher")]
     public async Task SuperAdmin_CanAccessPlatformPaths_WithoutAmbientTenant(string path)
     {

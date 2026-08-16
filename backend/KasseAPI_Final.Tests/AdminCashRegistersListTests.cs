@@ -46,6 +46,7 @@ public sealed class AdminCashRegistersListTests
             enrichment,
             new PaymentMethodDefinitionBootstrapService(db),
             TseProvisioningTestDoubles.Successful(),
+            Mock.Of<KasseAPI_Final.Services.Trial.ITrialLimitGuard>(),
             NullLogger<CashRegisterManagementService>.Instance);
 
         var controller = new AdminCashRegistersController(

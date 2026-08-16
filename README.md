@@ -16,13 +16,15 @@ RKSV-compliant multi-tenant POS platform for Austrian cash registers (Registrier
 Regkasse is an npm-workspace monorepo for:
 
 - **POS** — cashier operations (cart, payment, receipts, offline queues); UI copy in **German (de-DE)**
-- **Admin (FA)** — Mandanten-Admin and Super Admin back office (users, RKSV, backup, billing, digital services); **i18n de/en/tr**
+- **Admin (FA)** — Mandanten-Admin and Super Admin back office (users, RKSV, backup, billing, trials, self-service portal, support tickets, digital services); **i18n de/en/tr**
 - **Tenant websites** — shared Next.js storefronts and online-order intake (`frontend-sites`; not fiscal POS)
 - **API** — ASP.NET Core multi-tenant backend with RKSV/TSE, FinanzOnline outbox, backup/DR, and licensing
 
 **Single POS UI:** production POS is one shared host (`pos.regkasse.at`); tenant comes from JWT `tenant_id` after login — not `{slug}.regkasse.at` as the POS entry point. See [`docs/POS_PRODUCTION_ARCHITECTURE.md`](docs/POS_PRODUCTION_ARCHITECTURE.md).
 
-**Boundaries:** POS → `/api/pos/*`; Admin → `/api/admin/*`; Sites → `/api/public/*` + `/api/sites/*`. Cross-tenant access returns **HTTP 404**.
+**Boundaries:** POS → `/api/pos/*`; Admin → `/api/admin/*`; Sites → `/api/public/*` + `/api/sites/*`. Cross-tenant access returns **HTTP 404**. Removed aliases `/api/Payment|/api/Cart|/api/Product` (use `/api/pos/*`).
+
+**SaaS extras:** Super Admin trial dashboard (`/admin/trials`); Mandanten-Admin self-service hub Mein Konto (`/tenant/portal` — license, invoices, profile, support tickets). Unified license keys: `REGK-yyyyMMdd-{slug}-{8}`.
 
 **Windows?** Prefer [`scripts/dev/start.bat`](scripts/dev/start.bat) (Legacy or Docker) — [`docs/DOCKER_VS_LEGACY.md`](docs/DOCKER_VS_LEGACY.md) · [`docs/GETTING_STARTED_SCRIPTS.md`](docs/GETTING_STARTED_SCRIPTS.md) · [`docs/SCRIPTS_REFERENCE.md`](docs/SCRIPTS_REFERENCE.md).
 
@@ -59,7 +61,9 @@ cd ..
 ### Run everything
 
 ```bash
-npm run dev                 # parallel: API + POS + Admin + Sites
+npm run dev                 # parallel RAM-safe: API + Admin (cleanup orphans first)
+npm run dev:all             # parallel full: API + Admin + POS + Sites
+npm run dev:cleanup         # kill orphan Next/Expo node workers (RAM leak)
 ```
 
 **Windows modes** (pick one):
@@ -163,7 +167,8 @@ Host processes (separate windows). Needs Node, .NET, Postgres, Redis on the mach
 
 | Script | Description |
 |--------|-------------|
-| `scripts\dev\start-dev.bat` | Start API + Admin + POS + Sites (`npm run dev`) in one terminal |
+| `scripts\dev\start-dev.bat` | Start API + Admin (`npm run dev`) in one terminal — RAM-safe default |
+| `scripts\dev\start-dev-all.bat` | Start API + Admin + POS + Sites (`npm run dev:all`) |
 | `scripts\dev\start-backend.bat` / `start-admin.bat` / `start-pos.bat` / `start-sites.bat` | Single surface (`:5184` / `:3000` / `:8081` / `:3001`) |
 | `scripts\test\test-all.bat` | Backend → Admin → POS tests (sequential; stops on first failure) |
 | `scripts\dev\clean-all.DANGER.bat` | Confirm + remove build artifacts (`bin` / `obj` / `.next` / `.expo` / …) |
@@ -269,7 +274,7 @@ Day-to-day coding with hot reload on the host:
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d   # or: just docker-up-dev
-npm run dev
+npm run dev          # API + Admin (default). Full stack: npm run dev:all
 ```
 
 Configure backend connection to `localhost:5432` and Redis `localhost:6379` (user-secrets / `appsettings.Development.json`).

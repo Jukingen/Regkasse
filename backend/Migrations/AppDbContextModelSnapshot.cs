@@ -2871,6 +2871,14 @@ namespace KasseAPI_Final.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("DayKind")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("normal")
+                        .HasColumnName("day_kind");
+
                     b.Property<string>("Environment")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");

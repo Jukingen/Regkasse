@@ -175,6 +175,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/settings/development-mode': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/system/time-sync': PERMISSIONS.SETTINGS_MANAGE,
   '/admin/license': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SETTINGS_MANAGE],
+  '/admin/license-management': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SETTINGS_MANAGE],
   '/license': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.LICENSE_VIEW, PERMISSIONS.SETTINGS_VIEW],
   '/license/dashboard': [
     PERMISSIONS.LICENSE_MANAGE,
@@ -192,6 +193,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/tenants': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/tenants/create': PERMISSIONS.SYSTEM_CRITICAL,
+  '/admin/trials': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/approvals': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/maintenance': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/feature-flags': PERMISSIONS.SYSTEM_CRITICAL,
@@ -217,7 +219,13 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   /** Sale detail (`/admin/billing/sales/{id}`) — longest-prefix match via `/admin/billing/sales`. */
   '/admin/billing/stats': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/communication/bulk-email': [PERMISSIONS.SYSTEM_CRITICAL],
-  '/tenant/dashboard': [PERMISSIONS.LICENSE_VIEW, PERMISSIONS.SYSTEM_CRITICAL],
+  '/tenant/dashboard': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  '/tenant/portal': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  '/tenant/invoices': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  '/tenant/support': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  '/tenant/license': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  '/tenant/profile': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/support': [PERMISSIONS.SYSTEM_CRITICAL],
   '/billing/digital': [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/digital': [
     PERMISSIONS.DIGITAL_MANAGE,

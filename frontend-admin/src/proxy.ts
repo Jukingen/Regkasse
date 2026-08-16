@@ -5,7 +5,7 @@ import {
   VOLUNTARY_CHANGE_PASSWORD_PATH,
 } from '@/features/auth/constants/changePasswordRoute';
 
-/** Same name as client `authStorage` access key so HttpOnly migration stays aligned. */
+/** Same name as client `authStorage.ACCESS_TOKEN_COOKIE_NAME` / localStorage key. */
 export const ACCESS_TOKEN_COOKIE = 'rk_admin_access_token';
 
 const PUBLIC_PATHS = new Set([
@@ -65,7 +65,15 @@ function getRawToken(request: NextRequest): string | null {
   }
   const fromCookie = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
   if (fromCookie) {
-    const t = stripBearer(fromCookie);
+    // Prefer value as returned by Next (already decoded). Fall back if still percent-encoded.
+    let t = stripBearer(fromCookie);
+    if (t.includes('%2') || t.includes('%3')) {
+      try {
+        t = stripBearer(decodeURIComponent(t));
+      } catch {
+        // keep stripBearer(fromCookie)
+      }
+    }
     if (t) return t;
   }
   return null;

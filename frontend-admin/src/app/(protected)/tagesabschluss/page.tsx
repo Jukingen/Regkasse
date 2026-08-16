@@ -56,6 +56,11 @@ import {
 } from '@/features/reports/api/reportPdfApi';
 import { buildReportFileName } from '@/features/reports/utils/reportExportFileName';
 import { downloadClosingReportPdf } from '@/features/tagesabschluss/downloadClosingReportPdf';
+import {
+  filterHistoryByDayKind,
+  isEmptyDailyClosing,
+  type HistoryDayKindFilter,
+} from '@/features/tagesabschluss/dayKind';
 import { getTagesabschlussUserFacingError } from '@/features/tagesabschluss/tagesabschlussApiErrors';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useCashRegisterSelection } from '@/hooks/useCashRegisterSelection';
@@ -86,6 +91,8 @@ type ExtendedCanCloseResponse = TagesabschlussCanCloseResponse & {
   lastClosingPerformedAt?: string | null;
   lastMonthlyClosingPerformedAt?: string | null;
   lastYearlyClosingPerformedAt?: string | null;
+  transactionCount?: number;
+  isEmptyDay?: boolean;
 };
 
 function viennaTodayDayjs(): Dayjs {
@@ -212,6 +219,7 @@ export default function TagesabschlussPage() {
     BackdatedReasonPreset | undefined
   >(undefined);
   const [customBackdatedReason, setCustomBackdatedReason] = useState('');
+  const [historyDayKindFilter, setHistoryDayKindFilter] = useState<HistoryDayKindFilter>('all');
   const viennaToday = useMemo(() => viennaTodayDayjs(), []);
   const isBackdatedClosing = closingDay.isBefore(viennaToday, 'day');
   const closingDayLabel = formatDateTime(closingDay.startOf('day').toDate(), formatLocale, {
@@ -298,6 +306,10 @@ export default function TagesabschlussPage() {
     query: { enabled: registerIdValid },
   });
   const historyRows: TagesabschlussResult[] = historyQuery.data ?? [];
+  const filteredHistoryRows = useMemo(
+    () => filterHistoryByDayKind(historyRows, historyDayKindFilter),
+    [historyRows, historyDayKindFilter]
+  );
 
   const statsQuery = useGetApiTagesabschlussStatistics(statsParams, {
     query: { enabled: registerIdValid },
@@ -314,6 +326,7 @@ export default function TagesabschlussPage() {
   const canClose: ExtendedCanCloseResponse | undefined = canCloseQuery.data;
   const canCloseMonthly = canClose?.canCloseMonthly === true;
   const canCloseYearly = canClose?.canCloseYearly === true;
+  const isEmptyDay = canClose?.isEmptyDay === true || (canClose?.canClose === true && (canClose?.transactionCount ?? -1) === 0);
 
   const downloadPdf = useCallback(
     async (
@@ -369,9 +382,11 @@ export default function TagesabschlussPage() {
           { dateStyle: 'short' }
         );
         message.success(
-          result?.isBackdated
-            ? t('tagesabschluss.messages.successDailyBackdated', { date: dateLabel })
-            : t('tagesabschluss.messages.successDaily')
+          result?.isEmpty
+            ? t('tagesabschluss.emptyDaySuccess')
+            : result?.isBackdated
+              ? t('tagesabschluss.messages.successDailyBackdated', { date: dateLabel })
+              : t('tagesabschluss.normalDaySuccess', { count: result?.transactionCount ?? 0 })
         );
         await invalidateTagesabschluss();
         const closingId = result?.closingId?.trim();
@@ -514,12 +529,17 @@ export default function TagesabschlussPage() {
         : kind === 'monthly'
           ? t('tagesabschluss.actions.modalTitleMonthly')
           : t('tagesabschluss.actions.modalTitleYearly');
+    const modalContent =
+      kind === 'daily' && isEmptyDay && isBackdatedClosing
+        ? `${t('tagesabschluss.emptyDayConfirm')} ${t('tagesabschluss.actions.modalContentBackdated', { date: closingDayLabel })}`
+        : kind === 'daily' && isEmptyDay
+          ? t('tagesabschluss.emptyDayConfirm')
+          : kind === 'daily' && isBackdatedClosing
+            ? t('tagesabschluss.actions.modalContentBackdated', { date: closingDayLabel })
+            : t('tagesabschluss.actions.modalContent');
     modal.confirm({
       title: modalTitle,
-      content:
-        kind === 'daily' && isBackdatedClosing
-          ? t('tagesabschluss.actions.modalContentBackdated', { date: closingDayLabel })
-          : t('tagesabschluss.actions.modalContent'),
+      content: modalContent,
       okText: t('tagesabschluss.actions.modalOk'),
       cancelText: t('tagesabschluss.actions.modalCancel'),
       okButtonProps: { danger: kind !== 'daily' },
@@ -587,11 +607,20 @@ export default function TagesabschlussPage() {
         },
       },
       {
-        title: t('tagesabschluss.history.colType'),
+        title: t('tagesabschluss.type'),
         dataIndex: 'closingType',
         key: 'closingType',
-        width: 100,
-        render: (v: string | null | undefined) => closingTypeLabel(v),
+        width: 180,
+        render: (v: string | null | undefined, row: TagesabschlussResult) => (
+          <Space size={4} wrap>
+            <span>{closingTypeLabel(v)}</span>
+            {v === 'Daily' || isEmptyDailyClosing(row) ? (
+              <Tag color={isEmptyDailyClosing(row) ? 'purple' : 'success'} variant="filled">
+                {isEmptyDailyClosing(row) ? t('tagesabschluss.typeEmpty') : t('tagesabschluss.typeNormal')}
+              </Tag>
+            ) : null}
+          </Space>
+        ),
       },
       {
         title: t('tagesabschluss.history.colLateReason'),
@@ -825,6 +854,11 @@ export default function TagesabschlussPage() {
                   maximumFractionDigits: 0,
                 })}
               </Descriptions.Item>
+              <Descriptions.Item label={t('tagesabschluss.check.transactionCount')}>
+                {formatNumber(canClose?.transactionCount ?? 0, formatLocale, {
+                  maximumFractionDigits: 0,
+                })}
+              </Descriptions.Item>
               <Descriptions.Item label={t('tagesabschluss.check.hint')}>
                 {canClose?.message?.trim() ? (
                   <BackendRawTextBlock
@@ -946,6 +980,9 @@ export default function TagesabschlussPage() {
                   />
                 </>
               ) : null}
+              {canClose?.canClose && isEmptyDay ? (
+                <Alert type="info" showIcon title={t('tagesabschluss.emptyDayWarning')} />
+              ) : null}
               <Space wrap>
                 <Button
                   type="primary"
@@ -1049,7 +1086,22 @@ export default function TagesabschlussPage() {
             )}
           </Col>
           <Col xs={24} lg={24}>
-            <Title level={5}>{t('tagesabschluss.history.sectionTitle')}</Title>
+            <Space wrap style={{ marginBottom: 12, justifyContent: 'space-between', width: '100%' }}>
+              <Title level={5} style={{ margin: 0 }}>
+                {t('tagesabschluss.history.sectionTitle')}
+              </Title>
+              <Select
+                size="small"
+                style={{ minWidth: 140 }}
+                value={historyDayKindFilter}
+                onChange={(next: HistoryDayKindFilter) => setHistoryDayKindFilter(next)}
+                options={[
+                  { value: 'all', label: t('tagesabschluss.history.filterAll') },
+                  { value: 'normal', label: t('tagesabschluss.history.filterNormal') },
+                  { value: 'empty', label: t('tagesabschluss.history.filterEmpty') },
+                ]}
+              />
+            </Space>
             {dataBlockedHint ? (
               <Empty description={dataBlockedHint} />
             ) : historyQuery.isLoading ? (
@@ -1072,7 +1124,7 @@ export default function TagesabschlussPage() {
                 size="small"
                 pagination={{ pageSize: 10 }}
                 columns={historyColumns}
-                dataSource={historyRows}
+                dataSource={filteredHistoryRows}
               />
             )}
           </Col>

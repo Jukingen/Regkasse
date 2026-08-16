@@ -36,13 +36,16 @@ public sealed class TenantLicenseService : ITenantLicenseService
                 new IssuedLicenseResolveResult(null, "invalid_key", "licenseKey is required.")), null);
         }
 
-        if (!isSuperAdmin)
+        if (!isSuperAdmin || LicenseKeyGenerator.IsMandantBillingKey(licenseKey))
         {
             var billingResolved = await ResolveBillingLicenseSaleForKeyAsync(tenantId, licenseKey, cancellationToken)
                 .ConfigureAwait(false);
-            return billingResolved.ErrorCode == null
-                ? (TenantLicensePreviewHelper.BuildValidPreview(billingResolved.Sale!), null)
-                : (TenantLicensePreviewHelper.BuildInvalidPreview(billingResolved), null);
+            if (!isSuperAdmin || billingResolved.ErrorCode == null)
+            {
+                return billingResolved.ErrorCode == null
+                    ? (TenantLicensePreviewHelper.BuildValidPreview(billingResolved.Sale!), null)
+                    : (TenantLicensePreviewHelper.BuildInvalidPreview(billingResolved), null);
+            }
         }
 
         var resolved = await ResolveIssuedLicenseForKeyAsync(
@@ -63,7 +66,9 @@ public sealed class TenantLicenseService : ITenantLicenseService
         CancellationToken cancellationToken = default)
     {
         var key = licenseKey.Trim();
-        if (!_licenseKeyGenerator.ValidateLicenseKeyFormat(key))
+        if (!_licenseKeyGenerator.ValidateLicenseKeyFormat(key)
+            && !_licenseKeyGenerator.ValidateLicenseKeyFormat(
+                await ResolveCanonicalLicenseKeyAsync(key, cancellationToken).ConfigureAwait(false)))
         {
             return new BillingLicenseSaleResolveResult(
                 null,
@@ -71,10 +76,11 @@ public sealed class TenantLicenseService : ITenantLicenseService
                 LicenseKeyGenerator.InvalidFormatMessage);
         }
 
+        var lookupKey = await ResolveCanonicalLicenseKeyAsync(key, cancellationToken).ConfigureAwait(false);
         var sale = await _db.LicenseSales
             .IgnoreQueryFilters()
             .AsNoTracking()
-            .Where(s => s.LicenseKey == key)
+            .Where(s => s.LicenseKey == lookupKey || s.LicenseKey == key)
             .OrderByDescending(s => s.SoldAtUtc)
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -121,7 +127,9 @@ public sealed class TenantLicenseService : ITenantLicenseService
         CancellationToken cancellationToken = default)
     {
         var key = licenseKey.Trim();
-        if (!RegkTenantLicenseKeyFormat.IsValid(key))
+        var lookupKey = await ResolveCanonicalLicenseKeyAsync(key, cancellationToken).ConfigureAwait(false);
+        if (!LicenseKeyGenerator.IsDeploymentLicenseKey(key)
+            && !LicenseKeyGenerator.IsDeploymentLicenseKey(lookupKey))
         {
             return new IssuedLicenseResolveResult(
                 null,
@@ -131,7 +139,9 @@ public sealed class TenantLicenseService : ITenantLicenseService
 
         var now = DateTime.UtcNow;
         var issued = await _db.IssuedLicenses.AsNoTracking()
-            .Where(il => il.LicenseKey == key && !il.IsDeleted && !il.IsRevoked && !il.IsCancelled && il.SupersededByLicenseId == null)
+            .Where(il =>
+                (il.LicenseKey == lookupKey || il.LicenseKey == key)
+                && !il.IsDeleted && !il.IsRevoked && !il.IsCancelled && il.SupersededByLicenseId == null)
             .OrderByDescending(il => il.IssuedAtUtc)
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -162,7 +172,7 @@ public sealed class TenantLicenseService : ITenantLicenseService
         var assignedToOtherTenant = await _db.Tenants.AsNoTracking()
             .AnyAsync(
                 t => t.Id != tenantId
-                     && t.LicenseKey == key
+                     && (t.LicenseKey == key || t.LicenseKey == lookupKey)
                      && !TenantStatuses.RemovedStatuses.Contains(t.Status)
                      && (t.LicenseValidUntilUtc == null || t.LicenseValidUntilUtc > now),
                 cancellationToken)
@@ -176,5 +186,16 @@ public sealed class TenantLicenseService : ITenantLicenseService
         }
 
         return new IssuedLicenseResolveResult(issued, null, null);
+    }
+
+    private async Task<string> ResolveCanonicalLicenseKeyAsync(string licenseKey, CancellationToken cancellationToken)
+    {
+        var trimmed = licenseKey.Trim();
+        var mapped = await _db.LicenseKeyMappings.AsNoTracking()
+            .Where(m => m.OldLicenseKey == trimmed || m.NewLicenseKey == trimmed)
+            .Select(m => m.NewLicenseKey)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return string.IsNullOrEmpty(mapped) ? trimmed : mapped;
     }
 }

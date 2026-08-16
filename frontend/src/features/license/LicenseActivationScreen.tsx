@@ -19,17 +19,9 @@ import { handleLicenseRenewal, LICENSE_SUPPORT_EMAIL } from '../../../constants/
 import { useLicenseStatus } from '../../../hooks/useLicenseStatus';
 import { formatUserDateTime } from '../../../utils/dateFormatter';
 import { preferLicenseHoursRemaining } from '../../../utils/licenseExpiryRemaining';
+import { isValidPosLicenseKey, sanitizeLicenseKeyInput } from '../../../utils/licenseKeyFormat';
 
 import { adminRedirector } from '@/src/features/admin-navigation/openAdmin';
-
-const LICENSE_KEY_PATTERN = /^REGK-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$/i;
-
-function sanitizeLicenseKeyInput(raw: string): string {
-  return raw
-    .toUpperCase()
-    .replace(/[^A-Z0-9-]/g, '')
-    .slice(0, 22);
-}
 
 type ApiErrorShape = { status?: number; data?: { message?: string; Message?: string } };
 
@@ -120,7 +112,7 @@ export default function LicenseActivationScreen() {
   const onActivate = useCallback(async () => {
     setFeedback(null);
     const trimmed = licenseKey.trim().toUpperCase();
-    if (!LICENSE_KEY_PATTERN.test(trimmed)) {
+    if (!isValidPosLicenseKey(trimmed)) {
       setFeedback({ kind: 'error', text: t('license:activationInvalidFormat') });
       return;
     }

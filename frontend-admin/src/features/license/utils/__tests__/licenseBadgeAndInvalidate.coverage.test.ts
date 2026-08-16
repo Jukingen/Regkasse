@@ -73,6 +73,9 @@ describe('invalidateTenantLicenseQueries', () => {
     await invalidateTenantLicenseQueries(queryClient, 'tenant-1');
     expect(invalidateQueries.mock.calls.length).toBeGreaterThan(5);
     expect(refetchQueries.mock.calls.length).toBeGreaterThan(2);
+    expect(invalidateQueries.mock.calls.some((call) => call[0]?.queryKey?.[0] === 'license')).toBe(
+      true
+    );
 
     await invalidateTenantLicenseQueries(queryClient, null);
     expect(invalidateQueries).toHaveBeenCalled();

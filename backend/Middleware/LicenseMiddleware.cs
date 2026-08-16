@@ -360,14 +360,17 @@ namespace KasseAPI_Final.Middleware
         {
             var value = path.Value ?? string.Empty;
             return value.StartsWith("/api/auth/", StringComparison.OrdinalIgnoreCase)
-                || value.Equals("/api/license/activate", StringComparison.OrdinalIgnoreCase);
+                || value.Equals("/api/license/activate", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/license/validate", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsDeploymentLockdownAllowedPath(PathString path)
         {
             var value = path.Value ?? string.Empty;
             return value.StartsWith("/api/health", StringComparison.OrdinalIgnoreCase)
-                || value.Equals("/api/license/activate", StringComparison.OrdinalIgnoreCase);
+                || value.Equals("/api/license/activate", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/license/validate", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/license/info", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>Maps snapshot to the public header token (Valid / Trial / Expired / None).</summary>

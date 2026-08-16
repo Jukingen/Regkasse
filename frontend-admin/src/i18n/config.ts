@@ -76,7 +76,9 @@ import deSuperadmin from './locales/de/superadmin.json';
 import deSuspiciousAlerts from './locales/de/suspiciousAlerts.json';
 import deTagesabschluss from './locales/de/tagesabschluss.json';
 import deTenants from './locales/de/tenants.json';
+import deTrials from './locales/de/trials.json';
 import deTenantPortal from './locales/de/tenantPortal.json';
+import deSupport from './locales/de/support.json';
 import deTimeSync from './locales/de/timeSync.json';
 import deUsers from './locales/de/users.json';
 import deVouchers from './locales/de/vouchers.json';
@@ -158,7 +160,9 @@ import enSuperadmin from './locales/en/superadmin.json';
 import enSuspiciousAlerts from './locales/en/suspiciousAlerts.json';
 import enTagesabschluss from './locales/en/tagesabschluss.json';
 import enTenants from './locales/en/tenants.json';
+import enTrials from './locales/en/trials.json';
 import enTenantPortal from './locales/en/tenantPortal.json';
+import enSupport from './locales/en/support.json';
 import enTimeSync from './locales/en/timeSync.json';
 import enUsers from './locales/en/users.json';
 import enVouchers from './locales/en/vouchers.json';
@@ -240,7 +244,9 @@ import trSuperadmin from './locales/tr/superadmin.json';
 import trSuspiciousAlerts from './locales/tr/suspiciousAlerts.json';
 import trTagesabschluss from './locales/tr/tagesabschluss.json';
 import trTenants from './locales/tr/tenants.json';
+import trTrials from './locales/tr/trials.json';
 import trTenantPortal from './locales/tr/tenantPortal.json';
+import trSupport from './locales/tr/support.json';
 import trTimeSync from './locales/tr/timeSync.json';
 import trUsers from './locales/tr/users.json';
 import trVouchers from './locales/tr/vouchers.json';
@@ -323,7 +329,9 @@ const catalogs = {
     fiscalExportAudit: deFiscalExportAudit,
     developmentMode: deDevelopmentMode,
     tenants: deTenants,
+    trials: deTrials,
     tenantPortal: deTenantPortal,
+    support: deSupport,
     superadmin: deSuperadmin,
     dashboard: deDashboard,
     cashRegisters: deCashRegisters,
@@ -407,7 +415,9 @@ const catalogs = {
     fiscalExportAudit: enFiscalExportAudit,
     developmentMode: enDevelopmentMode,
     tenants: enTenants,
+    trials: enTrials,
     tenantPortal: enTenantPortal,
+    support: enSupport,
     superadmin: enSuperadmin,
     dashboard: enDashboard,
     cashRegisters: enCashRegisters,
@@ -491,7 +501,9 @@ const catalogs = {
     fiscalExportAudit: trFiscalExportAudit,
     developmentMode: trDevelopmentMode,
     tenants: trTenants,
+    trials: trTrials,
     tenantPortal: trTenantPortal,
+    support: trSupport,
     superadmin: trSuperadmin,
     dashboard: trDashboard,
     cashRegisters: trCashRegisters,

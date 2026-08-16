@@ -145,8 +145,8 @@ export const MENU_AREA_PRIMARY_PATH: Record<MenuAreaKey, string> = {
   digitalServices: '/settings/digital',
   tenants: '/admin/tenants',
   users: '/admin/users',
-  license: '/admin/licenses',
-  billing: '/admin/billing',
+  license: '/admin/license-management',
+  billing: '/admin/billing/sales',
 };
 
 const PATH_TO_MENU_AREA: ReadonlyMap<string, MenuAreaKey> = new Map(

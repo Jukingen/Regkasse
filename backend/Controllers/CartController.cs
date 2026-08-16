@@ -14,20 +14,11 @@ namespace KasseAPI_Final.Controllers
 {
     /// <summary>
     /// POS cart handlers. Canonical route: <c>api/pos/cart/*</c>.
-    /// Legacy alias <c>api/Cart/*</c> maps to the same actions; deprecation headers via <see cref="LegacyRouteDeprecationFilter"/>.
-    /// Drop the <c>api/Cart</c> route when metrics show zero legacy traffic (and FA generated clients are migrated).
-    /// New cart features go on these shared actions (canonical <c>/api/pos/cart</c>), never legacy-only. Sunset: 2026-09-30.
+    /// Legacy alias <c>/api/Cart/*</c> was removed (2026-08-13); clients must use this prefix only.
     /// </summary>
-    [Obsolete(
-        "Legacy HTTP alias /api/Cart/* is deprecated; clients must call /api/pos/cart/*. " +
-        "This type still hosts the canonical /api/pos/cart routes (dual [Route]). " +
-        "Do not add new endpoints that exist only on the legacy prefix. Sunset: 2026-09-30.",
-        error: false)]
     [HasPermission(AppPermissions.CartManage)]
     [ApiController]
-    [Route("api/[controller]")]
     [Route("api/pos/cart")]
-    [ServiceFilter(typeof(LegacyRouteDeprecationFilter))]
     public class CartController : ControllerBase
     {
         private readonly AppDbContext _context;

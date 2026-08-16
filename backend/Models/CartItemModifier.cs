@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace KasseAPI_Final.Models
 {
     /// <summary>
-    /// Phase 2 deprecated: Legacy persisted modifier per cart line. Read-only for existing carts; new add-ons are separate CartItem lines (flat product-only). TODO: Remove after migration and cart simplification.
+    /// Phase 2 deprecated: persisted modifier per cart line. Read-only for existing carts; new add-ons are separate CartItem lines. Keep until historical carts are gone.
     /// </summary>
     [Table("cart_item_modifiers")]
     public class CartItemModifier

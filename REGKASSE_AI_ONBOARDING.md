@@ -240,7 +240,7 @@ curl -H "X-Tenant-Id: dev" http://localhost:5184/api/health
 # Tenant-scoped payments (requires JWT); canonical routes:
 curl -H "X-Tenant-Id: dev" -H "Authorization: Bearer <token>" \
   "http://localhost:5184/api/admin/payments?page=1&pageSize=5"
-# POS: /api/pos/payment*  (legacy alias families may still answer on /api/Payment*)
+# POS: /api/pos/payment*  (do not call removed /api/Payment*)
 ```
 
 #### Option 2: Query string
@@ -1076,7 +1076,7 @@ Key endpoint groups:
 - `/api/pos/payment/methods`
 - `/api/pos/payment/{id}`
 
-Legacy `/api/Payment` may exist, but prefer `/api/pos/*` for POS behavior.
+Use `/api/pos/*` for POS behavior. Removed aliases `/api/Payment|/api/Cart|/api/Product` return 404.
 
 ### Receipts
 

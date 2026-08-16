@@ -46,6 +46,7 @@ import {
 } from '@/features/super-admin/api/adminTenants';
 import { ImpersonationRedirectOverlay } from '@/features/super-admin/components/ImpersonationRedirectOverlay';
 import { TenantLicenseBadge } from '@/features/super-admin/components/TenantLicenseBadge';
+import { TenantTrialBadge } from '@/features/super-admin/components/TenantTrialBadge';
 import { TenantStatusBadge } from '@/features/super-admin/components/TenantStatusBadge';
 import { TenantTableActions } from '@/features/super-admin/components/TenantTableActions';
 import { useCanManageTenantDeletion } from '@/features/super-admin/hooks/useCanManageTenantDeletion';
@@ -297,10 +298,16 @@ export function TenantsTable() {
         title: t('tenants.columns.license'),
         key: 'license',
         render: (_, record) => (
-          <TenantLicenseBadge
-            licenseValidUntilUtc={record.licenseValidUntilUtc}
-            licenseKey={record.licenseKey}
-          />
+          <Space size={4} wrap>
+            <TenantTrialBadge
+              trialStatus={record.trialStatus}
+              trialDaysRemaining={record.trialDaysRemaining}
+            />
+            <TenantLicenseBadge
+              licenseValidUntilUtc={record.licenseValidUntilUtc}
+              licenseKey={record.licenseKey}
+            />
+          </Space>
         ),
       },
       {

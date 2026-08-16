@@ -12,7 +12,7 @@ namespace KasseAPI_Final.Middleware;
 /// Exemptions:
 /// </para>
 /// <list type="bullet">
-/// <item><description>PublicPaths — unauthenticated / pre-login surfaces.</description></item>
+/// <item><description>PublicPaths — unauthenticated / identity surfaces (<c>/api/auth/*</c>, health, swagger).</description></item>
 /// <item><description>SuperAdminPlatformPathPrefixes — <strong>only when</strong> the caller is
 /// authenticated SuperAdmin. These routes target tenants by route/body id (or are deployment-wide),
 /// not by ambient mandant. Non–SuperAdmin callers still need ambient tenant.</description></item>
@@ -23,12 +23,13 @@ public class TenantValidationMiddleware
     private readonly RequestDelegate _next;
     private readonly ILogger<TenantValidationMiddleware> _logger;
 
-    // Public endpoints that don't require tenant context (platform hosts leave ambient unset until JWT).
+    // Public / identity endpoints that don't require ambient mandant (platform hosts leave
+    // tenant unset until JWT bind). Prefix `/api/auth/` covers login, refresh, 2FA, GET /me,
+    // logout, and forgot-* so FA bootstrap is not 404'd when JWT tenant_id is missing or
+    // still unbound. Trailing slash keeps this segment-safe (`/api/authfoo` does not match).
     private static readonly HashSet<string> PublicPaths = new(StringComparer.OrdinalIgnoreCase)
     {
-        "/api/auth/login",
-        "/api/auth/refresh",
-        "/api/auth/verify-2fa",
+        "/api/auth/",
         "/api/csrf",
         "/api/health",
         "/api/public",
@@ -47,6 +48,8 @@ public class TenantValidationMiddleware
     /// <item><description><c>/api/admin/tenants</c> — SaaS tenant CRUD + impersonate; target = route <c>tenantId</c>.</description></item>
     /// <item><description><c>/api/admin/billing</c> — license sales (SystemCritical); target tenant in body/route.</description></item>
     /// <item><description><c>/api/admin/cache</c> — deployment/tenant cache clear; optional body tenantId.</description></item>
+    /// <item><description><c>/api/admin/support</c> — Super Admin ticket inbox (all tenants).</description></item>
+    /// <item><description><c>/api/admin/trials</c> — SaaS trial dashboard / conversion (SystemCritical).</description></item>
     /// </list>
     /// Exact path <c>/api/tenants/switcher</c> is also exempt for SuperAdmin (membership-wide list;
     /// <c>/api/tenants/current</c> still requires ambient).
@@ -56,6 +59,8 @@ public class TenantValidationMiddleware
         "/api/admin/tenants",
         "/api/admin/billing",
         "/api/admin/cache",
+        "/api/admin/support",
+        "/api/admin/trials",
     ];
 
     private static readonly string[] SuperAdminExactExemptPaths =

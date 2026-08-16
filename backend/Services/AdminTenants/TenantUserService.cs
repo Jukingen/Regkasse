@@ -5,6 +5,7 @@ using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services.Activity;
+using KasseAPI_Final.Services.Trial;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -45,6 +46,7 @@ public sealed class TenantUserService : ITenantUserService
     private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly ActivityEventRecorder _activityEvents;
     private readonly IUserRoleChangeService _userRoleChangeService;
+    private readonly ITrialLimitGuard _trialLimitGuard;
     private readonly ILogger<TenantUserService> _logger;
 
     public TenantUserService(
@@ -60,6 +62,7 @@ public sealed class TenantUserService : ITenantUserService
         ICurrentTenantAccessor tenantAccessor,
         ActivityEventRecorder activityEvents,
         IUserRoleChangeService userRoleChangeService,
+        ITrialLimitGuard trialLimitGuard,
         ILogger<TenantUserService> logger)
     {
         _db = db;
@@ -74,6 +77,7 @@ public sealed class TenantUserService : ITenantUserService
         _tenantAccessor = tenantAccessor;
         _activityEvents = activityEvents;
         _userRoleChangeService = userRoleChangeService;
+        _trialLimitGuard = trialLimitGuard;
         _logger = logger;
     }
 
@@ -230,6 +234,15 @@ public sealed class TenantUserService : ITenantUserService
             .ConfigureAwait(false);
         if (tenant == null)
             return (null, "Tenant not found.");
+
+        try
+        {
+            await _trialLimitGuard.EnsureCanCreateUserAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        }
+        catch (TrialLimitExceededException ex)
+        {
+            return (null, $"{TrialLimitExceededException.ErrorCodeValue}: {ex.Message}");
+        }
 
         if (string.IsNullOrEmpty(email))
             return (null, "Email is required.");

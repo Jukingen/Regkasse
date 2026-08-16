@@ -58,7 +58,7 @@ jobs:
         working-directory: backend
         run: dotnet build KasseAPI_Final.sln --configuration Release --no-restore
 
-      - name: Test
+      - name: Test with coverage
         working-directory: backend
         run: >-
           dotnet test KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj
@@ -66,6 +66,17 @@ jobs:
           --no-build
           --filter "Category!=PostgreSql"
           --verbosity minimal
+          --collect:"XPlat Code Coverage"
+          --results-directory ./TestResults
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-unit-coverage
+          path: backend/TestResults
+          if-no-files-found: ignore
+          retention-days: 14
 
   notify-failure:
     name: Notify on failure

@@ -49,6 +49,7 @@ export const MENU_PERMISSIONS: Record<string, string | string[] | undefined> = {
   '/admin/approvals': PERMISSIONS.SYSTEM_CRITICAL,
   '/tenant': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/licenses': PERMISSIONS.LICENSE_VIEW,
+  '/admin/license-management': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SETTINGS_MANAGE],
   '/admin/cash-registers': PERMISSIONS.SYSTEM_CRITICAL,
 
   // Cash register management

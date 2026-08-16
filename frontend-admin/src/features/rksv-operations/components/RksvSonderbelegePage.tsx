@@ -11,7 +11,6 @@ import {
   Input,
   Modal,
   Row,
-  Select,
   Space,
   Table,
   Tag,
@@ -21,7 +20,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 /**
  * Bu ana bileşen RKSV Sonderbelege işlemlerini daha anlaşılır kart düzeninde sunar.
  */
@@ -31,6 +30,7 @@ import type { ReceiptListItemDto } from '@/api/generated/model';
 import { getApiReceiptsList } from '@/api/generated/receipts/receipts';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdminCashRegisterList';
+import { rawRegisterStatus as rawCashRegisterStatus } from '@/features/cash-registers/utils/registerStatus';
 import { ReprintButton } from '@/features/payments/components/ReprintButton';
 import {
   isRksvFinanzOnlineTrackedSpecialReceiptKind,
@@ -39,7 +39,12 @@ import {
 } from '@/features/receipts/utils/rksvFinanzOnlineSubmissionUi';
 import { reportPdfTypeFromSpecialReceiptKind } from '@/features/reports/api/reportPdfApi';
 import { StoredReportPdfButton } from '@/features/reports/components/StoredReportPdfButton';
+import { SonderbelegeRegisterPicker } from '@/features/rksv-operations/components/SonderbelegeRegisterPicker';
 import { rksvSpecialReceiptKindLabelDe } from '@/features/rksv-operations/rksvSpecialReceiptDisplay';
+import {
+  formatSonderbelegeRegisterLabel,
+  sonderbelegeStatusVisual,
+} from '@/features/rksv-operations/utils/sonderbelegeRegisterDisplay';
 import { CreateMonatsbelegModal } from '@/features/rksv/components/CreateMonatsbelegModal';
 import { LateMonatsbelegCreationCard } from '@/features/rksv/components/LateMonatsbelegCreationCard';
 import { MonatsbelegInfoCard } from '@/features/rksv/components/MonatsbelegInfoCard';
@@ -52,6 +57,7 @@ import {
 } from '@/features/rksv/hooks/useMonatsbeleg';
 import type { ReceiptLateCreationFields } from '@/features/rksv/types/receiptLateCreation';
 import { receiptIsLateCreated } from '@/features/rksv/types/receiptLateCreation';
+import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
@@ -62,7 +68,6 @@ import { ADMIN_NAV_GROUP_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShel
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { formatEUR } from '@/shared/utils/currency';
-import { formatRegisterDisplayLabel } from '@/shared/utils/registerIdentity';
 import {
   getMonthDifference,
   getViennaCalendarYear,
@@ -93,27 +98,6 @@ function formatMonthYearDe(year: number, month: number): string {
     year: 'numeric',
     timeZone: 'Europe/Vienna',
   }).format(new Date(Date.UTC(year, month - 1, 1)));
-}
-
-function rawRegisterStatus(reg: { status?: number | null }): number | undefined {
-  return typeof reg.status === 'number' ? reg.status : undefined;
-}
-
-function registerBetriebsstatusDe(status: number | undefined): string {
-  switch (status) {
-    case 1:
-      return 'Geschlossen';
-    case 2:
-      return 'Geöffnet';
-    case 3:
-      return 'Wartung';
-    case 4:
-      return 'Deaktiviert';
-    case 5:
-      return 'Fiskalisierung abgeschlossen';
-    default:
-      return status != null ? `Status ${status}` : '—';
-  }
 }
 
 function normalizeSpecialKind(kind: string | null | undefined): string {
@@ -178,6 +162,8 @@ export default function RksvSonderbelegePage() {
 
   const { hasPermission, isSuperAdmin } = usePermissions();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
   const queryClient = useQueryClient();
 
   const canNull = hasPermission(PERMISSIONS.RKSV_NULLBELEG_CREATE);
@@ -192,11 +178,19 @@ export default function RksvSonderbelegePage() {
   const canTseSimulation = hasPermission(PERMISSIONS.RKSV_TSE_SIMULATION);
   const isDevelopment = process.env.NODE_ENV === 'development';
 
+  const tenantFilterFromUrl = searchParams.get('tenantId')?.trim() || undefined;
+  const [tenantFilterId, setTenantFilterId] = useState<string | undefined>(tenantFilterFromUrl);
+
+  const { tenants, isLoading: tenantsLoading } = useTenantList({
+    enabled: isSuperAdmin,
+  });
+
   // Canonical admin register source (IgnoreQueryFilters + explicit effective-tenant scoping):
-  // robust for Manager, unlike the legacy shared GET /api/CashRegister which also relied on
-  // the ambient EF global query filter and could yield an empty list.
+  // Super Admin: all mandants (optional tenantId filter); Manager: JWT tenant only.
   const { registers, isLoading: registersLoading } = useAdminCashRegisterList({
-    allowTenantScopedDefault: true,
+    tenantId: isSuperAdmin ? tenantFilterId : undefined,
+    allowAllTenants: isSuperAdmin && !tenantFilterId,
+    allowTenantScopedDefault: !isSuperAdmin,
     excludeDecommissioned: false,
   });
 
@@ -246,6 +240,9 @@ export default function RksvSonderbelegePage() {
     const q = searchParams.get('registerId')?.trim();
     if (q) setRegisterId(q);
 
+    const tenantQ = searchParams.get('tenantId')?.trim();
+    setTenantFilterId(tenantQ || undefined);
+
     const yearRaw = searchParams.get('year')?.trim();
     const monthRaw = searchParams.get('month')?.trim();
     const year = yearRaw ? Number(yearRaw) : NaN;
@@ -262,6 +259,52 @@ export default function RksvSonderbelegePage() {
     }
   }, [searchParams]);
 
+  const syncSonderbelegeQuery = useCallback(
+    (next: { registerId?: string | null; tenantId?: string | null }) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (next.registerId !== undefined) {
+        const rid = next.registerId?.trim();
+        if (rid) params.set('registerId', rid);
+        else params.delete('registerId');
+      }
+      if (next.tenantId !== undefined) {
+        const tid = next.tenantId?.trim();
+        if (tid) params.set('tenantId', tid);
+        else params.delete('tenantId');
+      }
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [pathname, router, searchParams]
+  );
+
+  const handleRegisterChange = useCallback(
+    (nextId: string | undefined) => {
+      setRegisterId(nextId);
+      syncSonderbelegeQuery({ registerId: nextId ?? null });
+    },
+    [syncSonderbelegeQuery]
+  );
+
+  const handleTenantFilterChange = useCallback(
+    (nextTenantId: string | undefined) => {
+      setTenantFilterId(nextTenantId);
+      const stillValid =
+        nextTenantId == null ||
+        !registerId ||
+        registers.some(
+          (r) => String(r.id) === String(registerId) && String(r.tenantId) === nextTenantId
+        );
+      if (!stillValid) {
+        setRegisterId(undefined);
+        syncSonderbelegeQuery({ tenantId: nextTenantId ?? null, registerId: null });
+        return;
+      }
+      syncSonderbelegeQuery({ tenantId: nextTenantId ?? null });
+    },
+    [registerId, registers, syncSonderbelegeQuery]
+  );
+
   // Auto-select once: if exactly one register is available (and none was preselected
   // via query param or user action), pick it so Manager sees the register immediately.
   useEffect(() => {
@@ -272,10 +315,12 @@ export default function RksvSonderbelegePage() {
     }
     if (searchParams.get('registerId')?.trim()) return;
     if (registers.length === 1 && registers[0]?.id) {
-      setRegisterId(String(registers[0].id));
+      const id = String(registers[0].id);
+      setRegisterId(id);
+      syncSonderbelegeQuery({ registerId: id });
       didAutoSelectRef.current = true;
     }
-  }, [registers, registersLoading, registerId, searchParams]);
+  }, [registers, registersLoading, registerId, searchParams, syncSonderbelegeQuery]);
 
   useEffect(() => {
     const focus = searchParams.get('focus')?.trim();
@@ -325,10 +370,19 @@ export default function RksvSonderbelegePage() {
     () => registers.find((r) => String(r.id ?? '') === String(registerId ?? '')),
     [registers, registerId]
   );
-  const selectedRegisterStatus = selectedRegister ? rawRegisterStatus(selectedRegister) : undefined;
+  const selectedRegisterStatus = selectedRegister
+    ? rawCashRegisterStatus(selectedRegister)
+    : undefined;
   const selectedRegisterIsDecommissioned = selectedRegisterStatus === 5;
   const selectedRegisterHasOpenSession = selectedRegisterStatus === 2;
   const canCreateSchlussbelegNow = selectedRegisterStatus === 1;
+  const selectedStatusVisual = sonderbelegeStatusVisual(selectedRegisterStatus);
+  const selectedStatusLabel =
+    selectedStatusVisual.key === 'unknown'
+      ? selectedRegisterStatus != null
+        ? t('rksvHub.sonderbelege.status.unknown', { status: selectedRegisterStatus })
+        : '—'
+      : t(`rksvHub.sonderbelege.status.${selectedStatusVisual.key}`);
 
   const registerScopedReceipts = useMemo(
     () =>
@@ -485,41 +539,6 @@ export default function RksvSonderbelegePage() {
     },
     [registerId, canMonat, notify]
   );
-
-  const registerOptions = useMemo(() => {
-    const seenIds = new Set<string>();
-    const labelCounts = new Map<string, number>();
-
-    const uniqueRegisters = registers.filter((r) => {
-      if (!r.id) return false;
-      const id = String(r.id);
-      if (seenIds.has(id)) return false;
-      seenIds.add(id);
-      return true;
-    });
-
-    for (const r of uniqueRegisters) {
-      const number = formatRegisterDisplayLabel(r.registerNumber);
-      const location = r.location?.trim();
-      const base = location ? `${number} — ${location}` : number;
-      labelCounts.set(base, (labelCounts.get(base) ?? 0) + 1);
-    }
-
-    const usedLabels = new Map<string, number>();
-    return uniqueRegisters.map((r) => {
-      const number = formatRegisterDisplayLabel(r.registerNumber);
-      const location = r.location?.trim();
-      const base = location ? `${number} — ${location}` : number;
-      const count = labelCounts.get(base) ?? 1;
-      let label = base;
-      if (count > 1) {
-        const n = (usedLabels.get(base) ?? 0) + 1;
-        usedLabels.set(base, n);
-        label = `${base} (${n})`;
-      }
-      return { value: String(r.id), label };
-    });
-  }, [registers]);
 
   const postJson = useCallback(async (path: string, body: object) => {
     return customInstance<{ paymentId?: string; receiptNumber?: string; message?: string }>({
@@ -933,20 +952,17 @@ export default function RksvSonderbelegePage() {
 
       <Card style={{ marginBottom: 16 }}>
         <Space orientation="vertical" style={{ width: '100%' }} size="middle">
-          <div>
-            <Typography.Text strong>Kasse auswählen</Typography.Text>
-            <Select
-              showSearch
-              allowClear
-              placeholder="Kasse wählen"
-              style={{ width: '100%', marginTop: 8 }}
-              loading={registersLoading}
-              optionFilterProp="label"
-              value={registerId}
-              onChange={(v) => setRegisterId(v)}
-              options={registerOptions}
-            />
-          </div>
+          <SonderbelegeRegisterPicker
+            registers={registers}
+            loading={registersLoading}
+            registerId={registerId}
+            onRegisterChange={handleRegisterChange}
+            showTenantFilter={isSuperAdmin}
+            tenants={tenants.map((row) => ({ id: row.id, name: row.name, slug: row.slug }))}
+            tenantsLoading={tenantsLoading}
+            tenantFilterId={tenantFilterId}
+            onTenantFilterChange={handleTenantFilterChange}
+          />
           <div>
             <Typography.Text type="secondary">
               Optionaler Grund / Notiz (für Sonderbelege)
@@ -962,19 +978,28 @@ export default function RksvSonderbelegePage() {
             <Alert
               type={selectedRegisterIsDecommissioned ? 'warning' : 'info'}
               showIcon
-              title={`Betriebsstatus: ${registerBetriebsstatusDe(selectedRegisterStatus)}`}
+              title={
+                <Space wrap>
+                  <span>
+                    {t('rksvHub.sonderbelege.operatingStatus')}: {selectedStatusLabel}
+                  </span>
+                  <Tag color={selectedStatusVisual.color}>
+                    {selectedStatusVisual.emoji} {selectedStatusLabel}
+                  </Tag>
+                </Space>
+              }
               description={
                 selectedRegisterIsDecommissioned
-                  ? 'Diese Kasse wurde bereits stillgelegt. Es können keine neuen Sonderbelege erstellt werden.'
-                  : `Kasse: ${
-                      selectedRegister.location?.trim()
-                        ? `${formatRegisterDisplayLabel(selectedRegister.registerNumber)} — ${selectedRegister.location.trim()}`
-                        : formatRegisterDisplayLabel(selectedRegister.registerNumber)
-                    }`
+                  ? t('rksvHub.sonderbelege.decommissionedHint')
+                  : t('rksvHub.sonderbelege.registerWithTenant', {
+                      label: formatSonderbelegeRegisterLabel(selectedRegister, {
+                        includeTenant: true,
+                      }),
+                    })
               }
             />
           ) : (
-            <Alert type="info" showIcon title="Bitte zuerst eine Kasse auswählen." />
+            <Alert type="info" showIcon title={t('rksvHub.sonderbelege.selectRegisterFirst')} />
           )}
         </Space>
       </Card>
@@ -1431,9 +1456,7 @@ export default function RksvSonderbelegePage() {
           cashRegisterId={registerId}
           cashRegisterLabel={
             selectedRegister
-              ? selectedRegister.location?.trim()
-                ? `${formatRegisterDisplayLabel(selectedRegister.registerNumber)} — ${selectedRegister.location.trim()}`
-                : formatRegisterDisplayLabel(selectedRegister.registerNumber)
+              ? formatSonderbelegeRegisterLabel(selectedRegister, { includeTenant: true })
               : undefined
           }
           year={selectedMonatsbelegYear}

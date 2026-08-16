@@ -4,7 +4,7 @@
  * Super-admin tenant create form: operator-friendly fields, live subdomain check, automation toggles.
  */
 import type { FormInstance } from 'antd';
-import { Checkbox, Collapse, Divider, Form, Input, Space } from 'antd';
+import { Checkbox, Collapse, Divider, Form, Input, Select, Space } from 'antd';
 import React from 'react';
 
 import { CreateTenantFormField } from '@/features/super-admin/components/CreateTenantFormField';
@@ -42,6 +42,8 @@ export function TenantFormFields({ form, fieldState }: TenantFormFieldsProps) {
     handleSlugBlur,
     handleNameBlur,
   } = fieldState;
+
+  const grantTrial = Form.useWatch('grantTrialLicense', form) ?? true;
 
   const slugHint =
     slugWatch?.trim() && slugAvailabilityUi === 'available'
@@ -143,6 +145,24 @@ export function TenantFormFields({ form, fieldState }: TenantFormFieldsProps) {
           <span>{t('tenants.create.fields.grantTrialLicense.label')}</span>
         </Checkbox>
       </Form.Item>
+
+      {grantTrial ? (
+        <Form.Item
+          name="trialDurationDays"
+          label={t('tenants.create.fields.trialDuration.label')}
+          tooltip={t('tenants.create.fields.trialDuration.tooltip')}
+          style={{ marginBottom: 8 }}
+        >
+          <Select
+            options={[
+              { value: 14, label: t('tenants.create.fields.trialDuration.days_14') },
+              { value: 30, label: t('tenants.create.fields.trialDuration.days_30') },
+              { value: 60, label: t('tenants.create.fields.trialDuration.days_60') },
+              { value: 90, label: t('tenants.create.fields.trialDuration.days_90') },
+            ]}
+          />
+        </Form.Item>
+      ) : null}
 
       <Form.Item
         name="importDemoProducts"

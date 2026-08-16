@@ -17,6 +17,7 @@ export interface LicenseSale {
   cancelledAtUtc?: string | null;
   /** @nullable */
   cancelledByUserId?: string | null;
+  convertedFromTrial?: boolean;
   createdAt?: string;
   /**
    * @maxLength 3
@@ -55,6 +56,8 @@ export interface LicenseSale {
   notes?: string | null;
   priceGross?: number;
   priceNet?: number;
+  /** @nullable */
+  remainingTrialDaysAdded?: number | null;
   soldAtUtc?: string;
   soldByUserId?: string;
   /**
@@ -64,6 +67,8 @@ export interface LicenseSale {
   status?: string | null;
   tenant?: Tenant;
   tenantId?: string;
+  /** @nullable */
+  trialConvertedAtUtc?: string | null;
   updatedAt?: string;
   validFromUtc?: string;
   validUntilUtc?: string;

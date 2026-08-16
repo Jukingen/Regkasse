@@ -7593,6 +7593,28 @@
         }
       }
     },
+    "/api/admin/license/activate": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateLicenseRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "308": {
+            "description": "Permanent Redirect"
+          }
+        },
+        "deprecated": true
+      }
+    },
     "/api/admin/license/extend": {
       "post": {
         "tags": [
@@ -7608,20 +7630,11 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
+          "308": {
+            "description": "Permanent Redirect"
           }
-        }
+        },
+        "deprecated": true
       }
     },
     "/api/admin/license/grace-period": {
@@ -15933,6 +15946,619 @@
         }
       }
     },
+    "/api/admin/support/admin/tickets": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fromUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "toUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportTicketListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/support/admin/tickets/summary": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportTicketInboxSummaryDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/support/admin/tickets/{id}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportTicketDetailDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/support/admin/tickets/{id}/messages": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddSupportTicketMessageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportTicketDetailDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/support/admin/tickets/{id}/status": {
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSupportTicketStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportTicketDetailDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/support/admin/tickets/{id}/assign": {
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignSupportTicketRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportTicketDetailDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/support/tickets": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSupportTicketRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportTicketDetailDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportTicketListResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/support/tickets/open-count": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/support/tickets/all": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportTicketListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/support/tickets/{id}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportTicketDetailDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/support/tickets/{id}/messages": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddSupportTicketMessageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportTicketDetailDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/support/tickets/{id}/status": {
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSupportTicketStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportTicketDetailDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/system/time-sync/configuration": {
       "get": {
         "tags": [
@@ -16554,6 +17180,135 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/billing/tenant-invoices": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fromDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "toDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "fromUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "toUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantInvoiceListResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/billing/tenant-invoices/{id}/pdf": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -18144,6 +18899,65 @@
         }
       }
     },
+    "/api/admin/tenants/{tenantId}/license/convert-to-paid": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConvertToPaidRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrialConversionResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/tenants/{tenantId}/license/reminder": {
       "post": {
         "tags": [
@@ -18850,6 +19664,65 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TenantDecommissionChecksDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/tenants/{tenantId}/convert-to-paid": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConvertToPaidRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrialConversionResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -20232,6 +21105,304 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/trials": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrialDashboardDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/trials/analytics": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrialAnalyticsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/trials/tenants/{tenantId}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrialTenantSummaryDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/trials/tenants/{tenantId}/extend": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtendTrialRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrialTenantSummaryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/trials/tenants/{tenantId}/convert-to-paid": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConvertToPaidRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrialConversionResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/trials/tenants/{tenantId}/delete": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/trials/tenants/{tenantId}/grant": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrantTrialRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrialTenantSummaryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
             "description": "Not Found",
@@ -29148,8 +30319,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/cart/{cartId}": {
@@ -29171,8 +30341,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       },
       "delete": {
         "tags": [
@@ -29192,8 +30361,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/cart": {
@@ -29214,8 +30382,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/cart/add-item": {
@@ -29236,8 +30403,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/cart/{cartId}/items": {
@@ -29268,8 +30434,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/cart/items/{itemId}": {
@@ -29301,8 +30466,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       },
       "delete": {
         "tags": [
@@ -29323,8 +30487,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/cart/{cartId}/items/{itemId}": {
@@ -29364,8 +30527,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       },
       "delete": {
         "tags": [
@@ -29394,8 +30556,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/cart/{cartId}/clear-items": {
@@ -29417,8 +30578,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/cart/split-items": {
@@ -29439,8 +30599,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/cart/merge-tables": {
@@ -29461,8 +30620,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/cart/clear": {
@@ -29484,8 +30642,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/cart/clear-all": {
@@ -29497,8 +30654,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/cart/{cartId}/reset-after-payment": {
@@ -29529,8 +30685,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/cart/{cartId}/complete": {
@@ -29561,8 +30716,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/cart/history": {
@@ -29574,8 +30728,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/cart/force-cleanup": {
@@ -29596,8 +30749,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/cart/table-orders-recovery": {
@@ -29609,8 +30761,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/cart/items/{itemId}/increment": {
@@ -29633,8 +30784,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/cart/items/{itemId}/decrement": {
@@ -29657,8 +30807,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/CashRegister/enhanced": {
@@ -33325,6 +34474,82 @@
         }
       }
     },
+    "/api/license/validate": {
+      "post": {
+        "tags": [
+          "License"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LicenseKeyLookupRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseKeyValidationResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/license/info": {
+      "get": {
+        "tags": [
+          "License"
+        ],
+        "parameters": [
+          {
+            "name": "licenseKey",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/license/billing/status": {
       "get": {
         "tags": [
@@ -33379,47 +34604,11 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ActivationResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
+          "308": {
+            "description": "Permanent Redirect"
           }
-        }
+        },
+        "deprecated": true
       }
     },
     "/api/license/extend": {
@@ -36131,8 +37320,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/payment/history": {
@@ -36216,8 +37404,7 @@
               }
             }
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/payment": {
@@ -36285,8 +37472,7 @@
               }
             }
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/payment/storno": {
@@ -36307,8 +37493,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/payment/{id}": {
@@ -36331,8 +37516,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/payment/customer/{customerId}": {
@@ -36373,8 +37557,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/payment/method/{paymentMethod}": {
@@ -36414,8 +37597,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/payment/date-range": {
@@ -36463,8 +37645,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/payment/{id}/cancel": {
@@ -36496,8 +37677,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/payment/{id}/refund": {
@@ -36529,8 +37709,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/payment/statistics": {
@@ -36558,8 +37737,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/payment/{id}/qr.png": {
@@ -36600,8 +37778,7 @@
               }
             }
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/payment/{id}/qr.svg": {
@@ -36642,8 +37819,7 @@
               }
             }
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/payment/{id}/receipt": {
@@ -36666,8 +37842,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/payment/{id}/tse-signature": {
@@ -36690,8 +37865,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/payment/{id}/signature-debug": {
@@ -36765,8 +37939,7 @@
               }
             }
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/payment/verify-signature": {
@@ -36807,8 +37980,7 @@
               }
             }
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/admin/payment-method-definitions": {
@@ -38228,8 +39400,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       },
       "post": {
         "tags": [
@@ -38248,8 +39419,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/list": {
@@ -38289,8 +39459,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/all": {
@@ -38302,8 +39471,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/catalog": {
@@ -38315,8 +39483,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/active": {
@@ -38328,8 +39495,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/debug/categories-products": {
@@ -38341,8 +39507,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/categories": {
@@ -38354,8 +39519,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/category/{categoryName}": {
@@ -38377,8 +39541,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/stock/{status}": {
@@ -38400,8 +39563,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/search": {
@@ -38429,8 +39591,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/{id}/modifier-groups": {
@@ -38453,8 +39614,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       },
       "post": {
         "tags": [
@@ -38484,8 +39644,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/{id}": {
@@ -38517,8 +39676,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       },
       "get": {
         "tags": [
@@ -38592,8 +39750,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/pos/{id}/permanent": {
@@ -43167,35 +44324,6 @@
         },
         "additionalProperties": false
       },
-      "ActivationResult": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean"
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "licenseKey": {
-            "type": "string",
-            "nullable": true
-          },
-          "validUntilUtc": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "licensePlan": {
-            "type": "string",
-            "nullable": true
-          },
-          "sale": {
-            "$ref": "#/components/schemas/LicenseSaleResponse"
-          }
-        },
-        "additionalProperties": false
-      },
       "ActiveSession": {
         "type": "object",
         "properties": {
@@ -43660,6 +44788,19 @@
           },
           "createNewAddOnProduct": {
             "$ref": "#/components/schemas/CreateNewAddOnProductRequest"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AddSupportTicketMessageRequest": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string",
+            "nullable": true
+          },
+          "isInternal": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -44891,6 +46032,11 @@
             "type": "string",
             "nullable": true
           },
+          "userId": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
           "cashierName": {
             "type": "string",
             "nullable": true
@@ -45081,6 +46227,39 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          },
+          "trialStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "trialStartedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "trialEndsAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "trialGracePeriodEndsAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "trialConvertedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "trialReminder7dSent": {
+            "type": "boolean"
+          },
+          "trialReminder3dSent": {
+            "type": "boolean"
+          },
+          "trialReminder1dSent": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -45159,6 +46338,20 @@
           "lastActivityAtUtc": {
             "type": "string",
             "format": "date-time",
+            "nullable": true
+          },
+          "trialStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "trialEndsAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "trialDaysRemaining": {
+            "type": "integer",
+            "format": "int32",
             "nullable": true
           }
         },
@@ -46311,6 +47504,16 @@
         },
         "additionalProperties": false
       },
+      "AssignSupportTicketRequest": {
+        "type": "object",
+        "properties": {
+          "assignedToUserId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "AssignTenantToTsePoolRequestDto": {
         "type": "object",
         "properties": {
@@ -46393,6 +47596,7 @@
           60,
           61,
           62,
+          63,
           99
         ],
         "type": "integer",
@@ -51900,6 +53104,24 @@
         },
         "additionalProperties": false
       },
+      "ConvertToPaidRequest": {
+        "type": "object",
+        "properties": {
+          "licenseSaleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "addRemainingTrialDays": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "CreateAdminFeedbackRequestDto": {
         "required": [
           "category",
@@ -51993,6 +53215,11 @@
           },
           "grantTrialLicense": {
             "type": "boolean"
+          },
+          "trialDurationDays": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           },
           "importDemoMenu": {
             "type": "boolean"
@@ -53736,6 +54963,32 @@
             "maxLength": 64,
             "minLength": 1,
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateSupportTicketRequest": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "nullable": true
+          },
+          "priority": {
+            "type": "string",
+            "nullable": true
+          },
+          "subject": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -58192,6 +59445,16 @@
         },
         "additionalProperties": false
       },
+      "ExtendTrialRequest": {
+        "type": "object",
+        "properties": {
+          "additionalDays": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "FeatureFlagStatusDto": {
         "type": "object",
         "properties": {
@@ -59823,6 +61086,17 @@
             "items": {
               "$ref": "#/components/schemas/GracePeriodRuleDto"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "GrantTrialRequest": {
+        "type": "object",
+        "properties": {
+          "durationDays": {
+            "type": "integer",
+            "format": "int32",
             "nullable": true
           }
         },
@@ -62399,6 +63673,135 @@
         },
         "additionalProperties": false
       },
+      "LicenseInfo": {
+        "type": "object",
+        "properties": {
+          "licenseKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "canonicalLicenseKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "licenseKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "slug": {
+            "type": "string",
+            "nullable": true
+          },
+          "exists": {
+            "type": "boolean"
+          },
+          "isValid": {
+            "type": "boolean"
+          },
+          "isExpired": {
+            "type": "boolean"
+          },
+          "isRevoked": {
+            "type": "boolean"
+          },
+          "validUntilUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "tenantSlug": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceTable": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LicenseKeyLookupRequest": {
+        "required": [
+          "licenseKey"
+        ],
+        "type": "object",
+        "properties": {
+          "licenseKey": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LicenseKeyValidationResult": {
+        "type": "object",
+        "properties": {
+          "isValid": {
+            "type": "boolean"
+          },
+          "isFormatValid": {
+            "type": "boolean"
+          },
+          "existsInDatabase": {
+            "type": "boolean"
+          },
+          "isExpired": {
+            "type": "boolean"
+          },
+          "slugMatches": {
+            "type": "boolean"
+          },
+          "licenseKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "canonicalLicenseKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "slug": {
+            "type": "string",
+            "nullable": true
+          },
+          "encodedValidUntilUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "databaseValidUntilUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "errorCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "LicensePreviewResult": {
         "type": "object",
         "properties": {
@@ -62877,6 +64280,19 @@
           "extendedByUserId": {
             "type": "string",
             "format": "uuid",
+            "nullable": true
+          },
+          "convertedFromTrial": {
+            "type": "boolean"
+          },
+          "remainingTrialDaysAdded": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "trialConvertedAtUtc": {
+            "type": "string",
+            "format": "date-time",
             "nullable": true
           },
           "createdAt": {
@@ -65145,6 +66561,39 @@
               },
               "CanaryTenantHighErrorRate": {
                 "type": "boolean"
+              },
+              "TrialStarted": {
+                "type": "boolean"
+              },
+              "TrialExpiringSoon": {
+                "type": "boolean"
+              },
+              "TrialExpired": {
+                "type": "boolean"
+              },
+              "TrialConverted": {
+                "type": "boolean"
+              },
+              "TrialDeleted": {
+                "type": "boolean"
+              },
+              "TrialExtended": {
+                "type": "boolean"
+              },
+              "SupportTicketCreated": {
+                "type": "boolean"
+              },
+              "SupportTicketStaffReplied": {
+                "type": "boolean"
+              },
+              "SupportTicketTenantReplied": {
+                "type": "boolean"
+              },
+              "SupportTicketResolved": {
+                "type": "boolean"
+              },
+              "SupportTicketClosed": {
+                "type": "boolean"
               }
             },
             "additionalProperties": false,
@@ -65409,6 +66858,39 @@
                 "type": "string"
               },
               "CanaryTenantHighErrorRate": {
+                "type": "string"
+              },
+              "TrialStarted": {
+                "type": "string"
+              },
+              "TrialExpiringSoon": {
+                "type": "string"
+              },
+              "TrialExpired": {
+                "type": "string"
+              },
+              "TrialConverted": {
+                "type": "string"
+              },
+              "TrialDeleted": {
+                "type": "string"
+              },
+              "TrialExtended": {
+                "type": "string"
+              },
+              "SupportTicketCreated": {
+                "type": "string"
+              },
+              "SupportTicketStaffReplied": {
+                "type": "string"
+              },
+              "SupportTicketTenantReplied": {
+                "type": "string"
+              },
+              "SupportTicketResolved": {
+                "type": "string"
+              },
+              "SupportTicketClosed": {
                 "type": "string"
               }
             },
@@ -77306,6 +78788,280 @@
         },
         "additionalProperties": false
       },
+      "SupportTicketDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ticketNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
+            "type": "string",
+            "nullable": true
+          },
+          "priority": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "subject": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "createdByUserId": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdByDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "assignedToUserId": {
+            "type": "string",
+            "nullable": true
+          },
+          "assignedToDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "resolvedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "messageCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SupportTicketMessageDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SupportTicketInboxSummaryDto": {
+        "type": "object",
+        "properties": {
+          "openCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "inProgressCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "resolvedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "resolvedLast30DaysCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "closedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "byCategory": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          },
+          "byPriority": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SupportTicketListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ticketNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
+            "type": "string",
+            "nullable": true
+          },
+          "priority": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "subject": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "createdByUserId": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdByDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "assignedToUserId": {
+            "type": "string",
+            "nullable": true
+          },
+          "assignedToDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "resolvedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "messageCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SupportTicketListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SupportTicketListItemDto"
+            },
+            "nullable": true
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "openCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SupportTicketMessageDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "authorUserId": {
+            "type": "string",
+            "nullable": true
+          },
+          "authorDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "body": {
+            "type": "string",
+            "nullable": true
+          },
+          "isStaffReply": {
+            "type": "boolean"
+          },
+          "isInternal": {
+            "type": "boolean"
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
       "SuspiciousAlertDto": {
         "type": "object",
         "properties": {
@@ -77766,7 +79522,9 @@
           "canCloseMonthly",
           "canCloseYearly",
           "isBackdated",
-          "paymentsWithoutInvoiceCount"
+          "isEmptyDay",
+          "paymentsWithoutInvoiceCount",
+          "transactionCount"
         ],
         "type": "object",
         "properties": {
@@ -77813,6 +79571,13 @@
             "type": "integer",
             "format": "int32"
           },
+          "transactionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isEmptyDay": {
+            "type": "boolean"
+          },
           "isBackdated": {
             "type": "boolean"
           },
@@ -77856,6 +79621,7 @@
           "closingDate",
           "createdAt",
           "isBackdated",
+          "isEmpty",
           "paymentsWithoutInvoiceCount",
           "success",
           "totalAmount",
@@ -77887,6 +79653,13 @@
           "closingType": {
             "type": "string",
             "nullable": true
+          },
+          "dayKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "isEmpty": {
+            "type": "boolean"
           },
           "totalAmount": {
             "type": "number",
@@ -79255,6 +81028,45 @@
           "industryTemplateCustomizations": {
             "type": "string",
             "nullable": true
+          },
+          "trialStartedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "trialEndsAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "trialStatus": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "trialReminder7dSent": {
+            "type": "boolean"
+          },
+          "trialReminder3dSent": {
+            "type": "boolean"
+          },
+          "trialReminder1dSent": {
+            "type": "boolean"
+          },
+          "trialConvertedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "trialDeletedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "trialGracePeriodEndsAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -80258,6 +82070,101 @@
         },
         "additionalProperties": false
       },
+      "TenantInvoiceDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "invoiceNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "invoiceDateUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "amountNet": {
+            "type": "number",
+            "format": "double"
+          },
+          "vatAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "amountGross": {
+            "type": "number",
+            "format": "double"
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "licenseKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "licensePlan": {
+            "type": "string",
+            "nullable": true
+          },
+          "downloadUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "pdfUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TenantInvoiceListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TenantInvoiceDto"
+            },
+            "nullable": true
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "activeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cancelledCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "TenantLicenseConsistencyDto": {
         "type": "object",
         "properties": {
@@ -80577,6 +82484,25 @@
             "items": {
               "type": "string"
             },
+            "nullable": true
+          },
+          "trialStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "trialEndsAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "trialDaysRemaining": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "trialGracePeriodEndsAtUtc": {
+            "type": "string",
+            "format": "date-time",
             "nullable": true
           }
         },
@@ -81284,6 +83210,277 @@
           "peakHour": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TrialAnalyticsDto": {
+        "type": "object",
+        "properties": {
+          "trialsCreatedLast30Days": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "activeTrials": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expiredTrials": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "convertedTrials": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deletedTrials": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "conversionRatePercent": {
+            "type": "number",
+            "format": "double"
+          },
+          "averageDaysToConvert": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "mostCommonLicensePlan": {
+            "type": "string",
+            "nullable": true
+          },
+          "conversionByTrialDuration": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrialDurationConversionBucketDto"
+            },
+            "nullable": true
+          },
+          "conversionByPlan": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrialPlanConversionBucketDto"
+            },
+            "nullable": true
+          },
+          "monthlyTrend": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrialMonthlyTrendDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TrialConversionResult": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "licenseSaleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "licenseValidUntilUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "conversionDateUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "remainingTrialDaysAdded": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "licensePlan": {
+            "type": "string",
+            "nullable": true
+          },
+          "licenseKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TrialDashboardDto": {
+        "type": "object",
+        "properties": {
+          "activeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expiringSoonCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expiredCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "convertedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deletedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "conversionRatePercent": {
+            "type": "number",
+            "format": "double"
+          },
+          "activeTrials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrialTenantSummaryDto"
+            },
+            "nullable": true
+          },
+          "expiringSoon": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrialTenantSummaryDto"
+            },
+            "nullable": true
+          },
+          "expiredTrials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrialTenantSummaryDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TrialDurationConversionBucketDto": {
+        "type": "object",
+        "properties": {
+          "trialDurationDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "convertedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalStarted": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TrialMonthlyTrendDto": {
+        "type": "object",
+        "properties": {
+          "yearMonth": {
+            "type": "string",
+            "nullable": true
+          },
+          "trialsStarted": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "converted": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TrialPlanConversionBucketDto": {
+        "type": "object",
+        "properties": {
+          "licensePlan": {
+            "type": "string",
+            "nullable": true
+          },
+          "convertedCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TrialTenantSummaryDto": {
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "slug": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "trialStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "trialStartedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "trialEndsAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "trialGracePeriodEndsAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "trialConvertedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "trialDeletedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "daysRemaining": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "reminder7dSent": {
+            "type": "boolean"
+          },
+          "reminder3dSent": {
+            "type": "boolean"
+          },
+          "reminder1dSent": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -89266,6 +91463,16 @@
         },
         "additionalProperties": false
       },
+      "UpdateSupportTicketStatusRequest": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "UpdateTSESettingsRequest": {
         "type": "object",
         "properties": {
@@ -91511,6 +93718,12 @@
       "name": "AdminSubscriptionInvoices"
     },
     {
+      "name": "AdminSupportInbox"
+    },
+    {
+      "name": "AdminSupportTickets"
+    },
+    {
       "name": "AdminSystemTimeSync"
     },
     {
@@ -91527,6 +93740,9 @@
     },
     {
       "name": "AdminTaxReports"
+    },
+    {
+      "name": "AdminTenantBillingInvoices"
     },
     {
       "name": "AdminTenantCustomizations"
@@ -91548,6 +93764,9 @@
     },
     {
       "name": "AdminTenantUsers"
+    },
+    {
+      "name": "AdminTrials"
     },
     {
       "name": "AdminTseAnalytics"

@@ -4,6 +4,7 @@ using KasseAPI_Final.Services;
 using KasseAPI_Final.Time;
 using KasseAPI_Final.Tse;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -19,6 +20,7 @@ public sealed class TagesabschlussServiceOperationalTests
         return new AppDbContext(
             new DbContextOptionsBuilder<AppDbContext>()
                 .UseInMemoryDatabase($"TagesabschlussOp_{Guid.NewGuid():N}")
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
                 .Options,
             TenantTestDoubles.TenantAccessorReturning(tenantId));
     }
@@ -239,7 +241,7 @@ public sealed class TagesabschlussServiceOperationalTests
 
         var result = await sut.PerformDailyClosingAsync(userId, registerId);
 
-        Assert.True(result.Success);
+        Assert.True(result.Success, result.ErrorMessage);
         Assert.Equal(1, result.TransactionCount);
     }
 
@@ -506,7 +508,7 @@ public sealed class TagesabschlussServiceOperationalTests
             "Ich habe vergessen, den Tagesabschluss zu erstellen");
         var afterUtc = DateTime.UtcNow.AddSeconds(1);
 
-        Assert.True(result.Success);
+        Assert.True(result.Success, result.ErrorMessage);
         Assert.True(result.IsBackdated);
         Assert.Equal(1, result.TransactionCount);
         Assert.Contains("nachträglich", result.Warning ?? "", StringComparison.OrdinalIgnoreCase);
@@ -579,5 +581,126 @@ public sealed class TagesabschlussServiceOperationalTests
         var canClose = await sut.CanPerformClosingAsync(registerId, viennaToday.AddDays(1));
 
         Assert.False(canClose);
+    }
+
+    [Fact]
+    public async Task PerformDailyClosingAsync_WhenNoTransactions_CreatesEmptyClosing()
+    {
+        var tenantId = Guid.NewGuid();
+        var registerId = Guid.NewGuid();
+        var userId = "empty-user";
+
+        await using var ctx = CreateContext(tenantId);
+        ctx.Tenants.Add(new Tenant { Id = tenantId, Name = "T", Slug = "t-empty", IsActive = true });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = registerId,
+            TenantId = tenantId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await ctx.SaveChangesAsync();
+
+        var tseMock = new Mock<ITseService>();
+        tseMock.Setup(s => s.GetTseStatusAsync()).ReturnsAsync(new TseStatus
+        {
+            IsConnected = false,
+            Status = "Disconnected",
+            ErrorMessage = "TSE device is not connected",
+        });
+        tseMock
+            .Setup(s => s.CreateDailyClosingSignatureAsync(
+                registerId,
+                It.IsAny<string>(),
+                It.IsAny<DateTime>(),
+                0m,
+                0,
+                It.IsAny<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction?>()))
+            .ReturnsAsync("empty-daily-closing-jws");
+
+        var sut = new TagesabschlussService(
+            ctx,
+            tseMock.Object,
+            new FakeTseProvider(NullLogger<FakeTseProvider>.Instance),
+            new SoftwareTseKeyProvider(),
+            Mock.Of<IFinanzOnlineService>(f => f.IsEnabledAsync() == Task.FromResult(false)),
+            Options.Create(new TseOptions { Mode = "Real", TseMode = "Device" }),
+            Mock.Of<IHostEnvironment>(h => h.EnvironmentName == Environments.Development),
+            NullLogger<TagesabschlussService>.Instance,
+            Mock.Of<IReportPdfCaptureService>(),
+            Mock.Of<IReportPdfStorageService>(),
+            Mock.Of<IDevelopmentModeService>(d => d.ShouldBypassTseCheck() == true));
+
+        var result = await sut.PerformDailyClosingAsync(userId, registerId);
+
+        Assert.True(result.Success, result.ErrorMessage);
+        Assert.True(result.IsEmpty);
+        Assert.Equal(DailyClosingDayKinds.Empty, result.DayKind);
+        Assert.Equal(0, result.TransactionCount);
+        Assert.Equal(0m, result.TotalAmount);
+        Assert.Contains("Empty daily closing", result.Warning, StringComparison.OrdinalIgnoreCase);
+
+        var stored = await ctx.DailyClosings.SingleAsync();
+        Assert.Equal(DailyClosingDayKinds.Empty, stored.DayKind);
+        Assert.Equal(0, stored.TransactionCount);
+        Assert.Equal("Daily", stored.ClosingType);
+        Assert.Equal("empty-daily-closing-jws", stored.TseSignature);
+    }
+
+    [Fact]
+    public async Task GetClosingHistoryAsync_ExposesEmptyDayKind()
+    {
+        var tenantId = Guid.NewGuid();
+        var registerId = Guid.NewGuid();
+        var closingDay = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(
+            PostgreSqlUtcDateTime.ViennaCalendarDateMidnightUnspecified(2026, 8, 15));
+
+        await using var ctx = CreateContext(tenantId);
+        ctx.Tenants.Add(new Tenant { Id = tenantId, Name = "T", Slug = "t-hist-empty", IsActive = true });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = registerId,
+            TenantId = tenantId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+        });
+        ctx.DailyClosings.Add(new DailyClosing
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            CashRegisterId = registerId,
+            UserId = "manager-user",
+            ClosingDate = closingDay,
+            ClosingType = "Daily",
+            DayKind = DailyClosingDayKinds.Empty,
+            TotalAmount = 0m,
+            TotalTaxAmount = 0m,
+            TransactionCount = 0,
+            TseSignature = "sig",
+            Status = "Completed",
+            CreatedAt = DateTime.UtcNow,
+        });
+        await ctx.SaveChangesAsync();
+
+        var sut = CreateService(ctx);
+        var history = await sut.GetClosingHistoryAsync(
+            new DateTime(2026, 8, 15),
+            new DateTime(2026, 8, 15),
+            registerId);
+
+        Assert.Single(history);
+        Assert.True(history[0].IsEmpty);
+        Assert.Equal(DailyClosingDayKinds.Empty, history[0].DayKind);
+        Assert.Equal(0, history[0].TransactionCount);
     }
 }

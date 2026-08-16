@@ -28,7 +28,7 @@ import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError
 import {
   AUTH_KEYS,
   clearStaleAuthBeforeLogin,
-  fetchAuthUser,
+  fetchAuthUserWithRetry,
   persistLoginTokensAndSettle,
 } from '../hooks/useAuth';
 
@@ -90,10 +90,11 @@ export const LoginForm: FC = () => {
       // Do not pair legacy JWT tenant id with slug `dev` — HeaderDevTenantSwitch / TenantGuard rebind correctly.
       if (process.env.NODE_ENV === 'development') {
         const slug = loginUser?.tenantSlug?.trim().toLowerCase() ?? '';
+        // Silent: must not fire DEV_TENANT_CHANGED_EVENT (that clears JWT via useTenantChangeListener).
         if (!slug || slug === 'platform' || slug === 'admin') {
-          writeDevTenantSlug('dev');
+          writeDevTenantSlug('dev', undefined, { silent: true });
         } else if (slug === 'dev') {
-          writeDevTenantSlug('dev', loginUser?.tenantId);
+          writeDevTenantSlug('dev', loginUser?.tenantId, { silent: true });
         }
         technicalConsole.devLog(
           '[LoginForm] JWT token pair saved to local storage (shared across tabs)'
@@ -101,18 +102,19 @@ export const LoginForm: FC = () => {
       }
     }
 
-    message.success(t('common.auth.loginSuccess'));
-
     try {
+      // Wrap: React Query passes QueryFunctionContext as arg0 — must not bind retry params.
       await queryClient.fetchQuery({
         queryKey: AUTH_KEYS.user,
-        queryFn: fetchAuthUser,
+        queryFn: () => fetchAuthUserWithRetry(),
       });
     } catch (bootstrapErr) {
       technicalConsole.warn('[LoginForm] /me after login failed; aborting redirect', bootstrapErr);
       message.error(t('common.auth.loginFailedGeneric'));
       return;
     }
+
+    message.success(t('common.auth.loginSuccess'));
 
     const cachedUser = queryClient.getQueryData<{ mustChangePasswordOnNextLogin?: boolean }>(
       AUTH_KEYS.user

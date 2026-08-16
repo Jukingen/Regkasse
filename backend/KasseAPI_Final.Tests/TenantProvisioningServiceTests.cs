@@ -5,6 +5,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Trial;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,24 @@ public sealed class TenantProvisioningServiceTests
             .UseInMemoryDatabase($"tenant_provision_{Guid.NewGuid():N}")
             .Options;
         return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
+    }
+
+    private static ITrialService CreateTrialServiceStub(int defaultDays = 14)
+    {
+        var trial = new Mock<ITrialService>();
+        trial.Setup(x => x.ResolveDurationDays(It.IsAny<int?>()))
+            .Returns((int? requested) => requested is > 0 ? requested.Value : defaultDays);
+        trial.Setup(x => x.ApplyTrialGrant(It.IsAny<Tenant>(), It.IsAny<int>(), It.IsAny<DateTime>()))
+            .Callback<Tenant, int, DateTime>((tenant, days, now) =>
+            {
+                tenant.TrialStartedAtUtc = now;
+                tenant.TrialEndsAtUtc = now.AddDays(days);
+                tenant.TrialStatus = TrialStatuses.Active;
+                tenant.LicenseKey = null;
+                tenant.LicenseValidUntilUtc = tenant.TrialEndsAtUtc;
+                tenant.UpdatedAt = now;
+            });
+        return trial.Object;
     }
 
     private static Mock<UserManager<ApplicationUser>> CreateUserManagerMock()
@@ -87,6 +106,7 @@ public sealed class TenantProvisioningServiceTests
             Mock.Of<IDemoProductImportService>(),
             new PaymentMethodDefinitionBootstrapService(db),
             TseProvisioningTestDoubles.Successful(),
+            CreateTrialServiceStub(),
             Mock.Of<ILogger<TenantProvisioningService>>());
 
         var (result, error) = await service.ProvisionAsync(tenant, null, null, grantTrialLicense: true);
@@ -123,6 +143,8 @@ public sealed class TenantProvisioningServiceTests
 
         var reloadedTenant = await db.Tenants.AsNoTracking().SingleAsync(t => t.Id == tenant.Id);
         Assert.NotNull(reloadedTenant.LicenseValidUntilUtc);
+        Assert.Equal(TrialStatuses.Active, reloadedTenant.TrialStatus);
+        Assert.NotNull(reloadedTenant.TrialEndsAtUtc);
         Assert.NotNull(result.TrialLicenseValidUntilUtc);
     }
 
@@ -154,6 +176,7 @@ public sealed class TenantProvisioningServiceTests
             Mock.Of<IDemoProductImportService>(),
             new PaymentMethodDefinitionBootstrapService(db),
             TseProvisioningTestDoubles.Successful(),
+            CreateTrialServiceStub(),
             Mock.Of<ILogger<TenantProvisioningService>>());
 
         var (result, error) = await service.ProvisionAsync(
@@ -213,6 +236,7 @@ public sealed class TenantProvisioningServiceTests
             importMock.Object,
             new PaymentMethodDefinitionBootstrapService(db),
             TseProvisioningTestDoubles.Successful(),
+            CreateTrialServiceStub(),
             Mock.Of<ILogger<TenantProvisioningService>>());
 
         db.Categories.Add(new Category

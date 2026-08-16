@@ -302,14 +302,6 @@ public sealed class DailyClosingService : IDailyClosingService
                             && p.RksvSpecialReceiptKind != null))
             .ToListAsync(cancellationToken);
 
-        if (transactions.Count == 0)
-        {
-            return Fail(
-                computedBackdated
-                    ? $"No transactions found for {businessDay:dd.MM.yyyy}. Cannot perform daily closing."
-                    : "No transactions found for today. Cannot perform daily closing.");
-        }
-
         var tenantId = register.TenantId != Guid.Empty
             ? register.TenantId
             : await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
@@ -323,6 +315,18 @@ public sealed class DailyClosingService : IDailyClosingService
         var totalAmount = transactions.Sum(t => t.TotalAmount);
         var totalTaxAmount = transactions.Sum(t => t.TaxAmount);
         var transactionCount = transactions.Count;
+        var isEmpty = transactionCount == 0;
+        var dayKind = DailyClosingDayKinds.FromTransactionCount(transactionCount);
+
+        if (isEmpty)
+        {
+            _logger.LogInformation(
+                "Empty daily closing (no fiscal invoices) for CashRegisterId={CashRegisterId} BusinessDay={BusinessDay:yyyy-MM-dd} ActorUserId={UserId} Backdated={IsBackdated}",
+                cashRegisterId,
+                businessDay,
+                actorUserId,
+                computedBackdated);
+        }
 
         var previousClosing = await _db.DailyClosings.AsNoTracking()
             .Where(c => c.CashRegisterId == cashRegisterId
@@ -368,6 +372,7 @@ public sealed class DailyClosingService : IDailyClosingService
             IsBackdated = computedBackdated,
             LateCreationReason = computedBackdated ? lateReason : null,
             ClosingType = "Daily",
+            DayKind = dayKind,
             TotalAmount = totalAmount,
             TotalTaxAmount = totalTaxAmount,
             TransactionCount = transactionCount,
@@ -413,12 +418,16 @@ public sealed class DailyClosingService : IDailyClosingService
             businessDay,
             computedBackdated,
             lateReason,
-            closing.CreatedAt);
+            closing.CreatedAt,
+            isEmpty,
+            transactionCount);
 
         return new DailyClosingResult
         {
             Success = true,
             IsBackdated = computedBackdated,
+            IsEmpty = isEmpty,
+            DayKind = dayKind,
             Closing = MapToDto(closing, register.RegisterNumber),
             PaymentBreakdown = summary.PaymentBreakdown,
             TaxBreakdown = summary.TaxBreakdown,
@@ -433,7 +442,9 @@ public sealed class DailyClosingService : IDailyClosingService
         DateTime businessDay,
         bool isBackdated,
         string? lateReason,
-        DateTime createdAtUtc)
+        DateTime createdAtUtc,
+        bool isEmpty = false,
+        int transactionCount = 0)
     {
         try
         {
@@ -443,9 +454,13 @@ public sealed class DailyClosingService : IDailyClosingService
             var daysLate = isBackdated
                 ? Math.Max(0, (viennaToday.Date - businessDay.Date).Days)
                 : 0;
-            var description = isBackdated
-                ? $"Nachträglicher Tagesabschluss für {businessDay:yyyy-MM-dd} erstellt (CreatedAt = echte UTC-Zeit, DaysLate={daysLate})"
-                : $"Tagesabschluss für {businessDay:yyyy-MM-dd} erstellt";
+            var description = isEmpty
+                ? (isBackdated
+                    ? $"Leerer nachträglicher Tagesabschluss für {businessDay:yyyy-MM-dd} erstellt (0 Transaktionen, DaysLate={daysLate})"
+                    : $"Leerer Tagesabschluss für {businessDay:yyyy-MM-dd} erstellt (0 Transaktionen)")
+                : isBackdated
+                    ? $"Nachträglicher Tagesabschluss für {businessDay:yyyy-MM-dd} erstellt (CreatedAt = echte UTC-Zeit, DaysLate={daysLate})"
+                    : $"Tagesabschluss für {businessDay:yyyy-MM-dd} erstellt";
 
             await _auditLogService.LogSystemOperationAsync(
                 action,
@@ -459,12 +474,15 @@ public sealed class DailyClosingService : IDailyClosingService
                     userId = actorUserId,
                     closingDate = businessDay.ToString("yyyy-MM-dd"),
                     isBackdated,
+                    isEmpty,
+                    transactionCount,
+                    dayKind = isEmpty ? DailyClosingDayKinds.Empty : DailyClosingDayKinds.Normal,
                     backdatedReason = lateReason,
                     reason = lateReason,
                     createdAt = createdAtUtc,
                     daysLate,
                 },
-                responseData: new { closingId, isBackdated, daysLate },
+                responseData: new { closingId, isBackdated, isEmpty, daysLate },
                 entityId: closingId,
                 tenantId: tenantId);
         }
@@ -515,6 +533,12 @@ public sealed class DailyClosingService : IDailyClosingService
             IsBackdated = closing.IsBackdated,
             LateCreationReason = closing.LateCreationReason,
             ClosingType = closing.ClosingType,
+            DayKind = string.IsNullOrWhiteSpace(closing.DayKind)
+                ? DailyClosingDayKinds.FromTransactionCount(closing.TransactionCount)
+                : closing.DayKind,
+            IsEmpty = DailyClosingDayKinds.IsEmptyValue(closing.DayKind)
+                      || (string.Equals(closing.ClosingType, "Daily", StringComparison.OrdinalIgnoreCase)
+                          && closing.TransactionCount == 0),
             TotalAmount = closing.TotalAmount,
             TotalTaxAmount = closing.TotalTaxAmount,
             TransactionCount = closing.TransactionCount,

@@ -106,4 +106,39 @@ public class Tenant : BaseEntity
     /// <summary>JSON customizations for industry template slots (optional).</summary>
     [Column("industry_template_customizations", TypeName = "jsonb")]
     public string? IndustryTemplateCustomizations { get; set; }
+
+    /// <summary>UTC when SaaS trial started (null when never trialled).</summary>
+    [Column("trial_started_at_utc")]
+    public DateTime? TrialStartedAtUtc { get; set; }
+
+    /// <summary>UTC when SaaS trial ends (synced to <see cref="LicenseValidUntilUtc"/> while trial is open).</summary>
+    [Column("trial_ends_at_utc")]
+    public DateTime? TrialEndsAtUtc { get; set; }
+
+    /// <summary>
+    /// Trial lifecycle (<see cref="TrialStatuses"/>): active / expired / converted / deleted.
+    /// Null when the tenant was never placed on a managed trial.
+    /// </summary>
+    [MaxLength(20)]
+    [Column("trial_status")]
+    public string? TrialStatus { get; set; }
+
+    [Column("trial_reminder_7d_sent")]
+    public bool TrialReminder7dSent { get; set; }
+
+    [Column("trial_reminder_3d_sent")]
+    public bool TrialReminder3dSent { get; set; }
+
+    [Column("trial_reminder_1d_sent")]
+    public bool TrialReminder1dSent { get; set; }
+
+    [Column("trial_converted_at_utc")]
+    public DateTime? TrialConvertedAtUtc { get; set; }
+
+    /// <summary>UTC when expired trial was soft-archived by cleanup (not a fiscal hard-delete).</summary>
+    [Column("trial_deleted_at_utc")]
+    public DateTime? TrialDeletedAtUtc { get; set; }
+
+    [Column("trial_grace_period_ends_at_utc")]
+    public DateTime? TrialGracePeriodEndsAtUtc { get; set; }
 }

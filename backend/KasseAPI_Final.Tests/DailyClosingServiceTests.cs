@@ -515,4 +515,107 @@ public sealed class DailyClosingServiceTests
         Assert.False(result.Success);
         Assert.Contains("future", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public async Task CreateDailyClosingAsync_WhenNoTransactions_CreatesEmptyClosing()
+    {
+        var tenantId = Guid.NewGuid();
+        var regId = Guid.NewGuid();
+        var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+        var (fromUtc, _) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(viennaToday);
+        var noonUtc = fromUtc.AddHours(12);
+
+        await using var ctx = new AppDbContext(
+            new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase($"DailyClosingEmpty_{Guid.NewGuid():N}")
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+                .Options,
+            TenantTestDoubles.TenantAccessorReturning(tenantId));
+
+        ctx.Tenants.Add(new Tenant { Id = tenantId, Name = "T", Slug = "t-empty-dc", IsActive = true });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = regId,
+            TenantId = tenantId,
+            RegisterNumber = "K1",
+            Location = "Front",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = noonUtc,
+            Status = RegisterStatus.Open,
+            CreatedAt = noonUtc,
+        });
+        await ctx.SaveChangesAsync();
+
+        var sut = DailyClosingTestDoubles.Create(ctx);
+        var result = await sut.CreateDailyClosingAsync(regId);
+
+        Assert.True(result.Success);
+        Assert.True(result.IsEmpty);
+        Assert.Equal(DailyClosingDayKinds.Empty, result.DayKind);
+        Assert.NotNull(result.Closing);
+        Assert.Equal(0, result.Closing!.TransactionCount);
+        Assert.Equal(0m, result.Closing.TotalAmount);
+        Assert.Equal(DailyClosingDayKinds.Empty, result.Closing.DayKind);
+        Assert.True(result.Closing.IsEmpty);
+        Assert.Equal("Daily", result.Closing.ClosingType);
+
+        var persisted = await ctx.DailyClosings.SingleAsync();
+        Assert.Equal(DailyClosingDayKinds.Empty, persisted.DayKind);
+        Assert.Equal(0, persisted.TransactionCount);
+        Assert.Equal("Daily", persisted.ClosingType);
+        Assert.False(persisted.IsBackdated);
+    }
+
+    [Fact]
+    public async Task CreateDailyClosingAsync_WhenEmptyClosingAlreadyExists_Fails()
+    {
+        var tenantId = Guid.NewGuid();
+        var regId = Guid.NewGuid();
+        var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+        var closingAnchorUtc = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(viennaToday);
+
+        await using var ctx = new AppDbContext(
+            new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase($"DailyClosingEmptyDup_{Guid.NewGuid():N}")
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+                .Options,
+            TenantTestDoubles.TenantAccessorReturning(tenantId));
+
+        ctx.Tenants.Add(new Tenant { Id = tenantId, Name = "T", Slug = "t-empty-dup", IsActive = true });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = regId,
+            TenantId = tenantId,
+            RegisterNumber = "K1",
+            Location = "Front",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+        });
+        ctx.DailyClosings.Add(new DailyClosing
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            CashRegisterId = regId,
+            UserId = "cashier-test",
+            ClosingDate = closingAnchorUtc,
+            ClosingType = "Daily",
+            DayKind = DailyClosingDayKinds.Empty,
+            TotalAmount = 0m,
+            TotalTaxAmount = 0m,
+            TransactionCount = 0,
+            Status = "Completed",
+            CreatedAt = DateTime.UtcNow,
+        });
+        await ctx.SaveChangesAsync();
+
+        var sut = DailyClosingTestDoubles.Create(ctx);
+        var result = await sut.CreateDailyClosingAsync(regId);
+
+        Assert.False(result.Success);
+        Assert.Contains("already", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+    }
 }

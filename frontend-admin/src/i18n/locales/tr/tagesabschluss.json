@@ -1,4 +1,11 @@
 {
+  "emptyDayWarning": "Bu gun icin islem bulunamadi. Bos gun sonu olusturmak istiyor musunuz?",
+  "emptyDayConfirm": "Bu gun icin islem bulunamadi. Bos gun sonu olusturmak istiyor musunuz?",
+  "emptyDaySuccess": "Bos gun sonu olusturuldu. Islem yok.",
+  "normalDaySuccess": "Gun sonu basariyla olusturuldu. {{count}} islem.",
+  "type": "Tur",
+  "typeNormal": "Normal",
+  "typeEmpty": "Bos (0 islem)",
   "page": {
     "intro": "Operasyonel kasa gun sonu (TSE/RKSV): on kontrol ve gun sonu. Resmi gunluk rapor (belge, finalize, FinanzOnline) icin menuden \"Resmi gunluk rapor\"u kullanin."
   },
@@ -44,6 +51,7 @@
     "lastMonthlyClosing": "Son aylik kapanis",
     "lastYearlyClosing": "Son yillik kapanis",
     "paymentsWithoutInvoice": "Faturasiz odemeler (secilen gun)",
+    "transactionCount": "Islemler (secilen gun)",
     "hint": "Not",
     "backendHint": "Sunucu notu (dil garanti degil)"
   },
@@ -102,6 +110,9 @@
     "colDate": "Tarih",
     "colCreatedAt": "Olusturulma",
     "colType": "Tur",
+    "filterAll": "Tumu",
+    "filterNormal": "Normal",
+    "filterEmpty": "Bos",
     "colLateReason": "Neden (gecikmeli)",
     "colGross": "Brut",
     "colTax": "Vergi",
@@ -128,6 +139,8 @@
   },
   "messages": {
     "successDaily": "Gunluk gun sonu uygulandi.",
+    "successDailyEmpty": "Bos gun sonu olusturuldu. Islem yok.",
+    "successDailyNormal": "Gun sonu basariyla olusturuldu. {{count}} islem.",
     "successDailyBackdated": "{{date}} icin sonradan gunluk kapanis uygulandi.",
     "successMonthly": "Aylik kapanis uygulandi.",
     "successYearly": "Yillik kapanis uygulandi.",

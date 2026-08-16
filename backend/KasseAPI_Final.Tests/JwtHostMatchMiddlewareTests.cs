@@ -97,6 +97,7 @@ public sealed class JwtHostMatchMiddlewareTests
         await middleware.InvokeAsync(
             httpContext,
             service,
+            accessor,
             Options.Create(new AuthOptions { RequireTenantHostMatch = true }),
             NullLogger<TenantContextMiddleware>.Instance);
 
@@ -132,6 +133,7 @@ public sealed class JwtHostMatchMiddlewareTests
         await middleware.InvokeAsync(
             httpContext,
             service,
+            accessor,
             Options.Create(new AuthOptions { RequireTenantHostMatch = true }),
             NullLogger<TenantContextMiddleware>.Instance);
 
@@ -172,6 +174,7 @@ public sealed class JwtHostMatchMiddlewareTests
         await middleware.InvokeAsync(
             httpContext,
             service,
+            accessor,
             Options.Create(new AuthOptions { RequireTenantHostMatch = true }),
             NullLogger<TenantContextMiddleware>.Instance);
 
@@ -205,6 +208,7 @@ public sealed class JwtHostMatchMiddlewareTests
         await middleware.InvokeAsync(
             httpContext,
             service,
+            accessor,
             Options.Create(new AuthOptions { RequireTenantHostMatch = true }),
             NullLogger<TenantContextMiddleware>.Instance);
 
@@ -241,6 +245,7 @@ public sealed class JwtHostMatchMiddlewareTests
         await middleware.InvokeAsync(
             httpContext,
             service,
+            accessor,
             Options.Create(new AuthOptions { RequireTenantHostMatch = true }),
             NullLogger<TenantContextMiddleware>.Instance);
 
@@ -303,6 +308,7 @@ public sealed class JwtHostMatchMiddlewareTests
         await middleware.InvokeAsync(
             httpContext,
             service,
+            accessor,
             Options.Create(new AuthOptions { RequireTenantHostMatch = true }),
             NullLogger<TenantContextMiddleware>.Instance);
 
@@ -336,6 +342,7 @@ public sealed class JwtHostMatchMiddlewareTests
         await middleware.InvokeAsync(
             httpContext,
             service,
+            accessor,
             Options.Create(new AuthOptions { RequireTenantHostMatch = false }),
             NullLogger<TenantContextMiddleware>.Instance);
 

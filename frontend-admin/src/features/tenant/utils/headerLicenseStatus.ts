@@ -4,7 +4,7 @@ import {
 } from '@/features/license/constants/licenseGracePeriod';
 import type { ResolvedLicenseStatus } from '@/features/license/utils/licenseStatus';
 import { getLicenseHoursRemaining } from '@/features/license/utils/licenseStatus';
-import { formatUserDateTime } from '@/lib/dateFormatter';
+import { formatLicenseValidUntil } from '@/features/license/utils/licenseValidUntil';
 
 export type HeaderLicenseStatusClass = 'valid' | 'warning' | 'expired';
 
@@ -26,7 +26,8 @@ function isExpiringSoon(status: ResolvedLicenseStatus): boolean {
 }
 
 function formatExpiryDateTime(validUntilUtc: string | null | undefined): string {
-  return formatUserDateTime(validUntilUtc) || '';
+  const formatted = formatLicenseValidUntil(validUntilUtc);
+  return formatted === '—' ? '' : formatted;
 }
 
 export { getLicenseHoursRemaining };
@@ -72,7 +73,7 @@ export function getHeaderLicenseStatusText(
 
   if (isExpiringSoon(status)) {
     const hoursRemaining = getLicenseHoursRemaining(context?.validUntilUtc);
-    if (hoursRemaining !== null && hoursRemaining < 24) {
+    if (hoursRemaining !== null && hoursRemaining > 0 && hoursRemaining < 24) {
       return t('license.badge.headerShort.expiringSoonWithHours', { hours: hoursRemaining });
     }
 

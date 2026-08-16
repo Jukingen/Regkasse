@@ -31,16 +31,32 @@ echo ========================================
 echo.
 echo Project path: %PROJECT_PATH%
 echo Log file: %LOG_FILE%
+echo Dev mode: webpack ^(avoids Turbopack monorepo RAM leak^)
 echo.
 echo ========================================
 echo.
+
+REM Kill orphan Next workers from previous runs (can be thousands)
+echo [1/3] Cleanup orphan Next/Expo node workers...
+echo %date% %time% - Cleanup orphan Next workers... >> "%LOG_FILE%"
+pushd "%REPO_ROOT%"
+call npm run dev:cleanup
+popd
+
+REM Stale Turbopack cache under .next/dev can respawn workers — wipe before start
+echo [2/3] Clearing frontend-admin .next cache...
+echo %date% %time% - Clearing .next cache... >> "%LOG_FILE%"
+if exist "%PROJECT_PATH%\.next" (
+    rmdir /s /q "%PROJECT_PATH%\.next" 2>nul
+)
 
 if not exist "node_modules" (
     echo [WARN] node_modules not found!
     echo %date% %time% - WARNING: node_modules not found >> "%LOG_FILE%"
 )
 
-echo %date% %time% - Starting admin... >> "%LOG_FILE%"
+echo [3/3] Starting admin ^(next dev --webpack^)...
+echo %date% %time% - Starting admin (webpack)... >> "%LOG_FILE%"
 npm run dev >> "%LOG_FILE%" 2>&1
 
 if %errorlevel% neq 0 (

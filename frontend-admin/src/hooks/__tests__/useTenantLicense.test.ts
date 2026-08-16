@@ -17,7 +17,7 @@ describe('toTenantLicenseViewModel', () => {
     const view = toTenantLicenseViewModel(status);
 
     expect(view.validUntil).toBe(status.validUntil);
-    expect(view.validUntilFormatted).toMatch(/^\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}$/);
+    expect(view.validUntilFormatted).toBe('16.07.2026 14:30');
   });
 
   it('uses em dash when validUntil is missing', () => {

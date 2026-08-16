@@ -11,7 +11,7 @@ import {
   getHeaderLicenseTooltipStatusLabel,
   getLicenseHoursRemaining,
 } from '@/features/tenant/utils/headerLicenseStatus';
-import { formatUserDateTime } from '@/lib/dateFormatter';
+import { formatLicenseValidUntil } from '@/features/license/utils/licenseValidUntil';
 
 type TranslateFn = (key: string, params?: Record<string, string | number>) => string;
 
@@ -30,7 +30,7 @@ export function HeaderLicenseTooltipContent({
   context,
   t,
 }: HeaderLicenseTooltipContentProps) {
-  const dateTime = formatUserDateTime(context.validUntilUtc);
+  const dateTime = formatLicenseValidUntil(context.validUntilUtc);
   const hoursRemaining = getLicenseHoursRemaining(context.validUntilUtc);
   const showHours =
     !isGracePhase(status) && hoursRemaining !== null && hoursRemaining > 0 && hoursRemaining < 24;

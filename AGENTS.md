@@ -9,7 +9,7 @@ This repository is a POS monorepo. Prefer safe, incremental improvements over br
 - For medium or large tasks, also read **`REGKASSE_AI_ONBOARDING.md`**, optionally **`docs/PROJECT_COMPREHENSIVE_DOCUMENTATION.md`**, and relevant docs under `ai/`.
 - Keep this file valid Markdown (closed code fences, proper headings); broken formatting reduces what agents can parse reliably.
 
-**Last updated:** 2026-07-24
+**Last updated:** 2026-08-13
 
 ## Language Rules
 Follow these language rules strictly:
@@ -70,7 +70,7 @@ For medium or large changes, always provide:
 Developer experience and CI (see root [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`.github/workflows/README.md`](.github/workflows/README.md)):
 
 - **Monorepo onboarding:** Root `README.md` / `CONTRIBUTING.md`; per-package READMEs (`backend`, `frontend`, `frontend-admin`, `frontend-sites`, `localization`, `scripts`, `tools`, `docs`, `ai`).
-- **npm workspaces:** Root `package.json` workspaces = `backend`, `frontend`, `frontend-admin`, `frontend-sites`, `localization`. Backend scripts wrap `dotnet`. Prefer `npm run dev` (parallel) or `npm run dev:admin` / `dev:pos` / `dev:sites` / `dev:backend`. `build` / `test` / `lint` use `npm run … --workspaces --if-present`.
+- **npm workspaces:** Root `package.json` workspaces = `backend`, `frontend`, `frontend-admin`, `frontend-sites`, `localization`. Backend scripts wrap `dotnet`. Prefer `npm run dev` (parallel **backend + admin**, orphan cleanup) or `npm run dev:all` / `dev:admin` / `dev:pos` / `dev:sites` / `dev:backend`. `build` / `test` / `lint` use `npm run … --workspaces --if-present`.
 - **CI/CD:** Path-filtered workflows for backend unit + PostgreSQL integration, FA (lint/typecheck/test/build/E2E), POS, Sites; NuGet + `node_modules` caches; optional Slack via `SLACK_WEBHOOK_URL` (`notify-failure.yml`).
 - **OpenAPI → Orval:** `node scripts/verify-api-client.mjs`; Husky pre-commit (`npm run prepare` / `install:git-hooks`); auto-commit workflow `api-client-auto-generate.yml` on `backend/swagger.json` push to `main`/`master`.
 - **i18n hard gate:** `localization-validation.yml` + FA/POS CI run `validate-translations` / usage with `--strictMissing true` (admin also `--orphanPolicy error`). `frontend-sites` is **deferred** in `namespace-manifest.json` until locale catalogs exist.
@@ -151,7 +151,7 @@ Developer experience and CI (see root [`README.md`](README.md), [`CONTRIBUTING.m
 - Access via `admin.regkasse.at`
 - Can impersonate any tenant via `POST /api/admin/tenants/{id}/impersonate`
 - Tenant CRUD via `/api/admin/tenants/*`
-- **Ambient tenant exemptions (middleware):** `TenantValidationMiddleware` allows **authenticated SuperAdmin only** to call platform SaaS prefixes without ambient `ICurrentTenantAccessor.TenantId`: `/api/admin/tenants`, `/api/admin/billing`, `/api/admin/cache`, and exact `/api/tenants/switcher`. Segment-safe prefixes (no `/api/admin/tenantsfoo`). **Non–SuperAdmin** on those URLs still need ambient tenant (404). Mandant data APIs (`/api/admin/products`, POS, etc.) always require ambient tenant — even for SuperAdmin.
+- **Ambient tenant exemptions (middleware):** `TenantValidationMiddleware` allows **authenticated SuperAdmin only** to call platform SaaS prefixes without ambient `ICurrentTenantAccessor.TenantId`: `/api/admin/tenants`, `/api/admin/billing`, `/api/admin/cache`, `/api/admin/support`, `/api/admin/trials`, and exact `/api/tenants/switcher`. Segment-safe prefixes (no `/api/admin/tenantsfoo`). **Non–SuperAdmin** on those URLs still need ambient tenant (404). Mandant data APIs (`/api/admin/products`, POS, etc.) always require ambient tenant — even for SuperAdmin.
 - **Route/body tenant target:** Super Admin ops that touch a specific mandant MUST validate the tenant exists (`GetByIdAsync` / equivalent → HTTP 404). Do not rely on ambient JWT tenant alone for cross-tenant SaaS actions; use the explicit `tenantId` from the route or body.
 - **Impersonation:** issues JWT with target `tenant_id` + `tenant_impersonation=true`; subsequent EF filters bind to the target. Host↔JWT match is skipped for impersonation tokens (`Auth:RequireTenantHostMatch`).
 - **Cache management:** Super Admins can clear tenant-specific or all caches via `POST /api/admin/cache/clear` (`{"tenantId":"…"}` or `{"clearAll":true}`). Use this only in emergency situations or after database migrations / manual DB fixes — not for routine deploys. Clearing all caches will temporarily impact performance as caches are rebuilt. FA: Systemwartung → Cache leeren. Prefer automatic invalidation; see [`docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md`](docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md) § Cache Management.
@@ -209,19 +209,62 @@ curl http://localhost:5184/api/health?tenant=dev
 | Admin (frontend-admin) | `/api/admin/*`, `/api/Auth/*` | `/api/pos/*` |
 | Shared | `/api/Auth/*`, `/api/user/*`, `/api/rksv/*` | - |
 
-### Legacy Endpoints (DO NOT EXTEND)
-- `/api/Payment`, `/api/Cart`, `/api/Product` - existing only, no new features
-- New features MUST use canonical boundaries
+### Removed legacy aliases (DO NOT REINTRODUCE)
+- `/api/Payment`, `/api/Cart`, `/api/Product` were **hard-removed on 2026-08-13**. Same handlers remain on `/api/pos/payment/*`, `/api/pos/cart/*`, `/api/pos/*`.
+- Admin catalog CRUD: `/api/admin/products`. New features MUST use canonical boundaries.
+- See [`docs/API_LEGACY_DEPRECATION.md`](docs/API_LEGACY_DEPRECATION.md).
 
 ## License Sales (Super Admin Only)
 
 - License sales are independent from RKSV/fiscal system
 - All sales are logged in `billing_audit_log` (not fiscal audit)
 - Invoices are generated as PDF with company logo and VAT breakdown
-- License keys format: `REGK-{validUntil:yyyyMMdd}-{tenantSlug}-{random}`
-- Mandanten-Admins (`Manager` role) can extend licenses using license keys provided by Super Admin
+- Unified license keys: `REGK-{validUntil:yyyyMMdd}-{tenantSlug}-{8 alnum}` (mandant). Deployment keys use slug `system`. Legacy `REGK-XXXXX-XXXXX-XXXXX` is still accepted for on-prem display keys.
+- Mandanten-Admins (`Manager` role) can extend licenses using license keys provided by Super Admin. Activation: `POST /api/license/activate` (POS + FA).
 
 **Docs:** `docs/BILLING_TENANT_LICENSE.md`, `docs/API_CONTRACTS.md` (Billing section), `ai/modules/billing_license.md`
+
+## Trial / Demo system
+
+SaaS mandant trials are first-class (`Trial` config section, `ITrialService`). Not a POS/RKSV flow.
+
+| Item | Detail |
+|------|--------|
+| Config | `Trial:*` — `Enabled`, `DefaultDurationDays` (14), `AllowedDurationDays` `[14,30,60,90]`, `GracePeriodDays` (7), `AutoDeleteAfterGraceDays` (30), `ReminderDays` `[7,3,1]`, `MaxRegistersInTrial` (1), `MaxUsersInTrial` (3), `DemoCatalogImport` |
+| Statuses | `active` → `expired` (grace) → soft `deleted` (RKSV retained) or `converted` |
+| Super Admin API | `/api/admin/trials` (dashboard, analytics, grant/extend/convert/delete) |
+| Super Admin UI | `/admin/trials` |
+| Conversion | `ITrialConversionService` + license sale (`ConvertedFromTrial`); keeps remaining trial days by default |
+| Jobs | `TrialReminderHostedService` (interval hours), `TrialCleanupHostedService` (daily UTC hour) |
+| Limits | `TrialLimitGuard` — extra registers/users while trial is open → `TrialLimitExceededException` |
+
+Wizard create-tenant can start a managed trial (syncs `LicenseValidUntilUtc`, no paid `LicenseKey` until conversion).
+
+## Self-service portal (Mein Konto)
+
+Mandanten-Admin hub for license, invoices, profile, and support. Permission: `license.manage` (Super Admin via `system.critical`).
+
+| FA page | Purpose | API |
+|---------|---------|-----|
+| `/tenant/portal` | Mein Konto hub | onboarding + license status |
+| `/tenant/license` | Activate / extend / status | `POST /api/license/activate`, tenant license APIs |
+| `/tenant/invoices` | Billing invoices + PDF | `GET /api/admin/billing/tenant-invoices` |
+| `/tenant/profile` | Company / account profile | tenant settings |
+| `/tenant/support` | Own tickets | `GET/POST /api/admin/support/tickets` |
+| `/admin/support` | Super Admin inbox (all tenants) | `/api/admin/support/admin/tickets` |
+
+Cross-tenant ticket access → HTTP **404**. Staff internal notes are hidden from Mandanten-Admin.
+
+## Unified license
+
+One REGK format for mandant billing and deployment keys (`LicenseKeyGenerator`):
+
+- **Mandant:** `REGK-yyyyMMdd-{tenantSlug}-{8}` — slug is the mandant; date is `validUntil` UTC.
+- **Deployment / system:** slug `system` (`LicenseKeyKinds.System`).
+- **Legacy on-prem display:** `REGK-XXXXX-XXXXX-XXXXX` still validates via `RegkTenantLicenseKeyFormat`.
+- Activate once: `POST /api/license/activate`. Status: `GET /api/license/status`. Cache key `license_status_{tenantId}` (5 min) + invalidation on sale/activate/extend.
+
+Do not invent a second key family. Reserved slugs (`pos`, `api`, `admin`, `www`) are rejected as key slugs.
 
 ## Authentication & User Management
 
@@ -683,6 +726,8 @@ Use `/ai` docs selectively based on the task:
 - **Offline order snapshots (new)** → `ai/modules/offline_orders.md`, `docs/release/OFFLINE_SYSTEMS_SEPARATION.md`
 - Admin API integration work → `ai/10_API_BOUNDARY_POLICY.md`
 - Billing / mandant license sales → `docs/BILLING_TENANT_LICENSE.md`, `ai/modules/billing_license.md`
+- **Trial / demo SaaS** → `AGENTS.md` § Trial / Demo system; config `Trial:*` in `backend/CONFIGURATION.md`
+- **Self-service portal / support tickets** → `AGENTS.md` § Self-service portal; FA `/tenant/portal`, `/tenant/support`, `/admin/support`
 - **Digital services / website generator / online orders (non-fiscal)** → [`docs/DIGITAL_SERVICES.md`](docs/DIGITAL_SERVICES.md), [`docs/ONLINE_ORDERS.md`](docs/ONLINE_ORDERS.md), [`docs/PERMISSIONS_MATRIX.md`](docs/PERMISSIONS_MATRIX.md), [`docs/CHANGELOG.md`](docs/CHANGELOG.md); `AGENTS.md` § Roles (Digital services & online orders); `RolePermissionMatrix`; FA `/settings/digital`, `/orders/online`, `/admin/digital`; runtime Sites app `frontend-sites/`
 - **Expired license data management / GDPR data rights (RKSV retention)** → `AGENTS.md` § Expired license — customer data management; `CustomerDataRightsService` (View/Export/Delete), `DataExportService`, `DataDeletionService`, `ILicenseLifecycleResolver`, FA `/tenant/[id]/data-management`
 - **CI / monorepo DX** → root [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`.github/workflows/README.md`](.github/workflows/README.md); Orval verify + Husky; i18n hard gate in `localization-validation.yml`
@@ -871,7 +916,9 @@ modal.confirm({ title: 'Confirm', content: 'Are you sure?', onOk: () => {} });
 ```bash
 # From repo root (npm workspaces)
 npm install
-npm run dev                 # parallel: backend + POS + admin + sites
+npm run dev                 # parallel RAM-safe: backend + admin (+ orphan cleanup)
+npm run dev:all             # parallel full: backend + admin + POS + sites
+npm run dev:cleanup         # kill orphan Next/Expo node workers
 npm run dev:backend | dev:admin | dev:pos | dev:sites
 npm run test
 npm run verify:api-client
@@ -927,7 +974,7 @@ npm run test:pos
 1. Start PostgreSQL (Docker or local)
 2. `npm install` at repo root (workspaces + Husky prepare)
 3. Configure backend user-secrets (see `backend/README.md`)
-4. `npm run dev` — or `dev:backend` / `dev:admin` / `dev:pos` / `dev:sites`
+4. `npm run dev` (API+Admin) — or `dev:all` / `dev:backend` / `dev:admin` / `dev:pos` / `dev:sites`
 
 ### Environment Variables
 

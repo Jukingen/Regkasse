@@ -594,8 +594,16 @@
         "copy": "E-postayı kopyala"
       },
       "grantTrialLicense": {
-        "label": "30 günlük demo lisansını etkinleştir (ücretsiz)",
-        "tooltip": "30 gün ücretsiz deneme, ardından uzatma mümkün"
+        "label": "Demo lisansini (deneme) etkinlestir",
+        "tooltip": "Yapilandirilabilir deneme suresi (varsayilan 14 gun); sonra uzatma veya ucretli gecis mumkun"
+      },
+      "trialDuration": {
+        "label": "Deneme suresi",
+        "tooltip": "Super Admin deneme uzunlugunu secer",
+        "days_14": "14 gun",
+        "days_30": "30 gun",
+        "days_60": "60 gun",
+        "days_90": "90 gun"
       },
       "importDemoProducts": {
         "label": "Demo ürünleri otomatik içe aktar",

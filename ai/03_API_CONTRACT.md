@@ -31,7 +31,7 @@ JWT: auth sonrası `tenant_id` claim (Guid) + `TenantContextMiddleware` (POS/API
 - POS: `/api/pos/*`
 - Sites / public (storefront, online order intake): `/api/public/*`, `/api/sites/*` — POS/FA boundary’sine karıştırma; working hours yalnızca bu yüzeyi etkiler.
 - RKSV özel fişler: `/api/rksv/*` (canonical; yüksek risk).
-- Legacy prefix (`/api/Payment`, `/api/Cart`, `/api/Product`) yeni işlev için kullanılmaz.
+- Legacy prefix (`/api/Payment`, `/api/Cart`, `/api/Product`) **removed** (2026-08-13). Canonical: `/api/pos/payment`, `/api/pos/cart`, `/api/pos` + `/api/admin/products`.
 
 ## Yüksek risk (contract değişikliği öncesi)
 - Ödeme: `/api/pos/payment*`, offline intent replay: `/api/offline-transactions/*`

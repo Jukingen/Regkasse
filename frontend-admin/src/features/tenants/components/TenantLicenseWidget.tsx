@@ -11,12 +11,11 @@ import {
   clampTenantGraceRemaining,
 } from '@/features/license/constants/licenseGracePeriod';
 import { resolveTenantLicenseStatus } from '@/features/license/utils/licenseStatus';
+import { formatLicenseValidUntil } from '@/features/license/utils/licenseValidUntil';
 import { getAdminTenantLicense } from '@/features/super-admin/api/adminTenantLicense';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { LicenseStatusBadge } from '@/features/tenants/components/LicenseStatusBadge';
 import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
-import { useI18n } from '@/i18n/I18nProvider';
-import { formatDate } from '@/i18n/formatting';
 
 export type TenantLicenseWidgetProps = {
   tenantId?: string;
@@ -34,7 +33,6 @@ export function TenantLicenseWidget({
   onRefresh,
   asWidget = true,
 }: TenantLicenseWidgetProps) {
-  const { formatLocale } = useI18n();
   const currentTenant = useCurrentTenant();
   const resolvedTenantId = tenantId ?? currentTenant.tenantId ?? undefined;
 
@@ -106,7 +104,7 @@ export function TenantLicenseWidget({
             {
               key: 'validUntil',
               label: 'Gültig bis',
-              children: validUntil ? formatDate(validUntil, formatLocale) : '—',
+              children: formatLicenseValidUntil(validUntil),
             },
             {
               key: 'tier',

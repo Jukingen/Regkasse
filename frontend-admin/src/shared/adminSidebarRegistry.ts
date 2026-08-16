@@ -92,11 +92,13 @@ export type SidebarIconToken =
   | 'HistoryOutlined'
   | 'KeyOutlined'
   | 'ApartmentOutlined'
+  | 'PlusOutlined'
   | 'DisconnectOutlined'
   | 'UnorderedListOutlined'
   | 'BugOutlined'
   | 'ApiOutlined'
-  | 'MailOutlined';
+  | 'MailOutlined'
+  | 'CustomerServiceOutlined';
 
 export type SidebarNavCatalogItem = {
   /** Stable id for tests and layout references */
@@ -740,9 +742,9 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
   },
   licenseManagement: {
     id: 'licenseManagement',
-    menuKey: '/admin/license',
-    href: '/admin/license',
-    labelKey: 'nav.licenses',
+    menuKey: '/admin/license-management',
+    href: '/admin/license-management',
+    labelKey: 'nav.licenseManagement',
     icon: 'KeyOutlined',
     /** Mandant license (Manager) + deployment license (Super Admin / settings.manage). */
     permission: [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SETTINGS_MANAGE],
@@ -790,6 +792,23 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     labelKey: 'nav.tenants',
     icon: 'ApartmentOutlined',
     ...sidebarFieldsFromMenuMap('tenants'),
+  },
+  /** Super Admin create-tenant wizard — sibling of Mandanten list under Verwaltung. */
+  superAdminCreateTenant: {
+    id: 'superAdminCreateTenant',
+    menuKey: '/admin/tenants/create',
+    href: '/admin/tenants/create',
+    labelKey: 'nav.createTenant',
+    icon: 'PlusOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
+  superAdminTrials: {
+    id: 'superAdminTrials',
+    menuKey: '/admin/trials',
+    href: '/admin/trials',
+    labelKey: 'nav.trials',
+    icon: 'ClockCircleOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
   },
   superAdminApprovals: {
     id: 'superAdminApprovals',
@@ -889,6 +908,8 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     labelKey: 'nav.licenseSales',
     icon: 'CreditCardOutlined',
     permission: [PERMISSIONS.SYSTEM_CRITICAL],
+    /** Overview redirects to `/admin/license-management`; sales stay at `/admin/billing/sales`. */
+    sidebarHidden: true,
   },
   billingSales: {
     id: 'billingSales',
@@ -935,11 +956,43 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
   },
   tenantPortal: {
     id: 'tenantPortal',
-    menuKey: '/tenant/dashboard',
-    href: '/tenant/dashboard',
-    labelKey: 'nav.tenantPortal',
+    menuKey: '/tenant/portal',
+    href: '/tenant/portal',
+    labelKey: 'nav.portal',
     icon: 'ShopOutlined',
-    permission: [PERMISSIONS.LICENSE_VIEW, PERMISSIONS.SYSTEM_CRITICAL],
+    permission: [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  tenantLicense: {
+    id: 'tenantLicense',
+    menuKey: '/tenant/license',
+    href: '/tenant/license',
+    labelKey: 'nav.license',
+    icon: 'KeyOutlined',
+    permission: [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  tenantInvoices: {
+    id: 'tenantInvoices',
+    menuKey: '/tenant/invoices',
+    href: '/tenant/invoices',
+    labelKey: 'nav.tenantInvoices',
+    icon: 'FileTextOutlined',
+    permission: [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  tenantProfile: {
+    id: 'tenantProfile',
+    menuKey: '/tenant/profile',
+    href: '/tenant/profile',
+    labelKey: 'nav.profile',
+    icon: 'UserOutlined',
+    permission: [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  tenantSupport: {
+    id: 'tenantSupport',
+    menuKey: '/tenant/support',
+    href: '/tenant/support',
+    labelKey: 'nav.tenantSupport',
+    icon: 'CustomerServiceOutlined',
+    permission: [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
   },
   digitalServicesManage: {
     id: 'digitalServicesManage',
@@ -968,6 +1021,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/admin/feedback',
     labelKey: 'nav.adminFeedback',
     icon: 'InboxOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminSupportInbox: {
+    id: 'adminSupportInbox',
+    menuKey: '/admin/support',
+    href: '/admin/support',
+    labelKey: 'nav.adminSupport',
+    icon: 'CustomerServiceOutlined',
     permission: [PERMISSIONS.SYSTEM_CRITICAL],
   },
   adminMonitoring: {
@@ -1422,9 +1483,20 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
           'licenseManagement',
           'licenseTest',
           'superAdminLicenses',
-          'billingOverview',
           'billingDigital',
+        ],
+      },
+      {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.myAccount,
+        labelKey: 'nav.meinKonto',
+        icon: 'UserOutlined',
+        catalogIds: [
           'tenantPortal',
+          'tenantLicense',
+          'tenantInvoices',
+          'tenantProfile',
+          'tenantSupport',
         ],
       },
       {
@@ -1648,7 +1720,13 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
       },
       {
         kind: 'leaves',
-        catalogIds: ['superAdminTenants', 'superAdminCashRegisters'],
+        catalogIds: [
+          'superAdminTenants',
+          'superAdminCreateTenant',
+          'superAdminTrials',
+          'superAdminCashRegisters',
+          'adminSupportInbox',
+        ],
       },
     ],
   },

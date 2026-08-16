@@ -20,12 +20,15 @@ import type {
 } from '@tanstack/react-query'
 import type {
   ActivateLicenseRequest,
-  ActivationResult,
   ExtendLicenseRequest,
   ExtendResult,
+  GetApiLicenseInfoParams,
   GetApiLicenseStatusParams,
   LicenseActivationResult,
   LicenseFeaturesDto,
+  LicenseInfo,
+  LicenseKeyLookupRequest,
+  LicenseKeyValidationResult,
   LicensePublicStatusDto,
   MandantLicenseKeyRequest,
   ProblemDetails,
@@ -206,7 +209,114 @@ export const usePostApiLicenseActivate = <TError = unknown,
 
       return useMutation(mutationOptions);
     }
-    export const getApiLicenseBillingStatus = (
+    export const postApiLicenseValidate = (
+    licenseKeyLookupRequest: LicenseKeyLookupRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<LicenseKeyValidationResult>(
+      {url: `/api/license/validate`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: licenseKeyLookupRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiLicenseValidateMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiLicenseValidate>>, TError,{data: LicenseKeyLookupRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiLicenseValidate>>, TError,{data: LicenseKeyLookupRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiLicenseValidate>>, {data: LicenseKeyLookupRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiLicenseValidate(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiLicenseValidateMutationResult = NonNullable<Awaited<ReturnType<typeof postApiLicenseValidate>>>
+    export type PostApiLicenseValidateMutationBody = LicenseKeyLookupRequest
+    export type PostApiLicenseValidateMutationError = ProblemDetails
+
+    export const usePostApiLicenseValidate = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiLicenseValidate>>, TError,{data: LicenseKeyLookupRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiLicenseValidate>>,
+        TError,
+        {data: LicenseKeyLookupRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiLicenseValidateMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiLicenseInfo = (
+    params?: GetApiLicenseInfoParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<LicenseInfo>(
+      {url: `/api/license/info`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiLicenseInfoQueryKey = (params?: GetApiLicenseInfoParams,) => {
+    return [`/api/license/info`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiLicenseInfoQueryOptions = <TData = Awaited<ReturnType<typeof getApiLicenseInfo>>, TError = ProblemDetails>(params?: GetApiLicenseInfoParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseInfo>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiLicenseInfoQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiLicenseInfo>>> = ({ signal }) => getApiLicenseInfo(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseInfo>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiLicenseInfoQueryResult = NonNullable<Awaited<ReturnType<typeof getApiLicenseInfo>>>
+export type GetApiLicenseInfoQueryError = ProblemDetails
+
+export const useGetApiLicenseInfo = <TData = Awaited<ReturnType<typeof getApiLicenseInfo>>, TError = ProblemDetails>(
+ params?: GetApiLicenseInfoParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseInfo>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiLicenseInfoQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiLicenseBillingStatus = (
     
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -261,12 +371,15 @@ export const useGetApiLicenseBillingStatus = <TData = Awaited<ReturnType<typeof 
 
 
 
+/**
+ * @deprecated
+ */
 export const postApiLicenseBillingActivate = (
     mandantLicenseKeyRequest: MandantLicenseKeyRequest,
  options?: SecondParameter<typeof customInstance>,) => {
       
       
-      return customInstance<ActivationResult>(
+      return customInstance<unknown>(
       {url: `/api/license/billing/activate`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: mandantLicenseKeyRequest
@@ -276,7 +389,7 @@ export const postApiLicenseBillingActivate = (
   
 
 
-export const getPostApiLicenseBillingActivateMutationOptions = <TError = ProblemDetails,
+export const getPostApiLicenseBillingActivateMutationOptions = <TError = void,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiLicenseBillingActivate>>, TError,{data: MandantLicenseKeyRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiLicenseBillingActivate>>, TError,{data: MandantLicenseKeyRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
@@ -297,9 +410,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiLicenseBillingActivateMutationResult = NonNullable<Awaited<ReturnType<typeof postApiLicenseBillingActivate>>>
     export type PostApiLicenseBillingActivateMutationBody = MandantLicenseKeyRequest
-    export type PostApiLicenseBillingActivateMutationError = ProblemDetails
+    export type PostApiLicenseBillingActivateMutationError = void
 
-    export const usePostApiLicenseBillingActivate = <TError = ProblemDetails,
+    /**
+ * @deprecated
+ */
+export const usePostApiLicenseBillingActivate = <TError = void,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiLicenseBillingActivate>>, TError,{data: MandantLicenseKeyRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiLicenseBillingActivate>>,

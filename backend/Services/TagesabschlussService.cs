@@ -47,6 +47,8 @@ namespace KasseAPI_Final.Services
         Task<DateTime?> GetLastClosingPerformedAtForTypeAsync(Guid cashRegisterId, string closingType);
         /// <summary>Sprint 4: Count active payments in scope with no Invoice (SourcePaymentId). Used for blocking and readiness.</summary>
         Task<int> GetPaymentsWithoutInvoiceCountAsync(Guid cashRegisterId, DateTime fromInclusive, DateTime toExclusive);
+        /// <summary>Paid fiscal invoices for the register/day (special receipts excluded). Used for empty-day detection.</summary>
+        Task<int> GetPaidInvoiceCountAsync(Guid cashRegisterId, DateTime fromInclusive, DateTime toExclusive);
     }
 
     public class TagesabschlussService : ITagesabschlussService
@@ -129,6 +131,30 @@ namespace KasseAPI_Final.Services
                     && p.IsActive
                     && p.CashRegisterId == cashRegisterId
                     && !_context.Invoices.Any(i => i.SourcePaymentId == p.Id))
+                .CountAsync();
+        }
+
+        /// <inheritdoc />
+        public async Task<int> GetPaidInvoiceCountAsync(Guid cashRegisterId, DateTime fromInclusive, DateTime toExclusive)
+        {
+            if (cashRegisterId == Guid.Empty)
+                return 0;
+            if (!await _context.CashRegisters.AsNoTracking().AnyAsync(cr => cr.Id == cashRegisterId))
+                return 0;
+
+            fromInclusive = PostgreSqlUtcDateTime.ToUtcForNpgsql(fromInclusive);
+            toExclusive = PostgreSqlUtcDateTime.ToUtcForNpgsql(toExclusive);
+
+            return await _context.Invoices
+                .AsNoTracking()
+                .Where(i => i.CashRegisterId == cashRegisterId
+                            && i.CreatedAt >= fromInclusive
+                            && i.CreatedAt < toExclusive
+                            && i.Status == InvoiceStatus.Paid)
+                .Where(i => i.SourcePaymentId == null ||
+                            !_context.PaymentDetails.Any(p =>
+                                p.Id == i.SourcePaymentId!.Value &&
+                                p.RksvSpecialReceiptKind != null))
                 .CountAsync();
         }
 
@@ -249,17 +275,21 @@ namespace KasseAPI_Final.Services
                                     p.RksvSpecialReceiptKind != null))
                     .ToListAsync();
 
-                if (!transactions.Any())
-                {
-                    throw new InvalidOperationException(
-                        isBackdated
-                            ? $"No transactions found for {businessDay:yyyy-MM-dd}. Cannot perform daily closing."
-                            : "No transactions found for today. Cannot perform daily closing.");
-                }
-
                 var totalAmount = transactions.Sum(t => t.TotalAmount);
                 var totalTaxAmount = transactions.Sum(t => t.TaxAmount);
                 var transactionCount = transactions.Count;
+                var isEmpty = transactionCount == 0;
+                var dayKind = DailyClosingDayKinds.FromTransactionCount(transactionCount);
+
+                if (isEmpty)
+                {
+                    _logger.LogInformation(
+                        "Empty daily closing (no fiscal invoices) for CashRegisterId={CashRegisterId} BusinessDay={BusinessDay:yyyy-MM-dd} ActorUserId={UserId} Backdated={IsBackdated}",
+                        cashRegisterId,
+                        businessDay,
+                        userId,
+                        isBackdated);
+                }
 
                 var register = await _context.CashRegisters.AsNoTracking()
                     .FirstOrDefaultAsync(r => r.Id == cashRegisterId)
@@ -289,6 +319,7 @@ namespace KasseAPI_Final.Services
                         IsBackdated = isBackdated,
                         LateCreationReason = isBackdated ? lateReason : null,
                         ClosingType = "Daily",
+                        DayKind = dayKind,
                         TotalAmount = totalAmount,
                         TotalTaxAmount = totalTaxAmount,
                         TransactionCount = transactionCount,
@@ -361,9 +392,27 @@ namespace KasseAPI_Final.Services
                     businessDay,
                     isBackdated,
                     lateReason,
-                    dailyClosing.CreatedAt);
+                    dailyClosing.CreatedAt,
+                    isEmpty,
+                    transactionCount);
 
                 await _reportPdfCapture.TryCaptureClosingReportAsync(dailyClosing.Id, userId);
+
+                string? warning = null;
+                if (isEmpty && isBackdated)
+                {
+                    warning =
+                        $"Empty backdated daily closing for {businessDay:yyyy-MM-dd}; no fiscal invoices. Creation timestamp is the real current UTC time (nachträglich, audit-transparent).";
+                }
+                else if (isEmpty)
+                {
+                    warning = "No transactions found. Empty daily closing created.";
+                }
+                else if (isBackdated)
+                {
+                    warning =
+                        $"Backdated daily closing for {businessDay:yyyy-MM-dd}; creation timestamp is the real current UTC time (nachträglich, audit-transparent).";
+                }
 
                 return new TagesabschlussResult
                 {
@@ -371,6 +420,8 @@ namespace KasseAPI_Final.Services
                     ClosingId = dailyClosing.Id,
                     ClosingDate = dailyClosing.ClosingDate,
                     ClosingType = "Daily",
+                    DayKind = dayKind,
+                    IsEmpty = isEmpty,
                     TotalAmount = totalAmount,
                     TotalTaxAmount = totalTaxAmount,
                     TransactionCount = transactionCount,
@@ -380,9 +431,7 @@ namespace KasseAPI_Final.Services
                     IsBackdated = isBackdated,
                     LateCreationReason = isBackdated ? lateReason : null,
                     CreatedAt = dailyClosing.CreatedAt,
-                    Warning = isBackdated
-                        ? $"Backdated daily closing for {businessDay:yyyy-MM-dd}; creation timestamp is the real current UTC time (nachträglich, audit-transparent)."
-                        : null
+                    Warning = warning
                 };
             }
             catch (Exception ex)
@@ -814,6 +863,12 @@ namespace KasseAPI_Final.Services
                     ClosingDate = c.ClosingDate,
                     CreatedAt = c.CreatedAt,
                     ClosingType = c.ClosingType,
+                    DayKind = string.IsNullOrWhiteSpace(c.DayKind)
+                        ? DailyClosingDayKinds.FromTransactionCount(c.TransactionCount)
+                        : c.DayKind,
+                    IsEmpty = DailyClosingDayKinds.IsEmptyValue(c.DayKind)
+                              || (string.Equals(c.ClosingType, "Daily", StringComparison.OrdinalIgnoreCase)
+                                  && c.TransactionCount == 0),
                     TotalAmount = c.TotalAmount,
                     TotalTaxAmount = c.TotalTaxAmount,
                     TransactionCount = c.TransactionCount,
@@ -1027,7 +1082,9 @@ namespace KasseAPI_Final.Services
             DateTime businessDay,
             bool isBackdated,
             string? lateReason,
-            DateTime createdAtUtc)
+            DateTime createdAtUtc,
+            bool isEmpty = false,
+            int transactionCount = 0)
         {
             if (_auditLogService == null)
                 return;
@@ -1039,9 +1096,13 @@ namespace KasseAPI_Final.Services
                 var daysLate = isBackdated
                     ? Math.Max(0, (viennaToday.Date - businessDay.Date).Days)
                     : 0;
-                var description = isBackdated
-                    ? $"Nachträglicher Tagesabschluss für {businessDay:yyyy-MM-dd} erstellt (CreatedAt = echte UTC-Zeit, DaysLate={daysLate})"
-                    : $"Tagesabschluss für {businessDay:yyyy-MM-dd} erstellt";
+                var description = isEmpty
+                    ? (isBackdated
+                        ? $"Leerer nachträglicher Tagesabschluss für {businessDay:yyyy-MM-dd} erstellt (0 Transaktionen, DaysLate={daysLate})"
+                        : $"Leerer Tagesabschluss für {businessDay:yyyy-MM-dd} erstellt (0 Transaktionen)")
+                    : isBackdated
+                        ? $"Nachträglicher Tagesabschluss für {businessDay:yyyy-MM-dd} erstellt (CreatedAt = echte UTC-Zeit, DaysLate={daysLate})"
+                        : $"Tagesabschluss für {businessDay:yyyy-MM-dd} erstellt";
 
                 await _auditLogService.LogSystemOperationAsync(
                     action,
@@ -1055,12 +1116,15 @@ namespace KasseAPI_Final.Services
                         userId,
                         closingDate = businessDay.ToString("yyyy-MM-dd"),
                         isBackdated,
+                        isEmpty,
+                        transactionCount,
+                        dayKind = isEmpty ? DailyClosingDayKinds.Empty : DailyClosingDayKinds.Normal,
                         backdatedReason = lateReason,
                         reason = lateReason,
                         createdAt = createdAtUtc,
                         daysLate,
                     },
-                    responseData: new { closingId, isBackdated, daysLate },
+                    responseData: new { closingId, isBackdated, isEmpty, daysLate },
                     entityId: closingId,
                     tenantId: tenantId == Guid.Empty ? null : tenantId);
 
@@ -1126,6 +1190,11 @@ namespace KasseAPI_Final.Services
         public DateTime CreatedAt { get; set; }
 
         public string? ClosingType { get; set; }
+        /// <summary><c>normal</c> or <c>empty</c> for Daily closings. Independent of <see cref="ClosingType"/>.</summary>
+        public string? DayKind { get; set; }
+        /// <summary>True when this Daily closing has no fiscal invoices.</summary>
+        [Required]
+        public bool IsEmpty { get; set; }
         [Required]
         public decimal TotalAmount { get; set; }
         [Required]

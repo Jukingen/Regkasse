@@ -2,7 +2,7 @@
 
 ## Intentional split
 
-- Admin payment operations stay in the **legacy containment lane** (`/api/Payment` family and existing admin payment wrappers/hook usage).
+- Admin payment operations stay in the **admin payments lane** (`/api/admin/payments` and existing admin payment wrappers/hook usage).
 - POS/mobile payment execution stays in the **canonical POS lane** (`/api/pos/payment`).
 - Receipt and signature-debug diagnostics are treated as **receipt forensics**, not payment operations.
 

@@ -35,6 +35,12 @@ export interface AdminTenantListItemDto {
   /** @nullable */
   status?: string | null;
   /** @nullable */
+  trialDaysRemaining?: number | null;
+  /** @nullable */
+  trialEndsAtUtc?: string | null;
+  /** @nullable */
+  trialStatus?: string | null;
+  /** @nullable */
   updatedAt?: string | null;
   userCount?: number;
 }

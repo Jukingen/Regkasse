@@ -16,7 +16,7 @@ import {
   getPreviewStatusLabel,
   mapPreviewErrorMessage,
 } from '@/features/license/utils/licensePreviewDisplay';
-import { formatGermanDateTime } from '@/i18n';
+import { formatLicenseValidUntil } from '@/features/license/utils/licenseValidUntil';
 
 type TranslateFn = (key: string, params?: Record<string, string | number>) => string;
 
@@ -33,7 +33,6 @@ export function LicensePreviewDetails({
   preview,
   extendResult,
   t,
-  formatLocale,
 }: LicensePreviewDetailsProps) {
   const isPreviewLoading = uiState === 'loading' || uiState === 'confirming';
 
@@ -60,7 +59,7 @@ export function LicensePreviewDetails({
             description={
               extendResult.validUntilUtc
                 ? t('license.extendModal.successDetails', {
-                    date: formatGermanDateTime(extendResult.validUntilUtc),
+                    date: formatLicenseValidUntil(extendResult.validUntilUtc),
                   })
                 : undefined
             }
@@ -72,7 +71,7 @@ export function LicensePreviewDetails({
               </Typography.Text>
             </Descriptions.Item>
             <Descriptions.Item label={t('license.extendModal.validUntilLabel')}>
-              {extendResult.validUntilUtc ? formatGermanDateTime(extendResult.validUntilUtc) : '—'}
+              {formatLicenseValidUntil(extendResult.validUntilUtc)}
             </Descriptions.Item>
           </Descriptions>
         </>
@@ -99,10 +98,10 @@ export function LicensePreviewDetails({
                 </Descriptions.Item>
               ) : null}
               <Descriptions.Item label={t('license.extendModal.previewValidFrom')}>
-                {preview.validFromUtc ? formatGermanDateTime(preview.validFromUtc) : '—'}
+                {formatLicenseValidUntil(preview.validFromUtc)}
               </Descriptions.Item>
               <Descriptions.Item label={t('license.extendModal.previewValidUntil')}>
-                {preview.validUntilUtc ? formatGermanDateTime(preview.validUntilUtc) : '—'}
+                {formatLicenseValidUntil(preview.validUntilUtc)}
               </Descriptions.Item>
               <Descriptions.Item label={t('license.extendModal.previewDuration')}>
                 {formatLicensePreviewDurationCombined(preview.durationDays, t)}

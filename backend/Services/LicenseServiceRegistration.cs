@@ -1,3 +1,5 @@
+using KasseAPI_Final.Services.License;
+
 namespace KasseAPI_Final.Services;
 
 /// <summary>
@@ -29,6 +31,7 @@ public static class LicenseServiceRegistration
     public static void AddLicenseServices(this IServiceCollection services, IWebHostEnvironment environment)
     {
         services.AddSingleton<LicenseService>();
+        services.AddScoped<IUnifiedLicenseService, UnifiedLicenseService>();
 
         if (OpenApiExportMode.IsEnabled)
         {

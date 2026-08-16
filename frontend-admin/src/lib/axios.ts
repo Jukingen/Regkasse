@@ -11,6 +11,10 @@ import {
 import { getStoredLanguage } from '@/i18n/languageStorage';
 import { showAntdError } from '@/lib/antdAppBridge';
 import {
+  readAxiosHeader,
+  shouldClearStoredTokenAfterPublicAuth401,
+} from '@/lib/axiosRequestAuth';
+import {
   CSRF_HEADER,
   applyCsrfHeaders,
   clearCsrfTokenCache,
@@ -417,7 +421,20 @@ const createAxiosInstance = () => {
         !String(url).includes('/api/Auth/refresh')
       ) {
         if (suppressLogin401Noise) {
-          authStorage.removeToken();
+          // Do not wipe a freshly stored login token when a stale pre-login /me 401 arrives late.
+          const requestAuthorization = readAxiosHeader(originalRequest.headers, 'Authorization');
+          if (
+            shouldClearStoredTokenAfterPublicAuth401({
+              requestAuthorizationHeader: requestAuthorization,
+              currentAccessToken: authStorage.getToken(),
+            })
+          ) {
+            authStorage.removeToken();
+          } else if (isDev) {
+            technicalConsole.devDebug(
+              '[API] Skipping token clear on login-page 401 — stored token differs from request'
+            );
+          }
         } else {
           originalRequest._retry = true;
           const nextAccessToken = await getOrCreateRefreshPromise();

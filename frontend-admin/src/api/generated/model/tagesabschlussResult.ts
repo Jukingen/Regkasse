@@ -14,11 +14,14 @@ export interface TagesabschlussResult {
   closingType?: string | null;
   createdAt: string;
   /** @nullable */
+  dayKind?: string | null;
+  /** @nullable */
   errorMessage?: string | null;
   /** @nullable */
   finanzOnlineStatus?: string | null;
   hasStoredPdf?: boolean;
   isBackdated: boolean;
+  isEmpty: boolean;
   /** @nullable */
   lateCreationReason?: string | null;
   paymentsWithoutInvoiceCount: number;

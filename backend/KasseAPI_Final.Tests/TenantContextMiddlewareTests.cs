@@ -26,10 +26,12 @@ public sealed class TenantContextMiddlewareTests
         TenantContextMiddleware middleware,
         HttpContext httpContext,
         ITenantContextService tenantContextService,
+        ICurrentTenantAccessor tenantAccessor,
         bool requireHostMatch = false) =>
         middleware.InvokeAsync(
             httpContext,
             tenantContextService,
+            tenantAccessor,
             AuthOpts(requireHostMatch),
             NullLogger<TenantContextMiddleware>.Instance);
     [Fact]
@@ -114,9 +116,54 @@ public sealed class TenantContextMiddlewareTests
             _ => Task.CompletedTask,
             environment.Object);
 
-        await InvokeAsync(middleware, httpContext, tenantContextService);
+        await InvokeAsync(middleware, httpContext, tenantContextService, accessor);
 
         Assert.Equal(DemoTenantIds.Dev, accessor.TenantId);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Development_UnknownHeader_FallsThroughToJwtTenantId()
+    {
+        await using var db = CreateContext();
+        TenantTestDoubles.EnsurePlatformTenant(db);
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var accessor = new CurrentTenantAccessor();
+        var environment = new Mock<IWebHostEnvironment>();
+        environment.SetupGet(e => e.EnvironmentName).Returns(Environments.Development);
+
+        var tenantContextService = new TenantContextService(
+            db,
+            accessor,
+            environment.Object,
+            Mock.Of<KasseAPI_Final.Services.Tenancy.ITenantDomainService>(),
+            NullLogger<TenantContextService>.Instance);
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers[SubdomainTenantProvider.DevTenantHeaderName] = "missing-slug";
+        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(
+        [
+            new Claim("tenant_id", DemoTenantIds.Dev.ToString("D")),
+            new Claim(ClaimTypes.Role, Roles.SuperAdmin),
+        ],
+        authenticationType: "Test"));
+
+        var middleware = new TenantContextMiddleware(
+            _ => Task.CompletedTask,
+            environment.Object);
+
+        await InvokeAsync(middleware, httpContext, tenantContextService, accessor);
+
+        Assert.Equal(DemoTenantIds.Dev, accessor.TenantId);
+        Assert.Equal("dev", accessor.TenantSlug);
     }
 
     [Fact]
@@ -157,7 +204,7 @@ public sealed class TenantContextMiddlewareTests
             _ => Task.CompletedTask,
             environment.Object);
 
-        await InvokeAsync(middleware, httpContext, tenantContextService);
+        await InvokeAsync(middleware, httpContext, tenantContextService, accessor);
 
         Assert.Equal(SystemTenantIds.Platform, accessor.TenantId);
     }
@@ -192,7 +239,7 @@ public sealed class TenantContextMiddlewareTests
             _ => Task.CompletedTask,
             environment.Object);
 
-        await InvokeAsync(middleware, httpContext, tenantContextService);
+        await InvokeAsync(middleware, httpContext, tenantContextService, accessor);
 
         Assert.Null(accessor.TenantId);
     }
@@ -235,7 +282,7 @@ public sealed class TenantContextMiddlewareTests
             _ => Task.CompletedTask,
             environment.Object);
 
-        await InvokeAsync(middleware, httpContext, tenantContextService);
+        await InvokeAsync(middleware, httpContext, tenantContextService, accessor);
 
         Assert.Equal(DemoTenantIds.Dev, accessor.TenantId);
     }
@@ -278,7 +325,7 @@ public sealed class TenantContextMiddlewareTests
             _ => Task.CompletedTask,
             environment.Object);
 
-        await InvokeAsync(middleware, httpContext, tenantContextService);
+        await InvokeAsync(middleware, httpContext, tenantContextService, accessor);
 
         Assert.Equal(DemoTenantIds.Dev, accessor.TenantId);
         Assert.Equal("dev", accessor.TenantSlug);

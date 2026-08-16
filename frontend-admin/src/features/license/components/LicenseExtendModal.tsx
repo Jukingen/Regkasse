@@ -26,7 +26,8 @@ import {
   getLicenseStatusLabel,
   getLicenseStatusTagColor,
 } from '@/features/license/utils/licenseStatus';
-import { formatGermanDateTime, useI18n } from '@/i18n';
+import { formatLicenseValidUntil } from '@/features/license/utils/licenseValidUntil';
+import { useI18n } from '@/i18n';
 
 export type LicenseExtendModalProps = {
   open: boolean;
@@ -96,7 +97,10 @@ function LicenseExtendModalContent({
   const handleExtend = async () => {
     const licenseKey = form.getFieldValue('licenseKey')?.trim();
     if (!licenseKey || !isLicenseExtendConfirmEnabled(uiState)) return;
-    const result = await extendMutation.mutateAsync({ licenseKey });
+    const result = await extendMutation.mutateAsync({
+      licenseKey,
+      expectedValidUntilUtc: preview?.validUntilUtc,
+    });
     setExtendResult(result);
     onSuccess?.();
   };
@@ -127,7 +131,7 @@ function LicenseExtendModalContent({
             </Tag>
           </Descriptions.Item>
           <Descriptions.Item label={t('license.extendModal.validUntilLabel')}>
-            {status.validUntilUtc ? formatGermanDateTime(status.validUntilUtc) : '—'}
+            {formatLicenseValidUntil(status.validUntilUtc)}
           </Descriptions.Item>
         </Descriptions>
       ) : null}

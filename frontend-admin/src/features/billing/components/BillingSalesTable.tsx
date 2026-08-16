@@ -129,6 +129,8 @@ export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActi
     setCancelTarget(sale);
   };
 
+  const columns: ColumnsType<LicenseSaleResponse> = [
+    {
       title: t('billing.sales.columns.invoice'),
       dataIndex: 'invoiceNumber',
       key: 'invoiceNumber',

@@ -154,6 +154,7 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
                     request.ImportDemoMenu,
                     request.CashRegisterNumber,
                     request.SeedIndustryStarterUsers,
+                    request.TrialDurationDays,
                     cancellationToken)
                 .ConfigureAwait(false);
 
@@ -322,5 +323,13 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
             OperationMode: t.OperationMode,
             MaintenanceMessage: t.MaintenanceMessage,
             MaintenanceStartedAt: t.MaintenanceStartedAt,
-            MaintenanceEndsAt: t.MaintenanceEndsAt);
+            MaintenanceEndsAt: t.MaintenanceEndsAt,
+            TrialStatus: t.TrialStatus,
+            TrialStartedAtUtc: t.TrialStartedAtUtc,
+            TrialEndsAtUtc: t.TrialEndsAtUtc,
+            TrialGracePeriodEndsAtUtc: t.TrialGracePeriodEndsAtUtc,
+            TrialConvertedAtUtc: t.TrialConvertedAtUtc,
+            TrialReminder7dSent: t.TrialReminder7dSent,
+            TrialReminder3dSent: t.TrialReminder3dSent,
+            TrialReminder1dSent: t.TrialReminder1dSent);
 }

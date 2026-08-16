@@ -37,7 +37,7 @@ export function BillingStatsPage() {
           title={t('billing.stats.pageTitle')}
           breadcrumbs={[
             adminOverviewCrumb(t),
-            { title: t('nav.licenseHub'), href: '/admin/billing' },
+            { title: t('nav.licenseHub'), href: '/admin/license-management' },
             { title: t('billing.stats.pageTitle') },
           ]}
           actions={

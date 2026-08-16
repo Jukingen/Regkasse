@@ -35,6 +35,11 @@ echo.
 echo ========================================
 echo.
 
+echo %date% %time% - Cleanup orphan Expo/Next workers... >> "%LOG_FILE%"
+pushd "%REPO_ROOT%"
+call npm run dev:cleanup
+popd
+
 if not exist "node_modules" (
     echo [WARN] node_modules not found!
     echo.

@@ -18,8 +18,8 @@ import { redirectToLicensePayment } from '@/features/license/utils/licensePaymen
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { useAuthorizationGate } from '@/hooks/useAuthorizedQuery';
 import { useLicenseStatus } from '@/hooks/useLicenseStatus';
+import { formatLicenseValidUntil } from '@/features/license/utils/licenseValidUntil';
 import { useI18n } from '@/i18n';
-import { formatGermanDate } from '@/lib/dateFormatter';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
 const COUNTDOWN_INTERVAL_MS = 60_000;
@@ -98,7 +98,7 @@ export function LicenseCountdownWidget() {
               {t('dashboard.widgets.licenseCountdown.validUntilLabel')}
             </Typography.Text>
             <Typography.Title level={4} style={{ margin: 0 }}>
-              {formatGermanDate(expiresAt)}
+              {formatLicenseValidUntil(expiresAt)}
             </Typography.Title>
           </div>
         </Flex>

@@ -115,6 +115,7 @@ public sealed class TenantUserServiceTests
             tenantAccessor ?? NullCurrentTenantAccessor.Instance,
             ActivityEventTestSupport.CreateRecorder(),
             roleChange,
+            Mock.Of<KasseAPI_Final.Services.Trial.ITrialLimitGuard>(),
             Mock.Of<ILogger<TenantUserService>>());
     }
 

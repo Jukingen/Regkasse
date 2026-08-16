@@ -11,10 +11,8 @@
 
 ## Current repository facts
 - Canonical boundaries exist: `/api/admin/*` and `/api/pos/*`.
-- Legacy aliases still exist for `Payment`, `Cart`, `Product` families.
-- Legacy alias usage is instrumented by `LegacyRouteDeprecationFilter` (headers + metrics).
+- Legacy aliases for `Payment`, `Cart`, `Product` were **hard-removed** (2026-08-13). See `docs/API_LEGACY_DEPRECATION.md`.
 - OpenAPI contract checks run via `scripts/validate-critical-openapi-paths.mjs` and `scripts/verify-api-client.mjs`.
-- Admin generated client still contains some legacy-tag surfaces (notably `generated/cart`).
 
 ## Stabilization goals
 1. Stop legacy expansion.
@@ -24,14 +22,13 @@
 
 ## Practical rules
 - New endpoint: canonical route only.
-- Legacy aliases: compatibility shim only; no feature growth.
+- Do not reintroduce `/api/Payment|/api/Cart|/api/Product`.
 - Contract değişikliği: `backend/swagger.json` + ilgili consumer güncellemesi aynı değişim setinde.
 
 ## Near-term work queue
-1. **Legacy consumer cleanup (admin):** `generated/cart` ve benzeri legacy path tüketimlerini azalt.
-2. **Payment contract hardening:** v2 envelope kullanımını takip et; legacy parse dallarını metriklerle küçült.
-3. **OpenAPI governance:** critical-path scriptleri CI’de yeşil tut; yeni legacy prefix eklenmesini engelle.
-4. **Route inventory upkeep:** `ai/09_LEGACY_CANONICAL_ROUTE_INVENTORY.md` güncel kalsın.
+1. **Payment contract hardening:** v2 envelope kullanımını takip et; legacy parse dallarını metriklerle küçült.
+2. **OpenAPI governance:** critical-path scriptleri CI’de yeşil tut; yeni retired prefix eklenmesini engelle.
+3. **Route inventory upkeep:** `ai/09_LEGACY_CANONICAL_ROUTE_INVENTORY.md` güncel kalsın.
 
 ## Validation baseline
 - `node scripts/validate-critical-openapi-paths.mjs`

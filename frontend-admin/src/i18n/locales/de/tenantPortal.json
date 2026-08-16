@@ -1,7 +1,7 @@
 {
   "page": {
     "title": "Mandanten-Portal",
-    "subtitle": "Lizenzstatus, Aktivität und Support",
+    "subtitle": "Lizenzstatus, Rechnungen, Profil und Support",
     "requestSupport": "Support anfragen",
     "requestSupportHint": "Öffnet das Feedback-Formular"
   },
@@ -25,5 +25,97 @@
       "StartbelegDone": "Startbeleg erstellt",
       "TrainingComplete": "Schulung abgeschlossen"
     }
+  },
+  "portal": {
+    "title": "Mein Konto",
+    "welcome": "Willkommen zurück, {{name}}!",
+    "licenseStatus": "Lizenzstatus",
+    "invoices": "Rechnungen",
+    "profile": "Profil",
+    "support": "Support",
+    "quickLinks": "Schnellzugriff",
+    "openHub": "Zum Konto",
+    "goLicense": "Zur Lizenz",
+    "goInvoices": "Meine Rechnungen",
+    "goProfile": "Mein Profil",
+    "goSupport": "Support",
+    "openTickets": "{{count}} offene Tickets",
+    "licenseActive": "Aktiv",
+    "licenseGrace": "Gnadenfrist",
+    "licenseExpired": "Abgelaufen",
+    "daysRemaining": "Noch {{days}} Tage",
+    "expiredDays": "Seit {{days}} Tagen abgelaufen",
+    "totalInvoices": "{{count}} Rechnungen",
+    "openInvoices": "{{count}} offen",
+    "profileComplete": "Profil vollständig",
+    "profileIncomplete": "Profil unvollständig"
+  },
+  "hub": {
+    "licenseStatus": "Lizenzstatus",
+    "invoices": "Rechnungen",
+    "profile": "Profil",
+    "support": "Support",
+    "openLicense": "Lizenz-Dashboard",
+    "openInvoices": "Meine Rechnungen",
+    "openProfile": "Profil öffnen",
+    "openSupport": "Support öffnen",
+    "invoicesPaid": "Bezahlt",
+    "invoicesCancelledCount": "{{count}} storniert",
+    "profileCompletion": "Onboarding"
+  },
+  "invoices": {
+    "title": "Meine Rechnungen",
+    "invoiceNumber": "Rechnung #",
+    "date": "Datum",
+    "amount": "Betrag",
+    "status": "Status",
+    "actions": "Aktionen",
+    "download": "PDF herunterladen",
+    "downloadError": "Fehler beim Herunterladen der Rechnung",
+    "noInvoices": "Keine Rechnungen gefunden",
+    "filterStatus": "Status filtern",
+    "filterDate": "Zeitraum",
+    "statuses": {
+      "paid": "Bezahlt",
+      "unpaid": "Offen",
+      "overdue": "Überfällig",
+      "cancelled": "Storniert",
+      "refunded": "Erstattet"
+    }
+  },
+  "support": {
+    "title": "Support",
+    "subtitle": "Tickets an das Regkasse-Team",
+    "createTitle": "Ticket erstellen",
+    "category": "Kategorie",
+    "priority": "Priorität",
+    "message": "Nachricht",
+    "reply": "Antwort",
+    "sendReply": "Antwort senden",
+    "backToList": "Zurück zur Liste",
+    "detailTitle": "Ticket",
+    "tenant": "Mandant",
+    "createdAt": "Erstellt",
+    "inboxTitle": "Support-Tickets",
+    "inboxSubtitle": "Anfragen aller Mandanten",
+    "categories": {
+      "technical": "Technik",
+      "billing": "Abrechnung",
+      "license": "Lizenz",
+      "feature": "Funktionswunsch"
+    },
+    "priorities": {
+      "low": "Niedrig",
+      "medium": "Mittel",
+      "high": "Hoch"
+    },
+    "statuses": {
+      "open": "Offen",
+      "waitingOnTenant": "Wartet auf Mandant",
+      "waitingOnStaff": "Wartet auf Support",
+      "closed": "Geschlossen"
+    },
+    "myTickets": "Meine Tickets",
+    "emptyTickets": "Noch keine Tickets."
   }
 }

@@ -11,7 +11,7 @@ public static partial class RegkTenantLicenseKeyFormat
     private static partial Regex LicenseKeyRegex();
 
     public const string InvalidFormatMessage =
-        "Invalid license key format. Expected REGK-XXXXX-XXXXX-XXXXX.";
+        "Invalid license key format. Expected REGK-YYYYMMDD-{slug}-{code} (legacy REGK-XXXXX-XXXXX-XXXXX still accepted).";
 
     public static bool IsValid(string? licenseKey)
     {

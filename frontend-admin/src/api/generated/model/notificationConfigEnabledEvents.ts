@@ -54,6 +54,11 @@ export type NotificationConfigEnabledEvents = {
   RolePermissionsUpdated?: boolean;
   SignaturkarteProgramOverdue?: boolean;
   SignaturkarteProgramReminder?: boolean;
+  SupportTicketClosed?: boolean;
+  SupportTicketCreated?: boolean;
+  SupportTicketResolved?: boolean;
+  SupportTicketStaffReplied?: boolean;
+  SupportTicketTenantReplied?: boolean;
   SuspiciousHighValuePayment?: boolean;
   SuspiciousMultipleRefunds?: boolean;
   SuspiciousMultipleStornos?: boolean;
@@ -65,6 +70,12 @@ export type NotificationConfigEnabledEvents = {
   TenantSettingsChangeRejected?: boolean;
   TenantSettingsChangeRequested?: boolean;
   TenantSettingsChangeReverted?: boolean;
+  TrialConverted?: boolean;
+  TrialDeleted?: boolean;
+  TrialExpired?: boolean;
+  TrialExpiringSoon?: boolean;
+  TrialExtended?: boolean;
+  TrialStarted?: boolean;
   TseAnomalyDetected?: boolean;
   TseAusfallEnqueueSuggested?: boolean;
   TseAusfallReported?: boolean;

@@ -309,6 +309,6 @@ public static partial class LicenseAuditLogMapper
     private static string Truncate(string value, int max) =>
         value.Length <= max ? value : value[..(max - 1)] + "…";
 
-    [GeneratedRegex(@"REGK-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"REGK-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}|REGK-\d{8}-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*-[A-Z0-9]{8}", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex RegkKeyRegex();
 }

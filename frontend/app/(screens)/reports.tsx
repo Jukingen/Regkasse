@@ -32,7 +32,7 @@ const ReportsScreen = () => {
   // Raporları getir (örnek veri ile simüle)
   useEffect(() => {
     setLoading(true);
-    // TODO: API'den gerçek veri çekilecek
+    // Demo placeholder. Live Tagesabschluss data is FA/POS reporting APIs — not this screen.
     setTimeout(() => {
       setReports([
         {
@@ -66,7 +66,7 @@ const ReportsScreen = () => {
       return;
     }
     setCreating(true);
-    // TODO: API çağrısı ile gün sonu raporu başlat
+    // Demo placeholder. Cashiers close the day via Tagesabschluss, not this list.
     setTimeout(() => {
       Alert.alert(t('success'), t('reportCreated'));
       setCreating(false);

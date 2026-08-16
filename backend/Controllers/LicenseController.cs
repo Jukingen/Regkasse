@@ -6,6 +6,7 @@ using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -28,7 +29,7 @@ public partial class LicenseController : ControllerBase
 
     private readonly ILicenseService _licenseService;
     private readonly ITenantLicenseService _tenantLicenseService;
-    private readonly ILicenseKeyGenerator _licenseKeyGenerator;
+    private readonly IUnifiedLicenseService _unifiedLicenseService;
     private readonly IOptions<LicenseOptions> _licenseOptions;
     private readonly IWebHostEnvironment _environment;
     private readonly ILogger<LicenseController> _logger;
@@ -38,7 +39,7 @@ public partial class LicenseController : ControllerBase
     public LicenseController(
         ILicenseService licenseService,
         ITenantLicenseService tenantLicenseService,
-        ILicenseKeyGenerator licenseKeyGenerator,
+        IUnifiedLicenseService unifiedLicenseService,
         IOptions<LicenseOptions> licenseOptions,
         IWebHostEnvironment environment,
         ILogger<LicenseController> logger,
@@ -47,7 +48,7 @@ public partial class LicenseController : ControllerBase
     {
         _licenseService = licenseService;
         _tenantLicenseService = tenantLicenseService;
-        _licenseKeyGenerator = licenseKeyGenerator;
+        _unifiedLicenseService = unifiedLicenseService;
         _licenseOptions = licenseOptions;
         _environment = environment;
         _logger = logger;
@@ -139,10 +140,6 @@ public partial class LicenseController : ControllerBase
 
         ApplyOptionalMachineFingerprintFromHeader(body);
 
-        var licenseKey = body.LicenseKey.Trim();
-        if (_licenseKeyGenerator.ValidateLicenseKeyFormat(licenseKey))
-            return await ActivateMandantBillingLicenseAsync(licenseKey, cancellationToken).ConfigureAwait(false);
-
         var appContext = ResolveActivationSourceAppContext(HttpContext);
         var initiatorUserId = ResolveInitiatingUserId(HttpContext);
 
@@ -162,7 +159,19 @@ public partial class LicenseController : ControllerBase
             string.IsNullOrEmpty(ua) ? null : ua,
             initiatorUserId,
             appContext);
-        var result = await _licenseService.ActivateAsync(body, client, cancellationToken).ConfigureAwait(false);
+
+        var tenantId = _tenantAccessor.TenantId;
+        var result = await _unifiedLicenseService
+            .ActivateLicenseAsync(
+                body.LicenseKey,
+                new UnifiedLicenseActivationContext(
+                    TenantId: tenantId is Guid tid && tid != Guid.Empty ? tid : null,
+                    ActorUserId: initiatorUserId,
+                    DeploymentRequest: body,
+                    ClientInfo: client),
+                cancellationToken)
+            .ConfigureAwait(false);
+
         if (!result.Success)
         {
             _logger.LogWarning("License activation failed: {Message}", result.Message);
@@ -173,43 +182,53 @@ public partial class LicenseController : ControllerBase
         return Ok(enriched);
     }
 
-    private async Task<ActionResult<LicenseActivationResult>> ActivateMandantBillingLicenseAsync(
-        string licenseKey,
+    /// <summary>Validate a unified REGK key (format, expiry, slug, database) without activating.</summary>
+    [HttpPost("validate")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(LicenseKeyValidationResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<LicenseKeyValidationResult>> ValidateLicense(
+        [FromBody] LicenseKeyLookupRequest? body,
         CancellationToken cancellationToken)
     {
-        var tenantId = _tenantAccessor.TenantId;
-        if (!tenantId.HasValue || tenantId.Value == Guid.Empty)
-        {
-            return BadRequest(new LicenseActivationResult(false, "Tenant context required."));
-        }
+        var key = body?.LicenseKey?.Trim();
+        if (string.IsNullOrWhiteSpace(key))
+            return BadRequest(new LicenseKeyValidationResult
+            {
+                IsValid = false,
+                IsFormatValid = false,
+                ErrorCode = "invalid_format",
+                Message = "licenseKey is required.",
+            });
 
-        var actorUserId = ResolveInitiatingUserId(HttpContext);
-        if (actorUserId is not Guid userId)
-        {
-            return BadRequest(new LicenseActivationResult(
-                false,
-                "Authentication required for mandant license activation."));
-        }
-
-        var result = await _tenantLicenseService
-            .ActivateLicenseAsync(tenantId.Value, licenseKey, userId, cancellationToken)
+        var result = await _unifiedLicenseService
+            .ValidateLicenseAsync(key, cancellationToken)
             .ConfigureAwait(false);
-
-        if (!result.Success)
-            return BadRequest(new LicenseActivationResult(false, result.Message));
-
-        var activationResult = new LicenseActivationResult(
-            true,
-            result.Message,
-            result.ValidUntilUtc,
-            result.LicensePlan,
-            DaysRemaining: LicenseService.ComputeActivationDaysRemaining(result.ValidUntilUtc),
-            Status: "active");
-
-        var enriched = await EnrichActivationResultWithTenantAsync(activationResult, cancellationToken)
-            .ConfigureAwait(false);
-        return Ok(enriched);
+        return Ok(result);
     }
+
+    /// <summary>Resolved metadata for a unified or mapped REGK key (no activation).</summary>
+    [HttpGet("info")]
+    [HasPermission(AppPermissions.LicenseView)]
+    [ProducesResponseType(typeof(LicenseInfo), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<LicenseInfo>> GetLicenseInfo(
+        [FromQuery] string? licenseKey,
+        CancellationToken cancellationToken)
+    {
+        var key = licenseKey?.Trim();
+        if (string.IsNullOrWhiteSpace(key))
+            return BadRequest(new { message = "licenseKey is required." });
+
+        var info = await _unifiedLicenseService
+            .GetLicenseInfoAsync(key, cancellationToken)
+            .ConfigureAwait(false);
+        return Ok(info);
+    }
+
+    /// <summary>308 to <see cref="UnifiedLicenseRoutes.Activate"/> (preserves POST body).</summary>
+    internal static RedirectResult RedirectToUnifiedActivate() =>
+        new(UnifiedLicenseRoutes.Activate, permanent: true, preserveMethod: true);
 
     private async Task<LicenseActivationResult> EnrichActivationResultWithTenantAsync(
         LicenseActivationResult result,

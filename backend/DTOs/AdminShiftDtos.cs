@@ -13,7 +13,10 @@ public sealed class AdminShiftRowDto
     public Guid Id { get; init; }
     public Guid CashRegisterId { get; init; }
     public string? RegisterNumber { get; init; }
+    /// <summary>Identity user id of the cashier (stable across username changes).</summary>
     public string CashierId { get; init; } = string.Empty;
+    /// <summary>Alias of <see cref="CashierId"/> for FA shift-history display (user tracking).</summary>
+    public string UserId => CashierId;
     public string CashierName { get; init; } = string.Empty;
     public DateTime StartedAt { get; init; }
     public DateTime? EndedAt { get; init; }

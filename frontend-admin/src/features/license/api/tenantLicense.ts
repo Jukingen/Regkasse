@@ -7,6 +7,10 @@ export type TenantLicenseStatus = {
   daysRemaining?: number | null;
   tier?: string | null;
   features: string[];
+  trialStatus?: string | null;
+  trialEndsAtUtc?: string | null;
+  trialDaysRemaining?: number | null;
+  trialGracePeriodEndsAtUtc?: string | null;
 };
 
 export type TenantLicenseHistoryItem = {
@@ -95,7 +99,7 @@ export async function previewTenantLicense(
 }
 
 /** POST /api/admin/license/mandant/extend — extend effective tenant with REGK key (Manager).
- *  @deprecated Prefer `POST /api/admin/license/extend` (billing, `settings.manage`) — see `docs/BILLING_TENANT_LICENSE.md`. */
+ *  @deprecated Prefer `POST /api/license/activate` (unified server + tenant activation). */
 export async function extendTenantLicense(
   body: ExtendTenantLicenseRequest
 ): Promise<ExtendTenantLicenseResult> {

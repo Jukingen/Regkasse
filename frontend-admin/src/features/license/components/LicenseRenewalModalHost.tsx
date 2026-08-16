@@ -1,6 +1,5 @@
 'use client';
 
-import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
 import { LicenseRenewalModal } from '@/features/license/components/LicenseRenewalModal';
@@ -12,7 +11,6 @@ import {
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { useAuthorizationGate } from '@/hooks/useAuthorizedQuery';
 import { useLicenseStatus } from '@/hooks/useLicenseStatus';
-import { tenantLicenseUnifiedQueryKey } from '@/hooks/useTenantLicense';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
 /**
@@ -24,7 +22,6 @@ export function LicenseRenewalModalHost() {
   const closeModal = useLicenseRenewalModalStore((s) => s.closeModal);
   const tenant = useCurrentTenant();
   const { status } = useLicenseStatus();
-  const queryClient = useQueryClient();
   const { isAuthorized: canExtend } = useAuthorizationGate({
     requiredPermission: PERMISSIONS.LICENSE_MANAGE,
   });
@@ -49,7 +46,6 @@ export function LicenseRenewalModalHost() {
       onClose={closeModal}
       onSuccess={() => {
         clearLicenseRenewalPending(tenant.tenantId);
-        void queryClient.invalidateQueries({ queryKey: tenantLicenseUnifiedQueryKey });
       }}
     />
   );

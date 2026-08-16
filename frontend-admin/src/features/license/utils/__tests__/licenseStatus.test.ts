@@ -6,7 +6,9 @@ import {
   resolveDeploymentLicenseStatus,
   resolveTenantLicenseFromPublicStatus,
   resolveTenantLicenseStatus,
+  resolveTenantLockFlags,
   resolveTenantRowLicenseStatus,
+  shouldShowSystemLockedAlert,
 } from '../licenseStatus';
 
 describe('licenseStatus', () => {
@@ -198,22 +200,40 @@ describe('licenseStatus', () => {
   });
 
   it('maps public status to tenant license display fields for Manager UI', () => {
-    const status = mapPublicStatusToTenantLicenseStatus({
-      licenseType: 'Licensed',
-      validUntil: '2026-07-16T00:00:00Z',
-      daysRemaining: 1,
-      features: ['admin_basic'],
-      isExpired: false,
-      isValid: true,
-      canAccess: true,
-      canTransact: true,
-    });
+    const status = mapPublicStatusToTenantLicenseStatus(
+      {
+        licenseType: 'Licensed',
+        validUntil: '2026-07-16T00:00:00Z',
+        daysRemaining: 1,
+        features: ['admin_basic'],
+        isExpired: false,
+        isValid: true,
+        canAccess: true,
+        canTransact: true,
+      },
+      nowMs
+    );
 
     expect(status.kind).toBe('active');
     expect(status.validUntilUtc).toBe('2026-07-16T00:00:00Z');
-    expect(status.daysRemaining).toBe(1);
+    expect(status.daysRemaining).toBe(57);
     expect(status.licenseKey).toBeNull();
     expect(status.features).toEqual(['admin_basic']);
+  });
+
+  it('computes days remaining from validUntil even when API daysRemaining is stale', () => {
+    const status = resolveTenantLicenseStatus(
+      {
+        kind: 'active',
+        licenseKey: 'REGK-KEY',
+        validUntilUtc: '2026-06-19T12:00:00Z',
+        daysRemaining: 1,
+      },
+      nowMs
+    );
+
+    expect(status.kind).toBe('active');
+    expect(status.daysRemaining).toBe(30);
   });
 
   it('prefers hours remaining text when less than 24h left', () => {
@@ -252,5 +272,119 @@ describe('licenseStatus', () => {
     );
 
     expect(text).toBe('2 Tage verbleibend');
+  });
+
+  it('treats a future validUntil as active even with stale lockdown flags', () => {
+    const status = resolveTenantLicenseFromPublicStatus(
+      {
+        licenseType: 'Expired',
+        validUntil: '2026-12-01T00:00:00Z',
+        daysRemaining: -40,
+        features: [],
+        isExpired: true,
+        isValid: false,
+        canAccess: false,
+        canTransact: false,
+        isInGracePeriod: false,
+        isLocked: true,
+        requiresRenewal: true,
+        lockDate: '2026-05-27T00:00:00Z',
+      },
+      nowMs
+    );
+
+    expect(status.kind).toBe('active');
+    expect(status.daysRemaining).toBeGreaterThan(0);
+    expect(status.canAccess).toBe(true);
+    expect(
+      resolveTenantLockFlags(status, { isLocked: true, isExpired: true, isInGracePeriod: false })
+    ).toEqual({ isLocked: false, isExpired: false });
+    expect(
+      shouldShowSystemLockedAlert({
+        kind: status.kind,
+        daysRemaining: status.daysRemaining,
+        daysExpired: status.daysExpired,
+        state: 'Active',
+      })
+    ).toBe(false);
+  });
+
+  it('keeps lockdown when validUntil is past, grace is over, and no valid license exists', () => {
+    const status = resolveTenantLicenseFromPublicStatus(
+      {
+        licenseType: 'Expired',
+        validUntil: '2026-04-25T00:00:00Z',
+        daysRemaining: -25,
+        features: [],
+        isExpired: true,
+        isValid: false,
+        canAccess: false,
+        canTransact: false,
+        isInGracePeriod: false,
+        isLocked: true,
+        requiresRenewal: true,
+      },
+      nowMs
+    );
+
+    expect(status.kind).toBe('lockdown');
+    expect(status.daysRemaining).toBeLessThan(0);
+    expect(
+      shouldShowSystemLockedAlert({
+        kind: status.kind,
+        daysRemaining: status.daysRemaining,
+        daysExpired: status.daysExpired,
+        state: 'Locked',
+      })
+    ).toBe(true);
+  });
+});
+
+describe('shouldShowSystemLockedAlert', () => {
+  it('hides System gesperrt for active, grace, and missing license', () => {
+    expect(
+      shouldShowSystemLockedAlert({ kind: 'active', daysRemaining: 10, state: 'Active' })
+    ).toBe(false);
+    expect(
+      shouldShowSystemLockedAlert({
+        kind: 'grace_write',
+        daysRemaining: -2,
+        daysExpired: 2,
+        state: 'Grace',
+      })
+    ).toBe(false);
+    expect(
+      shouldShowSystemLockedAlert({ kind: 'no_license', daysRemaining: 0, state: 'Locked' })
+    ).toBe(false);
+  });
+
+  it('hides System gesperrt when a valid license still has remaining days', () => {
+    expect(
+      shouldShowSystemLockedAlert({
+        kind: 'lockdown',
+        daysRemaining: 200,
+        daysExpired: 0,
+        state: 'Locked',
+      })
+    ).toBe(false);
+  });
+
+  it('shows System gesperrt only after expiry and grace, with no valid license', () => {
+    expect(
+      shouldShowSystemLockedAlert({
+        kind: 'lockdown',
+        daysRemaining: -10,
+        daysExpired: 10,
+        state: 'Locked',
+      })
+    ).toBe(true);
+    expect(
+      shouldShowSystemLockedAlert({
+        kind: 'expired',
+        daysRemaining: -40,
+        daysExpired: 40,
+        state: 'Archived',
+      })
+    ).toBe(true);
   });
 });

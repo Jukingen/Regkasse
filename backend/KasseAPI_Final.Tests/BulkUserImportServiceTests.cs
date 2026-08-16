@@ -82,6 +82,7 @@ public sealed class BulkUserImportServiceTests
             NullCurrentTenantAccessor.Instance,
             ActivityEventTestSupport.CreateRecorder(),
             Mock.Of<IUserRoleChangeService>(),
+            Mock.Of<KasseAPI_Final.Services.Trial.ITrialLimitGuard>(),
             Mock.Of<ILogger<TenantUserService>>());
 
         var resultStore = new Mock<IBulkUserImportResultStore>();

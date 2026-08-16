@@ -39,7 +39,7 @@ export function canViewDeploymentLicenseSection(
   return hasPermission(user, PERMISSIONS.SETTINGS_MANAGE);
 }
 
-/** Route/menu access for `/admin/license`. */
+/** Route/menu access for `/admin/license-management`. */
 export function canAccessLicenseAdminPage(user: UserWithPermissions | null | undefined): boolean {
   return (
     hasPermission(user, PERMISSIONS.LICENSE_MANAGE) ||

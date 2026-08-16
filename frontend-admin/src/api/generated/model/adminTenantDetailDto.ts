@@ -45,5 +45,18 @@ export interface AdminTenantDetailDto {
   /** @nullable */
   status?: string | null;
   /** @nullable */
+  trialConvertedAtUtc?: string | null;
+  /** @nullable */
+  trialEndsAtUtc?: string | null;
+  /** @nullable */
+  trialGracePeriodEndsAtUtc?: string | null;
+  trialReminder1dSent?: boolean;
+  trialReminder3dSent?: boolean;
+  trialReminder7dSent?: boolean;
+  /** @nullable */
+  trialStartedAtUtc?: string | null;
+  /** @nullable */
+  trialStatus?: string | null;
+  /** @nullable */
   updatedAt?: string | null;
 }

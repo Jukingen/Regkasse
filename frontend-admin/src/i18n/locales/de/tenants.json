@@ -515,7 +515,7 @@
         "admin": "Administrator wird erstellt …",
         "adminDone": "Administrator-Zugang erstellt",
         "license": "Demo-Lizenz wird aktiviert …",
-        "licenseDone": "Demo-Lizenz (30 Tage) aktiviert",
+        "licenseDone": "Demo-Lizenz (Trial) aktiviert",
         "register": "Kasse wird eingerichtet …",
         "registerDone": "Kasse „Hauptkasse“ eingerichtet",
         "products": "Demo-Produkte werden angelegt …",
@@ -594,8 +594,16 @@
         "copy": "E-Mail kopieren"
       },
       "grantTrialLicense": {
-        "label": "Demo-Lizenz (30 Tage kostenlos) aktivieren",
-        "tooltip": "30 Tage kostenlos testen, danach Verlängerung möglich"
+        "label": "Demo-Lizenz (Trial) aktivieren",
+        "tooltip": "Konfigurierbare Trial-Dauer (Standard 14 Tage); danach Verlängerung oder Paid-Upgrade möglich"
+      },
+      "trialDuration": {
+        "label": "Trial-Dauer",
+        "tooltip": "Super Admin wählt die Trial-Länge",
+        "days_14": "14 Tage",
+        "days_30": "30 Tage",
+        "days_60": "60 Tage",
+        "days_90": "90 Tage"
       },
       "importDemoProducts": {
         "label": "Demo-Produkte automatisch importieren",

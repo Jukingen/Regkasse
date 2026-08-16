@@ -515,7 +515,7 @@
         "admin": "Creating administrator …",
         "adminDone": "Administrator access created",
         "license": "Activating demo license …",
-        "licenseDone": "Demo license (30 days) activated",
+        "licenseDone": "Demo license (trial) activated",
         "register": "Setting up register …",
         "registerDone": "Register \"Hauptkasse\" ready",
         "products": "Creating demo products …",
@@ -594,8 +594,16 @@
         "copy": "Copy email"
       },
       "grantTrialLicense": {
-        "label": "Enable 30-day demo license (free)",
-        "tooltip": "30 days free trial, renewal available afterwards"
+        "label": "Enable demo license (trial)",
+        "tooltip": "Configurable trial length (default 14 days); renewal or paid upgrade afterwards"
+      },
+      "trialDuration": {
+        "label": "Trial duration",
+        "tooltip": "Super Admin chooses the trial length",
+        "days_14": "14 days",
+        "days_30": "30 days",
+        "days_60": "60 days",
+        "days_90": "90 days"
       },
       "importDemoProducts": {
         "label": "Import demo products automatically",

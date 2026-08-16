@@ -3,6 +3,7 @@ using System.Security.Claims;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Trial;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -117,7 +118,7 @@ public sealed class AdminTenantUsersController : ControllerBase
 
         if (error != null)
 
-            return BadRequest(new { message = error });
+            return MapTenantUserError(error);
 
 
 
@@ -183,7 +184,7 @@ public sealed class AdminTenantUsersController : ControllerBase
 
         if (error != null)
 
-            return BadRequest(new { message = error });
+            return MapTenantUserError(error);
 
 
 
@@ -413,6 +414,19 @@ public sealed class AdminTenantUsersController : ControllerBase
 
         return NoContent();
 
+    }
+
+    private ActionResult MapTenantUserError(string error)
+    {
+        if (error.StartsWith(TrialLimitExceededException.ErrorCodeValue, StringComparison.OrdinalIgnoreCase))
+        {
+            var message = error.Contains(':')
+                ? error[(error.IndexOf(':') + 1)..].Trim()
+                : error;
+            return BadRequest(new { message, code = TrialLimitExceededException.ErrorCodeValue });
+        }
+
+        return BadRequest(new { message = error });
     }
 
 }

@@ -4,6 +4,8 @@ using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.License;
+using KasseAPI_Final.Services.Trial;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -21,32 +23,35 @@ public sealed class AdminTenantLicensesController : ControllerBase
 {
     private readonly IAdminTenantLicenseService _licenseService;
     private readonly IAdminTenantLicenseKeyService _tenantLicenseService;
-    private readonly ILicenseKeyGenerator _licenseKeyGenerator;
+    private readonly IUnifiedLicenseService _unifiedLicenseService;
     private readonly ILicenseRenewalService _licenseRenewalService;
     private readonly IAuthorizationService _authorization;
     private readonly ISettingsTenantResolver _settingsTenantResolver;
     private readonly ITenantLicenseExtensionRateLimiter _extensionRateLimiter;
+    private readonly ITrialConversionService _trialConversion;
     private readonly AppDbContext _db;
     private readonly ILogger<AdminTenantLicensesController> _logger;
 
     public AdminTenantLicensesController(
         IAdminTenantLicenseService licenseService,
         IAdminTenantLicenseKeyService tenantLicenseService,
-        ILicenseKeyGenerator licenseKeyGenerator,
+        IUnifiedLicenseService unifiedLicenseService,
         ILicenseRenewalService licenseRenewalService,
         IAuthorizationService authorization,
         ISettingsTenantResolver settingsTenantResolver,
         ITenantLicenseExtensionRateLimiter extensionRateLimiter,
+        ITrialConversionService trialConversion,
         AppDbContext db,
         ILogger<AdminTenantLicensesController> logger)
     {
         _licenseService = licenseService;
         _tenantLicenseService = tenantLicenseService;
-        _licenseKeyGenerator = licenseKeyGenerator;
+        _unifiedLicenseService = unifiedLicenseService;
         _licenseRenewalService = licenseRenewalService;
         _authorization = authorization;
         _settingsTenantResolver = settingsTenantResolver;
         _extensionRateLimiter = extensionRateLimiter;
+        _trialConversion = trialConversion;
         _db = db;
         _logger = logger;
     }
@@ -100,7 +105,7 @@ public sealed class AdminTenantLicensesController : ControllerBase
         }
 
         if (!string.IsNullOrWhiteSpace(request.LicenseKey)
-            && !IsLicenseKeyFormatValid(request.LicenseKey, User.IsInRole(Roles.SuperAdmin)))
+            && !await IsLicenseKeyFormatValidAsync(request.LicenseKey, cancellationToken).ConfigureAwait(false))
         {
             return BadRequest(new { message = LicenseKeyFormatErrorMessage(User.IsInRole(Roles.SuperAdmin)) });
         }
@@ -150,7 +155,7 @@ public sealed class AdminTenantLicensesController : ControllerBase
             return accessError;
 
         if (!string.IsNullOrWhiteSpace(request.LicenseKey)
-            && !IsLicenseKeyFormatValid(request.LicenseKey, User.IsInRole(Roles.SuperAdmin)))
+            && !await IsLicenseKeyFormatValidAsync(request.LicenseKey, cancellationToken).ConfigureAwait(false))
         {
             return BadRequest(new { message = LicenseKeyFormatErrorMessage(User.IsInRole(Roles.SuperAdmin)) });
         }
@@ -196,8 +201,19 @@ public sealed class AdminTenantLicensesController : ControllerBase
             return ValidationProblem(ModelState);
 
         var isSuperAdmin = User.IsInRole(Roles.SuperAdmin);
+        var key = request.LicenseKey.Trim();
+        var validation = await _unifiedLicenseService
+            .ValidateLicenseAsync(key, cancellationToken)
+            .ConfigureAwait(false);
+        var info = await _unifiedLicenseService
+            .GetLicenseInfoAsync(key, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (info.Exists || !isSuperAdmin || !validation.IsFormatValid)
+            return Ok(TenantLicensePreviewHelper.FromUnified(validation, info));
+
         var (result, error) = await _tenantLicenseService
-            .PreviewLicenseAsync(tenantId, request.LicenseKey, isSuperAdmin, cancellationToken)
+            .PreviewLicenseAsync(tenantId, key, isSuperAdmin, cancellationToken)
             .ConfigureAwait(false);
         if (error == "Tenant not found.")
             return NotFound(new { message = error });
@@ -231,6 +247,44 @@ public sealed class AdminTenantLicensesController : ControllerBase
             return BadRequest(new { message = result.Message });
         }
 
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Convert an open trial to a paid license sale (Super Admin or Manager of this tenant).
+    /// Cross-tenant Manager access returns 404.
+    /// </summary>
+    [HttpPost("convert-to-paid")]
+    [HasPermission(AppPermissions.LicenseManage)]
+    [ProducesResponseType(typeof(TrialConversionResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TrialConversionResult>> ConvertToPaid(
+        Guid tenantId,
+        [FromBody] ConvertToPaidRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var accessError = await EnsureTenantLicenseAccessAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        if (accessError != null)
+            return accessError;
+
+        if (request.LicenseSaleId == Guid.Empty)
+            return BadRequest(new { message = "licenseSaleId is required." });
+
+        var (result, error) = await _trialConversion
+            .ConvertToPaidAsync(
+                tenantId,
+                request.LicenseSaleId,
+                request.AddRemainingTrialDays ?? true,
+                request.Notes,
+                ActorUserId,
+                ActorRole,
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (error == "Tenant not found.")
+            return NotFound(new { message = error });
+        if (error != null)
+            return BadRequest(new { message = error });
         return Ok(result);
     }
 
@@ -384,14 +438,15 @@ public sealed class AdminTenantLicensesController : ControllerBase
         return auth.Succeeded;
     }
 
-    private bool IsLicenseKeyFormatValid(string licenseKey, bool isSuperAdmin)
+    private async Task<bool> IsLicenseKeyFormatValidAsync(string licenseKey, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(licenseKey))
             return false;
 
-        return isSuperAdmin
-            ? RegkTenantLicenseKeyFormat.IsValid(licenseKey)
-            : _licenseKeyGenerator.ValidateLicenseKeyFormat(licenseKey);
+        var validation = await _unifiedLicenseService
+            .ValidateLicenseAsync(licenseKey, cancellationToken)
+            .ConfigureAwait(false);
+        return validation.IsFormatValid;
     }
 
     private static string LicenseKeyFormatErrorMessage(bool isSuperAdmin) =>

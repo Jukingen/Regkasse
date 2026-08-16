@@ -6,6 +6,7 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  DEV_TENANT_BOOTSTRAP_EVENT,
   DEV_TENANT_CHANGED_EVENT,
   DEV_TENANT_LOCAL_STORAGE_KEY,
 } from '@/features/auth/services/devTenant';
@@ -140,6 +141,23 @@ describe('useTenantChangeListener', () => {
     expect(mockReload).not.toHaveBeenCalled();
   });
 
+  it('login bootstrap event syncs slug without clearing JWT or reloading', () => {
+    renderHook(() => useTenantChangeListener(), { wrapper: Wrapper });
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(DEV_TENANT_BOOTSTRAP_EVENT, {
+          detail: { slug: 'dev' },
+        })
+      );
+    });
+
+    expect(mockRemoveToken).not.toHaveBeenCalled();
+    expect(mockQueryClientClear).not.toHaveBeenCalled();
+    expect(mockReload).not.toHaveBeenCalled();
+    expect(mockMessageInfo).not.toHaveBeenCalled();
+  });
+
   it('cross-tab storage event with dev tenant key triggers clear and reload', () => {
     window.localStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, 'dev');
     renderHook(() => useTenantChangeListener(), { wrapper: Wrapper });
@@ -189,7 +207,19 @@ describe('useTenantChangeListener', () => {
     });
 
     expect(mockEndTenantSwitch).toHaveBeenCalledTimes(1);
-    expect(consoleWarnSpy).toHaveBeenCalledWith('Tenant switch timeout - resetting state');
+    expect(consoleWarnSpy).toHaveBeenCalled();
+    expect(
+      consoleWarnSpy.mock.calls.some((call) =>
+        call.some(
+          (arg) =>
+            (typeof arg === 'string' && arg.includes('Tenant switch timeout')) ||
+            (typeof arg === 'object' &&
+              arg != null &&
+              'msg' in arg &&
+              String((arg as { msg?: unknown }).msg).includes('Tenant switch timeout'))
+        )
+      )
+    ).toBe(true);
 
     act(() => {
       dispatchStorageChange('baz', 'prod');

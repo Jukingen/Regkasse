@@ -68,7 +68,8 @@ public sealed class AdminTenantLicenseOverviewServiceTests
             Options.Create(new LicenseOptions { Enabled = true }),
             Options.Create(new EmailSmtpOptions()),
             Mock.Of<IDevelopmentModeService>(d => d.ShouldBypassLicense() == false),
-            new AdminTenantLicenseKeyService(db, new LicenseKeyGenerator()));
+            new AdminTenantLicenseKeyService(db, new LicenseKeyGenerator()),
+            Mock.Of<KasseAPI_Final.Services.Trial.ITrialService>());
 
     [Fact]
     public async Task ListOverviewAsync_ReturnsNonDeletedTenantsWithOwnerFlag()
@@ -176,6 +177,7 @@ public sealed class AdminTenantsLicenseOverviewControllerTests
             Mock.Of<ITenantDeletionService>(),
             Mock.Of<KasseAPI_Final.Services.ActivityReports.IActivityReportService>(),
             Mock.Of<IAuditLogService>(),
+            Mock.Of<KasseAPI_Final.Services.Trial.ITrialConversionService>(),
             Mock.Of<IHostEnvironment>(),
             Mock.Of<ILogger<AdminTenantsController>>());
 

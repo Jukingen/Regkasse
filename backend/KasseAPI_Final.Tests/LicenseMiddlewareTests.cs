@@ -165,6 +165,26 @@ public sealed class LicenseMiddlewareTests
         Assert.True(nextCalled);
     }
 
+    [Theory]
+    [InlineData("/api/license/validate", "POST")]
+    [InlineData("/api/license/info", "GET")]
+    public async Task InvokeAsync_DeploymentLockdown_AllowsUnifiedLicenseLookup(string path, string method)
+    {
+        var snapshot = new LicenseStatusResponse(false, false, true, 0, Now.AddDays(-70), "machine");
+        var licenseService = CreateLicenseService(snapshot);
+        var context = CreateContext(path, method);
+        var nextCalled = false;
+        var sut = new LicenseMiddleware(_ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+
+        await InvokeMiddlewareAsync(sut, context, licenseService);
+
+        Assert.True(nextCalled);
+    }
+
     [Fact]
     public async Task InvokeAsync_Development_SkipsAllLicenseEnforcement()
     {

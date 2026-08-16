@@ -12,7 +12,7 @@ namespace KasseAPI_Final.Middleware;
 /// <summary>
 /// After authentication, re-binds ambient tenant.
 /// <list type="bullet">
-/// <item><description>Development: when <see cref="SubdomainTenantProvider.DevTenantHeaderName"/> / <c>?tenant=</c> is present (and not platform <c>admin</c>), that override wins over JWT.</description></item>
+/// <item><description>Development: when <see cref="SubdomainTenantProvider.DevTenantHeaderName"/> / <c>?tenant=</c> is present (and not platform <c>admin</c>), that override wins over JWT <strong>when it resolves</strong>. Unknown or inactive override falls through to JWT / SuperAdmin <c>dev</c> default instead of leaving ambient null (which would 404 every mandant API).</description></item>
 /// <item><description>Development SuperAdmin without JWT/header: <see cref="ITenantContextService"/> prefers seeded <c>dev</c> (not silent Production defaults).</description></item>
 /// <item><description>Production/Staging: authenticated requests use JWT <c>tenant_id</c> only — header/query are ignored; missing/invalid claim clears ambient tenant (fail-closed), including SuperAdmin.</description></item>
 /// <item><description>When <see cref="AuthOptions.RequireTenantHostMatch"/> is enabled (non-Development): mandant subdomain / custom domain Host must match JWT <c>tenant_id</c> (shared platform hosts and SuperAdmin impersonation exempt). Mismatch → HTTP 403.</description></item>
@@ -33,17 +33,27 @@ public sealed class TenantContextMiddleware
     public async Task InvokeAsync(
         HttpContext context,
         ITenantContextService tenantContextService,
+        ICurrentTenantAccessor tenantAccessor,
         IOptions<AuthOptions> authOptions,
         ILogger<TenantContextMiddleware> logger)
     {
-        // Development: dev header/query always wins over JWT tenant_id (local mandant switching).
+        // Development: resolved header/query wins over JWT (local mandant switching).
+        // Unresolved override must not short-circuit — FA always sends X-Tenant-Id:dev after
+        // SuperAdmin/platform login; if that slug is missing/inactive, JWT still has to bind
+        // or TenantValidationMiddleware 404s /api/tenants/current and the whole dashboard.
         if (_environment.IsDevelopment() && HasDevTenantOverride(context))
         {
             await tenantContextService
                 .ApplyFromRequestAsync(context, context.RequestAborted)
                 .ConfigureAwait(false);
-            await _next(context).ConfigureAwait(false);
-            return;
+            if (tenantAccessor.TenantId.HasValue)
+            {
+                await _next(context).ConfigureAwait(false);
+                return;
+            }
+
+            logger.LogDebug(
+                "Development tenant override did not bind; falling through to JWT tenant_id");
         }
 
         if (context.User?.Identity?.IsAuthenticated == true)

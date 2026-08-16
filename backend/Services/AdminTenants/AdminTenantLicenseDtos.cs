@@ -10,7 +10,11 @@ public sealed record TenantLicenseStatusDto(
     DateTime? ValidUntilUtc,
     int? DaysRemaining,
     string? Tier,
-    IReadOnlyList<string> Features);
+    IReadOnlyList<string> Features,
+    string? TrialStatus = null,
+    DateTime? TrialEndsAtUtc = null,
+    int? TrialDaysRemaining = null,
+    DateTime? TrialGracePeriodEndsAtUtc = null);
 
 public sealed record TenantLicenseHistoryItemDto(
     Guid? IssuedLicenseId,

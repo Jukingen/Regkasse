@@ -25,6 +25,8 @@ export async function invalidateTenantLicenseQueries(
       ...INVALIDATE_ALL,
     }),
     queryClient.invalidateQueries({ queryKey: licenseQueryKeys.status, ...INVALIDATE_ALL }),
+    queryClient.invalidateQueries({ queryKey: ['license'], ...INVALIDATE_ALL }),
+    queryClient.invalidateQueries({ queryKey: ['/api/license/status'], ...INVALIDATE_ALL }),
     queryClient.invalidateQueries({ queryKey: ['admin', 'tenants'], ...INVALIDATE_ALL }),
     queryClient.invalidateQueries({ queryKey: ['api', 'admin', 'tenants'], ...INVALIDATE_ALL }),
     queryClient.invalidateQueries({

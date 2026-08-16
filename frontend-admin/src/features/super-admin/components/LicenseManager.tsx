@@ -41,14 +41,35 @@ import {
   renewAdminTenantLicense,
   setAdminTenantLicenseTier,
 } from '@/features/super-admin/api/adminTenantLicense';
+import {
+  convertTenantLicenseToPaid,
+  extendTrial,
+  type TrialConversionResult,
+} from '@/features/super-admin/api/adminTrials';
 import type { AdminTenantDetail } from '@/features/super-admin/api/adminTenants';
+import {
+  ConvertTrialToPaidModal,
+  type ConvertTrialFormValues,
+} from '@/features/super-admin/components/ConvertTrialToPaidModal';
+import { TrialStatusBanner } from '@/features/trial/components/TrialStatusBanner';
 import { dateColumnRender } from '@/components/DateColumn';
+import { formatLicenseValidUntil } from '@/features/license/utils/licenseValidUntil';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
-import { formatDate, useI18n } from '@/i18n';
+import { useI18n } from '@/i18n';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
-type LicenseManagerTenantRef = Pick<AdminTenantDetail, 'id'>;
+type LicenseManagerTenantRef = Pick<
+  AdminTenantDetail,
+  | 'id'
+  | 'name'
+  | 'slug'
+  | 'trialStatus'
+  | 'trialStartedAtUtc'
+  | 'trialEndsAtUtc'
+  | 'trialDaysRemaining'
+  | 'trialGracePeriodEndsAtUtc'
+>;
 
 export type LicenseManagerProps = {
   tenant: LicenseManagerTenantRef;
@@ -76,12 +97,18 @@ function readApiErrorMessage(error: unknown, fallback: string): string {
 export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
   const { message } = useAntdApp();
 
-  const { t, formatLocale } = useI18n();
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [extendForm] = Form.useForm<ExtendFormValues>();
   const [renewForm] = Form.useForm<RenewFormValues>();
   const [renewOpen, setRenewOpen] = useState(false);
+  const [extendTrialOpen, setExtendTrialOpen] = useState(false);
+  const [convertOpen, setConvertOpen] = useState(false);
+  const [conversionSuccess, setConversionSuccess] = useState<TrialConversionResult | null>(null);
   const [consistency, setConsistency] = useState<TenantLicenseConsistency | null>(null);
+  const [extendTrialForm] = Form.useForm<{ additionalDays: number }>();
+  const isOpenTrial =
+    tenant.trialStatus === 'active' || tenant.trialStatus === 'expired';
 
   const licenseQuery = useAuthorizedQuery({
     queryKey: ['admin', 'tenant-license', tenant.id],
@@ -174,6 +201,29 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
     onError: () => message.error(t('tenants.messages.saveFailed')),
   });
 
+  const convertMutation = useMutation({
+    mutationFn: (values: ConvertTrialFormValues) =>
+      convertTenantLicenseToPaid(tenant.id, values.licenseSaleId.trim(), {
+        addRemainingTrialDays: values.addRemainingTrialDays,
+        notes: values.notes,
+      }),
+    onSuccess: (result) => {
+      setConversionSuccess(result);
+      invalidate();
+    },
+    onError: (error) => message.error(readApiErrorMessage(error, t('tenants.messages.saveFailed'))),
+  });
+
+  const extendTrialMutation = useMutation({
+    mutationFn: (days: number) => extendTrial(tenant.id, days),
+    onSuccess: () => {
+      message.success(t('trials.actions.extend'));
+      setExtendTrialOpen(false);
+      invalidate();
+    },
+    onError: (error) => message.error(readApiErrorMessage(error, t('tenants.messages.saveFailed'))),
+  });
+
   const status = licenseQuery.data?.status;
   const history = licenseQuery.data?.history ?? [];
   const resolvedStatus = status ? resolveTenantLicenseStatus(status) : null;
@@ -212,6 +262,17 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
 
   return (
     <Space orientation="vertical" size="large" style={{ width: '100%' }}>
+      {isOpenTrial ? (
+        <TrialStatusBanner
+          tenant={{
+            trialStatus: tenant.trialStatus,
+            trialEndsAtUtc: tenant.trialEndsAtUtc,
+            trialDaysRemaining: tenant.trialDaysRemaining,
+            trialGracePeriodEndsAtUtc: tenant.trialGracePeriodEndsAtUtc,
+          }}
+          upgradeHref={`/admin/tenants/${tenant.id}?tab=license`}
+        />
+      ) : null}
       <Card title={t('tenants.detail.license.currentTitle')} loading={licenseQuery.isLoading}>
         {status ? (
           <Descriptions column={{ xs: 1, sm: 2 }} size="small">
@@ -228,7 +289,7 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
                 : '—'}
             </Descriptions.Item>
             <Descriptions.Item label={t('tenants.detail.license.validUntil')}>
-              {status.validUntilUtc ? formatDate(status.validUntilUtc, formatLocale) : '—'}
+              {formatLicenseValidUntil(status.validUntilUtc)}
             </Descriptions.Item>
             {resolvedStatus ? (
               <Descriptions.Item label={t('tenants.detail.license.remaining')}>
@@ -308,6 +369,27 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
           <Button loading={trialMutation.isPending} onClick={() => trialMutation.mutate()}>
             {t('tenants.detail.license.activateTrial')}
           </Button>
+          {isOpenTrial ? (
+            <>
+              <Button
+                onClick={() => {
+                  extendTrialForm.setFieldsValue({ additionalDays: 14 });
+                  setExtendTrialOpen(true);
+                }}
+              >
+                {t('trials.actions.extend')}
+              </Button>
+              <Button
+                type="primary"
+                onClick={() => {
+                  setConversionSuccess(null);
+                  setConvertOpen(true);
+                }}
+              >
+                {t('trials.actions.convert')}
+              </Button>
+            </>
+          ) : null}
           <Button type="primary" onClick={openRenewModal}>
             {t('tenants.detail.license.renewAction')}
           </Button>
@@ -322,7 +404,7 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
               { value: 'premium', label: t('tenants.detail.license.tiers.premium') },
             ]}
           />
-          <Link href="/admin/license">
+          <Link href="/admin/license-management">
             <Button>{t('tenants.detail.license.openIssuedLicenses')}</Button>
           </Link>
         </Space>
@@ -355,6 +437,68 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
           pagination={{ pageSize: 10 }}
         />
       </Card>
+
+      <Modal
+        title={t('trials.extend.title')}
+        open={extendTrialOpen}
+        onCancel={() => setExtendTrialOpen(false)}
+        confirmLoading={extendTrialMutation.isPending}
+        onOk={() => extendTrialForm.submit()}
+        okText={t('trials.extend.ok')}
+        destroyOnHidden
+      >
+        <Form
+          form={extendTrialForm}
+          layout="vertical"
+          onFinish={(values) => extendTrialMutation.mutate(values.additionalDays)}
+        >
+          <Form.Item
+            name="additionalDays"
+            label={t('trials.extend.daysLabel')}
+            rules={[{ required: true }]}
+            initialValue={14}
+          >
+            <Select
+              options={[
+                { value: 7, label: '7' },
+                { value: 14, label: '14' },
+                { value: 30, label: '30' },
+              ]}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <ConvertTrialToPaidModal
+        open={convertOpen || !!conversionSuccess}
+        tenant={
+          isOpenTrial
+            ? {
+                tenantId: tenant.id,
+                name: tenant.name,
+                slug: tenant.slug,
+                trialStatus: tenant.trialStatus,
+                trialStartedAtUtc: tenant.trialStartedAtUtc,
+                trialEndsAtUtc: tenant.trialEndsAtUtc,
+                daysRemaining: tenant.trialDaysRemaining,
+                reminder7dSent: false,
+                reminder3dSent: false,
+                reminder1dSent: false,
+              }
+            : null
+        }
+        loading={convertMutation.isPending}
+        success={conversionSuccess}
+        onCancel={() => {
+          setConvertOpen(false);
+          setConversionSuccess(null);
+        }}
+        onSuccessClose={() => {
+          setConvertOpen(false);
+          setConversionSuccess(null);
+        }}
+        onSubmit={(values) => convertMutation.mutate(values)}
+      />
 
       <Modal
         title={t('tenants.detail.license.renewModalTitle')}

@@ -39,6 +39,9 @@ export type AdminTenantListItem = {
   registerCount?: number;
   userCount?: number;
   lastActivityAtUtc?: string | null;
+  trialStatus?: string | null;
+  trialEndsAtUtc?: string | null;
+  trialDaysRemaining?: number | null;
 };
 
 export type TenantProvisioning = {
@@ -99,6 +102,12 @@ export type AdminTenantDetail = AdminTenantListItem & {
   maintenanceMessage?: string | null;
   maintenanceStartedAt?: string | null;
   maintenanceEndsAt?: string | null;
+  trialStartedAtUtc?: string | null;
+  trialGracePeriodEndsAtUtc?: string | null;
+  trialConvertedAtUtc?: string | null;
+  trialReminder7dSent?: boolean;
+  trialReminder3dSent?: boolean;
+  trialReminder1dSent?: boolean;
 };
 
 export type UpdateTenantOperationModeRequest = {
@@ -125,6 +134,8 @@ export type CreateAdminTenantRequest = {
   adminEmail?: string | null;
   adminPassword?: string | null;
   grantTrialLicense?: boolean;
+  /** Override trial length (14 / 30 / 60 / 90). Backend default is Trial:DefaultDurationDays. */
+  trialDurationDays?: number;
   /** When true, imports full demo menu (Salate, Pizzas, …) instead of three generic demo products. */
   importDemoMenu?: boolean;
   /** Optional cash register number (default KASSE-001). */

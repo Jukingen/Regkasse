@@ -140,8 +140,15 @@ describe('adminRoleMenuVisibility contract', () => {
   it('SuperAdmin sees platform admin leaves without explicit permissions', () => {
     const keys = visibleMenuKeysForRole('SuperAdmin', []);
     expect(keys).toContain('/admin/tenants');
+    expect(keys).toContain('/admin/tenants/create');
     expect(keys).toContain('/dashboard');
     expect(keys).toContain('/rksv/sb/test-helper');
+  });
+
+  it('Manager admin session hides Create Tenant sidebar leaf', () => {
+    const keys = visibleMenuKeysForRole('Manager', MANAGER_ADMIN_PERMISSIONS);
+    expect(keys).not.toContain('/admin/tenants/create');
+    expect(canAccessPath('/admin/tenants/create', [...MANAGER_ADMIN_PERMISSIONS])).toBe(false);
   });
 
   it('Manager admin session hides RKSV test helper under Sonderbelege', () => {

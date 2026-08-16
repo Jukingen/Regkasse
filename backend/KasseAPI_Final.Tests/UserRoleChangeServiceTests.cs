@@ -211,6 +211,7 @@ public sealed class UserRoleChangeServiceTests
             NullCurrentTenantAccessor.Instance,
             ActivityEventTestSupport.CreateRecorder(),
             roleChange,
+            Mock.Of<KasseAPI_Final.Services.Trial.ITrialLimitGuard>(),
             Mock.Of<ILogger<TenantUserService>>());
     }
 

@@ -2646,7 +2646,7 @@ namespace KasseAPI_Final.Services
                     if (string.Equals(payment.PaymentMethodRaw, ((int)PaymentMethod.Voucher).ToString(), StringComparison.Ordinal))
                     {
                         _logger.LogWarning(
-                            "VOUCHER_REFUND_TODO: Fiscal refund path does not restore stored-value voucher balance. Use full storno (cancellation) for voucher sales or extend RefundPaymentAsync. OriginalPaymentId={PaymentId} RefundId={RefundId}",
+                            "Voucher fiscal refund does not restore stored-value balance. Use full storno (cancellation) for voucher sales. OriginalPaymentId={PaymentId} RefundId={RefundId}",
                             paymentId,
                             refundId);
                     }

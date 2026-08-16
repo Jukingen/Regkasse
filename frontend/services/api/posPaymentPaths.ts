@@ -6,7 +6,7 @@
  * Do not duplicate `/pos/payment` or raw `/Payment` path fragments elsewhere in POS — import helpers here and call through `paymentService`.
  *
  * Admin payments/reporting use `/api/admin/payments` (and related admin surfaces), never this POS prefix.
- * Legacy `/api/Payment/*` is deprecated (Sunset 2026-09-30); do not reintroduce it in clients.
+ * Legacy `/api/Payment/*` was removed (2026-08-13); do not reintroduce it in clients.
  */
 export const POS_PAYMENT_API_PREFIX = '/pos/payment';
 

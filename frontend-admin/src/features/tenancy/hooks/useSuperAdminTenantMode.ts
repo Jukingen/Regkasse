@@ -15,6 +15,7 @@ export const SUPER_ADMIN_PLATFORM_ALLOWED_PREFIXES = [
   '/admin/users',
   '/admin/licenses',
   '/admin/license',
+  '/admin/license-management',
   '/admin/system',
   '/admin/digital',
 ] as const;

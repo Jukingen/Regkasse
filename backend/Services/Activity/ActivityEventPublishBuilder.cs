@@ -97,6 +97,11 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.OnlineOrderConfirmed => "Online order confirmed",
             ActivityEventType.DigitalServiceRequested => "Digital service creation requested",
             ActivityEventType.DataAccessDeleteRequested => "Data deletion request (GDPR)",
+            ActivityEventType.SupportTicketCreated => "Support ticket created",
+            ActivityEventType.SupportTicketStaffReplied => "Support ticket staff reply",
+            ActivityEventType.SupportTicketTenantReplied => "Support ticket tenant reply",
+            ActivityEventType.SupportTicketResolved => "Support ticket resolved",
+            ActivityEventType.SupportTicketClosed => "Support ticket closed",
             ActivityEventType.DataExportReady => "Data export ready",
             ActivityEventType.RoleCreated => ResolveRoleActivityTitle(metadata, "created"),
             ActivityEventType.RoleDeleted => ResolveRoleActivityTitle(metadata, "deleted"),
@@ -347,6 +352,12 @@ internal static class ActivityEventPublishBuilder
                 => ("digital_service_request", TryGetString(metadata, "RequestId")),
             ActivityEventType.DataAccessDeleteRequested
                 => ("tenant_data_rights_request", TryGetString(metadata, "RequestId")),
+            ActivityEventType.SupportTicketCreated
+                or ActivityEventType.SupportTicketStaffReplied
+                or ActivityEventType.SupportTicketTenantReplied
+                or ActivityEventType.SupportTicketResolved
+                or ActivityEventType.SupportTicketClosed
+                => ("support_ticket", TryGetString(metadata, "TicketId")),
             ActivityEventType.DataExportReady
                 => ("tenant_data_rights_request", TryGetString(metadata, "RequestId")),
             ActivityEventType.RoleCreated

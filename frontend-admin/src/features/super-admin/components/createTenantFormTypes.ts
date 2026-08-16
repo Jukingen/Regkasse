@@ -8,6 +8,7 @@ export type CreateTenantFormValues = {
   phone?: string;
   address?: string;
   grantTrialLicense?: boolean;
+  trialDurationDays?: 14 | 30 | 60 | 90;
   importDemoProducts?: boolean;
   formError?: string;
 };

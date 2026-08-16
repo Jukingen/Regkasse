@@ -13,9 +13,10 @@ import {
   TENANT_WARNING_DAYS_BEFORE_EXPIRY,
   resolveTenantGraceDays,
 } from '@/features/license/constants/licenseGracePeriod';
-import { formatDate } from '@/lib/dateUtils';
-
-const DAY_MS = 1000 * 60 * 60 * 24;
+import {
+  calculateLicenseDaysRemaining,
+  formatLicenseValidUntil,
+} from '@/features/license/utils/licenseValidUntil';
 
 export type LicenseStatusBadgeProps = {
   validUntil: string | null;
@@ -37,12 +38,12 @@ export function LicenseStatusBadge({
     return <Tag color="green">Aktiv (unbegrenzt)</Tag>;
   }
 
-  const expiryDate = new Date(validUntil);
-  const today = new Date();
+  const fromValidUntil = calculateLicenseDaysRemaining(validUntil);
   const daysLeft =
-    typeof daysRemaining === 'number' && Number.isFinite(daysRemaining)
+    fromValidUntil ??
+    (typeof daysRemaining === 'number' && Number.isFinite(daysRemaining)
       ? Math.trunc(daysRemaining)
-      : Math.ceil((expiryDate.getTime() - today.getTime()) / DAY_MS);
+      : 0);
 
   if (isInGracePeriod) {
     // Never use Math.abs of a future ValidUntil horizon (e.g. 997 days).
@@ -93,7 +94,7 @@ export function LicenseStatusBadge({
   }
 
   return (
-    <Tooltip title={`Gültig bis ${formatDate(expiryDate)}`}>
+    <Tooltip title={`Gültig bis ${formatLicenseValidUntil(validUntil)}`}>
       <Tag color="green" icon={<CheckCircleOutlined />}>
         Aktiv ({daysLeft} Tage)
       </Tag>

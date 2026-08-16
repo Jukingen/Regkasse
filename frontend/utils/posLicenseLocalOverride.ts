@@ -1,6 +1,8 @@
+import { isValidPosLicenseKey } from './licenseKeyFormat';
 import { secureStorage } from '../services/secureStorage';
 
-// TODO(regkasse-license): Remove this client-side override once backend license/trial responses are authoritative.
+// Client-side override for offline POS when an operator pasted a REGK key.
+// Backend GET /api/license/status is authoritative when online; do not expand this helper.
 
 /** Same shape as `LicenseStatus` from `useLicenseStatus` (duplicated to avoid hook↔util import cycle). */
 type MergedLicenseSnapshot = {
@@ -17,18 +19,15 @@ type MergedLicenseSnapshot = {
 export const POS_LICENSE_OVERRIDE_KEY_STORAGE = 'regkasse.pos.licenseKey';
 export const POS_LICENSE_OVERRIDE_EXPIRY_STORAGE = 'regkasse.pos.licenseExpiryIsoUtc';
 
-const LICENSE_KEY_PATTERN = /^REGK-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$/i;
-
 /**
- * Temporary: persist operator-entered license key + expiry (ISO 8601 UTC) for POS-only override of trial UI.
- * TODO(regkasse-license): Remove when backend status is trusted.
+ * Persist operator-entered license key + expiry for offline POS UI only.
  */
 export async function persistPosLicenseLocalOverride(
   licenseKey: string,
   expiryIsoUtc: string
 ): Promise<void> {
   const k = licenseKey.trim().toUpperCase();
-  if (!LICENSE_KEY_PATTERN.test(k)) return;
+  if (!isValidPosLicenseKey(k)) return;
   const exp = expiryIsoUtc.trim();
   if (!exp) return;
   await secureStorage.multiSet([
@@ -38,8 +37,7 @@ export async function persistPosLicenseLocalOverride(
 }
 
 /**
- * When a non-expired REGK + expiry exist locally, force Licensed/Production and ignore backend trial flags.
- * TODO(regkasse-license): Remove when backend status is trusted.
+ * When a non-expired REGK + expiry exist locally, prefer them over a stale trial snapshot while offline.
  */
 export async function applyPersistedLicenseOverride(
   merged: MergedLicenseSnapshot | null
@@ -52,7 +50,7 @@ export async function applyPersistedLicenseOverride(
     const key = rawKey[1]?.trim() ?? '';
     const expIso = rawExp[1]?.trim() ?? '';
     if (!key || !expIso) return merged;
-    if (!LICENSE_KEY_PATTERN.test(key)) return merged;
+    if (!isValidPosLicenseKey(key)) return merged;
 
     const expiry = new Date(expIso);
     if (Number.isNaN(expiry.getTime()) || expiry.getTime() <= Date.now()) {

@@ -15,7 +15,7 @@ describe('adminLicenseRoute', () => {
         machineHash: 'abcdef',
         intent: ADMIN_LICENSE_PAGE_INTENT_EXTEND,
       })
-    ).toBe('/admin/license?intent=extend&machineHash=abcdef');
+    ).toBe('/admin/license-management?intent=extend&machineHash=abcdef');
   });
 
   it('reads valid machine hash prefill and enables fingerprint binding', () => {
@@ -45,7 +45,8 @@ describe('adminLicenseRoute', () => {
   });
 
   it('keeps the license page reachable without tenant context', () => {
-    expect(ADMIN_LICENSE_PAGE_PATH).toBe('/admin/license');
+    expect(ADMIN_LICENSE_PAGE_PATH).toBe('/admin/license-management');
     expect(isPathAllowedWithoutTenant(ADMIN_LICENSE_PAGE_PATH)).toBe(true);
+    expect(isPathAllowedWithoutTenant('/admin/license')).toBe(true);
   });
 });

@@ -16,5 +16,6 @@ public interface ITenantProvisioningService
         bool importDemoMenu = false,
         string? cashRegisterNumber = null,
         bool seedIndustryStarterUsers = true,
+        int? trialDurationDays = null,
         CancellationToken cancellationToken = default);
 }

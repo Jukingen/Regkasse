@@ -27,6 +27,7 @@ import { RoleMenuPreviewBanner } from '@/features/users/components/RoleMenuPrevi
 import { FiscalHostEnvironmentBanners } from '@/features/rksv/components/FiscalHostEnvironmentBanners';
 import { LicenseExpiryBanner } from '@/components/admin-layout/LicenseExpiryBanner';
 import { SignaturkarteProgramBanner } from '@/features/signaturkarte-program/components/SignaturkarteProgramBanner';
+import { TrialStatusBanner } from '@/features/trial/components/TrialStatusBanner';
 import { SuperAdminModeBanner } from '@/components/admin-layout/SuperAdminModeBanner';
 import { TenantGuard } from '@/components/TenantGuard';
 import { VerwaltungTenantContextGate } from '@/components/admin-layout/VerwaltungTenantContextGate';
@@ -159,6 +160,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   <MaintenanceLimitedModeAlert />
                   <FiscalHostEnvironmentBanners />
                   <LicenseExpiryBanner />
+                  <TrialStatusBanner />
                   <SignaturkarteProgramBanner />
                   <LicenseRenewalRecoveryBanner />
                   <LicenseRenewalModalHost />

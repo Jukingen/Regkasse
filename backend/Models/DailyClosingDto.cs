@@ -25,6 +25,12 @@ public class DailyClosingDto
 
     public string ClosingType { get; set; } = string.Empty;
 
+    /// <summary><c>normal</c> or <c>empty</c> for Daily closings. Independent of <see cref="ClosingType"/>.</summary>
+    public string DayKind { get; set; } = DailyClosingDayKinds.Normal;
+
+    /// <summary>True when this Daily closing has no fiscal invoices.</summary>
+    public bool IsEmpty { get; set; }
+
     public decimal TotalAmount { get; set; }
 
     public decimal TotalTaxAmount { get; set; }

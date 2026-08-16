@@ -20,12 +20,11 @@ namespace KasseAPI_Final.Services;
 /// RKSV Sonderbelege (Nullbeleg first). Does not use <see cref="PaymentService"/> / POS <see cref="DTOs.CreatePaymentRequest"/>.
 /// </summary>
 /// <remarks>
-/// TODO (legal): Whether Nullbeleg must be submitted to FinanzOnline / RKSV web service and exact BMF Belegcheck payload rules.
-/// TODO (legal): Confirm Monats-Nullbeleg timestamp (last second of month vs issuance time) with fiscal advisor.
-/// TODO (legal): Startbeleg — BMF Belegcheck / FinanzOnline submission deadlines and payload fields vs normal Beleg.
-/// TODO (legal): BMF Belegcheck / FinanzOnline submission deadlines and payload rules for Jahresbeleg (not implemented in-app).
-/// TODO (legal): Early Jahresbeleg and continued sales — operator process only; this codebase does not enforce post-Jahresbeleg sales stops.
-/// TODO (security): Schlussbeleg / Endbeleg — add operator password or second-factor confirmation when a register credential model exists (not invented here).
+/// Fiscal advisor notes (not in-app enforcement; do not invent BMF rules here):
+/// Nullbeleg / Startbeleg / Jahresbeleg FinanzOnline submission and Belegcheck payloads;
+/// Monats-Nullbeleg timestamp (last second of month vs issuance); post-Jahresbeleg sales stop is an operator process.
+/// Schlussbeleg second-factor: add only when a register credential model exists.
+/// See docs/RKSV_COMPLIANCE.md.
 /// </remarks>
 public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
 {

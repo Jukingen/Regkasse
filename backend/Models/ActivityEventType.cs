@@ -187,4 +187,27 @@ public enum ActivityEventType
 
     /// <summary>Canary tenant failed-audit rate exceeded threshold during soak.</summary>
     CanaryTenantHighErrorRate = 211,
+
+    /// <summary>SaaS trial started or restarted for a mandant.</summary>
+    TrialStarted = 220,
+    /// <summary>SaaS trial ends soon (7 / 3 / 1 day anchors).</summary>
+    TrialExpiringSoon = 221,
+    /// <summary>SaaS trial ended; grace period started.</summary>
+    TrialExpired = 222,
+    /// <summary>SaaS trial converted to a paid license sale.</summary>
+    TrialConverted = 223,
+    /// <summary>SaaS trial soft-archived (cleanup or Super Admin).</summary>
+    TrialDeleted = 224,
+    /// <summary>SaaS trial end date extended by Super Admin.</summary>
+    TrialExtended = 225,
+    /// <summary>Mandanten-Admin opened a support ticket.</summary>
+    SupportTicketCreated = 230,
+    /// <summary>Super Admin replied to a support ticket.</summary>
+    SupportTicketStaffReplied = 231,
+    /// <summary>Mandanten-Admin replied to a support ticket.</summary>
+    SupportTicketTenantReplied = 232,
+    /// <summary>Support ticket marked resolved by Super Admin.</summary>
+    SupportTicketResolved = 233,
+    /// <summary>Support ticket closed.</summary>
+    SupportTicketClosed = 234,
 }

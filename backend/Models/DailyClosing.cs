@@ -58,6 +58,16 @@ namespace KasseAPI_Final.Models
         [MaxLength(20)]
         public string ClosingType { get; set; } = string.Empty; // Daily, Monthly, Yearly
 
+        /// <summary>
+        /// Empty vs normal daily closing. Not the period type (<see cref="ClosingType"/>).
+        /// Stored lowercase: <c>normal</c> or <c>empty</c>. Backdated empty days still use
+        /// <see cref="IsBackdated"/> separately.
+        /// </summary>
+        [Required]
+        [MaxLength(20)]
+        [Column("day_kind")]
+        public string DayKind { get; set; } = DailyClosingDayKinds.Normal;
+
         [Required]
         [Column(TypeName = "decimal(18,2)")]
         public decimal TotalAmount { get; set; }

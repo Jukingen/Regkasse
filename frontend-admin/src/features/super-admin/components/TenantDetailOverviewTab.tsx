@@ -10,6 +10,10 @@ import { useBillingTenantLicense } from '@/features/billing/hooks';
 import { useBillingAccess } from '@/features/billing/hooks/useBillingAccess';
 import type { AdminTenantDetail } from '@/features/super-admin/api/adminTenants';
 import { TenantLicenseBadge } from '@/features/super-admin/components/TenantLicenseBadge';
+import {
+  calculateLicenseDaysRemaining,
+  formatLicenseValidUntil,
+} from '@/features/license/utils/licenseValidUntil';
 import { isTenantRemovedStatus, tenantStatusColor } from '@/features/super-admin/utils/tenantStatusLabel';
 import { TenantActivityReport } from '@/features/tenants/components/TenantActivityReport';
 import { buildAdminUsersPageHref } from '@/features/users/utils/adminUsersPageUrl';
@@ -36,6 +40,10 @@ export function TenantDetailOverviewTab({
     canAccessBilling
   );
   const licenseStatus = licenseInfo?.status;
+  const licenseDaysRemaining =
+    calculateLicenseDaysRemaining(licenseStatus?.validUntilUtc) ??
+    licenseStatus?.daysRemaining ??
+    null;
 
   return (
     <Space orientation="vertical" size="large" style={{ width: '100%' }}>
@@ -143,16 +151,12 @@ export function TenantDetailOverviewTab({
                 )}
               </Descriptions.Item>
               <Descriptions.Item label={t('license.tenantDetail.validUntil')}>
-                {licenseStatus?.validUntilUtc
-                  ? formatDate(licenseStatus.validUntilUtc, formatLocale, {
-                      dateStyle: 'medium',
-                    })
-                  : '—'}
+                {formatLicenseValidUntil(licenseStatus?.validUntilUtc)}
               </Descriptions.Item>
               <Descriptions.Item label={t('license.tenantDetail.daysRemaining')}>
-                {licenseStatus?.daysRemaining != null
+                {licenseDaysRemaining != null
                   ? t('license.tenantDetail.daysRemainingValue', {
-                      count: licenseStatus.daysRemaining,
+                      count: licenseDaysRemaining,
                     })
                   : '—'}
               </Descriptions.Item>

@@ -157,6 +157,34 @@ public sealed class DemoTenantAdminSeedTests
     }
 
     [Fact]
+    public async Task SeedAsync_Reactivates_Suspended_Dev_Tenant()
+    {
+        await using var db = CreateDb();
+        await SeedRolesAsync(db);
+        var userManager = CreateUserManager(db);
+        var provisioner = new UserTenantMembershipProvisioner(db);
+        var now = DateTime.UtcNow;
+
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Suspended,
+            IsActive = false,
+            CreatedAt = now,
+        });
+        await db.SaveChangesAsync();
+
+        await DemoTenantAdminSeed.SeedAsync(db, userManager, provisioner, CreateDevelopmentHostEnvironment());
+
+        var tenant = await db.Tenants.IgnoreQueryFilters().SingleAsync(t => t.Slug == "dev");
+        Assert.True(tenant.IsActive);
+        Assert.Equal(TenantStatuses.Active, tenant.Status);
+        Assert.NotNull(await userManager.FindByEmailAsync("admin@dev.regkasse.at"));
+    }
+
+    [Fact]
     public void Seed_Sql_Script_Exists_And_Is_Idempotent()
     {
         var repoRoot = FindRepoRoot();

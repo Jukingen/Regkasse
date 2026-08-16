@@ -116,8 +116,8 @@ export function GracePeriodDashboardPageContent() {
         breadcrumbs={[
           adminOverviewCrumb(t),
           {
-            title: t('nav.licenses'),
-            href: '/admin/license',
+            title: t('nav.licenseManagement'),
+            href: '/admin/license-management',
           },
           { title: t('license.gracePeriodDashboard.title') },
         ]}

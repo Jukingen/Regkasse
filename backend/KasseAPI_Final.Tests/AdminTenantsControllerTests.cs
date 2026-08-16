@@ -200,6 +200,7 @@ public sealed class AdminTenantsControllerTests
             tenantDeletionService ?? Mock.Of<ITenantDeletionService>(),
             Mock.Of<KasseAPI_Final.Services.ActivityReports.IActivityReportService>(),
             Mock.Of<IAuditLogService>(),
+            Mock.Of<KasseAPI_Final.Services.Trial.ITrialConversionService>(),
             environment ?? Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
             Mock.Of<ILogger<AdminTenantsController>>());
 
@@ -245,8 +246,9 @@ public sealed class AdminTenantsControllerTests
                 It.IsAny<bool>(),
                 It.IsAny<string?>(),
                 It.IsAny<bool>(),
+                It.IsAny<int?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Tenant t, string? _, string? __, bool grantTrial, bool _, string? ___, bool ____, CancellationToken _) =>
+            .ReturnsAsync((Tenant t, string? _, string? __, bool grantTrial, bool _, string? ___, bool ____, int? _____, CancellationToken _) =>
             {
                 if (grantTrial)
                     t.LicenseValidUntilUtc = DateTime.UtcNow.AddDays(30);
@@ -2264,5 +2266,123 @@ public sealed class AdminTenantsControllerTests
         Assert.Null(error);
         Assert.Equal("updated", detail!.MaintenanceMessage);
         Assert.Equal(started, detail.MaintenanceStartedAt);
+    }
+
+    [Fact]
+    public async Task ConvertToPaid_SuperAdmin_ReturnsOk()
+    {
+        var tenantId = Guid.NewGuid();
+        var saleId = Guid.NewGuid();
+        var conversion = new Mock<KasseAPI_Final.Services.Trial.ITrialConversionService>();
+        conversion
+            .Setup(c => c.ConvertToPaidAsync(
+                tenantId,
+                saleId,
+                true,
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((
+                new KasseAPI_Final.Services.Trial.TrialConversionResult(
+                    true,
+                    tenantId,
+                    saleId,
+                    DateTime.UtcNow.AddDays(365),
+                    DateTime.UtcNow,
+                    3,
+                    "12_months",
+                    "REGK-SA",
+                    Message: "ok"),
+                (string?)null));
+
+        var controller = new AdminTenantsController(
+            Mock.Of<IAdminTenantService>(),
+            Mock.Of<IAdminTenantCsvExportService>(),
+            Mock.Of<IAdminTenantLicenseService>(),
+            Mock.Of<ITenantDeletionService>(),
+            Mock.Of<KasseAPI_Final.Services.ActivityReports.IActivityReportService>(),
+            Mock.Of<IAuditLogService>(),
+            conversion.Object,
+            Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
+            Mock.Of<ILogger<AdminTenantsController>>());
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(
+                    new ClaimsIdentity(
+                        new[]
+                        {
+                            new Claim(ClaimTypes.NameIdentifier, "super-admin"),
+                            new Claim(ClaimTypes.Role, Roles.SuperAdmin),
+                            new Claim(PermissionCatalog.PermissionClaimType, AppPermissions.TenantManage),
+                        },
+                        authenticationType: "TestAuth")),
+            },
+        };
+
+        var result = await controller.ConvertToPaid(
+            tenantId,
+            new KasseAPI_Final.Services.Trial.ConvertToPaidRequest
+            {
+                LicenseSaleId = saleId,
+                AddRemainingTrialDays = true,
+            },
+            CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        Assert.IsType<KasseAPI_Final.Services.Trial.TrialConversionResult>(ok.Value);
+    }
+
+    [Fact]
+    public async Task ConvertToPaid_NotInTrial_Returns400()
+    {
+        var tenantId = Guid.NewGuid();
+        var conversion = new Mock<KasseAPI_Final.Services.Trial.ITrialConversionService>();
+        conversion
+            .Setup(c => c.ConvertToPaidAsync(
+                tenantId,
+                It.IsAny<Guid>(),
+                It.IsAny<bool>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((
+                (KasseAPI_Final.Services.Trial.TrialConversionResult?)null,
+                "Tenant is not in an open trial (active or expired grace)."));
+
+        var controller = new AdminTenantsController(
+            Mock.Of<IAdminTenantService>(),
+            Mock.Of<IAdminTenantCsvExportService>(),
+            Mock.Of<IAdminTenantLicenseService>(),
+            Mock.Of<ITenantDeletionService>(),
+            Mock.Of<KasseAPI_Final.Services.ActivityReports.IActivityReportService>(),
+            Mock.Of<IAuditLogService>(),
+            conversion.Object,
+            Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
+            Mock.Of<ILogger<AdminTenantsController>>());
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(
+                    new ClaimsIdentity(
+                        new[]
+                        {
+                            new Claim(ClaimTypes.NameIdentifier, "super-admin"),
+                            new Claim(ClaimTypes.Role, Roles.SuperAdmin),
+                        },
+                        authenticationType: "TestAuth")),
+            },
+        };
+
+        var result = await controller.ConvertToPaid(
+            tenantId,
+            new KasseAPI_Final.Services.Trial.ConvertToPaidRequest { LicenseSaleId = Guid.NewGuid() },
+            CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
     }
 }

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { CashRegisterSelector } from '@/components/CashRegisterSelector';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { Dashboard } from '@/features/dashboard/components/Dashboard';
+import { MeinKontoQuickAccessCard } from '@/features/dashboard/components/MeinKontoQuickAccessCard';
 import { usePendingMonatsbeleg } from '@/features/rksv/hooks/usePendingMonatsbeleg';
 import { useCashRegisterSelection } from '@/hooks/useCashRegisterSelection';
 import { useFormattedDate } from '@/hooks/useFormattedDate';
@@ -105,6 +106,8 @@ export function ManagerDashboard() {
           style={{ marginBottom: 16 }}
         />
       ) : null}
+
+      <MeinKontoQuickAccessCard />
 
       <Dashboard />
     </div>

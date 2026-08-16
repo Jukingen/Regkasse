@@ -51,6 +51,7 @@ const ALWAYS_VISIBLE_EXACT = new Set<string>([
   '/license',
   '/license/dashboard',
   '/admin/license',
+  '/admin/license-management',
   '/admin/license/grace-period',
   '/admin/licenses',
   '/admin/billing',
@@ -76,6 +77,10 @@ const ALWAYS_VISIBLE_EXACT = new Set<string>([
   '/settings/data-management',
   '/settings/account',
   '/settings/password',
+  '/tenant/dashboard',
+  '/tenant/portal',
+  '/tenant/invoices',
+  '/tenant/support',
   '/admin/tenants',
   '/admin/data-management',
 ]);
@@ -83,6 +88,7 @@ const ALWAYS_VISIBLE_EXACT = new Set<string>([
 const ALWAYS_VISIBLE_PREFIXES = [
   '/license',
   '/admin/license',
+  '/admin/license-management',
   '/admin/licenses',
   '/admin/billing',
   '/billing/digital',

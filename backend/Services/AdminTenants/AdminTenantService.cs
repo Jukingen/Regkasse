@@ -916,6 +916,13 @@ public sealed partial class AdminTenantService : IAdminTenantService
         var (licenseDaysRemaining, _) = TenantLicenseStatusMapper.ComputeKindAndDays(
             licenseUntil,
             t.LicenseKey);
+        int? trialDaysRemaining = null;
+        if (t.TrialEndsAtUtc.HasValue)
+        {
+            trialDaysRemaining = (int)Math.Ceiling(
+                (DateTime.SpecifyKind(t.TrialEndsAtUtc.Value, DateTimeKind.Utc) - DateTime.UtcNow).TotalDays);
+        }
+
         return new(
             t.Id,
             t.Name,
@@ -934,7 +941,10 @@ public sealed partial class AdminTenantService : IAdminTenantService
             ResolveListLicenseType(hasActiveSale, activeSaleLicenseType),
             registerCount,
             userCount,
-            lastActivityAtUtc);
+            lastActivityAtUtc,
+            t.TrialStatus,
+            t.TrialEndsAtUtc,
+            trialDaysRemaining);
     }
 
     /// <summary>
@@ -979,7 +989,15 @@ public sealed partial class AdminTenantService : IAdminTenantService
             t.OperationMode,
             t.MaintenanceMessage,
             t.MaintenanceStartedAt,
-            t.MaintenanceEndsAt);
+            t.MaintenanceEndsAt,
+            t.TrialStatus,
+            t.TrialStartedAtUtc,
+            t.TrialEndsAtUtc,
+            t.TrialGracePeriodEndsAtUtc,
+            t.TrialConvertedAtUtc,
+            t.TrialReminder7dSent,
+            t.TrialReminder3dSent,
+            t.TrialReminder1dSent);
 
     private static DateTime? MaxUtc(params DateTime?[] values)
     {

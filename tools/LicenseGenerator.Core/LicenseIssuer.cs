@@ -8,14 +8,11 @@ using System.Text.Json;
 namespace Regkasse.LicenseTools;
 
 /// <summary>
-/// Builds REGK-XXXXX-XXXXX-XXXXX (derived fingerprint) and RS256 JWT bound to that key.
+/// Builds unified REGK-yyyyMMdd-system-XXXXXXXX (derived fingerprint) and RS256 JWT bound to that key.
 /// Cryptographic proof lives in the JWT; the REGK segments encode a deterministic digest of payload|signature.
 /// </summary>
 public static class LicenseIssuer
 {
-    private const ulong SegmentMod = 36UL * 36 * 36 * 36 * 36; // 36^5
-    private const string Alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
     /// <param name="customerName">Displayed customer; pipe characters are stripped.</param>
     /// <param name="machineHashHex">SHA-256 hex from POS machine, or null/empty for floating license.</param>
     /// <param name="expiresAtUtc">JWT exp (and signed payload date) — typically end-of-day UTC for the chosen calendar date.</param>
@@ -45,9 +42,8 @@ public static class LicenseIssuer
         payloadBytes.AsSpan().CopyTo(combined);
         signature.AsSpan().CopyTo(combined.AsSpan(payloadBytes.Length));
         var digest = SHA256.HashData(combined);
-        var licenseKey = "REGK-" + EncodeSegment(digest.AsSpan(0, 6)) + "-" +
-                         EncodeSegment(digest.AsSpan(6, 6)) + "-" +
-                         EncodeSegment(digest.AsSpan(12, 6));
+        var datePart = expiresAtUtc.UtcDateTime.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+        var licenseKey = "REGK-" + datePart + "-system-" + EncodeSuffix8(digest);
 
         var expUnix = expiresAtUtc.ToUnixTimeSeconds();
         var jwt = CreateRs256Jwt(
@@ -108,24 +104,12 @@ public static class LicenseIssuer
         return s;
     }
 
-    private static string EncodeSegment(ReadOnlySpan<byte> sixBytes)
+    private static string EncodeSuffix8(ReadOnlySpan<byte> digest)
     {
-        if (sixBytes.Length != 6)
-            throw new ArgumentException("Expected 6 bytes.", nameof(sixBytes));
-
-        ulong v = 0;
-        for (var i = 0; i < 6; i++)
-            v = (v << 8) | sixBytes[i];
-
-        v %= SegmentMod;
-        Span<char> chars = stackalloc char[5];
-        for (var i = 4; i >= 0; i--)
-        {
-            var idx = (int)(v % 36);
-            chars[i] = Alphabet[idx];
-            v /= 36;
-        }
-
+        const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        Span<char> chars = stackalloc char[8];
+        for (var i = 0; i < 8; i++)
+            chars[i] = alphabet[digest[i] % 36];
         return new string(chars);
     }
 

@@ -3,16 +3,20 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { AxiosError } from 'axios';
 
+import { activateUnifiedLicense } from '@/features/license/api/activateUnifiedLicense';
+import type { ExtendTenantLicenseResult } from '@/features/license/api/tenantLicense';
 import {
-  type ExtendTenantLicenseResult,
-  extendTenantLicense,
-} from '@/features/license/api/tenantLicense';
+  applyActivatedLicenseToCache,
+  beginActivatedLicenseOptimisticUpdate,
+  rollbackActivatedLicenseOptimisticUpdate,
+} from '@/features/license/utils/applyActivatedLicenseToCache';
 import { invalidateTenantLicenseQueries } from '@/features/license/utils/invalidateTenantLicenseQueries';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
 
 export type ExtendTenantLicenseFormValues = {
   licenseKey: string;
+  expectedValidUntilUtc?: string | null;
 };
 
 function readApiErrorMessage(error: unknown, fallback: string): string {
@@ -46,18 +50,31 @@ export function useExtendTenantLicense(tenantId: string) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
 
-  const invalidate = () => {
-    void invalidateTenantLicenseQueries(queryClient, tenantId);
-  };
-
   return useMutation<ExtendTenantLicenseResult, unknown, ExtendTenantLicenseFormValues>({
-    mutationFn: (values) =>
-      extendTenantLicense({
-        licenseKey: values.licenseKey.trim(),
-      }),
-    onSuccess: () => {
-      invalidate();
+    mutationFn: (values) => activateUnifiedLicense(values.licenseKey),
+    onMutate: async (values) => {
+      const expectedValidUntilUtc = values.expectedValidUntilUtc?.trim();
+      if (!expectedValidUntilUtc) {
+        return undefined;
+      }
+      return beginActivatedLicenseOptimisticUpdate(queryClient, {
+        tenantId,
+        validUntilUtc: expectedValidUntilUtc,
+        licenseKey: values.licenseKey,
+      });
     },
-    onError: (error) => notify.error(resolveExtendErrorMessage(error, t)),
+    onError: (error, _values, context) => {
+      rollbackActivatedLicenseOptimisticUpdate(queryClient, context);
+      notify.error(resolveExtendErrorMessage(error, t));
+    },
+    onSuccess: async (result, values) => {
+      applyActivatedLicenseToCache(queryClient, {
+        tenantId,
+        validUntilUtc: result.validUntilUtc || values.expectedValidUntilUtc || null,
+        licenseKey: result.licenseKey || values.licenseKey,
+        licenseType: result.status,
+      });
+      await invalidateTenantLicenseQueries(queryClient, tenantId);
+    },
   });
 }

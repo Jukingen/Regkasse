@@ -9,6 +9,7 @@ public static class BillingAuditEventTypes
     public const string LicenseActivated = "LICENSE_ACTIVATED";
     public const string LicenseExtended = "LICENSE_EXTENDED";
     public const string LicenseReminderSent = "LICENSE_REMINDER_SENT";
+    public const string TrialConverted = "TRIAL_CONVERTED";
     public const string SubscriptionCreated = "SUBSCRIPTION_CREATED";
     public const string SubscriptionCancelled = "SUBSCRIPTION_CANCELLED";
     public const string DigitalServiceActivated = "DIGITAL_SERVICE_ACTIVATED";
@@ -25,6 +26,7 @@ public static class BillingAuditEventTypes
         LicenseActivated,
         LicenseExtended,
         LicenseReminderSent,
+        TrialConverted,
         SubscriptionCreated,
         SubscriptionCancelled,
         DigitalServiceActivated,

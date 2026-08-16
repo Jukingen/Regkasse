@@ -14,19 +14,11 @@ namespace KasseAPI_Final.Controllers
 {
     /// <summary>
     /// POS product read/catalog handlers. Canonical route: <c>api/pos/*</c> (product actions on this controller).
-    /// Legacy alias <c>api/Product/*</c> maps to the same actions; deprecation headers via <see cref="LegacyRouteDeprecationFilter"/>.
-    /// Admin catalog CRUD belongs on <see cref="AdminProductsController"/> (<c>/api/admin/products</c>) — do not add new admin features here.
-    /// Mutations remaining on this controller are compatibility surface only. Sunset for legacy alias: 2026-09-30.
+    /// Legacy alias <c>/api/Product/*</c> was removed (2026-08-13); POS clients must call <c>/api/pos/*</c>.
+    /// Admin catalog CRUD belongs on <see cref="AdminProductsController"/> (<c>/api/admin/products</c>).
     /// </summary>
-    [Obsolete(
-        "Legacy HTTP alias /api/Product/* is deprecated; POS clients must call /api/pos/*, Admin must use /api/admin/products. " +
-        "This type still hosts canonical /api/pos product routes (dual [Route]). " +
-        "Do not add new endpoints that exist only on the legacy prefix. Sunset: 2026-09-30.",
-        error: false)]
-    [Route("api/Product")]
     [Route("api/pos")]
     [ApiController]
-    [ServiceFilter(typeof(LegacyRouteDeprecationFilter))]
     [HasPermission(AppPermissions.ProductView)]
     public class ProductController : EntityController<Product>
     {
@@ -49,7 +41,7 @@ namespace KasseAPI_Final.Controllers
             _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
 
         /// <summary>
-        /// Tüm aktif ürünleri getir (sayfalama ile). GET api/Product — base route tek action olmalı (Swagger çakışmasını önler).
+        /// Tüm aktif ürünleri getir (sayfalama ile). GET api/pos — base route tek action olmalı (Swagger çakışmasını önler).
         /// </summary>
         [HttpGet]
         public override async Task<IActionResult> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20)
@@ -58,7 +50,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Tüm aktif ürünleri getir (sayfalama ile, opsiyonel categoryId filtresi). GET api/Product/list
+        /// Tüm aktif ürünleri getir (sayfalama ile, opsiyonel categoryId filtresi). GET api/pos/list
         /// </summary>
         [HttpGet("list")]
         public async Task<IActionResult> GetAllPaginated(

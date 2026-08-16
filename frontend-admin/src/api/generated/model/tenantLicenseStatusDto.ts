@@ -18,5 +18,13 @@ export interface TenantLicenseStatusDto {
   /** @nullable */
   tier?: string | null;
   /** @nullable */
+  trialDaysRemaining?: number | null;
+  /** @nullable */
+  trialEndsAtUtc?: string | null;
+  /** @nullable */
+  trialGracePeriodEndsAtUtc?: string | null;
+  /** @nullable */
+  trialStatus?: string | null;
+  /** @nullable */
   validUntilUtc?: string | null;
 }

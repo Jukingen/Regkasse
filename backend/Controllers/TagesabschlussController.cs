@@ -43,6 +43,8 @@ namespace KasseAPI_Final.Controllers
 
         /// <summary>
         /// Perform daily closing for the current Vienna day, or for an optional past business day (nachträglich).
+        /// Days with no fiscal invoices are allowed as empty closings (<c>dayKind=empty</c>, <c>isEmpty=true</c>).
+        /// Future dates and duplicate closings remain rejected.
         /// </summary>
         [HttpPost("daily")]
         [HasPermission(AppPermissions.DailyClosingExecute)]
@@ -298,13 +300,27 @@ namespace KasseAPI_Final.Controllers
                     ? 0
                     : await _tagesabschlussService.GetPaymentsWithoutInvoiceCountAsync(
                         cashRegisterId, dayStartUtc, dayEndExclusiveUtc);
+                var transactionCount = isFuture
+                    ? 0
+                    : await _tagesabschlussService.GetPaidInvoiceCountAsync(
+                        cashRegisterId, dayStartUtc, dayEndExclusiveUtc);
+                var isEmptyDay = canClose && !isFuture && transactionCount == 0;
 
                 string message;
                 if (canClose)
                 {
-                    message = isBackdated
-                        ? $"Backdated daily closing can be performed for {targetDay:yyyy-MM-dd}"
-                        : "Daily closing can be performed";
+                    if (isEmptyDay)
+                    {
+                        message = isBackdated
+                            ? $"No transactions for {targetDay:yyyy-MM-dd}. Empty daily closing can be created."
+                            : "No transactions found for today. Empty daily closing can be created.";
+                    }
+                    else
+                    {
+                        message = isBackdated
+                            ? $"Backdated daily closing can be performed for {targetDay:yyyy-MM-dd}"
+                            : "Daily closing can be performed";
+                    }
                 }
                 else if (isFuture)
                 {
@@ -333,6 +349,8 @@ namespace KasseAPI_Final.Controllers
                     lastYearlyClosingDate = lastYearlyClosingDate,
                     lastYearlyClosingPerformedAt = lastYearlyClosingPerformedAt,
                     paymentsWithoutInvoiceCount = paymentsWithoutInvoiceCount,
+                    transactionCount = transactionCount,
+                    isEmptyDay = isEmptyDay,
                     isBackdated = isBackdated,
                     closingDate = targetDay,
                     message = message
@@ -526,6 +544,12 @@ namespace KasseAPI_Final.Controllers
         public DateTime? lastYearlyClosingPerformedAt { get; set; }
         [Required]
         public int paymentsWithoutInvoiceCount { get; set; }
+        /// <summary>Paid fiscal invoices for the evaluated Vienna day (special receipts excluded).</summary>
+        [Required]
+        public int transactionCount { get; set; }
+        /// <summary>True when closing is allowed and the day has no fiscal invoices (empty Tagesabschluss).</summary>
+        [Required]
+        public bool isEmptyDay { get; set; }
         /// <summary>True when <see cref="closingDate"/> is a past Vienna calendar day.</summary>
         [Required]
         public bool isBackdated { get; set; }

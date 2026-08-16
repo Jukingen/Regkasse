@@ -24,18 +24,10 @@ import {
 import { useLicenseStatus, type LicenseStatus } from '../../../hooks/useLicenseStatus';
 import { formatUserDateTime } from '../../../utils/dateFormatter';
 import { preferLicenseHoursRemaining } from '../../../utils/licenseExpiryRemaining';
+import { isValidPosLicenseKey, sanitizeLicenseKeyInput } from '../../../utils/licenseKeyFormat';
 import { openMailtoUrl } from '../../../utils/openLink';
 
 import { openAdmin, openLicenseExtension } from '@/src/features/admin-navigation/openAdmin';
-
-const LICENSE_KEY_PATTERN = /^REGK-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$/i;
-
-function sanitizeLicenseKeyInput(raw: string): string {
-  return raw
-    .toUpperCase()
-    .replace(/[^A-Z0-9-]/g, '')
-    .slice(0, 22);
-}
 
 function formatExpiryDeAt(iso: string | null): string {
   if (!iso) return '—';
@@ -171,7 +163,7 @@ export function LicenseModal({
   const onActivate = useCallback(async () => {
     setActivationFeedback(null);
     const trimmed = licenseKey.trim().toUpperCase();
-    if (!LICENSE_KEY_PATTERN.test(trimmed)) {
+    if (!isValidPosLicenseKey(trimmed)) {
       setActivationFeedback({ kind: 'error', text: t('license:activationInvalidFormat') });
       return;
     }

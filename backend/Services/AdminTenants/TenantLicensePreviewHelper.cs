@@ -1,4 +1,5 @@
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.License;
 
 namespace KasseAPI_Final.Services.AdminTenants;
 
@@ -161,5 +162,47 @@ internal static class TenantLicensePreviewHelper
             PlanName: FormatBillingPlanName(sale.LicensePlan),
             ErrorCode: resolved.ErrorCode,
             ErrorMessage: resolved.ErrorMessage);
+    }
+
+    internal static LicensePreviewResult FromUnified(
+        LicenseKeyValidationResult validation,
+        LicenseInfo info)
+    {
+        var validUntil = info.ValidUntilUtc ?? validation.DatabaseValidUntilUtc ?? validation.EncodedValidUntilUtc;
+        int? durationDays = null;
+        string? durationDisplay = null;
+        if (validUntil is DateTime until)
+        {
+            var untilUtc = until.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(until, DateTimeKind.Utc)
+                : until.ToUniversalTime();
+            durationDays = Math.Max(0, (int)Math.Ceiling((untilUtc - DateTime.UtcNow).TotalDays));
+            durationDisplay = durationDays.Value > 0
+                ? FormatDurationDisplay(durationDays.Value)
+                : "expired";
+        }
+
+        var status = validation.IsValid
+            ? "valid"
+            : validation.ErrorCode switch
+            {
+                "expired" => "expired",
+                "revoked" => "invalid",
+                _ => "invalid",
+            };
+
+        return new LicensePreviewResult(
+            Valid: validation.IsValid,
+            LicenseKey: string.IsNullOrWhiteSpace(info.CanonicalLicenseKey)
+                ? info.LicenseKey
+                : info.CanonicalLicenseKey,
+            ValidFromUtc: null,
+            ValidUntilUtc: validUntil,
+            DurationDays: durationDays,
+            DurationDisplay: durationDisplay,
+            Status: status,
+            PlanName: info.LicenseKind,
+            ErrorCode: validation.ErrorCode,
+            ErrorMessage: validation.Message);
     }
 }

@@ -1,12 +1,45 @@
 {
   "pageTitle": "Vardiyalar ve günlük kapanışlar",
   "intro": "Kiracı POS vardiyaları: aktif vardiyalar, geçmiş ve bağlı günlük kapanışlar (nakit sayımı + mali kapanış).",
+  "userId": "Kullanıcı ID",
   "filters": {
     "register": "Kasa",
     "allRegisters": "Tüm kasalar",
     "from": "Başlangıç",
     "to": "Bitiş",
-    "refresh": "Yenile"
+    "refresh": "Yenile",
+    "cashier": "Kasiyer",
+    "allCashiers": "Tüm kasiyerler",
+    "status": "Durum",
+    "allStatuses": "Tüm durumlar",
+    "searchPlaceholder": "Ara: kasa veya ad"
+  },
+  "grouping": {
+    "registerHeader": "{{register}} ({{count}} vardiya)"
+  },
+  "summary": {
+    "filteredTotal": "Toplam (filtreli)",
+    "shiftCount": "Vardiya",
+    "totalSales": "Ciro",
+    "totalCash": "Nakit",
+    "totalCard": "Kart",
+    "totalDifference": "Fark"
+  },
+  "tooltips": {
+    "cashierName": "Ad",
+    "registerNumber": "Kasa numarası",
+    "registerId": "Kasa ID"
+  },
+  "details": {
+    "title": "Vardiya detayları",
+    "close": "Kapat",
+    "paymentBreakdown": "Ödeme dökümü",
+    "differenceExplanation": "Fark açıklaması",
+    "differenceBalanced": "Fark yok: sayılan nakit beklenen bakiyeyle uyumlu.",
+    "differenceDiscrepancy": "Fark tespit edildi: sayılan nakit beklenen bakiyeden farklı.",
+    "differenceOther": "Açılış/kapanış bakiyesi ve sayılan nakitten kaynaklanan fark.",
+    "notes": "Notlar",
+    "openDailyClosing": "Günlük kapanışa git"
   },
   "sections": {
     "active": "Aktif vardiyalar",
@@ -35,7 +68,7 @@
     "fiscalStatus": "Mali durum"
   },
   "status": {
-    "Active": "Aktif",
+    "Active": "Açık",
     "Completed": "Tamamlandı",
     "Discrepancy": "Fark",
     "RegisterOpen": "Kasa açık"
@@ -49,7 +82,8 @@
     "forceCloseTitle": "Vardiya zorla kapatılsın mı?",
     "forceCloseConfirm": "Kasa kapatılır ve aktif vardiya satırları sonlandırılır. Yalnızca vardiya takılı kaldığında kullanın.",
     "forceCloseSuccess": "Vardiya/kasa kapatıldı.",
-    "forceCloseFailed": "Vardiya kapatılamadı."
+    "forceCloseFailed": "Vardiya kapatılamadı.",
+    "details": "Detaylar"
   },
   "warnings": {
     "staleShiftsTitle": "Uzun süredir açık vardiyalar",

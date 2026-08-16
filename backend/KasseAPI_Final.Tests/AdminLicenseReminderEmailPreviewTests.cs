@@ -6,6 +6,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -68,6 +69,7 @@ public sealed class AdminLicenseReminderEmailPreviewTests
             Mock.Of<ILicenseReminderNotificationStore>(),
             Mock.Of<IAuditLogService>(),
             Mock.Of<ILicenseExportService>(),
+            Mock.Of<IUnifiedLicenseService>(),
             NullLogger<AdminLicenseController>.Instance);
 
         var services = new ServiceCollection();

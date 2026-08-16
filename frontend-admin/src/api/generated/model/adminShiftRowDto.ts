@@ -35,4 +35,6 @@ export interface AdminShiftRowDto {
   totalCard?: number;
   totalCash?: number;
   totalSales?: number;
+  /** @nullable */
+  readonly userId?: string | null;
 }

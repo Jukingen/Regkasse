@@ -1,4 +1,11 @@
 {
+  "emptyDayWarning": "No transactions found for this day. Do you want to create an empty daily closing?",
+  "emptyDayConfirm": "No transactions found for this day. Do you want to create an empty daily closing?",
+  "emptyDaySuccess": "Empty daily closing created. No transactions.",
+  "normalDaySuccess": "Daily closing created successfully. {{count}} transactions.",
+  "type": "Type",
+  "typeNormal": "Normal",
+  "typeEmpty": "Empty (0 transactions)",
   "page": {
     "intro": "Operational register closing (TSE/RKSV): run the pre-check and closing. For the formal daily report (document, finalization, FinanzOnline), use “Formal daily report”."
   },
@@ -44,6 +51,7 @@
     "lastMonthlyClosing": "Last monthly closing",
     "lastYearlyClosing": "Last yearly closing",
     "paymentsWithoutInvoice": "Payments without invoice (selected day)",
+    "transactionCount": "Transactions (selected day)",
     "hint": "Note",
     "backendHint": "Server note (language not guaranteed)"
   },
@@ -102,6 +110,9 @@
     "colDate": "Date",
     "colCreatedAt": "Created at",
     "colType": "Type",
+    "filterAll": "All",
+    "filterNormal": "Normal",
+    "filterEmpty": "Empty",
     "colLateReason": "Reason (late)",
     "colGross": "Gross",
     "colTax": "Tax",
@@ -128,6 +139,8 @@
   },
   "messages": {
     "successDaily": "Daily closing executed.",
+    "successDailyEmpty": "Empty daily closing created. No transactions.",
+    "successDailyNormal": "Daily closing created successfully. {{count}} transactions.",
     "successDailyBackdated": "Late daily closing for {{date}} executed.",
     "successMonthly": "Monthly closing executed.",
     "successYearly": "Yearly closing executed.",

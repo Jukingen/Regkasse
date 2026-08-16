@@ -266,7 +266,7 @@ Run only after review. Prefer checked-in EF migrations for schema changes.
 - Do not commit secrets (`dev-mail.local.env` is gitignored).
 - Destructive DB scripts must be Development-only and clearly named.
 - Prefer idempotent scripts where possible.
-- Do not extend legacy `/api/Payment`, `/api/Cart`, `/api/Product` for new features.
+- Do not reintroduce removed `/api/Payment`, `/api/Cart`, `/api/Product` aliases.
 - Keep `.bat` / `.ps1` pairing green (`npm run verify:bat-ps1`).
 
 ## Related

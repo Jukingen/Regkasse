@@ -54,6 +54,11 @@ export type NotificationConfigSeverityThreshold = {
   RolePermissionsUpdated?: string;
   SignaturkarteProgramOverdue?: string;
   SignaturkarteProgramReminder?: string;
+  SupportTicketClosed?: string;
+  SupportTicketCreated?: string;
+  SupportTicketResolved?: string;
+  SupportTicketStaffReplied?: string;
+  SupportTicketTenantReplied?: string;
   SuspiciousHighValuePayment?: string;
   SuspiciousMultipleRefunds?: string;
   SuspiciousMultipleStornos?: string;
@@ -65,6 +70,12 @@ export type NotificationConfigSeverityThreshold = {
   TenantSettingsChangeRejected?: string;
   TenantSettingsChangeRequested?: string;
   TenantSettingsChangeReverted?: string;
+  TrialConverted?: string;
+  TrialDeleted?: string;
+  TrialExpired?: string;
+  TrialExpiringSoon?: string;
+  TrialExtended?: string;
+  TrialStarted?: string;
   TseAnomalyDetected?: string;
   TseAusfallEnqueueSuggested?: string;
   TseAusfallReported?: string;

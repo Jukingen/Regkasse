@@ -29,4 +29,10 @@ export const ROUTE_GUARD_PATHS_WITHOUT_SIDEBAR_LEAF = [
   /** Export download metadata history (hub + DEP page link). */
   '/admin/download-history',
   '/admin/download-history/analytics',
+  /** Legacy self-service hub — redirects to `/tenant/portal`. */
+  '/tenant/dashboard',
+  /** Legacy license page — redirects to `/admin/license-management`. */
+  '/admin/license',
+  /** Billing overview — redirects to `/admin/license-management`; sales remain separate. */
+  '/admin/billing',
 ] as const;

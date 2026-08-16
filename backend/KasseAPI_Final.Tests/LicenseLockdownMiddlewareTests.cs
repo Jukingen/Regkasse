@@ -382,7 +382,11 @@ public sealed class LicenseLockdownMiddlewareTests
 
     [Theory]
     [InlineData("/api/admin/license/extend", true)]
+    [InlineData("/api/admin/license/activate", true)]
     [InlineData("/api/license/billing/activate", true)]
+    [InlineData("/api/license/activate", true)]
+    [InlineData("/api/license/validate", true)]
+    [InlineData("/api/license/info", true)]
     [InlineData("/api/admin/tenants/11111111-1111-1111-1111-111111111111/data-management/closure", true)]
     [InlineData("/api/admin/products", false)]
     [InlineData("/api/admin/users", false)]

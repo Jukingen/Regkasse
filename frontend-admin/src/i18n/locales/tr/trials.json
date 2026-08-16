@@ -1,0 +1,84 @@
+{
+  "title": "Deneme yonetimi",
+  "subtitle": "Aktif, suresi dolan ve dolmus tenant denemeleri",
+  "stats": {
+    "active": "Aktif denemeler",
+    "expiringSoon": "Yakinda bitiyor (≤7 gun)",
+    "expired": "Suresi dolmus (grace)",
+    "converted": "Donusturuldu",
+    "conversionRate": "Donusum orani",
+    "created30d": "Denemeler (son 30 gun)",
+    "avgDaysToConvert": "Ort. donusum gunu",
+    "topPlan": "En sik lisans paketi"
+  },
+  "columns": {
+    "tenant": "Tenant",
+    "status": "Deneme durumu",
+    "daysLeft": "Kalan gun",
+    "endsAt": "Bitis",
+    "graceEnds": "Grace bitis",
+    "reminders": "Hatirlatmalar"
+  },
+  "status": {
+    "active": "Aktif",
+    "expired": "Suresi dolmus",
+    "converted": "Donusturuldu",
+    "deleted": "Silindi"
+  },
+  "actions": {
+    "extend": "Denemeyi uzat",
+    "convert": "Ucretliye donustur",
+    "delete": "Denemeyi sil",
+    "openTenant": "Tenant ac"
+  },
+  "extend": {
+    "title": "Denemeyi uzat",
+    "daysLabel": "Ek gun",
+    "ok": "Uzat"
+  },
+  "convert": {
+    "title": "Ucretliye donustur",
+    "saleIdLabel": "Lisans satisi ID",
+    "saleIdRequired": "Lisans satisi ID gerekli",
+    "ok": "Donustur",
+    "notes": "Not (opsiyonel)",
+    "addRemainingDays": "Kalan deneme gunlerini ekle ({{count}} gun)",
+    "successTitle": "Donusum basarili",
+    "successMessage": "Deneme ucretli lisansa donusturuldu.",
+    "successValidUntil": "Yeni gecerlilik: {{date}} UTC",
+    "daysAddedSuffix": "deneme gunu eklendi"
+  },
+  "deleteConfirm": "Bu deneme tenant'ini soft-arsivle? Mali/RKSV veriler korunur.",
+  "empty": "Deneme tenant bulunamadi.",
+  "loadError": "Deneme paneli yuklenemedi.",
+  "badge": {
+    "label": "Deneme",
+    "days": "{{count}} gun"
+  },
+  "detail": {
+    "title": "Deneme bilgisi",
+    "started": "Baslangic",
+    "ends": "Bitis",
+    "grace": "Grace bitis",
+    "convertedAt": "Donusum",
+    "reminders": "Gonderilen hatirlatmalar",
+    "reminder7": "7 gun",
+    "reminder3": "3 gun",
+    "reminder1": "1 gun"
+  },
+  "banner": {
+    "info": "Deneme {{days}} gun icinde bitiyor.",
+    "warning": "Deneme {{days}} gun icinde bitiyor! Simdi yukseltin.",
+    "expired": "Deneme suresi doldu! Sistemi kullanmaya devam etmek icin yukseltein.",
+    "expiredGrace": "Deneme suresi doldu. Simdi yukseltin — grace sonrasi veriler arsivlenir.",
+    "upgradeNow": "Simdi yukselt",
+    "limitExceeded": "Deneme limiti doldu (maks. {{max}}). Ucretliye yukseltein."
+  },
+  "analytics": {
+    "monthlyTrend": "Aylik trend",
+    "byDuration": "Deneme suresine gore donusum",
+    "byPlan": "Lisans planina gore donusum",
+    "started": "Baslatilan",
+    "converted": "Donusturulen"
+  }
+}

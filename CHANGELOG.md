@@ -46,6 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Legacy API aliases removed:** `/api/Payment`, `/api/Cart`, `/api/Product` no longer bind. Use `/api/pos/payment/*`, `/api/pos/cart/*`, `/api/pos/*` (admin products: `/api/admin/products`). See [`docs/API_LEGACY_DEPRECATION.md`](docs/API_LEGACY_DEPRECATION.md).
+
 - **Dashboard catalog:** `DashboardWidgetCatalog.FilterByPermissions` honors `PermissionImplication` (manage→view) so Mandanten-Admin sees cash-register / license view widgets.
 - **POS Expo SDK 56 patch bump:** `expo` `~56.0.16` → `~56.0.18` (plus aligned `expo-router`, `expo-linking`, `expo-sharing`, `expo-splash-screen`, `expo-web-browser`, `expo-build-properties`, `react-native-screens` `~4.26.0`, TypeScript `~6.0.3` via `npx expo install --fix`). Pins updated in `AGENTS.md`, `frontend/README.md`, onboarding / comprehensive docs.
 - **Documentation accuracy:** Single POS UI hosts (`pos` / `admin` / `api`.regkasse.at); JWT tenant; Dev-only `X-Tenant-Id` — updates across `docs/`, `ai/`, offline deploy, impersonation, onboarding.
@@ -71,10 +73,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`email`** on login request bodies — still accepted when `loginIdentifier` is empty; new clients must use **`loginIdentifier`** (OpenAPI marks `email` deprecated).
 - **Legacy slug POS entry** (`{slug}.regkasse.at` as primary POS) — prefer `pos.regkasse.at` + JWT; FA impersonation slug handoff treated as technical debt vs shared Admin host.
-- **Legacy API families** `/api/Payment`, `/api/Cart`, `/api/Product` — no new features; see [`docs/API_LEGACY_DEPRECATION.md`](docs/API_LEGACY_DEPRECATION.md).
 
 ### Removed
 
+- **Legacy API aliases** `/api/Payment`, `/api/Cart`, `/api/Product` (2026-08-13). Controllers remain on `/api/pos/*`.
 - Obsolete scripts: `migrate_i18n.js`, `patch-swagger-backup-dr.cjs`, `parse-demo-menu-html.*`, `ci-smoke-test.sh` (legacy Cart smoke).
 - Empty `tools/LicenseTools.slnx`; duplicate TestSprite YAML (`multi-tenant.yml`, `backup-restore.yml` merged into remaining suites).
 - Broken standalone `tools/i18n/projects.mjs` / legacy validate implementation (replaced by localization wrappers).

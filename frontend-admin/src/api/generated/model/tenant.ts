@@ -87,6 +87,24 @@ export interface Tenant {
    */
   status: string;
   /** @nullable */
+  trialConvertedAtUtc?: string | null;
+  /** @nullable */
+  trialDeletedAtUtc?: string | null;
+  /** @nullable */
+  trialEndsAtUtc?: string | null;
+  /** @nullable */
+  trialGracePeriodEndsAtUtc?: string | null;
+  trialReminder1dSent?: boolean;
+  trialReminder3dSent?: boolean;
+  trialReminder7dSent?: boolean;
+  /** @nullable */
+  trialStartedAtUtc?: string | null;
+  /**
+   * @maxLength 20
+   * @nullable
+   */
+  trialStatus?: string | null;
+  /** @nullable */
   updatedAt?: string | null;
   /**
    * @maxLength 450

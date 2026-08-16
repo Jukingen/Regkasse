@@ -1,7 +1,6 @@
 'use client';
 
 import { SafetyCertificateOutlined } from '@ant-design/icons';
-import { useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Descriptions, Skeleton, Space, Tag } from 'antd';
 import { useState } from 'react';
 
@@ -22,9 +21,9 @@ import {
   getLicenseHoursRemaining,
 } from '@/features/tenant/utils/headerLicenseStatus';
 import { useAuthorizationGate } from '@/hooks/useAuthorizedQuery';
-import { tenantLicenseUnifiedQueryKey, useTenantLicense } from '@/hooks/useTenantLicense';
+import { useTenantLicense } from '@/hooks/useTenantLicense';
 import { useI18n } from '@/i18n';
-import { formatGermanDateTime } from '@/lib/dateFormatter';
+import { formatLicenseValidUntil } from '@/features/license/utils/licenseValidUntil';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
 type Props = Pick<WidgetShellProps, 'title' | 'dragHandleProps'>;
@@ -36,7 +35,6 @@ function isLicenseValidForWidget(kind: string, daysRemaining: number): boolean {
 /** Mandant license expiry widget — unified `GET /api/license/status` read model. */
 export function LicenseExpiryWidget({ title, dragHandleProps }: Props) {
   const { t } = useI18n();
-  const queryClient = useQueryClient();
   const currentTenant = useCurrentTenant();
   const { isAuthorized: canView } = useAuthorizationGate({
     requiredPermission: PERMISSIONS.LICENSE_VIEW,
@@ -106,7 +104,7 @@ export function LicenseExpiryWidget({ title, dragHandleProps }: Props) {
   const detailStatusLabel =
     resolvedStatus != null ? getHeaderLicenseTooltipStatusLabel(resolvedStatus, t) : statusLabel;
   const validUntilDisplay =
-    licenseQuery.data?.validUntilFormatted ?? (validUntil ? formatGermanDateTime(validUntil) : '—');
+    licenseQuery.data?.validUntilFormatted ?? formatLicenseValidUntil(validUntil);
 
   return (
     <>
@@ -176,7 +174,6 @@ export function LicenseExpiryWidget({ title, dragHandleProps }: Props) {
           resolvedStatus={extendResolvedStatus}
           onClose={() => setExtendOpen(false)}
           onSuccess={() => {
-            void queryClient.invalidateQueries({ queryKey: tenantLicenseUnifiedQueryKey });
             setExtendOpen(false);
           }}
         />

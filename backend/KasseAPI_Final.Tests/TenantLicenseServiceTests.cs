@@ -166,7 +166,9 @@ public sealed class TenantLicenseServiceTests
         {
             Id = Guid.NewGuid(),
             TenantId = tenantId,
-            LicenseKey = new LicenseKeyGenerator().GenerateLicenseKey(tenant.Slug, until),
+            LicenseKey = until > DateTime.UtcNow
+                ? new LicenseKeyGenerator().GenerateLicenseKey(tenant.Slug, until)
+                : LicenseKeyGenerator.FormatUnifiedLicenseKey(until, tenant.Slug, "EXPIRED1"),
             LicensePlan = LicenseSalePlans.TwelveMonths,
             ValidFromUtc = DateTime.UtcNow,
             ValidUntilUtc = until,

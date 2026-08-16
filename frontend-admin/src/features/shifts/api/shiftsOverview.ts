@@ -6,7 +6,10 @@ export type AdminShiftRow = {
   id: string;
   cashRegisterId: string;
   registerNumber?: string | null;
+  /** Stable Identity user id (also exposed as `userId` on the API). */
   cashierId: string;
+  /** Optional alias of `cashierId` when present in JSON. */
+  userId?: string;
   cashierName: string;
   startedAt: string;
   endedAt?: string | null;

@@ -3,8 +3,10 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -104,11 +106,17 @@ public sealed class LicenseControllerMandantStatusTests
         return new LicenseController(
             licenseService,
             Mock.Of<ITenantLicenseService>(),
-            Mock.Of<ILicenseKeyGenerator>(),
+            Mock.Of<IUnifiedLicenseService>(),
             Options.Create(new Configuration.LicenseOptions()),
             Mock.Of<IWebHostEnvironment>(),
             NullLogger<LicenseController>.Instance,
             tenantAccessor.Object,
-            db);
+            db)
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext(),
+            },
+        };
     }
 }

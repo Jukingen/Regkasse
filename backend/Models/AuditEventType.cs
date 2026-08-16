@@ -122,5 +122,8 @@ public enum AuditEventType
     /// <summary>Super Admin manually cleared application cache (troubleshooting).</summary>
     SystemCacheCleared = 62,
 
+    /// <summary>SaaS trial converted to a paid license sale.</summary>
+    TrialConvertedToPaid = 63,
+
     Other = 99
 }

@@ -4,6 +4,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminCashRegisters;
+using KasseAPI_Final.Services.Trial;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -67,6 +68,7 @@ public sealed class CashRegisterManagementServiceTests
             enrichment.Object,
             new PaymentMethodDefinitionBootstrapService(ctx),
             TseProvisioningTestDoubles.Successful(),
+            Mock.Of<ITrialLimitGuard>(),
             NullLogger<CashRegisterManagementService>.Instance);
     }
 

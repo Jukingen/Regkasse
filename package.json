@@ -16,6 +16,8 @@
   ],
   "scripts": {
     "dev": "node scripts/dev-workspaces.mjs",
+    "dev:all": "node scripts/dev-workspaces.mjs --all",
+    "dev:cleanup": "node scripts/cleanup-dev-orphans.mjs",
     "dev:workspaces": "npm run dev --workspaces --if-present",
     "dev:backend": "npm run dev -w @regkasse/backend",
     "dev:admin": "npm run dev -w registrierkasse-admin",

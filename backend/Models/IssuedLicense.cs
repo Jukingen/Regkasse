@@ -16,7 +16,7 @@ public sealed class IssuedLicense
     [Column("id")]
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    /// <summary>Display key shown to the customer (format: <c>REGK-XXXXX-XXXXX-XXXXX</c>).</summary>
+    /// <summary>Display key shown to the customer (unified: <c>REGK-yyyyMMdd-system-XXXXXXXX</c>; legacy display still mapped).</summary>
     [Required]
     [Column("license_key")]
     [MaxLength(64)]

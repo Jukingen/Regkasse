@@ -6,6 +6,7 @@ using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services.AdminCashRegisters;
 using KasseAPI_Final.Services.Localization;
+using KasseAPI_Final.Services.Trial;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -250,6 +251,16 @@ public sealed class AdminCashRegistersController : ControllerBase
             var dto = MapToDto(register);
             await _enrichment.ApplyAsync([dto], [register], cancellationToken).ConfigureAwait(false);
             return CreatedAtAction(nameof(List), new { id = register.Id }, dto);
+        }
+        catch (TrialLimitExceededException ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message,
+                code = ex.ErrorCode,
+                limitKind = ex.LimitKind,
+                maxAllowed = ex.MaxAllowed,
+            });
         }
         catch (UnauthorizedAccessException ex)
         {

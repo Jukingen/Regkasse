@@ -3,19 +3,20 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 
-import {
-  type ExtendTenantLicenseResult,
-  extendTenantLicense,
-} from '@/features/license/api/tenantLicense';
+import { activateUnifiedLicense } from '@/features/license/api/activateUnifiedLicense';
 import { useLicensePreview } from '@/features/license/hooks/useLicensePreview';
+import {
+  applyActivatedLicenseToCache,
+  beginActivatedLicenseOptimisticUpdate,
+  rollbackActivatedLicenseOptimisticUpdate,
+} from '@/features/license/utils/applyActivatedLicenseToCache';
+import { invalidateTenantLicenseQueries } from '@/features/license/utils/invalidateTenantLicenseQueries';
 import {
   redirectToLicensePayment,
   resolveLicensePaymentRedirectTarget,
 } from '@/features/license/utils/licensePaymentRedirect';
-import { invalidateTenantLicenseQueries } from '@/features/license/utils/invalidateTenantLicenseQueries';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { useI18n } from '@/i18n';
-import { tenantLicenseUnifiedQueryKey } from '@/hooks/useTenantLicense';
 
 export type LicenseRenewalError = {
   message: string;
@@ -27,6 +28,11 @@ export type LicenseRenewalSuccess = {
   validUntilUtc?: string | null;
   licenseKey?: string | null;
   message?: string;
+};
+
+type RenewMutationVariables = {
+  licenseKey: string;
+  expectedValidUntilUtc?: string | null;
 };
 
 function readApiMessage(error: unknown, fallback: string): string {
@@ -47,15 +53,34 @@ export function useLicenseRenewal(tenantId?: string) {
   const [error, setError] = useState<LicenseRenewalError | null>(null);
 
   const renewMutation = useMutation({
-    mutationFn: async (licenseKey: string) => {
-      const result = await extendTenantLicense({ licenseKey: licenseKey.trim() });
-      return result;
-    },
-    onSuccess: () => {
-      if (resolvedTenantId) {
-        invalidateTenantLicenseQueries(queryClient, resolvedTenantId);
+    mutationFn: async (variables: RenewMutationVariables) =>
+      activateUnifiedLicense(variables.licenseKey),
+    onMutate: async (variables) => {
+      const expectedValidUntilUtc = variables.expectedValidUntilUtc?.trim();
+      if (!expectedValidUntilUtc) {
+        return undefined;
       }
-      void queryClient.invalidateQueries({ queryKey: tenantLicenseUnifiedQueryKey });
+      return beginActivatedLicenseOptimisticUpdate(queryClient, {
+        tenantId: resolvedTenantId,
+        validUntilUtc: expectedValidUntilUtc,
+        licenseKey: variables.licenseKey,
+      });
+    },
+    onError: (_error, _variables, context) => {
+      rollbackActivatedLicenseOptimisticUpdate(queryClient, context);
+    },
+    onSuccess: async (result, variables) => {
+      applyActivatedLicenseToCache(queryClient, {
+        tenantId: resolvedTenantId,
+        validUntilUtc: result.validUntilUtc || variables.expectedValidUntilUtc || null,
+        licenseKey: result.licenseKey || variables.licenseKey,
+        licenseType: result.status,
+      });
+      if (resolvedTenantId) {
+        await invalidateTenantLicenseQueries(queryClient, resolvedTenantId);
+      } else {
+        await queryClient.invalidateQueries({ queryKey: ['license'], refetchType: 'all' });
+      }
     },
   });
 
@@ -86,7 +111,10 @@ export function useLicenseRenewal(tenantId?: string) {
     async (licenseKey: string): Promise<LicenseRenewalSuccess | { success: false }> => {
       setError(null);
       try {
-        const result: ExtendTenantLicenseResult = await renewMutation.mutateAsync(licenseKey);
+        const result = await renewMutation.mutateAsync({
+          licenseKey,
+          expectedValidUntilUtc: previewMutation.data?.validUntilUtc,
+        });
         if (!result.success) {
           setError({
             message: result.message?.trim() || t('license.renewalFlow.activateFailed'),
@@ -106,7 +134,7 @@ export function useLicenseRenewal(tenantId?: string) {
         return { success: false };
       }
     },
-    [renewMutation, t]
+    [previewMutation.data?.validUntilUtc, renewMutation, t]
   );
 
   const clearError = useCallback(() => setError(null), []);

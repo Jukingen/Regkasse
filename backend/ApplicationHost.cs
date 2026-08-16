@@ -289,6 +289,8 @@ internal static class ApplicationHost
         builder.Services.AddScoped<ITenantServiceStatusService, TenantServiceStatusService>();
         builder.Services.AddScoped<IDigitalServiceRequestService, DigitalServiceRequestService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Feedback.IAdminFeedbackService, KasseAPI_Final.Services.Feedback.AdminFeedbackService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Support.ISupportTicketNotificationService, KasseAPI_Final.Services.Support.SupportTicketNotificationService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Support.ISupportTicketService, KasseAPI_Final.Services.Support.SupportTicketService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.TenantSettings.ITenantSettingsService, KasseAPI_Final.Services.TenantSettings.TenantSettingsService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.TenantSettings.ITenantSettingsNotificationService, KasseAPI_Final.Services.TenantSettings.TenantSettingsNotificationService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.RiskScoring.IRiskScoringService, KasseAPI_Final.Services.RiskScoring.RiskScoringService>();
@@ -407,6 +409,7 @@ internal static class ApplicationHost
         builder.Services.Configure<OfflineVoucherEncryptionOptions>(
             builder.Configuration.GetSection(OfflineVoucherEncryptionOptions.SectionName));
         builder.Services.Configure<LicenseOptions>(builder.Configuration.GetSection(LicenseOptions.SectionName));
+        builder.Services.Configure<TrialOptions>(builder.Configuration.GetSection(TrialOptions.SectionName));
         builder.Services.Configure<BillingOptions>(builder.Configuration.GetSection(BillingOptions.SectionName));
         builder.Services.Configure<LicenseSettingsOptions>(builder.Configuration.GetSection(LicenseSettingsOptions.SectionName));
         builder.Services.AddSingleton<IPostConfigureOptions<LicenseOptions>, LicenseOptionsFromFilesPostConfigure>();
@@ -748,6 +751,7 @@ internal static class ApplicationHost
         // Billing services (scoped — injected AppDbContext is request-scoped; do not use Singleton)
         builder.Services.AddScoped<ILicenseStatusCache, LicenseStatusCache>();
         builder.Services.AddScoped<IBillingService, BillingService>();
+        builder.Services.AddScoped<ITenantInvoiceService, TenantInvoiceService>();
         builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
         builder.Services.AddScoped<IBillingTenantLicenseService, BillingTenantLicenseService>();
         builder.Services.AddScoped<IBillingAuditService, BillingAuditService>();
@@ -776,6 +780,11 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IDemoProductImportService, DemoProductImportService>();
         builder.Services.AddScoped<ICategoryDemoResetService, CategoryDemoResetService>();
         builder.Services.AddScoped<ITenantProvisioningService, TenantProvisioningService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Trial.ITrialConversionService, KasseAPI_Final.Services.Trial.TrialConversionService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Trial.ITrialLimitGuard, KasseAPI_Final.Services.Trial.TrialLimitGuard>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Trial.ITrialService, KasseAPI_Final.Services.Trial.TrialService>();
+        builder.Services.AddHostedService<KasseAPI_Final.Services.Trial.TrialReminderHostedService>();
+        builder.Services.AddHostedService<KasseAPI_Final.Services.Trial.TrialCleanupHostedService>();
         builder.Services.AddScoped<ITseProvisioningService, TseProvisioningService>();
         builder.Services.AddScoped<TseBackupService>();
         builder.Services.AddScoped<ITseBackupService>(sp => sp.GetRequiredService<TseBackupService>());
@@ -1212,7 +1221,6 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IOnlineOrderPaymentService, OnlineOrderPaymentService>();
         builder.Services.AddScoped<IOnlineOrderIntakeService, OnlineOrderIntakeService>();
         builder.Services.AddScoped<IPublicCustomerDashboardService, PublicCustomerDashboardService>();
-        builder.Services.AddScoped<LegacyRouteDeprecationFilter>();
 
         // Register repositories
         builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));

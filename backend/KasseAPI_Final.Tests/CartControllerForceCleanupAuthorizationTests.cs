@@ -4,7 +4,7 @@ using Xunit;
 namespace KasseAPI_Final.Tests;
 
 /// <summary>
-/// CartController force-cleanup (POST api/cart/force-cleanup) is protected by class-level [HasPermission(CartManage)].
+/// CartController force-cleanup (POST /api/pos/cart/force-cleanup) is protected by class-level [HasPermission(CartManage)].
 /// CartManage is a POS-terminal permission: Cashier and SuperAdmin have it.
 /// Manager (Admin-only) has CartView but not CartManage. Waiter has only CartView.
 /// </summary>

@@ -105,7 +105,7 @@ export function LicenseBanner() {
             });
 
   const openLicensePage = () => {
-    router.push('/admin/license');
+    router.push('/admin/license-management');
   };
 
   return (

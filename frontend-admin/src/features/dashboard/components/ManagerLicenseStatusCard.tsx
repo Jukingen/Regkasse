@@ -37,8 +37,8 @@ import {
   type LicenseLifecycleUiState,
   useLicenseStatus,
 } from '@/hooks/useLicenseStatus';
+import { formatLicenseValidUntil } from '@/features/license/utils/licenseValidUntil';
 import { useI18n } from '@/i18n';
-import { formatGermanDate } from '@/lib/dateFormatter';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
 const COUNTDOWN_INTERVAL_MS = 60_000;
@@ -200,7 +200,7 @@ export function ManagerLicenseStatusCard() {
             {t('dashboard.widgets.licenseStatus.validUntil')}
           </Typography.Text>
           <Typography.Title level={5} style={{ margin: 0 }}>
-            {hasExpiry && expiresAt ? formatGermanDate(expiresAt) : '—'}
+            {hasExpiry && expiresAt ? formatLicenseValidUntil(expiresAt) : '—'}
           </Typography.Title>
           {hasExpiry ? (
             <>

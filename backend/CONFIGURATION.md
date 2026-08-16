@@ -338,6 +338,43 @@ Section `Security:Csrf` (`Security__Csrf__*` env vars). Middleware: `CsrfMiddlew
 
 **Exempt paths:** `/api/Auth/login`, `/api/Auth/refresh`, health, swagger, metrics, `/api/webhooks/*`, `/api/csrf/token`. Native clients without a cookie jar may send the same value in `X-CSRF-COOKIE`. Response on failure: HTTP 403 with message to refresh the page.
 
+## Trial (SaaS mandant demo)
+
+Bound from section `Trial` (`KasseAPI_Final.Configuration.TrialOptions`). Env overrides: `Trial__Enabled`, `Trial__DefaultDurationDays`, etc.
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `Trial:Enabled` | `true` | When `false`, grant/reminder/cleanup hosted jobs no-op. |
+| `Trial:DefaultDurationDays` | `14` | Used when Super Admin does not override. |
+| `Trial:AllowedDurationDays` | `[14,30,60,90]` | Wizard / grant overrides; other values fall back to default. |
+| `Trial:GracePeriodDays` | `7` | After trial end before operational lockdown escalates. |
+| `Trial:AutoDeleteAfterGraceDays` | `30` | Soft-archive (`trial_status=deleted`) after grace; RKSV rows retained. |
+| `Trial:ReminderDays` | `[7,3,1]` | Email reminder anchors (days remaining). |
+| `Trial:MaxRegistersInTrial` | `1` | Enforced by `TrialLimitGuard`. |
+| `Trial:MaxUsersInTrial` | `3` | Enforced by `TrialLimitGuard`. |
+| `Trial:DemoCatalogImport` | `true` | Default demo catalog import on trial tenant create. |
+| `Trial:ReminderIntervalHours` | `6` | `TrialReminderHostedService` tick. |
+| `Trial:CleanupHourUtc` / `CleanupMinuteUtc` | `2` / `0` | Daily `TrialCleanupHostedService` tick. |
+
+APIs: `GET/POST /api/admin/trials*` (Super Admin). FA: `/admin/trials`. See `AGENTS.md` § Trial / Demo system.
+
+## Support tickets
+
+No dedicated `Support:` config section. Tickets persist in `support_tickets` / messages. Notifications use existing `IActivityEventPublisher` + Super Admin email (`IDataDeletionNotificationSender` / SMTP).
+
+| Surface | Route |
+|---------|-------|
+| Mandanten-Admin | `GET/POST /api/admin/support/tickets` (`license.manage`) |
+| Super Admin inbox | `/api/admin/support/admin/tickets` (`system.critical`; ambient-tenant exempt) |
+
+Cross-tenant access → HTTP 404. Internal staff notes are omitted from tenant GET.
+
+## Unified license keys
+
+`LicenseKeyGenerator` produces `REGK-{yyyyMMdd}-{slug}-{8 alnum}`. Mandant slug is the tenant; deployment keys use slug `system`. Legacy on-prem `REGK-XXXXX-XXXXX-XXXXX` still validates (`RegkTenantLicenseKeyFormat`). Activate: `POST /api/license/activate`. Status cache: `CacheSettings:LicenseCacheMinutes` (5).
+
+Offline PEM verify remains `LicenseSettings` / `License__OfflineVerificationPublicKeyPem` (unchanged).
+
 Enable in Production only after FA/POS/sites attach the token on mutations.
 
 ## RKSV cold-archive cleanup (optional)

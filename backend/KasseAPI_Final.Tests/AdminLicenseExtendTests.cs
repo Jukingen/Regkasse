@@ -6,6 +6,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -22,145 +23,56 @@ namespace KasseAPI_Final.Tests;
 public sealed class AdminLicenseExtendTests
 {
     [Fact]
-    public async Task ExtendLicense_WithoutTenantContext_ReturnsBadRequest()
+    public void ExtendLicense_RedirectsToUnifiedActivate()
     {
-        var db = CreateDb();
-        var controller = CreateController(
-            db,
-            billingService: Mock.Of<IBillingTenantLicenseService>(),
-            tenantAccessor: TenantTestDoubles.TenantAccessorReturning(null),
-            tenantResolver: TenantTestDoubles.SettingsResolverReturning(Guid.Empty));
+        var controller = CreateController();
 
-        var result = await controller.ExtendLicense(
-            new ExtendLicenseRequest { LicenseKey = "REGK-20270101-cafe-A7F3K2D9" },
-            CancellationToken.None);
+        var result = controller.ExtendLicense(
+            new ExtendLicenseRequest { LicenseKey = "REGK-20270101-cafe-A7F3K2D9" });
 
-        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Contains("Tenant context required", badRequest.Value?.ToString(), StringComparison.Ordinal);
+        var redirect = Assert.IsType<RedirectResult>(result);
+        Assert.True(redirect.Permanent);
+        Assert.True(redirect.PreserveMethod);
+        Assert.Equal(UnifiedLicenseRoutes.Activate, redirect.Url);
     }
 
     [Fact]
-    public async Task ExtendLicense_ValidRequest_ReturnsSuccessPayload()
+    public void ActivateLicenseDeprecated_RedirectsToUnifiedActivate()
     {
-        var tenantId = Guid.NewGuid();
-        var userId = Guid.NewGuid();
-        var validUntil = DateTime.UtcNow.AddDays(365);
-        const string licenseKey = "REGK-20270101-cafe-A7F3K2D9";
+        var controller = CreateController();
 
-        var billingService = new Mock<IBillingTenantLicenseService>();
-        billingService
-            .Setup(x => x.ExtendLicenseAsync(
-                tenantId,
-                licenseKey,
-                userId,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ExtendResult
-            {
-                Success = true,
-                Message = "Lizenz wurde erfolgreich verlängert.",
-                LicenseKey = licenseKey,
-                ValidUntilUtc = validUntil,
-                LicensePlan = LicenseSalePlans.TwelveMonths,
-            });
+        var result = controller.ActivateLicenseDeprecated(
+            new ActivateLicenseRequest { LicenseKey = "REGK-20270101-cafe-A7F3K2D9" });
 
-        var db = CreateDb(tenantId);
-        var controller = CreateController(
-            db,
-            billingService: billingService.Object,
-            tenantAccessor: TenantTestDoubles.TenantAccessorReturning(tenantId),
-            tenantResolver: TenantTestDoubles.SettingsResolverReturning(tenantId),
-            userId: userId);
-
-        var result = await controller.ExtendLicense(
-            new ExtendLicenseRequest { LicenseKey = licenseKey },
-            CancellationToken.None);
-
-        var ok = Assert.IsType<OkObjectResult>(result);
-        Assert.Contains("Lizenz wurde erfolgreich verlängert", ok.Value?.ToString(), StringComparison.Ordinal);
-        Assert.Contains(licenseKey, ok.Value?.ToString(), StringComparison.Ordinal);
+        var redirect = Assert.IsType<RedirectResult>(result);
+        Assert.True(redirect.Permanent);
+        Assert.True(redirect.PreserveMethod);
+        Assert.Equal(UnifiedLicenseRoutes.Activate, redirect.Url);
     }
 
-    [Fact]
-    public async Task ExtendLicense_ServiceFailure_ReturnsBadRequest()
-    {
-        var tenantId = Guid.NewGuid();
-        var userId = Guid.NewGuid();
-
-        var billingService = new Mock<IBillingTenantLicenseService>();
-        billingService
-            .Setup(x => x.ExtendLicenseAsync(
-                tenantId,
-                It.IsAny<string>(),
-                userId,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ExtendResult
-            {
-                Success = false,
-                Message = "Diese Lizenz ist bereits abgelaufen.",
-            });
-
-        var db = CreateDb(tenantId);
-        var controller = CreateController(
-            db,
-            billingService: billingService.Object,
-            tenantAccessor: TenantTestDoubles.TenantAccessorReturning(tenantId),
-            tenantResolver: TenantTestDoubles.SettingsResolverReturning(tenantId),
-            userId: userId);
-
-        var result = await controller.ExtendLicense(
-            new ExtendLicenseRequest { LicenseKey = "REGK-20270101-cafe-A7F3K2D9" },
-            CancellationToken.None);
-
-        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Contains("abgelaufen", badRequest.Value?.ToString(), StringComparison.Ordinal);
-    }
-
-    private static AppDbContext CreateDb(Guid? tenantId = null)
+    private static AdminLicenseController CreateController()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"AdminLicenseExtend_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
         var db = new AppDbContext(options, NullCurrentTenantAccessor.Instance);
-        if (tenantId.HasValue)
-        {
-            db.Tenants.Add(new Tenant
-            {
-                Id = tenantId.Value,
-                Name = "Cafe",
-                Slug = "dev",
-                Status = TenantStatuses.Active,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-            });
-            db.SaveChanges();
-        }
 
-        return db;
-    }
-
-    private static AdminLicenseController CreateController(
-        AppDbContext db,
-        IBillingTenantLicenseService billingService,
-        ICurrentTenantAccessor tenantAccessor,
-        ISettingsTenantResolver tenantResolver,
-        Guid? userId = null)
-    {
-        var actorId = userId ?? Guid.NewGuid();
         var controller = new AdminLicenseController(
             Mock.Of<ILicenseService>(),
             Mock.Of<ILicenseIssuanceService>(),
             Mock.Of<ILicenseRenewalService>(),
             Mock.Of<IAdminTenantLicenseService>(),
             Mock.Of<IAdminTenantLicenseKeyService>(),
-            billingService,
-            tenantAccessor,
+            Mock.Of<IBillingTenantLicenseService>(),
+            TenantTestDoubles.TenantAccessorReturning(null),
             db,
             Mock.Of<IAdminTenantService>(),
-            tenantResolver,
+            TenantTestDoubles.SettingsResolverReturning(Guid.Empty),
             Mock.Of<ILicenseReminderNotificationStore>(),
             Mock.Of<IAuditLogService>(),
             Mock.Of<ILicenseExportService>(),
+            Mock.Of<IUnifiedLicenseService>(),
             NullLogger<AdminLicenseController>.Instance);
 
         controller.ControllerContext = new ControllerContext
@@ -169,7 +81,7 @@ public sealed class AdminLicenseExtendTests
             {
                 User = new ClaimsPrincipal(new ClaimsIdentity(
                 [
-                    new Claim(ClaimTypes.NameIdentifier, actorId.ToString("D")),
+                    new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString("D")),
                     new Claim(ClaimTypes.Role, Roles.Manager),
                 ],
                 authenticationType: "Test")),

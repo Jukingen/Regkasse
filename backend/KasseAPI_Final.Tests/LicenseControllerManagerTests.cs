@@ -3,6 +3,7 @@ using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -116,34 +117,20 @@ public sealed class LicenseControllerManagerTests
     }
 
     [Fact]
-    public async Task ActivateBillingLicense_Success_ReturnsActivationResult()
+    public void ActivateBillingLicense_RedirectsToUnifiedActivate()
     {
-        var tenantId = Guid.NewGuid();
-        var userId = Guid.NewGuid();
-        const string licenseKey = "REGK-20270101-cafe-A7F3K2D9";
+        var controller = CreateController(
+            Mock.Of<ITenantLicenseService>(),
+            tenantId: Guid.NewGuid(),
+            userId: Guid.NewGuid());
 
-        var tenantLicenseService = new Mock<ITenantLicenseService>();
-        tenantLicenseService
-            .Setup(x => x.ActivateLicenseAsync(
-                tenantId,
-                licenseKey,
-                userId,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ActivationResult
-            {
-                Success = true,
-                Message = "Lizenz wurde erfolgreich aktiviert.",
-                LicenseKey = licenseKey,
-            });
+        var result = controller.ActivateBillingLicense(
+            new MandantLicenseKeyRequest { LicenseKey = "REGK-20270101-cafe-A7F3K2D9" });
 
-        var controller = CreateController(tenantLicenseService.Object, tenantId, userId);
-        var result = await controller.ActivateBillingLicense(
-            new MandantLicenseKeyRequest { LicenseKey = licenseKey },
-            CancellationToken.None);
-
-        var ok = Assert.IsType<OkObjectResult>(result);
-        var payload = Assert.IsType<ActivationResult>(ok.Value);
-        Assert.True(payload.Success);
+        var redirect = Assert.IsType<RedirectResult>(result);
+        Assert.True(redirect.Permanent);
+        Assert.True(redirect.PreserveMethod);
+        Assert.Equal(UnifiedLicenseRoutes.Activate, redirect.Url);
     }
 
     private static LicenseController CreateController(
@@ -163,7 +150,7 @@ public sealed class LicenseControllerManagerTests
         var controller = new LicenseController(
             Mock.Of<ILicenseService>(),
             tenantLicenseService,
-            Mock.Of<ILicenseKeyGenerator>(),
+            Mock.Of<IUnifiedLicenseService>(),
             Options.Create(new Configuration.LicenseOptions()),
             Mock.Of<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>(),
             NullLogger<LicenseController>.Instance,

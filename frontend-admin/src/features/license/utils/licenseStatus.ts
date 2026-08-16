@@ -6,10 +6,9 @@ import {
   TENANT_GRACE_PERIOD_DAYS,
   resolveTenantGraceDays,
 } from '@/features/license/constants/licenseGracePeriod';
+import { calculateLicenseDaysRemaining } from '@/features/license/utils/licenseValidUntil';
 
 type TranslateFn = (key: string, params?: Record<string, string | number>) => string;
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type LicenseStatusKind =
   'active' | 'grace_write' | 'grace_readonly' | 'lockdown' | 'expired' | 'no_license';
@@ -24,6 +23,84 @@ export type ResolvedLicenseStatus = {
   canManageUsers: boolean;
   canAccess: boolean;
 };
+
+/** Display "Gültig bis" from validUntil only — never lockDate (expiry + grace). */
+export function resolveLicenseValidUntilIso(
+  validUntil: string | null | undefined
+): string | null {
+  return typeof validUntil === 'string' && validUntil.trim().length > 0 ? validUntil.trim() : null;
+}
+
+function isExpiredKind(kind: LicenseStatusKind): boolean {
+  return (
+    kind === 'grace_write' || kind === 'grace_readonly' || kind === 'lockdown' || kind === 'expired'
+  );
+}
+
+/**
+ * After extension the public DTO can still carry stale isLocked flags.
+ * Resolved kind `active` always wins so "System gesperrt" drops immediately.
+ */
+export function resolveTenantLockFlags(
+  status: ResolvedLicenseStatus,
+  publicDto?: {
+    isLocked?: boolean;
+    isExpired?: boolean;
+    isInGracePeriod?: boolean;
+  } | null
+): { isLocked: boolean; isExpired: boolean } {
+  if (
+    status.kind === 'active' ||
+    (status.daysRemaining >= 0 &&
+      status.kind !== 'grace_write' &&
+      status.kind !== 'grace_readonly')
+  ) {
+    return { isLocked: false, isExpired: false };
+  }
+
+  return {
+    isLocked:
+      publicDto?.isLocked === true || status.kind === 'lockdown' || status.kind === 'expired',
+    isExpired:
+      publicDto?.isExpired === true ||
+      publicDto?.isInGracePeriod === true ||
+      isExpiredKind(status.kind),
+  };
+}
+
+/**
+ * "System gesperrt" only when the mandant license is expired, grace has ended,
+ * and no currently valid license exists. A new/extended `validUntil` hides it.
+ */
+export function shouldShowSystemLockedAlert(input: {
+  kind: LicenseStatusKind;
+  daysRemaining: number;
+  daysExpired?: number;
+  state?: 'Active' | 'Grace' | 'Locked' | 'Archived';
+}): boolean {
+  if (input.state === 'Active' || input.state === 'Grace') {
+    return false;
+  }
+
+  if (input.kind === 'active' || input.kind === 'grace_write' || input.kind === 'grace_readonly') {
+    return false;
+  }
+
+  if (input.kind === 'no_license') {
+    return false;
+  }
+
+  if (input.daysRemaining >= 0) {
+    return false;
+  }
+
+  return (
+    input.kind === 'lockdown' ||
+    input.kind === 'expired' ||
+    input.state === 'Locked' ||
+    input.state === 'Archived'
+  );
+}
 
 type TenantLicenseInput = Pick<
   TenantLicenseStatusDto,
@@ -67,33 +144,25 @@ function getSignedDaysRemaining(
   fallback: number | null | undefined,
   nowMs: number
 ): number {
+  const fromValidUntil = calculateLicenseDaysRemaining(validUntilUtc, nowMs);
+  if (fromValidUntil != null) {
+    return fromValidUntil;
+  }
+
   if (isFiniteNumber(fallback)) {
     return Math.trunc(fallback);
   }
 
-  if (!validUntilUtc?.trim()) {
-    return 0;
-  }
-
-  const expiresAtMs = new Date(validUntilUtc).getTime();
-  if (!Number.isFinite(expiresAtMs)) {
-    return 0;
-  }
-
-  return Math.ceil((expiresAtMs - nowMs) / DAY_MS);
+  return 0;
 }
 
 function getPositiveDaysExpired(validUntilUtc: string | null | undefined, nowMs: number): number {
-  if (!validUntilUtc?.trim()) {
+  const daysRemaining = calculateLicenseDaysRemaining(validUntilUtc, nowMs);
+  if (daysRemaining == null || daysRemaining >= 0) {
     return 0;
   }
 
-  const expiresAtMs = new Date(validUntilUtc).getTime();
-  if (!Number.isFinite(expiresAtMs) || expiresAtMs >= nowMs) {
-    return 0;
-  }
-
-  return Math.max(0, Math.floor((nowMs - expiresAtMs) / DAY_MS));
+  return Math.abs(daysRemaining);
 }
 
 function buildStatus(
@@ -232,17 +301,7 @@ export function resolveTenantLicenseFromPublicStatus(
   const hasMandantOverlay = typeof dto.canAccess === 'boolean';
 
   if (hasMandantOverlay) {
-    if (dto.canAccess === false && dto.requiresRenewal) {
-      const daysRemaining = isFiniteNumber(dto.daysRemaining)
-        ? Math.trunc(dto.daysRemaining)
-        : getSignedDaysRemaining(dto.validUntil, null, nowMs);
-      return buildStatus('lockdown', daysRemaining, getTenantPermissions('lockdown'));
-    }
-
-    if (dto.canAccess === false) {
-      return buildStatus('no_license', 0, getTenantPermissions('no_license'));
-    }
-
+    // Real grace (including overlay with a future deployment ValidUntil horizon).
     if (dto.isInGracePeriod) {
       const { daysExpired, graceRemaining } = resolveTenantGraceDays({
         daysRemaining: dto.daysRemaining,
@@ -254,6 +313,28 @@ export function resolveTenantLicenseFromPublicStatus(
       const overdue =
         daysExpired > 0 ? daysExpired : Math.max(1, TENANT_GRACE_PERIOD_DAYS - graceRemaining);
       return buildStatus('grace_write', -overdue, getTenantPermissions('grace_write'));
+    }
+
+    const daysFromValidUntil = calculateLicenseDaysRemaining(dto.validUntil, nowMs);
+    // Extended / still-valid license wins over stale lockdown flags from a previous fetch.
+    if (daysFromValidUntil != null && daysFromValidUntil >= 0) {
+      return resolveTenantLicenseStatus(
+        {
+          validUntilUtc: dto.validUntil,
+          daysRemaining: daysFromValidUntil,
+          kind: 'active',
+        },
+        nowMs
+      );
+    }
+
+    if (dto.canAccess === false && dto.requiresRenewal) {
+      const daysRemaining = getSignedDaysRemaining(dto.validUntil, dto.daysRemaining, nowMs);
+      return buildStatus('lockdown', daysRemaining, getTenantPermissions('lockdown'));
+    }
+
+    if (dto.canAccess === false) {
+      return buildStatus('no_license', 0, getTenantPermissions('no_license'));
     }
 
     return resolveTenantLicenseStatus(

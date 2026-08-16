@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Admin products API – all calls use /api/admin/products (legacy api/Product is not used).
+ * Admin products API – all calls use /api/admin/products (/api/Product alias was removed).
  * PUT update: safe parsing workaround when backend returns huge graphs (avoid JSON cycle / network error).
  */
 import type {

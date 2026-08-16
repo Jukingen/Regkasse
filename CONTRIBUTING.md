@@ -58,7 +58,9 @@ From the **repository root**:
 
 | Command | What it runs |
 |---------|----------------|
-| `npm run dev` | **All** app servers in parallel (backend, POS, admin, sites) |
+| `npm run dev` | **Default (RAM-safe):** backend + admin in parallel; cleans orphan Next/Expo workers first |
+| `npm run dev:all` | Full stack in parallel (backend, admin, POS, sites) — high RAM |
+| `npm run dev:cleanup` | Kill orphan Regkasse Next/Expo `node` workers (Windows RAM leak) |
 | `npm run dev:workspaces` | Native `npm run dev --workspaces` (sequential; blocks on first server) |
 | `npm run build` / `test` / `lint` | All workspaces via `npm run … --workspaces --if-present` |
 | `make <target>` / `just <recipe>` | Same orchestration — [`Makefile`](Makefile) / [`Justfile`](Justfile) (`dev`, `build`, `test`, `lint`, `clean`, `docker-up`, …) |
@@ -92,7 +94,8 @@ On Windows, prefer root / `scripts\` **`.bat`** helpers instead of typing long n
 
 | Script | What it does |
 |--------|----------------|
-| `scripts\dev\start-dev.bat` | Full stack (`npm run dev`) — API + Admin + POS + Sites |
+| `scripts\dev\start-dev.bat` | Default stack (`npm run dev`) — API + Admin |
+| `scripts\dev\start-dev-all.bat` | Full stack (`npm run dev:all`) — API + Admin + POS + Sites |
 | `scripts\dev\start-backend.bat` / `start-admin.bat` / `start-pos.bat` / `start-sites.bat` | Single surface |
 | `scripts\test\test-all.bat` | Sequential Backend → Admin → POS tests |
 | `scripts\dev\clean-all.DANGER.bat` | Confirm + clean build artifacts |
@@ -199,7 +202,7 @@ cd frontend && npm run lint && npm run typecheck
 Root `package.json` declares workspaces: `backend`, `frontend`, `frontend-admin`, `frontend-sites`, `localization`.
 
 - **`build` / `test` / `lint`:** `npm run <script> --workspaces --if-present`
-- **`dev`:** parallel runner (`scripts/dev-workspaces.mjs`) — npm’s native `--workspaces` is **sequential** and would block on the first long-running server; use `npm run dev:workspaces` if you want that behavior
+- **`dev`:** parallel runner (`scripts/dev-workspaces.mjs`) defaults to **backend + admin**; use `npm run dev:all` for POS+sites too. Pre-start orphan cleanup avoids Next.js Turbopack worker leaks on Windows. npm’s native `--workspaces` is **sequential** and would block on the first long-running server; use `npm run dev:workspaces` if you want that behavior
 - **`.npmrc`:** `legacy-peer-deps=true` for Expo / TypeScript peer ranges
 - Apps may still keep local `node_modules`; prefer `npm install` from the repo root after clone
 

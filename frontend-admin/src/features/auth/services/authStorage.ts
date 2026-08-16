@@ -5,6 +5,10 @@ import { tenantStorage } from '@/features/auth/services/tenantStorage';
  * Primary persistence is localStorage so new browser tabs share the same admin session
  * (sessionStorage is isolated per tab). Tokens previously stored only in sessionStorage
  * are migrated once on read.
+ *
+ * Access token is mirrored to a non-HttpOnly cookie so Next.js `proxy.ts` can gate
+ * protected routes (Edge cannot read localStorage). Axios uses the in-memory /
+ * localStorage value as `Authorization: Bearer …`.
  */
 
 /** Dispatched on `removeToken()` so client state (e.g. React Query auth) can resync. */
@@ -12,11 +16,21 @@ export const AUTH_SESSION_CLEARED_EVENT = 'rk-admin-auth-cleared';
 
 const ACCESS_TOKEN_KEY = 'rk_admin_access_token';
 const REFRESH_TOKEN_KEY = 'rk_admin_refresh_token';
-/** Must stay aligned with `ACCESS_TOKEN_COOKIE` in `src/proxy.ts` (Edge proxy cannot read localStorage). */
-const ACCESS_TOKEN_COOKIE_NAME = 'rk_admin_access_token';
+/**
+ * Must stay identical to `ACCESS_TOKEN_COOKIE` in `src/proxy.ts`.
+ * Do not rename without updating the Edge proxy.
+ */
+export const ACCESS_TOKEN_COOKIE_NAME = 'rk_admin_access_token';
+
 let accessTokenMemory: string | null = null;
+
 const normalizeToken = (token: string): string =>
   token.startsWith('Bearer ') ? token.slice(7) : token;
+
+export type AuthTokens = {
+  accessToken: string;
+  refreshToken?: string | null;
+};
 
 function writeAccessTokenCookie(jwt: string): void {
   if (typeof document === 'undefined') {
@@ -25,6 +39,7 @@ function writeAccessTokenCookie(jwt: string): void {
   const secure =
     typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
   const maxAgeSec = 60 * 60 * 24 * 7;
+  // encodeURIComponent keeps JWT safe in Cookie headers; Next.js cookie reader decodes.
   document.cookie = `${ACCESS_TOKEN_COOKIE_NAME}=${encodeURIComponent(jwt)}; Path=/; SameSite=Lax; Max-Age=${maxAgeSec}${secure}`;
 }
 
@@ -35,6 +50,31 @@ function clearAccessTokenCookie(): void {
   const secure =
     typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
   document.cookie = `${ACCESS_TOKEN_COOKIE_NAME}=; Path=/; SameSite=Lax; Max-Age=0${secure}`;
+}
+
+/** Reads `rk_admin_access_token` from `document.cookie` (decoded). */
+export function readAccessTokenCookie(): string | null {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+  const prefix = `${ACCESS_TOKEN_COOKIE_NAME}=`;
+  const parts = document.cookie.split(';');
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (!trimmed.startsWith(prefix)) {
+      continue;
+    }
+    const raw = trimmed.slice(prefix.length);
+    if (!raw) {
+      return null;
+    }
+    try {
+      return decodeURIComponent(raw);
+    } catch {
+      return raw;
+    }
+  }
+  return null;
 }
 
 function readAccessFromPersistence(): string | null {
@@ -71,7 +111,7 @@ function readRefreshFromPersistence(): string | null {
 
 export const authStorage = {
   /**
-   * Retrieves the stored JWT token.
+   * Retrieves the stored JWT token (memory → localStorage → re-mirror cookie).
    */
   getToken: (): string | null => {
     if (accessTokenMemory) {
@@ -86,7 +126,7 @@ export const authStorage = {
   },
 
   /**
-   * Stores the JWT token.
+   * Stores the JWT access token in memory, localStorage, and the proxy cookie.
    */
   setToken: (token: string): void => {
     const cleanToken = normalizeToken(token).trim();
@@ -98,6 +138,17 @@ export const authStorage = {
       window.localStorage.setItem(ACCESS_TOKEN_KEY, cleanToken);
       window.sessionStorage.removeItem(ACCESS_TOKEN_KEY);
       writeAccessTokenCookie(cleanToken);
+    }
+  },
+
+  /**
+   * Atomic login/refresh persist: access token (header source + proxy cookie) and optional refresh
+   * (localStorage only — never put refresh tokens in a readable cookie).
+   */
+  setTokens: (tokens: AuthTokens): void => {
+    authStorage.setToken(tokens.accessToken);
+    if (tokens.refreshToken) {
+      authStorage.setRefreshToken(tokens.refreshToken);
     }
   },
 
@@ -117,7 +168,7 @@ export const authStorage = {
   },
 
   /**
-   * Removes the JWT token from storage.
+   * Removes the JWT token from memory, localStorage, sessionStorage, and the proxy cookie.
    */
   removeToken: (): void => {
     accessTokenMemory = null;

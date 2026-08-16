@@ -1,17 +1,13 @@
-using System.Text.RegularExpressions;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Billing;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services.LicenseTest;
 
 public sealed class LicenseTestService : ILicenseTestService
 {
-    private static readonly Regex DeploymentLicenseKeyRegex = new(
-        @"^REGK-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$",
-        RegexOptions.CultureInvariant | RegexOptions.Compiled);
-
     private readonly AppDbContext _db;
     private readonly ILicenseService _licenseService;
     private readonly ILicenseStorageService _storage;
@@ -158,7 +154,7 @@ public sealed class LicenseTestService : ILicenseTestService
 
         var normalizedKey = persisted.LicenseKey?.Trim().ToUpperInvariant();
         var hasPaidKey = !string.IsNullOrEmpty(normalizedKey)
-            && DeploymentLicenseKeyRegex.IsMatch(normalizedKey);
+            && LicenseKeyGenerator.IsDeploymentLicenseKey(normalizedKey);
 
         if (hasPaidKey)
         {
@@ -275,7 +271,7 @@ public sealed class LicenseTestService : ILicenseTestService
             return "development_bypass";
 
         var key = persisted?.LicenseKey?.Trim();
-        if (!string.IsNullOrEmpty(key) && DeploymentLicenseKeyRegex.IsMatch(key.ToUpperInvariant()))
+        if (!string.IsNullOrEmpty(key) && LicenseKeyGenerator.IsDeploymentLicenseKey(key))
             return "paid";
 
         if (status.IsTrial)

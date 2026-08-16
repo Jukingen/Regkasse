@@ -282,7 +282,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                // TODO: scope check – branch/ownership restriction (e.g. waiter own order, manager any in branch).
+                // Order access is tenant-scoped via EF global query filters. Missing/cross-tenant ids → 404.
                 var order = await _context.Orders.FindAsync(id);
                 if (order == null)
                 {

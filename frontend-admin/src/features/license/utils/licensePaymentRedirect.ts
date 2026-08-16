@@ -27,7 +27,7 @@ export function resolveLicensePaymentRedirectTarget(options: {
   }
 
   if (options.isSuperAdmin) {
-    return { href: '/admin/billing', kind: 'internal' };
+    return { href: '/admin/billing/sales', kind: 'internal' };
   }
 
   const subject = encodeURIComponent('Lizenzverlängerung');

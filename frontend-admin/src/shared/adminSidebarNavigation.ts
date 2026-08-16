@@ -91,6 +91,8 @@ export const ADMIN_SIDEBAR_GROUP_KEYS = {
   digitalServices: 'grp-digital-services',
   /** Nested under Lizenzverwaltung: Super Admin outbound communication */
   communication: 'grp-communication',
+  /** Nested under Lizenzverwaltung: Mandanten-Admin self-service (hub, invoices, support) */
+  myAccount: 'grp-my-account',
   /**
    * @deprecated Digitale Dienste lives under Einstellungen (`digitalServices`) only.
    * Alias kept so open-key / lockdown merges stay stable during migration.
@@ -119,14 +121,31 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/license',
     '/license/dashboard',
     '/admin/license',
+    '/admin/license-management',
     '/admin/licenses',
     '/admin/billing',
     '/admin/billing/sales',
     '/admin/billing/stats',
     '/billing/digital',
     '/admin/communication',
+    '/tenant/dashboard',
+    '/tenant/portal',
+    '/tenant/invoices',
+    '/tenant/support',
+    '/tenant/license',
+    '/tenant/profile',
+    '/profile',
   ],
   [ADMIN_SIDEBAR_GROUP_KEYS.communication]: ['/admin/communication'],
+  [ADMIN_SIDEBAR_GROUP_KEYS.myAccount]: [
+    '/tenant/dashboard',
+    '/tenant/portal',
+    '/tenant/invoices',
+    '/tenant/support',
+    '/tenant/license',
+    '/tenant/profile',
+    '/profile',
+  ],
   [ADMIN_SIDEBAR_GROUP_KEYS.operations]: [
     '/operations-center',
     '/tables',
@@ -266,6 +285,8 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/admin/access/roles',
     '/admin/access/matrix',
     '/admin/tenants',
+    '/admin/tenants/create',
+    '/admin/support',
   ],
   [ADMIN_SIDEBAR_GROUP_KEYS.accessArea]: [
     '/admin/access',
@@ -426,6 +447,14 @@ export function resolveAdminMenuSelectedKeys(
     return ['/backup/audit'];
   }
 
+  if (p === '/tenant/dashboard' && (selectableLeafKeys as string[]).includes('/tenant/portal')) {
+    return ['/tenant/portal'];
+  }
+
+  if (p === '/profile' && (selectableLeafKeys as string[]).includes('/tenant/profile')) {
+    return ['/tenant/profile'];
+  }
+
   const sorted = [...selectableLeafKeys].sort((a, b) => b.length - a.length);
   for (const key of sorted) {
     if (p === key || p.startsWith(`${key}/`)) return [key];
@@ -473,6 +502,8 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     p.startsWith('/admin/users/') ||
     p === '/admin/tenants' ||
     p.startsWith('/admin/tenants/') ||
+    p === '/admin/support' ||
+    p.startsWith('/admin/support/') ||
     p === '/admin/data-management'
   ) {
     keys.push(ADMIN_SIDEBAR_GROUP_KEYS.admin);
@@ -568,17 +599,51 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     p.startsWith('/license/') ||
     p === '/admin/license' ||
     p.startsWith('/admin/license/') ||
+    p === '/admin/license-management' ||
+    p.startsWith('/admin/license-management/') ||
     p === '/admin/licenses' ||
     p === '/admin/billing' ||
     p.startsWith('/admin/billing/') ||
     p === '/billing/digital' ||
     p.startsWith('/billing/digital/') ||
     p === '/admin/communication' ||
-    p.startsWith('/admin/communication/')
+    p.startsWith('/admin/communication/') ||
+    p === '/tenant/dashboard' ||
+    p.startsWith('/tenant/dashboard/') ||
+    p === '/tenant/portal' ||
+    p.startsWith('/tenant/portal/') ||
+    p === '/tenant/invoices' ||
+    p.startsWith('/tenant/invoices/') ||
+    p === '/tenant/support' ||
+    p.startsWith('/tenant/support/') ||
+    p === '/tenant/license' ||
+    p.startsWith('/tenant/license/') ||
+    p === '/tenant/profile' ||
+    p.startsWith('/tenant/profile/') ||
+    p === '/profile' ||
+    p.startsWith('/profile/')
   ) {
     keys.push(ADMIN_SIDEBAR_GROUP_KEYS.license);
     if (p === '/admin/communication' || p.startsWith('/admin/communication/')) {
       keys.push(ADMIN_SIDEBAR_GROUP_KEYS.communication);
+    }
+    if (
+      p === '/tenant/dashboard' ||
+      p.startsWith('/tenant/dashboard/') ||
+      p === '/tenant/portal' ||
+      p.startsWith('/tenant/portal/') ||
+      p === '/tenant/invoices' ||
+      p.startsWith('/tenant/invoices/') ||
+      p === '/tenant/support' ||
+      p.startsWith('/tenant/support/') ||
+      p === '/tenant/license' ||
+      p.startsWith('/tenant/license/') ||
+      p === '/tenant/profile' ||
+      p.startsWith('/tenant/profile/') ||
+      p === '/profile' ||
+      p.startsWith('/profile/')
+    ) {
+      keys.push(ADMIN_SIDEBAR_GROUP_KEYS.myAccount);
     }
   }
   if (

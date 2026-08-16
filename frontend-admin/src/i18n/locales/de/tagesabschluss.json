@@ -1,4 +1,11 @@
 {
+  "emptyDayWarning": "Keine Transaktionen für diesen Tag gefunden. Möchten Sie einen leeren Tagesabschluss erstellen?",
+  "emptyDayConfirm": "Keine Transaktionen für diesen Tag gefunden. Möchten Sie einen leeren Tagesabschluss erstellen?",
+  "emptyDaySuccess": "Leerer Tagesabschluss erstellt. Keine Transaktionen.",
+  "normalDaySuccess": "Tagesabschluss erfolgreich erstellt. {{count}} Transaktionen.",
+  "type": "Typ",
+  "typeNormal": "Normal",
+  "typeEmpty": "Leer (0 Transaktionen)",
   "page": {
     "intro": "Operativer Kassenabschluss (TSE/RKSV): Prüfung ausführen und Abschluss auslösen. Den formalen Tagesbericht (Dokument, Finalisierung, FinanzOnline) finden Sie unter „Formaler Tagesbericht“."
   },
@@ -44,6 +51,7 @@
     "lastMonthlyClosing": "Letzter Monatsabschluss",
     "lastYearlyClosing": "Letzter Jahresabschluss",
     "paymentsWithoutInvoice": "Zahlungen ohne Rechnung (gewählter Tag)",
+    "transactionCount": "Transaktionen (gewählter Tag)",
     "hint": "Hinweis",
     "backendHint": "Hinweis vom Server (Sprache nicht garantiert)"
   },
@@ -102,6 +110,9 @@
     "colDate": "Datum",
     "colCreatedAt": "Erstellt am",
     "colType": "Typ",
+    "filterAll": "Alle",
+    "filterNormal": "Normal",
+    "filterEmpty": "Leer",
     "colLateReason": "Grund (nachträglich)",
     "colGross": "Brutto",
     "colTax": "Steuer",
@@ -128,6 +139,8 @@
   },
   "messages": {
     "successDaily": "Tagesabschluss (täglich) ausgeführt.",
+    "successDailyEmpty": "Leerer Tagesabschluss erstellt. Keine Transaktionen.",
+    "successDailyNormal": "Tagesabschluss erfolgreich erstellt. {{count}} Transaktionen.",
     "successDailyBackdated": "Nachträglicher Tagesabschluss für {{date}} ausgeführt.",
     "successMonthly": "Monatsabschluss ausgeführt.",
     "successYearly": "Jahresabschluss ausgeführt.",

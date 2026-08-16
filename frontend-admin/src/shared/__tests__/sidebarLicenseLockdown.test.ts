@@ -13,6 +13,7 @@ import {
 describe('sidebarLicenseLockdown', () => {
   it('keeps license, dashboard, payments, backup when locked', () => {
     expect(shouldHideSidebarKeyForLicenseLockdown('/admin/license')).toBe(false);
+    expect(shouldHideSidebarKeyForLicenseLockdown('/admin/license-management')).toBe(false);
     expect(shouldHideSidebarKeyForLicenseLockdown('/license/dashboard')).toBe(false);
     expect(shouldHideSidebarKeyForLicenseLockdown('/dashboard')).toBe(false);
     expect(shouldHideSidebarKeyForLicenseLockdown('/payments')).toBe(false);

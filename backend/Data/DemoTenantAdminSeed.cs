@@ -72,6 +72,14 @@ public static class DemoTenantAdminSeed
                 continue;
             }
 
+            if (tenant != null
+                && IsDevelopmentPresetSlug(spec.Slug)
+                && TryReactivateDevelopmentPresetTenant(tenant, now))
+            {
+                await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                Console.WriteLine("Demo tenant reactivated in Development: {0}", spec.Slug);
+            }
+
             if (tenant == null)
             {
                 tenant = new Tenant
@@ -171,16 +179,53 @@ public static class DemoTenantAdminSeed
     }
 
     /// <summary>
-    /// Seeds only operational tenants. Missing prod rows are not recreated after soft-delete.
+    /// Seeds operational demo tenants. Missing <c>dev</c> is created; missing/deleted <c>prod</c> is not.
+    /// Suspended <c>dev</c> is reactivated in Development (see <see cref="TryReactivateDevelopmentPresetTenant"/>).
     /// </summary>
     private static bool ShouldProvisionDemoTenant(Tenant? tenant, string slug)
     {
         if (tenant != null)
         {
+            if (TenantStatuses.IsRemoved(tenant.Status))
+                return false;
+
+            if (IsDevelopmentPresetSlug(slug))
+                return true;
+
             return tenant.IsActive
                    && string.Equals(tenant.Status, TenantStatuses.Active, StringComparison.OrdinalIgnoreCase);
         }
 
         return string.Equals(slug, "dev", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsDevelopmentPresetSlug(string slug) =>
+        string.Equals(slug, "dev", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Local DX: keep seeded <c>dev</c> bindable. Does not resurrect archived/cancelled rows.
+    /// </summary>
+    internal static bool TryReactivateDevelopmentPresetTenant(Tenant tenant, DateTime utcNow)
+    {
+        if (!IsDevelopmentPresetSlug(tenant.Slug) || TenantStatuses.IsRemoved(tenant.Status))
+            return false;
+
+        var changed = false;
+        if (!tenant.IsActive)
+        {
+            tenant.IsActive = true;
+            changed = true;
+        }
+
+        if (!string.Equals(tenant.Status, TenantStatuses.Active, StringComparison.OrdinalIgnoreCase))
+        {
+            tenant.Status = TenantStatuses.Active;
+            changed = true;
+        }
+
+        if (changed)
+            tenant.UpdatedAt = utcNow;
+
+        return changed;
     }
 }

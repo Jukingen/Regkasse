@@ -31,6 +31,7 @@ public sealed class SuperAdminTenantContextIsolationTests
             Mock.Of<ITenantDeletionService>(),
             Mock.Of<IActivityReportService>(),
             Mock.Of<IAuditLogService>(),
+            Mock.Of<KasseAPI_Final.Services.Trial.ITrialConversionService>(),
             Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
             NullLogger<AdminTenantsController>.Instance);
 
@@ -107,6 +108,7 @@ public sealed class SuperAdminTenantContextIsolationTests
             Mock.Of<ITenantDeletionService>(),
             Mock.Of<IActivityReportService>(),
             audit.Object,
+            Mock.Of<KasseAPI_Final.Services.Trial.ITrialConversionService>(),
             Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
             NullLogger<AdminTenantsController>.Instance);
 

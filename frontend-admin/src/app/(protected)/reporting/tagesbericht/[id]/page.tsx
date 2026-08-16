@@ -325,7 +325,7 @@ export default function TagesberichtDetailPage() {
       <Card title={td('cards.status')} style={{ marginBottom: 16 }}>
         <Descriptions column={1} size="small" bordered>
           <Descriptions.Item label={td('labels.report')}>
-            {/* TODO(adapter): reportStatus — sunucu enum’u; locale map backend’de yok */}
+            {/* Server enum shown as-is (no FA locale map). */}
             <Tag color={d.reportStatus === 'Finalized' ? 'blue' : 'gold'} title={backendApiTooltip}>
               {d.reportStatus}
             </Tag>
@@ -382,7 +382,7 @@ export default function TagesberichtDetailPage() {
           ) : null}
           {d.submissionEnvelope?.rejectionReasons?.length ? (
             <Descriptions.Item label={td('labels.rejection')}>
-              {/* TODO(adapter): rejectionReasons — ham API dizisi */}
+              {/* Server rejection reasons shown as-is. */}
               <Typography.Text title={backendApiTooltip}>
                 {d.submissionEnvelope.rejectionReasons.join(', ')}
               </Typography.Text>
@@ -474,7 +474,7 @@ export default function TagesberichtDetailPage() {
           <ul>
             {d.summary.warnings.map((w) => (
               <li key={w}>
-                {/* TODO(adapter): warnings[] — sunucu metni */}
+                {/* Server warning strings shown as-is. */}
                 <Typography.Text type="warning" title={backendApiTooltip}>
                   {w}
                 </Typography.Text>
@@ -508,7 +508,7 @@ export default function TagesberichtDetailPage() {
                   </Typography.Text>
                   <Space size={[4, 4]} wrap>
                     {item.labelKeys.map((k) => (
-                      // TODO(adapter): labelKeys — ham anahtarlar
+                      // Server label keys shown as-is.
                       <Tag key={`${item.reportId}-${k}`} title={backendApiTooltip}>
                         {k}
                       </Tag>

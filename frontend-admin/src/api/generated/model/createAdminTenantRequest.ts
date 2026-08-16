@@ -59,4 +59,6 @@ export interface CreateAdminTenantRequest {
    * @maxLength 64
    */
   slug: string;
+  /** @nullable */
+  trialDurationDays?: number | null;
 }

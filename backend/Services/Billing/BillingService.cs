@@ -68,7 +68,7 @@ public sealed class BillingService : IBillingService
 
         ValidatePricing(request.PriceNet, request.VatRate);
         var (validFrom, validUntil) = GetValidityPeriod(tenant, request.LicensePlan, request.CustomValidUntilUtc);
-        var licenseKey = _licenseKeyGenerator.GenerateLicenseKey(tenant.Slug, validUntil);
+        var licenseKey = _licenseKeyGenerator.GenerateUnifiedLicenseKey(validUntil, tenant.Slug);
         var invoiceNumber = await _invoiceNumberGenerator.AllocateAsync(DateTime.UtcNow, ct).ConfigureAwait(false);
         var (vatAmount, priceGross) = CalculateAmounts(request.PriceNet, request.VatRate);
         var durationDays = ResolveDurationDays(request.LicensePlan, validFrom, validUntil);
@@ -118,7 +118,7 @@ public sealed class BillingService : IBillingService
 
             ValidatePricing(request.PriceNet, request.VatRate);
             var (validFrom, validUntil) = GetValidityPeriod(tenant, request.LicensePlan, request.CustomValidUntilUtc);
-            var licenseKey = _licenseKeyGenerator.GenerateLicenseKey(tenant.Slug, validUntil);
+            var licenseKey = _licenseKeyGenerator.GenerateUnifiedLicenseKey(validUntil, tenant.Slug);
 
             var keyExists = await LicenseSalesScope(db)
                 .AnyAsync(l => l.LicenseKey == licenseKey, ct)

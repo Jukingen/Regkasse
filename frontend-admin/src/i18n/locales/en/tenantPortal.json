@@ -1,7 +1,7 @@
 {
   "page": {
     "title": "Customer portal",
-    "subtitle": "License status, activity, and support",
+    "subtitle": "License status, invoices, profile, and support",
     "requestSupport": "Request support",
     "requestSupportHint": "Opens the feedback form"
   },
@@ -25,5 +25,97 @@
       "StartbelegDone": "Startbeleg done",
       "TrainingComplete": "Training complete"
     }
+  },
+  "portal": {
+    "title": "My account",
+    "welcome": "Welcome back, {{name}}!",
+    "licenseStatus": "License status",
+    "invoices": "Invoices",
+    "profile": "Profile",
+    "support": "Support",
+    "quickLinks": "Quick access",
+    "openHub": "Open account",
+    "goLicense": "To license",
+    "goInvoices": "My invoices",
+    "goProfile": "My profile",
+    "goSupport": "Support",
+    "openTickets": "{{count}} open tickets",
+    "licenseActive": "Active",
+    "licenseGrace": "Grace period",
+    "licenseExpired": "Expired",
+    "daysRemaining": "{{days}} days remaining",
+    "expiredDays": "Expired for {{days}} days",
+    "totalInvoices": "{{count}} invoices",
+    "openInvoices": "{{count}} open",
+    "profileComplete": "Profile complete",
+    "profileIncomplete": "Profile incomplete"
+  },
+  "hub": {
+    "licenseStatus": "License status",
+    "invoices": "Invoices",
+    "profile": "Profile",
+    "support": "Support",
+    "openLicense": "License dashboard",
+    "openInvoices": "My invoices",
+    "openProfile": "Open profile",
+    "openSupport": "Open support",
+    "invoicesPaid": "Paid",
+    "invoicesCancelledCount": "{{count}} cancelled",
+    "profileCompletion": "Onboarding"
+  },
+  "invoices": {
+    "title": "My invoices",
+    "invoiceNumber": "Invoice #",
+    "date": "Date",
+    "amount": "Amount",
+    "status": "Status",
+    "actions": "Actions",
+    "download": "Download PDF",
+    "downloadError": "Could not download the invoice",
+    "noInvoices": "No invoices found",
+    "filterStatus": "Filter status",
+    "filterDate": "Date range",
+    "statuses": {
+      "paid": "Paid",
+      "unpaid": "Unpaid",
+      "overdue": "Overdue",
+      "cancelled": "Cancelled",
+      "refunded": "Refunded"
+    }
+  },
+  "support": {
+    "title": "Support",
+    "subtitle": "Tickets to the Regkasse team",
+    "createTitle": "Create ticket",
+    "category": "Category",
+    "priority": "Priority",
+    "message": "Message",
+    "reply": "Reply",
+    "sendReply": "Send reply",
+    "backToList": "Back to list",
+    "detailTitle": "Ticket",
+    "tenant": "Tenant",
+    "createdAt": "Created",
+    "inboxTitle": "Support tickets",
+    "inboxSubtitle": "Requests from all tenants",
+    "categories": {
+      "technical": "Technical",
+      "billing": "Billing",
+      "license": "License",
+      "feature": "Feature request"
+    },
+    "priorities": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "statuses": {
+      "open": "Open",
+      "waitingOnTenant": "Waiting on tenant",
+      "waitingOnStaff": "Waiting on support",
+      "closed": "Closed"
+    },
+    "myTickets": "My tickets",
+    "emptyTickets": "No tickets yet."
   }
 }

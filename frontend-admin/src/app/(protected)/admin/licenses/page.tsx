@@ -55,6 +55,7 @@ import {
   type AdminTenantListItem,
   listAdminTenants,
 } from '@/features/super-admin/api/adminTenants';
+import { formatLicenseValidUntil } from '@/features/license/utils/licenseValidUntil';
 import { isTenantRemovedStatus } from '@/features/super-admin/utils/tenantStatusLabel';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -403,7 +404,7 @@ export default function AdminTenantLicensesPage() {
         row.name,
         row.slug,
         getLicenseStatusLabel(row.resolvedLicenseStatus.kind, t),
-        row.licenseValidUntilUtc ? formatDate(row.licenseValidUntilUtc, formatLocale) : '',
+        row.licenseValidUntilUtc ? formatLicenseValidUntil(row.licenseValidUntilUtc) : '',
         row.resolvedLicenseStatus.daysRemaining ?? '',
         row.ownerAdminEmail ?? '',
         formatDate(row.createdAt, formatLocale),
@@ -546,7 +547,7 @@ export default function AdminTenantLicensesPage() {
           const right = b.licenseValidUntilUtc ? dayjs(b.licenseValidUntilUtc).unix() : 0;
           return left - right;
         },
-        render: dateColumnRender('short'),
+        render: (value: string | null) => formatLicenseValidUntil(value),
       },
       {
         title: t('tenants.columns.adminUser'),

@@ -2,8 +2,10 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Billing;
 using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Services.Tenancy;
+using KasseAPI_Final.Services.Trial;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -52,6 +54,7 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
     private readonly EmailSmtpOptions _smtpOptions;
     private readonly IDevelopmentModeService _developmentModeService;
     private readonly ITenantLicenseService _tenantLicenseService;
+    private readonly ITrialService _trialService;
 
     public AdminTenantLicenseService(
         AppDbContext db,
@@ -65,7 +68,8 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         IOptions<LicenseOptions> licenseOptions,
         IOptions<EmailSmtpOptions> smtpOptions,
         IDevelopmentModeService developmentModeService,
-        ITenantLicenseService tenantLicenseService)
+        ITenantLicenseService tenantLicenseService,
+        ITrialService trialService)
     {
         _db = db;
         _licenseSync = licenseSync;
@@ -79,6 +83,7 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         _smtpOptions = smtpOptions.Value;
         _developmentModeService = developmentModeService;
         _tenantLicenseService = tenantLicenseService;
+        _trialService = trialService;
     }
 
     public async Task<TenantLicenseOverviewDto?> GetOverviewAsync(
@@ -139,19 +144,15 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         string? actorUserId,
         CancellationToken cancellationToken = default)
     {
-        var tenant = await LoadMutableTenantAsync(tenantId, cancellationToken).ConfigureAwait(false);
-        if (tenant == null)
+        var (summary, error) = await _trialService
+            .GrantOrRestartTrialAsync(tenantId, durationDays: null, actorUserId, cancellationToken)
+            .ConfigureAwait(false);
+        if (error != null)
+            return (null, error);
+        if (summary == null)
             return (null, "Tenant not found.");
-        if (TenantStatuses.IsRemoved(tenant.Status))
-            return (null, "Deleted tenants cannot receive a trial license.");
 
-        var now = DateTime.UtcNow;
-        tenant.LicenseValidUntilUtc = now.AddDays(30);
-        tenant.LicenseKey = null;
-        tenant.UpdatedAt = now;
-        tenant.UpdatedBy = actorUserId;
-        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        _logger.LogInformation("Super-admin activated 30-day trial for tenant {TenantId}", tenantId);
+        _logger.LogInformation("Super-admin activated managed trial for tenant {TenantId}", tenantId);
         return (await GetOverviewAsync(tenantId, cancellationToken).ConfigureAwait(false), null);
     }
 
@@ -200,27 +201,44 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
             }
             else
             {
-                if (!RegkTenantLicenseKeyFormat.IsValid(key))
-                    return (null, RegkTenantLicenseKeyFormat.InvalidFormatMessage);
-
-                tenant.LicenseKey = key;
-
-                if (request.ValidUntilUtc.HasValue)
+                if (LicenseKeyGenerator.IsMandantBillingKey(key))
                 {
-                    tenant.LicenseValidUntilUtc = DateTime.SpecifyKind(request.ValidUntilUtc.Value, DateTimeKind.Utc);
+                    var billing = await _tenantLicenseService.ResolveBillingLicenseSaleForKeyAsync(
+                            tenantId,
+                            key,
+                            cancellationToken)
+                        .ConfigureAwait(false);
+                    if (billing.ErrorCode != null)
+                        return (null, billing.ErrorMessage);
+
+                    tenant.LicenseKey = key;
+                    tenant.LicenseValidUntilUtc = DateTime.SpecifyKind(billing.Sale!.ValidUntilUtc, DateTimeKind.Utc);
+                }
+                else if (LicenseKeyGenerator.IsDeploymentLicenseKey(key))
+                {
+                    if (request.ValidUntilUtc.HasValue)
+                    {
+                        tenant.LicenseKey = key;
+                        tenant.LicenseValidUntilUtc = DateTime.SpecifyKind(request.ValidUntilUtc.Value, DateTimeKind.Utc);
+                    }
+                    else
+                    {
+                        var resolved = await _tenantLicenseService.ResolveIssuedLicenseForKeyAsync(
+                                tenantId,
+                                key,
+                                isSuperAdmin,
+                                cancellationToken)
+                            .ConfigureAwait(false);
+                        if (resolved.ErrorCode != null)
+                            return (null, resolved.ErrorMessage);
+
+                        tenant.LicenseKey = key;
+                        tenant.LicenseValidUntilUtc = DateTime.SpecifyKind(resolved.Issued!.ExpiryAtUtc, DateTimeKind.Utc);
+                    }
                 }
                 else
                 {
-                    var resolved = await _tenantLicenseService.ResolveIssuedLicenseForKeyAsync(
-                            tenantId,
-                            key,
-                            isSuperAdmin,
-                            cancellationToken)
-                        .ConfigureAwait(false);
-                    if (resolved.ErrorCode != null)
-                        return (null, resolved.ErrorMessage);
-
-                    tenant.LicenseValidUntilUtc = DateTime.SpecifyKind(resolved.Issued!.ExpiryAtUtc, DateTimeKind.Utc);
+                    return (null, RegkTenantLicenseKeyFormat.InvalidFormatMessage);
                 }
             }
         }
@@ -846,7 +864,11 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
                 tenant.LicenseValidUntilUtc,
                 999,
                 InferTier(features),
-                features);
+                features,
+                tenant.TrialStatus,
+                tenant.TrialEndsAtUtc,
+                ComputeTrialDaysRemaining(tenant),
+                tenant.TrialGracePeriodEndsAtUtc);
         }
 
         var (days, kind) = TenantLicenseStatusMapper.ComputeKindAndDays(
@@ -859,7 +881,19 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
             tenant.LicenseValidUntilUtc,
             days,
             InferTier(features),
-            features);
+            features,
+            tenant.TrialStatus,
+            tenant.TrialEndsAtUtc,
+            ComputeTrialDaysRemaining(tenant),
+            tenant.TrialGracePeriodEndsAtUtc);
+    }
+
+    private static int? ComputeTrialDaysRemaining(Tenant tenant)
+    {
+        if (!TrialStatuses.IsOpenTrial(tenant.TrialStatus) || !tenant.TrialEndsAtUtc.HasValue)
+            return null;
+        var ends = DateTime.SpecifyKind(tenant.TrialEndsAtUtc.Value, DateTimeKind.Utc);
+        return (int)Math.Ceiling((ends - DateTime.UtcNow).TotalDays);
     }
 
     private static string? InferTier(IReadOnlyList<string>? features)

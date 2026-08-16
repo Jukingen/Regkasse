@@ -4,6 +4,7 @@ using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Services.Trial;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +24,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
     private readonly IDemoProductImportService _demoProductImport;
     private readonly IPaymentMethodDefinitionBootstrapService _paymentMethodBootstrap;
     private readonly ITseProvisioningService _tseProvisioning;
+    private readonly ITrialService _trialService;
     private readonly ILogger<TenantProvisioningService> _logger;
 
     public TenantProvisioningService(
@@ -33,6 +35,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         IDemoProductImportService demoProductImport,
         IPaymentMethodDefinitionBootstrapService paymentMethodBootstrap,
         ITseProvisioningService tseProvisioning,
+        ITrialService trialService,
         ILogger<TenantProvisioningService> logger)
     {
         _db = db;
@@ -42,6 +45,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         _demoProductImport = demoProductImport;
         _paymentMethodBootstrap = paymentMethodBootstrap;
         _tseProvisioning = tseProvisioning;
+        _trialService = trialService;
         _logger = logger;
     }
 
@@ -53,6 +57,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         bool importDemoMenu = false,
         string? cashRegisterNumber = null,
         bool seedIndustryStarterUsers = true,
+        int? trialDurationDays = null,
         CancellationToken cancellationToken = default)
     {
         var resolvedEmail = ResolveAdminEmail(tenant, adminEmail);
@@ -208,9 +213,9 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         DateTime? trialUntil = null;
         if (grantTrialLicense && !tenant.LicenseValidUntilUtc.HasValue)
         {
-            trialUntil = now.AddDays(30);
-            tenant.LicenseValidUntilUtc = trialUntil;
-            tenant.UpdatedAt = now;
+            var days = _trialService.ResolveDurationDays(trialDurationDays);
+            _trialService.ApplyTrialGrant(tenant, days, now);
+            trialUntil = tenant.TrialEndsAtUtc;
         }
 
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
@@ -327,6 +332,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
     {
         var categoryLabel = category.Name;
         var taxByType = await _db.TaxGroups
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .Where(g => g.TenantId == tenantId && g.IsActive)
             .ToListAsync(cancellationToken)

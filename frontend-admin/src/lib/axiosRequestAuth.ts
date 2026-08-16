@@ -89,3 +89,42 @@ export function readAxiosHeader(
   if (direct == null) return undefined;
   return Array.isArray(direct) ? direct.map(String).join(', ') : String(direct);
 }
+
+/** Strips optional `Bearer ` prefix from an Authorization header value. */
+export function extractBearerTokenFromAuthorization(
+  authorizationHeader: string | null | undefined
+): string | null {
+  if (authorizationHeader == null) {
+    return null;
+  }
+  const trimmed = authorizationHeader.trim();
+  if (!trimmed) {
+    return null;
+  }
+  if (/^bearer\s+/i.test(trimmed)) {
+    const token = trimmed.replace(/^bearer\s+/i, '').trim();
+    return token || null;
+  }
+  return trimmed;
+}
+
+/**
+ * On public auth routes (`/login`), a late 401 from a pre-login `/me` must not wipe tokens
+ * that a successful login just stored. Clear only when there is no current token, or the
+ * failed request used that same current token.
+ */
+export function shouldClearStoredTokenAfterPublicAuth401(params: {
+  requestAuthorizationHeader: string | null | undefined;
+  currentAccessToken: string | null | undefined;
+}): boolean {
+  const current = params.currentAccessToken?.trim() || null;
+  if (!current) {
+    return true;
+  }
+  const requestToken = extractBearerTokenFromAuthorization(params.requestAuthorizationHeader);
+  if (!requestToken) {
+    // Request left without Bearer — likely raced before login persist; keep the newer token.
+    return false;
+  }
+  return requestToken === current;
+}

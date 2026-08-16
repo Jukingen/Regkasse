@@ -4,6 +4,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Services.Email;
+using KasseAPI_Final.Services.Trial;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -52,6 +53,24 @@ public sealed class CreateTenantWizardScenarioTests
         return mgr;
     }
 
+    private static ITrialService CreateTrialServiceStub(int defaultDays = 14)
+    {
+        var trial = new Mock<ITrialService>();
+        trial.Setup(x => x.ResolveDurationDays(It.IsAny<int?>()))
+            .Returns((int? requested) => requested is > 0 ? requested.Value : defaultDays);
+        trial.Setup(x => x.ApplyTrialGrant(It.IsAny<Tenant>(), It.IsAny<int>(), It.IsAny<DateTime>()))
+            .Callback<Tenant, int, DateTime>((tenant, days, now) =>
+            {
+                tenant.TrialStartedAtUtc = now;
+                tenant.TrialEndsAtUtc = now.AddDays(days);
+                tenant.TrialStatus = TrialStatuses.Active;
+                tenant.LicenseKey = null;
+                tenant.LicenseValidUntilUtc = tenant.TrialEndsAtUtc;
+                tenant.UpdatedAt = now;
+            });
+        return trial.Object;
+    }
+
     private static TenantOnboardingService CreateOnboarding(AppDbContext db, UserManager<ApplicationUser>? userManager = null)
     {
         var uniqueness = new Mock<IUserUniquenessValidationService>();
@@ -66,6 +85,7 @@ public sealed class CreateTenantWizardScenarioTests
             Mock.Of<IDemoProductImportService>(),
             new PaymentMethodDefinitionBootstrapService(db),
             TseProvisioningTestDoubles.Successful(),
+            CreateTrialServiceStub(),
             Mock.Of<ILogger<TenantProvisioningService>>());
 
         var checklist = new Mock<KasseAPI_Final.Services.Onboarding.ITenantOnboardingChecklistService>();

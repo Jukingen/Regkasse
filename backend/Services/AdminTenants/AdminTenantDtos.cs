@@ -22,7 +22,10 @@ public sealed record AdminTenantListItemDto(
     LicenseType? LicenseType = null,
     int RegisterCount = 0,
     int UserCount = 0,
-    DateTime? LastActivityAtUtc = null);
+    DateTime? LastActivityAtUtc = null,
+    string? TrialStatus = null,
+    DateTime? TrialEndsAtUtc = null,
+    int? TrialDaysRemaining = null);
 
 /// <summary>Query for Super Admin tenant list (filter / sort / page).</summary>
 public sealed class AdminTenantListQuery
@@ -74,7 +77,15 @@ public sealed record AdminTenantDetailDto(
     string OperationMode = TenantOperationModes.Active,
     string? MaintenanceMessage = null,
     DateTime? MaintenanceStartedAt = null,
-    DateTime? MaintenanceEndsAt = null);
+    DateTime? MaintenanceEndsAt = null,
+    string? TrialStatus = null,
+    DateTime? TrialStartedAtUtc = null,
+    DateTime? TrialEndsAtUtc = null,
+    DateTime? TrialGracePeriodEndsAtUtc = null,
+    DateTime? TrialConvertedAtUtc = null,
+    bool TrialReminder7dSent = false,
+    bool TrialReminder3dSent = false,
+    bool TrialReminder1dSent = false);
 
 public sealed record AdminTenantCashRegisterDto(
     Guid Id,
@@ -169,8 +180,13 @@ public sealed class CreateAdminTenantRequest
     [MaxLength(100)]
     public string? AdminPassword { get; set; }
 
-    /// <summary>When true and no license end date is set, grants a 30-day trial on the tenant row.</summary>
+    /// <summary>When true and no license end date is set, grants a managed trial on the tenant row.</summary>
     public bool GrantTrialLicense { get; set; } = true;
+
+    /// <summary>
+    /// Optional trial length override (14 / 30 / 60 / 90). When null, uses <c>Trial:DefaultDurationDays</c>.
+    /// </summary>
+    public int? TrialDurationDays { get; set; }
 
     /// <summary>When true, imports the full demo menu (Salate, Pizzas, Pasta, …) instead of three generic demo products.</summary>
     public bool ImportDemoMenu { get; set; }

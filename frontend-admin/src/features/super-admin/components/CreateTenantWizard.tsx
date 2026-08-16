@@ -128,6 +128,7 @@ function CreateTenantWizardContent({
     } else if (phase === 'form') {
       form.setFieldsValue({
         grantTrialLicense: true,
+        trialDurationDays: 14,
         importDemoProducts: true,
       });
     }
@@ -162,6 +163,7 @@ function CreateTenantWizardContent({
       phone: values.phone?.trim() || undefined,
       address: values.address?.trim() || undefined,
       grantTrialLicense: grantTrial,
+      trialDurationDays: grantTrial ? (values.trialDurationDays ?? 14) : undefined,
       importDemoMenu: values.importDemoProducts ?? true,
     });
   };
@@ -234,7 +236,7 @@ function CreateTenantWizardContent({
           form={form}
           layout="vertical"
           requiredMark="optional"
-          initialValues={{ grantTrialLicense: true, importDemoProducts: true }}
+          initialValues={{ grantTrialLicense: true, trialDurationDays: 14, importDemoProducts: true }}
           onFinish={submitFromForm}
         >
           <TenantFormFields form={form} open={open} fieldState={formFields} />

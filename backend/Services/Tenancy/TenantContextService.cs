@@ -136,9 +136,9 @@ public sealed class TenantContextService : ITenantContextService
         CancellationToken cancellationToken = default)
     {
         var slug = await GetRequestTenantSlugAsync(httpContext, cancellationToken).ConfigureAwait(false);
-        var tenantId = await ResolveTenantIdFromSlugBindingAsync(slug, cancellationToken)
+        var resolved = await ResolveTenantContextFromSlugBindingAsync(slug, cancellationToken)
             .ConfigureAwait(false);
-        BindAmbient(tenantId, tenantId.HasValue ? NormalizeSlug(slug) : null);
+        BindAmbient(resolved?.Id, resolved?.Slug);
     }
 
     /// <inheritdoc />
@@ -212,6 +212,17 @@ public sealed class TenantContextService : ITenantContextService
 
         if (tenant == null)
         {
+            // FA sometimes sends the tenant Guid as X-Tenant-Id (history/license query uses the same id).
+            if (!string.IsNullOrWhiteSpace(rawSlug)
+                && Guid.TryParse(rawSlug.Trim(), out var asId)
+                && asId != Guid.Empty)
+            {
+                var byId = await TryResolveActiveTenantByIdAsync(asId, cancellationToken)
+                    .ConfigureAwait(false);
+                if (byId != null)
+                    return byId.Id;
+            }
+
             // Fail-closed for unknown / typo mandant slugs (do not invent platform ambient).
             // Reserved platform sentinel slug may still bind by well-known Guid when the row is missing
             // (admin host → NormalizeSlug → "platform").
@@ -228,23 +239,7 @@ public sealed class TenantContextService : ITenantContextService
             return null;
         }
 
-        // Platform sentinel may be isActive=false (frozen for business) but remains bindable for system host fallbacks.
-        if (SystemTenantIds.IsPlatformTenantId(tenant.Id))
-        {
-            if (TenantStatuses.IsRemoved(tenant.Status))
-            {
-                _logger.LogWarning(
-                    "Platform tenant slug {Slug} is removed (status={Status}); refusing host tenant binding",
-                    slug,
-                    tenant.Status);
-                return null;
-            }
-
-            return tenant.Id;
-        }
-
-        if (TenantStatuses.IsRemoved(tenant.Status)
-            || !tenant.IsActive)
+        if (!CanBindTenantRow(tenant.Id, tenant.Status, tenant.IsActive))
         {
             _logger.LogWarning(
                 "Tenant slug {Slug} is deleted or inactive (status={Status}); refusing host tenant binding",
@@ -269,13 +264,7 @@ public sealed class TenantContextService : ITenantContextService
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        if (row == null
-            || TenantStatuses.IsRemoved(row.Status))
-        {
-            return null;
-        }
-
-        if (!row.IsActive && !SystemTenantIds.IsPlatformTenantId(row.Id))
+        if (row == null || !CanBindTenantRow(row.Id, row.Status, row.IsActive))
             return null;
 
         return new TenantContext(row.Id, row.Slug, row.Name);
@@ -293,16 +282,29 @@ public sealed class TenantContextService : ITenantContextService
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        if (row == null
-            || TenantStatuses.IsRemoved(row.Status))
-        {
-            return null;
-        }
-
-        if (!row.IsActive && !SystemTenantIds.IsPlatformTenantId(row.Id))
+        if (row == null || !CanBindTenantRow(row.Id, row.Status, row.IsActive))
             return null;
 
         return new TenantContext(row.Id, row.Slug, row.Name);
+    }
+
+    /// <summary>
+    /// Bindable when active, or frozen platform sentinel, or Development seeded <c>dev</c>
+    /// (so a suspended local preset does not 404 the whole FA dashboard).
+    /// Removed statuses never bind.
+    /// </summary>
+    private bool CanBindTenantRow(Guid id, string status, bool isActive)
+    {
+        if (TenantStatuses.IsRemoved(status))
+            return false;
+
+        if (isActive)
+            return true;
+
+        if (SystemTenantIds.IsPlatformTenantId(id))
+            return true;
+
+        return _environment.IsDevelopment() && id == DemoTenantIds.Dev;
     }
 
     private async Task<string> GetRequestTenantSlugAsync(

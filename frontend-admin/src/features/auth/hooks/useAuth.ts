@@ -36,10 +36,7 @@ export async function persistLoginTokensAndSettle(
   accessToken: string,
   refreshToken?: string | null
 ): Promise<void> {
-  authStorage.setToken(accessToken);
-  if (refreshToken) {
-    authStorage.setRefreshToken(refreshToken);
-  }
+  authStorage.setTokens({ accessToken, refreshToken });
   await new Promise<void>((resolve) => {
     setTimeout(resolve, POST_LOGIN_TOKEN_SETTLE_MS);
   });
@@ -68,6 +65,48 @@ export async function fetchAuthUser(): Promise<AuthUser> {
   });
 
   return mapMeResponseToAuthUser(res);
+}
+
+const POST_LOGIN_ME_RETRY_DELAY_MS = 300;
+
+/**
+ * Post-login `/me` bootstrap with short 401 retries.
+ * Used when a concurrent stale request briefly races the fresh session token.
+ *
+ * Do not pass this function directly as a React Query `queryFn` — RQ supplies a
+ * QueryFunctionContext as the first argument. Use `() => fetchAuthUserWithRetry()`.
+ */
+export async function fetchAuthUserWithRetry(
+  retries = 3,
+  delayMs = POST_LOGIN_ME_RETRY_DELAY_MS
+): Promise<AuthUser> {
+  const maxAttempts = typeof retries === 'number' && Number.isFinite(retries) ? retries : 3;
+  const baseDelayMs =
+    typeof delayMs === 'number' && Number.isFinite(delayMs) ? delayMs : POST_LOGIN_ME_RETRY_DELAY_MS;
+  let attempt = 0;
+  let lastError: unknown;
+
+  while (attempt < maxAttempts) {
+    attempt += 1;
+    try {
+      if (process.env.NODE_ENV === 'development') {
+        technicalConsole.devDebug(`[API] /me bootstrap attempt ${attempt}/${maxAttempts}`);
+      }
+      return await fetchAuthUser();
+    } catch (error) {
+      lastError = error;
+      const status = getAuthHttpStatus(error);
+      const stillHasToken = Boolean(authStorage.getToken());
+      if (status !== 401 || !stillHasToken || attempt >= maxAttempts) {
+        throw error;
+      }
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, Math.round(baseDelayMs * 1.5 ** (attempt - 1)));
+      });
+    }
+  }
+
+  throw lastError ?? new Error('fetchAuthUserWithRetry failed without an error');
 }
 
 export enum AuthStatus {

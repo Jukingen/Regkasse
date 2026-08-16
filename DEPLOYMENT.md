@@ -568,6 +568,8 @@ Local Soft TSE workflow: [`DEVELOPMENT.md`](DEVELOPMENT.md#docker-development-wo
 | `TwoFactorAuth__Enabled` | `true` in Staging/Production |
 | `Security__Csrf__Enabled` | `true` in Staging/Production |
 | `License__OfflineVerificationPublicKeyPem` (or file paths) | Offline license verify |
+| `Trial__Enabled` | SaaS trial jobs (reminders/cleanup); default `true` |
+| `Trial__DefaultDurationDays` / `GracePeriodDays` | Trial length + grace (see CONFIGURATION.md) |
 | `Backup__*` | Staging/archive roots, `ExecutionAdapterKind`, `pg_dump` path when using real backups |
 | Fiskaly / TSE secrets | Via secure config — see `CONFIGURATION.md` |
 | FinanzOnline | Credentials typically DB/company settings; cutover tokens per runbook |
