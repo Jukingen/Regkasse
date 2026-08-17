@@ -2,6 +2,7 @@ import { apiClient } from './config';
 import { handleAPIError, ErrorMessages } from '../errorService'; // ✅ YENİ: Standardize error handling
 import { API_PATHS } from './apiPaths'; // ✅ Centralized swagger-accurate paths
 import type { ModifierGroupDto } from './productModifiersService';
+import { safeLog } from '../../utils/loggingUtils';
 
 // Cache sistemi - API çağrılarının tekrarlanmasını önler
 export const productCache = {
@@ -225,18 +226,18 @@ export const getActiveProductsForHomePage = async (): Promise<
 export const getAllCategories = async (): Promise<string[]> => {
   try {
     if (productCache.categories && !productCache.isExpired()) {
-      console.log('📦 Returning categories from cache');
+      safeLog('📦 Returning categories from cache');
       return productCache.categories;
     }
 
-    console.log('🔄 Fetching categories from API...');
+    safeLog('🔄 Fetching categories from API...');
     const resp = await apiClient.get<any>(API_PATHS.PRODUCT.CATEGORIES);
     const categories = unwrapData<string[]>(resp);
 
     productCache.categories = categories;
     productCache.lastFetch = Date.now();
 
-    console.log(`✅ Fetched ${categories.length} categories and updated cache`);
+    safeLog(`✅ Fetched ${categories.length} categories and updated cache`);
     return categories;
   } catch (error) {
     console.error('Error fetching all categories:', error);
@@ -250,7 +251,7 @@ export const getProductCatalog = async (): Promise<{
   products: (Product & { categoryId?: string })[];
 }> => {
   try {
-    console.log('🔄 Fetching product catalog...');
+    safeLog('🔄 Fetching product catalog...');
     const resp = await apiClient.get<any>(API_PATHS.PRODUCT.CATALOG);
 
     // Response format kontrolü - SuccessResponse sarmalaması olabilir
@@ -259,7 +260,7 @@ export const getProductCatalog = async (): Promise<{
       data = resp.data; // SuccessResponse format
     }
 
-    console.log('📦 Catalog response received:', {
+    safeLog('📦 Catalog response received:', {
       hasData: !!data,
       hasCategories: !!data?.Categories,
       hasProducts: !!data?.Products,
@@ -281,7 +282,7 @@ export const getProductCatalog = async (): Promise<{
         : [],
     }));
 
-    console.log(`✅ Catalog loaded: ${categories.length} categories, ${products.length} products`);
+    safeLog(`✅ Catalog loaded: ${categories.length} categories, ${products.length} products`);
     return { categories, products };
   } catch (error) {
     console.error('❌ Error fetching product catalog:', error);
@@ -382,7 +383,7 @@ export const calculateTaxAmount = (price: number, taxType: TaxType): number => {
 // Cache temizleme fonksiyonu
 export const clearProductCache = () => {
   productCache.clear();
-  console.log('🧹 Product cache cleared');
+  safeLog('🧹 Product cache cleared');
 };
 
 // Geriye uyumluluk için eski fonksiyonları koru

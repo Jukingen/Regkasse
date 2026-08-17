@@ -67,25 +67,15 @@ public partial class LicenseController : ControllerBase
         [FromQuery] Guid? tenantId,
         CancellationToken cancellationToken)
     {
-        // Same mapping in all environments so POS/admin anonymous status matches activated license
-        // Optional synthetic licensing is controlled by <see cref="IDevelopmentModeService.ShouldBypassLicense"/> (Development host only).
-        var s = await _licenseService.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
-        var dto = LicensePublicStatusMapper.MapDeploymentStatus(s);
-
         var resolvedTenantId = ResolveMandantTenantId(tenantId);
-        if (resolvedTenantId is Guid effectiveTenantId)
-        {
-            var mandant = await _licenseService
-                .GetLicenseStatusAsync(effectiveTenantId, cancellationToken)
-                .ConfigureAwait(false);
-            var language = HttpContext.Items.TryGetValue(LanguageMiddleware.LanguageItemKey, out var langObj)
-                && langObj is string lang
-                ? lang
-                : LanguageMiddleware.DefaultLanguage;
-            dto = LicensePublicStatusMapper.ApplyMandantOverlay(dto, mandant, language);
-        }
-
-        return Ok(dto);
+        var unified = await _unifiedLicenseService
+            .GetUnifiedStatusAsync(resolvedTenantId, cancellationToken)
+            .ConfigureAwait(false);
+        var language = HttpContext.Items.TryGetValue(LanguageMiddleware.LanguageItemKey, out var langObj)
+            && langObj is string lang
+            ? lang
+            : LanguageMiddleware.DefaultLanguage;
+        return Ok(LicensePublicStatusMapper.MapUnified(unified, language));
     }
 
     /// <summary>Optional POS-facing feature limits (configuration-driven).</summary>
@@ -160,12 +150,15 @@ public partial class LicenseController : ControllerBase
             initiatorUserId,
             appContext);
 
-        var tenantId = _tenantAccessor.TenantId;
+        var ambientTenantId = _tenantAccessor.TenantId is Guid tid && tid != Guid.Empty ? tid : (Guid?)null;
+        var requestTenantId = body.TenantId is Guid bodyTenant && bodyTenant != Guid.Empty
+            ? bodyTenant
+            : ambientTenantId;
         var result = await _unifiedLicenseService
             .ActivateLicenseAsync(
                 body.LicenseKey,
                 new UnifiedLicenseActivationContext(
-                    TenantId: tenantId is Guid tid && tid != Guid.Empty ? tid : null,
+                    TenantId: requestTenantId,
                     ActorUserId: initiatorUserId,
                     DeploymentRequest: body,
                     ClientInfo: client),
@@ -234,7 +227,9 @@ public partial class LicenseController : ControllerBase
         LicenseActivationResult result,
         CancellationToken cancellationToken)
     {
-        var tenantId = _tenantAccessor.TenantId;
+        var tenantId = result.TenantId is Guid activated && activated != Guid.Empty
+            ? activated
+            : _tenantAccessor.TenantId;
         if (tenantId == Guid.Empty)
             tenantId = SystemTenantIds.Platform;
 

@@ -1,7 +1,10 @@
 import type { IssuedLicenseListItemDto } from '@/api/manual/adminLicense';
 import type { LicenseSaleResponse } from '@/api/generated/model';
+import { TENANT_GRACE_PERIOD_DAYS } from '@/features/license/constants/licenseGracePeriod';
 
-export type UnifiedLicenseKind = 'server' | 'tenant';
+export type UnifiedLicenseKind = 'system' | 'tenant';
+
+export type UnifiedLicenseRowStatus = 'active' | 'grace' | 'expired';
 
 export type UnifiedLicenseRow = {
   id: string;
@@ -9,19 +12,82 @@ export type UnifiedLicenseRow = {
   licenseKey: string;
   displayName: string;
   validUntilUtc: string | null;
-  status: string;
+  status: UnifiedLicenseRowStatus;
+  slug: string | null;
   tenantSlug?: string | null;
 };
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Parses `REGK-{yyyyMMdd}-{slug}-{8}` and returns the slug, or null. */
+export function parseUnifiedLicenseSlug(licenseKey: string): string | null {
+  const parts = licenseKey.trim().split('-');
+  if (parts.length < 4 || parts[0]?.toUpperCase() !== 'REGK') {
+    return null;
+  }
+  const slug = parts.slice(2, -1).join('-').toLowerCase();
+  return slug.length > 0 ? slug : null;
+}
+
+export function resolveUnifiedLicenseKind(
+  licenseKey: string,
+  fallback: UnifiedLicenseKind
+): UnifiedLicenseKind {
+  const slug = parseUnifiedLicenseSlug(licenseKey);
+  if (slug === 'system') return 'system';
+  if (slug) return 'tenant';
+  return fallback;
+}
+
+export function resolveUnifiedLicenseRowStatus(args: {
+  validUntilUtc: string | null;
+  isRevoked?: boolean;
+  isCancelled?: boolean;
+  saleStatus?: string | null;
+  nowMs?: number;
+}): UnifiedLicenseRowStatus {
+  const sale = args.saleStatus?.trim().toLowerCase();
+  if (args.isRevoked || args.isCancelled || sale === 'cancelled' || sale === 'revoked') {
+    return 'expired';
+  }
+
+  if (!args.validUntilUtc) {
+    return 'expired';
+  }
+
+  const until = Date.parse(args.validUntilUtc);
+  if (!Number.isFinite(until)) {
+    return 'expired';
+  }
+
+  const now = args.nowMs ?? Date.now();
+  if (until >= now) {
+    return 'active';
+  }
+
+  const daysOverdue = Math.floor((now - until) / DAY_MS);
+  if (daysOverdue <= TENANT_GRACE_PERIOD_DAYS) {
+    return 'grace';
+  }
+
+  return 'expired';
+}
+
 export function mapIssuedLicenseToUnifiedRow(item: IssuedLicenseListItemDto): UnifiedLicenseRow {
-  const status = item.isRevoked ? 'revoked' : item.isCancelled ? 'cancelled' : 'active';
+  const slug = parseUnifiedLicenseSlug(item.licenseKey) ?? 'system';
   return {
-    id: `server:${item.id}`,
-    kind: 'server',
+    id: `system:${item.id}`,
+    kind: resolveUnifiedLicenseKind(item.licenseKey, 'system'),
     licenseKey: item.licenseKey,
     displayName: item.customerName?.trim() || item.licenseKey,
     validUntilUtc: item.expiryAtUtc ?? null,
-    status,
+    status: resolveUnifiedLicenseRowStatus({
+      validUntilUtc: item.expiryAtUtc ?? null,
+      isRevoked: item.isRevoked,
+      isCancelled: item.isCancelled,
+    }),
+    slug,
+    tenantSlug: slug === 'system' ? null : slug,
   };
 }
 
@@ -29,14 +95,19 @@ export function mapLicenseSaleToUnifiedRow(sale: LicenseSaleResponse): UnifiedLi
   const id = sale.id?.trim();
   const licenseKey = sale.licenseKey?.trim();
   if (!id || !licenseKey) return null;
+  const slug = sale.tenantSlug?.trim() || parseUnifiedLicenseSlug(licenseKey);
   return {
     id: `tenant:${id}`,
-    kind: 'tenant',
+    kind: resolveUnifiedLicenseKind(licenseKey, 'tenant'),
     licenseKey,
-    displayName: sale.tenantName?.trim() || sale.tenantSlug?.trim() || licenseKey,
+    displayName: sale.tenantName?.trim() || slug || licenseKey,
     validUntilUtc: sale.validUntilUtc ?? null,
-    status: sale.status?.trim() || 'unknown',
-    tenantSlug: sale.tenantSlug ?? null,
+    status: resolveUnifiedLicenseRowStatus({
+      validUntilUtc: sale.validUntilUtc ?? null,
+      saleStatus: sale.status,
+    }),
+    slug: slug ?? null,
+    tenantSlug: slug ?? null,
   };
 }
 
@@ -51,7 +122,15 @@ export function mergeUnifiedLicenseRows(args: {
     .map(mapLicenseSaleToUnifiedRow)
     .filter((row): row is UnifiedLicenseRow => row != null);
 
-  let rows = [...issuedRows, ...saleRows];
+  const seenKeys = new Set<string>();
+  let rows: UnifiedLicenseRow[] = [];
+  for (const row of [...issuedRows, ...saleRows]) {
+    const key = row.licenseKey.trim().toUpperCase();
+    if (seenKeys.has(key)) continue;
+    seenKeys.add(key);
+    rows.push(row);
+  }
+
   if (args.kindFilter && args.kindFilter !== 'all') {
     rows = rows.filter((row) => row.kind === args.kindFilter);
   }
@@ -59,7 +138,7 @@ export function mergeUnifiedLicenseRows(args: {
   const needle = args.search?.trim().toLowerCase();
   if (needle) {
     rows = rows.filter((row) => {
-      const blob = `${row.licenseKey} ${row.displayName} ${row.tenantSlug ?? ''} ${row.status}`;
+      const blob = `${row.licenseKey} ${row.displayName} ${row.slug ?? ''} ${row.status}`;
       return blob.toLowerCase().includes(needle);
     });
   }

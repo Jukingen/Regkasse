@@ -230,6 +230,7 @@ export default function DeploymentsAdminPage() {
           <Space orientation="vertical">
             <Typography.Text>{t('deployments.pipelineHint')}</Typography.Text>
             <Link href="/admin/deployments/tenants">{t('nav.deploymentTenants')}</Link>
+            <Link href="/admin/deployments/go-live">{t('nav.deploymentGoLive')}</Link>
             <Link href="/admin/deployments/compliance">{t('nav.deploymentCompliance')}</Link>
           </Space>
         }

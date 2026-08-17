@@ -95,6 +95,26 @@ public sealed class PaymentServiceLicenseGateTests
     }
 
     [Fact]
+    public async Task CreatePayment_WhenTenantLicenseArchived_ThrowsTenantScope()
+    {
+        await using var ctx = PaymentServiceCoverageHarness.CreateContext();
+        var (customerId, productId, registerId, _) = await PaymentServiceCoverageHarness.SeedCatalogAsync(ctx);
+        await PaymentServiceCoverageHarness.SetTenantLicenseValidUntilAsync(ctx, DateTime.UtcNow.AddDays(-40));
+        var sut = PaymentServiceCoverageHarness.CreatePaymentService(
+            ctx,
+            PaymentServiceCoverageHarness.EnforcedLicenseOptions(
+                PaymentServiceCoverageHarness.CreateLicenseService(PaymentServiceCoverageHarness.ValidDeployment()).Object));
+
+        var ex = await Assert.ThrowsAsync<LicenseExpiredException>(() =>
+            sut.CreatePaymentAsync(
+                PaymentServiceCoverageHarness.SaleRequest(customerId, productId, registerId),
+                PaymentServiceCoverageHarness.CashierId));
+
+        Assert.Equal("tenant", ex.Scope);
+        Assert.Equal(0, await ctx.PaymentDetails.CountAsync());
+    }
+
+    [Fact]
     public async Task GetPayment_WhenTenantLicenseLockdown_StillReturnsExistingPayment()
     {
         await using var ctx = PaymentServiceCoverageHarness.CreateContext();

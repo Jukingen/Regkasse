@@ -237,6 +237,21 @@ public sealed class PaymentServiceVoucherStornoRefundTests
             .ToListAsync());
     }
 
+    [Fact]
+    public async Task CreatePayment_WhenVoucherCodeUnknown_ReturnsVoucherInvalid()
+    {
+        await using var ctx = PaymentServiceCoverageHarness.CreateContext();
+        var (customerId, productId, registerId, _) =
+            await SeedCatalogAndVoucherAsync(ctx, CodeA, remaining: 100m);
+        var sut = PaymentServiceCoverageHarness.CreatePaymentService(ctx);
+
+        var result = await CreateVoucherSaleAsync(sut, customerId, productId, registerId, "GUT-UNKNOWN", 5m);
+
+        Assert.False(result.Success);
+        Assert.Equal("VOUCHER_INVALID", result.DiagnosticCode);
+        Assert.Equal(0, await ctx.PaymentDetails.CountAsync());
+    }
+
     private static async Task<(Guid CustomerId, Guid ProductId, Guid CashRegisterId, Guid VoucherId)> SeedCatalogAndVoucherAsync(
         KasseAPI_Final.Data.AppDbContext ctx,
         string code,

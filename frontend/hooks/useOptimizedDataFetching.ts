@@ -1,3 +1,4 @@
+import { safeLog } from '../utils/loggingUtils';
 // Bu hook, sürekli API çağrıları yerine sadece gerekli durumlarda fetch yapmak için kullanılır
 // RKSV uyumlu güvenlik kontrolü ve akıllı cache yönetimi sağlar
 
@@ -124,7 +125,7 @@ export function useOptimizedDataFetching<T>(
 
       // Force değilse ve fetch gerekmiyorsa cache'den döndür
       if (!force && !shouldFetch()) {
-        console.log('🔄 Data already fresh, returning cached data');
+        safeLog('🔄 Data already fresh, returning cached data');
         return state.data;
       }
 
@@ -144,7 +145,7 @@ export function useOptimizedDataFetching<T>(
       try {
         setState((prev) => ({ ...prev, loading: true, error: null }));
 
-        console.log('🔄 Fetching fresh data...');
+        safeLog('🔄 Fetching fresh data...');
 
         const result = await fetchFn();
 
@@ -181,7 +182,7 @@ export function useOptimizedDataFetching<T>(
 
   // Manuel refresh fonksiyonu
   const refresh = useCallback(async () => {
-    console.log('🔄 Manual refresh requested...');
+    safeLog('🔄 Manual refresh requested...');
     return await fetchData(true);
   }, [fetchData]);
 
@@ -195,7 +196,7 @@ export function useOptimizedDataFetching<T>(
   // Network durumu değiştiğinde kontrol et
   useEffect(() => {
     if (networkOnline && enabled && user && shouldFetch()) {
-      console.log('🔄 Network restored, fetching fresh data...');
+      safeLog('🔄 Network restored, fetching fresh data...');
       fetchData();
     }
   }, [networkOnline, enabled, user, shouldFetch, fetchData]); // fetchData dependency'sini ekledik

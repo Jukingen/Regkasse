@@ -1,3 +1,4 @@
+import { safeLog } from '../utils/loggingUtils';
 // Türkçe Açıklama: Optimize edilmiş masa siparişleri recovery hook'u - tek seferlik çağrı, 503'te retry yok
 // TABLE_ORDERS_MISSING (503) durumunda retry YAPILMAZ, kullanıcıya bilgi mesajı gösterilir
 
@@ -129,7 +130,7 @@ export const useTableOrdersRecoveryOptimized = () => {
       sessionStore.fetchInProgress = true;
 
       try {
-        console.log('🔄 Fetching table orders for recovery (single call)...');
+        safeLog('🔄 Fetching table orders for recovery (single call)...');
 
         // Direkt apiClient - useApiManager.apiCall KULLANILMAZ (503'te retry yapmasın)
         const response = await apiClient.get('/pos/cart/table-orders-recovery');
@@ -144,7 +145,7 @@ export const useTableOrdersRecoveryOptimized = () => {
           throw new Error(recoveryData.message || 'Failed to retrieve table orders');
         }
 
-        console.log(
+        safeLog(
           `✅ Recovery completed: ${recoveryData.totalActiveTables} active table orders found`
         );
 

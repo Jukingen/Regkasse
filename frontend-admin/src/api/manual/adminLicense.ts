@@ -39,6 +39,18 @@ export type LicensePublicStatusDto = {
   restrictions?: string[];
   /** True when mandant license requires renewal (lockdown). */
   requiresRenewal?: boolean;
+  /** Coarse combined label: active, grace, or expired. */
+  status?: 'active' | 'grace' | 'expired' | string;
+  systemLicense?: LicenseLayerPublicStatusDto | null;
+  tenantLicense?: LicenseLayerPublicStatusDto | null;
+  anyActive?: boolean;
+  allActive?: boolean;
+};
+
+export type LicenseLayerPublicStatusDto = {
+  validUntil?: string | null;
+  status?: 'active' | 'grace' | 'expired' | string;
+  isActive?: boolean;
 };
 
 /** Unified FA tenant license read-model cache key (POS contract: GET /api/license/status). */
@@ -70,6 +82,8 @@ export type LicenseStatusResponse = {
 export type ActivateLicenseRequest = {
   licenseKey: string;
   offlineActivationJwt?: string | null;
+  /** Super Admin platform activation target; ignored for system keys. */
+  tenantId?: string | null;
 };
 
 export type LicenseActivationResult = {

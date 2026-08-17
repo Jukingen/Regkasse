@@ -51,7 +51,7 @@ export function useExtendTenantLicense(tenantId: string) {
   const queryClient = useQueryClient();
 
   return useMutation<ExtendTenantLicenseResult, unknown, ExtendTenantLicenseFormValues>({
-    mutationFn: (values) => activateUnifiedLicense(values.licenseKey),
+    mutationFn: (values) => activateUnifiedLicense(values.licenseKey, tenantId),
     onMutate: async (values) => {
       const expectedValidUntilUtc = values.expectedValidUntilUtc?.trim();
       if (!expectedValidUntilUtc) {

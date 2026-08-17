@@ -9,7 +9,7 @@
 | **Target go-live date** | [YYYY-MM-DD] |
 | **Programme owner** | [Name] |
 | **ComplianceOfficer** | [Name] |
-| **Last updated** | 2026-08-07 |
+| **Last updated** | 2026-08-17 |
 
 **Production hosts**
 
@@ -21,7 +21,27 @@ API:     https://api.regkasse.at
 
 > **No-go if any of these are true at cutover:** FON still Simulation in Production; TSE Soft/Demo/Fake or lock bypassed; ephemeral disk for DB / DEP / data-exports; no signed AVV for first paying customers; DEP history without durable stored files; no on-call and no successful System backup in the last 7 days.
 
-**How to use:** Tick boxes with date + evidence (ticket, screenshot, command output). Prefer a project board that mirrors section IDs.
+**How to use:** Tick boxes with date + evidence (ticket, screenshot, command output). Prefer a project board that mirrors section IDs. **Agents must not tick host-only items or forge §8 signatures.**
+
+**Sign-off packet (send for review):** [`GO_LIVE_SIGN_OFF_PACKET.md`](GO_LIVE_SIGN_OFF_PACKET.md) — circulate to Technical Lead, Operations, ComplianceOfficer, Product Owner. Fiskaly LIVE: [`FISKALY_PRODUCTION_CUTOVER.md`](FISKALY_PRODUCTION_CUTOVER.md). Deploy gate: [`FINAL_PRODUCTION_DEPLOYMENT_CHECKLIST.md`](FINAL_PRODUCTION_DEPLOYMENT_CHECKLIST.md).
+
+### Engineering evidence (repo, 2026-08-17) — unsigned
+
+Code can fail closed and document gates. It cannot replace DNS, vendor keys, a restore drill, or human sign-off. **Engineering recommendation: NO-GO** until §8 is signed and the conditions below are closed.
+
+| Area | In repo | Host / human still required |
+|------|---------|-----------------------------|
+| EF model snapshot | Sync migration present; `has-pending-model-changes` clean when applied | Apply on Production **after** a DB backup |
+| Production config lock | `ProductionRuntimeConfigurationGuard` (CSRF, FON not Simulation, backup `PgDump`, gateway not Mock, 2FA, rate limit, Redis) | Real env values + secrets on the host |
+| CSRF | Default `Enabled=true`; Production post-configure | Confirm no Dev bypass in Production |
+| `/metrics` | IP allowlist (not JWT) | Scrape from private CIDR; `AllowedCidrs` if Prometheus is public |
+| POS `console.log` | Gated via `safeLog` / `__DEV__` | — |
+| Alertmanager | Example: Slack + email `ops@regkasse.at` + optional PagerDuty; tracked file still **null**; `scripts/ops/test-alertmanager-routing.ps1` | Render + mount on host; AM was not running on the workstation (127.0.0.1:9093) |
+| Backup restore drill | Postgres 18 up locally; **no System dump** — [`BACKUP_RESTORE_DRILL_EVIDENCE.md`](BACKUP_RESTORE_DRILL_EVIDENCE.md) | Isolated `pg_restore` of a Succeeded dump |
+| TSE / FON Production | [`FISKALY_PRODUCTION_CUTOVER.md`](FISKALY_PRODUCTION_CUTOVER.md); startup lock if misconfigured | LIVE SCU + FON Real credentials; cutover checklists |
+| §8 sign-off | Packet ready — [`GO_LIVE_SIGN_OFF_PACKET.md`](GO_LIVE_SIGN_OFF_PACKET.md) | Named humans sign after host evidence |
+
+**Conditions for a later GO (must all be true):** FON Production (not Simulation); TSE Device/Real; backup `PgDump`; CSRF + 2FA + Redis on; Alertmanager **non-null** receivers on the host with a successful routing test; restore-drill evidence row **Passed**; AVV signed for first pilots; on-call named.
 
 **Highest priority after this doc (work next):**
 
@@ -71,7 +91,7 @@ Maps to readiness Weeks **1–4** (DNS/TLS, TSE/FON, backup, monitoring).
   - [ ] Automated System backup schedule (cron) enabled
   - [ ] Tenant backup available to Mandanten-Admin (`backup.manage`)
   - [ ] Retention: Tenant **~30d**, System **~90d** (or documented policy)
-  - [ ] Restore **validation** on isolated DB tested (dual Super Admin approval understood)
+  - [ ] Restore **validation** on isolated DB tested (dual Super Admin approval understood) — evidence: [`BACKUP_RESTORE_DRILL_EVIDENCE.md`](BACKUP_RESTORE_DRILL_EVIDENCE.md) (**not executed** as of 2026-08-17)
   - [ ] **No** automatic restore to production
   - [ ] Mandanten-Admin can list/download **own** tenant packages; cannot see System dumps
   - [ ] Backup failure alerts configured (activity + Slack/on-call)
@@ -141,7 +161,8 @@ Maps to readiness **Week 5** (+ final verification of Weeks 1–4).
   - [ ] FA `/admin/monitoring` accessible to Super Admin
   - [ ] Sentry (FA) project + basic alert recipes
 
-- [ ] **Alerting setup**
+- [ ] **Alerting setup**  
+  **Repo:** [`ALERTING.md`](ALERTING.md) + `monitoring/alertmanager/alertmanager.yml.example` (Slack, `ops@regkasse.at`, optional PagerDuty). Tracked `alertmanager.yml` is still **null** until the host renders it.
   - [ ] Critical errors → Slack / email / on-call webhook
   - [ ] TSE health / fleet alerts
   - [ ] FinanzOnline submission failure alerts
@@ -311,6 +332,10 @@ Prefer **1–3 pilots on day 0**, then stagger remaining mandants over Week 1–
 
 **Decision:** ⬜ **GO** / ⬜ **NO-GO** / ⬜ **GO with conditions**
 
+**Automated checker (engineering, not a signed decision):** Super Admin FA **Deployment & System → Go-Live (GO/NO-GO)** (`/admin/deployments/go-live`) calls `GET /api/admin/deployments/go-live-status`. It fail-closes on Fiskaly LIVE, Production config lock, FON Real, System backup + restore drill, monitoring + Alertmanager attestation, and §8/AVV/on-call flags plus a valid production compliance sign-off. Setting `GoLive:*` true without named-human evidence does not authorize fiscal Production traffic.
+
+Engineering note (2026-08-17, **not** a signed decision): recommend **NO-GO**. Host TSE/FON, Alertmanager receivers, restore-drill evidence, and §8 signatures are still open.
+
 ### 5.2 Automatic No-Go triggers
 
 | # | Trigger | If true → **No-Go** |
@@ -328,7 +353,7 @@ Prefer **1–3 pilots on day 0**, then stagger remaining mandants over Week 1–
 |-------|--------|
 | **Meeting date** | [YYYY-MM-DD] |
 | **Decision** | ⬜ GO · ⬜ NO-GO · ⬜ GO with conditions |
-| **Conditions / follow-ups** | |
+| **Conditions / follow-ups** | Unsigned. Required before GO: FON Real; TSE Device; PgDump backups; CSRF+2FA+Redis; Alertmanager non-null + routing test; restore drill Passed; AVV for pilots; on-call named. |
 | **First customer enable date** | [YYYY-MM-DD] |
 | **Signed — Programme owner** | |
 | **Signed — ComplianceOfficer** | |
@@ -378,14 +403,16 @@ Use only if go-live fails in a way that cannot be fixed forward safely.
 
 ## 8. Owner & sign-off
 
-| Role | Owner | Sign-off date |
-|------|-------|---------------|
-| **Technical Lead / Engineering** | | |
-| **Operations** | | |
-| **ComplianceOfficer** | | |
-| **Product Owner / Founder** | | |
-| **Support lead** | | |
-| **Finance (billing)** | | |
+> **Do not forge signatures.** Print names and dates only when the named human has reviewed host evidence ([`GO_LIVE_SIGN_OFF_PACKET.md`](GO_LIVE_SIGN_OFF_PACKET.md)). Circulate that packet; this table stays empty until they sign.
+
+| Role | Owner (print name) | Sign-off date |
+|------|--------------------|---------------|
+| **Technical Lead / Engineering** | ________________________ | |
+| **Operations** | ________________________ | |
+| **ComplianceOfficer** | ________________________ | |
+| **Product Owner / Founder** | ________________________ | |
+| **Support lead** | ________________________ | |
+| **Finance (billing)** | ________________________ | |
 
 ---
 
@@ -393,11 +420,11 @@ Use only if go-live fails in a way that cannot be fixed forward safely.
 
 | Phase | Focus | Exit met? | Notes |
 |-------|--------|-----------|-------|
-| §1 Pre-Go-Live | Infra, TSE/FON, backup | ⬜ | |
-| §2 Week before | Migrations, monitoring, security, docs | ⬜ | |
+| §1 Pre-Go-Live | Infra, TSE/FON, backup | ⬜ | Restore drill **not executed** — see evidence log |
+| §2 Week before | Migrations, monitoring, security, docs | ⬜ | Alertmanager example ready; host receivers not live |
 | §3 Go-Live day | Deploy, smoke, pilots | ⬜ | |
 | §4 Post Week 1 | Monitoring, fixes | ⬜ | |
-| §5 Go/No-Go | Decision record | ⬜ | |
+| §5 Go/No-Go | Decision record | ⬜ | Engineering recommendation **NO-GO**; circulate [`GO_LIVE_SIGN_OFF_PACKET.md`](GO_LIVE_SIGN_OFF_PACKET.md); §8 unsigned |
 
 ---
 
@@ -417,6 +444,11 @@ Use only if go-live fails in a way that cannot be fixed forward safely.
 | [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md) | Mandant onboarding flow |
 | [`MONITORING.md`](MONITORING.md) · [`ALERTING.md`](ALERTING.md) | Observability |
 | [`BACKUP_AND_DISASTER_RECOVERY.md`](BACKUP_AND_DISASTER_RECOVERY.md) | Backup / DR |
+| [`BACKUP_RESTORE_DRILL_EVIDENCE.md`](BACKUP_RESTORE_DRILL_EVIDENCE.md) | Restore drill log (empty until executed) |
+| [`GO_LIVE_SIGN_OFF_PACKET.md`](GO_LIVE_SIGN_OFF_PACKET.md) | Circulate for §8 signatures |
+| FA `/admin/deployments/go-live` | Automated GO/NO-GO (`GET /api/admin/deployments/go-live-status`) |
+| [`FISKALY_PRODUCTION_CUTOVER.md`](FISKALY_PRODUCTION_CUTOVER.md) | LIVE SCU / FON / host config |
+| [`FINAL_PRODUCTION_DEPLOYMENT_CHECKLIST.md`](FINAL_PRODUCTION_DEPLOYMENT_CHECKLIST.md) | Deploy gates — do not skip |
 
 ---
 
@@ -424,13 +456,12 @@ Use only if go-live fails in a way that cannot be fixed forward safely.
 
 Work through items in this order unless ComplianceOfficer overrides:
 
-1. **TSE Production Configuration** (P0) — §1.2  
-2. **FinanzOnline Production Configuration** (P0) — §1.2  
-3. **Backup Strategy** (P1) — §1.1  
-4. **Monitoring Setup** (P1) — §2.2  
-5. **Customer Onboarding Process** (P2) — §2.4 / §3.2  
-
-Say which item to tackle first (recommended: **TSE Production Configuration**).
+1. Circulate [`GO_LIVE_SIGN_OFF_PACKET.md`](GO_LIVE_SIGN_OFF_PACKET.md) for §8 signatures  
+2. **TSE / Fiskaly LIVE** — [`FISKALY_PRODUCTION_CUTOVER.md`](FISKALY_PRODUCTION_CUTOVER.md) / §1.2  
+3. **FinanzOnline Production** — §1.2  
+4. Restore drill with a real System dump — [`BACKUP_RESTORE_DRILL_EVIDENCE.md`](BACKUP_RESTORE_DRILL_EVIDENCE.md)  
+5. Render Alertmanager on the host — [`ALERTING.md`](ALERTING.md)  
+6. Deploy only after gates — [`FINAL_PRODUCTION_DEPLOYMENT_CHECKLIST.md`](FINAL_PRODUCTION_DEPLOYMENT_CHECKLIST.md)
 
 ---
 
@@ -438,5 +469,6 @@ Say which item to tackle first (recommended: **TSE Production Configuration**).
 
 | Date | Change |
 |------|--------|
+| 2026-08-17 | Sign-off packet for circulation; Fiskaly LIVE procedure; final deploy gate; backup probe (no dump); Alertmanager still null locally; **no** forged §8 signatures; recommendation remains NO-GO |
 | 2026-08-07 | Initial 6-week tabular plan from Cloud Production Readiness |
 | 2026-08-07 | Expanded detailed checkbox Go-Live Checklist (pre-launch → Week 1, Go/No-Go, rollback, owners) aligned with readiness + actual TSE/FON config keys |

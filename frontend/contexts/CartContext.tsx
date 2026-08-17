@@ -6,6 +6,7 @@ import React, {
   useCallback,
   ReactNode,
 } from 'react';
+import { safeLog } from '../utils/loggingUtils';
 
 import type { AddItemToCartRequest } from '../services/api/cartService';
 import { apiClient } from '../services/api/config';
@@ -239,7 +240,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     async (tableNumber: number, forceRefresh = false) => {
       // Prevent duplicate fetch for same table (Brute-force Guard)
       if (!forceRefresh && lastFetchedTableIdRef.current === tableNumber) {
-        console.log(
+        safeLog(
           `🛡️ [CartContext] Skipping fetch for Table ${tableNumber} (Already fetched/In-progress)`
         );
         return;
@@ -248,7 +249,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (forceRefresh) lastFetchedTableIdRef.current = null;
       lastFetchedTableIdRef.current = tableNumber;
       setLoading(true);
-      console.log(`🔄 [CartContext] Fetching fresh data for Table ${tableNumber}...`);
+      safeLog(`🔄 [CartContext] Fetching fresh data for Table ${tableNumber}...`);
       try {
         // GET /pos/cart/current?tableNumber=X (equivalent to GET /Table/{id})
         const response = await apiClient.get<AddItemResponse['cart']>(
@@ -264,7 +265,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             ...prev,
             [tableNumber]: createEmptyCart(),
           }));
-          console.log(`✅ [CartContext] Table ${tableNumber} is empty — totals reset to 0`);
+          safeLog(`✅ [CartContext] Table ${tableNumber} is empty — totals reset to 0`);
           return;
         }
 
@@ -346,7 +347,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             },
           };
         });
-        console.log(
+        safeLog(
           `✅ [CartContext] Table ${tableNumber} updated with ${backendItems.length} items`
         );
       } catch (err: any) {
@@ -378,11 +379,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     async (tableNumber: number) => {
       const current = activeTableIdRef.current;
       if (tableNumber === current) {
-        console.log(`[CartContext] Already on table ${tableNumber}, skipping switch.`);
+        safeLog(`[CartContext] Already on table ${tableNumber}, skipping switch.`);
         return;
       }
 
-      console.log(`[CartContext] Switching active table: ${current} -> ${tableNumber}`);
+      safeLog(`[CartContext] Switching active table: ${current} -> ${tableNumber}`);
       setActiveTableId(tableNumber);
       activeTableIdRef.current = tableNumber;
 
@@ -436,7 +437,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const modifierTotal = modifiers.reduce((s, m) => s + m.price * m.quantity, 0);
       const lineTotalPrice = baseUnitPrice * quantity + modifierTotal;
 
-      console.log(`➕ [CartContext] Adding item to table ${activeTableId}:`, {
+      safeLog(`➕ [CartContext] Adding item to table ${activeTableId}:`, {
         productId,
         quantity,
         modifiersCount: modifiers.length,
@@ -634,7 +635,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
-      console.log('🗑️ [remove] Removing item', {
+      safeLog('🗑️ [remove] Removing item', {
         productId,
         itemId: item.itemId,
         cartId: currentCart.cartId,
@@ -652,7 +653,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Backend DELETE using itemId directly from local state
         await apiClient.delete(`/pos/cart/items/${item.itemId}`);
 
-        console.log('✅ [remove] Item removed successfully');
+        safeLog('✅ [remove] Item removed successfully');
       } catch (err: any) {
         console.error('❌ [remove] Failed to remove item', err);
         setError(err.message || 'Failed to remove item');
@@ -696,7 +697,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
-      console.log('🔄 [updateItemQuantity] Updating quantity', {
+      safeLog('🔄 [updateItemQuantity] Updating quantity', {
         itemId: item.itemId,
         oldQty: item.qty,
         newQty: quantity,
@@ -723,7 +724,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           Notes: item.notes || '',
         });
 
-        console.log('✅ [updateItemQuantity] Quantity updated successfully');
+        safeLog('✅ [updateItemQuantity] Quantity updated successfully');
         await fetchTableCart(activeTableId, true);
       } catch (e: any) {
         console.error('❌ [updateItemQuantity] Failed to update quantity', e);
@@ -1042,7 +1043,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       const newQuantity = item.qty + 1;
-      console.log('🔼 [increment] Updating quantity', {
+      safeLog('🔼 [increment] Updating quantity', {
         itemId: item.itemId,
         oldQty: item.qty,
         newQty: newQuantity,
@@ -1079,7 +1080,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           Quantity: newQuantity,
           Notes: item.notes || '',
         });
-        console.log('✅ [increment] Quantity updated successfully');
+        safeLog('✅ [increment] Quantity updated successfully');
         // Totals'ı güncellemek için backend'den taze veri çek (FE KDV hesaplamaz)
         await fetchTableCart(activeTableId, true);
       } catch (e: any) {
@@ -1115,13 +1116,13 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // If quantity is 1, DELETE the item instead of decrementing
       if (item.qty <= 1) {
-        console.log('🔽 [decrement] Quantity is 1, removing item instead');
+        safeLog('🔽 [decrement] Quantity is 1, removing item instead');
         await remove(productId);
         return;
       }
 
       const newQuantity = item.qty - 1;
-      console.log('🔽 [decrement] Updating quantity', {
+      safeLog('🔽 [decrement] Updating quantity', {
         itemId: item.itemId,
         oldQty: item.qty,
         newQty: newQuantity,
@@ -1158,7 +1159,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           Quantity: newQuantity,
           Notes: item.notes || '',
         });
-        console.log('✅ [decrement] Quantity updated successfully');
+        safeLog('✅ [decrement] Quantity updated successfully');
         await fetchTableCart(activeTableId, true);
       } catch (e: any) {
         console.error('❌ [decrement] Failed to update quantity', e);

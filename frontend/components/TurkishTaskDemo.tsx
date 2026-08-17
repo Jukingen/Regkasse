@@ -1,3 +1,4 @@
+import { safeLog } from '../utils/loggingUtils';
 /**
  * TurkishTaskDemo - Türkçe Görev Önerileri Demo
  *
@@ -40,7 +41,7 @@ const TurkishTaskDemo: React.FC = () => {
 
       // Dili Türkçe'ye ayarla
       await i18n.changeLanguage('tr');
-      console.log('🇹🇷 Language set to Turkish');
+      safeLog('🇹🇷 Language set to Turkish');
 
       // Basic önerileri al
       const suggestions = await generateTaskSuggestions(selectedCategory);
@@ -52,7 +53,7 @@ const TurkishTaskDemo: React.FC = () => {
         [{ text: 'Harika!' }]
       );
 
-      console.log('🔥 Turkish basic suggestions:', suggestions);
+      safeLog('🔥 Turkish basic suggestions:', suggestions);
     } catch (error) {
       console.error('Turkish basic suggestions failed:', error);
       Alert.alert('Hata', 'Türkçe öneriler alınamadı');
@@ -70,7 +71,7 @@ const TurkishTaskDemo: React.FC = () => {
 
       // Dili Türkçe'ye ayarla
       await i18n.changeLanguage('tr');
-      console.log('🇹🇷 Language set to Turkish for AI');
+      safeLog('🇹🇷 Language set to Turkish for AI');
 
       // AI önerileri al
       const suggestions = await getAISuggestions(selectedCategory);
@@ -82,7 +83,7 @@ const TurkishTaskDemo: React.FC = () => {
         [{ text: 'Muhteşem!' }]
       );
 
-      console.log('🚀 Turkish AI suggestions:', suggestions);
+      safeLog('🚀 Turkish AI suggestions:', suggestions);
     } catch (error) {
       console.error('Turkish AI suggestions failed:', error);
       Alert.alert('Hata', 'AI Türkçe öneriler alınamadı');
@@ -125,7 +126,7 @@ const TurkishTaskDemo: React.FC = () => {
         [{ text: 'Harika!' }]
       );
 
-      console.log('✅ Turkish task created:', task);
+      safeLog('✅ Turkish task created:', task);
     } catch (error) {
       console.error('Turkish task creation failed:', error);
       Alert.alert('Hata', 'Türkçe görev oluşturulamadı');
@@ -174,7 +175,7 @@ const TurkishTaskDemo: React.FC = () => {
       {/* Language Switcher */}
       <LanguageSwitcher
         onLanguageChange={(lang) => {
-          console.log(`📱 Language changed to: ${lang}`);
+          safeLog(`📱 Language changed to: ${lang}`);
           setBasicSuggestions([]);
           setAiSuggestions([]);
         }}

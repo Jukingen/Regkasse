@@ -1,3 +1,4 @@
+import { safeLog } from '../utils/loggingUtils';
 // Türkçe Açıklama: Bu hook tüm API çağrılarını merkezi olarak yönetir ve sonsuz döngü sorunlarını önler.
 // RKSV uyumlu güvenlik kontrolü ve akıllı cache yönetimi sağlar.
 
@@ -81,7 +82,7 @@ export const useApiManager = () => {
     try {
       const token = await sessionManager.getAccessToken();
       if (!token) {
-        console.log('⚠️ Token bulunamadı');
+        safeLog('⚠️ Token bulunamadı');
         return true;
       }
 
@@ -90,7 +91,7 @@ export const useApiManager = () => {
       const currentTime = Math.floor(now / 1000);
 
       if (payload.exp && payload.exp < currentTime) {
-        console.log('⚠️ Token expired');
+        safeLog('⚠️ Token expired');
         return true;
       }
 
@@ -152,7 +153,7 @@ export const useApiManager = () => {
             .syncPendingPaymentQueue()
             .then(({ processed, failed }) => {
               if (processed > 0 || failed > 0) {
-                console.log(
+                safeLog(
                   `[PaymentQueue] Synced ${processed} pending payment(s) after reconnect, failed: ${failed}`
                 );
                 notifyOfflineSyncComplete(processed, failed);
@@ -164,7 +165,7 @@ export const useApiManager = () => {
           void syncOfflineOrderQueue()
             .then(({ uploaded, replayed, failed }) => {
               if (uploaded > 0 || replayed > 0 || failed > 0) {
-                console.log(
+                safeLog(
                   `[OfflineOrderQueue] uploaded=${uploaded} replayed=${replayed} failed=${failed}`
                 );
                 notifyOfflineSyncComplete(replayed, failed);
@@ -180,7 +181,7 @@ export const useApiManager = () => {
         throw fetchError;
       }
     } catch (error) {
-      console.log('⚠️ Health check failed:', error);
+      safeLog('⚠️ Health check failed:', error);
       updateState({ isOnline: false });
       return false;
     }
@@ -234,7 +235,7 @@ export const useApiManager = () => {
       if (cacheKey) {
         const cached = getCachedData<T>(cacheKey);
         if (cached) {
-          console.log(`✅ Cache hit for ${cacheKey}`);
+          safeLog(`✅ Cache hit for ${cacheKey}`);
           return cached;
         }
       }
@@ -247,12 +248,12 @@ export const useApiManager = () => {
           const timeSinceLastCall = Date.now() - activeCall.lastCall;
           if (timeSinceLastCall < 2000) {
             // 2 saniye
-            console.log(
+            safeLog(
               `⚠️ Duplicate API call prevented for ${key} (last call: ${timeSinceLastCall}ms ago)`
             );
             throw new Error('Duplicate API call prevented');
           } else {
-            console.log(`🔄 Allowing API call for ${key} (last call: ${timeSinceLastCall}ms ago)`);
+            safeLog(`🔄 Allowing API call for ${key} (last call: ${timeSinceLastCall}ms ago)`);
           }
         }
       }
@@ -273,7 +274,7 @@ export const useApiManager = () => {
         // Token kontrolü
         const tokenExpired = await checkTokenExpiry();
         if (tokenExpired) {
-          console.log('❌ Token expired, logging out');
+          safeLog('❌ Token expired, logging out');
           logout();
           throw new Error('Session expired');
         }
@@ -311,7 +312,7 @@ export const useApiManager = () => {
 
         if (newRetryCount <= retryCount) {
           // Retry logic
-          console.log(`🔄 Retrying API call ${key} (${newRetryCount}/${retryCount})`);
+          safeLog(`🔄 Retrying API call ${key} (${newRetryCount}/${retryCount})`);
 
           const timeoutId = setTimeout(
             () => {

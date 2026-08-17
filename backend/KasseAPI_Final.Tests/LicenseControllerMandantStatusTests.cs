@@ -57,6 +57,10 @@ public sealed class LicenseControllerMandantStatusTests
         Assert.Equal(5, dto.DaysRemaining);
         Assert.Equal("Lizenz läuft in 5 Tagen ab", dto.StatusMessage);
         Assert.False(dto.IsInGracePeriod);
+        Assert.True(dto.AnyActive);
+        Assert.NotNull(dto.SystemLicense);
+        Assert.NotNull(dto.TenantLicense);
+        Assert.Equal("active", dto.Status);
     }
 
     [Fact]
@@ -102,11 +106,18 @@ public sealed class LicenseControllerMandantStatusTests
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
         var db = new AppDbContext(dbOptions, NullCurrentTenantAccessor.Instance);
+        var unified = new UnifiedLicenseService(
+            db,
+            licenseService,
+            Mock.Of<ITenantLicenseService>(),
+            Mock.Of<ILicenseStatusCache>(),
+            tenantAccessor.Object,
+            NullLogger<UnifiedLicenseService>.Instance);
 
         return new LicenseController(
             licenseService,
             Mock.Of<ITenantLicenseService>(),
-            Mock.Of<IUnifiedLicenseService>(),
+            unified,
             Options.Create(new Configuration.LicenseOptions()),
             Mock.Of<IWebHostEnvironment>(),
             NullLogger<LicenseController>.Instance,

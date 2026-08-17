@@ -70,6 +70,8 @@ function lockedStatus(overrides?: Partial<LicenseStatusView>): LicenseStatusView
     graceEndedAt: '2026-07-08T00:00:00Z',
     canWrite: false,
     kind: 'lockdown',
+    anyActive: false,
+    allActive: false,
     ...overrides,
   };
 }

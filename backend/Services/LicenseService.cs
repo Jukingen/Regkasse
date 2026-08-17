@@ -239,6 +239,12 @@ public sealed class ActivateLicenseRequest
     /// <summary>Optional client-reported fingerprint; when set, must match this host.</summary>
     [JsonPropertyName("machineFingerprint")]
     public string? MachineFingerprint { get; set; }
+
+    /// <summary>
+    /// Optional mandant target for Super Admin (platform mode has no ambient tenant).
+    /// Ignored for <c>system</c> keys. When omitted, tenant is resolved from the key slug.
+    /// </summary>
+    public Guid? TenantId { get; set; }
 }
 
 public sealed record LicenseActivationResult(

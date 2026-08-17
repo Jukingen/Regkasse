@@ -1,5 +1,6 @@
 import axios, { type AxiosRequestConfig, type InternalAxiosRequestConfig } from 'axios';
 import { jwtDecode } from 'jwt-decode';
+import { safeLog } from '../../utils/loggingUtils';
 
 import {
   createApiAbortController,
@@ -32,7 +33,7 @@ export function applyStoredApiBaseUrl(url: string): void {
   }
   axiosInstance.defaults.baseURL = normalized;
   if (isDev) {
-    console.log('🔧 API base URL updated from tenant bootstrap:', normalized);
+    safeLog('🔧 API base URL updated from tenant bootstrap:', normalized);
   }
 }
 
@@ -53,7 +54,7 @@ export async function hydrateDevTenantApiBaseUrl(): Promise<void> {
   if (axiosInstance.defaults.baseURL !== next) {
     axiosInstance.defaults.baseURL = next;
     if (isDev) {
-      console.log('🔧 API base URL normalized (tenant via X-Tenant-Id):', next);
+      safeLog('🔧 API base URL normalized (tenant via X-Tenant-Id):', next);
     }
   }
 }
@@ -88,7 +89,7 @@ export async function resolveTenantFetchHeaders(
 }
 
 if (isDev) {
-  console.log('🔧 API Services - Using API Base URL:', API_BASE_URL);
+  safeLog('🔧 API Services - Using API Base URL:', API_BASE_URL);
 }
 
 // Token yönetimi için yardımcı fonksiyonlar
@@ -126,7 +127,7 @@ const TokenManager = {
       const cleanToken = sessionManager.normalizeToken(token);
       await sessionManager.persistSession({ token: cleanToken });
       if (isDev) {
-        console.log('Token stored successfully.');
+        safeLog('Token stored successfully.');
       }
 
       try {
@@ -305,7 +306,7 @@ axiosInstance.interceptors.request.use(
     // Expired / missing token: never attach Authorization (avoids login-screen 401 loops).
     if (token && TokenManager.isTokenExpired(token)) {
       if (isDev) {
-        console.log('Token expired, clearing...');
+        safeLog('Token expired, clearing...');
       }
       await TokenManager.clearTokens();
       if (typeof window !== 'undefined' && window.dispatchEvent) {
@@ -359,7 +360,7 @@ axiosInstance.interceptors.response.use(
     // 401 Unauthorized - Token geçersiz
     if (error.response?.status === 401) {
       if (isDev) {
-        console.log('⚠️ Unauthorized error (401)');
+        safeLog('⚠️ Unauthorized error (401)');
       }
 
       const originalConfig = error.config || {};
@@ -376,7 +377,7 @@ axiosInstance.interceptors.response.use(
       if (token) {
         isExpired = TokenManager.isTokenExpired(token);
         if (isDev) {
-          console.log('[API] 401 received. Local Token Expired:', isExpired);
+          safeLog('[API] 401 received. Local Token Expired:', isExpired);
         }
       }
 
@@ -404,7 +405,7 @@ axiosInstance.interceptors.response.use(
 
       if (isExpired || wasRetried) {
         if (isDev) {
-          console.log('⚠️ Session invalid/refresh failed, dispatching expiration event...');
+          safeLog('⚠️ Session invalid/refresh failed, dispatching expiration event...');
         }
         if (typeof window !== 'undefined' && window.dispatchEvent) {
           const event = new CustomEvent('AUTH_SESSION_EXPIRED');
@@ -421,7 +422,7 @@ axiosInstance.interceptors.response.use(
     // 403 Forbidden - Yetkisiz erişim
     if (error.response?.status === 403) {
       if (isDev) {
-        console.log('⛔ Forbidden error (403) - insufficient permissions');
+        safeLog('⛔ Forbidden error (403) - insufficient permissions');
       }
     }
 

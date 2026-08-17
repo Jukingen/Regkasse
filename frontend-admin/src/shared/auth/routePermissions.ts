@@ -199,6 +199,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/feature-flags': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/deployments': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/deployments/tenants': PERMISSIONS.SYSTEM_CRITICAL,
+  '/admin/deployments/go-live': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/deployments/compliance': PERMISSIONS.DEPLOYMENT_APPROVE,
   '/admin/database/migrations': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/data-management': PERMISSIONS.SYSTEM_CRITICAL,

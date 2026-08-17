@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { safeLog } from '../utils/loggingUtils';
 
 import { useApiManager } from './useApiManager'; // ✅ YENİ: Cache stratejisi entegrasyonu
 import { Product } from '../services/api/productService';
@@ -61,7 +62,7 @@ export const useProductCache = () => {
       globalProducts = normalized;
       globalInitialized = true;
 
-      console.log(`📦 Loaded ${normalized.length} products via global cache hook`);
+      safeLog(`📦 Loaded ${normalized.length} products via global cache hook`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load products';
       globalError = errorMessage;
@@ -86,7 +87,7 @@ export const useProductCache = () => {
       const fetchedCategories = await getAllCategories();
       globalCategories = fetchedCategories;
 
-      console.log(`📂 Loaded ${fetchedCategories.length} categories via global cache hook`);
+      safeLog(`📂 Loaded ${fetchedCategories.length} categories via global cache hook`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load categories';
       globalError = errorMessage;
@@ -98,7 +99,7 @@ export const useProductCache = () => {
 
   // Cache'i temizle ve yeniden yükle
   const refreshData = useCallback(async () => {
-    console.log('🔄 Refreshing product data...');
+    safeLog('🔄 Refreshing product data...');
     clearProductCache();
     globalProducts = [];
     globalCategories = [];

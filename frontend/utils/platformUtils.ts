@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { safeLog } from './loggingUtils';
 
 /**
  * Platform kontrolü için utility fonksiyonları
@@ -50,12 +51,12 @@ export const canUseAsyncStorage = () => {
  */
 export const platformLog = (message: string, platform?: 'web' | 'ios' | 'android' | 'all') => {
   if (platform === 'web' && isWeb) {
-    console.log(`[WEB] ${message}`);
+    safeLog(`[WEB] ${message}`);
   } else if (platform === 'ios' && isIOS) {
-    console.log(`[iOS] ${message}`);
+    safeLog(`[iOS] ${message}`);
   } else if (platform === 'android' && isAndroid) {
-    console.log(`[Android] ${message}`);
+    safeLog(`[Android] ${message}`);
   } else if (platform === 'all' || !platform) {
-    console.log(`[${Platform.OS.toUpperCase()}] ${message}`);
+    safeLog(`[${Platform.OS.toUpperCase()}] ${message}`);
   }
 };

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { safeLog } from '../utils/loggingUtils';
 
 import { useCart } from './useCart';
 import { usePaymentMethods } from './usePaymentMethods';
@@ -62,7 +63,7 @@ export const useCashRegisterCart = () => {
 
       try {
         addToast('info', `Switching to table ${tableNumber}...`, 2000);
-        console.log('🔄 Switching to table', tableNumber);
+        safeLog('🔄 Switching to table', tableNumber);
 
         const result = await loadCartFromHook(tableNumber);
 
@@ -174,10 +175,10 @@ export const useCashRegisterCart = () => {
             currentCart.cartId,
             `Payment completed - Receipt: ${receiptNumber}`
           );
-          console.log('✅ Cart reset and order status updated via API:', resetResult);
+          safeLog('✅ Cart reset and order status updated via API:', resetResult);
 
           if (resetResult.newCartId) {
-            console.log('🆕 New cart ID assigned:', resetResult.newCartId);
+            safeLog('🆕 New cart ID assigned:', resetResult.newCartId);
           }
         }
 
@@ -186,7 +187,7 @@ export const useCashRegisterCart = () => {
 
         addToast('success', `Cart reset and new order ready. Receipt: ${receiptNumber}`, 5000);
 
-        console.log('✅ Cart reset and order status update completed:', {
+        safeLog('✅ Cart reset and order status update completed:', {
           invoiceId,
           receiptNumber,
           tableNumber,

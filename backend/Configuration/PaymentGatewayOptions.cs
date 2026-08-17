@@ -33,6 +33,14 @@ public sealed class PaymentGatewayOptions
     public bool IsStripeProvider =>
         string.Equals(Provider, "Stripe", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// True when Provider is unset or <c>Mock</c>. Production startup rejects this
+    /// (<c>Stripe</c> for card intents, <c>None</c>/<c>Disabled</c> for cash-only).
+    /// </summary>
+    public bool IsMockProvider =>
+        string.IsNullOrWhiteSpace(Provider)
+        || string.Equals(Provider.Trim(), "Mock", StringComparison.OrdinalIgnoreCase);
+
     public string? ResolveStripeApiKey()
     {
         if (!string.IsNullOrWhiteSpace(Stripe.ApiKey))

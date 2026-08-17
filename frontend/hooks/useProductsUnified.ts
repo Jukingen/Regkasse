@@ -1,3 +1,4 @@
+import { safeLog } from '../utils/loggingUtils';
 // Türkçe Açıklama: Unified Product Hook - Tüm ürün API çağrılarını tek noktada birleştirir
 // Duplicate hook'ları kaldırır ve consistent API kullanımı sağlar
 
@@ -77,12 +78,12 @@ class ProductCache {
 
     // Eğer zaten yüklenmişse yüklemez
     if (this.state.initialized && this.state.products.length > 0) {
-      console.log('📦 Products already loaded, skipping...');
+      safeLog('📦 Products already loaded, skipping...');
       await Promise.resolve();
       return;
     }
 
-    console.log('🔄 Loading products and categories...');
+    safeLog('🔄 Loading products and categories...');
 
     this.loadingPromise = this._performLoad();
 
@@ -97,7 +98,7 @@ class ProductCache {
     try {
       this.updateState({ loading: true, error: null });
 
-      console.log('🔄 Loading products and categories via catalog...');
+      safeLog('🔄 Loading products and categories via catalog...');
 
       // Katalog endpoint'i ile tek çağrıda hem kategori hem ürün al
       try {
@@ -108,7 +109,7 @@ class ProductCache {
           name: c.name ?? '',
         }));
 
-        console.log(`📦 Catalog data received:`, {
+        safeLog(`📦 Catalog data received:`, {
           productsCount: products.length,
           categoriesCount: categories.length,
           sampleProduct: products[0]
@@ -128,7 +129,7 @@ class ProductCache {
           error: null,
         });
 
-        console.log(
+        safeLog(
           `✅ Loaded ${products.length} products and ${categories.length} categories from catalog`
         );
       } catch (catalogError) {
@@ -160,7 +161,7 @@ class ProductCache {
           error: null,
         });
 
-        console.log(
+        safeLog(
           `✅ Fallback loaded ${products.length} products and ${categories.length} categories`
         );
       }
@@ -178,7 +179,7 @@ class ProductCache {
 
   // Cache'i temizle ve yeniden yükle
   async refreshData(): Promise<void> {
-    console.log('🔄 Refreshing all product data...');
+    safeLog('🔄 Refreshing all product data...');
 
     // Frontend cache'i temizle
     clearProductCache();

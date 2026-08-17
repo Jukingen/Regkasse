@@ -1,3 +1,4 @@
+import { safeLog } from '../../utils/loggingUtils';
 // Order servisi - Backend Orders API'leri ile iletişim
 import { SecureApiService } from './secureApiService';
 import { CreateOrderRequest, OrderResponse, Order } from '../../types/order';
@@ -10,7 +11,7 @@ export const orderService = {
   async createOrder(request: CreateOrderRequest): Promise<OrderResponse> {
     try {
       const response = await secureApiService.securePost<OrderResponse>(API_BASE_URL, request);
-      console.log('Order created successfully:', response);
+      safeLog('Order created successfully:', response);
       return response;
     } catch (error) {
       console.error('Error creating order:', error);
@@ -54,7 +55,7 @@ export const orderService = {
   async deleteOrder(orderId: string): Promise<void> {
     try {
       await secureApiService.secureDelete(`${API_BASE_URL}/${orderId}`);
-      console.log('Order deleted successfully:', orderId);
+      safeLog('Order deleted successfully:', orderId);
     } catch (error) {
       console.error('Error deleting order:', error);
       throw error;

@@ -1,3 +1,4 @@
+import { safeLog } from '../utils/loggingUtils';
 // Bu komponent, sadece backend'den gelen sepet ve hesaplama verilerini gösterir. Local hesaplama yapılmaz.
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -164,7 +165,7 @@ const CartBar: React.FC<CartBarProps> = ({
 
   // DEBUG: Cart state değişimini izle
   useEffect(() => {
-    console.log('CartBar - cart state:', cart);
+    safeLog('CartBar - cart state:', cart);
   }, [cart]);
 
   // Sepet değiştiğinde ilk ürünü otomatik seçili yap

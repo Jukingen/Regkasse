@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { safeLog } from './utils/loggingUtils';
 
 import { trimExpoPublicEnv } from './constants/expoPublicEnv';
 
@@ -23,7 +24,7 @@ const getApiBaseUrl = () => {
   const configuredApiBaseUrl = normalizeEnv(process.env.EXPO_PUBLIC_API_BASE_URL);
   if (configuredApiBaseUrl) {
     if (isDev) {
-      console.log(`🌐 Using API URL from ${API_BASE_URL_ENV}:`, configuredApiBaseUrl);
+      safeLog(`🌐 Using API URL from ${API_BASE_URL_ENV}:`, configuredApiBaseUrl);
     }
     return stripDevTenantQueryFromBaseUrl(configuredApiBaseUrl);
   }
@@ -63,5 +64,5 @@ const getApiBaseUrl = () => {
 export const API_BASE_URL = getApiBaseUrl();
 
 if (isDev) {
-  console.log('🔧 Final API_BASE_URL:', API_BASE_URL);
+  safeLog('🔧 Final API_BASE_URL:', API_BASE_URL);
 }

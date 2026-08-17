@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { safeLog } from '../utils/loggingUtils';
 
 import { apiClient } from '../services/api/config';
 import {
@@ -75,15 +76,15 @@ export function usePaymentMethods(user: any, cashRegisterId?: string | null) {
     }
 
     if (isInitialized && paymentMethods.length > 0) {
-      console.log('🔄 Payment methods already fetched, returning cached data');
+      safeLog('🔄 Payment methods already fetched, returning cached data');
       return;
     }
 
     try {
       setLoading(true);
       setError(null);
-      console.log('🔄 Fetching payment methods from backend...');
-      console.log('🔐 Using token:', token ? 'Available' : 'Missing');
+      safeLog('🔄 Fetching payment methods from backend...');
+      safeLog('🔐 Using token:', token ? 'Available' : 'Missing');
       const json: unknown = await apiClient.get<unknown>(
         posPaymentMethodsPath(cashRegisterId.trim())
       );
@@ -106,7 +107,7 @@ export function usePaymentMethods(user: any, cashRegisterId?: string | null) {
       setPaymentMethods(methods.map(toPaymentMethodInfo));
       setTseStatus(tseStatusInfo);
       setIsInitialized(true);
-      console.log('✅ Payment methods fetched successfully:', {
+      safeLog('✅ Payment methods fetched successfully:', {
         methodsCount: methods.length,
         tseConnected: tseStatusInfo.isConnected,
       });
@@ -216,7 +217,7 @@ export function usePaymentMethods(user: any, cashRegisterId?: string | null) {
 
   // OPTIMIZATION: Manuel refresh için - sadece gerektiğinde kullanılır
   const refreshPaymentMethods = useCallback(() => {
-    console.log('🔄 Manual refresh of payment methods...');
+    safeLog('🔄 Manual refresh of payment methods...');
     setIsInitialized(false); // Reset initialization flag to force fresh fetch
     fetchPaymentMethods();
   }, [fetchPaymentMethods]);

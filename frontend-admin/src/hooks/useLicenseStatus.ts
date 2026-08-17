@@ -34,6 +34,8 @@ export type LicenseStatusView = {
   canWrite: boolean;
   /** Underlying resolved license kind. */
   kind: LicenseStatus['kind'];
+  anyActive: boolean;
+  allActive: boolean;
 };
 
 /** Maps resolved tenant license → FA lockdown lifecycle state. */
@@ -84,7 +86,9 @@ export function shouldShowSystemLockedAlertFromView(view: {
 function toView(
   license: LicenseStatus,
   expiredAt: string | null,
-  licensePlan: string | null
+  licensePlan: string | null,
+  anyActive: boolean,
+  allActive: boolean
 ): LicenseStatusView {
   const state = mapLicenseLifecycleUiState(license);
   const daysOverdue = Math.max(0, license.daysExpired);
@@ -108,6 +112,8 @@ function toView(
     graceEndedAt: license.lockDate,
     canWrite: license.canWrite,
     kind: license.kind,
+    anyActive,
+    allActive,
   };
 }
 
@@ -132,8 +138,21 @@ export function useLicenseStatus() {
         ? licenseQuery.data.licenseType.trim()
         : null;
 
-    return toView(statusQuery.data, expiredAt, licensePlan);
-  }, [statusQuery.data, licenseQuery.data?.validUntil, licenseQuery.data?.licenseType]);
+    return toView(
+      statusQuery.data,
+      expiredAt,
+      licensePlan,
+      Boolean(licenseQuery.data?.anyActive ?? licenseQuery.data?.isValid),
+      Boolean(licenseQuery.data?.allActive)
+    );
+  }, [
+    statusQuery.data,
+    licenseQuery.data?.validUntil,
+    licenseQuery.data?.licenseType,
+    licenseQuery.data?.anyActive,
+    licenseQuery.data?.allActive,
+    licenseQuery.data?.isValid,
+  ]);
 
   const history: TenantLicenseHistoryItem[] = historyQuery.data ?? [];
 

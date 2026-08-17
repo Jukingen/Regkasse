@@ -4,6 +4,7 @@ import {
   resolveUserSettingsRecord,
 } from './normalizeUserSettingsResponse';
 import { debugPosPaymentTrace } from '../../utils/debugPosPaymentTrace';
+import { safeLog } from '../../utils/loggingUtils';
 
 const isDev = __DEV__;
 
@@ -60,12 +61,12 @@ export interface UserSettings {
 export const getUserSettings = async (): Promise<UserSettings> => {
   try {
     if (isDev) {
-      console.log('Fetching user settings from API...');
+      safeLog('Fetching user settings from API...');
     }
     // ✅ YENİ: apiClient otomatik header management
     const raw = await apiClient.get<unknown>('/user/settings');
     if (isDev) {
-      console.log('User settings API response (dev): keys loaded');
+      safeLog('User settings API response (dev): keys loaded');
     }
     const source = resolveUserSettingsRecord(raw);
     const flat = source;

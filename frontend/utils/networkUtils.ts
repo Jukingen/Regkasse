@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { safeLog } from './loggingUtils';
 
 // Bilgisayarın IP adresini bulmak için yardımcı fonksiyonlar
 export const getLocalIPInstructions = (): string => {
@@ -96,7 +97,7 @@ export const testNetworkConnection = async (ipAddress: string): Promise<boolean>
     clearTimeout(timeoutId);
     return response.ok;
   } catch (error) {
-    console.log(`Network test failed for ${ipAddress}:`, error);
+    safeLog(`Network test failed for ${ipAddress}:`, error);
     return false;
   }
 };
@@ -109,11 +110,11 @@ export const findWorkingIP = async (): Promise<string | null> => {
     try {
       const isWorking = await testNetworkConnection(ip);
       if (isWorking) {
-        console.log(`Working IP found: ${ip}`);
+        safeLog(`Working IP found: ${ip}`);
         return ip;
       }
     } catch (error) {
-      console.log(`IP ${ip} test failed:`, error);
+      safeLog(`IP ${ip} test failed:`, error);
     }
   }
 

@@ -1,3 +1,4 @@
+import { safeLog } from '../utils/loggingUtils';
 // Bu component, auth durumunu debug etmek ve otomatik logout sorununu izlemek için kullanılır
 // Sadece development modunda görünür
 
@@ -45,7 +46,7 @@ export const AuthDebugPanel: React.FC = () => {
                   SESSION_KEYS.user,
                   SESSION_KEYS.tokenExpiry,
                 ]);
-                console.log('🔴 Force logout: Storage cleared');
+                safeLog('🔴 Force logout: Storage cleared');
               } catch (error) {
                 console.error('Force logout storage clear failed:', error);
               }

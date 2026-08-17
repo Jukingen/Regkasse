@@ -91,12 +91,14 @@ export function useHeaderTenantLicense() {
     resolvedStatus,
   ]);
 
-  return {
-    mode,
-    resolvedStatus,
-    licenseValidUntilUtc,
-    isLoading,
-    isUnavailable,
-    licenseQuery,
-  };
+    return {
+      mode,
+      resolvedStatus,
+      licenseValidUntilUtc,
+      isLoading,
+      isUnavailable,
+      licenseQuery,
+      anyActive: Boolean(licenseQuery.data?.anyActive ?? licenseQuery.data?.isValid),
+      allActive: Boolean(licenseQuery.data?.allActive),
+    };
 }

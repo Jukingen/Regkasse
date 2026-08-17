@@ -30,7 +30,7 @@
 - [ ] Escape hatch yok veya Compliance yazılı onayı var  
 - [ ] Smoke: bir test ödemesi **gerçek** compact JWS + thumbprint stamp  
 
-**Referans:** [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md)
+**Referans:** [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md) · [`FISKALY_PRODUCTION_CUTOVER.md`](FISKALY_PRODUCTION_CUTOVER.md)
 
 ---
 

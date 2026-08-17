@@ -359,6 +359,42 @@ public sealed class PaymentServiceFonRetryTests : IAsyncLifetime
         _fonService.Verify(x => x.SubmitInvoiceAsync(It.IsAny<Invoice>()), Times.Never);
     }
 
+    [Fact]
+    public async Task RetryFONSubmit_WhenAlreadySubmitted_IsIdempotent()
+    {
+        var paymentId = await SeedPaymentAndInvoiceAsync(status: "Submitted", referenceId: "FON-EXISTING");
+
+        var result = await _paymentService.RetryFinanzOnlineSubmitAsync(paymentId);
+
+        Assert.True(result.Success);
+        Assert.Equal("Submitted", result.Status);
+        Assert.Equal("FON-EXISTING", result.ReferenceId);
+        Assert.Equal(FinanzOnlineFailureKind.None, result.FailureKind);
+        _fonService.Verify(x => x.SubmitInvoiceAsync(It.IsAny<Invoice>()), Times.Never);
+        _metrics.Verify(m => m.IncrementSubmitTotal(), Times.Once);
+    }
+
+    [Fact]
+    public async Task RetryFONSubmit_WhenPaymentRegisterBelongsToOtherTenant_ReturnsNotFound()
+    {
+        var paymentId = await SeedPaymentAndInvoiceAsync();
+        var otherTenantId = Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddddd");
+        if (!await _ctx.Tenants.AnyAsync(t => t.Id == otherTenantId))
+            _ctx.Tenants.Add(new Tenant { Id = otherTenantId, Name = "FON other", Slug = "fon-other" });
+        var payment = await _ctx.PaymentDetails.FirstAsync(p => p.Id == paymentId);
+        var register = await _ctx.CashRegisters.IgnoreQueryFilters()
+            .FirstAsync(r => r.Id == payment.CashRegisterId);
+        register.TenantId = otherTenantId;
+        await _ctx.SaveChangesAsync();
+
+        var result = await _paymentService.RetryFinanzOnlineSubmitAsync(paymentId);
+
+        Assert.False(result.Success);
+        Assert.Equal("Payment not found.", result.ErrorMessage);
+        Assert.Equal(FinanzOnlineFailureKind.Permanent, result.FailureKind);
+        _fonService.Verify(x => x.SubmitInvoiceAsync(It.IsAny<Invoice>()), Times.Never);
+    }
+
     private static FinanzOnlineSubmitResponse Ok(string reference) =>
         new()
         {

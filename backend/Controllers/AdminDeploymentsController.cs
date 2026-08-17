@@ -21,6 +21,7 @@ public sealed class AdminDeploymentsController : ControllerBase
     private readonly ITenantDeploymentService _tenantDeployments;
     private readonly IDeploymentAuditService _deploymentAudit;
     private readonly IDeploymentComplianceService _compliance;
+    private readonly IGoLiveCheckService _goLive;
     private readonly DeploymentOptions _options;
     private readonly ILogger<AdminDeploymentsController> _logger;
 
@@ -30,6 +31,7 @@ public sealed class AdminDeploymentsController : ControllerBase
         ITenantDeploymentService tenantDeployments,
         IDeploymentAuditService deploymentAudit,
         IDeploymentComplianceService compliance,
+        IGoLiveCheckService goLive,
         IOptions<DeploymentOptions> options,
         ILogger<AdminDeploymentsController> logger)
     {
@@ -38,6 +40,7 @@ public sealed class AdminDeploymentsController : ControllerBase
         _tenantDeployments = tenantDeployments;
         _deploymentAudit = deploymentAudit;
         _compliance = compliance;
+        _goLive = goLive;
         _options = options.Value;
         _logger = logger;
     }
@@ -60,6 +63,24 @@ public sealed class AdminDeploymentsController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
+    }
+
+    /// <summary>
+    /// Automated production-readiness GO / NO-GO (Super Admin).
+    /// Default <paramref name="refresh"/> re-runs all gates; set false to return the last stored result.
+    /// </summary>
+    [HttpGet("api/admin/deployments/go-live-status")]
+    [Authorize]
+    [HasPermission(AppPermissions.SystemCritical)]
+    [ProducesResponseType(typeof(GoLiveStatusDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<GoLiveStatusDto>> GetGoLiveStatus(
+        [FromQuery] bool refresh = true,
+        CancellationToken cancellationToken = default)
+    {
+        var status = refresh
+            ? await _goLive.CheckAllConditionsAsync(cancellationToken).ConfigureAwait(false)
+            : await _goLive.GetLatestStatusAsync(cancellationToken).ConfigureAwait(false);
+        return Ok(status);
     }
 
     /// <summary>Overall tenant deployment status (canary progressive rollouts).</summary>

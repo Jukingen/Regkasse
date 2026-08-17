@@ -272,7 +272,10 @@ internal static class ApplicationHost
         builder.Services.Configure<RateLimitingOptions>(builder.Configuration.GetSection(RateLimitingOptions.SectionName));
         builder.Services.Configure<MonitoringOptions>(builder.Configuration.GetSection(MonitoringOptions.SectionName));
         builder.Services.Configure<CsrfOptions>(builder.Configuration.GetSection(CsrfOptions.SectionName));
-        // CSRF double-submit tokens (cache-backed; IMemoryCache is singleton â€” Scoped service is fine).
+        builder.Services.AddSingleton<IPostConfigureOptions<CsrfOptions>, ProductionCsrfPostConfigure>();
+        if (builder.Environment.IsProduction() && !OpenApiExportMode.IsEnabled)
+            ProductionRuntimeConfigurationGuard.ThrowIfUnsafe(builder.Environment, builder.Configuration);
+        // CSRF double-submit tokens (cache-backed; IMemoryCache is singleton — Scoped service is fine).
         builder.Services.AddScoped<ICsrfTokenService, CsrfTokenService>();
         builder.Services.AddScoped<WebsiteGeneratorService>();
         builder.Services.AddScoped<IWebsiteGeneratorService>(sp => sp.GetRequiredService<WebsiteGeneratorService>());
@@ -406,6 +409,9 @@ internal static class ApplicationHost
         builder.Services.AddScoped<KasseAPI_Final.Services.Deployment.ITenantDeploymentService, KasseAPI_Final.Services.Deployment.TenantDeploymentService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Deployment.IDeploymentAuditService, KasseAPI_Final.Services.Deployment.DeploymentAuditService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Deployment.IDeploymentComplianceService, KasseAPI_Final.Services.Deployment.DeploymentComplianceService>();
+        builder.Services.Configure<GoLiveOptions>(builder.Configuration.GetSection(GoLiveOptions.SectionName));
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Deployment.IGoLiveStatusStore, KasseAPI_Final.Services.Deployment.GoLiveStatusStore>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Deployment.IGoLiveCheckService, KasseAPI_Final.Services.Deployment.GoLiveCheckService>();
         builder.Services.AddHostedService<KasseAPI_Final.Services.Deployment.CanaryTenantMonitorHostedService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Database.IMigrationStatusService, KasseAPI_Final.Services.Database.MigrationStatusService>();
         builder.Services.AddHttpClient("deployment-rollback");
@@ -1637,6 +1643,7 @@ internal static class ApplicationHost
             app.UseMiddleware<KasseAPI_Final.Middleware.MetricsMiddleware>();
         if (prometheusEnabled)
         {
+            app.UseMiddleware<KasseAPI_Final.Middleware.PrometheusMetricsAccessMiddleware>();
             var metricsPath = string.IsNullOrWhiteSpace(monitoringOptions.MetricsEndpoint)
                 ? "/metrics"
                 : monitoringOptions.MetricsEndpoint.Trim();

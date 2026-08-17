@@ -1,4 +1,5 @@
 import { apiClient } from './api/config';
+import { safeLog } from '../utils/loggingUtils';
 
 export interface PrintJob {
   id: string;
@@ -79,7 +80,7 @@ class PrinterService {
     cashier: string;
   }): Promise<boolean> {
     try {
-      console.log('Printing receipt immediately...');
+      safeLog('Printing receipt immediately...');
 
       const printContent = this.formatReceiptContent(receiptData);
 
@@ -90,7 +91,7 @@ class PrinterService {
         priority: 'high',
       });
 
-      console.log('Receipt printed successfully');
+      safeLog('Receipt printed successfully');
       return (response as any)?.success === true;
     } catch (error) {
       console.error('Receipt printing failed:', error);
@@ -113,7 +114,7 @@ class PrinterService {
     time: string;
   }): Promise<boolean> {
     try {
-      console.log('Printing order immediately...');
+      safeLog('Printing order immediately...');
 
       const printContent = this.formatOrderContent(orderData);
 
@@ -124,7 +125,7 @@ class PrinterService {
         priority: 'high',
       });
 
-      console.log('Order printed successfully');
+      safeLog('Order printed successfully');
       return (response as any)?.success === true;
     } catch (error) {
       console.error('Order printing failed:', error);

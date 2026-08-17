@@ -1,3 +1,4 @@
+import { safeLog } from '../utils/loggingUtils';
 // Türkçe Açıklama: Optimize edilmiş sepet yönetimi hook'u - sonsuz döngü sorunlarını çözer
 // useApiManager kullanarak duplicate API çağrılarını önler ve akıllı cache yönetimi sağlar
 
@@ -93,7 +94,7 @@ export const useCartOptimized = () => {
         setLoadingState(true);
         setErrorState(null);
 
-        console.log('🛒 Ürün sepete ekleniyor:', { item, tableNumber });
+        safeLog('🛒 Ürün sepete ekleniyor:', { item, tableNumber });
 
         // API çağrısı - duplicate call'ları önler
         const result = await apiCall(
@@ -132,7 +133,7 @@ export const useCartOptimized = () => {
           // Cache'i güncelle
           setCachedData(`cart-${tableNumber}`, result, 1);
 
-          console.log('✅ Ürün başarıyla eklendi');
+          safeLog('✅ Ürün başarıyla eklendi');
           return { success: true, message: 'Item added successfully', cart: result };
         }
 
@@ -230,7 +231,7 @@ export const useCartOptimized = () => {
           }
         });
 
-        console.log("✅ Ürün local state'e başarıyla eklendi");
+        safeLog("✅ Ürün local state'e başarıyla eklendi");
         return { success: true, message: 'Item added successfully' };
       } catch (error: any) {
         const errorMessage = 'Failed to add item to cart';
@@ -259,12 +260,12 @@ export const useCartOptimized = () => {
         setLoadingState(true);
         setErrorState(null);
 
-        console.log('🛒 Masa', tableNumber, 'sepeti yükleniyor...');
+        safeLog('🛒 Masa', tableNumber, 'sepeti yükleniyor...');
 
         // Cache kontrolü
         const cachedCart = getCachedData<Cart>(`cart-${tableNumber}`);
         if (cachedCart) {
-          console.log('✅ Cache hit for table', tableNumber);
+          safeLog('✅ Cache hit for table', tableNumber);
           updateTableCarts((prev) => {
             const newCarts = new Map(prev);
             newCarts.set(tableNumber, cachedCart);
@@ -298,12 +299,12 @@ export const useCartOptimized = () => {
             return newCarts;
           });
 
-          console.log('✅ Masa', tableNumber, "sepeti backend'den başarıyla yüklendi");
+          safeLog('✅ Masa', tableNumber, "sepeti backend'den başarıyla yüklendi");
           return { success: true, cart: result };
         }
 
         // Hiç sepet yoksa boş sepet oluştur
-        console.log('✅ Masa', tableNumber, 'için yeni sepet oluşturuldu');
+        safeLog('✅ Masa', tableNumber, 'için yeni sepet oluşturuldu');
         return { success: true, cart: null };
       } catch (error: any) {
         console.error('❌ Masa', tableNumber, 'sepeti yükleme hatası:', error);
@@ -329,7 +330,7 @@ export const useCartOptimized = () => {
         setLoadingState(true);
         setErrorState(null);
 
-        console.log('🔄 Ürün miktarı güncelleniyor:', { tableNumber, itemId, newQuantity });
+        safeLog('🔄 Ürün miktarı güncelleniyor:', { tableNumber, itemId, newQuantity });
 
         // API çağrısı
         await apiCall(
@@ -385,7 +386,7 @@ export const useCartOptimized = () => {
           setCachedData(`cart-${tableNumber}`, updatedCart, 2);
         }
 
-        console.log('✅ Ürün miktarı güncellendi');
+        safeLog('✅ Ürün miktarı güncellendi');
       } catch (error) {
         const errorMessage = 'Failed to update item quantity';
         setErrorState(errorMessage);
@@ -409,7 +410,7 @@ export const useCartOptimized = () => {
         setLoadingState(true);
         setErrorState(null);
 
-        console.log('🗑️ Ürün sepetten kaldırılıyor:', { tableNumber, itemId });
+        safeLog('🗑️ Ürün sepetten kaldırılıyor:', { tableNumber, itemId });
 
         // API çağrısı
         await apiCall(
@@ -468,7 +469,7 @@ export const useCartOptimized = () => {
           setCachedData(`cart-${tableNumber}`, updatedCart, 2);
         }
 
-        console.log('✅ Ürün sepetten kaldırıldı');
+        safeLog('✅ Ürün sepetten kaldırıldı');
       } catch (error) {
         const errorMessage = 'Failed to remove item from cart';
         setErrorState(errorMessage);
@@ -483,7 +484,7 @@ export const useCartOptimized = () => {
   // Clear cart for specific table
   const clearCartForTable = useCallback(
     async (tableNumber: number): Promise<{ success: boolean; message: string }> => {
-      console.log('🧹 clearCartForTable called with tableNumber:', tableNumber);
+      safeLog('🧹 clearCartForTable called with tableNumber:', tableNumber);
 
       if (!tableNumber) {
         const errorMsg = 'Table number is required for clearing cart';
@@ -495,7 +496,7 @@ export const useCartOptimized = () => {
         setLoadingState(true);
         setErrorState(null);
 
-        console.log('🧹 Masa', tableNumber, 'sepeti temizleniyor...');
+        safeLog('🧹 Masa', tableNumber, 'sepeti temizleniyor...');
 
         // API çağrısı
         await apiCall(
@@ -522,7 +523,7 @@ export const useCartOptimized = () => {
         // Cache'i temizle
         setCachedData(`cart-${tableNumber}`, null, 0);
 
-        console.log('✅ Masa', tableNumber, 'sepeti temizlendi');
+        safeLog('✅ Masa', tableNumber, 'sepeti temizlendi');
         return { success: true, message: 'Cart cleared successfully' };
       } catch (error) {
         const errorMessage = 'Failed to clear cart';
@@ -538,13 +539,13 @@ export const useCartOptimized = () => {
 
   // Clear all carts for all tables
   const clearAllTables = useCallback(async () => {
-    console.log('🧹 clearAllTables called');
+    safeLog('🧹 clearAllTables called');
 
     try {
       setLoadingState(true);
       setErrorState(null);
 
-      console.log('🧹 TÜM MASALAR temizleniyor...');
+      safeLog('🧹 TÜM MASALAR temizleniyor...');
 
       // API çağrısı
       const result = await apiCall(
@@ -570,7 +571,7 @@ export const useCartOptimized = () => {
           setCachedData(`cart-${i}`, null, 0);
         }
 
-        console.log('✅ TÜM MASALAR temizlendi');
+        safeLog('✅ TÜM MASALAR temizlendi');
         return result;
       } else {
         return {
@@ -619,7 +620,7 @@ export const useCartOptimized = () => {
 
   // Tüm sepetleri temizle
   const clearAllCarts = useCallback(() => {
-    console.log('🧹 All carts cleared');
+    safeLog('🧹 All carts cleared');
     updateTableCarts(() => new Map());
     setErrorState(null);
   }, [updateTableCarts, setErrorState]);

@@ -18,6 +18,8 @@ function baseStatus(overrides: Partial<LicenseStatusView>): LicenseStatusView {
     graceEndedAt: null,
     canWrite: true,
     kind: 'active',
+    anyActive: true,
+    allActive: true,
     ...overrides,
   };
 }

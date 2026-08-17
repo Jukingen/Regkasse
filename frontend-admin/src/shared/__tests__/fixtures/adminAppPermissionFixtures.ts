@@ -246,6 +246,7 @@ export const MANAGER_FORBIDDEN_MENU_KEYS: readonly string[] = [
   '/admin/maintenance',
   '/admin/feature-flags',
   '/admin/deployments',
+  '/admin/deployments/go-live',
   '/admin/errors',
   '/admin/monitoring',
   '/admin/risk-dashboard',

@@ -1,3 +1,4 @@
+import { safeLog } from '../utils/loggingUtils';
 // Türkçe Açıklama: Optimize edilmiş ürün operasyonları hook'u - sonsuz döngü sorunlarını çözer
 // useApiManager kullanarak duplicate API çağrılarını önler ve akıllı cache yönetimi sağlar
 
@@ -52,12 +53,12 @@ export function useProductOperationsOptimized() {
       setLoadingState(true);
       setErrorState(null);
 
-      console.log('🔄 Ürünler yükleniyor...');
+      safeLog('🔄 Ürünler yükleniyor...');
 
       // Cache kontrolü
       const cachedProducts = getCachedData<SimpleProduct[]>('products');
       if (cachedProducts) {
-        console.log('✅ Cache hit for products');
+        safeLog('✅ Cache hit for products');
         setProductsState(cachedProducts);
         setLoadingState(false);
         return;
@@ -102,7 +103,7 @@ export function useProductOperationsOptimized() {
       );
 
       if (result) {
-        console.log(`✅ ${result.length} ürün başarıyla yüklendi`);
+        safeLog(`✅ ${result.length} ürün başarıyla yüklendi`);
         setProductsState(result);
 
         // Cache'e kaydet
@@ -132,13 +133,13 @@ export function useProductOperationsOptimized() {
 
   // Component mount olduğunda ürünleri yükle - sadece bir kere
   useEffect(() => {
-    console.log('🚀 useProductOperationsOptimized mount - ürünler yükleniyor');
+    safeLog('🚀 useProductOperationsOptimized mount - ürünler yükleniyor');
     loadProducts();
   }, []); // Sadece mount'ta çalışır
 
   // Manuel refresh için
   const refreshProducts = useCallback(() => {
-    console.log('🔄 Manuel refresh - ürünler yenileniyor...');
+    safeLog('🔄 Manuel refresh - ürünler yenileniyor...');
 
     // Cache'i temizle ve yeniden yükle
     setCachedData('products', null, 0);
@@ -147,7 +148,7 @@ export function useProductOperationsOptimized() {
 
   // Force refresh için
   const forceRefreshProducts = useCallback(() => {
-    console.log('🔄 Force refresh - ürünler zorla yenileniyor...');
+    safeLog('🔄 Force refresh - ürünler zorla yenileniyor...');
 
     // Cache'i temizle
     setCachedData('products', null, 0);

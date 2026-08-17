@@ -1,3 +1,4 @@
+import { safeLog } from '../utils/loggingUtils';
 /**
  * POS Tagesabschluss (daily closing) API facade.
  * Canonical route: POST /api/pos/shift/daily-closing (not /api/pos/daily-closing).
@@ -34,7 +35,7 @@ export async function getDailyClosingStatus(): Promise<PosDailyClosingStatusDto>
   try {
     const status = await fetchDailyClosingStatus();
     if (__DEV__) {
-      console.log('✅ Tagesabschluss status:', {
+      safeLog('✅ Tagesabschluss status:', {
         canClose: status.canClose,
         blockReason: status.blockReason,
         hasActiveShift: status.hasActiveShift,
@@ -59,7 +60,7 @@ export async function performDailyClosing(
   try {
     const result = await performDailyClosingApi(params.cashCount, params.notes);
     if (__DEV__) {
-      console.log('✅ Tagesabschluss success:', {
+      safeLog('✅ Tagesabschluss success:', {
         success: result.success,
         dailyClosingId: result.dailyClosingId,
         totalSales: result.report?.totalSales,

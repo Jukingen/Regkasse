@@ -32,6 +32,7 @@ module.exports = defineConfig([
     'hooks/useEnhancedTaskMaster.ts',
     'services/EnhancedTaskMasterService.ts',
     'services/TaskMasterService.ts',
+    'services/SimpleTaskMasterService.ts',
   ]),
 
   universeNative,
@@ -93,6 +94,13 @@ module.exports = defineConfig([
           ],
         },
       ],
+      'no-console': ['error', { allow: ['warn', 'error'] }],
+    },
+  },
+  {
+    files: ['utils/loggingUtils.ts', 'utils/debugPosPaymentTrace.ts'],
+    rules: {
+      'no-console': 'off',
     },
   },
 ]);

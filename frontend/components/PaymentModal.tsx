@@ -980,7 +980,7 @@ export default function PaymentModal({
   /** POST /api/pos/payment — exhaustive logs + Debug Error on every guard exit (operator confirmations log only). */
   const executePaymentSubmission = async (confirmedCardIntentId?: string) => {
     const logPay = (step: string, detail?: Record<string, unknown>) => {
-      console.log(`[PaymentModal] ${step}`, detail ?? '');
+      debugPosPaymentTrace(step, detail);
     };
 
     if (timeSyncCritical) {
@@ -1173,10 +1173,10 @@ export default function PaymentModal({
     // REMOVED: voucher full balance confirmation dialog
     // User already confirmed by clicking "Zahlen" after voucher validation
     if (voucherEnabled && voucherSnapshot && totalAmount - voucherRedeemAmountEffective <= 0.02) {
-      console.log(
-        '[PaymentModal] Voucher full coverage - proceeding directly to payment (no dialog)'
-      );
-      // Continue to API call - do nothing here, just let flow continue
+      debugPosPaymentTrace('voucher_full_coverage_no_dialog', {
+        totalAmount,
+        voucherRedeemAmountEffective,
+      });
     }
 
     const effectiveCardIntentId = confirmedCardIntentId ?? cardPaymentIntentId;
@@ -1288,18 +1288,6 @@ export default function PaymentModal({
         idempotencyKey: paymentRequest.idempotencyKey,
       });
 
-      const DEBUG_PAYLOAD = {
-        ...paymentRequest,
-        payment: {
-          ...paymentRequest.payment,
-          voucherRedemptions: paymentRequest.payment.voucherRedemptions?.map((line) => ({
-            amount: line.amount,
-            code: typeof line.code === 'string' ? `[redacted,len=${line.code.length}]` : line.code,
-          })),
-        },
-      };
-      console.log('DEBUG_PAYLOAD:', DEBUG_PAYLOAD);
-
       logPay('Step 5: Calling processPayment → POST /api/pos/payment', {
         idempotencyKey: paymentRequest.idempotencyKey,
       });
@@ -1359,7 +1347,7 @@ export default function PaymentModal({
         return;
       }
 
-      console.log('[PAYMENT] Success, paymentId:', response.paymentId);
+      debugPosPaymentTrace('payment_success', { paymentId: response.paymentId });
       {
         const streak = registerPosTseStatusCheckOutcome(true);
         setTseCheckFailureStreak(streak);
@@ -1382,7 +1370,7 @@ export default function PaymentModal({
       // (Skip separate /complete — POST /payment can succeed while the persisted cart has no rows, which would make /complete fail with "empty cart".)
       try {
         await cartService.resetCartAfterPayment(currentCartId, 'Payment completed');
-        console.log('[CART] Reset complete');
+        debugPosPaymentTrace('cart_reset_complete', {});
       } catch (resetErr) {
         console.warn('[CART] Reset warning:', resetErr);
         Alert.alert(
@@ -1413,7 +1401,9 @@ export default function PaymentModal({
       }
     } catch (err) {
       console.error('Handle Payment Error:', err);
-      console.log('[PaymentModal] Step: processPayment or post-submit flow threw', err);
+      debugPosPaymentTrace('process_payment_or_post_submit_threw', {
+        message: err instanceof Error ? err.message : 'unknown',
+      });
       setPurchaseState('input');
       const message = getPaymentErrorDisplayMessage(err);
       const title =

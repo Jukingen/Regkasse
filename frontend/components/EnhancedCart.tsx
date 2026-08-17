@@ -13,6 +13,7 @@ import {
   Dimensions,
   Vibration,
 } from 'react-native';
+import { safeLog } from '../utils/loggingUtils';
 
 import { Colors, Spacing, BorderRadius, Typography } from '../constants/Colors';
 import { usePrevious } from '../hooks/usePrevious';
@@ -238,7 +239,7 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
 
   // DEBUG: Cart state değişimini izle
   useEffect(() => {
-    console.log('EnhancedCart - cart state:', cart);
+    safeLog('EnhancedCart - cart state:', cart);
   }, [cart]);
 
   // Expanded-item slide animation (must run before any early return)

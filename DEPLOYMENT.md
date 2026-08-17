@@ -9,7 +9,7 @@ Local setup stays in [`DEVELOPMENT.md`](DEVELOPMENT.md). Coupled FA+API releases
 
 **Monitoring:** [`docs/MONITORING.md`](docs/MONITORING.md) · [`docs/ALERTING.md`](docs/ALERTING.md) · [`docs/METRICS.md`](docs/METRICS.md) · stack [`monitoring/`](monitoring/)
 
-**Release notes (2026-08-08 wave):** [`docs/RELEASE_NOTES_2026-08-08.md`](docs/RELEASE_NOTES_2026-08-08.md) · Go-live: [`docs/GO_LIVE_CHECKLIST.md`](docs/GO_LIVE_CHECKLIST.md) · Runbook: [`docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md`](docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md)
+**Go-live:** [`docs/GO_LIVE_CHECKLIST.md`](docs/GO_LIVE_CHECKLIST.md) · sign-off [`docs/GO_LIVE_SIGN_OFF_PACKET.md`](docs/GO_LIVE_SIGN_OFF_PACKET.md) · Fiskaly LIVE [`docs/FISKALY_PRODUCTION_CUTOVER.md`](docs/FISKALY_PRODUCTION_CUTOVER.md) · deploy gates [`docs/FINAL_PRODUCTION_DEPLOYMENT_CHECKLIST.md`](docs/FINAL_PRODUCTION_DEPLOYMENT_CHECKLIST.md) · Runbook: [`docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md`](docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md)
 
 **Production hosts (Single POS UI):**
 

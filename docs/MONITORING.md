@@ -78,6 +78,7 @@ Never log passwords, voucher codes, raw PEMs, or unredacted card data ([`CONFIGU
 ## Metrics & performance
 
 - API: `GET /metrics` (Prometheus text) when `Monitoring:Enabled` + `Monitoring:Prometheus:Enabled`
+- Outside Development, scrape is **IP-restricted** (`PrometheusMetricsAccessMiddleware`): loopback always; empty `Monitoring:Prometheus:AllowedCidrs` allows RFC1918 + unique-local IPv6; an explicit CIDR list replaces that default. Public IPs receive HTTP 403. JWT is not used (scrapers have no user token).
 - Middleware: request count, errors, duration, active requests
 - Fiscal: FinanzOnline, offline replay, TSE fleet gauges (`TseMetricsService`)
 - Business gauges: tenants, revenue, orders, users (refreshed periodically)

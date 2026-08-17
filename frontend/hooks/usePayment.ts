@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Alert } from 'react-native';
+import { safeLog } from '../utils/loggingUtils';
 
 import {
   getPaymentErrorDisplayMessage,
@@ -212,7 +213,7 @@ export const usePayment = (cashRegisterId?: string | null) => {
           (response as unknown as { receiptNumber?: string }).receiptNumber?.trim()) ||
         '';
       if (receiptNumber) {
-        console.log('[refund] receiptNumber:', receiptNumber);
+        safeLog('[refund] receiptNumber:', receiptNumber);
       }
       return response;
     } catch (err) {

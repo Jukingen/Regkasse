@@ -362,6 +362,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
   ],
   [ADMIN_SIDEBAR_GROUP_KEYS.deploymentSystem]: [
     '/admin/deployments',
+    '/admin/deployments/go-live',
     '/admin/deployments/tenants',
     '/admin/deployments/compliance',
     '/admin/database/migrations',

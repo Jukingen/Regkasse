@@ -55,6 +55,28 @@ public sealed class LicensePublicStatusDto
 
     /// <summary>True when mandant license requires renewal (lockdown).</summary>
     public bool RequiresRenewal { get; init; }
+
+    /// <summary>Coarse combined label: <c>active</c>, <c>grace</c>, or <c>expired</c>.</summary>
+    public string Status { get; init; } = "expired";
+
+    public LicenseLayerPublicStatusDto? SystemLicense { get; init; }
+
+    public LicenseLayerPublicStatusDto? TenantLicense { get; init; }
+
+    public bool AnyActive { get; init; }
+
+    public bool AllActive { get; init; }
+}
+
+/// <summary>One license layer in <see cref="LicensePublicStatusDto"/> (system host or mandant).</summary>
+public sealed class LicenseLayerPublicStatusDto
+{
+    public DateTime? ValidUntil { get; init; }
+
+    /// <summary><c>active</c>, <c>grace</c>, or <c>expired</c>.</summary>
+    public string Status { get; init; } = "expired";
+
+    public bool IsActive { get; init; }
 }
 
 /// <summary>Optional POS feature flags from <c>GET /api/license/features</c> plus enabled license feature ids.</summary>

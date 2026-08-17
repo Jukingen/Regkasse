@@ -17,8 +17,8 @@ namespace KasseAPI_Final.Services;
 /// <see cref="IDevelopmentModeService.ShouldBypassLicense"/> on the inner <see cref="LicenseService"/> singleton.
 /// </para>
 /// <para>
-/// When <see cref="OpenApiExportMode.IsEnabled"/> is true, <see cref="ILicenseService"/> is registered as a singleton
-/// <see cref="ProductionLicenseService"/> so the interface can be resolved without an HTTP scope during OpenAPI generation.
+/// <see cref="IUnifiedLicenseService"/> is the primary consumer-facing license API (status, activate, validate).
+/// <see cref="ILicenseService"/> remains the deployment adapter used internally by the unified service.
 /// </para>
 /// </remarks>
 public static class LicenseServiceRegistration

@@ -1,3 +1,4 @@
+import { safeLog } from '../utils/loggingUtils';
 // Bu hook, daha sağlıklı session persistence stratejisi sağlar
 // Backend-first yaklaşım benimser, minimal local storage kullanır
 
@@ -39,7 +40,7 @@ export const useSessionPersistence = () => {
     setSessionMetadata(metadata);
 
     // Session activity log - backend'e gönderebiliriz
-    console.log('📊 Session activity updated:', {
+    safeLog('📊 Session activity updated:', {
       userId: user.id,
       lastActivity: new Date(metadata.lastActivityTime).toISOString(),
       sessionDuration:
@@ -52,7 +53,7 @@ export const useSessionPersistence = () => {
    */
   const clearSession = useCallback(() => {
     setSessionMetadata(null);
-    console.log('🧹 Session metadata cleared');
+    safeLog('🧹 Session metadata cleared');
   }, []);
 
   /**
@@ -80,7 +81,7 @@ export const useSessionPersistence = () => {
         userRole: user.role,
       };
       setSessionMetadata(newSession);
-      console.log('🚀 New session started for user:', user.id);
+      safeLog('🚀 New session started for user:', user.id);
     }
   }, [user, sessionMetadata]);
 

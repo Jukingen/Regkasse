@@ -84,6 +84,7 @@ Response DTO highlights: `DumpInspectionPassed`, `RestoreAttemptExecuted` / `Res
 
 ## Related
 
+- Evidence log (fill after a real host drill; do not invent results): [`BACKUP_RESTORE_DRILL_EVIDENCE.md`](BACKUP_RESTORE_DRILL_EVIDENCE.md)
 - `GET /api/admin/integrity` — `IntegrityController`; same service as optional drill integrity step (different scope label in `DetailsJson`).
 - `scripts/sql/fiscal_go_live_validation.sql`
 - Backup admin APIs — artifact verification only.

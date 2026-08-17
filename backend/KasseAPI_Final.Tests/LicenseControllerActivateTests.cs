@@ -37,6 +37,60 @@ public sealed class LicenseControllerActivateTests
     }
 
     [Fact]
+    public async Task ActivateLicense_BillingKey_UsesBodyTenantIdWhenAmbientMissing()
+    {
+        var tenantId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var validUntil = DateTime.UtcNow.AddDays(365);
+        const string licenseKey = "REGK-20270101-cafe-A7F3K2D9";
+
+        var tenantLicenseService = new Mock<ITenantLicenseService>();
+        tenantLicenseService
+            .Setup(x => x.ActivateLicenseAsync(
+                tenantId,
+                licenseKey,
+                userId,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ActivationResult
+            {
+                Success = true,
+                Message = "Lizenz wurde erfolgreich aktiviert.",
+                LicenseKey = licenseKey,
+                ValidUntilUtc = validUntil,
+                LicensePlan = "12_months",
+            });
+
+        var controller = CreateController(
+            tenantLicenseService.Object,
+            tenantId: null,
+            userId,
+            dbSeed: db =>
+            {
+                db.Tenants.Add(new Models.Tenant
+                {
+                    Id = tenantId,
+                    Name = "Cafe",
+                    Slug = "cafe",
+                    Status = TenantStatuses.Active,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                });
+            });
+
+        var result = await controller.ActivateLicense(
+            new ActivateLicenseRequest { LicenseKey = licenseKey, TenantId = tenantId },
+            CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var payload = Assert.IsType<LicenseActivationResult>(ok.Value);
+        Assert.True(payload.Success);
+        Assert.Equal(tenantId, payload.TenantId);
+        tenantLicenseService.Verify(
+            x => x.ActivateLicenseAsync(tenantId, licenseKey, userId, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task ActivateLicense_BillingKey_ActivatesViaTenantLicenseService()
     {
         var tenantId = Guid.NewGuid();

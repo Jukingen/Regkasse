@@ -7,6 +7,7 @@ import React, {
   useState,
   type ReactNode,
 } from 'react';
+import { safeLog } from '../utils/loggingUtils';
 
 import { useConditionalPolling } from './useConditionalPolling';
 import { isDevSimulateNtpCriticalUi } from '../constants/devSimulatePosOffline';
@@ -50,9 +51,9 @@ export function TimeSyncStatusProvider({
       const raw = await apiClient.get<unknown>('/system/time/status');
       if (__DEV__) {
         try {
-          console.log('[TimeSync] GET /system/time/status response:', JSON.stringify(raw));
+          safeLog('[TimeSync] GET /system/time/status response:', JSON.stringify(raw));
         } catch {
-          console.log('[TimeSync] GET /system/time/status response (non-JSON-serializable):', raw);
+          safeLog('[TimeSync] GET /system/time/status response (non-JSON-serializable):', raw);
         }
       }
       let next = normalizeSystemTimeStatusDto(raw);
@@ -69,9 +70,9 @@ export function TimeSyncStatusProvider({
       }
       if (__DEV__) {
         try {
-          console.log('[TimeSync] normalized flags:', deriveTimeSyncUiFlags(next));
+          safeLog('[TimeSync] normalized flags:', deriveTimeSyncUiFlags(next));
         } catch {
-          console.log('[TimeSync] normalized flags (skipped)');
+          safeLog('[TimeSync] normalized flags (skipped)');
         }
       }
       setStatus(next);

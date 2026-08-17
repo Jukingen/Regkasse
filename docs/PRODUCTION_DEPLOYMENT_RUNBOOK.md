@@ -9,6 +9,9 @@
 | Full deploy map | [`../DEPLOYMENT.md`](../DEPLOYMENT.md) |
 | Release notes (2026-08-08) | [`RELEASE_NOTES_2026-08-08.md`](RELEASE_NOTES_2026-08-08.md) |
 | Go-live checklist | [`GO_LIVE_CHECKLIST.md`](GO_LIVE_CHECKLIST.md) |
+| Sign-off packet | [`GO_LIVE_SIGN_OFF_PACKET.md`](GO_LIVE_SIGN_OFF_PACKET.md) |
+| Final deploy gates | [`FINAL_PRODUCTION_DEPLOYMENT_CHECKLIST.md`](FINAL_PRODUCTION_DEPLOYMENT_CHECKLIST.md) |
+| Fiskaly LIVE | [`FISKALY_PRODUCTION_CUTOVER.md`](FISKALY_PRODUCTION_CUTOVER.md) |
 | Smoke tests | [`DEPLOYMENT_SMOKE_TEST.md`](DEPLOYMENT_SMOKE_TEST.md) |
 | Backup Fake vs PgDump | [`BACKUP_SYSTEM.md`](BACKUP_SYSTEM.md) § Understanding `"no real pg_dump"` |
 | TSE cutover | [`RKSV_PRODUCTION_CUTOVER_CHECKLIST.md`](RKSV_PRODUCTION_CUTOVER_CHECKLIST.md) |

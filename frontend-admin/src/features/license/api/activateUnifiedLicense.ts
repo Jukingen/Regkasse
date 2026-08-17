@@ -3,10 +3,14 @@ import type { ExtendTenantLicenseResult } from '@/features/license/api/tenantLic
 
 /** Activate a unified REGK key via POST /api/license/activate. */
 export async function activateUnifiedLicense(
-  licenseKey: string
+  licenseKey: string,
+  tenantId?: string | null
 ): Promise<ExtendTenantLicenseResult> {
   const key = licenseKey.trim();
-  const result = await postActivateLicense({ licenseKey: key });
+  const result = await postActivateLicense({
+    licenseKey: key,
+    tenantId: tenantId?.trim() ? tenantId.trim() : undefined,
+  });
   if (!result.success) {
     const err = new Error(result.message?.trim() || 'License activation failed') as Error & {
       response?: { data?: { message?: string } };

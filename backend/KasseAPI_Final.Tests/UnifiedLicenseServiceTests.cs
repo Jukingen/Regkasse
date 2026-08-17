@@ -157,6 +157,77 @@ public sealed class UnifiedLicenseServiceTests
     }
 
     [Fact]
+    public async Task GetUnifiedStatusAsync_CombinesSystemAndTenantLayers()
+    {
+        var tenantId = Guid.NewGuid();
+        var until = DateTime.UtcNow.AddDays(20);
+        var deployment = new Mock<ILicenseService>();
+        deployment
+            .Setup(x => x.GetCurrentStatusAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new LicenseStatusResponse(true, false, false, 100, DateTime.UtcNow.AddDays(100), "hash"));
+        deployment
+            .Setup(x => x.GetLicenseStatusAsync(tenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new LicenseStatusInfo
+            {
+                CanAccess = true,
+                CanTransact = true,
+                DaysRemaining = 20,
+                ValidUntil = until,
+            });
+
+        var accessor = new Mock<ICurrentTenantAccessor>();
+        accessor.Setup(x => x.TenantId).Returns(tenantId);
+        var (sut, db) = CreateSut(accessor.Object, licenseService: deployment.Object);
+        db.Tenants.Add(NewTenant(tenantId, "cafe"));
+        await db.SaveChangesAsync();
+
+        var status = await sut.GetUnifiedStatusAsync();
+
+        Assert.True(status.IsSystemLicense);
+        Assert.True(status.IsTenantLicense);
+        Assert.True(status.AnyLicenseActive);
+        Assert.True(status.AllLicensesActive);
+        Assert.Equal(LicenseKeyKinds.Tenant, status.LicenseType);
+        Assert.Equal("cafe", status.Slug);
+        Assert.Equal("active", status.Status);
+    }
+
+    [Fact]
+    public async Task ActivateLicenseAsync_TenantKey_ResolvesTenantFromSlugWithoutAmbient()
+    {
+        const string key = "REGK-20990101-cafe-A7F3K2D9";
+        var cafeId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var expiry = new DateTime(2099, 1, 1, 23, 59, 59, DateTimeKind.Utc);
+        var billing = new Mock<ITenantLicenseService>();
+        billing
+            .Setup(x => x.ActivateLicenseAsync(cafeId, key, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ActivationResult
+            {
+                Success = true,
+                Message = "Lizenz wurde erfolgreich aktiviert.",
+                LicenseKey = key,
+                ValidUntilUtc = expiry,
+                LicensePlan = "12_months",
+            });
+
+        var (sut, db) = CreateSut(billing: billing.Object);
+        db.Tenants.Add(NewTenant(cafeId, "cafe"));
+        db.LicenseSales.Add(NewSale(cafeId, key, expiry));
+        await db.SaveChangesAsync();
+
+        var result = await sut.ActivateLicenseAsync(
+            key,
+            new UnifiedLicenseActivationContext(TenantId: null, ActorUserId: userId));
+
+        Assert.True(result.Success);
+        Assert.Equal(cafeId, result.TenantId);
+        billing.Verify(
+            x => x.ActivateLicenseAsync(cafeId, key, userId, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task ActivateLicenseAsync_TenantKeyWithoutTenant_ReturnsTenantRequired()
     {
         var (sut, _) = CreateSut();

@@ -33,6 +33,8 @@ export function activeLicenseView(overrides?: Partial<LicenseStatusView>): Licen
     graceEndedAt: null,
     canWrite: true,
     kind: 'active',
+    anyActive: true,
+    allActive: true,
     ...overrides,
   };
 }
@@ -48,6 +50,8 @@ export function expiredLicenseView(overrides?: Partial<LicenseStatusView>): Lice
     graceEndedAt: '2026-01-08T00:00:00.000Z',
     canWrite: false,
     kind: 'lockdown',
+    anyActive: false,
+    allActive: false,
     ...overrides,
   };
 }
@@ -63,6 +67,8 @@ export function graceLicenseView(overrides?: Partial<LicenseStatusView>): Licens
     graceEndedAt: '2026-01-08T00:00:00.000Z',
     canWrite: true,
     kind: 'grace_write',
+    anyActive: true,
+    allActive: false,
     ...overrides,
   };
 }

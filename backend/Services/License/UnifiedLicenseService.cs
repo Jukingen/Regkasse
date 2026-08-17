@@ -9,9 +9,10 @@ using IBillingTenantLicenseService = KasseAPI_Final.Services.Billing.ITenantLice
 namespace KasseAPI_Final.Services.License;
 
 /// <summary>
-/// Parses unified <c>REGK-yyyyMMdd-{slug}-{8}</c> keys (and mapped legacy display keys),
-/// checks expiry / slug / database presence, then routes activate/deactivate to the
-/// existing deployment or billing services.
+/// Unification layer for REGK keys: combined status, slug-based activation, and
+/// validation against both <c>issued_licenses</c> and <c>license_sales</c>.
+/// Inner persistence stays on <see cref="ILicenseService"/> (deployment adapter)
+/// and billing <c>ITenantLicenseService</c> (mandant adapter).
 /// </summary>
 public sealed class UnifiedLicenseService : IUnifiedLicenseService
 {
@@ -38,6 +39,70 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
         _logger = logger;
     }
 
+    public async Task<UnifiedLicenseStatusDto> GetUnifiedStatusAsync(
+        Guid? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var resolvedTenantId = tenantId is Guid requested && requested != Guid.Empty
+            ? requested
+            : _tenantAccessor.TenantId is Guid ambient && ambient != Guid.Empty
+                ? ambient
+                : (Guid?)null;
+
+        var deployment = await _deployment
+            .GetCurrentStatusAsync(cancellationToken)
+            .ConfigureAwait(false);
+        var systemLayer = MapSystemLayer(deployment);
+
+        LicenseStatusInfo? mandant = null;
+        if (resolvedTenantId is Guid tid)
+        {
+            mandant = await _deployment
+                .GetLicenseStatusAsync(tid, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        var tenantLayer = MapTenantLayer(mandant);
+        var slug = systemLayer.IsActive && !tenantLayer.IsActive
+            ? LicenseKeyGenerator.SystemSlug
+            : await ResolveAmbientTenantSlugAsync(resolvedTenantId, cancellationToken)
+                .ConfigureAwait(false)
+              ?? (systemLayer.IsActive ? LicenseKeyGenerator.SystemSlug : string.Empty);
+
+        var licenseType = tenantLayer.IsActive
+            ? LicenseKeyKinds.Tenant
+            : systemLayer.IsActive
+                ? LicenseKeyKinds.System
+                : resolvedTenantId is not null
+                    ? LicenseKeyKinds.Tenant
+                    : LicenseKeyKinds.System;
+
+        var validUntil = tenantLayer.IsActive
+            ? tenantLayer.ValidUntil ?? systemLayer.ValidUntil
+            : systemLayer.ValidUntil ?? tenantLayer.ValidUntil;
+
+        var combinedStatus = tenantLayer.IsActive && string.Equals(tenantLayer.Status, "grace", StringComparison.Ordinal)
+            ? "grace"
+            : systemLayer.IsActive || tenantLayer.IsActive
+                ? "active"
+                : "expired";
+
+        return new UnifiedLicenseStatusDto
+        {
+            IsActive = systemLayer.IsActive || tenantLayer.IsActive,
+            LicenseType = licenseType,
+            Slug = slug,
+            ValidUntil = validUntil,
+            IsSystemLicense = systemLayer.IsActive,
+            IsTenantLicense = tenantLayer.IsActive,
+            SystemLicense = systemLayer,
+            TenantLicense = tenantLayer,
+            Status = combinedStatus,
+            DeploymentSnapshot = deployment,
+            MandantSnapshot = mandant,
+        };
+    }
+
     public async Task<LicenseKeyValidationResult> ValidateLicenseAsync(
         string licenseKey,
         CancellationToken cancellationToken = default)
@@ -45,6 +110,14 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
         var resolved = await ResolveAsync(licenseKey, cancellationToken).ConfigureAwait(false);
         var tenantId = _tenantAccessor.TenantId;
         var expectedTenantId = tenantId is Guid id && id != Guid.Empty ? id : (Guid?)null;
+        if (expectedTenantId is null
+            && LicenseKeyGenerator.IsMandantBillingKey(resolved.CanonicalKey)
+            && !string.IsNullOrEmpty(resolved.Slug))
+        {
+            expectedTenantId = await FindTenantIdBySlugAsync(resolved.Slug, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         var ambientSlug = await ResolveAmbientTenantSlugAsync(expectedTenantId, cancellationToken)
             .ConfigureAwait(false);
         return ToValidation(resolved, expectedTenantId, ambientSlug);
@@ -61,9 +134,25 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
         CancellationToken cancellationToken = default)
     {
         var resolved = await ResolveAsync(licenseKey, cancellationToken).ConfigureAwait(false);
-        var ambientSlug = await ResolveAmbientTenantSlugAsync(context.TenantId, cancellationToken)
+        var requestedTenantId = context.TenantId is Guid ctxTenant && ctxTenant != Guid.Empty
+            ? ctxTenant
+            : context.DeploymentRequest?.TenantId is Guid bodyTenant && bodyTenant != Guid.Empty
+                ? bodyTenant
+                : (Guid?)null;
+
+        var isMandantKey = LicenseKeyGenerator.IsMandantBillingKey(resolved.CanonicalKey)
+            || LicenseKeyGenerator.IsMandantBillingKey(resolved.InputKey);
+
+        Guid? activationTenantId = requestedTenantId;
+        if (isMandantKey && activationTenantId is null)
+        {
+            activationTenantId = await FindTenantIdBySlugAsync(resolved.Slug, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        var ambientSlug = await ResolveAmbientTenantSlugAsync(activationTenantId, cancellationToken)
             .ConfigureAwait(false);
-        var validation = ToValidation(resolved, context.TenantId, ambientSlug);
+        var validation = ToValidation(resolved, isMandantKey ? activationTenantId : null, ambientSlug);
 
         if (!validation.IsFormatValid)
         {
@@ -77,10 +166,9 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
                 validation.Message ?? "This license has expired.");
         }
 
-        if (LicenseKeyGenerator.IsMandantBillingKey(resolved.CanonicalKey)
-            || LicenseKeyGenerator.IsMandantBillingKey(resolved.InputKey))
+        if (isMandantKey)
         {
-            if (context.TenantId is not Guid tenantId || tenantId == Guid.Empty)
+            if (activationTenantId is not Guid tenantId || tenantId == Guid.Empty)
                 return new LicenseActivationResult(false, "Tenant context required.");
 
             if (context.ActorUserId is not Guid userId || userId == Guid.Empty)
@@ -104,11 +192,17 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
             if (!billing.Success)
                 return new LicenseActivationResult(false, billing.Message);
 
+            await _licenseStatusCache
+                .InvalidateLicenseCacheAsync(tenantId, cancellationToken)
+                .ConfigureAwait(false);
+
             return new LicenseActivationResult(
                 true,
                 billing.Message,
                 billing.ValidUntilUtc,
                 billing.LicensePlan,
+                TenantId: tenantId,
+                TenantSlug: ambientSlug ?? resolved.Slug,
                 DaysRemaining: LicenseService.ComputeActivationDaysRemaining(billing.ValidUntilUtc),
                 Status: "active");
         }
@@ -117,9 +211,21 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
         if (string.IsNullOrWhiteSpace(request.LicenseKey))
             request.LicenseKey = resolved.InputKey;
 
-        return await _deployment
+        var deploymentResult = await _deployment
             .ActivateAsync(request, context.ClientInfo, cancellationToken)
             .ConfigureAwait(false);
+
+        if (deploymentResult is null)
+            return new LicenseActivationResult(false, "Activation failed due to an internal error.");
+
+        if (deploymentResult.Success && activationTenantId is Guid cacheTenantId && cacheTenantId != Guid.Empty)
+        {
+            await _licenseStatusCache
+                .InvalidateLicenseCacheAsync(cacheTenantId, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        return deploymentResult;
     }
 
     public Task<LicenseDeactivationResult> DeactivateLicenseAsync(
@@ -375,10 +481,68 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
             return null;
 
         return await _db.Tenants.AsNoTracking()
+            .IgnoreQueryFilters()
             .Where(t => t.Id == id)
             .Select(t => t.Slug)
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    private async Task<Guid?> FindTenantIdBySlugAsync(string? slug, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(slug)
+            || string.Equals(slug, LicenseKeyGenerator.SystemSlug, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var normalized = slug.Trim().ToLowerInvariant();
+        var id = await _db.Tenants.AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(t => t.Slug == normalized)
+            .Select(t => t.Id)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return id == Guid.Empty ? null : id;
+    }
+
+    private static UnifiedLicenseLayerStatusDto MapSystemLayer(LicenseStatusResponse deployment)
+    {
+        var paid = deployment.IsValid && !deployment.IsTrial;
+        var trialActive = deployment.IsTrial && !deployment.IsExpired;
+        var active = paid || trialActive;
+        return new UnifiedLicenseLayerStatusDto
+        {
+            ValidUntil = deployment.ExpiryDate,
+            Status = active ? "active" : "expired",
+            IsActive = active,
+        };
+    }
+
+    private static UnifiedLicenseLayerStatusDto MapTenantLayer(LicenseStatusInfo? mandant)
+    {
+        if (mandant is null)
+        {
+            return new UnifiedLicenseLayerStatusDto
+            {
+                Status = "expired",
+                IsActive = false,
+            };
+        }
+
+        var active = mandant.CanAccess && !mandant.IsLocked;
+        var status = !active
+            ? "expired"
+            : mandant.IsInGracePeriod
+                ? "grace"
+                : "active";
+        return new UnifiedLicenseLayerStatusDto
+        {
+            ValidUntil = mandant.ValidUntil,
+            Status = status,
+            IsActive = active,
+        };
     }
 
     private static LicenseKeyValidationResult ToValidation(

@@ -84,9 +84,9 @@ export function LicenseManagementPage() {
       dataIndex: 'kind',
       width: 120,
       render: (kind: UnifiedLicenseKind) => (
-        <Tag color={kind === 'server' ? 'geekblue' : 'purple'}>
-          {kind === 'server'
-            ? t('license.management.kindServer')
+        <Tag color={kind === 'system' ? 'geekblue' : 'purple'}>
+          {kind === 'system'
+            ? t('license.management.kindSystem')
             : t('license.management.kindTenant')}
         </Tag>
       ),
@@ -96,6 +96,12 @@ export function LicenseManagementPage() {
       dataIndex: 'licenseKey',
       ellipsis: true,
       render: (key: string) => <Typography.Text code>{key}</Typography.Text>,
+    },
+    {
+      title: t('license.management.slug'),
+      dataIndex: 'slug',
+      width: 140,
+      render: (slug: string | null) => slug ?? '—',
     },
     {
       title: t('license.management.customer'),
@@ -112,7 +118,15 @@ export function LicenseManagementPage() {
       title: t('license.mandant.status'),
       dataIndex: 'status',
       width: 120,
-      render: (status: string) => <Tag>{status}</Tag>,
+      render: (status: UnifiedLicenseRow['status']) => (
+        <Tag color={status === 'active' ? 'success' : status === 'grace' ? 'warning' : 'error'}>
+          {status === 'active'
+            ? t('license.management.statusActive')
+            : status === 'grace'
+              ? t('license.management.statusGrace')
+              : t('license.management.statusExpired')}
+        </Tag>
+      ),
     },
     {
       title: t('license.management.actions'),
@@ -182,7 +196,7 @@ export function LicenseManagementPage() {
               onChange={(key) => setKindTab(key as KindTab)}
               items={[
                 { key: 'all', label: t('license.management.tabAll') },
-                { key: 'server', label: t('license.management.kindServer') },
+                { key: 'system', label: t('license.management.kindSystem') },
                 { key: 'tenant', label: t('license.management.kindTenant') },
               ]}
             />

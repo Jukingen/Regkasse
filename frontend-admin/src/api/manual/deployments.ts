@@ -197,3 +197,39 @@ export async function submitComplianceSignoff(body: {
   );
   return data;
 }
+
+export type GoLiveVerdict = 'GO' | 'NO-GO';
+
+export type GoLiveCheckCategory =
+  | 'Fiskaly'
+  | 'Config'
+  | 'FON'
+  | 'Backup'
+  | 'Monitoring'
+  | 'Sign-off';
+
+export interface GoLiveCheckDto {
+  name: string;
+  category: GoLiveCheckCategory | string;
+  passed: boolean;
+  details: string;
+  remediation: string;
+}
+
+export interface GoLiveStatusDto {
+  status: GoLiveVerdict | string;
+  checks: GoLiveCheckDto[];
+  checkedAtUtc: string;
+  summary: string;
+}
+
+export async function fetchGoLiveStatus(
+  refresh = true,
+  signal?: AbortSignal,
+): Promise<GoLiveStatusDto> {
+  const { data } = await AXIOS_INSTANCE.get<GoLiveStatusDto>(
+    '/api/admin/deployments/go-live-status',
+    { signal, params: { refresh } },
+  );
+  return data;
+}

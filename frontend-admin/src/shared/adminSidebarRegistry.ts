@@ -73,6 +73,7 @@ export type SidebarIconToken =
   | 'UserOutlined'
   | 'GiftOutlined'
   | 'SafetyCertificateOutlined'
+  | 'FlagOutlined'
   | 'SafetyOutlined'
   | 'SwapOutlined'
   | 'ClusterOutlined'
@@ -857,6 +858,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     labelKey: 'nav.deploymentCompliance',
     icon: 'SafetyCertificateOutlined',
     permission: PERMISSIONS.DEPLOYMENT_APPROVE,
+  },
+  superAdminDeploymentGoLive: {
+    id: 'superAdminDeploymentGoLive',
+    menuKey: '/admin/deployments/go-live',
+    href: '/admin/deployments/go-live',
+    labelKey: 'nav.deploymentGoLive',
+    icon: 'FlagOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
   },
   superAdminDatabaseMigrations: {
     id: 'superAdminDatabaseMigrations',
@@ -1830,6 +1839,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         kind: 'leaves',
         catalogIds: [
           'superAdminDeployments',
+          'superAdminDeploymentGoLive',
           'superAdminDeploymentTenants',
           'superAdminDeploymentCompliance',
           'superAdminDatabaseMigrations',

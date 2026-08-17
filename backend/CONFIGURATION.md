@@ -31,7 +31,9 @@ Load order (ASP.NET Core): base → environment overlay → user secrets (Develo
 | `TwoFactorAuth` | yes | yes (Enabled=false) | yes (Enabled=true) | See `docs/AUTH_TWO_FACTOR.md` |
 | `Backup` | yes (Fake) | yes (Fake) | yes (PgDump paths) | Staging/archive roots via secrets in Dev |
 | `FinanzOnline` (+ Outbox/RetryJob) | yes | simulation | real | Credentials from DB / secrets, not tracked JSON |
-| `Security:Csrf` | yes | disabled | enabled | |
+| `Security:Csrf` | yes | disabled | enabled (startup fail-closed) | |
+| `GoLive` | yes (all false) | inherit | all false until humans attest | Super Admin GO/NO-GO dashboard |
+| `PaymentGateway` | Mock | Mock | **None or Stripe** (Mock rejected at startup) | Card intents; cash-only use `None` |
 | `JwtSettings` Issuer/Audience | yes | inherit | yes | **SecretKey never in JSON** |
 | `ConnectionStrings` | omit | omit | omit | User secrets / env only |
 ## Required secrets (local, staging, production)
@@ -322,21 +324,38 @@ cd backend && dotnet run
 
 See [`docs/EMAIL_CONFIGURATION.md`](../docs/EMAIL_CONFIGURATION.md) for all settings, verification steps, and production setup.
 
-## CSRF protection (optional)
+## CSRF protection
 
 Section `Security:Csrf` (`Security__Csrf__*` env vars). Middleware: `CsrfMiddleware`. Token endpoint: `GET /api/csrf/token` (anonymous).
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `Enabled` | `false` | When `true`, state-changing methods require a valid CSRF token (unless Development bypass applies). |
+| `Enabled` | `true` | When `true`, state-changing methods require a valid CSRF token (unless Development bypass applies). Production startup **throws** if this is `false`; `ProductionCsrfPostConfigure` also turns it on if options still load as disabled. |
 | `BypassInDevelopment` | `true` | When `true` **and** `ASPNETCORE_ENVIRONMENT=Development`, skip CSRF validation. Ignored outside Development. |
 | `HeaderName` | `X-XSRF-TOKEN` | Request header carrying the token from `GET /api/csrf/token`. |
 | `CookieName` | `XSRF-TOKEN` | Cookie set by the token endpoint (not HttpOnly — FA reads via `document.cookie` and sends `X-XSRF-TOKEN`). |
 | `TokenLifetimeHours` | `24` | Cache + cookie lifetime (clamped 1–168). |
 
-**Templates:** Development example disables CSRF + bypass; Production example enables CSRF with `BypassInDevelopment=false`. Copy into local `appsettings.Development.json` / `appsettings.Production.json` (gitignored).
+**Production lock:** `ProductionRuntimeConfigurationGuard` fails startup when CSRF, SuperAdmin 2FA, rate limiting, Redis, Backup `PgDump`, or a non-Mock payment gateway are missing. FON simulation is also rejected here (TSE fiscal lock remains in `TseProductionOptionsValidator`).
+
+**Templates:** Development example may disable CSRF + bypass; Production example enables CSRF with `BypassInDevelopment=false`. Copy into local `appsettings.Development.json` / `appsettings.Production.json` (gitignored).
 
 **Exempt paths:** `/api/Auth/login`, `/api/Auth/refresh`, health, swagger, metrics, `/api/webhooks/*`, `/api/csrf/token`. Native clients without a cookie jar may send the same value in `X-CSRF-COOKIE`. Response on failure: HTTP 403 with message to refresh the page.
+
+## Go-live automated NO-GO (`GoLive`)
+
+Super Admin dashboard: FA `/admin/deployments/go-live` → `GET /api/admin/deployments/go-live-status` (`system.critical`). Service: `GoLiveCheckService`.
+
+Config-only gates (Fiskaly LIVE, TSE Device/Real, FON not Simulation, CSRF/2FA/Redis/gateway, backup `PgDump` + recent System dump + restore drill, Prometheus) are evaluated from the running host. Human-only items stay **fail-closed** until ops set these after named evidence (`docs/GO_LIVE_CHECKLIST.md` §8 — agents must not set them true):
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `GoLive:AlertmanagerReceiversConfigured` | `false` | Host Alertmanager receivers rendered + routing test acknowledged |
+| `GoLive:AvvSignedForPilots` | `false` | AVV signed for first paying pilots |
+| `GoLive:OnCallNamed` | `false` | On-call rota named |
+| `GoLive:Section8Signed` | `false` | Checklist §8 signed by named humans |
+
+Env: `GoLive__Section8Signed=true` (and siblings) only after wet-ink / named digital signatures.
 
 ## Trial (SaaS mandant demo)
 

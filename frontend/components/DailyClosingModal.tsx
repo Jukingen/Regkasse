@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { safeLog } from '../utils/loggingUtils';
 
 export type DailyClosingModalProps = {
   visible: boolean;
@@ -33,7 +34,7 @@ export function DailyClosingModal({
 
   useEffect(() => {
     if (__DEV__ && visible) {
-      console.log('✅ DailyClosingModal opened', { visible });
+      safeLog('✅ DailyClosingModal opened', { visible });
     }
   }, [visible]);
 

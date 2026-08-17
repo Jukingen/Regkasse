@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { View } from 'react-native';
+import { safeLog } from '../utils/loggingUtils';
 
 import { SessionTimeoutWarning } from '../components/SessionTimeoutWarning';
 import { AuthAppError } from '../features/auth/authErrors';
@@ -33,7 +34,7 @@ const isDev = __DEV__;
 
 function authDevLog(...args: unknown[]) {
   if (isDev) {
-    console.log(...args);
+    safeLog(...args);
   }
 }
 function authDevWarn(...args: unknown[]) {
@@ -355,7 +356,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         window.addEventListener(CART_CLEAR_EVENT, handleLogoutEvent);
         window.addEventListener('AUTH_SESSION_EXPIRED', handleAuthExpiredEvent);
-        // console.log('✅ [AUTH] Web platform: auth event listeners added');
+        // safeLog('✅ [AUTH] Web platform: auth event listeners added');
 
         // Cleanup
         return () => {

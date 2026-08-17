@@ -30,6 +30,7 @@ import { ThemeProvider } from '../contexts/ThemeContext';
 import { i18nReady } from '../i18n';
 import { OfflineSyncService } from '../services/offline/offlineSyncService';
 import { clearLegacyTenantSwitcherCache } from '../services/tenant/clearLegacyTenantSwitcherCache';
+import { safeLog } from '../utils/loggingUtils';
 
 // Native screen containers + freeze inactive routes (react-native-screens / Expo Router).
 // Must run before navigators mount — module scope of the root layout.
@@ -58,7 +59,7 @@ try {
   // Web / unsupported; ignore.
 }
 
-console.log('🚀 ROOT LAYOUT: Module loaded successfully');
+safeLog('🚀 ROOT LAYOUT: Module loaded successfully');
 
 export default function RootLayout() {
   const [isI18nReady, setIsI18nReady] = React.useState(false);
@@ -108,9 +109,9 @@ export default function RootLayout() {
   }, []);
 
   React.useEffect(() => {
-    console.log('🌳 ROOT LAYOUT: Mounted');
+    safeLog('🌳 ROOT LAYOUT: Mounted');
     return () => {
-      console.log('🌳 ROOT LAYOUT: Unmounted');
+      safeLog('🌳 ROOT LAYOUT: Unmounted');
     };
   }, []);
 

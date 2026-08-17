@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Alert } from 'react-native';
+import { safeLog } from '../utils/loggingUtils';
 
 export interface AsyncState<T = any> {
   data: T | null;
@@ -86,7 +87,7 @@ export function useAsyncState<T = any>(
 
   const execute = useCallback(
     async (...args: any[]): Promise<T | null> => {
-      console.log('🔄 useAsyncState execute çağrıldı:', {
+      safeLog('🔄 useAsyncState execute çağrıldı:', {
         functionName: asyncFunction.name || 'Anonymous',
         args,
         autoExecute,
@@ -101,7 +102,7 @@ export function useAsyncState<T = any>(
       abortControllerRef.current = new AbortController();
 
       try {
-        console.log('🔄 Loading state set ediliyor...');
+        safeLog('🔄 Loading state set ediliyor...');
         setState((prev) => ({
           ...prev,
           loading: true,
@@ -109,9 +110,9 @@ export function useAsyncState<T = any>(
           success: false,
         }));
 
-        console.log('🔄 Async function çağrılıyor...');
+        safeLog('🔄 Async function çağrılıyor...');
         const result = await asyncFunction(...args);
-        console.log('🔄 Async function sonucu:', result);
+        safeLog('🔄 Async function sonucu:', result);
 
         // İstek iptal edildiyse sonucu işleme
         if (abortControllerRef.current.signal.aborted) {
@@ -133,7 +134,7 @@ export function useAsyncState<T = any>(
         onSuccess?.(result);
         return result;
       } catch (error: any) {
-        console.log('❌ useAsyncState error:', {
+        safeLog('❌ useAsyncState error:', {
           error,
           errorMessage: error?.message,
           errorStatus: error?.status,
@@ -146,11 +147,11 @@ export function useAsyncState<T = any>(
         }
 
         const finalErrorMessage = errorMessage || error?.message || 'An error occurred';
-        console.log('❌ Final error message:', finalErrorMessage);
+        safeLog('❌ Final error message:', finalErrorMessage);
 
         // Debouncing hatası varsa error state'i set etme
         if (finalErrorMessage === 'API response is null or undefined') {
-          console.log('🚫 Debouncing hatası tespit edildi, error state set edilmiyor');
+          safeLog('🚫 Debouncing hatası tespit edildi, error state set edilmiyor');
           setState((prev) => ({
             ...prev,
             loading: false,
@@ -192,7 +193,7 @@ export function useAsyncState<T = any>(
   // autoExecute true ise component mount olduğunda otomatik çalıştır
   useEffect(() => {
     if (autoExecute) {
-      console.log('🔄 useAsyncState autoExecute useEffect çalışıyor...');
+      safeLog('🔄 useAsyncState autoExecute useEffect çalışıyor...');
       // execute fonksiyonunu dependency array'den çıkararak sonsuz döngüyü önle
       const executeOnce = async () => {
         try {

@@ -5,7 +5,7 @@
       <DataCollector friendlyName="XPlat Code Coverage">
         <Configuration>
           <Format>cobertura</Format>
-          <Include>[KasseAPI_Final]KasseAPI_Final.Services.PaymentService*</Include>
+          <Include>[KasseAPI_Final]KasseAPI_Final.Services.PaymentService*,[KasseAPI_Final]KasseAPI_Final.Services.CardPaymentService</Include>
           <ExcludeByFile>**/Migrations/**</ExcludeByFile>
         </Configuration>
       </DataCollector>

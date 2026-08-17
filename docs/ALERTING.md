@@ -2,7 +2,7 @@
 
 How critical signals reach Slack, email, and on-call — without duplicate noise.
 
-**Last updated:** 2026-07-29
+**Last updated:** 2026-08-17
 
 | Related | Link |
 |---------|------|
@@ -21,11 +21,11 @@ How critical signals reach Slack, email, and on-call — without duplicate noise
 |---------|---------|--------|
 | **Slack `#regkasse-alerts`** | Warnings + most criticals | `SLACK_WEBHOOK_URL` → Alertmanager / Sentry / Actions |
 | **Slack / Pager `#regkasse-oncall`** | Page-worthy (API down, TSE/FON) | `ONCALL_WEBHOOK_URL` |
-| **Email** | Security / compliance digests | Activity notification config + Sentry email |
+| **Email** | Ops mailbox + security / compliance | Alertmanager `email_configs` → `ops@regkasse.at` (override `ALERTMANAGER_EMAIL_TO`); also Activity + Sentry |
 | **FA Activity bell** | In-app business events | `ActivityEventType` + SSE |
-| **PagerDuty / Opsgenie** | Replace on-call Slack when ready | Alertmanager receiver (see example) |
+| **PagerDuty** | Optional replacement for on-call Slack | `PAGERDUTY_ROUTING_KEY` on the `oncall` receiver |
 
-Default Alertmanager config in-repo uses a **null** receiver (no spam). Copy the example and substitute webhooks on the host only.
+Default tracked `monitoring/alertmanager/alertmanager.yml` uses a **null** receiver (no spam on local compose). Production must **render** [`alertmanager.yml.example`](../monitoring/alertmanager/alertmanager.yml.example) on the host — Alertmanager does **not** expand `${ENV}` itself.
 
 ---
 
@@ -84,23 +84,55 @@ Prefer routing **security** to a restricted mailbox; do not put secrets in Slack
 
 ---
 
-## Enable Alertmanager → Slack
+## Enable Alertmanager receivers (host only)
 
-```bash
-cd monitoring
-cp alertmanager/alertmanager.yml.example alertmanager/alertmanager.yml
-# Edit: replace ${SLACK_WEBHOOK_URL} / ${ONCALL_WEBHOOK_URL} with real HTTPS hooks
-# (or envsubst from a host secret file — never commit)
+Tracked `alertmanager.yml` stays null. Render the example (Slack `#regkasse-alerts` / `#regkasse-oncall`, email `ops@regkasse.at`, optional PagerDuty):
 
-docker compose -f docker-compose.monitoring.yml up -d alertmanager
-curl -X POST http://127.0.0.1:9090/-/reload   # reload Prometheus if needed
+```powershell
+$env:SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/..."   # host secret
+$env:ONCALL_WEBHOOK_URL = "https://hooks.slack.com/services/..."
+$env:ALERTMANAGER_EMAIL_TO = "ops@regkasse.at"
+# Optional SMTP + PagerDuty:
+# $env:ALERTMANAGER_SMTP_SMARTHOST = "smtp.example.com:587"
+# $env:ALERTMANAGER_SMTP_FROM = "alerts@regkasse.at"
+# $env:ALERTMANAGER_SMTP_AUTH_USERNAME = "..."
+# $env:ALERTMANAGER_SMTP_AUTH_PASSWORD = "..."
+# $env:PAGERDUTY_ROUTING_KEY = "..."
+
+pwsh ./monitoring/alertmanager/render-alertmanager-config.ps1
+# Linux alternative: envsubst < monitoring/alertmanager/alertmanager.yml.example > /secure/alertmanager.yml
 ```
 
-Test:
+Mount the **rendered** file in compose (do not commit it). Slack-only: delete `email_configs`, `pagerduty_configs`, and unused `smtp_*` keys from the rendered YAML before reload.
 
 ```bash
-# Fire a silence-free test via Alertmanager UI or amtool
+# Validate, then reload
+amtool check-config monitoring/alertmanager/alertmanager.rendered.yml
+docker compose -f monitoring/docker-compose.monitoring.yml up -d alertmanager
 curl -fsS http://127.0.0.1:9093/-/healthy
+curl -X POST http://127.0.0.1:9090/-/reload   # Prometheus, if needed
+```
+
+### Test routing (Staging / loopback only)
+
+This is **not** proof that Production pages a human until the host uses the rendered file and someone acknowledges the test alert.
+
+```bash
+curl -fsS http://127.0.0.1:9093/-/healthy
+
+# Synthetic alert (requires a live Alertmanager with real receivers)
+curl -sS -X POST http://127.0.0.1:9093/api/v2/alerts \
+  -H 'Content-Type: application/json' \
+  -d '[{"labels":{"alertname":"RegkasseRoutingTest","severity":"warning","channel":"slack"},"annotations":{"summary":"Routing test","description":"Ignore — Alertmanager receiver check"}}]'
+```
+
+Confirm Slack `#regkasse-alerts` (or pager channel / email). Silence afterwards.
+
+Windows:
+
+```powershell
+.\scripts\ops\test-alertmanager-routing.ps1
+.\scripts\ops\test-alertmanager-routing.ps1 -Pager
 ```
 
 ---

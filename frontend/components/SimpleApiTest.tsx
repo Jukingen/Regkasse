@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { safeLog } from '../utils/loggingUtils';
 
 import { apiClient } from '../services/api/config';
 
@@ -16,9 +17,9 @@ export const SimpleApiTest: React.FC = () => {
     setResult('');
 
     try {
-      console.log('🧪 Testing health endpoint...');
+      safeLog('🧪 Testing health endpoint...');
       const response = await apiClient.get('/health');
-      console.log('✅ Health test successful:', response);
+      safeLog('✅ Health test successful:', response);
       setResult(`✅ Başarılı: ${JSON.stringify(response, null, 2)}`);
     } catch (error: any) {
       console.error('❌ Health test failed:', error);
@@ -42,9 +43,9 @@ export const SimpleApiTest: React.FC = () => {
     setResult('');
 
     try {
-      console.log('🏓 Testing ping endpoint...');
+      safeLog('🏓 Testing ping endpoint...');
       const response = await apiClient.get('/test/ping');
-      console.log('✅ Ping test successful:', response);
+      safeLog('✅ Ping test successful:', response);
       setResult(`✅ Ping başarılı: ${JSON.stringify(response, null, 2)}`);
     } catch (error: any) {
       console.error('❌ Ping test failed:', error);

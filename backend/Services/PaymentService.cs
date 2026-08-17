@@ -194,7 +194,8 @@ namespace KasseAPI_Final.Services
 
             var tenantStatus = TenantLicenseValidator.GetStatus(tenantLicenseValidUntilUtc);
             if (tenantStatus == TenantLicenseStatus.GraceReadOnly
-                || tenantStatus == TenantLicenseStatus.Lockdown)
+                || tenantStatus == TenantLicenseStatus.Lockdown
+                || tenantStatus == TenantLicenseStatus.Archived)
             {
                 _logger.LogWarning(
                     "Payment blocked: tenant license denies payments (TenantId={TenantId}, Status={Status}, ValidUntilUtc={ValidUntilUtc})",

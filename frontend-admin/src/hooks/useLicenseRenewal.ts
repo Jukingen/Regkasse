@@ -54,7 +54,7 @@ export function useLicenseRenewal(tenantId?: string) {
 
   const renewMutation = useMutation({
     mutationFn: async (variables: RenewMutationVariables) =>
-      activateUnifiedLicense(variables.licenseKey),
+      activateUnifiedLicense(variables.licenseKey, resolvedTenantId || null),
     onMutate: async (variables) => {
       const expectedValidUntilUtc = variables.expectedValidUntilUtc?.trim();
       if (!expectedValidUntilUtc) {

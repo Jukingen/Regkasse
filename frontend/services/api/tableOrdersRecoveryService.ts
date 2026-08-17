@@ -1,3 +1,4 @@
+import { safeLog } from '../../utils/loggingUtils';
 // Bu service, masa siparişleri recovery API'si ile iletişim kurar
 // RKSV uyumlu güvenlik ve error handling sağlar
 
@@ -50,7 +51,7 @@ export class TableOrdersRecoveryService {
    */
   public async getAllActiveTableOrders(): Promise<TableOrdersRecoveryResponse> {
     try {
-      console.log('🔄 Requesting table orders recovery from backend...');
+      safeLog('🔄 Requesting table orders recovery from backend...');
 
       const response = await apiClient.get('/pos/cart/table-orders-recovery');
 
@@ -70,7 +71,7 @@ export class TableOrdersRecoveryService {
         throw new Error('Invalid table orders data structure');
       }
 
-      console.log(
+      safeLog(
         `✅ Table orders recovery successful: ${recoveryData.totalActiveTables} active orders`
       );
 
